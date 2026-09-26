@@ -134,7 +134,8 @@ public class SpecialtyPersistenceRestartTests
         zones.GetZoneGroupById(8).Returns(new ZoneGroup { Id = 8, FactionChatRegionId = 2 });
         var store = new PurchaseStore(database);
         var manager = new SpecialtyManager(items.Object, Mock.Of<ILocalizationManager>().Object,
-            Mock.Of<ISkillManager>().Object, zones.Object, Mock.Of<IMailManager>().Object, null,
+            Mock.Of<ISkillManager>().Object, zones.Object, Mock.Of<INpcManager>().Object,
+            Mock.Of<IMailManager>().Object, null,
             Mock.Of<ISpecialtyMarketStore>().Object, store, Mock.Of<IWorldManager>().Object,
             Mock.Of<ITaskManager>().Object, TimeProvider.System, Options.Create(new AppConfiguration()));
         var tradeGood = new TradeGood

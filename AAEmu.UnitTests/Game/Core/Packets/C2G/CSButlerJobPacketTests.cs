@@ -41,15 +41,20 @@ public class CSButlerJobPacketTests
     }
 
     [Test]
-    public async Task ExpandGardenSlots_ParsesOnlyTheNativeKindByte()
+    public async Task ExpandJobSlots_ParsesOnlyTheNativeKindByte()
     {
         var stream = new PacketStream(new byte[] { 2 });
         var packet = new CSExpandButlerUsableSlotPacket();
+        var tradeStream = new PacketStream(new byte[] { 3 });
+        var tradePacket = new CSExpandButlerUsableSlotPacket();
 
         packet.Read(stream);
+        tradePacket.Read(tradeStream);
 
         await Assert.That(packet.Kind).IsEqualTo((sbyte)2);
+        await Assert.That(tradePacket.Kind).IsEqualTo((sbyte)3);
         await Assert.That(stream.LeftBytes).IsEqualTo(0);
+        await Assert.That(tradeStream.LeftBytes).IsEqualTo(0);
         await Assert.That(() => new CSExpandButlerUsableSlotPacket().Read(
                 new PacketStream(new byte[] { 2, 0 })))
             .Throws<InvalidDataException>();
@@ -74,6 +79,20 @@ public class CSButlerJobPacketTests
         await Assert.That(packet.SpecialtyTradeType).IsEqualTo(-123456789);
         await Assert.That(packet.ToZoneGroupType).IsEqualTo((short)-12345);
         await Assert.That(stream.LeftBytes).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task SpecialtyTradeJob_ClassifiesRegisterCancelAndRejectsMalformedOwners()
+    {
+        var register = CSRequestButlerSpecialtyTradeJobPacket.Classify(1, 0, 7001, 4);
+        var cancel = CSRequestButlerSpecialtyTradeJobPacket.Classify(3, 99, 0, 0);
+        var registerWithOwner = CSRequestButlerSpecialtyTradeJobPacket.Classify(1, 99, 7001, 4);
+        var invalidZone = CSRequestButlerSpecialtyTradeJobPacket.Classify(1, 0, 7001, 0);
+
+        await Assert.That(register).IsEqualTo(ButlerSpecialtyTradeRequestOperation.Register);
+        await Assert.That(cancel).IsEqualTo(ButlerSpecialtyTradeRequestOperation.Cancel);
+        await Assert.That(registerWithOwner).IsEqualTo(ButlerSpecialtyTradeRequestOperation.Invalid);
+        await Assert.That(invalidZone).IsEqualTo(ButlerSpecialtyTradeRequestOperation.Invalid);
     }
 
     [Test]

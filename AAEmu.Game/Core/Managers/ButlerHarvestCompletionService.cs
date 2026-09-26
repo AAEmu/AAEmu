@@ -15,8 +15,9 @@ using NLog;
 namespace AAEmu.Game.Core.Managers;
 
 /// <summary>
-/// Completes persisted Farmhand harvest intervals. Each interval's idempotence marker, job mutation,
-/// reward mail attachments, and optional final XP award commit in one caller-owned transaction.
+/// Completes persisted Farmhand harvest intervals and asks the farmhand specialty-trade processor to settle due jobs.
+/// Each harvest interval's idempotence marker, job mutation, reward mail attachments, and optional final XP award
+/// commit in one caller-owned transaction.
 /// </summary>
 public sealed class ButlerHarvestCompletionService : Singleton<ButlerHarvestCompletionService>, ILoadable
 {
@@ -33,6 +34,7 @@ public sealed class ButlerHarvestCompletionService : Singleton<ButlerHarvestComp
     private readonly INeutralLootPackRoller _lootPackRoller;
     private readonly ButlerHarvestRewardPolicy _rewardPolicy;
     private readonly ITaskManager _taskManager;
+    private readonly IButlerSpecialtyTradeJobProcessor _specialtyTradeProcessor;
     private readonly Func<MySqlConnection> _openConnection;
     private readonly Func<DateTime> _utcNow;
     private bool _loaded;
@@ -48,7 +50,24 @@ public sealed class ButlerHarvestCompletionService : Singleton<ButlerHarvestComp
         ButlerHarvestRewardPolicy rewardPolicy,
         ITaskManager taskManager)
         : this(butlerManager, repository, mailManager, itemManager, nameManager, worldManager,
-            lootPackRoller, rewardPolicy, taskManager, MySQL.CreateConnection, () => DateTime.UtcNow)
+            lootPackRoller, rewardPolicy, taskManager, null)
+    {
+    }
+
+    public ButlerHarvestCompletionService(
+        IButlerManager butlerManager,
+        IButlerRepository repository,
+        IMailManager mailManager,
+        IItemManager itemManager,
+        INameManager nameManager,
+        IWorldManager worldManager,
+        INeutralLootPackRoller lootPackRoller,
+        ButlerHarvestRewardPolicy rewardPolicy,
+        ITaskManager taskManager,
+        IButlerSpecialtyTradeJobProcessor specialtyTradeProcessor)
+        : this(butlerManager, repository, mailManager, itemManager, nameManager, worldManager,
+            lootPackRoller, rewardPolicy, taskManager, specialtyTradeProcessor,
+            MySQL.CreateConnection, () => DateTime.UtcNow)
     {
     }
 
@@ -64,6 +83,24 @@ public sealed class ButlerHarvestCompletionService : Singleton<ButlerHarvestComp
         ITaskManager taskManager,
         Func<MySqlConnection> openConnection,
         Func<DateTime> utcNow)
+        : this(butlerManager, repository, mailManager, itemManager, nameManager, worldManager,
+            lootPackRoller, rewardPolicy, taskManager, null, openConnection, utcNow)
+    {
+    }
+
+    internal ButlerHarvestCompletionService(
+        IButlerManager butlerManager,
+        IButlerRepository repository,
+        IMailManager mailManager,
+        IItemManager itemManager,
+        INameManager nameManager,
+        IWorldManager worldManager,
+        INeutralLootPackRoller lootPackRoller,
+        ButlerHarvestRewardPolicy rewardPolicy,
+        ITaskManager taskManager,
+        IButlerSpecialtyTradeJobProcessor specialtyTradeProcessor,
+        Func<MySqlConnection> openConnection,
+        Func<DateTime> utcNow)
     {
         _butlerManager = butlerManager ?? throw new ArgumentNullException(nameof(butlerManager));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
@@ -74,6 +111,7 @@ public sealed class ButlerHarvestCompletionService : Singleton<ButlerHarvestComp
         _lootPackRoller = lootPackRoller ?? throw new ArgumentNullException(nameof(lootPackRoller));
         _rewardPolicy = rewardPolicy ?? throw new ArgumentNullException(nameof(rewardPolicy));
         _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
+        _specialtyTradeProcessor = specialtyTradeProcessor;
         _openConnection = openConnection ?? throw new ArgumentNullException(nameof(openConnection));
         _utcNow = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
     }
@@ -114,6 +152,15 @@ public sealed class ButlerHarvestCompletionService : Singleton<ButlerHarvestComp
                 Logger.Error(ex, "Farmhand harvest completion failed after commit for character {0}",
                     butler?.CharacterId);
             }
+        }
+
+        try
+        {
+            _specialtyTradeProcessor?.ProcessDueSpecialtyTradeJobs();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Farmhand specialty-trade completion pass failed");
         }
     }
 

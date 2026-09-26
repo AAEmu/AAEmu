@@ -1,7 +1,11 @@
 using System.Reflection;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Game.World.Zones;
 using MySql.Data.MySqlClient;
@@ -734,11 +738,196 @@ public partial class SpecialtyManagerTests
         await AssertMarketEquals(store.Load(), invalid);
     }
 
+    [Test]
+    public async Task ButlerTradeDelivery_RequiresTheJobNpcAndAdvancesOneMarketRevision()
+    {
+        var store = new InMemoryMarketStore(CreatePersistedMarket());
+        var manager = CreateRestoredMarketManager(store);
+
+        var accepted = manager.TryPrepareButlerTradeDelivery(1, 31832, 8, out var market);
+        var rejected = manager.TryPrepareButlerTradeDelivery(99, 31832, 8, out _);
+
+        await Assert.That(accepted).IsTrue();
+        await Assert.That(market.Expected.Revision).IsEqualTo(7L);
+        await Assert.That(market.Updated.Revision).IsEqualTo(8L);
+        await Assert.That(rejected).IsFalse();
+
+        store.Commit(market);
+        manager.CommitButlerTradeMarketWrite(market);
+        await Assert.That(store.Load().Revision).IsEqualTo(8L);
+        await Assert.That(MarketState(manager).Revision).IsEqualTo(8L);
+    }
+
+    [Test]
+    public async Task ButlerTradeDelivery_RejectsAProductOutsideTheNpcBundle()
+    {
+        var store = new InMemoryMarketStore(CreatePersistedMarket());
+        var manager = CreateRestoredMarketManager(store);
+
+        var accepted = manager.TryPrepareButlerTradeDelivery(1, 999999, 8, out _);
+
+        await Assert.That(accepted).IsFalse();
+    }
+
+    [Test]
+    public async Task ButlerTradeDelivery_PrepareDoesNotPublishBeforeDurableCommit()
+    {
+        var store = new InMemoryMarketStore(CreatePersistedMarket());
+        var manager = CreateRestoredMarketManager(store);
+        var before = MarketState(manager);
+        await Assert.That(manager.TryPrepareButlerTradeDelivery(1, 31832, 8, out var market)).IsTrue();
+
+        await Assert.That(MarketState(manager)).IsSameReferenceAs(before);
+        store.CommitFailure = new IOException("simulated rollback");
+        await Assert.That(() => store.Commit(market)).Throws<IOException>();
+        await Assert.That(MarketState(manager)).IsSameReferenceAs(before);
+        await Assert.That(store.Load().Revision).IsEqualTo(7L);
+    }
+
+    [Test]
+    public async Task ButlerTradeDelivery_StaleConcurrentWriteCannotDoubleCommit()
+    {
+        var store = new InMemoryMarketStore(CreatePersistedMarket());
+        var manager = CreateRestoredMarketManager(store);
+        await Assert.That(manager.TryPrepareButlerTradeDelivery(1, 31832, 8, out var first)).IsTrue();
+        await Assert.That(manager.TryPrepareButlerTradeDelivery(1, 31832, 8, out var second)).IsTrue();
+
+        store.Commit(first);
+        manager.CommitButlerTradeMarketWrite(first);
+        await Assert.That(() => store.Commit(second)).Throws<SpecialtyMarketConflictException>();
+
+        await Assert.That(store.Load().Revision).IsEqualTo(8L);
+        await Assert.That(MarketState(manager).Revision).IsEqualTo(8L);
+    }
+
+    /// <summary>
+    /// The money question. A farmhand delivery is paid at the route ratio the goods were accepted
+    /// at, not at the ratio the delivery itself leaves behind: the owner is settled on the price
+    /// they sold for, and the lower price is what the next seller gets.
+    /// </summary>
+    [Test]
+    public async Task ButlerTradePayout_UsesTheRatioFromBeforeTheDeliveryLands()
+    {
+        var seed = CreatePersistedMarket();
+        // The seeded remainder is one short of a full demand bucket, so this delivery adjusts the
+        // route ratio. Without that the before and after ratios would be identical and the test
+        // could not tell a correct read from a wrong one.
+        seed.DemandRemainders[31832][8] = 3;
+        var store = new InMemoryMarketStore(seed);
+        var manager = CreateRestoredMarketManager(store,
+            configureItems: items => items.GetTemplate(Item.Coins)
+                .Returns(new ItemTemplate { Id = Item.Coins }),
+            npcManager: CoinPayoutNpcManager());
+        var settledAtUtc = new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Utc);
+
+        var prepared = manager.TryPrepareButlerTradeDelivery(1, 31832, 8, 50, OwnerId, OwnerName,
+            settledAtUtc, out var quote, out var payoutMail);
+
+        await Assert.That(prepared).IsTrue();
+        await Assert.That(quote).IsNotNull();
+        await Assert.That(payoutMail).IsNotNull();
+
+        // Before: the route stood at 10000 units, i.e. 100 percent.
+        await Assert.That(quote!.DisplayedRatioPercent).IsEqualTo(100);
+        await Assert.That(quote.BasePrice).IsEqualTo(100000);
+        await Assert.That(quote.FreshnessRewardRate).IsEqualTo(1000u);
+        await Assert.That(quote.InterestPercent).IsEqualTo(2d);
+        await Assert.That(quote.CoinItemTemplateId).IsEqualTo(Item.Coins);
+        await Assert.That(quote.TotalPayout).IsEqualTo(102000);
+        await Assert.That(quote.PayoutBeforeInterest).IsEqualTo(100000);
+        await Assert.That(payoutMail!.Body.CopperCoins).IsEqualTo(102000);
+        await Assert.That(payoutMail.Header.ReceiverId).IsEqualTo(OwnerId);
+        await Assert.That(payoutMail.ReceiverName).IsEqualTo(OwnerName);
+
+        // The delivery moves the route: the material it carried lifts the destination's demand
+        // buckets, taking the route to 13000 units, i.e. 130 percent. Paying that would give
+        // 132600, so the two readings cannot be confused.
+        store.Commit(quote.Market);
+        manager.CommitButlerTradeMarketWrite(quote.Market);
+        await Assert.That(MarketState(manager).PriceRatios[31832][8]).IsEqualTo(13000);
+
+        // The quote is the value the settlement persists, and it still holds the pre-delivery
+        // ratio after the write has landed.
+        var paidAfterCommit = SpecialtyManager.CalculateSpecialtyPayout(quote.BasePrice,
+            quote.DisplayedRatioPercent, quote.FreshnessRewardRate, quote.EventMultiplier,
+            quote.InterestPercent);
+        var paidOnTheLandedRatio = SpecialtyManager.CalculateSpecialtyPayout(quote.BasePrice, 130,
+            quote.FreshnessRewardRate, quote.EventMultiplier, quote.InterestPercent);
+        await Assert.That(paidAfterCommit.Total).IsEqualTo(102000);
+        await Assert.That(paidOnTheLandedRatio.Total).IsEqualTo(132600);
+    }
+
+    private const uint OwnerId = 71;
+    private const string OwnerName = "Owner";
+
+    [Test]
+    public async Task ButlerTradePayout_ReadsTheFreshnessGroupTheProductTemplateCarries()
+    {
+        var seed = CreatePersistedMarket();
+        seed.DemandRemainders[31832][8] = 3;
+        var store = new InMemoryMarketStore(seed);
+        var manager = CreateRestoredMarketManager(store,
+            configureItems: items =>
+            {
+                items.GetTemplate(Item.Coins).Returns(new ItemTemplate { Id = Item.Coins });
+                items.GetTemplate(31832).Returns(new BackpackTemplate
+                {
+                    Id = 31832,
+                    BackpackType = BackpackType.TradePack,
+                    FreshnessGroupId = 7
+                });
+                items.GetAllItems().Returns((List<ItemTemplate>)[
+                    new BackpackTemplate { Id = 31832, BackpackType = BackpackType.TradePack, FreshnessGroupId = 7 }
+                ]);
+            },
+            npcManager: CoinPayoutNpcManager());
+        using var freshness = CreateFreshnessDatabase();
+        manager.LoadFreshnessData(freshness);
+        var settledAtUtc = new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Utc);
+
+        // Group 7 pays 1030 within 21600s and 1000 within 43200s: the age of the goods decides.
+        await Assert.That(manager.TryPrepareButlerTradeDelivery(1, 31832, 8, 3600, OwnerId, OwnerName,
+            settledAtUtc, out var fresh, out _)).IsTrue();
+        await Assert.That(fresh!.FreshnessRewardRate).IsEqualTo(1030u);
+        await Assert.That(fresh.FreshnessPercent).IsEqualTo(103d);
+        // 100000 * 100% * 1030/1000 * 1, then 2% mail interest.
+        await Assert.That(fresh.TotalPayout).IsEqualTo(105060);
+
+        await Assert.That(manager.TryPrepareButlerTradeDelivery(1, 31832, 8, 40000, OwnerId, OwnerName,
+            settledAtUtc, out var stale, out _)).IsTrue();
+        await Assert.That(stale!.FreshnessRewardRate).IsEqualTo(1000u);
+    }
+
+    [Test]
+    public async Task ButlerTradePayout_WithoutAnOwnableRecipientIsRefusedRatherThanPaidNowhere()
+    {
+        var store = new InMemoryMarketStore(CreatePersistedMarket());
+        var manager = CreateRestoredMarketManager(store,
+            configureItems: items => items.GetTemplate(Item.Coins)
+                .Returns(new ItemTemplate { Id = Item.Coins }),
+            npcManager: CoinPayoutNpcManager());
+
+        var prepared = manager.TryPrepareButlerTradeDelivery(1, 31832, 8, 50, 0, OwnerName,
+            new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Utc), out _, out var payoutMail);
+
+        await Assert.That(prepared).IsFalse();
+        await Assert.That(payoutMail).IsNull();
+    }
+
+    private static INpcManager CoinPayoutNpcManager()
+    {
+        var npcs = Mock.Of<INpcManager>();
+        npcs.GetTemplate(1).Returns(new NpcTemplate { Id = 1, SpecialtyCoinId = 0 });
+        return npcs.Object;
+    }
+
     private static SpecialtyManager CreateRestoredMarketManager(
         InMemoryMarketStore store,
         bool ambiguousMaterialTags = false,
         int? priceRecoverRate = null,
-        int? goodsRatioCount = null)
+        int? goodsRatioCount = null,
+        Action<Mock<IItemManager>> configureItems = null,
+        INpcManager npcManager = null)
     {
         var zones = Mock.Of<IZoneManager>();
         zones.GetZoneGroupById(8).Returns(new ZoneGroup { Id = 8, FactionChatRegionId = 2 });
@@ -751,7 +940,8 @@ public partial class SpecialtyManagerTests
                 [31894] = 3362,
                 [49064] = 3363
             },
-            marketStore: store, zoneManager: zones.Object, ambiguousMaterialTags: ambiguousMaterialTags);
+            marketStore: store, zoneManager: zones.Object, ambiguousMaterialTags: ambiguousMaterialTags,
+            configureItems: configureItems, npcManager: npcManager);
         using var tradeGoods = CreateTradeGoodDatabase();
         // Load another valid category so wrong-region tests exercise membership, not just missing data.
         Execute(tradeGoods, """

@@ -1,6 +1,7 @@
 ﻿using System.Drawing;
 using System.Reflection;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
@@ -46,6 +47,7 @@ public partial class SpecialtyManagerTests
             localizationManager.Object,
             skillManager.Object,
             zoneManager.Object,
+            Mock.Of<INpcManager>().Object,
             mailManager.Object,
             new SpecialtySaleCommitter(saleStore.Object),
             marketStore.Object,
@@ -1833,7 +1835,9 @@ public partial class SpecialtyManagerTests
         ITaskManager taskManager = null,
         IWorldManager worldManager = null,
         TimeProvider timeProvider = null,
-        IOptions<AppConfiguration> options = null)
+        IOptions<AppConfiguration> options = null,
+        Action<Mock<IItemManager>> configureItems = null,
+        INpcManager npcManager = null)
     {
         var itemManager = Mock.Of<IItemManager>();
         if (item != null)
@@ -1848,6 +1852,7 @@ public partial class SpecialtyManagerTests
         }
         if (ambiguousMaterialTags)
             itemManager.HasItemTag(31832, 3362).Returns(true);
+        configureItems?.Invoke(itemManager);
         var skillManager = Mock.Of<ISkillManager>();
         skillManager.GetSkillTemplate(SkillsEnum.UseTradeGoodStore).Returns(new SkillTemplate
         {
@@ -1886,6 +1891,7 @@ public partial class SpecialtyManagerTests
             new LocalizationManager(),
             skillManager.Object,
             zoneManager ?? Mock.Of<IZoneManager>().Object,
+            npcManager ?? Mock.Of<INpcManager>().Object,
             Mock.Of<IMailManager>().Object,
             CreateSaleCommitter(),
             marketStore ?? CreateMarketStore(),
@@ -1905,6 +1911,7 @@ public partial class SpecialtyManagerTests
             new LocalizationManager(),
             Mock.Of<ISkillManager>().Object,
             Mock.Of<IZoneManager>().Object,
+            Mock.Of<INpcManager>().Object,
             Mock.Of<IMailManager>().Object,
             CreateSaleCommitter(),
             CreateMarketStore(),
@@ -1933,6 +1940,7 @@ public partial class SpecialtyManagerTests
             new LocalizationManager(),
             skillManager.Object,
             Mock.Of<IZoneManager>().Object,
+            Mock.Of<INpcManager>().Object,
             Mock.Of<IMailManager>().Object,
             CreateSaleCommitter(),
             CreateMarketStore(),
@@ -2003,6 +2011,7 @@ public partial class SpecialtyManagerTests
             localizationManager ?? new LocalizationManager(),
             skillManager.Object,
             configuredZoneManager,
+            Mock.Of<INpcManager>().Object,
             Mock.Of<IMailManager>().Object,
             CreateSaleCommitter(),
             marketStore ?? CreateMarketStore(),

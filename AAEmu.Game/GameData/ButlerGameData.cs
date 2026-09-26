@@ -26,6 +26,8 @@ public class ButlerGameData : Singleton<ButlerGameData>, IGameDataLoader
     private Dictionary<(uint ButlerId, uint Level), ButlerSlotExpansion> _tradeExpansionsByButlerAndLevel = [];
     private Dictionary<(uint ButlerId, uint TotalExpandSlotCount), ButlerSlotExpansion>
         _tradeExpansionsByButlerAndTotalCount = [];
+    private Dictionary<uint, ButlerSpecialtyTradeDefinition> _specialtyTradesById = [];
+    private Dictionary<(uint CraftId, uint ZoneGroupId), ButlerSpecialtyTradeDefinition> _specialtyTradesByCraftAndZone = [];
     private Dictionary<uint, ButlerBindingDoodadFunc> _bindingDoodadFuncsById = [];
 
     public void Load(SqliteConnection connection)
@@ -42,6 +44,8 @@ public class ButlerGameData : Singleton<ButlerGameData>, IGameDataLoader
         _gardenExpansionsByButlerAndTotalCount = [];
         _tradeExpansionsByButlerAndLevel = [];
         _tradeExpansionsByButlerAndTotalCount = [];
+        _specialtyTradesById = [];
+        _specialtyTradesByCraftAndZone = [];
         _bindingDoodadFuncsById = [];
 
         LoadTemplates(connection);
@@ -52,6 +56,7 @@ public class ButlerGameData : Singleton<ButlerGameData>, IGameDataLoader
             _tradeExpansionsByButlerAndTotalCount);
         LoadHarvestGrades(connection);
         LoadHarvests(connection);
+        LoadSpecialtyTrades(connection);
         LoadBindingDoodadFuncs(connection);
     }
 
@@ -133,6 +138,14 @@ public class ButlerGameData : Singleton<ButlerGameData>, IGameDataLoader
 
     public IReadOnlyList<ButlerHarvest> GetHarvests(uint harvestGradeId) =>
         _harvestsByGradeId.GetValueOrDefault(harvestGradeId) ?? [];
+
+    public bool TryGetSpecialtyTrade(uint tradeId, ushort zoneGroupId,
+        out ButlerSpecialtyTradeDefinition trade)
+    {
+        trade = null;
+        return _specialtyTradesById.TryGetValue(tradeId, out trade) &&
+               trade.ZoneGroupId == zoneGroupId;
+    }
 
     /// <summary>Looks up the raw <c>level</c> key from <c>butler_func_garden_expand_slots</c>.</summary>
     public bool TryGetGardenSlotExpansion(uint butlerId, uint level, out ButlerSlotExpansion expansion) =>
@@ -296,6 +309,40 @@ public class ButlerGameData : Singleton<ButlerGameData>, IGameDataLoader
             if (!_harvestsByGradeId.TryGetValue(harvest.ButlerHarvestGradeId, out var harvests))
                 _harvestsByGradeId[harvest.ButlerHarvestGradeId] = harvests = [];
             harvests.Add(harvest);
+        }
+    }
+
+    private void LoadSpecialtyTrades(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT t.id, t.npc_id, t.craft_id, t.delivery_min_time, t.delivery_max_time,
+                   t.consume_production_cost, n.zone_group_id
+            FROM butler_specialty_trades t
+            INNER JOIN specialty_npcs n ON n.npc_id = t.npc_id
+            """;
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+        {
+            var trade = new ButlerSpecialtyTradeDefinition(
+                reader.GetUInt32("id"),
+                reader.GetUInt32("npc_id"),
+                reader.GetUInt32("craft_id"),
+                reader.GetUInt32("delivery_min_time"),
+                reader.GetUInt32("delivery_max_time"),
+                reader.GetUInt32("consume_production_cost"),
+                reader.GetUInt32("zone_group_id"));
+            if (trade.Id == 0 || trade.NpcId == 0 || trade.CraftId == 0 || trade.ZoneGroupId == 0 ||
+                trade.ZoneGroupId > ushort.MaxValue || trade.DeliveryMinTime == 0 ||
+                trade.DeliveryMinTime > trade.DeliveryMaxTime || trade.ConsumeProductionCost == 0)
+                throw new InvalidDataException("butler_specialty_trades contains an invalid row.");
+            if (!_specialtyTradesById.TryAdd(trade.Id, trade))
+                throw new InvalidDataException($"butler_specialty_trades has duplicate id {trade.Id}.");
+            if (!_specialtyTradesByCraftAndZone.TryAdd((trade.CraftId, trade.ZoneGroupId), trade))
+                throw new InvalidDataException(
+                    $"butler_specialty_trades has duplicate craft/zone key {trade.CraftId}/{trade.ZoneGroupId}.");
         }
     }
 
