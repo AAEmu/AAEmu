@@ -4,6 +4,8 @@ using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Schedules;
 
+using System.Collections.ObjectModel;
+
 using NCrontab;
 
 using NLog;
@@ -63,6 +65,12 @@ public class GameScheduleManager(
             return null;
         return _gameSchedules.TryGetValue(gameScheduleId, out var schedule) ? schedule : null;
     }
+
+    /// <summary>Every loaded schedule row, keyed by its content id. Read-only view of the content table.</summary>
+    public IReadOnlyDictionary<int, GameSchedules> GetSchedules() =>
+        _gameSchedules != null
+            ? new ReadOnlyDictionary<int, GameSchedules>(_gameSchedules)
+            : new ReadOnlyDictionary<int, GameSchedules>(new Dictionary<int, GameSchedules>());
 
     public void LoadGameScheduleSpawners(Dictionary<int, GameScheduleSpawners> gameScheduleSpawners)
     {
