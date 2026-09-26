@@ -1006,6 +1006,16 @@ CREATE TABLE IF NOT EXISTS `portal_visited_district` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='List of visited area for the portal book';
 
 
+CREATE TABLE IF NOT EXISTS `character_favorite_portals` (
+  `owner` int unsigned NOT NULL,
+  `portal_type` tinyint unsigned NOT NULL,
+  `portal_id` int unsigned NOT NULL,
+  `sort_order` int unsigned NOT NULL,
+  PRIMARY KEY (`owner`,`portal_type`,`portal_id`) USING BTREE,
+  KEY `ix_character_favorite_portals_order` (`owner`,`sort_order`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Ordered favorite portal-book entries per character';
+
+
 CREATE TABLE IF NOT EXISTS `quests` (
   `id` int unsigned NOT NULL,
   `template_id` int unsigned NOT NULL,

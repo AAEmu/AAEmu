@@ -147,11 +147,45 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
     /// figure (the voter gate) and the running total restarts. Guarded by hero_period_resets so a restart
     /// mid-phase cannot roll twice.
     /// </summary>
-    private static void EnsureLeadershipPeriodReset(HeroCycle cycle)
+    internal static void EnsureLeadershipPeriodReset(HeroCycle cycle)
+    {
+        // The idempotency marker is read before the exclusive save scope is taken. HeroTickTask calls this
+        // every minute for the whole LeadershipRanking phase, and after the first successful roll the marker
+        // is always present, so entering PersistenceSaveScope here would pause every in-flight mail/auction/
+        // butler operation once a minute just to re-read a row this branch already knows is there.
+        // This read is an optimization only: the authoritative check is the one inside the transaction
+        // below, which still guards the roll itself. A read failure falls through to the gated path so a
+        // transient database error can never be mistaken for "already reset" and skip the roll.
+        if (PeriodResetProbe(cycle.Id))
+            return;
+
+        // Refusing the roll is not an exceptional condition for a minute tick that can fire while a money
+        // operation owns the gate, so it is logged and skipped rather than thrown: throwing would abort the
+        // task and stop every later phase entry with it.
+        if (!PersistenceSaveScope.TryEnter(out var persistenceSave))
+        {
+            Logger.Warn("Hero cycle {0}: leadership period reset skipped, a live operation owns the save gate", cycle.Id);
+            return;
+        }
+
+        using (persistenceSave)
+        {
+            EnsureLeadershipPeriodResetUnderSaveGate(cycle);
+        }
+    }
+
+    /// <summary>
+    /// Seam over the unlocked marker read so the ordering against the save gate can be asserted without a
+    /// live database. Production always uses <see cref="IsLeadershipPeriodReset"/>.
+    /// </summary>
+    internal static Func<uint, bool> PeriodResetProbe { get; set; } = IsLeadershipPeriodReset;
+
+    private static void EnsureLeadershipPeriodResetUnderSaveGate(HeroCycle cycle)
     {
         using var connection = MySQL.CreateConnection();
         using var transaction = connection.BeginTransaction();
         var rolledOnline = new List<(Character Character, int Period, int Current)>();
+        var portalSaves = new List<(Character Character, PortalSaveCommitToken? Token)>();
         try
         {
             using (var check = connection.CreateCommand())
@@ -180,7 +214,14 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
                 var rolled = HeroElectionRules.RollLeadershipPeriod(character.LeadershipPeriodPoint, character.LeadershipPoint);
                 character.LeadershipPeriodPoint = rolled.Period;
                 character.LeadershipPoint = rolled.Current;
-                character.Save(connection, transaction);
+                if (!HeroCharacterSaveRules.TrySave(
+                        (out PortalSaveCommitToken? portalToken) =>
+                            character.Save(connection, transaction, out portalToken),
+                        out var portalSaveToken))
+                {
+                    throw new InvalidOperationException($"Character {character.Id} save failed during hero reset.");
+                }
+                portalSaves.Add((character, portalSaveToken));
             }
 
             using (var mark = connection.CreateCommand())
@@ -194,9 +235,13 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
             }
 
             transaction.Commit();
+            foreach (var (character, token) in portalSaves)
+                character.ConfirmPortalSaveCommitted(token);
         }
         catch (Exception ex)
         {
+            foreach (var (character, token) in portalSaves)
+                character.DiscardPortalSaveCommit(token);
             transaction.Rollback();
             foreach (var (character, period, current) in rolledOnline)
             {
@@ -215,6 +260,29 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
         }
 
         Logger.Info("Hero cycle {0}: rolled leadership_point -> leadership_period_point", cycle.Id);
+    }
+
+    /// <summary>
+    /// Unlocked pre-check of the per-cycle roll marker, so the minute tick does not take the world save gate
+    /// exclusively once a minute for the whole phase. Returns false on any database error, which routes the
+    /// caller into the gated path where the in-transaction check still runs.
+    /// </summary>
+    private static bool IsLeadershipPeriodReset(uint cycleId)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var check = connection.CreateCommand();
+            check.CommandText = "SELECT COUNT(*) FROM hero_period_resets WHERE cycle_id=@c";
+            check.Parameters.AddWithValue("@c", cycleId);
+            check.Prepare();
+            return Convert.ToInt64(check.ExecuteScalar()) > 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Hero cycle {0}: leadership period reset pre-check failed", cycleId);
+            return false;
+        }
     }
 
     private void BroadcastPhaseChange((uint Season, HeroPhase Phase) leaving)

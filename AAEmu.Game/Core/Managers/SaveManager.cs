@@ -5,6 +5,7 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.SaveTask;
 
@@ -115,6 +116,7 @@ public class SaveManager(
     private bool SaveLocked()
     {
         var saved = false;
+        var savedCharacterSaves = new List<(Character Character, PortalSaveCommitToken? Token)>();
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         try
@@ -143,9 +145,10 @@ public class SaveManager(
                     var characterSaveFailed = false;
                     foreach (var c in worldManager.GetAllCharacters())
                     {
-                        if (c.Save(connection, transaction))
+                        if (c.Save(connection, transaction, out var portalSaveToken))
                         {
                             savedCharacters++;
+                            savedCharacterSaves.Add((c, portalSaveToken));
                             // The ranking boards are kept with the character they score, so a board shows
                             // holders who are offline as well as the ones in world.
                             rankScoreManager.SaveCharacter(connection, transaction, c);
@@ -191,11 +194,15 @@ public class SaveManager(
                             Logger.Error(eRollback);
                         }
 
+                        foreach (var (character, token) in savedCharacterSaves)
+                            character.DiscardPortalSaveCommit(token);
                         DiscardAccountLiveClears();
                     }
                     else if (!WorldSaveCommitRules.CanCommit(totalCommits, characterSaveFailed))
                     {
                         Logger.Debug("No data to update ...");
+                        foreach (var (character, token) in savedCharacterSaves)
+                            character.DiscardPortalSaveCommit(token);
                         DiscardAccountLiveClears();
                         saved = true;
                     }
@@ -204,6 +211,8 @@ public class SaveManager(
                         try
                         {
                             transaction.Commit();
+                            foreach (var (character, token) in savedCharacterSaves)
+                                character.ConfirmPortalSaveCommitted(token);
                             ConfirmAccountLiveSaved();
 
                             if (savedHouses.Item1 + savedHouses.Item2 > 0)
@@ -236,6 +245,8 @@ public class SaveManager(
                             {
                                 Logger.Error(eRollback);
                             }
+                            foreach (var (character, token) in savedCharacterSaves)
+                                character.DiscardPortalSaveCommit(token);
                             DiscardAccountLiveClears();
                         }
                     }
@@ -244,6 +255,8 @@ public class SaveManager(
         }
         catch (Exception e)
         {
+            foreach (var (character, token) in savedCharacterSaves)
+                character.DiscardPortalSaveCommit(token);
             Logger.Error(e, "DoSave Exception\n");
             DiscardAccountLiveClears();
         }

@@ -3,13 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCIncreasedFavoritePortalLimitPacket() : GamePacket(SCOffsets.SCIncreasedFavoritePortalLimitPacket, 1)
+public class SCIncreasedFavoritePortalLimitPacket(uint bonusAmount)
+    : GamePacket(SCOffsets.SCIncreasedFavoritePortalLimitPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // Extra favorite-portal slots granted beyond the base limit; the reference sends 0 at world entry.
-        stream.Write(0u);
-
+        stream.Write(bonusAmount);
         return stream;
     }
 }
