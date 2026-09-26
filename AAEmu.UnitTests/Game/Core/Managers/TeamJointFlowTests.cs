@@ -52,7 +52,7 @@ public class TeamJointFlowTests
     }
 
     [Test]
-    public async Task Request_AcceptsAllFourKnownWireModesButOnlyTwoRequestModes()
+    public async Task Request_AcceptsAllFourKnownWireModesAndThreeRequestModes()
     {
         await Assert.That(TeamJointModes.IsKnownWireMode(1)).IsTrue();
         await Assert.That(TeamJointModes.IsKnownWireMode(2)).IsTrue();
@@ -62,32 +62,60 @@ public class TeamJointFlowTests
         await Assert.That(TeamJointModes.IsKnownWireMode(5)).IsFalse();
         await Assert.That(TeamJointModes.IsRequestMode(1)).IsTrue();
         await Assert.That(TeamJointModes.IsRequestMode(2)).IsTrue();
-        await Assert.That(TeamJointModes.IsRequestMode(3)).IsFalse();
+        // Mode 3 is TEAM_JOINT_REQUEST: the raid popup's "invite raid joint" entry sends it
+        // (x2ui/components/popup_menu_proc.lua:236), so it must be accepted as a request too.
+        await Assert.That(TeamJointModes.IsRequestMode(3)).IsTrue();
         await Assert.That(TeamJointModes.IsRequestMode(4)).IsFalse();
     }
 
     [Test]
-    public async Task Request_RejectsServerOnlyModesAndOutOfRange()
+    public async Task Request_RejectsResponseAndOutOfRangeModes()
     {
         var (manager, world, _) = Build();
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.RequestPrompt, "Bob", 1);
+        // Mode 4 is the response frame, not something a client may originate; 9 is out of range.
         manager.RequestJointInfo(Alice, JointType, TeamJointModes.ResponsePrompt, "Bob", 1);
         manager.RequestJointInfo(Alice, JointType, 9, "Bob", 1);
 
         await Assert.That(world.CountPackets<SCTeamJointInfoPacket>()).IsEqualTo(0);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
-        await Assert.That(world.Errors.Count).IsEqualTo(3);
+        await Assert.That(world.Errors.Count).IsEqualTo(2);
     }
 
     [Test]
-    public async Task Request_RejectsTargetMenuAndEmptyNameLoudly()
+    public async Task Request_ResolvesTargetMenuFromTheRequestersSelection()
     {
         var (manager, world, _) = Build();
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuTargetRequest, "Bob", 1);
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "  ", 1);
 
+        // Mode 2 with no name and nothing selected is still refused: there is nothing to resolve.
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuTargetRequest, string.Empty, 1);
+        await Assert.That(manager.PendingJointCount).IsEqualTo(0);
+
+        // Mode 1 carries the name, so a blank one is refused the same way.
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "  ", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
         await Assert.That(world.Errors.All(entry => entry.Error == ErrorMessageType.TeamInviteeOffline)).IsTrue();
+
+        // Mode 2 with no name now resolves through the requester's current selection.
+        world.SelectedTargets[Alice] = Bob;
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuTargetRequest, string.Empty, 1);
+
+        await Assert.That(manager.PendingJointCount).IsEqualTo(1);
+        await Assert.That(world.PacketsTo<SCTeamJointInfoPacket>(Alice).Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Request_TargetMenuSelectionThatIsNotACharacterIsRefused()
+    {
+        var (manager, world, _) = Build();
+        world.AddCharacter(9u, "PartyPaul");
+        world.AddTeam(300u, 9u, isParty: true, 9u);
+        // A party member is a character but cannot start a joint, so the request is refused on the
+        // usual party-target rules rather than on the name being missing.
+        world.SelectedTargets[Alice] = 9u;
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuTargetRequest, string.Empty, 1);
+
+        await Assert.That(manager.PendingJointCount).IsEqualTo(0);
+        await Assert.That(world.Errors.Count).IsEqualTo(1);
     }
 
     [Test]
@@ -155,43 +183,85 @@ public class TeamJointFlowTests
         await Assert.That(toBob.Count).IsEqualTo(1);
         await Assert.That(manager.SessionCount).IsEqualTo(0);
 
+        // The responder echoes leader == true, and in the response dialog's polarity that means
+        // the responder is the owner, so the TARGET side leads.
         manager.RespondToJoint(Bob, JointType, myTeamLeader: true, accept: true, timeout: false);
 
         await Assert.That(manager.SessionCount).IsEqualTo(1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
-        await Assert.That(world.Team(TeamA)!.IsJointLeader).IsTrue();
-        await Assert.That(world.Team(TeamA)!.JointOrder).IsEqualTo(1);
-        await Assert.That(world.Team(TeamB)!.IsJointLeader).IsFalse();
-        await Assert.That(world.Team(TeamB)!.JointOrder).IsEqualTo(2);
+        await Assert.That(world.Team(TeamB)!.IsJointLeader).IsTrue();
+        await Assert.That(world.Team(TeamB)!.JointOrder).IsEqualTo(1);
+        await Assert.That(world.Team(TeamA)!.IsJointLeader).IsFalse();
+        await Assert.That(world.Team(TeamA)!.JointOrder).IsEqualTo(2);
         // every online member of both teams gets the republished header and the joint notification
         await Assert.That(world.HeadersSent.Select(entry => entry.RecipientId)).IsEquivalentTo(new[] { Alice, Carol, Bob });
         await Assert.That(world.CountPackets<SCTeamJointPacket>()).IsEqualTo(3);
     }
 
     [Test]
-    public async Task Accept_GivesFollowerRoleWhenTheSourceDeclinesLeadership()
+    public async Task Accept_GivesTheSourceTeamTheLeaderRoleWhenTheResponderIsNotTheOwner()
     {
         var (manager, world, _) = Build();
         DriveToResponsePrompt(manager, myTeamLeader: false);
+        // leader == false in the response dialog means the responder is the officer, so the
+        // requester's team keeps the owner role and leads.
         manager.RespondToJoint(Bob, JointType, myTeamLeader: false, accept: true, timeout: false);
 
-        await Assert.That(world.Team(TeamA)!.IsJointLeader).IsFalse();
-        await Assert.That(world.Team(TeamB)!.IsJointLeader).IsTrue();
-        await Assert.That(world.Team(TeamB)!.JointOrder).IsEqualTo(1);
-        await Assert.That(world.Team(TeamA)!.JointOrder).IsEqualTo(2);
+        await Assert.That(manager.SessionCount).IsEqualTo(1);
+        await Assert.That(world.Team(TeamA)!.IsJointLeader).IsTrue();
+        await Assert.That(world.Team(TeamA)!.JointOrder).IsEqualTo(1);
+        await Assert.That(world.Team(TeamB)!.IsJointLeader).IsFalse();
+        await Assert.That(world.Team(TeamB)!.JointOrder).IsEqualTo(2);
     }
 
+    /// <summary>
+    /// The regression this branch fixes. The two sides of the exchange carry OPPOSITE meanings for
+    /// the same "leader" key — the request dialog means "the requester is the officer"
+    /// (handle_task.lua:2829/:2836) and the response dialog means "the responder is the owner"
+    /// (handle_task.lua:2883/:2890, joint_view.lua:462-463). The old equality test compared the
+    /// two directly and so refused a genuine accept whenever the two sides held the same role.
+    /// The old tests hid this by echoing the SAME flag on both sides, so drive the two sides with
+    /// different values here and assert the commit succeeds and picks the documented leader.
+    /// </summary>
     [Test]
-    public async Task Accept_RejectsLeaderFlagMismatchAndLeavesNoSession()
+    public async Task Accept_CommitsWhenTheEchoedLeaderFlagIsTheOppositeOfTheRequestSide()
     {
         var (manager, world, _) = Build();
+
+        // Request side says leader == true: in the REQUEST dialog that is "requester is officer".
         DriveToResponsePrompt(manager, myTeamLeader: true);
+        await Assert.That(manager.PendingJointCount).IsEqualTo(1);
+
+        // The responder echoes false — the opposite of the request-side value. This must commit.
         manager.RespondToJoint(Bob, JointType, myTeamLeader: false, accept: true, timeout: false);
 
-        await Assert.That(manager.SessionCount).IsEqualTo(0);
+        await Assert.That(manager.SessionCount).IsEqualTo(1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
-        await Assert.That(world.Errors.Any(entry => entry.Error == ErrorMessageType.TeamNoRights)).IsTrue();
-        await Assert.That(world.Team(TeamA)!.JointId).IsEqualTo(0u);
+        // false in the RESPONSE polarity means the responder is not the owner, so the source leads.
+        await Assert.That(world.Team(TeamA)!.IsJointLeader).IsTrue();
+        await Assert.That(world.Team(TeamA)!.JointOrder).IsEqualTo(1);
+        await Assert.That(world.Team(TeamB)!.IsJointLeader).IsFalse();
+        await Assert.That(world.Team(TeamB)!.JointOrder).IsEqualTo(2);
+    }
+
+    /// <summary>
+    /// A decline is signalled by JointCancel's SEPARATE boolean, not by an inverted leader flag
+    /// (handle_task.lua:2913 passes the same infoTable["leader"] as OkProc does at :2910). So
+    /// whichever leader value comes back, accept == false must refuse.
+    /// </summary>
+    [Test]
+    public async Task Accept_DeclineStillRefusesWhateverLeaderFlagTheClientEchoes()
+    {
+        foreach (var echoedLeader in new[] { true, false })
+        {
+            var (manager, world, _) = Build();
+            DriveToResponsePrompt(manager, myTeamLeader: echoedLeader);
+            manager.RespondToJoint(Bob, JointType, myTeamLeader: echoedLeader, accept: false, timeout: false);
+
+            await Assert.That(manager.SessionCount).IsEqualTo(0);
+            await Assert.That(manager.PendingJointCount).IsEqualTo(0);
+            await Assert.That(world.Team(TeamA)!.JointId).IsEqualTo(0u);
+        }
     }
 
     [Test]
@@ -260,8 +330,10 @@ public class TeamJointFlowTests
     public async Task Break_AskThenAcceptDissolvesAndRepublishesHeaders()
     {
         var (manager, world, _) = Build();
+        // Drive the joint so ALICE's team holds the owner role: in the response dialog's
+        // polarity leader == false means the responder is the officer, so the requester leads.
         DriveToResponsePrompt(manager, myTeamLeader: true);
-        manager.RespondToJoint(Bob, JointType, true, true, false);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: false, accept: true, timeout: false);
         world.Sent.Clear();
         world.HeadersSent.Clear();
 
@@ -285,8 +357,10 @@ public class TeamJointFlowTests
     public async Task Break_DeclineKeepsTheSessionAndAnswersTheAsker()
     {
         var (manager, world, _) = Build();
+        // Drive the joint so ALICE's team holds the owner role: in the response dialog's
+        // polarity leader == false means the responder is the officer, so the requester leads.
         DriveToResponsePrompt(manager, myTeamLeader: true);
-        manager.RespondToJoint(Bob, JointType, true, true, false);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: false, accept: true, timeout: false);
         world.Sent.Clear();
 
         manager.RespondToJointBreak(Alice, ask: true, accept: false);
@@ -301,8 +375,10 @@ public class TeamJointFlowTests
     public async Task Break_OnlyTheJointLeaderMayAsk()
     {
         var (manager, world, _) = Build();
+        // Drive the joint so ALICE's team holds the owner role: in the response dialog's
+        // polarity leader == false means the responder is the officer, so the requester leads.
         DriveToResponsePrompt(manager, myTeamLeader: true);
-        manager.RespondToJoint(Bob, JointType, true, true, false);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: false, accept: true, timeout: false);
         world.Errors.Clear();
 
         manager.RespondToJointBreak(Bob, ask: true, accept: false);
@@ -486,8 +562,10 @@ public class TeamJointFlowTests
     public async Task Disconnect_OfTheJointLeaderClearsTheirOwnPendingBreakAsk()
     {
         var (manager, world, _) = Build();
+        // Drive the joint so ALICE's team holds the owner role: in the response dialog's
+        // polarity leader == false means the responder is the officer, so the requester leads.
         DriveToResponsePrompt(manager, myTeamLeader: true);
-        manager.RespondToJoint(Bob, JointType, true, true, false);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: false, accept: true, timeout: false);
         manager.RespondToJointBreak(Alice, ask: true, accept: false);
         await Assert.That(manager.PendingBreakCount).IsEqualTo(1);
         world.Sent.Clear();
@@ -518,7 +596,10 @@ public class TeamJointFlowTests
 
         manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
         manager.RespondToJoint(Alice, JointType, true, true, false);
-        manager.RespondToJoint(Bob, JointType, true, true, false);
+        // Bob echoes leader == false, so in the response dialog's polarity he is the officer and
+        // ALICE holds the owner role. The ask below must come from the joint leader.
+        manager.RespondToJoint(Bob, JointType, false, true, false);
+        await Assert.That(world.Team(TeamA)!.IsJointLeader).IsTrue();
         manager.RespondToJointBreak(Alice, ask: true, accept: false);
         await Assert.That(manager.PendingBreakCount).IsEqualTo(1);
         await Assert.That(manager.SessionCount).IsEqualTo(1);

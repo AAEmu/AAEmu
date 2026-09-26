@@ -16,8 +16,12 @@ public static class TeamJointModes
     /// <summary>Client → server: the request came from the target context menu.</summary>
     public const sbyte MenuTargetRequest = 2;
 
-    /// <summary>Server → client: open the joint *request* frame (the client's TEAM_JOINT_REQUEST).</summary>
-    public const sbyte RequestPrompt = 3;
+    /// <summary>
+    /// TEAM_JOINT_REQUEST. The raid popup's "invite raid joint" entry sends this as the request
+    /// (x2ui/components/popup_menu_proc.lua:236), so it is a mode a client may originate with;
+    /// the server also uses it to open the request frame. One value, both directions.
+    /// </summary>
+    public const sbyte ContextRequest = 3;
 
     /// <summary>Server → client: open the joint *response* frame for the other raid's owner.</summary>
     public const sbyte ResponsePrompt = 4;
@@ -30,6 +34,7 @@ public static class TeamJointModes
 
     public static bool IsKnownWireMode(sbyte mode) => mode >= KnownMin && mode <= KnownMax;
 
-    /// <summary>True for the two modes a client may originate a request with.</summary>
-    public static bool IsRequestMode(sbyte mode) => mode is MenuChatRequest or MenuTargetRequest;
+    /// <summary>True for the modes a client may originate a request with: the two menu queries
+    /// and the raid popup's own invite entry.</summary>
+    public static bool IsRequestMode(sbyte mode) => mode is MenuChatRequest or MenuTargetRequest or ContextRequest;
 }

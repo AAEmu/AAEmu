@@ -63,9 +63,16 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             return;
         }
 
-        // The target context menu is invoked with an empty name and this packet carries no target
-        // unit id, so there is nothing to resolve it against. Refuse instead of guessing.
-        if (mode == TeamJointModes.MenuTargetRequest || string.IsNullOrWhiteSpace(targetName))
+        // The target context menu arrives with an empty name and this packet carries no target
+        // unit id, so the server resolves the requester's current selection instead of refusing.
+        // Modes 1 and 3 carry the name.
+        var resolvedTargetName = string.IsNullOrWhiteSpace(targetName)
+            ? mode == TeamJointModes.MenuTargetRequest
+                ? _context.FindSelectedTarget(requesterId)?.Name
+                : null
+            : targetName;
+
+        if (string.IsNullOrWhiteSpace(resolvedTargetName))
         {
             Logger.Warn("Team joint request from {0} carried no resolvable target name (mode {1}).",
                 requesterId, mode);
@@ -80,7 +87,7 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
         }
 
         var sourceTeam = _context.FindTeamByMember(requesterId);
-        var targetCharacter = _context.FindCharacterByName(targetName);
+        var targetCharacter = _context.FindCharacterByName(resolvedTargetName);
         var targetTeam = targetCharacter == null ? null : _context.FindTeamByMember(targetCharacter.Id);
 
         if (sourceTeam == null || targetTeam == null || targetCharacter == null ||
@@ -124,7 +131,7 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             type,
             _timeProvider.GetUtcNow() + RequestLifetime);
 
-        _context.Send(requesterId, new SCTeamJointInfoPacket(TeamJointModes.RequestPrompt, new TeamJointInfo(
+        _context.Send(requesterId, new SCTeamJointInfoPacket(TeamJointModes.ContextRequest, new TeamJointInfo(
             unchecked((long)type),
             targetOwner.Name,
             targetTeam.Id,
@@ -202,17 +209,15 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             return;
         }
 
-        // The client's response frame has no role control: it echoes the flag it was given. A
-        // different value is a protocol error, not a legitimate decline.
-        if (myTeamLeader != pending.LeaderChoice)
-        {
-            _pendingJoints.TryRemove(pending.SourceTeamId, out _);
-            Logger.Warn("Team joint {0} answered with leader {1} but was offered {2}.",
-                pending.SourceTeamId, myTeamLeader, pending.LeaderChoice);
-            _context.SendError(responderId, ErrorMessageType.TeamNoRights);
-            return;
-        }
-
+        // The client does not choose a leader: it echoes back the flag the server placed in the
+        // response dialog. DLG_TASK_RESOPONSE_RAID_JOINT (x2ui/components/dialog/handle_task.lua)
+        // passes the same infoTable["leader"] to JointOk (:2910) and to JointCancel (:2913/:2916),
+        // and the decline/timeout is carried by JointCancel's separate boolean. So a genuine
+        // accept always echoes whatever we sent, and requiring the answer to equal the stored
+        // value compared a REQUEST-side meaning (leader => requester is the officer,
+        // handle_task.lua:2829/:2836) against a RESPONSE-side one (leader => responder is the
+        // owner, handle_task.lua:2883/:2890; joint_view.lua:462-463 agrees). Both values are
+        // valid answers; the echoed one selects the leading team in CommitJoint.
         CommitJoint(pending with { LeaderChoice = myTeamLeader });
     }
 
@@ -427,7 +432,14 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             return;
         }
 
-        var leaderTeamId = pending.LeaderChoice ? pending.SourceTeamId : pending.TargetTeamId;
+        // The echoed leader flag is read in the RESPONSE dialog's polarity, where leader == true
+        // means the responder is the OWNER: the response dialog's "my side" row uses the gold
+        // crown and raid_joint_owner (handle_task.lua:2883/:2890), and joint_view.lua:462-463
+        // renders the same way for the viewing player's own team. The responder is the target
+        // side, so true makes the target team lead. The opposite mapping would read the same bit
+        // in the request dialog's polarity, where true means the requester is the OFFICER
+        // (handle_task.lua:2829/:2836).
+        var leaderTeamId = pending.LeaderChoice ? pending.TargetTeamId : pending.SourceTeamId;
         var followerTeamId = leaderTeamId == pending.SourceTeamId ? pending.TargetTeamId : pending.SourceTeamId;
         var leaderCount = leaderTeamId == pending.SourceTeamId ? sourceTeam.MemberCount : targetTeam.MemberCount;
         var followerCount = followerTeamId == pending.SourceTeamId ? sourceTeam.MemberCount : targetTeam.MemberCount;

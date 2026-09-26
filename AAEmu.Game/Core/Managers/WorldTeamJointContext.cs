@@ -33,6 +33,14 @@ public sealed class WorldTeamJointContext(IWorldManager worldManager, ITeamManag
     public TeamJointCharacterSnapshot? FindCharacterById(uint characterId) =>
         Snapshot(worldManager.GetCharacterById(characterId));
 
+    public TeamJointCharacterSnapshot? FindSelectedTarget(uint characterId)
+    {
+        var character = worldManager.GetCharacterById(characterId);
+        // Only a live character target can name another character; anything else (an npc, a
+        // doodad, nothing) cannot start a joint, so it is reported as no target.
+        return Snapshot(character?.CurrentTarget as Character);
+    }
+
     public bool IsLocalWorld(sbyte worldId) =>
         worldId == CharacterBlocked.LocalWorldId || unchecked((byte)worldId) == AppConfiguration.Instance.Id;
 

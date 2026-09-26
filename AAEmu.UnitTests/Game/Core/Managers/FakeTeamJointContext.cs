@@ -72,6 +72,14 @@ internal sealed class FakeTeamJointContext : ITeamJointContext
 
     public TeamJointCharacterSnapshot? FindCharacterById(uint characterId) => _characters.GetValueOrDefault(characterId);
 
+    /// <summary>Set per test to model what a character currently has selected.</summary>
+    public readonly Dictionary<uint, uint> SelectedTargets = [];
+
+    public TeamJointCharacterSnapshot? FindSelectedTarget(uint characterId) =>
+        SelectedTargets.TryGetValue(characterId, out var targetId)
+            ? _characters.GetValueOrDefault(targetId)
+            : null;
+
     public bool IsLocalWorld(sbyte worldId) => worldId == LocalWorldId;
 
     public void Send(uint characterId, GamePacket packet) => Sent.Add((characterId, packet));

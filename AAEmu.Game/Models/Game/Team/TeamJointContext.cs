@@ -46,6 +46,11 @@ public interface ITeamJointContext
     TeamJointTeamSnapshot? FindTeamByMember(uint unitId);
     TeamJointCharacterSnapshot? FindCharacterByName(string name);
     TeamJointCharacterSnapshot? FindCharacterById(uint characterId);
+    /// <summary>
+    /// The character a character currently has selected, if any. The target context menu arrives
+    /// with an empty name and no unit id, so the server has to resolve it from the requester.
+    /// </summary>
+    TeamJointCharacterSnapshot? FindSelectedTarget(uint characterId);
     bool IsLocalWorld(sbyte worldId);
     void Send(uint characterId, GamePacket packet);
     void SendError(uint characterId, ErrorMessageType error);
