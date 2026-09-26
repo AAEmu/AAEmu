@@ -869,6 +869,7 @@ public static class SCOffsets
     public const ushort SCUnlockLearnSkillPacket = 0x146;
     public const ushort SCUpdateHousingUccPacket = 0x326;
     public const ushort SCUpdatedFavoriteCraftsPacket = 0x23B;
+    public const ushort SCZoneScoreListPacket = 0x34F;
     public const ushort SCZoneScoreResetPacket = 0x351;
     public const ushort SCZoneScoreUpdatePacket = 0x350;
     public const ushort SCRankSnapshotPacket = 0x27A; // 10.0.2.13
