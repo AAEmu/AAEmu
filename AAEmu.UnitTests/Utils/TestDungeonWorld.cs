@@ -41,6 +41,41 @@ public static class TestDungeonWorld
         return world;
     }
 
+    /// <summary>
+    /// A world whose template declares real cell bounds, so <c>GetRegionByPos</c> can
+    /// resolve a position to a region. Paths that need spatial lookups (region membership,
+    /// <c>WorldManager.GetAround</c>) need this; the plain <see cref="CreateWorld"/> has
+    /// no bounds and every region lookup returns null.
+    /// </summary>
+    public static WorldInstance CreateSizedWorld(
+        uint worldId, uint channelId, int cellX, int cellY, params uint[] zoneKeys)
+    {
+        var sectorsPerSide = cellX * WorldManager.SECTORS_PER_CELL;
+        var template = new WorldTemplate
+        {
+            Name = "test_sized_world",
+            ZoneKeys = zoneKeys.ToList(),
+            CellX = cellX,
+            CellY = cellY,
+        };
+        // Both grids are sized from the template's cells during real content load; nothing
+        // allocates them here, and a region lookup needs both.
+        template.ZoneKeyByRegions = new uint[sectorsPerSide, cellY * WorldManager.SECTORS_PER_CELL];
+        foreach (var zoneKey in zoneKeys)
+        {
+            for (var x = 0; x < sectorsPerSide; x++)
+            {
+                for (var y = 0; y < cellY * WorldManager.SECTORS_PER_CELL; y++)
+                    template.ZoneKeyByRegions[x, y] = zoneKey;
+            }
+        }
+
+        var world = new WorldInstance(template, channelId, dontFreeInstanceId: true, instanceId: worldId);
+        world.Regions = new Region[sectorsPerSide, cellY * WorldManager.SECTORS_PER_CELL];
+        Register(world);
+        return world;
+    }
+
     public static Dungeon CreateDungeon(IndunZone indunZone, WorldInstance world)
     {
         var dungeon = (Dungeon)RuntimeHelpers.GetUninitializedObject(typeof(Dungeon));

@@ -553,6 +553,16 @@ public static class WorldIntegration
     /// <summary>Zone reported quest_area/district leave.</summary>
     public static Action<uint, uint, int, int> OnZoneLeaveArea { get; set; }
 
+    /// <summary>
+    /// ZW area membership edge including the Zone that reported it.
+    /// Args: zone id, unit id, area group (kind) id, area id, area secondary value, entering.
+    /// <para>
+    /// The group is the area KIND and the area id identifies one area within it; they are
+    /// separate quantities and neither is a distance.
+    /// </para>
+    /// </summary>
+    public static Action<uint, uint, uint, int, int, bool> OnZoneAreaEvent { get; set; }
+
     /// <summary>Zone removed a house (ZWRemoveHouse).</summary>
     public static Action<ushort> OnZoneRemoveHouse { get; set; }
 

@@ -38,8 +38,8 @@ public class ZoneSimRelay
         return opcode switch
         {
             ZwOpcodes.CommandResponse => HandleCommandResponse(stream),
-            ZwOpcodes.EnterArea => HandleEnterArea(stream),
-            ZwOpcodes.LeaveArea => HandleLeaveArea(stream),
+            ZwOpcodes.EnterArea => HandleArea(zoneId, stream, bodyLen, entering: true),
+            ZwOpcodes.LeaveArea => HandleArea(zoneId, stream, bodyLen, entering: false),
             ZwOpcodes.NpcSaid => HandleNpcSaid(stream),
             ZwOpcodes.UnitModelPostureChanged => HandleUnitModelPostureChanged(connection, body, stream),
             ZwOpcodes.UnitFell => HandleUnitFell(stream),
@@ -126,30 +126,74 @@ public class ZoneSimRelay
         }
     }
 
-    private static bool HandleEnterArea(PacketStream stream)
+    /// <summary>
+    /// ZW area membership edge (ZWEnterArea 0x23 / ZWLeaveArea 0x24):
+    /// <c>bc unitId + u8 groupId + i32 value1 + i32 value2</c>.
+    /// <para>
+    /// <c>groupId</c> is the area KIND and <c>value1</c> is the individual area's id
+    /// within that kind — the dedicated level data carries the same two names
+    /// (<c>GroupId</c> / <c>value1</c>) on each area row, and <c>GroupId</c> is
+    /// constant across every area of a family while <c>value1</c> varies. <c>value1</c>
+    /// is therefore an id and NOT a radius; reading it as a distance scans a number of
+    /// metres that was never a length. <c>value2</c> is the area's secondary value and
+    /// is zero on every shipped area row.
+    /// </para>
+    /// </summary>
+    /// <remarks>
+    /// The area-event hook and the older enter/leave hooks (quest areas and districts)
+    /// are invoked independently: a consumer that throws is logged and cannot take the
+    /// others down with it, and it does not turn a packet that was parsed and dispatched
+    /// into an unhandled one.
+    /// </remarks>
+    private static bool HandleArea(uint zoneId, PacketStream stream, int bodyLen, bool entering)
     {
-        if (stream.Count < 12)
+        const int expectedLength = 3 + sizeof(byte) + sizeof(int) + sizeof(int);
+        if (bodyLen != expectedLength || stream.Count != expectedLength)
             return false;
-        var unitId = stream.ReadBc();
-        var areaId = stream.ReadByte();
-        var v1 = stream.ReadInt32();
-        var v2 = stream.ReadInt32();
-        Logger.Info("ZWEnterArea unit={0} area={1} v1={2} v2={3}", unitId, areaId, v1, v2);
-        WorldIntegration.OnZoneEnterArea?.Invoke(unitId, areaId, v1, v2);
+
+        uint unitId;
+        byte groupId;
+        int areaId;
+        int areaValue2;
+        try
+        {
+            unitId = stream.ReadBc();
+            groupId = stream.ReadByte();
+            areaId = stream.ReadInt32();
+            areaValue2 = stream.ReadInt32();
+        }
+        catch
+        {
+            return false;
+        }
+
+        Logger.Info(
+            "ZW{0}Area zone={1} unit={2} group={3} area={4} value2={5}",
+            entering ? "Enter" : "Leave", zoneId, unitId, groupId, areaId, areaValue2);
+
+        InvokeAreaConsumer("area-event", () =>
+            WorldIntegration.OnZoneAreaEvent?.Invoke(zoneId, unitId, groupId, areaId, areaValue2, entering));
+        InvokeAreaConsumer(entering ? "enter-area" : "leave-area", () =>
+        {
+            if (entering)
+                WorldIntegration.OnZoneEnterArea?.Invoke(unitId, groupId, areaId, areaValue2);
+            else
+                WorldIntegration.OnZoneLeaveArea?.Invoke(unitId, groupId, areaId, areaValue2);
+        });
+
         return true;
     }
 
-    private static bool HandleLeaveArea(PacketStream stream)
+    private static void InvokeAreaConsumer(string name, Action consumer)
     {
-        if (stream.Count < 12)
-            return false;
-        var unitId = stream.ReadBc();
-        var areaId = stream.ReadByte();
-        var v1 = stream.ReadInt32();
-        var v2 = stream.ReadInt32();
-        Logger.Info("ZWLeaveArea unit={0} area={1} v1={2} v2={3}", unitId, areaId, v1, v2);
-        WorldIntegration.OnZoneLeaveArea?.Invoke(unitId, areaId, v1, v2);
-        return true;
+        try
+        {
+            consumer();
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "ZW area consumer {0} failed; the other area consumers still ran", name);
+        }
     }
 
     /// <summary>

@@ -432,12 +432,14 @@ public class ZonePacketWireTests
     }
 
     [Test]
-    public async Task AreaEvents_ReadCompactUnitAndByteArea()
+    public async Task AreaEvents_ReadCompactUnitAndAreaGroup()
     {
         uint actualUnit = 0;
         uint actualArea = 0;
         int actualValue1 = 0;
         int actualValue2 = 0;
+        bool? actualEntering = null;
+        uint actualZone = 0;
         WorldIntegration.OnZoneEnterArea = (unit, area, value1, value2) =>
         {
             actualUnit = unit;
@@ -445,12 +447,17 @@ public class ZonePacketWireTests
             actualValue1 = value1;
             actualValue2 = value2;
         };
+        WorldIntegration.OnZoneAreaEvent = (zoneId, unit, area, value1, value2, entering) =>
+        {
+            actualZone = zoneId;
+            actualEntering = entering;
+        };
 
         try
         {
             var body = new PacketStream();
             body.WriteBc(0x010203);
-            body.Write((byte)0x7F);
+            body.Write((byte)0x16);
             body.Write(-123);
             body.Write(456);
 
@@ -459,14 +466,127 @@ public class ZonePacketWireTests
 
             await Assert.That(handled).IsTrue();
             await Assert.That(actualUnit).IsEqualTo(0x010203u);
-            await Assert.That(actualArea).IsEqualTo(0x7Fu);
+            await Assert.That(actualArea).IsEqualTo(0x16u);
             await Assert.That(actualValue1).IsEqualTo(-123);
             await Assert.That(actualValue2).IsEqualTo(456);
+            await Assert.That(actualZone).IsEqualTo(0u);
+            await Assert.That(actualEntering).IsTrue();
         }
         finally
         {
             WorldIntegration.OnZoneEnterArea = null;
+            WorldIntegration.OnZoneAreaEvent = null;
         }
+    }
+
+    [Test]
+    public async Task AreaEvents_LeaveCarriesTheZoneThatReportedIt()
+    {
+        bool? actualEntering = null;
+        uint actualZone = 0;
+        WorldIntegration.OnZoneAreaEvent = (zoneId, unit, area, value1, value2, entering) =>
+        {
+            actualZone = zoneId;
+            actualEntering = entering;
+        };
+
+        try
+        {
+            var body = new PacketStream();
+            body.WriteBc(0x010203);
+            body.Write((byte)0x16);
+            body.Write(25);
+            body.Write(0);
+
+            var handled = new ZoneSimRelay().TryHandle(
+                ZwOpcodes.LeaveArea, body.GetBytes(), body.Count);
+
+            await Assert.That(handled).IsTrue();
+            await Assert.That(actualZone).IsEqualTo(0u);
+            await Assert.That(actualEntering).IsFalse();
+        }
+        finally
+        {
+            WorldIntegration.OnZoneAreaEvent = null;
+        }
+    }
+
+    [Test]
+    public async Task AreaEvents_AThrowingConsumerDoesNotStopTheOthersOrThePacket()
+    {
+        var legacyEnterRan = false;
+        WorldIntegration.OnZoneAreaEvent = (_, _, _, _, _, _) =>
+            throw new InvalidOperationException("area-event consumer blew up");
+        WorldIntegration.OnZoneEnterArea = (_, _, _, _) => legacyEnterRan = true;
+
+        try
+        {
+            var handled = new ZoneSimRelay().TryHandle(ZwOpcodes.EnterArea, AreaBody(), 12);
+
+            // The legacy quest-area hook still ran, and a parsed-and-dispatched packet
+            // is never reported back as unhandled because one consumer threw.
+            await Assert.That(legacyEnterRan).IsTrue();
+            await Assert.That(handled).IsTrue();
+        }
+        finally
+        {
+            WorldIntegration.OnZoneAreaEvent = null;
+            WorldIntegration.OnZoneEnterArea = null;
+        }
+    }
+
+    [Test]
+    public async Task AreaEvents_AThrowingLegacyConsumerStillLeavesThePacketHandled()
+    {
+        var areaEventRan = false;
+        WorldIntegration.OnZoneAreaEvent = (_, _, _, _, _, _) => areaEventRan = true;
+        WorldIntegration.OnZoneLeaveArea = (_, _, _, _) =>
+            throw new InvalidOperationException("legacy consumer blew up");
+
+        try
+        {
+            var handled = new ZoneSimRelay().TryHandle(ZwOpcodes.LeaveArea, AreaBody(), 12);
+
+            await Assert.That(areaEventRan).IsTrue();
+            await Assert.That(handled).IsTrue();
+        }
+        finally
+        {
+            WorldIntegration.OnZoneAreaEvent = null;
+            WorldIntegration.OnZoneLeaveArea = null;
+        }
+    }
+
+    private static byte[] AreaBody()
+    {
+        var body = new PacketStream();
+        body.WriteBc(0x010203);
+        body.Write((byte)0x16);
+        body.Write(25);
+        body.Write(0);
+        return body.GetBytes();
+    }
+
+    [Test]
+    [Arguments(ZwOpcodes.EnterArea, 11, false)]
+    [Arguments(ZwOpcodes.EnterArea, 13, false)]
+    [Arguments(ZwOpcodes.EnterArea, 15, false)]
+    [Arguments(ZwOpcodes.LeaveArea, 11, false)]
+    [Arguments(ZwOpcodes.EnterArea, 12, true)]
+    [Arguments(ZwOpcodes.LeaveArea, 12, true)]
+    public async Task AreaEvents_AcceptOnlyTheExactWireLength(ushort opcode, int bodyLen, bool expected)
+    {
+        var body = new byte[bodyLen];
+        if (bodyLen > 3)
+        {
+            body[0] = 0x01;
+            body[1] = 0x02;
+            body[2] = 0x03;
+        }
+
+        var handled = new ZoneSimRelay().TryHandle(opcode, body, bodyLen);
+
+        await Assert.That(handled).IsEqualTo(expected);
     }
 
     private static Doodad CreateDoodad(uint modelKindId) => new()
