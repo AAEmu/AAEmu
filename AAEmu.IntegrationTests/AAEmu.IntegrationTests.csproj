@@ -49,10 +49,27 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Always emit a Config.json into the output. Without an explicit TargetPath the example
+      fallback was copied under its own name, so nothing ever read it and the tests fell through
+      to the transitive AAEmu.Game/Config.json - a template that still carries %db_*% wildcards.
+      TargetPath also makes this project's config win over that transitive copy.
+    -->
     <None Include="Config.json" Condition="Exists('Config.json')">
+      <TargetPath>Config.json</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ExampleConfig.json" Condition="!Exists('Config.json')">
+      <TargetPath>Config.json</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Machine-local overlay. Gitignored, same role as the Login/World/Game Config.Local.json. -->
+    <None Include="Config.Local.json" Condition="Exists('Config.Local.json')">
+      <TargetPath>Config.Local.json</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Config.Local.json.example">
+      <TargetPath>Config.Local.json.example</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
