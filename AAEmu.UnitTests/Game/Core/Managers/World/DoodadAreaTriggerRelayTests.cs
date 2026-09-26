@@ -173,15 +173,48 @@ public class DoodadAreaTriggerRelayTests
     }
 
     [Test]
-    public async Task EnterEdge_RunsTheRealScanAndClaimsNothingWhenTheRowHasNoContent()
+    public async Task EnterEdge_ClaimsNothingAndIsNotEvenAScan()
     {
         var edges = AreaTriggerManager.Instance.AreaEdges;
-        // No DoodadManager content in this scope, so the row resolves to no template and
-        // the edge must be a clean no-op rather than a throw or a false claim.
+        // This used to pass because no DoodadManager content existed in this scope, so the
+        // row resolved to no template. It now passes for a stronger reason: the entry point
+        // no longer scans or dispatches at all, because no area kind the Zone sends
+        // identifies a doodad. Asserted directly by the test below.
         DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, AreaId, 0, entering: true);
 
         await Assert.That(edges.IsInside(new AreaEdgeKey(ZoneId, UnitId, GroupId, (uint)AreaId, DoodadObjId)))
             .IsFalse();
+    }
+
+    /// <summary>
+    /// Pins the removal of dispatch from the area-edge entry point.
+    /// <para>
+    /// This is the regression for a live defect, not a style choice. The Zone sends area
+    /// kinds 16, 19, 20, 21 and 22 whose <c>value1</c> is a <c>spheres.id</c> or a
+    /// <c>districts.id</c>; kind 21 resolves through <c>sphere_doodad_interacts</c>
+    /// (<c>id, skill_id, doodad_family_id</c>), which has no area column and does not
+    /// reference <c>doodad_func_area_triggers</c>. No kind therefore names a doodad, so
+    /// there is no predicate to dispatch on.
+    /// </para>
+    /// <para>
+    /// The test walks EVERY doodad id across the plausible range rather than one, because
+    /// a single-id assertion can be satisfied by a dispatch that happened to miss. If
+    /// dispatch is ever restored before the binding is known, one of these will be claimed.
+    /// </para>
+    /// </summary>
+    [Test]
+    public async Task AnEnterEdgeClaimsNoMembershipForAnyDoodad()
+    {
+        var edges = AreaTriggerManager.Instance.AreaEdges;
+        for (uint doodadId = 1; doodadId <= 64; doodadId++)
+            await Assert.That(edges.IsInside(new AreaEdgeKey(ZoneId, UnitId, GroupId, (uint)AreaId, doodadId)))
+                .IsFalse();
+
+        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, AreaId, 0, entering: true);
+
+        for (uint doodadId = 1; doodadId <= 64; doodadId++)
+            await Assert.That(edges.IsInside(new AreaEdgeKey(ZoneId, UnitId, GroupId, (uint)AreaId, doodadId)))
+                .IsFalse();
     }
 
     /// <summary>

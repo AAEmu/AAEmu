@@ -13,6 +13,13 @@ namespace AAEmu.Game.Core.Managers.World;
 /// <summary>
 /// The Zone area relay for <c>DoodadFuncAreaTrigger</c>.
 /// Zone owns enter/leave edges; World owns the doodad state that follows them.
+/// <para>
+/// Dispatch is currently DISABLED. No area kind the Zone sends identifies a doodad, so
+/// there is no predicate to dispatch on and any dispatch would fire real world objects on
+/// a guess. The relay, the leave-side membership drop and the edge logging are retained:
+/// the relay is the only live evidence of what the Zone actually sends, and a capture
+/// walking a character onto the quarry rocks is what would settle the binding.
+/// </para>
 /// </summary>
 public static class DoodadAreaTriggerRuntime
 {
@@ -52,44 +59,33 @@ public static class DoodadAreaTriggerRuntime
             return;
         }
 
-        // The packet names the area; it carries no geometry. Zone has already decided
-        // the unit is inside it, so World does not re-derive containment from a
-        // distance it does not have. Candidates are the area-trigger doodads in the
-        // unit's region neighbourhood — the scope the world model actually defines,
-        // rather than a radius read out of an id.
-        var candidates = new List<AreaTriggerCandidate>();
-        foreach (var doodad in WorldManager.GetAround<Doodad>(character))
-        {
-            // A pending despawn is the same refusal the normal use path applies.
-            if (doodad == null || !doodad.IsVisible || doodad.Despawn > DateTime.MinValue)
-                continue;
-
-            // The doodad itself must own the trigger.
-            var trigger = FindAreaTriggerFunc(doodad);
-            if (trigger == null)
-                continue;
-
-            var template = DoodadManager.Instance.GetFuncTemplate(trigger.FuncId, trigger.FuncType)
-                as DoodadFuncAreaTrigger;
-            if (template == null)
-                continue;
-
-            // Fail closed, but never silently: a row naming a target the content
-            // cannot resolve is reported once so the gap is visible in the log.
-            if (ResolveTarget(template) != AreaTriggerTarget.Self &&
-                WarnedUnmappedTargets.TryAdd(trigger.FuncId, true))
-            {
-                Logger.Warn(
-                    "DoodadFuncAreaTrigger func={0} npc_id={1} is not dispatchable: " +
-                    "no target resolution exists for a non-NULL npc_id; row skipped",
-                    trigger.FuncId, template.NpcId);
-            }
-
-            candidates.Add(new AreaTriggerCandidate(doodad, trigger, template));
-        }
-
-        ApplyEnterEdges(zoneId, unitId, groupId, unchecked((uint)areaId), candidates, edges,
-            (candidate, _) => Dispatch(candidate.Doodad, character, candidate.Func));    }
+        // NO DISPATCH. The edge names an area, never a doodad.
+        //
+        // The Zone relay sends kinds 16, 19, 20, 21 and 22, and their value1 is a
+        // spheres.id or a districts.id. Kind 21 (SphereDoodadInteract) resolves through
+        // sphere_doodad_interacts, which is (id, skill_id, doodad_family_id) — it has no
+        // area column and does not reference doodad_func_area_triggers at all. No area
+        // kind this build receives therefore identifies a doodad, so there is no
+        // predicate to dispatch on and every dispatch would be a guess that fires real
+        // world objects: with the shipped spawns one district edge would send all 12
+        // Rainbow Field rock piles (npc 2803) to their final phase at once, fire the 13
+        // ancestor-song doodads (2671, 2734-2745) together, and collapse the unstable
+        // floor (1495) with no player near it.
+        //
+        // The edge is still logged: the relay is the only live evidence of what the Zone
+        // actually sends, and a capture taken while walking a character onto the quarry
+        // rocks is what would settle the binding. Until then this is an empty dispatch
+        // with the evidence retained, not a narrowed candidate set — a narrowed set
+        // would be the same guess wearing a different hat.
+        //
+        // This is a ZW-protocol question, not a World modelling one: the answer is in
+        // what the dedicated server puts on the wire, and it is the same class of
+        // problem as the sphere_doodad_interacts / doodad_func_area_triggers id-space
+        // split. Re-enable by binding the edge to the doodad once that is known.
+                        Logger.Info(            "DoodadFuncAreaTrigger edge observed, not dispatched: zone={0} unit={1} group={2} area={3} entering={4} " +
+            "reason=no_area_kind_identifies_a_doodad",
+            zoneId, unitId, groupId, areaId, entering);
+    }
 
     /// <summary>
     /// An area edge is usable only when it names an area group and a real area id.
