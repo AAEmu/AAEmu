@@ -125,7 +125,7 @@ public static class UnitReqOperatorRules
         => value1 == 0 ? isHero : heroGrade != 0 && heroGrade == value1;
 
     /// <summary>
-    /// Kinds 116 Dual , the duel id) and 117 ExpeditionBattle: value2 0 needs the state
+    /// Kinds 116 Dual (value1, the duel id) and 117 ExpeditionBattle: value2 0 needs the state
     /// set, 1 needs it clear, any other value2 passes.
     /// </summary>
     public static bool PassesStateGate(uint value2, bool state)

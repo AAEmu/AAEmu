@@ -5,7 +5,7 @@
 
 /// <summary>
 /// Skill result byte values used by the 10.0.2.13 client.
-/// Bytes come from the client's result-to-symbol switch, (195 cases, 0x00..0xCB,
+/// Bytes come from the client's result-to-symbol switch (195 cases, 0x00..0xCB,
 /// default "URK_UNKNOWN"). The display path hands that symbol to the UI, which looks up ui_texts
 /// key "skill_" + lower(symbol) in category 89; when the 16-bit detail field is set it shows that
 /// enum_error_messages id instead. Bytes the switch has no case for (0xAC, 0xB0, 0xC7) are pinned by the
@@ -77,7 +77,7 @@ public enum SkillResult : byte
     InvalidAccountAttribute = 0x3D,
     FestivalZone = 0x3E,
     AlreadyOtherPlayerBound = 0x3F,
-    UrkUnknown = 0x40, // No case in the client result switch; the display path returns without a message for 0x40.
+    UrkUnknown = 0x40, // No case in the client's result switch; the display path returns without a message for 0x40.
     CannotUnsummonUnderStunSleepRoot = 0x41,
     LackCombatResource = 0x42,
     LackSourceItemSet = 0x43,

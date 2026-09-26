@@ -7,8 +7,8 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
 /// X2Team:RaidRecruitAdd(type, subType, headcount, limitLevel, autoJoin, msg, hour, minute, limitGearPoint).
-/// The body is one full record: the binding zeroes 0x1b0 bytes, fills those
-/// nine values and serialises through /, so everything else in it is ignored.
+/// The body is one full record: the reader zeroes 0x1b0 bytes, fills those
+/// nine values and writes the remaining bytes as zero, so everything else in it is ignored.
 /// </summary>
 public class CSRaidRecruitAddPacket() : GamePacket(CSOffsets.CSRaidRecruitAddPacket, 1)
 {

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.World.Zones;
 /// <para>
 /// State ids are <c>enum_honor_point_war_states</c>: 0..4 trouble_0..trouble_4 (Tension..Crisis),
 /// 5 battle (Conflict), 6 war, 7 peace. The client registers the same eight values as the Lua globals
-/// HPWS_TROUBLE_0..4, HPWS_BATTLE, HPWS_WAR and HPWS_PEACE , float constants
+/// HPWS_TROUBLE_0..4, HPWS_BATTLE, HPWS_WAR and HPWS_PEACE (float constants
 /// 0..7) and its HUD shows a trouble state as stage <c>conflictState + 1</c> with the
 /// <c>honor_point_war_state_texts</c> title (x2ui/hud/indicators/zone_informer.lua), so the five
 /// trouble stages are distinct client states and the escalation stops at battle: War and Peace are
@@ -28,8 +28,9 @@ namespace AAEmu.Game.Models.Game.World.Zones;
 /// </para>
 /// <para>
 /// The comparison is cumulative and strictly greater-than, as the kill cycle has shipped since the
-/// 1.2 server. Whether retail counted each trouble level from zero could not be established: the
-/// only binary available here is the shipped zone host, and it holds no <c>num_kills_</c> literal.
+/// 1.2 server. Whether retail counted each trouble level from zero could not be established: no
+/// retail server binary is available here, and the shipped zone host holds no
+/// <c>num_kills_</c> literal to settle it from.
 /// With equal per-level thresholds (every shipped row) the zone therefore passes the four middle
 /// stages in the same kill that leaves Tension.
 /// </para>

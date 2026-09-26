@@ -1021,7 +1021,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             {
                 // item_proc_bindings: 186 rows, 102 distinct procs, on 135 weapons, 21 armors, 9 accessories and
                 // 18 gems (item 4687 carries three). The client loads the same three columns in
-                // (LoadItemProcBindingDescs). The two rows on items 39248 and 39249 ([test] gloves,
+                // LoadItemProcBindingDescs. The two rows on items 39248 and 39249 ([test] gloves,
                 // items.proc_lifetime 1 and 3) are the only bound procs meant to run out; the lifetime charge is
                 // not implemented, so those two are left off rather than firing for good.
                 command.CommandText = "SELECT b.item_id, b.proc_id FROM item_proc_bindings b " +
@@ -2796,7 +2796,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     }
 
     /// <summary>
-    /// Gets a new itemID for use on new items, will also remove it from the deleted itemIDs list. Use this instead of directly calling itemIdManager.GetNextId
+    /// Gets a new itemID for use on new items, will also remove it from the deleted itemIDs list. Use this instead of directly calling itemIdManager.GetNextId().
     /// </summary>
     /// <returns>A new itemID</returns>
     private ulong GetNewId()
@@ -2811,7 +2811,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     }
 
     /// <summary>
-    /// Releases a itemId for re-use, will also add it to the removed items list, use instead of itemIdManager.ReleaseId
+    /// Releases a itemId for re-use, will also add it to the removed items list, use instead of itemIdManager.ReleaseId().
     /// </summary>
     /// <param name="itemId">itemId of the item to be freed up</param>
     public void ReleaseId(ulong itemId)

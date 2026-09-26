@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// <summary>
 /// Reward: adds point leadership points (quest_act_supply_leadership_points, 127 rows, 1 to 300;
 /// 60 on "faction heroes" quests of category 137, 19 on category 147, the rest on hero missions,
-/// sea and abyss quests). The client reader LoadQuestActSupplyLeadershipPointDescsreads id and point. Character.ChangeGamePoints(Leadership) moves the current
+/// sea and abyss quests). The client reader LoadQuestActSupplyLeadershipPointDescs reads id and point. Character.ChangeGamePoints(Leadership) moves the current
 /// Period and, on a gain, the lifetime and daily figures, and pushes the season packet.
 /// </summary>
 public class QuestActSupplyLeadershipPoint(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)

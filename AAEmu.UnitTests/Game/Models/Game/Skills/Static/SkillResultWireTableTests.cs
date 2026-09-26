@@ -12,7 +12,7 @@ public class SkillResultWireTableTests
 {
     private static IReadOnlyList<SkillResultClientTable.Row> Rows => SkillResultClientTable.Rows;
 
-    /// <summary>The declared name for a row's byte. ToStringmay answer "UrkStart" for 0x49; the alias is not the owner.</summary>
+    /// <summary>The declared name for a row's byte. ToString() may answer "UrkStart" for 0x49; the alias is not the owner.</summary>
     private static string MemberName(SkillResultClientTable.Row row) =>
         Enum.GetNames<SkillResult>()
             .Single(name => (byte)Enum.Parse<SkillResult>(name) == row.Wire && name != nameof(SkillResult.UrkStart));

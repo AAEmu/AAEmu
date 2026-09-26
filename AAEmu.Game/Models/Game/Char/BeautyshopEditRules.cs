@@ -71,7 +71,7 @@ public enum BeautyshopCharge
 
 /// <summary>
 /// The salon's decision logic: which fields the character's model may take, what the edit costs, and
-/// when the shop may be entered. The wire side (CSBeautyshopDataPacket,) and the apply
+/// when the shop may be entered. The wire side (CSBeautyshopDataPacket) and the apply
 /// order live in CharacterManager.
 /// </summary>
 public static class BeautyshopEditRules
@@ -267,7 +267,7 @@ public static class BeautyshopEditRules
 
     /// <summary>
     /// The client presents the first ticket it finds and count 1, or the none id and count 0 when it
-    /// holds none (/), and either way sends the edit. The server checks the
+    /// holds none (it then writes the none id with count 0), and either way sends the edit. The server checks the
     /// bag itself: a valid ticket pays, otherwise only a running free window does.
     /// </summary>
     public static BeautyshopCharge DecideCharge(bool holdsValidTicket, bool freeWindowOpen)

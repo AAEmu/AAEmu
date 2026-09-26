@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// <summary>
 /// X2Team:RaidRecruitDetail(ownerId, createTime): u64 type (the post's owner id), i64 named expireTime by
 /// the serializer but fed the row's createTime string by the binding
-/// . Answered with SCRaidRecruitDetail.
+/// Answered with SCRaidRecruitDetail.
 /// </summary>
 public class CSRaidRecruitDetailPacket() : GamePacket(CSOffsets.CSRaidRecruitDetailPacket, 1)
 {

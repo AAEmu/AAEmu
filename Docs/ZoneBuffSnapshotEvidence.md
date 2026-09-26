@@ -3,8 +3,9 @@
 ## Zone-host consumer
 
 The zone host applies buffs from the unit-state snapshot without emitting a separate
-create message per entry. (The observation target throughout is the zone host process,
-not the game client: the snapshot buff manager lives in the zone host.) The decoded snapshot carries three buff lists —
+create message per entry. The observation target throughout is the zone host
+process, not the game client: the snapshot buff manager lives in the zone host.
+The decoded snapshot carries three buff lists —
 **Good**, **Bad** and **Hidden** — each stored as a count/entry pair. On
 `OnUnitState` the zone host initialises the unit's buff manager from those three
 lists, preserving the instance index and the buff template id for every entry.
@@ -17,9 +18,9 @@ so a separate create message is not required by that path. Note that World did l
 Create for this index shortly BEFORE the snapshot (see the timeline below), so "not
 observed" would be wrong — the log alone is not proof of a snapshot-sourced buff.
 
-The available client log reports `OnUnitState - id(...), name(...), type(...),
+The available zone-host log reports `OnUnitState - id(...), name(...), type(...),
 pos(...)`; the snapshot copy path itself is silent. A World send log is not a
-client acknowledgement. The evidence for individual snapshot entries is the
+zone-host acknowledgement. The evidence for individual snapshot entries is the
 copy path and direct read-only memory samples of the running zone host.
 
 ## Relay ownership regression
@@ -46,20 +47,20 @@ is outside this change.
 ## Live r575 check, 2026-09-18
 
 The corrected code was built and deployed in the integrated local stack and the
-full unit suite passed. The native process loaded only `w_solzreed_1`, zone 142,
+full unit suite passed. The zone host loaded only `w_solzreed_1`, zone 142,
 instance 0. A real r575 client entered with Dannia; the sampled zone-host object was
 1066, buff index 8. Read-only process memory sampling ran every 100 ms, with no
 injection or native binary changes.
 
 | Time (UTC) | Observation |
 | --- | --- |
-| 19:04:19 | Client `OnUnitState` for object 1066; World logs its UnitState send. |
+| 19:04:19 | Zone-host `OnUnitState` for object 1066; World logs its UnitState send. |
 | 19:04:19.792133 | Zone-host manager contains template 2423, index 8; restriction counter is 1. |
 | 19:04:32.993643 | Last sample containing 2423/index 8; counter remains 1. |
 | 19:04:33 | World logs `WZBuffRemoved`, target 1066, buffIndex 8. |
 | 19:04:33.094188 | Same zone-host unit no longer contains 2423/index 8; counter is 0. |
 
-The client log uses local time (UTC-03:00):
+The zone-host log uses local time (UTC-03:00):
 
 ```text
 <16:04:19> [C4ED2400] OnUnitState - id(1066), name(Dannia), type(0), pos(13757.10, 14622.20, 110.96)
@@ -73,7 +74,7 @@ The World log uses UTC:
 ```
 
 For completeness, World logged a separate Create for index 8 at 19:04:13,
-**before** the client `OnUnitState`; it logged no Create/replay for that index
+**before** the zone-host `OnUnitState`; it logged no Create/replay for that index
 between `OnUnitState` and removal. Thus the log alone should not be described as
 proof of an exclusively snapshot-sourced buff. The consumer trace establishes
 snapshot loading; the memory trace verifies the actual buff lifecycle and

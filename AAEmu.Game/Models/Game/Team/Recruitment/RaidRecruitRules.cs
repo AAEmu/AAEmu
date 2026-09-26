@@ -82,8 +82,8 @@ public static class RaidRecruitRules
     public const int MaxApplicationsPerCharacter = 3;
 
     /// <summary>
-    /// The client's maxApplicantCount is the float constant DAT_39fed3f8 = 100, and the
-    /// SCRaidApplicantList reader stops at 100 rows.
+    /// The client applies a maxApplicantCount of 100, and the SCRaidApplicantList reader
+    /// stops at 100 rows.
     /// </summary>
     public const int MaxApplicantsPerRecruitment = 100;
 
@@ -97,8 +97,8 @@ public static class RaidRecruitRules
     public const int NameByteLimit = 128;
 
     /// <summary>
-    /// RAID_RECRUIT_EXPIRE_DELAY_MINUTE, registered for Lua from DAT_3a0182e8 = 20 and shown
-    /// in ui_texts 8858: posts are auto-deleted "$2 minutes after Departure Time".
+    /// RAID_RECRUIT_EXPIRE_DELAY_MINUTE, registered for Lua as 20 and shown in
+    /// ui_texts 8858: posts are auto-deleted "$2 minutes after Departure Time".
     /// </summary>
     public const int ExpireDelayMinutes = 20;
 

@@ -122,7 +122,7 @@ public class Skill
     public bool SuppressZoneSkillRelay { get; set; }
 
     /// <summary>
-    /// World OnSpawn fill: run the plot graph and return without Cast same as plot_only.
+    /// World OnSpawn fill: run the plot graph and return without Cast(), same as plot_only.
     /// Lusca stage skills have a plot with plot_only false and empty skill_effects.
     /// </summary>
     public bool ForcePlotGraphOnly { get; set; }
@@ -224,7 +224,7 @@ public class Skill
         //
         // Gate 1: use_condition_bits and the caster's state - dead, stunned, slept, silenced,
         // swimming. The client greys out what it can see, but a forged or stale press still reached
-        // Cast()before this gate existed, and silence had no server-side effect at all.
+        // Cast() before this gate existed, and silence had no server-side effect at all.
         var useConditionFailure = SkillUseConditionRules.Evaluate(
             Template.UseConditionBits,
             SkillUseConditionRules.ReadState(unit));
@@ -348,7 +348,7 @@ public class Skill
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
         }
 
-        // stop_channeling_on_start_skill: the running channel yields to the new cast. Stop()is the
+        // stop_channeling_on_start_skill: the running channel yields to the new cast. Stop() is the
         // cancelled path, so the old channel applies no effects; its tick drain and its TlId are released.
         if (unit.SkillTask is EndChannelingTask runningChannel &&
             runningChannel.Skill != this &&
@@ -452,7 +452,7 @@ public class Skill
         // if (caster is Character)
         Logger.Debug($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
 
-        // Hold / reel kit ships a plot but is not flagged plot_only. Cast()after the plot
+        // Hold / reel kit ships a plot but is not flagged plot_only. Cast() after the plot
         // starts EndSkill's the TlId while the graph is still on the bar.
         if (Template.Plot != null
             && !Template.PlotOnly
@@ -469,10 +469,10 @@ public class Skill
 
         // Check if target is within range
         // The check runs before the plot branch below, not after it: a plot_only skill returned from
-        // Use()before ever reaching this code, so 315 of the 534 ability skills — every plot_only one —
+        // Use() before ever reaching this code, so 315 of the 534 ability skills — every plot_only one —
         // could be cast from any distance at all.
         var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
-        // Puts skill attribute 17 (min_range) on the minimum the same way
+        // The same rule puts skill attribute 17 (min_range) on the minimum the same way
         // attribute 2 goes on the maximum; one skill_modifiers row carries it (2144, buff 27701, +4).
         var skillMinRange = caster.ApplySkillModifiers(this, SkillAttribute.MinRange, Template.MinRange);
         var targetDist = unit.GetDistanceTo(target, true);
@@ -525,7 +525,7 @@ public class Skill
 
         // The band and its verdicts are SkillRangeRules: too close at or inside the minimum, too far beyond
         // the maximum, and nothing measured at all when the resolved target is the caster (the client skips
-        // ValidateLocation for a self cast,). The old strict "closer than" let a target standing
+        // ValidateLocation for a self cast). The old strict "closer than" let a target standing
         // exactly at min_range through, and the missing self exemption refused every self-target kit skill
         // that carries a minimum, since the distance to oneself is 0.
         // TODO: Remove exception for doodads
@@ -552,7 +552,7 @@ public class Skill
             var plotTlId = TlId;
             if (Template.PlotOnly || ForcePlotGraphOnly)
             {
-                // plot_only (and World OnSpawn fill) returns before Cast— apply start costs here.
+                // plot_only (and World OnSpawn fill) returns before Cast() — apply start costs here.
                 // GCD for cast-time plot_only is applied when the plot leaves its casting edge
                 // (PlotNode → ApplyPlotOnlyFireCosts). Zone needs WZSkillStarted now (Cast never runs).
                 RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
@@ -641,7 +641,7 @@ public class Skill
             }
 
             // Has casting time, schedule a task for it
-            // ZoneAuthority: cast begins now — Started before cast-end Cast/EndSkill.
+            // ZoneAuthority: cast begins now — Started before cast-end Cast()/EndSkill.
             RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
             caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
             {
@@ -794,7 +794,7 @@ public class Skill
 
                     if (target != null && caster.ObjId == target.ObjId)
                     {
-                        // An others cast (16) on oneself is INVALID_TARGET.
+                        // An others cast (16) aimed at oneself is INVALID_TARGET.
                         _initialTargetFailure = SkillResult.InvalidTarget;
                         return null;
                     }
@@ -814,7 +814,7 @@ public class Skill
 
                     if (target != null && caster.ObjId == target.ObjId)
                     {
-                        // A friendly_others cast (17) on oneself is CANNOT_USE_FOR_SELF.
+                        // A friendly_others cast (17) aimed at oneself is CANNOT_USE_FOR_SELF.
                         _initialTargetFailure = SkillResult.CannotUseForSelf;
                         return null;
                     }
@@ -1071,7 +1071,7 @@ public class Skill
         }
 
         // Instant ZoneAuthority casts: WZSkillStarted before ScheduleEffects/EndSkill (melee 2
-        // clears TlId immediately). Cast-time / plot_only already relayed at Use()entry.
+        // clears TlId immediately). Cast-time / plot_only already relayed at Use() entry.
         RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
 
         // A controller drives its owner's position, so it used to be created for NPC casters only. A player's
@@ -1169,7 +1169,7 @@ public class Skill
         //
         //         if (caster is Character chr)
         //         {
-        // chr.SendMessage("Target is too far...");
+        // chr.SendMessage("Target is too far ...");
         //         }
         //         return;
         //     }
@@ -1224,12 +1224,12 @@ public class Skill
         if (unit.AutoAttackTask != null)
             unit.AutoAttackTask.Cancelled = true;
 
-        // await unit.AutoAttackTask.Cancel
+        // await unit.AutoAttackTask.Cancel();
         caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
         caster.BroadcastPacket(new SCSkillStoppedPacket(unit.ObjId, Id), true);
         if (WorldIntegration.ZoneAuthority)
             WorldIntegration.RelaySkillStoppedToZone?.Invoke(unit.ObjId, (int)Id);
-        //unit.AutoAttackTask = null;
+        // unit.AutoAttackTask = null;
         //unit.IsAutoAttack = false; // turned off auto attack
         RelayZoneSkillEndedIfNeeded();
         SkillTlIdManager.ReleaseId(TlId);
@@ -1600,7 +1600,7 @@ public class Skill
         // Filter out duplicate entries and non-existing
         possibleTargets = possibleTargets.Distinct().ToList();
         // Add origin in case of no targets and using a target position cast. Utility effects (spawn,
-        // doodad,...) need a position to act on; damage and debuffs must not follow this origin, see
+        // doodad, ...) need a position to act on; damage and debuffs must not follow this origin, see
         // SkillSelfHitRules - a ground cast that found nobody is not a self-cast.
         var originFallbackOnly = false;
         if (possibleTargets.Count <= 0 && targetCaster is SkillCastPositionTarget)
@@ -2037,7 +2037,7 @@ public class Skill
                 Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{effect.EffectId}]");
         }
 
-        // TODO Call OnItemUsemoved to the ApplyEffectsmethod from the effects and add trigger ConditionChance;
+        // TODO Call OnItemUse() moved to the ApplyEffects() method from the effects and add trigger ConditionChance;
         // If the probability of passing the effect is greater than the chance, then run the check on the use of the item for the quest
         if (casterCaster is SkillItem skillItem && unit.ConditionChance)
         {
@@ -2592,12 +2592,12 @@ public class Skill
             return;
         _plotOnlyFireCostsApplied = true;
         ApplyGlobalCooldown(unit);
-        // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast()and blocks re-cast spam.
+        // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast() and blocks re-cast spam.
         if (Template.CooldownTime > 0)
             ArmCooldowns(unit);
         // The plot-only fire edge, for the fire_skill item procs: six of the ten trigger_skill_id rows name a
-        // plot_only skill (11934, 11943, 11973, 15096, 16210, 16783), which never reaches Cast() A
-        // pure-unsupported cast is refused the roll in Cast()for the same reason, so it gets none here.
+        // plot_only skill (11934, 11943, 11973, 15096, 16210, 16783), which never reaches Cast(). A
+        // pure-unsupported cast is refused the roll in Cast() for the same reason, so it gets none here.
         if (!IsPureUnsupportedCast())
             unit.Procs?.OnSkillFired(this, InitialTarget);
     }
@@ -2650,7 +2650,7 @@ public class Skill
     }
 
     /// <summary>
-    /// ZoneAuthority WZSkillStarted once per Use. Instant skills must call this from Cast
+    /// ZoneAuthority WZSkillStarted once per Use. Instant skills must call this from Cast()
     /// before EndSkill zeroes TlId; cast-time/plot_only call it when the cast begins.
     /// </summary>
     private void RelayZoneSkillStartedIfNeeded(SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -2711,7 +2711,7 @@ public class Skill
             return;
 
         // A skill flagged ignore_global_cooldown neither waits for the GCD nor arms it. The wait side was
-        // already honoured in Use arming it here anyway meant 8659 skills put every OTHER skill on a
+        // already honoured in Use(); arming it here anyway meant 8659 skills put every OTHER skill on a
         // cooldown they themselves are declared to sit outside of — Backdraft (44200) among them.
         if (Template.IgnoreGlobalCooldown)
             return;

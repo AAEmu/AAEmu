@@ -57,7 +57,7 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
 
         foreach (var doodad in deleted)
         {
-            // doodad.Delete
+            //doodad.Delete();
             world.SpawnManager?.RemovePlayerDoodad(doodad);
         }
     }
@@ -137,22 +137,7 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
 
     public void Load()
     {
-        // Farm subzone ids, hand-maintained.
-        //
-        // The map is COMPLETE over the subzone dimension, not a partial approximation.
-        // sub_zones carries exactly five farm-related rows in the shipped content and all five are
-        // listed below: 966, 967, 968 and 998 are named for the common farm, and 974 is the vehicle
-        // stable (a different farm type, hence FarmType.Stable rather than FarmType.Farm).
-        //
-        // Note that common_farms (46 rows) is a different id-space: those rows are farm
-        // definitions, not subzones. Counting them against the subzone list ("41 of 46
-        // unreachable") compares two unrelated key spaces and does not describe a gap here.
-        // common_farms is id, name, guard_time, farm_group_id, comments; farm_groups is
-        // id, name, count with only 2 rows and does not discriminate farm type either. No table
-        // joins a common_farms row to a subzone, so a position in an unmapped subzone simply
-        // resolves to FarmType.Invalid and is skipped — but no *farm* subzone is unmapped.
-        // The only candidate correlator is the localized farm name, which is display text and
-        // must not be used for classification.
+        //common farm subzone ID's
         _farmZones = new Dictionary<uint, FarmType>
         {
             { 998, FarmType.Farm },

@@ -4,7 +4,9 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <remarks>
-/// Native evidence: ArcheAge 10.0.2.13 serializer, packet functor, /// receiver, and loading-world state consumer at.
+/// <para>
+/// Carries the one-byte global snow toggle the client applies during world load.
+/// </para>
 /// </remarks>
 public class SCSnowingEverywherePacket(bool on) : GamePacket(SCOffsets.SCSnowingEverywherePacket, 1)
 {

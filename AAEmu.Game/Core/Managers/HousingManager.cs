@@ -1129,8 +1129,8 @@ public class HousingManager(
     }
 
     /// <summary>
-    /// unit_reqs kind 91 IsResident. The client's check is a lookup in the
-    /// resident map that <see cref="SendResidentMap"/> feeds, so residency is the same rule: an owned
+    /// unit_reqs kind 91 IsResident. The client checks the same rule: a lookup in the
+    /// resident map that <see cref="SendResidentMap"/> feeds, so residency is an owned
     /// house in one of the group's zones.
     /// </summary>
     public bool IsResidentOfZoneGroup(uint characterId, uint zoneGroupId)

@@ -6,12 +6,12 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// The distance band a cast is measured against and the two verdicts it can fail with.
 /// </summary>
 /// <remarks>
-/// The client validates a unit-target cast in. It resolves the target by
-/// target type and calls X2::Unit::ValidateLocation only when that unit is not the caster
-/// itself; a self cast is never measured. ValidateLocation builds the band in: min_range and
+/// The client validates a unit-target cast in two steps. It resolves the target by
+/// target type and measures only when that unit is not the caster itself; a self cast is
+/// never measured. The band is built from: min_range and
 /// max_range from the skill record, or from the equipped holdable when weapon_slot_for_range_id names a
 /// slot, then skill attribute 17 (min_range) on the minimum and attribute 2 (range) on the maximum, and a
-/// maximum that ends up below the minimum is lifted to min + 0.5 (DAT_39fe8e24). then judges,
+/// maximum that ends up below the minimum is lifted to min + 0.5, then it judges,
 /// in this order: TOO_CLOSE_RANGE (0xE) when min > 0 and distance <= min, TOO_FAR_RANGE (0xF) when
 /// distance > max. So a target standing at exactly min_range is too close and one at exactly max_range is
 /// in range. The distance is: the smallest shape-to-shape distance from the caster's collision
@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// </remarks>
 public static class SkillRangeRules
 {
-    /// <summary>: a maximum that fell below the minimum is lifted this far above it.</summary>
+    /// <summary>How far a maximum that fell below the minimum is lifted above it.</summary>
     public const double MaxBelowMinLift = 0.5;
 
     /// <summary>The band in metres. <see cref="MaxUnbounded"/> means no far limit applies to this cast.</summary>
@@ -43,8 +43,9 @@ public static class SkillRangeRules
     }
 
     /// <summary>
-    /// Whether the band is measured at all. skips ValidateLocation when the resolved target is
-    /// the caster, so the 123 self-target skills with a minimum (the distance to oneself being 0) fire.
+    /// Whether the band is measured at all. The client skips the check when the resolved
+    /// target is the caster, so the 123 self-target skills with a minimum (the distance to
+    /// oneself being 0) fire.
     /// </summary>
     public static bool Measures(uint casterObjId, uint targetObjId) => casterObjId != targetObjId;
 
