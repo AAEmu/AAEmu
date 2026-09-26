@@ -97,6 +97,51 @@ public class SailingActivityPacketTests
     }
 
     [Test]
+    public async Task Read_RefusesAHugeCountWithoutAllocatingForIt()
+    {
+        // The count is a signed 32-bit field, so a body can claim far more elements than it carries.
+        // The reader has to refuse that on the bytes that are actually left, before it asks for the
+        // array: allocating first would let a four-byte body request gigabytes of int[] and take the
+        // process down before the truncation was ever noticed.
+        // The stream is positioned at the count itself: int.MaxValue elements claimed, one supplied.
+        var body = new PacketStream().Write(int.MaxValue).Write(0x0A).GetBytes();
+        var stream = new PacketStream(body);
+
+        var threw = false;
+        try
+        {
+            SailingActivityContainer.Read(stream, "huge-count");
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
+    public async Task Read_RefusesANegativeCountBeforeAllocatingForIt()
+    {
+        // A negative count must be refused on its own, not handed to an allocation: the array length
+        // would be a negative value, and the failure would surface as an overflow rather than as the
+        // malformed field it is.
+        var body = new PacketStream().Write(-1).GetBytes();
+
+        var threw = false;
+        try
+        {
+            SailingActivityContainer.Read(new PacketStream(body), "negative-count");
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
     public async Task Read_LeavesTheContainerEmptyWhenTheBodyCarriesNothing()
     {
         // A zero count: four bytes. The old design consumed "the rest of the stream", which for an

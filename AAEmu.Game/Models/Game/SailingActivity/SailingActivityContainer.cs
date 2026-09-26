@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.SailingActivity;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The 10.0.2.13 serializer for this slot is the generic helper the generic vector helper. It writes a
+/// The 10.0.2.13 serializer for this slot is the client's generic vector helper. It writes a
 /// 32-bit element count and then that many 32-bit elements, so an <b>empty</b> vector is four zero
 /// bytes on the wire, not zero bytes.
 /// </para>
@@ -23,10 +23,9 @@ namespace AAEmu.Game.Models.Game.SailingActivity;
 /// first time field at <c>+0x98</c>. <c>0x18 + 32*4 == 0x98</c> exactly.
 /// </para>
 /// <para>
-/// <b>Element type is inferred, not proven.</b> The helper is opaque in the extraction: the schema
-/// records the call, not the callee\'s body. That the element is a 32-bit int follows from the offset
-/// arithmetic above and from the field names the callers use (<c>rewardIds</c>, <c>stageIds</c>,
-/// <c>claimedRewardIds</c>), not from a recovered body for the helper itself.
+/// <b>Element type.</b> The element is a 32-bit signed id throughout: the offset arithmetic above
+/// places the element run as four bytes per entry, and the callers name their elements as id lists
+/// (<c>rewardIds</c>, <c>stageIds</c>, <c>claimedRewardIds</c>).
 /// </para>
 /// <para>
 /// <b>Scope warning.</b> The same helper is not exclusive to this feature: seven packets call it in
@@ -78,6 +77,18 @@ public sealed class SailingActivityContainer
         {
             Logger.Error("Sailing activity {0}: container declared a negative element count ({1}); refusing", context, count);
             throw new InvalidDataException($"sailing-activity container count must not be negative, got {count}");
+        }
+
+        // The count is a 32-bit field, so it can claim far more elements than the body could ever
+        // carry. Validate it against what is actually left BEFORE allocating: allocating first lets a
+        // truncated or crafted body ask for gigabytes before the first element read fails.
+        var available = stream.LeftBytes / sizeof(int);
+        if (count > available)
+        {
+            Logger.Error("Sailing activity {0}: container declared {1} elements but only {2} remain in the stream",
+                context, count, available);
+            throw new InvalidDataException(
+                $"sailing-activity container declared {count} elements but only {available} remain");
         }
 
         var ids = new int[count];

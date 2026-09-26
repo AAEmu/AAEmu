@@ -9,15 +9,15 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// </summary>
 /// <remarks>
 /// The 10.0.2.13 serializer reads a signed 32-bit <c>activityId</c> and then one element
-/// container. The container's element layout is unrecovered, so it is kept verbatim rather than
-/// interpreted; nothing acts on this packet yet.
+/// container. The container is decoded as a counted vector of 32-bit ids; nothing acts on this
+/// packet yet.
 /// </remarks>
 public class CSSailingActivityClaimRewardPacket() : GamePacket(CSOffsets.CSSailingActivityClaimRewardPacket, 1)
 {
     public int ActivityId { get; private set; }
 
     /// <summary>
-    /// The trailing element container, carried verbatim. Its elements are never decoded.
+    /// The trailing element container: a counted vector of 32-bit ids.
     /// </summary>
     public SailingActivityContainer Container { get; private set; } = SailingActivityContainer.Empty;
 
