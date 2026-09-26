@@ -44,6 +44,7 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
 
     // Details data
     private Dictionary<uint, DoodadFuncConsumeChangerItem> _doodadFuncConsumeChangerItem;
+    private DoodadFuncSpawnSlaveAfterGetItemDescriptorCatalog _spawnSlaveAfterGetItemDescriptors;
     private Dictionary<uint, List<DoodadFunc>> _funcsByGroups;
     private Dictionary<uint, DoodadFunc> _funcsById;
     private Dictionary<string, Dictionary<uint, DoodadFuncTemplate>> _funcTemplates;
@@ -2269,6 +2270,12 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
+            // Q09 descriptor-only catalog. Runtime grant/spawn behavior is intentionally not wired here.
+            _spawnSlaveAfterGetItemDescriptors =
+                DoodadFuncSpawnSlaveAfterGetItemDescriptorCatalog.Load(connection);
+            Logger.Info("Loaded {0} doodad_func_spawn_slave_after_get_items descriptors",
+                _spawnSlaveAfterGetItemDescriptors.Count);
+
             // doodad_func_spawn_gimmicks
             using (var command = connection.CreateCommand())
             {
@@ -3053,6 +3060,20 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
     public List<DoodadPhaseFunc> GetPhaseFunc(uint funcGroupId)
     {
         return _phaseFuncs.TryGetValue(funcGroupId, out var func) ? func : [];
+    }
+
+    /// <summary>
+    /// Returns the content-only Q09 descriptor. This accessor does not grant or spawn anything.
+    /// </summary>
+    public bool TryGetSpawnSlaveAfterGetItemDescriptor(
+        uint id,
+        out DoodadFuncSpawnSlaveAfterGetItemDescriptor descriptor)
+    {
+        if (_spawnSlaveAfterGetItemDescriptors is not null)
+            return _spawnSlaveAfterGetItemDescriptors.TryGet(id, out descriptor);
+
+        descriptor = null;
+        return false;
     }
 
     public DoodadFuncTemplate GetFuncTemplate(uint funcId, string funcType)
