@@ -15,6 +15,65 @@ namespace AAEmu.UnitTests.Game.Core.Managers.UnitManagers;
 
 public class DoodadManagerTests
 {
+    #region Local Development Board Tests
+
+    [Test]
+    public async Task AddLocalDevelopmentBoardTemplateIds_OnlyTakesBoards()
+    {
+        var manager = CreateManager(
+            Mock.Of<INonUnitObjectIdManager>().Object,
+            Mock.Of<IDoodadIdManager>().Object,
+            Mock.Of<IItemManager>().Object,
+            new Lazy<IHousingManager>(() => Mock.Of<IHousingManager>().Object),
+            Mock.Of<ISusManager>().Object,
+            Mock.Of<IFactionManager>().Object);
+
+        // Synthetic keys, deliberately outside the shipped content ranges: this helper is about which
+        // templates carry the function, not about any real board.
+        var board = new DoodadTemplate { Id = 9_000_101 };
+        board.FuncGroups.Add(new DoodadFuncGroups { Id = 9_000_201, Almighty = 9_000_101 });
+        var craft = new DoodadTemplate { Id = 9_000_102 };
+        craft.FuncGroups.Add(new DoodadFuncGroups { Id = 9_000_202, Almighty = 9_000_102 });
+        var other = new DoodadTemplate { Id = 9_000_103 };
+        other.FuncGroups.Add(new DoodadFuncGroups { Id = 9_000_203, Almighty = 9_000_103 });
+        SetPrivateField(manager, "_templates", new Dictionary<uint, DoodadTemplate>
+        {
+            [9_000_101] = board,
+            [9_000_102] = craft,
+            [9_000_103] = other
+        });
+        SetPrivateField(manager, "_funcsByGroups", new Dictionary<uint, List<DoodadFunc>>
+        {
+            [9_000_201] = [new DoodadFunc { FuncId = 9_000_301, FuncType = nameof(DoodadFuncLocalDevelopmentBoardUiOpen) }],
+            [9_000_202] = [new DoodadFunc { FuncId = 9_000_302, FuncType = nameof(DoodadFuncCraftOrderBoardUiOpen) }],
+            [9_000_203] = [new DoodadFunc { FuncId = 9_000_303, FuncType = nameof(DoodadFuncQuest) }]
+        });
+
+        var wanted = new HashSet<uint>();
+        manager.AddLocalDevelopmentBoardTemplateIds(wanted);
+
+        await Assert.That(wanted).IsEquivalentTo(new HashSet<uint> { 9_000_101 });
+    }
+
+    [Test]
+    public async Task AddLocalDevelopmentBoardTemplateIds_IgnoresNullTarget()
+    {
+        var manager = CreateManager(
+            Mock.Of<INonUnitObjectIdManager>().Object,
+            Mock.Of<IDoodadIdManager>().Object,
+            Mock.Of<IItemManager>().Object,
+            new Lazy<IHousingManager>(() => Mock.Of<IHousingManager>().Object),
+            Mock.Of<ISusManager>().Object,
+            Mock.Of<IFactionManager>().Object);
+
+        manager.AddLocalDevelopmentBoardTemplateIds(null);
+        manager.AddLocalDevelopmentBoardTemplateIds(new HashSet<uint>());
+
+        await Assert.That(manager).IsNotNull();
+    }
+
+    #endregion
+
     #region Constructor Tests
 
     [Test]

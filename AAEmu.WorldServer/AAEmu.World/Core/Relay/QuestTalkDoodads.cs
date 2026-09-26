@@ -17,7 +17,7 @@ namespace AAEmu.World.Core.Relay;
 /// <summary>
 /// World-authors level-pack doodads from <c>cells/*/doodad.g</c> that
 /// <c>doodad_spawns.json</c> never exported: quest talk/func, <c>client_doodad</c>,
-/// <c>npctype://</c> scene bodies (3901 Feos 14227), and craft-order boards.
+/// <c>npctype://</c> scene bodies (3901 Feos 14227), and craft-order / local-development boards.
 /// Coordinates come from <see cref="ZoneDoodadPlacementCatalog"/> only. Cell
 /// ignore/open lists and tower DoodadAlmighty stay off the permanent plant.
 /// No live NPC for those models.
@@ -53,6 +53,7 @@ public static class QuestTalkDoodads
         DoodadManager.Instance.AddClientDoodadTemplateIds(wanted);
         DoodadManager.Instance.AddNpcTypeTemplateIds(wanted);
         DoodadManager.Instance.AddCraftOrderBoardTemplateIds(wanted);
+        DoodadManager.Instance.AddLocalDevelopmentBoardTemplateIds(wanted);
         QuestTalkDoodadRules.ExceptTowerAlmighty(
             wanted,
             TowerDefGameData.Instance.GetDoodadAlmightyTargetIds());
