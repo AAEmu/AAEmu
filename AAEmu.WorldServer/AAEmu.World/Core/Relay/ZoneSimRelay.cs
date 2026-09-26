@@ -129,9 +129,15 @@ public class ZoneSimRelay
     /// <summary>
     /// ZW area membership edge (ZWEnterArea 0x23 / ZWLeaveArea 0x24):
     /// <c>bc unitId + u8 groupId + i32 value1 + i32 value2</c>.
-    /// <c>groupId</c> is the area's group (quest area / district), <c>value1</c> the area
-    /// radius Zone measured, <c>value2</c> the area's secondary value. Zone emits the
-    /// packet only when the radius is non-zero, so a zero value1 is a malformed edge.
+    /// <para>
+    /// <c>groupId</c> is the area KIND and <c>value1</c> is the individual area's id
+    /// within that kind — the dedicated level data carries the same two names
+    /// (<c>GroupId</c> / <c>value1</c>) on each area row, and <c>GroupId</c> is
+    /// constant across every area of a family while <c>value1</c> varies. <c>value1</c>
+    /// is therefore an id and NOT a radius; reading it as a distance scans a number of
+    /// metres that was never a length. <c>value2</c> is the area's secondary value and
+    /// is zero on every shipped area row.
+    /// </para>
     /// </summary>
     /// <remarks>
     /// The area-event hook and the older enter/leave hooks (quest areas and districts)
@@ -147,14 +153,14 @@ public class ZoneSimRelay
 
         uint unitId;
         byte groupId;
-        int value1;
-        int value2;
+        int areaId;
+        int areaValue2;
         try
         {
             unitId = stream.ReadBc();
             groupId = stream.ReadByte();
-            value1 = stream.ReadInt32();
-            value2 = stream.ReadInt32();
+            areaId = stream.ReadInt32();
+            areaValue2 = stream.ReadInt32();
         }
         catch
         {
@@ -162,17 +168,17 @@ public class ZoneSimRelay
         }
 
         Logger.Info(
-            "ZW{0}Area zone={1} unit={2} group={3} value1={4} value2={5}",
-            entering ? "Enter" : "Leave", zoneId, unitId, groupId, value1, value2);
+            "ZW{0}Area zone={1} unit={2} group={3} area={4} value2={5}",
+            entering ? "Enter" : "Leave", zoneId, unitId, groupId, areaId, areaValue2);
 
         InvokeAreaConsumer("area-event", () =>
-            WorldIntegration.OnZoneAreaEvent?.Invoke(zoneId, unitId, groupId, value1, value2, entering));
+            WorldIntegration.OnZoneAreaEvent?.Invoke(zoneId, unitId, groupId, areaId, areaValue2, entering));
         InvokeAreaConsumer(entering ? "enter-area" : "leave-area", () =>
         {
             if (entering)
-                WorldIntegration.OnZoneEnterArea?.Invoke(unitId, groupId, value1, value2);
+                WorldIntegration.OnZoneEnterArea?.Invoke(unitId, groupId, areaId, areaValue2);
             else
-                WorldIntegration.OnZoneLeaveArea?.Invoke(unitId, groupId, value1, value2);
+                WorldIntegration.OnZoneLeaveArea?.Invoke(unitId, groupId, areaId, areaValue2);
         });
 
         return true;

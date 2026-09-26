@@ -23,10 +23,10 @@ public static class DoodadAreaTriggerRuntime
 
     /// <summary>
     /// Handles one ZW area membership edge.
-    /// Args: zone id, unit id, area group id, area radius, area secondary value, entering.
+    /// Args: zone id, unit id, area group id, area id, area secondary value, entering.
     /// </summary>
     public static void OnZoneAreaEvent(
-        uint zoneId, uint unitId, uint groupId, int radius, int secondary, bool entering)
+        uint zoneId, uint unitId, uint groupId, int areaId, int secondary, bool entering)
     {
         if (!WorldIntegration.ZoneAuthority)
             return;
@@ -38,7 +38,7 @@ public static class DoodadAreaTriggerRuntime
         if (zoneId != 0 && character.Transform.ZoneId != zoneId)
             return;
 
-        if (!ShouldHandleEvent(groupId, radius))
+        if (!ShouldHandleEvent(groupId, areaId))
             return;
 
         var edges = AreaTriggerManager.Instance.AreaEdges;
@@ -46,27 +46,25 @@ public static class DoodadAreaTriggerRuntime
         {
             // The unit is already outside the area, so containment can no longer be
             // tested and the doodads are not rediscovered: a leave edge only drops
-            // the membership its enter edge created, for every owner at once.
-            edges.ForgetMembership(zoneId, unitId, groupId);
+            // the membership its enter edge created, for every owner at once — and
+            // only for the area that was left, not every area of the same kind.
+            edges.ForgetMembership(zoneId, unitId, groupId, unchecked((uint)areaId));
             return;
         }
 
-        var areaShape = new AreaShape
-        {
-            Id = groupId,
-            Type = AreaShapeType.Sphere,
-            Value1 = radius,
-        };
-
+        // The packet names the area; it carries no geometry. Zone has already decided
+        // the unit is inside it, so World does not re-derive containment from a
+        // distance it does not have. Candidates are the area-trigger doodads in the
+        // unit's region neighbourhood — the scope the world model actually defines,
+        // rather than a radius read out of an id.
         var candidates = new List<AreaTriggerCandidate>();
-        foreach (var doodad in WorldManager.GetAround<Doodad>(character, radius, true))
+        foreach (var doodad in WorldManager.GetAround<Doodad>(character))
         {
             // A pending despawn is the same refusal the normal use path applies.
             if (doodad == null || !doodad.IsVisible || doodad.Despawn > DateTime.MinValue)
                 continue;
 
-            // The doodad itself must own the trigger, and the character must still
-            // be inside the radius Zone reported for this edge.
+            // The doodad itself must own the trigger.
             var trigger = FindAreaTriggerFunc(doodad);
             if (trigger == null)
                 continue;
@@ -87,19 +85,23 @@ public static class DoodadAreaTriggerRuntime
                     trigger.FuncId, template.NpcId);
             }
 
-            var inRange = WorldManager.GetAroundByShape<Character>(doodad, areaShape)
-                .Any(c => c.ObjId == unitId);
-            candidates.Add(new AreaTriggerCandidate(doodad, trigger, template, inRange));
+            candidates.Add(new AreaTriggerCandidate(doodad, trigger, template));
         }
 
-        ApplyEnterEdges(zoneId, unitId, groupId, candidates, edges,
+        ApplyEnterEdges(zoneId, unitId, groupId, unchecked((uint)areaId), candidates, edges,
             (candidate, _) => Dispatch(candidate.Doodad, character, candidate.Func));    }
 
     /// <summary>
-    /// An area edge is usable only when it names an area group and carries the
-    /// positive radius Zone reported for it; Zone never emits the zero-radius form.
+    /// An area edge is usable only when it names an area group and a real area id.
+    /// <para>
+    /// <c>groupId</c> is the area KIND (the dedicated level data carries it as a
+    /// constant <c>GroupId</c> — every district row shares one), and <c>value1</c> is
+    /// the individual area's id within that kind. Zero names no area and a negative value
+    /// is not an id, so both are refused rather than matched against every area of the
+    /// kind. This is deliberately NOT a distance test: the field is an id.
+    /// </para>
     /// </summary>
-    public static bool ShouldHandleEvent(uint groupId, int radius) => groupId != 0 && radius > 0;
+    public static bool ShouldHandleEvent(uint groupId, int areaId) => groupId != 0 && areaId > 0;
 
     /// <summary>
     /// Resolves which unit a row reacts to. The <c>npc_id</c> column is the only
@@ -140,6 +142,7 @@ public static class DoodadAreaTriggerRuntime
         uint zoneId,
         uint unitId,
         uint groupId,
+        uint areaId,
         IReadOnlyList<AreaTriggerCandidate> candidates,
         AreaEdgeTracker edges,
         Func<AreaTriggerCandidate, uint, bool> dispatch)
@@ -149,10 +152,8 @@ public static class DoodadAreaTriggerRuntime
         {
             if (candidate.Template == null || !ShouldDispatch(candidate.Template, entering: true))
                 continue;
-            if (!candidate.InRange)
-                continue;
 
-            var key = new AreaEdgeKey(zoneId, unitId, groupId, candidate.Doodad.ObjId);
+            var key = new AreaEdgeKey(zoneId, unitId, groupId, areaId, candidate.Doodad.ObjId);
             var claim = edges.TryBegin(key);
             if (claim == null)
                 continue;
@@ -164,8 +165,8 @@ public static class DoodadAreaTriggerRuntime
             }
             catch (Exception e)
             {
-                Logger.Error(e, "DoodadFuncAreaTrigger dispatch failed obj={0} zone={1} unit={2} group={3}",
-                    candidate.Doodad.ObjId, zoneId, unitId, groupId);
+                Logger.Error(e, "DoodadFuncAreaTrigger dispatch failed obj={0} zone={1} unit={2} group={3} area={4}",
+                    candidate.Doodad.ObjId, zoneId, unitId, groupId, areaId);
                 ok = false;
             }
 
@@ -222,14 +223,17 @@ public static class DoodadAreaTriggerRuntime
 }
 
 /// <summary>
-/// A doodad that is a candidate for the current area edge, with the range answer
-/// already resolved so the edge decision needs no world lookups.
+/// A doodad that owns an area trigger and is in scope for the current area edge.
+/// <para>
+/// There is no range flag: the edge names an area but carries no geometry, and World
+/// holds no area-geometry registry, so containment cannot be re-derived here. Zone owns
+/// the enter/leave decision and this runtime trusts it.
+/// </para>
 /// </summary>
 public readonly record struct AreaTriggerCandidate(
     Doodad Doodad,
     DoodadFunc Func,
-    DoodadFuncAreaTrigger Template,
-    bool InRange);
+    DoodadFuncAreaTrigger Template);
 
 /// <summary>
 /// What a <c>DoodadFuncAreaTrigger</c> row reacts to on an area edge.

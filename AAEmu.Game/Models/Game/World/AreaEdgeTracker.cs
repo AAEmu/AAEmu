@@ -92,13 +92,19 @@ public sealed class AreaEdgeTracker
     /// Releases every doodad's membership for one unit in one area. A leave edge
     /// arrives after the unit has already stepped out, so the membership is
     /// dropped for all owners at once instead of being rediscovered by range.
+    /// <para>
+    /// Both <paramref name="groupId"/> and <paramref name="areaId"/> are required. The
+    /// group alone identifies the KIND of area, not the area, so matching on it would
+    /// drop every other area of the same kind that the unit is still inside.
+    /// </para>
     /// </summary>
-    public int ForgetMembership(uint zoneId, uint unitId, uint groupId) =>
-        Invalidate(key => key.ZoneId == zoneId && key.UnitId == unitId && key.AreaId == groupId);
+    public int ForgetMembership(uint zoneId, uint unitId, uint groupId, uint areaId) =>
+        Invalidate(key => key.ZoneId == zoneId && key.UnitId == unitId
+                         && key.GroupId == groupId && key.AreaId == areaId);
 
     public int ForgetUnit(uint unitId) => Invalidate(key => key.UnitId == unitId);
 
-    public int ForgetArea(uint groupId) => Invalidate(key => key.AreaId == groupId);
+    public int ForgetArea(uint groupId) => Invalidate(key => key.GroupId == groupId);
 
     public int ForgetOwner(uint ownerObjId) => Invalidate(key => key.OwnerObjId == ownerObjId);
 
@@ -178,7 +184,16 @@ public sealed class AreaEdgeTracker
     }
 }
 
-public readonly record struct AreaEdgeKey(uint ZoneId, uint UnitId, uint AreaId, uint OwnerObjId);
+/// <summary>
+/// Identifies one unit's membership of one area for one doodad.
+/// <para>
+/// <see cref="GroupId"/> is the area KIND the edge was reported under and
+/// <see cref="AreaId"/> is the individual area within that kind. They are different
+/// quantities and a single field cannot hold both: the kind is constant across every
+/// area of the family, so a key built from it alone conflates all of them.
+/// </para>
+/// </summary>
+public readonly record struct AreaEdgeKey(uint ZoneId, uint UnitId, uint GroupId, uint AreaId, uint OwnerObjId);
 
 /// <summary>
 /// Exclusive ownership of one key's edge work, carrying the generation it was taken at,

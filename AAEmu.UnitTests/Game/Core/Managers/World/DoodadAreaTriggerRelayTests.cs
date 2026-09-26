@@ -26,7 +26,11 @@ public class DoodadAreaTriggerRelayTests
     private const uint GroupId = 0x16;
     private const uint UnitId = 0x010203;
     private const uint UnknownUnitId = 0x0BADF00D;
-    private const int Radius = 25;
+
+    /// <summary>A real area id as the dedicated writes it: an id, never a distance.</summary>
+    private const int AreaId = 342;
+
+    private const uint OtherAreaId = 343;
     private const uint DoodadObjId = 900;
 
     private IDisposable _worldScope;
@@ -40,8 +44,6 @@ public class DoodadAreaTriggerRelayTests
     public void BuildWorld()
     {
         _worldScope = TestDungeonWorld.InstallWorldManager();
-        // The spatial scan reads Unit.ModelSize, which consults the model catalog. An
-        // empty catalog answers 0 for every model, which is all the range gate needs.
         _modelScope = new SingletonScope<ModelManager>(new ModelManager());
         SeedEmptyModelCatalog();
         _world = TestDungeonWorld.CreateSizedWorld(5001, 0, 1, 1, ZoneId);
@@ -86,23 +88,46 @@ public class DoodadAreaTriggerRelayTests
     public async Task LeaveEdge_ReleasesTheMembershipThroughTheRealEntryPoint()
     {
         var edges = AreaTriggerManager.Instance.AreaEdges;
-        var key = new AreaEdgeKey(ZoneId, UnitId, GroupId, DoodadObjId);
+        var key = new AreaEdgeKey(ZoneId, UnitId, GroupId, AreaId, DoodadObjId);
         edges.TryTransition(key, entering: true);
         await Assert.That(edges.IsInside(key)).IsTrue();
 
-        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, Radius, 0, entering: false);
+        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, AreaId, 0, entering: false);
 
         await Assert.That(edges.IsInside(key)).IsFalse();
+    }
+
+    /// <summary>
+    /// The regression this key shape exists for: the group is the area KIND and is the
+    /// same on every area of the family, so leaving one area must not release the unit's
+    /// membership of a DIFFERENT area reported under the same group. A key built from the
+    /// group alone drops both.
+    /// </summary>
+    [Test]
+    public async Task LeaveEdge_ForOneAreaKeepsTheUnitsMembershipOfAnotherAreaOfTheSameGroup()
+    {
+        var edges = AreaTriggerManager.Instance.AreaEdges;
+        var left = new AreaEdgeKey(ZoneId, UnitId, GroupId, AreaId, DoodadObjId);
+        var stayed = new AreaEdgeKey(ZoneId, UnitId, GroupId, OtherAreaId, DoodadObjId);
+        edges.TryTransition(left, entering: true);
+        edges.TryTransition(stayed, entering: true);
+        await Assert.That(edges.IsInside(left)).IsTrue();
+        await Assert.That(edges.IsInside(stayed)).IsTrue();
+
+        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, AreaId, 0, entering: false);
+
+        await Assert.That(edges.IsInside(left)).IsFalse();
+        await Assert.That(edges.IsInside(stayed)).IsTrue();
     }
 
     [Test]
     public async Task LeaveEdge_ForAnotherZoneDoesNotReleaseThisZonesMembership()
     {
         var edges = AreaTriggerManager.Instance.AreaEdges;
-        var key = new AreaEdgeKey(ZoneId, UnitId, GroupId, DoodadObjId);
+        var key = new AreaEdgeKey(ZoneId, UnitId, GroupId, AreaId, DoodadObjId);
         edges.TryTransition(key, entering: true);
 
-        DoodadAreaTriggerRuntime.OnZoneAreaEvent(OtherZoneId, UnitId, GroupId, Radius, 0, entering: false);
+        DoodadAreaTriggerRuntime.OnZoneAreaEvent(OtherZoneId, UnitId, GroupId, AreaId, 0, entering: false);
 
         await Assert.That(edges.IsInside(key)).IsTrue();
     }
@@ -111,11 +136,11 @@ public class DoodadAreaTriggerRelayTests
     public async Task Edges_AreIgnoredWithoutZoneAuthority()
     {
         var edges = AreaTriggerManager.Instance.AreaEdges;
-        var key = new AreaEdgeKey(ZoneId, UnitId, GroupId, DoodadObjId);
+        var key = new AreaEdgeKey(ZoneId, UnitId, GroupId, AreaId, DoodadObjId);
         edges.TryTransition(key, entering: true);
         WorldIntegration.ZoneAuthority = false;
 
-        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, Radius, 0, entering: false);
+        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, AreaId, 0, entering: false);
 
         await Assert.That(edges.IsInside(key)).IsTrue();
     }
@@ -124,25 +149,25 @@ public class DoodadAreaTriggerRelayTests
     public async Task LeaveEdge_ForAnUnknownUnitDoesNotReleaseAnything()
     {
         var edges = AreaTriggerManager.Instance.AreaEdges;
-        var key = new AreaEdgeKey(ZoneId, UnknownUnitId, GroupId, DoodadObjId);
+        var key = new AreaEdgeKey(ZoneId, UnknownUnitId, GroupId, AreaId, DoodadObjId);
         edges.TryTransition(key, entering: true);
 
-        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnknownUnitId, GroupId, Radius, 0, entering: false);
+        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnknownUnitId, GroupId, AreaId, 0, entering: false);
 
         await Assert.That(edges.IsInside(key)).IsTrue();
     }
 
     [Test]
     [Arguments(0, GroupId)]
-    [Arguments(Radius, 0u)]
-    [Arguments(-Radius, GroupId)]
-    public async Task Edges_WithoutAUsableGroupAndRadiusAreIgnored(int radius, uint groupId)
+    [Arguments(-1, GroupId)]
+    [Arguments(AreaId, 0u)]
+    public async Task Edges_WithoutAUsableGroupAndAreaIdAreIgnored(int areaId, uint groupId)
     {
         var edges = AreaTriggerManager.Instance.AreaEdges;
-        var key = new AreaEdgeKey(ZoneId, UnitId, groupId, DoodadObjId);
+        var key = new AreaEdgeKey(ZoneId, UnitId, groupId, (uint)areaId, DoodadObjId);
         edges.TryTransition(key, entering: true);
 
-        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, groupId, radius, 0, entering: false);
+        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, groupId, areaId, 0, entering: false);
 
         await Assert.That(edges.IsInside(key)).IsTrue();
     }
@@ -153,9 +178,29 @@ public class DoodadAreaTriggerRelayTests
         var edges = AreaTriggerManager.Instance.AreaEdges;
         // No DoodadManager content in this scope, so the row resolves to no template and
         // the edge must be a clean no-op rather than a throw or a false claim.
-        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, Radius, 0, entering: true);
+        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, AreaId, 0, entering: true);
 
-        await Assert.That(edges.IsInside(new AreaEdgeKey(ZoneId, UnitId, GroupId, DoodadObjId))).IsFalse();
+        await Assert.That(edges.IsInside(new AreaEdgeKey(ZoneId, UnitId, GroupId, (uint)AreaId, DoodadObjId)))
+            .IsFalse();
+    }
+
+    /// <summary>
+    /// Pins that the area id is an id and not a length: an area whose id is 1464 metres
+    /// wide is not a thing, and the edge must still be accepted and keyed on that id.
+    /// Under a radius reading this id would be a 1.4 km scan.
+    /// </summary>
+    [Test]
+    public async Task AreaIdIsAnIdentifierAndIsNotTreatedAsADistance()
+    {
+        const int largeAreaId = 1464;
+        var edges = AreaTriggerManager.Instance.AreaEdges;
+        var key = new AreaEdgeKey(ZoneId, UnitId, GroupId, (uint)largeAreaId, DoodadObjId);
+        edges.TryTransition(key, entering: true);
+
+        DoodadAreaTriggerRuntime.OnZoneAreaEvent(ZoneId, UnitId, GroupId, largeAreaId, 0, entering: false);
+
+        await Assert.That(edges.IsInside(key)).IsFalse();
+        await Assert.That(DoodadAreaTriggerRuntime.ShouldHandleEvent(GroupId, largeAreaId)).IsTrue();
     }
 
     /// <summary>

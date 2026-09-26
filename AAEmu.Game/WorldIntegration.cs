@@ -555,7 +555,11 @@ public static class WorldIntegration
 
     /// <summary>
     /// ZW area membership edge including the Zone that reported it.
-    /// Args: zone id, unit id, area group id, area radius, area secondary value, entering.
+    /// Args: zone id, unit id, area group (kind) id, area id, area secondary value, entering.
+    /// <para>
+    /// The group is the area KIND and the area id identifies one area within it; they are
+    /// separate quantities and neither is a distance.
+    /// </para>
     /// </summary>
     public static Action<uint, uint, uint, int, int, bool> OnZoneAreaEvent { get; set; }
 
