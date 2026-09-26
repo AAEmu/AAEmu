@@ -327,7 +327,8 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         // Check if the target spot is already taken
         var slave = GetSlaveByObjId(objId);
 
-        if (slave == null || slave.IsDead || slave.AttachedCharacters.ContainsKey(attachPoint))
+        if (slave == null || slave.IsDead || !slave.HasSeat(attachPoint) ||
+            slave.AttachedCharacters.ContainsKey(attachPoint))
             return;
 
         // Check if the vehicle has the MasterOwnership buff and if the character is not the owner, block the attachment.
@@ -411,9 +412,10 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         }
 
         slaveInfo.Save();
-        // Remove passengers
-        foreach (var character in slaveInfo.AttachedCharacters.Values.ToList())
-            UnbindSlave(character, slaveInfo.TlId, AttachUnitReason.SlaveBinding);
+        // Remove passengers from a stable snapshot; Unbind mutates the live binding map.
+        SeatTopologyRules.ReleaseAllRiders(
+            slaveInfo.AttachedCharacters,
+            (_, character) => UnbindSlave(character, slaveInfo.TlId, AttachUnitReason.SlaveBinding));
 
         // Block despawn only when a doodad is holding a real item instance (trade pack / backpack).
         // ItemTemplateId alone is not enough — persistent / visual doodads can carry a template id
@@ -887,6 +889,8 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             PlantWaterSurfaceZ = plantWaterSurfaceZ,
         };
 
+        summonedSlave.InitializeSeatTopology(SlaveGameData.Instance.GetSlaveSeats(slaveTemplate.Id));
+
         ApplySlaveBonuses(summonedSlave);
 
         // If it was loaded from DB, restore previous its HP/MP
@@ -1150,6 +1154,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             };
 
             ApplySlaveBonuses(childSlave);
+            childSlave.InitializeSeatTopology(SlaveGameData.Instance.GetSlaveSeats(childSlaveTemplate.Id));
 
             if (isLoadedPlayerChildSlave)
             {
@@ -1387,6 +1392,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         };
 
         ApplySlaveBonuses(childSlave);
+        childSlave.InitializeSeatTopology(SlaveGameData.Instance.GetSlaveSeats(childSlaveTemplate.Id));
         childSlave.Hp = childSlave.MaxHp;
         childSlave.Mp = childSlave.MaxMp;
 

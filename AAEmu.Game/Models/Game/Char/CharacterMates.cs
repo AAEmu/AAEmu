@@ -102,6 +102,8 @@ public class CharacterMates(Character owner)
             DbInfo = mateDbInfo
         };
 
+        mount.InitializeSeatTopology(MateGameData.Instance.GetMateSeats(npcId));
+
         mount.Transform = Owner.Transform.CloneDetached(mount);
         SusManager.Instance.ResetAnalyzeMountDeltaMovement(mount.Id);
 

@@ -357,7 +357,7 @@ public class MateManager(WorldInstance parentWorldInstance)
         if (mateInfo == null)
             return; // skip if invalid tlId
 
-        foreach (var ati in mateInfo.Passengers)
+        foreach (var ati in mateInfo.Passengers.ToList())
         {
             UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mateInfo.TlId, ati.Key, AttachUnitReason.SlaveBinding);
         }
@@ -393,7 +393,7 @@ public class MateManager(WorldInstance parentWorldInstance)
         var markForDeleteObj = new List<uint>();
         foreach (var mate in GetActiveMates(character.Id))
         {
-            foreach (var ati in mate.Passengers)
+            foreach (var ati in mate.Passengers.ToList())
                 UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mate.TlId, ati.Key,
                     AttachUnitReason.SlaveBinding);
 
