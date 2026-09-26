@@ -17,17 +17,32 @@ public sealed class DropRuleGameData : Singleton<DropRuleGameData>, IGameDataLoa
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly Dictionary<uint, RuleBuilder> _rules = [];
+    // NPC subjects are read one at a time, on demand, and cached here. They are deliberately not loaded at
+    // boot: the shipped npcs table is 19,522 rows, nothing in this slice reads them at startup, and building
+    // the whole map cost about 1.4 s of boot and held every row for the life of the process.
     private readonly Dictionary<uint, DropRuleSubject> _npcSubjects = [];
+    private readonly Func<SqliteConnection> _openConnection;
     private readonly List<MissingLootPackMembership> _missingLootPackMemberships = [];
     private int _orphanMembershipCount;
     private DropRuleDefinition[] _compiledRules = [];
     private DropRuleDiagnostics _diagnostics = new(0, 0, 0, 0, [], 0, 0, 0);
+
+    public DropRuleGameData()
+        : this(() => SQLite.CreateConnection())
+    {
+    }
+
+    internal DropRuleGameData(Func<SqliteConnection> openConnection)
+    {
+        _openConnection = openConnection ?? throw new ArgumentNullException(nameof(openConnection));
+    }
 
     public IReadOnlyCollection<DropRuleDefinition> Rules => _compiledRules;
     public DropRuleDiagnostics Diagnostics => _diagnostics;
 
     public void Load(SqliteConnection connection)
     {
+        ArgumentNullException.ThrowIfNull(connection);
         _rules.Clear();
         _npcSubjects.Clear();
         _missingLootPackMemberships.Clear();
@@ -35,7 +50,8 @@ public sealed class DropRuleGameData : Singleton<DropRuleGameData>, IGameDataLoa
         LoadRules(connection);
         LoadMemberships(connection);
         LoadMissingLootPacks(connection);
-        LoadNpcSubjects(connection);
+        // LoadNpcSubjects is deliberately not called: the subjects are loaded one at a time by
+        // TryGetSubject, so boot neither queries the npcs table nor keeps a copy of every row.
         RebuildCompiledRules();
         RebuildDiagnostics();
     }
@@ -44,7 +60,8 @@ public sealed class DropRuleGameData : Singleton<DropRuleGameData>, IGameDataLoa
     {
         var format = "Drop-rule diagnostics: rules={0}, memberships={1}, orphan_memberships={2}, " +
                       "missing_pack_memberships={3}, missing_pack_ids={4}, invalid_rules={5}, " +
-                      "for_batch_rules={6}, npc_subjects={7}";
+                      "for_batch_rules={6}, npc_subjects_cached={7} (npc subjects are read on demand, " +
+                      "so this is what has been asked for, not what is available)";
         object[] values =
         [
             _diagnostics.RuleCount,
@@ -62,8 +79,34 @@ public sealed class DropRuleGameData : Singleton<DropRuleGameData>, IGameDataLoa
             Logger.Info(format, values);
     }
 
-    public bool TryGetSubject(uint npcId, out DropRuleSubject subject) =>
-        _npcSubjects.TryGetValue(npcId, out subject!);
+    /// <summary>
+    /// The subject for one NPC, read from the npcs table on first request and cached after that.
+    /// </summary>
+    /// <remarks>
+    /// The boot load deliberately does not read this table. A caller that wants a subject asks for that
+    /// one NPC, which is a single indexed row, instead of the process holding all 19,522 of them. A miss is
+    /// not cached, so an NPC added by a later content patch is still found.
+    /// </remarks>
+    public bool TryGetSubject(uint npcId, out DropRuleSubject subject)
+    {
+        if (_npcSubjects.TryGetValue(npcId, out subject!))
+            return true;
+
+        using var connection = _openConnection();
+        var loaded = ReadNpcSubject(connection, npcId);
+        if (loaded == null)
+        {
+            subject = null!;
+            return false;
+        }
+
+        subject = loaded;
+        _npcSubjects[npcId] = loaded;
+        // The diagnostic reports the cache size, so it has to move when the cache does. Rebuilding the whole
+        // diagnostic here would re-sort the missing-pack list for every subject, so only the count is taken.
+        _diagnostics = _diagnostics with { NpcSubjectCount = _npcSubjects.Count };
+        return true;
+    }
 
     private void RebuildCompiledRules()
     {
@@ -204,7 +247,8 @@ public sealed class DropRuleGameData : Singleton<DropRuleGameData>, IGameDataLoa
         }
     }
 
-    private void LoadNpcSubjects(SqliteConnection connection)
+    /// <summary>Reads one NPC's subject row, or null when the npcs table has no such id.</summary>
+    private static DropRuleSubject? ReadNpcSubject(SqliteConnection connection, uint npcId)
     {
         using var command = connection.CreateCommand();
         command.CommandText =
@@ -212,30 +256,28 @@ public sealed class DropRuleGameData : Singleton<DropRuleGameData>, IGameDataLoa
             SELECT id, level, npc_tendency_id, npc_grade_id, npc_kind_id,
                    npc_nickname_id, heir_level, name, comment1, comment2, comment3, aggression
             FROM npcs
-            ORDER BY id ASC
+            WHERE id = @id
             """;
+        command.Parameters.AddWithValue("@id", npcId);
         command.Prepare();
         using var sqliteReader = command.ExecuteReader();
         using var reader = new SQLiteWrapperReader(sqliteReader);
-        while (reader.Read())
-        {
-            var id = reader.GetUInt32("id");
-            var subject = new DropRuleSubject(
-                id,
-                ReadNullableInt(reader, "level"),
-                ReadNullableInt(reader, "npc_tendency_id"),
-                ReadNullableInt(reader, "npc_grade_id"),
-                ReadNullableInt(reader, "npc_kind_id"),
-                ReadNullableInt(reader, "npc_nickname_id"),
-                ReadNullableInt(reader, "heir_level"),
-                ReadNullableString(reader, "name"),
-                ReadNullableString(reader, "comment1"),
-                ReadNullableString(reader, "comment2"),
-                ReadNullableString(reader, "comment3"),
-                ReadNullableBoolean(reader, "aggression"));
-            if (!_npcSubjects.TryAdd(id, subject))
-                throw new InvalidDataException($"Duplicate NPC id {id} while loading drop-rule subjects.");
-        }
+        if (!reader.Read())
+            return null;
+
+        return new DropRuleSubject(
+            reader.GetUInt32("id"),
+            ReadNullableInt(reader, "level"),
+            ReadNullableInt(reader, "npc_tendency_id"),
+            ReadNullableInt(reader, "npc_grade_id"),
+            ReadNullableInt(reader, "npc_kind_id"),
+            ReadNullableInt(reader, "npc_nickname_id"),
+            ReadNullableInt(reader, "heir_level"),
+            ReadNullableString(reader, "name"),
+            ReadNullableString(reader, "comment1"),
+            ReadNullableString(reader, "comment2"),
+            ReadNullableString(reader, "comment3"),
+            ReadNullableBoolean(reader, "aggression"));
     }
 
     private static int? ReadNullableInt(SQLiteWrapperReader reader, string column) =>
