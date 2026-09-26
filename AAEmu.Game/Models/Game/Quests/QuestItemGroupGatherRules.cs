@@ -11,7 +11,7 @@ public readonly record struct QuestGroupItemEntry(uint ItemId, uint[] Grades);
 /// <summary>
 /// Progress act QuestActObjItemGroupGather: hold count items of quest_item_groups item_group_id.
 /// 56 enabled Progress rows over 56 quests. The client reader LoadQuestActObjItemGroupGatherDescs
-/// (x2game-dev.dll FUN_39d3f0b0) reads id, check_exist, cleanup, count, destroy_when_drop,
+/// reads id, check_exist, cleanup, count, destroy_when_drop,
 /// drop_when_destroy, highlight_doodad_phase, highlight_doodad_id, item_group_id,
 /// quest_act_obj_alias_id, use_alias. The counter is the bag total over the group, the same
 /// absolute count QuestActObjItemGather keeps for one item.

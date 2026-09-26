@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// X2Team:RaidApplicantDel(ownerId): u64 type, the post's owner id (x2game-dev.dll FUN_39c688d0). The
+/// X2Team:RaidApplicantDel(ownerId): u64 type, the post's owner id. The
 /// applicant withdraws; answered with SCRaidApplicantDel.
 /// </summary>
 public class CSRaidApplicantDelPacket() : GamePacket(CSOffsets.CSRaidApplicantDelPacket, 1)

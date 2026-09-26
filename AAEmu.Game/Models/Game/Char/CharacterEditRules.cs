@@ -5,8 +5,8 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.Game.Models.Game.Char;
 
 /// <summary>
-/// CSBeautyshopData (0x185) as the client fills it in PayBeautyShop (x2game-dev.dll FUN_396105e0 via
-/// FUN_39c4f810): the model view's race and gender, its hair, horn and tail slots (equipment slots 20,
+/// CSBeautyshopData (0x185) as the client fills it in PayBeautyShop (via
+/// ): the model view's race and gender, its hair, horn and tail slots (equipment slots 20,
 /// 22, 23), the appearance block, and the ticket it found in the bag with the count it needs (1), or
 /// the none id with count 0 when it found none.
 /// </summary>
@@ -21,7 +21,7 @@ public sealed record BeautyshopEditRequest(
     uint TicketCount);
 
 /// <summary>
-/// CSEditCharacter (0x04A), the lobby edit (x2game-dev.dll FUN_39c76eb0): the character id, then the
+/// CSEditCharacter (0x04A), the lobby edit: the character id, then the
 /// CSCreateCharacter body without its trailing introZoneId.
 /// </summary>
 public sealed record CharacterEditRequest(
@@ -48,7 +48,7 @@ public enum CharacterEditError
 
 /// <summary>
 /// The lobby character edit. The client only offers it during the pre-select character period
-/// (ApplyEditCharacter, FUN_399a6c60, logs "not preSeleteCharacter Period" otherwise), which is the
+/// (ApplyEditCharacter,, logs "not preSeleteCharacter Period" otherwise), which is the
 /// <c>enable</c> flag of SCInitialConfig.
 /// </summary>
 public static class CharacterEditRules
@@ -61,7 +61,7 @@ public static class CharacterEditRules
     /// </summary>
     public const bool PreSelectCharacterPeriod = false;
 
-    /// <summary>The seven body slots CSCreateCharacter and CSEditCharacter carry, in wire order (face .. beard).</summary>
+    /// <summary>The seven body slots CSCreateCharacter and CSEditCharacter carry, in wire order (face.. beard).</summary>
     public const int BodyItemCount = 7;
     public const EquipmentItemSlot FirstBodySlot = EquipmentItemSlot.Face;
 
@@ -70,7 +70,7 @@ public static class CharacterEditRules
 
     /// <summary>
     /// The lobby edit is an appearance edit only. The client fills race, gender and the name from the
-    /// character it edits (FUN_399a6c60), so any difference is a crafted packet; a rename has its own
+    /// character it edits, so any difference is a crafted packet; a rename has its own
     /// paid flow and level and abilities are not editable anywhere.
     /// </summary>
     public static CharacterEditError Validate(

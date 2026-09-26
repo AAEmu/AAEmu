@@ -21,8 +21,8 @@ public static class CraftOrderProcessRules
     /// ActionResult kind that closes the process window. The client treats kind 0 as a normal fill
     /// and kind 5 as an instant fill; both raise PROCESS_CRAFT_ORDER(result, processType). Kind 1
     /// is a different board action and does not close this window.
-    /// x2game-dev.dll 0x394e1ec0 (the SCCraftOrderActionResult handler) raises UI event 0x238,
-    /// PROCESS_CRAFT_ORDER in the table registered by 0x393c5bc0, for kinds 0 and 5 with different
+    /// (the SCCraftOrderActionResult handler) raises UI event 0x238,
+    /// PROCESS_CRAFT_ORDER in the table registered by, for kinds 0 and 5 with different
     /// process types, and event 0x23a (POST_CRAFT_ORDER) for kind 1.
     /// </summary>
     public const byte ProcessActionKind = 0;
@@ -110,7 +110,7 @@ public static class CraftOrderProcessRules
 
     /// <summary>
     /// How the resident charge is scaled: <c>content_configs.craft_order_charge_for_resident</c>
-    /// 480 is 4.8 %, the same number the client prints as <c>GetCraftOrderCharge() / 100</c>.
+    /// 480 is 4.8 %, the same number the client prints as <c>GetCraftOrderCharge/ 100</c>.
     /// Auction listing rates use this same 1/10000 scale.
     /// </summary>
     public const ulong ChargeRateDivisor = 10_000;

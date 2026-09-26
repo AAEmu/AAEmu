@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Skills.Static;
 namespace AAEmu.UnitTests.Game.Models.Game.Skills.Static;
 
 /// <summary>
-/// Pins every SkillResult byte to the client's result-to-symbol switch (x2game-dev.dll FUN_39D23B10). The
+/// Pins every SkillResult byte to the client's result-to-symbol switch. The
 /// client shows ui_texts key "skill_" + lower(symbol), so a member on the wrong byte shows another result's
 /// message and nothing on the server notices.
 /// </summary>
@@ -12,7 +12,7 @@ public class SkillResultWireTableTests
 {
     private static IReadOnlyList<SkillResultClientTable.Row> Rows => SkillResultClientTable.Rows;
 
-    /// <summary>The declared name for a row's byte. ToString() may answer "UrkStart" for 0x49; the alias is not the owner.</summary>
+    /// <summary>The declared name for a row's byte. ToStringmay answer "UrkStart" for 0x49; the alias is not the owner.</summary>
     private static string MemberName(SkillResultClientTable.Row row) =>
         Enum.GetNames<SkillResult>()
             .Single(name => (byte)Enum.Parse<SkillResult>(name) == row.Wire && name != nameof(SkillResult.UrkStart));
@@ -37,7 +37,7 @@ public class SkillResultWireTableTests
     [Test]
     public async Task Table_HasEveryCaseOfTheClientSwitch()
     {
-        // FUN_39D23B10 has 195 explicit cases between 0x00 and 0xCB; everything else is the default.
+        // Has 195 explicit cases between 0x00 and 0xCB; everything else is the default.
         await Assert.That(Rows.Count).IsEqualTo(195);
         await Assert.That(Rows.Select(r => r.Wire).Distinct().Count()).IsEqualTo(195);
         await Assert.That(Rows.Select(r => r.Member).Distinct().Count()).IsEqualTo(195);
@@ -85,7 +85,7 @@ public class SkillResultWireTableTests
     [Test]
     public async Task UrkUnknown_SitsOnTheByteTheDisplayPathSwallows()
     {
-        // 0x40 has no case in FUN_39D23B10 and the display path FUN_397EBE90 returns for it before any message
+        // 0x40 has no case in and the display path returns for it before any message
         // is built, so the fail-closed result shows nothing at all rather than a wrong text.
         await Assert.That((byte)SkillResult.UrkUnknown).IsEqualTo((byte)0x40);
         await Assert.That(SkillResultClientTable.SymbolFor(0x40)).IsEqualTo("URK_UNKNOWN");
@@ -94,7 +94,7 @@ public class SkillResultWireTableTests
     [Test]
     public async Task SkillCooldown_UsesTheByteTheKind102EvaluatorWrites()
     {
-        // FUN_392B0C70 writes 0xAC on a failed cooldown check; the symbol switch has no case for it.
+        // Writes 0xAC on a failed cooldown check; the symbol switch has no case for it.
         await Assert.That((byte)SkillResult.UrkSkillCooldown).IsEqualTo((byte)0xAC);
         await Assert.That(SkillResultClientTable.SymbolFor(0xAC)).IsEqualTo("URK_UNKNOWN");
     }
@@ -102,7 +102,7 @@ public class SkillResultWireTableTests
     [Test]
     public async Task EmptySlotInventory_UsesTheByteTheKind106EvaluatorWrites()
     {
-        // FUN_392B0CD0 writes 0xB0 with detail 0x19 (BAG_FULL); the detail carries the message, not the byte.
+        // Writes 0xB0 with detail 0x19 (BAG_FULL); the detail carries the message, not the byte.
         await Assert.That((byte)SkillResult.UrkEmptySlotInventory).IsEqualTo((byte)0xB0);
         await Assert.That(SkillResultClientTable.SymbolFor(0xB0)).IsEqualTo("URK_UNKNOWN");
     }
@@ -110,7 +110,7 @@ public class SkillResultWireTableTests
     [Test]
     public async Task CombatResource_UsesTheByteTheKind136EvaluatorWrites()
     {
-        // FUN_39796100 writes 199 (0xC7) when the combat resource check fails.
+        // Writes 199 (0xC7) when the combat resource check fails.
         await Assert.That((byte)SkillResult.UrkCombatResource).IsEqualTo((byte)0xC7);
         await Assert.That(SkillResultClientTable.SymbolFor(0xC7)).IsEqualTo("URK_UNKNOWN");
     }
@@ -118,7 +118,7 @@ public class SkillResultWireTableTests
     [Test]
     public async Task UrkStart_IsTheLastByteBelowTheDisplayGate()
     {
-        // FUN_397EBE90 suppresses results above 0x49 when the display flag is false: 0x49 is the last plain
+        // Suppresses results above 0x49 when the display flag is false: 0x49 is the last plain
         // result and 0x4A (URK_LEVEL) the first requirement result.
         await Assert.That((byte)SkillResult.UrkStart).IsEqualTo((byte)0x49);
         await Assert.That(SkillResult.UrkStart).IsEqualTo(SkillResult.SourceCannotUseWhileLevitating);

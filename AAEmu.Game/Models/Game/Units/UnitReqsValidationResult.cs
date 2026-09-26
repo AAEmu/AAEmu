@@ -10,7 +10,7 @@ public class UnitReqsValidationResult(SkillResultKeys result, ushort uShort, uin
 
     /// <summary>
     /// The client's display gate, byte 8 of the native nine-byte result. The list evaluator
-    /// x2game-dev.dll 0x39796DA0 copies the failing row's unit_reqs.display_msg into it on an AND
+    /// Copies the failing row's unit_reqs.display_msg into it on an AND
     /// failure; success and an OR group that fails as a whole leave it true.
     /// </summary>
     public bool DisplayMessage { get; set; } = true;

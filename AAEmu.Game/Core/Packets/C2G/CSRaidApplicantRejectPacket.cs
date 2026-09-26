@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
 /// X2Team:RaidApplicantReject(charIds): the same body as CSRaidApplicantAccept (both types serialise
-/// through x2game-dev.dll FUN_39c6bcf0). Each rejected applicant gets SCRaidApplicantReject.
+/// through). Each rejected applicant gets SCRaidApplicantReject.
 /// </summary>
 public class CSRaidApplicantRejectPacket() : GamePacket(CSOffsets.CSRaidApplicantRejectPacket, 1)
 {

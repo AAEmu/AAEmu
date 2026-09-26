@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// <summary>
 /// Reward: adds charge copper to the resident balance of zone_group_id
 /// (quest_act_supply_resident_charges, one row: 10000 for zone group 33 on dummy quest 9334). The
-/// client reader LoadQuestActSupplyResidentChargeDescs (x2game-dev.dll FUN_39d48470) reads id,
+/// client reader LoadQuestActSupplyResidentChargeDescs reads id,
 /// charge, zone_group_id. The server keeps no resident balance (SCResidentBalanceInfoPacket is
 /// sent with zeros), so the accept is refused (QuestRewardSupportRules) and a quest that still
 /// reaches this act reports once and completes without the charge.

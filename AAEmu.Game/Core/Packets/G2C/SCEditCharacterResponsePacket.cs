@@ -6,8 +6,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
 /// The lobby's answer to a CSEditCharacter: the edited character's lobby record, the same struct the
-/// character list and SCCreateCharacterResponse carry (x2game-dev.dll serializer FUN_39c4e560 hands
-/// the body straight to the lobby record writer FUN_39b4c1f0; opcode 0x65 per PacketAudit).
+/// character list and SCCreateCharacterResponse carry (serializer hands
+/// the body straight to the lobby record writer).
 /// </summary>
 public class SCEditCharacterResponsePacket(Character character) : GamePacket(SCOffsets.SCEditCharacterResponsePacket, 1)
 {

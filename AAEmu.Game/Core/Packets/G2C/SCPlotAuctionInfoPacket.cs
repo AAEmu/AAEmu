@@ -9,9 +9,9 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// </summary>
 /// <remarks>
 /// Field order pinned from the 10.0.2.13 client two independent ways: the extracted schema
-/// (re/research/protocol-10.0.2.13 — u32 activityId@16, then a nested serializer call
-/// sub_3940F0B0 at object offset 24) and that serializer's own decompiled body, which reads a
-/// u32 "Size" and then per pair a u32 key followed by the value struct sub_393C7BB0
+/// (— u32 activityId@16, then a nested serializer call
+/// At object offset 24) and the serializer's own field reads, which take a
+/// u32 "Size" and then per pair a u32 key followed by the value struct
 /// (plotId, myBidAmount, myRanking, currentWinningBid, totalBidders, basePrice — six s32).
 /// The catalog line that shows activityId alone stopped at the scalar; the map is the payload
 /// the client's X2Player:GetPlotAuctionInfoList cache is built from.
@@ -26,7 +26,7 @@ public class SCPlotAuctionInfoPacket(uint activityId, IReadOnlyList<PlotAuctionB
         foreach (var row in rows)
         {
             // pair key, then the value struct — exactly the client serializer's order; the
-            // struct repeats plotId as its own first field (sub_393C7BB0).
+            // struct repeats plotId as its own first field.
             stream.Write(row.PlotId);
             stream.Write(row.PlotId);
             stream.Write((int)row.MyBidAmount);

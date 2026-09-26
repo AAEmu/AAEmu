@@ -6,11 +6,11 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
 /// Answer to CSFactionRelationHistoryGet: past agreements, oldest first. The client appends each
-/// row and drops the oldest past faction_diplomacy_history_size (x2game-dev.dll 0x39cd1480), and
+/// row and drops the oldest past faction_diplomacy_history_size,, and
 /// the history window reads the list from the tail.
 /// </summary>
 /// <remarks>
-/// Body from the client's serializer (x2game-dev.dll 0x39c87f10 -> vector 0x39c86fa0):
+/// Body from the client's serializer:
 /// count(i32), Size(i32), then Size relation entries (FactionRelationWire).
 /// </remarks>
 public sealed class SCFactionRelationHistoryPacket(IReadOnlyList<FactionDiplomacyAgreement> histories)

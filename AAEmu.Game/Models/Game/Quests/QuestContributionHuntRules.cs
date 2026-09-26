@@ -7,8 +7,8 @@ namespace AAEmu.Game.Models.Game.Quests;
 /// record the server already ranks in QuestActObjAggro and reads for zone kill credit. Unlike
 /// quest_act_obj_zone_kills and quest_act_obj_npc_kills these tables carry no team_share column,
 /// so nothing is forwarded to team-mates who did not touch the NPC. The client readers
-/// LoadQuestActObjMonsterContrHuntDescs (x2game-dev.dll FUN_39d3fbe0) and
-/// LoadQuestActObjMonsterContrGroupHuntDescs (FUN_39d3fe80) read id, count, highlight_doodad_phase,
+/// LoadQuestActObjMonsterContrHuntDescs and
+/// LoadQuestActObjMonsterContrGroupHuntDescs read id, count, highlight_doodad_phase,
 /// highlight_doodad_id, long_dist, npc_id or quest_monster_group_id, quest_act_obj_alias_id, use_alias.
 /// </summary>
 public static class QuestContributionHuntRules

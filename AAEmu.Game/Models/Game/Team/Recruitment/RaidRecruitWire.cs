@@ -4,14 +4,14 @@ namespace AAEmu.Game.Models.Game.Team.Recruitment;
 
 /// <summary>
 /// The wire shapes the 10.0.2.13 client reads and writes for the board, taken from its own serializers
-/// (x2game-dev.dll): the record FUN_39c7ca70, the applicant row FUN_39c6e120 and the detail FUN_395a2a00.
+/// the record, the applicant row and the detail.
 /// Field names are the literals those functions pass; widths are their stream vtable slots.
 /// </summary>
 public static class RaidRecruitWire
 {
     /// <summary>
     /// u64 type (owner id), string ownerName, i8 ownerLevel, i8 ownerAbility x3, i32 type (expedition id,
-    /// FUN_396dad70 resolves it to ownerExpedition), i32 type (unnamed, unread), i32 type, i32 subType,
+    /// Resolves it to ownerExpedition), i32 type (unnamed, unread), i32 type, i32 subType,
     /// u32 headcount, u32 limitLevel, u32 limitGearPoint, bool autoJoin, string msg, u32 hour, u32 minute,
     /// i32 applicantCount, i32 memberCount, i32 leadershipPoint, i32 gearPoint, i64 createTime,
     /// i64 expireTime, i64 addExpireTime.
@@ -105,8 +105,8 @@ public static class RaidRecruitWire
     }
 
     /// <summary>
-    /// SCRaidRecruitDetail (FUN_395a2a00): u64 type (owner id), string ownerName, i8 ownerLevel, i32 type
-    /// (expedition id, FUN_394ddb20 reads +0x9c as ownerExpedition), i32 type, i32 subType, u32 limitLevel,
+    /// SCRaidRecruitDetail: u64 type (owner id), string ownerName, i8 ownerLevel, i32 type
+    /// (expedition id, reads +0x9c as ownerExpedition), i32 type, i32 subType, u32 limitLevel,
     /// u32 limitGearPoint, string msg, u32 hour, u32 minute, i64 createTime.
     /// </summary>
     public static PacketStream WriteDetail(PacketStream stream, in RaidRecruitRecord record)

@@ -7,7 +7,7 @@ namespace AAEmu.UnitTests.Game.Models.Game.Units;
 
 /// <summary>
 /// Requirement kinds whose client evaluator fills the 16-bit detail field must fail with that detail, because
-/// the display path (x2game-dev.dll FUN_397EBE90) shows the detail's enum_error_messages text instead of the
+/// the display path shows the detail's enum_error_messages text instead of the
 /// result byte's symbol whenever the detail is set.
 /// </summary>
 public class UnitReqsFailureDetailTests
@@ -20,7 +20,7 @@ public class UnitReqsFailureDetailTests
 
     /// <summary>
     /// The shape every content row has (all six are value1 0, value2 1000): the client evaluator
-    /// FUN_39795810 reads value1 as the bound selector (0 means at least) and value2 as the threshold.
+    /// Reads value1 as the bound selector (0 means at least) and value2 as the threshold.
     /// </summary>
     private static UnitReqs LeadershipPeriodAtLeast(uint threshold) =>
         new() { KindType = UnitReqsKindType.LeadershipPeriod, Value1 = 0, Value2 = threshold };
@@ -40,7 +40,7 @@ public class UnitReqsFailureDetailTests
     [Test]
     public async Task LeadershipPeriod_FailsWithTheClientDetailAndValue1()
     {
-        // FUN_39795810: result 0x90, detail 0x355 (853 WRONG_LEADERSHIP_POINT), u32 = the row's value1.
+        // Result 0x90, detail 0x355 (853 WRONG_LEADERSHIP_POINT), u32 = the row's value1.
         var player = Player(4);
 
         var result = LeadershipPeriod(5).Validate(player, player);

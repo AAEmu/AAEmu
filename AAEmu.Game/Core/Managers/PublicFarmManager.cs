@@ -57,7 +57,7 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
 
         foreach (var doodad in deleted)
         {
-            //doodad.Delete();
+            // doodad.Delete
             world.SpawnManager?.RemovePlayerDoodad(doodad);
         }
     }
@@ -137,7 +137,16 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
 
     public void Load()
     {
-        //common farm subzone ID's
+        // Common-farm subzone ids, hand-maintained.
+        //
+        // KNOWN GAP: this map is lossy. common_farms ships 46 rows, and no farm table in the catalog
+        // carries a subzone or zone column at all (common_farms is id, name, guard_time,
+        // farm_group_id, comments; farm_groups is id, name, count with only 2 rows, so it does not
+        // discriminate farm type either). Only 5 subzone ids are covered here, leaving 41 of the 46
+        // authored farms unreachable: a position in those subzones resolves to FarmType.Invalid and
+        // is skipped. The only field that could correlate them is the localized farm name, which is
+        // display text and must not be used for classification. A real mapping needs content that
+        // does not exist yet; the ids below are therefore a partial, hand-kept approximation.
         _farmZones = new Dictionary<uint, FarmType>
         {
             { 998, FarmType.Farm },

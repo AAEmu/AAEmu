@@ -32,7 +32,7 @@ public class SCInitialConfigPacket : GamePacket
         stream.Write(config.Host);   // host (zstring, cap 259)
         _features.Write(stream); // fset (31-byte bitmap; catalog in Features/Feature.cs)
 
-        // Characters per page of the character list, read through X2:GetCandidateOnceRetrieveCount().
+        // Characters per page of the character list, read through X2:GetCandidateOnceRetrieveCount
         // Only consulted while the useCharacterListPage feature is enabled.
         stream.Write(config.CandidateRetrieveCount); // count (u32)
 
@@ -54,8 +54,8 @@ public class SCInitialConfigPacket : GamePacket
         // flags go out false. Publishing enable and premium true puts the lobby into its character
         // reservation gate: the client stops sending CSSelectCharacter for an existing character and
         // routes to character create instead.
-        // enable is also the lobby's "pre-select character period" gate (x2game-dev.dll FUN_394e7640 copies
-        // it to client+0x365b, FUN_394d6cf0 reads it before ApplyEditCharacter), so it is shared with the
+        // enable is also the lobby's "pre-select character period" gate (copies
+        // it to client+0x365b, reads it before ApplyEditCharacter), so it is shared with the
         // CSEditCharacter handler through CharacterEditRules.
         stream.Write(CharacterEditRules.PreSelectCharacterPeriod); // enable
         stream.Write(false);                           // pcbang

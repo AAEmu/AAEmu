@@ -35,7 +35,7 @@ public class ConflictZoneEscalationRulesTests
     [Test]
     public async Task StateOrder_MatchesTheClientHpwsGlobals()
     {
-        // HPWS_TROUBLE_0..4 = 0..4, HPWS_BATTLE = 5, HPWS_WAR = 6, HPWS_PEACE = 7 (x2game-dev.dll 0x3997eee0).
+        // HPWS_TROUBLE_0..4 = 0..4, HPWS_BATTLE = 5, HPWS_WAR = 6, HPWS_PEACE = 7.
         await Assert.That((byte)ZoneConflictType.Tension).IsEqualTo((byte)0);
         await Assert.That((byte)ZoneConflictType.Crisis).IsEqualTo((byte)4);
         await Assert.That((byte)ZoneConflictType.Conflict).IsEqualTo((byte)5);

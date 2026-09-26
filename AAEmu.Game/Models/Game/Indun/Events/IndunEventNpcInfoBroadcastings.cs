@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Indun.Events;
 /// <c>npc_id</c>'s buff <c>buff_id</c>, as a stack count (type 1) or remaining time (type 2,
 /// <c>enum_indun_npc_info_broadcasting_types</c>). No row has a start action. The client shows it through
 /// SCIndunPlayingInfoBroadcastingPacket (0x2D8), whose body is an i64 "zi" plus a length-prefixed inner
-/// packet (x2game-dev.dll 0x39c63190 and 0x39d6e0d0) of unknown layout, so nothing is sent: the event
+/// packet of unknown layout, so nothing is sent: the event
 /// loads and stays inert.
 /// </summary>
 internal class IndunEventNpcInfoBroadcastings : IndunEvent

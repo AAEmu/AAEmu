@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game.Quests;
 /// 9 rows, 7 quests. content_item_type is 'Item' (6 rows, content_item_id is the pack template, e.g.
 /// 43323 for quest 4665) or 'Tag' (3 rows on test quest 9011, content_item_id is tags.id 3197 carried
 /// by the pack through tagged_items). The client reader LoadQuestActObjSellBackpackGoodDescs
-/// (x2game-dev.dll FUN_39d47870) reads id, content_item_type, content_item_id, count,
+/// reads id, content_item_type, content_item_id, count,
 /// quest_act_obj_alias_id, quest_monster_group_id, use_alias.
 /// </summary>
 public static class QuestSellBackpackGoodRules

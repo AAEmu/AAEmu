@@ -46,8 +46,11 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
-    /// The client disables its exit button for the last 20 minutes of the bid window. Content has
-    /// no row for that lock, so the server uses the same window.
+    /// Server-side policy: an auction refuses player-initiated exits in the tail of its bid window.
+    /// No shipped content column expresses this window — a full column scan of the client and runtime
+    /// catalogs finds no lockout field — and the client asks the server for the current phase through
+    /// X2Player:GetPlotAuctionPhaserather than deriving one locally, so the window is this
+    /// server's own decision and not a value loaded from content.
     /// </summary>
     internal static readonly TimeSpan ExitLockout = TimeSpan.FromMinutes(20);
 

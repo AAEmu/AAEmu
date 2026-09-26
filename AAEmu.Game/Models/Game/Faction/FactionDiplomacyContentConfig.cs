@@ -14,7 +14,7 @@ public static class FactionDiplomacyContentConfig
     /// <summary>Id 46 = 3. Denials from one hero after which that hero takes no more requests from the same requester (ui_texts 10697, 10698).</summary>
     public const string DenyCount = "faction_diplomacy_deny_count";
 
-    /// <summary>Id 51 = 50. History rows the client keeps; it drops the oldest past this (x2game-dev.dll 0x39cd1480).</summary>
+    /// <summary>Id 51 = 50. History rows the client keeps; it drops the oldest past this.</summary>
     public const string HistorySize = "faction_diplomacy_history_size";
 
     /// <summary>Id 142 = 60. Minutes an agreement lasts: ui_texts 10473 and 10483 say one hour.</summary>

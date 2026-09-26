@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game.PlotAuctions;
 /// ingameshop's detail panel reads back through <c>X2Player:GetPlotAuctionBidData</c> /
 /// <c>GetPlotAuctionInfoList</c> ({ plotId, myBidAmount, myRanking, totalBidders, basePrice } in
 /// limited_auction_tab.lua lines 396-406). <c>currentWinningBid</c> is the field the Lua getters
-/// do not surface but the client's value serializer writes (sub_393C7BB0, six s32 fields).
+/// do not surface but the client's value serializer writes (, six s32 fields).
 /// </summary>
 public sealed class PlotAuctionBidInfoRow
 {

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests;
 /// 3 RestoreManaEffect, 2 GainLootPackItemEffect, 1 CraftEffect, 1 BubbleEffect). 134 ids are reached
 /// through skill_effects.effect_id, the other 12 only through buff_triggers.effect_id; none through
 /// plot_effects, which carries actual_id/actual_type instead of an effects.id. The client reader
-/// LoadQuestActObjEffectFireDescs (x2game-dev.dll FUN_39b04c80) reads id, count, effect_id,
+/// LoadQuestActObjEffectFireDescs reads id, count, effect_id,
 /// quest_act_obj_alias_id, team_share, use_alias.
 /// </summary>
 public static class QuestEffectFireRules

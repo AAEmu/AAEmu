@@ -24,7 +24,7 @@ public class UnitReqNationTests
     [Test]
     public async Task SystemFactionsAreNotPlayerNations()
     {
-        // The client compares the faction id with 1000 (x2game-dev.dll 0x392B1000); every system_factions
+        // The client compares the faction id with 1000; every system_factions
         // row (ids up to 221) is below it, so alliance and race members alike are not nation members.
         await Assert.That(UnitReqNation.IsPlayerNationMember((uint)FactionsEnum.Nuian)).IsFalse();
         await Assert.That(UnitReqNation.IsPlayerNationMember((uint)FactionsEnum.NuiaAlliance)).IsFalse();

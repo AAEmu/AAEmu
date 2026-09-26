@@ -7,8 +7,8 @@ namespace AAEmu.Game.Models.Game.Units;
 public static class UnitReqNation
 {
     /// <summary>
-    /// First faction id of a player nation. Kinds 60/61 in the client evaluator (x2game-dev.dll
-    /// 0x392B1000 and 0x392B1050) compare the unit's faction id against this constant at 0x3A586644;
+    /// First faction id of a player nation. Kinds 60/61 in the client evaluator
+    /// Compare the unit's faction id against this constant;
     /// system_factions ends at id 221, so only runtime nation factions reach it.
     /// </summary>
     public const uint PlayerNationFactionIdStart = 1000;

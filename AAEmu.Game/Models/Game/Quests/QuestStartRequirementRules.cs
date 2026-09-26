@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Quests;
 public static class QuestStartRequirementRules
 {
     /// <summary>
-    /// Folds per-row results the way x2game-dev.dll 0x39796DA0 does. An empty list passes. With
+    /// Folds per-row results the way does. An empty list passes. With
     /// <c>or_unit_reqs</c> false the first failing row is returned as it is, display gate included, and
     /// the rows after it are never evaluated. With it true the first passing row ends the walk with a
     /// fresh success, and a list that exhausts its rows answers UNIT_REQS_OR_FAIL (0x31) with zero

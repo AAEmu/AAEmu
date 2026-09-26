@@ -70,7 +70,7 @@ public static class FactionDiplomacyRules
     /// <summary>The request window only offers nations whose relation is UR_HOSTILE (faction_relations.lua FillData).</summary>
     public const RelationState RequestableState = RelationState.Hostile;
 
-    /// <summary>The client sorts the pair ascending before storing it (x2game-dev.dll 0x39398a90).</summary>
+    /// <summary>The client sorts the pair ascending before storing it.</summary>
     public static (uint Low, uint High) NormalizePair(uint a, uint b) => a <= b ? (a, b) : (b, a);
 
     /// <summary>Every content value the feature needs is present and positive; otherwise it stays closed.</summary>
@@ -91,7 +91,7 @@ public static class FactionDiplomacyRules
             return FactionDiplomacyRefusal.SubjectNotFound;
         if (context.CurrentState != RequestableState)
             return FactionDiplomacyRefusal.AlreadyFriendly;
-        // Same order as the client's own pre-check (x2game-dev.dll 0x391c4aa0): own nation first.
+        // Same order as the client's own pre-check: own nation first.
         if (context.RequesterNationHasAgreement)
             return FactionDiplomacyRefusal.AlreadyHaveOtherRelation;
         if (context.TargetNationHasAgreement)

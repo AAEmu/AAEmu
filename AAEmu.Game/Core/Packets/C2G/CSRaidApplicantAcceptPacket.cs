@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
 /// X2Team:RaidApplicantAccept(charIds): u32 count, u64 type (the post's owner id, the client's own or its
-/// team owner's), then count u64 character ids, at most 100 (x2game-dev.dll FUN_39c6bcf0, shared with
+/// team owner's), then count u64 character ids, at most 100 (, shared with
 /// CSRaidApplicantReject). Each accepted applicant gets SCRaidApplicantAccept.
 /// </summary>
 public class CSRaidApplicantAcceptPacket() : GamePacket(CSOffsets.CSRaidApplicantAcceptPacket, 1)

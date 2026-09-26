@@ -3,8 +3,8 @@ using AAEmu.Game.Models.Game.Skills.Static;
 namespace AAEmu.UnitTests.Game.Models.Game.Skills.Static;
 
 /// <summary>
-/// Every case of the client's result-to-symbol switch, x2game-dev.dll FUN_39D23B10, transcribed from the
-/// decompile: the wire byte, the symbol the client returns for it and the SkillResult member that owns it.
+/// Every case of the client's result-to-symbol switch: the wire byte, the symbol
+/// the client returns for it and the SkillResult member that owns it.
 /// The UI shows ui_texts key "skill_" + lower(symbol) (category 89). Bytes absent here fall to the switch
 /// default, "URK_UNKNOWN".
 /// </summary>
@@ -211,7 +211,7 @@ public static class SkillResultClientTable
         new(0xCB, "URK_SOURCE_HEALTH_MORE_THAN", SkillResult.UrkSourceHealthMoreThan),
     ];
 
-    /// <summary>The symbol FUN_39D23B10 returns for a wire byte.</summary>
+    /// <summary>The symbol returns for a wire byte.</summary>
     public static string SymbolFor(byte wire) => Rows.FirstOrDefault(r => r.Wire == wire)?.Symbol ?? "URK_UNKNOWN";
 
     /// <summary>The ui_texts key the client UI looks up for a symbol.</summary>

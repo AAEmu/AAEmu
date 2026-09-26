@@ -19,7 +19,7 @@ public class ItemProc(uint templateId)
 
     /// <summary>
     /// The <c>unit_reqs.owner_type</c> of a proc row (19 rows on 15 procs), the literal the client looks the rows
-    /// up by while loading item_procs (x2game-dev.dll 0x39b14b20, string at 0x3a15b378).
+    /// up by while loading item_procs.
     /// </summary>
     public const string UnitReqsOwnerType = "ItemProc";
 

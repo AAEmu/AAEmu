@@ -10,7 +10,7 @@ public class FactionRelation
     public DateTime ExpTime { get; set; }
 
     // Diplomacy overlay. All zero on a plain system_faction_relations row. Field names and widths
-    // are the client's relation entry serializer (x2game-dev.dll 0x39398a90): type, type,
+    // are the client's relation entry serializer: type, type,
     // state(i8), nState(i8), updateTime(i64), changeTime(i64), type(u64) updater, updaterName,
     // type(u64) confirmer, confirmerName. The client sorts the two ids ascending on read.
     public RelationState NextState { get; set; }
@@ -23,7 +23,7 @@ public class FactionRelation
 
     /// <summary>
     /// A row a hero agreement is overlaid on. The client keys "already has a relation" on a
-    /// non-zero updater id (x2game-dev.dll 0x39ccd560), so a cleared row must zero it again.
+    /// non-zero updater id,, so a cleared row must zero it again.
     /// </summary>
     public bool HasDiplomacy => UpdaterId != 0;
 
