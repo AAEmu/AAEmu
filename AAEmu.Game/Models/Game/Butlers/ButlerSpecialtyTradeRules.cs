@@ -15,13 +15,32 @@ public readonly record struct ButlerSpecialtyTradeAdmissionContext(
 
 public readonly record struct ButlerSpecialtyTradeCosts(
     uint LaborPower,
-    uint ProductionCost,
+    uint BaseProductionCost,
+    uint OverworkProductionCost,
+    uint TotalProductionCost,
     IReadOnlyList<ButlerSpecialtyTradeMaterialCost> Materials);
 
 public readonly record struct ButlerSpecialtyTradeMaterialCost(uint ItemId, uint Amount);
 
 public static class ButlerSpecialtyTradeRules
 {
+    // butlers.overwork_production_cost_mul is a per-mille scale, matching the
+    // harvest rule in ButlerFarmingRules (x2ui/butler/tab_farming.lua:412-433
+    // divides by 1000 and rounds up).
+    public const uint OverworkProductionCostScale = 1_000;
+
+    /// <summary>Why an admission was refused, so callers can report the real cause.</summary>
+    public enum AdmissionFailure
+    {
+        None = 0,
+        /// <summary>Content or argument shape is not usable.</summary>
+        InvalidContent,
+        /// <summary>Every specialty-trade slot is already occupied.</summary>
+        NoSpecialtyTradeSlot,
+        /// <summary>This specialty type is already trading to that destination.</summary>
+        DuplicateSpecialtyTrade
+    }
+
     public static bool TryCreateAdmissionContext(
         ButlerTemplate butlerTemplate,
         ButlerLevel butlerLevel,
@@ -32,7 +51,20 @@ public static class ButlerSpecialtyTradeRules
         uint defaultSpecialtyTradeSlotCount,
         out ButlerSpecialtyTradeAdmissionContext context) =>
         TryCreateAdmissionContext(butlerTemplate, butlerLevel, trade, craft, skill, activeJobs,
-            defaultSpecialtyTradeSlotCount, 0, out context);
+            defaultSpecialtyTradeSlotCount, 0, out context, out _);
+
+    public static bool TryCreateAdmissionContext(
+        ButlerTemplate butlerTemplate,
+        ButlerLevel butlerLevel,
+        ButlerSpecialtyTradeDefinition trade,
+        Craft craft,
+        SkillTemplate skill,
+        IReadOnlyList<ButlerSpecialtyTradeJob> activeJobs,
+        uint defaultSpecialtyTradeSlotCount,
+        out ButlerSpecialtyTradeAdmissionContext context,
+        out AdmissionFailure failure) =>
+        TryCreateAdmissionContext(butlerTemplate, butlerLevel, trade, craft, skill, activeJobs,
+            defaultSpecialtyTradeSlotCount, 0, out context, out failure);
 
     public static bool TryCreateAdmissionContext(
         ButlerTemplate butlerTemplate,
@@ -43,9 +75,24 @@ public static class ButlerSpecialtyTradeRules
         IReadOnlyList<ButlerSpecialtyTradeJob> activeJobs,
         uint defaultSpecialtyTradeSlotCount,
         uint expandedSpecialtyTradeSlotCount,
-        out ButlerSpecialtyTradeAdmissionContext context)
+        out ButlerSpecialtyTradeAdmissionContext context) =>
+        TryCreateAdmissionContext(butlerTemplate, butlerLevel, trade, craft, skill, activeJobs,
+            defaultSpecialtyTradeSlotCount, expandedSpecialtyTradeSlotCount, out context, out _);
+
+    public static bool TryCreateAdmissionContext(
+        ButlerTemplate butlerTemplate,
+        ButlerLevel butlerLevel,
+        ButlerSpecialtyTradeDefinition trade,
+        Craft craft,
+        SkillTemplate skill,
+        IReadOnlyList<ButlerSpecialtyTradeJob> activeJobs,
+        uint defaultSpecialtyTradeSlotCount,
+        uint expandedSpecialtyTradeSlotCount,
+        out ButlerSpecialtyTradeAdmissionContext context,
+        out AdmissionFailure failure)
     {
         context = default;
+        failure = AdmissionFailure.InvalidContent;
         if (butlerTemplate == null || butlerLevel == null || trade == null || craft == null || skill == null ||
             butlerTemplate.Id == 0 || butlerLevel.ButlerId != butlerTemplate.Id ||
             butlerLevel.Level < butlerTemplate.TradeAvailableLevel ||
@@ -74,10 +121,21 @@ public static class ButlerSpecialtyTradeRules
             materials.Add(new ButlerSpecialtyTradeMaterialCost(material.ItemId, checked((uint)material.Amount)));
         }
 
-        if (activeJobs == null || (ulong)activeJobs.Count >= totalSpecialtyTradeSlotCount ||
-            activeJobs.Any(job => job is { SpecialtyType: var type, ToZoneGroupType: var zone } &&
-                                  type == trade.Id && zone == checked((ushort)trade.ZoneGroupId)))
+        if (activeJobs == null)
             return false;
+        if ((ulong)activeJobs.Count >= totalSpecialtyTradeSlotCount)
+        {
+            failure = AdmissionFailure.NoSpecialtyTradeSlot;
+            return false;
+        }
+        if (activeJobs.Any(job => job is { SpecialtyType: var type, ToZoneGroupType: var zone } &&
+                                  type == trade.Id && zone == checked((ushort)trade.ZoneGroupId)))
+        {
+            failure = AdmissionFailure.DuplicateSpecialtyTrade;
+            return false;
+        }
+
+        failure = AdmissionFailure.None;
 
         context = new ButlerSpecialtyTradeAdmissionContext(
             butlerTemplate,
@@ -91,19 +149,51 @@ public static class ButlerSpecialtyTradeRules
         return true;
     }
 
+    /// <summary>
+    /// Registration costs for one specialty trade. Validates content shape and computes the
+    /// amounts; the caller compares <see cref="ButlerSpecialtyTradeCosts.TotalProductionCost"/>
+    /// against the farmhand's remaining production cost so an insufficient balance is reported as
+    /// such rather than as invalid content.
+    /// </summary>
+    /// <param name="hasOtherProductionRunning">
+    /// True when the farmhand already has production work running. Shipped ui_texts
+    /// butler_trading_specialties_config_tip (id 11129) and butler_traing_step2_desc (id 11224)
+    /// both state that a farmhand already running another production function consumes an extra
+    /// production cost. This mirrors the harvest rule, which charges overwork while a specialty
+    /// trade is active.
+    /// </param>
     public static bool TryCalculateCosts(
         ButlerSpecialtyTradeAdmissionContext context,
         uint availableLaborPower,
-        uint availableProductionCost,
+        bool hasOtherProductionRunning,
         out ButlerSpecialtyTradeCosts costs)
     {
         costs = default;
         if (context.CraftSkill == null || context.CraftSkill.ConsumeLaborPower <= 0 ||
             context.Trade == null || context.Trade.ConsumeProductionCost == 0 ||
             context.Materials == null || context.Materials.Count == 0 ||
-            availableLaborPower < (uint)context.CraftSkill.ConsumeLaborPower ||
-            availableProductionCost < context.Trade.ConsumeProductionCost)
+            context.ButlerTemplate == null ||
+            availableLaborPower < (uint)context.CraftSkill.ConsumeLaborPower)
             return false;
+
+        uint baseProductionCost = context.Trade.ConsumeProductionCost;
+        uint overworkProductionCost = 0;
+        uint totalProductionCost;
+        try
+        {
+            checked
+            {
+                if (hasOtherProductionRunning)
+                    overworkProductionCost = DivideRoundUp(
+                        (ulong)baseProductionCost * context.ButlerTemplate.OverworkProductionCostMul,
+                        OverworkProductionCostScale);
+                totalProductionCost = checked(baseProductionCost + overworkProductionCost);
+            }
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
 
         var materials = new List<ButlerSpecialtyTradeMaterialCost>(context.Materials.Count);
         foreach (var material in context.Materials)
@@ -115,9 +205,19 @@ public static class ButlerSpecialtyTradeRules
 
         costs = new ButlerSpecialtyTradeCosts(
             checked((uint)context.CraftSkill.ConsumeLaborPower),
-            context.Trade.ConsumeProductionCost,
+            baseProductionCost,
+            overworkProductionCost,
+            totalProductionCost,
             materials);
         return true;
+    }
+
+    private static uint DivideRoundUp(ulong value, uint divisor)
+    {
+        var quotient = value / divisor;
+        if (value % divisor != 0)
+            quotient++;
+        return checked((uint)quotient);
     }
 
     public static bool TryChooseDeliveryTime(

@@ -308,12 +308,23 @@ public class ButlerFarmingServiceSpecialtyTests
         }
 
         public bool TryResolveSpecialtyTrade(Character character, CharacterButler butler, uint tradeId,
-            short zoneId, out ButlerSpecialtyTradeAdmissionContext context)
+            short zoneId, out ButlerSpecialtyTradeAdmissionContext context) =>
+            TryResolveSpecialtyTrade(character, butler, tradeId, zoneId, out context, out _);
+
+        public bool TryResolveSpecialtyTrade(Character character, CharacterButler butler, uint tradeId,
+            short zoneId, out ButlerSpecialtyTradeAdmissionContext context,
+            out ButlerSpecialtyTradeRules.AdmissionFailure failure)
         {
             context = default;
+            failure = ButlerSpecialtyTradeRules.AdmissionFailure.InvalidContent;
             if (tradeId != TradeRowId || zoneId != ZoneId)
                 return false;
-            var template = new ButlerTemplate { Id = 1, TradeAvailableLevel = 1, DefaultSpecialtyTradeSlotCount = 2 };
+            var template = new ButlerTemplate
+            {
+                Id = 1,
+                TradeAvailableLevel = 1,
+                DefaultSpecialtyTradeSlotCount = 2
+            };
             var level = new ButlerLevel { ButlerId = 1, Level = 1 };
             var trade = new ButlerSpecialtyTradeDefinition(TradeRowId, 20, CraftId, 1, 1, 1,
                 checked((uint)ZoneId));
@@ -324,11 +335,19 @@ public class ButlerFarmingServiceSpecialtyTests
                 CraftProducts = [new CraftProduct { CraftId = CraftId, ItemId = ProductItemId, Amount = 1, Rate = 100 }],
                 CraftMaterials = [new CraftMaterial { CraftId = CraftId, ItemId = MaterialItemId, Amount = 1 }]
             };
-            context = new ButlerSpecialtyTradeAdmissionContext(
-                template, level, trade, craft, new SkillTemplate { Id = 8001, ConsumeLaborPower = 1 },
-                craft.CraftProducts[0],
-                [new ButlerSpecialtyTradeMaterialCost(MaterialItemId, 1)], 2);
-            return true;
+            // Delegate to the production rules with the butler's real active jobs, so the stub
+            // enforces the same slot-exhaustion and duplicate rejection that the live resolver
+            // does. Building the context by hand here would silently skip those checks.
+            return ButlerSpecialtyTradeRules.TryCreateAdmissionContext(
+                template,
+                level,
+                trade,
+                craft,
+                new SkillTemplate { Id = 8001, ConsumeLaborPower = 1 },
+                butler.SpecialtyTradeJobs.Values.ToArray(),
+                template.DefaultSpecialtyTradeSlotCount,
+                out context,
+                out failure);
         }
 
         public bool TryResolveNextGardenSlotExpansion(Character character, CharacterButler butler,

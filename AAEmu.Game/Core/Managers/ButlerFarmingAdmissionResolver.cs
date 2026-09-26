@@ -178,9 +178,19 @@ public sealed class ButlerFarmingAdmissionResolver :
         CharacterButler butler,
         uint specialtyType,
         short toZoneGroupType,
-        out ButlerSpecialtyTradeAdmissionContext context)
+        out ButlerSpecialtyTradeAdmissionContext context) =>
+        TryResolveSpecialtyTrade(character, butler, specialtyType, toZoneGroupType, out context, out _);
+
+    public bool TryResolveSpecialtyTrade(
+        Character character,
+        CharacterButler butler,
+        uint specialtyType,
+        short toZoneGroupType,
+        out ButlerSpecialtyTradeAdmissionContext context,
+        out ButlerSpecialtyTradeRules.AdmissionFailure failure)
     {
         context = default;
+        failure = ButlerSpecialtyTradeRules.AdmissionFailure.InvalidContent;
         if (character == null || butler == null || character.Id != butler.CharacterId ||
             specialtyType == 0 || toZoneGroupType <= 0 || _craftManager == null || _skillManager == null ||
             !_butlerGameData.TryGetUniqueTemplate(out var butlerTemplate) ||
@@ -209,7 +219,8 @@ public sealed class ButlerFarmingAdmissionResolver :
             butler.SpecialtyTradeJobs.Values.ToArray(),
             butlerTemplate.DefaultSpecialtyTradeSlotCount,
             checked((uint)expandedSlotCount),
-            out context);
+            out context,
+            out failure);
     }
 
     public bool TryResolveNextGardenSlotExpansion(

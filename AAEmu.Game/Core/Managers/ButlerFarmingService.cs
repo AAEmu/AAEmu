@@ -92,6 +92,9 @@ public interface IButlerFarmingAdmissionResolver
         out ButlerHarvestAdmissionContext context);
     bool TryResolveSpecialtyTrade(Character character, CharacterButler butler, uint specialtyType,
         short toZoneGroupType, out ButlerSpecialtyTradeAdmissionContext context);
+    bool TryResolveSpecialtyTrade(Character character, CharacterButler butler, uint specialtyType,
+        short toZoneGroupType, out ButlerSpecialtyTradeAdmissionContext context,
+        out ButlerSpecialtyTradeRules.AdmissionFailure failure);
     bool TryResolveNextGardenSlotExpansion(Character character, CharacterButler butler,
         out ButlerGardenSlotExpansionContext context);
     bool TryResolveNextSpecialtyTradeSlotExpansion(Character character, CharacterButler butler,
@@ -212,20 +215,24 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
                 if (!CanOperate(character, butler))
                     return FailedSpecialtyRegistration(ButlerFarmingOperationFailure.NotBound);
                 if (!_admissionResolver.TryResolveSpecialtyTrade(character, butler, specialtyType,
-                        toZoneGroupType, out var context))
-                    return FailedSpecialtyRegistration(ButlerFarmingOperationFailure.InvalidContent);
-                if (context.AvailableSpecialtyTradeSlots == 0)
-                    return FailedSpecialtyRegistration(ButlerFarmingOperationFailure.NoSpecialtyTradeSlot);
-                if (butler.SpecialtyTradeJobs.Values.Any(job =>
-                        job.SpecialtyType == specialtyType && job.ToZoneGroupType == checked((ushort)toZoneGroupType)))
-                    return FailedSpecialtyRegistration(ButlerFarmingOperationFailure.DuplicateSpecialtyTrade);
+                        toZoneGroupType, out var context, out var admissionFailure))
+                    return FailedSpecialtyRegistration(admissionFailure switch
+                    {
+                        ButlerSpecialtyTradeRules.AdmissionFailure.NoSpecialtyTradeSlot =>
+                            ButlerFarmingOperationFailure.NoSpecialtyTradeSlot,
+                        ButlerSpecialtyTradeRules.AdmissionFailure.DuplicateSpecialtyTrade =>
+                            ButlerFarmingOperationFailure.DuplicateSpecialtyTrade,
+                        _ => ButlerFarmingOperationFailure.InvalidContent
+                    });
                 if (butler.LaborPower < (uint)context.CraftSkill.ConsumeLaborPower)
                     return FailedSpecialtyRegistration(ButlerFarmingOperationFailure.NotEnoughLaborPower);
-                if (butler.RemainProductionCost < context.Trade.ConsumeProductionCost)
-                    return FailedSpecialtyRegistration(ButlerFarmingOperationFailure.NotEnoughProductionCost);
+                // Shipped ui_texts 11129/11224 charge an extra production cost when the farmhand is
+                // already running another production function; the harvest side already mirrors this.
                 if (!ButlerSpecialtyTradeRules.TryCalculateCosts(context, butler.LaborPower,
-                        butler.RemainProductionCost, out var costs))
+                        butler.HarvestJobs.Count > 0, out var costs))
                     return FailedSpecialtyRegistration(ButlerFarmingOperationFailure.InvalidContent);
+                if (butler.RemainProductionCost < costs.TotalProductionCost)
+                    return FailedSpecialtyRegistration(ButlerFarmingOperationFailure.NotEnoughProductionCost);
                 uint deliveryTime;
                 try
                 {
@@ -275,7 +282,7 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
             var proposed = butler.Snapshot() with
             {
                 LaborPower = butler.LaborPower - costs.LaborPower,
-                RemainProductionCost = checked((ushort)(butler.RemainProductionCost - costs.ProductionCost))
+                RemainProductionCost = checked((ushort)(butler.RemainProductionCost - costs.TotalProductionCost))
             };
             var candidate = new ButlerSpecialtyTradeJobCandidate(
                 context.Trade.NpcId,
