@@ -70,27 +70,39 @@ public class SailingActivityPacketTests
     }
 
     [Test]
-    public async Task Read_KeepsTheClaimContainerVerbatimAndNeverDecodesIt()
+    public async Task Read_TakesTheClaimContainerAsACountedVectorOfIds()
     {
-        // Five opaque bytes stand in for the unrecovered element vector.
-        var body = new PacketStream()
-            .Write(1)
-            .Write((byte)0xDE).Write((byte)0xAD).Write((byte)0xBE).Write((byte)0xEF).Write((byte)0x01)
-            .GetBytes();
+        // A count of 3 followed by three ids. The count is on the wire; without it the packet is short.
+        var body = new PacketStream().Write(1).Write(3).Write(0x0A).Write(0x0B).Write(0x0C).GetBytes();
 
         var packet = new CSSailingActivityClaimRewardPacket();
         packet.Read(new PacketStream(body));
 
         await Assert.That(packet.ActivityId).IsEqualTo(1);
-        await Assert.That(packet.Container.Raw).IsEquivalentTo(new byte[] { 0xDE, 0xAD, 0xBE, 0xEF, 0x01 });
-        await Assert.That(packet.Container.IsDecoded).IsFalse();
+        await Assert.That(packet.Container.Ids).IsEquivalentTo(new[] { 0x0A, 0x0B, 0x0C });
+    }
+
+    [Test]
+    public async Task Read_RefusesAContainerThatClaimsMoreElementsThanTheStreamHolds()
+    {
+        // Declares 4 ids, supplies 2. A remainder-consuming reader would have accepted the tail.
+        var body = new PacketStream().Write(1).Write(4).Write(0x0A).Write(0x0B).GetBytes();
+        var packet = new CSSailingActivityClaimRewardPacket();
+
+        var threw = false;
+        try { packet.Read(new PacketStream(body)); }
+        catch (InvalidDataException) { threw = true; }
+
+        await Assert.That(threw).IsTrue();
     }
 
     [Test]
     public async Task Read_LeavesTheContainerEmptyWhenTheBodyCarriesNothing()
     {
+        // A zero count: four bytes. The old design consumed "the rest of the stream", which for an
+        // empty body produced a zero-byte container and a packet four bytes short of the wire format.
         var packet = new CSSailingActivityClaimRewardPacket();
-        packet.Read(new PacketStream(new PacketStream().Write(1).GetBytes()));
+        packet.Read(new PacketStream(new PacketStream().Write(1).Write(0).GetBytes()));
 
         await Assert.That(packet.ActivityId).IsEqualTo(1);
         await Assert.That(packet.Container.IsEmpty).IsTrue();
@@ -138,22 +150,26 @@ public class SailingActivityPacketTests
     }
 
     [Test]
-    public async Task StageUnlocked_WritesTheIdThenTheContainerVerbatim()
+    public async Task StageUnlocked_WritesTheIdThenTheContainerCountThenItsIds()
     {
-        var container = SailingActivityContainer.FromRaw([0x01, 0x02, 0x03]);
+        var container = SailingActivityContainer.FromIds(1, 2, 3);
         var bytes = new SCSailingActivityStageUnlockedPacket(4, container).Write(new PacketStream()).GetBytes();
 
         await Assert.That(bytes).IsEquivalentTo(
-            new PacketStream().Write(4).Write((byte)0x01).Write((byte)0x02).Write((byte)0x03).GetBytes());
+            new PacketStream().Write(4).Write(3).Write(1).Write(2).Write(3).GetBytes());
+        // 4 id + 4 count + 3*4 elements
+        await Assert.That(bytes.Length).IsEqualTo(20);
     }
 
     [Test]
-    public async Task StageUnlocked_WritesOnlyTheIdWhenTheContainerIsEmpty()
+    public async Task StageUnlocked_WritesTheZeroCountAfterTheIdWhenTheContainerIsEmpty()
     {
+        // SC 0x38D calls the vector helper exactly once, so an empty container still costs the four
+        // bytes of a zero count. Writing only the id made this packet 4 bytes short of the wire format.
         var bytes = new SCSailingActivityStageUnlockedPacket(4, null).Write(new PacketStream()).GetBytes();
 
-        await Assert.That(bytes.Length).IsEqualTo(4);
-        await Assert.That(bytes).IsEquivalentTo(new PacketStream().Write(4).GetBytes());
+        await Assert.That(bytes.Length).IsEqualTo(8);
+        await Assert.That(bytes).IsEquivalentTo(new PacketStream().Write(4).Write(0).GetBytes());
     }
 
     [Test]
@@ -161,13 +177,16 @@ public class SailingActivityPacketTests
     {
         var bytes = new SCSailingActivityClaimRewardResponsePacket(
                 1,
-                SailingActivityContainer.FromRaw([0x0A]),
+                SailingActivityContainer.FromIds(0x0A),
                 SailingActivityContainer.Empty,
-                SailingActivityContainer.FromRaw([0x0B, 0x0C]))
+                SailingActivityContainer.FromIds(0x0B, 0x0C))
             .Write(new PacketStream()).GetBytes();
 
+        // Three helpers are called on 0x38E, so three counts: 1, 0, 2.
         await Assert.That(bytes).IsEquivalentTo(
-            new PacketStream().Write(1).Write((byte)0x0A).Write((byte)0x0B).Write((byte)0x0C).GetBytes());
+            new PacketStream().Write(1).Write(1).Write(0x0A).Write(0).Write(2).Write(0x0B).Write(0x0C).GetBytes());
+        // 4 id + (4+4) + (4+0) + (4+8) = 28
+        await Assert.That(bytes.Length).IsEqualTo(28);
     }
 
     [Test]
@@ -254,12 +273,32 @@ public class SailingActivityPacketTests
     }
 
     [Test]
-    public async Task UnresolvedPackets_KeepTheirNamedPlaceholderRatherThanAGuessedSlot()
+    public async Task List_RefusesMoreThanTheThirtyTwoRowsTheClientHolds()
     {
-        // No extraction recovered a slot for these two, so no offset is registered for them and the
-        // placeholders stay at zero. A future capture replaces the constant rather than the number
-        // being quietly filled in.
-        await Assert.That(SailingActivityUnresolvedOpcodes.SailingActivityDataUnresolved).IsEqualTo((ushort)0);
-        await Assert.That(SailingActivityUnresolvedOpcodes.SailingActivityTaskProgressUnresolved).IsEqualTo((ushort)0);
+        // The client copies rows into a fixed 32-entry array with no bound check, so a 33rd row would
+        // be written past the end of its buffer. The cap is the client's, not a defensive choice.
+        var rows = Enumerable.Range(0, 32)
+            .Select(i => new SailingActivityListRow(i, 0, 0))
+            .ToArray();
+        var ok = new SCSailingActivityListPacket(rows).Write(new PacketStream()).GetBytes();
+        await Assert.That(ok.Length).IsEqualTo(4 + 32 * 20);
+
+        var tooMany = Enumerable.Range(0, 33)
+            .Select(i => new SailingActivityListRow(i, 0, 0))
+            .ToArray();
+        var refused = false;
+        try { _ = new SCSailingActivityListPacket(tooMany).Write(new PacketStream()); }
+        catch (ArgumentOutOfRangeException) { refused = true; }
+        await Assert.That(refused).IsTrue();
+    }
+
+    [Test]
+    public async Task TheTwoUnsentPackets_HaveTheirRecoveredSlotsRatherThanAGuessedOne()
+    {
+        // An earlier revision claimed both carried opcode null and inferred a slot by counting gaps.
+        // The raw schema assigns them explicitly: 0x38B and 0x38C. They remain unsent because their
+        // container calls carry no field name, not because the slot is unknown.
+        await Assert.That(SailingActivityUnresolvedOpcodes.SailingActivityDataPacket).IsEqualTo((ushort)0x38B);
+        await Assert.That(SailingActivityUnresolvedOpcodes.SailingActivityTaskProgressPacket).IsEqualTo((ushort)0x38C);
     }
 }

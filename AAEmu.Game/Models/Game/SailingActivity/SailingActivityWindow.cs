@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models;
+﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.PlotAuctions;
 
 namespace AAEmu.Game.Models.Game.SailingActivity;
@@ -86,6 +87,14 @@ public static class SailingActivityWindow
 
     /// <summary>
     /// The stamp as <c>SC 0x391</c> writes it, or <see cref="UnresolvedStamp"/> when unresolved.
+    ///
+    /// <para>
+    /// <b>Unit.</b> 64-bit times in this repository are Unix <b>seconds</b>, not .NET ticks:
+    /// <c>PacketStream.ReadDateTime</c> is <c>Helpers.UnixTime(ReadInt64())</c>. <c>DateTime.Ticks</c>
+    /// counts 100-nanosecond intervals from 0001-01-01, so writing it here would put a value roughly
+    /// five times ten to the seventh larger than the client expects. This uses the repository's own
+    /// conversion rather than a hand-rolled offset.
+    /// </para>
     /// </summary>
-    public static ulong ToWireStamp(DateTime utc) => (ulong)ServerCalendar.AsUtc(utc).Ticks;
+    public static ulong ToWireStamp(DateTime utc) => (ulong)Helpers.UnixTime(ServerCalendar.AsUtc(utc));
 }

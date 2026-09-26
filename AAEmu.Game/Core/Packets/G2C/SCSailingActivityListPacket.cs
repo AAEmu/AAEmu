@@ -22,11 +22,16 @@ public class SCSailingActivityListPacket(SailingActivityListRow[] rows)
     : GamePacket(SCOffsets.SCSailingActivityListPacket, 1)
 {
     /// <summary>
-    /// A defensive serialization bound chosen by us, not a limit recovered from the client. Its only
-    /// job is to stop a runaway row array from producing an absurd frame; nothing in the extracted
-    /// schema states a client-side maximum here.
+    /// The client reads these rows into a <b>fixed array of 32</b> and its copy loop carries no bound
+    /// check, so a 33rd row would be written past the end of its buffer. The limit is therefore the
+    /// client's, not a defensive bound of ours.
     /// </summary>
-    public const int MaximumRows = 0x10000;
+    /// <remarks>
+    /// Corroborated arithmetically by the recovered struct: the count sits at <c>+0x14</c>, 32
+    /// four-byte ids run from <c>+0x18</c>, and the first time field begins at <c>+0x98</c>.
+    /// <c>0x18 + 32*4 == 0x98</c> exactly.
+    /// </remarks>
+    public const int MaximumRows = 32;
 
     public override PacketStream Write(PacketStream stream)
     {

@@ -24,6 +24,6 @@ public class CSSailingActivityClaimRewardPacket() : GamePacket(CSOffsets.CSSaili
     public override void Read(PacketStream stream)
     {
         ActivityId = stream.ReadInt32();
-        Container = SailingActivityContainer.ReadRemainder(stream, nameof(CSSailingActivityClaimRewardPacket));
+        Container = SailingActivityContainer.Read(stream, nameof(CSSailingActivityClaimRewardPacket));
     }
 }
