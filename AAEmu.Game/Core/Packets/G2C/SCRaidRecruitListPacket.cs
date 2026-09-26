@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Team.Recruitment;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// The board: u32 totalCount, u32 count, then count records (, which reads at
+/// The board: u32 totalCount, u32 count, then count records , which reads at
 /// most 0x32 of them), so the writer never sends more than RaidRecruitRules.ListLimit rows.
 /// </summary>
 public class SCRaidRecruitListPacket(int totalCount, IReadOnlyList<RaidRecruitRecord> records)

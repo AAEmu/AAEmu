@@ -2,7 +2,7 @@ namespace AAEmu.Game.Models.Game.Indun;
 
 /// <summary>
 /// One <c>indun_rounds</c> row (77 rows: zone group 125 rounds 1..50, 126 rounds 1..21, 130 rounds 1..6).
-/// The native loader is <c>LoadIndunRoundDescs</c> (,
+/// The native loader is <c>LoadIndunRoundDescs</c> ,
 /// ): <c>SELECT id, boss_round, round, spawner_id, timer, zone_group_id</c>.
 /// </summary>
 public class IndunRound

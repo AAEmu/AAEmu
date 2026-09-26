@@ -1386,7 +1386,7 @@ public class CharacterManager(
         if (charge == BeautyshopCharge.Rejected)
         {
             Logger.Debug($"Beautyshop: {character.Name} ({character.Id}) holds no valid ticket (client offered {request.TicketItemId} x{request.TicketCount}) and no free window runs");
-            // The code the client itself shows for a missing ticket (, 0x2d2). The session stays open.
+            // The code the client itself shows for a missing ticket , 0x2d2). The session stays open.
             character.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
             return;
         }

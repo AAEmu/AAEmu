@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// <c>bc</c> as the three-byte object id, then the result through, which is the skill cast
 /// tail: a flag byte followed by <c>c</c> (result u8), <c>e</c> (u16), <c>p</c> (u32) and <c>d</c> (the
 /// display gate), each written only when it differs from its default of 0, 0, 0 and true.
-/// The handler hands it to, which acts only when <c>bc</c> is the local player:
+/// The handler hands it to a resolver, which acts only when <c>bc</c> is the local player:
 /// it formats the result through the skill-result display path (which drops results above
 /// 0x49 when the gate is false) and raises QUEST_QUICK_CLOSE_EVENT with the quest id, which
 /// quest_context_directing.lua answers by ending directing mode for that quest.

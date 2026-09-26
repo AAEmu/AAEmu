@@ -224,7 +224,7 @@ public class Skill
         //
         // Gate 1: use_condition_bits and the caster's state - dead, stunned, slept, silenced,
         // swimming. The client greys out what it can see, but a forged or stale press still reached
-        // Castbefore this gate existed, and silence had no server-side effect at all.
+        // Cast()before this gate existed, and silence had no server-side effect at all.
         var useConditionFailure = SkillUseConditionRules.Evaluate(
             Template.UseConditionBits,
             SkillUseConditionRules.ReadState(unit));
@@ -348,7 +348,7 @@ public class Skill
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
         }
 
-        // stop_channeling_on_start_skill: the running channel yields to the new cast. Stopis the
+        // stop_channeling_on_start_skill: the running channel yields to the new cast. Stop()is the
         // cancelled path, so the old channel applies no effects; its tick drain and its TlId are released.
         if (unit.SkillTask is EndChannelingTask runningChannel &&
             runningChannel.Skill != this &&
@@ -452,7 +452,7 @@ public class Skill
         // if (caster is Character)
         Logger.Debug($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
 
-        // Hold / reel kit ships a plot but is not flagged plot_only. Castafter the plot
+        // Hold / reel kit ships a plot but is not flagged plot_only. Cast()after the plot
         // starts EndSkill's the TlId while the graph is still on the bar.
         if (Template.Plot != null
             && !Template.PlotOnly
@@ -469,7 +469,7 @@ public class Skill
 
         // Check if target is within range
         // The check runs before the plot branch below, not after it: a plot_only skill returned from
-        // Usebefore ever reaching this code, so 315 of the 534 ability skills — every plot_only one —
+        // Use()before ever reaching this code, so 315 of the 534 ability skills — every plot_only one —
         // could be cast from any distance at all.
         var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
         // Puts skill attribute 17 (min_range) on the minimum the same way
@@ -1071,7 +1071,7 @@ public class Skill
         }
 
         // Instant ZoneAuthority casts: WZSkillStarted before ScheduleEffects/EndSkill (melee 2
-        // clears TlId immediately). Cast-time / plot_only already relayed at Useentry.
+        // clears TlId immediately). Cast-time / plot_only already relayed at Use()entry.
         RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
 
         // A controller drives its owner's position, so it used to be created for NPC casters only. A player's
@@ -2592,12 +2592,12 @@ public class Skill
             return;
         _plotOnlyFireCostsApplied = true;
         ApplyGlobalCooldown(unit);
-        // Skill cooldown is also applied in DoPlotEnd; applying early matches Castand blocks re-cast spam.
+        // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast()and blocks re-cast spam.
         if (Template.CooldownTime > 0)
             ArmCooldowns(unit);
         // The plot-only fire edge, for the fire_skill item procs: six of the ten trigger_skill_id rows name a
-        // plot_only skill (11934, 11943, 11973, 15096, 16210, 16783), which never reaches Cast A
-        // pure-unsupported cast is refused the roll in Castfor the same reason, so it gets none here.
+        // plot_only skill (11934, 11943, 11973, 15096, 16210, 16783), which never reaches Cast() A
+        // pure-unsupported cast is refused the roll in Cast()for the same reason, so it gets none here.
         if (!IsPureUnsupportedCast())
             unit.Procs?.OnSkillFired(this, InitialTarget);
     }

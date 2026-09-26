@@ -77,7 +77,7 @@ public enum SkillResult : byte
     InvalidAccountAttribute = 0x3D,
     FestivalZone = 0x3E,
     AlreadyOtherPlayerBound = 0x3F,
-    UrkUnknown = 0x40, // No case in; the display path returns without a message for 0x40.
+    UrkUnknown = 0x40, // No case in the client result switch; the display path returns without a message for 0x40.
     CannotUnsummonUnderStunSleepRoot = 0x41,
     LackCombatResource = 0x42,
     LackSourceItemSet = 0x43,
@@ -181,11 +181,11 @@ public enum SkillResult : byte
     UrkLaborPowerMarginLocal = 0xA9,
     UrkHeirLevel = 0xAA,
     UrkInZoneGroup = 0xAB,
-    UrkSkillCooldown = 0xAC, // No symbol in; the kind 102 evaluator writes 0xAC.
+    UrkSkillCooldown = 0xAC, // No client symbol; the kind 102 evaluator writes 0xAC.
     UrkUnderWater = 0xAD,
     UrkOwnAppellation = 0xAE,
     UrkEquipAppellation = 0xAF,
-    UrkEmptySlotInventory = 0xB0, // No symbol in; the kind 106 evaluator writes 0xB0 with detail 0x19 (BAG_FULL).
+    UrkEmptySlotInventory = 0xB0, // No client symbol; the kind 106 evaluator writes 0xB0 with detail 0x19 (BAG_FULL).
     UrkFullRechargedLaborPower = 0xB1,
     UrkExpeditionMemberNot = 0xB2,
     UrkPirateMemberLimit = 0xB3,
@@ -208,7 +208,7 @@ public enum SkillResult : byte
     UrkCannotUseByUlcActivate = 0xC4,
     UrkItemLookChangeMapping = 0xC5,
     UrkEnableArchePassWithType = 0xC6,
-    UrkCombatResource = 0xC7, // No symbol in; the kind 136 evaluator writes 0xC7.
+    UrkCombatResource = 0xC7, // No client symbol; the kind 136 evaluator writes 0xC7.
     UrkAddArchePassPoint = 0xC8,
     UrkTowerDefStep = 0xC9,
     UrkSourceHealthLessThan = 0xCA,

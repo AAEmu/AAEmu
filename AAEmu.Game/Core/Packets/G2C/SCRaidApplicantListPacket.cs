@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Team.Recruitment;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// The recruiter's applicant window: u32 count, then count applicant rows (,
+/// The recruiter's applicant window: u32 count, then count applicant rows ,
 /// which reads at most 100), so the writer never sends more than RaidRecruitRules.MaxApplicantsPerRecruitment.
 /// </summary>
 public class SCRaidApplicantListPacket(IReadOnlyList<RaidApplicantRecord> applicants)

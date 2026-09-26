@@ -20,7 +20,7 @@ public enum ItemProcTargetSide
 /// <summary>
 /// The trigger, chance, target and cooldown decisions of <c>item_procs</c> (202 rows). Kinds are
 /// <c>enum_proc_chance_type</c>; the populated ones are 1-7, 9, 10, 13, 14, 17, 18 and 19. The client reads the
-/// same twelve columns in <c> </c> (LoadItemProcDescs: id, chance_kind_id, chance_param,
+/// same twelve columns in the native loader (LoadItemProcDescs: id, chance_kind_id, chance_param,
 /// chance_rate, cooldown_sec, description, finisher, item_level_based_chance_bonus, or_unit_reqs, skill_id,
 /// trigger_skill_id, trigger_tag_id), packs finisher and or_unit_reqs into two flag bits and attaches the
 /// <c>unit_reqs</c> rows with owner_type "ItemProc" to each row.
