@@ -187,9 +187,12 @@ public static class LoseTargetingContentAudit
 
         using (var command = connection.CreateCommand())
         {
+            // Only 'SpecialEffect' rows carry a special_effects.id in actual_id. A 'BuffEffect' row carries a
+            // buff_effects.id, and the two id-spaces overlap by 16,808 on the shipped DB, so matching one
+            // against the other reports links that do not exist: 17 real plot links were reported as 26.
             command.CommandText =
                 "SELECT DISTINCT actual_id FROM plot_effects " +
-                "WHERE actual_type IN ('SpecialEffect', 'BuffEffect') " +
+                "WHERE actual_type = 'SpecialEffect' " +
                 "AND actual_id IN (SELECT id FROM special_effects WHERE special_effect_type_id = @type)";
             command.Parameters.AddWithValue("@type", (int)SpecialType.LoseTargetingTheTarget);
             using var reader = command.ExecuteReader();
@@ -231,10 +234,14 @@ public static class LoseTargetingContentAudit
     {
         var enabledClause = requireEnabled ? " AND link.enable = 't'" : string.Empty;
         using var command = connection.CreateCommand();
+        // 'SpecialEffect' is the only actual_type whose actual_id is a special_effects.id. A 'BuffEffect' row's
+        // actual_id is a buff_effects.id, and buff_effects carries no special-effect type at all, so the two
+        // cannot be compared. The id-spaces overlap by 16,808 on the shipped DB, which is how buff_triggers
+        // reported 43 links where 42 are real and buff_tick_effects reported 1 where there are none.
         command.CommandText =
             $"SELECT DISTINCT effect.actual_id FROM {linkTable} AS link " +
             "JOIN effects AS effect ON effect.id = link.effect_id " +
-            "WHERE effect.actual_type IN ('SpecialEffect', 'BuffEffect')" + enabledClause +
+            "WHERE effect.actual_type = 'SpecialEffect'" + enabledClause +
             " AND effect.actual_id IN (SELECT id FROM special_effects WHERE special_effect_type_id = @type)";
         command.Parameters.AddWithValue("@type", (int)SpecialType.LoseTargetingTheTarget);
         using var reader = command.ExecuteReader();
