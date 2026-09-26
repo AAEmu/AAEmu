@@ -17,9 +17,9 @@ public static class TeamJointModes
     public const sbyte MenuTargetRequest = 2;
 
     /// <summary>
-    /// TEAM_JOINT_REQUEST. The raid popup's "invite raid joint" entry sends this as the request
-    /// (x2ui/components/popup_menu_proc.lua:236), so it is a mode a client may originate with;
-    /// the server also uses it to open the request frame. One value, both directions.
+    /// The raid popup's "invite raid joint" entry sends this as the request, so it is a mode a
+    /// client may originate with; the server also uses it to open the request frame. One value,
+    /// both directions.
     /// </summary>
     public const sbyte ContextRequest = 3;
 

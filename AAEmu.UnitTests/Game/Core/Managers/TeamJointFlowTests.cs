@@ -62,8 +62,8 @@ public class TeamJointFlowTests
         await Assert.That(TeamJointModes.IsKnownWireMode(5)).IsFalse();
         await Assert.That(TeamJointModes.IsRequestMode(1)).IsTrue();
         await Assert.That(TeamJointModes.IsRequestMode(2)).IsTrue();
-        // Mode 3 is TEAM_JOINT_REQUEST: the raid popup's "invite raid joint" entry sends it
-        // (x2ui/components/popup_menu_proc.lua:236), so it must be accepted as a request too.
+        // Mode 3 is the raid popup's own "invite raid joint" entry, so it is a mode a client may
+        // originate a request with too.
         await Assert.That(TeamJointModes.IsRequestMode(3)).IsTrue();
         await Assert.That(TeamJointModes.IsRequestMode(4)).IsFalse();
     }
@@ -286,9 +286,9 @@ public class TeamJointFlowTests
     }
 
     /// <summary>
-    /// A decline is signalled by JointCancel's SEPARATE boolean, not by an inverted leader flag
-    /// (handle_task.lua:2913 passes the same infoTable["leader"] as OkProc does at :2910). So
-    /// whichever leader value comes back, accept == false must refuse.
+    /// A decline is signalled by its own separate boolean, not by an inverted leader flag: the
+    /// decline path passes the same leader value the accept path does. So whichever leader value
+    /// comes back, a decline must refuse.
     /// </summary>
     [Test]
     public async Task Accept_DeclineStillRefusesWhateverLeaderFlagTheClientEchoes()

@@ -216,21 +216,15 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             return;
         }
 
-        // The client does not choose a leader: it echoes back the flag the server placed in the
-        // response dialog. DLG_TASK_RESOPONSE_RAID_JOINT (x2ui/components/dialog/handle_task.lua)
-        // passes the same infoTable["leader"] to JointOk (:2910) and to JointCancel (:2913/:2916),
-        // and the decline/timeout is carried by JointCancel's separate boolean. So a genuine
-        // accept always echoes whatever we sent, and requiring the answer to equal the stored
-        // value compared a REQUEST-side meaning (leader => requester is the officer,
-        // handle_task.lua:2829/:2836) against a RESPONSE-side one (leader => responder is the
-        // owner, handle_task.lua:2883/:2890; joint_view.lua:462-463 agrees). Both values are
-        // valid answers; the echoed one selects the leading team in CommitJoint.
-        // The echoed flag is deliberately NOT used to pick the leader. Whether the native
-        // X2Team:JointOk inverts it before sending is not recoverable here: the Lua hands
-        // infoTable["leader"] straight through (handle_task.lua:2910) and the binding is opaque, so
-        // the polarity is a standing disagreement. Accepting either value would let a crafted answer
-        // choose the owner, so the server's own stored LeaderChoice decides instead. That is correct
-        // whichever way the client resolves it, and the echo is logged for diagnosis only.
+        // The client does not choose a leader here: the response side echoes back the flag the server
+        // placed in its dialog, and the decline and the timeout are carried by a separate boolean. A
+        // genuine accept therefore echoes whatever we sent, and comparing that echo against the stored
+        // value compared a request-side meaning against a response-side one, refusing genuine accepts.
+        //
+        // The echoed flag is deliberately NOT used to pick the leader. Accepting it in either polarity
+        // would let a crafted answer choose the owner, so the requester's own stored choice decides
+        // instead. That is correct whichever way the client resolves the echo, and the echo is logged
+        // for diagnosis only.
         Logger.Debug("Team joint answer from {0} echoed leader={1}; using the stored choice {2}.",
             responderId, myTeamLeader, pending.LeaderChoice);
         CommitJoint(pending);

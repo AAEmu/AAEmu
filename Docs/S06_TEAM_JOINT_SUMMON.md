@@ -11,17 +11,17 @@ zone relay and no Server change is involved.
 
 Read from the extracted client UI and the packet schema before writing any handler:
 
-| Client behaviour | Source |
-|---|---|
-| `X2Team:JointInfoReq(TEAM_JOINT_MENU_CHAT / MENU_TARGET, name)` opens the *request* frame | `x2ui/chat/common.lua`, `x2ui/unitframe/target.lua`, `x2ui/components/popup_menu_proc.lua` |
-| The request frame collects a `leader` choice and sends `X2Team:JointOk(leader)` | `x2ui/raidteammanager/joint_view.lua:434-436` |
-| The *response* frame has no role choice; it echoes the server's `leader` flag back through `JointOk(leader)` / `JointCancel(leader, timeout)` | `x2ui/raidteammanager/joint_view.lua:194`, `x2ui/components/dialog/handle_task.lua:2909-2917` |
-| Response frame reads `name`, `memberCount`, `leader`; `leader` decides crown_gold/officer and the role text | `handle_task.lua:2844-2896` |
-| `SCTeamJointInfoPacket.mode` accepts **1, 2, 3, 4**: 1/2 are the client's menu modes, 3 opens the request frame, 4 opens the response frame | client handler; `TeamJointModes` |
-| The `19` next to `TEAM_JOINT_RESPONSE` and the `17` next to `TEAM_JOINT_BROKEN` in the client's event table are the **lengths of those names**, not modes | client event-name table |
-| Summon button is owner-only (`CheckAuthority` + `raidteammanager/manager.lua:234-267`), shows the item cost, then calls `X2Team:RequestSummon()` with no arguments | `manager.lua`, `x2ui/raidteammanager/team_summon*.lua` |
-| Summon target dialog: 60 s timer, accept/reject, "do not receive" checkbox, combat blocks accept client-side, close sends `RequestSummonReply(result, name)` | `handle_task.lua:2924-3002` |
-| Summon button is hidden entirely when the `block_joint_raid` feature bit is set | `manager.lua:233` |
+| Client behaviour |
+|---|
+| `X2Team:JointInfoReq(TEAM_JOINT_MENU_CHAT / MENU_TARGET, name)` opens the *request* frame |
+| The request frame collects a `leader` choice and sends `X2Team:JointOk(leader)` |
+| The *response* frame has no role choice; it echoes the server's `leader` flag back through `JointOk(leader)` / `JointCancel(leader, timeout)` |
+| Response frame reads `name`, `memberCount`, `leader`; `leader` decides crown_gold/officer and the role text |
+| `SCTeamJointInfoPacket.mode` accepts **1, 2, 3, 4**: 1/2 are the client's menu modes, 3 opens the request frame, 4 opens the response frame (`TeamJointModes`) |
+| The `19` next to `TEAM_JOINT_RESPONSE` and the `17` next to `TEAM_JOINT_BROKEN` in the client's event table are the **lengths of those names**, not modes |
+| Summon button is owner-only, shows the item cost, then calls `X2Team:RequestSummon()` with no arguments |
+| Summon target dialog: 60 s timer, accept/reject, "do not receive" checkbox, combat blocks accept client-side, close sends `RequestSummonReply(result, name)` |
+| Summon button is hidden entirely when the `block_joint_raid` feature bit is set |
 
 ## Implemented
 
