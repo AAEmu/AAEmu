@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Indun;
