@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -146,6 +147,70 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
     }
 
     [Test]
+    public async Task IsProductOriginRegionAdmitted_OnlyMatchesTheZoneGroupTheProductNames()
+    {
+        // 0 is a product that names no region, which leaves the continent comparison to carry the
+        // rule. A named region has to be the farmhand's own, or the same-continent other-region pack
+        // the continent check cannot see gets through.
+        await Assert.That(ButlerSpecialtyTradeRules.IsProductOriginRegionAdmitted(0, 5)).IsTrue();
+        await Assert.That(ButlerSpecialtyTradeRules.IsProductOriginRegionAdmitted(0, 0)).IsTrue();
+        await Assert.That(ButlerSpecialtyTradeRules.IsProductOriginRegionAdmitted(5, 5)).IsTrue();
+        await Assert.That(ButlerSpecialtyTradeRules.IsProductOriginRegionAdmitted(6, 5)).IsFalse();
+        // An unresolved house region never admits a product that names one.
+        await Assert.That(ButlerSpecialtyTradeRules.IsProductOriginRegionAdmitted(5, 0)).IsFalse();
+    }
+
+    [Test]
+    public async Task ResolveSpecialtyTrade_RefusesAProductFromAnotherRegionOfTheSameContinent()
+    {
+        // Everything the continent check compares is identical to the admitted case: the house and
+        // the destination both report continent 3. The only thing that refuses this is the product
+        // naming zone group 6 while the house sits in zone group 5.
+        var resolver = CreateResolver(out var butler,
+            new Dictionary<uint, uint> { [5] = 3, [6] = 3 },
+            productSpecialtyZoneId: 6);
+        var character = new Character(new UnitCustomModelParams()) { Id = 1 };
+
+        var admitted = resolver.TryResolveSpecialtyTrade(character, butler, 1, 5, out _, out var failure);
+
+        await Assert.That(admitted).IsFalse();
+        await Assert.That(failure).IsEqualTo(ButlerSpecialtyTradeRules.AdmissionFailure.OriginRegionMismatch);
+    }
+
+    [Test]
+    public async Task ResolveSpecialtyTrade_AdmitsAProductWhoseOwnRegionIsTheBoundHouseZoneGroup()
+    {
+        // The counterpart to the refusal above: the product names the house's own zone group, so the
+        // trade is admitted even though nothing about the continents changed.
+        var resolver = CreateResolver(out var butler,
+            new Dictionary<uint, uint> { [5] = 3, [6] = 3 },
+            productSpecialtyZoneId: HouseZoneGroupId);
+        var character = new Character(new UnitCustomModelParams()) { Id = 1 };
+
+        var admitted = resolver.TryResolveSpecialtyTrade(character, butler, 1, 5, out _, out var failure);
+
+        await Assert.That(admitted).IsTrue();
+        await Assert.That(failure).IsEqualTo(ButlerSpecialtyTradeRules.AdmissionFailure.None);
+    }
+
+    [Test]
+    public async Task ResolveSpecialtyTrade_RefusesANamedProductRegionWhenTheHouseZoneGroupIsUnresolved()
+    {
+        // A house zone that resolves to no zone group cannot place a product that names one, so the
+        // trade refuses rather than admitting on the continent comparison alone.
+        var resolver = CreateResolver(out var butler,
+            new Dictionary<uint, uint> { [5] = 3, [6] = 3 },
+            productSpecialtyZoneId: 6,
+            houseZoneGroupId: 0);
+        var character = new Character(new UnitCustomModelParams()) { Id = 1 };
+
+        var admitted = resolver.TryResolveSpecialtyTrade(character, butler, 1, 5, out _, out var failure);
+
+        await Assert.That(admitted).IsFalse();
+        await Assert.That(failure).IsEqualTo(ButlerSpecialtyTradeRules.AdmissionFailure.OriginRegionMismatch);
+    }
+
+    [Test]
     public async Task ResolveGardenStorage_RejectsAStoredItemOutsideTheNativeButlerBagNamespace()
     {
         var resolver = CreateResolver(out var butler);
@@ -204,7 +269,9 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
     private ButlerFarmingAdmissionResolver CreateResolver(
         out CharacterButler butler,
         IReadOnlyDictionary<uint, uint> groupContinents,
-        uint houseContinentId = HouseContinentId)
+        uint houseContinentId = HouseContinentId,
+        uint productSpecialtyZoneId = 0,
+        uint houseZoneGroupId = HouseZoneGroupId)
     {
         Execute(
             """
@@ -240,6 +307,13 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
             Count = 1,
             SlotType = SlotType.System
         });
+        // The trade's product template carries the region the pack belongs to, which is the column
+        // the origin check reads and the crafting path already refuses a production zone against.
+        itemManager.GetTemplate(7002).Returns(new BackpackTemplate
+        {
+            Id = 7002,
+            SpecialtyZoneId = productSpecialtyZoneId
+        });
 
         var craft = new Craft
         {
@@ -265,11 +339,12 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
             craftManager,
             skillManager.Object,
             CreateHousing(HouseZoneId, houseId: 1),
-            CreateZoneManager(houseContinentId, groupContinents));
+            CreateZoneManager(houseContinentId, groupContinents, houseZoneGroupId));
     }
 
     private const uint HouseZoneId = 129;
     private const uint HouseContinentId = 3;
+    private const uint HouseZoneGroupId = 5;
 
     /// <summary>
     /// A housing manager that answers one house in <paramref name="zoneId"/>, the way the live
@@ -289,10 +364,14 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
     /// which is the pair <c>zone_groups.target_id</c> supplies in production.
     /// </summary>
     private static Func<IZoneManager> CreateZoneManager(
-        uint houseContinentId, IReadOnlyDictionary<uint, uint> destinationContinents)
+        uint houseContinentId, IReadOnlyDictionary<uint, uint> destinationContinents, uint houseZoneGroupId)
     {
         var zones = Mock.Of<IZoneManager>();
         zones.GetTargetIdByZoneId(HouseZoneId).Returns(houseContinentId);
+        // The bound house's own zone group, read the way the crafting path reads a production zone.
+        // A zero group id answers "unresolved" rather than "group 0", which is what the refusal
+        // tests need.
+        zones.GetZoneByKey(HouseZoneId).Returns(new Zone { Id = HouseZoneId, GroupId = houseZoneGroupId });
         foreach (var (groupId, continentId) in destinationContinents)
             zones.GetZoneGroupById(groupId)
                 .Returns(new ZoneGroup { Id = groupId, TargetId = continentId });

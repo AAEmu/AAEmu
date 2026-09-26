@@ -2714,8 +2714,9 @@ public class SpecialtyManager(
     /// <param name="productItemId">The craft product the farmhand delivered.</param>
     /// <param name="zoneGroupId">Destination zone group the route ratio belongs to.</param>
     /// <param name="freshnessElapsedSeconds">
-    /// How long the goods existed before they were sold, in seconds. A farmhand job stores its
-    /// creation and delivery instants, so the age of the goods is the age of the job.
+    /// How long the goods existed before they were sold, in seconds. A farmhand job carries that
+    /// age as its own delivery duration, so the age of the goods does not depend on when the
+    /// due-job scan reached the job.
     /// </param>
     /// <param name="ownerId">Character the payout letter is addressed to.</param>
     /// <param name="ownerName">Name that character is addressed by, online or not.</param>

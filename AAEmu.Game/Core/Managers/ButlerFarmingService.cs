@@ -521,9 +521,13 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
         ButlerSpecialtyTradePersistResult durable;
         try
         {
+            // The goods are as old as the job's own delivery, which the job carries as a duration
+            // from its creation instant. Measuring from the settle instant instead would charge the
+            // owner a freshness bucket for how late the due-job scan ran or how long a restart took,
+            // neither of which is the age of the goods.
             if (_specialtyTradeSettlement == null || !_specialtyTradeSettlement.TryPrepare(
                     job.NpcId, job.ProductItemId, checked((uint)job.ToZoneGroupType),
-                    Helpers.UnixTime(settledAtUtc) - job.CreatedTime,
+                    job.DeliveryTime,
                     butler.CharacterId, ownerName, settledAtUtc, out quote, out payoutMail))
             {
                 Logger.Error("Specialty-trade job {0} for character {1} has no valid market settlement.",
@@ -542,13 +546,21 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
             durable = PersistSpecialtySettlement(butler.CharacterId, job.JobId, quote, payoutMail);
             if (!durable.Success)
             {
-                _payoutPublisher.CancelPreparedBatch(payoutBatch);
-                _itemManager.DiscardUnpersistedItems(payoutMail.Body.Attachments);
-                if (!durable.Ambiguous ||
-                    ReadDurableSpecialtyJob(butler.CharacterId, job.JobId, out _) != DurableJobReadStatus.Missing)
+                // An ambiguous failure whose job row is gone means the payment and the market
+                // write are already durable and only the commit acknowledgement was lost. The
+                // letter is committed, so its mail id has to stay reserved: cancelling the batch
+                // would release that id and let the next mail take it over the payout. The batch
+                // is therefore only cancelled on the paths that give the job up for a retry.
+                var committedButUnacknowledged = durable.Ambiguous &&
+                    ReadDurableSpecialtyJob(butler.CharacterId, job.JobId, out _) ==
+                    DurableJobReadStatus.Missing;
+                if (!committedButUnacknowledged)
+                {
+                    _payoutPublisher.CancelPreparedBatch(payoutBatch);
+                    _itemManager.DiscardUnpersistedItems(payoutMail.Body.Attachments);
                     return;
-                // The job row is gone, so the payment and the market write are already durable and
-                // only the commit acknowledgement was lost. Publish what was committed.
+                }
+                // Publish what was committed.
             }
         }
         catch (Exception exception)

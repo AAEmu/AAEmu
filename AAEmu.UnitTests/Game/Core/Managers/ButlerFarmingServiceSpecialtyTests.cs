@@ -224,8 +224,10 @@ public class ButlerFarmingServiceSpecialtyTests
         harness.Service.ProcessDueSpecialtyTradeJobs();
 
         await Assert.That(harness.Settlement.PrepareCalls).IsEqualTo(1);
-        // The job was created at unix 100 and settles at unix 200, so the goods are 100s old.
-        await Assert.That(harness.Settlement.LastFreshnessElapsedSeconds).IsEqualTo(100);
+        // The goods are as old as the job's own 50s delivery. The settle instant is unix 200 while
+        // the job was created at unix 100, and the 100s between them is scan lag the owner must not
+        // pay a freshness bucket for, so the delivery duration is what the settlement is given.
+        await Assert.That(harness.Settlement.LastFreshnessElapsedSeconds).IsEqualTo(50);
         await Assert.That(harness.Settlement.LastOwnerId).IsEqualTo(harness.Character.Id);
         await Assert.That(harness.Settlement.LastSettledAtUtc.Kind).IsEqualTo(DateTimeKind.Utc);
         await Assert.That(harness.Settlement.LastSettledAtUtc)
@@ -255,6 +257,69 @@ public class ButlerFarmingServiceSpecialtyTests
         // Prepare, then publish: the letter is staged before the transaction and only made
         // visible after it committed.
         await Assert.That(harness.Payout.Calls).IsEquivalentTo(new[] { "prepare", "publish" });
+    }
+
+    [Test]
+    public async Task Due_AnAmbiguousCommitThatLandedNeverReleasesTheCommittedMailId()
+    {
+        // The transaction committed and only its acknowledgement was lost: the job row is gone and
+        // the payout letter is durable. Cancelling the batch here would release that letter's mail
+        // id, and the next mail would be free to take the same id and overwrite a paid-out owner.
+        var harness = CreateHarness();
+        var job = new ButlerSpecialtyTradeJob(1, 20, TradeRowId, (ushort)ZoneId, ProductItemId, 100, 50);
+        harness.Butler.ApplySpecialtyTradeJob(job);
+        harness.Persistence.AddDurable(job);
+        harness.Persistence.NextSettle = new ButlerSpecialtyTradePersistResult(false, true, job.JobId);
+
+        harness.Service.ProcessDueSpecialtyTradeJobs();
+
+        // A committed payout is published, never cancelled: the id has to stay reserved to it.
+        await Assert.That(harness.Payout.Calls).IsEquivalentTo(new[] { "prepare", "publish" });
+        await Assert.That(harness.Payout.CancelledBatches).IsEqualTo(0);
+        // The retry read is what decides this, so it has to happen before anything is released.
+        await Assert.That(harness.Persistence.LoadCalls).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Due_AFailedSettlementReleasesTheStagedLetterForTheRetry()
+    {
+        // The counterpart: a settlement that really did not commit gives the job up, and the staged
+        // letter is released with it so the retry does not leak a reserved id.
+        var harness = CreateHarness();
+        var job = new ButlerSpecialtyTradeJob(1, 20, TradeRowId, (ushort)ZoneId, ProductItemId, 100, 50);
+        harness.Butler.ApplySpecialtyTradeJob(job);
+        harness.Persistence.AddDurable(job);
+        harness.Persistence.NextSettle = new ButlerSpecialtyTradePersistResult(false, false, job.JobId);
+
+        harness.Service.ProcessDueSpecialtyTradeJobs();
+
+        await Assert.That(harness.Payout.Calls).IsEquivalentTo(new[] { "prepare", "cancel" });
+        await Assert.That(harness.Payout.CancelledBatches).IsEqualTo(1);
+        await Assert.That(harness.Persistence.Contains(job.JobId)).IsTrue();
+        await Assert.That(harness.Butler.SpecialtyTradeJobs.ContainsKey(job.JobId)).IsTrue();
+    }
+
+    [Test]
+    public async Task Due_PricesFreshnessFromTheJobDeliveryNotTheInstantTheScanReachedIt()
+    {
+        // Two scans of the same job: one that runs the moment the job is due and one that runs
+        // long afterwards. The goods are the same age in both, so the payout must not change --
+        // otherwise scan lag and a restart cost the owner a freshness bucket.
+        var dueNow = CreateHarness();
+        var dueNowJob = new ButlerSpecialtyTradeJob(1, 20, TradeRowId, (ushort)ZoneId, ProductItemId, 100, 50);
+        dueNow.Butler.ApplySpecialtyTradeJob(dueNowJob);
+        dueNow.Persistence.AddDurable(dueNowJob);
+        dueNow.Service.ProcessDueSpecialtyTradeJobs();
+
+        var late = CreateHarness();
+        var lateJob = new ButlerSpecialtyTradeJob(1, 20, TradeRowId, (ushort)ZoneId, ProductItemId, 100, 50);
+        late.Butler.ApplySpecialtyTradeJob(lateJob);
+        late.Persistence.AddDurable(lateJob);
+        late.UtcNow = DateTime.UnixEpoch.AddSeconds(100 + 50 + 3600);
+        late.Service.ProcessDueSpecialtyTradeJobs();
+
+        await Assert.That(dueNow.Settlement.LastFreshnessElapsedSeconds).IsEqualTo(50);
+        await Assert.That(late.Settlement.LastFreshnessElapsedSeconds).IsEqualTo(50);
     }
 
     [Test]
@@ -316,7 +381,7 @@ public class ButlerFarmingServiceSpecialtyTests
             Mock.Of<IButlerRepository>().Object,
             itemManager.Object,
             () => throw new InvalidOperationException("service attempted direct MySQL access"),
-            () => DateTime.UnixEpoch.AddSeconds(200),
+            () => harness.UtcNow,
             harness.Settlement,
             _ => null,
             (minimum, _) => minimum,
@@ -339,6 +404,9 @@ public class ButlerFarmingServiceSpecialtyTests
         public int NextMailId = 5000;
         public bool PrepareResult { get; set; } = true;
         public bool PublishResult { get; set; } = true;
+
+        /// <summary>How often a staged letter gave its reserved ids back.</summary>
+        public int CancelledBatches { get; private set; }
 
         public bool TryPrepareBatch(IReadOnlyList<BaseMail> mails, out PreparedMailBatch batch)
         {
@@ -371,6 +439,7 @@ public class ButlerFarmingServiceSpecialtyTests
         public void CancelPreparedBatch(PreparedMailBatch batch)
         {
             Calls.Add("cancel");
+            CancelledBatches++;
             LastBatch = batch;
         }
     }
@@ -423,6 +492,9 @@ public class ButlerFarmingServiceSpecialtyTests
         public required FakeSettlement Settlement { get; init; }
         public ButlerFarmingService Service { get; set; } = null!;
         public int FailLiveApply;
+
+        /// <summary>The scan clock. Settling the same job at a later instant must not reprice it.</summary>
+        public DateTime UtcNow { get; set; } = DateTime.UnixEpoch.AddSeconds(200);
     }
 
     private sealed class ButlerManagerStub(CharacterButler butler) : IButlerManager

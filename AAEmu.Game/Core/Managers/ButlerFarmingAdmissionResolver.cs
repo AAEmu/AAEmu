@@ -229,7 +229,7 @@ public sealed class ButlerFarmingAdmissionResolver :
         var skill = _skillManager.GetSkillTemplate(craft.SkillId);
         // The origin check runs before the slot and duplicate checks: a request for another
         // region's specialty is refused as such whatever the farmhand's slot usage is.
-        if (!IsOriginRegionAdmitted(butler, trade.ZoneGroupId))
+        if (!IsOriginRegionAdmitted(butler, trade.ZoneGroupId, ResolveProductSpecialtyZoneId(craft)))
         {
             failure = ButlerSpecialtyTradeRules.AdmissionFailure.OriginRegionMismatch;
             return false;
@@ -305,7 +305,22 @@ public sealed class ButlerFarmingAdmissionResolver :
         return true;
     }
 
-    private bool IsOriginRegionAdmitted(CharacterButler butler, uint destinationZoneGroupId)
+    /// <summary>
+    /// The <c>specialty_zone_id</c> the trade's craft product names, or 0 when the product names no
+    /// region. Read from the same item template column the crafting path compares a production zone
+    /// group against, so both paths refuse a pack on the same evidence.
+    /// </summary>
+    private uint ResolveProductSpecialtyZoneId(Craft craft)
+    {
+        if (craft?.CraftProducts is not { Count: 1 } ||
+            craft.CraftProducts[0] is not { ItemId: > 0 } product ||
+            _itemManager?.GetTemplate(product.ItemId) is not { SpecialtyZoneId: > 0 } template)
+            return 0;
+        return template.SpecialtyZoneId;
+    }
+
+    private bool IsOriginRegionAdmitted(
+        CharacterButler butler, uint destinationZoneGroupId, uint productSpecialtyZoneId)
     {
         // Both lookups are resolved on demand: touching HousingManager or ZoneManager from the
         // constructor would pull the world and housing graphs in before the container is built.
@@ -323,12 +338,25 @@ public sealed class ButlerFarmingAdmissionResolver :
         var house = housingManager.GetHouseById(butler.HouseId);
         var houseZoneId = house?.Transform.ZoneId ?? 0u;
         var houseContinentId = houseZoneId == 0 ? 0u : zoneManager.GetTargetIdByZoneId(houseZoneId);
+        var houseZoneGroupId = houseZoneId == 0 ? 0u : zoneManager.GetZoneByKey(houseZoneId)?.GroupId ?? 0u;
         var destinationContinentId = zoneManager.GetZoneGroupById(destinationZoneGroupId)?.TargetId ?? 0u;
         if (houseContinentId == 0 || destinationContinentId == 0)
         {
             Logger.Error(
                 "Refusing farmhand specialty trade for character {0}: house zone {1} continent {2} or destination group {3} continent {4} is unresolved",
                 butler.CharacterId, houseZoneId, houseContinentId, destinationZoneGroupId, destinationContinentId);
+            return false;
+        }
+
+        // A product that names its own region is the real rule: the pack belongs to that zone group,
+        // so the farmhand has to be bound to a house in it. This is what separates two regions on
+        // one continent, which the continent comparison alone cannot.
+        if (productSpecialtyZoneId != 0 &&
+            !ButlerSpecialtyTradeRules.IsProductOriginRegionAdmitted(productSpecialtyZoneId, houseZoneGroupId))
+        {
+            Logger.Warn(
+                "Refused farmhand specialty trade for character {0}: product region {1} is not the bound house's zone group {2}",
+                butler.CharacterId, productSpecialtyZoneId, houseZoneGroupId);
             return false;
         }
 

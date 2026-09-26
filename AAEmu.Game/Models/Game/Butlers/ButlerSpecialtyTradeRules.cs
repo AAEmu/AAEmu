@@ -52,10 +52,10 @@ public static class ButlerSpecialtyTradeRules
     /// <c>zone_groups.target_id</c>, which is the same relation the portal reagent check compares.
     /// </summary>
     /// <remarks>
-    /// This is the destination side of the rule and it is not, on its own, the whole rule: the
-    /// origin a specialty belongs to is carried by <c>crafts.req_doodad_id</c>, the region's
-    /// Specialty Workbench, and no shipped table relates that doodad to a zone. A continent check
-    /// therefore closes cross-continent origin packs but not a same-continent other-region one.
+    /// This is the destination side of the rule and it is not, on its own, the whole rule: it
+    /// closes cross-continent packs but cannot separate two regions of one continent. The origin
+    /// side is <see cref="IsProductOriginRegionAdmitted"/>, which reads the region the product
+    /// itself names.
     /// </remarks>
     /// <param name="boundHouseContinentId">Continent of the bound house's zone.</param>
     /// <param name="destinationContinentId">Continent of the destination zone group.</param>
@@ -65,6 +65,20 @@ public static class ButlerSpecialtyTradeRules
     /// </returns>
     public static bool IsSameOriginRegion(uint boundHouseContinentId, uint destinationContinentId) =>
         boundHouseContinentId > 0 && boundHouseContinentId == destinationContinentId;
+
+    /// <summary>
+    /// The region rule a specialty product itself names. <c>items.specialty_zone_id</c> is the zone
+    /// group a trade pack belongs to, and it is the same column the crafting path refuses a
+    /// production zone against, so a pack whose own region is not the farmhand's is refused here
+    /// for the same reason it could not have been crafted there.
+    /// </summary>
+    /// <param name="productSpecialtyZoneId">
+    /// The product template's <c>specialty_zone_id</c>. Zero means the product names no region of
+    /// its own, and the continent comparison alone then carries the rule.
+    /// </param>
+    /// <param name="boundHouseZoneGroupId">Zone group of the bound house.</param>
+    public static bool IsProductOriginRegionAdmitted(uint productSpecialtyZoneId, uint boundHouseZoneGroupId) =>
+        productSpecialtyZoneId == 0 || (boundHouseZoneGroupId > 0 && productSpecialtyZoneId == boundHouseZoneGroupId);
 
     public static bool TryCreateAdmissionContext(
         ButlerTemplate butlerTemplate,
