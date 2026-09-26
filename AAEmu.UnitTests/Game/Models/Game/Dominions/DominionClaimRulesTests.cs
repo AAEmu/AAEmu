@@ -63,8 +63,8 @@ public class DominionClaimRulesTests
     {
         await Assert.That(DominionClaimRules.CapTax(250000, 200000)).IsEqualTo(200000);
         await Assert.That(DominionClaimRules.CapTax(50000, 200000)).IsEqualTo(50000);
-        await Assert.That(DominionClaimRules.CapTax(50000, null)).IsEqualTo(50000);
-        await Assert.That(DominionClaimRules.CapTax(50000, 0)).IsEqualTo(50000);
+        await Assert.That(() => DominionClaimRules.CapTax(50000, 0)).Throws<InvalidOperationException>();
+        await Assert.That(() => DominionClaimRules.CapTax(50000, -1)).Throws<InvalidOperationException>();
     }
 
     [Test]
@@ -91,6 +91,14 @@ public class DominionClaimRulesTests
         await Assert.That(DominionClaimRules.TaxDue(week, week, 250000, 200000)).IsEqualTo(0);
         await Assert.That(DominionClaimRules.TaxDue(week.AddDays(-1), week, 250000, 200000)).IsEqualTo(200000);
         await Assert.That(DominionClaimRules.TaxDue(week.AddDays(-1), null, 250000, 200000)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task TaxDue_FailsLoudlyWhenTheDueWeekHasNoLimit()
+    {
+        var week = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
+        await Assert.That(() => DominionClaimRules.TaxDue(week.AddDays(-1), week, 50000, 0))
+            .Throws<InvalidOperationException>();
     }
 
     [Test]

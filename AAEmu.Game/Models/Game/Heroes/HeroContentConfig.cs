@@ -47,7 +47,9 @@ public static class HeroContentConfig
 
     public static bool TryGetDominionTaxBounds(out int min, out int max)
     {
-        if (!Data.TryGet(HeroDominionTaxRateMin, out var minVal) || !Data.TryGet(HeroDominionTaxRateMax, out var maxVal))
+        if (!Data.TryGet(HeroDominionTaxRateMin, out var minVal) || !Data.TryGet(HeroDominionTaxRateMax, out var maxVal)
+            || minVal > int.MaxValue || minVal < int.MinValue
+            || maxVal > int.MaxValue || maxVal < int.MinValue)
         {
             min = 0;
             max = 0;
@@ -59,12 +61,22 @@ public static class HeroContentConfig
         return max >= min;
     }
 
-    public static int InitialDominionTaxRate() =>
-        TryGetDominionTaxBounds(out var min, out _) ? min : 0;
+    public static int InitialDominionTaxRate()
+    {
+        RequireDominionTaxBounds(out var min, out _);
+        return min;
+    }
+
+    public static bool RequireDominionTaxBounds(out int min, out int max)
+    {
+        if (!TryGetDominionTaxBounds(out min, out max) || min < 0)
+            throw new InvalidOperationException("hero_dominion_tax_rate_min/max are missing or invalid.");
+        return true;
+    }
 
     public static bool TryGetDominionTaxLimit(out int limit)
     {
-        if (!Data.TryGet(DominionTaxLimit, out var val) || val <= 0)
+        if (!Data.TryGet(DominionTaxLimit, out var val) || val <= 0 || val > int.MaxValue)
         {
             limit = 0;
             return false;
@@ -72,6 +84,13 @@ public static class HeroContentConfig
 
         limit = (int)val;
         return true;
+    }
+
+    public static int RequireDominionTaxLimit()
+    {
+        if (!TryGetDominionTaxLimit(out var limit))
+            throw new InvalidOperationException("dominion_tax_limit is missing or non-positive.");
+        return limit;
     }
 
     public static uint DropoutComebackRewardItemId => Data.GetUInt(DropoutHeroComebackRewardItem, 0);

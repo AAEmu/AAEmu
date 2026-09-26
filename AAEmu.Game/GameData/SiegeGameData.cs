@@ -108,6 +108,31 @@ public class GuardTowerStep
     public uint BuffId { get; init; }
 }
 
+/// <summary>
+/// One shipped <c>siege_extortion_ratios</c> row. The ratio is a percentage-style value; the
+/// server-side application is deliberately not inferred here because the available content and
+/// protocol evidence do not prove its consumer.
+/// </summary>
+public sealed class SiegeExtortionRatio
+{
+    public uint FactionId { get; init; }
+    public uint DominionCount { get; init; }
+    public int Ratio { get; init; }
+}
+
+/// <summary>
+/// One shipped <c>doodad_func_dominion_tax_in_kinds</c> row. The table is an in-kind turn-in
+/// description, not a generic tax-pool credit rule.
+/// </summary>
+public sealed class DominionTaxInKind
+{
+    public uint Id { get; init; }
+    public uint ItemId { get; init; }
+    public int Count { get; init; }
+    public string TooltipText { get; init; } = string.Empty;
+    public int NextPhase { get; init; }
+}
+
 /// <summary>The <c>guard_tower_settings</c>/<c>siege_zones</c>/<c>siege_plans</c> template tables — see the individual row types.</summary>
 [GameData]
 public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
@@ -118,6 +143,8 @@ public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
     private Dictionary<uint, SiegeZoneSchedule> _siegeZoneSchedules = [];
     private Dictionary<uint, List<DateTime>> _siegePlanWeekStartsByZoneGroup = [];
     private Dictionary<uint, List<GuardTowerStep>> _guardTowerStepsBySettingId = [];
+    private Dictionary<(uint FactionId, uint DominionCount), SiegeExtortionRatio> _extortionRatios = [];
+    private Dictionary<uint, DominionTaxInKind> _dominionTaxInKinds = [];
     private readonly HashSet<uint> _uniqueDominionHousingDesigns = [];
     private readonly HashSet<uint> _lodestoneTemplateIds = [];
 
@@ -127,6 +154,8 @@ public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
         _siegeZoneSchedules = [];
         _siegePlanWeekStartsByZoneGroup = [];
         _guardTowerStepsBySettingId = [];
+        _extortionRatios = [];
+        _dominionTaxInKinds = [];
         _uniqueDominionHousingDesigns.Clear();
         _lodestoneTemplateIds.Clear();
 
@@ -138,19 +167,23 @@ public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
+                var id = reader.GetInt32("id");
+                if (id <= 0)
+                    throw new InvalidOperationException("guard_tower_settings.id must be positive.");
                 var settings = new GuardTowerSettings
                 {
-                    Id = reader.GetUInt32("id"),
-                    InitialBuffId = reader.GetUInt32("initial_buff_id", 0),
-                    MaxGates = (byte)reader.GetInt32("max_gates", 0),
-                    MaxWalls = (byte)reader.GetInt32("max_walls", 0),
-                    RadiusDeclare = (short)reader.GetInt32("radius_declare", 0),
-                    RadiusDominion = (ushort)reader.GetInt32("radius_dominion", 0),
-                    RadiusOffenseHq = (short)reader.GetInt32("radius_offense_hq", 0),
-                    RadiusSiege = (short)reader.GetInt32("radius_siege", 0)
+                    Id = (uint)id,
+                    InitialBuffId = ReadUInt32Checked(reader, "initial_buff_id", 0),
+                    MaxGates = ReadByteChecked(reader, "max_gates", 0),
+                    MaxWalls = ReadByteChecked(reader, "max_walls", 0),
+                    RadiusDeclare = ReadInt16Checked(reader, "radius_declare", 0),
+                    RadiusDominion = ReadUInt16Checked(reader, "radius_dominion", 0),
+                    RadiusOffenseHq = ReadInt16Checked(reader, "radius_offense_hq", 0),
+                    RadiusSiege = ReadInt16Checked(reader, "radius_siege", 0)
                 };
 
-                _guardTowerSettings[settings.Id] = settings;
+                if (!_guardTowerSettings.TryAdd(settings.Id, settings))
+                    throw new InvalidOperationException($"Duplicate guard_tower_settings.id {settings.Id}.");
             }
         }
 
@@ -164,22 +197,101 @@ public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
+                var settingId = ReadUInt32Checked(reader, "guard_tower_setting_id");
+                var stepNumber = reader.GetInt32("step", 0);
                 var step = new GuardTowerStep
                 {
-                    GuardTowerSettingId = reader.GetUInt32("guard_tower_setting_id"),
-                    Step = reader.GetInt32("step", 0),
-                    NumGates = (byte)reader.GetInt32("num_gates", 0),
-                    NumWalls = (byte)reader.GetInt32("num_walls", 0),
-                    BuffId = reader.GetUInt32("buff_id", 0)
+                    GuardTowerSettingId = settingId,
+                    Step = stepNumber,
+                    NumGates = ReadByteChecked(reader, "num_gates", 0),
+                    NumWalls = ReadByteChecked(reader, "num_walls", 0),
+                    BuffId = ReadUInt32Checked(reader, "buff_id", 0)
                 };
 
+                if (!_guardTowerSettings.ContainsKey(step.GuardTowerSettingId))
+                    throw new InvalidOperationException(
+                        $"guard_tower_steps references unknown guard_tower_setting_id {step.GuardTowerSettingId}.");
+                if (step.Step <= 0)
+                    throw new InvalidOperationException(
+                        $"guard_tower_steps has non-positive step {step.Step} for setting {step.GuardTowerSettingId}.");
                 if (!_guardTowerStepsBySettingId.TryGetValue(step.GuardTowerSettingId, out var list))
                     _guardTowerStepsBySettingId[step.GuardTowerSettingId] = list = [];
+                if (list.Any(existing => existing.Step == step.Step))
+                    throw new InvalidOperationException(
+                        $"Duplicate guard_tower_steps step {step.Step} for setting {step.GuardTowerSettingId}.");
+                var settings = _guardTowerSettings[step.GuardTowerSettingId];
+                if (step.NumGates > settings.MaxGates || step.NumWalls > settings.MaxWalls)
+                    throw new InvalidOperationException(
+                        $"guard_tower_steps exceeds caps for setting {step.GuardTowerSettingId} at step {step.Step}.");
                 list.Add(step);
             }
         }
 
+        foreach (var (settingId, steps) in _guardTowerStepsBySettingId)
+        {
+            for (var i = 1; i < steps.Count; i++)
+            {
+                if (steps[i].Step <= steps[i - 1].Step)
+                    throw new InvalidOperationException(
+                        $"guard_tower_steps for setting {settingId} are not strictly increasing.");
+            }
+        }
+
         Logger.Info("Loaded guard tower step progressions for {0} settings", _guardTowerStepsBySettingId.Count);
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM siege_extortion_ratios ORDER BY faction_id, dominion_count";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var row = new SiegeExtortionRatio
+                {
+                    FactionId = ReadUInt32Checked(reader, "faction_id"),
+                    DominionCount = ReadUInt32Checked(reader, "dominion_count"),
+                    Ratio = reader.GetInt32("ratio")
+                };
+                if (row.FactionId == 0 || row.DominionCount == 0 || row.Ratio <= 0)
+                    throw new InvalidOperationException(
+                        $"Invalid siege_extortion_ratios row for faction {row.FactionId} / count {row.DominionCount}.");
+                if (!_extortionRatios.TryAdd((row.FactionId, row.DominionCount), row))
+                    throw new InvalidOperationException(
+                        $"Duplicate siege_extortion_ratios row for faction {row.FactionId} / count {row.DominionCount}.");
+            }
+        }
+
+        if (_extortionRatios.Count == 0)
+            throw new InvalidOperationException("siege_extortion_ratios has no rows.");
+        Logger.Info("Loaded {0} siege extortion ratios", _extortionRatios.Count);
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM doodad_func_dominion_tax_in_kinds ORDER BY id";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var row = new DominionTaxInKind
+                {
+                    Id = ReadUInt32Checked(reader, "id"),
+                    ItemId = ReadUInt32Checked(reader, "item_id"),
+                    Count = reader.GetInt32("count"),
+                    TooltipText = reader.GetString("tooltip_text", string.Empty),
+                    NextPhase = reader.GetInt32("next_phase", -1)
+                };
+                if (row.Id == 0 || row.ItemId == 0 || row.Count <= 0 || row.NextPhase < -1)
+                    throw new InvalidOperationException($"Invalid doodad_func_dominion_tax_in_kinds row {row.Id}.");
+                if (!_dominionTaxInKinds.TryAdd(row.Id, row))
+                    throw new InvalidOperationException($"Duplicate doodad_func_dominion_tax_in_kinds row {row.Id}.");
+            }
+        }
+
+        if (_dominionTaxInKinds.Count == 0)
+            throw new InvalidOperationException("doodad_func_dominion_tax_in_kinds has no rows.");
+        Logger.Info("Loaded {0} dominion tax-in-kind rows", _dominionTaxInKinds.Count);
 
         using (var command = connection.CreateCommand())
         {
@@ -316,6 +428,16 @@ public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
 
     public GuardTowerSettings GetGuardTowerSettings(uint id) => _guardTowerSettings.GetValueOrDefault(id);
 
+    /// <summary>Exact ratio row, or false when the content has no row for this faction/count pair.</summary>
+    public bool TryGetSiegeExtortionRatio(uint factionId, uint dominionCount, out SiegeExtortionRatio ratio) =>
+        _extortionRatios.TryGetValue((factionId, dominionCount), out ratio);
+
+    /// <summary>Exact in-kind turn-in row; missing ids fail loudly rather than becoming a free/zero turn-in.</summary>
+    public DominionTaxInKind RequireDominionTaxInKind(uint id) =>
+        _dominionTaxInKinds.TryGetValue(id, out var row)
+            ? row
+            : throw new InvalidOperationException($"Required doodad_func_dominion_tax_in_kinds row {id} is missing.");
+
     /// <summary>Ordered step list (1, 2, 3, ...) for a guard_tower_setting_id, or empty if none defined.</summary>
     public IReadOnlyList<GuardTowerStep> GetGuardTowerSteps(uint guardTowerSettingId) =>
         (IReadOnlyList<GuardTowerStep>)_guardTowerStepsBySettingId.GetValueOrDefault(guardTowerSettingId) ?? [];
@@ -343,5 +465,37 @@ public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
         if (!_siegePlanWeekStartsByZoneGroup.TryGetValue(zoneGroupId, out var weekStarts))
             return null;
         return SiegeScheduleRules.CurrentCycleWeekStart(weekStarts, atUtc);
+    }
+
+    private static byte ReadByteChecked(SQLiteWrapperReader reader, string column, int defaultValue = 0)
+    {
+        var raw = reader.GetInt32(column, defaultValue);
+        if (raw < byte.MinValue || raw > byte.MaxValue)
+            throw new InvalidOperationException($"Siege content column {column} is outside byte range: {raw}.");
+        return (byte)raw;
+    }
+
+    private static short ReadInt16Checked(SQLiteWrapperReader reader, string column, int defaultValue = 0)
+    {
+        var raw = reader.GetInt32(column, defaultValue);
+        if (raw < short.MinValue || raw > short.MaxValue)
+            throw new InvalidOperationException($"Siege content column {column} is outside Int16 range: {raw}.");
+        return (short)raw;
+    }
+
+    private static ushort ReadUInt16Checked(SQLiteWrapperReader reader, string column, int defaultValue = 0)
+    {
+        var raw = reader.GetInt32(column, defaultValue);
+        if (raw < ushort.MinValue || raw > ushort.MaxValue)
+            throw new InvalidOperationException($"Siege content column {column} is outside UInt16 range: {raw}.");
+        return (ushort)raw;
+    }
+
+    private static uint ReadUInt32Checked(SQLiteWrapperReader reader, string column, int defaultValue = 0)
+    {
+        var raw = reader.GetInt32(column, defaultValue);
+        if (raw < 0)
+            throw new InvalidOperationException($"Siege content column {column} must be non-negative: {raw}.");
+        return (uint)raw;
     }
 }
