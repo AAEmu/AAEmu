@@ -40,7 +40,7 @@ public class SCFactionRelationListPacket : GamePacket
 
 /// <summary>
 /// One relation entry as the client reads it, shared by
-/// SCFactionRelationList, SCFactionRelationHistory and WZFactionRelationList):
+/// SCFactionRelationList, SCFactionRelationHistory and WZFactionRelationList:
 /// type(i32) | type(i32) | state(i8) | nState(i8) | updateTime(i64) | changeTime(i64) |
 /// type(u64) updaterId | updaterName(str) | type(u64) confirmerId | confirmerName(str).
 /// The client sorts the two ids ascending after reading them.

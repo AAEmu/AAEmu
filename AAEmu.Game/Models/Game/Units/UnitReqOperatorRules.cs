@@ -204,8 +204,8 @@ public static class UnitReqOperatorRules
         => value3 >= 1 && value3 <= progCount && currentStep == (int)value3 - 1;
 
     /// <summary>
-    /// Kind 132 EnableArchePass: no pass in progress fails URK_ENABLE_ARCHE_PASS; value1 0 (the
-    /// sentinel accepts any pass, otherwise the pass in progress must be value1
+    /// Kind 132 EnableArchePass: no pass in progress fails URK_ENABLE_ARCHE_PASS; value1 0 is the
+    /// sentinel and accepts any pass, otherwise the pass in progress must be value1
     /// (URK_ENABLE_ARCHE_PASS_WITH_TYPE).
     /// </summary>
     public static bool PassesEnableArchePass(uint value1, bool anyPassInProgress, bool value1PassInProgress)

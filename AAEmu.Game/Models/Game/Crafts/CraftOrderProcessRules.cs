@@ -110,7 +110,7 @@ public static class CraftOrderProcessRules
 
     /// <summary>
     /// How the resident charge is scaled: <c>content_configs.craft_order_charge_for_resident</c>
-    /// 480 is 4.8 %, the same number the client prints as <c>GetCraftOrderCharge/ 100</c>.
+    /// 480 is 4.8 %, the same number the client prints as <c>GetCraftOrderCharge() / 100</c>.
     /// Auction listing rates use this same 1/10000 scale.
     /// </summary>
     public const ulong ChargeRateDivisor = 10_000;

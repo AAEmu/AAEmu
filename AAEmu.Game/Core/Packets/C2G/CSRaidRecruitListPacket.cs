@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// X2Team:RaidRecruitList No body: the client's serializer for this type is the empty function
+/// X2Team:RaidRecruitList. No body: the client's serializer for this type is the empty function.
 /// Answered with SCRaidRecruitList.
 /// </summary>
 public class CSRaidRecruitListPacket() : GamePacket(CSOffsets.CSRaidRecruitListPacket, 1)

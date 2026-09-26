@@ -4,12 +4,12 @@ namespace AAEmu.Game.Models.Game.Housing;
 
 /// <summary>
 /// Plot-bounds math for a house's garden square (the <c>housing_sizes.garden_radius</c> plot).
-
+///
 /// The plot belongs to the house, so it turns with the house yaw: the client keeps a
 /// <c>WorldPosPair</c> of "placement corners" in every house record and re-renders fences when a
 /// house rotates (CS 0x1A0 RotateHouse / SC 0x0FE HouseRotated exist precisely for that), so a
 /// world-point test must rotate the point into the house's local frame first.
-
+///
 /// The house record establishes the corner *storage* but not the client's exact point-in-plot
 /// formula, so this type implements the standard yaw rotation: world = position + R(yaw) * local,
 /// local = R(-yaw) * (world - position), with R the counter-clockwise 2D rotation matrix. The yaw is

@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
 /// X2Team:RaidApplicantList: bool bSubRecruiter, u64 type. The binding
-/// Sends the client's team owner id and raises the flag only for a siege raid's officer.
+/// sends the client's team owner id and raises the flag only for a siege raid's officer.
 /// Answered with SCRaidApplicantList.
 /// </summary>
 public class CSRaidApplicantListPacket() : GamePacket(CSOffsets.CSRaidApplicantListPacket, 1)

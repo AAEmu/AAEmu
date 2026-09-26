@@ -5,8 +5,9 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// X2Team:RaidApplicantAcceptReply(ownerId, join, role): u64 type, bool join, u32 role. The applicant's answer to SCRaidApplicantAccept; the popup sends join=false by itself
-/// When it closes unanswered after 60 s (raid_recruit_applicant_accept.lua).
+/// X2Team:RaidApplicantAcceptReply(ownerId, join, role): u64 type, bool join, u32 role. The applicant's
+/// answer to SCRaidApplicantAccept; the popup sends join=false by itself
+/// when it closes unanswered after 60 s (raid_recruit_applicant_accept.lua).
 /// </summary>
 public class CSRaidApplicantAcceptReplyPacket() : GamePacket(CSOffsets.CSRaidApplicantAcceptReplyPacket, 1)
 {

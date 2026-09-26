@@ -4,7 +4,7 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
 /// <summary>
 /// Which of the caster's own summons a pet (10), my_slave (26) or child_slave (21) cast lands on. The client
-/// resolves the first two from its own state (: the first pet of the pet list, the
+/// resolves the first two from its own state (the first pet of the pet list, the
 /// announced my-slave) and the third from the unit the packet names.
 /// </summary>
 public class SummonTargetRulesTests

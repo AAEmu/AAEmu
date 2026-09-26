@@ -349,8 +349,8 @@ public class UnitReqs
                 return RetWithValue(SkillResultKeys.skill_urk_actability_point, Value1,
                     player != null && player.Actability.GetPoint(Value1, true) >= Value2);
 
-            // Kinds 44..47 and 50 share one shape in the client (
-            // ): value1 0 needs the point at least value2, anything else at most value2, and the
+            // Kinds 44..47 and 50 share one shape in the client: value1 0 needs the point at least
+            // value2, anything else at most value2, and the
             // failure carries value1 in the u32. The 27 CrimeRecord quest rows are mostly (1, 9): a record of
             // at most nine, which the old "value1 <= record <= value2" reading refused at record 0.
             case UnitReqsKindType.CrimePoint:
@@ -421,8 +421,8 @@ public class UnitReqs
                     unit != null && !UnitReqNation.IsPlayerNationMember(FactionIdOf(unit)));
 
             case UnitReqsKindType.DominionMemberAtPos:
-                // Inline in: the owner of the dominion covering the unit's current zone (dominion
-                // service, zero when unclaimed) must equal the unit's owner key.
+                // The owner of the dominion covering the unit's current zone (dominion service, zero
+                // when unclaimed) must equal the unit's owner key.
                 return Ret(SkillResultKeys.skill_urk_dominion_member_at_pos, IsDominionMemberAtPosition(owner, unit));
 
             case UnitReqsKindType.DominionMemberAtPosNot:
@@ -651,9 +651,10 @@ public class UnitReqs
                     memberRaid is { IsParty: false } && memberRaid.OwnerId != player.Id);
 
             case UnitReqsKindType.Dual:
-                // "Dual" is the duel: reads the unit's duel id from the same combat component that
-                // kind 117 reads the expedition battle from (vtable +0x68 versus +0x80) and compares it with the
-                // zero sentinel at. value1 1 tests the target, value2 0 needs a duel (URK_DUAL),
+                // "Dual" is the duel: value1 selects the unit to test, then its duel id is read from the
+                // same combat component that kind 117 reads the expedition battle from (vtable +0x68
+                // versus +0x80) and compared with the zero sentinel. value1 1 tests the target, value2 0
+                // needs a duel (URK_DUAL),
                 // 1 needs none (URK_NO_DUAL), anything else passes. Owners: 40364 "for the duel", 43061.
                 var duelUnit = Value1 == 1 ? targetUnit : unit;
                 if (duelUnit == null)
@@ -769,8 +770,8 @@ public class UnitReqs
                     player?.ArchePass?.HasPremium() == true);
 
             case UnitReqsKindType.EnableArchePass:
-                // No pass in progress is URK_ENABLE_ARCHE_PASS; value1 0 (sentinel )
-                // accepts any pass, otherwise a pass in progress that is not value1 is..._WITH_TYPE.
+                // No pass in progress is URK_ENABLE_ARCHE_PASS; value1 0 is the sentinel and accepts
+                // any pass, otherwise a pass in progress that is not value1 is ..._WITH_TYPE.
                 var anyArchePass = player?.ArchePass?.HasProgress() == true;
                 return Ret(
                     anyArchePass
@@ -799,7 +800,7 @@ public class UnitReqs
                     false);
 
             case UnitReqsKindType.DominionMember:
-                // Inline in: the unit's owner key holds at least one dominion; fails 0x9C.
+                // The unit's owner key holds at least one dominion; fails 0x9C.
                 return RetNative(SkillResult.UrkDominionMember, 0, 0, unit != null && DominionCountOf(unit) > 0);
 
             case UnitReqsKindType.DominionMemberNot:
@@ -824,7 +825,7 @@ public class UnitReqs
                     player != null && UnitReqOperatorRules.PassesExpeditionLevel(Value1, Value2, player.Expedition?.Level ?? 0));
 
             case UnitReqsKindType.IsResident:
-                // Value1 0 (sentinel ) means the current zone group. value2 0 is the
+                // value1 0 is the sentinel and means the current zone group. value2 0 is the
                 // resident-map lookup, fail 0xA2 / 0x3C2. The value2 != 0 branch keys another map
                 // by zone_groups field +0x44 and has no enabled rows, so it stays closed.
                 if (Value2 != 0)
@@ -883,7 +884,7 @@ public class UnitReqs
                 return MissingState("faction power scores are not modelled");
 
             case UnitReqsKindType.FactionChangePossibleFromTo:
-                // Passes when the faction service's per-(from, to) quota record (: limit
+                // Passes when the faction service's per-(from, to) quota record (limit
                 // minus two counters) is positive. That record is server-fed and the server keeps no such quota.
                 return MissingState("faction change quotas are not modelled");
 

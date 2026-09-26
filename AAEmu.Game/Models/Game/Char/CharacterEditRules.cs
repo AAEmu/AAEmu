@@ -48,7 +48,7 @@ public enum CharacterEditError
 
 /// <summary>
 /// The lobby character edit. The client only offers it during the pre-select character period
-/// (ApplyEditCharacter,, logs "not preSeleteCharacter Period" otherwise), which is the
+/// (ApplyEditCharacter logs "not preSeleteCharacter Period" otherwise), which is the
 /// <c>enable</c> flag of SCInitialConfig.
 /// </summary>
 public static class CharacterEditRules

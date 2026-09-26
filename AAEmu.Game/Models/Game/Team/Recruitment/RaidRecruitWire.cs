@@ -11,7 +11,7 @@ public static class RaidRecruitWire
 {
     /// <summary>
     /// u64 type (owner id), string ownerName, i8 ownerLevel, i8 ownerAbility x3, i32 type (expedition id,
-    /// Resolves it to ownerExpedition), i32 type (unnamed, unread), i32 type, i32 subType,
+    /// the client resolves it to ownerExpedition), i32 type (unnamed, unread), i32 type, i32 subType,
     /// u32 headcount, u32 limitLevel, u32 limitGearPoint, bool autoJoin, string msg, u32 hour, u32 minute,
     /// i32 applicantCount, i32 memberCount, i32 leadershipPoint, i32 gearPoint, i64 createTime,
     /// i64 expireTime, i64 addExpireTime.

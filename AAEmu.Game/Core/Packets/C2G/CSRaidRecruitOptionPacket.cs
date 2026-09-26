@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// X2Team:RaidRecruitOption(autoJoin): bool autoJoin,, the applicant window's
+/// X2Team:RaidRecruitOption(autoJoin): bool autoJoin, the applicant window's
 /// Auto-Invite / Manual Invite radio. Answered with SCRaidRecruitOption.
 /// </summary>
 public class CSRaidRecruitOptionPacket() : GamePacket(CSOffsets.CSRaidRecruitOptionPacket, 1)

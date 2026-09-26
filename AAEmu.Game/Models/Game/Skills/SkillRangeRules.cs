@@ -12,8 +12,8 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// max_range from the skill record, or from the equipped holdable when weapon_slot_for_range_id names a
 /// slot, then skill attribute 17 (min_range) on the minimum and attribute 2 (range) on the maximum, and a
 /// maximum that ends up below the minimum is lifted to min + 0.5, then it judges,
-/// in this order: TOO_CLOSE_RANGE (0xE) when min > 0 and distance <= min, TOO_FAR_RANGE (0xF) when
-/// distance > max. So a target standing at exactly min_range is too close and one at exactly max_range is
+/// in this order: TOO_CLOSE_RANGE (0xE) when min &gt; 0 and distance &lt;= min, TOO_FAR_RANGE (0xF) when
+/// distance &gt; max. So a target standing at exactly min_range is too close and one at exactly max_range is
 /// in range. The distance is: the smallest shape-to-shape distance from the caster's collision
 /// shape to any of the target's (double-dispatches on the two shape kinds), so it is measured
 /// edge to edge, which is what BaseUnit.GetDistanceTo does with the actor model radii.
@@ -51,7 +51,7 @@ public static class SkillRangeRules
 
     /// <summary>
     /// The verdict for <paramref name="distance"/> against <paramref name="band"/>, or null when the cast
-    /// is in range. Too close is judged first, as in.
+    /// is in range. Too close is judged first, as the client does.
     /// </summary>
     public static SkillResult? Check(double distance, Band band)
     {

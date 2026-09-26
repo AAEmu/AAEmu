@@ -128,7 +128,7 @@ public static class RaidRecruitRules
             return RaidRecruitError.HeadcountNotAboveMembers;
 
         // Level runs from the sub type's floor to the level cap plus the heir levels, the way the dialog's
-        // Satisfybounds it (levelMin = subType.level, levelMax = levelLimit or MaxHeirLevel offset by
+        // Satisfy() bounds it (levelMin = subType.level, levelMax = levelLimit or MaxHeirLevel offset by
         // MinHeirLevel) and the way the apply gate later compares UnitLevel + UnitHeirLevel against it.
         if (request.LimitLevel < subType.Level)
             return RaidRecruitError.LevelBelowSubType;

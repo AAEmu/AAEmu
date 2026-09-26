@@ -23,7 +23,7 @@ public class FactionRelation
 
     /// <summary>
     /// A row a hero agreement is overlaid on. The client keys "already has a relation" on a
-    /// non-zero updater id,, so a cleared row must zero it again.
+    /// non-zero updater id, so a cleared row must zero it again.
     /// </summary>
     public bool HasDiplomacy => UpdaterId != 0;
 

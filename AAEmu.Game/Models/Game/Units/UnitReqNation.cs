@@ -8,7 +8,7 @@ public static class UnitReqNation
 {
     /// <summary>
     /// First faction id of a player nation. Kinds 60/61 in the client evaluator
-    /// Compare the unit's faction id against this constant;
+    /// compare the unit's faction id against this constant;
     /// system_factions ends at id 221, so only runtime nation factions reach it.
     /// </summary>
     public const uint PlayerNationFactionIdStart = 1000;
