@@ -23,6 +23,12 @@ public class Team : PacketMarshaler
     public int MemberLimit => IsParty ? PartyMemberLimit : RaidMemberLimit;
     public TeamRoleType RoleType => IsParty ? TeamRoleType.Party : TeamRoleType.Raid;
 
+    // Joint ("instance team") state. Zero/false means the raid is not federated with another raid;
+    // the client reads these fields from the shared team header and desyncs when they are absent.
+    public uint JointId { get; set; }
+    public bool IsJointLeader { get; set; }
+    public int JointOrder { get; set; }
+
     public Team()
     {
         Members = new TeamMember[RaidMemberLimit];
@@ -304,9 +310,9 @@ public class Team : PacketMarshaler
 
         // Instance-team ("team joint") state. A plain party or raid is not joined to anything, so these
         // are zero; the client still reads them unconditionally and desyncs if they are missing.
-        stream.Write(0u);                   // u32  jointId
-        stream.Write(false);                // bool isJointLeader
-        stream.Write(0u);                   // u32  jointOrder
+        stream.Write(JointId);              // u32  jointId
+        stream.Write(IsJointLeader);        // bool isJointLeader
+        stream.Write((int)JointOrder);      // s32  jointOrder
         stream.Write(0UL);                  // u64  type
         stream.Write((sbyte)RoleType);      // i8   teamRoleType
 

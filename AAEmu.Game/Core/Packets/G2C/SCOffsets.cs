@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Core.Packets.G2C;
+﻿namespace AAEmu.Game.Core.Packets.G2C;
 
 public static class SCOffsets
 {
@@ -863,7 +863,11 @@ public static class SCOffsets
     public const ushort SCSuspectGoingBotTrialPacket = 0x1CC;
     public const ushort SCSysIndunIndexPacket = 0x28D;
     public const ushort SCSysIndunStatPacket = 0x28C;
+    public const ushort SCTeamJointInfoPacket = 0x120;
+    public const ushort SCTeamJointPacket = 0x121;
     public const ushort SCTeamJointBreakPacket = 0x122;
+    public const ushort SCTeamSummonGetPacket = 0x123;
+    public const ushort SCTeamSummonPacket = 0x124;
     public const ushort SCTeamOfficerChangedPacket = 0x32D;
     public const ushort SCTeamSummonSuggestPacket = 0x125;
     public const ushort SCTodayAssignmentChangedPacket = 0x285;
