@@ -61,12 +61,60 @@ public class SiegeScoreRulesTests
     }
 
     [Test]
-    public async Task Resolve_HandsTheDominionToTheRaiderWhenTheRaiderReachedItsWinPoint()
+    public async Task Resolve_DoesNotHandTheDominionToAnAllianceThatCannotDefend()
     {
+        // Faction 114 is the raider: siege_faction_troops gives it an offense troop and no defense troop, so
+        // SiegeFactionRoles names it the one alliance that never holds ground. Giving it the dominion left
+        // the next settlement unable to resolve in RequireDefender, and the zone group never left its siege
+        // period again.
         var decision = SiegeScoreRules.Resolve(Score(outlaw: 100), WinPoints, Roles(), Defender);
 
         await Assert.That(decision.Outcome).IsEqualTo(SiegeOutcome.OutlawBrokeThrough);
-        await Assert.That(decision.WinnerFactionId).IsEqualTo(Raider);
+        await Assert.That(decision.WinnerFactionId).IsEqualTo(0u);
+        await Assert.That(decision.ChangesOwner).IsFalse();
+        // The raider is still named in the reason, so the record says who broke through.
+        await Assert.That(decision.Reason).Contains(Raider.ToString());
+    }
+
+    [Test]
+    public async Task ARaiderBreakthroughLeavesASiegeThatCanStillBeSettledNextCycle()
+    {
+        // The regression itself: settle a cycle in which the raider wins, then settle the next one against
+        // whatever the first recorded as the winner. Before the fix the recorded winner was 114, and
+        // RequireDefender(114) threw for ever.
+        var roles = Roles();
+        var first = SiegeScoreRules.Resolve(Score(outlaw: 100), WinPoints, roles, Defender);
+        var nextDefender = first.WinnerFactionId != 0 ? first.WinnerFactionId : Defender;
+
+        var second = SiegeScoreRules.Resolve(Score(), WinPoints, roles, nextDefender);
+
+        await Assert.That(second.Outcome).IsEqualTo(SiegeOutcome.DefenseHeld);
+    }
+
+    [Test]
+    [Arguments(0u, 0u, 0u)]
+    [Arguments(0u, 0u, 100u)]
+    [Arguments(0u, 100u, 0u)]
+    [Arguments(0u, 0u, 100u + 1u)]
+    [Arguments(100u, 0u, 100u)]
+    [Arguments(200u, 0u, 200u)]
+    public async Task NoOutcomeEverRecordsAWinnerThatCannotDefend(uint outlaw, uint defense, uint offense)
+    {
+        // The property the backstop enforces, checked where it can actually be reached: across every
+        // combination of reaching an attacker win point, nothing Resolve can produce is ever handed to an
+        // alliance the next settlement's RequireDefender would refuse.
+        var roles = Roles();
+        var decision = SiegeScoreRules.Resolve(Score(outlaw, defense, offense), WinPoints, roles, Defender);
+
+        if (decision.WinnerFactionId != 0)
+        {
+            await Assert.That(roles.CanDefend(decision.WinnerFactionId)).IsTrue();
+            await Assert.That(decision.ChangesOwner).IsTrue();
+        }
+        else
+        {
+            await Assert.That(decision.ChangesOwner).IsFalse();
+        }
     }
 
     [Test]

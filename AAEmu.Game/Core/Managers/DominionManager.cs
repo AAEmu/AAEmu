@@ -843,7 +843,12 @@ public class DominionManager(ITaskManager taskManager, IExpeditionManager expedi
         }
 
         dominion.LastSiegeEndTime = record.SettledAtUtc;
-        dominion.ReignStartTime = record.SettledAtUtc;
+        // The client reads this as the reign start date (X2Dominion:GetReignStartDate), so it may only move
+        // when the reign actually started - that is, when the dominion changed hands. A defended or contested
+        // siege ends without an ownership change, and moving it there would tell every client the current
+        // owner began their reign this week.
+        if (changed)
+            dominion.ReignStartTime = record.SettledAtUtc;
 
         if (changed)
         {

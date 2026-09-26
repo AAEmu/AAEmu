@@ -89,15 +89,19 @@ public class SiegeManagerSettlementTests : IDisposable
     }
 
     [Test]
-    public async Task Tick_GivesTheDominionToTheRaiderWhenItDestroyedEnoughOfTheTower()
+    public async Task Tick_DoesNotGiveADominionToAnAllianceThatCannotDefendIt()
     {
         _dominions.Add(ZoneGroup, Defender, period: (byte)SiegePeriod.Siege);
         _scores.Give(ZoneGroup, outlaw: 100, defense: 0, offense: 0);
 
         _manager.Tick();
 
+        // The raider reached its win point so the siege is recorded as broken through, but the raider has no
+        // defense troop. Handing it the dominion left the *next* settlement unable to resolve at all, so the
+        // zone group never left its siege period again.
         await Assert.That(_dominions.Applied[0].Record.Outcome).IsEqualTo(SiegeOutcome.OutlawBrokeThrough);
-        await Assert.That(_dominions.Applied[0].Record.WinnerFactionId).IsEqualTo(Raider);
+        await Assert.That(_dominions.Applied[0].Record.WinnerFactionId).IsEqualTo(0u);
+        await Assert.That(_dominions.Applied[0].Record.Reason).Contains(Raider.ToString());
     }
 
     [Test]
@@ -175,9 +179,12 @@ public class SiegeManagerSettlementTests : IDisposable
     }
 
     [Test]
-    public async Task Tick_DoesNotSettleADominionWithNoOutcomeToDecide()
+    public async Task Tick_AdvancesPastADominionNoOutcomeCanEverBeDecidedFor()
     {
         // A defender the siege alliances do not include cannot be settled, and must not be given to anyone.
+        // The alliances are content, so this never becomes settleable: holding the siege period would keep
+        // this zone group in Siege for ever and log it every tick, so the period advances and nothing is
+        // written for the dominion.
         _dominions.Add(ZoneGroup, 4242, period: (byte)SiegePeriod.Siege);
         _scores.Give(ZoneGroup, outlaw: 0, defense: 0, offense: 100);
 
@@ -185,7 +192,7 @@ public class SiegeManagerSettlementTests : IDisposable
 
         await Assert.That(_scores.SettleAttempts).IsEqualTo(0);
         await Assert.That(_dominions.Applied.Count).IsEqualTo(0);
-        await Assert.That(_dominions.PeriodUpdates.Count).IsEqualTo(0);
+        await Assert.That(_dominions.PeriodUpdates.Count).IsEqualTo(1);
     }
 
     [Test]

@@ -65,7 +65,12 @@ public readonly record struct SiegeSettlementDecision(
     string Reason)
 {
     /// <summary>Whether the dominion's ownership changes as a result.</summary>
-    public bool ChangesOwner => Outcome is SiegeOutcome.OffenseBrokeThrough or SiegeOutcome.OutlawBrokeThrough;
+    /// <remarks>
+    /// Driven by the recorded winner, not by the outcome. A raider breakthrough ends the siege without
+    /// handing the dominion over, so the outcome alone does not say the owner changed - and a caller asking
+    /// this must get the same answer the dominion write acts on, which is <c>WinnerFactionId != 0</c>.
+    /// </remarks>
+    public bool ChangesOwner => WinnerFactionId != 0;
 }
 
 /// <summary>
@@ -119,30 +124,59 @@ public static class SiegeScoreRules
 
         if (outlawReached && offenseReached)
         {
-            return new SiegeSettlementDecision(SiegeOutcome.Contested, defender, 0,
+            return Guarded(new SiegeSettlementDecision(SiegeOutcome.Contested, defender, 0,
                 $"both the raider ({state.OutlawPoint}/{winPoints.Outlaw}) and the attacking alliance " +
-                $"({state.OffensePoint}/{winPoints.Offense}) reached their win point; ownership unchanged");
+                $"({state.OffensePoint}/{winPoints.Offense}) reached their win point; ownership unchanged"), roles);
         }
 
         if (outlawReached)
         {
-            return new SiegeSettlementDecision(SiegeOutcome.OutlawBrokeThrough, defender, roles.RaiderFactionId,
+            // The raider never holds ground - SiegeFactionRoles names it the one alliance that can attack but
+            // never defend. Recording it as the winner would leave the dominion owned by an alliance
+            // RequireDefender refuses, so the *next* settlement of that zone group could never resolve and
+            // the siege period would never leave Siege. A raider breakthrough therefore releases the dominion
+            // instead of transferring it: the winner stays 0, the same "no ownership change" convention
+            // DefenseHeld and Contested already use, and the next siege falls back to the dominion's own
+            // faction exactly as an unowned dominion always has.
+            return Guarded(new SiegeSettlementDecision(SiegeOutcome.OutlawBrokeThrough, defender, 0,
                 $"raider {roles.RaiderFactionId} destroyed {state.OutlawPoint} of {winPoints.Outlaw} " +
-                "guard-tower magic power");
+                "guard-tower magic power; an alliance that cannot defend never takes the dominion"), roles);
         }
 
         if (offenseReached)
         {
             var winner = roles.OffenseAgainst(defender);
-            return new SiegeSettlementDecision(SiegeOutcome.OffenseBrokeThrough, defender, winner,
+            return Guarded(new SiegeSettlementDecision(SiegeOutcome.OffenseBrokeThrough, defender, winner,
                 $"alliance {winner} purified {state.OffensePoint} of {winPoints.Offense} " +
-                "guard-tower magic power");
+                "guard-tower magic power"), roles);
         }
 
         // No winner is recorded when the dominion does not change hands: siege_settlements stores 0 for a
         // defended or contested siege, and the alliance that held the ground is in defender_faction_id.
-        return new SiegeSettlementDecision(SiegeOutcome.DefenseHeld, defender, 0,
+        return Guarded(new SiegeSettlementDecision(SiegeOutcome.DefenseHeld, defender, 0,
             $"neither attacker reached its win point (offense {state.OffensePoint}/{winPoints.Offense}, " +
-            $"outlaw {state.OutlawPoint}/{winPoints.Outlaw}); alliance {defender} held the dominion");
+            $"outlaw {state.OutlawPoint}/{winPoints.Outlaw}); alliance {defender} held the dominion"), roles);
+    }
+
+    /// <summary>
+    /// Refuses a winner that could not defend, so no path can ever leave a dominion owned by an alliance the
+    /// next settlement's <see cref="SiegeFactionRoles.RequireDefender"/> would reject.
+    /// </summary>
+    /// <remarks>
+    /// This is a backstop, not the mechanism. The raider branch above never records a winner and
+    /// <see cref="SiegeFactionRoles.FromRows"/> guarantees every other attacking alliance can also defend, so
+    /// nothing in the shipped content reaches this. It is here because the failure it prevents is permanent and
+    /// silent: the dominion would simply stop settling, retrying every minute with no explanation.
+    /// </remarks>
+    private static SiegeSettlementDecision Guarded(SiegeSettlementDecision decision, SiegeFactionRoles roles)
+    {
+        if (decision.WinnerFactionId != 0 && !roles.CanDefend(decision.WinnerFactionId))
+        {
+            throw new InvalidOperationException(
+                $"Faction {decision.WinnerFactionId} cannot defend, so it cannot be given a dominion; " +
+                "recording it would leave the next settlement unable to resolve.");
+        }
+
+        return decision;
     }
 }

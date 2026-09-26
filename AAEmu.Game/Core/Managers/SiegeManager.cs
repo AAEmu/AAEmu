@@ -76,6 +76,7 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         var changed = 0;
         var settled = 0;
         var failed = 0;
+        var unsettleable = 0;
         foreach (var dominion in dominionManager.Dominions)
         {
             var period = GetScheduledPeriod(dominion.ZoneId, now);
@@ -96,10 +97,18 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
                     case SiegeSettlementResult.Failed:
                         // The phase is left where it is on purpose. Writing the new period first would end the
                         // siege for good and leave the dominion unwon for ever, with nothing to notice the
-                        // settlement never happened; this way the next tick tries again. The reason is already
-                        // logged by the settle itself.
+                        // settlement never happened; this way the next tick tries again. Only a transient
+                        // fault reaches here, so the retry is bounded by the fault clearing. The reason is
+                        // already logged by the settle itself.
                         failed++;
                         continue;
+                    case SiegeSettlementResult.Unsettleable:
+                        // Content that cannot produce an outcome will not produce one on the next tick either,
+                        // so holding the period would keep this zone group in Siege for ever and log every
+                        // tick. The period advances and the dominion is left exactly as it stands; the fault
+                        // is logged at Error by the settle itself.
+                        unsettleable++;
+                        break;
                     case SiegeSettlementResult.AlreadySettled:
                         settled++;
                         break;
@@ -110,9 +119,10 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
             changed++;
         }
 
-        if (changed > 0 || failed > 0)
-            Logger.Info("SiegeManager.Tick: {0} dominion(s) changed siege period, {1} settled, {2} deferred",
-                changed, settled, failed);
+        if (changed > 0 || failed > 0 || unsettleable > 0)
+            Logger.Info("SiegeManager.Tick: {0} dominion(s) changed siege period, {1} settled, " +
+                "{2} deferred on a transient fault, {3} advanced past content that cannot settle",
+                changed, settled, failed, unsettleable);
     }
 
     public void RegisterForRaidTeam(GameConnection connection, ushort zoneId, bool isOffense)
@@ -472,15 +482,17 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         var dominion = dominionManager.GetByZoneId(zoneGroupId);
         if (dominion == null)
         {
-            Logger.Warn("Zone group {0} left its siege period with no dominion to settle", zoneGroupId);
-            return SiegeSettlementResult.Failed;
+            Logger.Error("Zone group {0} left its siege period with no dominion to settle; it cannot settle again", zoneGroupId);
+            return SiegeSettlementResult.Unsettleable;
         }
 
         var weekStart = SiegeGameData.Instance.GetCurrentCycleWeekStart(zoneGroupId, nowUtc);
         if (weekStart == null)
         {
-            Logger.Error("Zone group {0} left its siege period with no siege_plans cycle; not settled", zoneGroupId);
-            return SiegeSettlementResult.Failed;
+            // Content carries no siege_plans cycle for this zone group. No later tick will find one, so this
+            // is a permanent fault: the period advances rather than retrying against the same missing row.
+            Logger.Error("Zone group {0} left its siege period with no siege_plans cycle; not settled and not retryable", zoneGroupId);
+            return SiegeSettlementResult.Unsettleable;
         }
 
         var defenderFactionId = dominion.OwningFactionId != 0
@@ -489,7 +501,10 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
 
         var decision = ResolveOutcome(zoneGroupId, defenderFactionId);
         if (decision == null)
-            return SiegeSettlementResult.Failed;
+        {
+            // The alliances a siege is fought between are content, so a content fault here is permanent too.
+            return SiegeSettlementResult.Unsettleable;
+        }
 
         var record = new SiegeSettlementRecord
         {
@@ -514,6 +529,8 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         }
         catch (Exception ex)
         {
+            // A store that threw is a transient fault: the database may be back next tick, so the period stays
+            // put and the settlement is retried. This is the only failure that is meant to be retried.
             Logger.Error(ex, "Zone group {0} could not be settled for cycle {1:yyyy-MM-dd}; the siege period stays put",
                 zoneGroupId, weekStart.Value);
             return SiegeSettlementResult.Failed;
@@ -575,4 +592,12 @@ public enum SiegeSettlementResult
 
     /// <summary>The cycle was already on record; that outcome was re-applied instead of a new one.</summary>
     AlreadySettled = 2,
+
+    /// <summary>
+    /// Nothing was written because the content cannot produce a settlement at all, and retrying will not
+    /// change that. The caller must still advance the siege period: leaving it in place is what turns a
+    /// permanent content fault into a zone group that never leaves its siege period and logs every tick
+    /// for ever.
+    /// </summary>
+    Unsettleable = 3,
 }
