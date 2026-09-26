@@ -1,3 +1,5 @@
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Butlers;
 using AAEmu.Game.Models.Game.Char;
@@ -5,6 +7,8 @@ using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using Microsoft.Extensions.DependencyInjection;
+using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -17,6 +21,8 @@ public sealed class ButlerFarmingAdmissionResolver :
     IButlerGardenStorageResolver,
     IButlerChargeContextResolver
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     // CSSwapButlerItem uses the Inventory namespace byte for stored Farmhand garden records.
     private const byte GardenStorageType = (byte)SlotType.Inventory;
 
@@ -25,6 +31,8 @@ public sealed class ButlerFarmingAdmissionResolver :
     private readonly IItemManager _itemManager;
     private readonly ICraftManager _craftManager;
     private readonly ISkillManager _skillManager;
+    private readonly Func<IHousingManager> _housingManager;
+    private readonly Func<IZoneManager> _zoneManager;
 
     public ButlerFarmingAdmissionResolver()
         : this(
@@ -42,7 +50,7 @@ public sealed class ButlerFarmingAdmissionResolver :
         ButlerGameData butlerGameData,
         Func<uint, ButlerGardenTemplate?> findGardenTemplate,
         IItemManager itemManager)
-        : this(butlerGameData, findGardenTemplate, itemManager, null, null)
+        : this(butlerGameData, findGardenTemplate, itemManager, null, null, null, null)
     {
     }
 
@@ -52,13 +60,30 @@ public sealed class ButlerFarmingAdmissionResolver :
         IItemManager itemManager,
         ICraftManager craftManager,
         ISkillManager skillManager)
+        : this(butlerGameData, findGardenTemplate, itemManager, craftManager, skillManager, null, null)
+    {
+    }
+
+    internal ButlerFarmingAdmissionResolver(
+        ButlerGameData butlerGameData,
+        Func<uint, ButlerGardenTemplate?> findGardenTemplate,
+        IItemManager itemManager,
+        ICraftManager craftManager,
+        ISkillManager skillManager,
+        Func<IHousingManager> housingManager = null,
+        Func<IZoneManager> zoneManager = null)
     {
         _butlerGameData = butlerGameData ?? throw new ArgumentNullException(nameof(butlerGameData));
         _findGardenTemplate = findGardenTemplate ?? throw new ArgumentNullException(nameof(findGardenTemplate));
         _itemManager = itemManager ?? throw new ArgumentNullException(nameof(itemManager));
         _craftManager = craftManager;
         _skillManager = skillManager;
+        _housingManager = housingManager ?? (() => ResolveFromContainer<IHousingManager>());
+        _zoneManager = zoneManager ?? (() => ResolveFromContainer<IZoneManager>());
     }
+
+    private static T ResolveFromContainer<T>() where T : class =>
+        SingletonContainer.ServiceProvider?.GetService<T>();
 
     public bool TryResolveGarden(uint itemTemplateId, out ButlerGardenStorageItem garden)
     {
@@ -202,6 +227,13 @@ public sealed class ButlerFarmingAdmissionResolver :
             return false;
 
         var skill = _skillManager.GetSkillTemplate(craft.SkillId);
+        // The origin check runs before the slot and duplicate checks: a request for another
+        // region's specialty is refused as such whatever the farmhand's slot usage is.
+        if (!IsOriginRegionAdmitted(butler, trade.ZoneGroupId))
+        {
+            failure = ButlerSpecialtyTradeRules.AdmissionFailure.OriginRegionMismatch;
+            return false;
+        }
         var expandedSlotCount = butler.PermanentDatas.GetValueOrDefault(
             ButlerFarmingService.SpecialtyTradeSlotExpansionPermanentDataKey);
         if (expandedSlotCount > uint.MaxValue)
@@ -271,6 +303,42 @@ public sealed class ButlerFarmingAdmissionResolver :
             level.Level,
             ItemTaskType.UpdateButlerPermanentDatas);
         return true;
+    }
+
+    private bool IsOriginRegionAdmitted(CharacterButler butler, uint destinationZoneGroupId)
+    {
+        // Both lookups are resolved on demand: touching HousingManager or ZoneManager from the
+        // constructor would pull the world and housing graphs in before the container is built.
+        var housingManager = _housingManager?.Invoke();
+        var zoneManager = _zoneManager?.Invoke();
+        if (housingManager == null || zoneManager == null || butler?.HouseId is null or 0)
+        {
+            // No bound house or no geography to compare against: refuse rather than admit blind.
+            Logger.Error(
+                "Refusing farmhand specialty trade for character {0}: no bound house region to compare against",
+                butler?.CharacterId);
+            return false;
+        }
+
+        var house = housingManager.GetHouseById(butler.HouseId);
+        var houseZoneId = house?.Transform.ZoneId ?? 0u;
+        var houseContinentId = houseZoneId == 0 ? 0u : zoneManager.GetTargetIdByZoneId(houseZoneId);
+        var destinationContinentId = zoneManager.GetZoneGroupById(destinationZoneGroupId)?.TargetId ?? 0u;
+        if (houseContinentId == 0 || destinationContinentId == 0)
+        {
+            Logger.Error(
+                "Refusing farmhand specialty trade for character {0}: house zone {1} continent {2} or destination group {3} continent {4} is unresolved",
+                butler.CharacterId, houseZoneId, houseContinentId, destinationZoneGroupId, destinationContinentId);
+            return false;
+        }
+
+        if (ButlerSpecialtyTradeRules.IsSameOriginRegion(houseContinentId, destinationContinentId))
+            return true;
+
+        Logger.Warn(
+            "Refused farmhand specialty trade for character {0}: house continent {1} does not own destination group {2} continent {3}",
+            butler.CharacterId, houseContinentId, destinationZoneGroupId, destinationContinentId);
+        return false;
     }
 
     private bool TryGetNextGardenSlotExpansion(

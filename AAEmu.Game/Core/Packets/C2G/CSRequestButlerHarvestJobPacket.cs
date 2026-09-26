@@ -115,6 +115,9 @@ internal static class ButlerPacketErrorMap
         ButlerFarmingOperationFailure.ConcurrentChange => ErrorMessageType.AlreadyRequested,
         ButlerFarmingOperationFailure.InvalidContent => ErrorMessageType.Invalid,
         ButlerFarmingOperationFailure.NoSpecialtyTradeSlot => ErrorMessageType.Invalid,
+        // The shipped error set has no "that region does not offer this specialty" entry, so a
+        // foreign-origin request reports the generic refusal rather than an invented code.
+        ButlerFarmingOperationFailure.OriginRegionMismatch => ErrorMessageType.Invalid,
         _ => ErrorMessageType.InternalError
     };
 }

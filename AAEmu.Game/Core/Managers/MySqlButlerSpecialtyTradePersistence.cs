@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Models.Game.Butlers;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Trading;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -10,6 +11,7 @@ public sealed class MySqlButlerSpecialtyTradePersistence(
     IButlerRepository repository,
     IItemManager itemManager,
     ISpecialtyMarketStore marketStore,
+    IMailManager mailManager,
     Func<MySqlConnection> openConnection) : IButlerSpecialtyTradePersistence
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -67,9 +69,18 @@ public sealed class MySqlButlerSpecialtyTradePersistence(
     public ButlerSpecialtyTradePersistResult Settle(
         uint characterId,
         long jobId,
-        SpecialtyMarketWrite market)
+        ButlerSpecialtyTradeDeliveryQuote quote,
+        BaseMail ownerPayoutMail)
     {
-        ArgumentNullException.ThrowIfNull(market);
+        ArgumentNullException.ThrowIfNull(quote);
+        if (ownerPayoutMail == null)
+        {
+            Logger.Error(
+                "Refusing to settle specialty-trade job {0} for character {1}: no owner payout letter",
+                jobId, characterId);
+            return new ButlerSpecialtyTradePersistResult(false, false, jobId);
+        }
+
         var commitAttempted = false;
         try
         {
@@ -80,7 +91,8 @@ public sealed class MySqlButlerSpecialtyTradePersistence(
                 transaction.Rollback();
                 return new ButlerSpecialtyTradePersistResult(false, false, jobId);
             }
-            marketStore.Apply(connection, transaction, market);
+            marketStore.Apply(connection, transaction, quote.Market);
+            mailManager.PersistPreparedBatch([ownerPayoutMail], connection, transaction);
             commitAttempted = true;
             transaction.Commit();
             return new ButlerSpecialtyTradePersistResult(true, false, jobId);

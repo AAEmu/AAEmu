@@ -38,8 +38,33 @@ public static class ButlerSpecialtyTradeRules
         /// <summary>Every specialty-trade slot is already occupied.</summary>
         NoSpecialtyTradeSlot,
         /// <summary>This specialty type is already trading to that destination.</summary>
-        DuplicateSpecialtyTrade
+        DuplicateSpecialtyTrade,
+        /// <summary>
+        /// The farmhand's bound house is not on the continent that owns the destination's region.
+        /// The farmhand trade UI only offers specialties from the house's own region, so a request
+        /// for another region's specialty is a crafted one.
+        /// </summary>
+        OriginRegionMismatch
     }
+
+    /// <summary>
+    /// A farmhand may only trade specialties its bound house's region offers. Continents come from
+    /// <c>zone_groups.target_id</c>, which is the same relation the portal reagent check compares.
+    /// </summary>
+    /// <remarks>
+    /// This is the destination side of the rule and it is not, on its own, the whole rule: the
+    /// origin a specialty belongs to is carried by <c>crafts.req_doodad_id</c>, the region's
+    /// Specialty Workbench, and no shipped table relates that doodad to a zone. A continent check
+    /// therefore closes cross-continent origin packs but not a same-continent other-region one.
+    /// </remarks>
+    /// <param name="boundHouseContinentId">Continent of the bound house's zone.</param>
+    /// <param name="destinationContinentId">Continent of the destination zone group.</param>
+    /// <returns>
+    /// False when either continent is unresolved (0), so a missing row refuses the trade instead of
+    /// silently admitting it.
+    /// </returns>
+    public static bool IsSameOriginRegion(uint boundHouseContinentId, uint destinationContinentId) =>
+        boundHouseContinentId > 0 && boundHouseContinentId == destinationContinentId;
 
     public static bool TryCreateAdmissionContext(
         ButlerTemplate butlerTemplate,

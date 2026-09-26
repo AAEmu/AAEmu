@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Butlers;
@@ -9,7 +10,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
@@ -95,6 +96,56 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
     }
 
     [Test]
+    public async Task ResolveSpecialtyTrade_RefusesADestinationOnAnotherContinentThanTheBoundHouse()
+    {
+        // Same two trades, same house: only the continent each destination group reports changes.
+        var resolver = CreateResolver(out var butler, new Dictionary<uint, uint> { [5] = 4, [6] = 4 });
+        var character = new Character(new UnitCustomModelParams()) { Id = 1 };
+
+        var admitted = resolver.TryResolveSpecialtyTrade(character, butler, 1, 5, out _, out var failure);
+
+        await Assert.That(admitted).IsFalse();
+        await Assert.That(failure).IsEqualTo(ButlerSpecialtyTradeRules.AdmissionFailure.OriginRegionMismatch);
+    }
+
+    [Test]
+    public async Task ResolveSpecialtyTrade_ReportsTheRegionRefusalAheadOfSlotExhaustion()
+    {
+        // Both are refusals, and the reason the client sees has to be the one that closes the
+        // origin hole rather than the one that happens to be checked first.
+        var resolver = CreateResolver(out var butler, new Dictionary<uint, uint> { [5] = 4, [6] = 3 });
+        var character = new Character(new UnitCustomModelParams()) { Id = 1 };
+        butler.ApplySpecialtyTradeJob(new ButlerSpecialtyTradeJob(2, 17972, 2, 6, 7002, 10, 20));
+
+        var admitted = resolver.TryResolveSpecialtyTrade(character, butler, 1, 5, out _, out var failure);
+
+        await Assert.That(admitted).IsFalse();
+        await Assert.That(failure).IsEqualTo(ButlerSpecialtyTradeRules.AdmissionFailure.OriginRegionMismatch);
+    }
+
+    [Test]
+    public async Task ResolveSpecialtyTrade_RefusesWhenTheHouseContinentCannotBeResolved()
+    {
+        // A missing row refuses instead of admitting blind: 0 is not a continent.
+        var resolver = CreateResolver(out var butler, new Dictionary<uint, uint> { [5] = 3, [6] = 3 }, houseContinentId: 0);
+        var character = new Character(new UnitCustomModelParams()) { Id = 1 };
+
+        var admitted = resolver.TryResolveSpecialtyTrade(character, butler, 1, 5, out _, out var failure);
+
+        await Assert.That(admitted).IsFalse();
+        await Assert.That(failure).IsEqualTo(ButlerSpecialtyTradeRules.AdmissionFailure.OriginRegionMismatch);
+    }
+
+    [Test]
+    public async Task IsSameOriginRegion_NeverTreatsAnUnresolvedContinentAsAMatch()
+    {
+        await Assert.That(ButlerSpecialtyTradeRules.IsSameOriginRegion(3, 3)).IsTrue();
+        await Assert.That(ButlerSpecialtyTradeRules.IsSameOriginRegion(3, 4)).IsFalse();
+        await Assert.That(ButlerSpecialtyTradeRules.IsSameOriginRegion(0, 3)).IsFalse();
+        await Assert.That(ButlerSpecialtyTradeRules.IsSameOriginRegion(3, 0)).IsFalse();
+    }
+
+    [Test]
     public async Task ResolveGardenStorage_RejectsAStoredItemOutsideTheNativeButlerBagNamespace()
     {
         var resolver = CreateResolver(out var butler);
@@ -147,7 +198,13 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
             out _)).IsFalse();
     }
 
-    private ButlerFarmingAdmissionResolver CreateResolver(out CharacterButler butler)
+    private ButlerFarmingAdmissionResolver CreateResolver(out CharacterButler butler) =>
+        CreateResolver(out butler, new Dictionary<uint, uint> { [5] = 3, [6] = 3 });
+
+    private ButlerFarmingAdmissionResolver CreateResolver(
+        out CharacterButler butler,
+        IReadOnlyDictionary<uint, uint> groupContinents,
+        uint houseContinentId = HouseContinentId)
     {
         Execute(
             """
@@ -206,7 +263,40 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
                 : null,
             itemManager.Object,
             craftManager,
-            skillManager.Object);
+            skillManager.Object,
+            CreateHousing(HouseZoneId, houseId: 1),
+            CreateZoneManager(houseContinentId, groupContinents));
+    }
+
+    private const uint HouseZoneId = 129;
+    private const uint HouseContinentId = 3;
+
+    /// <summary>
+    /// A housing manager that answers one house in <paramref name="zoneId"/>, the way the live
+    /// resolver reads a bound farmhand's continent.
+    /// </summary>
+    private static Func<IHousingManager> CreateHousing(uint zoneId, uint houseId)
+    {
+        var house = new House { Id = houseId };
+        house.Transform.KeepZoneQuietly(zoneId);
+        var housing = Mock.Of<IHousingManager>();
+        housing.GetHouseById(houseId).Returns(house);
+        return () => housing.Object;
+    }
+
+    /// <summary>
+    /// A zone manager whose bound house zone and destination groups report the given continents,
+    /// which is the pair <c>zone_groups.target_id</c> supplies in production.
+    /// </summary>
+    private static Func<IZoneManager> CreateZoneManager(
+        uint houseContinentId, IReadOnlyDictionary<uint, uint> destinationContinents)
+    {
+        var zones = Mock.Of<IZoneManager>();
+        zones.GetTargetIdByZoneId(HouseZoneId).Returns(houseContinentId);
+        foreach (var (groupId, continentId) in destinationContinents)
+            zones.GetZoneGroupById(groupId)
+                .Returns(new ZoneGroup { Id = groupId, TargetId = continentId });
+        return () => zones.Object;
     }
 
     private sealed class CraftManagerStub(Craft craft) : ICraftManager

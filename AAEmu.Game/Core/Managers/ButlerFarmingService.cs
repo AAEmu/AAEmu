@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Butlers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Trading;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -23,6 +24,7 @@ public enum ButlerFarmingOperationFailure
     NoHarvestSlot,
     NoSpecialtyTradeSlot,
     DuplicateSpecialtyTrade,
+    OriginRegionMismatch,
     NotEnoughInputItem,
     NotEnoughLaborPower,
     NotEnoughGardenSize,
@@ -133,7 +135,9 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
     private readonly Func<MySqlConnection> _openConnection;
     private readonly IButlerSpecialtyTradeSettlement _specialtyTradeSettlement;
     private readonly IButlerSpecialtyTradePersistence _specialtyPersistence;
+    private readonly IButlerSpecialtyTradePayoutPublisher _payoutPublisher;
     private readonly Func<uint, Character> _characterResolver;
+    private readonly Func<uint, string> _characterNameResolver;
     private readonly Func<uint, uint, uint> _deliveryRoll;
 
     public ButlerFarmingService(
@@ -180,7 +184,9 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
         IButlerRepository repository, IItemManager itemManager, Func<MySqlConnection> openConnection,
         Func<DateTime> utcNow, IButlerSpecialtyTradeSettlement specialtyTradeSettlement,
         Func<uint, Character> characterResolver, Func<uint, uint, uint> deliveryRoll,
-        IButlerSpecialtyTradePersistence specialtyPersistence)
+        IButlerSpecialtyTradePersistence specialtyPersistence,
+        IButlerSpecialtyTradePayoutPublisher payoutPublisher = null,
+        Func<uint, string> characterNameResolver = null)
     {
         _butlerManager = butlerManager ?? throw new ArgumentNullException(nameof(butlerManager));
         _admissionResolver = admissionResolver ?? throw new ArgumentNullException(nameof(admissionResolver));
@@ -190,7 +196,9 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
         _utcNow = utcNow ?? (() => DateTime.UtcNow);
         _specialtyTradeSettlement = specialtyTradeSettlement;
         _specialtyPersistence = specialtyPersistence;
+        _payoutPublisher = payoutPublisher ?? new ButlerSpecialtyTradePayoutPublisher(MailManager.Instance);
         _characterResolver = characterResolver ?? (id => WorldManager.Instance.GetCharacterById(id));
+        _characterNameResolver = characterNameResolver ?? (id => NameManager.Instance.GetCharacterName(id));
         _deliveryRoll = deliveryRoll ?? ((minimum, maximum) =>
             checked((uint)Random.Shared.NextInt64(minimum, checked((long)maximum + 1))));
     }
@@ -222,6 +230,8 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
                             ButlerFarmingOperationFailure.NoSpecialtyTradeSlot,
                         ButlerSpecialtyTradeRules.AdmissionFailure.DuplicateSpecialtyTrade =>
                             ButlerFarmingOperationFailure.DuplicateSpecialtyTrade,
+                        ButlerSpecialtyTradeRules.AdmissionFailure.OriginRegionMismatch =>
+                            ButlerFarmingOperationFailure.OriginRegionMismatch,
                         _ => ButlerFarmingOperationFailure.InvalidContent
                     });
                 if (butler.LaborPower < (uint)context.CraftSkill.ConsumeLaborPower)
@@ -495,22 +505,51 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
                 job.JobId, butler.CharacterId);
             return;
         }
-        SpecialtyMarketWrite market;
+
+        var settledAtUtc = AsUtc(_utcNow());
+        var ownerName = _characterNameResolver(butler.CharacterId);
+        if (string.IsNullOrEmpty(ownerName))
+        {
+            Logger.Error("Specialty-trade job {0} for character {1} cannot address its owner payout letter.",
+                job.JobId, butler.CharacterId);
+            return;
+        }
+
+        ButlerSpecialtyTradeDeliveryQuote quote;
+        BaseMail payoutMail;
+        PreparedMailBatch payoutBatch;
+        ButlerSpecialtyTradePersistResult durable;
         try
         {
             if (_specialtyTradeSettlement == null || !_specialtyTradeSettlement.TryPrepare(
-                    job.NpcId, job.ProductItemId, checked((uint)job.ToZoneGroupType), out market))
+                    job.NpcId, job.ProductItemId, checked((uint)job.ToZoneGroupType),
+                    Helpers.UnixTime(settledAtUtc) - job.CreatedTime,
+                    butler.CharacterId, ownerName, settledAtUtc, out quote, out payoutMail))
             {
                 Logger.Error("Specialty-trade job {0} for character {1} has no valid market settlement.",
                     job.JobId, butler.CharacterId);
                 return;
             }
 
-            var durable = PersistSpecialtySettlement(butler.CharacterId, job.JobId, market);
-            if (!durable.Success &&
-                (!durable.Ambiguous ||
-                 ReadDurableSpecialtyJob(butler.CharacterId, job.JobId, out _) != DurableJobReadStatus.Missing))
+            if (!_payoutPublisher.TryPrepareBatch([payoutMail], out payoutBatch))
+            {
+                Logger.Error("Specialty-trade job {0} for character {1} could not stage its owner payout letter.",
+                    job.JobId, butler.CharacterId);
+                _itemManager.DiscardUnpersistedItems(payoutMail.Body.Attachments);
                 return;
+            }
+
+            durable = PersistSpecialtySettlement(butler.CharacterId, job.JobId, quote, payoutMail);
+            if (!durable.Success)
+            {
+                _payoutPublisher.CancelPreparedBatch(payoutBatch);
+                _itemManager.DiscardUnpersistedItems(payoutMail.Body.Attachments);
+                if (!durable.Ambiguous ||
+                    ReadDurableSpecialtyJob(butler.CharacterId, job.JobId, out _) != DurableJobReadStatus.Missing)
+                    return;
+                // The job row is gone, so the payment and the market write are already durable and
+                // only the commit acknowledgement was lost. Publish what was committed.
+            }
         }
         catch (Exception exception)
         {
@@ -521,7 +560,20 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
 
         try
         {
-            _specialtyTradeSettlement.Commit(market);
+            _itemManager.PublishPersistedItems(payoutMail.Body.Attachments);
+            if (!_payoutPublisher.PublishPreparedBatch(payoutBatch, true))
+                Logger.Error("Committed specialty-trade payout letter could not be published for job {0}",
+                    job.JobId);
+        }
+        catch (Exception exception)
+        {
+            Logger.Fatal(exception,
+                "Failed to publish committed specialty-trade payout for job {0}", job.JobId);
+        }
+
+        try
+        {
+            _specialtyTradeSettlement.Commit(quote);
         }
         catch (Exception exception)
         {
@@ -534,13 +586,26 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
             PublishSpecialtyTradeUpdate(owner, 3, 0, job.JobId, SpecialtyTradeData(job));
     }
 
+    /// <summary>
+    /// Normalises a clock reading to UTC. A persisted or injected instant can arrive with
+    /// <see cref="DateTimeKind.Unspecified"/>, and treating that as local time would move the
+    /// settlement across a freshness or delivery boundary depending on the host time zone.
+    /// </summary>
+    private static DateTime AsUtc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+    };
+
     private ButlerSpecialtyTradePersistResult PersistSpecialtySettlement(
         uint characterId,
         long jobId,
-        SpecialtyMarketWrite market)
+        ButlerSpecialtyTradeDeliveryQuote quote,
+        BaseMail ownerPayoutMail)
     {
         if (_specialtyPersistence != null)
-            return _specialtyPersistence.Settle(characterId, jobId, market);
+            return _specialtyPersistence.Settle(characterId, jobId, quote, ownerPayoutMail);
 
         using var connection = _openConnection();
         using var transaction = connection.BeginTransaction();
@@ -549,7 +614,8 @@ public sealed class ButlerFarmingService : IButlerSpecialtyTradeJobProcessor
             transaction.Rollback();
             return new ButlerSpecialtyTradePersistResult(false, false, jobId);
         }
-        _specialtyTradeSettlement.Apply(market, connection, transaction);
+        _specialtyTradeSettlement.Apply(quote, connection, transaction);
+        _payoutPublisher.PersistPreparedBatch([ownerPayoutMail], connection, transaction);
         transaction.Commit();
         return new ButlerSpecialtyTradePersistResult(true, false, jobId);
     }

@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Game.Units;
@@ -192,11 +193,97 @@ public class ButlerFarmingServiceSpecialtyTests
         await Assert.That(harness.Butler.LaborPower).IsEqualTo(99u);
     }
 
+    [Test]
+    public async Task Due_SettlesTheOwnerPayoutInTheSameCallAsTheJobDelete()
+    {
+        var harness = CreateHarness();
+        var job = new ButlerSpecialtyTradeJob(1, 20, TradeRowId, (ushort)ZoneId, ProductItemId, 100, 50);
+        harness.Butler.ApplySpecialtyTradeJob(job);
+        harness.Persistence.AddDurable(job);
+
+        harness.Service.ProcessDueSpecialtyTradeJobs();
+
+        // The letter, not a bare delete: the settlement persists the money the delivery earned.
+        await Assert.That(harness.Persistence.SettleCalls).IsEqualTo(1);
+        await Assert.That(harness.Persistence.LastSettledMail).IsNotNull();
+        await Assert.That(harness.Persistence.LastSettledMail!.Body.CopperCoins).IsEqualTo(FakePayoutAmount);
+        await Assert.That(harness.Persistence.LastSettledMail.Header.ReceiverId).IsEqualTo(harness.Character.Id);
+        await Assert.That(harness.Persistence.LastSettledQuote).IsNotNull();
+        await Assert.That(harness.Persistence.LastSettledQuote!.Market).IsNotNull();
+        await Assert.That(harness.Persistence.Contains(job.JobId)).IsFalse();
+    }
+
+    [Test]
+    public async Task Due_CarriesThePreparedPreDeliveryQuoteThroughWithoutRereadingIt()
+    {
+        var harness = CreateHarness();
+        var job = new ButlerSpecialtyTradeJob(1, 20, TradeRowId, (ushort)ZoneId, ProductItemId, 100, 50);
+        harness.Butler.ApplySpecialtyTradeJob(job);
+        harness.Persistence.AddDurable(job);
+
+        harness.Service.ProcessDueSpecialtyTradeJobs();
+
+        await Assert.That(harness.Settlement.PrepareCalls).IsEqualTo(1);
+        // The job was created at unix 100 and settles at unix 200, so the goods are 100s old.
+        await Assert.That(harness.Settlement.LastFreshnessElapsedSeconds).IsEqualTo(100);
+        await Assert.That(harness.Settlement.LastOwnerId).IsEqualTo(harness.Character.Id);
+        await Assert.That(harness.Settlement.LastSettledAtUtc.Kind).IsEqualTo(DateTimeKind.Utc);
+        await Assert.That(harness.Settlement.LastSettledAtUtc)
+            .IsEqualTo(new DateTime(1970, 1, 1, 0, 3, 20, DateTimeKind.Utc));
+        // The quote the settlement persisted is the very quote that was prepared, so the payout
+        // keeps the ratio that was read before this delivery touched the market.
+        await Assert.That(harness.Persistence.LastSettledQuote).IsSameReferenceAs(harness.Settlement.LastQuote);
+        await Assert.That(harness.Persistence.LastSettledQuote!.DisplayedRatioPercent)
+            .IsEqualTo(FakePreRatioPercent);
+        await Assert.That(harness.Settlement.CommitCalls).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Due_PublishesPersistedItemsBeforeThePreparedLetterBatch()
+    {
+        var harness = CreateHarness();
+        var job = new ButlerSpecialtyTradeJob(1, 20, TradeRowId, (ushort)ZoneId, ProductItemId, 100, 50);
+        harness.Butler.ApplySpecialtyTradeJob(job);
+        harness.Persistence.AddDurable(job);
+        var order = new List<string>();
+        harness.ItemManager.PublishPersistedItems(Any<IEnumerable<Item>>())
+            .Callback((IEnumerable<Item> _) => order.Add("items"));
+
+        harness.Service.ProcessDueSpecialtyTradeJobs();
+
+        await Assert.That(order).IsEquivalentTo(new[] { "items" });
+        // Prepare, then publish: the letter is staged before the transaction and only made
+        // visible after it committed.
+        await Assert.That(harness.Payout.Calls).IsEquivalentTo(new[] { "prepare", "publish" });
+    }
+
+    [Test]
+    public async Task Due_WithoutAPreparedQuoteLeavesTheJobForRetry()
+    {
+        var harness = CreateHarness();
+        var job = new ButlerSpecialtyTradeJob(1, 20, TradeRowId, (ushort)ZoneId, ProductItemId, 100, 50);
+        harness.Butler.ApplySpecialtyTradeJob(job);
+        harness.Persistence.AddDurable(job);
+        harness.Settlement.PrepareFails = true;
+
+        harness.Service.ProcessDueSpecialtyTradeJobs();
+
+        await Assert.That(harness.Persistence.SettleCalls).IsEqualTo(0);
+        await Assert.That(harness.Settlement.CommitCalls).IsEqualTo(0);
+        await Assert.That(harness.Persistence.Contains(job.JobId)).IsTrue();
+        await Assert.That(harness.Butler.SpecialtyTradeJobs.ContainsKey(job.JobId)).IsTrue();
+    }
+
     private const uint TradeRowId = 9;
     private const uint CraftId = 7001;
     private const short ZoneId = 5;
     private const uint ProductItemId = 7002;
     private const uint MaterialItemId = 7003;
+    private const string OwnerName = "Owner";
+    private const int FakeBasePrice = 1000;
+    private const int FakePreRatioPercent = 100;
+    private const uint FreshnessRewardRate = 1000;
+    private const int FakePayoutAmount = 1020;
 
     private static Harness CreateHarness()
     {
@@ -212,12 +299,14 @@ public class ButlerFarmingServiceSpecialtyTests
             .Returns((Item item) => ItemPersistenceSnapshot.Capture(item));
         itemManager.ApplyCommittedSnapshot(Any<ItemPersistenceSnapshot>())
             .Callback((ItemPersistenceSnapshot snapshot) => snapshot.Item.Count = snapshot.Desired.Count);
+        var mailManager = Mock.Of<IMailManager>();
         var harness = new Harness
         {
             Character = character,
             Butler = butler,
             Material = material,
             ItemManager = itemManager,
+            Payout = new RecordingPayoutPublisher(),
             Persistence = new FakeSpecialtyPersistence(),
             Settlement = new FakeSettlement()
         };
@@ -231,8 +320,59 @@ public class ButlerFarmingServiceSpecialtyTests
             harness.Settlement,
             _ => null,
             (minimum, _) => minimum,
-            harness.Persistence);
+            harness.Persistence,
+            harness.Payout,
+            _ => OwnerName);
         return harness;
+    }
+
+    /// <summary>
+    /// Records what the settlement asked of the mail layer, in order, and stages a real
+    /// <see cref="PreparedMailBatch"/> the way the live mail manager does: the batch reserves ids
+    /// and only a publish makes it visible.
+    /// </summary>
+    private sealed class RecordingPayoutPublisher : IButlerSpecialtyTradePayoutPublisher
+    {
+        public List<string> Calls { get; } = [];
+        public PreparedMailBatch LastBatch { get; private set; }
+        public IReadOnlyList<BaseMail> LastPersisted { get; private set; }
+        public int NextMailId = 5000;
+        public bool PrepareResult { get; set; } = true;
+        public bool PublishResult { get; set; } = true;
+
+        public bool TryPrepareBatch(IReadOnlyList<BaseMail> mails, out PreparedMailBatch batch)
+        {
+            Calls.Add("prepare");
+            batch = null;
+            if (!PrepareResult || mails == null || mails.Count == 0)
+                return false;
+            foreach (var mail in mails)
+            {
+                if (mail.Id <= 0)
+                    mail.Id = NextMailId++;
+            }
+            LastBatch = batch = new PreparedMailBatch(
+                [.. mails],
+                mails.Select(mail => mail.ReceiverName).ToList(),
+                []);
+            return true;
+        }
+
+        public void PersistPreparedBatch(IReadOnlyList<BaseMail> mails, MySqlConnection connection,
+            MySqlTransaction transaction) => LastPersisted = mails;
+
+        public bool PublishPreparedBatch(PreparedMailBatch batch, bool alreadyPersisted = false)
+        {
+            Calls.Add("publish");
+            LastBatch = batch;
+            return PublishResult;
+        }
+
+        public void CancelPreparedBatch(PreparedMailBatch batch)
+        {
+            Calls.Add("cancel");
+            LastBatch = batch;
+        }
     }
 
     private static void EnsureQuestManager()
@@ -278,6 +418,7 @@ public class ButlerFarmingServiceSpecialtyTests
         public required CharacterButler Butler { get; init; }
         public required Item Material { get; init; }
         public required Mock<IItemManager> ItemManager { get; init; }
+        public required RecordingPayoutPublisher Payout { get; init; }
         public required FakeSpecialtyPersistence Persistence { get; init; }
         public required FakeSettlement Settlement { get; init; }
         public ButlerFarmingService Service { get; set; } = null!;
@@ -380,6 +521,8 @@ public class ButlerFarmingServiceSpecialtyTests
         public int CancelCalls { get; private set; }
         public int SettleCalls { get; private set; }
         public int LoadCalls { get; private set; }
+        public ButlerSpecialtyTradeDeliveryQuote LastSettledQuote { get; private set; }
+        public BaseMail LastSettledMail { get; private set; }
 
         public ButlerSpecialtyTradePersistResult Register(CharacterButlerRecord proposed,
             ButlerSpecialtyTradeJobCandidate candidate, IReadOnlyList<ItemPersistenceSnapshot> snapshots)
@@ -418,11 +561,14 @@ public class ButlerFarmingServiceSpecialtyTests
             }
         }
 
-        public ButlerSpecialtyTradePersistResult Settle(uint characterId, long jobId, SpecialtyMarketWrite market)
+        public ButlerSpecialtyTradePersistResult Settle(uint characterId, long jobId,
+            ButlerSpecialtyTradeDeliveryQuote quote, BaseMail ownerPayoutMail)
         {
             lock (gate)
             {
                 SettleCalls++;
+                LastSettledQuote = quote;
+                LastSettledMail = ownerPayoutMail;
                 if (NextSettle is { } configured)
                 {
                     NextSettle = null;
@@ -470,15 +616,63 @@ public class ButlerFarmingServiceSpecialtyTests
     private sealed class FakeSettlement : IButlerSpecialtyTradeSettlement
     {
         public int CommitCalls { get; private set; }
+        public int PrepareCalls { get; private set; }
+        public bool PrepareFails { get; set; }
+        public long LastFreshnessElapsedSeconds { get; private set; }
+        public uint LastOwnerId { get; private set; }
+        public string LastOwnerName { get; private set; }
+        public DateTime LastSettledAtUtc { get; private set; }
+        public ButlerSpecialtyTradeDeliveryQuote LastQuote { get; private set; }
+        public BaseMail LastPayoutMail { get; private set; }
 
-        public bool TryPrepare(uint npcId, uint productItemId, uint zoneGroupId, out SpecialtyMarketWrite market)
+        public bool TryPrepare(uint npcId, uint productItemId, uint zoneGroupId,
+            out SpecialtyMarketWrite market)
         {
             market = new SpecialtyMarketWrite(new SpecialtyMarketState { Revision = 1 },
                 new SpecialtyMarketState { Revision = 2 });
             return true;
         }
 
-        public void Apply(SpecialtyMarketWrite market, MySqlConnection connection, MySqlTransaction transaction) { }
-        public void Commit(SpecialtyMarketWrite market) => CommitCalls++;
+        /// <summary>
+        /// Stands in for the content-backed quote. It does not recompute money — the payout figures
+        /// are pinned by the specialty market tests against real content — it only proves the
+        /// service carries the prepared quote and letter through the settlement unchanged.
+        /// </summary>
+        public bool TryPrepare(uint npcId, uint productItemId, uint zoneGroupId, long freshnessElapsedSeconds,
+            uint ownerId, string ownerName, DateTime settledAtUtc,
+            out ButlerSpecialtyTradeDeliveryQuote quote, out BaseMail ownerPayoutMail)
+        {
+            PrepareCalls++;
+            LastFreshnessElapsedSeconds = freshnessElapsedSeconds;
+            LastOwnerId = ownerId;
+            LastOwnerName = ownerName;
+            LastSettledAtUtc = settledAtUtc;
+            if (PrepareFails)
+            {
+                quote = null;
+                ownerPayoutMail = null;
+                return false;
+            }
+
+            var market = new SpecialtyMarketWrite(new SpecialtyMarketState { Revision = 1 },
+                new SpecialtyMarketState { Revision = 2 });
+            var mail = new BaseMail { MailType = MailType.SysSellBackpack, ReceiverName = ownerName };
+            mail.Header.ReceiverId = ownerId;
+            mail.AttachMoney(FakePayoutAmount);
+            LastPayoutMail = mail;
+            ownerPayoutMail = mail;
+            LastQuote = quote = new ButlerSpecialtyTradeDeliveryQuote(
+                market, productItemId, npcId, zoneGroupId, FakeBasePrice, FakePreRatioPercent,
+                FreshnessRewardRate, 1f, 0d, 0d, 0, 0, Item.Coins, FakePayoutAmount, FakePayoutAmount,
+                FakeBasePrice);
+            return true;
+        }
+
+        public void Apply(ButlerSpecialtyTradeDeliveryQuote quote, MySqlConnection connection,
+            MySqlTransaction transaction) => AppliedQuotes.Add(quote);
+
+        public List<ButlerSpecialtyTradeDeliveryQuote> AppliedQuotes { get; } = [];
+
+        public void Commit(ButlerSpecialtyTradeDeliveryQuote quote) => CommitCalls++;
     }
 }

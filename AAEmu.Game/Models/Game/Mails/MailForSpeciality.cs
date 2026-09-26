@@ -7,7 +7,11 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class MailForSpeciality : BaseMail
 {
-    private readonly Character _sender;
+    // The receiver is addressed by id and name rather than by a live Character: a farmhand
+    // delivery can settle while its owner is offline, and the letter must still be built.
+    private readonly IItemManager _itemManager;
+    private readonly uint _receiverId;
+    private readonly string _receiverName;
     private readonly uint _crafterId;
     private readonly uint _tradedPack;
     private readonly int _tradedRate;
@@ -48,11 +52,39 @@ public class MailForSpeciality : BaseMail
         double interestPercent,
         double freshnessPercent,
         int specialtyMerchantRatioPercent,
+        int sellerSharePercent)
+        : this(ItemManager.Instance, seller?.Id ?? 0, seller?.Name, crafterId, tradepackTemplate, tradeRate,
+            itemRewardTemplateId, itemCountBase, itemCountBonus, itemCountForSeller, itemCountForCrafter,
+            payoutBeforeInterest, totalPayout, transactionUtc, interestPercent, freshnessPercent,
+            specialtyMerchantRatioPercent, sellerSharePercent)
+    {
+    }
+
+    internal MailForSpeciality(
+        IItemManager itemManager,
+        uint receiverId,
+        string receiverName,
+        uint crafterId,
+        uint tradepackTemplate,
+        int tradeRate,
+        uint itemRewardTemplateId,
+        int itemCountBase,
+        int itemCountBonus,
+        int itemCountForSeller,
+        int itemCountForCrafter,
+        int payoutBeforeInterest,
+        int totalPayout,
+        DateTime transactionUtc,
+        double interestPercent,
+        double freshnessPercent,
+        int specialtyMerchantRatioPercent,
         int sellerSharePercent) : base()
     {
-        _sender = seller;
-        _sellerIsCrafter = crafterId == 0 || crafterId == seller.Id;
-        if (crafterId != 0 && crafterId != seller.Id)
+        _itemManager = itemManager ?? throw new ArgumentNullException(nameof(itemManager));
+        _receiverId = receiverId;
+        _receiverName = receiverName;
+        _sellerIsCrafter = crafterId == 0 || crafterId == receiverId;
+        if (crafterId != 0 && crafterId != receiverId)
             _crafterId = crafterId;
         else
             _crafterId = 0;
@@ -82,15 +114,15 @@ public class MailForSpeciality : BaseMail
     /// <returns></returns>
     public bool FinalizeForSeller()
     {
-        var itemTemplate = ItemManager.Instance.GetTemplate(_itemToSend);
+        var itemTemplate = _itemManager.GetTemplate(_itemToSend);
         if (itemTemplate == null)
             return false;
 
         Header.SenderId = 0;
         Header.SenderName = TradeDeliveryName;
 
-        Header.ReceiverId = _sender.Id;
-        ReceiverName = _sender.Name;
+        Header.ReceiverId = _receiverId;
+        ReceiverName = _receiverName;
 
         Title = _crafterId == 0 ? TradeDeliveryTitle : TradeDeliveryTitleSeller;
 
@@ -115,10 +147,10 @@ public class MailForSpeciality : BaseMail
             var itemGrade = itemTemplate.FixedGrade;
             if (itemGrade <= 0)
                 itemGrade = 0;
-            var newItem = ItemManager.Instance.CreateUnpersisted(_itemToSend, _itemCountSeller, (byte)itemGrade);
+            var newItem = _itemManager.CreateUnpersisted(_itemToSend, _itemCountSeller, (byte)itemGrade);
             if (newItem == null)
                 return false;
-            newItem.OwnerId = _sender.Id;
+            newItem.OwnerId = _receiverId;
             newItem.SlotType = SlotType.Mail;
             Body.Attachments.Add(newItem);
 
@@ -149,7 +181,7 @@ public class MailForSpeciality : BaseMail
         if (_crafterId == 0)
             return false;
         var crafterName = NameManager.Instance.GetCharacterName(_crafterId);
-        var itemTemplate = ItemManager.Instance.GetTemplate(_itemToSend);
+        var itemTemplate = _itemManager.GetTemplate(_itemToSend);
         if (itemTemplate == null)
             return false;
 
@@ -184,7 +216,7 @@ public class MailForSpeciality : BaseMail
             var itemGrade = itemTemplate.FixedGrade;
             if (itemGrade <= 0)
                 itemGrade = 0;
-            var newItem = ItemManager.Instance.CreateUnpersisted(_itemToSend, _itemCountCrafter, (byte)itemGrade);
+            var newItem = _itemManager.CreateUnpersisted(_itemToSend, _itemCountCrafter, (byte)itemGrade);
             if (newItem == null)
                 return false;
             newItem.OwnerId = _crafterId;

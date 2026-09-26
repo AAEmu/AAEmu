@@ -256,6 +256,7 @@ public static class Program
                         sp.GetRequiredService<IButlerRepository>(),
                         sp.GetRequiredService<IItemManager>(),
                         sp.GetRequiredService<ISpecialtyMarketStore>(),
+                        sp.GetRequiredService<IMailManager>(),
                         MySQL.CreateConnection));
                 services.AddSingleton<ButlerChargeService>();
                 services.AddSingleton<IButlerChargeService>(
