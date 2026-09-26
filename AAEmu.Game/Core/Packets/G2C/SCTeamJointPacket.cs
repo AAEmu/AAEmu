@@ -20,9 +20,11 @@ public sealed class SCTeamJointPacket(
     public const byte PacketModeSet = 1;
 
     /// <summary>
-    /// The mode paired with <see cref="PacketModeSet"/> that reports a refused joint: the same
-    /// storing mode with <c>targetTeamId</c> zero, which is how the client is told there is no
-    /// joint to store.
+    /// The mode paired with <see cref="PacketModeSet"/> that ends a joint: the same storing mode
+    /// with <c>targetTeamId</c> zero, which is how the client is told there is no joint to store.
+    /// This is what both refuses a joint that was asked for and releases one that was granted, and
+    /// it is the only value a client drops a stored joint for — a break notification on its own
+    /// leaves the member still holding the joint.
     /// </summary>
     public const byte PacketModeSetRefused = 1;
 

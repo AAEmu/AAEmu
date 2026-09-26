@@ -114,6 +114,142 @@ public class TeamJointFlowTests
         await Assert.That(refusal[0].TargetTeamId).IsEqualTo(0u);
     }
 
+    [Test]
+    public async Task Break_DissolveClearsTheStoredJointOnEveryMember()
+    {
+        // A member's client STORES the joint it is told about and keeps it until it is told of a
+        // joint with no other team. The break packet alone left every member holding a joint that no
+        // longer existed, so the joint menus stayed hidden and a later joint with a different raid
+        // was dropped as belonging to the wrong team.
+        var (manager, world, _) = Build();
+        DriveToResponsePrompt(manager, myTeamLeader: true);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: true, accept: true, timeout: false);
+        // Every member, on both sides, was given a joint to store.
+        await Assert.That(world.CountPackets<SCTeamJointPacket>()).IsEqualTo(3);
+        manager.RespondToJointBreak(Alice, ask: true, accept: false);
+        // count the dissolve fan-out on its own
+        world.Sent.Clear();
+        world.HeadersSent.Clear();
+
+        manager.RespondToJointBreak(Bob, ask: false, accept: true);
+
+        // Every online member of both raids is told the joint is gone, in the storing mode with a
+        // zero target team id — not just the two owners who ran the handshake.
+        var clears = world.PacketsTo<SCTeamJointPacket>(Alice)
+            .Concat(world.PacketsTo<SCTeamJointPacket>(Carol))
+            .Concat(world.PacketsTo<SCTeamJointPacket>(Bob))
+            .ToArray();
+        await Assert.That(clears.Length).IsEqualTo(3);
+        await Assert.That(clears.All(packet => packet.PacketMode == SCTeamJointPacket.PacketModeSet)).IsTrue();
+        await Assert.That(clears.All(packet => packet.TargetTeamId == 0u)).IsTrue();
+        // The break notification is still sent alongside it.
+        await Assert.That(world.CountPackets<SCTeamJointBreakPacket>()).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task Disband_DissolveClearsTheStoredJointOnTheSurvivingTeam()
+    {
+        // The same stale joint survived a disband and a last owner logging out, because neither path
+        // sent anything a client drops a joint for.
+        var (manager, world, _) = Build();
+        DriveToResponsePrompt(manager, myTeamLeader: true);
+        manager.RespondToJoint(Bob, JointType, true, true, false);
+        world.Sent.Clear();
+
+        manager.OnTeamDisbanded(TeamB);
+
+        // Only the surviving team's online members are reachable; the disbanding team is skipped.
+        var clears = world.PacketsTo<SCTeamJointPacket>(Alice)
+            .Concat(world.PacketsTo<SCTeamJointPacket>(Carol))
+            .ToArray();
+        await Assert.That(clears.Length).IsEqualTo(2);
+        await Assert.That(clears.All(packet => packet.PacketMode == SCTeamJointPacket.PacketModeSet)).IsTrue();
+        await Assert.That(clears.All(packet => packet.TargetTeamId == 0u)).IsTrue();
+    }
+
+    [Test]
+    public async Task Disconnect_LastOwnerLoggingOutClearsTheStoredJointOnTheSurvivingTeam()
+    {
+        var clock = new Clock(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var world = new FakeTeamJointContext { LocalWorldId = 1 };
+        world.AddCharacter(Alice, "Alice").AddCharacter(Bob, "Bob");
+        world.AddTeam(TeamA, Alice, false, Alice);   // Alice is the only member
+        world.AddTeam(TeamB, Bob, false, Bob);
+        var manager = new TeamJointManager(world, clock);
+
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
+        manager.RespondToJoint(Alice, JointType, true, true, false);
+        manager.RespondToJoint(Bob, JointType, true, true, false);
+        world.Sent.Clear();
+
+        manager.OnCharacterLogout(Alice);
+
+        var clears = world.PacketsTo<SCTeamJointPacket>(Bob).ToArray();
+        await Assert.That(clears.Length).IsEqualTo(1);
+        await Assert.That(clears[0].PacketMode).IsEqualTo(SCTeamJointPacket.PacketModeSet);
+        await Assert.That(clears[0].TargetTeamId).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task Request_InfoQueryAboutAnAlreadyJointedRaidReportsNoUsableTeam()
+    {
+        // The menu query answered with the team id of a raid that is already federated, so the client
+        // offered an invite that the request path then refused. The query has to describe the raid as
+        // unjoinable, the same way it already does for a party.
+        var (manager, world, _) = Build();
+        DriveToResponsePrompt(manager, myTeamLeader: true);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: true, accept: true, timeout: false);
+        world.Sent.Clear();
+        world.Errors.Clear();
+
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+
+        var replies = world.PacketsTo<SCTeamJointInfoPacket>(Alice);
+        await Assert.That(replies.Count).IsEqualTo(1);
+        // The query is still answered, so the menu has something to render, but with no team id.
+        await Assert.That(replies[0].Mode).IsEqualTo(TeamJointModes.MenuChatRequest);
+        await Assert.That(replies[0].Info.TargetTeamId).IsEqualTo(0u);
+        await Assert.That(world.Errors.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Request_InfoQueryAboutAPendingRaidReportsNoUsableTeam()
+    {
+        // Same for a raid that is already the other side of an outstanding ask: offering the invite
+        // there produced a menu entry whose use failed on a second outstanding ask.
+        var (manager, world, _) = Build();
+        DriveToResponsePrompt(manager, myTeamLeader: true);
+        await Assert.That(manager.PendingJointCount).IsEqualTo(1);
+        world.Sent.Clear();
+        world.Errors.Clear();
+
+        // Alice asks about Bob while her own raid is the pending source, and Bob asks about Alice
+        // while he is the pending target: both sides are checked, not just the target.
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Bob, JointType, TeamJointModes.MenuTargetRequest, "Alice", 1);
+
+        var toAlice = world.PacketsTo<SCTeamJointInfoPacket>(Alice);
+        var toBob = world.PacketsTo<SCTeamJointInfoPacket>(Bob);
+        await Assert.That(toAlice.Count).IsEqualTo(1);
+        await Assert.That(toBob.Count).IsEqualTo(1);
+        await Assert.That(toAlice[0].Info.TargetTeamId).IsEqualTo(0u);
+        await Assert.That(toBob[0].Info.TargetTeamId).IsEqualTo(0u);
+        await Assert.That(world.Errors.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Request_InfoQueryForAFreeRaidStillReportsItsTeam()
+    {
+        // The guard must not swallow a usable raid: the query is how the client fills the menu in.
+        var (manager, world, _) = Build();
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+
+        var replies = world.PacketsTo<SCTeamJointInfoPacket>(Alice);
+        await Assert.That(replies.Count).IsEqualTo(1);
+        await Assert.That(replies[0].Info.TargetTeamId).IsEqualTo(TeamB);
+        await Assert.That(replies[0].Info.MemberCount).IsEqualTo(1);
+    }
+
     // ---------- joint request ----------
 
     [Test]
@@ -435,10 +571,12 @@ public class TeamJointFlowTests
     }
 
     [Test]
-    public async Task BreakAsk_ExpiresAfterTheRequestLifetime()
+    public async Task BreakAsk_OutlivesTheJointRequestLifetimeSoTheClientsPromptCanStillBeAnswered()
     {
-        // A break ask whose prompt owner never answers would otherwise sit there until the joint is
-        // dissolved, refusing every later ask. It takes the same lifetime as the other prompt rounds.
+        // The responder's client keeps the break prompt up for two minutes, so the ask has to be
+        // answerable for at least that long. The joint request lifetime is shorter, and an ask
+        // closed at that point made an accept inside the client's own window find nothing while the
+        // asker was told the break had been rejected.
         var (manager, world, clock) = Build();
         // Alice claims the leading side, so she is the only member who may raise the ask.
         DriveToResponsePrompt(manager, myTeamLeader: true);
@@ -447,7 +585,31 @@ public class TeamJointFlowTests
         manager.RespondToJointBreak(Alice, ask: true, accept: false);
         await Assert.That(manager.PendingBreakCount).IsEqualTo(1);
 
-        clock.Advance(TimeSpan.FromMinutes(1) + TimeSpan.FromSeconds(1));
+        // Past the joint request lifetime, but still inside the break prompt the client is showing.
+        clock.Advance(TimeSpan.FromSeconds(90));
+        manager.RespondToJointBreak(Bob, ask: false, accept: true);
+
+        await Assert.That(manager.PendingBreakCount).IsEqualTo(0);
+        // The accept landed, so the joint broke instead of the asker being told it was rejected.
+        await Assert.That(manager.SessionCount).IsEqualTo(0);
+        await Assert.That(world.PacketsTo<SCTeamJointBreakPacket>(Alice)
+            .Any(packet => packet.Accept)).IsTrue();
+    }
+
+    [Test]
+    public async Task BreakAsk_ExpiresAfterTheBreakPromptLifetime()
+    {
+        // A break ask whose prompt owner never answers would otherwise sit there until the joint is
+        // dissolved, refusing every later ask. It lapses with the prompt the client is showing.
+        var (manager, world, clock) = Build();
+        // Alice claims the leading side, so she is the only member who may raise the ask.
+        DriveToResponsePrompt(manager, myTeamLeader: true);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: true, accept: true, timeout: false);
+        world.Sent.Clear();
+        manager.RespondToJointBreak(Alice, ask: true, accept: false);
+        await Assert.That(manager.PendingBreakCount).IsEqualTo(1);
+
+        clock.Advance(TeamJointManager.BreakAskLifetime + TimeSpan.FromSeconds(1));
 
         // Any later traffic purges it, and the stale ask can no longer dissolve the joint.
         manager.RespondToJointBreak(Bob, ask: false, accept: true);
@@ -469,7 +631,7 @@ public class TeamJointFlowTests
         manager.RespondToJointBreak(Alice, ask: true, accept: false);
         await Assert.That(manager.PendingBreakCount).IsEqualTo(1);
 
-        clock.Advance(TimeSpan.FromMinutes(1) + TimeSpan.FromSeconds(1));
+        clock.Advance(TeamJointManager.BreakAskLifetime + TimeSpan.FromSeconds(1));
         // Any later traffic purges the stale ask. The asker must be told, otherwise the prompt it
         // raised stays on screen with nothing behind it.
         manager.RespondToJointBreak(Bob, ask: false, accept: true);

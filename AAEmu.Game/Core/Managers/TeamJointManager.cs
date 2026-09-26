@@ -23,6 +23,15 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly TimeSpan RequestLifetime = TimeSpan.FromMinutes(1);
 
+    /// <summary>
+    /// How long a break ask stays answerable. The responder's client keeps the break prompt up for
+    /// two minutes, so the server has to hold the ask at least that long: a shorter lifetime closes
+    /// the ask while the prompt is still on the responder's screen, the accept that follows finds
+    /// nothing, and the asker — whose prompt is a different screen — is told the break was rejected.
+    /// The two lifetimes therefore cannot be one value.
+    /// </summary>
+    internal static readonly TimeSpan BreakAskLifetime = TimeSpan.FromSeconds(120);
+
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private readonly ITeamJointContext _context = context;
     private readonly ConcurrentDictionary<uint, JointSession> _sessions = new();
@@ -118,11 +127,17 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             // answer, so the reply carries the SAME mode the request used. Opening the request frame
             // here instead made a raid owner who right-clicked a name sit on a one-minute pending
             // request with no menu, which is what the popup is for.
+            //
+            // A raid that is already jointed, or already the other side of an outstanding ask, is
+            // refused by the request path below, so reporting its team id here only produced a menu
+            // entry that failed when it was used. An unusable raid is described exactly like a raid
+            // that cannot be joined at all — no team id — so the menu does not offer the invite.
+            var usable = !IsJointUnavailable(sourceTeam.Id, targetTeam.Id);
             _context.Send(requesterId, new SCTeamJointInfoPacket(mode, new TeamJointInfo(
                 unchecked((long)type),
                 targetCharacter.Name,
-                targetTeam.Id,
-                targetTeam.MemberCount,
+                usable ? targetTeam.Id : 0u,
+                usable ? targetTeam.MemberCount : 0,
                 0,
                 false)));
             return;
@@ -289,7 +304,7 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             }
 
             if (!_pendingBreaks.TryAdd(session.JointId, new PendingBreak(
-                    team.Id, responderId, _timeProvider.GetUtcNow() + RequestLifetime)))
+                    team.Id, responderId, _timeProvider.GetUtcNow() + BreakAskLifetime)))
                 return;
             _context.Send(otherOwner.Id, new SCTeamJointBreakPacket(true, false));
             return;
@@ -470,6 +485,22 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             _pendingSummons.TryRemove(memberId, out _);
     }
 
+    /// <summary>
+    /// True when no joint between these two teams can be started right now, because one of them is
+    /// already federated or already the other side of an outstanding ask. A team may sit on EITHER
+    /// side of a pending ask, so every pairing is compared and not just source-to-source and
+    /// target-to-target.
+    /// </summary>
+    private bool IsJointUnavailable(uint sourceTeamId, uint targetTeamId)
+    {
+        if (_sessions.Values.Any(session => session.Contains(sourceTeamId) || session.Contains(targetTeamId)))
+            return true;
+
+        return _pendingJoints.Values.Any(pending =>
+            pending.SourceTeamId == sourceTeamId || pending.TargetTeamId == targetTeamId ||
+            pending.SourceTeamId == targetTeamId || pending.TargetTeamId == sourceTeamId);
+    }
+
     private void CommitJoint(PendingJoint pending)
     {
         var sourceTeam = _context.FindTeam(pending.SourceTeamId);
@@ -544,6 +575,18 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             foreach (var memberId in OnlineMemberIdsOf(entry.TeamId))
             {
                 _context.SendTeamHeader(entry.TeamId, memberId);
+                // A member's client STORES the joint it is told about, and the stored copy is only
+                // dropped when it is told of a joint with no other team. The break packet alone left
+                // every member holding a joint that no longer existed: the joint menus stayed hidden,
+                // and a later joint with a different raid was dropped by the wrong-team-id check. So
+                // the dissolve announces the end of the joint the same way a refusal does — the
+                // storing mode with a zero target team id.
+                _context.Send(memberId, new SCTeamJointPacket(
+                    0,
+                    0,
+                    0,
+                    SCTeamJointPacket.PacketModeSetRefused,
+                    0));
                 _context.Send(memberId, new SCTeamJointBreakPacket(false, true));
             }
         }
@@ -618,9 +661,10 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
         bool LeaderChoice = false);
 
     /// <summary>
-    /// A pending break ask. It expires on the same lifetime as the other prompt rounds, so an ask
-    /// whose prompt owner logs out unanswered does not sit there refusing every later ask until the
-    /// joint is dissolved.
+    /// A pending break ask. It expires on its own lifetime, not on the joint's: the responder's
+    /// client holds the break prompt longer than the other rounds do, so an ask whose prompt owner
+    /// logs out or never answers must not sit there past the point the prompt is gone, refusing
+    /// every later ask until the joint is dissolved.
     /// </summary>
     private sealed record PendingBreak(
         uint RequesterTeamId,
