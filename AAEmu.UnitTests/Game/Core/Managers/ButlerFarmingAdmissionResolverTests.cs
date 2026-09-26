@@ -223,6 +223,35 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
 
         public bool IsCraftInPack(uint craftPackId, uint craftId) => false;
         public IReadOnlyCollection<uint> GetCraftIdsForPack(uint craftPackId) => [];
+
+        // Craft metadata surface used by the farmhand admission resolver. This stub deliberately
+        // answers "not found" for lines, categories and packs: the farmhand tests only ever resolve
+        // a single craft, and loading real metadata here would not change any assertion.
+        public bool TryGetCraftLine(uint craftLineId, out CraftLine craftLine)
+        {
+            craftLine = null;
+            return false;
+        }
+
+        public IReadOnlyCollection<uint> GetCraftIdsForLine(uint craftLineId) => [];
+
+        public bool TryGetCraftCategory(CraftCategoryLevel level, uint categoryId, out CraftCategory category)
+        {
+            category = null;
+            return false;
+        }
+
+        public IReadOnlyCollection<uint> GetCraftIdsForCategory(CraftCategoryLevel level, uint categoryId) => [];
+
+        public bool TryGetCraftPack(uint craftPackId, out CraftPack craftPack)
+        {
+            craftPack = null;
+            return false;
+        }
+
+        public IReadOnlyCollection<uint> GetUnresolvedCraftPackIds() => [];
+        public IReadOnlyCollection<uint> GetUnresolvedProductPackIds() => [];
+        public IReadOnlyCollection<CraftCategoryMismatch> GetCraftCategoryMismatches() => [];
     }
 
     private void Execute(string sql)
