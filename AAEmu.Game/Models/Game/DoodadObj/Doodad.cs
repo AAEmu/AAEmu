@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game;
@@ -240,7 +240,10 @@ public class Doodad : BaseUnit
     public uint Type2 { get; init; }
 
     /// <summary>
-    /// Doodad specific data
+    /// Doodad specific data. Assigning the property saves the change, exactly as it did before the
+    /// housing-permissions work: persistent doodads write the full row and system doodads update the
+    /// phase store. Writers that must roll back on a failed save (currently only the coffer-permission
+    /// packet) use <see cref="TrySetData"/> instead of assigning this property.
     /// </summary>
     public int Data
     {
@@ -250,15 +253,102 @@ public class Doodad : BaseUnit
             if (value != _data)
             {
                 _data = value;
-                if (IsPersistent)
+                PersistDataOnChange();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Persists a <see cref="Data"/> change made by an ordinary writer. This is the exact pre-PR save
+    /// behaviour; it lives in its own method only so a test can substitute a row recorder instead of
+    /// requiring a live database.
+    /// </summary>
+    protected virtual void PersistDataOnChange()
+    {
+        if (IsPersistent)
+        {
+            Save();
+        }
+        else
+        {
+            WorldDoodadPhaseStore.Save(this);
+        }
+    }
+
+    /// <summary>Test seam for proving a failed persistence write does not publish a new value.</summary>
+    internal Func<bool> PersistDataForTest { get; set; }
+
+    /// <summary>
+    /// Applies and persists a data value atomically from the caller's point of view. Persistent
+    /// doodads use their normal save path; system doodads use the phase store. The test hook is
+    /// intentionally internal and is never set by production code.
+    /// </summary>
+    internal bool TrySetData(int value)
+    {
+        if (value == _data)
+            return true;
+
+        var previous = _data;
+        _data = value;
+        try
+        {
+            if (PersistDataForTest != null)
+            {
+                if (!PersistDataForTest())
                 {
-                    Save();
-                }
-                else
-                {
-                    WorldDoodadPhaseStore.Save(this);
+                    _data = previous;
+                    return false;
                 }
             }
+            else if (IsPersistent)
+            {
+                if (!TryPersistData())
+                {
+                    _data = previous;
+                    return false;
+                }
+            }
+            else if (!WorldDoodadPhaseStore.Save(this))
+            {
+                _data = previous;
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _data = previous;
+            Logger.Warn(ex, "Doodad {0} data persistence failed; restored {1}", ObjId, previous);
+            return false;
+        }
+    }
+
+    private bool TryPersistData()
+    {
+        if (!IsPersistent || IsPlacementPending)
+            return true;
+
+        using var connection = MySQL.CreateConnection();
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            Save(connection, transaction);
+            transaction.Commit();
+            return true;
+        }
+        catch
+        {
+            try
+            {
+                transaction.Rollback();
+            }
+            catch (Exception rollbackException)
+            {
+                Logger.Error(rollbackException, "Doodad {0} data transaction rollback failed", ObjId);
+            }
+
+            throw;
         }
     }
 

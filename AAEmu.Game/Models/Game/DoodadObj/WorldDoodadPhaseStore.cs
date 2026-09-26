@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using AAEmu.Commons.Utils.DB;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -20,10 +20,10 @@ public static class WorldDoodadPhaseStore
     public static bool Tracks(Doodad doodad) =>
         doodad is { IsPersistent: false, Spawner: not null, Template.SystemDoodad: true };
 
-    public static void Save(Doodad doodad)
+    public static bool Save(Doodad doodad)
     {
         if (!Tracks(doodad) || doodad.Transform == null)
-            return;
+            return true;
 
         var (x, y) = Key(doodad.Transform.World.Position);
         try
@@ -42,10 +42,12 @@ public static class WorldDoodadPhaseStore
             command.Parameters.AddWithValue("@d", doodad.Data);
             command.Prepare();
             command.ExecuteNonQuery();
+            return true;
         }
         catch (MySqlException ex)
         {
             Logger.Warn("World doodad phase not saved for template {0} at ({1},{2}): {3}", doodad.TemplateId, x, y, ex.Message);
+            return false;
         }
     }
 
