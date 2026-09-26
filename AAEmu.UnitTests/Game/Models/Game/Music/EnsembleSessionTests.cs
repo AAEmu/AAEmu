@@ -111,6 +111,23 @@ public class EnsembleSessionTests
     }
 
     [Test]
+    public async Task LeaveAfterStart_RemovesOnlyTheMemberAndKeepsThePerformance()
+    {
+        var session = NewSession();
+        session.Invite(First);
+        session.Accept(First);
+        session.PartReady(Maestro);
+        session.PartReady(First);
+        await Assert.That(session.Start()).IsTrue();
+
+        await Assert.That(session.Leave(First)).IsTrue();
+        await Assert.That(session.Members).IsEquivalentTo(new[] { Maestro });
+        await Assert.That(session.Parts.Contains(First)).IsFalse();
+        await Assert.That(session.IsStarted).IsTrue();
+        await Assert.That(session.IsCanceled).IsFalse();
+    }
+
+    [Test]
     public async Task Leave_TakesThePartAwayAndTheMaestroEndsIt()
     {
         var session = NewSession();

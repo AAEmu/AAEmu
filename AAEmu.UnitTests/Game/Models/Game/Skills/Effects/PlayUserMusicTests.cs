@@ -287,7 +287,11 @@ public class PlayUserMusicTests : IDisposable
         var packet = new TestEndPacket();
         packet.Bind(connection);
 
+        // Parsing must not touch the live world; the state change belongs to Execute.
         packet.Read(new PacketStream());
+        await Assert.That(player.Broadcasts.OfType<SCPauseUserMusicPacket>()).IsEmpty();
+
+        packet.Execute();
 
         await Assert.That(player.Broadcasts.OfType<SCPauseUserMusicPacket>().Count()).IsEqualTo(1);
         await Assert.That(MusicManager.Instance.TryGetMidiCache(player.Id, out _)).IsFalse();

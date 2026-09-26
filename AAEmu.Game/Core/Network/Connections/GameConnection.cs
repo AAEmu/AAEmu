@@ -102,8 +102,8 @@ public class GameConnection
 
         if (ActiveChar != null)
         {
-            // A disconnected character must not leave a playable MIDI block behind for a later
-            // session. The orderly leave-world path clears it separately.
+            // A disconnected character must not leave a playable MIDI block or a resumable ensemble
+            // behind for a later session. The orderly leave-world path clears them separately.
             MusicManager.Instance.OnCharacterLogout(ActiveChar);
 
             // Cancel any duel or pending invitation. This path is the one a crash or an Alt+F4 takes -

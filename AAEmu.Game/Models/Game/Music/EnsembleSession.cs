@@ -32,6 +32,12 @@ public class EnsembleSession
     /// </summary>
     public const int MaxMembers = 5;
 
+    /// <summary>
+    /// Protocol buffer the client uses for one raw MIDI part. This is a wire limit, not a content
+    /// value: the client builds the standard MIDI file in a 0x8000-byte buffer before sending it.
+    /// </summary>
+    public const int MaximumPartBytes = 0x8000;
+
     private readonly List<uint> _invited = [];
     private readonly List<uint> _members = [];
     private readonly HashSet<uint> _parts = [];
@@ -150,6 +156,9 @@ public class EnsembleSession
 
         return _members.Remove(bc);
     }
+
+    /// <summary>Whether the player is seated in the ensemble, rather than only invited.</summary>
+    public bool IsMember(uint bc) => _members.Contains(bc);
 
     /// <summary>The player this ensemble belongs to, invited or seated.</summary>
     public bool Involves(uint bc)

@@ -17,9 +17,18 @@ public class CSPauseUserMusicPacket() : GamePacket(CSOffsets.CSPauseUserMusicPac
 {
     public override void Read(PacketStream stream)
     {
-        MusicManager.EndPerformance(Connection.ActiveChar);
+        // No body. State changes belong to Execute so parsing cannot mutate the live world.
+    }
+
+    public override void Execute()
+    {
+        var character = Connection?.ActiveChar;
+        if (character == null)
+            return;
+
+        MusicManager.EndPerformance(character);
 
         // A player who stops playing is done with their ensemble too, whether they led it or played in it.
-        MusicManager.Instance.LeaveEnsemble(Connection.ActiveChar);
+        MusicManager.Instance.LeaveEnsemble(character);
     }
 }
