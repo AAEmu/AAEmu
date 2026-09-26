@@ -184,6 +184,9 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
                 return;
             }
 
+            // The requester picks which side leads in its own dialog, so the flag recorded here is
+            // the requester's own choice: true means the requesting team leads. CommitJoint reads it
+            // in that polarity.
             if (!_pendingJoints.TryUpdate(pending.SourceTeamId, pending with { LeaderChoice = myTeamLeader }, pending))
                 return;
 
@@ -235,6 +238,7 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
 
     public void RespondToJointBreak(uint responderId, bool ask, bool accept)
     {
+        PurgeExpired();
         var team = _context.FindTeamByMember(responderId);
         if (team == null)
             return;
@@ -259,7 +263,8 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
                 return;
             }
 
-            if (!_pendingBreaks.TryAdd(session.JointId, new PendingBreak(team.Id, responderId)))
+            if (!_pendingBreaks.TryAdd(session.JointId, new PendingBreak(
+                    team.Id, responderId, _timeProvider.GetUtcNow() + RequestLifetime)))
                 return;
             _context.Send(otherOwner.Id, new SCTeamJointBreakPacket(true, false));
             return;
@@ -460,14 +465,13 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             return;
         }
 
-        // The echoed leader flag is read in the RESPONSE dialog's polarity, where leader == true
-        // means the responder is the OWNER: the response dialog's "my side" row uses the gold
-        // crown and raid_joint_owner (handle_task.lua:2883/:2890), and joint_view.lua:462-463
-        // renders the same way for the viewing player's own team. The responder is the target
-        // side, so true makes the target team lead. The opposite mapping would read the same bit
-        // in the request dialog's polarity, where true means the requester is the OFFICER
-        // (handle_task.lua:2829/:2836).
-        var leaderTeamId = pending.LeaderChoice ? pending.TargetTeamId : pending.SourceTeamId;
+        // The stored choice was written in the REQUESTER's polarity, where the flag means "the
+        // requester's raid leads": the request dialog offers the requester the officer row, so a
+        // requester that picks the leading side is picking its own team. It therefore leads the
+        // merged raid, and the target is the follower. Reading this flag in the response dialog's
+        // polarity instead — where it means the responder is the owner — handed the leading side to
+        // whichever team asked, so the requester's own choice was applied to the target.
+        var leaderTeamId = pending.LeaderChoice ? pending.SourceTeamId : pending.TargetTeamId;
         var followerTeamId = leaderTeamId == pending.SourceTeamId ? pending.TargetTeamId : pending.SourceTeamId;
         var leaderCount = leaderTeamId == pending.SourceTeamId ? sourceTeam.MemberCount : targetTeam.MemberCount;
         var followerCount = followerTeamId == pending.SourceTeamId ? sourceTeam.MemberCount : targetTeam.MemberCount;
@@ -543,6 +547,8 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             _pendingJoints.TryRemove(entry.Key, out _);
         foreach (var entry in _pendingSummons.Where(entry => entry.Value.ExpiresAt <= now))
             _pendingSummons.TryRemove(entry.Key, out _);
+        foreach (var entry in _pendingBreaks.Where(entry => entry.Value.ExpiresAt <= now))
+            _pendingBreaks.TryRemove(entry.Key, out _);
     }
 
     private TeamJointCharacterSnapshot? OnlineTeamOwner(TeamJointTeamSnapshot? team)
@@ -571,7 +577,15 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
         DateTimeOffset ExpiresAt,
         bool LeaderChoice = false);
 
-    private sealed record PendingBreak(uint RequesterTeamId, uint RequesterCharacterId);
+    /// <summary>
+    /// A pending break ask. It expires on the same lifetime as the other prompt rounds, so an ask
+    /// whose prompt owner logs out unanswered does not sit there refusing every later ask until the
+    /// joint is dissolved.
+    /// </summary>
+    private sealed record PendingBreak(
+        uint RequesterTeamId,
+        uint RequesterCharacterId,
+        DateTimeOffset ExpiresAt);
 
     private sealed record PendingSummon(
         uint RecipientId,
