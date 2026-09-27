@@ -67,6 +67,9 @@ public class ZoneSimRelay
             ZwOpcodes.ReportMoleTrader => HandleMole("ZWReportMoleTrader", bodyLen),
             ZwOpcodes.ReportMoveHack => HandleMole("ZWReportMoveHack", bodyLen),
             ZwOpcodes.ReportDoodadSurfaceHack => HandleMole("ZWReportDoodadSurfaceHack", bodyLen),
+            ZwOpcodes.RegisterNpcAbuser => HandleRegisterNpcAbuser(stream),
+            ZwOpcodes.UnregisterNpcAbusers => HandleUnregisterNpcAbusers(stream),
+            ZwOpcodes.ClearNpcAbusers => HandleClearNpcAbusers(stream),
             ZwOpcodes.TowerDefReportPlayability => HandleTowerDef(zoneId, stream),
             ZwOpcodes.ResponseCombatUnits => HandleResponseCombatUnits(stream, bodyLen),
             ZwOpcodes.TimeOfDay => HandleTimeOfDay(zoneId, stream, detailed: false),
@@ -124,6 +127,69 @@ public class ZoneSimRelay
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// ZWRegisterNpcAbuser (0x3D): <c>bc npcUnitId + bc abuserUnitId</c>. One row of the zone's
+    /// npc abuser list. The zone re-sends the rows it still holds, so a repeated pair is normal.
+    /// </summary>
+    private static bool HandleRegisterNpcAbuser(PacketStream stream)
+    {
+        const int serializedSize = 3 + 3;
+        if (stream.Count != serializedSize)
+            return false;
+
+        var npcUnitId = stream.ReadBc();
+        var abuserUnitId = stream.ReadBc();
+
+        NpcAbuserRegistry.Register(npcUnitId, abuserUnitId);
+        Logger.Debug("ZWRegisterNpcAbuser npc={0} abuser={1}", npcUnitId, abuserUnitId);
+        return true;
+    }
+
+    /// <summary>
+    /// ZWUnregisterNpcAbusers (0x3E): <c>bc npcUnitId + u8 count + count * bc abuserUnitId</c>.
+    /// The zone splits a long list across several events, so one event never carries more than
+    /// <see cref="NpcAbuserRegistry.MaxUnregisterBatch"/> ids.
+    /// </summary>
+    private static bool HandleUnregisterNpcAbusers(PacketStream stream)
+    {
+        if (stream.Count < 3 + 1)
+            return false;
+
+        var npcUnitId = stream.ReadBc();
+        var count = stream.ReadByte();
+
+        // The count decides how many ids follow, so it has to agree with what is actually there.
+        // A count that overruns the body would read ids out of unrelated packets.
+        if (count > NpcAbuserRegistry.MaxUnregisterBatch || stream.LeftBytes != count * 3)
+            return false;
+
+        var abuserUnitIds = new uint[count];
+        for (var i = 0; i < count; i++)
+            abuserUnitIds[i] = stream.ReadBc();
+
+        var removed = NpcAbuserRegistry.Unregister(npcUnitId, abuserUnitIds);
+        Logger.Debug(
+            "ZWUnregisterNpcAbusers npc={0} count={1} removed={2}", npcUnitId, count, removed);
+        return true;
+    }
+
+    /// <summary>
+    /// ZWClearNpcAbusers (0x3F): <c>bc npcUnitId</c>. Drops every abuser of one npc, which the zone
+    /// sends when it empties the list as a whole.
+    /// </summary>
+    private static bool HandleClearNpcAbusers(PacketStream stream)
+    {
+        const int serializedSize = 3;
+        if (stream.Count != serializedSize)
+            return false;
+
+        var npcUnitId = stream.ReadBc();
+
+        NpcAbuserRegistry.Clear(npcUnitId);
+        Logger.Debug("ZWClearNpcAbusers npc={0}", npcUnitId);
+        return true;
     }
 
     /// <summary>

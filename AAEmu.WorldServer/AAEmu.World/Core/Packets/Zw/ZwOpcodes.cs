@@ -42,4 +42,9 @@ public static class ZwOpcodes
     public const ushort ReportDoodadSurfaceHack = 0x003A;
     public const ushort DoodadCollideUnit = 0x003B;
     public const ushort Heartbeat = 0x003C;
+    public const ushort RegisterNpcAbuser = 0x003D;
+    public const ushort UnregisterNpcAbusers = 0x003E;
+    public const ushort ClearNpcAbusers = 0x003F;
+    public const ushort DumpNpc = 0x0040;
+    public const ushort AggroRemove = 0x0041;
 }
