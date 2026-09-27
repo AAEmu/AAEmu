@@ -18,10 +18,11 @@
 /// count. The opcodes are constants here, not inferences.
 /// </para>
 /// <para>
-/// <b>Why the packets are still not sent.</b> Each container call is recorded by the extraction with no field name, so the ten and nine vectors have no recovered meaning.
-/// They are a counted <c>vector&lt;int&gt;</c>, but <em>which</em> ids is unknown - a row of ten
-/// anonymous vectors is not something this slice should put on the wire. Naming them needs a capture
-/// or a further extraction of the helper's callers; the opcodes below are ready for it.
+/// <b>Why the packets are still not sent.</b> Both container sets are named at their call sites, so
+/// they are not anonymous: the ten and nine vectors are a counted <c>vector&lt;int&gt;</c> whose
+/// element ids this slice has not resolved. The names were not carried into this note, so which ids
+/// each vector holds is still unknown, and a row of ten unresolved vectors is not something this
+/// slice should put on the wire. Resolving them needs a capture; the opcodes below are ready for it.
 /// </para>
 /// <para>
 /// Contrast the two packets that <b>are</b> sent, <c>0x38D</c> and <c>0x38E</c>: their containers

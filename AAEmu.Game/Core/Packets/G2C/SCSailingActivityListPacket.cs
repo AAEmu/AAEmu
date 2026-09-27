@@ -27,9 +27,9 @@ public class SCSailingActivityListPacket(SailingActivityListRow[] rows)
     /// client's, not a defensive bound of ours.
     /// </summary>
     /// <remarks>
-    /// Corroborated arithmetically by the recovered struct: the count sits at <c>+0x14</c>, 32
-    /// four-byte ids run from <c>+0x18</c>, and the first time field begins at <c>+0x98</c>.
-    /// <c>0x18 + 32*4 == 0x98</c> exactly.
+    /// Corroborated arithmetically by the recovered struct: the count sits at <c>+0x10</c>, 32
+    /// four-byte ids run from <c>+0x14</c>, and the first time field begins at <c>+0x94</c>.
+    /// <c>0x14 + 32*4 == 0x94</c> exactly.
     /// </remarks>
     public const int MaximumRows = 32;
 
