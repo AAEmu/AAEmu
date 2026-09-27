@@ -1269,6 +1269,19 @@ COLLATE='utf8mb4_general_ci'
 ENGINE=InnoDB
 ;
 
+CREATE TABLE IF NOT EXISTS `audit_ics_aa_point_purchases` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `account_id` INT UNSIGNED NOT NULL,
+  `character_id` INT UNSIGNED NOT NULL,
+  `purchase_date` DATETIME(6) NOT NULL,
+  `cash_spent` BIGINT NOT NULL,
+  `aa_points` BIGINT NOT NULL,
+  `exchange_ratio` INT UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_ics_aa_point_purchases_account` (`account_id`, `purchase_date`),
+  KEY `idx_audit_ics_aa_point_purchases_character` (`character_id`, `purchase_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Cash shop checkouts that convert wallet cash into AA points';
+
 CREATE TABLE IF NOT EXISTS `expedition_recruitments` (
   `expedition_id` INT NOT NULL,
   `interest_mask` SMALLINT NOT NULL,

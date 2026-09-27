@@ -68,6 +68,7 @@ public partial class AppConfiguration
     public SpecialtyConfig Specialty { get; set; } = new();
     public ButlerConfig Butler { get; set; } = new();
     public UccConfig Ucc { get; set; } = new();
+    public CashShopConfig CashShop { get; set; } = new();
     public FeaturesConfig Features { get; set; } = new();
     public WeatherConfig Weather { get; set; } = new();
     public TowerDefsConfig TowerDefs { get; set; } = new();
