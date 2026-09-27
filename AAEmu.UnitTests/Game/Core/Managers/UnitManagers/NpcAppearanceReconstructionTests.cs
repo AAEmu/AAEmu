@@ -54,7 +54,9 @@ public sealed class NpcAppearanceReconstructionTests
         await Assert.That(npc.ModelId).IsEqualTo(ModelId);
         await Assert.That(npc.ModelParams.Face).IsNotNull();
         await Assert.That(npc.ModelParams.Face.MovableDecalAssetId).IsEqualTo(1001u);
-        await Assert.That(npc.ModelParams.HairColorId).IsEqualTo(111u);
+        // The preset's hair_color_id is the palette entry the client resolves, not a free colour.
+        await Assert.That(npc.ModelParams.HairColor).IsEqualTo(111u);
+        await Assert.That(npc.ModelParams.HairColorId).IsEqualTo(0u);
         await Assert.That(npc.ModelParams.SkinColorId).IsEqualTo(121u);
 
         await Assert.That(Equipment(npc, EquipmentItemSlot.Face).TemplateId).IsEqualTo(FaceItemId);
@@ -85,16 +87,16 @@ public sealed class NpcAppearanceReconstructionTests
         await Assert.That(second).IsNotNull();
         await Assert.That(ReferenceEquals(first.ModelParams, second.ModelParams)).IsFalse();
         await Assert.That(ReferenceEquals(first.ModelParams, template.ModelParams)).IsFalse();
-        await Assert.That(first.ModelParams.HairColorId).IsEqualTo(111u);
-        await Assert.That(second.ModelParams.HairColorId).IsEqualTo(111u);
+        await Assert.That(first.ModelParams.HairColor).IsEqualTo(111u);
+        await Assert.That(second.ModelParams.HairColor).IsEqualTo(111u);
         await Assert.That(Equipment(first, EquipmentItemSlot.Hair).TemplateId).IsEqualTo(HairItemId);
         await Assert.That(Equipment(second, EquipmentItemSlot.Hair).TemplateId).IsEqualTo(HairItemId);
 
-        first.ModelParams.HairColorId = 999;
+        first.ModelParams.HairColor = 999;
         first.Equipment.GetItemBySlot((int)EquipmentItemSlot.Hair).Grade = 7;
-        await Assert.That(second.ModelParams.HairColorId).IsEqualTo(111u);
+        await Assert.That(second.ModelParams.HairColor).IsEqualTo(111u);
         await Assert.That(Equipment(second, EquipmentItemSlot.Hair).Grade).IsEqualTo((byte)0);
-        await Assert.That(template.ModelParams.HairColorId).IsEqualTo(0u);
+        await Assert.That(template.ModelParams.HairColor).IsEqualTo(0u);
     }
 
     [Test]
@@ -116,7 +118,7 @@ public sealed class NpcAppearanceReconstructionTests
         var npc = manager.Create(world, 1001, TemplateId);
 
         await Assert.That(npc).IsNotNull();
-        await Assert.That(npc.ModelParams.HairColorId).IsEqualTo(112u);
+        await Assert.That(npc.ModelParams.HairColor).IsEqualTo(112u);
         await Assert.That(npc.ModelParams.SkinColorId).IsEqualTo(122u);
         await Assert.That(npc.ModelParams.Face.MovableDecalAssetId).IsEqualTo(1002u);
         await Assert.That(Equipment(npc, EquipmentItemSlot.Hair).TemplateId).IsEqualTo(AlternateHairItemId);
@@ -346,7 +348,10 @@ public sealed class NpcAppearanceReconstructionTests
             NpcOnly = true
         };
 
-    private static TotalCharacterCustom Custom(uint id, uint hairId, uint faceId, uint hairColor, uint skinColor) =>
+    /// <param name="hairColor">The palette entry the client resolves (<c>hair_color_id</c>).</param>
+    /// <param name="defaultHairColor">The free colour value the client applies directly.</param>
+    private static TotalCharacterCustom Custom(
+        uint id, uint hairId, uint faceId, uint hairColor, uint skinColor, uint defaultHairColor = 0) =>
         new()
         {
             Id = id,
@@ -354,6 +359,7 @@ public sealed class NpcAppearanceReconstructionTests
             HairId = hairId,
             FaceId = faceId,
             HairColorId = hairColor,
+            DefaultHairColor = defaultHairColor,
             SkinColorId = skinColor,
             FaceMovableDecalAssetId = 900 + id,
             Modifier = []

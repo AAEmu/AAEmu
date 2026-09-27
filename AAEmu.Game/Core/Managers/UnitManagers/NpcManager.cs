@@ -539,43 +539,58 @@ public class NpcManager(
         {
             if (modelId != template.ModelId) { continue; }
 
+            var custom = totalCustomId > 0 ? TotalCharacterCustoms[totalCustomId] : null;
             foreach (var (slotTypeId, bp) in ibp)
             {
-                if (modelId != template.ModelId) { continue; }
-
-                switch (slotTypeId)
-                {
-                    case (byte)EquipmentItemSlotType.Face:
-                    {
-                        var customFaceItemId = totalCustomId > 0 ? TotalCharacterCustoms[totalCustomId].FaceId : 0;
-                        var preferredFaceItemId = customFaceItemId > 0 ? customFaceItemId : template.DefaultFaceItemId;
-                        var rbp = bp.FirstOrDefault(bodyPart => bodyPart.ItemId == preferredFaceItemId) ?? bp[0];
-                        randomTemplate.BodyItems[rbp.SlotTypeId - (int)EquipmentItemSlotType.Face] = (rbp.ItemId, rbp.NpcOnly);
-                        break;
-                    }
-                    case (byte)EquipmentItemSlotType.Hair:
-                    {
-                        var rbp = bp.FirstOrDefault(bodyPart => bodyPart.ItemId == randomTemplate.HairId);
-                        if (rbp != null)
-                            randomTemplate.BodyItems[rbp.SlotTypeId - (int)EquipmentItemSlotType.Face] = (rbp.ItemId, rbp.NpcOnly);
-                        break;
-                    }
-                    case (byte)EquipmentItemSlotType.Beard:
-                    case (byte)EquipmentItemSlotType.Body:
-                    case (byte)EquipmentItemSlotType.Glasses:
-                    case (byte)EquipmentItemSlotType.Tail:
-                    {
-                        var rbp = bp[0];
-                        randomTemplate.BodyItems[rbp.SlotTypeId - (int)EquipmentItemSlotType.Face] = (rbp.ItemId, rbp.NpcOnly);
-                        break;
-                    }
-                }
+                ApplyBodySlot(randomTemplate, slotTypeId, bp, custom, randomTemplate.HairId, template.DefaultFaceItemId);
             }
         }
 
         //Logger.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
 
         return randomTemplate;
+    }
+
+    /// <summary>
+    /// Resolve one body-image slot from the model's parts for that slot.
+    /// A slot the preset names itself (<c>face_id</c>, <c>hair_id</c>, <c>horn_id</c>,
+    /// <c>body_id</c>, <c>tail_id</c>) uses that item when the model actually carries it; otherwise the
+    /// first part of the slot is the fallback. Every body-image slot type is handled here, including
+    /// Reserved - the horn slot - which is why the preset names an id for it.
+    /// </summary>
+    private static void ApplyBodySlot(
+        NpcTemplate target,
+        uint slotTypeId,
+        List<BodyPartTemplate> parts,
+        TotalCharacterCustom? custom,
+        uint hairItemId,
+        uint defaultFaceItemId)
+    {
+        if (parts.Count == 0)
+            return;
+
+        uint preferred = slotTypeId switch
+        {
+            (uint)EquipmentItemSlotType.Face => custom != null && custom.FaceId > 0 ? custom.FaceId : defaultFaceItemId,
+            (uint)EquipmentItemSlotType.Hair => hairItemId,
+            (uint)EquipmentItemSlotType.Reserved => custom?.HornId ?? 0,
+            (uint)EquipmentItemSlotType.Body => custom?.BodyId ?? 0,
+            (uint)EquipmentItemSlotType.Tail => custom?.TailId ?? 0,
+            _ => 0
+        };
+
+        var chosen = preferred > 0
+            ? parts.FirstOrDefault(part => part.ItemId == preferred)
+            : null;
+
+        // A named id the model does not carry must not blank the slot: fall back to the first part.
+        chosen ??= parts[0];
+
+        var index = (int)slotTypeId - (int)EquipmentItemSlotType.Face;
+        if (index < 0 || index >= target.BodyItems.Length)
+            return;
+
+        target.BodyItems[index] = (chosen.ItemId, chosen.NpcOnly);
     }
 
     /// <summary>
@@ -608,16 +623,33 @@ public class NpcManager(
     }
 
     /// <summary>
-    /// hair_color_id → HairColorId via SetHairColorId, skin via SetSkinColorId, Face T3 morph,
-    /// Race/Gender left 0. Canonical face mesh when face_id is zero still comes from the body-slot
-    /// face item (characters.face_item_id). TODO(v10): correct HairColor vs HairColorId column
+    /// The T1 block carries two different kinds of hair value and the two must not be swapped:
+    /// the first u32 is a <c>customizing_item_asset_colors</c> row id (the palette entry the client
+    /// resolves) and the fourth is a free RGBA value the client applies directly. The preset names
+    /// the palette entry in <c>hair_color_id</c> (and <c>horn_color_id</c> for the horn palette,
+    /// which is a separate table category) and the free RGBA in <c>default_hair_color</c> /
+    /// <c>two_tone_hair_color</c>. Sending the palette id where the RGBA belongs leaves the client
+    /// with an unresolved hair colour, so both travel in their own field.
+    /// The T2 block carries the skin colour, the body normal map and its weight; the weight is a
+    /// real authored value and only falls back to 1 when the preset states none.
     /// </summary>
     private static UnitCustomModelParams CreateFaceModelParams(NpcTemplate template, TotalCharacterCustom custom)
     {
         var modelParams = new UnitCustomModelParams(UnitCustomModelType.Face)
             .SetModelId(custom.ModelId)
-            .SetHairColorId(custom.HairColorId)
+            .SetHairColorId(custom.DefaultHairColor)
             .SetSkinColorId(custom.SkinColorId);
+
+        // Palette ids: resolved against customizing_item_asset_colors, not free colour values.
+        modelParams.HairColor = custom.HairColorId;
+        modelParams.HornColor = custom.HornColorId;
+        modelParams.TwoToneHairColor = custom.TwoToneHairColor;
+        modelParams.TwoToneFirstWidth = custom.TwoToneFirstWidth;
+        modelParams.TwoToneSecondWidth = custom.TwoToneSecondWidth;
+
+        // Body normal map and its authored weight.
+        modelParams.BodyNormalMap = custom.BodyNormalMapId;
+        modelParams.BodyWeight = custom.BodyNormalMapWeight > 0f ? custom.BodyNormalMapWeight : 1f;
 
         modelParams.Face.MovableDecalAssetId = custom.FaceMovableDecalAssetId;
         modelParams.Face.MovableDecalWeight = custom.FaceMovableDecalWeight;
@@ -719,6 +751,9 @@ public class NpcManager(
                         custom.FaceFixedDecalAsset5Weight = reader.GetFloat("face_fixed_decal_asset_5_weight");
                         custom.HornColorId = reader.GetUInt32("horn_color_id");
                         custom.FaceId = reader.GetUInt32("face_id");
+                        custom.BodyId = reader.GetUInt32("body_id");
+                        custom.HornId = reader.GetUInt32("horn_id");
+                        custom.TailId = reader.GetUInt32("tail_id");
 
                         TotalCharacterCustoms.Add(custom.Id, custom);
                     }
@@ -985,46 +1020,14 @@ public class NpcManager(
                             }
                         }
 
+                        TotalCharacterCustoms.TryGetValue(template.TotalCustomId, out var templateCustom);
                         foreach (var (modelId, ibp) in ItemBodyParts)
                         {
                             if (modelId != template.ModelId) { continue; }
 
                             foreach (var (slotTypeId, bp) in ibp)
                             {
-                                if (modelId != template.ModelId) { continue; }
-
-                                switch (slotTypeId)
-                                {
-                                    case (byte)EquipmentItemSlotType.Face:
-                                    {
-                                        var customFaceItemId = template.TotalCustomId > 0 &&
-                                                               TotalCharacterCustoms.TryGetValue(template.TotalCustomId, out var custom)
-                                            ? custom.FaceId
-                                            : 0;
-                                        var preferredFaceItemId = customFaceItemId > 0
-                                            ? customFaceItemId
-                                            : template.DefaultFaceItemId;
-                                        var rbp = bp.FirstOrDefault(bodyPart => bodyPart.ItemId == preferredFaceItemId) ?? bp[0];
-                                        template.BodyItems[rbp.SlotTypeId - (int)EquipmentItemSlotType.Face] = (rbp.ItemId, rbp.NpcOnly);
-                                        break;
-                                    }
-                                    case (byte)EquipmentItemSlotType.Hair:
-                                    {
-                                        var rbp = bp.FirstOrDefault(bodyPart => bodyPart.ItemId == template.HairId);
-                                        if (rbp != null)
-                                            template.BodyItems[rbp.SlotTypeId - (int)EquipmentItemSlotType.Face] = (rbp.ItemId, rbp.NpcOnly);
-                                        break;
-                                    }
-                                    case (byte)EquipmentItemSlotType.Beard:
-                                    case (byte)EquipmentItemSlotType.Body:
-                                    case (byte)EquipmentItemSlotType.Glasses:
-                                    case (byte)EquipmentItemSlotType.Tail:
-                                    {
-                                        var rbp = bp[0];
-                                        template.BodyItems[rbp.SlotTypeId - (int)EquipmentItemSlotType.Face] = (rbp.ItemId, rbp.NpcOnly);
-                                        break;
-                                    }
-                                }
+                                ApplyBodySlot(template, slotTypeId, bp, templateCustom, template.HairId, template.DefaultFaceItemId);
                             }
                         }
                     }
