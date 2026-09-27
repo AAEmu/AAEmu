@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World;
@@ -83,24 +84,40 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
 
     public bool CanPlace(Character character, FarmType farmType, uint doodadId)
     {
-        var allPlanted = GetCommonFarmDoodads(character);
-        if (allPlanted.TryGetValue(farmType, out var doodadList))
+        // A farm type the player has no crops in yet has no dictionary entry, so the count is read
+        // as zero rather than skipping the capacity check altogether.
+        var plantedCount = GetCommonFarmDoodads(character).TryGetValue(farmType, out var planted)
+            ? planted.Count
+            : 0;
+
+        var refusal = CommonFarmPlacementRules.Evaluate(
+            CommonFarmGameData.Instance.TryGetFarmGroupMaxCount(farmType, out var capacity),
+            capacity,
+            plantedCount,
+            CommonFarmGameData.Instance.GetAllowedDoodads(farmType).Contains(doodadId));
+
+        switch (refusal)
         {
-            if (doodadList.Count >= CommonFarmGameData.Instance.GetFarmGroupMaxCount(farmType))
-            {
+            case CommonFarmPlacementRefusal.None:
+                return true;
+
+            case CommonFarmPlacementRefusal.CapacityNotConfigured:
+                // Content gives this farm no size. Name it instead of inheriting a zero, which the
+                // count check would report to the player as a farm that is full.
+                Logger.Error("CommonFarm: farm type {0} has no farm_groups row, so no crop capacity is "
+                             + "defined for it. Refusing the placement for {1} rather than assuming one.",
+                    farmType, character?.Name ?? "<no character>");
                 character.SendErrorMessage(Models.Game.ErrorMessageType.CommonFarmCountOver);
                 return false;
-            }
-        }
 
-        var allowedDoodads = CommonFarmGameData.Instance.GetAllowedDoodads(farmType);
-        if (allowedDoodads.Any(id => doodadId == id))
-        {
-            return true;
-        }
+            case CommonFarmPlacementRefusal.CapacityReached:
+                character.SendErrorMessage(Models.Game.ErrorMessageType.CommonFarmCountOver);
+                return false;
 
-        character.SendErrorMessage(Models.Game.ErrorMessageType.CommonFarmNotAllowedType);
-        return false;
+            default:
+                character.SendErrorMessage(Models.Game.ErrorMessageType.CommonFarmNotAllowedType);
+                return false;
+        }
     }
 
     public Dictionary<FarmType, List<Doodad>> GetCommonFarmDoodads(Character character)

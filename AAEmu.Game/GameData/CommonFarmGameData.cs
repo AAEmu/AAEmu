@@ -76,9 +76,27 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
         }
     }
 
-    public uint GetFarmGroupMaxCount(FarmType farmType)
+    /// <summary>
+    /// Resolves the crop capacity configured for a farm group.
+    /// </summary>
+    /// <param name="farmType">The farm type, which is the farm group id.</param>
+    /// <param name="maxCount">The configured capacity, or zero when the group has no row.</param>
+    /// <returns>
+    /// <c>false</c> when content has no <c>farm_groups</c> row for this farm type, meaning its size
+    /// is unknown. The caller must decide what an unconfigured farm means and must not inherit a
+    /// number: this accessor exists so a missing row cannot be read as a capacity of zero, which is
+    /// a full farm rather than an absent one.
+    /// </returns>
+    public bool TryGetFarmGroupMaxCount(FarmType farmType, out uint maxCount)
     {
-        return _farmGroup.TryGetValue((uint)farmType, out var farm) ? farm.Count : 0;
+        if (_farmGroup.TryGetValue((uint)farmType, out var farm))
+        {
+            maxCount = farm.Count;
+            return true;
+        }
+
+        maxCount = 0;
+        return false;
     }
 
     public uint GetDoodadGuardTime(uint groupId)
