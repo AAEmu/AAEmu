@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// or after content_configs 288 (faction_diplomacy_dialog_timeout, 60 s) and the manager ignores it
 /// in silence rather than counting a denial.
 /// </summary>
-/// <remarks>Body serializer x2game-dev.dll 0x39c550a0: one bool named "ok" (send site 0x391c4bb0).</remarks>
+/// <remarks>Body serializer: one bool named "ok" (send site).</remarks>
 public class CSFactionRelationResponsePacket() : GamePacket(CSOffsets.CSFactionRelationResponsePacket, 1)
 {
     public bool Ok { get; private set; }

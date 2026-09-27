@@ -26,7 +26,7 @@ public sealed class FactionDiplomacyAgreement
 /// <summary>
 /// A diplomacy counter. <c>OtherId</c> 0 is the character's own daily agreement count; a non-zero
 /// <c>OtherId</c> is a requester the character (a hero) has denied, with the denial count. This is
-/// the client's count map key order (x2game-dev.dll 0x391c61b0: own = (me, 0), deny = (hero, me)).
+/// the client's count map key order: own = (me, 0), deny = (hero, me).
 /// </summary>
 public readonly record struct FactionDiplomacyCount(uint CharacterId, uint OtherId, uint Count, DateTime UpdatedAt);
 

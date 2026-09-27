@@ -71,14 +71,14 @@ public enum BeautyshopCharge
 
 /// <summary>
 /// The salon's decision logic: which fields the character's model may take, what the edit costs, and
-/// when the shop may be entered. The wire side (CSBeautyshopDataPacket, FUN_39c77890) and the apply
+/// when the shop may be entered. The wire side (CSBeautyshopDataPacket) and the apply
 /// order live in CharacterManager.
 /// </summary>
 public static class BeautyshopEditRules
 {
     /// <summary>
     /// A stock client always fills the face-maker morph block to its cap: the serializer reads it with
-    /// a 0x80 capacity (x2game-dev.dll FUN_39399a30, "modifiers") and every custom_face_presets and
+    /// a 0x80 capacity and every custom_face_presets and
     /// total_character_customs row carries exactly 128 bytes.
     /// </summary>
     public const int MaxModifierLength = 128;
@@ -107,9 +107,9 @@ public static class BeautyshopEditRules
 
     /// <summary>
     /// The client's "no item" sentinel for a customizing slot is a runtime-initialised static
-    /// (x2game-dev.dll DAT_3b4e162c, compared in FUN_396105e0 before every asset lookup), so its value
-    /// is not in the image. 0 and -1 are both treated as "leave that slot alone"; neither is a valid
-    /// content id (customizing_item_assets and customizing_item_asset_colors ids start at 1).
+    /// rather than a compile-time constant, so its value is not fixed. 0 and -1 are both treated
+    /// as "leave that slot alone"; neither is a valid content id (customizing_item_assets and
+    /// customizing_item_asset_colors ids start at 1).
     /// </summary>
     public static bool IsNone(int id) => id <= 0;
 
@@ -118,7 +118,7 @@ public static class BeautyshopEditRules
     /// <summary>
     /// A requested hair, horn or tail item must be a customizing_item_assets row for the character's
     /// model with the category of the slot it is meant for (the client checks the same row and
-    /// category in FUN_396105e0 before sending; horn is only kept for CharRace 8 and tail for 6 there,
+    /// category before sending; horn is only kept for CharRace 8 and tail for 6 there,
     /// which the per-model rows already encode: category 2 exists only for models 24/25, category 3
     /// only for 20/21).
     /// </summary>
@@ -146,7 +146,7 @@ public static class BeautyshopEditRules
         if (requested.Race != race || requested.Gender != gender)
             return BeautyshopEditError.RaceOrGenderMismatch;
 
-        // FUN_396105e0 zeroes block offset 0xa0 (defaultHairColor) unless the hair asset has use_pallet
+        // Zeroes block offset 0xa0 (defaultHairColor) unless the hair asset has use_pallet
         // and sets offset 0x20 (this first "type" u32) to the none sentinel when it has, so the first
         // u32 is the customizing_item_asset_colors id and defaultHairColor is the free RGBA.
         if (!IsNone(requested.HairColor) && !catalog.IsColor(CustomizingCategory.Hair, requested.HairColor))
@@ -267,7 +267,7 @@ public static class BeautyshopEditRules
 
     /// <summary>
     /// The client presents the first ticket it finds and count 1, or the none id and count 0 when it
-    /// holds none (FUN_396f9110 / FUN_396105e0), and either way sends the edit. The server checks the
+    /// holds none (it then writes the none id with count 0), and either way sends the edit. The server checks the
     /// bag itself: a valid ticket pays, otherwise only a running free window does.
     /// </summary>
     public static BeautyshopCharge DecideCharge(bool holdsValidTicket, bool freeWindowOpen)
@@ -278,7 +278,7 @@ public static class BeautyshopEditRules
     }
 
     /// <summary>
-    /// Mirrors the client's own gate (FUN_396f6c60): a dead character and one under buff 3619
+    /// Mirrors the client's own gate: a dead character and one under buff 3619
     /// (강제 연행, forced escort to trial) cannot open the shop. A second enter while inside is ignored
     /// so the session start time stays the first one.
     /// </summary>

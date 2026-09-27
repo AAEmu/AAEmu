@@ -7,10 +7,10 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// The salon's "pay and apply" request. 10.0.2.13 body (x2game-dev.dll serializer FUN_39c77890):
+/// The salon's "pay and apply" request. 10.0.2.13 body:
 /// CharRace u8, CharGender u8, three i32 item ids (the model view's hair, horn and tail slots, 20, 22
-/// and 23), the appearance block shared with CSCreateCharacter (FUN_39399a30), then the ticket item
-/// id i32 and "count" u32 the client picked in FUN_396f9110.
+/// and 23), the appearance block shared with CSCreateCharacter, then the ticket item
+/// id i32 and "count" u32 the client picked in.
 /// </summary>
 public class CSBeautyshopDataPacket() : GamePacket(CSOffsets.CSBeautyshopDataPacket, 1)
 {

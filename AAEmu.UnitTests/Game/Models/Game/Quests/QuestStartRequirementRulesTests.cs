@@ -28,7 +28,7 @@ public class QuestStartRequirementRulesTests
     [Test]
     public async Task EmptyList_PassesInBothModes()
     {
-        // 0x39796DA0 answers success before looking at the mode when the list is empty.
+        // Answers success before looking at the mode when the list is empty.
         await Assert.That(QuestStartRequirementRules.Evaluate(false, []).ResultKey).IsEqualTo(SkillResultKeys.ok);
         await Assert.That(QuestStartRequirementRules.Evaluate(true, []).ResultKey).IsEqualTo(SkillResultKeys.ok);
     }

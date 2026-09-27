@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Pins the body x2game-dev.dll 0x39C5E830 reads: type i32, bc, then the flagged tail of 0x3938FDF0.
+/// Pins the body reads: type i32, bc, then the flagged tail.
 /// </summary>
 public class SCQuestUnitReqFailedPacketTests
 {

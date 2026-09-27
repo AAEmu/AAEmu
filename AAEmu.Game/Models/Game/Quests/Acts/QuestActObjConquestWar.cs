@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// <summary>
 /// Progress: finish the conquest war of zone_group_id at complete_rank or better. Quests 6572,
 /// 9025, 9026, 9027 (zone group 78, rank 4) and 9873 (zone group 20, rank 1). The client reader
-/// LoadQuestActObjConquestWarDescs (x2game-dev.dll FUN_39d46e90) reads id, complete_rank,
+/// LoadQuestActObjConquestWarDescs reads id, complete_rank,
 /// quest_act_obj_alias_id, use_alias, zone_group_id. SiegeManager keeps raid-team scores but has
 /// no per-faction war result or ranking to read complete_rank against, so this act keeps the
 /// quest open and reports once (QuestUnsupportedProgressActRules).

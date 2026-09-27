@@ -457,7 +457,7 @@ public class CharacterQuests(Character owner)
 
     /// <summary>
     /// Answers a refused accept with the unit_reqs row that refused it. SCQuestUnitReqFailed is the
-    /// client's channel for exactly this: its handler (x2game-dev.dll 0x397BBB60) formats the result
+    /// client's channel for exactly this: its handler formats the result
     /// through the skill-result display path, which honours the row's display gate, and raises
     /// QUEST_QUICK_CLOSE_EVENT for the quest, which quest_context_directing.lua answers by ending
     /// directing mode. SCQuestContextFailed would close the same window with a second, generic
@@ -923,7 +923,7 @@ public class CharacterQuests(Character owner)
     }
 
     /// <summary>
-    /// Loads the list of completed and active quests from the MySQL DB for this player 
+    /// Loads the list of completed and active quests from the MySQL DB for this player
     /// </summary>
     /// <param name="connection"></param>
     public void Load(MySqlConnection connection)

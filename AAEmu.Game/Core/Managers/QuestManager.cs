@@ -561,7 +561,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
             // Add to parent component's ActTemplate List
             // questComponentTemplate.ActTemplates.Add(template);
 
-            // Add to Base Act Cache 
+            // Add to Base Act Cache
             _actsBaseByActId.Add(template.ActId, template);
         }
     }
@@ -1825,8 +1825,8 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                 }
             }
         }
-        // Progress act types the loader skipped until now; the client factory (x2game-dev.dll
-        // FUN_39d49b40, LoadQuestActDescs) resolves every one of them, so their quests stalled here.
+        // Progress act types the loader skipped until now; the client factory
+        // LoadQuestActDescs resolves every one of them, so their quests stalled here.
         using (var command = connection.CreateCommand())
         {
             command.CommandText = "SELECT * FROM quest_act_obj_monster_contr_group_hunts";
@@ -1973,7 +1973,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
             }
         }
         // Start, Ready and Reward act types the loader skipped until now; the same client factory
-        // (x2game-dev.dll FUN_39d49b40) resolves them and each act class names its client reader.
+        // resolves them and each act class names its client reader.
         using (var command = connection.CreateCommand())
         {
             command.CommandText = "SELECT * FROM quest_act_con_accept_npc_groups";

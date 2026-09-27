@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
 /// X2Team:RaidApplicantAdd(ownerId, role, createTime): u64 type (the post's owner id), u32 role
-/// (TMROLE_*), i64 createTime, the row's stamp (x2game-dev.dll FUN_39c6bc10). Answered with
+/// (TMROLE_*), i64 createTime, the row's stamp. Answered with
 /// SCRaidApplicantAdd, then SCRaidApplicantAccept when the post auto-invites.
 /// </summary>
 public class CSRaidApplicantAddPacket() : GamePacket(CSOffsets.CSRaidApplicantAddPacket, 1)

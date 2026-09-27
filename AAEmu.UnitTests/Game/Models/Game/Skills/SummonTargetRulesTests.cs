@@ -4,7 +4,7 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
 /// <summary>
 /// Which of the caster's own summons a pet (10), my_slave (26) or child_slave (21) cast lands on. The client
-/// resolves the first two from its own state (x2game-dev.dll FUN_39800cc0: the first pet of the pet list, the
+/// resolves the first two from its own state (the first pet of the pet list, the
 /// announced my-slave) and the third from the unit the packet names.
 /// </summary>
 public class SummonTargetRulesTests
@@ -17,7 +17,7 @@ public class SummonTargetRulesTests
     [Test]
     public async Task Pick_NothingOwned_IsNothing()
     {
-        // FUN_39800cc0 answers NO_TARGET for an empty pet list.
+        // Answers NO_TARGET for an empty pet list.
         await Assert.That(SummonTargetRules.Pick([], 0)).IsEqualTo(0u);
         await Assert.That(SummonTargetRules.Pick([], Mount)).IsEqualTo(0u);
         await Assert.That(SummonTargetRules.Pick(null, Mount)).IsEqualTo(0u);
@@ -42,7 +42,7 @@ public class SummonTargetRulesTests
     [Test]
     public async Task Pick_TheFirstWhenNoneOfThemIsNamed()
     {
-        // FUN_3974c7c0 returns the first live entry of the pet collection.
+        // Returns the first live entry of the pet collection.
         await Assert.That(SummonTargetRules.Pick([Mount, BattlePet], 0)).IsEqualTo(Mount);
         await Assert.That(SummonTargetRules.Pick([Mount, BattlePet], Stranger)).IsEqualTo(Mount);
     }
@@ -50,7 +50,7 @@ public class SummonTargetRulesTests
     [Test]
     public async Task PickNamed_OnlyAnOwnedPart()
     {
-        // child_slave has no branch of its own in FUN_39800cc0, so the named unit is used and has to be ours.
+        // child_slave has no branch of its own, so the named unit is used and has to be ours.
         await Assert.That(SummonTargetRules.PickNamed([Sail], Sail)).IsEqualTo(Sail);
         await Assert.That(SummonTargetRules.PickNamed([Sail], Stranger)).IsEqualTo(0u);
         await Assert.That(SummonTargetRules.PickNamed([Sail], 0)).IsEqualTo(0u);

@@ -705,7 +705,7 @@ public static class SCOffsets
     public const ushort SCFactionMobilizationOrderSuccessPacket = 0x3E;
     public const ushort SCFactionRelationRequestPacket = 0x2B;
     public const ushort SCFactionRelationResponsePacket = 0x2C;
-    // 10.0.2.13 heap pass (AAEmuResearch PacketAudit/client-opcodes.tsv). The v1.2 constants
+    // 10.0.2.13 heap pass. The v1.2 constants
     // SCFactionImmigrateToOriginResultPacket 0x29 and SCFactionKickToOriginResultPacket 0x2a above
     // sit on these same values and are flagged stale there (rename-candidates.csv).
     public const ushort SCFactionRelationHistoryPacket = 0x29;
@@ -799,7 +799,7 @@ public static class SCOffsets
     public const ushort SCRaidRecruitDelPacket = 0x2FB;
     public const ushort SCRaidRecruitDetailPacket = 0x2FE;
     public const ushort SCRaidRecruitOptionPacket = 0x2FD;
-    // 10.0.2.13, PacketAudit/client-opcodes.tsv (heap-registered SC types)
+    // 10.0.2.13, (heap-registered SC types)
     public const ushort SCRaidRecruitAddPacket = 0x2FA;
     public const ushort SCRaidRecruitListPacket = 0x2FC;
     public const ushort SCRaidApplicantAddPacket = 0x2FF;

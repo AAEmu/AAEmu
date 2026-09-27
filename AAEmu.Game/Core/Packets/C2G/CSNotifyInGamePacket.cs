@@ -98,10 +98,11 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         // simply waits (HasPhysTimeAnchor == false) until the first client ping arrives — that happens within
         // ~1s, well before any idle watchdog.
 
-        // NOTE: do NOT deliver the local player via a self SCUnitState. It reaches the X+8 bind
-        // crash-prone: for the local unit the client builds an actor-less EmptyUnitModel placeholder (its
-        // delivery mechanism, not the data. The reference server sends NO self SCUnitState; the client builds the
-        // player natively (fully model-loaded) and binds X+8 there. Fixing X+8 must go through that native path.
+        // NOTE: do NOT deliver the local player via a self SCUnitState. For the local unit the client
+        // builds an actor-less EmptyUnitModel placeholder, and delivering the state into that path is
+        // crash-prone (it is the delivery mechanism, not the data). The reference server sends NO self
+        // SCUnitState; the client builds the local player fully model-loaded on its own, so the
+        // placeholder bind must be left alone.
 
         // Joining channel 1 (shout) will automatically also join /lfg and /trade for that zone on the client-side
         // Back in 1.x /trade was zone based, not faction based
@@ -124,7 +125,7 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
 
         Connection.ActiveChar.UpdateGearBonuses(null, null);
 
-        // Combat resources (combat_resources) after Spawn(): seeding applies each pool's bar buff, and
+        // Combat resources (combat_resources) after Spawn seeding applies each pool's bar buff, and
         // both that buff and the point packet address the local player unit, which only exists once the
         // character is spawned. default_point had never been read, so every pool started each session at
         // 0 and the abilities gated on them could not reach their first tier.

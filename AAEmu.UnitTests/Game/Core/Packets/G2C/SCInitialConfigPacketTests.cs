@@ -43,7 +43,7 @@ public class SCInitialConfigPacketTests
         var source = CreateFeatures(!isSnowing);
         var original = GetBlob(source);
         var expected = original.ToArray();
-        // Native 10.0.2.13 handlers 0x394E7640 and 0x394AFF00 consume snow at fset byte 7, mask 0x04.
+        // The client's 10.0.2.13 handlers consume snow at fset byte 7, mask 0x04.
         SetBit(expected, 7, 0x04, isSnowing);
         var packet = new SCInitialConfigPacket(source, isSnowing);
 

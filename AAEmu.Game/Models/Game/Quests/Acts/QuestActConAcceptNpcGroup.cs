@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// loaded quest_monster_npcs). quest_act_con_accept_npc_groups has 145 rows over 56 groups; 42 sit
 /// on "first steps" guide quests (category 216) and 11 on Auroria territory quests. Group 698
 /// (quest 7823) lists 78 ability managers, group 750 (quests 8297 to 8300) 6 territory managers.
-/// The client reader LoadQuestActConAcceptNpcGroupDescs (x2game-dev.dll FUN_39d47cb0) reads id and
+/// The client reader LoadQuestActConAcceptNpcGroupDescs reads id and
 /// quest_monster_group_id.
 /// </summary>
 public class QuestActConAcceptNpcGroup(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)

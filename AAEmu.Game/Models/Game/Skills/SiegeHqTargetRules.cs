@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// 29234), an area search for slaves (type flag 4). The HQ doodads 4307 and 10561 have faction 0 and
 /// use_creator_faction 'f', and DoodadFuncDeclareSiege does nothing on this server, so ownership cannot be
 /// read off a placed HQ. The one record of the attacking side the server keeps is
-/// siege_raid_team_members.is_offense, and that is what decides. x2game-dev.dll FUN_396af850
+/// siege_raid_team_members.is_offense, and that is what decides.
 /// (X2::GameClient::IsInSiegeHqClout) is the client's HQ-area test and reads the same clout radius; it says
 /// nothing about ownership. Anything short of a registered attacker in a running siege is refused.
 /// </remarks>

@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// <summary>
 /// Reward: adds local_lp to the account's server-local ("online") labor pool
 /// (quest_act_supply_local_lps, 2 rows: 100 on quest 11141, 150 on festival quest 11175). The client
-/// reader LoadQuestActSupplyLocalLpDescs (x2game-dev.dll FUN_39d43ee0) reads id and local_lp.
+/// reader LoadQuestActSupplyLocalLpDescs reads id and local_lp.
 /// Character.AddLocalLaborPower is the one path that raises that pool; it clamps to
 /// premium_grades.max_local_labor and sends the labor delta.
 /// </summary>

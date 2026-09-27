@@ -9,8 +9,8 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// peace agreement. Only the character id travels; the faction id is the client's own pre-check.
 /// </summary>
 /// <remarks>
-/// Body serializer x2game-dev.dll 0x39c688d0 (folded with every single-u64 packet): one u64 named
-/// "type", filled from the charId argument at the send site 0x391c4aa0.
+/// Body serializer (folded with every single-u64 packet): one u64 named
+/// "type", filled from the charId argument at the send site.
 /// </remarks>
 public class CSFactionRelationRequestPacket() : GamePacket(CSOffsets.CSFactionRelationRequestPacket, 1)
 {

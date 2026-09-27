@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.PlotAuctions;
 /// Reads the auction's content out of the shipped compact.sqlite3, read-only:
 /// <c>plot_auction_config</c> (one row per auction) gated by its <c>game_activities</c> row
 /// (<c>status == 1</c> is the activity switch — activity id 1001 拍卖活动 is this auction's row,
-/// see re/research/world-systems-gap-2026-09-19.md §2). Every unparsable or orphaned row is
+/// see §2). Every unparsable or orphaned row is
 /// skipped with an error on the World log: no shipped value ever falls back to a source default.
 /// </summary>
 public static class PlotAuctionContent

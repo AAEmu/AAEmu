@@ -6,9 +6,9 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
 /// The in-game shop's "enter beauty shop" request: X2InGameShop.EnterBeautyShop opens
-/// EnterBeautyShopDlgTask (x2game-dev.dll FUN_39885a10) and its confirm (FUN_39888e90) sends this
-/// with gender false once the client's own gate (FUN_396f6c60) passes. The one field is the
-/// serializer's (FUN_39c56a40) bool "gender".
+/// EnterBeautyShopDlgTask and its confirm sends this
+/// with gender false once the client's own gate passes. The one field is the
+/// serializer's bool "gender".
 /// </summary>
 public class CSBeautyshopBypassPacket() : GamePacket(CSOffsets.CSBeautyshopBypassPacket, 1)
 {

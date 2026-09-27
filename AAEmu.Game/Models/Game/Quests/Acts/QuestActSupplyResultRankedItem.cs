@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// and 11133, each progressing through QuestActObjFactionCompetition, which the server holds open
 /// because nothing scores faction competitions). Rows 9 to 11 give 51578 x15 on a win at rank 1
 /// and x5 on a loss at ranks 2 and 3 for quest 11132. The client reader
-/// LoadQuestActSupplyResultRankedItemDescs (x2game-dev.dll FUN_39d498e0) reads id, count, grade_id,
+/// LoadQuestActSupplyResultRankedItemDescs reads id, count, grade_id,
 /// item_id, rank, result. Without a result the accept is refused (QuestRewardSupportRules) and a
 /// quest that still reaches this act reports once and completes without the item.
 /// </summary>

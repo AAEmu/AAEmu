@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// loaded quest_monster_npcs), the way QuestActConReportNpc turns in at one NPC.
 /// quest_act_con_report_npc_groups has 266 enabled rows over 97 groups (101 anniversary, 52 patch
 /// change, 18 daily life quests); group 702 (quest 7823) lists 9 faction leader deputies. The
-/// client reader LoadQuestActConReportNpcGroupDescs (x2game-dev.dll FUN_39d47e40) reads id,
+/// client reader LoadQuestActConReportNpcGroupDescs reads id,
 /// quest_act_obj_alias_id, quest_monster_group_id, use_alias.
 /// </summary>
 public class QuestActConReportNpcGroup(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)

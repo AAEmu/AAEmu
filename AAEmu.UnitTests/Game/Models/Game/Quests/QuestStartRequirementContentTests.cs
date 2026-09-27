@@ -49,7 +49,7 @@ public class QuestStartRequirementContentTests
     [Test]
     public async Task FactionChangeChain_FailsClosedWithPlainFailure()
     {
-        // 123/124/125 have their client rule recovered but no server state; the native handlers of all
+        // 123/124/125 have their client rule recovered but no server state; the client handlers of all
         // three write FAILURE with zero details, which is what the fail-closed path reports.
         var chain = QuestStartRequirementContentSnapshot.AffectedRows
             .Where(row => QuestStartRequirementContentSnapshot.StillClosedKinds.Contains(row.Kind))
@@ -70,8 +70,8 @@ public class QuestStartRequirementContentTests
     [Test]
     public async Task OtherAffectedRows_DoNotFailClosed()
     {
-        // A plain skill_failure without a native byte is the fail-closed shape; every other affected kind
-        // answers with its own key or the native byte its client handler writes.
+        // A plain skill_failure without a client result byte is the fail-closed shape; every other affected kind
+        // answers with its own key or the result byte its client handler writes.
         foreach (var row in QuestStartRequirementContentSnapshot.AffectedRows)
         {
             if (QuestStartRequirementContentSnapshot.StillClosedKinds.Contains(row.Kind))

@@ -33,7 +33,7 @@ public class MonitorNpcGameData : Singleton<MonitorNpcGameData>, IGameDataLoader
     {
         var templates = new HashSet<uint>();
         using var command = connection.CreateCommand();
-        // This is the same projection used by x2game 10.0.2.13 at FUN_39c9fb60.
+        // Template ids the client lists in its monitor_npcs table.
         command.CommandText = "SELECT npc_id FROM monitor_npcs";
         command.Prepare();
         using var reader = new SQLiteWrapperReader(command.ExecuteReader());

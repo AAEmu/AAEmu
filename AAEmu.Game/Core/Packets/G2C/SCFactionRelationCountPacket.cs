@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// which X2Nation:GetRelationCount turns into the "3 per day" and "denied 3 times" gates.
 /// </summary>
 /// <remarks>
-/// Body from the client's serializer (x2game-dev.dll 0x39c86b00 -> 0x39c85b60, pair 0x39c7d910):
+/// Body from the client's serializer:
 /// Size(i32) then per entry k.first(u64), k.second(u64), v(u32).
 /// </remarks>
 public sealed class SCFactionRelationCountPacket(IReadOnlyList<FactionDiplomacyCount> counts)

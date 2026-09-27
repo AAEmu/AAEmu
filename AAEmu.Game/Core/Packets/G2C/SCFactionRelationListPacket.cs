@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCFactionRelationListPacket : GamePacket
 {
-    /// <summary>The client reads at most 200 entries per packet (x2game-dev.dll 0x39c701f0 clamps count to 200).</summary>
+    /// <summary>The client reads at most 200 entries per packet.</summary>
     public const int MaxEntriesPerPacket = 200;
 
     private readonly FactionRelation[] _relations;
@@ -39,8 +39,8 @@ public class SCFactionRelationListPacket : GamePacket
 }
 
 /// <summary>
-/// One relation entry as the client reads it (x2game-dev.dll 0x39398a90, shared by
-/// SCFactionRelationList, SCFactionRelationHistory and WZFactionRelationList):
+/// One relation entry as the client reads it, shared by
+/// SCFactionRelationList, SCFactionRelationHistory and WZFactionRelationList:
 /// type(i32) | type(i32) | state(i8) | nState(i8) | updateTime(i64) | changeTime(i64) |
 /// type(u64) updaterId | updaterName(str) | type(u64) confirmerId | confirmerName(str).
 /// The client sorts the two ids ascending after reading them.
