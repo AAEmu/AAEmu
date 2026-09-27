@@ -1,14 +1,14 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// Requests or answers the joint break handshake between two federated raid teams.
 /// </summary>
 /// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
+/// Body: bool ask, bool accept.
 /// </remarks>
 public class CSTeamJointBreakPacket() : GamePacket(CSOffsets.CSTeamJointBreakPacket, 1)
 {
@@ -19,5 +19,8 @@ public class CSTeamJointBreakPacket() : GamePacket(CSOffsets.CSTeamJointBreakPac
     {
         Ask = stream.ReadBoolean();
         Accept = stream.ReadBoolean();
+
+        if (Connection?.ActiveChar is { } character)
+            TeamJointManager.Instance.RespondToJointBreak(character.Id, Ask, Accept);
     }
 }

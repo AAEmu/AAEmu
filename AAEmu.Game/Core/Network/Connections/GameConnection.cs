@@ -127,6 +127,8 @@ public class GameConnection
             FamilyManager.Instance.OnCharacterLogout(ActiveChar);
             ExpeditionManager.Instance.OnCharacterLogout(ActiveChar);
             JusticeManager.Instance.OnCharacterLogout(ActiveChar);
+            if (TeamJointManager.TryGet(out var jointManager))
+                jointManager.OnCharacterLogout(ActiveChar.Id);
 
             ActiveChar.ParentWorld?.GimmickManager?.ReleaseGrasps(ActiveChar.ObjId);
             AAEmu.Game.WorldIntegration.ReleaseZoneGimmickGrasps?.Invoke(ActiveChar);
