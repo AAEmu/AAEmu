@@ -71,35 +71,26 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
             q.AllowItemRewards = false;
             q.QuestRewardRatio = 0.0;
 
-            // Rank 1
-            if (aggroRate <= Rank1)
+            // rank1/rank2/rank3 are percentile cut-offs; the objective count carries the band
+            // that was reached, so a quest that paid nothing stays unfulfilled.
+            var band = QuestAggroRankRules.Band(aggroRate, Rank1, Rank2, Rank3);
+            if (band == 0)
             {
-                SetObjective(q, 1);
-                q.QuestRewardRatio = Rank1Ratio / 100.0;
-                q.AllowItemRewards = Rank1Item;
-                Logger.Debug($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
+                Logger.Warn($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, aggro {aggroRate:F1} is past the lowest rank {Rank3}, no rank reward, Player {q.Owner.Name} ({q.Owner.Id})");
                 return;
             }
 
-            // Rank 2
-            if (aggroRate <= Rank2)
+            SetObjective(q, band);
+            var (ratio, itemAllowed) = band switch
             {
-                SetObjective(q, 2);
-                q.QuestRewardRatio = Rank2Ratio / 100.0;
-                q.AllowItemRewards = Rank2Item;
-                Logger.Debug($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
-                return;
-            }
-
-            // Rank 3
-            if (aggroRate <= Rank3)
-            {
-                SetObjective(q, 3);
-                q.QuestRewardRatio = Rank3Ratio / 100.0;
-                q.AllowItemRewards = Rank3Item;
-                Logger.Debug($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
-                return;
-            }
+                1 => (Rank1Ratio, Rank1Item),
+                2 => (Rank2Ratio, Rank2Item),
+                _ => (Rank3Ratio, Rank3Item)
+            };
+            q.QuestRewardRatio = ratio / 100.0;
+            q.AllowItemRewards = itemAllowed;
+            Logger.Debug($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, aggro {aggroRate:F1} is Rank{band}, Player {q.Owner.Name} ({q.Owner.Id})");
+            return;
         }
         Logger.Warn($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, no rank reward found, Player {q.Owner.Name} ({q.Owner.Id})");
     }
