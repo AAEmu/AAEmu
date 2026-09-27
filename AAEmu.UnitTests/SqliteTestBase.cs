@@ -5,7 +5,7 @@ namespace AAEmu.UnitTests;
 /// <summary>
 /// Base class for tests that require a real SQLite database connection
 /// </summary>
-public abstract class SqliteTestBase : IDisposable
+public abstract class SqliteTestBase
 {
     protected SqliteConnection Connection { get; }
     protected string ConnectionString { get; }
@@ -159,20 +159,11 @@ public abstract class SqliteTestBase : IDisposable
     }
 
     /// <summary>
-    /// Disposes managed resources
+    /// Disposes the SQLite connection once the test has finished
     /// </summary>
-    /// <param name="disposing">True if called from Dispose, false if called from finalizer</param>
-    protected virtual void Dispose(bool disposing)
+    [After(Test)]
+    public void DisposeConnection()
     {
-        if (disposing)
-        {
-            Connection?.Dispose();
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        Connection?.Dispose();
     }
 }

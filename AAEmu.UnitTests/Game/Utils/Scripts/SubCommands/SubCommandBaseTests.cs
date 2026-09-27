@@ -104,15 +104,15 @@ public class SubCommandBaseTests
         mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
-    public static IEnumerable<(string, string, string[])> OptionalParameterNotPresentData() =>
+    public static IEnumerable<Func<(string, string, string[])>> OptionalParameterNotPresentData() =>
     [
-        ("param1", "param2", ["test"]),
-        ("param1,param2", "param3,param4", ["test", "test2"]),
-        ("param1,param2", "param3,param4", ["test", "test2", "test3"]),
-        ("param1,param2", "param3,param4", ["test", "test2", "test3", "test4"]),
-        ("param1,param2", "param3,param4", ["test", "test2", "test3", "test4", "test5"]),
-        ("param1,param2", "param3,param4,param5", ["test", "test2", "test3", "test4", "test5"]),
-        ("param1,param2", "param3,param4,param5", ["test", "test2", "test3", "test4", "test5", "test6", "test7"]),
+        () => ("param1", "param2", ["test"]),
+        () => ("param1,param2", "param3,param4", ["test", "test2"]),
+        () => ("param1,param2", "param3,param4", ["test", "test2", "test3"]),
+        () => ("param1,param2", "param3,param4", ["test", "test2", "test3", "test4"]),
+        () => ("param1,param2", "param3,param4", ["test", "test2", "test3", "test4", "test5"]),
+        () => ("param1,param2", "param3,param4,param5", ["test", "test2", "test3", "test4", "test5"]),
+        () => ("param1,param2", "param3,param4,param5", ["test", "test2", "test3", "test4", "test5", "test6", "test7"]),
     ];
 
     [Test]
@@ -199,12 +199,12 @@ public class SubCommandBaseTests
         mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
-    public static IEnumerable<(string, string, string, string[])> MixedNonPrefixAndAnyOrderPrefixData() =>
+    public static IEnumerable<Func<(string, string, string, string[])>> MixedNonPrefixAndAnyOrderPrefixData() =>
     [
-        ("req1", "opt2", "required-prefix-x", ["x=test", "firstRequired", "SecondOptional", "shouldIgnoreMe"]),
-        ("req1", "opt2", "required-prefix-x", ["firstRequired", "x=test", "SecondOptional", "shouldIgnoreMe", "shouldIgnoreMe"]),
-        ("req1", "opt2", "required-prefix-x", ["firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z"]),
-        ("req1", "opt2", "required-prefix-x", ["firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z", "ignoreMe"]),
+        () => ("req1", "opt2", "required-prefix-x", ["x=test", "firstRequired", "SecondOptional", "shouldIgnoreMe"]),
+        () => ("req1", "opt2", "required-prefix-x", ["firstRequired", "x=test", "SecondOptional", "shouldIgnoreMe", "shouldIgnoreMe"]),
+        () => ("req1", "opt2", "required-prefix-x", ["firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z"]),
+        () => ("req1", "opt2", "required-prefix-x", ["firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z", "ignoreMe"]),
     ];
 
     [Test]

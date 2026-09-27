@@ -1148,6 +1148,10 @@ public class WorldManagerTests
 
     #region Constants Tests
 
+    // These intentionally assert constant values: they guard world-grid sizes the client relies on
+    // against accidental changes, so the "constant in Assert.That" analyzer does not apply here.
+#pragma warning disable TUnitAssertions0005
+
     [Test]
     public async Task Constants_CellSize_ReturnsCorrectValue()
     {
@@ -1175,6 +1179,8 @@ public class WorldManagerTests
         // Assert
         await Assert.That(WorldManager.DefaultCombatTimeout).IsEqualTo(15f);
     }
+
+#pragma warning restore TUnitAssertions0005
 
     #endregion
 

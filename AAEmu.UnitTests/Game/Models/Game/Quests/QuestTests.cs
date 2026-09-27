@@ -36,12 +36,9 @@ public class QuestTests
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
 
-        // Act
-        quest.QuestInitialized();
-
-        // Assert
-        // Note: _questInitializationFinished is private, test indirectly
-        await Assert.That(true).IsTrue(); // If no exception, it's fine
+        // Act & Assert
+        // Note: _questInitializationFinished is private, so only verify the call completes
+        await Assert.That(() => quest.QuestInitialized()).ThrowsNothing();
     }
 
     [Test]
@@ -51,11 +48,8 @@ public class QuestTests
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
         // Mock quest steps and components
 
-        // Act
-        quest.FinalizeQuestActs();
-
-        // Assert
-        await Assert.That(true).IsTrue();
+        // Act & Assert
+        await Assert.That(() => quest.FinalizeQuestActs()).ThrowsNothing();
     }
 
     [Test]
@@ -230,7 +224,7 @@ public class QuestTests
         out Mock<ICharacter> mockCharacter,
         out Mock<IQuestTemplate> mockQuestTemplate,
         out Mock<IQuestManager> mockQuestManager,
-        out Mock<TaskManager>? mockTaskManager,
+        out Mock<TaskManager> mockTaskManager,
         out Mock<ISkillManager> mockSkillManager,
         out Mock<IExpressTextManager> mockExpressTextManager,
         out Mock<IWorldManager> mockWorldManager)

@@ -22,6 +22,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         // Fields kept for reference but using real instances instead of mocks to avoid TUnit.Mocks source generator issues.
         private readonly WorldInstance _mockWorld;
         private readonly Slave _mockSlave;
+        private readonly Jitter2.World _rigidBodyWorld;
         private readonly RigidBody _mockRigidBody;
         private readonly PhysicsManager _boatPhysicsManager;
         private WorldTemplate _worldTemplate;
@@ -58,7 +59,8 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             };
             _mockWorld = new WorldInstance(_worldTemplate, 0, false, worldIdManager.GetNextId());
             _mockSlave = new Slave();
-            _mockRigidBody = new Jitter2.World().CreateRigidBody();
+            _rigidBodyWorld = new Jitter2.World();
+            _mockRigidBody = _rigidBodyWorld.CreateRigidBody();
 
             // Configure ModelManager to return _mockShipModel.Object for GetShipModel
             //_mockModelManager = new Mock<ModelManager>();
@@ -91,6 +93,12 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             mockWaterBodyLine.RiverWidth = 20f;
             mockWaterBodyLine.UpdateBounds();
             _boatPhysicsManager.SimulationWorld.Water.Areas.Add(mockWaterBodyLine);
+        }
+
+        [After(Test)]
+        public void DisposeRigidBodyWorld()
+        {
+            _rigidBodyWorld.Dispose();
         }
 
         //[Fact]
