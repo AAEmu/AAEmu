@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Utils.Scripts;
 
@@ -629,10 +630,11 @@ public class Teleport : ICommand
                 }
                 else
                 {
-                    var height = character.ParentWorld.Template.GeoData.GetHeight(new Vector3(
+                    var height = character.ParentWorld.Template.Floor.GetFloor(
                         character.LocalPingPosition.X,
                         character.LocalPingPosition.Y,
-                        5000f)); // WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y, character.LocalPingPosition.Z);
+                        5000f,
+                        FloorContext.Debug);
                     if (height == 0f)
                     {
                         CommandManager.SendNormalText(this,

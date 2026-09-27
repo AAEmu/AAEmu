@@ -70,7 +70,18 @@ Example:
 
 ### `GeoDataMode`
 - **Type**: `boolean`
-- **Description**: Enables loading GeoData/NavMesh (dungeons/navigation).
+- **Description**: Enables loading GeoData/NavMesh and A* pathfinding. Does **not** select floor height — see `FloorPolicy`.
+
+### `FloorPolicy`
+- **Type**: `string` (`ByZHint` | `Legacy`; obsolete alias `TerrainFirst` = `ByZHint`)
+- **Default**: `ByZHint`
+- **Description**: Floor Z policy for units. `ByZHint` picks among heightmap + nav-surface candidates nearest to unit Z (`zHint`) in a vertical window — **not terrain-only** (outdoor #1425 and caves/multi-floor #1033). `Legacy` prefers nearest `.bai` node (pre-split; rollback). Independent of `GeoDataMode`. Obsolete JSON key `FloorSource` maps to the same setting.
+
+### `FloorDebug`
+- **Type**: `boolean`
+- **Default**: `false`
+- **Description**: When `true`, FloorQuery writes a Debug log line per sample (`mode` / `src` / terrain / nav / floor). GM: `/world set floordebug true`.
+- **Verification**: `bash Scripts/find-floor-mismatch.sh --summary` (exit 0 = suspects when `src=Terrain` and `|floor-terrain|` over threshold; exit 1 = OK). Large `deltaNav` outdoors when `src=Terrain` under `ByZHint` is expected.
 
 ### `PreLoadTerrain`
 - **Type**: `boolean`

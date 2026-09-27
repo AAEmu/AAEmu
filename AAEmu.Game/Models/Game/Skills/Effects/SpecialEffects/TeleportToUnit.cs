@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -58,7 +59,7 @@ public class TeleportToUnit : SpecialEffectAction
                 var oldPosition = npc.Transform.Local.ClonePosition();
 
                 var endZ = targetPosition.Z;
-                var groundZ = npc.ParentWorld?.Template.GeoData.GetHeight(new Vector3(endX, endY, endZ)) ?? 0f;
+                var groundZ = npc.ParentWorld?.Template.Floor.GetFloor(endX, endY, endZ, FloorContext.Skill) ?? 0f;
                 if (groundZ > 0 && Math.Abs(endZ - groundZ) < 5f)
                     endZ = groundZ;
 
