@@ -36,13 +36,20 @@ public sealed record ContentRosterDeleteOutcome(ContentRosterDeleteResult Result
     /// Every refusal names its own shipped error so the client can tell the cases apart; two
     /// refusals sharing one error would be a "no" with no reason.
     /// </summary>
+    /// <remarks>
+    /// A delete that is refused because the caller does not own the roster answers with the delete
+    /// failure, not with <c>CONTENT_ROSTER_NOT_USABLE_OWNER</c>: that text is about being unable to
+    /// *save* a roster, and the delete failure also keeps a crafted request from learning whether the
+    /// id exists. <see cref="ContentRosterDeleteResult.Cooldown"/> has no case here because
+    /// <see cref="ContentRosterService.Delete"/> never returns it - the save path owns the cooldown -
+    /// so it falls to the default rather than carrying a row nothing can reach.
+    /// </remarks>
     public ErrorMessageType Error => Result switch
     {
         ContentRosterDeleteResult.Success => ErrorMessageType.NoErrorMessage,
         ContentRosterDeleteResult.InvalidRequest => ErrorMessageType.ContentRosterDeleteFailed,
         ContentRosterDeleteResult.UnknownRoster => ErrorMessageType.ContentRosterNotFound,
-        ContentRosterDeleteResult.NotOwner => ErrorMessageType.ContentRosterNotUsableOwner,
-        ContentRosterDeleteResult.Cooldown => ErrorMessageType.ContentRosterSaveCoolTime,
+        ContentRosterDeleteResult.NotOwner => ErrorMessageType.ContentRosterDeleteFailed,
         _ => ErrorMessageType.ContentRosterDeleteFailed
     };
 }
