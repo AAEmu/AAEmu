@@ -22,7 +22,7 @@ public class ResidentPacketShapeTests
 
         // i16 + u64 + u32: 14 bytes; a fifteenth would desync the batch.
         await Assert.That(body.Length).IsEqualTo(14);
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -42,7 +42,7 @@ public class ResidentPacketShapeTests
 
         // i16 + u64 + u32 x3 + u64 x2 = 38 bytes.
         await Assert.That(body.Length).IsEqualTo(38);
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -67,13 +67,13 @@ public class ResidentPacketShapeTests
         expected.Write(true);      // online
         expected.Write(false);     // party
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
 
         // Header is i16 + u32 + u32 + bool = 11 bytes; the final flag sits at offset 10,
         // so the first row can only start where the client reads it.
-        await Assert.That(body[0..2]).IsEquivalentTo(new PacketStream().Write((short)33).GetBytes());
-        await Assert.That(body[2..6]).IsEquivalentTo(new PacketStream().Write(1u).GetBytes());
-        await Assert.That(body[6..10]).IsEquivalentTo(new PacketStream().Write(1u).GetBytes());
+        await Assert.That(Hex.Of(body[0..2].ToArray())).IsEqualTo(Hex.Of(new PacketStream().Write((short)33).GetBytes()));
+        await Assert.That(Hex.Of(body[2..6].ToArray())).IsEqualTo(Hex.Of(new PacketStream().Write(1u).GetBytes()));
+        await Assert.That(Hex.Of(body[6..10].ToArray())).IsEqualTo(Hex.Of(new PacketStream().Write(1u).GetBytes()));
         await Assert.That(body[10]).IsEqualTo((byte)1);
     }
 }

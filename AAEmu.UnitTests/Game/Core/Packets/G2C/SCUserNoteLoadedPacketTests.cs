@@ -24,7 +24,7 @@ public class SCUserNoteLoadedPacketTests
 
         // The container byte is the field the score window reads back: without it every value
         // behind it is shifted by one and the client parses garbage.
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -44,7 +44,7 @@ public class SCUserNoteLoadedPacketTests
         expected.Write("T");
         expected.Write(notes, true, true); // the score keeps its null terminator
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -64,7 +64,7 @@ public class SCUserNoteLoadedPacketTests
         expected.Write("제목");
         expected.Write(notes, true, true);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -82,7 +82,7 @@ public class SCUserNoteLoadedPacketTests
         expected.Write(new string('♪', 32)); // clamped on a character boundary
         expected.Write("x", true, true);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -101,7 +101,7 @@ public class SCUserNoteLoadedPacketTests
         expected.Write(string.Empty);
         expected.Write("\0");
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]

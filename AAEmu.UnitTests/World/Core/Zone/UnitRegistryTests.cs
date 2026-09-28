@@ -37,6 +37,6 @@ public class UnitRegistryTests
         await Assert.That(registry.Count).IsEqualTo(1);
         await Assert.That(registry.Contains(3)).IsTrue();
         await Assert.That(registry.TryGet(3, out var body)).IsTrue();
-        await Assert.That(body).IsEquivalentTo(new byte[] { 4, 5, 6 });
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(new byte[] { 4, 5, 6 }));
     }
 }

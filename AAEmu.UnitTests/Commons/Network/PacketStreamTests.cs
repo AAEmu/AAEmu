@@ -113,7 +113,7 @@ namespace AAEmu.UnitTests.Commons.Network
             stream.Rollback();
             var result = stream.ReadBytes(3);
             var expected = "ABC"u8.ToArray();
-            await Assert.That(result).IsEquivalentTo(expected);
+            await Assert.That(Hex.Of(result)).IsEqualTo(Hex.Of(expected));
         }
 
         [Test]

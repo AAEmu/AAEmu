@@ -17,7 +17,7 @@ public class SCExpertLimitModifiedPacketTests
         expected.WritePisc(7u, 10000u);
         expected.Write((byte)1);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]

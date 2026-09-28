@@ -25,7 +25,7 @@ public class SailingActivityPacketTests
     public async Task Read_EnterTakesOnlyTheSignedActivityId()
     {
         var body = new PacketStream().Write(4242).GetBytes();
-        await Assert.That(body).IsEquivalentTo(new byte[] { 0x92, 0x10, 0x00, 0x00 });
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(new byte[] { 0x92, 0x10, 0x00, 0x00 }));
 
         var stream = new PacketStream(body);
         var packet = new CSSailingActivityEnterPacket();
@@ -61,7 +61,7 @@ public class SailingActivityPacketTests
     public async Task Read_PreservesANegativeActivityIdInsteadOfWrappingIt()
     {
         var body = new PacketStream().Write(-7).GetBytes();
-        await Assert.That(body).IsEquivalentTo(new byte[] { 0xF9, 0xFF, 0xFF, 0xFF });
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(new byte[] { 0xF9, 0xFF, 0xFF, 0xFF }));
 
         var leave = new CSSailingActivityLeavePacket();
         leave.Read(new PacketStream(body));
@@ -159,8 +159,7 @@ public class SailingActivityPacketTests
     {
         var bytes = new SCSailingActivityErrorPacket(1, -5).Write(new PacketStream()).GetBytes();
 
-        await Assert.That(bytes).IsEquivalentTo(
-            new PacketStream().Write(1).Write(-5).GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(new PacketStream().Write(1).Write(-5).GetBytes()));
         await Assert.That(bytes.Length).IsEqualTo(8);
     }
 
@@ -180,8 +179,7 @@ public class SailingActivityPacketTests
     {
         var bytes = new SCSailingActivityEnterResponsePacket(4242, 0).Write(new PacketStream()).GetBytes();
 
-        await Assert.That(bytes).IsEquivalentTo(
-            new PacketStream().Write(4242).Write(0).GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(new PacketStream().Write(4242).Write(0).GetBytes()));
         await Assert.That(bytes.Length).IsEqualTo(8);
     }
 
@@ -190,7 +188,7 @@ public class SailingActivityPacketTests
     {
         var bytes = new SCSailingActivityPointsChangedPacket(1, 30).Write(new PacketStream()).GetBytes();
 
-        await Assert.That(bytes).IsEquivalentTo(new PacketStream().Write(1).Write(30).GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(new PacketStream().Write(1).Write(30).GetBytes()));
         await Assert.That(bytes.Length).IsEqualTo(8);
     }
 
@@ -200,8 +198,7 @@ public class SailingActivityPacketTests
         var container = SailingActivityContainer.FromIds(1, 2, 3);
         var bytes = new SCSailingActivityStageUnlockedPacket(4, container).Write(new PacketStream()).GetBytes();
 
-        await Assert.That(bytes).IsEquivalentTo(
-            new PacketStream().Write(4).Write(3).Write(1).Write(2).Write(3).GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(new PacketStream().Write(4).Write(3).Write(1).Write(2).Write(3).GetBytes()));
         // 4 id + 4 count + 3*4 elements
         await Assert.That(bytes.Length).IsEqualTo(20);
     }
@@ -214,7 +211,7 @@ public class SailingActivityPacketTests
         var bytes = new SCSailingActivityStageUnlockedPacket(4, null).Write(new PacketStream()).GetBytes();
 
         await Assert.That(bytes.Length).IsEqualTo(8);
-        await Assert.That(bytes).IsEquivalentTo(new PacketStream().Write(4).Write(0).GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(new PacketStream().Write(4).Write(0).GetBytes()));
     }
 
     [Test]
@@ -228,8 +225,7 @@ public class SailingActivityPacketTests
             .Write(new PacketStream()).GetBytes();
 
         // Three helpers are called on 0x38E, so three counts: 1, 0, 2.
-        await Assert.That(bytes).IsEquivalentTo(
-            new PacketStream().Write(1).Write(1).Write(0x0A).Write(0).Write(2).Write(0x0B).Write(0x0C).GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(new PacketStream().Write(1).Write(1).Write(0x0A).Write(0).Write(2).Write(0x0B).Write(0x0C).GetBytes()));
         // 4 id + (4+4) + (4+0) + (4+8) = 28
         await Assert.That(bytes.Length).IsEqualTo(28);
     }
@@ -265,7 +261,7 @@ public class SailingActivityPacketTests
     {
         var bytes = new SCSailingActivityListPacket([]).Write(new PacketStream()).GetBytes();
 
-        await Assert.That(bytes).IsEquivalentTo(new PacketStream().Write(0).GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(new PacketStream().Write(0).GetBytes()));
         await Assert.That(bytes.Length).IsEqualTo(4);
     }
 
@@ -274,7 +270,7 @@ public class SailingActivityPacketTests
     {
         var bytes = new SCSailingActivityListPacket(null).Write(new PacketStream()).GetBytes();
 
-        await Assert.That(bytes).IsEquivalentTo(new PacketStream().Write(0).GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(new PacketStream().Write(0).GetBytes()));
     }
 
     [Test]

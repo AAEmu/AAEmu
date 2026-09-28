@@ -37,7 +37,7 @@ public class SiegeRaidRegisterListPacketTests
         expected.Write(0u);
         expected.Write((byte)0);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -52,6 +52,6 @@ public class SiegeRaidRegisterListPacketTests
         expected.Write((ushort)34);
         expected.Write(0);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 }

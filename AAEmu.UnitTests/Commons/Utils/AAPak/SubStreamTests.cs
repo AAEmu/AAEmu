@@ -14,7 +14,7 @@ public class SubStreamTests
         var read = stream.Read(buffer, 0, buffer.Length);
 
         await Assert.That(read).IsEqualTo(3);
-        await Assert.That(buffer[..read]).IsEquivalentTo(new byte[] { 2, 3, 4 });
+        await Assert.That(Hex.Of(buffer[..read].ToArray())).IsEqualTo(Hex.Of(new byte[] { 2, 3, 4 }));
         await Assert.That(stream.Read(buffer, 0, buffer.Length)).IsEqualTo(0);
     }
 

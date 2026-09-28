@@ -35,7 +35,7 @@ public class SagaChroniclePacketTests
         expected.Write(9);
         expected.Write((sbyte)1);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -50,7 +50,7 @@ public class SagaChroniclePacketTests
         expected.Write(true);
         expected.Write(0);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -66,7 +66,7 @@ public class SagaChroniclePacketTests
         expected.Write(8);
         expected.Write((sbyte)0);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -81,6 +81,6 @@ public class SagaChroniclePacketTests
         expected.Write((sbyte)1);
         expected.Write(9);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 }

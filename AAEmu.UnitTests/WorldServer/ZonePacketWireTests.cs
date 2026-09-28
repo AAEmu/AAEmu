@@ -17,6 +17,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.World.Core.Packets.Wz;
 using AAEmu.World.Core.Packets.Zw;
 using AAEmu.World.Core.Relay;
+using TUnit.Assertions.Enums;
 
 namespace AAEmu.UnitTests.WorldServer;
 
@@ -172,7 +173,7 @@ public class ZonePacketWireTests
         await Assert.That(stream.ReadUInt16()).IsEqualTo((ushort)0x1234);
         await Assert.That(stream.ReadUInt32()).IsEqualTo(0x11223344u);
         await Assert.That(stream.ReadBc()).IsEqualTo(0x050607u);
-        await Assert.That(stream.ReadPisc(3)).IsEquivalentTo(new uint[] { template.Id, 10, 4 });
+        await Assert.That(stream.ReadPisc(3)).IsEquivalentTo(new uint[] { template.Id, 10, 4 }, CollectionOrdering.Matching);
         // Verified in-game: wire moneyAmount is SellPrice (44), not tax (75).
         await Assert.That(stream.ReadInt64()).IsEqualTo(44L);
         await Assert.That(stream.ReadInt32()).IsEqualTo(0);

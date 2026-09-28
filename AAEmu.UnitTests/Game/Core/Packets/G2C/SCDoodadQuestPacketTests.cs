@@ -17,8 +17,8 @@ public class SCDoodadQuestPacketTests
         expectedComplete.WriteBc(189512);
         expectedComplete.Write(2387u);
 
-        await Assert.That(accept).IsEquivalentTo(expectedAccept.GetBytes());
-        await Assert.That(complete).IsEquivalentTo(expectedComplete.GetBytes());
+        await Assert.That(Hex.Of(accept)).IsEqualTo(Hex.Of(expectedAccept.GetBytes()));
+        await Assert.That(Hex.Of(complete)).IsEqualTo(Hex.Of(expectedComplete.GetBytes()));
         await Assert.That(SCOffsets.SCDoodadQuestAcceptPacket).IsEqualTo((ushort)0x153);
         await Assert.That(SCOffsets.SCDoodadCompleteQuestPacket).IsEqualTo((ushort)0x193);
     }

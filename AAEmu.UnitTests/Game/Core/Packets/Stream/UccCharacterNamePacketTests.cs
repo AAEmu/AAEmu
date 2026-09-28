@@ -18,7 +18,7 @@ public class UccCharacterNamePacketTests
             0x06, 0x00, 0x54, 0x65, 0x73, 0x74, 0x65, 0x72
         ];
 
-        await Assert.That(encoded).IsEquivalentTo(expected);
+        await Assert.That(Hex.Of(encoded)).IsEqualTo(Hex.Of(expected));
     }
 
     [Test]

@@ -2,6 +2,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Butlers;
 using AAEmu.Game.Models.Game.Items;
+using TUnit.Assertions.Enums;
 
 namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
 
@@ -47,7 +48,7 @@ public class SCButlerPacketTests
         await Assert.That(stream.ReadBoolean()).IsTrue();
         await Assert.That(stream.ReadBoolean()).IsFalse();
         await Assert.That(stream.ReadInt32()).IsEqualTo(1);
-        await Assert.That(stream.ReadPisc(2)).IsEquivalentTo(new uint[] { 9, uint.MaxValue });
+        await Assert.That(stream.ReadPisc(2)).IsEquivalentTo(new uint[] { 9, uint.MaxValue }, CollectionOrdering.Matching);
         await Assert.That(stream.ReadInt16()).IsEqualTo(short.MinValue);
         await Assert.That(stream.ReadInt32()).IsEqualTo(2);
         await Assert.That(stream.ReadSByte()).IsEqualTo((sbyte)-1);
@@ -258,7 +259,7 @@ public class SCButlerPacketTests
         await Assert.That(stream.ReadInt32()).IsEqualTo(expected.Actabilities.Count);
         foreach (var actability in expected.Actabilities)
         {
-            await Assert.That(stream.ReadPisc(2)).IsEquivalentTo(new[] { actability.GroupId, actability.Point });
+            await Assert.That(stream.ReadPisc(2)).IsEquivalentTo(new[] { actability.GroupId, actability.Point }, CollectionOrdering.Matching);
             await Assert.That(stream.ReadInt16()).IsEqualTo(actability.Stat);
         }
 

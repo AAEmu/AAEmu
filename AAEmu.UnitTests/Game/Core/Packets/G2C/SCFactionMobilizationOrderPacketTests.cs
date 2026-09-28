@@ -21,7 +21,7 @@ public class SCFactionMobilizationOrderPacketTests
         expected.Write(heroId);
         expected.Write(heroName);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(BitConverter.ToUInt16(body, 0)).IsEqualTo(zoneGroup);
         await Assert.That(BitConverter.ToUInt64(body, 2)).IsEqualTo(heroId);
     }

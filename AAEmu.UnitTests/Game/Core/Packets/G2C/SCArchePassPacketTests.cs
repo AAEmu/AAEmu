@@ -23,7 +23,7 @@ public class SCArchePassPacketTests
         expected.Write(true);
         ArchePassRules.WriteRow(expected, row);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -37,7 +37,7 @@ public class SCArchePassPacketTests
         expected.Write(0);
         expected.Write(true);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -59,7 +59,7 @@ public class SCArchePassPacketTests
         expected.Write(0);
         expected.Write(false);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -78,6 +78,6 @@ public class SCArchePassPacketTests
             expected.Write(word);
         }
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 }
