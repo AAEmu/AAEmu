@@ -46,4 +46,9 @@ public class TotalCharacterCustom
     public float FaceFixedDecalAsset5Weight { get; set; }
     public uint HornColorId { get; set; }
     public uint FaceId { get; set; }
+    // The preset also names its own body-part items. They are the ids the client expects in the
+    // matching body-image slot; a slot with no named id falls back to the first part of the model.
+    public uint BodyId { get; set; }
+    public uint HornId { get; set; }
+    public uint TailId { get; set; }
 }
