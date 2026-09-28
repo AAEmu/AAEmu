@@ -137,6 +137,12 @@ public static class SkillTeleportLanding
                 character.Transform.FinalizeTransform();
         }
 
+        // Ignore movement packets already in flight from before the landing. Otherwise an old
+        // position can be re-applied immediately and hand the character back to its previous zone.
+        // CSTeleportEnded releases this lock after the client acknowledges the landing.
+        if (TeleportLandingRules.ShouldLockMovementUntilTeleportEnded(loadedInstance))
+            character.DisabledSetPosition = true;
+
         character.SendPacket(new SCTeleportUnitPacket(reason, 0, x, y, z, yawRad));
         if (TeleportLandingRules.RelaysSameZoneBlink(stayInZone, WorldIntegration.ZoneAuthority))
         {

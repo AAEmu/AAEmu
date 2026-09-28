@@ -73,4 +73,18 @@ public class TeleportLandingRulesTests
         await Assert.That(TeleportLandingRules.Classify(false, 5, 0, destHasDungeon: false))
             .IsEqualTo(TeleportLandingKind.InstanceOther);
     }
+
+    [Test]
+    public async Task ShouldLockMovementUntilTeleportEnded_ForWorldLanding()
+    {
+        await Assert.That(TeleportLandingRules.ShouldLockMovementUntilTeleportEnded(loadedInstance: false))
+            .IsTrue();
+    }
+
+    [Test]
+    public async Task ShouldLockMovementUntilTeleportEnded_LeavesInstanceLoadLockAlone()
+    {
+        await Assert.That(TeleportLandingRules.ShouldLockMovementUntilTeleportEnded(loadedInstance: true))
+            .IsFalse();
+    }
 }

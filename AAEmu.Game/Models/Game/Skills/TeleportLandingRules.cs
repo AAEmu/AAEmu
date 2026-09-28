@@ -26,6 +26,12 @@ public static class TeleportLandingRules
         => stayInZone && zoneAuthority;
 
     /// <summary>
+    /// A world teleport waits for CSTeleportEnded before accepting client movement again. Instance
+    /// loads already hold this lock until CSInstanceLoaded.
+    /// </summary>
+    public static bool ShouldLockMovementUntilTeleportEnded(bool loadedInstance) => !loadedInstance;
+
+    /// <summary>
     /// Same zone and the same live instance: FinalizeTransform must not re-resolve the zone.
     /// </summary>
     public static bool StaysInZone(uint fromZoneId, uint toZoneId, uint fromInstanceId, uint toInstanceId) =>
