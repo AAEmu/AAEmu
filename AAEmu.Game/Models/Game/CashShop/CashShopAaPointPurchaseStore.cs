@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.StaticValues;
@@ -134,7 +134,7 @@ public static class CashShopAaPointPurchaseStore
         // The charge is a guarded decrement of the persisted balance, so a concurrent spend on the
         // same account cannot be overwritten or double-spent here.
         command.CommandText =
-            "UPDATE accounts SET credits=credits-@amount WHERE id=@id AND credits>=@amount";
+            "UPDATE accounts SET credits=credits-@amount WHERE account_id=@id AND credits>=@amount";
         Add(command, "@amount", amount);
         Add(command, "@id", accountId);
         return command.ExecuteNonQuery() == 1;
@@ -176,7 +176,7 @@ public static class CashShopAaPointPurchaseStore
         credits = 0;
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "SELECT credits FROM accounts WHERE id=@id";
+        command.CommandText = "SELECT credits FROM accounts WHERE account_id=@id";
         Add(command, "@id", accountId);
         using var reader = command.ExecuteReader();
         if (!reader.Read())

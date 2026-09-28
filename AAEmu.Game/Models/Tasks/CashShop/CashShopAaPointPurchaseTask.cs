@@ -110,6 +110,10 @@ public class CashShopAaPointPurchaseTask(uint requestedCash, Character buyer) : 
                 new AAPointUpdate(plan.AaPoints)
             ], []));
 
+        // The charge window never asks for a refresh after buying, so the new credits balance is
+        // published here or the shop keeps showing the pre-purchase figure.
+        buyer.SendPacket(new SCICSCashPointPacket(account.Credits));
+
         var logCorrelation = CashShopLogCorrelation.ForBuyer(buyer.AccountId, buyer.Id);
         Logger.Info("ICSBuyAAPoint buyer={0} credits={1} ratio={2} aaPoints={3}",
             logCorrelation, plan.CashSpent, plan.ExchangeRatio, plan.AaPoints);

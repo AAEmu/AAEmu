@@ -28,7 +28,7 @@ public sealed class CashShopAaPointPurchaseStoreTests : IDisposable
         command.CommandText =
             """
             CREATE TABLE accounts (
-                id INTEGER PRIMARY KEY, credits INTEGER NOT NULL);
+                account_id INTEGER PRIMARY KEY, credits INTEGER NOT NULL);
             CREATE TABLE characters (
                 id INTEGER PRIMARY KEY, money INTEGER NOT NULL, aa_point INTEGER NOT NULL,
                 money2 INTEGER NOT NULL, bank_aa_point INTEGER NOT NULL, deleted INTEGER NOT NULL);
@@ -177,7 +177,7 @@ public sealed class CashShopAaPointPurchaseStoreTests : IDisposable
     private long ReadCredits()
     {
         using var command = _connection.CreateCommand();
-        command.CommandText = "SELECT credits FROM accounts WHERE id=@id";
+        command.CommandText = "SELECT credits FROM accounts WHERE account_id=@id";
         command.Parameters.AddWithValue("@id", AccountId);
         return Convert.ToInt64(command.ExecuteScalar());
     }
