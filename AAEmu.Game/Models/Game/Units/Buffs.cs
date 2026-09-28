@@ -1431,14 +1431,28 @@ public class Buffs : IBuffs
 
     public bool HasEffectsMatchingCondition(Func<Buff, bool> predicate)
     {
+        return GetEffectsMatchingCondition(predicate).Any();
+    }
+
+    /// <summary>
+    /// Every active buff matching <paramref name="predicate"/>, not just the first.
+    /// </summary>
+    /// <remarks>
+    /// The array is taken under the lock, so the caller may filter it while a spawn or a buff grant
+    /// is running. The returned sequence is over that private copy and does not observe later grants.
+    /// </remarks>
+    public IEnumerable<Buff> GetEffectsMatchingCondition(Func<Buff, bool> predicate)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
         // Create a copy of the list of effects to avoid changing the list while iterating
-        IEnumerable<Buff> effects;
+        Buff[] effects;
         lock (_lock)
         {
             effects = _effects.ToArray();
         }
 
-        return effects.Any(predicate);
+        return effects.Where(predicate);
     }
 
     #region Buff Persistence

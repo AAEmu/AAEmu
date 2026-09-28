@@ -464,6 +464,18 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     }
 
     /// <summary>
+    /// Every active unit in this instance, in no particular order.
+    /// </summary>
+    /// <remarks>
+    /// The backing map changes while the caller iterates it, so a caller that has to keep its
+    /// selection stable across a mutation must materialise the sequence first.
+    /// </remarks>
+    public IEnumerable<Unit> GetAllUnits()
+    {
+        return _units.Values;
+    }
+
+    /// <summary>
     /// Get active NPC by ObjId
     /// </summary>
     /// <param name="objId"></param>

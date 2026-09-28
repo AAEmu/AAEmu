@@ -34,6 +34,7 @@ public interface IBuffs
     Buff GetEffectFromBuffId(uint id);
     List<Buff> GetEffectsByType(Type effectType);
     bool HasEffectsMatchingCondition(Func<Buff, bool> predicate);
+    IEnumerable<Buff> GetEffectsMatchingCondition(Func<Buff, bool> predicate);
     void RemoveAllEffects();
     void RemoveBuff(uint buffId, bool notifyZone = true);
     void RemoveBuffs(BuffKind kind, int count, uint buffTagId = 0);
