@@ -1377,10 +1377,11 @@ public static class Program
         };
         WorldIntegration.OnZoneRequestStaticGimmick = (requestZoneId, data) =>
         {
-            var x = AAEmu.Commons.Utils.Helpers.ConvertLongX(data.X);
-            var y = AAEmu.Commons.Utils.Helpers.ConvertLongY(data.Y);
-            ZoneStaticGimmickAuthority.Register(data.Id, data.StaticZoneId, x, y, data.Z);
-            WorldIntegration.RelayGimmickCreatedToZone?.Invoke(data, (int)requestZoneId);
+            // The request arrives without an object id — those are World-issued. Adopt it here so the
+            // grasp registry and the zone announcement both carry the id we allocated.
+            var adopted = ZoneStaticGimmickAuthority.AdoptZoneRequest(
+                data, () => AAEmu.Game.Core.Managers.Id.NonUnitObjectIdManager.Instance.GetNextId());
+            WorldIntegration.RelayGimmickCreatedToZone?.Invoke(adopted, (int)requestZoneId);
         };
         WorldIntegration.RelayGimmickRemovedToZone = id =>
         {
