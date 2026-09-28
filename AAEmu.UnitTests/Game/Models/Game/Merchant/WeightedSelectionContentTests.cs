@@ -11,6 +11,14 @@ namespace AAEmu.UnitTests.Game.Models.Game.Merchant;
 /// </summary>
 public class WeightedSelectionContentTests
 {
+    /// <summary>
+    /// How many of the 300 window rolls the pinned die in <see cref="WindowDraw_FollowsPackGroupWeights"/>
+    /// hands to the heavy group of <see cref="RandomShopTestContent.WeightedPack"/>. Fixed by the seed
+    /// rather than by a tolerance, so the assertion is a statement about the weights instead of about the
+    /// luck of the run; it moves only if the content fixture, the seed or the weighting under test does.
+    /// </summary>
+    private const int PinnedHeavyHits = 270;
+
     [Test]
     public async Task PickIndex_HonorsTheContentWeights()
     {
@@ -56,22 +64,44 @@ public class WeightedSelectionContentTests
         manager.UseStore(new InMemoryRandomShopStore());
         manager.UseContent(content);
 
-        var heavyGroupId = content[RandomShopTestContent.WeightedPack].EligibleGroups[0].Id;
+        // The manager draws its windows from an unseeded die, so a 300-roll proportion is a coin with a
+        // 0.4% chance of failing whatever the code underneath does - it is a property of the seed, not of
+        // the behaviour, and that is what turned an unrelated PR red. The die is pinned to a known sequence
+        // instead, so the same 300 rolls always come out the same way and the content weights
+        // 900_000 : 100_000 over sale_cnt 1 have to keep producing exactly that split.
+        manager.UseRng(new Random(20260923));
+
+        var weightedPack = content[RandomShopTestContent.WeightedPack];
+        var heavyGroupId = weightedPack.EligibleGroups[0].Id;
+        var lightGroupId = weightedPack.EligibleGroups[1].Id;
         const int rolls = 300;
         var heavyHits = 0;
+        var lightHits = 0;
         var offerCounts = new HashSet<int>();
 
         for (uint characterId = 1; characterId <= rolls; characterId++)
         {
             var window = manager.GetWindow(characterId, RandomShopTestContent.WeightedPack, RandomShopTestContent.AnyMoment);
             offerCounts.Add(window.Offers.Count);
-            if (window.Offers.Count == 1 && window.Offers[0].GroupId == heavyGroupId)
+            if (window.Offers.Count != 1)
+                continue;
+            if (window.Offers[0].GroupId == heavyGroupId)
                 heavyHits++;
+            else if (window.Offers[0].GroupId == lightGroupId)
+                lightHits++;
         }
 
-        // content weights 900_000 : 100_000 over sale_cnt 1 - the heavy group must dominate.
+        // sale_cnt 1: one offer per window, every one of them out of a group the pack is eligible for.
         await Assert.That(offerCounts.SetEquals([1])).IsTrue();
-        await Assert.That(heavyHits > rolls * 0.85).IsTrue();
+        await Assert.That(heavyHits + lightHits).IsEqualTo(rolls);
+
+        // What the pinned 300 rolls come out as. The heavy group holds nine tenths of the weight, so the
+        // light one has to turn up a tenth of the time - the split is the property being pinned, which is
+        // why it is written down rather than banded. A roll that ignored the weights, or read the two of
+        // them the other way round, lands nowhere near it.
+        await Assert.That(lightHits).IsGreaterThan(0);
+        await Assert.That(heavyHits).IsEqualTo(PinnedHeavyHits);
+        await Assert.That(lightHits).IsEqualTo(rolls - PinnedHeavyHits);
     }
 
     [Test]
