@@ -1,3 +1,5 @@
+using System.IO;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
@@ -15,7 +17,10 @@ public class CSSellHousePacket() : GamePacket(CSOffsets.CSSellHousePacket, 1)
         var tl = stream.ReadUInt16();
         var moneyAmount = stream.ReadUInt64();
         string sellTo = string.Empty;
-        var isPublic = stream.Buffer[stream.Pos + stream.LeftBytes - 1] != 0;
+        // isPublic is the last byte of the body and is read through the indexer rather than through
+        // the read API, so nothing at the stream level can see a body that ends before it. The
+        // bound is written out here for that reason.
+        var isPublic = stream.LeftBytes >= 1 && stream.Buffer[stream.Pos + stream.LeftBytes - 1] != 0;
         if (stream.LeftBytes >= 4)
         {
             var nameLen = stream.Buffer[stream.Pos] | (stream.Buffer[stream.Pos + 1] << 8);
@@ -27,6 +32,13 @@ public class CSSellHousePacket() : GamePacket(CSOffsets.CSSellHousePacket, 1)
         }
         while (stream.HasBytes)
             stream.ReadByte();
+
+        // moneyAmount degrades to 0 on a short read and the 0 branch below is CancelForSale, so a
+        // body that lost its price would take a live listing down instead of doing nothing.
+        // Overran has to be tested before that branch: LeftBytes cannot tell "the client sent 0"
+        // from "the price never arrived", because the position is pinned at the end either way.
+        if (stream.Overran)
+            throw new InvalidDataException("SellHouse: truncated body");
 
         // Character select still dispatches this packet. With no character it must not fall through
         // to the command clear, which accepts a null caller.

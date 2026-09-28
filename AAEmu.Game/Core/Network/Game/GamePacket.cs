@@ -9,6 +9,23 @@ public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameCon
     public byte Level { get; set; } = level;
 
     /// <summary>
+    /// Set by a packet whose body is legitimately allowed to end before every declared field was
+    /// read, so the client-to-game dispatch leaves <see cref="PacketStream.StrictReads"/> off for
+    /// it. No client-to-game or proxy packet needs this today: the packets with a variable tail
+    /// (the five that drain with <c>while (stream.HasBytes)</c> and the two that probe
+    /// <see cref="PacketStream.LeftBytes"/>) all refuse the tail themselves when it is short, and
+    /// a genuinely optional tail is the only thing that belongs here. A packet that overrides it
+    /// owes a comment saying which bytes are optional and what a short body means.
+    /// </summary>
+    protected virtual bool TolerateTruncatedBody => false;
+
+    /// <summary>
+    /// The dispatch's view of the same decision, since it holds the packet as a base type rather
+    /// than as a subclass.
+    /// </summary>
+    internal bool RequiresCompleteBody => !TolerateTruncatedBody;
+
+    /// <summary>
     /// This is called in Encode after Read() in the case of GamePackets
     /// The purpose is to separate packet data from packet behavior
     /// </summary>
@@ -132,6 +149,14 @@ public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameCon
             }
 
             Execute();
+        }
+        catch (TruncatedPacketException ex)
+        {
+            // A client that cut its own frame short is expected traffic on a public connection, not
+            // a server defect: warn, and keep the fatal path for a handler that is actually wrong.
+            Logger.Warn("GamePacket: C->S type {0:X3} {1} body truncated: {2}",
+                TypeId, ToString()?.Substring(23), ex.Message);
+            throw;
         }
         catch (Exception ex)
         {
