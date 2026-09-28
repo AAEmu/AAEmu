@@ -24,6 +24,6 @@ public class ApplySkillTask(
             return;
         }
         skill.ApplyEffects(caster, casterCaster, target, targetCaster, skillObject);
-        skill.EndSkill(caster);
+        skill.EndCastUnlessPlotOwnsIt(caster);
     }
 }

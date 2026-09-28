@@ -34,7 +34,9 @@ public static class PlotEndRules
     /// 28 of the 30 skills that cast a treeless plot are <c>plot_only = 'f'</c>: ending those from here
     /// would arm the cooldown, broadcast <c>SCPlotEnded</c> and release the TlId from under the cast that
     /// is still running, and every later packet of that cast would carry TlId 0. Only 13499 and 36858
-    /// own their skill end.
+    /// own their skill end. A player-authored interaction cast owns it too (<c>playerAuthoredPlot</c>),
+    /// because that cast is holding its own end back for this graph.
     /// </remarks>
-    public static bool OwnsSkillEnd(bool plotOnly, bool forcePlotGraphOnly) => plotOnly || forcePlotGraphOnly;
+    public static bool OwnsSkillEnd(bool plotOnly, bool forcePlotGraphOnly, bool playerAuthoredPlot = false) =>
+        plotOnly || forcePlotGraphOnly || playerAuthoredPlot;
 }

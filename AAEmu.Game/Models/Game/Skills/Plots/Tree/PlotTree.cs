@@ -288,6 +288,21 @@ public class PlotTree(uint plotId)
         state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.CastTlId), true);
         EndPlotChannel(state);
 
+        if (state.ActiveSkill.PlayerAuthoredPlotCast)
+        {
+            // This cast stood its own end down so the client would see one timeline from the key press to
+            // the end of the graph; the graph now runs the ordinary end sequence, which is what sends the
+            // SCSkillEnded for the id the graph was launched on and releases it. ArmCooldowns is not
+            // repeated here: the cast already armed it when it fired.
+            state.ActiveSkill.EndSkill(state.Caster);
+
+            if (state.CancellationRequested())
+                state.Caster?.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs());
+
+            state.Caster?.ReleaseActivePlotState(state);
+            return;
+        }
+
         state.ActiveSkill.ArmCooldowns(state.Caster);
 
         if (state.Caster is Character { IgnoreSkillCooldowns: true } character)

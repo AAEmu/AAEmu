@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -76,6 +77,7 @@ public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1
         if (skillTask?.Skill == null)
         {
             Logger.Debug("StopCasting: no SkillTask tl={0} plotTl={1} char={2}", tlId, plotTlId, Connection.ActiveChar.Name);
+            ReleaseOrphanedSkillTimeline(tlId, 0);
             // Still notify Zone — it may be running a timeline World already lost track of.
             if (WorldIntegration.ZoneAuthority && tlId != 0)
                 WorldIntegration.RelayCastingStoppedToZone?.Invoke(objId, (short)tlId, 0, 0);
@@ -89,6 +91,7 @@ public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1
             Logger.Warn(
                 "StopCasting tl mismatch requested={0} active={1} char={2}",
                 tlId, skillTask.Skill.TlId, Connection.ActiveChar.Name);
+            ReleaseOrphanedSkillTimeline(tlId, skillTask.Skill.TlId);
             if (WorldIntegration.ZoneAuthority)
                 WorldIntegration.RelayCastingStoppedToZone?.Invoke(objId, (short)tlId, 0, 0);
             return;
@@ -102,6 +105,22 @@ public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1
             skillTask.Skill.Stop(Connection.ActiveChar);
 
         Logger.Info("StopCasting cancelled tl={0} skill={1} char={2}", tlId, skillTask.Skill.Id, Connection.ActiveChar.Name);
+    }
+
+    /// <summary>
+    /// Closes a cast timeline the client asked to stop and this server holds nothing for, so the client
+    /// leaves it. The packet is the same end a finished cast sends; a stop for a timeline the server does
+    /// hold never reaches here.
+    /// </summary>
+    private void ReleaseOrphanedSkillTimeline(ushort requestedTlId, ushort openTaskTlId)
+    {
+        if (!CastReleaseRules.ShouldReleaseOrphanedSkillTimeline(requestedTlId, openTaskTlId))
+            return;
+
+        Logger.Info(
+            "StopCasting released orphaned skill timeline tl={0} char={1}",
+            requestedTlId, Connection.ActiveChar.Name);
+        Connection.SendPacket(new SCSkillEndedPacket(requestedTlId));
     }
 
     private void RefreshIgnoredRodPlot(PlotState state)
