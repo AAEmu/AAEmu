@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 
 using AAEmu.Commons.Network;
@@ -59,7 +59,7 @@ public class FamilyAdminWireTests
         stream.Write("short", appendSize: false);
 
         await Assert.That(() => FamilyAdminWire.ReadBoundedString(stream, "test",
-            FamilyProgressionRules.MaximumNoticeUtf8Bytes)).Throws<InvalidDataException>();
+            FamilyProgressionRules.MaximumNoticeUtf8Bytes)).Throws<TruncatedPacketException>();
     }
 
     [Test]
@@ -151,7 +151,7 @@ public class FamilyAdminWireTests
         stream.Write("short", appendSize: false);
 
         var packet = new CSFamilyNoticeSetPacket();
-        await Assert.That(() => packet.Read(stream)).Throws<InvalidDataException>();
+        await Assert.That(() => packet.Read(stream)).Throws<TruncatedPacketException>();
         await Assert.That(packet.Notice).IsNull();
     }
 
