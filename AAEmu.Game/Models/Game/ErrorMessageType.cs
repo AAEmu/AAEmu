@@ -727,8 +727,6 @@ public enum ErrorMessageType : short
     NoMoreNationalMonument = 750,										// "no_more_national_monument";
     CantPutUpNationalMonumentDuringSiegePeriod = 751,					// "cant_put_up_national_monument_during_siege_period";
     StoreOneTimeSale = 752,												// "store_one_time_sale";
-    ItemAuctionOnly = 917,							// "item_auction_only";
-    ExpeditionLevelNotMatch = 929,					// "expedition_level_not_match";
     ItemLookConvertAsDiffGender = 753,									// "item_look_convert_as_diff_gender";
     ItemPackCondition = 754,											// "item_pack_condition";
     UnlawfulCannotEngrave = 755,										// "unlawful_cannot_engrave";
