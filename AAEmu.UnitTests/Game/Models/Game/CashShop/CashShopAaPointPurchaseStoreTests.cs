@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game;
+﻿using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.CashShop;
 using Microsoft.Data.Sqlite;
 
@@ -13,6 +13,7 @@ public sealed class CashShopAaPointPurchaseStoreTests : IDisposable
 {
     private const uint AccountId = 11;
     private const uint CharacterId = 22;
+    private const long StartCredits = 900;
     private const long StartMoney = 900;
     private const long StartAaPoints = 50;
     private static readonly DateTime PurchaseDate =
@@ -26,6 +27,8 @@ public sealed class CashShopAaPointPurchaseStoreTests : IDisposable
         using var command = _connection.CreateCommand();
         command.CommandText =
             """
+            CREATE TABLE accounts (
+                id INTEGER PRIMARY KEY, credits INTEGER NOT NULL);
             CREATE TABLE characters (
                 id INTEGER PRIMARY KEY, money INTEGER NOT NULL, aa_point INTEGER NOT NULL,
                 money2 INTEGER NOT NULL, bank_aa_point INTEGER NOT NULL, deleted INTEGER NOT NULL);
@@ -34,6 +37,7 @@ public sealed class CashShopAaPointPurchaseStoreTests : IDisposable
                 account_id INTEGER NOT NULL, character_id INTEGER NOT NULL,
                 purchase_date TEXT NOT NULL, cash_spent INTEGER NOT NULL,
                 aa_points INTEGER NOT NULL, exchange_ratio INTEGER NOT NULL);
+            INSERT INTO accounts VALUES (11, 900);
             INSERT INTO characters VALUES (22, 900, 50, 400, 25, 0);
             """;
         command.ExecuteNonQuery();
@@ -49,14 +53,30 @@ public sealed class CashShopAaPointPurchaseStoreTests : IDisposable
         transaction.Commit();
 
         await Assert.That(result.Succeeded).IsTrue();
-        await Assert.That(ReadWallet("money")).IsEqualTo(StartMoney - 3);
+        await Assert.That(ReadCredits()).IsEqualTo(StartCredits - 3);
         await Assert.That(ReadWallet("aa_point")).IsEqualTo(StartAaPoints + 300);
-        await Assert.That(result.Money).IsEqualTo(StartMoney - 3);
+        await Assert.That(result.Credits).IsEqualTo(StartCredits - 3);
         await Assert.That(result.AaPoints).IsEqualTo(StartAaPoints + 300);
         await Assert.That(CountAudit()).IsEqualTo(1);
         await Assert.That(ReadAuditInt("cash_spent")).IsEqualTo(3L);
         await Assert.That(ReadAuditInt("aa_points")).IsEqualTo(300L);
         await Assert.That(ReadAuditInt("exchange_ratio")).IsEqualTo(100L);
+    }
+
+    [Test]
+    public async Task Stage_LeavesTheCharactersGoldUntouched()
+    {
+        using var transaction = _connection.BeginTransaction();
+
+        var result = CashShopAaPointPurchaseStore.Stage(_connection, transaction,
+            Commit(cash: 3, points: 300, ratio: 100));
+        transaction.Commit();
+
+        await Assert.That(result.Succeeded).IsTrue();
+        // The client prices this window in PRICE_TYPE_AA_CASH, the account's credits balance.
+        // Charging characters.money here would let a purchase be priced out of the character's
+        // gold - copper - at the ratio above, which is the defect this guards.
+        await Assert.That(ReadWallet("money")).IsEqualTo(StartMoney);
     }
 
     [Test]
@@ -134,7 +154,8 @@ public sealed class CashShopAaPointPurchaseStoreTests : IDisposable
         using (var second = _connection.BeginTransaction())
         {
             var result = CashShopAaPointPurchaseStore.Stage(_connection, second,
-                Commit(cash: 1, points: 100, ratio: 100));
+                Commit(cash: 1, points: 100, ratio: 100,
+                    liveCredits: StartCredits - 1, liveAaPoints: StartAaPoints + 100));
             second.Commit();
 
             await Assert.That(result.Succeeded).IsTrue();
@@ -142,13 +163,24 @@ public sealed class CashShopAaPointPurchaseStoreTests : IDisposable
 
         // Two real checkouts are two real charges and two ledger rows; the ledger is a record of
         // what happened, not a lock that refuses a second legitimate purchase.
-        await Assert.That(ReadWallet("money")).IsEqualTo(StartMoney - 2);
+        await Assert.That(ReadCredits()).IsEqualTo(StartCredits - 2);
         await Assert.That(ReadWallet("aa_point")).IsEqualTo(StartAaPoints + 200);
         await Assert.That(CountAudit()).IsEqualTo(2);
     }
 
-    private static CashShopAaPointPurchaseCommit Commit(long cash, long points, uint ratio) =>
-        new(AccountId, CharacterId, PurchaseDate, cash, points, ratio);
+    private static CashShopAaPointPurchaseCommit Commit(long cash, long points, uint ratio,
+        long liveCredits = StartCredits, long liveMoney = StartMoney,
+        long liveAaPoints = StartAaPoints, long liveBankAaPoints = 25) =>
+        new(AccountId, CharacterId, PurchaseDate, cash, points, ratio,
+            liveCredits, liveMoney, 400, liveAaPoints, liveBankAaPoints);
+
+    private long ReadCredits()
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT credits FROM accounts WHERE id=@id";
+        command.Parameters.AddWithValue("@id", AccountId);
+        return Convert.ToInt64(command.ExecuteScalar());
+    }
 
     private long ReadWallet(string column)
     {

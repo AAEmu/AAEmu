@@ -29,7 +29,16 @@ public sealed record CashShopAaPointPurchaseCommit(
     DateTime PurchaseDateUtc,
     long CashSpent,
     long AaPoints,
-    uint ExchangeRatio);
+    uint ExchangeRatio,
+    long LiveCredits,
+    long LiveMoney,
+    long LiveMoney2,
+    long LiveAaPoints,
+    long LiveBankAaPoints)
+{
+    /// <summary>The wallet columns as they will read once the checkout has been written.</summary>
+    public long GrantedAaPoints => LiveAaPoints + AaPoints;
+}
 
 public sealed record CashShopAaPointPurchaseResult(
     bool Succeeded,
@@ -37,7 +46,8 @@ public sealed record CashShopAaPointPurchaseResult(
     long Money,
     long AaPoints,
     long Money2,
-    long BankAaPoints)
+    long BankAaPoints,
+    long Credits)
 {
     public ErrorMessageType ClientError => Reason switch
     {
@@ -64,11 +74,8 @@ public static class CashShopAaPointPurchaseStore
 
         try
         {
-            if (!TryDebitCash(connection, transaction, commit.CharacterId, commit.CashSpent))
+            if (!TryDebitCash(connection, transaction, commit.AccountId, commit.CashSpent))
                 return Failure(CashShopAaPointFailureReason.InsufficientCash);
-
-            if (!TryCreditAaPoints(connection, transaction, commit.CharacterId, commit.AaPoints))
-                return Failure(CashShopAaPointFailureReason.PersistenceUnavailable);
 
             using (var audit = connection.CreateCommand())
             {
@@ -87,12 +94,19 @@ public static class CashShopAaPointPurchaseStore
                     return Failure(CashShopAaPointFailureReason.AuditWrite);
             }
 
+            if (!TryWriteLiveWallet(connection, transaction, commit.CharacterId,
+                    commit.LiveMoney, commit.GrantedAaPoints, commit.LiveMoney2, commit.LiveBankAaPoints))
+                return Failure(CashShopAaPointFailureReason.PersistenceUnavailable);
+
+            if (!TryReadCredits(connection, transaction, commit.AccountId, out var credits))
+                return Failure(CashShopAaPointFailureReason.PersistenceUnavailable);
+
             if (!TryReadWallet(connection, transaction, commit.CharacterId,
                     out var money, out var aaPoints, out var money2, out var bankAaPoints))
                 return Failure(CashShopAaPointFailureReason.PersistenceUnavailable);
 
             return new CashShopAaPointPurchaseResult(true, CashShopAaPointFailureReason.None,
-                money, aaPoints, money2, bankAaPoints);
+                money, aaPoints, money2, bankAaPoints, credits);
         }
         catch (DbException ex)
         {
@@ -103,39 +117,72 @@ public static class CashShopAaPointPurchaseStore
     }
 
 
+    /// <summary>
+    /// Debits the account's cash-shop credits, the balance the client spends as
+    /// <c>PRICE_TYPE_AA_CASH</c> and the one published back in <c>SCICSCashPoint</c> from
+    /// <c>accounts.credits</c>. It is deliberately not the character's gold: <c>characters.money</c>
+    /// is copper, and at the shipped ratio one gold is worth a million AA points, so charging it
+    /// here would let a purchase be made out of an amount the client never priced.
+    /// </summary>
     private static bool TryDebitCash(DbConnection connection, DbTransaction transaction,
-        uint characterId, long amount)
+        uint accountId, long amount)
     {
         if (amount <= 0)
             return false;
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        // The charge is the delta on the live wallet, never a whole row written back: another
-        // spend or a bank transfer may have moved the row since this request was planned.
-        // Guarded on the persisted balance so a concurrent spend cannot be overwritten here.
+        // The charge is a guarded decrement of the persisted balance, so a concurrent spend on the
+        // same account cannot be overwritten or double-spent here.
         command.CommandText =
-            "UPDATE characters SET money=money-@amount WHERE id=@id AND deleted=0 AND money>=@amount";
+            "UPDATE accounts SET credits=credits-@amount WHERE id=@id AND credits>=@amount";
         Add(command, "@amount", amount);
+        Add(command, "@id", accountId);
+        return command.ExecuteNonQuery() == 1;
+    }
+
+    /// <summary>
+    /// Credits AA points and writes the whole live wallet in the same statement.
+    /// </summary>
+    /// <remarks>
+    /// A bank transfer moves money in memory only, so a delta guarded on the row this checkout read
+    /// would silently discard a withdrawal made since. Writing all four columns from the values the
+    /// caller held under the purchase lock is the same shape the goods purchase uses.
+    /// </remarks>
+    private static bool TryWriteLiveWallet(DbConnection connection, DbTransaction transaction,
+        uint characterId, long money, long aaPoints, long money2, long bankAaPoints)
+    {
+        // The ceiling keeps the granted total inside the range the wallet can represent, so a
+        // checkout can never leave a balance that a later read or save cannot carry.
+        if (aaPoints < 0 || aaPoints > CashShopAaPointPurchaseRules.MaxWalletAmount ||
+            money < 0 || money2 < 0 || bankAaPoints < 0)
+            return false;
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "UPDATE characters SET money=@money, money2=@money2, " +
+                              "aa_point=@aa_point, bank_aa_point=@bank_aa_point " +
+                              "WHERE id=@id AND deleted=0";
+        Add(command, "@money", money);
+        Add(command, "@money2", money2);
+        Add(command, "@aa_point", aaPoints);
+        Add(command, "@bank_aa_point", bankAaPoints);
         Add(command, "@id", characterId);
         return command.ExecuteNonQuery() == 1;
     }
 
-    private static bool TryCreditAaPoints(DbConnection connection, DbTransaction transaction,
-        uint characterId, long amount)
+    private static bool TryReadCredits(DbConnection connection, DbTransaction transaction, uint accountId,
+        out long credits)
     {
-        if (amount <= 0)
-            return false;
+        credits = 0;
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        // The ceiling keeps the granted total inside the range the wallet can represent, so a
-        // checkout can never leave a balance that a later read or save cannot carry.
-        command.CommandText =
-            "UPDATE characters SET aa_point=aa_point+@amount " +
-            "WHERE id=@id AND deleted=0 AND aa_point>=0 AND aa_point<=@ceiling-@amount";
-        Add(command, "@amount", amount);
-        Add(command, "@ceiling", CashShopAaPointPurchaseRules.MaxWalletAmount);
-        Add(command, "@id", characterId);
-        return command.ExecuteNonQuery() == 1;
+        command.CommandText = "SELECT credits FROM accounts WHERE id=@id";
+        Add(command, "@id", accountId);
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+            return false;
+        credits = Convert.ToInt64(reader.GetValue(0));
+        return true;
     }
 
     private static bool TryReadWallet(DbConnection connection, DbTransaction transaction, uint characterId,
@@ -166,5 +213,5 @@ public static class CashShopAaPointPurchaseStore
     }
 
     private static CashShopAaPointPurchaseResult Failure(CashShopAaPointFailureReason reason) =>
-        new(false, reason, 0, 0, 0, 0);
+        new(false, reason, 0, 0, 0, 0, 0);
 }

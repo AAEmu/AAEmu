@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils.DB;
+﻿using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
@@ -37,10 +37,14 @@ public class CashShopAaPointPurchaseTask(uint requestedCash, Character buyer) : 
     private void ExecuteLocked()
     {
         var ratio = CashShopManager.Instance.AaPointExchangeRatio;
+        var account = AccountManager.Instance.GetAccountDetails(buyer.AccountId);
+
+        // The checkout spends the account's cash-shop credits, not the character's gold: the
+        // client prices this window in PRICE_TYPE_AA_CASH, which is the credits balance published
+        // in SCICSCashPoint. Planning against buyer.Money would price a purchase in copper.
         if (!CashShopAaPointPurchaseRules.TryCreatePlan(
-                requestedCash, buyer.Money, buyer.AaPoint, ratio,
-                out var plan, out var reason))
-        {
+                requestedCash, account.Credits, buyer.AaPoint, ratio,
+                out var plan, out var reason))        {
             Refuse(reason);
             return;
         }
@@ -58,7 +62,12 @@ public class CashShopAaPointPurchaseTask(uint requestedCash, Character buyer) : 
                     ServerCalendar.UtcNow,
                     plan.CashSpent,
                     plan.AaPoints,
-                    plan.ExchangeRatio);
+                    plan.ExchangeRatio,
+                    account.Credits,
+                    buyer.Money,
+                    buyer.Money2,
+                    buyer.AaPoint,
+                    buyer.BankAaPoint);
                 persisted = CashShopAaPointPurchaseStore.Stage(connection, transaction, commit);
 
                 if (!persisted.Succeeded)
@@ -87,19 +96,22 @@ public class CashShopAaPointPurchaseTask(uint requestedCash, Character buyer) : 
             }
         }
 
-        // Only the committed deltas are applied in memory, so the value the player sees is the
-        // value the row now holds. The full read-back is not copied over the fields this
-        // checkout did not touch.
-        buyer.Money -= plan.CashSpent;
-        buyer.AaPoint += plan.AaPoints;
+        // The committed values, not the planned deltas, become the in-memory state: the row now
+        // holds what the read-back returned, and a delta on the pre-commit wallet would drift from
+        // it. The four wallet columns are written whole, so all four are refreshed here.
+        account.Credits = (int)persisted.Credits;
+        buyer.Money = persisted.Money;
+        buyer.Money2 = persisted.Money2;
+        buyer.AaPoint = persisted.AaPoints;
+        buyer.BankAaPoint = persisted.BankAaPoints;
+
         buyer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreBuy,
             [
-                new MoneyChange(-plan.CashSpent),
                 new AAPointUpdate(plan.AaPoints)
             ], []));
 
         var logCorrelation = CashShopLogCorrelation.ForBuyer(buyer.AccountId, buyer.Id);
-        Logger.Info("ICSBuyAAPoint buyer={0} cash={1} ratio={2} aaPoints={3}",
+        Logger.Info("ICSBuyAAPoint buyer={0} credits={1} ratio={2} aaPoints={3}",
             logCorrelation, plan.CashSpent, plan.ExchangeRatio, plan.AaPoints);
     }
 
@@ -110,5 +122,10 @@ public class CashShopAaPointPurchaseTask(uint requestedCash, Character buyer) : 
             CashShopAaPointFailureReason.InsufficientCash => ErrorMessageType.NotEnoughCoin,
             _ => ErrorMessageType.IngameShopBuyFailAaPoint
         });
+
+        // The client prices this window against the credits balance it was last told about, so a
+        // refused purchase has to correct it or the next attempt is priced from a stale figure.
+        var account = AccountManager.Instance.GetAccountDetails(buyer.AccountId);
+        buyer.SendPacket(new SCICSCashPointPacket(account.Credits));
     }
 }
