@@ -12,7 +12,7 @@ namespace AAEmu.UnitTests.Game.Models.Game.EventCenter;
 public class EventCenterRuntimeStateTests
 {
     [Test]
-    public async Task CurrentPeriod_UsesHalfOpenBoundsAndReportsProjectedNextBoundary()
+    public async Task CurrentPeriod_UsesClosedBoundsAndReportsProjectedNextBoundary()
     {
         var start = Utc(2030, 1, 2, 10, 0);
         var end = Utc(2030, 1, 2, 12, 0);
@@ -30,11 +30,20 @@ public class EventCenterRuntimeStateTests
         await Assert.That(atStart.Snapshot.UpcomingScheduleIds).IsEmpty();
         await Assert.That(atStart.Snapshot.NextBoundaryUtc).IsEqualTo(end);
 
+        // The end instant is inside the period: the row is still current, not ended.
         var atEnd = machine.Refresh(end);
-        await Assert.That(atEnd.EndedScheduleIds).IsEquivalentTo(new[] { 42 });
-        await Assert.That(atEnd.Snapshot.CurrentScheduleIds).IsEmpty();
-        await Assert.That(atEnd.Snapshot.EndedScheduleIds).IsEquivalentTo(new[] { 42 });
-        await Assert.That(atEnd.Snapshot.NextBoundaryUtc).IsNull();
+        await Assert.That(atEnd.StartedScheduleIds).IsEmpty();
+        await Assert.That(atEnd.EndedScheduleIds).IsEmpty();
+        await Assert.That(atEnd.Snapshot.CurrentScheduleIds).IsEquivalentTo(new[] { 42 });
+        await Assert.That(atEnd.Snapshot.EndedScheduleIds).IsEmpty();
+        await Assert.That(atEnd.Snapshot.NextBoundaryUtc).IsEqualTo(end);
+
+        // One tick past the end instant the row leaves the current set.
+        var pastEnd = machine.Refresh(end.AddSeconds(1));
+        await Assert.That(pastEnd.EndedScheduleIds).IsEquivalentTo(new[] { 42 });
+        await Assert.That(pastEnd.Snapshot.CurrentScheduleIds).IsEmpty();
+        await Assert.That(pastEnd.Snapshot.EndedScheduleIds).IsEquivalentTo(new[] { 42 });
+        await Assert.That(pastEnd.Snapshot.NextBoundaryUtc).IsNull();
     }
 
     [Test]
@@ -162,9 +171,10 @@ public class EventCenterRuntimeStateTests
         await Assert.That(atFirstStart.StartedScheduleIds).IsEquivalentTo(new[] { 1 });
         await Assert.That(atFirstStart.Snapshot.UpcomingScheduleIds).IsEquivalentTo(new[] { 2 });
 
-        var atFirstEnd = machine.Refresh(firstEnd);
-        await Assert.That(atFirstEnd.EndedScheduleIds).IsEquivalentTo(new[] { 1 });
-        await Assert.That(atFirstEnd.Snapshot.UpcomingScheduleIds).IsEquivalentTo(new[] { 2 });
+        // Just past the first row's end instant it has ended; the second is still only upcoming.
+        var pastFirstEnd = machine.Refresh(firstEnd.AddSeconds(1));
+        await Assert.That(pastFirstEnd.EndedScheduleIds).IsEquivalentTo(new[] { 1 });
+        await Assert.That(pastFirstEnd.Snapshot.UpcomingScheduleIds).IsEquivalentTo(new[] { 2 });
 
         var atSecondStart = machine.Refresh(secondStart);
         await Assert.That(atSecondStart.StartedScheduleIds).IsEquivalentTo(new[] { 2 });
@@ -186,6 +196,39 @@ public class EventCenterRuntimeStateTests
             EventCenterRuntimeEvaluator.Evaluate([invalid], Utc(2030, 8, 1, 0, 0)));
 
         await Assert.That(thrown?.Message).Contains("99");
+    }
+
+    [Test]
+    public async Task UpcomingList_IsNarrowedButEveryFutureRowIsStillClassifiedUpcoming()
+    {
+        // The board's "scheduled" bucket holds every future row; UpcomingScheduleIds is the narrowed
+        // "next event" set. A future whole-bucket wire slice must be able to recover the full set from
+        // the per-row states, so that recovery is pinned here rather than left to the slice.
+        var now = Utc(2030, 9, 1, 9, 0);
+        var machine = new EventCenterRuntimeMachine();
+
+        var update = machine.Initialize(
+            Catalog(
+                Row(1, Utc(2030, 9, 1, 10, 0), Utc(2030, 9, 1, 11, 0)),
+                Row(2, Utc(2030, 9, 1, 10, 0), Utc(2030, 9, 1, 12, 0)),
+                Row(3, Utc(2030, 9, 5, 10, 0), Utc(2030, 9, 5, 12, 0)),
+                Row(4, Utc(2030, 8, 1, 10, 0), Utc(2030, 8, 1, 12, 0))),
+            now);
+
+        // Narrowed: only the rows sharing the earliest future start.
+        await Assert.That(update.Snapshot.UpcomingScheduleIds).IsEquivalentTo(new[] { 1, 2 });
+
+        // Whole bucket: every future row, recovered from the per-row state.
+        var scheduledBucket = update.Snapshot.Rows
+            .Where(row => row.State == EventCenterRuntimeRowState.Upcoming)
+            .Select(row => row.ScheduleId)
+            .OrderBy(id => id)
+            .ToArray();
+        await Assert.That(scheduledBucket).IsEquivalentTo(new[] { 1, 2, 3 });
+
+        // The already-elapsed row is not in the scheduled bucket.
+        await Assert.That(scheduledBucket).DoesNotContain(4);
+        await Assert.That(update.Snapshot.EndedScheduleIds).IsEquivalentTo(new[] { 4 });
     }
 
     private static EventCenterRowCatalog Catalog(params GameSchedules[] rows) =>

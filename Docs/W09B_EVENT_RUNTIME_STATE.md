@@ -8,7 +8,7 @@ read-only description. W09B adds only the runtime state that sits on top of that
 - the row or rows that are **current** at a wall-clock instant;
 - the earliest future **upcoming** row set;
 - the next boundary at which that classification changes;
-- a start-inclusive/end-exclusive transition and a restart reconstruction.
+- a closed-interval transition and a restart reconstruction.
 
 W09B does not repeat the W09A row projection, content-gap tallies, or `/eventcenter_rows` diagnostics.
 
@@ -19,21 +19,45 @@ order. Therefore `IsWireReady` is false for every projected row. W09B deliberate
 or send `SC 0x2DE`; the existing count/empty answers remain correct for a server that publishes no board
 rows. The runtime manager is internal state for a future wire slice and a read-only diagnostic.
 
+The blocked part is larger than a missing column. The board subsystem is not a table read with a few
+unmapped fields; it is an owned entry list that nothing in the shipped server ever writes to. Its
+observable surface is a count, a per-load stamp, a state-bucketed title list, a per-entry field read, and
+a change notification — and the only input that ever reaches it is a `(count, stamp)` pair. There is no
+producer: no path in the server creates an entry, populates a title/body/link/reward, or derives entries
+from a calendar table. Whatever fills the board is external to the server binary, which is exactly why no
+content table carries board columns.
+
+That makes the runtime state the whole of what is implementable here, and it makes it correct to keep it
+state-only: the state machine is a pure function of two instants and the clock, with no dependency on the
+text that does not exist.
+
 ## Runtime rules
 
 A projected row is runtime-eligible only when W09A resolved a positive-length period and the row has no
-schedule-shape gap. A resolved period is half-open:
+schedule-shape gap. A resolved period is a **closed** interval — the board treats both bounds as inside the
+period, so a row only leaves the current set once the clock is strictly past its end:
 
 ```text
-start <= now < end   => current
-now < start          => candidate upcoming
-end <= now           => ended
+now < start    => candidate upcoming
+start <= now <= end  => current
+end < now      => ended
 ```
+
+This is the one behaviour the first W09B revision got wrong: it classified the window as
+half-open (`start <= now < end`), which put a row into `ended` at the very instant it was still
+current, and made the current set churn one instant early at every end boundary. The test
+`CurrentPeriod_UsesClosedBoundsAndReportsProjectedNextBoundary` now pins the end instant as still
+current and only moves it to `ended` one tick later.
 
 `upcoming` is the set of eligible future rows sharing the earliest future start. A tie is preserved. The
 next boundary is the earliest current end or earliest future start, both taken from projected rows. There
 is no polling interval, look-ahead window, or hardcoded time bound. The manager arms exactly one one-shot
 task for that boundary, re-evaluates, and arms the next projected boundary.
+
+Note for a future wire slice: the board's own view is bucketed by state, and its "scheduled" bucket holds
+**every** future row, not only the soonest. `UpcomingScheduleIds` here is deliberately narrowed to the
+earliest start because that is what a "next event" surface wants; a slice that serves a whole-bucket list
+must read `Rows` and the `Upcoming` state rather than this narrowed list.
 
 The schedule generation and retained handle are updated under the schedule gate before any task-manager
 call. Refresh plus logical replacement planning is serialized under that gate; cancel/schedule calls happen

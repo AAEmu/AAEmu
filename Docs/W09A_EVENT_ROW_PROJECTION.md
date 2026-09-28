@@ -38,12 +38,16 @@ the client's own serializer, and the widths are the wire contract:
 | --- | --- |
 | window | `u64 startTime`, `u64 endTime`, `string title` (≤ 1200), `string link` (≤ 511) |
 | body | `string body` (≤ 1600) |
-| reward | `s32 exp`, `s32 money`, `s32 aaPoint`, `s32 laborPower`, `s32 honor`, `s32 crime`, `s32 living`, `u32 type`, `s32 count` |
+| reward | `s32 exp`, `s32 money`, `s32 aaPoint`, `s32 laborPower`, `s32 honor`, `s32 crime`, `s32 living`, then a **fixed-size list of item slots**, each an `(itemType, itemCount)` pair |
 
 The client window reads exactly those fields: `info.startTime`/`info.endTime` drive the
-period bar, `info.title`/`info.body`/`info.link` the text, and `info.exp`/`info.money`/… the
-reward block. `info.state` is **not** a server field — the window derives
-in-progress / scheduled / ended itself from the two timestamps.
+period bar, `info.title`/`info.body`/`info.link` the text, `info.exp`/`info.money`/… the
+reward block. `info.state` **is** a server field: the board assigns each entry a state
+(SCHEDULED / IN_PROGRESS / ENDED) from the two timestamps, and the client filters the
+title list on it. It is server-owned runtime state, not something a content row supplies.
+An earlier revision of this note claimed `state` was derived client-side and that the
+reward ended in a single `type`/`count` pair; both are wrong and the count is a slot list.
+
 
 ## Content evidence (read-only compact, 927 `game_schedules` rows)
 
@@ -86,6 +90,27 @@ therefore reports them rather than filling them:
   row, so nothing proves the retail board used it as the entry title;
 - no table carries a board body, a board web link or a board reward block;
 - no table ranks board rows, so the main order is server state with no content source.
+
+The second bullet was re-checked against the whole catalogue rather than against the
+schedule tables alone, because two other tables are shaped like a scheduled event and
+carry text:
+
+| Table | Rows | Why it is not a board source |
+| --- | ---: | --- |
+| `localized_texts` | 661 919 | The localisation side table. `tbl_name`/`tbl_column_name`/`idx` is its key; **`game_schedules` has 0 rows in it**, so no schedule name, body or link is localised anywhere. Its schedule/event-ish names are `tower_defs`, `schedule_items`, `specialty_events` and `local_development_boards` only. |
+| `tower_defs` | 178 | Has `name`, `title_msg`, `start_msg`, `end_msg` and icon tooltips, but no link, no reward, and a weekday-slot shape (`start_day_of_week_bit` + `tod`) rather than a calendar period. It is the world-boss scheduler's own content. |
+| `schedule_items` | 292 | Has `name`, `mail_title`, `mail_body` and tooltips, but **no `game_schedule_id` column at all** — it is a give-term/attendance table with its own `st_*`/`ed_*` window, not a link to `game_schedules`. No link, no reward. |
+| `url_whitelists` | 12 | The only `url` column in the catalogue, and it is a client URL allow-list (Discord, Skype, …), not per-event content. |
+| `local_development_boards` | 78 | Plot/housing development boards (`show_phase`, `show_text`), unrelated to the event board. |
+
+`conflict_zone_realtime_schedules` (205) and `hero_schedules` (24) are also period-shaped
+but carry no text at all. The catalogue is 1 374 tables; the 37 that own a
+`title`/`body`/`link`/`url`/`reward`-named column were enumerated and none of them is
+reachable from a schedule row as a board entry.
+
+Note the row count: the ledger and the wave-3 audit both say **922** schedule rows. The
+shipped table has **927**. The 922 figure is stale, and the projection is built over all
+927.
 
 The projection consequently reports `MissingTitleSource`, `MissingBodySource`,
 `MissingLinkSource`, `MissingRewardSource` and `MissingMainOrderSource` on **every** row, and

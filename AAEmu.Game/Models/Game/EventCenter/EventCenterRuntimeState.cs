@@ -9,7 +9,7 @@ public enum EventCenterRuntimeRowState
     /// <summary>The row is the next future period, sharing the earliest future start.</summary>
     Upcoming,
 
-    /// <summary>The row's period contains the evaluation instant.</summary>
+    /// <summary>The row's period contains the evaluation instant, at either bound.</summary>
     Current,
 
     /// <summary>The row's period ended at or before the evaluation instant.</summary>
@@ -79,7 +79,7 @@ public sealed record EventCenterRuntimeSnapshot
     /// <summary>Every projected row, in stable schedule-id order.</summary>
     public IReadOnlyList<EventCenterRuntimeRow> Rows { get; init; } = [];
 
-    /// <summary>Rows whose half-open period contains <see cref="EvaluatedAtUtc"/>.</summary>
+    /// <summary>Rows whose closed period contains <see cref="EvaluatedAtUtc"/>.</summary>
     public IReadOnlyList<int> CurrentScheduleIds { get; init; } = [];
 
     /// <summary>Rows sharing the earliest future period start.</summary>
@@ -130,8 +130,9 @@ public sealed record EventCenterRuntimeUpdate
 public static class EventCenterRuntimeEvaluator
 {
     /// <summary>
-    /// Classifies rows at <paramref name="now"/>. A resolved period is half-open: its start is current,
-    /// its end is not. Rows with a recurring or unresolved shape are deferred rather than expanded.
+    /// Classifies rows at <paramref name="now"/>. A resolved period is a closed interval: the row is
+    /// current at its start <em>and</em> at its end, and leaves the current set only once the clock is
+    /// strictly past its end. Rows with a recurring or unresolved shape are deferred rather than expanded.
     /// </summary>
     public static EventCenterRuntimeSnapshot Evaluate(
         IEnumerable<EventCenterRowProjection> projections,
@@ -206,7 +207,7 @@ public static class EventCenterRuntimeEvaluator
                 runtimeRows.Add(upcoming);
                 future.Add(upcoming);
             }
-            else if (utcNow < end)
+            else if (utcNow <= end)
             {
                 var currentRow = new EventCenterRuntimeRow
                 {
