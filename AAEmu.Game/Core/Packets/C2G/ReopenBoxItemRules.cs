@@ -64,7 +64,7 @@ internal static class ReopenBoxItemRules
         if (state.RewardItemId == 0 || state.RewardCount <= 0)
             return false;
 
-        var reward = ItemManager.Instance.Create(state.RewardItemId, state.RewardCount, state.RewardGrade);
+        var reward = ItemManager.Instance.CreateUnpersisted(state.RewardItemId, state.RewardCount, state.RewardGrade);
         var mail = MailForReopenBox.ForExpiredRoll(
             character.Id, character.Name, state.PackId, state.GoodId, reward);
         try

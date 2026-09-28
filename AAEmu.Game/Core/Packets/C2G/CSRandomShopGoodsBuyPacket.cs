@@ -1,3 +1,5 @@
+using System.IO;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
@@ -37,7 +39,7 @@ public class CSRandomShopGoodsBuyPacket() : GamePacket(CSOffsets.CSRandomShopGoo
     public bool UseAaPoint { get; private set; }
 
     /// <summary>Display map keys (offer slots) the client asked to buy, in wire order.</summary>
-    public List<uint> RequestedGoods { get; } = [];
+    public List<int> RequestedGoods { get; } = [];
 
     public override void Read(PacketStream stream)
     {
@@ -47,10 +49,19 @@ public class CSRandomShopGoodsBuyPacket() : GamePacket(CSOffsets.CSRandomShopGoo
         Type = stream.ReadUInt32();
         UseAaPoint = stream.ReadBoolean();
 
-        // buyGoods block: u32 Size, then one u32 element per requested offer.
-        var size = stream.ReadUInt32();
-        for (var i = 0u; i < size; i++)
-            RequestedGoods.Add(stream.ReadUInt32());
+        // buyGoods block: i32 Size, then one i32 element per requested offer.
+        if (stream.Overran)
+            throw new InvalidDataException("random shop buy: truncated fixed header");
+
+        var size = stream.ReadInt32();
+        if (stream.Overran || size < 0 || size > stream.LeftBytes / sizeof(int))
+            throw new InvalidDataException($"random shop buy: invalid buyGoods count {size}");
+
+        for (var i = 0; i < size; i++)
+            RequestedGoods.Add(stream.ReadInt32());
+
+        if (stream.Overran)
+            throw new InvalidDataException("random shop buy: truncated buyGoods list");
 
         HandleBuy();
     }
@@ -65,12 +76,12 @@ public class CSRandomShopGoodsBuyPacket() : GamePacket(CSOffsets.CSRandomShopGoo
             return;
 
         var now = DateTime.UtcNow;
-        var bought = new List<uint>(RequestedGoods.Count);
+        var bought = new List<int>(RequestedGoods.Count);
         foreach (var key in RequestedGoods)
         {
             var pack = RandomMerchantManager.Instance.TryGetPack(packId);
             var result = RandomMerchantManager.Instance.TryPurchase(
-                character.Id, packId, (int)key, now,
+                character.Id, packId, key, now,
                 pack == null ? null : claimed => ChargeAndGrant(character, pack, claimed));
 
             switch (result)

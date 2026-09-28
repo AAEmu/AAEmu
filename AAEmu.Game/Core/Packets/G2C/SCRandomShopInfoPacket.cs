@@ -62,10 +62,10 @@ public class SCRandomShopInfoPacket(
         stream.Write(Dbid);
         stream.Write(new DateTimeOffset(ServerCalendar.AsUtc(RecordTime)).ToUnixTimeSeconds());
 
-        stream.Write((uint)DisplayGoods.Count);
+        stream.Write(DisplayGoods.Count);
         foreach (var offer in DisplayGoods)
         {
-            stream.Write((uint)offer.Slot);            // map key
+            stream.Write(offer.Slot);                  // signed i32 map key
             stream.Write(offer.Grade);                 // item grade
             stream.Write((uint)offer.Cost);
             stream.Write(offer.ItemId);                // the item this offer sells
