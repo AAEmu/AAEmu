@@ -44,7 +44,7 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
 
     private readonly object _windowLock = new();
     private readonly Dictionary<(uint CharacterId, uint PackId), RandomShopWindow> _windows = [];
-    private readonly Random _rng = new();
+    private Random _rng = new();
 
     private IRandomShopStateStore _store = new InMemoryRandomShopStore();
     private Func<uint, RandomMerchantPack> _packLookup = StaticPackLookup;
@@ -73,6 +73,18 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
                 ? StaticPackLookup
                 : packId => packs.TryGetValue(packId, out var pack) ? pack : null;
         }
+    }
+
+    /// <summary>
+    /// Pins the die the window roll is drawn from. Production leaves this on an unseeded instance; a test
+    /// that has to state what a given set of content weights produces needs the same rolls every run,
+    /// because an unseeded 300-roll proportion fails on its own roughly one run in 250 whatever the code
+    /// under it does.
+    /// </summary>
+    internal void UseRng(Random rng)
+    {
+        lock (_windowLock)
+            _rng = rng ?? new Random();
     }
 
     /// <summary>Re-hydrates the window cache from the store (startup, and the restart tests).</summary>

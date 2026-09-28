@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 using AAEmu.UnitTests.Utils;
 using AAEmu.UnitTests.Utils.Mocks;
 
@@ -85,22 +86,45 @@ public class RemainingSkillControllerTests
         var npc = FearingNpc();
         var caster = new Unit { ObjId = 400, Hp = 1000, MaxHp = 1000 };
 
-        var controller = (WanderingSkillController)SkillController.CreateSkillController(WanderingRow(), npc, caster);
+        // value1 is the only column this test needs the row for. The controller arms its release from the
+        // wall clock in its constructor, so the wandering is asked for long enough that nothing between
+        // here and the ticks can spend it: a fear whose time is up ends on the first tick and the victim
+        // never moves at all, which is its own test below, where the time is set rather than waited out.
+        const int durationMs = 60_000;
+        var controller = (WanderingSkillController)SkillController.CreateSkillController(WanderingRow(durationMs), npc, caster);
         await Assert.That(controller).IsNotNull();
         await Assert.That(controller.Owner).IsSameReferenceAs(npc);
+        await Assert.That(controller.Duration).IsEqualTo(durationMs);
 
         npc.ActiveSkillController = controller;
         var start = npc.Transform.Local.ClonePosition();
 
-        // Two of the hundred-millisecond ticks the controller subscribes with, inside the 1.5 s the row asks
-        // for: four metres of travel each, so the victim reaches its leg and picks another.
+        // Two of the hundred-millisecond ticks the controller subscribes with: each leg is 2 m long, so the
+        // first tick reaches the point the victim was running to and the second one picks a new heading.
+        //
+        // How far the victim ends up from where it started is not a number this test can state. The
+        // heading is re-picked at random for every leg, so two legs whose headings nearly cancel put it
+        // back where it began - four metres of travel read as no movement at all, which is exactly what
+        // measuring the end-to-end offset used to do. What is the same on every draw is the leg itself:
+        // the controller aims each leg LegLength ahead, so a tick has to carry the owner exactly that far,
+        // and the second leg has to be a full leg too rather than the controller stopping at the first.
         controller.Tick(TimeSpan.FromSeconds(1));
-        controller.Tick(TimeSpan.FromSeconds(1));
+        var afterFirstLeg = npc.Transform.Local.ClonePosition();
+        var firstLeg = MathUtil.CalculateDistance(start, afterFirstLeg);
 
-        var position = npc.Transform.Local.Position;
-        var moved = Math.Abs(position.X - start.X) + Math.Abs(position.Y - start.Y);
-        await Assert.That(moved).IsGreaterThan(0.1f);
-        await Assert.That(npc.Packets.Count).IsGreaterThan(0);
+        controller.Tick(TimeSpan.FromSeconds(1));
+        var secondLeg = MathUtil.CalculateDistance(afterFirstLeg, npc.Transform.Local.Position);
+
+        await Assert.That(firstLeg).IsEqualTo(WanderingSkillController.LegLength).Within(0.001f);
+        await Assert.That(secondLeg).IsEqualTo(WanderingSkillController.LegLength).Within(0.001f);
+        // The magnitude the wander is designed around, written out as well as compared against the
+        // constant so that shrinking LegLength in production cannot shrink the expectation along with it.
+        await Assert.That(firstLeg).IsEqualTo(2f).Within(0.001f);
+
+        // Still running, and one movement packet per leg - the broadcast is what makes the controller
+        // authoritative for where its owner stands.
+        await Assert.That(controller.State).IsNotEqualTo(SkillController.SCState.Ended);
+        await Assert.That(npc.Packets.Count).IsEqualTo(2);
     }
 
     [Test]
