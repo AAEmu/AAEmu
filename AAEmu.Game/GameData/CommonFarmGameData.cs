@@ -99,9 +99,26 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
         return false;
     }
 
-    public uint GetDoodadGuardTime(uint groupId)
+    /// <summary>
+    /// Resolves how long a crop of this doodad group stays protected after it is planted.
+    /// </summary>
+    /// <param name="groupId">The doodad group the planted crop belongs to.</param>
+    /// <param name="guardSeconds">The configured protection window, in seconds.</param>
+    /// <returns>
+    /// <c>false</c> when content has no <c>doodad_groups</c> row for this group, so the length of
+    /// the protection window is unknown. The caller must not inherit a number: answering zero would
+    /// retire a crop the moment it is planted, which is the opposite of a protection window.
+    /// </returns>
+    public bool TryGetDoodadGuardTime(uint groupId, out uint guardSeconds)
     {
-        return _doodadGroups.TryGetValue(groupId, out var farm) ? farm.GuardOnFieldTime : 0;
+        if (_doodadGroups.TryGetValue(groupId, out var group))
+        {
+            guardSeconds = group.GuardOnFieldTime;
+            return true;
+        }
+
+        guardSeconds = 0;
+        return false;
     }
 
     public List<uint> GetAllowedDoodads(FarmType farmType)

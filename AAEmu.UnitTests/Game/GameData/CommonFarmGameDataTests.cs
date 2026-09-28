@@ -72,6 +72,60 @@ public class CommonFarmGameDataTests
         await Assert.That(capacity).IsEqualTo(2u);
     }
 
+    [Test]
+    public async Task Load_ReportsTheProtectionWindowOfADoodadGroupThatHasARow()
+    {
+        var data = Loaded("INSERT INTO doodad_groups VALUES (7, 120, 0, 0);");
+
+        var found = data.TryGetDoodadGuardTime(7, out var guardSeconds);
+
+        await Assert.That(found).IsTrue();
+        await Assert.That(guardSeconds).IsEqualTo(120u);
+    }
+
+    [Test]
+    public async Task Load_ReportsADoodadGroupWithNoRowAsUnknownRatherThanAsNoProtection()
+    {
+        // The same trap as the capacity, in the other table. A protection window of zero is not the
+        // same as no protection window, and a lookup that answers a missing row with zero retires
+        // every crop of that group on the first expiry pass after it is planted.
+        var data = Loaded("INSERT INTO doodad_groups VALUES (7, 120, 0, 0);");
+
+        var found = data.TryGetDoodadGuardTime(8, out var guardSeconds);
+
+        await Assert.That(found).IsFalse();
+        await Assert.That(guardSeconds).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task Load_ReportsAConfiguredZeroWindowAsConfiguredRatherThanUnknown()
+    {
+        // The other side of the same line, and the reason the lookup cannot be a truthiness test on
+        // the value. Zero is a real content value meaning "no protection at all"; only a missing row
+        // is unknown, and the two must not be reported the same way.
+        var data = Loaded("INSERT INTO doodad_groups VALUES (7, 0, 0, 0);");
+
+        var found = data.TryGetDoodadGuardTime(7, out var guardSeconds);
+
+        await Assert.That(found).IsTrue();
+        await Assert.That(guardSeconds).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task Load_ReportsEveryUnseededDoodadGroupAsUnknown()
+    {
+        // Swept rather than spot-checked: a lookup that answered one group from a fallback would still
+        // pass a single assertion, and the guarantee is about the whole table.
+        var data = Loaded("INSERT INTO doodad_groups VALUES (7, 120, 0, 0);");
+
+        foreach (var groupId in new uint[] { 0, 1, 6, 8, 9, 5000 })
+        {
+            var found = data.TryGetDoodadGuardTime(groupId, out _);
+
+            await Assert.That(found).IsFalse();
+        }
+    }
+
     private static CommonFarmGameData Loaded(string extraRows)
     {
         var connection = new SqliteConnection("Data Source=:memory:");
