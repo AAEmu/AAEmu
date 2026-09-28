@@ -313,6 +313,19 @@ public class AccountConfig
     /// Memberships still come from <see cref="GrantStackedPatron"/>.
     /// </summary>
     public bool ForceMaxPremiumGrade { get; set; } = false;
+
+    /// <summary>
+    /// The payment tier a seeded or newly created account is given.
+    /// </summary>
+    /// <remarks>
+    /// This defaults to <see cref="PaymentMethodType.Premium"/>, which is the behaviour that
+    /// predates the account_payments table: before that table existed every account carried a paid
+    /// subscription, and the entitlement sites branch on <see cref="AccountPayment.PremiumState"/>.
+    /// Defaulting to the free tier would silently move every server's credits tick and labor cap on
+    /// upgrade, so an operator has to opt *down* deliberately instead. An unrecognised name fails
+    /// loudly rather than falling back to a default tier.
+    /// </remarks>
+    public string SeededPaymentMethod { get; set; } = nameof(PaymentMethodType.Premium);
 }
 
 public class CurrencyValuesConfig

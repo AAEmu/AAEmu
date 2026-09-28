@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Network.Connections;
@@ -234,18 +234,21 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
 
     public void Add(GameConnection connection)
     {
-        // Load the account's payment tier before anything reads it. The offline catch-up below bills
-        // this account's labor cap and tick rates, and the lobby config burst publishes the tier in
-        // SCAccountInfo, so this has to land before either runs.
-        LoadPayment(connection);
-
+        // The account row has to exist before its tier is read: on a first login the row is created
+        // here, so loading the tier first would always report a missing account_payments row and
+        // log an error for an account that is about to have one.
         if (_accounts.ContainsKey(connection.AccountId))
+        {
+            LoadPayment(connection);
             return;
+        }
+
         _accounts.TryAdd(connection.AccountId, connection);
         var lastLogin = UpdateLoginTime(connection.AccountId, DateTime.UtcNow);
         connection.PreviousLoginUtc = lastLogin;
         connection.HasPreviousLogin = true;
         var accountDetails = GetAccountDetails(connection.AccountId);
+        LoadPayment(connection);
         if (lastLogin < DateTime.UtcNow.Date)
         {
             // Logged in for a new day
@@ -253,6 +256,29 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         }
         // Add offline labor
         timedRewardsManager.AddOfflineLabor(connection, lastLogin, accountDetails.Labor);
+    }
+
+    /// <summary>
+    /// The tier a new or seeded account is given, read from configuration.
+    /// </summary>
+    /// <remarks>
+    /// An unrecognised name is a configuration error, so it fails loudly here rather than quietly
+    /// granting a tier nobody asked for. The default is the paid tier, because that is the
+    /// behaviour that predates the account_payments table; dropping accounts to the free tier is
+    /// something an operator opts into.
+    /// </remarks>
+    public static PaymentMethodType SeededPaymentMethod() =>
+        ParseSeededPaymentMethod(AppConfiguration.Instance.Account.SeededPaymentMethod);
+
+    /// <summary>Resolves a configured tier name, failing loudly on anything unrecognised.</summary>
+    public static PaymentMethodType ParseSeededPaymentMethod(string configured)
+    {
+        if (Enum.TryParse<PaymentMethodType>(configured, ignoreCase: true, out var parsed))
+            return parsed;
+
+        throw new InvalidOperationException(
+            $"Account.SeededPaymentMethod is {configured}, which is not a PaymentMethodType " +
+            $"({string.Join(", ", Enum.GetNames<PaymentMethodType>())}).");
     }
 
     /// <summary>
@@ -358,14 +384,14 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
             command.ExecuteNonQuery();
             res.AccountId = (int)command.LastInsertedId;
 
-            // A new account owns no paid entitlement, and says so in its own row. Without this the
-            // connection path would find no account_payments row on the very first login and refuse
-            // the tier with an error that looks like a broken migration.
+            // A new account's row states the tier the operator configured, rather than one invented
+            // here. Without this row the connection path would find no account_payments row on the
+            // very first login and refuse the tier with an error that looks like a broken migration.
             command.CommandText =
                 "INSERT INTO account_payments " +
                 "(account_id, payment_method, payment_location, pay_start, pay_end, buy_count) " +
                 "VALUES (@acc_id, @method, 0, @no_subscription, @no_subscription, 0)";
-            command.Parameters.AddWithValue("@method", (int)PaymentMethodType.None);
+            command.Parameters.AddWithValue("@method", (int)SeededPaymentMethod());
             command.Parameters.AddWithValue("@no_subscription", AccountPayment.NoSubscriptionTime);
             command.Prepare();
             command.ExecuteNonQuery();
