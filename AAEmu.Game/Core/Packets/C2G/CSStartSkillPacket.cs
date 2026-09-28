@@ -10,8 +10,10 @@ using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
@@ -443,6 +445,21 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         }
 
         var skill = new Skill(template);
+
+        // An action the player picked off an NPC's interaction bar is a player cast whose plot graph is the
+        // only thing that moves the client's bar: the skill has no casting time, so the Started that would
+        // acknowledge the press is never sent, and the cast's own Fired/Ended leave while the graph is
+        // still on the bar. Hand the end to the graph so the press is one continuous timeline - see
+        // PlayerAuthoredPlotCastRules.
+        if (PlayerAuthoredPlotCastRules.PlotOwnsCastEnd(
+                casterUnit is Character,
+                NpcInteractionCastRules.IsOfferedInteractionSkill(
+                    character.CurrentInteractionObject as Npc, skillId),
+                template,
+                skill.ForcePlotGraphOnly))
+        {
+            skill.PlayerAuthoredPlotCast = true;
+        }
 
         var skillResult = skill.Use(casterUnit, skillCaster, skillCastTarget, skillObject, false,
             out var skillResultErrorValueUShort, out var skillResultErrorValue);

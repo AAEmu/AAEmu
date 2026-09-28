@@ -128,6 +128,18 @@ public class Skill
     public bool ForcePlotGraphOnly { get; set; }
 
     /// <summary>
+    /// A player cast of an action an NPC's authored interaction set offered, whose plot graph ends the cast.
+    /// </summary>
+    /// <remarks>
+    /// Set by the request that dispatched the cast, from
+    /// <see cref="PlayerAuthoredPlotCastRules.PlotOwnsCastEnd"/>. It buys two things this cast would
+    /// otherwise not have: the <c>SCSkillStarted</c> that acknowledges the key press on the graph's
+    /// timeline (only the cast-time branch of <see cref="Use"/> sends one, and this cast has no casting
+    /// time), and an end that runs when the graph ends instead of while the graph is still on the bar.
+    /// </remarks>
+    public bool PlayerAuthoredPlotCast { get; set; }
+
+    /// <summary>
     /// How many times over the skill's labor cost applies to this cast.
     /// </summary>
     /// <remarks>
@@ -550,6 +562,19 @@ public class Skill
             // skill clears TlId as soon as its cast ends, so the id the client matches plot packets against
             // has to travel with the plot (PlotState.CastTlId).
             var plotTlId = TlId;
+            if (PlayerAuthoredPlotCast)
+            {
+                // The only other place a Started is sent is the cast-time branch below, and this cast has no
+                // casting time - so without this the client's key press is never acknowledged and every
+                // packet the graph puts out names a timeline it has no live cast on. Zero cast time: the
+                // graph, not this packet, is what draws the bar, and a non-zero one would lock the hotbar
+                // for a cast whose end this packet's own graph is still driving.
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, plotTlId, casterCaster, targetCaster, this, skillObject)
+                {
+                    BaseCastTimeDiv10 = 0,
+                    RealCastTimeDiv10 = 0
+                }, true);
+            }
             if (Template.PlotOnly || ForcePlotGraphOnly)
             {
                 // plot_only (and World OnSpawn fill) returns before Cast() — apply start costs here.
@@ -1409,8 +1434,20 @@ public class Skill
         else
         {
             ApplyEffects(caster, casterCaster, target, targetCaster, skillObject);
-            EndSkill(caster);
+            EndCastUnlessPlotOwnsIt(caster);
         }
+    }
+
+    /// <summary>
+    /// Ends the cast now, unless the plot graph that owns it will run the very same end when the graph is
+    /// done - see <see cref="PlayerAuthoredPlotCastRules"/>. Every path that would close the cast before the
+    /// graph has run goes through here, so an owned end can never be skipped by the delayed-apply path.
+    /// </summary>
+    public void EndCastUnlessPlotOwnsIt(BaseUnit caster)
+    {
+        if (PlayerAuthoredPlotCast)
+            return;
+        EndSkill(caster);
     }
 
     /// <summary>

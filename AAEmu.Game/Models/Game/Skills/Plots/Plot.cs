@@ -66,17 +66,19 @@ public class Plot
             // site runs this from Task.Run, so the null-tree dereference was swallowed as an unobserved
             // task exception and the skill never ended. PlotManager warns about the count once at load;
             // per cast there is nothing to say.
-            if (PlotEndRules.OwnsSkillEnd(skill.Template?.PlotOnly ?? false, skill.ForcePlotGraphOnly))
+            if (PlotEndRules.OwnsSkillEnd(skill.Template?.PlotOnly ?? false, skill.ForcePlotGraphOnly,
+                    skill.PlayerAuthoredPlotCast))
             {
-                // The plot owns the skill end here (13499, 36858), so it runs the sequence the tree
-                // itself finishes with.
+                // The plot owns the skill end here (13499, 36858, and a player-authored interaction cast
+                // that is holding its end back), so it runs the sequence the tree itself finishes with.
                 PlotTree.EndPlotWithoutTree(state);
             }
             else
             {
-                // Skill.Use carries on to cast, fire and end this skill itself (Skill.cs:331), so the
-                // plot only drops its state. Ending it here would release the TlId and arm the cooldown
-                // from under a cast that is still running.
+                // Skill.Use carries on to cast, fire and end this skill itself, so the plot only drops its
+                // state. Ending it here would release the TlId and arm the cooldown from under a cast that
+                // is still running - and a cast that is holding its end back for its graph is not running,
+                // which is why OwnsSkillEnd above counts that case.
                 PlotTree.DropPlotState(state);
             }
         }

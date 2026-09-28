@@ -1,3 +1,4 @@
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots;
@@ -30,6 +31,28 @@ public static class NpcInteractionCastRules
             return interacted.ActivePlotState;
 
         return null;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="skillId"/> is one of the actions the NPC's authored interaction set offers.
+    /// </summary>
+    /// <remarks>
+    /// The answer comes from the set the template names (<c>npcs.npc_interaction_set_id</c>) through the
+    /// interaction tables, never from the skill's name or from a list written into the code. An NPC with no
+    /// set, an unknown set, or a set that does not carry this skill answers false, so a skill that only looks
+    /// like an interaction action is never treated as one.
+    /// </remarks>
+    public static bool IsOfferedInteractionSkill(Npc interactionNpc, uint skillId)
+    {
+        if (interactionNpc?.Template == null || skillId == 0)
+            return false;
+
+        var setId = interactionNpc.Template.NpcInteractionSetId;
+        foreach (var offered in NpcInteractionGameData.Instance.GetSkills(setId))
+            if (offered == skillId)
+                return true;
+
+        return false;
     }
 
     /// <summary>
