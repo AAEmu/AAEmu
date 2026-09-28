@@ -383,8 +383,12 @@ public sealed class Mate : Unit
                 ["fai"] = Fai,
                 ["mate_kind"] = Template.MateKindId
             };
+            // The persistent pair is one formula shape in two colours: unit_formulas owner 5 kind 31 is
+            // ' ( sta * 0.1 ) * 2' and kind 32 is ' ( spi * 0.1 ) * 2', so the only difference between the
+            // health and mana getters is which attribute the row reads. This one used to divide by 5
+            // after evaluating, which its health twin never did, so an in-combat mate regenerated a fifth
+            // of the mana its content asks for. The divide is not in the row, so it is not applied here.
             var res = (int)formula.Evaluate(parameters);
-            res /= 5; // TODO ...
             foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
