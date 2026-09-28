@@ -1718,23 +1718,13 @@ public partial class Npc : Unit
     /// <returns>Position in the aggro table ranking in percent, 0 = most aggro, 100 = no aggro</returns>
     public float GetAggroRatingInPercent(uint objId)
     {
-        // grab a sorted copy of the aggro list
-        var sortedAggro = AggroTable.OrderBy(x => x.Value.TotalAggro).ToList();
+        // Snapshot first: the table is written by combat on other threads, and the count has
+        // to describe the same set of entries the comparison is made against.
+        if (!AggroTable.TryGetValue(objId, out var own))
+            return QuestAggroRankRules.NoAggroPercentile;
 
-        // Find our position in the list
-        var pos = 0;
-        for (; pos < sortedAggro.Count; pos++)
-        {
-            if (sortedAggro[pos].Key == objId)
-                break;
-        }
-
-        // If at the end of the list (not found), don't round anything, always return 100
-        if (pos >= sortedAggro.Count)
-            return 100f;
-
-        // Return the position in the list 0 = most aggro, 100 = least aggro
-        return 1f / sortedAggro.Count * pos;
+        var entries = AggroTable.Select(entry => entry.Value.TotalAggro).ToList();
+        return QuestAggroRankRules.PercentileFor(own.TotalAggro, entries);
     }
 
     /// <summary>
