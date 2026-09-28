@@ -41,6 +41,13 @@ public class TowerDef
     /// not run. The <c>tower_defs</c> row carries seven independent <c>start_hourN</c> /
     /// <c>start_minuteN</c> pairs used as one slot per weekday. A 00:00 pair means the event does
     /// not run that day.
+    /// <para>
+    /// The slots are narrowed by <see cref="StartDayOfWeekBit"/> at load time: bit <c>N</c> is
+    /// index <c>N</c> (bit 0 is the un-suffixed Sunday <c>start_hour</c>, bit 6 is
+    /// <c>start_hour6</c>), and a weekday the mask does not allow is cleared even when the row
+    /// ships a time for it. A mask of 0 narrows nothing and keeps all seven slots. A set slot
+    /// therefore always means the event runs that day.
+    /// </para>
     /// </summary>
     public TimeSpan?[] StartTimes { get; } = new TimeSpan?[7];
 

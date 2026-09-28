@@ -189,4 +189,77 @@ public class TowerDefScheduleMetadataTests
         await Assert.That(result.UnknownTargetIds).IsEquivalentTo(new uint[] { 888 });
         await Assert.That(result.SelfRefs).IsEquivalentTo(new uint[] { 37 });
     }
+
+    // --- start_day_of_week_bit narrowing (bit N == StartTimes[N], bit 0 == Sunday) ---
+    // The bit patterns below are synthetic fixtures for the bit mapping, not rows copied out of
+    // any tower_defs table: ApplyStartDayOfWeekBit must derive the weekdays purely from the mask
+    // carried on the row.
+
+    private static readonly DayOfWeek[] AllDays =
+    [
+        DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+        DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday
+    ];
+
+    /// <summary>A synthetic row whose seven weekday slots are all populated.</summary>
+    private static TowerDef EveryDayArmed()
+    {
+        var towerDef = new TowerDef { ForceEndTime = 3600f };
+        for (var day = 0; day < AllDays.Length; day++)
+            towerDef.StartTimes[day] = new TimeSpan(21, 30, 0);
+        return towerDef;
+    }
+
+    [Test]
+    public async Task ApplyStartDayOfWeekBit_ZeroMask_LeavesEverySlotUntouched()
+    {
+        // start_day_of_week_bit is optional: rows that leave it unset keep all seven weekdays.
+        var towerDef = EveryDayArmed();
+        towerDef.StartDayOfWeekBit = 0;
+
+        TowerDefScheduleMetadata.ApplyStartDayOfWeekBit(towerDef);
+
+        await Assert.That(towerDef.IsScheduled).IsTrue();
+        foreach (var day in AllDays)
+            await Assert.That(towerDef.StartTimeFor(day)).IsEqualTo(new TimeSpan(21, 30, 0));
+    }
+
+    [Test]
+    public async Task ApplyStartDayOfWeekBit_NarrowMask_KeepsOnlyTheMaskedWeekdays()
+    {
+        // 0b1010000 = bits 4 and 6 = Thursday and Saturday. Without the narrowing the row would
+        // arm 21:30 on all seven days and fire daily.
+        var towerDef = EveryDayArmed();
+        towerDef.StartDayOfWeekBit = 0b1010000u;
+
+        TowerDefScheduleMetadata.ApplyStartDayOfWeekBit(towerDef);
+
+        await Assert.That(towerDef.StartTimeFor(DayOfWeek.Thursday)).IsEqualTo(new TimeSpan(21, 30, 0));
+        await Assert.That(towerDef.StartTimeFor(DayOfWeek.Saturday)).IsEqualTo(new TimeSpan(21, 30, 0));
+        await Assert.That(towerDef.StartTimeFor(DayOfWeek.Sunday)).IsNull();
+        await Assert.That(towerDef.StartTimeFor(DayOfWeek.Monday)).IsNull();
+        await Assert.That(towerDef.StartTimeFor(DayOfWeek.Tuesday)).IsNull();
+        await Assert.That(towerDef.StartTimeFor(DayOfWeek.Wednesday)).IsNull();
+        await Assert.That(towerDef.StartTimeFor(DayOfWeek.Friday)).IsNull();
+        await Assert.That(towerDef.IsScheduled).IsTrue();
+    }
+
+    [Test]
+    [Arguments(0b0000000u, new[] { DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday })]
+    [Arguments(0b0000001u, new[] { DayOfWeek.Sunday })]
+    [Arguments(0b0000010u, new[] { DayOfWeek.Monday })]
+    [Arguments(0b1000000u, new[] { DayOfWeek.Saturday })]
+    [Arguments(0b1010000u, new[] { DayOfWeek.Thursday, DayOfWeek.Saturday })]
+    [Arguments(0b1000100u, new[] { DayOfWeek.Tuesday, DayOfWeek.Saturday })]
+    [Arguments(0b0100010u, new[] { DayOfWeek.Monday, DayOfWeek.Friday })]
+    [Arguments(0b1001000u, new[] { DayOfWeek.Wednesday, DayOfWeek.Saturday })]
+    [Arguments(0b1111111u, new[] { DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday })]
+    public async Task AllowsWeekday_BitNIsStartTimesIndexN(uint mask, DayOfWeek[] expected)
+    {
+        // Bit 0 must be Sunday (the un-suffixed start_hour / start_minute pair) and bit 6 Saturday
+        // (start_hour6) — the mapping the loader's start_hourN fill and StartTimes index share.
+        foreach (var day in AllDays)
+            await Assert.That(TowerDefScheduleMetadata.AllowsWeekday(mask, day))
+                .IsEqualTo(expected.Contains(day));
+    }
 }
