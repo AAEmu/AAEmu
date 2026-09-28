@@ -17,6 +17,14 @@ namespace AAEmu.Game.Models.Game.Items.Templates;
 /// and the generic reader maps anything that is not one of the two to false, which would turn a
 /// typo in the content into "not limited", so an unrecognised value throws here instead.
 /// </para>
+/// <para>
+/// Three columns are deliberately not read here: <c>period_base_date</c>,
+/// <c>exp_day_of_week_id</c> and <c>exp_day_of_week_min</c>. They are the remaining half of the
+/// item expiry family, and every <c>exp_date</c> in the shipped table has already passed, so a
+/// build that starts resolving the expiry family would turn the dated templates into content that
+/// cannot be obtained at all. They are deferred until the content is refreshed - see
+/// <c>ItemExpiryDeferralTests</c>, which pins the decision.
+/// </para>
 /// </summary>
 public static class ItemTemplateRowLoader
 {
@@ -58,9 +66,6 @@ public static class ItemTemplateRowLoader
         // Lowest guild (expedition) level allowed to use this item. 0 means no gate; only a small
         // minority of the catalogue carries one.
         template.ExpeditionLevel = reader.GetUInt32("expedition_level");
-        template.ExpDayOfWeekId = reader.GetInt32("exp_day_of_week_id");
-        template.ExpDayOfWeekMin = reader.GetInt32("exp_day_of_week_min");
-        template.PeriodBaseDate = ReadDateTime(reader, "period_base_date");
         template.OneTimeSale = ReadFlag(reader, "one_time_sale");
         template.LimitedSaleCount = reader.GetInt32("limited_sale_count");
         template.AuctionOnly = ReadFlag(reader, "auction_only");

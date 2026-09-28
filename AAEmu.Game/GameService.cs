@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;

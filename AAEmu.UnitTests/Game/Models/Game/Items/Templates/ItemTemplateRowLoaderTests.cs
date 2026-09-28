@@ -39,6 +39,8 @@ public sealed class ItemTemplateRowLoaderTests
             exp_online_lifetime INTEGER NOT NULL,
             exp_date TEXT NULL,
             expedition_level INTEGER NOT NULL,
+            -- Shipped, and deliberately not projected: the rest of the item expiry family.
+            -- See ItemExpiryDeferralTests for the pin on why.
             exp_day_of_week_id INTEGER NOT NULL,
             exp_day_of_week_min INTEGER NOT NULL,
             period_base_date TEXT NULL,
@@ -89,11 +91,8 @@ public sealed class ItemTemplateRowLoaderTests
         // expedition level
         await Assert.That(template.ExpeditionLevel).IsEqualTo(5u);
 
-        // period columns
-        await Assert.That(template.ExpDayOfWeekId).IsEqualTo(5);
-        await Assert.That(template.ExpDayOfWeekMin).IsEqualTo(360);
-        await Assert.That(template.PeriodBaseDate)
-            .IsEqualTo(new DateTime(2023, 1, 1, 6, 0, 0, DateTimeKind.Unspecified));
+        // The period and weekday columns are set on this row on purpose and are not asserted on
+        // the template: the loader does not project them. ItemExpiryDeferralTests pins that.
 
         // sale columns
         await Assert.That(template.OneTimeSale).IsTrue();
@@ -190,7 +189,6 @@ public sealed class ItemTemplateRowLoaderTests
             " NULL, 0, NULL, NULL, NULL, 0, 0, NULL, 'f', 0, NULL, 0, 't');");
 
         await Assert.That(template.ExpDate).IsEqualTo(DateTime.MinValue);
-        await Assert.That(template.PeriodBaseDate).IsEqualTo(DateTime.MinValue);
     }
 
     [Test]

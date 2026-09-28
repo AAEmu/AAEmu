@@ -567,11 +567,10 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             item.Grade = (byte)item.Template.FixedGrade;
         item.CreateTime = DateTime.UtcNow;
 
-        // Arm the template's lifespan columns here so every delivery path (loot, mail, cash
-        // shop, crafting, housing, indun, auction payout) produces an item that expires on the
-        // same terms. Paths that clone an existing stack overwrite the values afterwards from
-        // their source, which is what a split or a transfer is supposed to do.
-        ItemLifetimeRules.ApplyNewItemLifespan(item, item.CreateTime);
+        // The factory deliberately does not arm the template's expiry columns. The delivery paths
+        // that honour them today do so themselves, and every exp_date in the shipped item table has
+        // already passed, so arming here would hand out stacks that expire before the next sweep.
+        // See ItemExpiryDeferralTests for the pin on that decision.
 
         if (generateId && trackGenerated)
         {

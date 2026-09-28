@@ -2257,6 +2257,12 @@ public class SpecialtyManager(
                     cargo._holdingContainer = player.Inventory.Equipment;
                     if (cargo.Template.BindType is ItemBindType.BindOnPickup or ItemBindType.BindOnEquip)
                         cargo.SetFlag(ItemFlag.SoulBound);
+                    if (cargo.Template.ExpAbsLifetime > 0)
+                        cargo.ExpirationTime = cargo.CreateTime.AddMinutes(cargo.Template.ExpAbsLifetime);
+                    if (cargo.Template.ExpDate > DateTime.MinValue)
+                        cargo.ExpirationTime = cargo.Template.ExpDate;
+                    if (cargo.Template.ExpOnlineLifetime > 0)
+                        cargo.ExpirationOnlineMinutesLeft = cargo.Template.ExpOnlineLifetime;
 
                     var expectedLabor = player.LaborPower;
                     var expectedLocalLabor = player.LocalLaborPower;

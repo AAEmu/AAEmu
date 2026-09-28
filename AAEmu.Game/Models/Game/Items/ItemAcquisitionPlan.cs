@@ -207,12 +207,23 @@ public sealed class ItemAcquisitionPlan : IDisposable
 
     private static IReadOnlyList<GamePacket> InitializeNewItem(Item item, DateTime utcNow)
     {
-        // The factory already armed the template's lifespan columns, so this only mirrors the
-        // armed values onto the wire. Re-deriving them here would restart the clock from the
-        // planning instant and make a long plan hand out a longer life than the item was
-        // created with.
-        var packets = new List<GamePacket>(ItemLifetimeRules.BuildLifespanSyncPackets(item, utcNow));
-
+        var packets = new List<GamePacket>(2);
+        if (item.Template.ExpAbsLifetime > 0)
+        {
+            item.ExpirationTime = utcNow.AddMinutes(item.Template.ExpAbsLifetime);
+            packets.Add(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.ExpirationTime));
+        }
+        if (item.Template.ExpOnlineLifetime > 0)
+        {
+            item.ExpirationOnlineMinutesLeft = item.Template.ExpOnlineLifetime;
+            packets.Add(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId,
+                utcNow.AddMinutes(item.Template.ExpOnlineLifetime)));
+        }
+        if (item.Template.ExpDate > DateTime.MinValue)
+        {
+            item.ExpirationTime = item.Template.ExpDate;
+            packets.Add(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.ExpirationTime));
+        }
         if (item is EquipItem equip && item.Template is EquipItemTemplate template)
         {
             equip.ChargeCount = template.ChargeCount;
