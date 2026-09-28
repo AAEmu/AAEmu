@@ -68,6 +68,28 @@ public class Gimmick : Unit
         return BuildSpawnData(position);
     }
 
+    /// <summary>
+    /// WZ movement body for the same record shape as <see cref="SCGimmickMovementPacket"/>, on the
+    /// same coordinate policy as <see cref="ToZoneWireSpawnData"/> so a zone reads both with one
+    /// transform.
+    /// </summary>
+    public GimmickMovementData ToZoneWireMovementData()
+    {
+        var position = Transform.World.Position;
+        var zoneId = Transform?.ZoneId ?? 0;
+        position = ZoneCoordBoundary.ToZoneLocal(zoneId, position);
+        return new GimmickMovementData(
+            ObjId,
+            Time,
+            Helpers.ConvertLongX(position.X),
+            Helpers.ConvertLongY(position.Y),
+            position.Z,
+            Transform.World.ToQuaternion(),
+            Scale,
+            Vel,
+            AngVel);
+    }
+
     private GimmickSpawnData BuildSpawnData(Vector3 position)
     {
         return new GimmickSpawnData(
@@ -215,8 +237,16 @@ public class Gimmick : Unit
 
         BroadcastPacket(new SCGimmickMovementPacket(this), false);
 
+        // This World drives the gimmick, so the zone's own copy of it has to follow here: the zone's
+        // movement report for a World-owned gimmick is dropped rather than turned into a second client
+        // update, which left the zone simulating it at the position it was created at. Only a real
+        // transform change is worth a packet.
+        var rotation = Transform.World.Rotation;
+        if (deltaPosition != Vector3.Zero || rotation != LastRot)
+            WorldIntegration.RelayGimmickMovementToZone?.Invoke(ToZoneWireMovementData(), Transform.ZoneId);
+
         LastPos = Transform.World.Position;
-        LastRot = Transform.World.Rotation;
+        LastRot = rotation;
 
         MovementHandler?.AfterMove(delta, deltaPosition);
 

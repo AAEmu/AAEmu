@@ -93,3 +93,20 @@ public sealed record GimmickSpawnData(
         return true;
     }
 }
+
+/// <summary>
+/// The transform sample a gimmick movement carries: an object id and a timestamp, then position,
+/// orientation, scale and the two velocity vectors. The zone, world and client movement packets all
+/// read the same record, so one shape describes all three; a spawn record cannot stand in for it
+/// because a spawn carries no timestamp.
+/// </summary>
+public sealed record GimmickMovementData(
+    uint Id,
+    uint Time,
+    long X,
+    long Y,
+    float Z,
+    Quaternion Rotation,
+    float Scale,
+    Vector3 Velocity,
+    Vector3 AngularVelocity);

@@ -521,6 +521,12 @@ public static class WorldIntegration
     public static Action<uint> RelayGimmickRemovedToZone { get; set; }
     public static Action<uint, uint, uint, bool> RelayGimmickGraspedToZone { get; set; }
 
+    /// <summary>
+    /// WZGimmickMovement — the transform of a gimmick this World drives, for the zone simulation.
+    /// Args: the movement record, and the owning zone id.
+    /// </summary>
+    public static Action<GimmickMovementData, uint> RelayGimmickMovementToZone { get; set; }
+
     /// <summary>World authority hooks for static gimmicks discovered and simulated by Zone.</summary>
     public static Func<Character, uint, bool> TryInteractZoneGimmick { get; set; }
     public static Action<Character> ReleaseZoneGimmickGrasps { get; set; }

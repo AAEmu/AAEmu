@@ -1401,6 +1401,20 @@ public static class Program
                 "WZGimmickGrasped to zone={0} id={1} grasper={2} grasped={3}",
                 ownerZoneId, id, grasperUnitId, grasped);
         };
+        WorldIntegration.RelayGimmickMovementToZone = (data, ownerZoneId) =>
+        {
+            var zone = ZoneSession.Instance.GetJoinedByZoneId(ownerZoneId);
+            if (zone == null)
+                return;
+            zone.SendPacket(new WZGimmickMovementPacket(
+                (int)data.Id, (int)data.Time,
+                unchecked((ulong)data.X), unchecked((ulong)data.Y), data.Z,
+                data.Rotation.X, data.Rotation.Y, data.Rotation.Z, data.Rotation.W,
+                data.Velocity.X, data.Velocity.Y, data.Velocity.Z,
+                data.AngularVelocity.X, data.AngularVelocity.Y, data.AngularVelocity.Z,
+                data.Scale));
+            Logger.Debug("WZGimmickMovement → zone={0} id={1}", ownerZoneId, data.Id);
+        };
         WorldIntegration.TryInteractZoneGimmick = ZoneStaticGimmickAuthority.Interact;
         WorldIntegration.ReleaseZoneGimmickGrasps = ZoneStaticGimmickAuthority.Release;
         WorldIntegration.RelayZoneCommand = (unitId, command) =>
@@ -1576,6 +1590,7 @@ public static class Program
             WorldIntegration.RelayGimmickCreatedToZone = null;
             WorldIntegration.RelayGimmickRemovedToZone = null;
             WorldIntegration.RelayGimmickGraspedToZone = null;
+            WorldIntegration.RelayGimmickMovementToZone = null;
             WorldIntegration.TryInteractZoneGimmick = null;
             WorldIntegration.ReleaseZoneGimmickGrasps = null;
             ZoneStaticGimmickAuthority.Clear();
