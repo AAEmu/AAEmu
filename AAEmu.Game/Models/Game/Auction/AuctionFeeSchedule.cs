@@ -109,7 +109,16 @@ public class AuctionFeeSchedule
             return 0;
 
         var rate = ApplyPercentDiscount(GetDepositRate(duration), discountPercent);
-        var deposit = buyoutPrice * rate / DepositRateDivisor;
+        return GetListingDepositForRate(buyoutPrice, rate);
+    }
+
+    /// <summary>Listing deposit for a rate already stored on an auction lot.</summary>
+    public long GetListingDepositForRate(long buyoutPrice, int depositRate)
+    {
+        if (buyoutPrice <= 0 || depositRate <= 0)
+            return 0;
+
+        var deposit = buyoutPrice * depositRate / DepositRateDivisor;
         return Math.Clamp(deposit, 0, DepositMax);
     }
 

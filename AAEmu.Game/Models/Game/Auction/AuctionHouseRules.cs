@@ -338,6 +338,9 @@ public static class AuctionHouseRules
         return pageLots;
     }
 
+    public static long SellerPayoutAfterSale(long saleProceedsAfterTax, long listingDeposit) =>
+        saleProceedsAfterTax + Math.Max(0, listingDeposit);
+
     public static int ToMailCopper(long amount) =>
         (int)Math.Clamp(amount, 0, int.MaxValue);
 }

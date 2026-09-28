@@ -190,7 +190,7 @@ public class AuctionManager(
             return;
         }
 
-        var listingDeposit = Fees.GetListingDeposit(lot.DirectMoney, lot.Duration);
+        var listingDeposit = Fees.GetListingDepositForRate(lot.DirectMoney, lot.DepositPercent);
         var buyMail = new MailForAuction(item, lot.ClientId, soldAmount, listingDeposit);
         if (!buyMail.FinalizeForSaleBuyer(buyerId))
         {
@@ -208,10 +208,11 @@ public class AuctionManager(
         var saleCharge = AuctionHouseRules.SaleChargeForLot(
             Fees, soldAmount, lot.ChargePercent, item.Template?.AuctionSettings?.EffectiveChargeRate ?? 0);
         var moneyAfterFee = soldAmount - saleCharge;
+        var sellerPayout = AuctionHouseRules.SellerPayoutAfterSale(moneyAfterFee, listingDeposit);
         if (!string.IsNullOrEmpty(lot.ClientName))
         {
             var sellMail = new MailForAuction(item, lot.ClientId, soldAmount, listingDeposit);
-            if (sellMail.FinalizeForSaleSeller(moneyAfterFee, saleCharge))
+            if (sellMail.FinalizeForSaleSeller(sellerPayout, saleCharge))
                 sellMail.Send();
             else
                 Logger.Error("Seller mail failed lot={0} seller={1} after the item was delivered", lot.Id, lot.ClientId);
