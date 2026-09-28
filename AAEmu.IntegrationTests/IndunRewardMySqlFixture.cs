@@ -5,7 +5,7 @@ using Xunit;
 
 namespace AAEmu.IntegrationTests;
 
-/// <summary>Opt-in isolated MySQL database for the W03A claim transaction tests.</summary>
+/// <summary>Opt-in isolated MySQL database for the W03A/W03B delivery transaction tests.</summary>
 public sealed class IndunRewardMySqlFixture : IAsyncLifetime
 {
     private const string EnvironmentVariable = "AAEMU_INDUN_REWARD_TEST_MYSQL";
@@ -83,6 +83,18 @@ public sealed class IndunRewardMySqlFixture : IAsyncLifetime
             mail_id BIGINT UNSIGNED NULL,
             claimed_at DATETIME(6) NOT NULL,
             PRIMARY KEY (run_id, instance_id, character_id, instance_reward_kind_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        CREATE TABLE indun_reward_bonus_grants (
+            run_id VARCHAR(128) NOT NULL,
+            instance_id INT UNSIGNED NOT NULL,
+            instance_reward_kind_id INT UNSIGNED NOT NULL,
+            character_id INT UNSIGNED NOT NULL,
+            instance_reward_id INT UNSIGNED NOT NULL,
+            buff_id INT UNSIGNED NOT NULL,
+            bonus_count INT UNSIGNED NOT NULL,
+            granted_at DATETIME(6) NOT NULL,
+            PRIMARY KEY (run_id, instance_id, instance_reward_kind_id, character_id,
+                         instance_reward_id, buff_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         CREATE TABLE indun_reward_test_mail (
             mail_id BIGINT UNSIGNED NOT NULL,

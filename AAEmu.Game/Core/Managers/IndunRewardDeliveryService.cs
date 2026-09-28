@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
@@ -27,9 +28,10 @@ internal enum ClaimCommitState
 }
 
 /// <summary>
-/// W03A delivery for indun mail rewards with an evidence-backed selection value. The claim row and
-/// the mail rows are written on one MySQL transaction, so a retry after an ambiguous commit cannot
-/// create a second letter. W03B's <c>instance_reward_bonus_counts</c> is deliberately not read here.
+/// W03A delivery for indun mail rewards with an evidence-backed selection value. W03B adds the typed
+/// <c>instance_reward_bonus_counts</c> rows attached to the same selected rewards. The claim row, the
+/// mail rows and the bonus grants are written on one MySQL transaction, so a retry after an ambiguous
+/// commit cannot create a second letter or a second bonus grant.
 /// </summary>
 public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliveryService>
 {
@@ -88,10 +90,14 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
         }
 
         IReadOnlyList<InstanceReward> rewards;
+        IReadOnlyList<InstanceRewardBonusCount> bonusCounts;
         InstanceRewardMailText mailText;
         try
         {
             rewards = IndunGameData.Instance.GetInstanceRewards(instanceId, instanceRewardKindId, selectionValue);
+            bonusCounts = rewards
+                .SelectMany(reward => IndunGameData.Instance.GetInstanceRewardBonusCounts(reward.Id))
+                .ToArray();
             mailText = IndunGameData.Instance.GetInstanceRewardMailText(instanceId);
         }
         catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException)
@@ -101,21 +107,43 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
             return IndunRewardDeliveryResult.SelectionUnavailable;
         }
 
-        var recipients = world.GetAllCharacters()
+        var recipients = ResolveRecipients(world.GetAllCharacters());
+        return DeliverForRun(dungeon.RewardRunId, instanceId, instanceRewardKindId, selectionValue,
+            recipients, rewards, mailText, bonusCounts);
+    }
+
+    /// <summary>
+    /// Resolves the world roster into one delivery target per character id, in a stable order.
+    /// <para>
+    /// The de-duplication is a delivery guarantee, not a convenience. A world roster is keyed by object
+    /// id, so one character can be present twice under two object ids after a relog race; two roster
+    /// entries for one character id would otherwise become two independent claim attempts under the
+    /// same exactly-once key, and the second one would be refused by the claim guard only after it had
+    /// already burned a mail slot and a staged item. The ascending-id ordering also makes the grant
+    /// sequence of a run deterministic, so a retry of the same run reproduces identical keys.
+    /// </para>
+    /// </summary>
+    internal static IReadOnlyList<IndunRewardRecipient> ResolveRecipients(IEnumerable<Character> roster)
+    {
+        ArgumentNullException.ThrowIfNull(roster);
+        return roster
             .Where(character => character != null)
             .GroupBy(character => character.Id)
             .Select(group => group.First())
             .OrderBy(character => character.Id)
             .Select(character => new IndunRewardRecipient(character.Id, character.Name))
             .ToArray();
-        return DeliverForRun(dungeon.RewardRunId, instanceId, instanceRewardKindId, selectionValue,
-            recipients, rewards, mailText);
     }
 
     /// <summary>
     /// Transactional core used by the action and by the opt-in MySQL integration tests. The run id
     /// is supplied by the caller; production callers must pass the same persisted logical run id when
     /// a copy is rehydrated. A fresh process has no automatic dungeon-run recovery in this slice.
+    /// <para>
+    /// Bonus rows are catalog records only: the same commit records them against the claim, but no
+    /// character buff is mutated, because the shipped data proves the association and the count but
+    /// not a player-visible application.
+    /// </para>
     /// </summary>
     internal IndunRewardDeliveryResult DeliverForRun(
         string runId,
@@ -124,14 +152,19 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
         int selectionValue,
         IReadOnlyList<IndunRewardRecipient> recipients,
         IReadOnlyList<InstanceReward> rewards,
-        InstanceRewardMailText mailText)
+        InstanceRewardMailText mailText,
+        IReadOnlyList<InstanceRewardBonusCount> bonusCounts = null)
     {
+        bonusCounts ??= Array.Empty<InstanceRewardBonusCount>();
         if (string.IsNullOrWhiteSpace(runId) || runId != runId.Trim() || runId.Length > 128 ||
             instanceId == 0 || instanceRewardKindId == 0 ||
             recipients == null || rewards == null || mailText == null || mailText.InstanceId != instanceId ||
             mailText.MailKindId == 0 || string.IsNullOrWhiteSpace(mailText.MailSender) ||
             string.IsNullOrWhiteSpace(mailText.MailTitle) || string.IsNullOrWhiteSpace(mailText.MailBody) ||
             rewards.Any(reward => reward.InstanceId != instanceId || reward.InstanceRewardKindId != instanceRewardKindId) ||
+            bonusCounts.Any(bonus => bonus.Id == 0 || bonus.InstanceRewardId == 0 || bonus.BuffId == 0 || bonus.Count <= 0 ||
+                                      rewards.All(reward => reward.Id != bonus.InstanceRewardId)) ||
+            bonusCounts.Select(bonus => (bonus.InstanceRewardId, bonus.BuffId)).Distinct().Count() != bonusCounts.Count ||
             recipients.Any(recipient => recipient.Id == 0 || string.IsNullOrWhiteSpace(recipient.Name)))
         {
             Logger.Error("Instance reward delivery has an invalid durable run/content context");
@@ -148,6 +181,18 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
             return IndunRewardDeliveryResult.SelectionUnavailable;
         }
 
+        IReadOnlyList<InstanceRewardBonusCount> selectedBonusCounts;
+        try
+        {
+            selectedBonusCounts = IndunRewardSelectionRules.SelectBonusCounts(selectedRewards, bonusCounts);
+        }
+        catch (InvalidDataException ex)
+        {
+            Logger.Error(ex, "Instance reward delivery rejected invalid bonus counts for run {0}, instance {1}, kind {2}",
+                runId, instanceId, instanceRewardKindId);
+            return IndunRewardDeliveryResult.SelectionUnavailable;
+        }
+
         if (recipients.Count == 0)
             return IndunRewardDeliveryResult.NoRecipients;
 
@@ -156,7 +201,7 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
         foreach (var recipient in recipients)
         {
             var result = DeliverOne(runId, instanceId, instanceRewardKindId, selectionValue,
-                recipient, selectedRewards, mailText);
+                recipient, selectedRewards, selectedBonusCounts, mailText);
             switch (result)
             {
                 case IndunRewardDeliveryResult.Delivered:
@@ -182,6 +227,7 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
         int selectionValue,
         IndunRewardRecipient recipient,
         InstanceReward[] rewards,
+        IReadOnlyList<InstanceRewardBonusCount> bonusCounts,
         InstanceRewardMailText mailText)
     {
         if (rewards.Any(reward => reward.RewardAmount <= 0))
@@ -211,6 +257,13 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
             {
                 TryRollback(transaction);
                 return IndunRewardDeliveryResult.AlreadyClaimed;
+            }
+
+            if (!TryInsertBonusGrants(connection, transaction, runId, instanceId,
+                    instanceRewardKindId, recipient.Id, bonusCounts))
+            {
+                TryRollback(transaction);
+                return IndunRewardDeliveryResult.Failed;
             }
 
             mail = BuildMail(recipient, mailText, rewards, createdItems);
@@ -266,7 +319,8 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
                 transaction = null;
                 connection?.Dispose();
                 connection = null;
-                var commitState = TryResolveCommitState(runId, instanceId, instanceRewardKindId, recipient.Id, mail.Id);
+                var commitState = TryResolveCommitState(runId, instanceId, instanceRewardKindId,
+                    recipient.Id, mail.Id, bonusCounts);
                 if (commitState == ClaimCommitState.Committed)
                 {
                     transaction = null;
@@ -415,7 +469,8 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
         uint instanceId,
         uint instanceRewardKindId,
         uint characterId,
-        long mailId)
+        long mailId,
+        IReadOnlyList<InstanceRewardBonusCount> expectedBonusCounts)
     {
         if (mailId <= 0)
             return ClaimCommitState.Unknown;
@@ -423,27 +478,99 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
         try
         {
             using var connection = _openConnection();
-            using var command = connection.CreateCommand();
-            command.CommandText = @"SELECT mail_id
-                                    FROM indun_reward_claims
-                                    WHERE run_id=@run_id
-                                      AND instance_id=@instance_id
-                                      AND instance_reward_kind_id=@kind_id
-                                      AND character_id=@character_id";
-            command.Parameters.AddWithValue("@run_id", runId);
-            command.Parameters.AddWithValue("@instance_id", instanceId);
-            command.Parameters.AddWithValue("@kind_id", instanceRewardKindId);
-            command.Parameters.AddWithValue("@character_id", characterId);
-            var value = command.ExecuteScalar();
-            if (value is null or DBNull)
-                return ClaimCommitState.NotCommitted;
-            return Convert.ToInt64(value) == mailId ? ClaimCommitState.Committed : ClaimCommitState.Unknown;
+            long committedMailId;
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = @"SELECT mail_id
+                                        FROM indun_reward_claims
+                                        WHERE run_id=@run_id
+                                          AND instance_id=@instance_id
+                                          AND instance_reward_kind_id=@kind_id
+                                          AND character_id=@character_id";
+                command.Parameters.AddWithValue("@run_id", runId);
+                command.Parameters.AddWithValue("@instance_id", instanceId);
+                command.Parameters.AddWithValue("@kind_id", instanceRewardKindId);
+                command.Parameters.AddWithValue("@character_id", characterId);
+                using var reader = command.ExecuteReader();
+                if (!reader.Read() || reader.IsDBNull(0))
+                    return ClaimCommitState.NotCommitted;
+                committedMailId = Convert.ToInt64(reader.GetValue(0));
+            }
+
+            if (committedMailId != mailId)
+                return ClaimCommitState.Unknown;
+
+            // The bonus rows are part of the same commit, so a claim whose durable bonus rows do not
+            // match the ones this attempt staged is not the attempt that committed. Reporting it as
+            // unknown keeps a possibly committed grant staged instead of publishing a second one.
+            using var bonusCommand = connection.CreateCommand();
+            bonusCommand.CommandText = @"SELECT instance_reward_id, buff_id, bonus_count
+                                         FROM indun_reward_bonus_grants
+                                         WHERE run_id=@run_id
+                                           AND instance_id=@instance_id
+                                           AND instance_reward_kind_id=@kind_id
+                                           AND character_id=@character_id
+                                         ORDER BY instance_reward_id, buff_id";
+            bonusCommand.Parameters.AddWithValue("@run_id", runId);
+            bonusCommand.Parameters.AddWithValue("@instance_id", instanceId);
+            bonusCommand.Parameters.AddWithValue("@kind_id", instanceRewardKindId);
+            bonusCommand.Parameters.AddWithValue("@character_id", characterId);
+            var actual = new List<(uint InstanceRewardId, uint BuffId, int Count)>();
+            using (var reader = bonusCommand.ExecuteReader())
+            {
+                while (reader.Read())
+                    actual.Add((reader.GetFieldValue<uint>(0), reader.GetFieldValue<uint>(1), reader.GetInt32(2)));
+            }
+
+            var expected = expectedBonusCounts
+                .Select(bonus => (bonus.InstanceRewardId, bonus.BuffId, bonus.Count))
+                .OrderBy(bonus => bonus.InstanceRewardId)
+                .ThenBy(bonus => bonus.BuffId)
+                .ToArray();
+            return actual.SequenceEqual(expected) ? ClaimCommitState.Committed : ClaimCommitState.Unknown;
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Could not resolve the instance reward commit outcome for run {0}", runId);
             return ClaimCommitState.Unknown;
         }
+    }
+
+    /// <summary>
+    /// Writes the typed bonus grants for one recipient inside the claim's own transaction. The rows
+    /// carry no foreign key to <c>indun_reward_claims</c>, so a duplicate here is corruption or a
+    /// caller bug rather than the ordinary exactly-once retry, and it must never be swallowed.
+    /// </summary>
+    private static bool TryInsertBonusGrants(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        string runId,
+        uint instanceId,
+        uint instanceRewardKindId,
+        uint characterId,
+        IReadOnlyList<InstanceRewardBonusCount> bonusCounts)
+    {
+        foreach (var bonus in bonusCounts)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = @"INSERT IGNORE INTO indun_reward_bonus_grants
+                                         (run_id, instance_id, instance_reward_kind_id, character_id,
+                                          instance_reward_id, buff_id, bonus_count, granted_at)
+                                     VALUES (@run_id, @instance_id, @kind_id, @character_id,
+                                             @reward_id, @buff_id, @bonus_count, UTC_TIMESTAMP(6))";
+            command.Parameters.AddWithValue("@run_id", runId);
+            command.Parameters.AddWithValue("@instance_id", instanceId);
+            command.Parameters.AddWithValue("@kind_id", instanceRewardKindId);
+            command.Parameters.AddWithValue("@character_id", characterId);
+            command.Parameters.AddWithValue("@reward_id", bonus.InstanceRewardId);
+            command.Parameters.AddWithValue("@buff_id", bonus.BuffId);
+            command.Parameters.AddWithValue("@bonus_count", bonus.Count);
+            if (command.ExecuteNonQuery() != 1)
+                return false;
+        }
+
+        return true;
     }
 
     private static bool TryInsertClaim(

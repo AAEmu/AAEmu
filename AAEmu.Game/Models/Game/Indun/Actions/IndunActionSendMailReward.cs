@@ -5,9 +5,17 @@ using AAEmu.Game.Models.Game.World;
 namespace AAEmu.Game.Models.Game.Indun.Actions;
 
 /// <summary>
-/// W03A delivery hook for <c>indun_action_send_mail_rewards</c>. The current shipped selection
-/// evidence is <c>instance_difficult_infos</c>; a kind whose selection source is not loaded fails
-/// loudly instead of guessing a soldier-rank value. W03B bonus counts are intentionally excluded.
+/// W03A delivery hook for <c>indun_action_send_mail_rewards</c>.
+/// <para>
+/// W03C replaced the earlier difficulty-only gate with a three-way structural classification, because
+/// the shipped content publishes three different kinds of selection evidence and they are not equally
+/// blocked. <b>Difficulty-backed</b> is deliverable now. <b>Round-backed</b> has a proven selection
+/// value but no authored trigger. <b>Rank-backed</b> has authored rank bands but no authored score to
+/// order players with — it is refused for that reason alone, not because the kind is unauthored.
+/// </para>
+/// <para>
+/// Typed bonus counts join only after this same selection succeeds.
+/// </para>
 /// </summary>
 internal class IndunActionSendMailReward : IndunAction
 {
@@ -31,16 +39,21 @@ internal class IndunActionSendMailReward : IndunAction
             return;
         }
 
-        if (!IndunGameData.Instance.TryGetAuthoredDifficultySelection(
-                instanceId, InstanceRewardKindId, dungeon.Difficult, out var selectionValue))
+        var verdict = IndunGameData.Instance.ClassifyInstanceRewardSelection(
+            instanceId, InstanceRewardKindId, dungeon.Difficult);
+        if (!verdict.DeliverableNow)
         {
-            var kindName = IndunGameData.Instance.GetInstanceRewardKindName(InstanceRewardKindId);
-            Logger.Error("IndunActionSendMailReward {0}: unsupported non-difficulty or unauthored reward selection for instance {1}, kind {2} ({3}); soldier-rank values are not inferred",
-                Id, instanceId, InstanceRewardKindId, kindName);
+            Logger.Error(
+                "IndunActionSendMailReward {0}: {1} reward selection is not deliverable for instance {2} — {3}. {4}",
+                Id,
+                verdict.KindName,
+                instanceId,
+                verdict.Classification,
+                InstanceRewardTaxonomyRules.DescribeBlocker(verdict));
             return;
         }
 
-        var result = IndunRewardDeliveryService.Instance.Deliver(worldInstance, InstanceRewardKindId, selectionValue);
+        var result = IndunRewardDeliveryService.Instance.Deliver(worldInstance, InstanceRewardKindId, verdict.SelectionValue);
         switch (result)
         {
             case IndunRewardDeliveryResult.Delivered:

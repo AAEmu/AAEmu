@@ -24,12 +24,23 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
     private Dictionary<uint, List<IndunRound>> _indunRounds;
     private Dictionary<uint, HashSet<byte>> _difficultiesByZoneGroup;
     private Dictionary<uint, List<InstanceReward>> _instanceRewards;
+    private Dictionary<uint, List<InstanceRewardBonusCount>> _instanceRewardBonusCounts;
     private Dictionary<uint, InstanceRewardMailText> _instanceRewardMailTexts;
     private HashSet<uint> _instanceRewardIds;
+    private HashSet<uint> _instanceRewardBonusCountIds;
+    private HashSet<(uint InstanceRewardId, uint BuffId)> _instanceRewardBonusCountKeys;
     private HashSet<uint> _instanceRewardMailTextIds;
     private HashSet<uint> _instanceIdsWithDifficultyInfo;
     private Dictionary<uint, InstanceRewardKindDefinition> _instanceRewardKinds;
     private Dictionary<uint, InstanceRewardMailKindDefinition> _instanceRewardMailKinds;
+    private Dictionary<uint, List<InstanceFaction>> _instanceFactions;
+    private Dictionary<uint, List<InstanceMiniScoreboard>> _instanceMiniScoreboards;
+    private Dictionary<uint, List<InstanceGainRule>> _instanceGainRules;
+    private List<InstancePointDoodadPhaseChange> _instancePointDoodadPhaseChanges;
+    private Dictionary<uint, SortedSet<byte>> _difficultiesByInstance;
+    private HashSet<uint> _instanceRewardKindsWithDeliveryTrigger;
+    private HashSet<uint> _instanceIdsWithDisplayRankingSurface;
+    private HashSet<uint> _instanceFactionIds;
 
     public IndunZone GetDungeonZone(uint zoneGroupId)
     {
@@ -96,6 +107,27 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         return IndunRewardSelectionRules.Select(rewards, instanceRewardKindId, selectionValue);
     }
 
+    /// <summary>
+    /// Bonus rows attached to one authored reward. Only rows that joined both
+    /// <c>instance_rewards</c> and <c>buffs</c> are returned; orphan rows are reported by
+    /// <see cref="InstanceRewardBonusDiagnostics"/> and never guessed onto another reward.
+    /// </summary>
+    public IReadOnlyList<InstanceRewardBonusCount> GetInstanceRewardBonusCounts(uint instanceRewardId)
+    {
+        if (instanceRewardId == 0)
+            throw new InvalidDataException("instance_reward_bonus_counts has no zero reward id");
+        if (_instanceRewardIds != null && !_instanceRewardIds.Contains(instanceRewardId))
+            throw new InvalidDataException($"instance_rewards has no reward {instanceRewardId}");
+        if (_instanceRewardBonusCounts != null &&
+            _instanceRewardBonusCounts.TryGetValue(instanceRewardId, out var bonusCounts))
+            return bonusCounts;
+        return [];
+    }
+
+    /// <summary>Rows rejected during content load because their reward id is not shipped.</summary>
+    public InstanceRewardBonusDiagnostics InstanceRewardBonusDiagnostics { get; private set; } =
+        new([], []);
+
     /// <summary>The mail copy is keyed by the instance catalog id, not the transient world id.</summary>
     public InstanceRewardMailText GetInstanceRewardMailText(uint instanceId)
     {
@@ -118,6 +150,96 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
 
     public bool HasInstanceRewardMailText(uint instanceId) =>
         _instanceRewardMailTexts != null && _instanceRewardMailTexts.ContainsKey(instanceId);
+
+    #region W03C selection taxonomy
+
+    /// <summary>
+    /// Classifies how this instance/kind pair's selection value can be established, and names the
+    /// exact artifact whose absence blocks it. The classification is structural, so it never depends on
+    /// a reward-kind name or a literal kind id.
+    /// </summary>
+    public InstanceRewardSelectionVerdict ClassifyInstanceRewardSelection(
+        uint instanceId,
+        uint instanceRewardKindId,
+        byte? runtimeDifficulty)
+    {
+        var kindName = GetInstanceRewardKindName(instanceRewardKindId);
+        IReadOnlyList<InstanceReward> rewards = [];
+        if (_instanceRewards != null && _instanceRewards.TryGetValue(instanceId, out var instanceRewards))
+            rewards = instanceRewards.Where(reward => reward.InstanceRewardKindId == instanceRewardKindId).ToArray();
+
+        IReadOnlyCollection<byte> difficulties =
+            _difficultiesByInstance != null && _difficultiesByInstance.TryGetValue(instanceId, out var loaded)
+                ? loaded
+                : [];
+
+        var roundCount = 0;
+        var zone = GetDungeonZoneByCatalogId(instanceId);
+        if (zone != null)
+            roundCount = GetRounds(zone.ZoneGroupId).Count;
+
+        IReadOnlyCollection<int> teamSizes = _instanceFactions != null &&
+                                             _instanceFactions.TryGetValue(instanceId, out var factions)
+            ? factions.Where(faction => faction.MinPlayer == faction.MaxPlayer)
+                      .Select(faction => faction.MaxPlayer)
+                      .Distinct()
+                      .ToArray()
+            : [];
+
+        var hasDisplaySurface = _instanceIdsWithDisplayRankingSurface != null &&
+                                _instanceIdsWithDisplayRankingSurface.Contains(instanceId);
+        var hasTrigger = _instanceRewardKindsWithDeliveryTrigger != null &&
+                         _instanceRewardKindsWithDeliveryTrigger.Contains(instanceRewardKindId);
+
+        return InstanceRewardTaxonomyRules.Classify(
+            instanceId, instanceRewardKindId, kindName, rewards, difficulties, roundCount,
+            teamSizes, hasDisplaySurface, hasTrigger, runtimeDifficulty);
+    }
+
+    /// <summary>Fixed-size <c>instance_factions</c> teams of an instance; empty when none are shipped.</summary>
+    public IReadOnlyList<InstanceFaction> GetInstanceFactions(uint instanceId)
+    {
+        if (_instanceFactions != null && _instanceFactions.TryGetValue(instanceId, out var factions))
+            return factions;
+        return [];
+    }
+
+    /// <summary>
+    /// The instance's mini scoreboard rows. Display and grouping only: these never carry a score value
+    /// and must not be read as one.
+    /// </summary>
+    public IReadOnlyList<InstanceMiniScoreboard> GetInstanceMiniScoreboards(uint instanceId)
+    {
+        if (_instanceMiniScoreboards != null && _instanceMiniScoreboards.TryGetValue(instanceId, out var boards))
+            return boards;
+        return [];
+    }
+
+    /// <summary>The instance's gain rules. Display and grouping only, for the same reason.</summary>
+    public IReadOnlyList<InstanceGainRule> GetInstanceGainRules(uint instanceId)
+    {
+        if (_instanceGainRules != null && _instanceGainRules.TryGetValue(instanceId, out var rules))
+            return rules;
+        return [];
+    }
+
+    /// <summary>Every shipped <c>instance_point_doodad_phase_changes</c> row.</summary>
+    public IReadOnlyList<InstancePointDoodadPhaseChange> GetInstancePointDoodadPhaseChanges() =>
+        _instancePointDoodadPhaseChanges ?? (IReadOnlyList<InstancePointDoodadPhaseChange>)[];
+
+    /// <summary>The <c>instance_difficult_infos</c> difficulties of one instance, in ascending order.</summary>
+    public IReadOnlyList<byte> GetInstanceDifficulties(uint instanceId)
+    {
+        if (_difficultiesByInstance != null && _difficultiesByInstance.TryGetValue(instanceId, out var values))
+            return values.ToArray();
+        return [];
+    }
+
+    /// <summary>Reward kinds that at least one <c>indun_action_send_mail_rewards</c> row references.</summary>
+    public IReadOnlyCollection<uint> GetInstanceRewardKindsWithDeliveryTrigger() =>
+        _instanceRewardKindsWithDeliveryTrigger ?? (IReadOnlyCollection<uint>)[];
+
+    #endregion
 
     public bool IsDifficultyAvailable(uint zoneGroupId, byte difficult) =>
         _difficultiesByZoneGroup != null &&
@@ -153,6 +275,18 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             rewards, HasInstanceDifficultyInfo(instanceId), difficulty, instanceRewardKindId, out selectionValue);
     }
 
+    /// <summary>Appends to a per-key catalog list, creating the bucket on first use.</summary>
+    private static void AddTo<TKey, TValue>(Dictionary<TKey, List<TValue>> source, TKey key, TValue value)
+    {
+        if (!source.TryGetValue(key, out var bucket))
+        {
+            bucket = [];
+            source.Add(key, bucket);
+        }
+
+        bucket.Add(value);
+    }
+
     private void AddIndunEvent(IndunEvent indunEvent)
     {
         if (!_indunEvents.ContainsKey(indunEvent.ZoneGroupId))
@@ -186,12 +320,23 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         _indunRounds = [];
         _difficultiesByZoneGroup = [];
         _instanceRewards = [];
+        _instanceRewardBonusCounts = [];
         _instanceRewardMailTexts = [];
         _instanceRewardIds = [];
+        _instanceRewardBonusCountIds = [];
+        _instanceRewardBonusCountKeys = [];
         _instanceRewardMailTextIds = [];
         _instanceIdsWithDifficultyInfo = [];
         _instanceRewardKinds = [];
         _instanceRewardMailKinds = [];
+        _instanceFactions = [];
+        _instanceMiniScoreboards = [];
+        _instanceGainRules = [];
+        _instancePointDoodadPhaseChanges = [];
+        _difficultiesByInstance = [];
+        _instanceRewardKindsWithDeliveryTrigger = [];
+        _instanceIdsWithDisplayRankingSurface = [];
+        _instanceFactionIds = [];
 
         #region Reward catalogs
         using (var command = connection.CreateCommand())
@@ -411,6 +556,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         InstanceRewardKindId = kindId
                     };
 
+                    _instanceRewardKindsWithDeliveryTrigger.Add(kindId);
                     _indunActions.Add(action.Id, action);
                 }
             }
@@ -930,6 +1076,34 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 _instanceIdsWithDifficultyInfo.Add(reader.GetUInt32("instance_id"));
         }
 
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT idi.instance_id, idi.difficult
+                                    FROM instance_difficult_infos idi
+                                    JOIN instances i ON i.id = idi.instance_id
+                                    WHERE i.target_type = 'IndunZone'
+                                    ORDER BY idi.instance_id, idi.difficult";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var instanceId = reader.GetUInt32("instance_id");
+                if (instanceId == 0)
+                    throw new InvalidDataException("instance_difficult_infos has a zero instance id");
+                var difficult = (byte)reader.GetUInt32("difficult");
+                if (!_difficultiesByInstance.TryGetValue(instanceId, out var difficulties))
+                {
+                    difficulties = [];
+                    _difficultiesByInstance.Add(instanceId, difficulties);
+                }
+
+                if (!difficulties.Add(difficult))
+                    throw new InvalidDataException(
+                        $"instance_difficult_infos has a duplicate difficulty {difficult} for instance {instanceId}");
+            }
+        }
+
         #region Instance rewards
         using (var command = connection.CreateCommand())
         {
@@ -996,6 +1170,65 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             }
         }
 
+        var orphanBonusRowIds = new List<uint>();
+        var orphanBonusRewardIds = new SortedSet<uint>();
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT bc.id, bc.instance_reward_id, bc.buff_id, bc.count,
+                                           r.id AS reward_catalog_id, b.name AS buff_name
+                                    FROM instance_reward_bonus_counts bc
+                                    LEFT JOIN instance_rewards r ON r.id = bc.instance_reward_id
+                                    LEFT JOIN buffs b ON b.id = bc.buff_id
+                                    ORDER BY bc.instance_reward_id, bc.buff_id, bc.id";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var bonusId = reader.GetUInt32("id");
+                var rewardId = reader.GetUInt32("instance_reward_id");
+                var buffId = reader.GetUInt32("buff_id");
+                var count = reader.GetInt32("count");
+                if (bonusId == 0 || rewardId == 0 || buffId == 0)
+                    throw new InvalidDataException($"instance_reward_bonus_counts {bonusId} has a zero catalog id");
+                if (count <= 0)
+                    throw new InvalidDataException($"instance_reward_bonus_counts {bonusId} has a non-positive count");
+                if (!_instanceRewardBonusCountIds.Add(bonusId))
+                    throw new InvalidDataException($"instance_reward_bonus_counts has duplicate id {bonusId}");
+                if (reader.IsDBNull("buff_name") || string.IsNullOrWhiteSpace(reader.GetString("buff_name")))
+                    throw new InvalidDataException($"instance_reward_bonus_counts {bonusId} has no buffs row for buff {buffId}");
+
+                if (reader.IsDBNull("reward_catalog_id"))
+                {
+                    orphanBonusRowIds.Add(bonusId);
+                    orphanBonusRewardIds.Add(rewardId);
+                    continue;
+                }
+
+                if (!_instanceRewardBonusCountKeys.Add((rewardId, buffId)))
+                    throw new InvalidDataException(
+                        $"instance_reward_bonus_counts has duplicate reward {rewardId} / buff {buffId}");
+
+                if (!_instanceRewardBonusCounts.TryGetValue(rewardId, out var bonusCounts))
+                {
+                    bonusCounts = [];
+                    _instanceRewardBonusCounts.Add(rewardId, bonusCounts);
+                }
+                bonusCounts.Add(new InstanceRewardBonusCount(bonusId, rewardId, buffId, count));
+            }
+        }
+
+        orphanBonusRowIds.Sort();
+        InstanceRewardBonusDiagnostics = new(orphanBonusRewardIds.ToArray(), orphanBonusRowIds.ToArray());
+        if (orphanBonusRowIds.Count > 0)
+        {
+            Logger.Error(
+                "instance_reward_bonus_counts rejected {0} orphan row(s) for absent reward id(s) {1}; row id(s): {2}",
+                orphanBonusRowIds.Count,
+                string.Join(", ", orphanBonusRewardIds),
+                string.Join(", ", orphanBonusRowIds));
+        }
+
         using (var command = connection.CreateCommand())
         {
             command.CommandText = @"SELECT m.id, m.instance_id, m.mail_sender, m.mail_title, m.mail_body, m.mail_kind_id,
@@ -1048,6 +1281,130 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         // loading the complete action catalog does not turn those legacy rows into a boot failure.
         #endregion
 
+        #region W03C selection-taxonomy catalogs (display and grouping only)
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT id, instance_id, instance_faction_preset_id, min_player, max_player,
+                                           exclude_when_dev_minimal_recruitment, spawn_point_index
+                                    FROM instance_factions ORDER BY instance_id, id";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var factionId = reader.GetUInt32("id");
+                var instanceId = reader.GetUInt32("instance_id");
+                var presetId = reader.GetUInt32("instance_faction_preset_id");
+                var minPlayer = reader.GetInt32("min_player");
+                var maxPlayer = reader.GetInt32("max_player");
+                if (factionId == 0 || instanceId == 0 || presetId == 0)
+                    throw new InvalidDataException($"instance_factions {factionId} has a zero catalog id");
+                if (minPlayer < 0 || maxPlayer < minPlayer)
+                    throw new InvalidDataException(
+                        $"instance_factions {factionId} has an inverted team size {minPlayer}..{maxPlayer}");
+                if (!_instanceFactionIds.Add(factionId))
+                    throw new InvalidDataException($"instance_factions has duplicate id {factionId}");
+
+                AddTo(_instanceFactions, instanceId,
+                    new InstanceFaction(factionId, instanceId, presetId, minPlayer, maxPlayer,
+                        reader.GetBoolean("exclude_when_dev_minimal_recruitment"),
+                        reader.GetUInt32("spawn_point_index", 0)));
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT id, instance_id, target_id, target_type, name, visible_order,
+                                           icon_id, merge_target_id
+                                    FROM instance_mini_scoreboards ORDER BY instance_id, id";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var boardId = reader.GetUInt32("id");
+                var instanceId = reader.GetUInt32("instance_id");
+                var targetId = reader.GetUInt32("target_id");
+                if (boardId == 0 || instanceId == 0 || targetId == 0)
+                    throw new InvalidDataException($"instance_mini_scoreboards {boardId} has a zero catalog id");
+
+                var targetTypeText = reader.GetString("target_type");
+                if (!Enum.TryParse<InstanceMiniScoreboardTargetType>(targetTypeText, true, out var targetType))
+                {
+                    throw new InvalidDataException(
+                        $"instance_mini_scoreboards {boardId} has unsupported target_type '{targetTypeText}'");
+                }
+
+                // icon_id is a catalog key string, never parsed as a number.
+                var name = reader.GetString("name");
+                var iconId = reader.GetString("icon_id");
+                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(iconId))
+                    throw new InvalidDataException($"instance_mini_scoreboards {boardId} has an empty name or icon key");
+
+                _instanceIdsWithDisplayRankingSurface.Add(instanceId);
+                AddTo(_instanceMiniScoreboards, instanceId,
+                    new InstanceMiniScoreboard(boardId, instanceId, targetId, targetType, name,
+                        reader.GetInt32("visible_order"), iconId, reader.GetUInt32("merge_target_id", 0)));
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT id, instance_id, range_id, instance_faction_id, target_id,
+                                           target_type, display_range_id
+                                    FROM instance_gain_rules ORDER BY instance_id, id";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var ruleId = reader.GetUInt32("id");
+                var instanceId = reader.GetUInt32("instance_id");
+                var factionId = reader.GetUInt32("instance_faction_id");
+                var targetId = reader.GetUInt32("target_id");
+                if (ruleId == 0 || instanceId == 0 || factionId == 0 || targetId == 0)
+                    throw new InvalidDataException($"instance_gain_rules {ruleId} has a zero catalog id");
+                if (!_instanceFactionIds.Contains(factionId))                {
+                    throw new InvalidDataException(
+                        $"instance_gain_rules {ruleId} points at instance_factions {factionId}, which is not shipped");
+                }
+
+                var targetTypeText = reader.GetString("target_type");
+                if (!Enum.TryParse<InstanceGainRuleTargetType>(targetTypeText, true, out var targetType))
+                {
+                    throw new InvalidDataException(
+                        $"instance_gain_rules {ruleId} has unsupported target_type '{targetTypeText}'");
+                }
+
+                _instanceIdsWithDisplayRankingSurface.Add(instanceId);
+                AddTo(_instanceGainRules, instanceId,
+                    new InstanceGainRule(ruleId, instanceId, reader.GetUInt32("range_id", 0), factionId,
+                        targetId, targetType, reader.GetUInt32("display_range_id", 0)));
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT id, doodad_almighty_id, doodad_func_group_id
+                                    FROM instance_point_doodad_phase_changes ORDER BY id";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var changeId = reader.GetUInt32("id");
+                var almightyId = reader.GetUInt32("doodad_almighty_id");
+                var funcGroupId = reader.GetUInt32("doodad_func_group_id");
+                if (changeId == 0 || almightyId == 0 || funcGroupId == 0)
+                    throw new InvalidDataException(
+                        $"instance_point_doodad_phase_changes {changeId} has a zero catalog id");
+
+                _instancePointDoodadPhaseChanges.Add(
+                    new InstancePointDoodadPhaseChange(changeId, almightyId, funcGroupId));
+            }
+        }
+        #endregion
+
         var eventCount = 0;
         foreach (var events in _indunEvents.Values)
             eventCount += events.Count;
@@ -1055,7 +1412,11 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         foreach (var rounds in _indunRounds.Values)
             roundCount += rounds.Count;
         var instanceRewardCount = _instanceRewards.Values.Sum(rewards => rewards.Count);
-        Logger.Info($"Loaded {_indunActions.Count} indun actions, {eventCount} indun events, {roundCount} indun rounds, {instanceRewardCount} instance rewards, {_instanceRewardMailTexts.Count} instance reward mail texts");
+        var instanceRewardBonusCount = _instanceRewardBonusCounts.Values.Sum(bonusCounts => bonusCounts.Count);
+        var instanceFactionCount = _instanceFactions.Values.Sum(factions => factions.Count);
+        var miniScoreboardCount = _instanceMiniScoreboards.Values.Sum(boards => boards.Count);
+        var gainRuleCount = _instanceGainRules.Values.Sum(rules => rules.Count);
+        Logger.Info($"Loaded {_indunActions.Count} indun actions, {eventCount} indun events, {roundCount} indun rounds, {instanceRewardCount} instance rewards, {instanceRewardBonusCount} instance reward bonus counts, {_instanceRewardMailTexts.Count} instance reward mail texts, {instanceFactionCount} instance factions, {miniScoreboardCount} mini scoreboards, {gainRuleCount} instance gain rules, {_instancePointDoodadPhaseChanges.Count} instance point doodad phase changes, {_instanceRewardKindsWithDeliveryTrigger.Count} reward kind(s) with an authored delivery trigger");
     }
 
     public void PostLoad()

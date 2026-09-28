@@ -24,6 +24,12 @@ public sealed class IndunRewardDeliveryIntegrationTests(IndunRewardMySqlFixture 
         new(1, InstanceId, RewardKindId, 1, 1, 1, false, TargetItemId, InstanceRewardTargetType.Item, false, false)
     ];
 
+    private static readonly IReadOnlyList<InstanceRewardBonusCount> BonusCounts =
+    [
+        new(1, Rewards[0].Id, 9001, 1),
+        new(2, Rewards[0].Id, 9002, 2)
+    ];
+
     private static readonly InstanceRewardMailText MailText =
         new(1, InstanceId, "fixture", "title", "body", 1, InstanceRewardMailKind.Basic);
 
@@ -41,6 +47,106 @@ public sealed class IndunRewardDeliveryIntegrationTests(IndunRewardMySqlFixture 
         using var connection = fixture.Open();
         Assert.Equal(1, Count(connection, "indun_reward_claims", "run_id=@value", "commit-run"));
         Assert.Equal(1, CountMail(connection, "commit-run"));
+    }
+
+    [Fact]
+    public void CommitPersistsTypedBonusCountsInTheSameTransaction()
+    {
+        SkipUnlessEnabled();
+        var mail = new MailHarness { RunId = "bonus-run" };
+        var service = CreateService(mail);
+
+        var result = service.DeliverForRun("bonus-run", InstanceId, RewardKindId, 1,
+            [new IndunRewardRecipient(FirstRecipientId, "first")], Rewards, MailText, BonusCounts);
+
+        Assert.Equal(IndunRewardDeliveryResult.Delivered, result);
+        using var connection = fixture.Open();
+        Assert.Equal(1, Count(connection, "indun_reward_claims", "run_id=@value", "bonus-run"));
+        Assert.Equal(1, CountMail(connection, "bonus-run"));
+        Assert.Equal(2, CountBonusGrants(connection, "bonus-run", FirstRecipientId));
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT buff_id, bonus_count FROM indun_reward_bonus_grants WHERE run_id='bonus-run' ORDER BY buff_id";
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal(9001L, reader.GetInt64(0));
+        Assert.Equal(1L, reader.GetInt64(1));
+        Assert.True(reader.Read());
+        Assert.Equal(9002L, reader.GetInt64(0));
+        Assert.Equal(2L, reader.GetInt64(1));
+    }
+
+    [Fact]
+    public void AmbiguousCommitRetryDoesNotDuplicateBonusCounts()
+    {
+        SkipUnlessEnabled();
+        var firstMail = new MailHarness { RunId = "bonus-ambiguous-run" };
+        var first = CreateService(firstMail, transaction =>
+        {
+            transaction.Commit();
+            throw new InvalidOperationException("simulated ambiguous commit");
+        });
+        var firstResult = first.DeliverForRun("bonus-ambiguous-run", InstanceId, RewardKindId, 1,
+            [new IndunRewardRecipient(FirstRecipientId, "first")], Rewards, MailText, BonusCounts);
+        Assert.Equal(IndunRewardDeliveryResult.Delivered, firstResult);
+
+        var retryMail = new MailHarness { RunId = "bonus-ambiguous-run" };
+        var retry = CreateService(retryMail);
+        var retryResult = retry.DeliverForRun("bonus-ambiguous-run", InstanceId, RewardKindId, 1,
+            [new IndunRewardRecipient(FirstRecipientId, "first")], Rewards, MailText, BonusCounts);
+
+        Assert.Equal(IndunRewardDeliveryResult.AlreadyClaimed, retryResult);
+        Assert.Equal(0, retryMail.PublishCalls);
+        using var connection = fixture.Open();
+        Assert.Equal(1, CountMail(connection, "bonus-ambiguous-run"));
+        Assert.Equal(2, CountBonusGrants(connection, "bonus-ambiguous-run", FirstRecipientId));
+    }
+
+    [Fact]
+    public void AmbiguousCommitWithMismatchedBonusRowsStaysUnpublished()
+    {
+        SkipUnlessEnabled();
+        var mail = new MailHarness { RunId = "bonus-mismatch-run" };
+        var service = CreateService(mail, transaction =>
+        {
+            var connection = transaction.Connection;
+            transaction.Commit();
+            using var command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM indun_reward_bonus_grants WHERE run_id='bonus-mismatch-run' AND buff_id=9002";
+            command.ExecuteNonQuery();
+            throw new InvalidOperationException("simulated ambiguous commit with a mismatched grant");
+        });
+
+        var result = service.DeliverForRun("bonus-mismatch-run", InstanceId, RewardKindId, 1,
+            [new IndunRewardRecipient(FirstRecipientId, "first")], Rewards, MailText, BonusCounts);
+
+        Assert.Equal(IndunRewardDeliveryResult.Failed, result);
+        Assert.Equal(0, mail.PublishCalls);
+        using var connectionAfter = fixture.Open();
+        Assert.Equal(1, Count(connectionAfter, "indun_reward_claims", "run_id=@value", "bonus-mismatch-run"));
+        Assert.Equal(1, CountMail(connectionAfter, "bonus-mismatch-run"));
+        Assert.Equal(1, CountBonusGrants(connectionAfter, "bonus-mismatch-run", FirstRecipientId));
+    }
+
+    [Fact]
+    public void MailFailureRollsBackClaimMailAndBonusCounts()
+    {
+        SkipUnlessEnabled();
+        var mail = new MailHarness { RunId = "bonus-rollback-run" };
+        mail.Deliver = (message, connection, transaction) =>
+        {
+            mail.WriteMailRow(message, connection, transaction);
+            return false;
+        };
+        var service = CreateService(mail);
+
+        var result = service.DeliverForRun("bonus-rollback-run", InstanceId, RewardKindId, 1,
+            [new IndunRewardRecipient(FirstRecipientId, "first")], Rewards, MailText, BonusCounts);
+
+        Assert.Equal(IndunRewardDeliveryResult.Failed, result);
+        using var connection = fixture.Open();
+        Assert.Equal(0, Count(connection, "indun_reward_claims", "run_id=@value", "bonus-rollback-run"));
+        Assert.Equal(0, CountMail(connection, "bonus-rollback-run"));
+        Assert.Equal(0, CountBonusGrants(connection, "bonus-rollback-run", FirstRecipientId));
     }
 
     [Fact]
@@ -217,6 +323,15 @@ public sealed class IndunRewardDeliveryIntegrationTests(IndunRewardMySqlFixture 
 
     private static int CountMail(MySqlConnection connection, string runId) =>
         Count(connection, "indun_reward_test_mail", "run_id=@value", runId);
+
+    private static int CountBonusGrants(MySqlConnection connection, string runId, uint characterId)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM indun_reward_bonus_grants WHERE run_id=@run_id AND character_id=@character_id";
+        command.Parameters.AddWithValue("@run_id", runId);
+        command.Parameters.AddWithValue("@character_id", characterId);
+        return Convert.ToInt32(command.ExecuteScalar());
+    }
 
     private static int Count(MySqlConnection connection, string table, string predicate = null, object value = null)
     {
