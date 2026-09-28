@@ -32,10 +32,17 @@ public sealed record ContentRosterDeleteOutcome(ContentRosterDeleteResult Result
 {
     public bool Success => Result == ContentRosterDeleteResult.Success;
 
+    /// <summary>
+    /// Every refusal names its own shipped error so the client can tell the cases apart; two
+    /// refusals sharing one error would be a "no" with no reason.
+    /// </summary>
     public ErrorMessageType Error => Result switch
     {
         ContentRosterDeleteResult.Success => ErrorMessageType.NoErrorMessage,
+        ContentRosterDeleteResult.InvalidRequest => ErrorMessageType.ContentRosterDeleteFailed,
         ContentRosterDeleteResult.UnknownRoster => ErrorMessageType.ContentRosterNotFound,
+        ContentRosterDeleteResult.NotOwner => ErrorMessageType.ContentRosterNotUsableOwner,
+        ContentRosterDeleteResult.Cooldown => ErrorMessageType.ContentRosterSaveCoolTime,
         _ => ErrorMessageType.ContentRosterDeleteFailed
     };
 }
