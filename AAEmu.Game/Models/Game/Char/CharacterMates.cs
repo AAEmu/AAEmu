@@ -76,8 +76,11 @@ public class CharacterMates(Character owner)
             Owner = Owner.Id,
             Mileage = 0,
             Xp = ExperienceManager.Instance.GetExpForLevel(npcTemplate.Level, true),
-            Hp = 9999,
-            Mp = 9999,
+            // Zero on both bars is "this mate has never been summoned, so it has no recorded recovery".
+            // It is not a health or mana value: the summon path reads it through MateRecoveryRules, which
+            // starts an unrecorded mate at the maximum its content reconstructs.
+            Hp = 0,
+            Mp = 0,
             UpdatedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
@@ -127,7 +130,8 @@ public class CharacterMates(Character owner)
         var objId = ObjectIdManager.Instance.GetNextId();
         if (GetMateInfo(skillData.ItemId) == null)
             CreateNewMate(skillData.ItemId, template);
-        // The live mate always follows current content; nothing recovery-related is persisted yet.
+        // The authored revive profile is read from content on every summon and never stored; the
+        // progress and the two recovered bars below are what the owned row carries across a relog.
         var mateDbInfo = GetMateInfo(skillData.ItemId)
             ?? throw new InvalidDataException($"Owned mate {skillData.ItemId} was not created.");
 
@@ -143,8 +147,10 @@ public class CharacterMates(Character owner)
             Faction = Owner.Faction,
             Level = (byte)mateDbInfo.Level,
             MateType = MateGameData.Instance.GetMateType((uint)template.MateEquipSlotPackId),
-            Hp = mateDbInfo.Hp > 0 ? mateDbInfo.Hp : 100,
-            Mp = mateDbInfo.Mp > 0 ? mateDbInfo.Mp : 100,
+            // Replaced once the equipment bonuses are in and MaxHp/MaxMp are known, so that the
+            // restore below clamps against the maximum the mate actually owns.
+            Hp = 0,
+            Mp = 0,
             OwnerObjId = Owner.ObjId,
             Id = mateDbInfo.Id,
             ItemId = mateDbInfo.ItemId,
@@ -177,16 +183,13 @@ public class CharacterMates(Character owner)
         mount.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.EquipmentMate, mount, mount.Id);
         mount.UpdateGearBonuses(null, null);
 
-        // CreateNewMate seeds Hp/Mp at 9999 as "full"; after MaxHp is known, treat that sentinel
-        // (or any over-cap) as full so the pet frame does not spawn mid-bar waiting on regen.
-        if (mateDbInfo.Hp >= 9999 || mount.Hp >= mount.MaxHp)
-            mount.Hp = mount.MaxHp;
-        else
-            mount.Hp = Math.Min(mount.Hp, mount.MaxHp);
-        if (mateDbInfo.Mp >= 9999 || mount.Mp >= mount.MaxMp)
-            mount.Mp = mount.MaxMp;
-        else
-            mount.Mp = Math.Min(mount.Mp, mount.MaxMp);
+        // What the owned row recorded is what the mate comes back with, bounded by the maximum its own
+        // content reconstructs now that the gear bonuses are in. A row that never recorded a recovery
+        // starts the mate at that maximum; a recorded one is kept, and cut down to the maximum when it
+        // was saved against a larger one. Every recovery that lands afterwards — the regen tick, a
+        // recovery item, a recovery skill — clamps against this same maximum.
+        mount.Hp = MateRecoveryRules.RestorePoints(mateDbInfo.Hp, mount.MaxHp);
+        mount.Mp = MateRecoveryRules.RestorePoints(mateDbInfo.Mp, mount.MaxMp);
 
         mount.Transform.Local.AddDistanceToFront(3f);
         //Logger.Warn($"Spawn the pet:{mount.ObjId} X={mount.Transform.World.Position.X} Y={mount.Transform.World.Position.Y}");

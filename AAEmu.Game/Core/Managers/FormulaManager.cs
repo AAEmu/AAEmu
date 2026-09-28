@@ -59,6 +59,32 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
         return 0f;
     }
 
+    /// <summary>
+    /// The same lookup for a row the calling formula cannot be evaluated without.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="GetUnitVariable"/> answers a missing row with zero, which is harmless for a term the
+    /// expression adds and destructive for one it multiplies by: a maximum row that is missing its kind
+    /// multiplier would compose to zero and the unit would own a bar it can never fill. A caller that
+    /// cannot carry on without the row says so here instead.
+    /// </remarks>
+    /// <param name="formulaId">The <c>unit_formulas.id</c> whose variables are being read.</param>
+    /// <param name="type">The <c>unit_formula_variables.variable_kind_id</c> being read.</param>
+    /// <param name="key">The <c>unit_formula_variables.key</c> being read, e.g. the owning template's kind.</param>
+    /// <param name="context">What needed the row, named in the message so the log says which one is missing.</param>
+    /// <exception cref="KeyNotFoundException">No row carries this variable for this formula and key.</exception>
+    public float GetRequiredUnitVariable(uint formulaId, UnitFormulaVariableType type, uint key, string context)
+    {
+        if (_unitVariables != null
+            && _unitVariables.TryGetValue(formulaId, out var unitFormulas)
+            && unitFormulas.TryGetValue(type, out var formulaVariables)
+            && formulaVariables.TryGetValue(key, out var formulaVariable))
+            return formulaVariable.Value;
+
+        throw new KeyNotFoundException(
+            $"No unit_formula_variables row resolves {context}: formula {formulaId}, variable {type}, key {key}.");
+    }
+
     public WearableFormula GetWearableFormula(WearableFormulaType type)
     {
         return _wearableFormulas.TryGetValue(type, out var value) ? value : null;

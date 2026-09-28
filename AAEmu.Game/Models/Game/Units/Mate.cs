@@ -218,9 +218,6 @@ public sealed class Mate : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.MaxHealth);
-            var mateKindVariable = FormulaManager.Instance.GetUnitVariable(formula.Id,
-                UnitFormulaVariableType.MateKind, (uint)Template.MateKindId);
-
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
@@ -230,15 +227,45 @@ public sealed class Mate : Unit
                 ["int"] = Int,
                 ["spi"] = Spi,
                 ["fai"] = Fai,
-                ["mate_kind"] = mateKindVariable
+                ["mate_kind"] = MateKindVariable(formula, UnitFormulaKind.MaxHealth)
             };
             var res = (int)formula.Evaluate(parameters);
 
-            res = (int)CalculateWithBonuses(res, UnitAttribute.MaxHealth);
+            // Folded and clamped exactly as MaxMp folds and clamps its own row. CalculateWithBonuses
+            // folded this one in flat-then-percent order instead of the table order every other stat
+            // getter here uses, and clamped nothing at all, so the two bars of one creature answered the
+            // same bonus set differently and the health maximum was the only maximum in the server that
+            // ignored the unit_attribute_limits row its own attribute carries.
+            foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
+            {
+                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    res += (int)(res * bonus.Value / 100f);
+                else
+                    res += (int)bonus.Value;
+            }
 
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxHealth);
         }
     }
+
+    /// <summary>
+    /// The <c>mate_kind</c> multiplier the maximum rows multiply by, taken from the
+    /// <c>unit_formula_variables</c> row that belongs to <paramref name="formula"/> and to this mate's npc
+    /// <c>mate_kind_id</c>.
+    /// </summary>
+    /// <remarks>
+    /// The two maximum rows carry their own multiplier per kind and the pairs are not the same twice: a
+    /// kind that carries a low health multiplier carries a high mana multiplier, and another kind carries
+    /// the pair the other way round. So each bar has to read the row of its own formula, and a kind that
+    /// no row covers is content corruption — it is refused here rather than composed to a maximum of
+    /// zero, which is what answering the missing row with a zero multiplier would produce.
+    /// </remarks>
+    private float MateKindVariable(UnitFormula formula, UnitFormulaKind kind) =>
+        FormulaManager.Instance.GetRequiredUnitVariable(
+            formula.Id,
+            UnitFormulaVariableType.MateKind,
+            (uint)Template.MateKindId,
+            $"{FormulaOwnerType.Mate} {kind} for mate kind {Template.MateKindId}");
 
     [UnitAttribute(UnitAttribute.HealthRegen)]
     public override int HpRegen
@@ -299,7 +326,11 @@ public sealed class Mate : Unit
                     res += (int)bonus.Value;
             }
 
-            return Math.Max(res, 1);
+            // The row, and nothing else: the mana twin below applies the same bonuses the same way and
+            // returned the row, so a floor on this side alone made one creature's two bars recover at
+            // rates the content never described. A floor the row does not ask for is a code-side
+            // minimum, and the row is what the content says.
+            return res;
         }
     }
 
@@ -309,8 +340,6 @@ public sealed class Mate : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.MaxMana);
-            var mateKindVariable = FormulaManager.Instance.GetUnitVariable(formula.Id,
-                UnitFormulaVariableType.MateKind, (uint)Template.MateKindId);
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
@@ -320,7 +349,7 @@ public sealed class Mate : Unit
                 ["int"] = Int,
                 ["spi"] = Spi,
                 ["fai"] = Fai,
-                ["mate_kind"] = mateKindVariable
+                ["mate_kind"] = MateKindVariable(formula, UnitFormulaKind.MaxMana)
             };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
@@ -843,6 +872,15 @@ public sealed class Mate : Unit
         // pet frame updates when regen ticks (owner can sit outside the mate's around radius).
         var owner = WorldManager.Instance.GetCharacterByObjId(OwnerObjId);
         owner?.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+        // What the tick recovered is written to the owned row here and not only when the mate is
+        // despawned or its owner logs out, so a save taken while the mate is recovering carries the
+        // bars it has reached rather than the ones it summoned with. The row reaches the database with
+        // the next save; nothing is written per tick beyond this in-memory update.
+        owner?.Mates.UpdateMateInfo(ItemId, db =>
+        {
+            db.Hp = Hp;
+            db.Mp = Mp;
+        });
         // Zone mirror HP — same WZUnitPoints path as HealEffect / ZoneAuthorityCombat.
         WorldIntegration.RelayUnitPointsToZone?.Invoke(ObjId, Hp, Mp);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
