@@ -57,6 +57,9 @@ public static class WzOpcodes
     public const ushort NpcSpawnFailed = 0x0003;
     public const ushort SkillControllerState = 0x0010;
     public const ushort CreateSkillController = 0x0011;
+    // No publisher: a unit's posture is decided where the unit lives, and its zone report already
+    // reaches clients through the zone-to-world-to-client path. A second publisher here would put
+    // the same posture change on the wire twice for every change.
     public const ushort UnitModelPostureChanged = 0x0012;
     public const ushort FactionCreated = 0x0015;
     public const ushort FactionSponsorChanged = 0x0016;
@@ -103,7 +106,11 @@ public static class WzOpcodes
     public const ushort SandboxOnlinePlayerPos = 0x0058;
     public const ushort GimmickReloadStatics = 0x0059;
     public const ushort GimmickGrasped = 0x005D;
+    // No publisher: a gimmick's transform is driven here through its movement handlers and handed
+    // over on GimmickMovement below, and this opcode's body carries no field a sender could fill.
     public const ushort GimmickSetMovement = 0x005E;
+    // No publisher: a physical explosion is delivered to the zone as the per-unit impulse it
+    // produces (ImpulseUnit, above), which is the path the zone simulates every hull through.
     public const ushort PhysicalExplosion = 0x005F;
     public const ushort DominionData = 0x0060;
     public const ushort DominionDeleted = 0x0061;
@@ -137,5 +144,7 @@ public static class WzOpcodes
     public const ushort AddSwapPassiveBuffs = 0x0087;
     public const ushort ChangeChargeSkillCooldown = 0x0088;
     public const ushort AttackFaction = 0x0089;
+    // No publisher: the zone registers no handler for this opcode, so anything sent here is dropped
+    // unread. It needs a zone-side consumer before a world-side producer would have anywhere to land.
     public const ushort FactionImmigrateNpcSpawnerCondition = 0x008A;
 }

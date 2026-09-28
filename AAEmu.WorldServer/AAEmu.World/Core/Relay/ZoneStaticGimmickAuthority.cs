@@ -1,9 +1,11 @@
 using System.Numerics;
 
+using AAEmu.Commons.Utils;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Gimmicks;
 
 namespace AAEmu.World.Core.Relay;
 
@@ -28,6 +30,35 @@ internal static class ZoneStaticGimmickAuthority
     {
         lock (SyncRoot)
             Gimmicks[gimmickObjId] = new State(ownerZoneId, new Vector3(x, y, z));
+    }
+
+    /// <summary>
+    /// Takes ownership of a static gimmick the zone asked World to author, giving it a World object id.
+    /// </summary>
+    /// <remarks>
+    /// A zone spawn request carries no identity of its own: the object-id field of the request arrives
+    /// unset, because object ids are World-issued. Taking the request's id at face value filed every
+    /// such gimmick under the same registry key and echoed an id no client or zone can address. The id
+    /// is allocated here instead, and the record that goes back to the zone is the one that carries it.
+    /// <para>
+    /// The allocator is authoritative and throws when it cannot produce an id, so a failure surfaces
+    /// rather than registering an unusable object.
+    /// </para>
+    /// </remarks>
+    /// <returns>The adopted record, carrying the allocated object id.</returns>
+    public static GimmickSpawnData AdoptZoneRequest(GimmickSpawnData data, Func<uint> allocateId)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(allocateId);
+
+        var adopted = data with { Id = allocateId() };
+        Register(
+            adopted.Id,
+            adopted.StaticZoneId,
+            Helpers.ConvertLongX(adopted.X),
+            Helpers.ConvertLongY(adopted.Y),
+            adopted.Z);
+        return adopted;
     }
 
     public static bool Interact(Character character, uint gimmickObjId)
@@ -98,6 +129,13 @@ internal static class ZoneStaticGimmickAuthority
     {
         lock (SyncRoot)
             Gimmicks.Clear();
+    }
+
+    /// <summary>Whether a zone-discovered static gimmick is tracked under this object id.</summary>
+    internal static bool IsTracked(uint gimmickObjId)
+    {
+        lock (SyncRoot)
+            return Gimmicks.ContainsKey(gimmickObjId);
     }
 
     private static void Publish(

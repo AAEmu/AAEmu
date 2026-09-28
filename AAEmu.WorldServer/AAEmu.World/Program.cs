@@ -1377,10 +1377,11 @@ public static class Program
         };
         WorldIntegration.OnZoneRequestStaticGimmick = (requestZoneId, data) =>
         {
-            var x = AAEmu.Commons.Utils.Helpers.ConvertLongX(data.X);
-            var y = AAEmu.Commons.Utils.Helpers.ConvertLongY(data.Y);
-            ZoneStaticGimmickAuthority.Register(data.Id, data.StaticZoneId, x, y, data.Z);
-            WorldIntegration.RelayGimmickCreatedToZone?.Invoke(data, (int)requestZoneId);
+            // The request arrives without an object id — those are World-issued. Adopt it here so the
+            // grasp registry and the zone announcement both carry the id we allocated.
+            var adopted = ZoneStaticGimmickAuthority.AdoptZoneRequest(
+                data, () => AAEmu.Game.Core.Managers.Id.NonUnitObjectIdManager.Instance.GetNextId());
+            WorldIntegration.RelayGimmickCreatedToZone?.Invoke(adopted, (int)requestZoneId);
         };
         WorldIntegration.RelayGimmickRemovedToZone = id =>
         {
@@ -1399,6 +1400,20 @@ public static class Program
             Logger.Debug(
                 "WZGimmickGrasped to zone={0} id={1} grasper={2} grasped={3}",
                 ownerZoneId, id, grasperUnitId, grasped);
+        };
+        WorldIntegration.RelayGimmickMovementToZone = (data, ownerZoneId) =>
+        {
+            var zone = ZoneSession.Instance.GetJoinedByZoneId(ownerZoneId);
+            if (zone == null)
+                return;
+            zone.SendPacket(new WZGimmickMovementPacket(
+                (int)data.Id, (int)data.Time,
+                unchecked((ulong)data.X), unchecked((ulong)data.Y), data.Z,
+                data.Rotation.X, data.Rotation.Y, data.Rotation.Z, data.Rotation.W,
+                data.Velocity.X, data.Velocity.Y, data.Velocity.Z,
+                data.AngularVelocity.X, data.AngularVelocity.Y, data.AngularVelocity.Z,
+                data.Scale));
+            Logger.Debug("WZGimmickMovement → zone={0} id={1}", ownerZoneId, data.Id);
         };
         WorldIntegration.TryInteractZoneGimmick = ZoneStaticGimmickAuthority.Interact;
         WorldIntegration.ReleaseZoneGimmickGrasps = ZoneStaticGimmickAuthority.Release;
@@ -1575,6 +1590,7 @@ public static class Program
             WorldIntegration.RelayGimmickCreatedToZone = null;
             WorldIntegration.RelayGimmickRemovedToZone = null;
             WorldIntegration.RelayGimmickGraspedToZone = null;
+            WorldIntegration.RelayGimmickMovementToZone = null;
             WorldIntegration.TryInteractZoneGimmick = null;
             WorldIntegration.ReleaseZoneGimmickGrasps = null;
             ZoneStaticGimmickAuthority.Clear();
