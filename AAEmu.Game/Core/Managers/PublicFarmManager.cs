@@ -9,94 +9,26 @@ using AAEmu.Game.Models.Game.CommonFarm;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Tasks.PublicFarm;
 
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldManager, ISubZoneManager subZoneManager) : Singleton<PublicFarmManager>, IPublicFarmManager
+public class PublicFarmManager(ISubZoneManager subZoneManager) : Singleton<PublicFarmManager>, IPublicFarmManager
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, FarmType> _farmZones;
 
+    /// <summary>
+    /// Farm tabs already reported as having no authored capacity, so the content gap is logged once
+    /// per tab rather than on every placement attempt.
+    /// </summary>
+    private readonly HashSet<FarmType> _reportedCapacityGaps = [];
+
     public void Initialize()
     {
         Logger.Info("Initialising Public Farm Manager...");
-        PublicFarmTickStart();
-    }
-
-    private void PublicFarmTickStart()
-    {
-        Logger.Info("PublicFarmTickTask: Started");
-
-        var lpTickStartTask = new PublicFarmTickStartTask();
-        taskManager.Schedule(lpTickStartTask, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
-    }
-
-    public void PublicFarmTick()
-    {
-        // NOTE: Public farms only available in main_world
-        var world = worldManager.GetWorld(WorldManager.DefaultInstanceId);
-        if (world?.SpawnManager == null) { return; }
-
-        // Two phases, and the split is not optional. Deleting a doodad unlinks it from the
-        // spawn manager's live player-doodad list, which is the very list being walked here, so
-        // collecting first and deleting afterwards is what keeps the pass from throwing part way
-        // through and leaving the farm half-expired.
-        var now = DateTime.UtcNow;
-        var expired = new List<Doodad>();
-        var unconfiguredGroups = new HashSet<uint>();
-
-        foreach (var doodad in world.SpawnManager.GetAllPlayerDoodads())
-        {
-            if (doodad.FarmType == FarmType.Invalid) { continue; }
-
-            var groupId = doodad.Template?.GroupId ?? 0;
-            var decision = CommonFarmExpiryRules.Evaluate(
-                CommonFarmGameData.Instance.TryGetDoodadGuardTime(groupId, out var guardSeconds),
-                guardSeconds,
-                doodad.PlantTime,
-                now);
-
-            switch (decision)
-            {
-                case CommonFarmExpiryDecision.Expire:
-                    expired.Add(doodad);
-                    break;
-
-                case CommonFarmExpiryDecision.GuardTimeNotConfigured:
-                    // The crop is left exactly where it is. Content names no protection window for
-                    // its doodad group, so its age cannot be compared against anything, and retiring
-                    // it on a length nobody wrote would take the crop the moment it was planted.
-                    unconfiguredGroups.Add(groupId);
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        foreach (var groupId in unconfiguredGroups)
-        {
-            Logger.Error("CommonFarm: no doodad_groups row protects crops of doodad group {0}, so their "
-                         + "protection window has no length. They are kept in the field rather than "
-                         + "retired on a value content never supplied.", groupId);
-        }
-
-        foreach (var doodad in expired)
-        {
-            // Delete, not re-save. Re-saving only rewrote the row into a system-owned doodad and
-            // dropped it from the farm list while the doodad itself stayed in the world and on the
-            // player's screen; it also left a row that nothing ever read again. Deleting removes the
-            // world object, the client object and the row together, so a World restart cannot bring
-            // an expired crop back.
-            Logger.Debug("CommonFarm: protection window of {0}s is up for doodad {1} (template {2}); "
-                         + "removing it from the farm.", (now - doodad.PlantTime).TotalSeconds, doodad.ObjId,
-                doodad.TemplateId);
-            doodad.Delete();
-        }
     }
 
     public bool InPublicFarm(WorldTemplate worldTemplate, Vector3 pos)
@@ -153,27 +85,29 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
             ? planted.Count
             : 0;
 
+        var capacityConfigured = CommonFarmGameData.Instance.TryGetFarmGroupMaxCount(farmType, out var capacity);
         var refusal = CommonFarmPlacementRules.Evaluate(
             doodadAllowed: CommonFarmGameData.Instance.GetAllowedDoodads(farmType).Contains(doodadId),
-            capacityConfigured: CommonFarmGameData.Instance.TryGetFarmGroupMaxCount(farmType, out var capacity),
+            capacityConfigured: capacityConfigured,
             capacity: capacity,
             plantedCount: plantedCount);
+
+        // Content gives this farm tab no size, so no capacity is enforced for it. Nothing is sent to
+        // the player: the only client message for a full farm would be a false one, and refusing
+        // would make a tab that content clearly lists crops for unplantable. The gap is logged
+        // instead, once per tab, so it is loud in the server log and absent where it would be a lie.
+        if (!capacityConfigured && _reportedCapacityGaps.Add(farmType))
+        {
+            Logger.Error("CommonFarm: farm type {0} has no farm_groups row, so no crop capacity is "
+                         + "defined for it. Allowing placements with no limit rather than inventing "
+                         + "one; content authors the tab by listing its crops, so the tab is meant to "
+                         + "be plantable.", farmType);
+        }
 
         switch (refusal)
         {
             case CommonFarmPlacementRefusal.None:
                 return true;
-
-            case CommonFarmPlacementRefusal.CapacityNotConfigured:
-                // Content gives this farm tab no size. Nothing is sent to the player: the only
-                // client message for it is the same one a full farm uses, and telling someone their
-                // farm is full when the farm's size was never written down is a false answer. The
-                // refusal is logged instead, naming the tab, so the gap is loud in the server log and
-                // silent where it cannot be told apart from the truth.
-                Logger.Error("CommonFarm: farm type {0} has no farm_groups row, so no crop capacity is "
-                             + "defined for it. Refusing the placement of doodad {1} for {2} rather than "
-                             + "assuming one.", farmType, doodadId, character?.Name ?? "<no character>");
-                return false;
 
             case CommonFarmPlacementRefusal.CapacityReached:
                 character.SendErrorMessage(Models.Game.ErrorMessageType.CommonFarmCountOver);
@@ -254,12 +188,18 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
     }
 
     /// <summary>
-    /// Whether a crop is still inside the window content gives it.
+    /// Whether a crop is still inside the protection window content gives it.
     /// </summary>
     /// <returns>
     /// <c>true</c> while the window is open â€” and also while its length is unknown, because a crop
     /// whose age cannot be compared to anything is not known to be harvestable.
     /// </returns>
+    /// <remarks>
+    /// The window decides <b>who may take a crop</b>, not how long a crop lives. A crop past its
+    /// window is still in the field and is simply unprotected, which is how the client's farm list
+    /// renders it. Nothing retires a crop for being old: most doodad groups ship a window of zero,
+    /// and a pass that read that as a lifetime would clear the field a minute after planting.
+    /// </remarks>
     public static bool IsProtected(Doodad doodad)
     {
         if (!CommonFarmGameData.Instance.TryGetDoodadGuardTime(doodad.Template?.GroupId ?? 0, out var guardSeconds))

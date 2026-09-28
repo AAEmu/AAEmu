@@ -11,12 +11,6 @@ public enum CommonFarmPlacementRefusal
     /// <summary>The doodad is not in the farm tab's allowed list.</summary>
     DoodadNotAllowed,
 
-    /// <summary>
-    /// Content defines no crop capacity for this farm tab, so nothing can be said about whether
-    /// there is room. This is a content gap, not a full farm.
-    /// </summary>
-    CapacityNotConfigured,
-
     /// <summary>The character already holds the configured number of crops of this farm tab.</summary>
     CapacityReached
 }
@@ -35,8 +29,13 @@ public enum CommonFarmPlacementRefusal
 /// resolve to a capacity of zero, and a zero capacity is not an empty farm: the count check passed
 /// while the player had no crops yet and failed for every crop after the first, so the farm accepted
 /// exactly one crop, permanently refused the rest with a "farm is full" message, and never said why.
-/// An unconfigured capacity is therefore refused on its own terms, at every planted count, and never
-/// borrows the "full" answer.
+/// </para>
+/// <para>
+/// Refusing the tab outright was the other answer to the same gap, and it is wrong for the same
+/// reason. Content authors a tab by listing the crops that belong in it, and a tab that lists crops
+/// but carries no size is a tab somebody meant to be plantable. Refusing it makes the tab
+/// unusable while still not stating a capacity, so the size check is skipped instead: the player
+/// plants, and the caller logs the gap loudly. Inventing a number would be worse than either.
 /// </para>
 /// <para>
 /// The order below is deliberate. The allowed list is asked <b>first</b>, because it is the only
@@ -56,8 +55,9 @@ public static class CommonFarmPlacementRules
     /// knowable even for a tab whose size is unknown.
     /// </param>
     /// <param name="capacityConfigured">
-    /// Whether content supplies a capacity for this farm tab. <c>false</c> means the tab's size is
-    /// unknown, which is not the same as a tab with no room.
+    /// Whether content supplies a capacity for this farm tab. <c>false</c> means the tab's size was
+    /// never written, which is not the same as a tab with no room: the count is not checked and the
+    /// caller is expected to log the gap.
     /// </param>
     /// <param name="capacity">The configured capacity. Ignored when <paramref name="capacityConfigured"/> is false.</param>
     /// <param name="plantedCount">Crops of this farm tab the character already holds.</param>
@@ -71,10 +71,11 @@ public static class CommonFarmPlacementRules
         if (!doodadAllowed)
             return CommonFarmPlacementRefusal.DoodadNotAllowed;
 
-        // An unknown capacity is answered before the count is looked at, so a tab whose size content
-        // never defined refuses the same way whether the player holds one crop or ten.
+        // A tab whose size content never wrote one has no limit to enforce. Skipping the count
+        // check answers the same way for one crop and for ten, which is the only answer that does
+        // not invent a capacity to get there.
         if (!capacityConfigured)
-            return CommonFarmPlacementRefusal.CapacityNotConfigured;
+            return CommonFarmPlacementRefusal.None;
 
         // A count is never negative. Refusing keeps the comparison below from reading a negative
         // value as a very large unsigned one and calling a full farm.

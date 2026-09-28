@@ -17,8 +17,11 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// </para>
 /// <para>
 /// The answer (SC 0x220) is <c>u32 type</c>, a <b>signed</b> <c>s32 count</c>, then that many
-/// quantized world positions. Two facts about the count shape what is written, and both are
-/// properties of the reader rather than choices made here:
+/// quantized world positions. Those positions are the farm's <b>shape outline</b> - the polygon of
+/// the land itself - not the crops planted on it, so this handler does not fill them from the crop
+/// list. No content authors that outline, so every response is a zero count, which clears the
+/// reader rather than drawing a false shape. Two facts about the count are properties of the reader
+/// rather than choices made here:
 /// </para>
 /// <list type="bullet">
 /// <item><description>
@@ -72,17 +75,18 @@ public class CSShowCommonFarmAreaPacket() : GamePacket(CSOffsets.CSShowCommonFar
         switch (outcome)
         {
             case CommonFarmShowAreaOutcome.Answer:
-                Logger.Debug("ShowCommonFarmArea ({0}): {1} asked for tab {2}, standing on tab {3}; "
-                             + "answering with {4} planted position(s).",
-                    0x15E, character.Name, TypeValue, farmType, positions.Count);
-                character.SendPacket(new SCShowCommonFarmPacket((uint)responseType, positions.Count, positions));
-                return;
-
             case CommonFarmShowAreaOutcome.Clear:
-                // A zero count is the way the reader is told to drop what it holds, so this is not
-                // an empty answer — it is the answer for "there is no area of that tab here".
-                Logger.Debug("ShowCommonFarmArea ({0}): {1} asked for tab {2} but is standing on tab {3}; "
-                             + "clearing the area.", 0x15E, character.Name, TypeValue, farmType);
+                // The positions in this response are the farm's *shape outline*, not the list of
+                // planted crops. They are not the same geometry, and sending crop positions here
+                // would draw a wrong outline rather than a rough one. The server has no authored
+                // outline to send: common_farms carries no column joining a farm area to its
+                // geometry, so there is nothing to put here that is not invented. A zero count is
+                // the way the reader is told to drop what it holds, so both the answered tab and the
+                // mismatched tab are cleared rather than answered with a false shape.
+                Logger.Debug("ShowCommonFarmArea ({0}): {1} asked for tab {2}, standing on tab {3}; "
+                             + "{4} outcome, clearing the area rather than sending a shape outline. "
+                             + "{5} crop position(s) are known but are not an outline.",
+                    0x15E, character.Name, TypeValue, farmType, outcome, positions.Count);
                 character.SendPacket(new SCShowCommonFarmPacket((uint)responseType, 0, []));
                 return;
 

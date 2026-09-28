@@ -1,7 +1,7 @@
 # GF-E04 — public-farm placement / removal / show-area
 
 Scope: the three named operations of the row — **place**, **remove**, **show-area** — on the shipped
-10.0.2.13 client, plus the growth/expiry state they have to stay consistent with.
+10.0.2.13 client, plus the protection state they have to stay consistent with.
 
 Base for this work: `client_version/zone-10.0.2_r575`.
 
@@ -19,7 +19,8 @@ and the difference matters, because it changes which packet each operation lives
 
 So the row's "placement is a no-op" was already false: planting a crop goes through the ordinary
 doodad-create request and the farm manager gates it. What was missing was the **validation around
-it**, the **removal path**, the **show-area answer**, and **correct expiry and restart behaviour**.
+it**, the **removal path**, the **show-area answer**, and **a protection window that decides who may
+take a crop rather than how long one lives**.
 
 ## What the shipped client actually sends
 
@@ -83,9 +84,9 @@ phase, the shared quantized world position, and a `u64` planting time. The reade
 | Area | Before | After |
 |---|---|---|
 | Placement ordering | capacity before the allowed list | allowed list first, because it is the only question answerable without a number content may not have supplied |
-| Unconfigured farm | refused **and told to the player the farm is full** | refused, logged loudly, **nothing sent to the player** |
-| Protection window | missing `doodad_groups` row answered as `0` | missing row reported as unknown; the crop is kept, never retired on a length nobody wrote |
-| Expiry | row re-saved as a system doodad; the doodad stayed in the world and on screen, and the row was never read again | the crop is deleted — world object, client object and row together — so a restart cannot resurrect it |
+| Unconfigured farm | refused **and told to the player the farm is full** | planted with no limit, the gap logged loudly once per tab, **nothing sent to the player** |
+| Protection window | missing `doodad_groups` row answered as `0` | missing row reported as unknown, and a crop whose age cannot be measured is treated as untakeable rather than retired |
+| Crop lifetime | a per-minute pass deleted every crop past its protection window | **no pass**: the window is a harvest permission, so an aged crop is unprotected, not gone |
 | Show-area | no answer at all | answered: refused off the farm, cleared for a different tab, answered for the requested tab, with a zero count doing the clearing |
 | Removal | none | a single-crop removal that refuses a foreign crop and a crop inside its window, and says which |
 | Farm list | count written straight from the crop total | count and records come from one flattened list, bounded at the reader's 64 and reported when reached |
@@ -100,13 +101,19 @@ actually wrong. The four that matter here, and the side of each line they sit on
   real reason a crop was refused.
 - **Unknown capacity is not zero capacity** — sits on the *missing-data* side. Answering a missing
   `farm_groups` row with `0` made a farm that accepts one crop and then refuses for ever.
+- **The protection window is a permission, not a lifetime** — the one that mattered most, because
+  getting it backwards deletes crops rather than refusing a placement. `CropHarvest` and
+  `DoodadFuncUse` use `guard_on_field_time` only to decide who may take a crop, and the client's farm
+  list shows an aged crop as *unprotected* rather than absent. So nothing retires a crop for age, and
+  there is no periodic pass at all. Reading the window as a lifetime is not a narrow bug either:
+  **103 of the 110 shipped `doodad_groups` rows carry `guard_on_field_time = 0`**, so it would have
+  cleared almost the whole field a minute after planting.
 - **Unknown protection window is not an empty protection window** — also on the *missing-data* side.
-  Answering a missing `doodad_groups` row with `0` retires a crop the moment it is planted, which is
-  the exact inverse of what the field is for. A crop of unknown age is kept, and the gap is logged.
+  A missing `doodad_groups` row means the length is unknown, and a crop whose age cannot be compared
+  to anything is not known to be harvestable, so it is treated as untakeable rather than free.
 - **A configured `0` window is still a configured window** — on the *other* side of the same line.
-  Zero is a real content value meaning "no protection"; only a missing row is unknown. A lookup that
-  treated the value as its own truthiness would report both as the same thing, and the first crop of
-  a genuinely unprotected group would be kept forever.
+  Zero is a real content value meaning "no protection"; only a missing row is unknown, and the two
+  are reported differently so an unprotected group is not mistaken for an unknown one.
 
 ## Open, not claimed
 
@@ -116,9 +123,15 @@ actually wrong. The four that matter here, and the side of each line they sit on
 - `common_farms` has 46 authored rows across just three names and no column that joins a farm area
   to a subzone. Making the area lookup content-driven needs a typed link in content or an explicitly
   reviewed decision, not a name match.
-- Two of the four farm tabs have allowed doodads in content but no capacity row and no authored farm
-  area. Placement there is refused, loudly, rather than guessing a size. This is the inherited
-  slice's fix, kept.
+- Two of the four farm tabs (Nursery and Ranch) list allowed doodads in content — six each — but
+  carry no `farm_groups` row, so no capacity was ever authored for them. Refusing those tabs made
+  them unplantable while still stating no size, and reading the missing row as zero is what made the
+  farm take one crop and then refuse for ever. Neither answer invents a number, so the count check
+  is skipped for a tab with no authored size, the gap is logged once per tab, and the player can
+  plant. **The cost is deliberate: until content carries a size, a Nursery or Ranch accepts any
+  number of crops.** Inventing `5` to match the two tabs that do have rows would be a shipped value
+  in C#, which is not permitted, so the looseness is the honest answer and the log line is where the
+  gap stays visible.
 - The `u64 planting time` in a farm-list record is written as the stored timestamp. The reader
   compares it against a file-time clock, so the epoch is worth confirming against a capture before
   the list is called correct end to end. Not changed here: nothing measured says it is wrong.
@@ -127,19 +140,19 @@ actually wrong. The four that matter here, and the side of each line they sit on
 
 ## Verification
 
-- `CommonFarmPlacementRules` — unconfigured capacity refused at every planted count, the two refusals
-  pinned apart, the capacity boundary asserted on both sides, the allowed-list ordering asserted
-  against both an unconfigured and a full tab, and every enum member swept as reachable.
-- `CommonFarmExpiryRules` — an unknown window keeps the crop at every age, a configured zero window
-  still protects the planting instant, a crop with no planting time is kept, and the two
-  "keep" reasons are shown to be different values.
+- `CommonFarmPlacementRules` — unconfigured capacity places at every planted count, an unconfigured
+  tab shown to ignore a capacity it was never given, "no capacity row" pinned apart from "capacity
+  reached", the capacity boundary asserted on both sides, the allowed-list ordering asserted against
+  both an unconfigured and a full tab, and every enum member swept as reachable.
 - `CommonFarmShowAreaRules` — each of the three outcomes asserted from both sides, the invalid tab
   and the off-farm position both refused, the response shown to name the land rather than the
   request, and every farm tab swept as answerable for itself.
 - `CommonFarmListRules` — inside the bound, exactly at the bound, one past it, a hostile count against
   a short list, a negative count refused, and an empty list distinguished from a truncated one.
-- `PublicFarmRequestSurfaceTests` — the interface is pinned to the five named operations, no member
-  returns an `int`, **no member takes a collection of doodads**, and the removal takes exactly one
-  doodad. The last two are the standing guard against the bulk delete this row once had.
+- `PublicFarmRequestSurfaceTests` — the interface is pinned to the four named operations, no member
+  returns an `int`, **no member takes a collection of doodads**, the removal takes exactly one
+  doodad, and the manager takes no task manager at all. The last two are the standing guard against
+  the bulk delete this row once had, and the last is the guard against the expiry pass coming back:
+  with no scheduler injected there is nothing for a periodic crop-deletion pass to run on.
 - `CommonFarmGameDataTests` — both missing rows reported as unknown rather than as zero, and a
   configured zero window reported as configured rather than unknown.

@@ -25,7 +25,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers;
 public class PublicFarmRequestSurfaceTests
 {
     private static readonly string[] Allowed =
-        ["GetFarmArea", "GetFarmType", "InPublicFarm", "PublicFarmTick", "RemoveCrop"];
+        ["GetFarmArea", "GetFarmType", "InPublicFarm", "RemoveCrop"];
 
     [Test]
     public async Task TheFarmManagerExposesOnlyTheNamedOperations()
@@ -71,6 +71,24 @@ public class PublicFarmRequestSurfaceTests
             .ToArray();
 
         await Assert.That(offenders).IsEmpty();
+    }
+
+    [Test]
+    public async Task TheFarmManagerHasNoSchedulerSoNoPeriodicPassCanBeWiredBackIn()
+    {
+        // The pass this replaced walked every planted crop each minute and deleted the ones past
+        // their protection window. That window decides who may take a crop, not how long a crop
+        // lives: the client shows an aged crop as unprotected rather than gone, and most doodad
+        // groups ship the window as zero, so reading it as a lifetime cleared the field a minute
+        // after planting. The manager no longer takes a task manager, so it cannot schedule a pass
+        // like that; this fails if one is ever wired back in.
+        var constructorParameters = typeof(PublicFarmManager)
+            .GetConstructors()
+            .SelectMany(c => c.GetParameters())
+            .Select(p => p.ParameterType.Name)
+            .ToArray();
+
+        await Assert.That(constructorParameters.Contains("ITaskManager")).IsFalse();
     }
 
     [Test]

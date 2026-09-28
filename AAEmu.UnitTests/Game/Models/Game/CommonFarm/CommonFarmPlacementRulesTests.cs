@@ -9,22 +9,43 @@ namespace AAEmu.UnitTests.Game.Models.Game.CommonFarm;
 /// The regression these pin is a farm tab that content gives no capacity row. That used to resolve
 /// to a capacity of zero, and a zero capacity is not an empty farm: the count check passed while the
 /// player held no crops and failed for every crop after the first, so the farm took exactly one crop
-/// and then refused the rest for good with a "farm is full" message.
+/// and then refused the rest for good with a "farm is full" message. Answering that gap with a
+/// refusal was the next wrong answer: it made the Nursery and Ranch unplantable even though content
+/// lists crops for them, and still stated no capacity. Neither number may be invented, so the count
+/// is simply not checked.
 /// </remarks>
 public class CommonFarmPlacementRulesTests
 {
     [Test]
-    public async Task AnUnconfiguredCapacityRefusesAtEveryPlantedCount()
+    public async Task AnUnconfiguredCapacityPlacesAtEveryPlantedCount()
     {
         // The defect, stated as a table. Whether the player holds no crop or ten, a farm tab whose
         // size content never defined must give the same answer. Before the fix the first row allowed
-        // the crop and the rest reported a full farm.
+        // the crop and the rest reported a full farm, and the next attempt refused every one of
+        // them. No capacity is stated either way, so every row is allowed.
         foreach (var planted in new[] { 0, 1, 2, 7, 64 })
         {
             var refusal = CommonFarmPlacementRules.Evaluate(
                 doodadAllowed: true, capacityConfigured: false, capacity: 0, plantedCount: planted);
 
-            await Assert.That(refusal).IsEqualTo(CommonFarmPlacementRefusal.CapacityNotConfigured);
+            await Assert.That(refusal).IsEqualTo(CommonFarmPlacementRefusal.None);
+        }
+    }
+
+    [Test]
+    public async Task AnUnconfiguredCapacityDoesNotBorrowAnotherTabsLimit()
+    {
+        // The count check is skipped rather than answered with a number. Handing the same call a
+        // configured capacity must not change the answer, because the two calls differ only in
+        // whether content wrote the tab's size down.
+        foreach (var planted in new[] { 0, 5, 64 })
+        {
+            var unconfigured = CommonFarmPlacementRules.Evaluate(true, false, 0, planted);
+            var configured = CommonFarmPlacementRules.Evaluate(true, true, 5, planted);
+
+            await Assert.That(unconfigured).IsEqualTo(CommonFarmPlacementRefusal.None);
+            await Assert.That(configured)
+                .IsEqualTo(planted < 5 ? CommonFarmPlacementRefusal.None : CommonFarmPlacementRefusal.CapacityReached);
         }
     }
 
@@ -32,7 +53,8 @@ public class CommonFarmPlacementRulesTests
     public async Task AnUnconfiguredCapacityIsNotReportedAsAFullFarm()
     {
         // "No capacity row" and "capacity reached" are different faults and the client is told
-        // different things. Collapsing them is the bug, so the two are pinned apart.
+        // different things. Collapsing them is the bug, so the two are pinned apart. A full farm is
+        // the only answer that reaches the player, so an unconfigured tab must never produce it.
         var unconfigured = CommonFarmPlacementRules.Evaluate(true, false, 0, 0);
         var full = CommonFarmPlacementRules.Evaluate(true, true, 5, 5);
 
