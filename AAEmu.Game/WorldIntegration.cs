@@ -1704,10 +1704,23 @@ public static class WorldIntegration
         }
     }
 
-    private static Unit ResolveZoneKillCredit(Npc npc)
+    internal static Unit ResolveZoneKillCredit(Npc npc)
     {
         try
         {
+            // The zone owns who is fighting an npc and reports it as its abuse list; the World's
+            // table only carries the threat score. Filtering the World's rows by that list is what
+            // makes the report change the answer: a unit the zone has dropped is not the target even
+            // while the World still holds threat for it.
+            var zoneReported = NpcAbuserRegistry.SelectZoneReportedTarget(npc);
+            if (zoneReported != null)
+                return zoneReported;
+
+            // The zone has an opinion about this npc but none of its abusers is on the World table.
+            // Its opinion stands, so the World's own top must not be promoted over it.
+            if (NpcAbuserRegistry.HasEntry(npc.ObjId))
+                return null;
+
             if (npc.AggroTable is { IsEmpty: false })
             {
                 var topId = npc.AggroTable.GetTopTotalAggroAbuserObjId();

@@ -133,6 +133,12 @@ public class ZoneSimRelay
     /// ZWRegisterNpcAbuser (0x3D): <c>bc npcUnitId + bc abuserUnitId</c>. One row of the zone's
     /// npc abuser list. The zone re-sends the rows it still holds, so a repeated pair is normal.
     /// </summary>
+    /// <remarks>
+    /// This only records membership: the World table carries the threat score and the zone's
+    /// report carries none, so a register never invents a value for a row the World has not
+    /// scored. It is still load-bearing, because the recorded membership is what the target
+    /// selection filters that score by.
+    /// </remarks>
     private static bool HandleRegisterNpcAbuser(PacketStream stream)
     {
         const int serializedSize = 3 + 3;
@@ -149,9 +155,12 @@ public class ZoneSimRelay
 
     /// <summary>
     /// ZWUnregisterNpcAbusers (0x3E): <c>bc npcUnitId + u8 count + count * bc abuserUnitId</c>.
-    /// The zone splits a long list across several events, so one event never carries more than
-    /// <see cref="NpcAbuserRegistry.MaxUnregisterBatch"/> ids.
     /// </summary>
+    /// <remarks>
+    /// The count is a byte, so the batch width is bounded by the wire itself and the only shape
+    /// check needed is that the count agrees with the ids actually present. Anything else would
+    /// reject a well-formed large batch instead of reading the ids that are really there.
+    /// </remarks>
     private static bool HandleUnregisterNpcAbusers(PacketStream stream)
     {
         if (stream.Count < 3 + 1)
@@ -162,7 +171,7 @@ public class ZoneSimRelay
 
         // The count decides how many ids follow, so it has to agree with what is actually there.
         // A count that overruns the body would read ids out of unrelated packets.
-        if (count > NpcAbuserRegistry.MaxUnregisterBatch || stream.LeftBytes != count * 3)
+        if (stream.LeftBytes != count * 3)
             return false;
 
         var abuserUnitIds = new uint[count];
@@ -170,6 +179,7 @@ public class ZoneSimRelay
             abuserUnitIds[i] = stream.ReadBc();
 
         var removed = NpcAbuserRegistry.Unregister(npcUnitId, abuserUnitIds);
+        DropMirrorAggroRows(npcUnitId, abuserUnitIds);
         Logger.Debug(
             "ZWUnregisterNpcAbusers npc={0} count={1} removed={2}", npcUnitId, count, removed);
         return true;
@@ -188,8 +198,41 @@ public class ZoneSimRelay
         var npcUnitId = stream.ReadBc();
 
         NpcAbuserRegistry.Clear(npcUnitId);
+        DropEveryMirrorAggroRow(npcUnitId);
         Logger.Debug("ZWClearNpcAbusers npc={0}", npcUnitId);
         return true;
+    }
+
+    /// <summary>
+    /// Removes the World-side aggro rows of the abusers the zone has just retracted. The zone owns
+    /// the list, so a row left behind keeps naming a unit the npc is no longer fighting and could
+    /// still win a later target query on stale threat. Rows the World does not have are not an
+    /// error: the zone can report an abuse the World never scored.
+    /// </summary>
+    private static void DropMirrorAggroRows(uint npcUnitId, IReadOnlyList<uint> abuserUnitIds)
+    {
+        if (CombatRelay.ResolveUnit(npcUnitId) is not Npc npc)
+            return;
+
+        foreach (var aggro in npc.AggroTable.Values.ToArray())
+        {
+            if (abuserUnitIds.Contains(aggro.Owner.ObjId))
+                npc.ClearAggroOfUnit(aggro.Owner);
+        }
+    }
+
+    /// <summary>
+    /// A clear says the npc has no abusers at all, so every World-side row for it goes with the
+    /// list — including a row the zone never got round to naming. Still per npc: another npc's rows
+    /// are not collateral.
+    /// </summary>
+    private static void DropEveryMirrorAggroRow(uint npcUnitId)
+    {
+        if (CombatRelay.ResolveUnit(npcUnitId) is not Npc npc)
+            return;
+
+        foreach (var aggro in npc.AggroTable.Values.ToArray())
+            npc.ClearAggroOfUnit(aggro.Owner);
     }
 
     /// <summary>

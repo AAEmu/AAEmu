@@ -157,7 +157,8 @@ public static class Program
         {
             AAEmu.Game.Models.Game.World.AreaEdgeTracker.Shared.ForgetUnit(bcId);
             // A unit that leaves the world cannot still be listed as an npc's abuser. The zone
-            // reports unregisters for live participants only, so nothing else would drop these rows.
+            // reports unregisters for live participants only, so nothing else would drop these rows,
+            // and a row left behind keeps naming a unit that is gone as the npc's target.
             NpcAbuserRegistry.ForgetUnit(bcId);
             enter.LeaveZone(bcId);
         };
@@ -173,6 +174,8 @@ public static class Program
         {
             // Quota credit comes from Npc.DoDie → OnWorldNpcKilled (once). Do not also
             // call TowerDefScheduler here or Zone deaths decrement twice.
+            // Death is the other end of the abuse state: the killed npc holds no list after this,
+            // so the next death on a recycled id cannot inherit the previous occupant's abusers.
             NpcAbuserRegistry.ForgetNpc(bcId);
             WorldIntegration.MirrorZoneNpcKilled(bcId);
         };

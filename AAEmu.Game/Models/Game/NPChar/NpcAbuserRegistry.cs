@@ -1,15 +1,17 @@
 using System.Collections.Concurrent;
 
-namespace AAEmu.World.Core.Relay;
+using AAEmu.Game.Models.Game.Units;
+
+namespace AAEmu.Game.Models.Game.NPChar;
 
 /// <summary>
 /// World-side mirror of the NPC abuser lists the zone maintains for its AI units.
 /// </summary>
 /// <remarks>
-/// The zone owns the authoritative list and reports it with three events: a single registration
-/// (one npc, one abuser), a batched unregistration (one npc, up to a hundred abusers), and a clear
-/// (one npc, every abuser). World keeps the set so the units it owns can be told who is fighting
-/// whom, and so a stale entry cannot outlive either participant.
+/// The zone owns the list and reports it with three events: a single registration (one npc, one
+/// abuser), a batched unregistration (one npc, up to a hundred abusers), and a clear (one npc, every
+/// abuser). The World keeps the membership because the zone owns who is fighting an npc, and the
+/// World's own aggro table only owns the threat score attached to it.
 /// <para>
 /// Entries are only valid while both units are present, so every removal path has to reach this
 /// table: the unregister and clear events themselves, the npc leaving the world, and the abuser
@@ -19,12 +21,6 @@ namespace AAEmu.World.Core.Relay;
 /// </remarks>
 public static class NpcAbuserRegistry
 {
-    /// <summary>
-    /// Largest batch the zone puts in one unregister event. A longer list arrives as several events,
-    /// so a single event never legitimately carries more than this and a bigger count is malformed.
-    /// </summary>
-    public const int MaxUnregisterBatch = 100;
-
     private static readonly ConcurrentDictionary<uint, HashSet<uint>> AbusersByNpc = new();
 
     /// <summary>Records one abuser for an npc. A repeated registration is not an error.</summary>
@@ -126,6 +122,56 @@ public static class NpcAbuserRegistry
 
         lock (set)
             return set.Contains(abuserUnitId);
+    }
+
+    /// <summary>
+    /// Whether the zone has an opinion at all about this npc. False means "not reported", not
+    /// "no abusers": a caller must keep its own behaviour in that case rather than treat the npc
+    /// as having nobody on it.
+    /// </summary>
+    public static bool HasEntry(uint npcUnitId) => npcUnitId != 0 && AbusersByNpc.ContainsKey(npcUnitId);
+
+    /// <summary>
+    /// The unit the zone says this npc is fighting, scored by the World's own aggro table.
+    /// </summary>
+    /// <remarks>
+    /// The zone owns membership of the abuser list and the World owns the threat score, so the
+    /// World's rows are filtered by the zone's list before the top is taken: a unit the zone has
+    /// stopped listing is not this npc's target however much threat the World still holds for it.
+    /// A tie on threat goes to the lower unit id, so the answer does not depend on the order the
+    /// aggro dictionary happens to enumerate in. Null means the zone listed nobody this table can
+    /// name, which is not the same as the zone listing nobody.
+    /// </remarks>
+    public static Unit? SelectZoneReportedTarget(Npc npc)
+    {
+        ArgumentNullException.ThrowIfNull(npc);
+
+        if (!AbusersByNpc.TryGetValue(npc.ObjId, out var set))
+            return null;
+
+        Unit? best = null;
+        var bestAggro = 0;
+        lock (set)
+        {
+            foreach (var row in npc.AggroTable)
+            {
+                if (!set.Contains(row.Key))
+                    continue;
+
+                var owner = row.Value.Owner;
+                if (owner == null)
+                    continue;
+
+                var total = row.Value.TotalAggro;
+                if (best == null || total > bestAggro || (total == bestAggro && owner.ObjId < best.ObjId))
+                {
+                    best = owner;
+                    bestAggro = total;
+                }
+            }
+        }
+
+        return best;
     }
 
     /// <summary>Number of npcs holding at least one abuser. Test and diagnostics hook.</summary>
