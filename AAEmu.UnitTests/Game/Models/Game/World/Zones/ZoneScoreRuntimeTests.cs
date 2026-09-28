@@ -308,6 +308,89 @@ public sealed class ZoneScoreRuntimeTests : SqliteTestBase
         command.ExecuteNonQuery();
     }
 
+    [Test]
+    public async Task TheScoreRowIsWrittenWhileTheEntryTableIsLocked()
+    {
+        var store = new LockProbingZoneScoreStore();
+        var runtime = NewRuntime(store);
+        runtime.Load();
+        // Get reads the already-loaded catalogs and then takes the runtime's own lock, so the
+        // probe touches no database and can be run from another thread safely.
+        store.Probe = () => runtime.Get(1).Score;
+
+        runtime.Apply(1, 10);
+
+        await Assert.That(store.Saves).IsGreaterThan(0);
+        await Assert.That(store.ProbeFaults).IsEqualTo(0);
+        // Finishing inside the probe window means the lock really was free during the write, which
+        // is what would let a second apply land in between and leave the row holding a stale score.
+        await Assert.That(store.SavesThatSawTheLockFree).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task TheResetWritesTheClearedRowWhileTheEntryTableIsLocked()
+    {
+        var store = new LockProbingZoneScoreStore();
+        var runtime = NewRuntime(store);
+        runtime.Load();
+        runtime.Apply(1, 10);
+        store.Probe = () => runtime.Get(1).Score;
+
+        // Kind 1 opts into the zone-in reset, so this clears the score and persists the clear.
+        runtime.Reset(1, ZoneScoreResetCause.ZoneIn);
+
+        await Assert.That(store.Saves).IsGreaterThan(1);
+        await Assert.That(store.ProbeFaults).IsEqualTo(0);
+        await Assert.That(store.SavesThatSawTheLockFree).IsEqualTo(0);
+    }
+
+    /// <summary>
+    /// A store that, from inside a write, asks another thread for a read that takes the runtime's
+    /// own lock. A read cannot complete while that lock is held, so "it finished" is an
+    /// observation about the lock and not about how busy the machine is.
+    /// </summary>
+    private sealed class LockProbingZoneScoreStore : IZoneScoreRuntimeStore
+    {
+        private readonly Dictionary<uint, ZoneScoreRuntimeEntry> _rows = [];
+
+        /// <summary>The lock-taking read to run from inside a write; null disables the probe.</summary>
+        public Func<long> Probe { get; set; }
+
+        public int Saves { get; private set; }
+
+        public int SavesThatSawTheLockFree { get; private set; }
+
+        /// <summary>Probes that threw; a faulted probe would otherwise read as a held lock.</summary>
+        public int ProbeFaults { get; private set; }
+
+        public IReadOnlyDictionary<uint, ZoneScoreRuntimeEntry> Load(uint zoneGroupId) =>
+            _rows.Values.Where(entry => entry.ZoneGroupId == zoneGroupId).ToDictionary(entry => entry.KindId);
+
+        public void Save(ZoneScoreRuntimeEntry entry)
+        {
+            Saves++;
+            if (CompletedBefore(Probe))
+                SavesThatSawTheLockFree++;
+            _rows[entry.KindId] = entry;
+        }
+
+        private bool CompletedBefore(Func<long> read)
+        {
+            if (read is null)
+                return false;
+            var done = new ManualResetEventSlim(false);
+            _ = Task.Run(() =>
+            {
+                try { read(); }
+                catch { ProbeFaults++; }
+                finally { done.Set(); }
+            });
+            // Generous for a pure in-memory read to be scheduled; finishing inside the window is
+            // only possible if the lock was actually free.
+            return done.Wait(250);
+        }
+    }
+
     private sealed class RecordingZoneScoreStore : IZoneScoreRuntimeStore
     {
         private readonly Dictionary<uint, ZoneScoreRuntimeEntry> _rows = [];

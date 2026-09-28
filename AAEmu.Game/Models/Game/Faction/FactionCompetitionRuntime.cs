@@ -12,6 +12,12 @@ namespace AAEmu.Game.Models.Game.Faction;
 /// The manager applies the shipped eligibility catalogs and point values, and publishes every
 /// accepted change and every resolution so a sender or a reward path can observe them. It starts
 /// no competition, arms no schedule, and grants no reward: those callers own their own timing.
+/// <para>
+/// This is groundwork, not yet wired: nothing constructs the runtime, the store or the notifier
+/// outside tests, so no eligible event reaches a score and nothing calls <see cref="Load"/>. The
+/// caller that produces an eligible event owns the decision to construct this and to call
+/// <see cref="Load"/> once, after game data is loaded.
+/// </para>
 /// </remarks>
 public sealed class FactionCompetitionRuntime(FactionScoringGameData gameData, IFactionCompetitionRuntimeStore store = null)
 {
@@ -27,10 +33,16 @@ public sealed class FactionCompetitionRuntime(FactionScoringGameData gameData, I
     public event Action<FactionCompetitionResolution> CompetitionResolved;
 
     /// <summary>
-    /// Restores stored scores, dropping any whose competition or point value is no longer
-    /// loadable. A score with no catalog behind it is not replayed, because nothing could award it
-    /// again or resolve a winner against it. Call once at boot, after game data is loaded.
+    /// Restores stored scores. A row naming a competition the catalog cannot resolve is refused
+    /// rather than dropped, and its store row is left in place. Call once at boot, after game
+    /// data is loaded.
     /// </summary>
+    /// <remarks>
+    /// Refusing is deliberate and is not a silent skip: this is documented as running after game
+    /// data is loaded, so a row that fails to resolve usually means the load order is wrong, and
+    /// dropping every score on that mistake would destroy state that a corrected boot can still
+    /// read. Leaving the row also keeps it recoverable when content comes back.
+    /// </remarks>
     public void Load()
     {
         ArgumentNullException.ThrowIfNull(gameData);
@@ -44,7 +56,8 @@ public sealed class FactionCompetitionRuntime(FactionScoringGameData gameData, I
                 if (entry.Key.CompetitionId == 0 || entry.Key.FactionId == 0)
                     continue;
                 // Refuse rather than skip quietly: a stored row naming a competition the catalog
-                // does not have means the content moved under the state.
+                // does not have means either the content moved under the state or the caller's
+                // load order is wrong, and neither is safe to treat as "no score".
                 gameData.GetCompetition(entry.Key.CompetitionId);
                 _scores[entry.Key] = entry.Value;
             }
@@ -127,11 +140,14 @@ public sealed class FactionCompetitionRuntime(FactionScoringGameData gameData, I
             }
 
             _scores[key] = next;
+            // The store write happens under the same lock as the in-memory change. Releasing the
+            // lock first would let a second apply land in between, so the row could be written
+            // with the older score and the restart would lose a point.
+            store?.Save(competitionId, factionId, next);
             application = new FactionCompetitionScoreApplication(
                 competitionId, factionId, previous, next, delta, delta);
         }
 
-        Persist(competitionId, factionId);
         Logger.Debug(
             "Faction competition {0}: faction {1} scored {2} from {3} {4}, now {5} (required {6})",
             competitionId, factionId, delta, kind, sourceId, application.Score,
@@ -178,26 +194,15 @@ public sealed class FactionCompetitionRuntime(FactionScoringGameData gameData, I
             var resolutionScores = ScoresLocked(competitionId);
             resolution = FactionCompetitionRules.Resolve(gameData, competitionId, resolutionScores);
             foreach (var factionId in resolution.ResetFactionIds)
+            {
                 _scores.Remove((competitionId, factionId));
-        }
-
-        if (store != null)
-        {
-            foreach (var factionId in resolution.ResetFactionIds)
-                store.Delete(competitionId, factionId);
+                // Under the same lock as the removal, for the same reason the save is: a reset
+                // that reached the store late would resurrect the score on the next boot.
+                store?.Delete(competitionId, factionId);
+            }
         }
 
         CompetitionResolved?.Invoke(resolution);
         return resolution;
-    }
-
-    private void Persist(uint competitionId, uint factionId)
-    {
-        if (store == null)
-            return;
-        long score;
-        lock (_lock)
-            score = _scores.GetValueOrDefault((competitionId, factionId));
-        store.Save(competitionId, factionId, score);
     }
 }

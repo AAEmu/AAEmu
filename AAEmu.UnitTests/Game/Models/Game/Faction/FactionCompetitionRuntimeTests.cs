@@ -297,7 +297,7 @@ public sealed class FactionCompetitionRuntimeTests : SqliteTestBase
     }
 
     [Test]
-    public async Task AStoredRowForAnUnknownCompetitionFailsLoudlyOnLoad()
+    public async Task AStoredRowForAnUnknownCompetitionIsRefusedOnLoadAndLeftInTheStore()
     {
         var store = new RecordingCompetitionStore();
         store.Seed((999, FactionA), 40);
@@ -305,6 +305,46 @@ public sealed class FactionCompetitionRuntimeTests : SqliteTestBase
         var runtime = NewRuntime(store);
 
         await Assert.That(() => runtime.Load()).Throws<KeyNotFoundException>();
+        // Refused, not dropped. Load is documented as running after game data is loaded, so a row
+        // that will not resolve is at least as likely to be a wrong call order as it is to be a
+        // row that should be discarded; dropping it there would destroy a score that a corrected
+        // boot can still read, and keeping it leaves it recoverable if content comes back.
+        await Assert.That(store.LoadAll().ContainsKey((999, FactionA))).IsTrue();
+    }
+
+    [Test]
+    public async Task TheScoreRowIsWrittenWhileTheScoreTableIsLocked()
+    {
+        var store = new LockProbingCompetitionStore();
+        var runtime = NewRuntime(store);
+        runtime.Load();
+        // GetScore reads an already-loaded catalog and then takes the runtime's own lock, so the
+        // probe touches no database and can be run from another thread safely.
+        store.Probe = () => runtime.GetScore(10, FactionA);
+
+        runtime.RegisterNpcKill(FactionA, ListedNpc);
+
+        await Assert.That(store.Saves).IsGreaterThan(0);
+        await Assert.That(store.ProbeFaults).IsEqualTo(0);
+        // Finishing inside the probe window means the lock really was free during the write, which
+        // is what would let a second apply land in between and leave the row holding a stale score.
+        await Assert.That(store.SavesThatSawTheLockFree).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task TheResetDeletesTheRowWhileTheScoreTableIsLocked()
+    {
+        var store = new LockProbingCompetitionStore();
+        var runtime = NewRuntime(store);
+        runtime.Load();
+        runtime.RegisterNpcKill(FactionA, ListedNpc);
+        store.Probe = () => runtime.GetScore(10, FactionA);
+
+        runtime.ResolveAndReset(10);
+
+        await Assert.That(store.Deletes).IsEqualTo(1);
+        await Assert.That(store.ProbeFaults).IsEqualTo(0);
+        await Assert.That(store.DeletesThatSawTheLockFree).IsEqualTo(0);
     }
 
     [Test]
@@ -333,6 +373,64 @@ public sealed class FactionCompetitionRuntimeTests : SqliteTestBase
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
         command.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// A store that, from inside a write, asks another thread for a read that takes the runtime's
+    /// own lock. A read cannot complete while that lock is held, so "it finished" is an
+    /// observation about the lock and not about how busy the machine is.
+    /// </summary>
+    private sealed class LockProbingCompetitionStore : IFactionCompetitionRuntimeStore
+    {
+        private readonly Dictionary<(uint, uint), long> _rows = [];
+
+        /// <summary>The lock-taking read to run from inside a write; null disables the probe.</summary>
+        public Func<long> Probe { get; set; }
+
+        public int Saves { get; private set; }
+
+        public int Deletes { get; private set; }
+
+        public int SavesThatSawTheLockFree { get; private set; }
+
+        public int DeletesThatSawTheLockFree { get; private set; }
+
+        /// <summary>Probes that threw; a faulted probe would otherwise read as a held lock.</summary>
+        public int ProbeFaults { get; private set; }
+
+        public IReadOnlyDictionary<(uint, uint), long> LoadAll() => _rows;
+
+        public void Save(uint competitionId, uint factionId, long score)
+        {
+            Saves++;
+            if (CompletedBefore(Probe))
+                SavesThatSawTheLockFree++;
+            _rows[(competitionId, factionId)] = score;
+        }
+
+        public void Delete(uint competitionId, uint factionId)
+        {
+            Deletes++;
+            if (CompletedBefore(Probe))
+                DeletesThatSawTheLockFree++;
+            _rows.Remove((competitionId, factionId));
+        }
+
+        private bool CompletedBefore(Func<long> read)
+        {
+            if (read is null)
+                return false;
+            var done = new ManualResetEventSlim(false);
+            _ = Task.Run(() =>
+            {
+                try { read(); }
+                catch { ProbeFaults++; }
+                finally { done.Set(); }
+            });
+            // Generous for a pure in-memory read to be scheduled; finishing inside the window is
+            // only possible if the lock was actually free.
+            return done.Wait(250);
+        }
     }
 
     private sealed class RecordingCompetitionStore : IFactionCompetitionRuntimeStore

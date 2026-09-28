@@ -1700,3 +1700,18 @@ CREATE TABLE IF NOT EXISTS `indun_reward_claims` (
   KEY `idx_indun_reward_claims_character` (`character_id`, `claimed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='W03A indun mail reward claims, one per character and logical run';
 
+
+CREATE TABLE IF NOT EXISTS `zone_score_runtime_states` (
+  `zone_group_id` INT UNSIGNED NOT NULL COMMENT 'zone_score_contents.zone_group_id that owns the kind',
+  `zone_score_kind_id` INT UNSIGNED NOT NULL COMMENT 'zone_score_kinds.id',
+  `score` BIGINT NOT NULL DEFAULT '0',
+  `level` INT NOT NULL DEFAULT '0' COMMENT 'denormalized copy of the level the score resolves to',
+  PRIMARY KEY (`zone_group_id`, `zone_score_kind_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Durable zone-score values and levels, capped by zone_score_kinds.max_score';
+
+CREATE TABLE IF NOT EXISTS `faction_competition_runtime_states` (
+  `faction_competition_id` INT UNSIGNED NOT NULL COMMENT 'faction_competitions.id',
+  `faction_id` INT UNSIGNED NOT NULL COMMENT 'the faction that earned the score',
+  `score` BIGINT NOT NULL DEFAULT '0',
+  PRIMARY KEY (`faction_competition_id`, `faction_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Durable faction-competition scores, reset by the competition point_reset_id policy';

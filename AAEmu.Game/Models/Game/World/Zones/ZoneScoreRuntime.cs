@@ -13,6 +13,12 @@ namespace AAEmu.Game.Models.Game.World.Zones;
 /// The manager is World-side state. It applies the shipped catalogs, publishes a change for each
 /// accepted mutation so a sender or a zone relay can observe it, and reads and writes through an
 /// injected store. It chooses no winner, starts no competition, and awards no reward.
+/// <para>
+/// This is groundwork, not yet wired: nothing constructs the runtime, the store or the notifier
+/// outside tests, so no event reaches a score and nothing calls <see cref="Load"/>. The caller
+/// that owns a zone group constructs this and calls <see cref="Load"/> once, after game data is
+/// loaded.
+/// </para>
 /// </remarks>
 public sealed class ZoneScoreRuntime(
     uint zoneGroupId,
