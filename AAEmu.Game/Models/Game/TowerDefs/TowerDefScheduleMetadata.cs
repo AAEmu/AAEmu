@@ -39,6 +39,53 @@ public static class TowerDefScheduleMetadata
         IReadOnlyList<uint> SelfRefs);
 
     /// <summary>
+    /// True when <paramref name="startDayOfWeekBit"/> allows <paramref name="day"/>.
+    /// </summary>
+    /// <remarks>
+    /// Bit <c>N</c> of <c>tower_defs.start_day_of_week_bit</c> is
+    /// <see cref="TowerDef.StartTimes"/> index <c>N</c>, and index 0 is Sunday: the un-suffixed
+    /// <c>start_hour</c> / <c>start_minute</c> pair, through <c>start_hour6</c> /
+    /// <c>start_minute6</c> for Saturday. A mask of 0 means the row declares no narrowing, so
+    /// every weekday is allowed and the seven loaded slots stand.
+    /// </remarks>
+    public static bool AllowsWeekday(uint startDayOfWeekBit, DayOfWeek day)
+    {
+        if (day is not (>= DayOfWeek.Sunday and <= DayOfWeek.Saturday))
+            return false;
+        if (startDayOfWeekBit == 0)
+            return true;
+        return (startDayOfWeekBit & (1u << (int)day)) != 0;
+    }
+
+    /// <summary>
+    /// Clears the <see cref="TowerDef.StartTimes"/> slot of every weekday that
+    /// <c>tower_defs.start_day_of_week_bit</c> does not allow, so the scheduler and
+    /// <see cref="TowerDef.IsScheduled"/> only ever see the weekdays the row actually runs.
+    /// </summary>
+    /// <remarks>
+    /// A mask of 0 is a no-op — the column is nullable in spirit and rows that leave it unset keep
+    /// all seven slots. Idempotent: re-applying a mask to an already-narrowed row changes nothing.
+    /// Call it after the <c>start_hourN</c> fill and before the row is published, because both
+    /// <see cref="TowerDef.IsScheduled"/> and <c>ScheduleMode</c> are derived from the slots.
+    /// </remarks>
+    public static void ApplyStartDayOfWeekBit(TowerDef towerDef)
+    {
+        if (towerDef?.StartTimes == null)
+            return;
+
+        var startDayOfWeekBit = towerDef.StartDayOfWeekBit;
+        if (startDayOfWeekBit == 0)
+            return;
+
+        for (var day = 0; day < towerDef.StartTimes.Length; day++)
+        {
+            if (AllowsWeekday(startDayOfWeekBit, (DayOfWeek)day))
+                continue;
+            towerDef.StartTimes[day] = null;
+        }
+    }
+
+    /// <summary>
     /// True when the row has the Game-Time columns but no weekday slots — a completeness candidate.
     /// </summary>
     public static bool IsToDCapable(TowerDef towerDef) =>

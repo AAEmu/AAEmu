@@ -97,6 +97,14 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                         template.StartTimes[day] = new TimeSpan(hour, minute, 0);
                     }
 
+                    // start_day_of_week_bit narrows the seven slots the loop above just filled:
+                    // bit 0 is Sunday and indexes start_hour/start_minute, bit 6 is Saturday and
+                    // indexes start_hour6/start_minute6. A row that ships the same hour for all
+                    // seven days under a narrower mask only runs on the masked weekdays, so this
+                    // runs before the row is published — ScheduleMode and IsScheduled are both
+                    // derived from StartTimes. A mask of 0 keeps every slot.
+                    TowerDefScheduleMetadata.ApplyStartDayOfWeekBit(template);
+
                     _towerDefs.Add(template.Id, template);
                 }
             }
