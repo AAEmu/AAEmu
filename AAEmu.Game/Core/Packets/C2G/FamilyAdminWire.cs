@@ -39,12 +39,12 @@ internal static class FamilyAdminWire
                 $"{packetName}: declared string length {declared} is outside 0..{maximumUtf8Bytes} bytes.");
 
         if (stream.Count - stream.Pos < declared)
-            throw new InvalidDataException(
+            throw new TruncatedPacketException(
                 $"{packetName}: declared string length {declared} exceeds the {stream.Count - stream.Pos} byte(s) that remain.");
 
         var value = declared == 0 ? string.Empty : Encoding.UTF8.GetString(stream.ReadBytes(declared));
         if (stream.Overran)
-            throw new InvalidDataException($"{packetName}: read past the end of the body.");
+            throw new TruncatedPacketException($"{packetName}: read past the end of the body.");
 
         return value;
     }
