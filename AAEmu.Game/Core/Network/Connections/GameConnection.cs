@@ -64,7 +64,7 @@ public class GameConnection
 
         Characters = [];
         Houses = [];
-        Payment = new AccountPayment(this);
+        Payment = new AccountPayment();
         // AddAttribute("gmFlag", true);
     }
 

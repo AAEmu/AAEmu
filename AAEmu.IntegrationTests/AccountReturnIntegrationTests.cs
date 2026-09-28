@@ -54,6 +54,18 @@ public sealed class AccountReturnIntegrationTests
         );
         """;
 
+    private const string AccountPaymentsSchema = """
+        CREATE TABLE account_payments (
+            account_id INT UNSIGNED NOT NULL,
+            payment_method INT NOT NULL,
+            payment_location INT NOT NULL,
+            pay_start DATETIME NOT NULL,
+            pay_end DATETIME NOT NULL,
+            buy_count INT NOT NULL,
+            PRIMARY KEY (account_id)
+        );
+        """;
+
     [Fact]
     public async Task Claim_IsExactlyOnce_WithAnAtomicGrant_AndSurvivesRelog()
     {
@@ -147,6 +159,150 @@ public sealed class AccountReturnIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task PaymentTier_LoadsFromPersistedState_AndSurvivesRelog()
+    {
+        var supplied = Environment.GetEnvironmentVariable(EnvironmentVariable);
+        Assert.SkipUnless(!string.IsNullOrWhiteSpace(supplied),
+            $"Set {EnvironmentVariable} for an isolated schema.");
+
+        var (isolated, connectionString) = await CreateIsolatedSchema(supplied);
+        try
+        {
+            await Execute(isolated, $"INSERT INTO accounts (account_id, last_login) VALUES ({AccountId}, UTC_TIMESTAMP)");
+            await Execute(isolated,
+                "INSERT INTO account_payments " +
+                "(account_id, payment_method, payment_location, pay_start, pay_end, buy_count) " +
+                $"VALUES ({AccountId}, 1, 4, DATE_SUB(UTC_TIMESTAMP, INTERVAL 1 DAY), " +
+                "DATE_ADD(UTC_TIMESTAMP, INTERVAL 30 DAY), 3)");
+
+            var manager = new AccountPaymentManager(Open(connectionString));
+            var payment = new AccountPayment();
+
+            Assert.Equal(AccountPaymentLoadResult.Loaded, manager.Load(AccountId, payment));
+            Assert.True(payment.IsLoaded);
+            Assert.True(payment.PremiumState);
+            Assert.Equal(PaymentMethodType.Premium, payment.Method);
+            Assert.Equal(4, payment.Location);
+            Assert.Equal(3, payment.BuyPremiumCount);
+            Assert.True(payment.RealPayTimeSeconds > 0);
+
+            // Relog: a brand-new manager and payment over the same schema read the same tier, so the
+            // entitlement comes from the account's row rather than from connection state.
+            var afterRelog = new AccountPaymentManager(Open(connectionString));
+            var relogged = new AccountPayment();
+            Assert.Equal(AccountPaymentLoadResult.Loaded, afterRelog.Load(AccountId, relogged));
+            Assert.True(relogged.PremiumState);
+            Assert.Equal(4, relogged.Location);
+            Assert.Equal(3, relogged.BuyPremiumCount);
+        }
+        finally
+        {
+            await DropIsolated(supplied, isolated);
+        }
+    }
+
+    [Fact]
+    public async Task AnAccountWithNoPaymentRow_RefusesThePaidTier()
+    {
+        var supplied = Environment.GetEnvironmentVariable(EnvironmentVariable);
+        Assert.SkipUnless(!string.IsNullOrWhiteSpace(supplied),
+            $"Set {EnvironmentVariable} for an isolated schema.");
+
+        var (isolated, connectionString) = await CreateIsolatedSchema(supplied);
+        try
+        {
+            // The account exists but owns no account_payments row.
+            await Execute(isolated, $"INSERT INTO accounts (account_id, last_login) VALUES ({AccountId}, UTC_TIMESTAMP)");
+
+            var manager = new AccountPaymentManager(Open(connectionString));
+            var payment = new AccountPayment();
+
+            Assert.Equal(AccountPaymentLoadResult.NoRecord, manager.Load(AccountId, payment));
+            Assert.False(payment.IsLoaded);
+            Assert.False(payment.PremiumState);
+            Assert.Equal(PaymentMethodType.None, payment.Method);
+            Assert.Equal(0L, payment.RealPayTimeSeconds);
+        }
+        finally
+        {
+            await DropIsolated(supplied, isolated);
+        }
+    }
+
+    [Fact]
+    public async Task AWindowThatLapses_IsNotPremium_OnTheNextConnection()
+    {
+        var supplied = Environment.GetEnvironmentVariable(EnvironmentVariable);
+        Assert.SkipUnless(!string.IsNullOrWhiteSpace(supplied),
+            $"Set {EnvironmentVariable} for an isolated schema.");
+
+        var (isolated, connectionString) = await CreateIsolatedSchema(supplied);
+        try
+        {
+            await Execute(isolated, $"INSERT INTO accounts (account_id, last_login) VALUES ({AccountId}, UTC_TIMESTAMP)");
+            var manager = new AccountPaymentManager(Open(connectionString));
+            var before = new AccountPayment();
+            Assert.True(manager.TrySave(AccountId, new AccountPaymentRecord
+            {
+                AccountId = AccountId,
+                Method = PaymentMethodType.Premium,
+                Location = 0,
+                StartTime = DateTime.UtcNow.AddDays(-1),
+                EndTime = DateTime.UtcNow.AddDays(1),
+                BuyPremiumCount = 1,
+            }));
+            Assert.Equal(AccountPaymentLoadResult.Loaded, manager.Load(AccountId, before));
+            Assert.True(before.PremiumState);
+
+            // The subscription runs out. The next connection must read that from the row.
+            await Execute(isolated,
+                "UPDATE account_payments SET pay_end = DATE_SUB(UTC_TIMESTAMP, INTERVAL 1 DAY) " +
+                $"WHERE account_id = {AccountId}");
+
+            var afterRelog = new AccountPaymentManager(Open(connectionString));
+            var after = new AccountPayment();
+            Assert.Equal(AccountPaymentLoadResult.Loaded, afterRelog.Load(AccountId, after));
+            Assert.True(after.IsLoaded);
+            Assert.False(after.PremiumState);
+            Assert.Equal(0L, after.RealPayTimeSeconds);
+        }
+        finally
+        {
+            await DropIsolated(supplied, isolated);
+        }
+    }
+
+    [Fact]
+    public async Task AnUnknownMethodValueInTheRow_RefusesThePaidTier()
+    {
+        var supplied = Environment.GetEnvironmentVariable(EnvironmentVariable);
+        Assert.SkipUnless(!string.IsNullOrWhiteSpace(supplied),
+            $"Set {EnvironmentVariable} for an isolated schema.");
+
+        var (isolated, connectionString) = await CreateIsolatedSchema(supplied);
+        try
+        {
+            await Execute(isolated, $"INSERT INTO accounts (account_id, last_login) VALUES ({AccountId}, UTC_TIMESTAMP)");
+            await Execute(isolated,
+                "INSERT INTO account_payments " +
+                "(account_id, payment_method, payment_location, pay_start, pay_end, buy_count) " +
+                $"VALUES ({AccountId}, 99, 0, DATE_SUB(UTC_TIMESTAMP, INTERVAL 1 DAY), " +
+                "DATE_ADD(UTC_TIMESTAMP, INTERVAL 30 DAY), 1)");
+
+            var manager = new AccountPaymentManager(Open(connectionString));
+            var payment = new AccountPayment();
+
+            Assert.Equal(AccountPaymentLoadResult.Unreadable, manager.Load(AccountId, payment));
+            Assert.False(payment.IsLoaded);
+            Assert.False(payment.PremiumState);
+        }
+        finally
+        {
+            await DropIsolated(supplied, isolated);
+        }
+    }
+
     private static void ContentConfigTestData(bool isolated)
     {
         _ = isolated;
@@ -181,6 +337,7 @@ public sealed class AccountReturnIntegrationTests
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await Execute(connection, AccountsSchema);
         await Execute(connection, ReadMigration("2026-09-23_aaemu_game_account_return_claims.sql"));
+        await Execute(connection, AccountPaymentsSchema);
         return (connection, builder.ConnectionString);
     }
 

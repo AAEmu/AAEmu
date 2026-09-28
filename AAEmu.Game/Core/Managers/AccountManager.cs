@@ -234,6 +234,11 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
 
     public void Add(GameConnection connection)
     {
+        // Load the account's payment tier before anything reads it. The offline catch-up below bills
+        // this account's labor cap and tick rates, and the lobby config burst publishes the tier in
+        // SCAccountInfo, so this has to land before either runs.
+        LoadPayment(connection);
+
         if (_accounts.ContainsKey(connection.AccountId))
             return;
         _accounts.TryAdd(connection.AccountId, connection);
@@ -248,6 +253,25 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         }
         // Add offline labor
         timedRewardsManager.AddOfflineLabor(connection, lastLogin, accountDetails.Labor);
+    }
+
+    /// <summary>
+    /// Loads this account's payment tier onto the connection. A missing or unreadable row leaves the
+    /// connection on the no-entitlement tier and says so, rather than asserting a paid one.
+    /// </summary>
+    private static void LoadPayment(GameConnection connection)
+    {
+        if (connection.AccountId == 0)
+        {
+            Logger.Error("Payment load skipped: the connection has no account id");
+            return;
+        }
+
+        var result = AccountPaymentManager.Instance.Load(connection.AccountId, connection.Payment);
+        if (result == AccountPaymentLoadResult.Loaded)
+            Logger.Info("Account {0} payment tier: {1}", connection.AccountId, connection.Payment.Describe());
+        else
+            Logger.Warn("Account {0} payment tier: {1}", connection.AccountId, connection.Payment.Describe());
     }
 
     private void RemoveDeadConnections(TimeSpan delta)
@@ -333,6 +357,19 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
             command.Prepare();
             command.ExecuteNonQuery();
             res.AccountId = (int)command.LastInsertedId;
+
+            // A new account owns no paid entitlement, and says so in its own row. Without this the
+            // connection path would find no account_payments row on the very first login and refuse
+            // the tier with an error that looks like a broken migration.
+            command.CommandText =
+                "INSERT INTO account_payments " +
+                "(account_id, payment_method, payment_location, pay_start, pay_end, buy_count) " +
+                "VALUES (@acc_id, @method, 0, @no_subscription, @no_subscription, 0)";
+            command.Parameters.AddWithValue("@method", (int)PaymentMethodType.None);
+            command.Parameters.AddWithValue("@no_subscription", AccountPayment.NoSubscriptionTime);
+            command.Prepare();
+            command.ExecuteNonQuery();
+
             res.LastLogin = DateTime.UtcNow;
             res.LastUpdated = DateTime.UtcNow;
             res.LastLaborTick = DateTime.UtcNow;

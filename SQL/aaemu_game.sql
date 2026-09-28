@@ -1670,6 +1670,16 @@ CREATE TABLE IF NOT EXISTS `account_return_claims` (
   PRIMARY KEY (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Account-return reward claims, one per account';
 
+CREATE TABLE IF NOT EXISTS `account_payments` (
+  `account_id` int unsigned NOT NULL,
+  `payment_method` int NOT NULL,
+  `payment_location` int NOT NULL,
+  `pay_start` datetime NOT NULL,
+  `pay_end` datetime NOT NULL,
+  `buy_count` int NOT NULL,
+  PRIMARY KEY (`account_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-account payment tier driving paid entitlements';
+
 CREATE TABLE IF NOT EXISTS `character_reopen_boxes` (
   `character_id` INT UNSIGNED NOT NULL,
   `item_id` BIGINT UNSIGNED NOT NULL COMMENT 'Box item instance id from the wire (u64)',
