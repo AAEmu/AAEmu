@@ -45,6 +45,6 @@ public class ItemCountUpdateTests
         expected.Write(-2);
         expected.Write(originalTemplateId);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 }

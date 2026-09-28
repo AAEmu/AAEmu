@@ -26,7 +26,7 @@ public class AccountAttributeConfigRulesTests
             .Write(new PacketStream())
             .GetBytes();
 
-        await Assert.That(body).IsEquivalentTo(new byte[] { 0, 1, 1, 1 });
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(new byte[] { 0, 1, 1, 1 }));
     }
 
     [Test]
@@ -75,6 +75,6 @@ public class AccountAttributeConfigRulesTests
             .Write(DateTime.UnixEpoch)
             .GetBytes();
 
-        await Assert.That(body).IsEquivalentTo(expected);
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected));
     }
 }

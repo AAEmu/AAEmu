@@ -135,7 +135,7 @@ public class AuctionHousePacketTests
         expected.Write(27501u);
         expected.Write(12_000L);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(body.Length).IsEqualTo(13);
     }
 
@@ -186,7 +186,7 @@ public class AuctionHousePacketTests
         foreach (var day in days)
             expected.Write(day);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]

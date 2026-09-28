@@ -43,8 +43,8 @@ public sealed class CSSendUserMusicPacketTests
         var first = CSSendUserMusicPacket.ReadMidiBlock(withoutNull, out var firstSize);
         var second = CSSendUserMusicPacket.ReadMidiBlock(withNull, out var secondSize);
 
-        await Assert.That(first).IsEquivalentTo(data);
-        await Assert.That(second).IsEquivalentTo(data);
+        await Assert.That(Hex.Of(first)).IsEqualTo(Hex.Of(data));
+        await Assert.That(Hex.Of(second)).IsEqualTo(Hex.Of(data));
         await Assert.That(firstSize).IsEqualTo(data.Length);
         await Assert.That(secondSize).IsEqualTo(data.Length);
         await Assert.That(withoutNull.LeftBytes).IsEqualTo(0);
@@ -59,7 +59,7 @@ public sealed class CSSendUserMusicPacketTests
 
         var parsed = CSSendUserMusicPacket.ReadMidiBlock(stream, out _);
 
-        await Assert.That(parsed).IsEquivalentTo(data);
+        await Assert.That(Hex.Of(parsed)).IsEqualTo(Hex.Of(data));
     }
 
     [Test]
@@ -122,7 +122,7 @@ public sealed class CSSendUserMusicPacketTests
         packet.Read(CompleteBody(data.Length, checked((ushort)data.Length), data, 0x00));
 
         await Assert.That(MusicManager.Instance.TryGetMidiCache(PlayerId, out var cached)).IsTrue();
-        await Assert.That(cached).IsEquivalentTo(data);
+        await Assert.That(Hex.Of(cached)).IsEqualTo(Hex.Of(data));
     }
 
     [Test]

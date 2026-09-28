@@ -91,7 +91,7 @@ public class SpecialtyPersistenceRestartTests
             await Assert.That(Scalar(restarted, "SELECT slot_type FROM items WHERE id = 30")).IsEqualTo((long)SlotType.System);
             using var command = restarted.CreateCommand();
             command.CommandText = "SELECT details FROM items WHERE id = 30";
-            await Assert.That((byte[])command.ExecuteScalar()).IsEquivalentTo(pack.Detail);
+            await Assert.That(Hex.Of((byte[])command.ExecuteScalar())).IsEqualTo(Hex.Of(pack.Detail));
         }
     }
 

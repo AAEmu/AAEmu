@@ -18,7 +18,7 @@ public class SCSiegeMemberPacketTests
         expected.Write(1752ul);
         expected.Write(true);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]

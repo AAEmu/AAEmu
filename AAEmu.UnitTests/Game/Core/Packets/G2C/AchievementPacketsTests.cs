@@ -34,7 +34,7 @@ public class AchievementPacketsTests
         // Never completed: the wire carries the epoch, not a year-one date.
         expected.Write((long)0);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -58,7 +58,7 @@ public class AchievementPacketsTests
             expected.Write((long)0);
         }
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -70,7 +70,7 @@ public class AchievementPacketsTests
         expected.Write(2333u);
         expected.Write(4);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -86,7 +86,7 @@ public class AchievementPacketsTests
         var bytes = expected.GetBytes();
         await Assert.That(body.Length).IsEqualTo(bytes.Length);
         // Same id, and a timestamp within a second of now rather than a pinned one.
-        await Assert.That(body.Take(4)).IsEquivalentTo(bytes.Take(4));
+        await Assert.That(Hex.Of(body.Take(4).ToArray())).IsEqualTo(Hex.Of(bytes.Take(4).ToArray()));
         await Assert.That(Math.Abs(BitConverter.ToInt64(body, 4) - BitConverter.ToInt64(bytes, 4)))
             .IsLessThanOrEqualTo(1);
     }

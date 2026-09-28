@@ -48,7 +48,7 @@ public class CSEnsembleMidiBinReadyPacketTests
             packet.Read(Body((uint)raw.Length, raw));
 
             await Assert.That(packet.Size).IsEqualTo((uint)raw.Length);
-            await Assert.That(packet.Data).IsEquivalentTo(raw);
+            await Assert.That(Hex.Of(packet.Data)).IsEqualTo(Hex.Of(raw));
             packet.Execute();
             await Assert.That(session.Parts.Contains(Member)).IsTrue();
         }
@@ -118,11 +118,11 @@ public class CSEnsembleMidiBinReadyPacketTests
         // Two bc fields, the unsigned size, the u16 blob length, then the bytes. The prefix is what the
         // client reads the length from; without it the first two MIDI bytes are taken as the length.
         await Assert.That(bytes.Length).IsEqualTo(3 + 3 + sizeof(uint) + sizeof(ushort) + raw.Length);
-        await Assert.That(bytes.Skip(0).Take(3)).IsEquivalentTo(new byte[] { 0x01, 0x06, 0x00 });
-        await Assert.That(bytes.Skip(3).Take(3)).IsEquivalentTo(new byte[] { 0x02, 0x06, 0x00 });
+        await Assert.That(Hex.Of(bytes.Skip(0).Take(3).ToArray())).IsEqualTo(Hex.Of(new byte[] { 0x01, 0x06, 0x00 }));
+        await Assert.That(Hex.Of(bytes.Skip(3).Take(3).ToArray())).IsEqualTo(Hex.Of(new byte[] { 0x02, 0x06, 0x00 }));
         await Assert.That(BitConverter.ToUInt32(bytes, 6)).IsEqualTo((uint)raw.Length);
         await Assert.That(BitConverter.ToUInt16(bytes, 10)).IsEqualTo((ushort)raw.Length);
-        await Assert.That(bytes.Skip(12)).IsEquivalentTo(raw);
+        await Assert.That(Hex.Of(bytes.Skip(12).ToArray())).IsEqualTo(Hex.Of(raw));
     }
 
     /// <summary>
@@ -147,7 +147,7 @@ public class CSEnsembleMidiBinReadyPacketTests
         reader.Read(inbound);
 
         await Assert.That(reader.Size).IsEqualTo((uint)raw.Length);
-        await Assert.That(reader.Data).IsEquivalentTo(raw);
+        await Assert.That(Hex.Of(reader.Data)).IsEqualTo(Hex.Of(raw));
     }
 
     /// <summary>

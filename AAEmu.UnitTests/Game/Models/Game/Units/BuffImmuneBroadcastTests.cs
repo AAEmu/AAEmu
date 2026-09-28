@@ -150,7 +150,7 @@ public class BuffImmuneBroadcastTests
         owner.Buffs.BroadcastBuffImmune(caster, castObj, casterObj);
 
         await Assert.That(owner.Packets).HasCount().EqualTo(2);
-        await Assert.That(Bytes(owner.Packets[1])).IsEquivalentTo(Bytes(owner.Packets[0]));
+        await Assert.That(Hex.Of(Bytes(owner.Packets[1]))).IsEqualTo(Hex.Of(Bytes(owner.Packets[0])));
     }
 
     private static byte[] Bytes(GamePacket packet)

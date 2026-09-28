@@ -18,7 +18,7 @@ public class ResidentAndSensitiveOperationPacketTests
         // to the resident map when that byte is 1 — anything else leaves residency unset.
         await Assert.That(body.Length).IsEqualTo(3);
         await Assert.That(body[2]).IsEqualTo((byte)1);
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -45,7 +45,7 @@ public class ResidentAndSensitiveOperationPacketTests
         // 4 + 4 + 1 header, then 34 bytes a row. The client's serializer writes u32 total, u32 count,
         // bool final and then the rows, and its row serializer writes i16, u32, u64, u64, i32, i32, i32.
         await Assert.That(body.Length).IsEqualTo(9 + (2 * 34));
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -57,7 +57,7 @@ public class ResidentAndSensitiveOperationPacketTests
         // The client caps count at 0x64 (100) and sizes its row array at 100 rows, so a 101st row
         // would be left in the stream for whatever packet follows it in the same batch to read.
         await Assert.That(body.Length).IsEqualTo(9 + (100 * 34));
-        await Assert.That(body[4..8]).IsEquivalentTo(new PacketStream().Write(100u).GetBytes());
+        await Assert.That(Hex.Of(body[4..8].ToArray())).IsEqualTo(Hex.Of(new PacketStream().Write(100u).GetBytes()));
     }
 
     [Test]
@@ -70,7 +70,7 @@ public class ResidentAndSensitiveOperationPacketTests
         expected.Write(0u);
         expected.Write(true);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -85,7 +85,7 @@ public class ResidentAndSensitiveOperationPacketTests
         // Five bytes: the client reads a u8 and then a u32, so a sixth byte would desync anything
         // that follows in the same batch.
         await Assert.That(body.Length).IsEqualTo(5);
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -98,7 +98,7 @@ public class ResidentAndSensitiveOperationPacketTests
         expected.Write(4u);
         expected.Write("https://example.invalid/verify");
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]

@@ -83,7 +83,7 @@ public class MusicManagerTests
 
         await Assert.That(manager.TryGetMidiCache(PlayerId, out _)).IsFalse();
         await Assert.That(manager.TryGetMidiCache(OtherPlayerId, out var other)).IsTrue();
-        await Assert.That(other).IsEquivalentTo(new byte[] { 0x68, 0x64 });
+        await Assert.That(Hex.Of(other)).IsEqualTo(Hex.Of(new byte[] { 0x68, 0x64 }));
     }
 
     [Test]

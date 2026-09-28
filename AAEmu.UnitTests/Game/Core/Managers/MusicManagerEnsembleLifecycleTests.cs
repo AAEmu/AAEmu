@@ -163,7 +163,7 @@ public class MusicManagerEnsembleLifecycleTests
         // The payload follows the serializer's length-prefixed blob slot, so a u16 block length sits
         // between the declared size and the bytes.
         await Assert.That(BitConverter.ToUInt16(packet, 18)).IsEqualTo((ushort)size);
-        await Assert.That(packet.Skip(20).Take((int)size)).IsEquivalentTo(data);
+        await Assert.That(Hex.Of(packet.Skip(20).Take((int)size).ToArray())).IsEqualTo(Hex.Of(data));
     }
 
     [Test]

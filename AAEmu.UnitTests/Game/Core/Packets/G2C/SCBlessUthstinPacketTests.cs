@@ -30,7 +30,7 @@ public class SCBlessUthstinPacketTests
         expected.Write(0);
         expected.Write(false);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -49,7 +49,7 @@ public class SCBlessUthstinPacketTests
         expected.Write(2);
         expected.Write(0);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]

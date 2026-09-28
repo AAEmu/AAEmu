@@ -55,7 +55,7 @@ public class CharacterBackpackDropTests
         await Assert.That(context.Doodad.IsPersistent).IsTrue();
         await Assert.That(context.Doodad.IsPlacementPending).IsFalse();
         await Assert.That(context.Item.MadeUnitId).IsEqualTo(77u);
-        await Assert.That(context.Item.Detail).IsEquivalentTo(originalDetail);
+        await Assert.That(Hex.Of(context.Item.Detail)).IsEqualTo(Hex.Of(originalDetail));
         await Assert.That(context.Item.FreshnessStartTime).IsEqualTo(originalFreshness);
         await Assert.That(context.Item.ProductionZoneGroupId).IsEqualTo((ushort)8);
         await Assert.That(context.Drop.PacketsBeforeCommit).IsEqualTo(0);
@@ -160,7 +160,7 @@ public class CharacterBackpackDropTests
         await Assert.That(context.Item.Slot).IsEqualTo((int)EquipmentItemSlot.Backpack);
         await Assert.That(context.Item._holdingContainer).IsSameReferenceAs(context.Owner.Inventory.Equipment);
         await Assert.That(context.Owner.Inventory.SystemContainer.Items).IsEmpty();
-        await Assert.That(context.Item.Detail).IsEquivalentTo(originalDetail);
+        await Assert.That(Hex.Of(context.Item.Detail)).IsEqualTo(Hex.Of(originalDetail));
         await Assert.That(context.Owner.Broadcasts).IsEmpty();
         await Assert.That(context.Drop.Spawns).IsEqualTo(0);
         await Assert.That(context.Doodad.ItemId).IsEqualTo(0ul);

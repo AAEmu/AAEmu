@@ -24,7 +24,7 @@ public class SCCompletedQuestsPacketTests
         await Assert.That(block.Id).IsEqualTo((ushort)37);
         await Assert.That(block.Body.Get(17)).IsTrue();
         await Assert.That(BitConverter.ToUInt64(body, 0) & (1UL << 17)).IsEqualTo(1UL << 17);
-        await Assert.That(bytes).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(SCOffsets.SCCompletedQuestsPacket).IsEqualTo((ushort)0x133);
     }
 
@@ -35,7 +35,7 @@ public class SCCompletedQuestsPacketTests
         var expected = new PacketStream();
         expected.Write(0);
 
-        await Assert.That(bytes).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 
     [Test]
@@ -58,6 +58,6 @@ public class SCCompletedQuestsPacketTests
 
         await Assert.That(block.Id).IsEqualTo((ushort)37);
         await Assert.That(block.Body.Get((int)(q2388 % 64))).IsTrue();
-        await Assert.That(bytes).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(bytes)).IsEqualTo(Hex.Of(expected.GetBytes()));
     }
 }

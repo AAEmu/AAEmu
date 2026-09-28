@@ -34,7 +34,7 @@ public class CooldownPacketContractTests
         expected.Write(false);
         expected.Write(true);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(BitConverter.ToInt32(body, 11)).IsEqualTo(-7);
         await Assert.That(BitConverter.ToInt32(body, 15)).IsEqualTo(-3);
         await Assert.That(BitConverter.ToInt32(body, 19)).IsEqualTo(-11);
@@ -54,7 +54,7 @@ public class CooldownPacketContractTests
         expected.Write(-3);
         expected.Write(-11);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(BitConverter.ToInt32(body, 7)).IsEqualTo(-7);
         await Assert.That(BitConverter.ToInt32(body, 11)).IsEqualTo(-3);
         await Assert.That(BitConverter.ToInt32(body, 15)).IsEqualTo(-11);
@@ -77,7 +77,7 @@ public class CooldownPacketContractTests
         expected.Write(false);
         expected.Write(true);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(body.Length).IsEqualTo(15);
         await Assert.That(body[11]).IsEqualTo((byte)1);
         await Assert.That(body[12]).IsEqualTo((byte)1);
