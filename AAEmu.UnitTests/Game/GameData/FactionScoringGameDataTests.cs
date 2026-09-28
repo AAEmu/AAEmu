@@ -203,6 +203,27 @@ public sealed class FactionScoringGameDataTests : SqliteTestBase
         await Assert.That(FactionScoringGameData.Instance.GetZoneScoreKindsByZoneGroup(999)).IsEmpty();
     }
 
+    [Test]
+    public async Task CompetitionDetailIsCarriedThroughUnresolvedToAnyZone()
+    {
+        // detail_id is keyed by detail_type into a separate id space, not a zone-group id, so the
+        // loader carries the pair through without resolving it to a zone. A competition that
+        // shares a detail_id with another under a different detail_type stays two competitions.
+        FactionScoringGameData.Instance.Load(Connection);
+        var competition = FactionScoringGameData.Instance.GetCompetition(10);
+
+        await Assert.That(competition.DetailId).IsEqualTo(1u);
+        await Assert.That(competition.DetailType).IsEqualTo("CompetitionPvp");
+
+        Execute("INSERT INTO faction_competitions VALUES (11, 'other', 1, 2, 3, 100, 2, 'f', NULL, '', 1, 'CompetitionPve')");
+        FactionScoringGameData.Instance.Load(Connection);
+
+        await Assert.That(FactionScoringGameData.Instance.GetCompetition(10).DetailType).IsEqualTo("CompetitionPvp");
+        await Assert.That(FactionScoringGameData.Instance.GetCompetition(11).DetailType).IsEqualTo("CompetitionPve");
+        await Assert.That(FactionScoringGameData.Instance.GetCompetition(10).DetailId)
+            .IsEqualTo(FactionScoringGameData.Instance.GetCompetition(11).DetailId);
+    }
+
     private void Execute(string sql)
     {
         using var command = Connection.CreateCommand();
