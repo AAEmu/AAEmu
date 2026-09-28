@@ -5,7 +5,6 @@ using System.Reflection;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -17,6 +16,7 @@ using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Team.Recruitment;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.UnitTests.Utils;
 using AAEmu.UnitTests.Utils.Mocks;
 
 namespace AAEmu.UnitTests.Game.Core.Packets.C2G;
@@ -64,9 +64,13 @@ public class TruncatedCountPrefixTests
             chat.GetRaidChat(Any<Team>()).Returns(new ChatChannel());
             var teams = new TeamManager(Mock.Of<IWorldManager>().Object, chat.Object, teamIds.Object,
                 Mock.Of<ITickManager>().Object);
-            Replace<TeamManager>(teams);
-            Replace<FriendMananger>(new FriendMananger());
-            _replaced.Add(Replace(RaidRecruitmentManager.Instance));
+            // SingletonScope rather than a hand-rolled s_instance write: same one-field shadow, but it
+            // only puts the previous value back if nothing else installed a value meanwhile, and it
+            // restores on dispose. No ServiceProvider is replaced anywhere in this file - that swap is
+            // process-wide and can make an unrelated class resolve a fresh, empty singleton.
+            _scopes.Add(new SingletonScope<TeamManager>(teams));
+            _scopes.Add(new SingletonScope<FriendMananger>(new FriendMananger()));
+            _scopes.Add(new SingletonScope<RaidRecruitmentManager>(RaidRecruitmentManager.Instance));
 
             Manager = RaidRecruitmentManager.Instance;
             Posts = (Dictionary<uint, RaidRecruitment>)typeof(RaidRecruitmentManager)
@@ -82,15 +86,15 @@ public class TruncatedCountPrefixTests
             };
         }
 
-        private readonly List<(FieldInfo Field, object Previous)> _replaced = [];
+        private readonly List<IDisposable> _scopes = [];
 
         public Character Applicant(uint id, string name) => Online(id, name);
 
         public void Dispose()
         {
             Posts.Clear();
-            foreach (var (field, previous) in _replaced)
-                field.SetValue(null, previous);
+            for (var i = _scopes.Count - 1; i >= 0; i--)
+                _scopes[i].Dispose();
         }
 
         private static Character Online(uint id, string name)
@@ -104,13 +108,6 @@ public class TruncatedCountPrefixTests
             return character;
         }
 
-        private static (FieldInfo Field, object Previous) Replace<T>(T instance) where T : class
-        {
-            var field = typeof(Singleton<T>).GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)!;
-            var previous = field.GetValue(null);
-            field.SetValue(null, instance);
-            return (field, previous);
-        }
     }
 
     // ------------------------------------------------------------------ Overran before LeftBytes

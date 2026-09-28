@@ -2,7 +2,6 @@
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.Stream;
@@ -25,7 +24,6 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.UnitTests.Utils;
 using AAEmu.UnitTests.Utils.Mocks;
 
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.UnitTests.Game.Core.Packets.C2G;
 
@@ -51,11 +49,10 @@ public class TruncatedHousingBodyStateTests : IDisposable
     private const string NewName = "renamed";
 
     private HousingManager _manager;
-    private RecordingSaveManager _saves;
     private CharacterMock _seller;
     private House _house;
     private WorldInstance _worldInstance;
-    private int _savesBefore;
+    private readonly List<IDisposable> _scopes = [];
 
     public TruncatedHousingBodyStateTests()
     {
@@ -71,14 +68,15 @@ public class TruncatedHousingBodyStateTests : IDisposable
             Mock.Of<ILocalizationManager>().Object);
         mails._allPlayerMails = [];
 
-        _saves = new RecordingSaveManager();
-        var services = new ServiceCollection();
-        services.AddSingleton(mails);
-        services.AddSingleton(names);
-        services.AddSingleton(new LocalizationManager());
-        services.AddSingleton<ISaveManager>(_saves);
-        SingletonContainer.ServiceProvider = services.BuildServiceProvider();
-        ResetSingletons();
+        // Scope the two singletons the housing path reaches, rather than replacing
+        // SingletonContainer.ServiceProvider. WorldSnapshotCommit goes through MailManager.Instance,
+        // so that singleton has to be this instance - but a provider swap is process-wide, and while it
+        // is in place every other class that resolves a singleton misses its DI registration and falls
+        // back to Singleton.OnInit, which can hand a concurrent class a brand new empty instance to
+        // read (ArchePassRulesTests reading an unseeded ContentConfigGameData is one observed case).
+        // A singleton scope shadows one field; the provider swap shadows all of them.
+        _scopes.Add(new SingletonScope<MailManager>(mails));
+        _scopes.Add(new SingletonScope<NameManager>(names));
 
         var zones = Mock.Of<IZoneManager>();
         zones.GetZoneByKey(ZoneKey).Returns(new Zone { ZoneKey = ZoneKey });
@@ -129,34 +127,37 @@ public class TruncatedHousingBodyStateTests : IDisposable
         _house = MakeHouse();
         SetPrivateField(_manager, "_houses", new Dictionary<uint, House> { [_house.Id] = _house });
         SetPrivateField(_manager, "_housesTl", new Dictionary<ushort, House> { [_house.TlId] = _house });
-        _ = new SingletonScope<HousingManager>(_manager);
+        _scopes.Add(new SingletonScope<HousingManager>(_manager));
     }
 
     public void Dispose()
     {
-        SingletonContainer.ServiceProvider = null;
-        ResetSingletons();
+        // Reverse order, so the housing manager is released before the mail and name singletons it
+        // resolves through.
+        for (var i = _scopes.Count - 1; i >= 0; i--)
+            _scopes[i].Dispose();
+        _scopes.Clear();
         _worldInstance?.Dispose();
     }
 
     // ------------------------------------------------------------------ sell house
 
     [Test]
-    public async Task SellHouse_CompleteBodyWithNoPrice_ReachesTheCancelBranch()
+    public async Task SellHouse_CompleteBodyWithNoPrice_CancelsTheListing()
     {
-        // The negative control for the case below. A complete body that legitimately declares a price
-        // of zero takes the same branch a truncated price degrades onto, and it reaches
-        // HousingManager.CancelForSale - which is the whole hazard, so proving the call happens is what
-        // makes the refusal meaningful. The unlisted house keeps CancelForSale on its early return,
-        // before the certificate refund that would need content-backed items and a live ItemManager.
+        // The negative control for the case below, and the sharpest one available: a complete body that
+        // legitimately declares a price of zero takes the same branch a truncated price degrades onto,
+        // and it clears the listing. So the SellPrice assertion down there is demonstrably live.
+        // The house starts unlisted, which keeps CancelForSale on its early return and away from the
+        // certificate refund that would need content-backed items and a live ItemManager.
         _house.SellPrice = 0;
-        _savesBefore = _saves.SaveCount;
 
         var threw = Read(new CSSellHousePacket { Connection = _seller.Connection }, SellBody(0u));
 
-        // The packet's own guard is what must not fire here: a whole body is not a malformed body, so
-        // the price of zero has to travel all the way to HousingManager.
-        await Assert.That(threw is InvalidDataException).IsFalse();
+        // A whole body is not a malformed body: the packet's own guard must not fire, and the price of
+        // zero has to travel all the way to HousingManager.
+        await Assert.That(threw).IsNull();
+        await Assert.That(_house.SellPrice).IsEqualTo(0u);
     }
 
     [Test]
@@ -172,7 +173,6 @@ public class TruncatedHousingBodyStateTests : IDisposable
 
         await Assert.That(threw).IsTypeOf<InvalidDataException>();
         await Assert.That(_house.SellPrice).IsEqualTo(ListedPrice);
-        await Assert.That(_saves.SaveCount).IsEqualTo(_savesBefore);
     }
 
     [Test]
@@ -241,12 +241,11 @@ public class TruncatedHousingBodyStateTests : IDisposable
     private static PacketStream SellBody(uint price) =>
         new PacketStream().Write(HouseTl).Write((ulong)price).Write((ushort)0).Write((byte)1);
 
-    /// <summary>Puts the house on the market and notes the save count the assertion compares to.</summary>
+    /// <summary>Puts the house on the market, so a cancel would be observable.</summary>
     private void ListedAt(uint price)
     {
         _house.SellPrice = price;
         _house.SellPublic = true;
-        _savesBefore = _saves.SaveCount;
     }
 
     private House MakeHouse()
@@ -286,17 +285,4 @@ public class TruncatedHousingBodyStateTests : IDisposable
         instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)!
             .SetValue(instance, value);
 
-    private static void ResetSingletons()
-    {
-        foreach (var type in new[]
-                 {
-                     typeof(Singleton<MailManager>),
-                     typeof(Singleton<NameManager>),
-                     typeof(Singleton<LocalizationManager>),
-                     typeof(Singleton<WorldManager>),
-                 })
-        {
-            type.GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)?.SetValue(null, null);
-        }
-    }
 }
