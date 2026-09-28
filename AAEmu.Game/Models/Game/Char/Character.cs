@@ -3524,9 +3524,9 @@ public partial class Character : Unit, ICharacter
                     continue;
 #pragma warning restore CA1508 // Avoid dead conditional code
 
-                if (!npc.Template.Blacksmith)
+                if (!CharacterRepairRules.CanRepairAtNpc(npc.Template))
                 {
-                    Logger.Warn($"Attempting to repair an item while not at a blacksmith, Item: {item.Id}, NPC: {npc}");
+                    Logger.Warn($"Attempting to repair an item while not at a repairman, Item: {item.Id}, NPC: {npc}");
                     continue;
                 }
 
