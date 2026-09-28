@@ -1,6 +1,7 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
@@ -53,11 +54,21 @@ public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
         }
 
         //var tasks = new List<ItemTask>();
+        var saleLimits = ItemSaleLimitManager.Instance;
         var money = 0;
         foreach (var item in items)
         {
-            if (!item.Template.Sellable)
+            // The sale columns of the template decide whether this vendor may take the item at all:
+            // sellable, auction_only, and the per-day allowance of one_time_sale / limited_sale_count.
+            // A refused item stays in the bag untouched - it is not moved to the buy-back list and it
+            // pays nothing, so the two sides of the trade cannot drift apart.
+            if (!saleLimits.TryConsumeSale(item.Template, out var decision))
+            {
+                Logger.Info("Vendor refused item {0} ({1}) from {2}: {3}",
+                    item.Id, item.TemplateId, Connection.ActiveChar.Name, decision.Refusal);
+                Connection.ActiveChar.SendErrorMessage(ToErrorMessage(decision.Refusal));
                 continue;
+            }
 
             if (!Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item))
             {
@@ -74,4 +85,17 @@ public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
         Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreSell, itemTasks, new List<ulong>()));
         */
     }
+
+    /// <summary>
+    /// The message the client shows for each refusal. The client's own store text names the spent
+    /// one-time sale and the auction-only item; a plain unsellable item gets the store's
+    /// not-sellable text.
+    /// </summary>
+    private static ErrorMessageType ToErrorMessage(ItemSaleRefusal refusal) => refusal switch
+    {
+        ItemSaleRefusal.OneTimeSaleExhausted => ErrorMessageType.StoreOneTimeSale,
+        ItemSaleRefusal.LimitedSaleExhausted => ErrorMessageType.StoreOneTimeSale,
+        ItemSaleRefusal.AuctionOnly => ErrorMessageType.ItemAuctionOnly,
+        _ => ErrorMessageType.StoreNotSellableItem
+    };
 }

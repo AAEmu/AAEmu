@@ -566,6 +566,13 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         if (item.Template.FixedGrade >= 0)
             item.Grade = (byte)item.Template.FixedGrade;
         item.CreateTime = DateTime.UtcNow;
+
+        // Arm the template's lifespan columns here so every delivery path (loot, mail, cash
+        // shop, crafting, housing, indun, auction payout) produces an item that expires on the
+        // same terms. Paths that clone an existing stack overwrite the values afterwards from
+        // their source, which is what a split or a transfer is supposed to do.
+        ItemLifetimeRules.ApplyNewItemLifespan(item, item.CreateTime);
+
         if (generateId && trackGenerated)
         {
             if (!_allItems.TryAdd(item.Id, item))
@@ -1021,9 +1028,33 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             {
                 // item_proc_bindings: 186 rows, 102 distinct procs, on 135 weapons, 21 armors, 9 accessories and
                 // 18 gems (item 4687 carries three). The client loads the same three columns in
-                // LoadItemProcBindingDescs. The two rows on items 39248 and 39249 ([test] gloves,
-                // items.proc_lifetime 1 and 3) are the only bound procs meant to run out; the lifetime charge is
-                // not implemented, so those two are left off rather than firing for good.
+                // LoadItemProcBindingDescs.
+                //
+                // The rows on an item with items.proc_lifetime set are the only ones meant to run out,
+                // and they are left off rather than attached with no charge to count down
+                // (ItemProcLifetimeRules.BindingMayAttach). Say so at load: a binding that content
+                // asks for and this build silently drops has to be visible, not just absent.
+                command.CommandText = "SELECT b.item_id, i.proc_lifetime, i.proc_recharge_restrict_item_id, i.name " +
+                                      "FROM item_proc_bindings b " +
+                                      "INNER JOIN items i ON i.id = b.item_id WHERE i.proc_lifetime <> 0";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        Logger.Warn(
+                            "Item {0} ({1}) binds a proc with a lifetime of {2} fires; the charge is not " +
+                            "counted yet, so the binding is not attached. Recharge item: {3}",
+                            reader.GetUInt32("item_id"),
+                            reader.IsDBNull("name") ? "" : reader.GetString("name"),
+                            reader.GetInt32("proc_lifetime"),
+                            reader.GetUInt32("proc_recharge_restrict_item_id"));
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
                 command.CommandText = "SELECT b.item_id, b.proc_id FROM item_proc_bindings b " +
                                       "INNER JOIN items ON items.id = b.item_id WHERE items.proc_lifetime = 0";
                 command.Prepare();
@@ -1375,56 +1406,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     {
                         var id = reader.GetUInt32("id");
                         var template = _templates.TryGetValue(id, out var templateRes) ? templateRes : new ItemTemplate();
-                        template.Id = id;
-                        template.Name = reader.IsDBNull("name") ? "" : reader.GetString("name");
-                        template.CategoryId = reader.GetInt32("category_id");
-                        template.Level = reader.GetInt32("level");
-                        // 10.0.2.13: price/refund columns removed from items
-                        template.BindType = (ItemBindType)reader.GetUInt32("bind_id");
-                        template.PickupLimit = reader.GetInt32("pickup_limit");
-                        template.MaxCount = reader.GetInt32("max_stack_size");
-                        template.Sellable = reader.GetBoolean("sellable", true);
-                        template.UseSkillId = reader.GetUInt32("use_skill_id");
-                        template.UseSkillAsReagent = reader.GetBoolean("use_skill_as_reagent", true);
-                        template.ImplId = (ItemImplEnum)reader.GetInt32("impl_id");
-                        template.BuffId = reader.GetUInt32("buff_id");
-                        template.Gradable = reader.GetBoolean("gradable", true);
-                        template.LootMulti = reader.GetBoolean("loot_multi", true);
-                        template.LootQuestId = reader.GetUInt32("loot_quest_id");
-                        // 10.0.2.13: honor_price column removed from items
-                        template.ExpAbsLifetime = reader.GetInt32("exp_abs_lifetime");
-                        template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
-                        template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
-                        template.SpecialtyZoneId = !reader.IsDBNull("specialty_zone_id") ? reader.GetUInt32("specialty_zone_id") : 0;
-                        template.LevelRequirement = reader.GetInt32("level_requirement");
-                        template.AuctionCategoryA = reader.IsDBNull("auction_a_category_id") ? 0 : reader.GetInt32("auction_a_category_id");
-                        template.AuctionCategoryB = reader.IsDBNull("auction_b_category_id") ? 0 : reader.GetInt32("auction_b_category_id");
-                        template.AuctionCategoryC = reader.IsDBNull("auction_c_category_id") ? 0 : reader.GetInt32("auction_c_category_id");
-                        template.LevelLimit = reader.GetInt32("level_limit");
-                        template.FixedGrade = reader.GetInt32("fixed_grade");
-                        // 10.0.2.13: -1 means uncapped; nullable in some rows
-                        template.MaxEnchantableGrade = reader.IsDBNull("max_enchantable_grade") ? -1 : reader.GetInt32("max_enchantable_grade");
-                        template.Disenchantable = reader.GetBoolean("disenchantable", true);
-                        // 10.0.2.13: living_point_price column removed from items
-                        template.CharGender = reader.GetByte("char_gender_id");
-                        // Highest enchant_scale_ratios row this item may be tempered to. 0 means the
-                        // item cannot be tempered at all, which is the case for all but ~6.5k items.
-                        template.MaxEnchantScaleId = reader.GetByte("max_enchant_scale_id", 0);
-                        // Regrade ceiling. -1 on ~44.7k items (no ceiling); the ~6.3k that carry one
-                        // are capped at grade 7, which is what greys the scroll slot in the client.
-                        template.MaxEnchantableGrade = reader.GetInt32("max_enchantable_grade", -1);
-
-                        template.AuctionSettings = new AuctionSettings(
-                            template.AuctionCategoryA,
-                            template.AuctionCategoryB,
-                            template.AuctionCategoryC,
-                            // Present in the 10.0.2.13 schema; these were left commented out from a build that
-                            // predated them. auction_charge_default is a boolean, and auction_charge is the
-                            // per-item commission in basis points used when it is false.
-                            reader.GetInt32("auction_charge"),
-                            reader.GetBoolean("auction_charge_default", true)
-                        );
-
+                        ItemTemplateRowLoader.Apply(reader, template);
                         _templates.TryAdd(template.Id, template);
                     }
                 }

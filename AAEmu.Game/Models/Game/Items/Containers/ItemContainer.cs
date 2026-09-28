@@ -844,21 +844,11 @@ public class ItemContainer
                 prefSlot = (int)EquipmentItemSlot.Backpack;
             }
 
-            // Timers
-            if (newItem.Template.ExpAbsLifetime > 0)
-            {
-                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime)));
-            }
-
-            if (newItem.Template.ExpOnlineLifetime > 0)
-            {
-                syncPackets.Add(ItemManager.SetItemOnlineExpirationTime(newItem, newItem.Template.ExpOnlineLifetime));
-            }
-
-            if (newItem.Template.ExpDate > DateTime.MinValue)
-            {
-                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, newItem.Template.ExpDate));
-            }
+            // Timers: the factory already armed every lifespan column on the new stack, so this
+            // only reports the armed values instead of re-deriving them from the template. Deriving
+            // them a second time from DateTime.UtcNow would hand the item a slightly longer life
+            // than the one it was created with, and would miss the weekly and period columns.
+            syncPackets.AddRange(ItemLifetimeRules.BuildLifespanSyncPackets(newItem, DateTime.UtcNow));
 
             if (newItem is EquipItem equipItem && newItem.Template is EquipItemTemplate equipItemTemplate)
             {

@@ -468,7 +468,12 @@ public class LootingContainer(IBaseUnit owner)
         }
 
         // Do the Team looting rules require us to do a manual roll?
-        var rollMandatory = (TeamLootingRule.MinimumGrade > 0 && itemEntry.Item.Grade >= TeamLootingRule.MinimumGrade) || (TeamLootingRule.RollForBindOnPickup && itemEntry.Item.Template.BindType.HasFlag(ItemBindType.BindOnPickup));
+        // An auto-loot item (items.auto_loot) is the reward for having collected something rather
+        // than a prize from a kill, so neither of the two reasons a roll exists applies to it.
+        var rollMandatory = ItemLootRules.RequiresRoll(
+            itemEntry.Item.Template,
+            TeamLootingRule.MinimumGrade > 0 && itemEntry.Item.Grade >= TeamLootingRule.MinimumGrade,
+            TeamLootingRule.RollForBindOnPickup && itemEntry.Item.Template.BindType.HasFlag(ItemBindType.BindOnPickup));
 
         // Check the other party/raid loot settings (if applicable)
         var allowLootingNow = false;
