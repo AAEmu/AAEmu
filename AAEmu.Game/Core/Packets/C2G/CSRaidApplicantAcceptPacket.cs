@@ -25,6 +25,14 @@ public class CSRaidApplicantAcceptPacket() : GamePacket(CSOffsets.CSRaidApplican
 
     internal static ulong[] ReadCharacterIds(PacketStream stream, uint count)
     {
+        // Overran first, bound second, and the order matters. On a body too short to hold the count
+        // the count read answers 0 and pins Pos at the end, so LeftBytes is 0 and the bound below
+        // evaluates 0 > 0/8 as false: LeftBytes alone cannot tell "the client sent no applicants"
+        // from "the count never arrived", and without this check the manager is reached with an
+        // empty list and a zero owner id.
+        if (stream.Overran)
+            throw new InvalidDataException("Raid applicant count or owner id is missing from the body.");
+
         var size = (int)Math.Min(count, RaidRecruitRules.MaxApplicantsPerRecruitment);
         if (size > stream.LeftBytes / sizeof(ulong))
             throw new InvalidDataException("Raid applicant count exceeds the packet body.");

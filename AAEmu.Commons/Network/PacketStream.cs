@@ -65,13 +65,50 @@ public class PacketStream : ICloneable, IComparable
     public int LeftBytes => Count - Pos;
 
     /// <summary>
-    /// True once a read was attempted past the end of this stream. The read returns a default instead
-    /// of throwing, so a parser that walks a record whose length it guessed wrong keeps going with
-    /// zeroes; callers that can check this refuse the rest of the payload instead of relaying it.
+    /// True once a read was attempted past the end of this stream. A lenient read records that
+    /// here and returns a default, so a parser that walks a record whose length it guessed wrong
+    /// keeps going with zeroes; callers that can check this refuse the rest of the payload instead
+    /// of relaying it. A stream armed with <see cref="StrictReads"/> records the same flag and then
+    /// throws, so the flag is the one signal that is reliable in either mode.
     /// </summary>
     public bool Overran { get; private set; }
 
     private void MarkOverrun() => Overran = true;
+
+    /// <summary>
+    /// When true, a read past the end of this stream throws <see cref="TruncatedPacketException"/>
+    /// at the offending byte instead of answering a default value. Off by default: a lenient read
+    /// answers a default and only records <see cref="Overran"/>, which is what a server writing
+    /// its own packets and the internal relays want. The client-to-game dispatch arms it through
+    /// <see cref="RequireComplete"/> because most of those handlers write state from inside Read,
+    /// so a short read has to stop the parse before the statement depending on it runs instead of
+    /// being reported after it.
+    /// </summary>
+    public bool StrictReads { get; set; }
+
+    /// <summary>
+    /// Arms (or disarms) strict reads for this stream. The name states the contract, not a
+    /// promise: nothing here requires the stream to have been consumed, it only decides from now
+    /// on what a read past the end does.
+    /// </summary>
+    /// <param name="required">false for a caller that tolerates a body it did not read in full.</param>
+    public void RequireComplete(bool required = true) => StrictReads = required;
+
+    /// <summary>
+    /// The one place a short read is decided. The log line and the <see cref="Overran"/> flag are
+    /// the same in both modes - malformed input stays observable - and only the answer differs: a
+    /// strict stream stops at the byte that ran past the end, a lenient one keeps the default and
+    /// lets the parser walk on.
+    /// </summary>
+    private T ShortRead<T>(T fallback, int width)
+    {
+        Logger.Error("Attempted to read beyond the end of the stream.");
+        MarkOverrun();
+        if (StrictReads)
+            throw new TruncatedPacketException(
+                $"Truncated stream: {width} byte(s) requested at offset {Pos} of a {Count} byte body.");
+        return fallback;
+    }
 
     /// <summary>
     /// Gets the endian bit converter based on the current endianness.
@@ -479,11 +516,7 @@ public class PacketStream : ICloneable, IComparable
     public byte ReadByte()
     {
         if (Pos + 1 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead((byte)0, 1);
         return this[Pos++];
     }
 
@@ -494,11 +527,7 @@ public class PacketStream : ICloneable, IComparable
     public sbyte ReadSByte()
     {
         if (Pos + 1 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead((sbyte)0, 1);
         return (sbyte)this[Pos++];
     }
 
@@ -510,11 +539,7 @@ public class PacketStream : ICloneable, IComparable
     public byte[] ReadBytes(int count)
     {
         if (Pos + count > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return []; // Возвращаем пустой массив
-        }
+            return ShortRead(Array.Empty<byte>(), count);
 
         var result = new byte[count];
         SBuffer.BlockCopy(Buffer, Pos, result, 0, count);
@@ -531,11 +556,7 @@ public class PacketStream : ICloneable, IComparable
         var count = ReadInt16();
 
         if (Pos + count > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return []; // Возвращаем пустой массив
-        }
+            return ShortRead(Array.Empty<byte>(), count);
 
         var result = new byte[count];
         SBuffer.BlockCopy(Buffer, Pos, result, 0, count);
@@ -550,11 +571,7 @@ public class PacketStream : ICloneable, IComparable
     public char ReadChar()
     {
         if (Pos + 2 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return '\0'; // Возвращаем значение по умолчанию
-        }
+            return ShortRead('\0', 2);
 
         var result = Converter.ToChar(Buffer, Pos);
         Pos += 2;
@@ -570,11 +587,7 @@ public class PacketStream : ICloneable, IComparable
     public char[] ReadChars(int count)
     {
         if (Pos + 2 * count > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return []; // Возвращаем пустой массив
-        }
+            return ShortRead(Array.Empty<char>(), count * 2);
 
         var result = new char[count];
         for (var i = 0; i < count; i++)
@@ -590,11 +603,7 @@ public class PacketStream : ICloneable, IComparable
     public short ReadInt16()
     {
         if (Pos + 2 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead((short)0, 2);
 
         var result = Converter.ToInt16(Buffer, Pos);
         Pos += 2;
@@ -609,11 +618,7 @@ public class PacketStream : ICloneable, IComparable
     public int ReadInt32()
     {
         if (Pos + 4 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead(0, 4);
 
         var result = Converter.ToInt32(Buffer, Pos);
         Pos += 4;
@@ -628,11 +633,7 @@ public class PacketStream : ICloneable, IComparable
     public long ReadInt64()
     {
         if (Pos + 8 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead(0L, 8);
 
         var result = Converter.ToInt64(Buffer, Pos);
         Pos += 8;
@@ -647,11 +648,7 @@ public class PacketStream : ICloneable, IComparable
     public ushort ReadUInt16()
     {
         if (Pos + 2 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead((ushort)0, 2);
 
         var result = Converter.ToUInt16(Buffer, Pos);
         Pos += 2;
@@ -666,11 +663,7 @@ public class PacketStream : ICloneable, IComparable
     public uint ReadUInt32()
     {
         if (Pos + 4 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead(0u, 4);
 
         var result = Converter.ToUInt32(Buffer, Pos);
         Pos += 4;
@@ -685,11 +678,7 @@ public class PacketStream : ICloneable, IComparable
     public uint ReadBc()
     {
         if (Pos + 3 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead(0u, 3);
 
         var result = ReadUInt16() + (ReadByte() << 16);
 
@@ -703,11 +692,7 @@ public class PacketStream : ICloneable, IComparable
     public ulong ReadUInt64()
     {
         if (Pos + 8 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead(0UL, 8);
 
         var result = Converter.ToUInt64(Buffer, Pos);
         Pos += 8;
@@ -722,11 +707,7 @@ public class PacketStream : ICloneable, IComparable
     public float ReadSingle()
     {
         if (Pos + 4 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead(0f, 4);
 
         var result = Converter.ToSingle(Buffer, Pos);
         Pos += 4;
@@ -741,11 +722,7 @@ public class PacketStream : ICloneable, IComparable
     public double ReadDouble()
     {
         if (Pos + 8 > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return 0; // Возвращаем значение по умолчанию
-        }
+            return ShortRead(0d, 8);
 
         var result = Converter.ToDouble(Buffer, Pos);
         Pos += 8;
@@ -765,11 +742,7 @@ public class PacketStream : ICloneable, IComparable
     {
         var i = ReadInt16();
         if (Pos + i > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return new PacketStream(); // Возвращаем пустой PacketStream
-        }
+            return ShortRead(new PacketStream(), i);
         var newStream = new PacketStream(Buffer, Pos, i);
         Pos += i;
         return newStream;
@@ -784,11 +757,7 @@ public class PacketStream : ICloneable, IComparable
     {
         var i = ReadInt16();
         if (Pos + i > Count)
-        {
-            Logger.Error("Attempted to read beyond the end of the stream.");
-            MarkOverrun();
-            return this; // Возвращаем текущий PacketStream
-        }
+            return ShortRead(this, i);
         stream.Replace(Buffer, Pos, i);
         Pos += i;
         return this;
@@ -803,6 +772,13 @@ public class PacketStream : ICloneable, IComparable
         try
         {
             paramMarshal.Read(this);
+        }
+        catch (TruncatedPacketException)
+        {
+            // A strict read stopped at the byte that ran past the end. The catch below answers a
+            // default for every other read failure, and a default is exactly what a truncated body
+            // must not turn into.
+            throw;
         }
         catch (Exception ex)
         {
@@ -821,6 +797,13 @@ public class PacketStream : ICloneable, IComparable
         try
         {
             Read(t);
+        }
+        catch (TruncatedPacketException)
+        {
+            // A strict read stopped at the byte that ran past the end. The catch below answers a
+            // default for every other read failure, and a default is exactly what a truncated body
+            // must not turn into.
+            throw;
         }
         catch (Exception ex)
         {
@@ -864,6 +847,13 @@ public class PacketStream : ICloneable, IComparable
         try
         {
             return Helpers.UnixTime(ReadInt64());
+        }
+        catch (TruncatedPacketException)
+        {
+            // A strict read stopped at the byte that ran past the end. The catch below answers a
+            // default for every other read failure, and a default is exactly what a truncated body
+            // must not turn into.
+            throw;
         }
         catch (Exception ex)
         {
@@ -909,6 +899,13 @@ public class PacketStream : ICloneable, IComparable
             var position = ReadBytes(11); // 10.0.2.13 quantized world position is 11 bytes (was 9)
             return Helpers.ConvertPosition(position);
         }
+        catch (TruncatedPacketException)
+        {
+            // A strict read stopped at the byte that ran past the end. The catch below answers a
+            // default for every other read failure, and a default is exactly what a truncated body
+            // must not turn into.
+            throw;
+        }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error reading position.");
@@ -939,6 +936,13 @@ public class PacketStream : ICloneable, IComparable
 
             return quat;
         }
+        catch (TruncatedPacketException)
+        {
+            // A strict read stopped at the byte that ran past the end. The catch below answers a
+            // default for every other read failure, and a default is exactly what a truncated body
+            // must not turn into.
+            throw;
+        }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error reading quaternion.");
@@ -959,6 +963,13 @@ public class PacketStream : ICloneable, IComparable
             var z = ReadSingle();
             var temp = new Vector3(x, y, z);
             return temp;
+        }
+        catch (TruncatedPacketException)
+        {
+            // A strict read stopped at the byte that ran past the end. The catch below answers a
+            // default for every other read failure, and a default is exactly what a truncated body
+            // must not turn into.
+            throw;
         }
         catch (Exception ex)
         {
@@ -981,6 +992,13 @@ public class PacketStream : ICloneable, IComparable
             var temp = new Vector3(x, y, z);
 
             return temp;
+        }
+        catch (TruncatedPacketException)
+        {
+            // A strict read stopped at the byte that ran past the end. The catch below answers a
+            // default for every other read failure, and a default is exactly what a truncated body
+            // must not turn into.
+            throw;
         }
         catch (Exception ex)
         {
@@ -1005,6 +1023,13 @@ public class PacketStream : ICloneable, IComparable
             var strBuf = ReadBytes(i);
             return Encoding.UTF8.GetString(strBuf).Trim('\u0000');
         }
+        catch (TruncatedPacketException)
+        {
+            // A strict read stopped at the byte that ran past the end. The catch below answers a
+            // default for every other read failure, and a default is exactly what a truncated body
+            // must not turn into.
+            throw;
+        }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error reading string.");
@@ -1023,6 +1048,13 @@ public class PacketStream : ICloneable, IComparable
         {
             var strBuf = ReadBytes(len);
             return Encoding.UTF8.GetString(strBuf).Trim('\u0000');
+        }
+        catch (TruncatedPacketException)
+        {
+            // A strict read stopped at the byte that ran past the end. The catch below answers a
+            // default for every other read failure, and a default is exactly what a truncated body
+            // must not turn into.
+            throw;
         }
         catch (Exception ex)
         {
