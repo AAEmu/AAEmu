@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Utils.DB;
 
@@ -193,6 +193,19 @@ public sealed class FactionScoringGameData : Singleton<FactionScoringGameData>, 
     {
         _ = GetZoneScoreContent(contentId);
         return _zoneScoreKinds.Where(kind => kind.ContentId == contentId).ToArray();
+    }
+
+    /// <summary>
+    /// Every kind whose content row names <paramref name="zoneGroupId"/>, ordered by kind id. This
+    /// is the set a zone group owns at runtime; a content row whose group has no kinds yields an
+    /// empty list rather than an error, because the shipped catalog carries groups with no score.
+    /// </summary>
+    public IReadOnlyList<ZoneScoreKind> GetZoneScoreKindsByZoneGroup(uint zoneGroupId)
+    {
+        return _zoneScoreKinds
+            .Where(kind => _zoneScoreContentById[kind.ContentId].ZoneGroupId == zoneGroupId)
+            .OrderBy(kind => kind.Id)
+            .ToArray();
     }
 
     public IReadOnlyList<ZoneScoreLevel> GetZoneScoreLevels(uint kindId)

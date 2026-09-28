@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.GameData;
+using AAEmu.Game.GameData;
 
 namespace AAEmu.UnitTests.Game.GameData;
 
@@ -185,6 +185,22 @@ public sealed class FactionScoringGameDataTests : SqliteTestBase
 
         await Assert.That(() => FactionScoringGameData.Instance.Load(Connection))
             .Throws<InvalidOperationException>();
+    }
+
+    [Test]
+    public async Task KindsCanBeResolvedByOwningZoneGroup()
+    {
+        // A second kind on the same content, with its own level ladder, so the reverse index has
+        // more than one row to order.
+        Execute("UPDATE zone_score_contents SET zone_group_id = 6 WHERE id = 1");
+        Execute("INSERT INTO zone_score_kinds VALUES (2, 1, 2, 'f', 'Other', 0, 10, 't', 'f', '', 'f', 'f', 'f', 'f', 'f')");
+        Execute("INSERT INTO zone_score_levels VALUES (3, 2, 0, 0, 0)");
+        FactionScoringGameData.Instance.Load(Connection);
+
+        await Assert.That(FactionScoringGameData.Instance.GetZoneScoreKindsByZoneGroup(6).Select(kind => kind.Id))
+            .IsEquivalentTo(new uint[] { 1, 2 });
+        await Assert.That(FactionScoringGameData.Instance.GetZoneScoreKindsByZoneGroup(5)).IsEmpty();
+        await Assert.That(FactionScoringGameData.Instance.GetZoneScoreKindsByZoneGroup(999)).IsEmpty();
     }
 
     private void Execute(string sql)
