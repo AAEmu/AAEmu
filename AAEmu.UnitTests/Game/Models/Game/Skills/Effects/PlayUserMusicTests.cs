@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
@@ -371,6 +371,7 @@ public class PlayUserMusicTests : IDisposable
         public Buff GetEffectFromBuffId(uint id) => null;
         public List<Buff> GetEffectsByType(Type effectType) => [];
         public bool HasEffectsMatchingCondition(Func<Buff, bool> predicate) => false;
+        public IEnumerable<Buff> GetEffectsMatchingCondition(Func<Buff, bool> predicate) => [];
         public void RemoveAllEffects() => _active.Clear();
         public void RemoveBuffs(BuffKind kind, int count, uint buffTagId = 0) => throw new NotSupportedException();
         public void RemoveBuffs(uint buffTagId, int count) => throw new NotSupportedException();
