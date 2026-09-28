@@ -134,7 +134,9 @@ public class DoodadRemovalResolverVerificationTests
         var session = new RecordingSession(1);
         var caster = AddCharacter(1, 0f, 0f, session);
         var barrier = AddDoodad(DoodadOwnerType.System, 1f, 0f);
-        var housing = AddDoodad(DoodadOwnerType.Housing, 2f, 0f);
+        // The housing doodad has to sit inside the radius. Placed outside it, the owner rule is never
+        // consulted and this test passes for the same reason `outside` does: by distance, not by owner.
+        var housing = AddDoodad(DoodadOwnerType.Housing, 0.5f, 0f);
         var outside = AddDoodad(DoodadOwnerType.System, 10f, 0f);
         var skill = Skill(SkillTargetSelection.Source);
         session.Packets.Clear();
