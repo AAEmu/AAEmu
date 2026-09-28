@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
@@ -35,7 +35,7 @@ public sealed class FactionScoringPacketContractTests
         expected.Write(42u);
         expected.Write(-9);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(body.Length).IsEqualTo(10);
     }
 
@@ -56,7 +56,7 @@ public sealed class FactionScoringPacketContractTests
         expected.Write(4u);
         expected.Write(-8);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(body.Length).IsEqualTo(20);
     }
 
@@ -76,7 +76,7 @@ public sealed class FactionScoringPacketContractTests
             expected.Write(entry.Score);
         }
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(body.Length).IsEqualTo(4 + entries.Length * 8);
     }
 
@@ -89,7 +89,7 @@ public sealed class FactionScoringPacketContractTests
         expected.Write(12u);
         expected.Write(-4);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(body.Length).IsEqualTo(8);
     }
 
@@ -101,7 +101,7 @@ public sealed class FactionScoringPacketContractTests
         var expected = new PacketStream();
         expected.Write(12u);
 
-        await Assert.That(body).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(Hex.Of(body)).IsEqualTo(Hex.Of(expected.GetBytes()));
         await Assert.That(body.Length).IsEqualTo(4);
     }
 }
