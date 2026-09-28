@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Models.StaticValues;
 
@@ -26,6 +27,13 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
 
     /// <summary>Serializes cart validation, stock reservation, audit, and delivery publication.</summary>
     internal object PurchaseSyncRoot { get; } = new();
+
+    /// <summary>
+    /// AA points granted per unit of wallet cash. This is the single rate the client is told
+    /// about and the single rate a checkout is charged at, so a preview can never disagree with
+    /// the charge that follows it.
+    /// </summary>
+    public uint AaPointExchangeRatio => AppConfiguration.Instance.CashShop.AaPointExchangeRatio;
 
     public void CreditDisperseTick(TimeSpan delta)
     {

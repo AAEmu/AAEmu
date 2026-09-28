@@ -377,6 +377,17 @@ public class UccConfig
     public int CrestInkCreationCost { get; set; } = 50000;
 }
 
+public class CashShopConfig
+{
+    /// <summary>
+    /// AA points granted per unit of wallet cash when a player checks out an AA-point purchase.
+    /// The same value is published to the client on the exchange-ratio packet and is the only
+    /// rate the checkout is allowed to charge at, so the client preview and the charge agree.
+    /// Configure in <c>AAEmu.Game/Config.json</c> under <c>CashShop.AaPointExchangeRatio</c>.
+    /// </summary>
+    public uint AaPointExchangeRatio { get; set; } = 100;
+}
+
 public class FeaturesConfig
 {
     /// <summary>

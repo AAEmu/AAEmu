@@ -21,8 +21,10 @@ public class CSICSMenuListPacket() : GamePacket(CSOffsets.CSICSMenuListPacket, 1
         if (CashShopManager.Instance.IsOpenForPlayers)
         {
             CashShopManager.Instance.SendAllIcsTabsFirstPage(Connection);
-            // ratio>0 enables AA-point charge UI; 100 is a safe demo default (not load-bearing for list).
-            Connection.SendPacket(new SCICSExchangeRatioPacket(100));
+            // The ratio is what unlocks the AA-point charge UI, and it is also the rate the
+            // checkout charges at, so both sides read the one configured value.
+            Connection.SendPacket(new SCICSExchangeRatioPacket(
+                checked((int)CashShopManager.Instance.AaPointExchangeRatio)));
             // Client often follows ratio with CSICSBuyCountRequest; push eagerly too.
             if (Connection.ActiveChar != null)
             {
