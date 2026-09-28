@@ -1,3 +1,5 @@
+using System.IO;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
@@ -18,9 +20,19 @@ public class CSFamilyChangeMemberRolePacket() : GamePacket(CSOffsets.CSFamilyCha
 
     public override void Read(PacketStream stream)
     {
+        if (stream.Count - stream.Pos < sizeof(ulong) + sizeof(int))
+            throw new InvalidDataException(
+                $"CSFamilyChangeMemberRolePacket: body is {stream.Count - stream.Pos} byte(s); expected a member id and a role.");
+
         TypeValue = stream.ReadUInt64();
         TypeValue2 = stream.ReadInt32();
+        if (stream.Overran)
+            throw new InvalidDataException("CSFamilyChangeMemberRolePacket: read past the end of the body.");
+
+        if (Connection is not { ActiveChar: not null } connection)
+            return;
+
         if (TypeValue <= uint.MaxValue && TypeValue2 > 0)
-            FamilyManager.Instance.ChangeMemberRole(Connection.ActiveChar, (uint)TypeValue, (uint)TypeValue2);
+            FamilyManager.Instance.ChangeMemberRole(connection.ActiveChar, (uint)TypeValue, (uint)TypeValue2);
     }
 }

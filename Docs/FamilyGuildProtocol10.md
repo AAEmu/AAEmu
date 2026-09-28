@@ -226,6 +226,21 @@ read limit. Role and capacity decisions are centralized in `FamilyProgressionRul
 by this slice. `SCFamilyChangeMemberRolePacket` and descriptor wire tests cover the proven field order and
 UTF-8 boundaries; the existing family purchase integration tests cover optimistic conflict and rollback.
 
+## Family administration wire guards
+
+A notice and a name are the only client-authored strings that overwrite persisted family state, and both
+arrive length-prefixed. A body whose declared length does not fit the packet, or whose declared length
+exceeds the documented read limit, is refused at the wire by `FamilyAdminWire` before any payload byte
+reaches the family aggregate. This matters because the generic string reader answers a short read with an
+empty string, and an empty notice is a legal value: without the guard a truncated request would silently
+overwrite the stored notice with an empty one and publish the descriptor. `CSFamilyChangeMemberRolePacket`
+applies the same rule to its fixed `u64` member id and `i32` role. All three requests are also refused
+rather than acted on when the connection carries no active character.
+
+`FamilyAdminWireTests` pins the accepted boundary (a payload exactly at the limit, and the empty notice),
+the two refusals (a declared length past the limit, and a declared length the body cannot carry), and the
+missing-prefix and negative-length cases.
+
 **Blocked remainder:** the client exposes a 604800-second role-change guide period, but no shipped
 content row or server algorithm establishes the authoritative cooldown. The existing value remains
 policy in the merged code and is not treated as retail parity here. The optional `SCFamilyNameChangeNotifyPacket`
