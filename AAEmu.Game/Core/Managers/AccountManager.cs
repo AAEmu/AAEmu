@@ -270,6 +270,42 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
     public static PaymentMethodType SeededPaymentMethod() =>
         ParseSeededPaymentMethod(AppConfiguration.Instance.Account.SeededPaymentMethod);
 
+    /// <summary>
+    /// Builds the row a placeholder is replaced with: the configured tier, and an open window when
+    /// that tier is a paid one.
+    /// </summary>
+    /// <param name="accountId">The account the row belongs to.</param>
+    /// <param name="method">The configured tier name, already resolved to a payment method.</param>
+    /// <param name="days">How long the window runs for, from <paramref name="nowUtc"/>.</param>
+    /// <param name="nowUtc">The moment the window is counted from.</param>
+    /// <remarks>
+    /// A free or demo tier gets no window, because it never had one to run. A paid tier must be given
+    /// a window that contains now, or the label is set but the entitlement is already over — which is
+    /// the exact state that made every account read as free while the row said Premium.
+    /// </remarks>
+    public static AccountPaymentRecord SeededPaymentGrant(
+        uint accountId, PaymentMethodType method, int days, DateTime nowUtc)
+    {
+        var start = ServerCalendar.AsUtc(nowUtc);
+        var isPaid = method == PaymentMethodType.Premium;
+
+        if (isPaid && days <= 0)
+            throw new InvalidOperationException(
+                $"Account.SeededPaymentDays is {days}, so the paid tier {method} would be written with " +
+                "an already-closed window and every seeded account would read as free. Set a positive " +
+                "number of days, or seed a non-paid method.");
+
+        return new AccountPaymentRecord
+        {
+            AccountId = accountId,
+            Method = method,
+            Location = 0,
+            StartTime = isPaid ? start : AccountPayment.NoSubscriptionTime,
+            EndTime = isPaid ? start.AddDays(days) : AccountPayment.NoSubscriptionTime,
+            BuyPremiumCount = 0,
+        };
+    }
+
     /// <summary>Resolves a configured tier name, failing loudly on anything unrecognised.</summary>
     public static PaymentMethodType ParseSeededPaymentMethod(string configured)
     {
@@ -384,14 +420,17 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
             command.ExecuteNonQuery();
             res.AccountId = (int)command.LastInsertedId;
 
-            // A new account's row states the tier the operator configured, rather than one invented
-            // here. Without this row the connection path would find no account_payments row on the
-            // very first login and refuse the tier with an error that looks like a broken migration.
+            // The same placeholder the migration writes, so both paths are upgraded by the same
+            // code. Without a row at all the connection path would find nothing on the very first
+            // login and refuse the tier with an error that looks like a broken migration; writing the
+            // configured tier here instead would put a duration in two places that could disagree, and
+            // a new account's first login is exactly when the loader cannot tell a placeholder from
+            // a real free subscription.
             command.CommandText =
                 "INSERT INTO account_payments " +
                 "(account_id, payment_method, payment_location, pay_start, pay_end, buy_count) " +
-                "VALUES (@acc_id, @method, 0, @no_subscription, @no_subscription, 0)";
-            command.Parameters.AddWithValue("@method", (int)SeededPaymentMethod());
+                "VALUES (@acc_id, @placeholder, 0, @no_subscription, @no_subscription, 0)";
+            command.Parameters.AddWithValue("@placeholder", (int)PaymentMethodType.None);
             command.Parameters.AddWithValue("@no_subscription", AccountPayment.NoSubscriptionTime);
             command.Prepare();
             command.ExecuteNonQuery();

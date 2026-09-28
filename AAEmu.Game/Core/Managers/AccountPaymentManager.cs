@@ -82,8 +82,60 @@ public class AccountPaymentManager : Singleton<AccountPaymentManager>
             return AccountPaymentLoadResult.Unreadable;
         }
 
+        record = ApplySeededTier(accountId, record);
         payment.Apply(record);
         return AccountPaymentLoadResult.Loaded;
+    }
+
+    /// <summary>
+    /// Replaces a placeholder row with the tier this server is configured to seed, once, and persists
+    /// it. Any other row is returned untouched.
+    /// </summary>
+    /// <remarks>
+    /// This exists because a SQL migration cannot read the server's configuration. The migration seeds
+    /// a placeholder for every account that had none, and a placeholder written as the free tier is
+    /// the "every existing account drops to free" fault. Upgrading on load puts the tier and its
+    /// window in one place, so a migration cannot carry a duration that quietly disagrees with the
+    /// configuration or that expires on its own.
+    /// <para>
+    /// A failure to persist is not fatal here: the grant is still applied for this session, so the
+    /// account is not left free because a write failed, and the next login tries again.
+    /// </para>
+    /// </remarks>
+    private AccountPaymentRecord ApplySeededTier(uint accountId, AccountPaymentRecord record)
+    {
+        if (!record.IsUntouchedSeededDefault)
+            return record;
+
+        var (method, days) = ConfiguredSeed();
+        var grant = AccountManager.SeededPaymentGrant(accountId, method, days, DateTime.UtcNow);
+        if (!TrySave(accountId, grant))
+        {
+            Logger.Warn(
+                "Account {0} keeps the seeded tier for this session only: the account_payments row " +
+                "could not be written, so the next login will seed it again.", accountId);
+        }
+        else
+        {
+            Logger.Info(
+                "Account {0} held the placeholder payment row; seeded it to {1} until {2:u}.",
+                accountId, grant.Method, grant.EndTime);
+        }
+
+        return grant;
+    }
+
+    /// <summary>
+    /// The configured seeded tier and window length. Overridable so the upgrade is testable without
+    /// the configuration singleton, which is not seeded in unit tests.
+    /// </summary>
+    protected virtual (PaymentMethodType Method, int Days) ConfiguredSeed()
+    {
+        var account = AppConfiguration.Instance?.Account;
+        if (account == null)
+            return (PaymentMethodType.None, 0);
+
+        return (AccountManager.ParseSeededPaymentMethod(account.SeededPaymentMethod), account.SeededPaymentDays);
     }
 
     /// <summary>
@@ -125,7 +177,8 @@ public class AccountPaymentManager : Singleton<AccountPaymentManager>
     /// Persists the account's tier. This is the write side of the same row the connection path
     /// reads, so a granted subscription survives a relog instead of living in session state.
     /// </summary>
-    public bool TrySave(uint accountId, AccountPaymentRecord record)
+    /// <remarks>Overridable so the seeding upgrade is testable without a database.</remarks>
+    public virtual bool TrySave(uint accountId, AccountPaymentRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
         if (record.AccountId != accountId)

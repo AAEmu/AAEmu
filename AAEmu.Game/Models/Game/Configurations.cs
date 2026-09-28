@@ -326,6 +326,20 @@ public class AccountConfig
     /// loudly rather than falling back to a default tier.
     /// </remarks>
     public string SeededPaymentMethod { get; set; } = nameof(PaymentMethodType.Premium);
+
+    /// <summary>
+    /// How many days the seeded payment tier's window runs for, counted from the moment the
+    /// placeholder row is replaced. Only consulted when <see cref="SeededPaymentMethod"/> names a paid
+    /// method; a free or demo tier carries no window at all.
+    /// </summary>
+    /// <remarks>
+    /// This is the duration the migration could not carry, which is why it lives here rather than in
+    /// SQL: a migration cannot read this file, and hardcoding a period there would both duplicate the
+    /// default and expire on its own. A paid method with a non-positive value is refused rather than
+    /// written, because a paid label on an already-closed window reports free and would look like the
+    /// bug this replaced.
+    /// </remarks>
+    public int SeededPaymentDays { get; set; } = 30;
 }
 
 public class CurrencyValuesConfig

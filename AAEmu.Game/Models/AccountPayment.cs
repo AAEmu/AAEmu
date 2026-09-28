@@ -22,6 +22,28 @@ public sealed record AccountPaymentRecord
 
     /// <summary>How many times premium was bought on this account.</summary>
     public int BuyPremiumCount { get; init; }
+
+    /// <summary>
+    /// Whether this row is still the untouched placeholder a migration or a fresh account INSERT
+    /// wrote: the no-entitlement tier, no subscription window, and no recorded purchase.
+    /// </summary>
+    /// <remarks>
+    /// The placeholder is a marker, not a decision. A SQL migration cannot read the server's
+    /// configuration, so it cannot seed the tier an operator asked for, and a placeholder written as
+    /// the free tier is exactly the "every existing account drops to free" fault this row exists to
+    /// prevent. Recognising the placeholder lets the loader replace it once, from configuration, so
+    /// the duration lives in one place instead of being duplicated into a migration.
+    /// <para>
+    /// Every field is checked. A row that merely has no window is an expired subscription, which is a
+    /// real state a real purchase can leave behind, and must not be silently re-granted.
+    /// </para>
+    /// </remarks>
+    public bool IsUntouchedSeededDefault =>
+        Method == PaymentMethodType.None &&
+        Location == 0 &&
+        BuyPremiumCount == 0 &&
+        ServerCalendar.AsUtc(StartTime) == AccountPayment.NoSubscriptionTime &&
+        ServerCalendar.AsUtc(EndTime) == AccountPayment.NoSubscriptionTime;
 }
 
 /// <summary>
