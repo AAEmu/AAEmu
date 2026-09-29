@@ -99,11 +99,14 @@ public class CSReopenRandomBoxGetItemPacket() : GamePacket(CSOffsets.CSReopenRan
     /// </summary>
     private static bool GrantReward(Character character, ReopenBoxState state)
     {
-        if (state.RewardItemId == 0 || state.RewardCount <= 0)
+        // The same bound the expiry mail asks, so a roll the mail would refuse is not granted at the
+        // counter either: both paths create exactly one item from this count.
+        var refusal = ReopenBoxItemRules.CheckReward(state.RewardItemId, state.RewardCount);
+        if (refusal != ReopenBoxItemRules.ReopenRewardRefusal.None)
         {
             Logger.Error(
-                "Reopen box: character {0} item {1} has a roll with no deliverable reward (item {2}, count {3}) - refusing the claim",
-                character.Id, state.ItemId, state.RewardItemId, state.RewardCount);
+                "Reopen box: character {0} item {1} has a roll that cannot be delivered ({2}: item {3}, count {4})",
+                character.Id, state.ItemId, refusal, state.RewardItemId, state.RewardCount);
             return false;
         }
 
