@@ -30,11 +30,6 @@ public class ItemTemplate
     public int ExpAbsLifetime { get; set; }
     public int ExpOnlineLifetime { get; set; }
     public DateTime ExpDate { get; set; }
-    /// <summary>
-    /// Lowest guild (expedition) level allowed to use this item, from <c>items.expedition_level</c>.
-    /// 0 means the item is not gated behind a guild level.
-    /// </summary>
-    public uint ExpeditionLevel { get; set; }
 
     /// <summary>
     /// <c>items.one_time_sale</c>: the item may be handed to a vendor once, after which the daily

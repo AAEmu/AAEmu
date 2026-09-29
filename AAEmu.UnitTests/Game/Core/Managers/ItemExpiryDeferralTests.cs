@@ -103,30 +103,30 @@ public class ItemExpiryDeferralTests
             ExpDate = AnEndThatHasAlreadyPassed()
         };
 
-        var decision = ItemSaleRules.Evaluate(template, 0);
+        var decision = ItemSaleRules.Evaluate(template);
         await Assert.That(decision.Allowed).IsTrue();
         await Assert.That(decision.Refusal).IsEqualTo(ItemSaleRefusal.None);
         await Assert.That(ItemLootRules.IsAutoLoot(template)).IsFalse();
     }
 
+    /// <summary>
+    /// The sale-limit columns are not consulted on the vendor path at all - they are purchase
+    /// limits - so whatever the expiry family says, none of them can refuse this sale.
+    /// </summary>
     [Test]
-    public async Task TheLimitedSaleColumnsStillDecideForAnItemWhoseEndHasPassed()
+    public async Task AnExpiredItemIsStillSoldToAVendorRepeatedly()
     {
-        // Same claim, with a column actually set: the per-day sale allowance is honoured on a
-        // template that also carries a stale date.
-        var template = new ItemTemplate
-        {
-            Id = 8103,
-            MaxCount = 10,
-            Sellable = true,
-            LimitedSaleCount = 1,
-            ExpDate = AnEndThatHasAlreadyPassed()
-        };
+        var template = new ItemTemplate { Id = 1, Sellable = true, LimitedSaleCount = 1, OneTimeSale = true };
 
-        await Assert.That(ItemSaleRules.Evaluate(template, 0).Allowed).IsTrue();
-        await Assert.That(ItemSaleRules.Evaluate(template, 1).Refusal)
-            .IsEqualTo(ItemSaleRefusal.LimitedSaleExhausted);
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var decision = ItemSaleRules.Evaluate(template);
+
+            await Assert.That(decision.Refusal).IsEqualTo(ItemSaleRefusal.None);
+            await Assert.That(decision.Allowed).IsTrue();
+        }
     }
+
 
     [Test]
     public async Task TheDeferredExpiryColumnsHaveNoHomeOnTheTemplate()

@@ -87,7 +87,6 @@ public sealed class GameService : IHostedService, IDisposable
         GameDataManager.Instance.PostLoadGameData();
         // The per-day vendor sale counts of the items that carry a sale limit, so a restart inside
         // a day does not hand the day's allowance back out.
-        ItemSaleLimitManager.Instance.Load();
         if (CashShopManager.Instance.HasCatalog)
             CashShopManager.Instance.EnabledShop();
         else

@@ -88,8 +88,11 @@ public sealed class ItemTemplateRowLoaderTests
         await Assert.That(template.ExpOnlineLifetime).IsEqualTo(30);
         await Assert.That(template.ExpDate).IsEqualTo(new DateTime(2027, 6, 1, 0, 0, 0, DateTimeKind.Unspecified));
 
-        // expedition level
-        await Assert.That(template.ExpeditionLevel).IsEqualTo(5u);
+        // expedition_level is set on this row on purpose and is deliberately NOT projected onto the
+        // template. Reading it and gating item use on it was an inference the content does not
+        // support: it is a different column from expedition_buffs.expedition_level_id, which is the
+        // one the guild shop already gates purchases on. With no evidence for what the items column
+        // governs, the loader leaves it alone rather than inventing a rule from its name.
 
         // The period and weekday columns are set on this row on purpose and are not asserted on
         // the template: the loader does not project them. ItemExpiryDeferralTests pins that.

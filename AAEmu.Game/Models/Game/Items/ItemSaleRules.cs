@@ -1,115 +1,65 @@
-using AAEmu.Game.Models.Game.Items.Templates;
-
 namespace AAEmu.Game.Models.Game.Items;
 
-/// <summary>Why a vendor refused to take an item, or that it did not.</summary>
+using AAEmu.Game.Models.Game.Items.Templates;
+
+/// <summary>Why a vendor may not take an item.</summary>
 public enum ItemSaleRefusal
 {
-    /// <summary>The sale is allowed.</summary>
+    /// <summary>The vendor may take it.</summary>
     None = 0,
 
-    /// <summary><c>items.sellable</c> is off. The item cannot be handed to a vendor at all.</summary>
+    /// <summary>There is no template to judge, so the sale cannot be allowed.</summary>
+    NoTemplate,
+
+    /// <summary><c>items.sellable</c> is not set, so the item may not be handed to a vendor.</summary>
     NotSellable,
 
-    /// <summary>
-    /// <c>items.auction_only</c> is set: the item's only market is the auction house, so a vendor
-    /// may never take it.
-    /// </summary>
-    AuctionOnly,
-
-    /// <summary>
-    /// <c>items.one_time_sale</c> is set and the day's one sale of this item is already spent.
-    /// </summary>
-    OneTimeSaleExhausted,
-
-    /// <summary>
-    /// <c>items.limited_sale_count</c> is set and the day's sales of this item have reached it.
-    /// </summary>
-    LimitedSaleExhausted
+    /// <summary><c>items.auction_only</c> is set, so the item may only go through the auction house.</summary>
+    AuctionOnly
 }
 
-/// <summary>Whether a vendor may take an item today, and how many more of it they may take.</summary>
-/// <param name="Allowed">True when the sale may go ahead.</param>
-/// <param name="Refusal">Why it may not; <see cref="ItemSaleRefusal.None"/> when it may.</param>
-/// <param name="Remaining">How many more sales the day still allows, or -1 when the day is unlimited.</param>
-public readonly record struct ItemSaleDecision(bool Allowed, ItemSaleRefusal Refusal, int Remaining);
+/// <summary>The vendor sale decision for one item.</summary>
+public readonly record struct ItemSaleDecision(bool Allowed, ItemSaleRefusal Refusal);
 
 /// <summary>
-/// The sale limits an item template carries.
-/// <para>
-/// Four columns of <c>items</c> decide whether a vendor may take a given item on a given day:
-/// <c>sellable</c>, <c>auction_only</c>, <c>one_time_sale</c> and <c>limited_sale_count</c>. The
-/// last two are not additive - they are two ways of writing the same daily allowance, and the shipped
-/// rows show which wins: of the twelve rows that set <c>one_time_sale</c>, eleven also set
-/// <c>limited_sale_count</c> to 1 and the twelfth sets it to 0, and a limit of 0 on the
-/// <c>limited_sale_count</c> column means "no limit" everywhere else. So <c>one_time_sale</c> is
-/// the narrower statement and it has to win, or the one row that sets it to 0 would be sellable
-/// forever. A hundred and nineteen further rows set only <c>limited_sale_count</c>.
-/// </para>
-/// <para>
-/// The count is per day, not per lifetime: the allowance is spent again after the daily sale reset.
-/// </para>
+/// Which items a vendor may take, from the two <c>items</c> columns that describe a vendor sale.
 /// </summary>
+/// <remarks>
+/// <para>
+/// <c>sellable</c> and <c>auction_only</c> are the columns that decide this question, and the
+/// shipped rows agree: the two are complementary flags on whether a vendor may take the item at all.
+/// </para>
+/// <para>
+/// <c>one_time_sale</c> and <c>limited_sale_count</c> are deliberately <b>not</b> read here. They are
+/// purchase limits, not vendor-sale allowances, and treating them as the latter was wrong twice over.
+/// Every one of the twelve rows that set <c>one_time_sale</c> has <c>sellable</c> unset, so a
+/// vendor-sale limit on them governs an item no vendor could take; and of the 130 rows with a
+/// positive <c>limited_sale_count</c>, 118 likewise cannot be sold. Their values - 1, 3, 10, 14, 21,
+/// 28, 70, 100, on blueprints, boxes and exchange tickets - read as how many may be bought, and the
+/// limit belongs on the purchase path. A per-day counter shared across the server was worse than
+/// merely misplaced: one player would have spent the allowance for everybody.
+/// </para>
+/// </remarks>
 public static class ItemSaleRules
 {
-    /// <summary>Returned as <see cref="ItemSaleDecision.Remaining"/> when the day puts no limit on the item.</summary>
-    public const int Unlimited = -1;
-
     /// <summary>
-    /// Decides whether a vendor may take one stack of an item, given how many of that item the day
-    /// has already taken.
+    /// Decides whether a vendor may take this item.
     /// </summary>
-    /// <param name="template">The item template being sold.</param>
-    /// <param name="soldToday">How many sales of this item template the day has already recorded.</param>
-    public static ItemSaleDecision Evaluate(ItemTemplate template, int soldToday)
+    /// <param name="template">The item template, or <c>null</c> when the item has none.</param>
+    public static ItemSaleDecision Evaluate(ItemTemplate template)
     {
-        if (template is null)
-            return new ItemSaleDecision(false, ItemSaleRefusal.NotSellable, 0);
+        // No template means nothing to judge. Allowing it would let an unidentifiable item through.
+        if (template == null)
+            return new ItemSaleDecision(false, ItemSaleRefusal.NoTemplate);
 
         if (!template.Sellable)
-            return new ItemSaleDecision(false, ItemSaleRefusal.NotSellable, 0);
+            return new ItemSaleDecision(false, ItemSaleRefusal.NotSellable);
 
-        // An auction-only item has no vendor market at all, whatever its sale columns say: the
-        // auction house is its only route out of the character's bag.
+        // Auction-only wins outright: the item may only reach a buyer through the auction house, so
+        // no vendor may take it however sellable it otherwise is.
         if (template.AuctionOnly)
-            return new ItemSaleDecision(false, ItemSaleRefusal.AuctionOnly, 0);
+            return new ItemSaleDecision(false, ItemSaleRefusal.AuctionOnly);
 
-        var limit = DailySaleLimit(template);
-        if (limit == Unlimited)
-            return new ItemSaleDecision(true, ItemSaleRefusal.None, Unlimited);
-
-        var remaining = limit - Math.Max(0, soldToday);
-        if (remaining <= 0)
-        {
-            return new ItemSaleDecision(false,
-                template.OneTimeSale ? ItemSaleRefusal.OneTimeSaleExhausted : ItemSaleRefusal.LimitedSaleExhausted,
-                0);
-        }
-
-        return new ItemSaleDecision(true, ItemSaleRefusal.None, remaining);
+        return new ItemSaleDecision(true, ItemSaleRefusal.None);
     }
-
-    /// <summary>
-    /// How many times the day allows this item to be sold to a vendor, or <see cref="Unlimited"/>.
-    /// A negative <c>limited_sale_count</c> is content this build cannot read as a limit and is
-    /// treated as no limit, the same way the column's own 0 is.
-    /// </summary>
-    public static int DailySaleLimit(ItemTemplate template)
-    {
-        ArgumentNullException.ThrowIfNull(template);
-
-        // one_time_sale is the narrower of the two and wins outright, including over the
-        // limited_sale_count of 0 that means "no limit" on its own column.
-        if (template.OneTimeSale)
-            return 1;
-
-        return template.LimitedSaleCount > 0 ? template.LimitedSaleCount : Unlimited;
-    }
-
-    /// <summary>
-    /// Whether the item template carries any per-day sale limit at all. An item that does not is
-    /// not counted, so the sale counter never grows an entry for the overwhelming majority of the
-    /// catalogue.
-    /// </summary>
-    public static bool HasDailySaleLimit(ItemTemplate template) => DailySaleLimit(template) != Unlimited;
 }

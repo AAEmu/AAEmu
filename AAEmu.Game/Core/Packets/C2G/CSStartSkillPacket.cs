@@ -294,13 +294,6 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
                 return;
             // An item can carry its own guild-level floor. Refuse the cast rather than let the
             // item fire for a member whose guild has not reached it.
-            if (!ItemExpeditionLevelRules.AllowsUse(si.SkillSourceItem.Template, player.Expedition?.Level ?? 0))
-            {
-                Logger.Info("StartSkill rejected item {0} for {1}: guild level below the item requirement",
-                    si.SkillSourceItem.TemplateId, player.Name);
-                player.SendErrorMessage(ErrorMessageType.ExpeditionLevelNotMatch);
-                return;
-            }
             // si.ItemTemplateId = item.TemplateId;
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             skillResult = skill.Use(player, skillCaster, skillCastTarget, skillObject, false,

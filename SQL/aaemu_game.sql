@@ -457,15 +457,6 @@ CREATE TABLE IF NOT EXISTS `character_merchant_purchases` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Persistent per-character merchant purchase limits';
 
 
-CREATE TABLE IF NOT EXISTS `item_sale_counts` (
-  `item_id` INT UNSIGNED NOT NULL COMMENT 'items.id of the template being sold',
-  `day_key` DATE NOT NULL COMMENT 'UTC day the count belongs to',
-  `sold_count` INT UNSIGNED NOT NULL DEFAULT 0,
-  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`item_id`),
-  KEY `idx_item_sale_day` (`day_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-day vendor sales of limited item templates';
-
 
 CREATE TABLE IF NOT EXISTS `character_random_shop_windows` (
   `character_id` INT UNSIGNED NOT NULL,

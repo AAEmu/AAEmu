@@ -65,7 +65,6 @@ public static class ItemTemplateRowLoader
         template.ExpDate = ReadDateTime(reader, "exp_date");
         // Lowest guild (expedition) level allowed to use this item. 0 means no gate; only a small
         // minority of the catalogue carries one.
-        template.ExpeditionLevel = reader.GetUInt32("expedition_level");
         template.OneTimeSale = ReadFlag(reader, "one_time_sale");
         template.LimitedSaleCount = reader.GetInt32("limited_sale_count");
         template.AuctionOnly = ReadFlag(reader, "auction_only");

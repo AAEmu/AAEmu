@@ -15,7 +15,7 @@ public class ItemSaleAndLootRulesTests
     [Test]
     public async Task AnUnsellableTemplateIsRefused()
     {
-        var decision = ItemSaleRules.Evaluate(new ItemTemplate { Id = 1, Sellable = false }, 0);
+        var decision = ItemSaleRules.Evaluate(new ItemTemplate { Id = 1, Sellable = false });
 
         await Assert.That(decision.Allowed).IsFalse();
         await Assert.That(decision.Refusal).IsEqualTo(ItemSaleRefusal.NotSellable);
@@ -24,18 +24,22 @@ public class ItemSaleAndLootRulesTests
     [Test]
     public async Task AMissingTemplateIsRefusedRatherThanSold()
     {
-        await Assert.That(ItemSaleRules.Evaluate(null, 0).Allowed).IsFalse();
+        await Assert.That(ItemSaleRules.Evaluate(null).Allowed).IsFalse();
     }
 
+    /// <summary>
+    /// A sellable item with no other vendor column set is simply sellable. There is no allowance to
+    /// report and no counter to consult, because the vendor path does not read the purchase limits.
+    /// </summary>
     [Test]
-    public async Task AnItemWithNoSaleColumnsSellsWithoutLimit()
+    public async Task ASellableItemIsAllowedWithNoFurtherQuestions()
     {
-        var decision = ItemSaleRules.Evaluate(Sellable(), 0);
+        var decision = ItemSaleRules.Evaluate(Sellable());
 
         await Assert.That(decision.Allowed).IsTrue();
-        await Assert.That(decision.Remaining).IsEqualTo(ItemSaleRules.Unlimited);
-        await Assert.That(ItemSaleRules.HasDailySaleLimit(Sellable())).IsFalse();
+        await Assert.That(decision.Refusal).IsEqualTo(ItemSaleRefusal.None);
     }
+
 
     // --- auction_only -----------------------------------------------------------------------------
 
@@ -44,7 +48,7 @@ public class ItemSaleAndLootRulesTests
     {
         var template = new ItemTemplate { Id = 2, Sellable = true, AuctionOnly = true };
 
-        var decision = ItemSaleRules.Evaluate(template, 0);
+        var decision = ItemSaleRules.Evaluate(template);
 
         await Assert.That(decision.Allowed).IsFalse();
         await Assert.That(decision.Refusal).IsEqualTo(ItemSaleRefusal.AuctionOnly);
@@ -56,7 +60,7 @@ public class ItemSaleAndLootRulesTests
         var template = new ItemTemplate { Id = 3, Sellable = true, AuctionOnly = true, LimitedSaleCount = 10 };
 
         // The daily allowance is not a vendor permission: the item has no vendor market at all.
-        await Assert.That(ItemSaleRules.Evaluate(template, 0).Refusal).IsEqualTo(ItemSaleRefusal.AuctionOnly);
+        await Assert.That(ItemSaleRules.Evaluate(template).Refusal).IsEqualTo(ItemSaleRefusal.AuctionOnly);
     }
 
     [Test]
@@ -64,92 +68,76 @@ public class ItemSaleAndLootRulesTests
     {
         var template = new ItemTemplate { Id = 4, Sellable = false, AuctionOnly = true };
 
-        await Assert.That(ItemSaleRules.Evaluate(template, 0).Refusal).IsEqualTo(ItemSaleRefusal.NotSellable);
+        await Assert.That(ItemSaleRules.Evaluate(template).Refusal).IsEqualTo(ItemSaleRefusal.NotSellable);
     }
 
-    // --- one_time_sale ----------------------------------------------------------------------------
+    // --- one_time_sale / limited_sale_count are not vendor-sale columns ---------------------------
 
+    /// <summary>
+    /// The regression this section pins: those two columns are purchase limits, and reading them as
+    /// a vendor-sale allowance was wrong on the content's own terms. Every one of the twelve shipped
+    /// rows that sets one_time_sale has sellable unset, so the item could never reach a vendor at all,
+    /// and of the 130 rows with a positive limited_sale_count, 118 likewise cannot be sold. Their
+    /// values - 1, 3, 10, 14, 21, 28, 70, 100, on blueprints, boxes and exchange tickets - are how
+    /// many may be bought, which is a different question with a different owner.
+    /// </summary>
     [Test]
-    public async Task AOneTimeItemSellsOnceAndThenNot()
+    public async Task AOneTimeItemIsNotRefusedByAVendorForASaleLimit()
     {
-        var template = new ItemTemplate { Id = 5, Sellable = true, OneTimeSale = true };
+        var template = new ItemTemplate { Id = 3, Sellable = true, OneTimeSale = true };
 
-        var first = ItemSaleRules.Evaluate(template, 0);
-        var second = ItemSaleRules.Evaluate(template, 1);
+        var decision = ItemSaleRules.Evaluate(template);
 
-        await Assert.That(first.Allowed).IsTrue();
-        await Assert.That(second.Allowed).IsFalse();
-        await Assert.That(second.Refusal).IsEqualTo(ItemSaleRefusal.OneTimeSaleExhausted);
-    }
-
-    [Test]
-    public async Task OneTimeSaleWinsOverALimitedSaleCountOfZero()
-    {
-        // One shipped row sets one_time_sale with limited_sale_count 0, and 0 is what that column
-        // means everywhere else. If one_time_sale did not win, that item would be sellable forever.
-        var template = new ItemTemplate { Id = 6, Sellable = true, OneTimeSale = true, LimitedSaleCount = 0 };
-
-        await Assert.That(ItemSaleRules.DailySaleLimit(template)).IsEqualTo(1);
-        await Assert.That(ItemSaleRules.Evaluate(template, 1).Allowed).IsFalse();
+        await Assert.That(decision.Allowed).IsTrue();
+        await Assert.That(decision.Refusal).IsEqualTo(ItemSaleRefusal.None);
     }
 
     [Test]
-    public async Task OneTimeSaleWinsOverAWiderLimitedSaleCount()
+    public async Task ALimitedPurchaseItemIsNotRefusedByAVendorForALimitOfOne()
     {
-        var template = new ItemTemplate { Id = 7, Sellable = true, OneTimeSale = true, LimitedSaleCount = 10 };
+        // limited_sale_count 1 on a sellable item is exactly the shape that used to mean "one sale a
+        // day, for the whole server". A vendor must not answer to it.
+        var template = new ItemTemplate { Id = 4, Sellable = true, LimitedSaleCount = 1 };
 
-        // The narrower of the two statements, not the wider one.
-        await Assert.That(ItemSaleRules.DailySaleLimit(template)).IsEqualTo(1);
-        await Assert.That(ItemSaleRules.Evaluate(template, 1).Refusal)
-            .IsEqualTo(ItemSaleRefusal.OneTimeSaleExhausted);
+        var decision = ItemSaleRules.Evaluate(template);
+
+        await Assert.That(decision.Allowed).IsTrue();
     }
 
-    // --- limited_sale_count -----------------------------------------------------------------------
-
+    /// <summary>
+    /// A vendor sale of a limited item is repeatable, because nothing about the vendor path counts
+    /// them. Swept rather than a single call, so a rule that quietly started counting could not pass.
+    /// </summary>
     [Test]
-    public async Task ALimitedItemSellsUpToItsCount()
+    public async Task ARepeatedVendorSaleOfALimitedItemIsNotRefused()
     {
-        var template = new ItemTemplate { Id = 8, Sellable = true, LimitedSaleCount = 3 };
+        var template = new ItemTemplate { Id = 5, Sellable = true, LimitedSaleCount = 1 };
 
-        await Assert.That(ItemSaleRules.Evaluate(template, 0).Allowed).IsTrue();
-        await Assert.That(ItemSaleRules.Evaluate(template, 1).Allowed).IsTrue();
-        await Assert.That(ItemSaleRules.Evaluate(template, 2).Allowed).IsTrue();
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            var decision = ItemSaleRules.Evaluate(template);
 
-        var exhausted = ItemSaleRules.Evaluate(template, 3);
-        await Assert.That(exhausted.Allowed).IsFalse();
-        await Assert.That(exhausted.Refusal).IsEqualTo(ItemSaleRefusal.LimitedSaleExhausted);
-        await Assert.That(exhausted.Remaining).IsEqualTo(0);
+            await Assert.That(decision.Allowed).IsTrue();
+        }
     }
 
+    /// <summary>
+    /// The two vendor columns still decide, and they still win in the same order: auction_only beats
+    /// a sellable item outright, and an unsellable item is refused before either is consulted.
+    /// </summary>
     [Test]
-    public async Task ALimitedItemReportsHowManySalesAreLeft()
+    public async Task TheVendorColumnsStillRefuseTheItemsTheyName()
     {
-        var template = new ItemTemplate { Id = 9, Sellable = true, LimitedSaleCount = 10 };
+        var unsellable = ItemSaleRules.Evaluate(new ItemTemplate { Id = 6, Sellable = false });
+        var auctionOnly = ItemSaleRules.Evaluate(
+            new ItemTemplate { Id = 7, Sellable = true, AuctionOnly = true });
+        var allowed = ItemSaleRules.Evaluate(new ItemTemplate { Id = 8, Sellable = true });
 
-        // The shipped counts are 1, 3, 10, 14, 21, 28, 70 and 100.
-        await Assert.That(ItemSaleRules.Evaluate(template, 0).Remaining).IsEqualTo(10);
-        await Assert.That(ItemSaleRules.Evaluate(template, 4).Remaining).IsEqualTo(6);
+        await Assert.That(unsellable.Refusal).IsEqualTo(ItemSaleRefusal.NotSellable);
+        await Assert.That(auctionOnly.Refusal).IsEqualTo(ItemSaleRefusal.AuctionOnly);
+        await Assert.That(allowed.Allowed).IsTrue();
     }
 
-    [Test]
-    public async Task ALimitedItemWithoutOneTimeSaleReportsTheLimitedRefusal()
-    {
-        var template = new ItemTemplate { Id = 10, Sellable = true, LimitedSaleCount = 1 };
-
-        // The 119 shipped rows that set only limited_sale_count are told apart from the one-time ones
-        // by which message they get, not by the behaviour.
-        await Assert.That(ItemSaleRules.Evaluate(template, 1).Refusal)
-            .IsEqualTo(ItemSaleRefusal.LimitedSaleExhausted);
-    }
-
-    [Test]
-    public async Task ANegativeLimitedCountIsNoLimit()
-    {
-        var template = new ItemTemplate { Id = 11, Sellable = true, LimitedSaleCount = -3 };
-
-        await Assert.That(ItemSaleRules.DailySaleLimit(template)).IsEqualTo(ItemSaleRules.Unlimited);
-        await Assert.That(ItemSaleRules.Evaluate(template, 999).Allowed).IsTrue();
-    }
 
     // --- auto_loot --------------------------------------------------------------------------------
 
