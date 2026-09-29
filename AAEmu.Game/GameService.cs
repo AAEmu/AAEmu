@@ -85,6 +85,8 @@ public sealed class GameService : IHostedService, IDisposable
 
         // --- Stage 3: Post-load special steps ---
         GameDataManager.Instance.PostLoadGameData();
+        // The per-day vendor sale counts of the items that carry a sale limit, so a restart inside
+        // a day does not hand the day's allowance back out.
         if (CashShopManager.Instance.HasCatalog)
             CashShopManager.Instance.EnabledShop();
         else

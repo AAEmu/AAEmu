@@ -30,6 +30,45 @@ public class ItemTemplate
     public int ExpAbsLifetime { get; set; }
     public int ExpOnlineLifetime { get; set; }
     public DateTime ExpDate { get; set; }
+
+    /// <summary>
+    /// <c>items.one_time_sale</c>: the item may be handed to a vendor once, after which the daily
+    /// sale reset makes it sellable again.
+    /// </summary>
+    public bool OneTimeSale { get; set; }
+
+    /// <summary>
+    /// <c>items.limited_sale_count</c>: how many times the item may be handed to a vendor before the
+    /// daily sale reset. 0 means unlimited. This is the wider of the two sale columns - 119 shipped
+    /// rows set it without also setting <see cref="OneTimeSale"/>, which is the one-time sale
+    /// expressed as a limit of 1.
+    /// </summary>
+    public int LimitedSaleCount { get; set; }
+
+    /// <summary>
+    /// <c>items.auction_only</c>: the item may not be sold to a vendor at all and has to go through
+    /// the auction house instead. It still sells normally through the auction house.
+    /// </summary>
+    public bool AuctionOnly { get; set; }
+
+    /// <summary>
+    /// <c>items.auto_loot</c>: the item is handed to the looting character straight away instead of
+    /// being listed in the loot window for a roll.
+    /// </summary>
+    public bool AutoLoot { get; set; }
+
+    /// <summary>
+    /// <c>items.proc_lifetime</c>: how many times the procs bound to this item may fire before the
+    /// item's procs are spent. 0, which is every row but two, means the procs never run out.
+    /// </summary>
+    public int ProcLifetime { get; set; }
+
+    /// <summary>
+    /// <c>items.proc_recharge_restrict_item_id</c>: the item that puts a spent proc back. 0 means the
+    /// procs are not rechargeable.
+    /// </summary>
+    public uint ProcRechargeRestrictItemId { get; set; }
+
     public int LevelRequirement { get; set; }
     public int AuctionCategoryA { get; set; }
     public int AuctionCategoryB { get; set; }

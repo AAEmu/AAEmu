@@ -457,6 +457,7 @@ CREATE TABLE IF NOT EXISTS `character_merchant_purchases` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Persistent per-character merchant purchase limits';
 
 
+
 CREATE TABLE IF NOT EXISTS `character_random_shop_windows` (
   `character_id` INT UNSIGNED NOT NULL,
   `pack_id` INT UNSIGNED NOT NULL COMMENT 'merchant_random_packs.id',

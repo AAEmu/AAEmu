@@ -8,7 +8,9 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -290,6 +292,8 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             // добавил проверку на ItemBindType.BindOnPickup для записи портала с помощью камина в доме
             if (si.SkillSourceItem == null || skillId != si.SkillSourceItem.Template.UseSkillId && si.SkillSourceItem.Template.BindType != ItemBindType.BindOnPickup)
                 return;
+            // An item can carry its own guild-level floor. Refuse the cast rather than let the
+            // item fire for a member whose guild has not reached it.
             // si.ItemTemplateId = item.TemplateId;
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             skillResult = skill.Use(player, skillCaster, skillCastTarget, skillObject, false,
