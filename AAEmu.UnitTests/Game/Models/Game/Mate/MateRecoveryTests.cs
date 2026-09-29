@@ -423,27 +423,50 @@ public class MateRecoveryTests
     }
 
     /// <summary>
-    /// A bar that has never been recorded comes back at the reconstructed maximum, a recorded one inside
-    /// it is kept, and a recorded one over it is cut down to it. The three answers have to stay apart: a
-    /// mate that recovered all the way and a mate that has no record at all both start full, and only the
-    /// middle answer proves a half-recovered mate is not being rounded up to the cap.
+    /// "Never recorded" and "recorded zero" are different readings and must restore differently.
     /// </summary>
+    /// <remarks>
+    /// This is the collision the review named. A bar of 0 used to mean "this row never held one", so a
+    /// mate captured dead, or at empty mana, came back at full health and full mana. The unrecorded
+    /// state is now its own value and the column is nullable, so 0 is a real reading again.
+    /// </remarks>
     [Test]
-    public async Task RestorePoints_SeparatesUnrecordedFromRecoveredAndCapsWhatIsOver()
+    public async Task RestorePoints_TellsNeverRecordedApartFromARecordedZero()
     {
         const int maximum = 1000;
 
-        await Assert.That(MateRecoveryRules.RestorePoints(0, maximum)).IsEqualTo(maximum);
+        // Never recorded, as a state and as a missing column.
+        await Assert.That(MateRecoveryRules.RestorePoints(MateRecoveryRules.Unrecorded, maximum))
+            .IsEqualTo(maximum);
+        await Assert.That(MateRecoveryRules.RestorePoints((int?)null, maximum)).IsEqualTo(maximum);
+
+        // A real zero is restored as zero, at any maximum. This is the regression.
+        await Assert.That(MateRecoveryRules.RestorePoints(0, maximum)).IsEqualTo(0);
+        await Assert.That(MateRecoveryRules.RestorePoints(0, 0)).IsEqualTo(0);
+
+        // And the two really are different answers, which is the whole point.
+        await Assert.That(MateRecoveryRules.RestorePoints(0, maximum))
+            .IsNotEqualTo(MateRecoveryRules.RestorePoints(MateRecoveryRules.Unrecorded, maximum));
+
+        // The unrecorded marker must not be mistaken for a number content could have written.
+        await Assert.That(MateRecoveryRules.Unrecorded).IsLessThan(0);
+    }
+
+    /// <summary>A recorded bar inside the maximum is kept, and one over it is cut down to it.</summary>
+    [Test]
+    public async Task RestorePoints_KeepsARecordedBarAndCapsWhatIsOver()
+    {
+        const int maximum = 1000;
+
         await Assert.That(MateRecoveryRules.RestorePoints(1, maximum)).IsEqualTo(1);
         await Assert.That(MateRecoveryRules.RestorePoints(500, maximum)).IsEqualTo(500);
         await Assert.That(MateRecoveryRules.RestorePoints(maximum, maximum)).IsEqualTo(maximum);
         await Assert.That(MateRecoveryRules.RestorePoints(maximum + 1, maximum)).IsEqualTo(maximum);
         await Assert.That(MateRecoveryRules.RestorePoints(int.MaxValue, maximum)).IsEqualTo(maximum);
-        await Assert.That(MateRecoveryRules.RestorePoints(0, 0)).IsEqualTo(0);
 
-        // An unrecorded bar and a bar that recovered to the cap are not the same statement, and the rule
-        // that produces them must not quietly produce a third answer between the two.
-        await Assert.That(MateRecoveryRules.RestorePoints(0, maximum))
+        // An unrecorded bar and a bar that recovered to the cap are not the same statement, and the
+        // rule that produces them must not quietly produce a third answer between the two.
+        await Assert.That(MateRecoveryRules.RestorePoints(MateRecoveryRules.Unrecorded, maximum))
             .IsNotEqualTo(MateRecoveryRules.RestorePoints(1, maximum));
 
         Assert.Throws<ArgumentOutOfRangeException>(() => MateRecoveryRules.RestorePoints(1, -1));

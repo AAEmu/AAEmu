@@ -77,10 +77,11 @@ public class CharacterMates(Character owner)
             Mileage = 0,
             Xp = ExperienceManager.Instance.GetExpForLevel(npcTemplate.Level, true),
             // Zero on both bars is "this mate has never been summoned, so it has no recorded recovery".
-            // It is not a health or mana value: the summon path reads it through MateRecoveryRules, which
-            // starts an unrecorded mate at the maximum its content reconstructs.
-            Hp = 0,
-            Mp = 0,
+            // It is not a health or mana value: the summon path reads it through MateRecoveryRules,
+            // which starts a mate with no recorded bar at the maximum its content reconstructs. It is
+            // a state of its own rather than 0, because 0 is a bar that really was empty.
+            Hp = MateRecoveryRules.Unrecorded,
+            Mp = MateRecoveryRules.Unrecorded,
             UpdatedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
@@ -264,8 +265,10 @@ public class CharacterMates(Character owner)
                 Xp = reader.GetInt32("xp"),
                 Level = Convert.ToUInt16(reader.GetValue(reader.GetOrdinal("level"))),
                 Mileage = reader.GetInt32("mileage"),
-                Hp = reader.GetInt32("hp"),
-                Mp = reader.GetInt32("mp"),
+                // NULL is "the row never held a bar"; 0 is a bar that really was empty. Reading a
+                // missing column as 0 is what made a mate captured at zero come back at full health.
+                Hp = ReadBar(reader, "hp"),
+                Mp = ReadBar(reader, "mp"),
                 Owner = Convert.ToUInt32(reader.GetValue(reader.GetOrdinal("owner"))),
                 UpdatedAt = reader.GetDateTime("updated_at"),
                 CreatedAt = reader.GetDateTime("created_at")
@@ -273,6 +276,18 @@ public class CharacterMates(Character owner)
             lock (_saveSync)
                 _mates.Add(template.ItemId, template);
         }
+    }
+
+    /// <summary>
+    /// Reads one recovery bar, mapping the column's NULL onto
+    /// <see cref="MateRecoveryRules.Unrecorded"/> and leaving a real zero alone.
+    /// </summary>
+    private static int ReadBar(DbDataReader reader, string column)
+    {
+        var ordinal = reader.GetOrdinal(column);
+        return reader.IsDBNull(ordinal)
+            ? MateRecoveryRules.Unrecorded
+            : reader.GetInt32(ordinal);
     }
 
     private static void AddParameter(DbCommand command, string name, object value)
@@ -310,8 +325,8 @@ public class CharacterMates(Character owner)
             AddParameter(command, "@xp", value.Xp);
             AddParameter(command, "@level", value.Level);
             AddParameter(command, "@mileage", value.Mileage);
-            AddParameter(command, "@hp", value.Hp);
-            AddParameter(command, "@mp", value.Mp);
+            AddParameter(command, "@hp", value.Hp == MateRecoveryRules.Unrecorded ? null : value.Hp);
+            AddParameter(command, "@mp", value.Mp == MateRecoveryRules.Unrecorded ? null : value.Mp);
             AddParameter(command, "@owner", value.Owner);
             AddParameter(command, "@updated_at", value.UpdatedAt);
             AddParameter(command, "@created_at", value.CreatedAt);
@@ -328,7 +343,13 @@ public class MateDb
     public int Xp { get; set; }
     public ushort Level { get; set; }
     public int Mileage { get; set; }
+    /// <summary>
+    /// Health the mate was captured at, or <see cref="MateRecoveryRules.Unrecorded"/> when the row has
+    /// never held one. Nullable so the database's NULL and a genuine zero stay different readings.
+    /// </summary>
     public int Hp { get; set; }
+
+    /// <summary>Mana, on the same footing as <see cref="Hp"/>.</summary>
     public int Mp { get; set; }
     public uint Owner { get; set; }
     public DateTime UpdatedAt { get; set; }
