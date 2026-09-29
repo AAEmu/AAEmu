@@ -45,27 +45,33 @@ public class InstanceRewardTaxonomyRulesTests
     }
 
     [Test]
-    public async Task DifficultyBacked_FallsBackToTheLowestAuthoredDifficultyBeforeSelection()
+    public async Task DifficultyBacked_BeforeSelectionCarriesNoDeliverableValue()
     {
+        // The class is still provable - the instance publishes difficulties and the authored band covers
+        // them - but "provable" is not "chosen", so there is nothing to pay out with.
         var rewards = new[] { Reward(1, 1, 12) };
         var difficulties = new byte[] { 5, 7, 9 };
 
         var verdict = Classify(rewards, difficulties);
 
         await Assert.That(verdict.Classification).IsEqualTo(InstanceRewardSelectionClass.DifficultyBacked);
-        await Assert.That(verdict.SelectionValue).IsEqualTo(5);
+        await Assert.That(verdict.SelectionValue).IsEqualTo(0);
+        await Assert.That(verdict.DeliverableNow).IsFalse();
     }
 
     [Test]
-    public async Task DifficultyBacked_IgnoresARuntimeDifficultyOutsideEveryAuthoredRange()
+    public async Task DifficultyBacked_DoesNotSubstituteALowerBandForAnOutOfRangeChoice()
     {
+        // A chosen difficulty outside every authored band names nothing this run can be paid from, so
+        // the verdict is refused rather than answered with the lowest authored one.
         var rewards = new[] { Reward(1, 1, 3) };
         var difficulties = new byte[] { 1, 2, 3 };
 
         var verdict = Classify(rewards, difficulties, runtimeDifficulty: 99);
 
         await Assert.That(verdict.Classification).IsEqualTo(InstanceRewardSelectionClass.DifficultyBacked);
-        await Assert.That(verdict.SelectionValue).IsEqualTo(1);
+        await Assert.That(verdict.SelectionValue).IsEqualTo(0);
+        await Assert.That(verdict.DeliverableNow).IsFalse();
     }
 
     [Test]
@@ -244,8 +250,89 @@ public class InstanceRewardTaxonomyRulesTests
     [Test]
     public async Task DescribeBlocker_IsEmptyWhenNothingBlocks()
     {
-        var verdict = Classify([Reward(1, 1, 12)], [1, 2, 3]);
+        // A genuinely unblocked verdict is one where a difficulty this run chose landed in an
+        // authored band, so a value exists and a trigger is authored.
+        var verdict = Classify([Reward(1, 1, 12)], [1, 2, 3], runtimeDifficulty: 2);
 
+        await Assert.That(verdict.DeliverableNow).IsTrue();
         await Assert.That(InstanceRewardTaxonomyRules.DescribeBlocker(verdict)).IsEmpty();
     }
+    /// <summary>
+    /// A difficulty-backed copy that has not chosen a difficulty is not deliverable.
+    /// </summary>
+    /// <remarks>
+    /// The defect this pins: the classifier fell back to the lowest authored difficulty so the class
+    /// stayed provable, and the mail action delivers on <c>verdict.SelectionValue</c> - so a run that
+    /// never chose a difficulty was paid the easiest reward. Proving the class is a content question;
+    /// naming the value is a runtime one, and only the second can pay out.
+    /// </remarks>
+    [Test]
+    public async Task DifficultyBacked_WithoutAChosenDifficultyIsNotDeliverable()
+    {
+        var rewards = new[] { Reward(1, 1, 1), Reward(2, 3, 3) };
+        var difficulties = new byte[] { 1, 3 };
+
+        var verdict = Classify(rewards, difficulties, runtimeDifficulty: null);
+
+        // Still classified as difficulty-backed: that is a fact about content and does not change.
+        await Assert.That(verdict.Classification).IsEqualTo(InstanceRewardSelectionClass.DifficultyBacked);
+        await Assert.That(verdict.SelectionSourceProven).IsTrue();
+
+        // But there is no value to pay out with, and it says why rather than quietly defaulting.
+        await Assert.That(verdict.DeliverableNow).IsFalse();
+        await Assert.That(verdict.Blocker).IsEqualTo(InstanceRewardBlocker.MissingSelectionSource);
+    }
+
+    /// <summary>
+    /// Swept over the ways "no chosen difficulty" arrives: absent, zero, and present but landing in no
+    /// authored band. None of them may be answered with a difficulty the run never picked.
+    /// </summary>
+    [Test]
+    public async Task NoDifficultyThatNamesThisRunIsNeverDeliverable()
+    {
+        var rewards = new[] { Reward(1, 3, 3) };
+        var difficulties = new byte[] { 1, 3 };
+
+        foreach (var chosen in new byte?[] { null, 0, 2, 9 })
+        {
+            var verdict = Classify(rewards, difficulties, runtimeDifficulty: chosen);
+
+            await Assert.That(verdict.DeliverableNow).IsFalse();
+        }
+    }
+
+    /// <summary>
+    /// The normal case is untouched: a chosen difficulty inside an authored band is deliverable and
+    /// carries that value. Without this the fix could be passing by refusing everything.
+    /// </summary>
+    [Test]
+    public async Task AChosenDifficultyInABandIsStillDeliveredWithThatValue()
+    {
+        var rewards = new[] { Reward(1, 1, 1), Reward(2, 3, 3) };
+        var difficulties = new byte[] { 1, 3 };
+
+        foreach (var chosen in new byte[] { 1, 3 })
+        {
+            var verdict = Classify(rewards, difficulties, runtimeDifficulty: chosen);
+
+            await Assert.That(verdict.DeliverableNow).IsTrue();
+            await Assert.That(verdict.SelectionValue).IsEqualTo(chosen);
+        }
+    }
+
+    /// <summary>
+    /// A missing delivery trigger still blocks on its own, and a chosen difficulty must not paper over
+    /// it - the two blockers are independent.
+    /// </summary>
+    [Test]
+    public async Task AChosenDifficultyStillCannotDeliverWithoutATrigger()
+    {
+        var rewards = new[] { Reward(1, 3, 3) };
+
+        var verdict = Classify(rewards, new byte[] { 3 }, trigger: false, runtimeDifficulty: 3);
+
+        await Assert.That(verdict.DeliverableNow).IsFalse();
+        await Assert.That(verdict.Blocker).IsEqualTo(InstanceRewardBlocker.MissingDeliveryTrigger);
+    }
+
 }

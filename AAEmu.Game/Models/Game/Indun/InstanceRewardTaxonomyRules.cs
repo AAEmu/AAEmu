@@ -57,15 +57,26 @@ public static class InstanceRewardTaxonomyRules
                 selectionSourceProven: false, deliveryTriggerAuthored, deliverableNow: false, selectionValue: 0);
         }
 
-        if (TryResolveDifficultyBacked(rewards, authoredDifficulties, runtimeDifficulty, out var difficultyValue))
+        if (TryResolveDifficultyBacked(
+                rewards, authoredDifficulties, runtimeDifficulty,
+                out var difficultyValue, out var difficultyEstablished))
         {
             var trigger = deliveryTriggerAuthored
                 ? InstanceRewardBlocker.None
                 : InstanceRewardBlocker.MissingDeliveryTrigger;
+            // The classification is provable without a chosen difficulty - the instance does publish
+            // them and the authored bands cover them - but provable is not chosen. A verdict that cannot
+            // name the run's own difficulty carries no selection value and must not deliver, because the
+            // only value available is the lowest authored one, and delivering that hands a run the
+            // easiest reward for never having picked a difficulty.
+            var blocker = deliveryTriggerAuthored && !difficultyEstablished
+                ? InstanceRewardBlocker.MissingSelectionSource
+                : trigger;
             return Verdict(instanceId, instanceRewardKindId, kindName,
-                InstanceRewardSelectionClass.DifficultyBacked, trigger,
+                InstanceRewardSelectionClass.DifficultyBacked, blocker,
                 selectionSourceProven: true, deliveryTriggerAuthored,
-                deliverableNow: deliveryTriggerAuthored, selectionValue: difficultyValue);
+                deliverableNow: deliveryTriggerAuthored && difficultyEstablished,
+                selectionValue: difficultyEstablished ? difficultyValue : 0);
         }
 
         if (TryResolveRoundBacked(rewards, roundCount, out var roundValue))
@@ -102,9 +113,11 @@ public static class InstanceRewardTaxonomyRules
         IReadOnlyList<InstanceReward> rewards,
         IReadOnlyCollection<byte> authoredDifficulties,
         byte? runtimeDifficulty,
-        out int selectionValue)
+        out int selectionValue,
+        out bool selectionEstablished)
     {
         selectionValue = 0;
+        selectionEstablished = false;
         if (authoredDifficulties.Count == 0)
             return false;
 
@@ -112,9 +125,13 @@ public static class InstanceRewardTaxonomyRules
             rewards.Any(reward => chosen >= reward.StartRange && chosen <= reward.EndRange))
         {
             selectionValue = chosen;
+            selectionEstablished = true;
             return true;
         }
 
+        // Reported for the classification only: it is a statement about content, not about this run,
+        // and the caller must not deliver on it. selectionEstablished stays false, which is what stops
+        // a copy that never chose a difficulty from being paid the lowest authored one.
         foreach (var difficulty in authoredDifficulties.OrderBy(value => value))
         {
             if (rewards.Any(reward => difficulty >= reward.StartRange && difficulty <= reward.EndRange))
