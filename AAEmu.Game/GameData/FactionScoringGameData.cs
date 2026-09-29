@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Utils.DB;
 
@@ -12,6 +12,14 @@ namespace AAEmu.Game.GameData;
 public sealed record FactionCompetitionResetState(uint Id, string Name);
 
 /// <summary>One <c>faction_competitions</c> row, without any runtime score state.</summary>
+/// <remarks>
+/// <c>DetailId</c> is keyed by <c>DetailType</c>, not by zone group. The shipped
+/// <c>detail_type</c> values are <c>CompetitionPvp</c> and <c>CompetitionPve</c>, and each selects
+/// its own id space: <c>competition_pvps</c> is a bare id list and <c>competition_pves</c> carries
+/// the PVE competitor names and its own per-kind point values. A competition's zone is therefore
+/// not stated by any column on this row, which is why nothing here resolves a competition to a zone
+/// group.
+/// </remarks>
 public sealed record FactionCompetitionDefinition(
     uint Id,
     string Comments,
@@ -193,6 +201,19 @@ public sealed class FactionScoringGameData : Singleton<FactionScoringGameData>, 
     {
         _ = GetZoneScoreContent(contentId);
         return _zoneScoreKinds.Where(kind => kind.ContentId == contentId).ToArray();
+    }
+
+    /// <summary>
+    /// Every kind whose content row names <paramref name="zoneGroupId"/>, ordered by kind id. This
+    /// is the set a zone group owns at runtime; a content row whose group has no kinds yields an
+    /// empty list rather than an error, because the shipped catalog carries groups with no score.
+    /// </summary>
+    public IReadOnlyList<ZoneScoreKind> GetZoneScoreKindsByZoneGroup(uint zoneGroupId)
+    {
+        return _zoneScoreKinds
+            .Where(kind => _zoneScoreContentById[kind.ContentId].ZoneGroupId == zoneGroupId)
+            .OrderBy(kind => kind.Id)
+            .ToArray();
     }
 
     public IReadOnlyList<ZoneScoreLevel> GetZoneScoreLevels(uint kindId)

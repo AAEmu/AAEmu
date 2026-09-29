@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
