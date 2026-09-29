@@ -76,7 +76,7 @@ public class SeededPaymentTierTests
         }
 
         protected override (PaymentMethodType Method, int Days) ConfiguredSeed() =>
-            (PaymentMethodType.Premium, 30);
+            (PaymentMethodType.Premium, 0);
 
         public override bool TrySave(uint accountId, AccountPaymentRecord record)
         {
@@ -182,19 +182,54 @@ public class SeededPaymentTierTests
     }
 
     /// <summary>
-    /// A paid method with a non-positive window would be written already closed, so it is refused as a
-    /// configuration error instead. This is the state that made every account read as free while the
-    /// row said Premium, so it must not be reachable by configuration.
+    /// A non-positive day count means the window does not close, and it must be a window that is still
+    /// <i>open</i> now. This is the second half of the original defect: a paid row whose window had
+    /// already closed read as free while the row said Premium, and the far end of the DATETIME range is
+    /// deliberately not the epoch that produced it.
     /// </summary>
     [Test]
-    public async Task APaidTierWithNoWindowIsRefusedRatherThanWrittenAlreadyClosed()
+    public async Task ANonPositiveWindowMeansAnOpenOneAndNotAClosedOne()
     {
         foreach (var days in new[] { 0, -1 })
         {
-            await Assert.That(() => AccountManager.SeededPaymentGrant(
-                    7, PaymentMethodType.Premium, days, DateTime.UtcNow))
-                .Throws<InvalidOperationException>();
+            var grant = AccountManager.SeededPaymentGrant(7, PaymentMethodType.Premium, days, DateTime.UtcNow);
+            var payment = new AccountPayment();
+            payment.Apply(grant);
+
+            await Assert.That(grant.EndTime).IsEqualTo(AccountPayment.NoExpiryTime);
+            await Assert.That(grant.EndTime).IsGreaterThan(DateTime.UtcNow);
+            await Assert.That(payment.PremiumState).IsTrue();
         }
+    }
+
+    /// <summary>
+    /// The two sentinels are different states and must not be confused. NoSubscriptionTime is a window
+    /// that closed at the epoch, which reads as expired; NoExpiryTime is a window that never closes.
+    /// </summary>
+    [Test]
+    public async Task TheTwoWindowSentinelsAreNotTheSameValue()
+    {
+        await Assert.That(AccountPayment.NoExpiryTime)
+            .IsNotEqualTo(AccountPayment.NoSubscriptionTime);
+        await Assert.That(AccountPayment.NoExpiryTime).IsGreaterThan(AccountPayment.NoSubscriptionTime);
+    }
+
+    /// <summary>
+    /// A paid row whose window is the closed sentinel is exactly the shipped defect, and it must report
+    /// free. If this ever passes, the open-window change has broken the distinction that matters.
+    /// </summary>
+    [Test]
+    public async Task AWindowClosedAtTheEpochStillReadsAsFree()
+    {
+        var payment = new AccountPayment();
+        payment.Apply(new AccountPaymentRecord
+        {
+            Method = PaymentMethodType.Premium,
+            StartTime = AccountPayment.NoSubscriptionTime,
+            EndTime = AccountPayment.NoSubscriptionTime,
+        });
+
+        await Assert.That(payment.PremiumState).IsFalse();
     }
 
     /// <summary>The opt-down path still works: a free seeded tier writes no window at all.</summary>
@@ -224,18 +259,51 @@ public class SeededPaymentTierTests
         await Assert.That(grant.EndTime).IsEqualTo(now.AddDays(30));
     }
 
-    /// <summary>The default window is long enough to still be open, which is the whole point of it.</summary>
+    /// <summary>
+    /// The default window never closes, because nothing renews it. A finite default was a month, and on
+    /// that configuration every account went back to free a month later with no purchase to explain it.
+    /// </summary>
     [Test]
-    public async Task TheDefaultWindowIsPositiveSoTheDefaultTierIsNotAlreadyExpired()
+    public async Task TheDefaultWindowDoesNotExpire()
     {
         var fresh = new AccountConfig();
 
-        await Assert.That(fresh.SeededPaymentDays).IsGreaterThan(0);
+        await Assert.That(fresh.SeededPaymentDays).IsEqualTo(0);
 
         var grant = AccountManager.SeededPaymentGrant(
             7, AccountManager.ParseSeededPaymentMethod(fresh.SeededPaymentMethod),
             fresh.SeededPaymentDays, DateTime.UtcNow);
 
-        await Assert.That(grant.EndTime).IsGreaterThan(DateTime.UtcNow);
+        await Assert.That(grant.EndTime).IsEqualTo(AccountPayment.NoExpiryTime);
+    }
+
+    /// <summary>An operator who wants a finite window can still set one, and it is honoured exactly.</summary>
+    [Test]
+    public async Task AConfiguredFiniteWindowIsStillHonoured()
+    {
+        // The clock is read once: the grant is computed from this instant, so asking for "now" again
+        // afterwards would compare it against a slightly later reading.
+        var now = DateTime.UtcNow;
+        var grant = AccountManager.SeededPaymentGrant(7, PaymentMethodType.Premium, 45, now);
+
+        await Assert.That(grant.EndTime).IsEqualTo(now.AddDays(45));
+        await Assert.That(grant.EndTime).IsNotEqualTo(AccountPayment.NoExpiryTime);
+    }
+
+    /// <summary>
+    /// The seeded configuration is resolved once at startup, so a bad value stops the server booting
+    /// rather than failing one login at a time on a server an operator believes is healthy.
+    /// </summary>
+    [Test]
+    public async Task SeededPaymentConfigurationIsCheckedAtStartup()
+    {
+        // The configuration singleton is not seeded in a unit test, so this exercises the resolver the
+        // startup check calls rather than the singleton itself.
+        var method = AccountManager.ParseSeededPaymentMethod(new AccountConfig().SeededPaymentMethod);
+        var grant = AccountManager.SeededPaymentGrant(
+            1, method, new AccountConfig().SeededPaymentDays, DateTime.UtcNow);
+
+        await Assert.That(grant.Method).IsEqualTo(PaymentMethodType.Premium);
+        await Assert.That(grant.EndTime).IsEqualTo(AccountPayment.NoExpiryTime);
     }
 }

@@ -329,17 +329,18 @@ public class AccountConfig
 
     /// <summary>
     /// How many days the seeded payment tier's window runs for, counted from the moment the
-    /// placeholder row is replaced. Only consulted when <see cref="SeededPaymentMethod"/> names a paid
-    /// method; a free or demo tier carries no window at all.
+    /// placeholder row is replaced. Zero, the default, means the window does not close. Only consulted
+    /// when <see cref="SeededPaymentMethod"/> names a paid method; a free or demo tier carries no
+    /// window at all.
     /// </summary>
     /// <remarks>
-    /// This is the duration the migration could not carry, which is why it lives here rather than in
-    /// SQL: a migration cannot read this file, and hardcoding a period there would both duplicate the
-    /// default and expire on its own. A paid method with a non-positive value is refused rather than
-    /// written, because a paid label on an already-closed window reports free and would look like the
-    /// bug this replaced.
+    /// This is the window the migration could not carry, which is why it lives here rather than in SQL:
+    /// a migration cannot read this file, and hardcoding a period there would both duplicate the
+    /// default and expire on its own. The default is open rather than a number of days because nothing
+    /// renews this window - a finite one would return every seeded account to free once it elapsed, a
+    /// month in the case it was last set to, with no purchase and no error to explain it.
     /// </remarks>
-    public int SeededPaymentDays { get; set; } = 30;
+    public int SeededPaymentDays { get; set; }
 }
 
 public class CurrencyValuesConfig

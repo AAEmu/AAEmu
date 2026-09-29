@@ -59,6 +59,20 @@ public class AccountPayment
     /// </summary>
     public static readonly DateTime NoSubscriptionTime = DateTime.UnixEpoch;
 
+    /// <summary>
+    /// The wire form for a window that does not close. This is a sentinel rather than a date content
+    /// wrote: the seeded tier is granted, not bought, so it has no subscription to run out of, and
+    /// inventing a year for it would both be a shipped value in C# and quietly expire on its own.
+    /// </summary>
+    /// <remarks>
+    /// It is deliberately the far end of the MySQL <c>DATETIME</c> range, because that column is what
+    /// the window is stored in. Note this is <b>not</b> the same as
+    /// <see cref="NoSubscriptionTime"/>: that is a window that closed at the epoch, which reads as
+    /// expired, and confusing the two is how a row came to say <c>Premium</c> and mean it.
+    /// </remarks>
+    public static readonly DateTime NoExpiryTime =
+        new(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+
     public PaymentMethodType Method { get; private set; } = PaymentMethodType.None;
     public int Location { get; private set; }
 

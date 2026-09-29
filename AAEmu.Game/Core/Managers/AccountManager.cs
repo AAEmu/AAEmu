@@ -170,7 +170,27 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
 
     public void Initialize()
     {
+        // Checked here rather than on first login. The seeded tier is resolved on every connection, so
+        // a bad method name or an unusable day count would otherwise first surface as a failed login
+        // on a server an operator believes is healthy, one account at a time.
+        ValidateSeededPaymentConfiguration();
         tickManager.OnTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30));
+    }
+
+    /// <summary>
+    /// Resolves the seeded payment configuration once at startup, so a mistake in it is a boot failure
+    /// rather than a login failure.
+    /// </summary>
+    public static void ValidateSeededPaymentConfiguration()
+    {
+        var account = AppConfiguration.Instance?.Account;
+        if (account == null)
+            return;
+
+        // Resolve the name, then build a grant from it: the grant is what turns a bad day count into a
+        // refusal, and doing both here means the same rules the login path uses are the ones checked.
+        var method = ParseSeededPaymentMethod(account.SeededPaymentMethod);
+        _ = SeededPaymentGrant(1, method, account.SeededPaymentDays, DateTime.UtcNow);
     }
 
     /// <summary>
@@ -276,12 +296,18 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
     /// </summary>
     /// <param name="accountId">The account the row belongs to.</param>
     /// <param name="method">The configured tier name, already resolved to a payment method.</param>
-    /// <param name="days">How long the window runs for, from <paramref name="nowUtc"/>.</param>
+    /// <param name="days">
+    /// How long the window runs for, from <paramref name="nowUtc"/>. Zero or less means the window
+    /// does not close, which is the default: the seeded tier is granted rather than bought, so it has
+    /// no subscription to run out of, and a finite window with nothing renewing it would quietly
+    /// return every account to free.
+    /// </param>
     /// <param name="nowUtc">The moment the window is counted from.</param>
     /// <remarks>
-    /// A free or demo tier gets no window, because it never had one to run. A paid tier must be given
-    /// a window that contains now, or the label is set but the entitlement is already over — which is
-    /// the exact state that made every account read as free while the row said Premium.
+    /// A free or demo tier gets no window at all, because it never had one to run. A paid tier always
+    /// gets a window that contains now — an open one that never closes — because the failure this
+    /// replaced was a window that had <i>already</i> closed, leaving the label set and the entitlement
+    /// over. Those are different states and only one of them is a bug.
     /// </remarks>
     public static AccountPaymentRecord SeededPaymentGrant(
         uint accountId, PaymentMethodType method, int days, DateTime nowUtc)
@@ -289,19 +315,20 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         var start = ServerCalendar.AsUtc(nowUtc);
         var isPaid = method == PaymentMethodType.Premium;
 
-        if (isPaid && days <= 0)
-            throw new InvalidOperationException(
-                $"Account.SeededPaymentDays is {days}, so the paid tier {method} would be written with " +
-                "an already-closed window and every seeded account would read as free. Set a positive " +
-                "number of days, or seed a non-paid method.");
-
         return new AccountPaymentRecord
         {
             AccountId = accountId,
             Method = method,
             Location = 0,
             StartTime = isPaid ? start : AccountPayment.NoSubscriptionTime,
-            EndTime = isPaid ? start.AddDays(days) : AccountPayment.NoSubscriptionTime,
+            // A non-positive day count is an open window, not a closed one. A closed window was the
+            // original defect, so it is worth being explicit: this is the far end of the DATETIME
+            // range, not the epoch.
+            EndTime = !isPaid
+                ? AccountPayment.NoSubscriptionTime
+                : days > 0
+                    ? start.AddDays(days)
+                    : AccountPayment.NoExpiryTime,
             BuyPremiumCount = 0,
         };
     }
