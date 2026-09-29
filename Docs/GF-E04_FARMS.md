@@ -84,7 +84,7 @@ phase, the shared quantized world position, and a `u64` planting time. The reade
 | Area | Before | After |
 |---|---|---|
 | Placement ordering | capacity before the allowed list | allowed list first, because it is the only question answerable without a number content may not have supplied |
-| Unconfigured farm | refused **and told to the player the farm is full** | planted with no limit, the gap logged loudly once per tab, **nothing sent to the player** |
+| Unconfigured farm | refused **and told to the player the farm is full** | sized by the farm group that governs the tab; only a tab no group governs is planted with no limit, logged once |
 | Protection window | missing `doodad_groups` row answered as `0` | missing row reported as unknown, and a crop whose age cannot be measured is treated as untakeable rather than retired |
 | Crop lifetime | a per-minute pass deleted every crop past its protection window | **no pass**: the window is a harvest permission, so an aged crop is unprotected, not gone |
 | Show-area | no answer at all | answered: refused off the farm, cleared for a different tab, answered for the requested tab, with a zero count doing the clearing |
@@ -123,15 +123,19 @@ actually wrong. The four that matter here, and the side of each line they sit on
 - `common_farms` has 46 authored rows across just three names and no column that joins a farm area
   to a subzone. Making the area lookup content-driven needs a typed link in content or an explicitly
   reviewed decision, not a name match.
-- Two of the four farm tabs (Nursery and Ranch) list allowed doodads in content — six each — but
-  carry no `farm_groups` row, so no capacity was ever authored for them. Refusing those tabs made
-  them unplantable while still stating no size, and reading the missing row as zero is what made the
-  farm take one crop and then refuse for ever. Neither answer invents a number, so the count check
-  is skipped for a tab with no authored size, the gap is logged once per tab, and the player can
-  plant. **The cost is deliberate: until content carries a size, a Nursery or Ranch accepts any
-  number of crops.** Inventing `5` to match the two tabs that do have rows would be a shipped value
-  in C#, which is not permitted, so the looseness is the honest answer and the log line is where the
-  gap stays visible.
+- Two of the four farm tabs (Nursery and Ranch) carry no `farm_groups` row of their own, so nothing
+  states a size beside them. Three answers were possible and the first two are wrong: reading the
+  missing row as zero is what made a farm take one crop and refuse for ever, and refusing the tabs
+  outright made two of four unplantable. The answer used here is that **a tab with no row of its own
+  is sized by the farm group its crops come from** (`CommonFarmGameData.TryGetOwningFarmGroup`).
+  Content states the size per group, and these two tabs plant out of a group that has one: of
+  Nursery's six listed crops, five are also group 1's, and all six of Ranch's are. Both are therefore
+  bounded by group 1's own number, read from content, and the owner is derived from crop membership
+  rather than named in C#, so a content patch that moves a crop changes the answer. A tab sharing no
+  crop with any sized group resolves to no owner and is planted with no limit and logged once; that
+  is the remaining honest gap, and the only one left.
+  The subzone-name half of this is not verifiable from `compact.sqlite3` — subzones live in
+  the loose level files. The crop-membership half above is, and it is the stronger evidence.
 - The `u64 planting time` in a farm-list record is written as the stored timestamp. The reader
   compares it against a file-time clock, so the epoch is worth confirming against a capture before
   the list is called correct end to end. Not changed here: nothing measured says it is wrong.
@@ -154,5 +158,9 @@ actually wrong. The four that matter here, and the side of each line they sit on
   doodad, and the manager takes no task manager at all. The last two are the standing guard against
   the bulk delete this row once had, and the last is the guard against the expiry pass coming back:
   with no scheduler injected there is nothing for a periodic crop-deletion pass to run on.
-- `CommonFarmGameDataTests` — both missing rows reported as unknown rather than as zero, and a
-  configured zero window reported as configured rather than unknown.
+- `CommonFarmGameDataTests` — both missing rows reported as unknown rather than as zero, a configured
+  zero window reported as configured rather than unknown, and the owning-group resolution pinned on
+  the shipped shape: a tab with no row governed by the group its crops come from, a tab with a row
+  governed by itself, an inherited capacity being the governing group's own number, a tab sharing
+  no crop with any sized group having no owner, and the owner chosen by best overlap with the lower
+  id breaking a tie so the answer cannot change between restarts.

@@ -85,7 +85,16 @@ public class PublicFarmManager(ISubZoneManager subZoneManager) : Singleton<Publi
             ? planted.Count
             : 0;
 
-        var capacityConfigured = CommonFarmGameData.Instance.TryGetFarmGroupMaxCount(farmType, out var capacity);
+        // The capacity comes from the farm group that governs this tab, which is not always the tab
+        // itself: content states sizes per group, writes rows for only two of the four tabs, and the
+        // other two draw their crops from a group that has one. A tab that resolves to no group has
+        // no stated size, and is then placed with no limit rather than an invented one.
+        var capacityConfigured = CommonFarmGameData.Instance.TryGetOwningFarmGroup(farmType, out var owningGroup);
+        var capacity = capacityConfigured
+            ? CommonFarmGameData.Instance.TryGetFarmGroupMaxCount((FarmType)owningGroup, out var groupMax)
+                ? groupMax
+                : 0u
+            : 0u;
         var refusal = CommonFarmPlacementRules.Evaluate(
             doodadAllowed: CommonFarmGameData.Instance.GetAllowedDoodads(farmType).Contains(doodadId),
             capacityConfigured: capacityConfigured,
@@ -98,10 +107,9 @@ public class PublicFarmManager(ISubZoneManager subZoneManager) : Singleton<Publi
         // instead, once per tab, so it is loud in the server log and absent where it would be a lie.
         if (!capacityConfigured && _reportedCapacityGaps.Add(farmType))
         {
-            Logger.Error("CommonFarm: farm type {0} has no farm_groups row, so no crop capacity is "
-                         + "defined for it. Allowing placements with no limit rather than inventing "
-                         + "one; content authors the tab by listing its crops, so the tab is meant to "
-                         + "be plantable.", farmType);
+            Logger.Error("CommonFarm: farm type {0} has no farm_groups row and shares no crop with a "
+                         + "group that has one, so no capacity governs it. Allowing placements with "
+                         + "no limit rather than inventing one.", farmType);
         }
 
         switch (refusal)

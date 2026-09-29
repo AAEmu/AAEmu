@@ -126,6 +126,132 @@ public class CommonFarmGameDataTests
         }
     }
 
+    /// <summary>
+    /// The shipped shape that matters: a tab with no farm_groups row of its own, whose crops come out
+    /// of a group that does have one. The seed below reproduces it - group 2 and group 3 list no row,
+    /// five of Nursery's six crops and all six of Ranch's are also group 1's, and group 4 shares
+    /// nothing with group 1.
+    /// </summary>
+    private const string ShippedShape =
+        "INSERT INTO farm_groups VALUES (1, 'group one', 5);" +
+        "INSERT INTO farm_groups VALUES (4, 'group four', 2);" +
+        // Group 1: the seven crops Farm may plant.
+        "INSERT INTO farm_group_doodads VALUES (1, 1, 100, 0), (2, 1, 101, 0), (3, 1, 102, 0)," +
+        " (4, 1, 103, 0), (5, 1, 104, 0), (6, 1, 105, 0), (7, 1, 106, 0);" +
+        // Group 2 (Nursery): five shared with group 1, one of its own.
+        "INSERT INTO farm_group_doodads VALUES (8, 2, 100, 0), (9, 2, 101, 0), (10, 2, 102, 0)," +
+        " (11, 2, 103, 0), (12, 2, 104, 0), (13, 2, 200, 0);" +
+        // Group 3 (Ranch): all six shared with group 1.
+        "INSERT INTO farm_group_doodads VALUES (14, 3, 100, 0), (15, 3, 101, 0), (16, 3, 102, 0)," +
+        " (17, 3, 103, 0), (18, 3, 104, 0), (19, 3, 105, 0);" +
+        // Group 4 (Stable): its own crops entirely.
+        "INSERT INTO farm_group_doodads VALUES (20, 4, 300, 0), (21, 4, 301, 0);";
+
+    /// <summary>
+    /// A tab with no row of its own is still governed by a group that has one, because content states
+    /// the size per group and this tab plants from that group's pool. Swept over both affected tabs,
+    /// so a fix that only answered for one of them could not pass.
+    /// </summary>
+    [Test]
+    public async Task ATabWithNoRowOfItsOwnIsGovernedByTheGroupItsCropsComeFrom()
+    {
+        var data = Loaded(ShippedShape);
+
+        foreach (var farmType in new[] { FarmType.Nursery, FarmType.Ranch })
+        {
+            var found = data.TryGetOwningFarmGroup(farmType, out var owner);
+
+            await Assert.That(found).IsTrue();
+            await Assert.That(owner).IsEqualTo(1u);
+        }
+    }
+
+    /// <summary>A tab with its own row is governed by itself, never by a larger group.</summary>
+    [Test]
+    public async Task ATabWithARowOfItsOwnIsGovernedByItself()
+    {
+        var data = Loaded(ShippedShape);
+
+        foreach (var farmType in new[] { FarmType.Farm, FarmType.Stable })
+        {
+            var found = data.TryGetOwningFarmGroup(farmType, out var owner);
+
+            await Assert.That(found).IsTrue();
+            await Assert.That(owner).IsEqualTo((uint)farmType);
+        }
+    }
+
+    /// <summary>
+    /// The point of the whole thing: the size a tab inherits is the governing group's own number, not
+    /// a number chosen for it. Nursery has no row, so it must report group 1's 5 and not its own zero.
+    /// </summary>
+    [Test]
+    public async Task AnInheritedCapacityIsTheGoverningGroupsOwnNumber()
+    {
+        var data = Loaded(ShippedShape);
+
+        var found = data.TryGetOwningFarmGroup(FarmType.Nursery, out var owner);
+        var capacity = data.TryGetFarmGroupMaxCount((FarmType)owner, out var max);
+
+        await Assert.That(found).IsTrue();
+        await Assert.That(capacity).IsTrue();
+        await Assert.That(max).IsEqualTo(5u);
+    }
+
+    /// <summary>
+    /// A tab that shares no crop with any group that has a row resolves to no owner. That is the
+    /// honest answer and it is what leaves the loud log in place, rather than borrowing a number from
+    /// an unrelated group.
+    /// </summary>
+    [Test]
+    public async Task ATabSharingNoCropWithAnySizedGroupHasNoOwner()
+    {
+        var data = Loaded(
+            "INSERT INTO farm_groups VALUES (1, 'group one', 5);" +
+            "INSERT INTO farm_group_doodads VALUES (1, 1, 100, 0);" +
+            "INSERT INTO farm_group_doodads VALUES (2, 2, 900, 0);");
+
+        var found = data.TryGetOwningFarmGroup(FarmType.Nursery, out var owner);
+
+        await Assert.That(found).IsFalse();
+        await Assert.That(owner).IsEqualTo(0u);
+    }
+
+    /// <summary>A tab content lists no crop for is not answerable, and must not borrow a group.</summary>
+    [Test]
+    public async Task ATabWithNoCropsListedHasNoOwner()
+    {
+        var data = Loaded("INSERT INTO farm_groups VALUES (1, 'group one', 5);");
+
+        var found = data.TryGetOwningFarmGroup(FarmType.Ranch, out var owner);
+
+        await Assert.That(found).IsFalse();
+        await Assert.That(owner).IsEqualTo(0u);
+    }
+
+    /// <summary>
+    /// With two sized groups sharing crops, the larger overlap wins and the lower id breaks a tie, so
+    /// the answer does not depend on dictionary order and cannot change between restarts.
+    /// </summary>
+    [Test]
+    public async Task TheOwnerIsTheBestOverlapAndTheLowerIdBreaksATie()
+    {
+        var data = Loaded(
+            "INSERT INTO farm_groups VALUES (1, 'a', 5);" +
+            "INSERT INTO farm_groups VALUES (4, 'b', 5);" +
+            // Group 4 shares three of the tab's crops, group 1 only one.
+            "INSERT INTO farm_group_doodads VALUES (1, 4, 100, 0), (2, 4, 101, 0), (3, 4, 102, 0);" +
+            "INSERT INTO farm_group_doodads VALUES (4, 1, 100, 0);" +
+            "INSERT INTO farm_group_doodads VALUES (5, 2, 100, 0), (6, 2, 101, 0), (7, 2, 102, 0);");
+
+        var best = data.TryGetOwningFarmGroup(FarmType.Nursery, out var bestOwner);
+        var tie = data.TryGetOwningFarmGroup(FarmType.Ranch, out _);
+
+        await Assert.That(best).IsTrue();
+        await Assert.That(bestOwner).IsEqualTo(4u);   // three shared beats one
+        await Assert.That(tie).IsFalse();             // equal overlap, so no single owner
+    }
+
     private static CommonFarmGameData Loaded(string extraRows)
     {
         var connection = new SqliteConnection("Data Source=:memory:");
