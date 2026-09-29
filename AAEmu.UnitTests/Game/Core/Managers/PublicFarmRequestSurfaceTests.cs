@@ -13,22 +13,22 @@ namespace AAEmu.UnitTests.Game.Core.Managers;
 /// The defect was not a bug in a rule — it was that the farm manager exposed a bulk delete and a
 /// planted count at all, which made a plausible reading of an editor-only opcode into a destructive
 /// one. Retuning that behaviour would leave the same trap in place for the next reader, so this
-/// test pins the <i>absence</i> instead: the interface must carry no member that can remove a
-/// character's farm doodads, and no member that reports a planted count for a capacity comparison.
+/// test pins the <i>shape</i> of what the manager may expose instead of only the names.
 /// </para>
 /// <para>
-/// A test asserting a member is missing is unusual and is deliberate here. Every test that was
-/// written against the old behaviour had to be deleted, because the behaviour it described is
-/// exactly what is being withdrawn; this is the one assertion that can outlive them. Re-adding a bulk
-/// delete to this interface fails here even if no packet calls it yet.
+/// The interface has since grown the two members the row needs — an area lookup and a removal — and
+/// both assertions below still hold: neither reports a planted count, and neither removes more than
+/// one crop. A test asserting a member is missing is unusual and is deliberate here; these two
+/// survived the growth of the surface, which is exactly what they are for.
 /// </para>
 /// </remarks>
 public class PublicFarmRequestSurfaceTests
 {
-    private static readonly string[] Allowed = ["PublicFarmTick", "InPublicFarm", "GetFarmType"];
+    private static readonly string[] Allowed =
+        ["GetFarmArea", "GetFarmType", "InPublicFarm", "RemoveCrop"];
 
     [Test]
-    public async Task TheFarmManagerExposesNoBulkDeleteOrPlantedCount()
+    public async Task TheFarmManagerExposesOnlyTheNamedOperations()
     {
         // Walk the concrete set rather than spot-checking names, so a rename cannot dodge the guard
         // and a new member cannot slip in beside an unchecked one.
@@ -42,10 +42,11 @@ public class PublicFarmRequestSurfaceTests
     }
 
     [Test]
-    public async Task NoPublicFarmManagerMemberTakesACharacterAndReturnsAnInt()
+    public async Task NoPublicFarmManagerMemberReportsAPlantedCount()
     {
-        // The shape of the removed API: (Character, ...) -> int is what "how many did I delete"
-        // looks like. Asserting on the shape catches a renamed rebuild of the same hazard.
+        // The shape of the removed API: (Character, ...) -> int is what "how many did I delete" looks
+        // like. Asserting on the shape catches a renamed rebuild of the same hazard, and an int-typed
+        // member here would invite a count comparison against a capacity the content may not have.
         var offenders = typeof(IPublicFarmManager)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Where(m => m.ReturnType == typeof(int))
@@ -53,5 +54,55 @@ public class PublicFarmRequestSurfaceTests
             .ToArray();
 
         await Assert.That(offenders).IsEmpty();
+    }
+
+    [Test]
+    public async Task NoPublicFarmManagerMemberTakesACollectionOfDoodads()
+    {
+        // The bulk-delete shape. A removal here takes one crop and says why it did not remove it, so
+        // no member may accept a list, an array or any other enumerable of doodads: that is the one
+        // parameter shape that turns a single removal into "drop everything this player planted".
+        var offenders = typeof(IPublicFarmManager)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .SelectMany(m => m.GetParameters()
+                .Where(p => p.ParameterType != typeof(string) && typeof(System.Collections.IEnumerable)
+                    .IsAssignableFrom(p.ParameterType))
+                .Select(p => $"{m.Name}({p.ParameterType.Name} {p.Name})"))
+            .ToArray();
+
+        await Assert.That(offenders).IsEmpty();
+    }
+
+    [Test]
+    public async Task TheFarmManagerHasNoSchedulerSoNoPeriodicPassCanBeWiredBackIn()
+    {
+        // The pass this replaced walked every planted crop each minute and deleted the ones past
+        // their protection window. That window decides who may take a crop, not how long a crop
+        // lives: the client shows an aged crop as unprotected rather than gone, and most doodad
+        // groups ship the window as zero, so reading it as a lifetime cleared the field a minute
+        // after planting. The manager no longer takes a task manager, so it cannot schedule a pass
+        // like that; this fails if one is ever wired back in.
+        var constructorParameters = typeof(PublicFarmManager)
+            .GetConstructors()
+            .SelectMany(c => c.GetParameters())
+            .Select(p => p.ParameterType.Name)
+            .ToArray();
+
+        await Assert.That(constructorParameters.Contains("ITaskManager")).IsFalse();
+    }
+
+    [Test]
+    public async Task TheRemovalTakesExactlyOneDoodad()
+    {
+        // Pinned on the concrete member rather than as a name in the allow list, so the guarantee is
+        // about what it can destroy: one crop per call, and a caller that wants the rest asks again.
+        var removal = typeof(IPublicFarmManager)
+            .GetMethod(nameof(IPublicFarmManager.RemoveCrop), BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("The farm manager exposes no removal.");
+
+        var doodadParameters = removal.GetParameters()
+            .Count(p => typeof(AAEmu.Game.Models.Game.DoodadObj.Doodad).IsAssignableFrom(p.ParameterType));
+
+        await Assert.That(doodadParameters).IsEqualTo(1);
     }
 }

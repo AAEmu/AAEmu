@@ -1,171 +1,166 @@
-# GF-E04 — public-farm wire shape (placement / removal are parsed, not acted on)
+# GF-E04 — public-farm placement / removal / show-area
 
-Scope of this slice: the **wire shapes** of the three public-farm request packets and the one farm
-response writer. **No request path in this slice mutates game state**, and the reason is evidence,
-not omission. The farm growth/expiry core that already existed is not modified.
+Scope: the three named operations of the row — **place**, **remove**, **show-area** — on the shipped
+10.0.2.13 client, plus the protection state they have to stay consistent with.
 
 Base for this work: `client_version/zone-10.0.2_r575`.
 
-## What changed
+## The premise, checked
 
-| Packet | Direction | Opcode | Change |
-|---|---|---|---|
-| `CSPlaceCommonFarmPacket` | C2G | `0x164` | **parser fixed to the real wire** (signed count + full point loop). `Execute` is a logged no-op |
-| `CSRemoveCommonFarmsPacket` | C2G | `0x163` | **parsed and logged; deletes nothing.** Was: deleted every crop the caller had planted |
-| `CSShowCommonFarmAreaPacket` | C2G | `0x15E` | parsed; answers nothing. Sender status stated narrowly — see below |
-| `SCShowCommonFarmPacket` | S2C | `0x220` | **writer corrected to the real wire** — was writing a fixed 28-byte body with no position loop |
+The row text says placement and removal requests are no-ops. That is **not what the base contains**,
+and the difference matters, because it changes which packet each operation lives on.
 
-Removed supporting code: `PublicFarmPlacementRules` (and its tests) and
-`PublicFarmManager.GetPlantedCount` / `RemoveCharacterFarms`.
+| Operation | The request that carries it | State in the base before this slice |
+|---|---|---|
+| **place** | `CSCreateDoodadPacket` (CS `0x131`) | **Live.** Gated by `PublicFarmManager.CanPlace`. |
+| **remove** | `CSRemoveCommonFarmsPacket` (CS `0x163`) | Parsed, deliberately not acted on. |
+| **show-area** | `CSShowCommonFarmAreaPacket` (CS `0x15E`) | Parsed, answered with nothing. |
+| *list* | `CSRequestCommonFarmList` (CS `0x15F`) | Live, and the only farm request the shipped client actually sends. |
 
-`SC 0x220` is written to the real wire but nothing calls it, because the request that would trigger
-it is `CS 0x15E`. See the blocked remainder.
+So the row's "placement is a no-op" was already false: planting a crop goes through the ordinary
+doodad-create request and the farm manager gates it. What was missing was the **validation around
+it**, the **removal path**, the **show-area answer**, and **a protection window that decides who may
+take a crop rather than how long one lives**.
 
-## Why the two request handlers do nothing
+## What the shipped client actually sends
 
-Three independent sources agree that no gameplay path reaches `0x163` or `0x164`, and acting on
-them was actively destructive:
+Three findings, each of which corrects something the earlier slice of this row asserted.
 
-1. **The raw `ir`.** `CSRemoveCommonFarmsPacket` has **zero body rows and no handler** in both the
-   retail and the development build. `CSPlaceCommonFarmPacket` has three body rows and **no handler**
-   in either. Nothing in the retail server reads these opcodes.
-2. **The client.** Neither `0x163` nor `0x164` appears anywhere in the 7,737-file client Lua
-   extract, by literal or by any farm-packet name.
-3. **What they actually are.** They are the farm **shape-editor** commands
-   (`CS_PACKET_PLACE_COMMON_FARM_SHAPE` / `REMOVE_COMMON_FARM_SHAPES`). A shape editor is not a
-   player action, and a player never sends these.
+### `0x15F` is real, and it is the live farm request
 
-**What was withdrawn and why.** `0x163` previously read as "drop every farm doodad this character
-has planted" and did exactly that — deleting the caller's crops, rows included, and answering
-nothing. That reading was *invented here* rather than recovered, and a packet that silently
-destroys a player's world on arrival is not a behaviour to ship on the strength of a plausible name.
+`CSRequestCommonFarmList` carries a single `u32` farm tab and no other field. The client binds it to
+the script call `X2:RequestRuntimeCommonFarmDoodadInfo()`, which the farm window issues when it is
+shown, and the answer is `SCResponseCommonFarmListPacket` (`0x221`).
 
-`0x164` previously ran a validation that **looked protective and was not**: it compared the
-request's **point count** — the number of vertices in a shape polygon — against the farm group's
-**crop capacity**. Those are unrelated numbers, so the check could not have meant anything. The
-rules have been removed rather than retuned.
+The request is rate-limited on the client to one send every two seconds, and it is refused outright
+inside an instant zone, where the client reports its own reason and applies nothing. The refusal is
+carried by the answer's leading count: a leading total of zero means "no list is available here".
 
-`PublicFarmRequestSurfaceTests` now pins the interface to carry **no** bulk-delete and **no**
-planted-count member, so the hazard cannot be rebuilt under a new name. That test is the one
-assertion that outlived the deleted tests, and it is mutation-checked: re-adding the bulk delete
-to both the interface and the implementation fails 2 of 2.
+This packet is absent from the project's protocol catalog because a catalog row is emitted per packet
+*with a receive channel*, and a client-to-world packet has none by construction. Its absence from that
+list said nothing about it.
 
-## Wire contract (evidence: the raw client packet schema `ir`)
+### `0x163` and `0x164` are not sent by the shipped client
 
-The derived schema files omit the guarded loops; the authoritative source is the `ir`, which records
-each field plus its `if`/`loop` structure.
+`CSPlaceCommonFarmPacket` (`0x164`) and `CSRemoveCommonFarmsPacket` (`0x163`) exist in the client's
+packet set, but nothing in the client calls either sender. Both bodies match the farm shape-editor
+pair byte for byte in shape — `0x161`/`0x162` place and remove area spheres and area shapes, and
+`0x163`/`0x164` place and remove farm shapes with an empty body and a point list respectively.
 
-- **SC 0x220 `SCShowCommonFarmPacket`** — `u32 type` (object offset 16), then a **signed `s32
-  count`** (object offset 20), then, only when `count > 0`, a loop of `count` elements at object
-  offset 24 with a **24-byte stride**. Each element is the standard **11-byte quantized world
-  position** — the same shared position serializer used by nine packets (SC `0x06E`, `0x0A2`,
-  `0x0ED`, `0x11B`, `0x220`, `0x229`, `0x243`, `0x32B`, and CS `0x0BE`). The 24-byte stride is
-  confirmed by the sibling packet that places that serializer at object offset 24 with its next
-  field at object offset 48. The writer reuses `PacketStream.WritePosition`, which produces exactly
-  those 11 bytes.
+**Correcting the earlier slice on its own reasoning.** That slice withdrew the handlers citing "the
+raw schema records no handler, so nothing in the retail server reads these opcodes". The `handler`
+field of a catalog row is a *client receive* handler. Every client-to-world row has a null one — 460
+of 460 in the client's packet set and 479 of 479 in the zone build's — so the check selects nothing
+and proves nothing in either direction. The conclusion survives on the two sound grounds above (no
+caller, and the shape-editor pairing), not on the third.
 
-  This body **was wrong before**: it wrote a fixed 28-byte `(int, int, u64, u64, f32)` with no loop
-  and no positions, so the count said one thing and the bytes said another. It is now
-  `u32 type`, `s32 count`, then `count × WritePosition(...)`, and a negative count is refused
-  instead of looped on.
+### `0x15E` does not exist in the shipped client
 
-  *Correcting an earlier note in this document:* a previous revision described the element as
-  "11 quantized worldPos bytes + 11 selector bytes + two conditional 8-byte chunks gated on a float
-  compare", and called it an unreproducible client-internal record. That was a misreading of the
-  serializer — the "selector bytes" are the same 11 position bytes counted a second time, and the
-  "conditional chunks" is a single SIMD shuffle on the write path, not additional fields. There is
-  no unreproducible record here.
-- **CS 0x164 `CSPlaceCommonFarmPacket`** — `u32 type`, **`s32 count`**, then, only when
-  `count > 0`, a loop of `count` × 12-byte `vec3 point` (count clamped to 128 by the writer).
-  The previous parser read `count` as unsigned and consumed exactly one point, so a zero count
-  under-flowed into a phantom point and a count above one left the rest of the body unread — a
-  stream desynchronisation, not just a miscount. It now reads the signed count and the whole point
-  loop, bounded by the same 128-point wire clamp. **This parser fix is the substance of the slice**
-  and is retained even though the handler no longer acts on the request.
-- **CS 0x163 `CSRemoveCommonFarmsPacket`** — **empty body, zero `ir` rows, no handler.** Parsed as an
-  empty body and logged.
-- **CS 0x15E `CSShowCommonFarmAreaPacket`** — a **development-build-only** packet; absent from the
-  retail schema. See the narrow sender claim below.
+There is no `0x15E` farm-area request class in the client's packet set at all; it is present only in
+the zone build's. Nothing in the client script extract sends it either. **A shipped client therefore
+cannot ask for a farm area** — the answer has to be pushed by the server. The request handler is
+kept and now answers, because the writer needs one reachable caller and a console or tool that
+speaks the opcode is a legitimate one; the deployment note is that the normal path is a push.
 
-### The 0x15E sender claim, stated no more strongly than the evidence
+## Wire shapes used
 
-An earlier revision of this document asserted flatly that `0x15E` has "no 10.x sender". That is
-wider than what was actually checked. What is verified: the opcode does not appear anywhere in the
-7,737-file client Lua extract, by literal or by farm-packet name; and the retail schema records no
-such packet. What is **not** verified: the client console layer is **absent from that extract
-entirely** — it contains no `cd_` command strings and no console-registration routine — so a
-developer console command could still send it.
+`SCShowCommonFarmPacket` (`0x220`) — `u32 type`, **signed** `s32 count`, then `count` quantized
+world positions, 11 bytes each. Two reader properties shape what is written:
 
-**Open question.** If a `cd_`-style developer command exists, `0x15E` is reachable from a console and
-this handler should say so rather than claim no sender. Neither this document nor the reviewer who
-suggested such a command can be settled from the artifacts available here.
+- a count that is **not positive makes the reader drop the positions it was holding**, so a zero
+  count is not an empty answer, it is the way an area is cleared;
+- the reader honours at most **128** entries however large the count says.
 
-## Blocked remainder
+`SCResponseCommonFarmListPacket` (`0x221`) — `u32 maxCount`, **signed** `s32 count`, then that many
+crop records. One record is `u32` tab, `u32` doodad template, `u32` growing time, `u32` current
+phase, the shared quantized world position, and a `u64` planting time. The reader honours at most
+**64** records, and a leading total of zero is its "not available here" refusal.
 
-1. **Subzone → farm-area binding is still the pre-existing hardcoded map, and it is known-LOSSY.**
-   The farm-area lookup (`sub_zones` → farm group) has no typed link to a `common_farms` row, and
-   this has been confirmed rather than assumed. In the shipped content:
+`CSCreateDoodadPacket` (`0x131`) — `u32` template, position, `f32` z-rotation, `f32` scale,
+`u64` item. The farm gate sits behind this and nothing else.
 
-   | Table | Columns | Rows |
-   |---|---|---|
-   | `common_farms` | `id`, `name`, `guard_time`, `farm_group_id`, `comments` | 46 |
-   | `sub_zones` | `id`, `idx`, `name`, `x`, `y`, `w`, `h`, `linked_zone_group_id`, `parent_sub_zone_id`, `category_id`, … | 1356 |
+## What this slice changes
 
-   A column scan of all 1374 tables finds no join. `common_farms` carries only `farm_group_id`
-   (1 = 38 rows, 4 = 8 rows); `sub_zones` carries only `parent_sub_zone_id`. Every one of the five
-   farm subzones has `linked_zone_group_id = 0`, so that column cannot discriminate either, and
-   `category_id` does not discriminate because all five are `category_id = 1` among 64 rows.
+| Area | Before | After |
+|---|---|---|
+| Placement ordering | capacity before the allowed list | allowed list first, because it is the only question answerable without a number content may not have supplied |
+| Unconfigured farm | refused **and told to the player the farm is full** | sized by the farm group that governs the tab; only a tab no group governs is planted with no limit, logged once |
+| Protection window | missing `doodad_groups` row answered as `0` | missing row reported as unknown, and a crop whose age cannot be measured is treated as untakeable rather than retired |
+| Crop lifetime | a per-minute pass deleted every crop past its protection window | **no pass**: the window is a harvest permission, so an aged crop is unprotected, not gone |
+| Show-area | no answer at all | answered: refused off the farm, cleared for a different tab, answered for the requested tab, with a zero count doing the clearing |
+| Removal | none | a single-crop removal that refuses a foreign crop and a crop inside its window, and says which |
+| Farm list | count written straight from the crop total | count and records come from one flattened list, bounded at the reader's 64 and reported when reached |
 
-   The **only** correlation available is `sub_zones.name == common_farms.name`, which is Korean
-   display text. This project forbids display-name classification, and the correlation is lossy on
-   its face: **46 authored farms collapse onto just 5 subzone rows** across 3 distinct names. Four
-   of those five subzones are content-indistinguishable — same name, same `category_id`, same
-   `linked_zone_group_id` — yet the hardcoded map in `PublicFarmManager.Load()` assigns them four
-   *different* farm tabs (`966` = Farm, `967` = Ranch, `968` = Nursery, `998` = Farm). That mapping
-   is arbitrary and cannot be reconstructed from content.
+## The guard-direction trap, and where each guard falls
 
-   So the existing 5-entry map is **known-lossy, not merely unproven**. This slice adds no new
-   hardcoded ids and does not touch that map. Making the area lookup content-driven needs either a
-   typed link in content or an explicit, reviewed decision — and until one exists, the farm type
-   reported for subzones 966/967/968 is a guess that should not be trusted.
+This codebase has been bitten repeatedly by a guard written in the safe-looking direction that is
+actually wrong. The four that matter here, and the side of each line they sit on:
 
-2. **The three request packets mutate nothing, by evidence rather than by omission.** They parse and
-   log. Wiring a real behaviour to any of them needs a demonstrated 10.x sender first — which is the
-   same open question recorded for `0x15E` above.
+- **Allowed list before capacity** — sits on the *content* side. It is answerable for every tab,
+  including a tab with no capacity row, so a content gap can no longer be reported in place of the
+  real reason a crop was refused.
+- **Unknown capacity is not zero capacity** — sits on the *missing-data* side. Answering a missing
+  `farm_groups` row with `0` made a farm that accepts one crop and then refuses for ever.
+- **The protection window is a permission, not a lifetime** — the one that mattered most, because
+  getting it backwards deletes crops rather than refusing a placement. `CropHarvest` and
+  `DoodadFuncUse` use `guard_on_field_time` only to decide who may take a crop, and the client's farm
+  list shows an aged crop as *unprotected* rather than absent. So nothing retires a crop for age, and
+  there is no periodic pass at all. Reading the window as a lifetime is not a narrow bug either:
+  **103 of the 110 shipped `doodad_groups` rows carry `guard_on_field_time = 0`**, so it would have
+  cleared almost the whole field a minute after planting.
+- **Unknown protection window is not an empty protection window** — also on the *missing-data* side.
+  A missing `doodad_groups` row means the length is unknown, and a crop whose age cannot be compared
+  to anything is not known to be harvestable, so it is treated as untakeable rather than free.
+- **A configured `0` window is still a configured window** — on the *other* side of the same line.
+  Zero is a real content value meaning "no protection"; only a missing row is unknown, and the two
+  are reported differently so an unprotected group is not mistaken for an unknown one.
 
-3. **The show-area response is implemented but not reachable.** `SC 0x220` is written to the real
-   wire and unit-pinned, but nothing calls it, because `CS 0x15E` has no confirmed sender.
+## Open, not claimed
 
-4. **Harvest / item-return semantics are out of scope.** Returning a crop is the separate
-   `DoodadFuncFinal` interaction path and is not touched here. It is worth recording that the
-   withdrawn `0x163` behaviour would have deleted crops **without** returning items.
+- The subzone-to-farm-tab map in `PublicFarmManager.Load()` is still the pre-existing hardcoded
+  five-entry map, and it is known-lossy: four of the five subzones are content-indistinguishable and
+  the map gives them four different tabs. It is not touched here, and no new ids were added.
+- `common_farms` has 46 authored rows across just three names and no column that joins a farm area
+  to a subzone. Making the area lookup content-driven needs a typed link in content or an explicitly
+  reviewed decision, not a name match.
+- Two of the four farm tabs (Nursery and Ranch) carry no `farm_groups` row of their own, so nothing
+  states a size beside them. Three answers were possible and the first two are wrong: reading the
+  missing row as zero is what made a farm take one crop and refuse for ever, and refusing the tabs
+  outright made two of four unplantable. The answer used here is that **a tab with no row of its own
+  is sized by the farm group its crops come from** (`CommonFarmGameData.TryGetOwningFarmGroup`).
+  Content states the size per group, and these two tabs plant out of a group that has one: of
+  Nursery's six listed crops, five are also group 1's, and all six of Ranch's are. Both are therefore
+  bounded by group 1's own number, read from content, and the owner is derived from crop membership
+  rather than named in C#, so a content patch that moves a crop changes the answer. A tab sharing no
+  crop with any sized group resolves to no owner and is planted with no limit and logged once; that
+  is the remaining honest gap, and the only one left.
+  The subzone-name half of this is not verifiable from `compact.sqlite3` — subzones live in
+  the loose level files. The crop-membership half above is, and it is the stronger evidence.
+- The `u64 planting time` in a farm-list record is written as the stored timestamp. The reader
+  compares it against a file-time clock, so the epoch is worth confirming against a capture before
+  the list is called correct end to end. Not changed here: nothing measured says it is wrong.
+- Live acceptance has not been run on this slice. Per the five-gate protocol it is verified at the
+  unit and wire level only.
 
 ## Verification
 
-- `CS 0x164` **parser** tests: consumes the whole point loop; zero count carries no points; negative
-  (signed) count carries no points; a hostile count is bounded by the wire clamp; a single point
-  matches a one-entry request. These read real bytes and assert real values.
-- `SC 0x220` **writer** tests (9): zero count is an 8-byte header with no positions; one count emits
-  exactly one 11-byte position; `N` counts emit exactly `N` positions at the documented stride; a
-  negative count is refused rather than looped on; a count past the available positions is bounded;
-  a hostile count is bounded by the wire clamp. Position bytes are compared against the shared
-  quantized-position block, so the test fails if the writer stops using the standard serializer.
-  Both the loop and the negative-count guard were mutation-checked: disabling the loop fails 4 of
-  the 9, accepting a negative count fails 2.
-- `PublicFarmRequestSurfaceTests` (2): the farm manager interface exposes exactly
-  `{PublicFarmTick, InPublicFarm, GetFarmType}` and no `int`-returning member. **Mutation-checked
-  faithfully** — re-adding the bulk delete to *both* the interface and the implementation fails
-  2 of 2. (An earlier mutation that touched only the interface did not compile and therefore proved
-  nothing; that attempt is recorded because the meaningless result is the easy one to report as a
-  pass.)
-- Full unit suite passing — exact count in the task result.
-- `git diff --check` clean. **BOM parity 0 drift measured in both directions**, binary-safely
-  against base: `.cs` is the only extension where `.editorconfig` demands a BOM and the tree mostly
-  lacks one (34.2% have one), so parity with base — not "always add a BOM" — is the rule.
-
-## Live acceptance still required
-
-Per the five-gate testing protocol, this slice is verified at the unit/wire level only. Before it
-can be called done it still needs the live gates: a demonstrated sender, the request on the wire,
-the server-side effect and a persisted doodad row, a client-visible result, and a clean-state
-restart. **No live acceptance run has been performed on this slice.**
+- `CommonFarmPlacementRules` — unconfigured capacity places at every planted count, an unconfigured
+  tab shown to ignore a capacity it was never given, "no capacity row" pinned apart from "capacity
+  reached", the capacity boundary asserted on both sides, the allowed-list ordering asserted against
+  both an unconfigured and a full tab, and every enum member swept as reachable.
+- `CommonFarmShowAreaRules` — each of the three outcomes asserted from both sides, the invalid tab
+  and the off-farm position both refused, the response shown to name the land rather than the
+  request, and every farm tab swept as answerable for itself.
+- `CommonFarmListRules` — inside the bound, exactly at the bound, one past it, a hostile count against
+  a short list, a negative count refused, and an empty list distinguished from a truncated one.
+- `PublicFarmRequestSurfaceTests` — the interface is pinned to the four named operations, no member
+  returns an `int`, **no member takes a collection of doodads**, the removal takes exactly one
+  doodad, and the manager takes no task manager at all. The last two are the standing guard against
+  the bulk delete this row once had, and the last is the guard against the expiry pass coming back:
+  with no scheduler injected there is nothing for a periodic crop-deletion pass to run on.
+- `CommonFarmGameDataTests` — both missing rows reported as unknown rather than as zero, a configured
+  zero window reported as configured rather than unknown, and the owning-group resolution pinned on
+  the shipped shape: a tab with no row governed by the group its crops come from, a tab with a row
+  governed by itself, an inherited capacity being the governing group's own number, a tab sharing
+  no crop with any sized group having no owner, and the owner chosen by best overlap with the lower
+  id breaking a tie so the answer cannot change between restarts.
