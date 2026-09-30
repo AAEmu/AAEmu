@@ -50,4 +50,43 @@ public static class HousingPlotGeometry
         var sin = MathF.Sin(yawRadians);
         return (houseX + localX * cos - localY * sin, houseY + localX * sin + localY * cos);
     }
+
+    /// <summary>
+    /// Plots closer than this along a separating axis still count as touching. Houses snap to a 4 m
+    /// lattice, so neighbours usually share an edge exactly, and float error must not turn that into
+    /// an overlap.
+    /// </summary>
+    public const float OverlapTolerance = 0.05f;
+
+    /// <summary>
+    /// True when two rotated garden squares share area. Squares that only touch along an edge or a
+    /// corner do not overlap, and a plot of radius 0 overlaps nothing.
+    /// </summary>
+    /// <remarks>
+    /// Separating-axis test on the four edge normals of the two squares. A square of half-size r with
+    /// axes u and v projects onto a unit axis n with half-length r * (|u.n| + |v.n|).
+    /// </remarks>
+    public static bool PlotsOverlap(float radiusA, float yawA, float ax, float ay,
+        float radiusB, float yawB, float bx, float by)
+    {
+        if (radiusA <= 0f || radiusB <= 0f)
+            return false;
+
+        var cosA = MathF.Cos(yawA);
+        var sinA = MathF.Sin(yawA);
+        var cosB = MathF.Cos(yawB);
+        var sinB = MathF.Sin(yawB);
+        var dx = bx - ax;
+        var dy = by - ay;
+
+        return !Separates(cosA, sinA) && !Separates(-sinA, cosA)
+            && !Separates(cosB, sinB) && !Separates(-sinB, cosB);
+
+        bool Separates(float nx, float ny)
+        {
+            var halfA = radiusA * (MathF.Abs(cosA * nx + sinA * ny) + MathF.Abs(-sinA * nx + cosA * ny));
+            var halfB = radiusB * (MathF.Abs(cosB * nx + sinB * ny) + MathF.Abs(-sinB * nx + cosB * ny));
+            return MathF.Abs(dx * nx + dy * ny) >= halfA + halfB - OverlapTolerance;
+        }
+    }
 }
