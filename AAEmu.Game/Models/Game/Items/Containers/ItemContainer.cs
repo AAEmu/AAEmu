@@ -497,6 +497,16 @@ public class ItemContainer
             Owner?.Inventory.OnConsumedItem(item, item.Count);
         }
 
+        // A stack merged in from elsewhere lives on only as the count added to the target stack. Release
+        // it the way a merge inside the inventory does (SplitOrMoveItem doMerge). Otherwise it stays
+        // registered with its old container and slot, and is saved as an orphan row: a mail attachment
+        // taken onto an existing bag stack was left in the items table with slot_type Mail.
+        if (canAddToSameSlot && sourceContainer != this)
+        {
+            item._holdingContainer = null;
+            ItemManager.Instance.ReleaseId(item.Id);
+        }
+
         return itemTasks.Count + sourceItemTasks.Count > 0;
     }
 
