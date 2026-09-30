@@ -20,6 +20,9 @@ public enum SkillObjectType
     /// <summary>10.0.2.13 <c>ActiveAbilitySet</c> — payload is skillsaver slot index (i32).</summary>
     AbilitySet = 15,
 
+    /// <summary>Demolishing a house. See <see cref="SkillObjectHouseDemolish"/>.</summary>
+    HouseDemolish = 17,
+
     /// <summary>Bless Uthstin activate. Payload is the 0-based page as one byte.</summary>
     BlessUthstinPage = 25,
 
@@ -59,6 +62,7 @@ public class SkillObject : PacketMarshaler
         flagType is >= (int)SkillObjectType.Unk1 and <= (int)SkillObjectType.ItemEvolvingMaterials
             and not (int)SkillObjectType.Unk6
             or (int)SkillObjectType.AbilitySet
+            or (int)SkillObjectType.HouseDemolish
             or (int)SkillObjectType.BlessUthstinPage
             or (int)SkillObjectType.ItemChangeMapping
             or (int)SkillObjectType.ExpeditionPortal;
@@ -94,6 +98,9 @@ public class SkillObject : PacketMarshaler
                 break;
             case SkillObjectType.AbilitySet:
                 obj = new SkillObjectAbilitySet();
+                break;
+            case SkillObjectType.HouseDemolish:
+                obj = new SkillObjectHouseDemolish();
                 break;
             case SkillObjectType.BlessUthstinPage:
                 obj = new SkillObjectBlessUthstinPage();

@@ -9,6 +9,16 @@ public interface IWorldInteraction
     void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType, uint skillId, uint doodadId = 0, DoodadFuncTemplate objectFunc = null);
 }
 
+/// <summary>
+/// A world interaction that also needs the cast's skill object, the extra choice the client sent
+/// with CSStartSkill. <see cref="Skills.Effects.InteractionEffect"/> calls this overload instead of
+/// <see cref="IWorldInteraction.Execute"/> when the interaction implements it.
+/// </summary>
+public interface ISkillObjectWorldInteraction : IWorldInteraction
+{
+    void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType, uint skillId, uint doodadId, SkillObject skillObject);
+}
+
 public enum WorldInteractionType
 {
     Looting = 0,
