@@ -1024,6 +1024,26 @@ public class Skill
         return ownerObjId > 0 ? caster.ParentWorld?.GetBaseUnit(ownerObjId) : null;
     }
 
+    /// <summary>
+    /// The cast target an effect is handed for one of its targets: the client's own packet when the effect
+    /// lands on the unit it names, otherwise a unit target naming the effect's target.
+    /// <see cref="SetInitialTarget"/> turns a position packet into a stand unit with ObjId
+    /// <see cref="uint.MaxValue"/>, while the packet itself keeps ObjId 0. That stand is still the packet's
+    /// target, so the effect gets the packet and its Pos*/PosRot. Replacing it with a unit target dropped the
+    /// heading a summon (SpawnSlave) plants the hull at.
+    /// </summary>
+    internal static SkillCastTarget EffectCastTarget(BaseUnit effectTarget, SkillCastTarget targetCaster)
+    {
+        if (effectTarget.ObjId == targetCaster.ObjId)
+            return targetCaster;
+
+        if (effectTarget.ObjId == uint.MaxValue &&
+            targetCaster is SkillCastPositionTarget or SkillCastPosition2Target or SkillCastPosition3Target)
+            return targetCaster;
+
+        return new SkillCastUnitTarget(effectTarget.ObjId);
+    }
+
     private static BaseUnit SetInitialTarget(BaseUnit caster, SkillCastTarget targetCaster)
     {
         var positionUnit = new BaseUnit { ObjId = uint.MaxValue };
@@ -2036,9 +2056,7 @@ public class Skill
             // Template can be null for some reason.
             if (effect.Template != null)
             {
-                var thisTargetCaster = target.ObjId == targetCaster.ObjId
-                    ? targetCaster
-                    : new SkillCastUnitTarget(target.ObjId);
+                var thisTargetCaster = EffectCastTarget(target, targetCaster);
 
                 effect.Template.Apply(caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
 
