@@ -24,4 +24,8 @@ public static class SkillsEnum
     public const uint SellTradeGood = 36491; // Cargo sale transaction
     public const uint UseTradeGoodStore = 36490; // Visible cargo purchase interaction
     public const uint BuyTradeGood = 36492; // Cargo purchase transaction
+
+    // House interactions (const_skill_types). Either one first in the list opens the house window.
+    public const uint ConstructionInfo = 11001; // is_craft_info - materials window of an unfinished house
+    public const uint HousingInteraction = 12106; // nil_housing_interaction - window of a finished house
 }
