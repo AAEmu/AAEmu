@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Taxations;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
@@ -131,6 +132,52 @@ public class HousingManagerTests
         await Assert.That(result).IsEqualTo(HousingManager.HousePurchasePreparation.ButlerUnbindFailed);
         await Assert.That(refundCalled).IsTrue();
     }
+
+    [Test]
+    public async Task CalculateBuildingTaxInfo_FirstHouseOfTheAccount_PaysWeeklyTaxAndDeposit()
+    {
+        // Scarecrow Garden (design 267): taxation 8, 50000 per week.
+        var manager = CreateManager();
+        SetPrivateField(manager, "_houses", new Dictionary<uint, House>());
+        var garden = TaxedTemplate(267, 50_000);
+
+        var ok = manager.CalculateBuildingTaxInfo(AccountId, garden, true,
+            out var total, out var heavy, out var normal, out _, out var weekly);
+
+        // One week up front plus the two-week deposit that demolition later refunds.
+        await Assert.That(total).IsEqualTo(150_000);
+        await Assert.That(ok).IsTrue();
+        await Assert.That(weekly).IsEqualTo(50_000);
+        await Assert.That(heavy).IsEqualTo(0);
+        await Assert.That(normal).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task CalculateBuildingTaxInfo_SecondHouse_CountsTheHouseAlreadyOwned()
+    {
+        var manager = CreateManager();
+        var owned = CreateHouse(null, 1, 100f, 200f);
+        owned.AccountId = AccountId;
+        owned.Template = TaxedTemplate(267, 50_000);
+        SetPrivateField(manager, "_houses", new Dictionary<uint, House> { [owned.Id] = owned });
+
+        var ok = manager.CalculateBuildingTaxInfo(AccountId, TaxedTemplate(175, 100_000), true,
+            out var total, out _, out var normal, out _, out var weekly);
+
+        await Assert.That(ok).IsTrue();
+        await Assert.That(total).IsEqualTo(300_000);
+        await Assert.That(weekly).IsEqualTo(100_000);
+        await Assert.That(normal).IsEqualTo(2);
+    }
+
+    private const uint AccountId = 77;
+
+    private static HousingTemplate TaxedTemplate(uint id, uint weeklyTax) => new()
+    {
+        Id = id,
+        Taxation = new Taxation { Id = 1, Tax = weeklyTax },
+        HousingSize = new HousingSize { Id = 2, GardenRadius = 10f }
+    };
 
     private static HousingManager CreateManager()
     {
