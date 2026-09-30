@@ -174,10 +174,7 @@ public static class Program
         {
             // Quota credit comes from Npc.DoDie → OnWorldNpcKilled (once). Do not also
             // call TowerDefScheduler here or Zone deaths decrement twice.
-            // Death is the other end of the abuse state: the killed npc holds no list after this,
-            // so the next death on a recycled id cannot inherit the previous occupant's abusers.
-            NpcAbuserRegistry.ForgetNpc(bcId);
-            WorldIntegration.MirrorZoneNpcKilled(bcId);
+            WorldIntegration.ResolveKillCreditThenForget(bcId);
         };
         WorldIntegration.OnWorldNpcKilled = tpl => TowerDefScheduler.OnNpcKilled(tpl);
         WorldIntegration.AllowsPlotSelfDamageBypass = unit =>

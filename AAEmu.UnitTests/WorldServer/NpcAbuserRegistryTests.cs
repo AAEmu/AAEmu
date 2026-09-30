@@ -103,10 +103,15 @@ public class NpcAbuserRegistryTests
     }
 
     [Test]
-    public async Task Unregister_AcceptsTheWidestBatchTheCountByteAllows()
+    public async Task Unregister_CarriesNoCapOfItsOwnOnTheCountByte()
     {
-        // The count is a byte, so 255 ids is the widest well-formed batch there is. A parser that
-        // caps below that would drop a legitimate event and leave the rows behind.
+        // The count is a byte, so the parser could hold 255 ids and the test uses all of them to prove
+        // it does not - an added cap here would silently drop rows and leave the mirror behind.
+        //
+        // The native serializer clamps this batch to 100, so 100 is the widest that will actually
+        // arrive and 255 is past it. Reading the full byte range is deliberate and harmless: the extra
+        // ids are the ones the packet really carries, so accepting them cannot invent a removal, and
+        // a packet claiming more ids than its body holds is refused by the length check regardless.
         var ids = Enumerable.Range(1, byte.MaxValue)
             .Select(i => (uint)(0x1000 + i))
             .ToArray();
@@ -294,6 +299,81 @@ public class NpcAbuserRegistryTests
         TestDungeonWorld.Attach(npc, _world);
         _world.AddObject(npc);
         return npc;
+    }
+
+    /// <summary>
+    /// The abuse list must still be readable at the moment the kill is mirrored.
+    /// </summary>
+    /// <remarks>
+    /// The defect this pins, and the reason the resolver's own tests never caught it: they call
+    /// <c>ResolveZoneKillCredit</c> directly, so they never see the hook that runs in production. That
+    /// hook emptied the abuse list before calling the mirror, so <c>SelectZoneReportedTarget</c> found
+    /// nothing, <c>HasEntry</c> was false so the "zone has an opinion" guard could not fire either,
+    /// and the resolver fell through to the World-only paths this bridge exists to replace. The new
+    /// selection had no effect in production and every death looked unattributed.
+    /// </remarks>
+    [Test]
+    public async Task TheAbuseListIsStillReadableWhenTheKillIsMirrored()
+    {
+        NpcAbuserRegistry.Reset();
+        const uint npc = Npc;
+        const uint abuser = Abuser;
+        NpcAbuserRegistry.Register(npc, abuser);
+
+        // The mirror step is where the credit is resolved, so this is where the list must still be
+        // whole. Capturing the registry state inside the callback is the only observation that sees
+        // the ordering rather than the end result.
+        var visibleAtResolve = false;
+        var idsAtResolve = Array.Empty<uint>();
+
+        AAEmu.Game.WorldIntegration.ResolveKillCreditThenForget(npc, _ =>
+        {
+            visibleAtResolve = NpcAbuserRegistry.HasEntry(npc);
+            idsAtResolve = NpcAbuserRegistry.GetAbusers(npc).ToArray();
+        });
+
+        await Assert.That(visibleAtResolve).IsTrue();
+        await Assert.That(idsAtResolve).IsEquivalentTo(new[] { abuser });
+    }
+
+    /// <summary>
+    /// And the list is still gone afterwards - forgetting late must not have become forgetting never.
+    /// </summary>
+    [Test]
+    public async Task TheAbuseListIsGoneOnceTheKillHasBeenMirrored()
+    {
+        NpcAbuserRegistry.Reset();
+        const uint npc = Npc;
+        NpcAbuserRegistry.Register(npc, Abuser);
+        NpcAbuserRegistry.Register(npc, 0x0A0B0C);
+
+        var mirrored = false;
+        AAEmu.Game.WorldIntegration.ResolveKillCreditThenForget(npc, _ => mirrored = true);
+
+        await Assert.That(mirrored).IsTrue();
+        await Assert.That(NpcAbuserRegistry.HasEntry(npc)).IsFalse();
+        await Assert.That(NpcAbuserRegistry.GetAbusers(npc)).IsEmpty();
+        await Assert.That(NpcAbuserRegistry.TrackedNpcCount).IsEqualTo(0);
+    }
+
+    /// <summary>
+    /// Forgetting before resolving is the regression, pinned directly: it leaves nothing for the
+    /// resolver to read and nothing for the guard to notice.
+    /// </summary>
+    [Test]
+    public async Task ForgettingFirstWouldLeaveTheResolverNothingToRead()
+    {
+        NpcAbuserRegistry.Reset();
+        const uint npc = Npc;
+        NpcAbuserRegistry.Register(npc, Abuser);
+
+        // What the hook used to do, run explicitly.
+        NpcAbuserRegistry.ForgetNpc(npc);
+        var visibleAtResolve = NpcAbuserRegistry.HasEntry(npc);
+        var idsAtResolve = NpcAbuserRegistry.GetAbusers(npc).ToArray();
+
+        await Assert.That(visibleAtResolve).IsFalse();
+        await Assert.That(idsAtResolve).IsEmpty();
     }
 
     private static void Score(Npc npc, uint objId, int damage)

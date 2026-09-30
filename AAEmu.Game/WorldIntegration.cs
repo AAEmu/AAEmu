@@ -1642,6 +1642,31 @@ public static class WorldIntegration
     /// Handle <c>ZWKillNpc</c>: credit death via <see cref="Unit.DoDie"/> so loot and
     /// quest kill hooks fire. Despawn-only still uses <see cref="MirrorZoneNpcRemove"/>.
     /// </summary>
+    /// <summary>
+    /// Handles one zone death: resolve who gets the credit, then drop the npc's abuse state.
+    /// </summary>
+    /// <param name="mirrorNpcKilled">
+    /// The mirror step, so a test can observe the registry at the moment it runs. Defaults to
+    /// <see cref="MirrorZoneNpcKilled"/>.
+    /// </param>
+    /// <remarks>
+    /// The order is the whole point and is not interchangeable. <see cref="MirrorZoneNpcKilled"/>
+    /// resolves the killer out of the abuse list this npc still holds, so the list has to be read
+    /// before <c>ForgetNpc</c> empties it - and before that, <c>HasEntry</c> reports false, so the
+    /// "the zone has an opinion" guard cannot fire either. Forgetting first therefore does not just
+    /// lose the zone's choice, it removes every trace that the zone had one, and the resolver falls
+    /// through to the World-only paths this bridge exists to replace. Every death looks unattributed.
+    /// <para>
+    /// Forgetting afterwards is still required: death is the other end of the abuse state, so a
+    /// recycled id cannot inherit the previous occupant's abusers.
+    /// </para>
+    /// </remarks>
+    public static void ResolveKillCreditThenForget(uint bcId, Action<uint> mirrorNpcKilled = null)
+    {
+        mirrorNpcKilled?.Invoke(bcId);
+        NpcAbuserRegistry.ForgetNpc(bcId);
+    }
+
     public static void MirrorZoneNpcKilled(uint bcId)
     {
         CancelNpcHandoff(bcId);
