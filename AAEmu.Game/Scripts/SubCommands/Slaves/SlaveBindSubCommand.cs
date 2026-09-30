@@ -17,6 +17,10 @@ public class SlaveBindSubCommand : SubCommandBase
         CallPrefix = $"{CommandManager.CommandPrefix}slave bind";
     }
 
+    // No parameters, so PreExecute always calls this overload; the base one only prints help.
+    public override void Execute(ICharacter character, string triggerArgument, string[] args, IMessageOutput messageOutput) =>
+        Execute(character, triggerArgument, new Dictionary<string, ParameterValue>(), messageOutput);
+
     public override void Execute(ICharacter character, string triggerArgument,
         IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
