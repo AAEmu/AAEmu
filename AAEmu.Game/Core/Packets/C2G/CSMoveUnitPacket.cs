@@ -61,8 +61,16 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
         if (character == null) return;
         character.LastPacketActivityTime = DateTime.UtcNow;
 
-        // if movement is forbidden when teleporting to instances, then to exit
-        if (character.DisabledSetPosition) return;
+        // Locked while a teleport or instance load waits for CSTeleportEnded / CSInstanceLoaded, or by a GM freeze.
+        if (character.DisabledSetPosition)
+        {
+            // Debug, not Warn: every move sent during a teleport lands here. A client that never sends
+            // CSTeleportEnded shows up here instead of its moves vanishing without a trace.
+            Logger.Debug(
+                "Dropped movement type {0} for {1} ({2}): position updates are locked",
+                _moveType.Type, character.Name, character.ObjId);
+            return;
+        }
 
         // Root / stun / sleep: the player's own movement is refused here, before the ZoneAuthority relay
         // below can forward it as WZ and before the local path writes Transform. The gate is on the mover
