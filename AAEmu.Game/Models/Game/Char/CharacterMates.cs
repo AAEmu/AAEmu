@@ -189,8 +189,8 @@ public class CharacterMates(Character owner)
         // starts the mate at that maximum; a recorded one is kept, and cut down to the maximum when it
         // was saved against a larger one. Every recovery that lands afterwards — the regen tick, a
         // recovery item, a recovery skill — clamps against this same maximum.
-        mount.Hp = MateRecoveryRules.RestorePoints(mateDbInfo.Hp, mount.MaxHp);
-        mount.Mp = MateRecoveryRules.RestorePoints(mateDbInfo.Mp, mount.MaxMp);
+        mount.Hp = MateRecoveryRules.RestorePoints(MateRecoveryRules.MateBar.Health, mateDbInfo.Hp, mount.MaxHp);
+        mount.Mp = MateRecoveryRules.RestorePoints(MateRecoveryRules.MateBar.Mana, mateDbInfo.Mp, mount.MaxMp);
 
         mount.Transform.Local.AddDistanceToFront(3f);
         //Logger.Warn($"Spawn the pet:{mount.ObjId} X={mount.Transform.World.Position.X} Y={mount.Transform.World.Position.Y}");

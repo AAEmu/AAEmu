@@ -33,16 +33,39 @@ public static class MateRecoveryRules
     /// one. Zero is a real reading and is restored as zero.
     /// </param>
     /// <param name="maximum">The maximum this bar is reconstructed to, which must not be negative.</param>
-    public static int RestorePoints(int? recordedPoints, int maximum)
+    public static int RestorePoints(MateBar bar, int? recordedPoints, int maximum)
     {
         if (maximum < 0)
             throw new ArgumentOutOfRangeException(nameof(maximum), maximum, "A mate maximum cannot be negative.");
 
-        // Never recorded: start at the reconstructed maximum. This is the only case that does so.
+        // Never recorded: start at the reconstructed maximum.
         if (recordedPoints is not { } recorded || recorded == Unrecorded)
             return maximum;
 
-        return Math.Min(recorded, maximum);
+        var restored = Math.Min(recorded, maximum);
+
+        // A recorded 0 health is the one recorded value that cannot be honoured. A dead mate is a
+        // dead end: its regen tick returns early while it is dead, mounting refuses a dead mate, and
+        // resurrection only handles characters, so nothing reads the mate revive settings and nothing
+        // brings it back. Restoring 0 would leave an owned mate permanently unusable.
+        //
+        // Mana is not affected - an empty mana bar regens on its own, and restoring it as 0 is honest.
+        // Health is restored to the maximum until a mate revive exists to carry the real bar through;
+        // that is a deliberate stand-in for a missing feature, not the recorded value.
+        if (bar == MateBar.Health && restored <= 0)
+            return maximum;
+
+        return restored;
+    }
+
+    /// <summary>Which of a mate's two recovery bars a restore is about.</summary>
+    public enum MateBar
+    {
+        /// <summary>The health bar. A recorded zero means the mate was captured dead.</summary>
+        Health = 0,
+
+        /// <summary>The mana bar. A recorded zero is an empty bar that regens back on its own.</summary>
+        Mana = 1
     }
 
     /// <summary>

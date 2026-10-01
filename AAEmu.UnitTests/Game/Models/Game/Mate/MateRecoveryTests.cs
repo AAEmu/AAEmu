@@ -422,6 +422,9 @@ public class MateRecoveryTests
         await Assert.That(mate.Mp).IsEqualTo(mate.MaxMp);
     }
 
+    private const MateRecoveryRules.MateBar Health = MateRecoveryRules.MateBar.Health;
+    private const MateRecoveryRules.MateBar Mana = MateRecoveryRules.MateBar.Mana;
+
     /// <summary>
     /// "Never recorded" and "recorded zero" are different readings and must restore differently.
     /// </summary>
@@ -435,21 +438,53 @@ public class MateRecoveryTests
     {
         const int maximum = 1000;
 
-        // Never recorded, as a state and as a missing column.
-        await Assert.That(MateRecoveryRules.RestorePoints(MateRecoveryRules.Unrecorded, maximum))
-            .IsEqualTo(maximum);
-        await Assert.That(MateRecoveryRules.RestorePoints((int?)null, maximum)).IsEqualTo(maximum);
+        // Never recorded, as a state and as a missing column. Either bar starts full.
+        foreach (var bar in new[] { Health, Mana })
+        {
+            await Assert.That(MateRecoveryRules.RestorePoints(bar, MateRecoveryRules.Unrecorded, maximum))
+                .IsEqualTo(maximum);
+            await Assert.That(MateRecoveryRules.RestorePoints(bar, (int?)null, maximum)).IsEqualTo(maximum);
+        }
 
-        // A real zero is restored as zero, at any maximum. This is the regression.
-        await Assert.That(MateRecoveryRules.RestorePoints(0, maximum)).IsEqualTo(0);
-        await Assert.That(MateRecoveryRules.RestorePoints(0, 0)).IsEqualTo(0);
+        // A recorded zero mana bar is restored as zero, at any maximum. This is the regression.
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, 0, maximum)).IsEqualTo(0);
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, 0, 0)).IsEqualTo(0);
 
         // And the two really are different answers, which is the whole point.
-        await Assert.That(MateRecoveryRules.RestorePoints(0, maximum))
-            .IsNotEqualTo(MateRecoveryRules.RestorePoints(MateRecoveryRules.Unrecorded, maximum));
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, 0, maximum))
+            .IsNotEqualTo(MateRecoveryRules.RestorePoints(Mana, MateRecoveryRules.Unrecorded, maximum));
 
         // The unrecorded marker must not be mistaken for a number content could have written.
         await Assert.That(MateRecoveryRules.Unrecorded).IsLessThan(0);
+    }
+
+    /// <summary>
+    /// A mate recorded at zero health comes back alive, because a dead mate is a dead end.
+    /// </summary>
+    /// <remarks>
+    /// The second problem the review raised. Restoring a recorded zero health honoured the recorded
+    /// value and left the mate permanently unusable: its regen tick returns early while it is dead,
+    /// mounting refuses a dead mate, and resurrection only handles characters - nothing reads the mate
+    /// revive settings, so there is no way out. Health therefore restores to the maximum until a mate
+    /// revive exists to carry the bar through, and this is a stand-in for that missing feature rather
+    /// than the recorded value.
+    /// </remarks>
+    [Test]
+    public async Task RestorePoints_BringsAMateRecordedDeadBackAlive()
+    {
+        const int maximum = 1000;
+
+        await Assert.That(MateRecoveryRules.RestorePoints(Health, 0, maximum)).IsEqualTo(maximum);
+        await Assert.That(MateRecoveryRules.RestorePoints(Health, 0, 1)).IsEqualTo(1);
+
+        // The two bars really are treated differently, which is the point: mana at zero stays at zero.
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, 0, maximum)).IsEqualTo(0);
+        await Assert.That(MateRecoveryRules.RestorePoints(Health, 0, maximum))
+            .IsNotEqualTo(MateRecoveryRules.RestorePoints(Mana, 0, maximum));
+
+        // Any real health is still honoured, so the stand-in covers only the dead case.
+        await Assert.That(MateRecoveryRules.RestorePoints(Health, 1, maximum)).IsEqualTo(1);
+        await Assert.That(MateRecoveryRules.RestorePoints(Health, 500, maximum)).IsEqualTo(500);
     }
 
     /// <summary>A recorded bar inside the maximum is kept, and one over it is cut down to it.</summary>
@@ -458,18 +493,21 @@ public class MateRecoveryTests
     {
         const int maximum = 1000;
 
-        await Assert.That(MateRecoveryRules.RestorePoints(1, maximum)).IsEqualTo(1);
-        await Assert.That(MateRecoveryRules.RestorePoints(500, maximum)).IsEqualTo(500);
-        await Assert.That(MateRecoveryRules.RestorePoints(maximum, maximum)).IsEqualTo(maximum);
-        await Assert.That(MateRecoveryRules.RestorePoints(maximum + 1, maximum)).IsEqualTo(maximum);
-        await Assert.That(MateRecoveryRules.RestorePoints(int.MaxValue, maximum)).IsEqualTo(maximum);
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, 1, maximum)).IsEqualTo(1);
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, 500, maximum)).IsEqualTo(500);
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, maximum, maximum)).IsEqualTo(maximum);
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, maximum + 1, maximum)).IsEqualTo(maximum);
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, int.MaxValue, maximum)).IsEqualTo(maximum);
 
-        // An unrecorded bar and a bar that recovered to the cap are not the same statement, and the
-        // rule that produces them must not quietly produce a third answer between the two.
-        await Assert.That(MateRecoveryRules.RestorePoints(MateRecoveryRules.Unrecorded, maximum))
-            .IsNotEqualTo(MateRecoveryRules.RestorePoints(1, maximum));
+        // Health caps the same way, so standing in for a dead mate does not also become an excuse to
+        // restore a bar the mate cannot hold.
+        await Assert.That(MateRecoveryRules.RestorePoints(Health, maximum + 1, maximum)).IsEqualTo(maximum);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => MateRecoveryRules.RestorePoints(1, -1));
+        // An unrecorded bar and a bar that recovered to the cap are not the same statement.
+        await Assert.That(MateRecoveryRules.RestorePoints(Mana, MateRecoveryRules.Unrecorded, maximum))
+            .IsNotEqualTo(MateRecoveryRules.RestorePoints(Mana, 1, maximum));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => MateRecoveryRules.RestorePoints(Mana, 1, -1));
     }
 
     private static SqliteConnection CreateMatesConnection()
@@ -485,8 +523,8 @@ public class MateRecoveryTests
                 xp INTEGER NOT NULL,
                 level INTEGER NOT NULL,
                 mileage INTEGER NOT NULL,
-                hp INTEGER NOT NULL,
-                mp INTEGER NOT NULL,
+                hp INTEGER NULL,
+                mp INTEGER NULL,
                 owner INTEGER NOT NULL,
                 updated_at TEXT NOT NULL,
                 created_at TEXT NOT NULL,
