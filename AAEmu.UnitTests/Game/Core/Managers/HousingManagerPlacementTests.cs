@@ -104,6 +104,34 @@ public sealed class HousingManagerPlacementTests : IDisposable
     }
 
     [Test]
+    public async Task SpotOnARowThroughAnAreaCorner_IsJudgedByWhereItIs()
+    {
+        // House rows sit on a grid, so a row through an area corner is common. A diamond puts two
+        // corners on the row y = 14640.
+        Houses();
+        _world.Template.HousingZones[ZoneKey] =
+        [
+            new Area
+            {
+                Name = "LevelDesignShape_test",
+                _points =
+                [
+                    new Point(15300f, 14640f, 0f),
+                    new Point(15350f, 14590f, 0f),
+                    new Point(15400f, 14640f, 0f),
+                    new Point(15350f, 14690f, 0f),
+                ],
+            },
+        ];
+
+        var inside = _manager.CheckPlacement(_world, ZoneKey, Garden, 15340f, 14640f, 0f, false);
+        var outside = _manager.CheckPlacement(_world, ZoneKey, Garden, 15420f, 14640f, 0f, false);
+
+        await Assert.That(inside).IsNull();
+        await Assert.That(outside).IsEqualTo(ErrorMessageType.HouseCannotLocateInvalidArea);
+    }
+
+    [Test]
     public async Task ZoneWithoutLoadedHousingAreas_IsNotJudgedOnArea()
     {
         Houses();
