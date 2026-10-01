@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
+using AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
@@ -120,6 +121,29 @@ public class SkillEffectCastTargetTests
 
         await Assert.That(result).IsTypeOf<SkillCastUnitTarget>();
         await Assert.That(result.ObjId).IsEqualTo(uint.MaxValue);
+    }
+
+    [Test]
+    public async Task RidersEscape_LandsOnTheRangeCheckedStand_NotThePacketPosition()
+    {
+        // With ObjId1 set, the packet's Pos* are local to that unit and only the stand built from them
+        // was range-checked, so the hull has to land on the stand.
+        var stand = new BaseUnit { ObjId = uint.MaxValue };
+        stand.Transform.Local.SetPosition(15747.6f, 15400.6f, 100f);
+
+        var landed = EscapeMySlave.TryGetLanding(stand, out var landing);
+
+        await Assert.That(landed).IsTrue();
+        await Assert.That(landing.X).IsEqualTo(15747.6f);
+        await Assert.That(landing.Y).IsEqualTo(15400.6f);
+        await Assert.That(landing.Z).IsEqualTo(100f);
+    }
+
+    [Test]
+    public async Task RidersEscape_WithoutAStand_DoesNotLand()
+    {
+        await Assert.That(EscapeMySlave.TryGetLanding(new Unit { ObjId = 7 }, out _)).IsFalse();
+        await Assert.That(EscapeMySlave.TryGetLanding(null, out _)).IsFalse();
     }
 
     private sealed class CapturingSpecialEffect : SpecialEffect
