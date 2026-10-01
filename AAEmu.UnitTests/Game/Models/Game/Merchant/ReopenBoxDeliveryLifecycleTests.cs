@@ -89,7 +89,9 @@ public class ReopenBoxDeliveryLifecycleTests
 
         ReopenBoxItemRules.FinishDelivery(items, mail, new Item(), Mock.Of<BaseMail>(), false);
 
-        await Assert.That(_order).IsEquivalentTo(new[] { "discard-item", "discard-letter" });
+        // Only the letter: it is the item's attachment and its discard is what releases the id, so
+        // releasing through both managers would release the same reserved id twice.
+        await Assert.That(_order).IsEquivalentTo(new[] { "discard-letter" });
     }
 
     /// <summary>
@@ -112,6 +114,7 @@ public class ReopenBoxDeliveryLifecycleTests
         await Assert.That(committed.Contains("discard-letter")).IsFalse();
         await Assert.That(abandoned.Contains("publish-item")).IsFalse();
         await Assert.That(abandoned.Contains("publish-letter")).IsFalse();
+        await Assert.That(abandoned.Contains("discard-item")).IsFalse();
     }
 
     /// <summary>

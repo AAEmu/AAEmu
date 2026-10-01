@@ -43,9 +43,9 @@ public class ReopenBoxRewardBoundTests
     }
 
     /// <summary>
-    /// The oversized case, against both sides of the authored bound. The shipped catalogue carries
-    /// <c>max_stack_size</c> of 1, 10, 99, 100 and 1000, so the boundary is worth pinning at values
-    /// content actually uses rather than at arbitrary ones.
+    /// The oversized case, against both sides of the authored bound - one past the limit, the top of
+    /// the range, and the limit itself, which is deliverable because a roll that fits exactly is a
+    /// legitimate roll.
     /// </summary>
     [Test]
     public async Task ACountAboveTheAuthoredStackSizeIsRefusedAndTheBoundItselfIsNot()
@@ -60,11 +60,18 @@ public class ReopenBoxRewardBoundTests
         await Assert.That(Check(1)).IsEqualTo(ReopenBoxItemRules.ReopenRewardRefusal.None);
     }
 
-    /// <summary>Swept over the stack sizes content actually ships, so no single value is special.</summary>
+    /// <summary>
+    /// Swept over a spread of stack sizes so no single value is special, including both edges.
+    /// </summary>
+    /// <remarks>
+    /// These are synthetic bounds, not an inventory of the shipped catalogue - <c>items.max_stack_size</c>
+    /// carries 27 distinct values and this deliberately does not pretend to be all of them. What is
+    /// pinned is the rule at the boundary: a stack size accepts exactly its own count.
+    /// </remarks>
     [Test]
-    public async Task EveryShippedStackSizeAcceptsExactlyItsOwnCount()
+    public async Task EveryStackSizeAcceptsExactlyItsOwnCount()
     {
-        foreach (var maxCount in new[] { 1, 10, 99, 100, 1000 })
+        foreach (var maxCount in new[] { 1, 2, 10, 99, 100, 1000 })
         {
             await Assert.That(Check(maxCount, maxCount))
                 .IsEqualTo(ReopenBoxItemRules.ReopenRewardRefusal.None);

@@ -61,7 +61,7 @@ internal static class ReopenBoxItemRules
     /// </param>
     /// <remarks>
     /// The bound is read from content like everything else on this path - the shipped catalogue carries
-    /// 1, 10, 99, 100 and 1000. A count above it is refused rather than rounded down to fit: handing
+    /// 27 distinct stack sizes. A count above it is refused rather than rounded down to fit: handing
     /// out less than the roll promised is worse than refusing it, and the row is left in place rather
     /// than consumed.
     /// </remarks>
@@ -112,8 +112,14 @@ internal static class ReopenBoxItemRules
             }
             else
             {
-                itemManager.DiscardUnpersistedItems([reward]);
-                mailManager.DiscardUnpersisted(mail);
+                // The reward is the letter's attachment, and DiscardUnpersisted releases every
+                // attachment still in the mail - so calling both releases the same reserved id twice.
+                // Exactly one path releases it, and the item manager covers only the case where the
+                // letter was never built and so carries nothing.
+                if (mail != null)
+                    mailManager.DiscardUnpersisted(mail);
+                else
+                    itemManager.DiscardUnpersistedItems([reward]);
             }
         }
         catch (Exception ex)
