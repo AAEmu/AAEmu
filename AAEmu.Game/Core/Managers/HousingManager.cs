@@ -1791,9 +1791,11 @@ public class HousingManager(
             : 0;
         oneWeekTaxCount = 0;
 
+        // An account with no house yet still pays for the one it is building. Returning here used to
+        // quote the first house at 0 and build it for free, while demolishing it still mailed back
+        // the two-week deposit it never paid.
         var userHouses = new Dictionary<uint, House>();
-        if (GetByAccountId(userHouses, accountId) <= 0)
-            return false;
+        GetByAccountId(userHouses, accountId);
 
         // Count the houses on this account
         foreach (var h in userHouses)
