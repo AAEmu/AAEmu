@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Units;
@@ -374,6 +374,61 @@ public class NpcAbuserRegistryTests
 
         await Assert.That(visibleAtResolve).IsFalse();
         await Assert.That(idsAtResolve).IsEmpty();
+    }
+
+    /// <summary>
+    /// The no-argument overload must reach the real mirror - not silently do nothing.
+    /// </summary>
+    /// <remarks>
+    /// Regression this pins: the first version took an optional delegate and did
+    /// <c>mirrorNpcKilled?.Invoke(bcId)</c>, so <c>Program.cs</c> calling it with one argument skipped
+    /// the mirror entirely. Every zone kill stopped running DoDie, loot and quest credit, and the World
+    /// mirror stayed alive - while all the tests passed, because every one of them supplied its own
+    /// lambda and so never exercised the default.
+    /// <para>
+    /// The observable is the spawn handoff. <c>MirrorZoneNpcKilled</c> cancels a pending handoff for
+    /// the bcId before any other work, so a seeded handoff survives only if the mirror never ran. That
+    /// is a real effect of the real method, and unlike asserting on the forget half it fails if the
+    /// mirror is swapped for a no-op - the forget runs either way.
+    /// </para>
+    /// </remarks>
+    [Test]
+    public async Task TheDefaultOverloadReachesTheRealMirror()
+    {
+        NpcAbuserRegistry.Reset();
+        const uint npc = 0x0F0E0D;   // deliberately not a unit the World knows
+        NpcAbuserRegistry.Register(npc, Abuser);
+
+        AAEmu.Game.WorldIntegration.RegisterNpcHandoff(npc, readyBuffTemplateId: 1, () => { });
+
+        await Assert.That(AAEmu.Game.WorldIntegration.HasPendingNpcHandoff(npc)).IsTrue();
+
+        // No delegate: this is exactly what Program.cs does.
+        AAEmu.Game.WorldIntegration.ResolveKillCreditThenForget(npc);
+
+        // The mirror cancels the handoff before anything else, so the entry is gone only if the real
+        // mirror body ran. Asserting on the completion instead would pass either way: an uncancelled
+        // handoff has not fired either, so that assertion cannot tell the two apart.
+        await Assert.That(AAEmu.Game.WorldIntegration.HasPendingNpcHandoff(npc)).IsFalse();
+    }
+
+    /// <summary>
+    /// The seed is real: an uncancelled handoff does fire its completion, so the assertion above is not
+    /// passing because the completion was never wired up in the first place.
+    /// </summary>
+    [Test]
+    public async Task ASeededHandoffFiresWhenNothingCancelsIt()
+    {
+        const uint npc = 0x0D0C0B;
+        var handoffRan = false;
+        AAEmu.Game.WorldIntegration.RegisterNpcHandoff(npc, readyBuffTemplateId: 1, () => handoffRan = true);
+
+        // The completion only fires once both halves report in: the plot ready and the zone's buff gone.
+        AAEmu.Game.WorldIntegration.MarkNpcHandoffPlotReady(npc);
+        AAEmu.Game.WorldIntegration.ObserveZoneBuffRemoved(npc, 1);
+
+        await Assert.That(handoffRan).IsTrue();
+        AAEmu.Game.WorldIntegration.CancelNpcHandoff(0x0D0C0B);
     }
 
     private static void Score(Npc npc, uint objId, int damage)

@@ -977,6 +977,19 @@ public static class WorldIntegration
     public static void ObserveZoneBuffRemoved(uint objId, uint buffTemplateId) =>
         UpdatePendingNpcHandoff(objId, plotReady: false, removedBuffTemplateId: buffTemplateId);
 
+    /// <summary>
+    /// Whether a spawn handoff is still outstanding for this npc. A kill mirror cancels it, so this is
+    /// the observable that tells the mirror apart from a hook that skipped it.
+    /// </summary>
+    public static bool HasPendingNpcHandoff(uint objId)
+    {
+        if (objId == 0)
+            return false;
+
+        lock (PendingNpcHandoffsLock)
+            return PendingNpcHandoffs.ContainsKey(objId);
+    }
+
     public static void CancelNpcHandoff(uint objId)
     {
         if (objId == 0)
@@ -1645,10 +1658,7 @@ public static class WorldIntegration
     /// <summary>
     /// Handles one zone death: resolve who gets the credit, then drop the npc's abuse state.
     /// </summary>
-    /// <param name="mirrorNpcKilled">
-    /// The mirror step, so a test can observe the registry at the moment it runs. Defaults to
-    /// <see cref="MirrorZoneNpcKilled"/>.
-    /// </param>
+
     /// <remarks>
     /// The order is the whole point and is not interchangeable. <see cref="MirrorZoneNpcKilled"/>
     /// resolves the killer out of the abuse list this npc still holds, so the list has to be read
@@ -1661,9 +1671,23 @@ public static class WorldIntegration
     /// recycled id cannot inherit the previous occupant's abusers.
     /// </para>
     /// </remarks>
-    public static void ResolveKillCreditThenForget(uint bcId, Action<uint> mirrorNpcKilled = null)
+    public static void ResolveKillCreditThenForget(uint bcId) =>
+        ResolveKillCreditThenForget(bcId, MirrorZoneNpcKilled);
+
+    /// <summary>
+    /// The ordered step with the mirror supplied, so a test can observe the registry at the moment it runs.
+    /// </summary>
+    /// <remarks>
+    /// Internal on purpose: production calls the no-argument overload, which always supplies the real
+    /// mirror, so the mirror cannot be skipped by forgetting an argument. That is not hypothetical - the
+    /// first version took an optional delegate and did <c>mirrorNpcKilled?.Invoke(bcId)</c>, so
+    /// <c>Program.cs</c> calling it with one argument silently skipped the mirror and every zone kill
+    /// stopped doing DoDie, loot, quest credit and the mirror, while the tests stayed green because
+    /// they all passed their own lambda.
+    /// </remarks>
+    internal static void ResolveKillCreditThenForget(uint bcId, Action<uint> mirrorNpcKilled)
     {
-        mirrorNpcKilled?.Invoke(bcId);
+        mirrorNpcKilled(bcId);
         NpcAbuserRegistry.ForgetNpc(bcId);
     }
 
