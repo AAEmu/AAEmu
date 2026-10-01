@@ -58,6 +58,37 @@ public static class IndunRewardSelectionRules
 
         return matches;
     }
+
+    /// <summary>
+    /// Keeps only bonus rows attached to the reward rows the same selection chose. A bonus pointing
+    /// at any other reward is a catalog error, never a row to discard silently.
+    /// </summary>
+    public static IReadOnlyList<InstanceRewardBonusCount> SelectBonusCounts(
+        IReadOnlyList<InstanceReward> selectedRewards,
+        IReadOnlyList<InstanceRewardBonusCount> bonusCounts)
+    {
+        ArgumentNullException.ThrowIfNull(selectedRewards);
+        ArgumentNullException.ThrowIfNull(bonusCounts);
+        var selectedIds = selectedRewards.Select(reward => reward.Id).ToHashSet();
+        var keys = new HashSet<(uint InstanceRewardId, uint BuffId)>();
+        foreach (var bonus in bonusCounts)
+        {
+            if (bonus.Id == 0 || bonus.InstanceRewardId == 0 || bonus.BuffId == 0 || bonus.Count <= 0)
+                throw new InvalidDataException(
+                    $"instance_reward_bonus_counts {bonus.Id} is incomplete or has a non-positive count");
+            if (!selectedIds.Contains(bonus.InstanceRewardId))
+                throw new InvalidDataException(
+                    $"instance_reward_bonus_counts {bonus.Id} points at reward {bonus.InstanceRewardId}, which this selection did not choose");
+            if (!keys.Add((bonus.InstanceRewardId, bonus.BuffId)))
+                throw new InvalidDataException(
+                    $"instance_reward_bonus_counts has duplicate reward {bonus.InstanceRewardId} / buff {bonus.BuffId}");
+        }
+
+        return bonusCounts
+            .OrderBy(bonus => bonus.InstanceRewardId)
+            .ThenBy(bonus => bonus.BuffId)
+            .ToArray();
+    }
 }
 
 public static class IndunRewardMailKindRules
