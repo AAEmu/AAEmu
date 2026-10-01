@@ -35,7 +35,10 @@ public class InteractionEffect : EffectTemplate
         var action = (IWorldInteraction)Activator.CreateInstance(classType);
         if (source is { Skill: { } } && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
         {
-            action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
+            if (action is ISkillObjectWorldInteraction withSkillObject)
+                withSkillObject.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId, skillObject);
+            else
+                action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
         }
 
         if (caster is not Character character) { return; }
