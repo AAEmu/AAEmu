@@ -1,4 +1,10 @@
+using System.Runtime.CompilerServices;
+
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.StaticValues;
@@ -91,6 +97,47 @@ public sealed class HouseInteractionRulesTests
         var skills = HouseInteractionRules.ComposeSkills(house, _ => StepSkill(), _ => 0);
 
         await Assert.That(skills).IsEmpty();
+    }
+
+    [Test]
+    public async Task UnfinishedHouse_WithTheStepPackWorn_OffersTheBuildStep()
+    {
+        // A stone pack is a backpack (impl 22), so it is worn in the equipment slots and never sits in
+        // the bag. The cast takes it from there, so the offer has to count it there too.
+        var inventory = InventoryWith(equipped: [new Item(1, 1, new ItemTemplate { Id = StonePack }, 1)]);
+        var house = House(currentStep: 0);
+
+        var skills = HouseInteractionRules.ComposeSkills(house, _ => StepSkill(),
+            itemId => HouseInteractionRules.CountCarried(inventory, itemId));
+
+        await Assert.That(skills).IsEquivalentTo([StepSkillId]);
+    }
+
+    [Test]
+    public async Task CountCarried_SumsTheBagAndTheEquipmentSlots()
+    {
+        var inventory = InventoryWith(
+            bag: [new Item(1, 1, new ItemTemplate { Id = StonePack }, 2)],
+            equipped: [new Item(1, 2, new ItemTemplate { Id = StonePack }, 1)]);
+
+        await Assert.That(HouseInteractionRules.CountCarried(inventory, StonePack)).IsEqualTo(3);
+        await Assert.That(HouseInteractionRules.CountCarried(null, StonePack)).IsEqualTo(0);
+    }
+
+    private static Inventory InventoryWith(Item[] bag = null, Item[] equipped = null)
+    {
+        var inventory = (Inventory)RuntimeHelpers.GetUninitializedObject(typeof(Inventory));
+        var bagContainer = new ItemContainer(0, SlotType.Inventory, false, null);
+        var equipment = new ItemContainer(0, SlotType.Equipment, false, null);
+        bagContainer.Items.AddRange(bag ?? []);
+        equipment.Items.AddRange(equipped ?? []);
+        typeof(Inventory).GetProperty(nameof(Inventory._itemContainers))!
+            .SetValue(inventory, new Dictionary<SlotType, ItemContainer>
+            {
+                [SlotType.Inventory] = bagContainer,
+                [SlotType.Equipment] = equipment,
+            });
+        return inventory;
     }
 
     private static SkillTemplate StepSkill()

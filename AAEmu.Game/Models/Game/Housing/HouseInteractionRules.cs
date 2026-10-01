@@ -1,3 +1,5 @@
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.StaticValues;
 
@@ -53,6 +55,21 @@ public static class HouseInteractionRules
         return CanPayForStep(getSkillTemplate?.Invoke(step.SkillId), getItemCount)
             ? [step.SkillId]
             : [SkillsEnum.ConstructionInfo];
+    }
+
+    /// <summary>
+    /// How many of an item the character can pay a step with: the bag and the equipment slots, the
+    /// same two places the cast takes it from (<see cref="Skills.Skill"/> counts Inventory plus
+    /// Equipment). Step materials are mostly packs, and a pack is worn, never carried in the bag.
+    /// </summary>
+    internal static int CountCarried(Inventory inventory, uint itemId)
+    {
+        if (inventory == null)
+            return 0;
+
+        return checked(
+            inventory.GetItemsCount(SlotType.Inventory, itemId) +
+            inventory.GetItemsCount(SlotType.Equipment, itemId));
     }
 
     /// <summary>

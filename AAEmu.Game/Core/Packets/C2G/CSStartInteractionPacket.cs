@@ -5,7 +5,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Housing;
-using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -80,7 +79,7 @@ public class CSStartInteractionPacket() : GamePacket(CSOffsets.CSStartInteractio
             var skills = HouseInteractionRules.ComposeSkills(
                 house,
                 skillId => SkillManager.Instance.GetSkillTemplate(skillId),
-                itemId => character.Inventory?.GetItemsCount(SlotType.Inventory, itemId) ?? 0);
+                itemId => HouseInteractionRules.CountCarried(character.Inventory, itemId));
             character.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
                 pickId, mouseButton, modifierKeys, skills));
         }
