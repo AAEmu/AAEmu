@@ -1,4 +1,9 @@
-﻿using AAEmu.Game.Models.Game.Items;
+﻿using System.Reflection;
+
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -52,8 +57,11 @@ public class InventoryTests
     }
 
     [Test]
+    [NotInParallel]
     public async Task AddOrMoveExistingItem_MergesIdenticalDetails()
     {
+        // The merged-in stack is released through ItemManager.
+        using var items = new SingletonScope<ItemManager>(DetachedItemManager());
         var character = new CharacterMock();
         var container = new ItemContainer(character.Id, SlotType.Inventory, false, character);
         var template = new ItemTemplate { Id = 1, MaxCount = 100, BindType = ItemBindType.Normal };
@@ -75,5 +83,20 @@ public class InventoryTests
         await Assert.That(added).IsTrue();
         await Assert.That(container.Items).Count().IsEqualTo(1);
         await Assert.That(existing.Count).IsEqualTo(2);
+    }
+
+    private static ItemManager DetachedItemManager()
+    {
+        var items = new ItemManager(
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IItemIdManager>().Object,
+            Mock.Of<IContainerIdManager>().Object,
+            Mock.Of<ILocalizationManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<IWorldManager>().Object);
+        const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
+        typeof(ItemManager).GetField("_allItems", Private)!.SetValue(items, new Dictionary<ulong, Item>());
+        typeof(ItemManager).GetField("_removedItems", Private)!.SetValue(items, new List<ulong>());
+        return items;
     }
 }
