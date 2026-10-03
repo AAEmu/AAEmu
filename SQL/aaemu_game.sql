@@ -984,8 +984,11 @@ CREATE TABLE IF NOT EXISTS `mates` (
   `xp` int NOT NULL,
   `level` tinyint NOT NULL,
   `mileage` int NOT NULL,
-  `hp` int NOT NULL,
-  `mp` int NOT NULL,
+  -- Nullable on purpose: NULL is a mate that has never recorded this bar, and 0 is a bar that
+  -- really was empty. The two must stay different readings, or a mate captured at zero comes
+  -- back at full health.
+  `hp` int NULL,
+  `mp` int NULL,
   `owner` int unsigned NOT NULL,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
