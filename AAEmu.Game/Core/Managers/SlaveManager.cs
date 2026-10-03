@@ -3210,8 +3210,9 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     /// Performs the Rider's Escape action
     /// </summary>
     /// <param name="player"></param>
-    /// <param name="skillCastPositionTarget"></param>
-    public void RidersEscape(Character player, SkillCastPositionTarget skillCastPositionTarget)
+    /// <param name="landing">World position to land the hull at, already range-checked by the cast.</param>
+    /// <param name="heading">Heading the client picked for the hull.</param>
+    public void RidersEscape(Character player, Vector3 landing, float heading)
     {
         var mySlave = GetActiveSlaveByOwnerObjId(player.ObjId);
         if (mySlave == null)
@@ -3228,7 +3229,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         mySlave.SendPacket(new SCUnitsRemovedPacket([mySlave.ObjId]));
 
         // Move location
-        mySlave.SetPosition(skillCastPositionTarget.PosX, skillCastPositionTarget.PosY, skillCastPositionTarget.PosZ, 0f, 0f, skillCastPositionTarget.PosRot);
+        mySlave.SetPosition(landing.X, landing.Y, landing.Z, 0f, 0f, heading);
         // Without this offset, it just doesn't feel right
         mySlave.Transform.Local.AddDistanceToFront(mySlave.Template.SpawnXOffset / 2f);
         mySlave.Transform.Local.AddDistanceToRight(mySlave.Template.SpawnYOffset / 2f);
