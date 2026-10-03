@@ -1386,6 +1386,20 @@ public class HousingManager(
             }
         }
 
+        // The client picks the spot, so it is checked here before anything is charged. The yaw is
+        // the one the house will be stored with (see the sbyte round trip below).
+        var (_, _, placedYawSByte) = PositionAndRotation.ToRollPitchYawSBytes(new Vector3(0, 0, zRot));
+        zRot = PositionAndRotation.FromRollPitchYawSBytes(0, 0, placedYawSByte).Z;
+        var placementError = CheckPlacement(connection.ActiveChar.ParentWorld, zoneKey, houseTemplate,
+            posX, posY, zRot, isTerritoryDesign);
+        if (placementError is { } placementRefusal)
+        {
+            Logger.Debug("Build refused: design {0} at ({1:0.#}, {2:0.#}) for {3}: {4}",
+                designId, posX, posY, connection.ActiveChar.Name, placementRefusal);
+            connection.ActiveChar.SendErrorMessage(placementRefusal);
+            return;
+        }
+
         CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out _, out _, out _, out _);
 
         if (FeaturesManager.Fsets.TaxItem)
@@ -1474,8 +1488,7 @@ public class HousingManager(
         // can be offset.
         // To make the server and client agree on the rotation, we convert the float zRot to a sbyte, then back to a float.
         // The server then knows the rotation as one of the 256 unique rotations that the client can be sent.
-        var (_, _, yaw) = PositionAndRotation.ToRollPitchYawSBytes(new Vector3(0, 0, zRot));
-        zRot = PositionAndRotation.FromRollPitchYawSBytes(0, 0, yaw).Z;
+        // zRot was already rounded that way before the placement check.
         house.Transform.Local.SetRotation(0, 0, zRot);
 
         // A complete kit (item_housings.completion = 't') places the house finished; a plain design
@@ -3607,6 +3620,57 @@ public class HousingManager(
             return;
         house.AllowRecover = !house.AllowRecover;
         house.BroadcastPacket(new SCHousingRecoverTogglePacket(house.TlId, house.AllowRecover), false);
+    }
+
+    /// <summary>
+    /// Server-side placement checks for a new house, run before anything is charged. Returns the error
+    /// to send, or null when the spot is acceptable.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two rules the data backs:
+    /// </para>
+    /// <list type="bullet">
+    /// <item>The house must stand in a housing area. The client refuses a spot whose position has no
+    /// housing-area shape (house_cannot_locate_invalid_area), and the shapes are the
+    /// <c>level_design/zone/&lt;zone&gt;/client/housing_area.xml</c> ones SubZoneManager loads into
+    /// <see cref="WorldTemplate.HousingZones"/>. A zone with no shapes loaded is not judged here, so
+    /// a server without client data keeps accepting what the zone category check accepts.</item>
+    /// <item>Its garden square must not overlap another house's (house_cannot_locate_overlap_house).
+    /// The square is the <c>housing_sizes.garden_radius</c> plot <see cref="GetHouseAtLocation"/>
+    /// already resolves ownership with, so two overlapping plots would make that lookup ambiguous.</item>
+    /// </list>
+    /// <para>
+    /// Territory buildings (walls, gates, pads) are placed under the claim rules instead and are
+    /// skipped. Terrain height, slope and distance to the builder are not checked: the client tests
+    /// them against model bounds and constants the server does not have.
+    /// </para>
+    /// </remarks>
+    internal ErrorMessageType? CheckPlacement(WorldInstance world, uint zoneKey, HousingTemplate template,
+        float x, float y, float yaw, bool isTerritoryDesign)
+    {
+        if (isTerritoryDesign || world == null || template == null)
+            return null;
+
+        if (world.Template?.HousingZones != null
+            && world.Template.HousingZones.TryGetValue(zoneKey, out var areas)
+            && areas.Count > 0
+            && !areas.Any(area => Point.IsInside(area._points, area._points.Count, new Point(x, y, 0f))))
+            return ErrorMessageType.HouseCannotLocateInvalidArea;
+
+        var radius = template.GardenRadius;
+        foreach (var house in _houses.Values)
+        {
+            if (house.ParentWorld != world || house.Template?.HousingSize is null)
+                continue;
+
+            var position = house.Transform.World.Position;
+            if (HousingPlotGeometry.PlotsOverlap(radius, yaw, x, y,
+                    house.Template.GardenRadius, house.Transform.World.Rotation.Z, position.X, position.Y))
+                return ErrorMessageType.HouseCannotLocateOverlapHouse;
+        }
+
+        return null;
     }
 
     /// <summary>

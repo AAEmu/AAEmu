@@ -89,4 +89,37 @@ public sealed class HousingPlotGeometryTests
         await Assert.That(InPlot(0f, 110f, 200f)).IsTrue();
         await Assert.That(InPlot(0f, 110.01f, 200f)).IsFalse();
     }
+
+    [Test]
+    public async Task PlotsOverlap_SharedEdgeIsNotAnOverlap()
+    {
+        // 10 m squares side by side: 90..110 and 110..130.
+        await Assert.That(HousingPlotGeometry.PlotsOverlap(Radius, 0f, HouseX, HouseY, Radius, 0f, 120f, HouseY)).IsFalse();
+        await Assert.That(HousingPlotGeometry.PlotsOverlap(Radius, 0f, HouseX, HouseY, Radius, 0f, 119.5f, HouseY)).IsTrue();
+    }
+
+    [Test]
+    public async Task PlotsOverlap_UsesEachPlotsOwnYaw()
+    {
+        // 21 m apart: clear when both are axis aligned, but a 45-degree turn puts one corner
+        // 14.14 m out, into the other plot.
+        await Assert.That(HousingPlotGeometry.PlotsOverlap(Radius, 0f, HouseX, HouseY, Radius, 0f, 121f, HouseY)).IsFalse();
+        await Assert.That(HousingPlotGeometry.PlotsOverlap(Radius, MathF.PI / 4f, HouseX, HouseY, Radius, 0f, 121f, HouseY)).IsTrue();
+        await Assert.That(HousingPlotGeometry.PlotsOverlap(Radius, 0f, HouseX, HouseY, Radius, MathF.PI / 4f, 121f, HouseY)).IsTrue();
+    }
+
+    [Test]
+    public async Task PlotsOverlap_DiamondsTouchingAtCornersDoNotOverlap()
+    {
+        // Two 45-degree plots whose corners meet at (114.14, 200).
+        var reach = Radius * MathF.Sqrt(2f);
+        await Assert.That(HousingPlotGeometry.PlotsOverlap(Radius, MathF.PI / 4f, HouseX, HouseY,
+            Radius, MathF.PI / 4f, HouseX + 2f * reach, HouseY)).IsFalse();
+    }
+
+    [Test]
+    public async Task PlotsOverlap_ZeroRadiusPlotOverlapsNothing()
+    {
+        await Assert.That(HousingPlotGeometry.PlotsOverlap(0f, 0f, HouseX, HouseY, Radius, 0f, HouseX, HouseY)).IsFalse();
+    }
 }

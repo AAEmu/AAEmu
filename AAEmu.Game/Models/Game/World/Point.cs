@@ -130,8 +130,11 @@ public class Point
         return false;
     }
 
-    // Returns true if the point p lies
-    // inside the polygon[] with n vertices
+    // Returns true if the point p lies inside the polygon[] with n vertices, or on one of its edges.
+    // Even-odd crossing test along a ray towards +X. Each edge is taken as half-open in Y, so a ray
+    // through a vertex counts the two edges meeting there once between them, and a horizontal edge
+    // never counts. Positions here sit on a grid, so a ray through a vertex is the common case rather
+    // than a rare one.
     public static bool IsInside(IReadOnlyList<Point> polygon, int n, Point p)
     {
         // There must be at least 3 vertices in polygon[]
@@ -140,37 +143,24 @@ public class Point
             return false;
         }
 
-        // Create a point for line segment from p to infinite
-        var extreme = new Point(1000, p.Y, 0);
-
-        // Count intersections of the above line
-        // with sides of polygon
-        int count = 0, i = 0;
-        do
+        var inside = false;
+        for (int i = 0, j = n - 1; i < n; j = i++)
         {
-            var next = (i + 1) % n;
+            var a = polygon[i];
+            var b = polygon[j];
 
-            // Check if the line segment from 'p' to
-            // 'extreme' intersects with the line
-            // segment from 'polygon[i]' to 'polygon[next]'
-            if (IsLineIntersection(
-                line1: (polygon[i], polygon[next]),
-                line2: (p, extreme)))
+            if (FindTripletOrientation(a, p, b) == 0 && OnSegment(a, p, b))
             {
-                // If the point 'p' is colinear with line
-                // segment 'i-next', then check if it lies
-                // on segment. If it lies, return true, otherwise false
-                if (FindTripletOrientation(polygon[i], p, polygon[next]) == 0)
-                {
-                    return OnSegment(polygon[i], p,
-                                    polygon[next]);
-                }
-                count++;
+                return true;
             }
-            i = next;
-        } while (i != 0);
 
-        // Return true if count is odd, false otherwise
-        return count % 2 == 1; // Same as (count%2 == 1)
+            if ((a.Y > p.Y) != (b.Y > p.Y) &&
+                p.X < (b.X - a.X) * (p.Y - a.Y) / (b.Y - a.Y) + a.X)
+            {
+                inside = !inside;
+            }
+        }
+
+        return inside;
     }
 }
