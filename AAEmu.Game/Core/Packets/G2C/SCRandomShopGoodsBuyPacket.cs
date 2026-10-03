@@ -17,14 +17,14 @@ namespace AAEmu.Game.Core.Packets.G2C;
 public class SCRandomShopGoodsBuyPacket(
     short errorMessage,
     uint type,
-    IReadOnlyList<uint> boughtGoods) : GamePacket(SCOffsets.SCRandomShopGoodsBuyPacket, 1)
+    IReadOnlyList<int> boughtGoods) : GamePacket(SCOffsets.SCRandomShopGoodsBuyPacket, 1)
 {
     public short ErrorMessage { get; } = errorMessage;
 
     /// <summary>Record key; echoed from the buy request.</summary>
     public uint Type { get; } = type;
 
-    public IReadOnlyList<uint> BoughtGoods { get; } = boughtGoods;
+    public IReadOnlyList<int> BoughtGoods { get; } = boughtGoods;
 
     public override PacketStream Write(PacketStream stream)
     {
@@ -32,7 +32,7 @@ public class SCRandomShopGoodsBuyPacket(
         stream.Write(Type);
 
         // buyCart block: begin/end tags are zero-wire, so no tag bytes here.
-        stream.Write((uint)BoughtGoods.Count);
+        stream.Write(BoughtGoods.Count);
         foreach (var good in BoughtGoods)
             stream.Write(good);
 

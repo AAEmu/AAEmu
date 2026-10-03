@@ -254,7 +254,7 @@ public class TruncatedCountPrefixTests
         body.RequireComplete();
         var threw = Try(() => packet.Decode(body));
 
-        await Assert.That(packet.RequestedGoods).IsEquivalentTo(new List<uint> { 11, 12 });
+        await Assert.That(packet.RequestedGoods).IsEquivalentTo(new List<int> { 11, 12 });
         // Whatever the handler decided about a pack it cannot resolve, the refusal is not the parse.
         await Assert.That(threw is TruncatedPacketException).IsFalse();
     }
