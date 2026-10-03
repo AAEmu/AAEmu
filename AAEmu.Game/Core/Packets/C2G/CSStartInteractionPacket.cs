@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -66,10 +67,21 @@ public class CSStartInteractionPacket() : GamePacket(CSOffsets.CSStartInteractio
                 pickId, mouseButton, modifierKeys, [.. skills]));
         }
 
-        var slave = character?.ParentWorld?.GetUnit(npcObjId);
-        if (slave is Mate mate)
+        var unit = character?.ParentWorld?.GetUnit(npcObjId);
+        if (unit is Mate)
         {
             character.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys, [SkillsEnum.SlaveMounting]));
+        }
+        else if (unit is House house)
+        {
+            // Without an answer the client does nothing: no window for an unfinished house and no
+            // right-click build. See HouseInteractionRules for what the client does with the list.
+            var skills = HouseInteractionRules.ComposeSkills(
+                house,
+                skillId => SkillManager.Instance.GetSkillTemplate(skillId),
+                itemId => HouseInteractionRules.CountCarried(character.Inventory, itemId));
+            character.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
+                pickId, mouseButton, modifierKeys, skills));
         }
     }
 }
