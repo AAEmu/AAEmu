@@ -983,6 +983,19 @@ public static class WorldIntegration
     public static void ObserveZoneBuffRemoved(uint objId, uint buffTemplateId) =>
         UpdatePendingNpcHandoff(objId, plotReady: false, removedBuffTemplateId: buffTemplateId);
 
+    /// <summary>
+    /// Whether a spawn handoff is still outstanding for this npc. A kill mirror cancels it, so this is
+    /// the observable that tells the mirror apart from a hook that skipped it.
+    /// </summary>
+    public static bool HasPendingNpcHandoff(uint objId)
+    {
+        if (objId == 0)
+            return false;
+
+        lock (PendingNpcHandoffsLock)
+            return PendingNpcHandoffs.ContainsKey(objId);
+    }
+
     public static void CancelNpcHandoff(uint objId)
     {
         if (objId == 0)
@@ -1648,6 +1661,42 @@ public static class WorldIntegration
     /// Handle <c>ZWKillNpc</c>: credit death via <see cref="Unit.DoDie"/> so loot and
     /// quest kill hooks fire. Despawn-only still uses <see cref="MirrorZoneNpcRemove"/>.
     /// </summary>
+    /// <summary>
+    /// Handles one zone death: resolve who gets the credit, then drop the npc's abuse state.
+    /// </summary>
+
+    /// <remarks>
+    /// The order is the whole point and is not interchangeable. <see cref="MirrorZoneNpcKilled"/>
+    /// resolves the killer out of the abuse list this npc still holds, so the list has to be read
+    /// before <c>ForgetNpc</c> empties it - and before that, <c>HasEntry</c> reports false, so the
+    /// "the zone has an opinion" guard cannot fire either. Forgetting first therefore does not just
+    /// lose the zone's choice, it removes every trace that the zone had one, and the resolver falls
+    /// through to the World-only paths this bridge exists to replace. Every death looks unattributed.
+    /// <para>
+    /// Forgetting afterwards is still required: death is the other end of the abuse state, so a
+    /// recycled id cannot inherit the previous occupant's abusers.
+    /// </para>
+    /// </remarks>
+    public static void ResolveKillCreditThenForget(uint bcId) =>
+        ResolveKillCreditThenForget(bcId, MirrorZoneNpcKilled);
+
+    /// <summary>
+    /// The ordered step with the mirror supplied, so a test can observe the registry at the moment it runs.
+    /// </summary>
+    /// <remarks>
+    /// Internal on purpose: production calls the no-argument overload, which always supplies the real
+    /// mirror, so the mirror cannot be skipped by forgetting an argument. That is not hypothetical - the
+    /// first version took an optional delegate and did <c>mirrorNpcKilled?.Invoke(bcId)</c>, so
+    /// <c>Program.cs</c> calling it with one argument silently skipped the mirror and every zone kill
+    /// stopped doing DoDie, loot, quest credit and the mirror, while the tests stayed green because
+    /// they all passed their own lambda.
+    /// </remarks>
+    internal static void ResolveKillCreditThenForget(uint bcId, Action<uint> mirrorNpcKilled)
+    {
+        mirrorNpcKilled(bcId);
+        NpcAbuserRegistry.ForgetNpc(bcId);
+    }
+
     public static void MirrorZoneNpcKilled(uint bcId)
     {
         CancelNpcHandoff(bcId);
@@ -1710,10 +1759,23 @@ public static class WorldIntegration
         }
     }
 
-    private static Unit ResolveZoneKillCredit(Npc npc)
+    internal static Unit ResolveZoneKillCredit(Npc npc)
     {
         try
         {
+            // The zone owns who is fighting an npc and reports it as its abuse list; the World's
+            // table only carries the threat score. Filtering the World's rows by that list is what
+            // makes the report change the answer: a unit the zone has dropped is not the target even
+            // while the World still holds threat for it.
+            var zoneReported = NpcAbuserRegistry.SelectZoneReportedTarget(npc);
+            if (zoneReported != null)
+                return zoneReported;
+
+            // The zone has an opinion about this npc but none of its abusers is on the World table.
+            // Its opinion stands, so the World's own top must not be promoted over it.
+            if (NpcAbuserRegistry.HasEntry(npc.ObjId))
+                return null;
+
             if (npc.AggroTable is { IsEmpty: false })
             {
                 var topId = npc.AggroTable.GetTopTotalAggroAbuserObjId();

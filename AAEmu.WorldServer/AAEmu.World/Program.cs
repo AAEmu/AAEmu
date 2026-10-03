@@ -156,15 +156,25 @@ public static class Program
         WorldIntegration.OnPlayerLeave = bcId =>
         {
             AAEmu.Game.Models.Game.World.AreaEdgeTracker.Shared.ForgetUnit(bcId);
+            // A unit that leaves the world cannot still be listed as an npc's abuser. The zone
+            // reports unregisters for live participants only, so nothing else would drop these rows,
+            // and a row left behind keeps naming a unit that is gone as the npc's target.
+            NpcAbuserRegistry.ForgetUnit(bcId);
             enter.LeaveZone(bcId);
         };
         WorldIntegration.OnZoneNpcSpawn = WorldIntegration.MirrorZoneNpcSpawn;
-        WorldIntegration.OnZoneNpcRemove = WorldIntegration.MirrorZoneNpcRemove;
+        WorldIntegration.OnZoneNpcRemove = bcId =>
+        {
+            // The npc is gone, so every abuser registered against it goes with it. The zone's own
+            // clear event only covers the list it still holds at the moment it empties it.
+            NpcAbuserRegistry.ForgetNpc(bcId);
+            WorldIntegration.MirrorZoneNpcRemove(bcId);
+        };
         WorldIntegration.OnZoneNpcKilled = bcId =>
         {
             // Quota credit comes from Npc.DoDie → OnWorldNpcKilled (once). Do not also
             // call TowerDefScheduler here or Zone deaths decrement twice.
-            WorldIntegration.MirrorZoneNpcKilled(bcId);
+            WorldIntegration.ResolveKillCreditThenForget(bcId);
         };
         WorldIntegration.OnWorldNpcKilled = tpl => TowerDefScheduler.OnNpcKilled(tpl);
         WorldIntegration.AllowsPlotSelfDamageBypass = unit =>

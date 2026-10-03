@@ -37,7 +37,7 @@ public class CombatRelay
         0x002D, // ZWResponseCombatUnits
         0x0031, // ZWKillNpc
         ZwOpcodes.AiAggro,
-        0x0041, // ZWAggroRemove
+        ZwOpcodes.AggroRemove,
     ];
 
     public bool IsCombatOpcode(ushort opcode) => CombatOpcodes.Contains(opcode);
@@ -65,7 +65,7 @@ public class CombatRelay
             var shouldRelay = opcode switch
             {
                 0x0018 or 0x0019 or 0x001A or 0x0009 => safeDefault && !npcCastOff,
-                0x000A or 0x000B or 0x000D or 0x0031 or 0x0034 or 0x0041 or 0x000C or 0x002D => safeDefault,
+                0x000A or 0x000B or 0x000D or 0x0031 or 0x0034 or ZwOpcodes.AggroRemove or 0x000C or 0x002D => safeDefault,
                 _ => fullRelay
             };
 
@@ -107,7 +107,7 @@ public class CombatRelay
             0x000A => RelayCreateBuff(stream),
             0x000B => RelayRemoveBuff(stream, relayToClients),
             0x0031 => RelayKillNpc(stream),
-            0x0041 => RelayAggroRemove(stream),
+            ZwOpcodes.AggroRemove => RelayAggroRemove(stream),
             0x000C => RelayClearCombat(stream),
             0x002D => RelayResponseCombatUnits(stream),
             _ => false
