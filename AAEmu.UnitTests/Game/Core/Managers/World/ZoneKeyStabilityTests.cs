@@ -1,4 +1,7 @@
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Slaves;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.World;
@@ -130,10 +133,29 @@ public class ZoneKeyStabilityTests
         // directly, so their key resolves to whatever was sampled. Only hulls are held by ZoneKeyStability
         // (see ResolveZoneKeyForObject) — a held key on a character meant a teleport never committed the
         // destination zone and the two sides ran in different zones.
-        var walker = NewHull();
-        var sampled = ZoneB;
+        var walker = new Character(new UnitCustomModelParams());
 
-        await Assert.That(walker).IsGreaterThan(0u);
-        await Assert.That(sampled).IsEqualTo(ZoneB);
+        // Whatever the samples are, a character with no carrier resolves to the sample itself: a held
+        // key here is the regression (it meant a teleport never committed the destination zone).
+        await Assert.That(Region.ResolveZoneKeyForObject(walker, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(Region.ResolveZoneKeyForObject(walker, ZoneB)).IsEqualTo(ZoneB);
+        await Assert.That(Region.ResolveZoneKeyForObject(walker, ZoneA)).IsEqualTo(ZoneA);
+    }
+
+    [Test]
+    public async Task Hulls_KeepTheGrazeFilter()
+    {
+        // The same call still holds a hull: a boat sampling a neighbouring zone keeps its committed key
+        // until the sample repeats, which is what stops a seam crossing from flapping between zones. Its
+        // own Transform.ZoneId starts unset, so the held key is 0 until the run commits ZoneB.
+        var boat = new Slave
+        {
+            ObjId = NewHull(),
+            Template = new SlaveTemplate { SlaveKind = SlaveKind.Boat }
+        };
+
+        await Assert.That(Region.ResolveZoneKeyForObject(boat, ZoneB)).IsEqualTo(0u);
+        await Assert.That(Region.ResolveZoneKeyForObject(boat, ZoneB)).IsEqualTo(0u);
+        await Assert.That(Region.ResolveZoneKeyForObject(boat, ZoneB)).IsEqualTo(ZoneB);
     }
 }
