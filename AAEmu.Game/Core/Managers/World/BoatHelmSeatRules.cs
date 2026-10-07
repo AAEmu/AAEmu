@@ -29,11 +29,12 @@ public static class BoatHelmSeatRules
         !seatedOnSlave;
 
     /// <summary>
-    /// Soft AOI and region leave must not <c>SCUnitsRemoved</c> the hull a rider is sitting on.
-    /// Re-streaming it sends attach with no occupy, which is a standing pose and a dead wheel.
+    /// Soft AOI and region leave must not <c>SCUnitsRemoved</c> the hull a rider is sitting on — nor the
+    /// deck a player is standing on without a seat, since retail lets a player walk their own deck.
+    /// Either way re-streaming it sends attach with no occupy, which is a standing pose and a dead wheel.
     /// </summary>
-    public static bool ShouldKeepStreamedHullForRider(bool isRidingThisHull) =>
-        isRidingThisHull;
+    public static bool ShouldKeepStreamedHullForRider(bool isOnThisHull) =>
+        isOnThisHull;
 
     /// <summary>
     /// Zone model-posture on the seated character is the standing Create. The client already has

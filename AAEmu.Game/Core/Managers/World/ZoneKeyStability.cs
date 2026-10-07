@@ -3,9 +3,11 @@ using System.Collections.Concurrent;
 namespace AAEmu.Game.Core.Managers.World;
 
 /// <summary>
-/// Sticky zone-key resolution for sea hulls. <see cref="WorldManager.GetZoneId"/> samples a 64 m
-/// region grid, so a ship sailing along a zone seam flips keys every tick. That used to fire
-/// WithdrawBoatFromZone + Create on every flip (see Slave.OnZoneChange since zone-authority boats).
+/// Sticky zone-key resolution for anything that samples the 64 m region grid. <see cref="WorldManager.GetZoneId"/>
+/// gives neighbouring cells different keys, so a hull sailing — or a character walking — along a zone seam
+/// flips keys every tick. For a hull that used to fire WithdrawBoatFromZone + Create on every flip (see
+/// Slave.OnZoneChange since zone-authority boats); for a character every flip is a full zone handoff that
+/// re-streams everything they can see.
 /// </summary>
 /// <remarks>
 /// Hysteresis must bound handoff latency, not merely suppress flapping. The first revision required
@@ -21,7 +23,7 @@ namespace AAEmu.Game.Core.Managers.World;
 /// was, while a real crossing always hands off within <see cref="MaxPendingSamples"/> region
 /// samples regardless of how evenly the seam straddle alternates.
 /// </remarks>
-public static class BoatZoneKeyStability
+public static class ZoneKeyStability
 {
     /// <summary>Consecutive samples that must agree before the committed zone key changes.</summary>
     public const int RequiredConsecutiveSamples = 3;

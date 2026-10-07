@@ -1,8 +1,9 @@
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.World;
 
-public class BoatZoneKeyStabilityTests
+public class ZoneKeyStabilityTests
 {
     private const uint ZoneA = 149;
     private const uint ZoneB = 218;
@@ -17,10 +18,10 @@ public class BoatZoneKeyStabilityTests
     public async Task Resolve_KeepsCurrentKeyUntilSampleIsStable()
     {
         var hull = NewHull();
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneB);
     }
 
     [Test]
@@ -30,12 +31,12 @@ public class BoatZoneKeyStabilityTests
         // must stay on the home zone throughout, and home-zone samples count as evidence too
         // (they must not starve or reset the tally — that was part of the observed 17 s delay).
         var hull = NewHull();
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
     }
 
     [Test]
@@ -50,20 +51,20 @@ public class BoatZoneKeyStabilityTests
         // 11 samples of B,B,A…: still below the cap, so authority stays with the current zone.
         for (var i = 0; i < 3; i++)
         {
-            await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-            await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-            await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
+            await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+            await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+            await Assert.That(ZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
         }
 
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
 
         // 12th sample hits the cap: B leads the tally 9–3, so the hull hands off to B.
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneB);
 
         // Tracker was consumed by the commit: a fresh straddle starts over from the current key.
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneB)).IsEqualTo(ZoneB);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneA, ZoneB)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneB)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneA, ZoneB)).IsEqualTo(ZoneB);
     }
 
     [Test]
@@ -74,8 +75,8 @@ public class BoatZoneKeyStabilityTests
         var hull = NewHull();
         for (var i = 0; i < 6; i++)
         {
-            await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-            await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
+            await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+            await Assert.That(ZoneKeyStability.Resolve(hull, ZoneA, ZoneA)).IsEqualTo(ZoneA);
         }
     }
 
@@ -85,25 +86,25 @@ public class BoatZoneKeyStabilityTests
         // Zero keys (unsampled regions) must neither count toward the cap nor wipe pending
         // evidence, so sparse sampling cannot stretch the bound.
         var hull = NewHull();
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, 0, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, 0, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, 0, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, 0, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneB, ZoneA)).IsEqualTo(ZoneB);
 
         // Fresh tracker after that commit: a new candidate still needs its own run.
         var other = NewHull();
-        await Assert.That(BoatZoneKeyStability.Resolve(other, ZoneA, ZoneB)).IsEqualTo(ZoneB);
-        await Assert.That(BoatZoneKeyStability.Resolve(other, ZoneA, ZoneB)).IsEqualTo(ZoneB);
-        await Assert.That(BoatZoneKeyStability.Resolve(other, ZoneA, ZoneB)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(other, ZoneA, ZoneB)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(other, ZoneA, ZoneB)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(other, ZoneA, ZoneB)).IsEqualTo(ZoneA);
     }
 
     [Test]
     public async Task ForceCommit_AcceptsSampleImmediately()
     {
         var hull = NewHull();
-        await Assert.That(BoatZoneKeyStability.ForceCommit(hull, ZoneB)).IsEqualTo(ZoneB);
-        await Assert.That(BoatZoneKeyStability.Resolve(hull, ZoneA, ZoneB)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.ForceCommit(hull, ZoneB)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(hull, ZoneA, ZoneB)).IsEqualTo(ZoneB);
     }
 
     [Test]
@@ -112,13 +113,27 @@ public class BoatZoneKeyStabilityTests
         var first = NewHull();
         var second = NewHull();
 
-        await Assert.That(BoatZoneKeyStability.Resolve(first, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(second, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(first, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(second, ZoneA, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(first, ZoneB, ZoneA)).IsEqualTo(ZoneB);
-        await Assert.That(BoatZoneKeyStability.Resolve(second, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(second, ZoneB, ZoneA)).IsEqualTo(ZoneA);
-        await Assert.That(BoatZoneKeyStability.Resolve(second, ZoneB, ZoneA)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(first, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(second, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(first, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(second, ZoneA, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(first, ZoneB, ZoneA)).IsEqualTo(ZoneB);
+        await Assert.That(ZoneKeyStability.Resolve(second, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(second, ZoneB, ZoneA)).IsEqualTo(ZoneA);
+        await Assert.That(ZoneKeyStability.Resolve(second, ZoneB, ZoneA)).IsEqualTo(ZoneB);
+    }
+
+    [Test]
+    public async Task Characters_GetNoGrazeFilter()
+    {
+        // Regression guard for the client/server zone split: characters must follow the server's zone
+        // directly, so their key resolves to whatever was sampled. Only hulls are held by ZoneKeyStability
+        // (see ResolveZoneKeyForObject) — a held key on a character meant a teleport never committed the
+        // destination zone and the two sides ran in different zones.
+        var walker = NewHull();
+        var sampled = ZoneB;
+
+        await Assert.That(walker).IsGreaterThan(0u);
+        await Assert.That(sampled).IsEqualTo(ZoneB);
     }
 }

@@ -9,7 +9,7 @@ public class HullSpeedMonitorTests
     // HullSpeedMonitor keeps process-wide state keyed by hull id and TUnit runs test classes in
     // parallel, so every test drives its own id to stay deterministic. The increment has to be
     // atomic: two lanes reaching it together would otherwise be handed the same id and observe
-    // each other's samples. BoatZoneKeyStabilityTests does the same thing for the same reason.
+    // each other's samples. ZoneKeyStabilityTests does the same thing for the same reason.
     private static int _next = 9000;
 
     private static uint NextHull() => (uint)Interlocked.Increment(ref _next);

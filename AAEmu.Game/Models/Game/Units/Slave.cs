@@ -1003,8 +1003,8 @@ public class Slave : Unit
     }
 
     /// <summary>
-    /// Hull SCUnitState + points + slave-state + faction. Marks the character's slave stream
-    /// slot. Does not walk children.
+    /// Hull SCUnitState + points + slave-state + faction, then its attached equipment. Marks the
+    /// character's slave stream slot.
     /// </summary>
     public void SendUnitStateTo(Character character)
     {
@@ -1026,6 +1026,21 @@ public class Slave : Unit
 
         character.MarkSlaveStreamed(this);
 
+        // Attached equipment (sails, figurehead, cannons) is not a Transform child, so the hull's own
+        // (re)stream has to carry it: the client drops attached units together with the hull it lost,
+        // and without this a re-streamed ship came back bare until a relog. Each child owns its own
+        // stream slot, so a child already streamed returns immediately and the walk terminates.
+        foreach (var child in AttachedSlaves)
+        {
+            if (child == null ||
+                !SlaveAttachedStreamRules.ShouldFollowHull(ObjId, child.ObjId, child.AttachPointId))
+            {
+                continue;
+            }
+
+            child.SendUnitStateTo(character);
+        }
+
         foreach (var ati in AttachedCharacters)
         {
             if (ati.Value.ObjId > 0)
@@ -1044,10 +1059,24 @@ public class Slave : Unit
 
     public override void RemoveVisibleObject(Character character)
     {
-        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(character.IsRidingSlave(this)))
+        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(character.IsOccupyingSlave(this)))
             return;
 
         character.ReleaseSlaveSlot(ObjId);
+
+        // Attached equipment goes with the hull: the client drops those units along with the hull it
+        // lost, so their stream slots have to be released as well — otherwise the next re-stream finds
+        // them "already streamed" and the ship comes back bare.
+        foreach (var child in AttachedSlaves)
+        {
+            if (child == null ||
+                !SlaveAttachedStreamRules.ShouldFollowHull(ObjId, child.ObjId, child.AttachPointId))
+            {
+                continue;
+            }
+
+            character.ReleaseSlaveSlot(child.ObjId);
+        }
 
         // Region leave: base walks Transform.Children (sails/cannons). Soft Ship-band cull
         // of the selectable hull must not use this path — those doodads linger commercially.

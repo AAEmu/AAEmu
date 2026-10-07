@@ -236,6 +236,7 @@ public partial class Character : Unit, ICharacter
     /// coarse region neighborhood. Re-queues those still in the region pool as pending.
     /// </summary>
     public int CullStreamedMirrorsBeyondAoi()
+
     {
         if (MirrorNpcStatesSentIds.IsEmpty)
             return 0;
@@ -291,6 +292,52 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
+    /// True when this character is a rider <em>or</em> is standing on <paramref name="slave"/>.
+    /// A deck-stander has no seat — <see cref="AttachedPoint"/> stays None — but the client reports the
+    /// carrier through the move (<c>actor.gcId</c>), or, on some hulls, only the "current parent"
+    /// sentinel. Occupying a hull must hold its client stream exactly like a rider: otherwise the hull is
+    /// governed only by its AOI band and a step onto the deck culls and re-sends it.
+    /// </summary>
+    public bool IsOccupyingSlave(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return false;
+        if (IsRidingSlave(slave))
+            return true;
+
+        // Reported standing-on hull, held independently of Transform.Parent: an ordinary move carries no
+        // carrier and would otherwise clear the parent mid-deck, which is what let the hull be culled
+        // from underfoot. Reach-bounded so a stale id cannot hold a hull that is now far away.
+        if (StandingOnSlaveId == slave.ObjId)
+            return IsWithinStandingReachOf(slave);
+
+        if (Transform?.Parent?.GameObject is not Slave carrier)
+            return false;
+
+        var carrierParentHullId = (carrier.Transform?.Parent?.GameObject as Slave)?.ObjId ?? 0;
+        return SlaveOccupancyRules.IsOnHull(carrier.ObjId, carrierParentHullId, slave.ObjId);
+    }
+
+    /// <summary>
+    /// The hull this character last reported standing on (<c>actor.gcId</c>), or the nearest boat when the
+    /// client only sent the "current parent" sentinel. Cleared when the character moves out of reach.
+    /// </summary>
+    public uint StandingOnSlaveId { get; set; }
+
+    /// <summary>True while the recorded standing-on hull is still underfoot.</summary>
+    public bool IsStillOnStandingHull()
+        => StandingOnSlaveId != 0
+           && ParentWorld?.GetBaseUnit(StandingOnSlaveId) is Slave hull
+           && IsWithinStandingReachOf(hull);
+
+    private bool IsWithinStandingReachOf(Slave slave)
+    {
+        var offset = slave.Transform.World.Position - Transform.World.Position;
+        return SlaveOccupancyRules.IsWithinStandingReach(
+            (offset.X * offset.X) + (offset.Y * offset.Y) + (offset.Z * offset.Z));
+    }
+
+    /// <summary>
     /// True when this hull may receive SCUnitState now. Equipment (Part) is always inside.
     /// Does not share the NPC MAX cap — boats are not mirrors.
     /// </summary>
@@ -305,7 +352,7 @@ public partial class Character : Unit, ICharacter
             return false;
         if (StreamedSlaveIds.ContainsKey(slave.ObjId))
             return false;
-        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsRidingSlave(slave)))
+        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsOccupyingSlave(slave)))
             return true;
         var d2 = DistanceSq(Transform.World.Position, slave.Transform.World.Position);
         return StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: false);
@@ -322,7 +369,7 @@ public partial class Character : Unit, ICharacter
             return false;
         if (slave.StreamAoiCategory == StreamAoiCategory.Part)
             return false;
-        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsRidingSlave(slave)))
+        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsOccupyingSlave(slave)))
             return true;
         if (!StreamedSlaveIds.ContainsKey(slave.ObjId))
             return false;
@@ -381,7 +428,7 @@ public partial class Character : Unit, ICharacter
             // SCUnitsRemoved cancels the portal fx.
             if (slave is { IsDespawning: true })
                 continue;
-            if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsRidingSlave(slave)))
+            if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsOccupyingSlave(slave)))
                 continue;
             if (slave == null || slave.ObjId == 0)
             {
@@ -918,6 +965,7 @@ public partial class Character : Unit, ICharacter
     // public Item[] BuyBack { get; set; }
     public ItemContainer BuyBackItems { get; set; }
     public BondDoodad Bonding { get; set; }
+
     public CharacterQuests Quests { get; set; }
 
     /// <summary>
