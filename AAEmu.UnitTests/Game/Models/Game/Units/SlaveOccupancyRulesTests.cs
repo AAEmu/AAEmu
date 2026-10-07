@@ -46,4 +46,21 @@ public class SlaveOccupancyRulesTests
         var beyond = SlaveOccupancyRules.StandingHintRadiusMetres + 1f;
         await Assert.That(SlaveOccupancyRules.IsWithinStandingReach(beyond * beyond)).IsFalse();
     }
+
+    [Test]
+    public async Task RecordedHullIsStillReached_RejectsAHullLeftBehind()
+    {
+        // Standing on Hull's deck: the record is still reached through the parent link, whether the parent
+        // is the hull itself or a hull part that the hull owns.
+        await Assert.That(SlaveOccupancyRules.RecordedHullIsStillReached(Hull, Hull, 0)).IsTrue();
+        await Assert.That(SlaveOccupancyRules.RecordedHullIsStillReached(Hull, Figurehead, Hull)).IsTrue();
+
+        // Taking another hull's helm re-parents without clearing the record, so the deep link has to fail
+        // or the left-behind hull stays streamed for as long as the character stays in the region.
+        await Assert.That(SlaveOccupancyRules.RecordedHullIsStillReached(Hull, OtherHull, 0)).IsFalse();
+        await Assert.That(SlaveOccupancyRules.RecordedHullIsStillReached(Hull, OtherHull, OtherHull)).IsFalse();
+
+        // Nothing recorded, nothing to hold.
+        await Assert.That(SlaveOccupancyRules.RecordedHullIsStillReached(0, Hull, 0)).IsFalse();
+    }
 }

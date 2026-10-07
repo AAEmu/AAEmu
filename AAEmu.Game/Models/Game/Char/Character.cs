@@ -305,18 +305,22 @@ public partial class Character : Unit, ICharacter
         if (IsRidingSlave(slave))
             return true;
 
-        // The hull the client named as the carrier on the last standing move, held independently of
-        // Transform.Parent naming a hull directly: standing on a deck doodad makes that doodad the carrier,
-        // and its own parent is the hull. Cleared as soon as a move stops reporting standing, so it cannot
-        // outlive the deck.
-        if (StandingOnSlaveId == slave.ObjId && Transform?.Parent != null)
+        var parent = Transform?.Parent;
+        var parentObjId = (parent?.GameObject as Slave)?.ObjId ?? 0;
+        var parentOfParentObjId = (parent?.Parent?.GameObject as Slave)?.ObjId ?? 0;
+
+        // Parented to the hull itself, or to a deck doodad / hull part whose own parent is that hull.
+        if (SlaveOccupancyRules.IsOnHull(parentObjId, parentOfParentObjId, slave.ObjId))
             return true;
 
-        if (Transform?.Parent?.GameObject is not Slave carrier)
-            return false;
-
-        var carrierParentHullId = (carrier.Transform?.Parent?.GameObject as Slave)?.ObjId ?? 0;
-        return SlaveOccupancyRules.IsOnHull(carrier.ObjId, carrierParentHullId, slave.ObjId);
+        // The hull the client named as the carrier on the last standing move. It counts only while the
+        // parent link still reaches it: taking another vehicle's helm (BindSlave) re-parents without
+        // clearing the record, and a stale record would hold a hull the character has long left streamed.
+        // Proximity is deliberately not consulted - it does not cover a large deck and it kept a character
+        // who had stepped onto a dock parented to the boat.
+        return StandingOnSlaveId == slave.ObjId &&
+               SlaveOccupancyRules.RecordedHullIsStillReached(
+                   StandingOnSlaveId, parentObjId, parentOfParentObjId);
     }
 
     /// <summary>

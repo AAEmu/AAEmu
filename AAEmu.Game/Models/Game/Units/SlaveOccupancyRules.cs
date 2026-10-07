@@ -20,6 +20,19 @@ public static class SlaveOccupancyRules
         => hullObjId != 0 && (carrierObjId == hullObjId || carrierParentHullObjId == hullObjId);
 
     /// <summary>
+    /// True when the hull a character recorded as the one it stands on is still the hull its parent link
+    /// reaches.
+    /// </summary>
+    /// <remarks>
+    /// The record has to be re-checked against the live link instead of trusted: taking another vehicle's
+    /// helm (BindSlave) re-parents without clearing it, and a stale record would hold a hull the character
+    /// has left streamed for as long as they stay in the region.
+    /// </remarks>
+    public static bool RecordedHullIsStillReached(
+        uint recordedHullObjId, uint parentObjId, uint parentOfParentObjId)
+        => IsOnHull(parentObjId, parentOfParentObjId, recordedHullObjId);
+
+    /// <summary>
     /// How far a hull may be and still be the one a character is standing on, in metres.
     /// </summary>
     /// <remarks>
