@@ -41,13 +41,15 @@ public class SkillCooldownOwnershipRulesTests
     }
 
     [Test]
-    public async Task PlayerFiredSlaveSkill_UsesTheSummonersTable()
+    public async Task PlayerFiredVehicleSkill_KeepsTheVehiclesTable()
     {
-        var rider = Rider(100);
-        var hull = new Slave { Summoner = rider };
+        // A seat holder who is not the summoner can fire a vehicle's bar, so the cast cannot be
+        // attributed to the summoner: the vehicle keeps its own pacing.
+        var summoner = Rider(100);
+        var hull = new Slave { Summoner = summoner };
 
         await Assert.That(SkillCooldownOwnershipRules.CooldownOwner(hull, true, _ => null))
-            .IsSameReferenceAs(rider);
+            .IsSameReferenceAs(hull);
     }
 
     [Test]
