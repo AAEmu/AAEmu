@@ -305,11 +305,12 @@ public partial class Character : Unit, ICharacter
         if (IsRidingSlave(slave))
             return true;
 
-        // Reported standing-on hull, held independently of Transform.Parent: an ordinary move carries no
-        // carrier and would otherwise clear the parent mid-deck, which is what let the hull be culled
-        // from underfoot. Reach-bounded so a stale id cannot hold a hull that is now far away.
-        if (StandingOnSlaveId == slave.ObjId)
-            return IsWithinStandingReachOf(slave);
+        // The hull the client named as the carrier on the last standing move, held independently of
+        // Transform.Parent naming a hull directly: standing on a deck doodad makes that doodad the carrier,
+        // and its own parent is the hull. Cleared as soon as a move stops reporting standing, so it cannot
+        // outlive the deck.
+        if (StandingOnSlaveId == slave.ObjId && Transform?.Parent != null)
+            return true;
 
         if (Transform?.Parent?.GameObject is not Slave carrier)
             return false;
@@ -320,22 +321,9 @@ public partial class Character : Unit, ICharacter
 
     /// <summary>
     /// The hull this character last reported standing on (<c>actor.gcId</c>), or the nearest boat when the
-    /// client only sent the "current parent" sentinel. Cleared when the character moves out of reach.
+    /// client only sent the "current parent" sentinel. Cleared as soon as a move stops reporting standing.
     /// </summary>
     public uint StandingOnSlaveId { get; set; }
-
-    /// <summary>True while the recorded standing-on hull is still underfoot.</summary>
-    public bool IsStillOnStandingHull()
-        => StandingOnSlaveId != 0
-           && ParentWorld?.GetBaseUnit(StandingOnSlaveId) is Slave hull
-           && IsWithinStandingReachOf(hull);
-
-    private bool IsWithinStandingReachOf(Slave slave)
-    {
-        var offset = slave.Transform.World.Position - Transform.World.Position;
-        return SlaveOccupancyRules.IsWithinStandingReach(
-            (offset.X * offset.X) + (offset.Y * offset.Y) + (offset.Z * offset.Z));
-    }
 
     /// <summary>
     /// True when this hull may receive SCUnitState now. Equipment (Part) is always inside.
@@ -411,7 +399,8 @@ public partial class Character : Unit, ICharacter
 
     /// <summary>
     /// Hull-only leave: SCUnitsRemoved for the selectable unit. Does not walk
-    /// Transform.Children — sail/cannon doodads stay until region leave.
+    /// Transform.Children — sail/cannon doodads stay until region leave — but the attached-equipment
+    /// stream slots are released, because the client drops those units along with the hull.
     /// </summary>
     public int CullStreamedSlavesBeyondAoi()
     {
@@ -448,6 +437,25 @@ public partial class Character : Unit, ICharacter
         {
             var slave = ParentWorld?.GetSlaveByObjId(objId);
             ReleaseSlaveSlot(objId);
+
+            // Attached equipment has to be released with the hull as well: the client drops those units
+            // along with the hull it lost, so leaving their slots held makes the next re-stream find them
+            // "already streamed" and the ship returns with no sails, figurehead or cannons. Same rule the
+            // region-leave path applies.
+            if (slave != null)
+            {
+                foreach (var child in slave.AttachedSlaves)
+                {
+                    if (child == null ||
+                        !SlaveAttachedStreamRules.ShouldFollowHull(slave.ObjId, child.ObjId, child.AttachPointId))
+                    {
+                        continue;
+                    }
+
+                    ReleaseSlaveSlot(child.ObjId);
+                }
+            }
+
             if (slave != null && IsStillInRegionInterest(slave))
                 EnqueuePendingSlave(slave);
         }

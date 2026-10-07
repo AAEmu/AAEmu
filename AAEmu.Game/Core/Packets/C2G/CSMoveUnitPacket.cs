@@ -524,8 +524,12 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
             }
         }
 
-        // Still standing on the hull we recorded: keep the parent and the occupancy.
-        if (character.Transform.Parent != null && character.IsStillOnStandingHull())
+        // The move itself says whether the client is still standing on something: a deck move carries the
+        // standing flag, a step off the deck onto a dock or into the water does not. Proximity alone must
+        // not keep the parent - that left a departed character parented to the boat, moving with it
+        // between movement packets, and a 15 m sphere around a hull's origin does not even cover a large
+        // deck. While the flag is set the parent (and with it the hull's stream keep-alive) is preserved.
+        if (character.Transform.Parent != null && IsStandingOnSomething(umt))
             return;
 
         // No carrier reported. Bonding owns the parent link while seated, so leave that alone.
@@ -561,9 +565,16 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
         }
     }
 
-    /// <summary>True when the move says the client is standing on something (flags/actorFlags bit 0x40).</summary>
+    /// <summary>
+    /// True when the move reports the client standing on its carrier: the same named flags the position
+    /// writer reads as "these coordinates are carrier-local". The actor bit for standing is 0x20 - 0x40
+    /// there is <see cref="MoveTypeActorFlags.HangingFromObject"/> - so a standing move that names no
+    /// carrier (gcId 1) missed the hull-underfoot adoption and had a deck offset written as a world
+    /// position.
+    /// </summary>
     private static bool IsStandingOnSomething(UnitMoveType umt)
-        => ((int)umt.Flags & 0x40) != 0 || (umt.ActorFlags & 0x40) != 0;
+        => umt.Flags.HasFlag(MoveTypeFlags.StandingOnObject) ||
+           ((MoveTypeActorFlags)umt.ActorFlags).HasFlag(MoveTypeActorFlags.StandingOnObject);
 
     /// <summary>Nearest live boat within <see cref="SlaveOccupancyRules.StandingHintRadiusMetres"/>.</summary>
     private static Slave FindStandingHull(Character character)
