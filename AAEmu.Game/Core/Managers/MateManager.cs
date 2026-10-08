@@ -297,6 +297,15 @@ public class MateManager(WorldInstance parentWorldInstance)
 
         owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, [new ItemUpdate(item)], [])); // TODO - maybe update details
         owner.SendPacket(new SCMateSpawnedPacket(mate));
+
+        // Re-send the owner's cooldowns with the fresh mate. The client learns a skill's cooldown by
+        // starting its own countdown when a cast succeeds, and that state is rebuilt with the mount bar;
+        // after a despawn/respawn it therefore has no cooldown entry, so a server refusal
+        // (SkillResult.CooldownTime) has nothing to paint and "you can't use it right now" is never
+        // shown even though the timer is still running on the player. Cooldowns live on the player —
+        // see SkillCooldownOwnershipRules — so the player's table is what has to be re-sent.
+        owner.SendPacket(new SCCooldownsPacket(owner.Cooldowns));
+
         Thread.Sleep(50);
         mate.Spawn();
         AnnounceMateToZone(mate);

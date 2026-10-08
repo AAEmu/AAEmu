@@ -1,6 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -164,10 +165,27 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 if (character.Bonding != null && character.Transform.Parent?.GameObject is Doodad)
                     character.Transform.Parent = null;
 
-                if (character.Bonding != null &&
-                    character.Transform.Parent?.GameObject is BaseUnit and not Doodad)
+                // A mount rider and a ladder/mast hang report WORLD coordinates while parented, so they
+                // are converted through GetLocalFromWorld (the #1566 rule). A "standing on" move is
+                // different: there the client reports the position in the CARRIER's local space and names
+                // the carrier in actor.gcId (see ApplyGroundContact) — converting it again produced a
+                // Local of hull-to-origin magnitude (measured -342.6,16580.4,67.8) that composed back to a
+                // world position near the origin, so every distance test read ~16 km and the hull the
+                // player stood on was soft-culled and re-sent.
+                // Measured both ways: hanging on the ladder sends world XYZ (Local became 13063.3,10226.6
+                // when written raw under the doodad), standing on the deck sends carrier-local.
+                var positionIsCarrierLocal =
+                    umt.Flags.HasFlag(MoveTypeFlags.StandingOnObject) ||
+                    ((MoveTypeActorFlags)umt.ActorFlags).HasFlag(MoveTypeActorFlags.StandingOnObject);
+
+                if (character.Transform.Parent != null && !positionIsCarrierLocal)
                 {
-                    character.Transform.FinalizeTransform();
+                    var local = character.Transform.GetLocalFromWorld(umt.X, umt.Y, umt.Z);
+                    character.Transform.Local.SetPosition(
+                        local.X, local.Y, local.Z,
+                        (float)MathUtil.ConvertDirectionToRadian(umt.RotationX),
+                        (float)MathUtil.ConvertDirectionToRadian(umt.RotationY),
+                        (float)MathUtil.ConvertDirectionToRadian(umt.RotationZ));
                 }
                 else
                 {
@@ -176,8 +194,8 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                         (float)MathUtil.ConvertDirectionToRadian(umt.RotationX),
                         (float)MathUtil.ConvertDirectionToRadian(umt.RotationY),
                         (float)MathUtil.ConvertDirectionToRadian(umt.RotationZ));
-                    character.Transform.FinalizeTransform();
                 }
+                character.Transform.FinalizeTransform();
 
                 character.SetPlayerMoved();
 
@@ -479,14 +497,40 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
     /// </remarks>
     private static void ApplyGroundContact(Character character, UnitMoveType umt)
     {
-        var carrier = umt.GcId != 0 ? character.ParentWorld?.GetGameObject(umt.GcId) : null;
-
-        if (carrier != null && carrier.ObjId != character.ObjId)
+        // actor.gcId 1 is the client's "the current parent" sentinel — the same value the doodad
+        // mirror path below already ignores. Resolving it through the world names nothing usable and
+        // drops into the "no carrier reported" branch, which clears the parent we already have. A
+        // deck-stander then loses the hull, so it is governed only by its AOI band and the ship under
+        // them is culled and re-sent.
+        if (umt.GcId != 1)
         {
-            if (!ReferenceEquals(character.Transform.Parent, carrier.Transform))
-                character.Transform.Parent = carrier.Transform;
-            return;
+            var reported = umt.GcId != 0 ? character.ParentWorld?.GetGameObject(umt.GcId) : null;
+
+            if (reported != null && reported.ObjId != character.ObjId)
+            {
+                if (!ReferenceEquals(character.Transform.Parent, reported.Transform))
+                    character.Transform.Parent = reported.Transform;
+
+                // Remember which hull that is. The client reports the carrier only intermittently, and
+                // an ordinary move in between reports none — without this the parent, and with it the
+                // hull's stream keep-alive, was dropped while the player was still on the deck.
+                if (reported is Slave carrierSlave)
+                    character.StandingOnSlaveId = carrierSlave.ObjId;
+                else if (reported?.Transform?.Parent?.GameObject is Slave carrierHull)
+                    character.StandingOnSlaveId = carrierHull.ObjId;
+                else
+                    character.StandingOnSlaveId = 0;
+                return;
+            }
         }
+
+        // The move itself says whether the client is still standing on something: a deck move carries the
+        // standing flag, a step off the deck onto a dock or into the water does not. Proximity alone must
+        // not keep the parent - that left a departed character parented to the boat, moving with it
+        // between movement packets, and a 15 m sphere around a hull's origin does not even cover a large
+        // deck. While the flag is set the parent (and with it the hull's stream keep-alive) is preserved.
+        if (character.Transform.Parent != null && IsStandingOnSomething(umt))
+            return;
 
         // No carrier reported. Bonding owns the parent link while seated, so leave that alone.
         // Slave BindSlave seats must Unbind (SCUnitDetached + Zone), not only null Parent —
@@ -497,7 +541,66 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 TryDismountSlaveOrHang(character, jumping: false);
             else
                 character.Transform.Parent = null;
+
+            character.StandingOnSlaveId = 0;
+            return;
         }
+
+        // Standing on something, but with no carrier and no parent to preserve: the client only ever
+        // reports that state with the hull underfoot, so adopt the nearest boat within reach. Without a
+        // parent the deck-stander is governed only by the hull's AOI band, which culls and re-sends the
+        // ship under them — the "ship vanishes and drops me in the water" failure.
+        if (IsStandingOnSomething(umt))
+        {
+            var hull = FindStandingHull(character);
+            if (hull == null)
+            {
+                character.StandingOnSlaveId = 0;
+                return;
+            }
+
+            if (character.Transform.Parent == null)
+                character.Transform.Parent = hull.Transform;
+            character.StandingOnSlaveId = hull.ObjId;
+        }
+    }
+
+    /// <summary>
+    /// True when the move reports the client standing on its carrier: the same named flags the position
+    /// writer reads as "these coordinates are carrier-local". The actor bit for standing is 0x20 - 0x40
+    /// there is <see cref="MoveTypeActorFlags.HangingFromObject"/> - so a standing move that names no
+    /// carrier (gcId 1) missed the hull-underfoot adoption and had a deck offset written as a world
+    /// position.
+    /// </summary>
+    private static bool IsStandingOnSomething(UnitMoveType umt)
+        => umt.Flags.HasFlag(MoveTypeFlags.StandingOnObject) ||
+           ((MoveTypeActorFlags)umt.ActorFlags).HasFlag(MoveTypeActorFlags.StandingOnObject);
+
+    /// <summary>Nearest live boat within <see cref="SlaveOccupancyRules.StandingHintRadiusMetres"/>.</summary>
+    private static Slave FindStandingHull(Character character)
+    {
+        var slaves = character.ParentWorld?.GetAllSlaves();
+        if (slaves == null)
+            return null;
+
+        var here = character.Transform.World.Position;
+        Slave best = null;
+        var bestDistanceSq = SlaveOccupancyRules.StandingHintRadiusSquared;
+        foreach (var slave in slaves)
+        {
+            if (slave?.Template?.IsABoat() != true || slave.ObjId == 0)
+                continue;
+
+            var offset = slave.Transform.World.Position - here;
+            var distanceSq = (offset.X * offset.X) + (offset.Y * offset.Y) + (offset.Z * offset.Z);
+            if (!SlaveOccupancyRules.IsWithinStandingReach(distanceSq) || distanceSq > bestDistanceSq)
+                continue;
+
+            bestDistanceSq = distanceSq;
+            best = slave;
+        }
+
+        return best;
     }
 
     /// <summary>

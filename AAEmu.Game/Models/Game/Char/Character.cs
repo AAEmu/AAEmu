@@ -236,6 +236,7 @@ public partial class Character : Unit, ICharacter
     /// coarse region neighborhood. Re-queues those still in the region pool as pending.
     /// </summary>
     public int CullStreamedMirrorsBeyondAoi()
+
     {
         if (MirrorNpcStatesSentIds.IsEmpty)
             return 0;
@@ -291,6 +292,44 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
+    /// True when this character is a rider <em>or</em> is standing on <paramref name="slave"/>.
+    /// A deck-stander has no seat — <see cref="AttachedPoint"/> stays None — but the client reports the
+    /// carrier through the move (<c>actor.gcId</c>), or, on some hulls, only the "current parent"
+    /// sentinel. Occupying a hull must hold its client stream exactly like a rider: otherwise the hull is
+    /// governed only by its AOI band and a step onto the deck culls and re-sends it.
+    /// </summary>
+    public bool IsOccupyingSlave(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return false;
+        if (IsRidingSlave(slave))
+            return true;
+
+        var parent = Transform?.Parent;
+        var parentObjId = (parent?.GameObject as Slave)?.ObjId ?? 0;
+        var parentOfParentObjId = (parent?.Parent?.GameObject as Slave)?.ObjId ?? 0;
+
+        // Parented to the hull itself, or to a deck doodad / hull part whose own parent is that hull.
+        if (SlaveOccupancyRules.IsOnHull(parentObjId, parentOfParentObjId, slave.ObjId))
+            return true;
+
+        // The hull the client named as the carrier on the last standing move. It counts only while the
+        // parent link still reaches it: taking another vehicle's helm (BindSlave) re-parents without
+        // clearing the record, and a stale record would hold a hull the character has long left streamed.
+        // Proximity is deliberately not consulted - it does not cover a large deck and it kept a character
+        // who had stepped onto a dock parented to the boat.
+        return StandingOnSlaveId == slave.ObjId &&
+               SlaveOccupancyRules.RecordedHullIsStillReached(
+                   StandingOnSlaveId, parentObjId, parentOfParentObjId);
+    }
+
+    /// <summary>
+    /// The hull this character last reported standing on (<c>actor.gcId</c>), or the nearest boat when the
+    /// client only sent the "current parent" sentinel. Cleared as soon as a move stops reporting standing.
+    /// </summary>
+    public uint StandingOnSlaveId { get; set; }
+
+    /// <summary>
     /// True when this hull may receive SCUnitState now. Equipment (Part) is always inside.
     /// Does not share the NPC MAX cap — boats are not mirrors.
     /// </summary>
@@ -305,7 +344,7 @@ public partial class Character : Unit, ICharacter
             return false;
         if (StreamedSlaveIds.ContainsKey(slave.ObjId))
             return false;
-        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsRidingSlave(slave)))
+        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsOccupyingSlave(slave)))
             return true;
         var d2 = DistanceSq(Transform.World.Position, slave.Transform.World.Position);
         return StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: false);
@@ -322,7 +361,7 @@ public partial class Character : Unit, ICharacter
             return false;
         if (slave.StreamAoiCategory == StreamAoiCategory.Part)
             return false;
-        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsRidingSlave(slave)))
+        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsOccupyingSlave(slave)))
             return true;
         if (!StreamedSlaveIds.ContainsKey(slave.ObjId))
             return false;
@@ -364,7 +403,8 @@ public partial class Character : Unit, ICharacter
 
     /// <summary>
     /// Hull-only leave: SCUnitsRemoved for the selectable unit. Does not walk
-    /// Transform.Children — sail/cannon doodads stay until region leave.
+    /// Transform.Children — sail/cannon doodads stay until region leave — but the attached-equipment
+    /// stream slots are released, because the client drops those units along with the hull.
     /// </summary>
     public int CullStreamedSlavesBeyondAoi()
     {
@@ -381,7 +421,7 @@ public partial class Character : Unit, ICharacter
             // SCUnitsRemoved cancels the portal fx.
             if (slave is { IsDespawning: true })
                 continue;
-            if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsRidingSlave(slave)))
+            if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsOccupyingSlave(slave)))
                 continue;
             if (slave == null || slave.ObjId == 0)
             {
@@ -401,6 +441,25 @@ public partial class Character : Unit, ICharacter
         {
             var slave = ParentWorld?.GetSlaveByObjId(objId);
             ReleaseSlaveSlot(objId);
+
+            // Attached equipment has to be released with the hull as well: the client drops those units
+            // along with the hull it lost, so leaving their slots held makes the next re-stream find them
+            // "already streamed" and the ship returns with no sails, figurehead or cannons. Same rule the
+            // region-leave path applies.
+            if (slave != null)
+            {
+                foreach (var child in slave.AttachedSlaves)
+                {
+                    if (child == null ||
+                        !SlaveAttachedStreamRules.ShouldFollowHull(slave.ObjId, child.ObjId, child.AttachPointId))
+                    {
+                        continue;
+                    }
+
+                    ReleaseSlaveSlot(child.ObjId);
+                }
+            }
+
             if (slave != null && IsStillInRegionInterest(slave))
                 EnqueuePendingSlave(slave);
         }
@@ -918,6 +977,7 @@ public partial class Character : Unit, ICharacter
     // public Item[] BuyBack { get; set; }
     public ItemContainer BuyBackItems { get; set; }
     public BondDoodad Bonding { get; set; }
+
     public CharacterQuests Quests { get; set; }
 
     /// <summary>

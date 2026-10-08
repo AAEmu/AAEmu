@@ -25,7 +25,7 @@
             "freeLpRaise": true,
             "use_slash_open_chat": true,
             "useCharacterListPage": true,
-            "buyPremiuminSelChar": false,
+            "buyPremiuminSelChar": true,
             "premiumUserServer": true,
             "show_premium_hud": true,
             "loadingTipOfDay": true,
@@ -141,9 +141,9 @@
             "fset_9_6_unknown": true,       // mate item equip validation (CheckMateItemEquip)
             "fset_11_2_unknown": true,      // doodad descriptor lookup
             "fset_12_0_unknown": true,      // inventory slot swap — CSSwapItemsPacket (0x67), bag slots only
-            "fset_12_1_unknown": false,     // bag repair requires special-effect 121; this compact has none
+            "fset_12_1_unknown": false,     // bit 97 = in-bag repair cost/slot collector (RepairCostAndSlotCollector); its path also demands special-effect 121, which this compact has none of (verified 0 rows) — keep off
             "fset_13_0_unknown": true,      // movement packet path (CSMoveUnit)
-            "fset_13_1_unknown": true,      // skill use / buff removal (RemoveBuff)
+            "fset_13_1_unknown": false,     // MUST stay OFF: with this ON the client never shows the "can't use it right now" notice when the server refuses a skill (verified live 2026-10-07 on a mount skill after despawn/respawn; refusal is sent either way)
             "fset_13_3_unknown": true,      // premium service message + mail take-attachment packets
             "fset_14_0_unknown": true,      // login-char preview unit creation (1.2 useTGOS)
             "fset_17_0_unknown": true,      // chat npctype:// link
@@ -152,7 +152,7 @@
             "fset_20_2_unknown": true,      // ScriptBindCustomizingUnit — appearance preview mannequin Lua API
             "fset_20_5_unknown": true,      // Lua Item object from catalog template id (look-convert / preview slots)
             "fset_24_3_unknown": true,      // housing builder rotation (HouseBuilder::UpdateRotating)
-            "fset_24_7_unknown": false,     // ui_eventProfile + fgt (encyclopedia / AH / craft)
+            "fset_24_7_unknown": true,      // ui_eventProfile + fgt (encyclopedia / AH / craft)
             "fset_25_1_unknown": true,      // Bless Uthstin page copy/expand CS packets
             "fset_25_3_unknown": true,      // notice / event board record (title, body, schedule)
             "fset_28_6_unknown": true,      // multilingual auction search packet

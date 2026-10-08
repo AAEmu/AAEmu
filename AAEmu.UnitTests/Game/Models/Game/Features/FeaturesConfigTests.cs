@@ -60,11 +60,13 @@ public class FeaturesConfigTests
             fset.Set(Enum.Parse<Feature>(name, true), enabled);
 
         await Assert.That(fset.ToString()).IsEqualTo(
-            // All bits on except fset_7_2_unknown (snow), restriction/moderation/dev-security switches,
-            // aaPoint (bit 44), fset_12_1_unknown (bag repair collector; no special-effect 121),
-            // buyPremiuminSelChar (Patron is granted, not sold), fset_24_7_unknown / fgt (bit 199),
-            // and scalar bytes 1/8/10/26 (FeaturesManager fills those from level caps at boot).
-            "5f 00 00 00 f4 8f 61 02 00 4e 00 fe bd cf 0d 00 00 ff bf " +
-            "f5 7f 9e b7 00 6c bf 00 d0 79 f2 02");
+            // All bits on except fset_7_2_unknown (snow), the restriction/moderation/dev-security
+            // switches, aaPoint (bit 44; the auction house keeps gold) and fset_12_1_unknown (bit 97;
+            // the in-bag repair cost/slot collector, whose path also wants special-effect 121, which this
+            // compact does not carry). Scalar bytes 1/8/10/26 stay zero - FeaturesManager fills those from
+            // the level caps, not from Flags. buyPremiuminSelChar (bit 117) and fset_24_7_unknown / fgt
+            // (bit 199) are ON since the post-port parity change.
+            "5f 00 00 00 f4 8f 61 02 00 4e 00 fe bd cd 2d 00 00 ff bf " +
+            "f5 7f 9e b7 00 ec bf 00 d0 79 f2 02");
     }
 }

@@ -483,7 +483,13 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
     /// Sea hulls use sticky zone keys so 64 m grid seams do not flip keys every tick. Riders inherit
     /// the hull's committed key instead of re-sampling the same oscillating coordinate.
     /// </summary>
-    private static uint ResolveZoneKeyForObject(GameObject obj, uint sampledKey)
+    /// <remarks>
+    /// Characters deliberately get no stickiness of their own: their zone must follow the server on every
+    /// change (zone change → handoff). A graze filter on a character holds the key until the sample repeats,
+    /// and a teleport leaves the player standing still, so the new zone was never committed and the client
+    /// and server ended up in different zones.
+    /// </remarks>
+    internal static uint ResolveZoneKeyForObject(GameObject obj, uint sampledKey)
     {
         if (obj is Character passenger &&
             passenger.Transform?.Parent?.GameObject is Slave hull &&
@@ -495,7 +501,7 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
         if (obj is Slave boat && boat.Template?.IsABoat() == true)
         {
             var current = boat.Transform?.ZoneId ?? 0;
-            return BoatZoneKeyStability.Resolve(boat.ObjId, sampledKey, current);
+            return ZoneKeyStability.Resolve(boat.ObjId, sampledKey, current);
         }
 
         return sampledKey;

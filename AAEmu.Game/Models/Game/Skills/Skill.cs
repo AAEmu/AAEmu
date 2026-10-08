@@ -327,17 +327,22 @@ public class Skill
                 // above allowed it. SkillCooldownGateRules lists the casts that keep their own pacing.
                 // The skill's cooldown tags are checked too, so using one variant of an action greys out
                 // its siblings (295 ability skills carry a tag).
+                // Mount/pet bar skills are cast AS the mount (its unit_reqs are the ones that pass), but the
+                // cooldown belongs to the player: retail keeps it keyed by the skill, so it survives the mount
+                // being despawned and a second mount carrying the same skill shows the same timer.
+                var cooldownOwner = SkillCooldownOwnershipRules.CooldownOwner(
+                    unit, !_bypassGcd, ResolveCooldownOwnerUnit);
                 var cooldownBlocks = SkillCooldownGateRules.CooldownBlocksCast(
                     Template.SwitchToSkillCooldown,
-                    unit.Cooldowns.CheckCooldown(Template.Id),
-                    unit.Cooldowns.CheckTagCooldown(Template.CooldownTags));
+                    cooldownOwner.Cooldowns.CheckCooldown(Template.Id),
+                    cooldownOwner.Cooldowns.CheckTagCooldown(Template.CooldownTags));
                 var accountCooldownBlocks = Template.AccountCooldown &&
                                             character != null &&
                                             AccountCooldowns.IsActive(character.AccountId, Template.Id);
                 // A charge skill with an empty pool is on cooldown even when it declares no
                 // cooldown_time at all — 13281 다발 사격 is 5 charges on a 22 s recharge and 0 ms.
                 var chargesExhausted = Template.ChargeCount > 1 &&
-                                       unit.Cooldowns.GetCharges(
+                                       cooldownOwner.Cooldowns.GetCharges(
                                            Template.Id, Template.ChargeCount, Template.ChargeCooldownTime) <= 0;
                 if (SkillCooldownGateRules.ShouldWaitForCooldown(
                         _bypassGcd, fishingHold, Template.Id,
@@ -2676,19 +2681,23 @@ public class Skill
         if (unit == null)
             return;
 
+        // The timer goes on the player for anything the player fired, including a mount/pet bar skill that is
+        // cast as the mount — see SkillCooldownOwnershipRules. Simulation-driven casts keep their own table.
+        var owner = SkillCooldownOwnershipRules.CooldownOwner(unit, !_bypassGcd, ResolveCooldownOwnerUnit);
+
         var duration = Template.CooldownTime > 0 ? (uint)Template.CooldownTime : 0u;
         if (Template.SwitchToSkillCooldown)
         {
             duration = SkillCooldownGateRules.SwitchToCooldownDuration(
                 duration,
-                unit.Cooldowns.GetRemaining(Template.Id, Template.CooldownTags));
+                owner.Cooldowns.GetRemaining(Template.Id, Template.CooldownTags));
         }
 
         if (Template.ChargeCount > 1)
         {
             if (_chargesAfterCast < 0)
             {
-                _chargesAfterCast = unit.Cooldowns.ConsumeCharge(
+                _chargesAfterCast = owner.Cooldowns.ConsumeCharge(
                     Template.Id, Template.ChargeCount, Template.ChargeCooldownTime);
             }
 
@@ -2698,11 +2707,18 @@ public class Skill
                 return;
         }
 
-        unit.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
+        owner.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
 
-        if (Template.AccountCooldown && unit is Character character)
+        if (Template.AccountCooldown && owner is Character character)
             AccountCooldowns.Arm(character.AccountId, Template.Id, duration);
     }
+
+    /// <summary>
+    /// The world lookup behind <see cref="SkillCooldownOwnershipRules.CooldownOwner"/>: a mate names its
+    /// rider by ObjId, so the cooldown table can be the rider's rather than the summon's.
+    /// </summary>
+    private static Unit ResolveCooldownOwnerUnit(uint objId)
+        => WorldManager.Instance.GetCharacterByObjId(objId);
 
     /// <summary>
     /// ZoneAuthority WZSkillStarted once per Use. Instant skills must call this from Cast()

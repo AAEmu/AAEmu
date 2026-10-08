@@ -74,6 +74,14 @@ public static class SkillTeleportLanding
             case TeleportLandingKind.InstanceDungeon:
                 return destinationWorld.DungeonInstance.QueuePlayer(character);
             default:
+                // A different world is still a different zone: an unhosted destination must not be
+                // applied half-way. Without this the destination coordinates were written and the
+                // character stayed filed in the zone they left — no refusal, no kick to character
+                // select, just a silent desync. The same-world path above has always had this guard.
+                if (!TeleportLandingRules.CanLandInZone(
+                        WorldIntegration.ZoneAuthority, WorldIntegration.IsZoneLoaded, zoneId))
+                    return false;
+
                 Apply(
                     character,
                     destinationWorld.Template?.Id ?? destinationWorld.Id,
@@ -142,6 +150,12 @@ public static class SkillTeleportLanding
         // CSTeleportEnded releases this lock after the client acknowledges the landing.
         if (TeleportLandingRules.ShouldLockMovementUntilTeleportEnded(loadedInstance))
             character.DisabledSetPosition = true;
+
+        // A teleport leaves whatever hull the character was standing on. Carrying the old parent across
+        // zones makes the transform's world position resolve back to the old hull, so the landing is
+        // undone and the character stays filed in the zone they left.
+        character.StandingOnSlaveId = 0;
+        character.Transform.Parent = null;
 
         character.SendPacket(new SCTeleportUnitPacket(reason, 0, x, y, z, yawRad));
         if (TeleportLandingRules.RelaysSameZoneBlink(stayInZone, WorldIntegration.ZoneAuthority))

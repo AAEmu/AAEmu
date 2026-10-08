@@ -409,7 +409,13 @@ public class Transform : IDisposable
 
     private void InternalDetachChild(Transform child)
     {
-        if (_children.Remove(child))
+        var removed = _children.Remove(child);
+        var wasMine = ReferenceEquals(child._parentTransform, this);
+
+        // Convert whenever this transform really was the child's parent, not only when the child list
+        // still had it: a skipped conversion leaves the child unparented while Local still holds
+        // parent-relative coordinates, which composes to the wrong world position.
+        if (removed || wasMine)
         {
             var parentRotation = World.ToQuaternion();
             var parentScale = _owningObject is BaseUnit u ? u.Scale : 1f;

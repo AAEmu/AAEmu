@@ -138,13 +138,26 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         var minDepth = 5f;
         if (shipModel != null)
             minDepth = shipModel.MassBoxSizeZ - shipModel.MassCenterZ + 1f;
-        if (floorHeight <= 0f || !IsBoatSurfaceAllowed(caster.Z, surfaceHeight, floorHeight, minDepth))
+
+        // Depth is a preference, not a gate. Open sea routinely misses the derived draft by a few metres
+        // (measured: 13 m of water under a 17.5 m requirement refused a summon 8 m in front of the
+        // caster, twice in a row), and retail plants the hull on the surface anyway. Keep the inland/sky
+        // test below -- that is the one that stops a hull being buried above the waterline.
+        if (floorHeight <= 0f || !IsBoatSurfaceAllowed(caster.Z, surfaceHeight, floorHeight, 0f))
         {
             Logger.Warn(
-                "SlaveSpawn seed refused: no water at least {0:0.0} deep at ({1:0.0},{2:0.0}); ground {3:0.0}, surface {4:0.0} tpl={5}",
-                minDepth, seed.X, seed.Y, floorHeight, surfaceHeight, slaveTemplate.Id);
+                "SlaveSpawn seed refused: no usable water surface at ({0:0.0},{1:0.0}); ground {2:0.0}, surface {3:0.0} tpl={4}",
+                seed.X, seed.Y, floorHeight, surfaceHeight, slaveTemplate.Id);
             owner.SendErrorMessage(ErrorMessageType.SlaveSpawnErrorInvalidArea);
             return false;
+        }
+
+        var depth = surfaceHeight - floorHeight;
+        if (depth <= minDepth)
+        {
+            Logger.Info(
+                "SlaveSpawn seed shallow: {0:0.0}m of water, preferred {1:0.0}m at ({2:0.0},{3:0.0}) tpl={4}",
+                depth, minDepth, seed.X, seed.Y, slaveTemplate.Id);
         }
 
         return true;
@@ -777,6 +790,26 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                             bestScore = score;
                             bestPos = new Vector3(probePos.X, probePos.Y, surfaceHeight);
                         }
+                    }
+                }
+
+                if (bestPos == null)
+                {
+                    // Last resort before refusing: plant on the caster's own water surface. Open sea
+                    // routinely misses the derived draft, so the sweep (which skips shallow probes) found
+                    // nothing even though the player is plainly on water. Retail summons there anyway;
+                    // refusing was what made summoning at sea feel broken. The inland/sky guard still
+                    // applies, so a hull is never planted above the waterline.
+                    var casterSurface = GetWaterSurfaceFromAreas(world, waterAreas, casterLevelPos);
+                    var casterFloor = World.Template.GeoData.GetHeight(casterLevelPos);
+                    if (casterFloor > 0f &&
+                        IsBoatSurfaceAllowed(casterLevelPos.Z, casterSurface, casterFloor, 0f))
+                    {
+                        bestPos = new Vector3(casterLevelPos.X, casterLevelPos.Y, casterSurface);
+                        Logger.Info(
+                            "SlaveSpawn boat template={0} fell back to the caster's water surface at ({1:0.0},{2:0.0}); depth {3:0.0}m preferred {4:0.0}m",
+                            slaveTemplate.Id, casterLevelPos.X, casterLevelPos.Y,
+                            casterSurface - casterFloor, minDepth);
                     }
                 }
 
@@ -2971,7 +3004,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             DropHullFromZone(slave, zoneId);
         }
 
-        BoatZoneKeyStability.Clear(slave.ObjId);
+        ZoneKeyStability.Clear(slave.ObjId);
         slave.ZoneAnnouncedTo = 0;
         slave.ZoneSimEnabledFor = 0;
         slave.ZoneSimPendingFor = 0;
@@ -3247,7 +3280,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             if (template != null)
             {
                 var sampled = WorldManager.Instance.GetZoneId(template, p.X, p.Y);
-                var zoneKey = BoatZoneKeyStability.ForceCommit(mySlave.ObjId, sampled);
+                var zoneKey = ZoneKeyStability.ForceCommit(mySlave.ObjId, sampled);
                 if (zoneKey > 0 && mySlave.Transform.ZoneId != zoneKey)
                     mySlave.Transform.ZoneId = zoneKey;
                 if (mySlave.ZoneAnnouncedTo != zoneKey && zoneKey > 0)
