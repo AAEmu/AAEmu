@@ -197,7 +197,7 @@ pub fn parse_mesh_dump(lines: &[&str]) -> (TriMesh, usize) {
             }
             "misc" => {
                 let v = ints(rest);
-                m.n_subtractions = v[0];
+                m.n_bad_edges = v[0];
                 m.n_errors = v[1];
             }
             "tree" => {
@@ -245,4 +245,229 @@ pub fn write_mesh_file(tag: &str, v: &[Vec3], idx: &[i32]) -> PathBuf {
     let p = dir.join(format!("{tag}.mesh"));
     std::fs::write(&p, b).unwrap();
     p
+}
+
+fn hex_bytes(b: &[u8]) -> String {
+    use std::fmt::Write;
+    let mut s = String::with_capacity(2 * b.len());
+    for x in b {
+        let _ = write!(s, "{x:02x}");
+    }
+    s
+}
+
+/// The port's [`TriMesh`] in the text format of `p1c_mesh_dump` (p1c_common.h), for direct
+/// comparison with a probe's dump.
+pub fn dump_mesh(m: &TriMesh) -> String {
+    use aaemu_physics::geometry::bvtree::MemWriter;
+    use std::fmt::Write;
+    let nt = m.n_tris.max(0) as usize;
+    let nv = m.n_verts.max(0) as usize;
+    let mut s = String::new();
+    let _ = writeln!(
+        s,
+        "mesh nt {} nv {} flags {:08x} valency {} mvd {:08x} prio {} convex {} multi {} raygrid {} vmin {}",
+        m.n_tris,
+        m.n_verts,
+        m.flags,
+        m.max_vertex_valency,
+        m.min_vtx_dist.to_bits(),
+        m.priority,
+        m.is_convex,
+        m.multi_island,
+        m.ray_grid_ready,
+        m.i_vtx_min
+    );
+    s += "idx";
+    for i in &m.indices[..3 * nt] {
+        let _ = write!(s, " {i}");
+    }
+    s += "\nvtx";
+    for v in &m.vertices[..nv] {
+        let _ = write!(
+            s,
+            " {:08x} {:08x} {:08x}",
+            v.x.to_bits(),
+            v.y.to_bits(),
+            v.z.to_bits()
+        );
+    }
+    s += "\nnrm";
+    for v in &m.normals[..nt] {
+        let _ = write!(
+            s,
+            " {:08x} {:08x} {:08x}",
+            v.x.to_bits(),
+            v.y.to_bits(),
+            v.z.to_bits()
+        );
+    }
+    s += "\ntopo";
+    for t in &m.topology[..nt] {
+        let _ = write!(s, " {} {} {}", t[0], t[1], t[2]);
+    }
+    s += "\n";
+    let list = |s: &mut String, tag: &str, v: Option<Vec<String>>| {
+        match v {
+            Some(v) => {
+                *s += tag;
+                for x in v {
+                    *s += " ";
+                    *s += &x;
+                }
+            }
+            None => {
+                *s += tag;
+                *s += " -";
+            }
+        }
+        *s += "\n";
+    };
+    list(
+        &mut s,
+        "mats",
+        m.mats
+            .as_ref()
+            .map(|a| a[..nt].iter().map(|x| x.to_string()).collect()),
+    );
+    list(
+        &mut s,
+        "fid",
+        m.foreign_idx
+            .as_ref()
+            .map(|a| a[..nt].iter().map(|x| x.to_string()).collect()),
+    );
+    list(
+        &mut s,
+        "vmap",
+        m.vtx_map
+            .as_ref()
+            .map(|a| a[..nv].iter().map(|x| x.to_string()).collect()),
+    );
+    list(
+        &mut s,
+        "aux",
+        m.aux
+            .as_ref()
+            .map(|a| a[..nt].iter().map(|x| x.to_string()).collect()),
+    );
+    match &m.islands {
+        Some(isl) => {
+            let _ = write!(s, "islands {}", isl.len());
+            for i in isl {
+                for w in i.words {
+                    let _ = write!(s, " {w:08x}");
+                }
+            }
+            s += "\n";
+        }
+        None => s += "islands -\n",
+    }
+    list(
+        &mut s,
+        "tisl",
+        m.tri_island
+            .as_ref()
+            .map(|a| a[..nt].iter().map(|x| format!("{x:08x}")).collect()),
+    );
+    s += "cache";
+    let mut w: Vec<u32> = m.convex_cache.iter().map(|&x| x as u32).collect();
+    w.extend(m.convex_tol.iter().map(|x| x.to_bits()));
+    w.push(m.multi_island as u32);
+    w.push(m.cached_volume.to_bits());
+    w.extend(m.cached_extent.iter().map(|x| x.to_bits()));
+    w.extend(
+        [m.cached_center.x, m.cached_center.y, m.cached_center.z]
+            .iter()
+            .map(|x| x.to_bits()),
+    );
+    for x in w {
+        let _ = write!(s, " {x:08x}");
+    }
+    let _ = writeln!(s, "\nmisc {} {}", m.n_bad_edges, m.n_errors);
+    match &m.tree {
+        Some(t) => {
+            let mut wr = MemWriter::new();
+            t.as_dyn().save(&mut wr);
+            let b = wr.into_bytes();
+            let _ = writeln!(
+                s,
+                "tree {} bytes {} {}",
+                t.as_dyn().tree_type().id(),
+                b.len(),
+                hex_bytes(&b)
+            );
+        }
+        None => s += "tree -\n",
+    }
+    s
+}
+
+/// Masks the bytes of a serialized tree (slot 21 payload of type `ty`, as hex) that the DLL's
+/// builders leave uninitialised: AABB node 1 (all but nTris) and the `single_coll` byte of
+/// internal AABB nodes; OBB node 1 (all but iParent and nTris).
+pub fn mask_tree_hex(ty: i32, hex: &str) -> String {
+    let mut b: Vec<char> = hex.chars().collect();
+    let mut blank = |from: usize, n: usize| {
+        for c in b.iter_mut().skip(2 * from).take(2 * n) {
+            *c = '-';
+        }
+    };
+    let byte = |i: usize| u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).unwrap_or(0);
+    let word = |i: usize| u32::from_le_bytes([byte(i), byte(i + 1), byte(i + 2), byte(i + 3)]);
+    match ty {
+        1 if hex.len() >= 16 && word(0) == u32::MAX => {
+            let n = word(4) as usize;
+            for k in 0..n {
+                let o = 8 + 12 * k;
+                if 2 * (o + 12) > hex.len() {
+                    break;
+                }
+                if k == 1 {
+                    blank(o, 10);
+                    blank(o + 11, 1);
+                } else if byte(o + 10) == 0 {
+                    blank(o + 11, 1);
+                }
+            }
+        }
+        0 if hex.len() >= 8 => {
+            let n = word(0) as usize;
+            if n >= 2 && hex.len() >= 2 * (4 + 144) {
+                let o = 4 + 72;
+                blank(o, 60);
+                blank(o + 64, 4);
+            }
+        }
+        _ => {}
+    }
+    b.into_iter().collect()
+}
+
+/// [`mask_tree_hex`] applied to the `tree` lines of a dump text.
+pub fn mask_dump(text: &str) -> String {
+    let mut out = String::new();
+    for line in text.lines() {
+        let f: Vec<&str> = line.split(' ').collect();
+        if f.len() == 5 && f[0] == "tree" && f[2] == "bytes" {
+            let ty: i32 = f[1].parse().unwrap_or(-1);
+            out += &format!("tree {} bytes {} {}", f[1], f[3], mask_tree_hex(ty, f[4]));
+        } else {
+            out += line;
+        }
+        out += "\n";
+    }
+    out
+}
+
+/// Hex text → bytes.
+pub fn unhex(h: &str) -> Vec<u8> {
+    (0..h.len() / 2)
+        .map(|k| u8::from_str_radix(&h[2 * k..2 * k + 2], 16).unwrap())
+        .collect()
+}
+
+/// Bytes → hex text.
+pub fn hex(b: &[u8]) -> String {
+    hex_bytes(b)
 }

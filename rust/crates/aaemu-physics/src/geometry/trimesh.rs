@@ -5,7 +5,13 @@
 //! original keeps as raw pointers are `Vec`s / `Option<Vec>`s, and the element counts the
 //! original keeps separately (`+120` nTris, `+124` nVertices) are kept as explicit fields
 //! because several routines change them independently of the arrays (Load trims vertices,
-//! a degenerate loaded mesh sets nTris to 0, …).
+//! a degenerate loaded mesh sets nTris to 0, …). Invariant kept by the ported code: the arrays
+//! hold at least `n_tris` / `n_verts` entries (only the first ones are meaningful).
+//!
+//! Exactness evidence (P1c-core, against the DLL): `tests/p1c_core.rs` (constructor, topology,
+//! islands, IsConvex, Save, Load on 24 golden + 400 random synthetic meshes, all 1,717 corpus
+//! blobs loaded/saved and all 1,596 non-shared corpus meshes rebuilt), `tests/p1c_core_props.rs`,
+//! `tests/p1c_core_inside.rs`.
 //!
 //! Submodules (each ports a group of slots / helpers):
 //!
@@ -13,15 +19,15 @@
 //! |---|---|
 //! | [`build`] | constructor from data 0x351CF1B0: vertex welding, degenerate-triangle removal, vertex map, tree choice, normals |
 //! | [`topology`] | neighbour topology 0x351BFA60, islands 0x351C0D80, `IsConvex` (slot 21) |
-//! | [`stream`] | `Save` (slot 25, 0x351CECB0), `Load` (slot 26, 0x351D83B0) |
-//! | [`props`] | `GetBBox`, `CalcPhysicalProperties`, volume, centre, extent, feature and per-triangle accessors |
-//! | [`inside`] | `PointInsideStatus` (slots 8 / 61) |
+//! | [`stream`] | `Save` (slot 25, 0x351CECB0), `Load` (slots 26 / 27, 0x351D83B0 / 0x351033E0); the blob wrapper is `shapes::stream::{load_phys_geometry_any, save_phys_geometry_mesh}` |
+//! | [`props`] | `GetBBox`, `CalcPhysicalProperties`, volume, centre, extent, feature and per-triangle accessors, slots 40 / 41 / 43 / 45 / 50 |
+//! | [`inside`] | `PointInsideStatus` (slots 8 / 61) and the ray grid (slot 22 `PrepareForRayTest`, sub_351C8B10) |
 //! | [`fluid`] | slots 12 / 13 / 14 (pressure, buoyancy, medium resistance) |
 //! | [`closest`] | slot 11 `FindClosestPoint` |
 //! | [`protocol`] | the `geometry_under_test` protocol: slots 48, 53, 55, 56, 57 (mesh and primitives) |
 //! | [`register`] | slot 54 `RegisterIntersection` and the feature-polygon helpers (slots 58 / 59) |
 //! | [`intersect`] | the generic `CGeometry::Intersect` (0x3514FD70) with its tree traversals and the mesh's slot 10 |
-//! | [`raytest`] | slot 22 `PrepareForRayTest` (ray grid) and the mesh ray path |
+//! | [`raytest`] | the mesh ray path (uses the grid of [`inside`]) |
 //! | [`unproject_sphere`] | slot 49 `UnprojectSphere` |
 
 pub mod build;
@@ -40,12 +46,44 @@ pub mod unproject_sphere;
 use crate::geometry::bvtree::select::MeshTree;
 use crate::math::Vec3;
 
-/// One entry of the island list (`+128`, 40 bytes each, built by sub_351C0D80).
-/// Field meanings are filled in by [`topology`].
+/// One entry of the island list (`+128`, 40 bytes each, built by sub_351C0D80, see
+/// [`topology`]): `+0` first triangle of the island's triangle list (linked through
+/// [`TriMesh::tri_island`]), `+4` triangle count, `+8`/`+12`/`+16` three ints set to −1 (not
+/// read by the ported code), `+20` signed volume, `+24` volume-weighted centre, `+36` 0.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct MeshIsland {
     /// The 10 dwords of the record as the original stores them.
     pub words: [u32; 10],
+}
+
+impl MeshIsland {
+    /// `+0` the island's first triangle (head of its list in [`TriMesh::tri_island`]).
+    #[must_use]
+    pub fn first_tri(&self) -> i32 {
+        self.words[0] as i32
+    }
+
+    /// `+4` the island's triangle count.
+    #[must_use]
+    pub fn n_tris(&self) -> i32 {
+        self.words[1] as i32
+    }
+
+    /// `+20` the island's signed volume.
+    #[must_use]
+    pub fn volume(&self) -> f32 {
+        f32::from_bits(self.words[5])
+    }
+
+    /// `+24` the island's centre (the mean of its vertex references).
+    #[must_use]
+    pub fn center(&self) -> Vec3 {
+        Vec3::new(
+            f32::from_bits(self.words[6]),
+            f32::from_bits(self.words[7]),
+            f32::from_bits(self.words[8]),
+        )
+    }
 }
 
 /// `CTriMesh` (0x260 bytes). Field offsets are those of the x64 object.
@@ -87,8 +125,17 @@ pub struct TriMesh {
     pub aux: Option<Vec<i32>>,
     /// `+168` maximum vertex valency.
     pub max_vertex_valency: i32,
-    /// `+476` ray-grid build count (slot 22); the grid itself lives in [`raytest`].
+    /// `+476` ray-grid build count (slot 22).
     pub ray_grid_ready: i32,
+    /// `+176..+392` the ray grid (up to two layers) built by slot 22 (`PrepareForRayTest`, 0x351D7C40) and read by
+    /// `PointInsideStatus` (slot 61) and the mesh ray path; `None` until built.
+    pub ray_grid: Option<inside::RayGrid>,
+    /// `+32` foreign data pointer (slots 35 / 37; opaque to the engine).
+    pub foreign_data: crate::sentinel::RawPtr,
+    /// `+40` iForeignData (slots 36 / 37).
+    pub i_foreign_data: i32,
+    /// `+544` the foreign data returned by slot 35 for id −1.
+    pub foreign_data_mesh: crate::sentinel::RawPtr,
     /// `+480` IsConvex cache: results for 4 tolerances.
     pub convex_cache: [i32; 4],
     /// `+496` IsConvex cache: the tolerances (init −1).
@@ -101,8 +148,9 @@ pub struct TriMesh {
     pub cached_extent: [f32; 2],
     /// `+528` cached centre (slot 32); `.x` holds the sentinel until computed.
     pub cached_center: Vec3,
-    /// `+540` subtraction counter (slot 38).
-    pub n_subtractions: i32,
+    /// `+540` number of open plus non-manifold edges found by the last topology pass
+    /// (sub_351BFA60); slot 38 returns it.
+    pub n_bad_edges: i32,
     /// `+588` error / invalid count (slot 34).
     pub n_errors: i32,
     /// `+600` lowest referenced vertex index (Load's vertex trimming).
@@ -136,13 +184,17 @@ impl Default for TriMesh {
             aux: None,
             max_vertex_valency: 0,
             ray_grid_ready: 0,
+            ray_grid: None,
+            foreign_data: crate::sentinel::RawPtr::NULL,
+            i_foreign_data: 0,
+            foreign_data_mesh: crate::sentinel::RawPtr::NULL,
             convex_cache: [0; 4],
             convex_tol: [-1.0; 4],
             multi_island: 0,
             cached_volume: unused,
             cached_extent: [unused; 2],
             cached_center: Vec3::new(unused, 0.0, 0.0),
-            n_subtractions: 0,
+            n_bad_edges: 0,
             n_errors: 0,
             i_vtx_min: 0,
             save_pad: [0; 16],
