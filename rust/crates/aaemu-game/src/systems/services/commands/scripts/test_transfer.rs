@@ -20,16 +20,42 @@ impl Command for TestTransfer {
         &self,
         _ctx: &CommandContext<'_>,
         _args: &[String],
-        _out: &mut dyn MessageOutput,
+        out: &mut dyn MessageOutput,
     ) -> anyhow::Result<()> {
-        anyhow::bail!("PORT-TODO: TestTransfer")
+        // The rest of the C# body (spawning a test carriage) is commented out.
+        CommandManager::send_error_text(self, out, "function disabled");
+        Ok(())
     }
 
     fn get_command_line_help(&self) -> String {
-        String::new() // PORT-TODO
+        String::new()
     }
 
     fn get_command_help_text(&self) -> String {
-        String::new() // PORT-TODO
+        "Spawns a transportation vehicle".into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::harness;
+
+    #[tokio::test]
+    async fn test_transfer_is_disabled() {
+        let server = harness::server();
+        let mut gm = harness::pc(&server, 1, "Gm", 100.0, 100.0);
+        let (handled, out) = harness::run(&server, &gm.p, "test_transfer 1").await;
+        assert!(handled);
+        assert_eq!(out, [harness::error("testtransfer", "function disabled")]);
+        assert_eq!(
+            gm.chat(),
+            [harness::error("testtransfer", "function disabled")]
+        );
+        assert!(server
+            .world
+            .world(0)
+            .unwrap()
+            .all_of_kind(crate::world::ObjectKind::Transfer)
+            .is_empty());
     }
 }

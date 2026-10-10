@@ -417,11 +417,14 @@ pub fn name_of(p: &PlayerRef) -> String {
 /// The message of a .NET `NullReferenceException`.
 pub const NULL_REFERENCE: &str = "Object reference not set to an instance of an object.";
 
-/// `obj.Transform.World` (the local transform composed with its parents).
-pub fn world_pos(server: &GameServer, obj: &WorldObject) -> PositionAndRotation {
-    match server.world.world_of(obj) {
-        Some(w) => w.world_pos_rot(obj),
-        None => obj.transform().local(),
+// ---- social helpers ----
+
+/// `DateTime.ToString()` with the invariant culture (`MM/dd/yyyy HH:mm:ss`) of a UTC unix time
+/// in seconds.
+pub fn dotnet_datetime(unix_secs: i64) -> String {
+    match chrono::DateTime::from_timestamp(unix_secs, 0) {
+        Some(d) => d.format("%m/%d/%Y %H:%M:%S").to_string(),
+        None => String::new(),
     }
 }
 
@@ -468,27 +471,6 @@ pub fn world_spawn_position_string(p: &crate::data::world_templates::WorldSpawnP
         g(p.pitch),
         g(p.yaw)
     )
-}
-
-/// `obj.GetType().FullName` (`object.ToString()` of the game object classes).
-pub fn dotnet_type_name(obj: &WorldObject) -> &'static str {
-    match obj {
-        WorldObject::Player(_) => "AAEmu.Game.Models.Game.Char.Character",
-        WorldObject::Npc(n) => {
-            if n.data().portal.is_some() {
-                "AAEmu.Game.Models.Game.Units.Portal"
-            } else {
-                "AAEmu.Game.Models.Game.NPChar.Npc"
-            }
-        }
-        WorldObject::Doodad(_) => "AAEmu.Game.Models.Game.DoodadObj.Doodad",
-        WorldObject::Slave(_) => "AAEmu.Game.Models.Game.Units.Slave",
-        WorldObject::Mate(_) => "AAEmu.Game.Models.Game.Units.Mate",
-        WorldObject::House(_) => "AAEmu.Game.Models.Game.Housing.House",
-        WorldObject::Transfer(_) => "AAEmu.Game.Models.Game.Units.Transfer",
-        WorldObject::Shipyard(_) => "AAEmu.Game.Models.Game.Shipyard.Shipyard",
-        WorldObject::Gimmick(_) => "AAEmu.Game.Models.Game.Gimmicks.Gimmick",
-    }
 }
 
 /// `target.DisabledSetPosition = true; target.SendPacket(new SCTeleportUnitPacket(reason, 0, x,
