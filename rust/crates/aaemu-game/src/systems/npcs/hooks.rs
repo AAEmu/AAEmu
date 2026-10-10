@@ -111,6 +111,78 @@ pub trait SkillsBridge: Send + Sync {
         _pos: (f32, f32, f32),
     ) {
     }
+
+    // ---- doodad funcs / world interactions (`systems::npcs::doodad::{funcs, interactions}`) ----
+
+    /// `DoodadFuncFakeUse`: `new Skill(GetSkillTemplate(skillId)).Use(caster, casterObj,
+    /// targetObj, null, false, out _)` (`scheduled == false`, `target == None`), or
+    /// `DoodadFuncUse`: `TaskManager.Schedule(new UseSkillTask(skill, caster, casterObj, target,
+    /// targetObj, null), 0 ms)` (`scheduled == true`). Default: the skill is not used.
+    #[allow(clippy::too_many_arguments)]
+    fn use_doodad_func_skill(
+        &self,
+        _server: &GameServer,
+        _caster: &WorldObject,
+        _caster_obj: DoodadSkillCaster,
+        _target: Option<&WorldObject>,
+        _target_obj: DoodadSkillTarget,
+        _skill_id: u32,
+        _scheduled: bool,
+    ) {
+    }
+
+    /// The character part of `DoodadFuncSkillHit.Use` (`SkillId > 0`): a `SkillItem` caster with
+    /// a new obj id, `SkillCastDoodadTarget(doodad)`, and for every `SpecialEffect` of type
+    /// `GainItem*` of the skill: `AcquireDefaultItem(Loot, Value1, 1, grade)` + `skill.Use`.
+    /// Default: nothing.
+    fn doodad_func_skill_hit(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _doodad: &WorldObject,
+        _skill_id: u32,
+    ) {
+    }
+
+    /// `target.Buffs.AddBuff(buffId, caster)` (`DoodadFuncBuff`). Default: no buff.
+    fn add_buff(&self, _server: &GameServer, _target: &WorldObject, _buff_id: u32, _caster: &WorldObject) {}
+
+    /// `character.SkillCancelled = true` (harvest protection in `DoodadFuncUse` /
+    /// `CropHarvest`). Default: nothing.
+    fn cancel_skill(&self, _server: &GameServer, _player: &PlayerRef) {}
+
+    /// `caster.InterruptSkills()` (`RecoverItem` interaction failure). Default: nothing.
+    fn interrupt_skills(&self, _server: &GameServer, _unit: &WorldObject) {}
+
+    // ---- doodad phase machine / DoodadManager runtime (`systems::npcs::doodad::{phase, manager}`) ----
+
+    /// `CrimeManager.GenerateEvidenceFromTheft(criminal, doodad)` (`Doodad.Use` on a doodad owned
+    /// by another character). Default: no evidence.
+    fn generate_theft_evidence(&self, _server: &GameServer, _criminal: &PlayerRef, _doodad: &crate::world::DoodadRef) {}
+
+    /// `SkillManager.GetSkillTemplate(skillId)?.ConsumeLaborPower` (`CSCreateDoodadPacket` labor
+    /// cost). Default: 0.
+    fn skill_consume_labor_power(&self, _server: &GameServer, _skill_id: u32) -> i32 {
+        0
+    }
+}
+
+/// `SkillCaster` of a skill used by a doodad func.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DoodadSkillCaster {
+    /// `SkillCasterUnit { ObjId }`.
+    Unit(u32),
+    /// `SkillCasterDoodad { ObjId }`.
+    Doodad(u32),
+}
+
+/// `SkillCastTarget` of a skill used by a doodad func.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DoodadSkillTarget {
+    /// `SkillCastUnitTarget { ObjId }`.
+    Unit(u32),
+    /// `SkillCastDoodadTarget { ObjId }`.
+    Doodad(u32),
 }
 
 /// Implemented by the **economy** subsystem (items, loot, coffers, merchants, labor, money).
@@ -210,6 +282,209 @@ pub trait EconomyBridge: Send + Sync {
     ) -> i32 {
         0
     }
+
+    // ---- doodad funcs / world interactions / coffers (`systems::npcs::doodad`) ----
+
+    /// `ItemManager.IsAutoEquipTradePack(templateId)` (`BackpackTemplate` not bound on equip).
+    fn is_auto_equip_trade_pack(&self, _server: &GameServer, _template_id: u32) -> bool {
+        false
+    }
+
+    /// `Inventory.TakeoffBackpack(task, glidersOnly)` (true when nothing is equipped). Default:
+    /// true when the backpack slot is empty, else false (moving items is not ported).
+    fn takeoff_backpack(&self, _server: &GameServer, player: &PlayerRef, _task: u8, _gliders_only: bool) -> bool {
+        backpack_slot_empty(player)
+    }
+
+    /// `Inventory.CanReplaceGliderInBackpackSlot()`. Default: true when the backpack slot is
+    /// empty (glider templates are not known here).
+    fn can_replace_glider_in_backpack_slot(&self, _server: &GameServer, player: &PlayerRef) -> bool {
+        backpack_slot_empty(player)
+    }
+
+    /// `ItemManager.Create(templateId, count, 0)` + `Inventory.Equipment.AddOrMoveExistingItem(
+    /// task, item, Backpack)` (`DoodadFuncLootItem` trade packs).
+    fn create_item_in_backpack_slot(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task: u8,
+        _template_id: u32,
+        _count: i32,
+    ) -> bool {
+        false
+    }
+
+    /// `Inventory.Equipment.AddOrMoveExistingItem(task, item, Backpack)` of an existing item
+    /// (`DoodadFuncRecoverItem`).
+    fn move_item_to_backpack_slot(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _item_id: u64) -> bool {
+        false
+    }
+
+    /// `Inventory.Bag.AddOrMoveExistingItem(task, item)` of an existing item.
+    fn move_item_to_bag(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _item_id: u64) -> bool {
+        false
+    }
+
+    /// `Inventory.SystemContainer.AddOrMoveExistingItem(task, item)` (`DoodadFuncConsumeChanger`).
+    fn move_item_to_system_container(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _item_id: u64) -> bool {
+        false
+    }
+
+    /// `Equipment.RemoveItem(task, item, true)` (`DoodadFuncBuyFish` / `ConvertFish`).
+    fn remove_equipment_item(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _item_id: u64) -> bool {
+        false
+    }
+
+    /// `Inventory.Bag.SpaceLeftForItem(templateId)`.
+    fn bag_space_left_for_item(&self, _server: &GameServer, _player: &PlayerRef, _template_id: u32) -> i32 {
+        0
+    }
+
+    /// `Inventory.Bag.ConsumeItem(task, templateId, count, null)`; returns the number consumed.
+    fn bag_consume_item(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _template_id: u32, _count: i32) -> i32 {
+        0
+    }
+
+    /// `Inventory.TryEquipNewBackPack(task, templateId, count)`.
+    fn try_equip_new_backpack(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task: u8,
+        _template_id: u32,
+        _count: i32,
+    ) -> bool {
+        false
+    }
+
+    /// `DoodadFuncLootPack`: `actAbility = GetSkillActAbility(skillId)`, `GetPack(lootPackId)
+    /// .GeneratePack(character, actAbility)`; when `Bag.FreeSlotCount >= contents.Count`:
+    /// `GiveLootPack(character, actAbility, task, contents)` and `Some(true)`; else `Some(false)`
+    /// (bag full). `None` when the pack does not exist (C# `NullReferenceException`). Default:
+    /// `None`.
+    fn give_doodad_loot_pack(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _loot_pack_id: u32,
+        _skill_id: u32,
+        _task: u8,
+    ) -> Option<bool> {
+        None
+    }
+
+    /// `DoodadFuncConvertFish`: `GetLootConvertFish(backpackTemplateId)`, first trophy ->
+    /// `FishDetailsGameData.Create` + `Bag.AddOrMoveExistingItem(task, fish)`. Default: nothing.
+    fn give_convert_fish_trophy(&self, _server: &GameServer, _player: &PlayerRef, _backpack_template_id: u32, _task: u8) {}
+
+    /// `HousingManager.GetHouseById(houseId)` + `house.AllowedToInteract(player)`: `None` when
+    /// the house does not exist. Default: `Some(true)` for a house in the world (permissions not
+    /// ported), else `None`.
+    fn house_allowed_to_interact(&self, server: &GameServer, house_db_id: u32, _player: &PlayerRef) -> Option<bool> {
+        house_by_db_id(server, house_db_id).map(|_| true)
+    }
+
+    /// `HousingManager.Demolish(connection, house, false, false)` (`Demolish` interaction).
+    fn demolish_house(&self, _server: &GameServer, _player: &PlayerRef, _house: &crate::world::HouseRef) {}
+
+    /// `CofferContainer.CofferType` (`ChestType`) of coffer container `container_id`.
+    fn coffer_chest_type(&self, _server: &GameServer, _container_id: u64) -> u8 {
+        0
+    }
+
+    /// `FamilyManager.GetFamilyOfCharacter(characterId)` (coffer / house permissions of an
+    /// offline owner). Default: 0.
+    fn family_of_character(&self, _server: &GameServer, _character_id: u32) -> u32 {
+        0
+    }
+
+    /// `ExpeditionManager.GetExpeditionOfCharacter(characterId)`. Default: 0.
+    fn expedition_of_character(&self, _server: &GameServer, _character_id: u32) -> u32 {
+        0
+    }
+
+    /// `MagicalEnchant` interaction: `Bag.GetItemByItemId(targetItemId) is EquipItem` ->
+    /// `RuneId = runeTemplateId`, `SCItemSocketingLunastoneResultPacket` +
+    /// `SCItemTaskSuccessPacket(EnchantMagical, [ItemUpdate])`. Default: nothing.
+    fn magical_enchant(&self, _server: &GameServer, _player: &PlayerRef, _target_item_id: u64, _rune_template_id: u32) {}
+
+    // ---- doodad phase machine / DoodadManager runtime (`systems::npcs::doodad::{manager, db}`) ----
+
+    /// The item `item_id` of `player` (`Inventory.GetItemById` when `bag_only == false`,
+    /// `Inventory.Bag.GetItemByItemId` otherwise). Default: `None` (no items known).
+    fn doodad_source_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _item_id: u64,
+        _bag_only: bool,
+    ) -> Option<DoodadSourceItem> {
+        None
+    }
+
+    /// `ItemManager.GetItemIdsFromDoodad(doodadTemplateId)`. Default: none.
+    fn item_ids_from_doodad(&self, _server: &GameServer, _doodad_template_id: u32) -> Vec<u32> {
+        Vec::new()
+    }
+
+    /// `CreatePlayerDoodad` per item of `GetItemIdsFromDoodad`: `character.ItemUse(preferredItem)`
+    /// + `Inventory.ConsumeItem([Inventory], DoodadCreate, templateId, 1, preferredItem)`.
+    fn consume_doodad_source_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _template_id: u32,
+        _preferred_item_id: Option<u64>,
+    ) {
+    }
+
+    /// `DoodadCoffer.InitializeCoffer(ownerId)`: creates the coffer container and stores its id
+    /// in `doodad.coffer.container_id`. Default: nothing.
+    fn initialize_coffer(&self, _server: &GameServer, _doodad: &crate::world::DoodadRef, _owner_character_id: u32) {}
+
+    /// `Doodad.Delete()` item cleanup: `GetItemByItemId(itemId)` held by a `None` / `System`
+    /// container -> `RemoveItem(Invalid, item, true)`. Default: nothing.
+    fn remove_expired_doodad_item(&self, _server: &GameServer, _item_id: u64) {}
+
+    /// `DeleteDoodadById` item part: the attached item loses its container and its id is
+    /// released; the attached container is deleted. Default: nothing.
+    fn release_deleted_doodad_items(&self, _server: &GameServer, _item_id: u64, _container_id: u64) {}
+
+    /// `HousingManager.GetHouseAtLocation(x, y)` (database id of the house whose land covers
+    /// the point). Default: `None`.
+    fn house_at_location(&self, _server: &GameServer, _x: f32, _y: f32) -> Option<u32> {
+        None
+    }
+}
+
+/// The item fields `CSCreateDoodadPacket` / `CreatePlayerDoodad` read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DoodadSourceItem {
+    pub item_id: u64,
+    pub template_id: u32,
+    /// `Template.MaxCount`.
+    pub max_count: i32,
+    /// `Template.UseSkillId`.
+    pub use_skill_id: u32,
+}
+
+/// `GetEquippedBySlot(Backpack) == null`.
+pub fn backpack_slot_empty(player: &PlayerRef) -> bool {
+    let equipment = player.data().inventory.equipment().clone();
+    let c = equipment.lock().expect("container poisoned");
+    c.get_item_by_slot(crate::models::container::equip_slot::BACKPACK)
+        .is_none()
+}
+
+/// `HousingManager.GetHouseById(id)`: the house with database id `id` in any world instance.
+pub fn house_by_db_id(server: &GameServer, id: u32) -> Option<crate::world::HouseRef> {
+    server.world.worlds().iter().find_map(|w| {
+        w.all_of_kind(crate::world::ObjectKind::House)
+            .into_iter()
+            .filter_map(|o| o.as_house().cloned())
+            .find(|h| h.data().id == id)
+    })
 }
 
 /// Implemented by the **quests** subsystem (`QuestManager`, quest acts / components).
@@ -294,6 +569,19 @@ pub trait QuestsBridge: Send + Sync {
         _quest_template_id: u32,
         _sphere: &super::sphere_quest::SphereQuest,
         _last_check: [f32; 3],
+    ) {
+    }
+
+    /// `QuestManager.DoReportEvents(character, questId, npcObjId, doodadObjId, selective)`
+    /// (`DoodadFuncQuest` on a quest in progress).
+    fn do_report_events(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _quest_id: u32,
+        _npc_obj_id: u32,
+        _doodad_obj_id: u32,
+        _selective: i32,
     ) {
     }
 }
