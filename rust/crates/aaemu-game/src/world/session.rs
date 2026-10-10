@@ -307,6 +307,8 @@ pub fn select_loaded(
     mut c: Character,
     db: SelectDbData,
 ) -> Result<()> {
+    // Character.Load(): "Update sync housing factions on login"
+    crate::systems::housing::on_character_loaded(server, c.id, c.unit.faction_id);
     // Mates of all instances: later phase.
     let obj_id = match server.world.used_obj_id(c.id) {
         Some(o) => o,
@@ -453,7 +455,8 @@ pub fn select_loaded(
         infos.extend(db.offline_blocked.iter().cloned());
         conn.send(&SCBlockedUsersPacket { blocked: infos });
     }
-    // Houses (SCMyHousePacket): later phase.
+    // Houses (SCMyHousePacket)
+    crate::systems::housing::send_my_houses(server, conn, snapshot.id);
     for conflict in &data.zones.conflicts {
         conn.send(&SCConflictZoneStatePacket {
             zone_group_id: conflict.zone_group_id,

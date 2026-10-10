@@ -203,6 +203,13 @@ pub struct WorldConfig {
     /// `GrowthRate` (doodad growth time divisor).
     #[serde(rename = "growthrate", deserialize_with = "lenient")]
     pub growth_rate: f64,
+    // ---- phase 3 / housing ----
+    /// `DaysForTaxPayment` (days of protection one tax payment buys).
+    #[serde(rename = "daysfortaxpayment", deserialize_with = "lenient")]
+    pub days_for_tax_payment: u32,
+    /// `UsePersistentHouseDoodads` (house-bound doodads are stored in the `doodads` table).
+    #[serde(rename = "usepersistenthousedoodads", deserialize_with = "lenient")]
+    pub use_persistent_house_doodads: bool,
 }
 
 impl Default for WorldConfig {
@@ -216,6 +223,8 @@ impl Default for WorldConfig {
             geo_data_mode: false,
             pre_load_terrain: false,
             growth_rate: 1.0,
+            days_for_tax_payment: 7,
+            use_persistent_house_doodads: false,
         }
     }
 }

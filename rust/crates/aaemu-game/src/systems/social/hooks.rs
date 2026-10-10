@@ -86,13 +86,15 @@ pub trait SocialHooks: Send + Sync {
     ) {
     }
 
-    /// economy (housing): `HousingManager.UpdateOwnedHousingFaction(characterId, factionId)`.
+    /// housing: `HousingManager.UpdateOwnedHousingFaction(characterId, factionId)`. Default:
+    /// the housing subsystem.
     fn update_owned_housing_faction(
         &self,
-        _server: &GameServer,
-        _character_id: u32,
-        _faction_id: u32,
+        server: &GameServer,
+        character_id: u32,
+        faction_id: u32,
     ) {
+        crate::systems::housing::update_owned_housing_faction(server, character_id, faction_id);
     }
 
     /// npcs (mates / slaves): `Character.ForceDismount()`.

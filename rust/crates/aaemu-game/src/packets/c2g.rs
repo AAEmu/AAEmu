@@ -145,18 +145,20 @@ async fn load_account(server: &GameServer, conn: &mut GameConnection) -> Result<
         conn.send(p.as_ref());
     }
     conn.characters = characters;
-    // Later phase: Houses.Clear(); HousingManager.GetByAccountId(Houses, AccountId).
+    // Houses.Clear(); HousingManager.GetByAccountId(Houses, AccountId): read by
+    // `systems::housing::send_login_houses` / `send_my_houses` when the packets are sent.
     Ok(())
 }
 
 /// The part of `CSListCharacterPacket.Read` after `LoadAccount()`: race congestion, the character
-/// list in chunks of two and one `SCLoginCharInfoHouse` per house (later phase: houses).
+/// list in chunks of two (the `SCLoginCharInfoHouse` packets are sent by the caller).
 pub fn send_character_list(conn: &mut GameConnection, characters: &[Character]) {
     conn.send(&SCRaceCongestionPacket);
     for packet in SCCharacterListPacket::chunked(characters) {
         conn.send(&packet);
     }
-    // Later phase: foreach house in Connection.Houses: SCLoginCharInfoHouse(house.OwnerId, house).
+    // foreach house in Connection.Houses: SCLoginCharInfoHouse(house.OwnerId, house) follows
+    // (`systems::housing::send_login_houses`).
 }
 
 /// `CSListCharacterPacket` (level 1, 0x020).
@@ -187,6 +189,7 @@ impl ClientPacket for CSListCharacterPacket {
             load_account(server, conn).await?;
             let characters = std::mem::take(&mut conn.characters);
             send_character_list(conn, &characters);
+            crate::systems::housing::send_login_houses(server, conn);
             conn.characters = characters;
             Ok(())
         })

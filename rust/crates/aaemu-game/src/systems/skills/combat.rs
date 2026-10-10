@@ -220,7 +220,8 @@ pub fn do_die(
     set_in_battle(server, victim, false);
     // Events.OnDeath (buff triggers listening to the victim)
     buffs::fire_unit_event(server, victim.obj_id(), BuffEventTriggerKind::Death, 0);
-    // Abusers that died leave the aggro tables they are in (OnAbuserDied).
+    crate::systems::housing::on_unit_died(server, victim); // House.OnDeath
+                                                           // Abusers that died leave the aggro tables they are in (OnAbuserDied).
     on_abuser_died(server, victim);
     buffs::remove_effects_on_death(server, victim);
 
