@@ -51,7 +51,7 @@ static void p3_print_state(void *e) {
   printf(" S");
   int offs[] = {772, 784, 796, 808, 956, 968};
   for (int k = 0; k < 6; k++) out_f((float *)(p + offs[k]), 3);
-  printf(" %08x %08x %08x %08x %08x", *(uint32_t *)(p + 692), *(uint32_t *)(p + 1136), *(uint32_t *)(p + 504),
+  printf(" %08x %08x %08x %08x %08x", *(uint32_t *)(p + 692), *(uint32_t *)(p + 1136), *(uint32_t *)(p + 504) & 0x1FFFFFFFu,
          *(uint32_t *)(p + 608), *(uint32_t *)(p + 252));
   printf(" %d %d %08x", (int)(signed char)p[71], (int)p[508], *(uint32_t *)(p + 1104));
 }

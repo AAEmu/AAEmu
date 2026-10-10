@@ -158,7 +158,7 @@ impl Replay {
         self.rnames.entry(e).or_insert_with(|| n.to_string());
     }
 
-    fn target(&self, n: &str) -> EntIdx {
+    pub fn target(&self, n: &str) -> EntIdx {
         *self.names.get(n).unwrap_or_else(|| panic!("unknown target {n}"))
     }
 
@@ -181,7 +181,7 @@ impl Replay {
             " {} {} {:08x} {} {} {} {} {:08x}",
             hx(r.water_damping_eff),
             hx(r.submerged_fraction),
-            r.flags2,
+            r.flags2 & 0x1FFF_FFFF,
             hx(r.min_awake_time),
             hx(ent.time_idle),
             ent.sim_class(),
