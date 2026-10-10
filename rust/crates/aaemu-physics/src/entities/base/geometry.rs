@@ -162,6 +162,7 @@ pub fn base_add_geometry(
         has_lattice: false,
         unk128: 0,
         bbox_tmp: None,
+        coords_wheel: None,
     };
     ent.parts.push(part);
     let ipart = ent.parts.len() - 1;

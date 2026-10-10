@@ -1,0 +1,34 @@
+# P5: the cart accelerating, then braking with the pedal against the gear (brake torque),
+# coasting with the handbrake, and stopping with the footbrake held.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+surface idx=0 friction=1
+geom name=ground type=box size=50,50,0.5
+geom name=hull type=box size=1,2,0.35
+geom name=wheel type=cylinder r=0.4 hh=0.15 axis=1,0,0
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=car type=wheeled pos=32,20,1.0
+part ent=car geom=hull mass=400 i0=1 i112=U
+part ent=car geom=wheel mass=20 pos=1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=-1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=-1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+trace ents=car
+step n=40 every=10
+params target=car type=2 f8=200000 i84=5 p88=buf:400 f400=-2 f404=0 f408=3 f412=2 f416=1.2 i96=4 i100=0
+action target=car type=3 f4=1 f20=1 i24=0 i28=0 i32=2
+step n=45
+status target=car type=4 dump=0,15
+action target=car type=3 f4=-1
+step n=30
+status target=car type=4 dump=0,15
+status target=car type=5 i4=0 i8=U dump=0,32
+action target=car type=3 f4=1
+step n=20
+action target=car type=3 f4=0 i24=1
+step n=30
+status target=car type=5 i4=2 i8=U dump=0,32
+action target=car type=3 i24=0 i28=1 f4=-1
+step n=40
+status target=car type=4 dump=0,15
+status target=car type=5 i4=1 i8=U dump=0,32

@@ -1,0 +1,36 @@
+# P5: the cart of p5_wheeled_settle with ray-cast suspensions (bRayCast) settling on a static box floor.
+# Car / wheel params and vehicle / wheel status dumps.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+geom name=hull type=box size=1,2,0.35
+geom name=wheel type=cylinder r=0.4 hh=0.15 axis=1,0,0
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=car type=wheeled pos=32,32,1.0
+part ent=car geom=hull mass=400 i0=1 i112=U
+part ent=car geom=wheel mass=20 pos=1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=1 v128=1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=1 v128=-1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=1 v128=1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=1 v128=-1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+getparams target=car type=2 p88=buf:400 dump=0,22
+getparams target=car type=2 p88=buf:400 dump=96,11
+getparams target=car type=2 p88=buf:400 dump=400,3
+getparams target=car type=16 i4=0 dump=0,20
+getparams target=car type=16 i4=3 dump=0,20
+getparams target=car type=16 i4=4 dump=0,20
+status target=car type=4 dump=0,15
+status target=car type=5 i4=0 i8=U dump=0,32
+status target=car type=5 i8=3 dump=0,32
+status target=car type=1 i8=2 dump=0,20
+trace ents=car
+print
+step n=120
+status target=car type=4 dump=0,15
+status target=car type=5 i4=0 i8=U dump=0,32
+status target=car type=5 i4=1 i8=U dump=0,32
+status target=car type=5 i4=2 i8=U dump=0,32
+status target=car type=5 i4=3 i8=U dump=0,32
+status target=car type=5 i4=3 i8=U dump=136,1
+status target=car type=1 i8=1 dump=0,20
+status target=car type=1 i8=4 dump=0,20
+status target=car type=15 f4=0.3 dump=0,6

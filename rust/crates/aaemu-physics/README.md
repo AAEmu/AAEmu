@@ -30,7 +30,8 @@ for bit** wherever that is feasible:
 * **Same CRT.** The engine calls MSVCR100's math functions, which are not correctly rounded.
   `math::crt::sinf`/`cosf` are bit-exact ports of MSVCR100's algorithm; the others are double
   evaluations with known mismatch rates (asserted in `tests/math_oracle.rs`): `asinf` ≈7 %,
-  `acosf` ≈2 %, double `sin`/`cos`/`asin` ≈1 %, `exp` ≈0.4 %; `tanf`, `atanf`, `atan2f`, `powf`,
+  `acosf` ≈2 %, double `cos`/`asin` ≈1 %, `exp` ≈0.4 %; the double `sin` is a bit-exact port
+  (P5, the wheeled-vehicle engine; `tests/p5_wheeled.rs`); `tanf`, `atanf`, `atan2f`, `powf`,
   `expf`, `logf`, `log`, `atan2` matched on all samples. **Open item:** port `asinf`/`acosf` and
   the double functions if a phase hits them on a hot path.
 * **Bugs are kept.** Where the original looks wrong, match it and document it at the call site

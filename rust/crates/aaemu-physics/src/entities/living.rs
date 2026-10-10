@@ -412,6 +412,7 @@ pub fn construct(w: &World, ent: &mut Entity) {
         has_lattice: false,
         unk128: 0,
         bbox_tmp: None,
+        coords_wheel: None,
     };
     ent.parts = vec![part];
     ent.parts_cap = 1;

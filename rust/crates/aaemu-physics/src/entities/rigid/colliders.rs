@@ -332,7 +332,14 @@ pub fn check_for_new_contacts(
     let mut stop = false;
     let mut ipart = start;
     while ipart < start + v21 && !stop {
-        let own = w.ent(e).parts[ipart as usize].clone();
+        let mut own = w.ent(e).parts[ipart as usize].clone();
+        // P5: a wheel part's new coords (`part+120`) are its wheel record
+        if let (Some(k), Some(wd)) = (own.coords_wheel, w.ent(e).wheeled()) {
+            let wh = &wd.wheels[k];
+            own.pos = wh.pos;
+            own.q = wh.q;
+            own.scale = wh.scale;
+        }
         if own.flags_collider == 0 {
             ipart += 1;
             continue;

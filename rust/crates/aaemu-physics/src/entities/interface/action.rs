@@ -89,7 +89,7 @@ fn supported(w: &World, e: EntIdx, buf: &[u8]) -> bool {
 /// id 9 marks every part `0x10000000` (removed) and resets the next part id, id 16 AddRefs
 /// its target (no objects to count in the port); rigid — id 5 returns the constraint id
 /// (auto-assigned into the queued copy when unused; 0 without a record). Returns 1 otherwise.
-fn slot76(w: &mut World, e: EntIdx, buf: &[u8], queued: Option<usize>) -> i32 {
+pub(crate) fn slot76(w: &mut World, e: EntIdx, buf: &[u8], queued: Option<usize>) -> i32 {
     let ty = rd_i32(buf, 0);
     if is_rigid(w, e) && ty == 5 {
         let Some(i) = queued else {

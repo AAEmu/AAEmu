@@ -634,6 +634,13 @@ fn apply_fields(
             "p" => match v {
                 "null" => put_p(b, off, 0),
                 "unused" => put_p(b, off, u64::MAX),
+                // an in-image pointer (`&image[N]`, see `entities::wheeled::params`)
+                v if v.starts_with("buf:") => put_p(
+                    b,
+                    off,
+                    crate::entities::wheeled::params::BUF_PTR_TAG
+                        | v[4..].parse::<u64>().map_err(|e| e.to_string())?,
+                ),
                 // the port's entity "pointer" (see `entities::particle::ent_ptr`)
                 v if v.starts_with("ent:") => {
                     let e = ents
@@ -713,6 +720,25 @@ fn template(fam: crate::params::PeKind, ty: i32, b: &mut [u8]) -> bool {
             put(b, 12, UI);
         }
         (PeKind::Params, 23) => fill_unused(b, 4, 12),
+        (PeKind::Params, 2) => {
+            fill_unused(b, 4, 144);
+            for o in [28, 56, 84, 96, 100, 128, 136] {
+                put(b, o, UI);
+            }
+            put_p(b, 88, u64::MAX);
+        }
+        (PeKind::Params, 16) => {
+            fill_unused(b, 4, 80);
+            for o in [4, 8, 12, 16, 20, 52, 56] {
+                put(b, o, UI);
+            }
+        }
+        (PeKind::Action, 3) => {
+            fill_unused(b, 4, 24);
+            put(b, 24, UI);
+            put(b, 28, UI);
+            put(b, 32, UI);
+        }
         (PeKind::Action, 2) => {
             fill_unused(b, 4, 64);
             put(b, 64, UI);
@@ -791,6 +817,9 @@ pub fn entity_word(w: &World, e: EntIdx, off: usize) -> Option<u32> {
         return crate::entities::living::member_word(l, off);
     }
     let r = ent.rigid()?;
+    if off >= 1200 {
+        return crate::entities::wheeled::peek_word(w, e, off);
+    }
     if (744..956).contains(&off) {
         let b = w.bodies.get(r.body);
         let words = crate::solver::probe::body_words(b);

@@ -12,6 +12,7 @@
 //!   (single argument widened to double, Cody–Waite reduction by π/2 in one or two stages,
 //!   Taylor/minimax polynomials, one rounding to single at the end). Larger arguments (the CRT
 //!   switches to a Payne–Hanek reduction) fall back to the double library function.
+//! * [`sin`] (double) is a bit-exact port of MSVCR100's x64 `sin` for |x| < 500000 (P5).
 //! * The other functions are **not yet bit-exact**: they evaluate in double and round once.
 //!   Their known mismatch rates are asserted by `tests/math_oracle.rs`; a port that needs
 //!   exactness for one of them must replace it here (open item, see the crate README).
@@ -288,10 +289,104 @@ pub fn sqrtf(x: f32) -> f32 {
     x.sqrt()
 }
 
-/// Double `sin` — **not bit-exact** (≈1 % of results differ by 1 ulp from MSVCR100).
+// sin (double): the polynomial coefficients of MSVCR100 x64 `sin` (0x797F4AB0 in the 10.x
+// runtime) — sine and cosine kernels with a tail term.
+const SIN_S1: f64 = f64::from_bits(0xBFC5_5555_5555_5555);
+const SIN_S2: f64 = f64::from_bits(0x3F81_1111_1111_0BB3);
+const SIN_S3: f64 = f64::from_bits(0xBF2A_01A0_19E8_3E5C);
+const SIN_S4: f64 = f64::from_bits(0x3EC7_1DE3_796C_DE01);
+const SIN_S5: f64 = f64::from_bits(0xBE5A_E600_B42F_DFA7);
+const SIN_S6: f64 = f64::from_bits(0x3DE5_E0B2_F9A4_3BB8);
+const SIN_C1: f64 = f64::from_bits(0x3FA5_5555_5555_5555);
+const SIN_C2: f64 = f64::from_bits(0xBF56_C16C_16C1_6967);
+const SIN_C3: f64 = f64::from_bits(0x3EFA_01A0_19F4_EC91);
+const SIN_C4: f64 = f64::from_bits(0xBE92_7E4F_A17F_667B);
+const SIN_C5: f64 = f64::from_bits(0x3E21_EEB6_9038_2EEC);
+const SIN_C6: f64 = f64::from_bits(0xBDA9_07DB_4725_8AA7);
+
+/// Double `sin`: a bit-exact port of MSVCR100's x64 implementation for |x| < 500000
+/// (**P5**, needed by the wheeled-vehicle engine torque curve): |x| ≤ π/4 directly (x for
+/// |x| < 2⁻²⁷, `x − x³/6` below 2⁻¹³, else the degree-13 sine kernel), otherwise the
+/// Cody–Waite reduction by π/2 (two stages when the first loses more than 15 bits) with the
+/// reduction tail `rr`, the sine (`r + (rr + (r³·P − ½r²·rr))`) or cosine kernel by quadrant
+/// parity, and the sign from the quadrant and the argument's sign. NaN / ±inf give NaN; larger
+/// arguments (the CRT's Payne–Hanek path) fall back to the library function.
 #[must_use]
 pub fn sin(x: f64) -> f64 {
-    x.sin()
+    let bits = x.to_bits();
+    if bits & 0x7FF0_0000_0000_0000 == 0x7FF0_0000_0000_0000 {
+        #[allow(clippy::eq_op)]
+        return x - x;
+    }
+    let ax = bits & 0x7FFF_FFFF_FFFF_FFFF;
+    if ax <= PIO4_BITS {
+        if ax < 0x3F20_0000_0000_0000 {
+            if ax < 0x3E40_0000_0000_0000 {
+                return x;
+            }
+            return x - ((x * x) * x) * SIXTH;
+        }
+        let x2 = x * x;
+        let x6 = (x2 * x2) * x2;
+        let p = ((SIN_S6 * x2 + SIN_S5) * x2 + SIN_S4) * x6 + ((SIN_S3 * x2 + SIN_S2) * x2 + SIN_S1);
+        return x + (x * x2) * p;
+    }
+    let neg = bits != ax;
+    let xa = if neg { 0.0 - x } else { x };
+    if ax >= BIG_ARG_BITS {
+        return x.sin();
+    }
+    let n = (xa * TWO_BY_PI + 0.5) as i32;
+    let dn = f64::from(n);
+    let mut rhead = xa - PIO2_1 * dn;
+    let mut rtail = PIO2_1T * dn;
+    let mut r = rhead - rtail;
+    let rexp = (r.to_bits() << 1) >> 53;
+    if (ax >> 52) as i64 - rexp as i64 > 15 {
+        let t = PIO2_2 * dn;
+        let tt = PIO2_2T * dn;
+        let r0 = rhead;
+        rhead -= t;
+        let lost = (r0 - rhead) - t;
+        rtail = tt - lost;
+        r = rhead - rtail;
+    }
+    let rr = (rhead - r) - rtail;
+    let odd = n & 1 != 0;
+    let mut res = if rexp >= 0x3F2 {
+        let x2 = r * r;
+        if odd {
+            let x6 = (x2 * x2) * x2;
+            let a = (SIN_C6 * x2 + SIN_C5) * x2 + SIN_C4;
+            let b = (SIN_C3 * x2 + SIN_C2) * x2 + SIN_C1;
+            let h = x2 * 0.5;
+            let t = ((x2 * 0.5 - 1.0) + 1.0) - h;
+            let p = (b + a * x6) * (x2 * x2);
+            (p + (t - r * rr)) - (h - 1.0)
+        } else {
+            let x6 = (x2 * x2) * x2;
+            let a = ((SIN_S6 * x2 + SIN_S5) * x2 + SIN_S4) * x6;
+            let b = (SIN_S3 * x2 + SIN_S2) * x2 + SIN_S1;
+            let v = (r * x2) * (a + b) - (x2 * 0.5) * rr;
+            (rr + v) + r
+        }
+    } else if rexp > 0x3DE {
+        let x2 = r * r;
+        if odd {
+            1.0 - x2 * 0.5
+        } else {
+            r - (SIXTH * r) * x2
+        }
+    } else if odd {
+        1.0
+    } else {
+        r
+    };
+    let half = ((n as u32) >> 1) & 1;
+    if half != u32::from(neg) {
+        res = 0.0 - res;
+    }
+    res
 }
 
 /// Double `cos` — **not bit-exact** (≈1 %).

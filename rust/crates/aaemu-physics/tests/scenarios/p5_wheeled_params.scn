@@ -1,0 +1,44 @@
+# P5: car / wheel params changed during the run (params 2 and 16): stiffness / damping /
+# lengths of the rear wheels, a rear-wheel drive switch, ray-cast on the front wheels,
+# max speed and damping, stabilizer, rear steering; getparams after each change.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+surface idx=0 friction=1
+geom name=ground type=box size=50,50,0.5
+geom name=hull type=box size=1,2,0.35
+geom name=wheel type=cylinder r=0.4 hh=0.15 axis=1,0,0
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=car type=wheeled pos=32,20,1.0
+part ent=car geom=hull mass=400 i0=1 i112=U
+part ent=car geom=wheel mass=20 pos=1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=-1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=-1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+trace ents=car
+step n=30 every=10
+params target=car type=16 i4=2 f60=9000 f64=-0.3 f24=0.45 f28=0.3
+params target=car type=16 i4=3 f60=9000 f64=800 f32=0.05
+getparams target=car type=16 i4=2 dump=0,20
+getparams target=car type=16 i4=3 dump=0,20
+step n=30
+params target=car type=16 i4=0 i8=0 i56=1 f36=0.2 f40=0.9 f44=0.5 f48=0.8 f72=1.5
+params target=car type=16 i4=1 i8=0 i56=1 i52=3
+params target=car type=16 i4=2 i8=1
+params target=car type=16 i4=7 i8=1 f76=2
+getparams target=car type=16 i4=0 dump=0,20
+getparams target=car type=16 i4=3 dump=0,20
+params target=car type=2 f8=100000 f12=4 f40=0.05 f52=0.5 i136=1 f16=0.6 f116=0 f124=0.9 f132=0.5
+getparams target=car type=2 p88=buf:400 dump=0,22
+getparams target=car type=2 p88=buf:400 dump=96,11
+action target=car type=3 f4=1 f20=1 i24=0 i28=0 i32=2
+step n=60
+action target=car type=3 f12=0.3
+step n=40
+status target=car type=4 dump=0,15
+status target=car type=5 i4=0 i8=U dump=0,32
+status target=car type=5 i4=3 i8=U dump=0,32
+params target=car type=10 f8=0.01 f12=0.02
+getparams target=car type=2 p88=buf:400 dump=32,2
+action target=car type=4
+step n=20
+status target=car type=4 dump=0,15
