@@ -264,8 +264,16 @@ impl ContactPool {
         let base = self.recs.len() as u32;
         for i in 0..64u32 {
             let mut c = Contact::zeroed();
-            c.next = if i == 63 { head } else { ContactId(base + i + 1) };
-            c.prev = if i == 0 { head } else { ContactId(base + i - 1) };
+            c.next = if i == 63 {
+                head
+            } else {
+                ContactId(base + i + 1)
+            };
+            c.prev = if i == 0 {
+                head
+            } else {
+                ContactId(base + i - 1)
+            };
             if i == 0 {
                 c.idx_bits |= 0x8000_0000;
             }

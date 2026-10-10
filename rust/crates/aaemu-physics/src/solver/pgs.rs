@@ -17,6 +17,10 @@
 //! applied, `iters ≥ maxIt` or `Σ(m|v|² + w·L) ≥ 3·E0`. Returns the number applied in the last
 //! sweep.
 
+// `!(a > b)` etc. are deliberate: they reproduce the binary's unordered (NaN) branch
+// semantics of `comiss` + `jbe`/`jb`/`jae`/`ja`.
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
+
 use super::invoke::{brec_at, crec_at, kinv_at, proj_at, Ctx};
 use super::thread::{brec, crec};
 
@@ -236,7 +240,8 @@ impl Ctx<'_> {
                     let (mut dx, mut dy, mut dz) = (x * s, y * s, z * s);
                     let dn = ((y * s) * n[1] + n[0] * (x * s)) + (z * s) * n[2];
                     let fr = dn * self.t.f(rc + crec::MU);
-                    self.t.sf(rc + crec::PN_ACC, dn + self.t.f(rc + crec::PN_ACC));
+                    self.t
+                        .sf(rc + crec::PN_ACC, dn + self.t.f(rc + crec::PN_ACC));
                     let v275 = ((dx * dx + dy * dy) + dz * dz) - dn * dn;
                     let pt = (((-v275).abs() + v275) * 0.5).sqrt();
                     if pt > fr * 1.01 {
@@ -284,7 +289,8 @@ impl Ctx<'_> {
                             + ((n[0] * k[2] + n[1] * k[5]) + n[2] * k[8]) * n[2];
                         let s = (-1.0 / den) * vn;
                         d = [n[0] * s, n[1] * s, n[2] * s];
-                        self.t.sf(rc + crec::PN_ACC, s + self.t.f(rc + crec::PN_ACC));
+                        self.t
+                            .sf(rc + crec::PN_ACC, s + self.t.f(rc + crec::PN_ACC));
                     } else {
                         let den = (x * ((x * k[0] + y * k[3]) + z * k[6])
                             + ((x * k[1] + y * k[4]) + z * k[7]) * y)
@@ -293,7 +299,8 @@ impl Ctx<'_> {
                         let (mut dy, mut dz, mut dx) = (y * s, z * s, x * s);
                         let dn = (n[0] * (x * s) + (y * s) * n[1]) + (z * s) * n[2];
                         let v206 = mu * dn + lim;
-                        self.t.sf(rc + crec::PN_ACC, dn + self.t.f(rc + crec::PN_ACC));
+                        self.t
+                            .sf(rc + crec::PN_ACC, dn + self.t.f(rc + crec::PN_ACC));
                         let v207 = ((dy * dy + dx * dx) + dz * dz) - dn * dn;
                         let v208 = (((-v207).abs() + v207) * 0.5).sqrt();
                         let v209 = v206 - v208;

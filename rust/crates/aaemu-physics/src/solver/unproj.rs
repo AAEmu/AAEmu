@@ -17,10 +17,14 @@
 //!    `vreq` (clamped by `V+84`), which then move the pose (`pos += vu·dt`, `q = rot(wu·dt)·q`)
 //!    or, with `V+88 ≠ 0`, are added to the velocities. `B+208` gets the pseudo kinetic energy.
 
+// `!(a > b)` etc. are deliberate: they reproduce the binary's unordered (NaN) branch
+// semantics of `comiss` + `jbe`/`jb`/`jae`/`ja`.
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
+
 use super::body::BodyId;
 use super::contact::flags as cf;
 use super::helpers::{fmax, fmin, mat_vec, normalize_or_z, quat_axis_angle, rotate, rotate_inv};
-use super::invoke::{bg_at, crec_at, iinv9, kinv_at, lcp_at, v3, Ctx};
+use super::invoke::{bg_at, iinv9, kinv_at, lcp_at, v3, Ctx};
 use super::thread::{bg, lcp, off};
 use crate::math::{Quat, Vec3};
 
@@ -382,7 +386,8 @@ impl Ctx<'_> {
                         break;
                     }
                     let vr = c.vreq;
-                    if c.flags & cf::LCP_ACTIVE != 0 && (vr.x * vr.x + vr.y * vr.y) + vr.z * vr.z > 0.0
+                    if c.flags & cf::LCP_ACTIVE != 0
+                        && (vr.x * vr.x + vr.y * vr.y) + vr.z * vr.z > 0.0
                     {
                         fl |= c.flags;
                         sx += vr.x;
@@ -525,7 +530,11 @@ impl Ctx<'_> {
                 let (x0, x4, x8) = (self.t.i(e), self.t.i(e + 4), self.t.i(e + 8));
                 let (l0, l4, l8) = (self.level(x0), self.level(x4), self.level(x8));
                 let mask = (((l0 >> 31) & 4) | ((l4 >> 31) & 1) | ((l8 >> 31) & 2)) ^ 7;
-                let lower = if ((l8.wrapping_sub(l4) as u32) >> 31) != 0 { x8 } else { x4 };
+                let lower = if ((l8.wrapping_sub(l4) as u32) >> 31) != 0 {
+                    x8
+                } else {
+                    x4
+                };
                 match mask {
                     7 => {
                         if l0 >= self.level(lower) {
@@ -829,8 +838,8 @@ impl Ctx<'_> {
                 let a = ((a + 20.0) - (20.0 - a).abs()) * 0.5;
                 for &k in list {
                     let r = lcp_at(k);
-                    let rx = (f64::from(self.t.f(r + lcp::R)) - f64::from(self.t.f(r + lcp::AP)) * a)
-                        as f32;
+                    let rx = (f64::from(self.t.f(r + lcp::R))
+                        - f64::from(self.t.f(r + lcp::AP)) * a) as f32;
                     self.t.sf(r + lcp::R, rx);
                     let x = (f64::from(self.t.f(r + lcp::S)) * a + f64::from(self.t.f(r + lcp::X)))
                         as f32;
@@ -899,7 +908,8 @@ impl Ctx<'_> {
                 let c = self.pool.get(self.cid(k));
                 let pt = c.pt[((c.flags >> 13) & 1) as usize];
                 let dz = pt.z - bb.pos.z;
-                let l = ((pt.y - bb.pos.y) * (pt.y - bb.pos.y) + (pt.x - bb.pos.x) * (pt.x - bb.pos.x))
+                let l = ((pt.y - bb.pos.y) * (pt.y - bb.pos.y)
+                    + (pt.x - bb.pos.x) * (pt.x - bb.pos.x))
                     + dz * dz;
                 rmax = fmax(rmax, l);
             }
@@ -995,6 +1005,5 @@ impl Ctx<'_> {
             bm.fcoll = Vec3::from_array(f);
             bm.tcoll = Vec3::from_array(t);
         }
-        let _ = crec_at(0);
     }
 }

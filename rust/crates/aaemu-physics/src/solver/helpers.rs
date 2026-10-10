@@ -10,8 +10,7 @@ pub fn mat_mul(a: &[f32; 9], b: &[f32; 9]) -> [f32; 9] {
     let mut r = [0.0; 9];
     for i in 0..3 {
         for j in 0..3 {
-            r[3 * i + j] =
-                (a[3 * i + 1] * b[3 + j] + a[3 * i] * b[j]) + a[3 * i + 2] * b[6 + j];
+            r[3 * i + j] = (a[3 * i + 1] * b[3 + j] + a[3 * i] * b[j]) + a[3 * i + 2] * b[6 + j];
         }
     }
     r

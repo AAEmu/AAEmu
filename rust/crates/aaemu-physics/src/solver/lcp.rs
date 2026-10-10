@@ -16,11 +16,14 @@
 //!
 //! The scalar CG coefficients are double precision as in the binary.
 
-use super::body::BodyId;
-use super::contact::{flags as cf, ContactId};
+// `!(a > b)` etc. are deliberate: they reproduce the binary's unordered (NaN) branch
+// semantics of `comiss` + `jbe`/`jb`/`jae`/`ja`.
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
+
+use super::contact::flags as cf;
 use super::helpers::{fmax, inv33, mat_vec};
 use super::invoke::{bg_at, brec_at, crec_at, iinv9, kinv_at, lcp_at, proj_at, v3, Ctx, SolvePath};
-use super::thread::{bg, brec, crec, lcp, off};
+use super::thread::{bg, brec, crec, lcp};
 use crate::math::Vec3;
 
 impl Ctx<'_> {
@@ -45,14 +48,22 @@ impl Ctx<'_> {
                 self.pool.get_mut(cid).n = Vec3::new(1.0, 0.0, 0.0);
                 let p = self.t.m9(pp);
                 let b0 = *self.b(c.pbody[0]);
-                let r0 = [c.pt[0].x - b0.pos.x, c.pt[0].y - b0.pos.y, c.pt[0].z - b0.pos.z];
+                let r0 = [
+                    c.pt[0].x - b0.pos.x,
+                    c.pt[0].y - b0.pos.y,
+                    c.pt[0].z - b0.pos.z,
+                ];
                 let (w0, v0) = (b0.w, b0.v);
                 let ty = (r0[0] * w0.z - w0.x * r0[2]) + v0.y;
                 let tx = (w0.y * r0[2] - w0.z * r0[1]) + v0.x;
                 let tz = (w0.x * r0[1] - r0[0] * w0.y) + v0.z;
                 let mut s = (ty * p[1] + tx * p[0]) + tz * p[2];
                 let b1 = *self.b(c.pbody[1]);
-                let r1 = [c.pt[1].x - b1.pos.x, c.pt[1].y - b1.pos.y, c.pt[1].z - b1.pos.z];
+                let r1 = [
+                    c.pt[1].x - b1.pos.x,
+                    c.pt[1].y - b1.pos.y,
+                    c.pt[1].z - b1.pos.z,
+                ];
                 let (w1, v1) = (b1.w, b1.v);
                 let a = ((w1.y * r1[2] - w1.z * r1[1]) + v1.x) * p[3];
                 let by = (r1[0] * w1.z - w1.x * r1[2]) + v1.y;
@@ -280,8 +291,9 @@ impl Ctx<'_> {
                 rz += self.s2_assign(i, k, ty);
             }
             // LABEL_273
-            let (e0, e1, e2, e3, e4, e5, e6) =
-                (ends[0], ends[1], ends[2], ends[3], ends[4], ends[5], ends[6]);
+            let (e0, e1, e2, e3, e4, e5, e6) = (
+                ends[0], ends[1], ends[2], ends[3], ends[4], ends[5], ends[6],
+            );
             let mut it = if passes == 1 || changes == 0 {
                 super::helpers::imin(2 * n_u, self.v.lcp_iters_max)
             } else {
@@ -302,6 +314,7 @@ impl Ctx<'_> {
                     let alpha = alpha_d as f32;
                     let mut rz_new: f64 = 0.0;
                     let mut k = start;
+                    let mut steps = 0i32;
                     if span < e6 {
                         loop {
                             let r = lcp_at(k as usize);
@@ -326,23 +339,31 @@ impl Ctx<'_> {
                             x[2] += alpha * p[2];
                             self.t.sv3(r + lcp::X, x);
                             k = (k + 1) & ((k - e6 + 1) >> 31);
+                            steps += 1;
                             if k == e0 {
+                                break;
+                            }
+                            if steps >= e6 {
+                                // the binary never leaves this loop (see `endless`)
+                                self.endless = true;
+                                k = e0;
                                 break;
                             }
                         }
                     }
                     while k < e4 {
                         let r = lcp_at(k as usize);
-                        let rx =
-                            (f64::from(self.t.f(r + lcp::R)) - f64::from(self.t.f(r + lcp::AP)) * alpha_d)
-                                as f32;
+                        let rx = (f64::from(self.t.f(r + lcp::R))
+                            - f64::from(self.t.f(r + lcp::AP)) * alpha_d)
+                            as f32;
                         self.t.sf(r + lcp::R, rx);
                         let ci = (self.t.u(r + lcp::IDX) & 0x7FFF_FFFF) as usize;
                         let zx = rx * self.t.f(kinv_at(ci));
                         self.t.sf(r + lcp::AP, zx);
                         rz_new += f64::from(zx * rx);
                         let xx = (f64::from(self.t.f(r + lcp::S)) * alpha_d
-                            + f64::from(self.t.f(r + lcp::X))) as f32;
+                            + f64::from(self.t.f(r + lcp::X)))
+                            as f32;
                         self.t.sf(r + lcp::X, xx);
                         k += 1;
                     }
@@ -359,6 +380,7 @@ impl Ctx<'_> {
                     rz = rz_n;
                     let beta_d = rz_n / ((s2.abs() + s1) * 0.5);
                     let mut k = start;
+                    let mut steps = 0i32;
                     if span < e6 {
                         let beta = beta_d as f32;
                         loop {
@@ -372,7 +394,13 @@ impl Ctx<'_> {
                             let rr = self.t.v3(r + lcp::R);
                             let r2 = (rr[0] * rr[0] + rr[1] * rr[1]) + rr[2] * rr[2];
                             res_max = fmax(res_max, r2);
+                            steps += 1;
                             if k == e0 {
+                                break;
+                            }
+                            if steps >= e6 {
+                                self.endless = true;
+                                k = e0;
                                 break;
                             }
                         }
@@ -531,12 +559,16 @@ impl Ctx<'_> {
         let ib1 = self.t.i(rc + crec::IB1) as usize;
         self.t.sq(r + lcp::B0, brec_at(ib0) as u64);
         let p0 = self.b(c.pbody[0]).pos;
-        self.t
-            .sv3(r + lcp::R0, [c.pt[0].x - p0.x, c.pt[0].y - p0.y, c.pt[0].z - p0.z]);
+        self.t.sv3(
+            r + lcp::R0,
+            [c.pt[0].x - p0.x, c.pt[0].y - p0.y, c.pt[0].z - p0.z],
+        );
         self.t.sq(r + lcp::B1, brec_at(ib1) as u64);
         let p1 = self.b(c.pbody[1]).pos;
-        self.t
-            .sv3(r + lcp::R1, [c.pt[1].x - p1.x, c.pt[1].y - p1.y, c.pt[1].z - p1.z]);
+        self.t.sv3(
+            r + lcp::R1,
+            [c.pt[1].x - p1.x, c.pt[1].y - p1.y, c.pt[1].z - p1.z],
+        );
         self.t.sv3(r + lcp::N, v3(c.n));
         self.t.si(r + lcp::PROJ, i32::from(c.flags & 0x3_0000 != 0));
         let b = self.t.v3(rc + crec::R0);
@@ -609,7 +641,8 @@ impl Ctx<'_> {
                 let br = brec_at(e.idx as usize);
                 let d = e.n1;
                 let v = self.t.v3(br);
-                self.t.sv3(br, [d[0] * s + v[0], d[1] * s + v[1], d[2] * s + v[2]]);
+                self.t
+                    .sv3(br, [d[0] * s + v[0], d[1] * s + v[1], d[2] * s + v[2]]);
                 let s = self.t.f(r + lcp::S);
                 let (dx, dy, dz) = (d[0] * s, d[1] * s, d[2] * s);
                 let w = self.t.v3(br + brec::W);
@@ -980,8 +1013,16 @@ impl Ctx<'_> {
                     z = az - d1[2];
                     y = ay - d1[1];
                 } else {
-                    let r0 = [c.pt[0].x - b0.pos.x, c.pt[0].y - b0.pos.y, c.pt[0].z - b0.pos.z];
-                    let r1 = [c.pt[1].x - b1.pos.x, c.pt[1].y - b1.pos.y, c.pt[1].z - b1.pos.z];
+                    let r0 = [
+                        c.pt[0].x - b0.pos.x,
+                        c.pt[0].y - b0.pos.y,
+                        c.pt[0].z - b0.pos.z,
+                    ];
+                    let r1 = [
+                        c.pt[1].x - b1.pos.x,
+                        c.pt[1].y - b1.pos.y,
+                        c.pt[1].z - b1.pos.z,
+                    ];
                     let d0 = mat_vec(&iinv9(&b0), v3(b0.tcoll));
                     let w0 = [d0[0] + b0.w.x, d0[1] + b0.w.y, d0[2] + b0.w.z];
                     let (f0, m0) = (b0.fcoll, b0.minv);
@@ -1009,9 +1050,4 @@ impl Ctx<'_> {
             self.pool.get_mut(cid).vn = (y * n.y + x * n.x) + z * n.z;
         }
     }
-}
-
-#[allow(dead_code)]
-fn _unused(_: BodyId, _: ContactId) -> usize {
-    off::N_ADJ
 }

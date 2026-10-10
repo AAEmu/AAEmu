@@ -481,7 +481,10 @@ impl Case {
         let mut th = SolverThread::new(0);
         th.multi_body = self.multi.clone();
         let mut res = None;
-        for _ in 0..self.nrep.max(1) {
+        let mut endless = false;
+        let nrep = self.nrep.max(1);
+        for rep in 0..nrep {
+            let prev = if rep == nrep - 1 { self.prev } else { 0 };
             th.init();
             for &id in &ids {
                 th.register_contact(&mut pool, id);
@@ -489,9 +492,12 @@ impl Case {
             if !self.cg {
                 th.disable_cg();
             }
-            res = Some(th.invoke(self.dt, &vars, self.e0, self.prev, &mut arena, &mut pool));
+            let r = th.invoke(self.dt, &vars, self.e0, prev, &mut arena, &mut pool);
+            endless |= r.endless;
+            res = Some(r);
         }
-        let res = res.unwrap_or_default();
+        let mut res = res.unwrap_or_default();
+        res.endless |= endless;
         let mut s = String::new();
         let nbl = th.mem.n_bodies();
         let _ = write!(
@@ -617,7 +623,10 @@ pub fn word_diff(a: &str, b: &str) -> String {
     let mut base = 0usize;
     let mut n = 0;
     for i in 0..wa.len().max(wb.len()) {
-        let (x, y) = (wa.get(i).copied().unwrap_or("-"), wb.get(i).copied().unwrap_or("-"));
+        let (x, y) = (
+            wa.get(i).copied().unwrap_or("-"),
+            wb.get(i).copied().unwrap_or("-"),
+        );
         if x.len() != 8 || x.chars().any(|c| !c.is_ascii_hexdigit()) {
             sec = x;
             base = i + 1;
@@ -634,11 +643,61 @@ pub fn word_diff(a: &str, b: &str) -> String {
     out
 }
 
+/// Next generated case for which the binary terminates (cases that would make the DLL loop
+/// forever, see [`super::SolveResult::endless`], are skipped).
+fn terminating(rng: &mut Rng, gen: &dyn Fn(&mut Rng) -> Case) -> Case {
+    loop {
+        let c = gen(rng);
+        if !c.run_port_full().1.endless {
+            return c;
+        }
+    }
+}
+
+/// Oracle-only check (no golden; skipped without `AAEMU_PHYS_ORACLE`): `n` cases from the seed
+/// of `name`, sent in chunks (for large islands that would bloat a golden file).
+///
+/// # Panics
+/// On any mismatch or oracle error.
+pub fn check_live(name: &str, n: usize, chunk: usize, gen: &dyn Fn(&mut Rng) -> Case) {
+    let gen = |rng: &mut Rng| terminating(rng, gen);
+    let Some(exe) = oracle_path() else {
+        return;
+    };
+    let mut rng = Rng::new(seed_of(name));
+    let mut bad = 0usize;
+    let mut report = String::new();
+    let mut done = 0usize;
+    while done < n {
+        let k = chunk.min(n - done);
+        let cases: Vec<Case> = (0..k).map(|_| gen(&mut rng)).collect();
+        let lines: Vec<String> = cases.iter().map(Case::to_line).collect();
+        let answers = oracle_raw(&exe, &lines).unwrap_or_else(|e| panic!("{name}: {e}"));
+        for (i, (c, a)) in cases.iter().zip(&answers).enumerate() {
+            let got = canon_nan(&c.run_port());
+            let want = canon_nan(a);
+            if got != want {
+                bad += 1;
+                if bad <= 3 {
+                    let _ = writeln!(report, "#{}: {}", done + i, word_diff(&want, &got));
+                }
+            }
+        }
+        done += k;
+    }
+    assert!(
+        bad == 0,
+        "{name}: {bad} of {n} cases differ
+{report}"
+    );
+}
+
 /// Golden + oracle check of a generator (`n` golden cases from the seed of `name`).
 ///
 /// # Panics
 /// On any mismatch or oracle / golden error.
 pub fn check(name: &str, n: usize, gen: &dyn Fn(&mut Rng) -> Case) {
+    let gen = |rng: &mut Rng| terminating(rng, gen);
     let golden = golden_dir().join(format!("{name}.trace"));
     let recs: Vec<(String, String)> = if let Some(exe) = oracle_path() {
         let mut rng = Rng::new(seed_of(name));
@@ -675,7 +734,23 @@ pub fn check(name: &str, n: usize, gen: &dyn Fn(&mut Rng) -> Case) {
             let mut rng = Rng::new(seed_of(name) ^ 0x5DEE_CE66_D1CE_4E5B);
             let lines: Vec<String> = (0..live).map(|_| gen(&mut rng).to_line()).collect();
             for chunk in lines.chunks(200) {
-                let answers = oracle_raw(&exe, chunk).unwrap_or_else(|e| panic!("{name}: {e}"));
+                let answers = oracle_raw(&exe, chunk).unwrap_or_else(|e| {
+                    for l in chunk {
+                        if oracle_raw(&exe, std::slice::from_ref(l)).is_err() {
+                            if let Some(p) = std::env::var_os(DUMP_ENV) {
+                                let _ = std::fs::write(
+                                    p,
+                                    format!(
+                                        "case: {l}
+"
+                                    ),
+                                );
+                            }
+                            break;
+                        }
+                    }
+                    panic!("{name}: {e}")
+                });
                 recs.extend(chunk.iter().cloned().zip(answers));
             }
         }
