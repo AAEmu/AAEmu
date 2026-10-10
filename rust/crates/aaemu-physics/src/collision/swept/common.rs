@@ -219,7 +219,7 @@ pub fn swap_rot(
 /// squared length summed `(x² + y²) + z²`.
 pub fn normalize_in_place(v: &mut Vec3) {
     let l2 = (v.x * v.x + v.y * v.y) + v.z * v.z;
-    if l2 <= 1e-20 {
+    if le_or_nan(l2, 1e-20) {
         *v = Vec3::new(0.0, 0.0, 1.0);
     } else {
         let inv = 1.0 / l2.sqrt();

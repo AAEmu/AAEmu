@@ -274,8 +274,8 @@ fn common_helpers_match_dll() {
 
 /// NaN inputs to the normalisers: sub_35021020 / sub_350210A0 compare `|v|²` with `comiss` +
 /// `jbe`, so an unordered (NaN) squared length takes the "too short" branch and yields (0, 0, 1).
-/// `common::normalize_in_place` / `normalized` use `l2 <= 1e-20`, which is false for NaN, and
-/// return NaNs instead. This test pins the DLL's behaviour (oracle only) and prints the port's.
+/// `common::normalize_in_place` / `normalized` mirror this with `le_or_nan` (an earlier version
+/// used `l2 <= 1e-20` and returned NaNs). Oracle only.
 #[test]
 fn normalize_nan_input() {
     let Some(exe) = oracle_path() else { return };
@@ -288,6 +288,6 @@ fn normalize_nan_input() {
     assert_eq!(answers[0], "rbx 00000000 00000000 3f800000");
     assert!(answers[1].starts_with("rbx 00000000 00000000 3f800000"));
     for (q, a) in lines.iter().zip(&answers) {
-        println!("{q}\n  dll:  {a}\n  port: {}", port(q));
+        assert_eq!(&port(q), a, "{q}");
     }
 }
