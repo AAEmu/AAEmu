@@ -1,0 +1,8 @@
+# P1a: PointInsideStatus (slot 8) on random points around random primitives.
+gprobe probe=inside type=box n=600 seed=201
+gprobe probe=inside type=box n=40 seed=202 mode=1
+gprobe probe=inside type=sphere n=400 seed=203
+gprobe probe=inside type=cylinder n=600 seed=204
+gprobe probe=inside type=capsule n=600 seed=205
+gprobe probe=inside type=ray n=20 seed=206
+gdegen
