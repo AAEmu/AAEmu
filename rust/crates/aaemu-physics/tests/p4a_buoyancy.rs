@@ -5,7 +5,12 @@ mod p3_support;
 
 fn run(name: &str) {
     let (n, fails) = p3_support::check_scenario(name);
-    assert!(fails.is_empty(), "{name}: {} of {n} lines differ:\n{}", fails.len(), fails.join("\n"));
+    assert!(
+        fails.is_empty(),
+        "{name}: {} of {n} lines differ:\n{}",
+        fails.len(),
+        fails.join("\n")
+    );
 }
 
 #[test]
@@ -29,4 +34,9 @@ fn buoyancy_multipart() {
 #[test]
 fn air_resistance() {
     run("p4a_air");
+}
+
+#[test]
+fn gather_areas() {
+    run("p4a_gather");
 }

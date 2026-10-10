@@ -5,7 +5,12 @@ mod p3_support;
 
 fn run(name: &str) {
     let (n, fails) = p3_support::check_scenario(name);
-    assert!(fails.is_empty(), "{name}: {} of {n} lines differ:\n{}", fails.len(), fails.join("\n"));
+    assert!(
+        fails.is_empty(),
+        "{name}: {} of {n} lines differ:\n{}",
+        fails.len(),
+        fails.join("\n")
+    );
 }
 
 #[test]
@@ -33,6 +38,8 @@ fn big_areas() {
 #[ignore]
 fn dbg_print() {
     let name = std::env::var("P3_DBG").unwrap();
-    let text = std::fs::read_to_string(aaemu_physics::oracle::scenario_dir().join(format!("{name}.scn"))).unwrap();
+    let text =
+        std::fs::read_to_string(aaemu_physics::oracle::scenario_dir().join(format!("{name}.scn")))
+            .unwrap();
     print!("{}", p3_support::Replay::run(&text));
 }

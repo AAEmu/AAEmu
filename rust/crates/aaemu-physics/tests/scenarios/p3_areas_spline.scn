@@ -136,3 +136,24 @@ checkareas tag=k2 pt=10.9982,41.2375,-1.7652 imedium=1 caller=0 nareas=3
 checkareas tag=k3 pt=17.4248,42.7728,-0.5756 imedium=1 caller=0 nareas=3
 checkareas tag=k4 pt=12.7718,40.4884,-0.1236 imedium=1 caller=0 nareas=3
 checkareas tag=k5 pt=19.3636,41.9579,-0.2053 imedium=1 caller=0 nareas=3
+getparams target=s0 type=18 dump=4,11
+getparams target=s0 type=18 dump=56,4
+getparams target=s0 type=12 dump=0,20
+getparams target=s2 type=12 dump=0,20
+getparams target=s0 type=10 dump=16,4
+getparams target=glob type=10 dump=16,4
+params target=s0 type=18 f68=2.5 v56=1,2,3
+getparams target=s0 type=18 dump=56,4
+params target=s1 type=0 v4=31,29,0.5 q16=0,0,0.5,0.8660254 f32=1.1
+checkareas tag=w0 pt=32.9664,32.8686,1.9760 vel=1,0,0
+checkareas tag=w1 pt=38.0792,32.8384,2.6116 vel=1,0,0
+checkareas tag=w2 pt=23.4641,28.4500,2.7168 vel=1,0,0
+checkareas tag=w3 pt=33.3836,35.4144,-1.4340 vel=1,0,0
+checkareas tag=w4 pt=30.5051,24.9452,0.7188 vel=1,0,0
+checkareas tag=w5 pt=32.1831,21.2098,-0.9164 vel=1,0,0
+checkareas tag=w6 pt=27.4717,35.6615,1.8286 vel=1,0,0
+checkareas tag=w7 pt=25.5537,33.7544,-1.3062 vel=1,0,0
+checkareas tag=w8 pt=32.8792,23.0272,-1.9911 vel=1,0,0
+checkareas tag=w9 pt=36.9425,24.3513,-0.9226 vel=1,0,0
+checkareas tag=w10 pt=38.7187,34.9585,-0.5535 vel=1,0,0
+checkareas tag=w11 pt=38.3836,29.6276,1.3892 vel=1,0,0

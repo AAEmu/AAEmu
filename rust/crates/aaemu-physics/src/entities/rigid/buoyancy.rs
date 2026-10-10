@@ -9,6 +9,13 @@
 //! if w.ent(e).flags & 8 != 0 { apply_air_resistance(w, e, dt); }
 //! ```
 
+// Bit-exact port: operand order and NaN-aware negated comparisons follow the binary.
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::needless_range_loop
+)]
+
 use crate::entities::base::Part;
 use crate::geometry::primitives::Plane;
 use crate::geometry::GeomWorldData;
@@ -46,7 +53,11 @@ pub fn gather_areas_raw(w: &mut World, e: EntIdx, dt: f32, buf: &mut [ParamsBuoy
         0
     } else {
         let b = ent.bbox;
-        let c = Vec3::new((b[0].x + b[1].x) * 0.5, (b[0].y + b[1].y) * 0.5, (b[0].z + b[1].z) * 0.5);
+        let c = Vec3::new(
+            (b[0].x + b[1].x) * 0.5,
+            (b[0].y + b[1].y) * 0.5,
+            (b[0].z + b[1].z) * 0.5,
+        );
         let vel = w.bodies.get(ent.rigid().expect("rigid").body).v;
         w.check_areas(c, &mut gravity, buf, -1, vel, Some(e), 0.0, caller, &mut [])
     };
@@ -58,7 +69,8 @@ pub fn gather_areas_raw(w: &mut World, e: EntIdx, dt: f32, buf: &mut [ParamsBuoy
             + (gf.z - gravity.z) * (gf.z - gravity.z)
             != 0.0
     {
-        w.ent_mut(e).rigid_mut().expect("rigid").min_awake_time = f32::from_bits(0x3E4C_CCCD); // 0.2
+        w.ent_mut(e).rigid_mut().expect("rigid").min_awake_time = f32::from_bits(0x3E4C_CCCD);
+        // 0.2
     }
     let ent = w.ent(e);
     if ent.flags & 0x808_0000 != 0 {
@@ -88,8 +100,18 @@ pub fn gather_areas_raw(w: &mut World, e: EntIdx, dt: f32, buf: &mut [ParamsBuoy
             // cycle when there is one
             let merged = if stamp == w.pump_counter && w.vars.thread_bias == 0 {
                 let mut hit = false;
-                if let Some(Event::PostStep { dt: d, pos, q, step: s, .. }) =
-                    w.events.logged.iter_mut().rev().find(|x| matches!(x, Event::PostStep { ent, .. } if *ent == e))
+                if let Some(Event::PostStep {
+                    dt: d,
+                    pos,
+                    q,
+                    step: s,
+                    ..
+                }) = w
+                    .events
+                    .logged
+                    .iter_mut()
+                    .rev()
+                    .find(|x| matches!(x, Event::PostStep { ent, .. } if *ent == e))
                 {
                     *d += dt;
                     *s = step;
@@ -115,11 +137,17 @@ pub fn gather_areas_raw(w: &mut World, e: EntIdx, dt: f32, buf: &mut [ParamsBuoy
                     }
                 }
                 let pc = w.pump_counter;
-                w.ent_mut(e).rigid_mut().expect("rigid").last_ext_contact_step = pc;
+                w.ent_mut(e)
+                    .rigid_mut()
+                    .expect("rigid")
+                    .last_ext_contact_step = pc;
             }
         }
     } else {
-        w.ent_mut(e).rigid_mut().expect("rigid").last_ext_contact_step = 1;
+        w.ent_mut(e)
+            .rigid_mut()
+            .expect("rigid")
+            .last_ext_contact_step = 1;
     }
     n
 }
@@ -127,7 +155,10 @@ pub fn gather_areas_raw(w: &mut World, e: EntIdx, dt: f32, buf: &mut [ParamsBuoy
 /// `sub_35039510`: every component of `a` within `eps` of `b` or of `-b`.
 fn quat_close(a: Quat, b: Quat, eps: f32) -> bool {
     let near = |a: Quat, b: Quat| {
-        (a.x - b.x).abs() <= eps && (a.y - b.y).abs() <= eps && (a.z - b.z).abs() <= eps && (a.w - b.w).abs() <= eps
+        (a.x - b.x).abs() <= eps
+            && (a.y - b.y).abs() <= eps
+            && (a.z - b.z).abs() <= eps
+            && (a.w - b.w).abs() <= eps
     };
     near(a, b) || near(a, Quat::new(-b.x, -b.y, -b.z, -b.w))
 }
@@ -178,7 +209,7 @@ pub fn apply_buoyancy(w: &mut World, e: EntIdx, dt: f32, g: Vec3, buoy: &[Params
     }
     w.ent_mut(e).rigid_mut().expect("rigid").flags2 &= !0x400_0000;
     let mut frac = 0.0f32; // v275
-    // the action_impulse accumulators (v197.. / v200..)
+                           // the action_impulse accumulators (v197.. / v200..)
     let mut imp_p = Vec3::ZERO;
     let mut imp_l = Vec3::new(UNUSED_F32, 0.0, 0.0);
     let mut fwater = Vec3::ZERO; // v165, v169, v166
@@ -223,10 +254,12 @@ pub fn apply_buoyancy(w: &mut World, e: EntIdx, dt: f32, g: Vec3, buoy: &[Params
             }
             let pg = &p.pgeom_proxy;
             let s = p.scale;
-            let go = (((s * s) * s) * pg.volume) * rho * k_rho > p.mass * f32::from_bits(0x3DCC_CCCD)
+            let go = (((s * s) * s) * pg.volume) * rho * k_rho
+                > p.mass * f32::from_bits(0x3DCC_CCCD)
                 || {
                     let sz = pg.geom.bbox().size;
-                    let m1 = ((sz.y * sz.x - sz.y * sz.z).abs() + (sz.y * sz.x + sz.y * sz.z)) * 0.5;
+                    let m1 =
+                        ((sz.y * sz.x - sz.y * sz.z).abs() + (sz.y * sz.x + sz.y * sz.z)) * 0.5;
                     let amax = ((m1 - sz.x * sz.z).abs() + (sz.x * sz.z + m1)) * 0.5;
                     ((amax * (s * s)) * res) * k_res > p.mass * f32::from_bits(0x3C4C_CCCD)
                 }
@@ -243,7 +276,8 @@ pub fn apply_buoyancy(w: &mut World, e: EntIdx, dt: f32, g: Vec3, buoy: &[Params
             if !(0.0 >= res) {
                 let mut dp = imp_p;
                 let mut dl = imp_l;
-                pg.geom.calculate_medium_resistance_acc(&plane, &gwd, &mut dp, &mut dl);
+                pg.geom
+                    .calculate_medium_resistance_acc(&plane, &gwd, &mut dp, &mut dl);
                 let k = k_res * res;
                 let fx = dp.x * k;
                 let fy = dp.y * k;
@@ -288,7 +322,7 @@ pub fn apply_buoyancy(w: &mut World, e: EntIdx, dt: f32, g: Vec3, buoy: &[Params
             } else {
                 let (v, cob) = pg.geom.calculate_buoyancy(&plane, &gwd);
                 vs = v;
-                let k = -((((rho * k_rho) * vs) * dt));
+                let k = -(((rho * k_rho) * vs) * dt);
                 let (jx, jy, jz) = (g.x * k, g.y * k, g.z * k);
                 px += jx;
                 py += jy;
@@ -324,7 +358,8 @@ pub fn apply_buoyancy(w: &mut World, e: EntIdx, dt: f32, g: Vec3, buoy: &[Params
         let wd = rd.water_damping;
         let ad = a.water_damping;
         let v85 = (((wd - ad).abs() + (ad + wd)) * 0.5) * rr + (1.0 - rr) * rd.damping;
-        rd.water_damping_eff = ((rd.water_damping_eff - v85).abs() + (rd.water_damping_eff + v85)) * 0.5;
+        rd.water_damping_eff =
+            ((rd.water_damping_eff - v85).abs() + (rd.water_damping_eff + v85)) * 0.5;
         if a.i_medium == 0 {
             frac = ((frac - rr).abs() + (rr + frac)) * 0.5;
             let b = *w.bodies.get(body_id);
@@ -370,7 +405,11 @@ pub fn apply_air_resistance(w: &mut World, e: EntIdx, dt: f32) {
     let caller = w.tls_thread;
     let ent = w.ent(e);
     let b = ent.bbox;
-    let c = Vec3::new((b[0].x + b[1].x) * 0.5, (b[0].y + b[1].y) * 0.5, (b[0].z + b[1].z) * 0.5);
+    let c = Vec3::new(
+        (b[0].x + b[1].x) * 0.5,
+        (b[0].y + b[1].y) * 0.5,
+        (b[0].z + b[1].z) * 0.5,
+    );
     let body_id = ent.rigid().expect("rigid").body;
     let vel = w.bodies.get(body_id).v;
     let mut buf = [ParamsBuoyancy::default(); 4];
@@ -407,7 +446,9 @@ pub fn apply_air_resistance(w: &mut World, e: EntIdx, dt: f32) {
             acc_l = Vec3::new(acc_l.x * k, acc_l.y * k, acc_l.z * k);
             acc_p = Vec3::new(acc_p.x * k, acc_p.y * k, acc_p.z * k);
             let (l, pp) = (acc_l, acc_p);
-            if ((l.x * l.x + l.y * l.y) + l.z * l.z) + ((pp.x * pp.x + pp.y * pp.y) + pp.z * pp.z) > 0.0 {
+            if ((l.x * l.x + l.y * l.y) + l.z * l.z) + ((pp.x * pp.x + pp.y * pp.y) + pp.z * pp.z)
+                > 0.0
+            {
                 let act = ActionImpulse {
                     impulse: pp,
                     ang_impulse: l,
