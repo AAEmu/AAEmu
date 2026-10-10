@@ -31,6 +31,7 @@ use crate::collision::contact::{ContactArea, GeomContact, IntersectionParams, Pr
 use crate::collision::pairs::PairTables;
 use crate::collision::swept::UnprojTables;
 use crate::geometry::bvtree::{BvArena, BvRecord, BvTestState, BvTree};
+use crate::geometry::primitives::BoxPrim;
 use crate::geometry::shapes::protocol::{GeomUnderTest, IntersectionProtocol, UsedNodeMap};
 use crate::ids::GeomType;
 use crate::math::Vec3;
@@ -167,6 +168,9 @@ pub struct IntersectCtx<'a> {
     pub border_kind: Vec<BorderKind>,
     /// Area attached to the next contact slot.
     pub next_area: Option<ContactArea>,
+    /// Slot 6 `GetBBox` of A and B (taken before slot 53; `CHeightfield` slot 53 reads the
+    /// other side's). (Added by P1c-heightfield.)
+    pub bboxes: [BoxPrim; 2],
 }
 
 impl std::fmt::Debug for IntersectCtx<'_> {
@@ -221,6 +225,13 @@ pub trait GeomProtocol: IntersectionProtocol + std::fmt::Debug {
     fn proto_flag24(&self) -> i32;
     /// Slot 46 `GetBVTree`.
     fn proto_bv_tree(&self) -> BvRef<'_>;
+
+    /// Slot 6 `GetBBox` (read by `CHeightfield` slot 53 on the other side). Default: BV slot 2,
+    /// which is what box, sphere, cylinder, capsule and mesh do; the ray overrides it.
+    /// (Added by P1c-heightfield.)
+    fn proto_bbox(&self) -> BoxPrim {
+        self.proto_bv_tree().tree().bbox()
+    }
 
     /// Slot 53 `PrepareForIntersectionTest(gtest, other, gtestOther, bKeepPrevContacts)`.
     /// Returns 0 to abort the test.

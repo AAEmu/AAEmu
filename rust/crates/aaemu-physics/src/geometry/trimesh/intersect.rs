@@ -507,6 +507,7 @@ pub fn intersect(
         contacts: Vec::new(),
         border_kind: Vec::new(),
         next_area: first_area,
+        bboxes: [a.proto_bbox(), b.proto_bbox()],
     };
     let geoms: [&dyn GeomProtocol; 2] = [a, b];
     let keep = ip.keep_prev_contacts;
