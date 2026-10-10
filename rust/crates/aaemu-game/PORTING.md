@@ -499,6 +499,14 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 * systems::skills: `BubbleEffect` does not sleep the effect thread for the bubble's read time;
   account updates of special effects run as async tasks.
 * systems::skills: `saveFactions` KeyNotFound (C# throws) is logged as an error.
+* systems::skills (surfaced by the `AAEmu.UnitTests` ports): a Rust `Skill` always has a
+  template — the C# `new Skill()` / `new Skill(null, null)` (null template) is a skill of the
+  default id-0 template; `Unit.Name` is a `String`, so the C# `null` name is the empty string;
+  `ObjId` lives on the world handle (`Entity<D>::obj_id`) and is fixed at creation (no setter);
+  buff / cooldown time checks take the clock as an explicit argument (unix ms) instead of
+  reading `DateTime.UtcNow`; `local_impulse_to_world_displacement` takes horizontal (x, y)
+  positions only, because the C# zeroes the direction's Z so the vertical offset never
+  contributes.
 * `systems::npcs`: doodad func timers are tokio tasks (cancel = generation bump); `DoodadManager.Create`'s `Task.Run(InitDoodad)` is a spawned task; `TimeManager.OnTimeOfDayChange` runs from a 10 s poller. `GetNpcSpawner` template rewrites do not propagate to already loaded spawners; the "first" concurrent-dictionary entry is the lowest key; spawn files are processed in sorted name order (C# `Directory.GetFiles` order is unspecified). Portal book deletions are written at the next periodic save. Debug messages check only the character's access level. Coffer slot counting stops at 255 (C# loops forever). Where the C# would throw on a null / failed cast the Rust code returns quietly. Sticky parents are not modelled.
 * systems::housing: dates are stored with second precision (unix seconds); `DateTime.MinValue`
   rows load as 0, so a manually inserted house with both dates at MinValue gets 1970-01-15 as
