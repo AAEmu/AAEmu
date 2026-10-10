@@ -129,6 +129,7 @@ accept decimals, `U` (the unused sentinel) or `h:XXXXXXXX` (raw bits); ints acce
 | `geom` | `name= type=box size=hx,hy,hz [center=] [basis=9 floats]` · `type=sphere r=` · `type=cylinder\|capsule r= hh= [axis=]` · `type=ray org= dir=` · `type=heightfield n=nx,ny step=sx,sy hscale= fn=flat\|slope\|bumps h0= kx= ky= amp= [worldhf=1]` |
 | `entity` | `name= type=static\|rigid\|wheeled\|living\|particle\|N pos= [q=x,y,z,w] [id=]` + field setters on pe_params_pos |
 | `part` | `ent= geom= [mass=] [density=] [pos=] [q=] [scale=] [flags=0x1809F] [collider=0x1] [mincontact=] [id=]` |
+| `surface` | `idx= [bounce=0] [friction=h:3f99999a] [flags=0]` (SetSurfaceParameters, world slot 29) |
 | `area` | `name= kind=global` (AddGlobalArea) |
 | `params` / `action` / `status` / `getparams` | `target= type=N [tmpl=auto\|none] [fields] [dump=off,nwords]`; fields: `f<off>= i<off>= u<off>= b<off>= v<off>=x,y,z q<off>=x,y,z,w p<off>=null\|unused\|ent:NAME\|geom:NAME hex=<bytes>` |
 | `trace` | `ents=a,b,…` (entities printed after each step) |

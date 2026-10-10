@@ -37,7 +37,7 @@
 enum {
   W_GetGeomManager = 9, W_SetupEntityGrid = 11, W_GetPhysVars = 20, W_CreatePhysicalEntity = 21,
   W_DestroyPhysicalEntity = 24, W_TimeStep = 32, W_RayWorldIntersection = 42, W_AddGlobalArea = 80,
-  W_SetHeightfieldData = 17
+  W_SetHeightfieldData = 17, W_SetSurfaceParameters = 29
 };
 /* ---- IGeomManager slots ---- */
 enum { G_CreatePrimitive = 7, G_RegisterGeometry = 9 };
@@ -58,6 +58,7 @@ typedef int (*fn_stat)(void *, void *);
 typedef int (*fn_addg)(void *, void *, void *, int, int);
 typedef int (*fn_rwi)(void *, void *, const char *, int);
 typedef void (*fn_hfdata)(void *, void *, int *, int);
+typedef int (*fn_surf)(void *, int, float, float, unsigned);
 
 static HMODULE g_phys;
 static void *g_world, *g_gm;
@@ -520,6 +521,10 @@ static void run_line(char *line) {
     apply_fields(&t, gp, 512);
     int id = ((fn_addg)VT(e)[E_AddGeometry])(e, g, gp, atoi(get(&t, "id", "-1")), 1);
     printf("ret part %s %d\n", need(&t, "ent"), id);
+  } else if (!strcmp(c, "surface")) { /* SetSurfaceParameters(idx, bounciness, friction, flags) */
+    int r = ((fn_surf)VT(g_world)[W_SetSurfaceParameters])(g_world, atoi(need(&t, "idx")), parse_f(get(&t, "bounce", "0")),
+                                                        parse_f(get(&t, "friction", "h:3f99999a")), parse_u(get(&t, "flags", "0")));
+    printf("ret surface %d\n", r);
   } else if (!strcmp(c, "area")) {
     const char *kind = get(&t, "kind", "global");
     if (strcmp(kind, "global")) die("only kind=global areas are supported", kind);
