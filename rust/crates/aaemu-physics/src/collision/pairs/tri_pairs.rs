@@ -13,7 +13,7 @@
 
 use super::PairTables;
 use crate::collision::contact::PrimInters;
-use crate::geometry::primitives::{Primitive, RayPrim, Triangle};
+use crate::geometry::primitives::{Primitive, RayPrim, SpherePrim, Triangle};
 use crate::math::{sgnnz, Vec3};
 
 /// Sign bit of `(float)x` (`cvtsd2ss` + `shr 31`).
@@ -284,6 +284,205 @@ pub fn intersect_tri_ray(tri: &Triangle, ray: &RayPrim, out: &mut PrimInters) ->
     let r = intersect_ray_tri(ray, tri, out);
     swap_features(out);
     negate_n(out);
+    r
+}
+
+// ---------------------------------------------------------------------------------------------
+// tri–sph 0x35159DE0, sph–tri 0x3515AAA0
+// ---------------------------------------------------------------------------------------------
+
+/// `1e-80` (qword_351F2CF0): the "two distinct roots" test of tri–sph.
+const TRI_SPH_ROOT_EPS: f64 = 1e-80;
+
+/// `n · (e × q)` as tri–sph evaluates it (sign = which side of the edge `q` lies on).
+#[inline]
+fn edge_side(e: Vec3, q: Vec3, n: Vec3) -> f32 {
+    let cx = e.y * q.z - e.z * q.y;
+    let cy = e.z * q.x - q.z * e.x;
+    let cz = q.y * e.x - e.y * q.x;
+    (cy * n.y + cx * n.x) + cz * n.z
+}
+
+#[inline]
+fn signbit32(x: f32) -> i32 {
+    (x.to_bits() >> 31) as i32
+}
+
+/// INTERSECT tri–sph (0x35159DE0).
+///
+/// 1. Each vertex is classified inside/outside the sphere (`r² − |v−c|²`, `r²` rounded to
+///    float). **All three inside → no contact** (a triangle swallowed by the sphere is ignored).
+/// 2. Face: if the centre projects inside the triangle and `|n·(c−v0)| ≤ r`, it writes
+///    `unk_84 = 1000`, `n_alt = c − n·r` (the deepest sphere point, stored at `+72`) and
+///    `n = tri.n`, and remembers a face contact.
+/// 3. Edges, walked `i → i−1` starting at the highest-index outside vertex: each edge's two
+///    sphere crossings (`t = (−b ∓ √disc)/|e|²`) that lie strictly inside the edge alternate
+///    between "entering" and "leaving" by a parity bit that runs **across** edges. Among the
+///    entering points the one nearest to `out.pt[1]` wins; the leaving point recorded just
+///    before it (or the last leaving point) is the second.
+/// 4. With an entering point: `pt[0]`/`pt[1]` are the two edge points, features
+///    `{0xA0|prev(i0), 0x40, 0xA0|prev(i1), 0x40}` (where `prev(i) = (i+2)%3` is the edge's
+///    other vertex). Without one: the face contact if any (`pt[0] = pt[1] = n_alt`, features
+///    `0x40` ×4), else none.
+///
+/// Binary quirks kept: the "nearest entering point" distance is measured from `out.pt[1]` as
+/// found in the output buffer **before** the call (the binary reads `prim_inters +12` without
+/// writing it first); a face contact plus an entering point without any leaving point returns
+/// 0 although `n`, `n_alt` and `unk_84` were already written; a zero `|e|²` edge gives `t = 0`.
+pub fn intersect_tri_sph(tri: &Triangle, sph: &SpherePrim, out: &mut PrimInters) -> bool {
+    let c = sph.center;
+    let r = sph.r;
+    let r2d = f64::from(r * r);
+    let p = tri.pt;
+    let n = tri.n;
+    let outside = |v: Vec3| -> i32 {
+        let d = v - c;
+        signbit32((r2d - f64::from((d.x * d.x + d.y * d.y) + d.z * d.z)) as f32)
+    };
+    let s0 = outside(p[0]);
+    let s1 = outside(p[1]);
+    let s2 = outside(p[2]);
+    let m01 = ((s1 - 1) & (s0 - 1)) | (s1.wrapping_neg() & 1);
+    let start = ((s2 - 1) & m01) | (s2.wrapping_neg() & 2);
+    if start < 0 {
+        return false;
+    }
+
+    // Face contact.
+    let q0 = c - p[0];
+    let dplane = (n.x * q0.x + q0.y * n.y) + q0.z * n.z;
+    let mut far = signbit32(r - dplane.abs());
+    for i in 0..3 {
+        let e = p[INC3[i]] - p[i];
+        far |= signbit32(edge_side(e, c - p[i], n));
+    }
+    let face = far == 0;
+    if face {
+        out.unk_84 = 1000;
+        out.n_alt = Vec3::new(c.x - n.x * r, c.y - n.y * r, c.z - n.z * r);
+        out.n = n;
+    }
+
+    // Edge crossings. rec[i] = [t0num, den, t1num, den].
+    let mut rec = [[0.0f64; 4]; 3];
+    let mut best_den2 = 0.0f64;
+    let mut best_dist2 = 1.0f64;
+    let mut exit_prev: i32 = -1; // esi
+    let mut entry: i32 = -1; // r13
+    let mut exit: i32 = -1; // edi
+    let mut parity: i32 = 0; // r14
+    let ref_pt = out.pt[1];
+    let mut i = start as usize;
+    loop {
+        let j = DEC3[i];
+        let vi = p[i];
+        let vj = p[j];
+        let ex = f64::from(vj.x - vi.x);
+        let ey = f64::from(vj.y - vi.y);
+        let ez = f64::from(vj.z - vi.z);
+        let wx = f64::from(vi.x - c.x);
+        let wy = f64::from(vi.y - c.y);
+        let wz = f64::from(vi.z - c.z);
+        let e2 = (ey * ey + ex * ex) + ez * ez;
+        let b = (wy * ey + wx * ex) + wz * ez;
+        let w2 = (wy * wy + wx * wx) + wz * wz;
+        let disc = b * b - (w2 - r2d) * e2;
+        // `comisd` + `jb`: NaN skips the edge.
+        if disc >= 0.0 {
+            let sq = disc.sqrt();
+            let t0 = -b - sq;
+            let t1 = sq - b;
+            rec[i] = [t0, e2, t1, e2];
+            // `comisd` + `jnb`: NaN does not skip.
+            if !((t0 * e2 - t1 * e2) + (t0 - t1) * TRI_SPH_ROOT_EPS >= 0.0) {
+                let e = vj - vi;
+                let dx = f64::from(vi.x - ref_pt.x);
+                let dy = f64::from(vi.y - ref_pt.y);
+                let dz = f64::from(vi.z - ref_pt.z);
+                for root in 0..2 {
+                    let tnum = rec[i][2 * root];
+                    let den = rec[i][2 * root + 1];
+                    let id = (2 * i + root) as i32;
+                    let inside = signbit32(((tnum * 2.0 - den).abs() - den) as f32);
+                    let tnf = tnum as f32;
+                    let a = inside & parity;
+                    exit = (a.wrapping_neg() & id) | ((a - 1) & exit);
+                    let x = f64::from(e.x * tnf) + dx * den;
+                    let y = f64::from(e.y * tnf) + dy * den;
+                    let z = f64::from(e.z * tnf) + dz * den;
+                    let den2 = den * den;
+                    let dist2 = (y * y + x * x) + z * z;
+                    let cmp = signbit32((best_den2 * dist2 - den2 * best_dist2) as f32);
+                    let better = cmp & (parity ^ 1) & inside;
+                    let cb = f64::from(better);
+                    let nb = f64::from(1 - better);
+                    best_den2 = nb * best_den2 + cb * den2;
+                    best_dist2 = nb * best_dist2 + cb * dist2;
+                    let mask = better.wrapping_neg();
+                    entry = (entry & (better - 1)) | (id & mask);
+                    exit_prev = (exit_prev & (better - 1)) | (mask & exit);
+                    parity ^= inside;
+                }
+            }
+        }
+        i = j;
+        if i as i32 == start {
+            break;
+        }
+    }
+
+    if entry < 0 {
+        if !face {
+            return false;
+        }
+        out.pt = [out.n_alt, out.n_alt];
+        out.i_feature = [[0x40, 0x40], [0x40, 0x40]];
+        return true;
+    }
+    let lo = exit_prev >> 31;
+    let leave = (lo & exit) | (exit_prev - lo);
+    if leave < 0 {
+        return false;
+    }
+    let edge_point = |id: i32| -> (Vec3, u8) {
+        let e = (id >> 1) as usize;
+        let k = (id & 1) as usize;
+        let den = rec[e][2 * k + 1];
+        // `ucomisd` + `jz`: zero or NaN → t = 0.
+        let t = if den == 0.0 || den.is_nan() {
+            0.0
+        } else {
+            rec[e][2 * k] / den
+        };
+        let t = t as f32;
+        let vi = p[e];
+        let vj = p[DEC3[e]];
+        (
+            Vec3::new(
+                (vj.x - vi.x) * t + vi.x,
+                (vj.y - vi.y) * t + vi.y,
+                (vj.z - vi.z) * t + vi.z,
+            ),
+            DEC3[e] as u8 | 0xA0,
+        )
+    };
+    let (p0, f0) = edge_point(entry);
+    out.pt[0] = p0;
+    out.i_feature[1][1] = 0x40;
+    out.i_feature[0][1] = 0x40;
+    out.i_feature[0][0] = f0;
+    let (p1, f1) = edge_point(leave);
+    out.pt[1] = p1;
+    out.i_feature[1][0] = f1;
+    true
+}
+
+/// INTERSECT sph–tri (0x3515AAA0): [`intersect_tri_sph`] with swapped operands, then (always)
+/// `pt[0] ↔ pt[1]` and the feature swap; `n` keeps the triangle's orientation.
+pub fn intersect_sph_tri(sph: &SpherePrim, tri: &Triangle, out: &mut PrimInters) -> bool {
+    let r = intersect_tri_sph(tri, sph, out);
+    out.pt.swap(0, 1);
+    swap_features(out);
     r
 }
 

@@ -520,6 +520,78 @@ fn gen_ray_tri(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
         .collect()
 }
 
+/// A sphere related to a triangle: around a vertex, an edge point, the face, far away,
+/// swallowing the whole triangle, tangent to the plane.
+fn rand_sph(rng: &mut Rng, t: &Triangle) -> SpherePrim {
+    let [p0, p1, p2] = t.pt;
+    let size = ((p1 - p0).len() + (p2 - p0).len()).max(1e-3);
+    let nn = if t.n.len2() > 0.0 { t.n.normalized() } else { Vec3::Z };
+    let (center, r) = match rng.i(8) {
+        0 => (t.pt[rng.i(3) as usize] + rng.v(0.3 * size), rng.f(0.0, 0.6) * size),
+        1 => {
+            let u = rng.f(0.0, 1.0);
+            (p0 + (p1 - p0) * u + rng.v(0.2 * size), rng.f(0.0, 0.5) * size)
+        }
+        2 => {
+            let c = (p0 + p1 + p2) * (1.0 / 3.0);
+            (c, 3.0 * size)
+        }
+        3 => {
+            let c = (p0 + p1 + p2) * (1.0 / 3.0);
+            let r = rng.f(0.05, 0.5) * size;
+            (c + nn * (r * rng.f(0.8, 1.05)), r)
+        }
+        4 => (p0 + rng.v(4.0 * size), rng.f(0.0, 1.0) * size),
+        5 => {
+            let r = (rng.i(4) + 1) as f32 * 0.5;
+            (p0 + rng.vgrid(3), r)
+        }
+        _ => {
+            let u = rng.f(-0.2, 1.0);
+            let v = rng.f(-0.2, 1.0 - u);
+            let c = p0 + (p1 - p0) * u + (p2 - p0) * v;
+            (c + nn * rng.f(-0.5, 0.5) * size, rng.f(0.01, 0.7) * size)
+        }
+    };
+    SpherePrim { center, r }
+}
+
+fn gen_tri_sph(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
+    let mut rng = Rng(seed);
+    (0..n)
+        .map(|_| {
+            let t = base_tri(&mut rng);
+            let s = rand_sph(&mut rng, &t);
+            let mut w = Vec::new();
+            if swapped {
+                sph_words(&s, &mut w);
+                tri_words(&t, &mut w);
+            } else {
+                tri_words(&t, &mut w);
+                sph_words(&s, &mut w);
+            }
+            let k = w.len();
+            init_words(&mut rng, &mut w);
+            // tri-sph reads pt[1] (+12) of the buffer: sometimes give it a real point.
+            match rng.i(3) {
+                0 => {}
+                1 => {
+                    w[k + 3] = fw(s.center.x);
+                    w[k + 4] = fw(s.center.y);
+                    w[k + 5] = fw(s.center.z);
+                }
+                _ => {
+                    let q = t.pt[0] + rng.v(2.0);
+                    w[k + 3] = fw(q.x);
+                    w[k + 4] = fw(q.y);
+                    w[k + 5] = fw(q.z);
+                }
+            }
+            Case { words: w }
+        })
+        .collect()
+}
+
 // -------------------------------------------------------------------------------- tests
 
 #[test]
@@ -557,6 +629,30 @@ fn fuzz_ray_tri() {
     }
     if let Some(rows) = live("p2a2_i_tri_ray", gen_ray_tri(1003, 5000, true)) {
         check_inters("tri_ray", &rows, 12, 6, words_tri, words_ray, tp::intersect_tri_ray);
+    }
+}
+
+#[test]
+fn tri_sph_matches_sub_35159de0() {
+    let rows = golden("p2a2_i_tri_sph", || gen_tri_sph(4, 600, false));
+    let hits = check_inters("tri_sph", &rows, 12, 4, words_tri, words_sph, tp::intersect_tri_sph);
+    assert!(hits > 60, "too few contacts in the golden set: {hits}");
+}
+
+#[test]
+fn sph_tri_matches_sub_3515aaa0() {
+    let rows = golden("p2a2_i_sph_tri", || gen_tri_sph(5, 300, true));
+    let hits = check_inters("sph_tri", &rows, 4, 12, words_sph, words_tri, tp::intersect_sph_tri);
+    assert!(hits > 30, "too few contacts in the golden set: {hits}");
+}
+
+#[test]
+fn fuzz_tri_sph() {
+    if let Some(rows) = live("p2a2_i_tri_sph", gen_tri_sph(1004, 20000, false)) {
+        check_inters("tri_sph", &rows, 12, 4, words_tri, words_sph, tp::intersect_tri_sph);
+    }
+    if let Some(rows) = live("p2a2_i_sph_tri", gen_tri_sph(1005, 5000, true)) {
+        check_inters("sph_tri", &rows, 4, 12, words_sph, words_tri, tp::intersect_sph_tri);
     }
 }
 
