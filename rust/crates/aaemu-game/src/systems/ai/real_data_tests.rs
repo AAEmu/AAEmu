@@ -2,9 +2,9 @@
 //! `AAEMU_GAME_PAK=<game_pak> cargo test -p aaemu-game real_ai -- --ignored`.
 //!
 //! * every `.bai` file of every world in the pak parses with the readers (the version / format
-//!   errors the C# logs and skips are counted and must match the known bad files; the stale
-//!   sectors the engine rejects by version — net v54, verts v1, path areas < v21 — are counted
-//!   apart, and `hidemission*.bai` is not read, see `PORTING.md` "geodata deviations");
+//!   errors the C# logs and skips are counted and must match the known bad files; the files
+//!   rejected by version like the engine — path areas < v21 — are counted apart, and
+//!   `hidemission*.bai` is not read, see `PORTING.md` "geodata deviations");
 //! * zone geodata (instances with `zone/<key>/*.bai`) and main_world path blocks load through
 //!   `AiGeoData` like `LoadZoneBaiFiles` / `WorldCell.LoadBaiFiles`, A* finds routes on them and
 //!   `GetHeight` answers from the navmesh;

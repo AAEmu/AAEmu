@@ -18,7 +18,8 @@
 //! * areas: path sector files must be v21 (1.2) or v22 (10.x) (sector reader 0x31149764, same
 //!   layout); the nav-modifier header is `u64 type, u64 waypointConnections, u8 altered` and the
 //!   `ver <= 16` / `ver >= 18` branches use the file's version;
-//! * net must be exactly v55 (0x311030A8) and verts exactly v2 (0x311A2AC4);
+//! * net must be v55 (0x311030A8) and verts v2 (0x311A2AC4), plus the 1.2 pak's older net v54 /
+//!   verts v1 sectors (same layouts; deliberate deviation for 1.2 data compatibility);
 //! * links (0x310FB7E8): byte +42 bit 0 is the link flag 0x800000, byte +43 and the floats at
 //!   +28..+36 are not read by the engine;
 //! * `hidemission*.bai` (stale v54 graphs) is never loaded by the engine and is not loaded here.
@@ -173,6 +174,10 @@ pub struct AreasMission {
     pub forbidden_boundaries: Vec<AiShape>,
     pub extra_link_costs: Vec<AiShape>,
     pub designer_paths: Vec<PolygonArea>,
+    /// The file's version.
+    pub version: i32,
+    /// Bytes left after the last record of a path sector file (0 = the layout fits).
+    pub trailing_bytes: usize,
 }
 
 /// `BaiAreasFileVersion` (the 1.2 client's areas files).
@@ -181,8 +186,13 @@ pub const BAI_AREAS_FILE_VERSION: i32 = 21;
 pub const BAI_AREAS_FILE_VERSION_MAX: i32 = 22;
 /// `BaiTriangulationFileVersion`.
 pub const BAI_TRIANGULATION_FILE_VERSION: i32 = 55;
+/// The older net version of 2 299 sectors of the 1.2 pak (same node / link layout; accepted for
+/// 1.2 data compatibility, the 10.x engine wants exactly 55).
+pub const BAI_TRIANGULATION_FILE_VERSION_12: i32 = 54;
 /// `BaiVertexFileVersion`.
 pub const BAI_VERTEX_FILE_VERSION: i32 = 2;
+/// The older verts version paired with the v54 nets of the 1.2 pak (same 32-byte records).
+pub const BAI_VERTEX_FILE_VERSION_12: i32 = 1;
 
 /// `AreasMissionReader.UsedAreaNames` (+ `IgnoreDuplicateAreaNames = true`).
 #[derive(Debug, Default)]
@@ -215,6 +225,7 @@ impl AreasMission {
             ..Self::default()
         };
         let version = r.i32()?;
+        m.version = version;
         // Path sector files: the engine's sector reader (0x31149764) wants `>= 21` ("expected
         // 22"); v21 (1.2) and v22 (10.x) share the layout, later versions are unknown. Zone
         // folder files go through the whole-level reader (0x3107AB58), which still has the
@@ -246,6 +257,7 @@ impl AreasMission {
             if !r.is_eof() {
                 tracing::debug!("Reader ended before end of file at {}/{}", r.pos, r.len());
             }
+            m.trailing_bytes = r.len() - r.pos;
             return Ok(m);
         }
         let n = r.u32()?;
@@ -445,6 +457,10 @@ pub struct NetMission {
     /// Source node id -> indices into `links` (`LinkDescriptorList.Where(l => l.SourceNode ==
     /// id)`, in list order).
     pub links_by_source: HashMap<i64, Vec<usize>>,
+    /// The file's version (55, or 54 in the stale 1.2 sectors).
+    pub version: i32,
+    /// Bytes left after the last link (0 = the layout fits).
+    pub trailing_bytes: usize,
 }
 
 impl NetMission {
@@ -452,8 +468,12 @@ impl NetMission {
     pub fn read(data: &[u8], zone_id: u32, offset: Vec3) -> BResult<Self> {
         let mut r = Reader::new(data);
         let version = r.i32()?;
-        // the engine (CGraph::ReadNodes) wants exactly 55; the stale hide graphs are v54
-        if version != BAI_TRIANGULATION_FILE_VERSION {
+        // The 10.x engine (CGraph::ReadNodes) wants exactly 55. 2 299 sectors of the 1.2 pak
+        // are v54 with the same node / link layout (as the v54 hide graphs): accepted for 1.2
+        // data compatibility (deliberate deviation). The hide files themselves are still not
+        // loaded (by file name, see `load_from_folder`).
+        if version != BAI_TRIANGULATION_FILE_VERSION && version != BAI_TRIANGULATION_FILE_VERSION_12
+        {
             return Err(BaiError(format!(
                 "Wrong triangulation BAI file version {version} expected {BAI_TRIANGULATION_FILE_VERSION}"
             )));
@@ -461,6 +481,7 @@ impl NetMission {
         let mut m = Self {
             zone_id,
             offset,
+            version,
             ..Self::default()
         };
         m.bbox_min = read_vec3(&mut r, offset, true)?;
@@ -525,6 +546,7 @@ impl NetMission {
                 .push(m.links.len());
             m.links.push(l);
         }
+        m.trailing_bytes = r.len() - r.pos;
         Ok(m)
     }
 }
@@ -553,14 +575,19 @@ pub struct VertexMission {
     /// The mission suffix of the file name (`vertsmission0.bai` -> "0").
     pub mission: String,
     pub obstacles: Vec<ObstacleDataDescriptor>,
+    /// The file's version (2, or 1 in the stale 1.2 sectors).
+    pub version: i32,
+    /// Bytes left after the last record (0 = the layout fits).
+    pub trailing_bytes: usize,
 }
 
 impl VertexMission {
     pub fn read(data: &[u8], zone_id: u32, offset: Vec3) -> BResult<Self> {
         let mut r = Reader::new(data);
         let version = r.i32()?;
-        // the engine's verts reader (0x311A2AC4) wants exactly 2
-        if version != BAI_VERTEX_FILE_VERSION {
+        // The 10.x engine's verts reader (0x311A2AC4) wants exactly 2; the v54 sectors of the
+        // 1.2 pak have v1 verts with the same 32-byte records (1.2 data compatibility).
+        if version != BAI_VERTEX_FILE_VERSION && version != BAI_VERTEX_FILE_VERSION_12 {
             return Err(BaiError(format!(
                 "Wrong vertex list BAI file version {version} expected {BAI_VERTEX_FILE_VERSION}"
             )));
@@ -568,6 +595,7 @@ impl VertexMission {
         let mut m = Self {
             zone_id,
             offset,
+            version,
             ..Self::default()
         };
         let count = r.i32()?;
@@ -584,6 +612,7 @@ impl VertexMission {
                 unk2: r.u8()?,
             });
         }
+        m.trailing_bytes = r.len() - r.pos;
         Ok(m)
     }
 }
@@ -1025,22 +1054,42 @@ mod tests {
         assert!(NetMission::read(&data[..data.len() - 3], 0, Vec3::default()).is_err());
     }
 
-    /// Net must be exactly v55 and verts exactly v2 (engine `!=` checks); the stale v54
-    /// hidemission graphs are rejected like the engine would.
+    /// Net v55 / verts v2 (10.x engine) plus the 1.2 pak's older net v54 / verts v1 (same
+    /// layout); anything else is rejected.
     #[test]
-    fn net_and_verts_versions_must_be_equal() {
+    fn net_and_verts_versions() {
         let node = [TNode::tri(1, [1.0, 1.0, 0.0], [0, 1, 2])];
-        for (v, ok) in [(54, false), (55, true), (56, false), (21, false)] {
+        for (v, ok) in [
+            (53, false),
+            (54, true),
+            (55, true),
+            (56, false),
+            (21, false),
+        ] {
             let d = net_mission_versioned(v, &node, &[]);
-            assert_eq!(
-                NetMission::read(&d, 0, Vec3::default()).is_ok(),
-                ok,
-                "net v{v}"
-            );
+            let r = NetMission::read(&d, 0, Vec3::default());
+            assert_eq!(r.is_ok(), ok, "net v{v}");
+            if let Ok(m) = r {
+                assert_eq!((m.version, m.trailing_bytes), (v, 0));
+            }
         }
+        let mut d = net_mission_full(&node, &[]);
+        d.push(0);
+        assert_eq!(
+            NetMission::read(&d, 0, Vec3::default())
+                .unwrap()
+                .trailing_bytes,
+            1
+        );
         let mut d = verts_mission(&[[0.0, 0.0, 0.0]]);
         assert!(VertexMission::read(&d, 0, Vec3::default()).is_ok());
-        for v in [1i32, 3] {
+        d[..4].copy_from_slice(&1i32.to_le_bytes());
+        let v1 = VertexMission::read(&d, 0, Vec3::default()).unwrap();
+        assert_eq!(
+            (v1.version, v1.trailing_bytes, v1.obstacles.len()),
+            (1, 0, 1)
+        );
+        for v in [0i32, 3] {
             d[..4].copy_from_slice(&v.to_le_bytes());
             assert!(
                 VertexMission::read(&d, 0, Vec3::default()).is_err(),

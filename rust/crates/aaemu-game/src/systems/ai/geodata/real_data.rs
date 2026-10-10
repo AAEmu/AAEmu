@@ -149,11 +149,15 @@ fn real_nav_samples_parse_like_the_engine() {
             );
             assert!(m.min_z <= m.max_z, "{dir}: {m:?}");
         }
+        assert_eq!(
+            (net.trailing_bytes, v.trailing_bytes, a.trailing_bytes),
+            (0, 0, 0),
+            "{dir}"
+        );
         if let Ok(hide) = std::fs::read(d.join("hidemission0.bai")) {
-            assert!(
-                NetMission::read(&hide, 0, off).is_err(),
-                "hide v54 is rejected"
-            );
+            // a v54 graph with the v55 layout (not loaded by `load_from_folder`)
+            let h = NetMission::read(&hide, 0, off).unwrap();
+            assert_eq!((h.version, h.trailing_bytes), (54, 0), "{dir}");
         }
         println!("{dir}: ok");
     }
@@ -270,4 +274,94 @@ fn real_nav_pak_cell_merges_sectors() {
     let z = g.get_height(Vec3::new(9984.0, 14950.0, 500.0));
     println!("height at the sector border: {z}");
     assert!(z > 100.0 && z < 400.0);
+}
+
+/// The 1.2 pak's older path sectors (net v54 + verts v1, areas below v21) use the same layouts
+/// as net v55 / verts v2 / areas v21: every file parses with 0 trailing bytes.
+#[test]
+#[ignore = "needs AAEMU_GAME_PAK"]
+fn real_nav_pak_12_old_sector_versions_parse() {
+    let Ok(pak) = std::env::var("AAEMU_GAME_PAK") else {
+        return;
+    };
+    let app = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("app");
+    let files = ClientFileManager::from_sources(&[pak], &app);
+    let names: Vec<String> = files.sources()[0]
+        .game_pak()
+        .expect("pak")
+        .file_names()
+        .filter(|n| n.to_lowercase().contains("/paths/") && n.to_lowercase().ends_with(".bai"))
+        .map(str::to_string)
+        .collect();
+    let used = UsedAreaNames::default();
+    // (kind, version) -> (files, files with trailing bytes, failures)
+    let mut by: std::collections::BTreeMap<(&str, i32), (usize, usize, usize)> =
+        std::collections::BTreeMap::new();
+    let mut v54_sectors = std::collections::BTreeSet::new();
+    let mut v1_sectors = std::collections::BTreeSet::new();
+    for n in &names {
+        let lower = n.to_lowercase();
+        let file = lower.rsplit('/').next().unwrap_or("");
+        let folder = super::bai::parent_folder_name(n);
+        let data = files.read_file(n).expect("read");
+        if data.len() < 4 {
+            continue;
+        }
+        let version = i32::from_le_bytes(data[..4].try_into().unwrap());
+        let (kind, res): (&str, Result<usize, String>) = if file.starts_with("netmission") {
+            (
+                "net",
+                NetMission::read(&data, 0, Vec3::default())
+                    .map(|m| m.trailing_bytes)
+                    .map_err(|e| e.0),
+            )
+        } else if file.starts_with("vertsmission") {
+            (
+                "verts",
+                VertexMission::read(&data, 0, Vec3::default())
+                    .map(|m| m.trailing_bytes)
+                    .map_err(|e| e.0),
+            )
+        } else if file.starts_with("areasmission") && data.len() > 20 {
+            // parse the old versions with the v21 layout
+            let mut d = data.clone();
+            if version < 21 {
+                d[..4].copy_from_slice(&21i32.to_le_bytes());
+            }
+            (
+                "areas",
+                AreasMission::read(&d, 0, Vec3::default(), &used)
+                    .map(|m| m.trailing_bytes)
+                    .map_err(|e| e.0),
+            )
+        } else {
+            continue;
+        };
+        if kind == "net" && version == 54 {
+            v54_sectors.insert(folder.clone());
+        }
+        if kind == "verts" && version == 1 {
+            v1_sectors.insert(folder);
+        }
+        let e = by.entry((kind, version)).or_default();
+        e.0 += 1;
+        match res {
+            Ok(0) => {}
+            Ok(_) => e.1 += 1,
+            Err(_) => e.2 += 1,
+        }
+    }
+    println!("(kind, version) -> (files, with trailing bytes, failures): {by:?}");
+    println!(
+        "{} net v54 sectors, {} verts v1 sectors, {} in both",
+        v54_sectors.len(),
+        v1_sectors.len(),
+        v54_sectors.intersection(&v1_sectors).count()
+    );
+    for ((kind, version), (_, trailing, failed)) in &by {
+        if matches!((*kind, *version), ("net", 54) | ("verts", 1)) {
+            assert_eq!((*trailing, *failed), (0, 0), "{kind} v{version}");
+        }
+    }
+    assert!(by.get(&("net", 54)).is_some_and(|e| e.0 > 0));
 }

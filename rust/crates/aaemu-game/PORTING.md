@@ -328,7 +328,7 @@ Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` check
 | `AIManager` (100 ms tick, `AddAi`, region activity) | `systems/ai/manager.rs` | done | Per-AI mutex + queued calls (see deviations). |
 | AI members of `Npc` / `Unit` (`MoveTowards`, `LookTowards`, `StopMovement`, `SetTarget`, `CurrentAggroTarget`, `CurrentGameStance`, `BaseMoveSpeed`, `OnDamageReceived`, `CheckIfEmptyAggroToReturn`, `ClearAllAggro`, `FindPath`), `NpcEvents` | `systems/ai/{npc,combat,skills,npc_events}.rs` | done | `SCOneUnitMovementPacket` movement, aggro tables through the skills API. |
 | `AiPathsManager` (`Data/Path`), `AiPathHandler`, `Units/Route/Simulation` | `systems/ai/{path_handler,simulation}.rs` | done | Every `Data/Path/*.path` file loads (test). |
-| `AiGeoDataManager`, CryEngine `.bai` readers (net / areas / verts missions), A* `PathNode`, `GetHeight`, `ReducePath` | `systems/ai/geodata/` | done | `GeoDataMode` only. Engine-faithful readers and a merged cross-sector graph (see "geodata deviations" below). 1.2 pak: 9 447 net + 9 447 verts + 3 265 areas files parse; 2 299 stale sectors (net v54 + verts v1) and 279 path areas files below v21 are rejected by version like the engine, the 7 399 `hidemission` files are not read. The areas reader matched the C# reader on every dumped file (differential harness; path areas < v21 now excluded on purpose). Gated tests: `real_ai_*`, `real_nav_*` (`AAEMU_GAME_PAK`, `AAEMU_BAI_SAMPLES=D:\aa-re\zone\agent_geom\data`). |
+| `AiGeoDataManager`, CryEngine `.bai` readers (net / areas / verts missions), A* `PathNode`, `GetHeight`, `ReducePath` | `systems/ai/geodata/` | done | `GeoDataMode` only. Engine-faithful readers and a merged cross-sector graph (see "geodata deviations" below). 1.2 pak: 9 447 net (2 299 of them v54) + 9 447 verts (2 299 v1) + 3 265 areas files parse with 0 trailing bytes; 279 path areas files below v21 are rejected by version like the engine (they do not fit the v21 layout either), the 7 399 `hidemission` files are not read. The areas reader matched the C# reader on every dumped file (differential harness; path areas < v21 now excluded on purpose). Gated tests: `real_ai_*`, `real_nav_*` (`AAEMU_GAME_PAK`, `AAEMU_BAI_SAMPLES=D:\aa-re\zone\agent_geom\data`). |
 | `Gimmick.MoveTowards`, flytrap gimmick | `systems/ai/gimmick.rs` | done | |
 | Hooks for npcs / skills (create AI by `ai_file_id`, spawn / engage / death / delete / faction, NPC control effect, spyglass), AStar GM commands | `systems/ai/hooks.rs` | done | `AiHooks` in `server.systems.hooks.ai`; the npcs `NpcSkills` calls the AI parts of `NpcSkillHooks` directly (no decorator); `AiAStarHooks` installed into the services `ASTAR_HOOKS`. |
 | `Physics/**`, `PhysicsManager` (ship hulls: Jitter2 world, `ShipController`, shore / ship–ship / doodad / cliff / static barrier contacts, buoyancy, whirlpool, storm lamps, harpoon tow, replication), `ShipSiegeAoEHit` geometry | `systems/ai/physics/` | done | The Jitter2 subset is bit-exact against Jitter2 2.8.8 for the integration (embedded reference test). Slaves call `add_ship` / `remove_ship` / `set_ship_request` / `set_ship_driver` / `ship_state` and may install `ShipPhysicsHooks` (harpoon rope state). |
@@ -345,12 +345,16 @@ Reference: the 10.0.2.13 `cryaisystem_dedicate.dll` (image base 0x31000000), not
 * **Areas version** (sector reader 0x31149764, whole-level reader 0x3107AB58): path sector
   files must be v21 (1.2) or v22 (10.x; same layout). The C# rejected `> 21`, so every 10.x
   areas file failed (no forbidden areas / boundaries / nav modifiers). Path files below v21 are
-  rejected like the engine's sector reader (279 files of the 1.2 pak, all in stale sectors); zone
+  rejected like the engine's sector reader (279 files of the 1.2 pak, v19 / v20; 272 of them
+  do not parse with the v21 layout either); zone
   folder files stay accepted up to v22 (the whole-level reader still has the old-version
   branches).
-* **Net / verts versions**: net must equal 55 (`CGraph::ReadNodes`, 0x311030A8), verts must equal
-  2 (0x311A2AC4); the C# accepted anything `<=`. In the 1.2 pak this drops 2 299 stale sectors
-  whose net is v54 and verts v1 (the C# loaded them).
+* **Net / verts versions**: the 10.x engine wants net == 55 (`CGraph::ReadNodes`, 0x311030A8)
+  and verts == 2 (0x311A2AC4); the C# accepted anything `<=`. Rust accepts net 55 and 54 and
+  verts 2 and 1 and rejects every other version. **Deliberate deviation from the 10.x engine
+  (1.2 data compatibility):** 2 299 path sectors of the 1.2 pak are net v54 + verts v1 (the same
+  sectors), with the v55 node / link and v2 vertex layouts: all of them parse with 0 trailing
+  bytes (gated test `real_nav_pak_12_old_sector_versions_parse`).
 * **`hidemission*.bai` is not loaded** (no engine reader references it; stale v54 graphs). The
   C# read them into `HideMissionReaders` and never used them.
 * **Nav-modifier header** (0x31149764): `u64 type; u64 waypointConnections; u8 altered` (17
