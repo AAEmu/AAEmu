@@ -1748,10 +1748,7 @@ pub fn set_completed_quest_flag(
     let i = match blocks.iter().position(|b| b.id == block_id) {
         Some(i) => i,
         None => {
-            blocks.push(CompletedQuest {
-                id: block_id,
-                body: vec![0; 8],
-            });
+            blocks.push(CompletedQuest::new(block_id));
             blocks.len() - 1
         }
     };

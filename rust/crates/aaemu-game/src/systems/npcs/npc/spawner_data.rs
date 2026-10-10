@@ -455,3 +455,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "npc_game_data_tests.rs"]
+mod npc_game_data_tests;

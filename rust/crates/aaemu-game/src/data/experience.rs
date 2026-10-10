@@ -31,6 +31,9 @@ pub enum ExperienceError {
     /// `ArgumentOutOfRangeException.ThrowIfNegative(exp)`.
     #[error("exp must not be negative ({0})")]
     NegativeExp(i32),
+    /// `ArgumentOutOfRangeException.ThrowIfZero(playerLevelCap / mateLevelCap)` in `Load`.
+    #[error("level cap must not be zero")]
+    ZeroLevelCap,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -60,12 +63,29 @@ impl ExperienceTable {
             last_exp = t.total_exp;
             last_mate_exp = t.total_mate_exp;
         }
-        let count = templates.len();
-        Ok(Self {
-            max_player_level: count.min(usize::from(PLAYER_LEVEL_CAP)) as u8,
-            max_mate_level: count.min(usize::from(MATE_LEVEL_CAP)) as u8,
-            templates,
-        })
+        let mut table = Self::default();
+        table.load(templates, PLAYER_LEVEL_CAP, MATE_LEVEL_CAP)?;
+        Ok(table)
+    }
+
+    /// `ExperienceManager.Load(loader, playerLevelCap, mateLevelCap)` with the loader's rows
+    /// (no validation: that is the SQLite loader's job, see [`Self::from_templates`]). Replaces
+    /// the previous state; the max levels are the lower of the row count and the caps.
+    pub fn load(
+        &mut self,
+        templates: impl IntoIterator<Item = LevelTemplate>,
+        player_level_cap: u8,
+        mate_level_cap: u8,
+    ) -> Result<(), ExperienceError> {
+        if player_level_cap == 0 || mate_level_cap == 0 {
+            return Err(ExperienceError::ZeroLevelCap);
+        }
+        self.templates.clear();
+        self.templates.extend(templates);
+        let count = self.templates.len();
+        self.max_player_level = count.min(usize::from(player_level_cap)) as u8;
+        self.max_mate_level = count.min(usize::from(mate_level_cap)) as u8;
+        Ok(())
     }
 
     pub fn max_player_level(&self) -> u8 {
@@ -105,6 +125,21 @@ impl ExperienceTable {
     /// `GetLevelFromExp(exp, out overflow, mate)` (no minimum level).
     pub fn level_from_exp_any(&self, exp: i32, mate: bool) -> Result<(u8, i32), ExperienceError> {
         self.level_from_exp_min(exp, mate, 0)
+    }
+
+    /// `GetExpNeededToGivenLevel(currentExp, targetLevel, mate)`: 0 when the target level is
+    /// invalid or already reached.
+    pub fn exp_needed_to_given_level(
+        &self,
+        current_exp: i32,
+        target_level: u8,
+        mate: bool,
+    ) -> Result<i32, ExperienceError> {
+        if current_exp < 0 {
+            return Err(ExperienceError::NegativeExp(current_exp));
+        }
+        let target_exp = self.exp_for_level(target_level, mate);
+        Ok(0.max(target_exp - current_exp))
     }
 
     /// `GetSkillPointsForLevel`.
@@ -263,3 +298,7 @@ mod tests {
         assert!(t.validate_and_fix(0, 5).is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "experience_tests.rs"]
+mod experience_tests;
