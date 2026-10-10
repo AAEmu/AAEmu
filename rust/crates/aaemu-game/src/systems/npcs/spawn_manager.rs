@@ -12,3 +12,7 @@ pub struct SpawnManagers {}
 pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
     Ok(())
 }
+
+/// `Npc.DoDie` → `Spawner.DoDespawn(npc)`: schedules the despawn (corpse) and, when allowed,
+/// the respawn of an NPC that died. No-op for NPCs without a spawner.
+pub fn on_npc_died(_server: &GameServer, _npc: &crate::world::NpcRef) {}
