@@ -747,6 +747,76 @@ static void math_probe(const char *name, int count, uint64_t seed) {
   }
 }
 
+/* ------------------------------------------------------------------ P2a-2 pair probes */
+/* `physoracle --p2a2 < LINES` (added by P2a-2, triangle pairs). Each stdin line is
+ *   NAME W0 W1 ...    (hex 32-bit words)
+ * holding the operands' raw primitive words (tri 12, box 16, sph 4, ray 6, hf see below) and,
+ * for INTERSECT functions, the 24 initial words of the prim_inters buffer. The probe calls the
+ * DLL function directly and prints `NAME in <words> out <ret> [<24 buffer words>]`.
+ * Heightfield operands: 30 primitive words (the two callback pointers are replaced), then
+ * gx gy and gx*gy heights; getHeight(ix,iy) returns grid[iy*gx+ix] inside the grid and
+ * (float)(ix*7+iy*13)*0.25f outside. */
+typedef int (*fn_pair3)(void *, void *, void *);
+static float p2a2_grid[4096];
+static int p2a2_gx, p2a2_gy;
+static float p2a2_height(int ix, int iy) {
+  if (ix >= 0 && iy >= 0 && ix < p2a2_gx && iy < p2a2_gy) return p2a2_grid[iy * p2a2_gx + ix];
+  return (float)(ix * 7 + iy * 13) * 0.25f;
+}
+static unsigned short p2a2_surf(int ix, int iy) { (void)ix; (void)iy; return 0; }
+static const struct { const char *name; uint32_t va; char a, b; int inters; } p2a2_fns[] = {
+  {"p2a2_i_tri_tri", 0x35159410, 't', 't', 1}, {"p2a2_i_tri_sph", 0x35159DE0, 't', 's', 1},
+  {"p2a2_i_sph_tri", 0x3515AAA0, 's', 't', 1}, {"p2a2_i_ray_tri", 0x3515AB20, 'r', 't', 1},
+  {"p2a2_i_tri_ray", 0x3515B1D0, 't', 'r', 1}, {"p2a2_i_tri_box", 0x35162AA0, 't', 'b', 1},
+  {"p2a2_i_box_tri", 0x35164780, 'b', 't', 1}, {"p2a2_o_box_tri", 0x351968F0, 'b', 't', 0},
+  {"p2a2_o_tri_box", 0x35196CC0, 't', 'b', 0}, {"p2a2_o_tri_sph", 0x35197530, 't', 's', 0},
+  {"p2a2_o_sph_tri", 0x35197590, 's', 't', 0}, {"p2a2_o_box_hf", 0x351986E0, 'b', 'h', 0},
+  {"p2a2_o_hf_box", 0x35199120, 'h', 'b', 0}, {"p2a2_o_hf_sph", 0x351975E0, 'h', 's', 0},
+  {"p2a2_o_sph_hf", 0x35197860, 's', 'h', 0},
+};
+static int p2a2_words(char k) { return k == 't' ? 12 : k == 'b' ? 16 : k == 's' ? 4 : k == 'r' ? 6 : 30; }
+static void p2a2_probe(void) {
+  static char line[1 << 16];
+  while (fgets(line, sizeof line, stdin)) {
+    char *tok = strtok(line, " \t\r\n");
+    if (!tok) continue;
+    int fi = -1;
+    for (int i = 0; i < (int)(sizeof p2a2_fns / sizeof p2a2_fns[0]); i++)
+      if (!strcmp(tok, p2a2_fns[i].name)) fi = i;
+    if (fi < 0) die("unknown p2a2 probe", tok);
+    static uint32_t w[8192];
+    int n = 0;
+    while ((tok = strtok(0, " \t\r\n")) && n < 8192) w[n++] = (uint32_t)strtoul(tok, 0, 16);
+    __declspec(align(16)) uint32_t a[64], b[64], o[64];
+    memset(a, 0, sizeof a); memset(b, 0, sizeof b); memset(o, 0, sizeof o);
+    int k = 0;
+    for (int side = 0; side < 2; side++) {
+      char t = side ? p2a2_fns[fi].b : p2a2_fns[fi].a;
+      uint32_t *d = side ? b : a;
+      int nw = p2a2_words(t);
+      if (k + nw > n) die("p2a2: short line", p2a2_fns[fi].name);
+      memcpy(d, w + k, nw * 4); k += nw;
+      if (t == 'h') {
+        p2a2_gx = (int)w[k]; p2a2_gy = (int)w[k + 1]; k += 2;
+        if (p2a2_gx * p2a2_gy > 4096 || k + p2a2_gx * p2a2_gy > n) die("p2a2: bad grid", "");
+        memcpy(p2a2_grid, w + k, p2a2_gx * p2a2_gy * 4); k += p2a2_gx * p2a2_gy;
+        void *cb = (void *)p2a2_height, *cs = (void *)p2a2_surf;
+        memcpy((char *)d + 104, &cb, 8); memcpy((char *)d + 112, &cs, 8);
+      }
+    }
+    if (p2a2_fns[fi].inters) {
+      if (k + 24 > n) die("p2a2: missing prim_inters words", p2a2_fns[fi].name);
+      memcpy(o, w + k, 24 * 4); k += 24;
+    }
+    int r = ((fn_pair3)VA(g_phys, (uint64_t)p2a2_fns[fi].va))(a, b, o);
+    printf("%s in", p2a2_fns[fi].name);
+    for (int i = 0; i < n; i++) printf(" %08x", w[i]);
+    printf(" out %d", r);
+    if (p2a2_fns[fi].inters) for (int i = 0; i < 24; i++) printf(" %08x", o[i]);
+    printf("\n");
+  }
+}
+
 /* ------------------------------------------------------------------ main */
 int main(int argc, char **argv) {
   _setmode(_fileno(stdout), _O_BINARY);
@@ -765,6 +835,11 @@ int main(int argc, char **argv) {
   SetDllDirectoryA(rt);
   g_phys = LoadLibraryA(dll);
   if (!g_phys) { printf("ERROR LoadLibrary %s failed (%lu)\n", dll, GetLastError()); return 1; }
+  if (!strcmp(argv[a], "--p2a2")) { /* P2a-2 pair probes, see p2a2_probe */
+    p2a2_probe();
+    fflush(stdout);
+    return 0;
+  }
   if (!strcmp(argv[a], "--math")) {
     if (a + 3 >= argc) return 1;
     math_probe(argv[a + 1], atoi(argv[a + 2]), strtoull(argv[a + 3], 0, 0));
