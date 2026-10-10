@@ -5,13 +5,13 @@
 //! the per-triangle normals (`+96`) and `nTris` (`+120`), so they are written over a
 //! [`MeshView`]; [`TriMesh`] exposes them as inherent methods named after the slots.
 //!
-//! **Origin of the code.** The buoyancy, pressure and polygon-drag routines were first ported
-//! (and verified through the box's temporary 12-triangle mesh) by package P1a on branch
-//! `p7-phys-shapes` (`geometry/shapes/buoyancy/mesh.rs`, `mesh_pressure.rs`, `drag.rs`, plus
-//! `quat_rotation_arc` / `orthogonal` from `geometry/shapes.rs`). That branch is not merged
-//! here, so the code is copied into this module (adapted to `TriMesh`: `nTris` is the explicit
-//! `+120` count, not `indices.len() / 3`) and re-verified on real meshes
-//! (`tests/p1c_fluid.rs`). The slot 14 driver 0x351CD0C0 is new.
+//! **One implementation.** Slots 12 and 13 were first ported by P1a over a triangle view (the
+//! box's slots 12 / 13 run them on a temporary 12-triangle mesh). That code now lives here
+//! (moved from `geometry/shapes/buoyancy/mesh.rs` / `mesh_pressure.rs`; `nTris` is the
+//! explicit `+120` count) and `shapes::buoyancy` calls it through [`MeshView`]. Slot 14's
+//! polygon core (`sub_35133E50` and helpers) stays in [`crate::geometry::shapes::drag`], shared
+//! with the box / cylinder / capsule; the mesh driver 0x351CD0C0 is here. Everything is
+//! re-verified on real meshes (`tests/p1c_fluid.rs`) on top of P1a's box tests.
 //!
 //! **On a heightfield.** `CHeightfield` (and `CVoxelGeom`) inherit slots 13 and 14 unchanged
 //! (same vtable entries). A `CHeightfield` keeps `nTris` (`+120`) at 0 (oracle-checked), so on
@@ -19,20 +19,18 @@
 //! `dL`. Slot 12 of `CHeightfield` is its own empty function (0x35154CB0,
 //! [`super::closest::heightfield_calc_volumetric_pressure`]).
 
-mod drag;
-mod pressure;
+// `!(a > b)` tests are deliberate: they reproduce the binary's branch on unordered (NaN)
+// operands (`comiss` + `jbe`/`jae`).
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
 
-pub use drag::{clip_polygon_by_plane, polygon_drag_integrate, rotate_axis_cos_sin, MAX_POLY};
+mod pressure;
 
 use super::TriMesh;
 use crate::geometry::primitives::Plane;
+use crate::geometry::shapes::drag::polygon_drag_integrate;
+use crate::geometry::shapes::{quat_rotation_arc, DEC_MOD3, INC_MOD3};
 use crate::geometry::GeomWorldData;
-use crate::math::{Mat33, Quat, Vec3};
-
-/// Index tables at 0x3520A770 / 0x3520A780 (and their copies): `inc = {1,2,0}`.
-pub const INC_MOD3: [usize; 3] = [1, 2, 0];
-/// `dec = {2,0,1}`.
-pub const DEC_MOD3: [usize; 3] = [2, 0, 1];
+use crate::math::{Mat33, Vec3};
 
 /// The parts of a `CTriMesh` the fluid routines read: vertices (`+80`), 3 indices per triangle
 /// (`+56`), one normal per triangle (`+96`) and `nTris` (`+120`).
@@ -123,51 +121,6 @@ pub fn mesh_volumetric_pressure(
     l: &mut Vec3,
 ) {
     pressure::volumetric_pressure(m, gwd, epicenter, k, rmin, com, p, l);
-}
-
-/// The engine's `GetOrthogonal` idiom (inlined in `QuatRotationArc` 0x35040F80):
-/// `i = isneg(|a|²·0.81 − a.x²)`; `v[i] = 0, v[inc i] = a[dec i], v[dec i] = −a[inc i]`
-/// (unnormalised). Copied from P1a.
-#[must_use]
-pub fn orthogonal(a: Vec3) -> Vec3 {
-    let k = f32::from_bits(0x3F4F_5C28); // 0.80999994
-    let t = a.len2() * k - a.x * a.x;
-    let i = (t.to_bits() >> 31) as usize;
-    let mut v = Vec3::ZERO;
-    v[i] = 0.0;
-    v[INC_MOD3[i]] = a[DEC_MOD3[i]];
-    v[DEC_MOD3[i]] = -a[INC_MOD3[i]];
-    v
-}
-
-/// `sub_35040F80` QuatRotationArc(from, to): the shortest-arc rotation taking unit `from` to
-/// unit `to` (copied from P1a).
-///
-/// `d = (from·to) + 1` (single, `to.x·from.x + to.y·from.y` first) widened to double; if
-/// `d > 1e-4` (double compare): `q = (from × to, d)` normalised in double with the squared
-/// norm summed `((x² + w²) + y²) + z²`; else `w = 0` and `v` = the normalised orthogonal of
-/// `from` (`1/sqrtss(|o|² + FLT_MIN)`).
-#[must_use]
-pub fn quat_rotation_arc(from: Vec3, to: Vec3) -> Quat {
-    let dotp = (to.x * from.x + to.y * from.y) + to.z * from.z;
-    let d = f64::from(dotp + 1.0);
-    if d > f64::from(1e-4_f32) {
-        let cx = f64::from(to.z * from.y - to.y * from.z);
-        let cy = f64::from(from.z * to.x - to.z * from.x);
-        let cz = f64::from(to.y * from.x - from.y * to.x);
-        let n2 = ((cx * cx + d * d) + cy * cy) + cz * cz;
-        let inv = 1.0 / n2.sqrt();
-        Quat::new(
-            (inv * cx) as f32,
-            (inv * cy) as f32,
-            (inv * cz) as f32,
-            (inv * d) as f32,
-        )
-    } else {
-        let o = orthogonal(from);
-        let inv = 1.0 / (o.len2() + f32::MIN_POSITIVE).sqrt();
-        Quat::new(inv * o.x, inv * o.y, inv * o.z, 0.0)
-    }
 }
 
 /// `sub_351CCF20` TetVolumeCentroid (inferred name): `|det(b−a, c−a, d−a)|·(1/6)` with

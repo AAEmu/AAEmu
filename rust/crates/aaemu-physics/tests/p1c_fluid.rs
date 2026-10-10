@@ -185,9 +185,13 @@ fn port_line(t: &Target, q: &Query) -> String {
         Query::B12(g, e, k, rmin, com, p, l) => {
             let (mut p, mut l) = (*p, *l);
             match t {
-                Target::Mesh(_) => mesh_volumetric_pressure(&view, g, *e, *k, *rmin, *com, &mut p, &mut l),
+                Target::Mesh(_) => {
+                    mesh_volumetric_pressure(&view, g, *e, *k, *rmin, *com, &mut p, &mut l)
+                }
                 Target::Hf(hf, _) => {
-                    heightfield_calc_volumetric_pressure(hf, g, *e, *k, *rmin, *com, &mut p, &mut l);
+                    heightfield_calc_volumetric_pressure(
+                        hf, g, *e, *k, *rmin, *com, &mut p, &mut l,
+                    );
                 }
             }
             s.push_str("r12");
@@ -197,10 +201,12 @@ fn port_line(t: &Target, q: &Query) -> String {
         Query::C11(g, ip, ifeat, p0, p1, nmax, res) => {
             let (mut ip, mut ifeat, mut res) = (*ip, *ifeat, *res);
             let r = match t {
-                Target::Mesh(m) => m.find_closest_point(g, &mut ip, &mut ifeat, *p0, *p1, &mut res, *nmax),
-                Target::Hf(hf, _) => {
-                    heightfield_find_closest_point(hf, g, &mut ip, &mut ifeat, *p0, *p1, &mut res, *nmax)
+                Target::Mesh(m) => {
+                    m.find_closest_point(g, &mut ip, &mut ifeat, *p0, *p1, &mut res, *nmax)
                 }
+                Target::Hf(hf, _) => heightfield_find_closest_point(
+                    hf, g, &mut ip, &mut ifeat, *p0, *p1, &mut res, *nmax,
+                ),
             };
             let _ = write!(s, "r11 {r} {ip} {ifeat}");
             wv(&mut s, res[0]);
@@ -218,7 +224,12 @@ fn rand_rot(r: &mut Rng) -> Mat33 {
     if r.chance(0.2) {
         return Mat33::IDENTITY;
     }
-    let (x, y, z, ww) = (r.f(-1.0, 1.0), r.f(-1.0, 1.0), r.f(-1.0, 1.0), r.f(-1.0, 1.0));
+    let (x, y, z, ww) = (
+        r.f(-1.0, 1.0),
+        r.f(-1.0, 1.0),
+        r.f(-1.0, 1.0),
+        r.f(-1.0, 1.0),
+    );
     let l = (x * x + y * y + z * z + ww * ww).sqrt().max(1e-3);
     Mat33::from_quat(Quat::new(x / l, y / l, z / l, ww / l))
 }
@@ -236,7 +247,11 @@ fn rand_gwd(r: &mut Rng, extent: f32) -> GeomWorldData {
         r: rand_rot(r),
         scale,
         v: r.unit() * r.f(0.0, 10.0),
-        w: if r.chance(0.2) { Vec3::ZERO } else { r.unit() * r.f(0.0, 3.0) },
+        w: if r.chance(0.2) {
+            Vec3::ZERO
+        } else {
+            r.unit() * r.f(0.0, 3.0)
+        },
         center_of_mass: off + r.unit() * (r.f(0.0, 0.5) * e * scale),
     }
 }
@@ -289,7 +304,11 @@ fn gen_queries(r: &mut Rng, verts: &[Vec3], nt: i32, n: [usize; 4], out: &mut Ve
     for _ in 0..n[1] {
         let g = rand_gwd(r, extent);
         let (c, rad) = world_ball(verts, &g);
-        let dp = if r.chance(0.5) { Vec3::ZERO } else { r.unit() * 3.0 };
+        let dp = if r.chance(0.5) {
+            Vec3::ZERO
+        } else {
+            r.unit() * 3.0
+        };
         out.push(Query::B14(rand_plane(r, c, rad), g, dp, r.unit()));
     }
     for _ in 0..n[2] {
@@ -297,7 +316,11 @@ fn gen_queries(r: &mut Rng, verts: &[Vec3], nt: i32, n: [usize; 4], out: &mut Ve
         let (c, rad) = world_ball(verts, &g);
         let e = c + r.unit() * (rad * r.f(0.0, 3.0));
         let k = r.f(0.1, 100.0);
-        let rmin = if r.chance(0.2) { r.f(0.0, 0.01) } else { r.f(0.001, 2.0) * rad };
+        let rmin = if r.chance(0.2) {
+            r.f(0.0, 0.01)
+        } else {
+            r.f(0.001, 2.0) * rad
+        };
         let (p, l) = if r.chance(0.3) {
             (Vec3::ZERO, Vec3::ZERO)
         } else {
@@ -473,7 +496,11 @@ fn check_output(job: &Job, text: &str, tag: &str, st: &mut Stats) {
         let hf;
         let target = match kind {
             ObjKind::Mesh => {
-                assert!(lines[i].starts_with("mesh "), "{tag}: object {oi}: expected a mesh dump at line {}", i + 1);
+                assert!(
+                    lines[i].starts_with("mesh "),
+                    "{tag}: object {oi}: expected a mesh dump at line {}",
+                    i + 1
+                );
                 let (m, used) = p1c_common::parse_mesh_dump(&lines[i..]);
                 i += used;
                 mesh = m;
@@ -485,7 +512,12 @@ fn check_output(job: &Job, text: &str, tag: &str, st: &mut Stats) {
                     .skip(1)
                     .map(|s| u32::from_str_radix(s, 16).unwrap())
                     .collect();
-                let nt: i32 = lines[i + 1].split_whitespace().nth(1).unwrap().parse().unwrap();
+                let nt: i32 = lines[i + 1]
+                    .split_whitespace()
+                    .nth(1)
+                    .unwrap()
+                    .parse()
+                    .unwrap();
                 i += 2;
                 hf = hf_prim(&words, *mode);
                 Target::Hf(&hf, nt)
@@ -504,12 +536,16 @@ fn check_output(job: &Job, text: &str, tag: &str, st: &mut Stats) {
                         _ => {
                             let f: i32 = t[3].parse().unwrap_or(-1);
                             let h = matches!(target, Target::Hf(..));
-                            format!("{}{}", if h { "hf-" } else { "" }, match f & 0x60 {
-                                0x40 => "face",
-                                0x20 => "edge",
-                                0 => "vertex",
-                                _ => "other",
-                            })
+                            format!(
+                                "{}{}",
+                                if h { "hf-" } else { "" },
+                                match f & 0x60 {
+                                    0x40 => "face",
+                                    0x20 => "edge",
+                                    0 => "vertex",
+                                    _ => "other",
+                                }
+                            )
                         }
                     };
                     *st.feats.entry(kind).or_default() += 1;
@@ -541,8 +577,8 @@ fn cube(h: Vec3, c: Vec3) -> (Vec<Vec3>, Vec<i32>) {
         ));
     }
     let idx = vec![
-        0, 4, 6, 6, 2, 0, 1, 3, 7, 7, 5, 1, 0, 1, 5, 5, 4, 0, 2, 6, 7, 7, 3, 2, 0, 2, 3, 3, 1, 0, 4,
-        5, 7, 7, 6, 4,
+        0, 4, 6, 6, 2, 0, 1, 3, 7, 7, 5, 1, 0, 1, 5, 5, 4, 0, 2, 6, 7, 7, 3, 2, 0, 2, 3, 3, 1, 0,
+        4, 5, 7, 7, 6, 4,
     ];
     (v, idx)
 }
@@ -616,7 +652,14 @@ fn open_grid(n: i32, s: f32) -> (Vec<Vec3>, Vec<i32>) {
     for j in 0..n {
         for i in 0..n {
             let p = |i: i32, j: i32| j * (n + 1) + i;
-            idx.extend([p(i, j), p(i + 1, j), p(i + 1, j + 1), p(i, j), p(i + 1, j + 1), p(i, j + 1)]);
+            idx.extend([
+                p(i, j),
+                p(i + 1, j),
+                p(i + 1, j + 1),
+                p(i, j),
+                p(i + 1, j + 1),
+                p(i, j + 1),
+            ]);
         }
     }
     (v, idx)
@@ -662,7 +705,11 @@ fn synthetic_job(seed: u64, nq: [usize; 4]) -> Job {
 fn synthetic_meshes_match_the_dll() {
     let job = synthetic_job(0x51F1_C0DE_0001, [60, 50, 25, 220]);
     let path = job.write("synth");
-    let Some(text) = p1c_common::golden("p1c_fluid_synth", "p1c_fluid_probe", &[path.to_str().unwrap()]) else {
+    let Some(text) = p1c_common::golden(
+        "p1c_fluid_synth",
+        "p1c_fluid_probe",
+        &[path.to_str().unwrap()],
+    ) else {
         println!("p1c_fluid_synth: no golden and no probe; skipped");
         return;
     };
@@ -706,14 +753,30 @@ fn hf_job(seed: u64) -> Job {
             );
             let p0 = g.r.mul_vec(l) * g.scale + g.offset;
             let p1 = p0 + r.unit();
-            qs.push(Query::C11(g, r.i(5), r.i(3), p0, p1, r.i(30), [r.unit(), r.unit()]));
+            qs.push(Query::C11(
+                g,
+                r.i(5),
+                r.i(3),
+                p0,
+                p1,
+                r.i(30),
+                [r.unit(), r.unit()],
+            ));
         }
         for _ in 0..5 {
             let g = rand_gwd(&mut r, 10.0);
             let pl = rand_plane(&mut r, g.offset, 10.0);
             qs.push(Query::B13(pl, g));
             qs.push(Query::B14(pl, g, r.unit(), r.unit()));
-            qs.push(Query::B12(g, r.unit() * 5.0, 3.0, 0.5, g.center_of_mass, r.unit(), r.unit()));
+            qs.push(Query::B12(
+                g,
+                r.unit() * 5.0,
+                3.0,
+                0.5,
+                g.center_of_mass,
+                r.unit(),
+                r.unit(),
+            ));
         }
         job.add_hf(n, step, hs, mode, qs);
     }
@@ -724,7 +787,9 @@ fn hf_job(seed: u64) -> Job {
 fn heightfield_matches_the_dll() {
     let job = hf_job(0x51F1_C0DE_0002);
     let path = job.write("hf");
-    let Some(text) = p1c_common::golden("p1c_fluid_hf", "p1c_fluid_probe", &[path.to_str().unwrap()]) else {
+    let Some(text) =
+        p1c_common::golden("p1c_fluid_hf", "p1c_fluid_probe", &[path.to_str().unwrap()])
+    else {
         println!("p1c_fluid_hf: no golden and no probe; skipped");
         return;
     };
@@ -758,7 +823,8 @@ fn corpus_meshes_match_the_dll() {
             return;
         }
         let path = job.write(&format!("corpus{batch}"));
-        let text = p1c_common::run_probe(&exe, &[path.to_str().unwrap()]).unwrap_or_else(|e| panic!("{e}"));
+        let text = p1c_common::run_probe(&exe, &[path.to_str().unwrap()])
+            .unwrap_or_else(|e| panic!("{e}"));
         check_output(job, &text, &format!("corpus batch {batch}"), st);
         *batch += 1;
         *job = Job::default();
@@ -772,7 +838,13 @@ fn corpus_meshes_match_the_dll() {
         }
         let nt = (idx.len() / 3) as i32;
         // keep the work per mesh bounded on huge meshes
-        let n = if nt > 20_000 { [4, 2, 0, 10] } else if nt > 3000 { [8, 4, 1, 20] } else { [16, 8, 3, 40] };
+        let n = if nt > 20_000 {
+            [4, 2, 0, 10]
+        } else if nt > 3000 {
+            [8, 4, 1, 20]
+        } else {
+            [16, 8, 3, 40]
+        };
         let mut qs = Vec::new();
         gen_queries(&mut r, v, nt, n, &mut qs);
         let flags = 0x20000 | 2 | if m.tree_type == 1 { 0x40 } else { 0x20 };

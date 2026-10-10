@@ -1,7 +1,6 @@
 //! `CTriMesh` slot 12 `CalcVolumetricPressure` (0x351CBE20) over a [`MeshView`]; see
-//! [`volumetric_pressure`]. Copied from P1a (`p7-phys-shapes`,
-//! `geometry/shapes/buoyancy/mesh_pressure.rs`, verified there through the box's temporary
-//! mesh); the triangle loop runs to the explicit `nTris`.
+//! [`volumetric_pressure`]. Ported by P1a (formerly `geometry/shapes/buoyancy/mesh_pressure.rs`,
+//! verified through the box's temporary mesh); the triangle loop runs to the explicit `nTris`.
 
 use super::{MeshView, INC_MOD3};
 use crate::geometry::GeomWorldData;

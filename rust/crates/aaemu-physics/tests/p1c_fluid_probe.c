@@ -8,7 +8,7 @@
  * Job file: one command per line, every float as its raw IEEE bits in hex.
  *   mesh NV NT FLAGS / v <3*NV words> / i <3*NT ints>   build a DLL CTriMesh (ctor 0x351BF470 +
  *                                                       0x351CF1B0, minTris 2, maxTris 4, obb 1),
- *                                                       print its full dump (p1c_mesh_dump)
+ *                                                       print its dump (p1c_mesh_dump, tree omitted)
  *   hf NX NY SX SY HSCALE MODE                          create a CHeightfield through
  *                                                       CGeomManager::CreatePrimitive(2); prints
  *                                                       "hfobj <30 prim words of +608> nt <+120>"
@@ -93,7 +93,12 @@ int main(int argc, char **argv) {
       int *idx = (int *)malloc(sizeof(int) * 3 * (nt + 1));
       for (int k = 0; k < 3 * nt; k++) idx[k] = ti();
       obj = p1c_mesh_new(v, idx, 4, NULL, NULL, nt, flags, 2, 4, 1.0f);
+      /* the tree is not printed: these slots do not use it, and an OBB tree's saved bytes
+       * contain a heap pointer (not reproducible across runs) */
+      void *tree = *(void **)((unsigned char *)obj + 48);
+      *(void **)((unsigned char *)obj + 48) = NULL;
       p1c_mesh_dump((unsigned char *)obj);
+      *(void **)((unsigned char *)obj + 48) = tree;
     } else if (!strcmp(cmd, "hf")) {
       __declspec(align(16)) unsigned char prim[128];
       memset(prim, 0, sizeof prim);

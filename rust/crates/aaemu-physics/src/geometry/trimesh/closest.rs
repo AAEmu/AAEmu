@@ -30,9 +30,14 @@
 //! the point, each candidate accepted only if strictly better and (for triangles) seen from
 //! above; see the function.
 
-use super::fluid::{MeshView, DEC_MOD3, INC_MOD3};
+// `!(a > b)` tests are deliberate: they reproduce the binary's branch on unordered (NaN)
+// operands (`comiss` + `jbe`/`jae`).
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
+
+use super::fluid::MeshView;
 use super::TriMesh;
 use crate::geometry::primitives::HeightfieldPrim;
+use crate::geometry::shapes::{DEC_MOD3, INC_MOD3};
 use crate::geometry::GeomWorldData;
 use crate::math::{round_magic, Vec3};
 
@@ -191,7 +196,7 @@ fn face_step(c: &Ctx, q: &Query, o: &mut Out) -> Step {
                     sgn * (p0.z * dn + t * d.z),
                 );
                 for v in &mut verts {
-                    *v = *v * adn;
+                    *v *= adn;
                 }
             }
         }
@@ -223,7 +228,11 @@ fn face_step(c: &Ctx, q: &Query, o: &mut Out) -> Step {
         let p0 = q.p0;
         let t = ((p0.x - e0.x) * u.x + (p0.y - e0.y) * u.y) + (p0.z - e0.z) * u.z;
         let t = min_ab(pos_part(t), uu);
-        o.ptres[0] = Vec3::new(e0.x * uu + u.x * t, e0.y * uu + u.y * t, e0.z * uu + u.z * t);
+        o.ptres[0] = Vec3::new(
+            e0.x * uu + u.x * t,
+            e0.y * uu + u.y * t,
+            e0.z * uu + u.z * t,
+        );
         scale(&mut o.ptres[1], uu);
         o.den = uu;
         *o.i_feature = e as i32 | 0x20;
@@ -268,7 +277,11 @@ fn edge_step(c: &Ctx, q: &Query, o: &mut Out) -> Step {
         let s = sb(EPS6 - cc);
         let den = (s as f32) * cc + ((s ^ 1) as f32);
         let t = min_ab(pos_part(tn), den);
-        let segpt = Vec3::new(p0.x * den + d.x * t, p0.y * den + d.y * t, p0.z * den + d.z * t);
+        let segpt = Vec3::new(
+            p0.x * den + d.x * t,
+            p0.y * den + d.y * t,
+            p0.z * den + d.z * t,
+        );
         let line_d2 = |p: Vec3| {
             let (rx, ry, rz) = (p.x - e0.x, p.y - e0.y, p.z - e0.z);
             let g0 = ry * u.z - rz * u.y;
@@ -284,9 +297,9 @@ fn edge_step(c: &Ctx, q: &Query, o: &mut Out) -> Step {
         o.ptres[1] = [p0, p1, segpt][sel];
         let de = ((sel >> 1) as f32) * den + (((sel ^ 2) >> 1) as f32);
         o.den = de;
-        q0 = q0 * de;
-        q1 = q1 * de;
-        u = u * de;
+        q0 *= de;
+        q1 *= de;
+        u *= de;
     } else {
         o.ptres[1] = q.p0;
         o.den = 1.0;
@@ -307,7 +320,11 @@ fn edge_step(c: &Ctx, q: &Query, o: &mut Out) -> Step {
         let s_t2 = sb(t2) ^ 1;
         let done = s_a + s_b + s_t2 + sb(t) == 0;
         let uu = (u.x * u.x + u.y * u.y) + u.z * u.z;
-        o.ptres[0] = Vec3::new(q0.x * uu + u.x * t, q0.y * uu + u.y * t, q0.z * uu + u.z * t);
+        o.ptres[0] = Vec3::new(
+            q0.x * uu + u.x * t,
+            q0.y * uu + u.y * t,
+            q0.z * uu + u.z * t,
+        );
         scale(&mut o.ptres[1], uu);
         o.den *= uu;
         if done {
@@ -359,11 +376,15 @@ fn vertex_step(c: &Ctx, q: &Query, o: &mut Out) -> Step {
         let g2 = d.y * wx - wy * d.x;
         let hm = (g0 * g0 + g1 * g1) + g2 * g2;
         let h1 = (r1 * r1) * dd;
-        let segpt = Vec3::new(p0.x * dd + d.x * t, p0.y * dd + d.y * t, p0.z * dd + d.z * t);
+        let segpt = Vec3::new(
+            p0.x * dd + d.x * t,
+            p0.y * dd + d.y * t,
+            p0.z * dd + d.z * t,
+        );
         let sel = select3(h0, h1, hm);
         o.ptres[1] = [p0, p1, segpt][sel];
         o.den = ((sel >> 1) as f32) * dd + (((sel ^ 2) >> 1) as f32);
-        v = v * o.den;
+        v *= o.den;
     } else {
         o.ptres[1] = q.p0;
         o.den = 1.0;
@@ -532,7 +553,8 @@ pub fn mesh_find_closest_point(
             return iters;
         }
         let (np, nf) = (*o.i_prim, *o.i_feature);
-        let seen = (0..4).any(|k| (np.wrapping_sub(hist_prim[k]) | nf.wrapping_sub(hist_feat[k])) == 0);
+        let seen =
+            (0..4).any(|k| (np.wrapping_sub(hist_prim[k]) | nf.wrapping_sub(hist_feat[k])) == 0);
         hist_feat[hidx] = nf;
         hist_prim[hidx] = np;
         hidx = (hidx + 1) & 3;
@@ -670,7 +692,9 @@ pub fn heightfield_find_closest_point(
     }
     let ix = round_magic(l.x * hf.stepr[0] - 0.5);
     let iy = round_magic(l.y * hf.stepr[1] - 0.5);
-    let get_h = hf.get_height.expect("heightfield without a height callback");
+    let get_h = hf
+        .get_height
+        .expect("heightfield without a height callback");
     let get_s = hf
         .get_surf_type
         .expect("heightfield without a surface-type callback");
