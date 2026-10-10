@@ -13,6 +13,9 @@ pub mod save;
 pub mod stream;
 pub mod time;
 
+#[cfg(test)]
+mod manager_tests;
+
 pub use account::AccountManager;
 pub use enter_world::{AddAccountResult, EnterWorldManager, LoginDecision};
 pub use stream::StreamManager;

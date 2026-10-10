@@ -348,6 +348,11 @@ pub struct SpecialtyMail {
 }
 
 impl SpecialtyManager {
+    /// `GetValueOfOne()` ("Dummy for tests" in the C#).
+    pub const fn get_value_of_one() -> i32 {
+        1
+    }
+
     /// `AppConfiguration.Instance.Specialty` (defaults until `start` loaded it).
     pub fn config(&self) -> SpecialtyConfig {
         self.config.get().cloned().unwrap_or_default()

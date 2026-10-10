@@ -7,6 +7,11 @@ pub mod misc;
 pub mod plots;
 pub mod templates;
 
+#[cfg(test)]
+mod buff_game_data_tests;
+#[cfg(test)]
+mod skill_manager_tests;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 

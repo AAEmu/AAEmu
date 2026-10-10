@@ -383,6 +383,67 @@ impl Item {
         item
     }
 
+    /// `new Item(worldId)` (`new Item()` passes `AppConfiguration.Id`): a plain `Item` with no
+    /// template, slot -1, dirty.
+    pub fn new(world_id: u8) -> Self {
+        Item {
+            class: ItemClass::Item,
+            id: 0,
+            template_id: 0,
+            slot: -1,
+            grade: 0,
+            flags: 0,
+            count: 0,
+            lifespan_mins: 0,
+            made_unit_id: 0,
+            world_id,
+            create_time: 0,
+            unsecure_time: 0,
+            unpack_time: 0,
+            charge_start_time: 0,
+            ucc_id: 0,
+            details: ItemDetails::default(),
+            bind_on_unpack: false,
+            owner_id: 0,
+            slot_type: 0,
+            expiration_time: 0,
+            expiration_online_minutes_left: 0.0,
+            charge_count: 0,
+            dirty: true,
+        }
+    }
+
+    /// `new Item(worldId, id, template, count)` (`new Item(id, template, count)` passes
+    /// `AppConfiguration.Id`): the base-class constructor only (no subclass, grade or bind
+    /// rules; see [`Item::create`] for `ItemManager.Create`).
+    pub fn with_template(world_id: u8, id: u64, template: &ItemTemplate, count: i32) -> Self {
+        Item {
+            id,
+            template_id: template.id,
+            count,
+            bind_on_unpack: template.bind_type == BIND_ON_UNPACK,
+            ..Self::new(world_id)
+        }
+    }
+
+    /// `Grade` setter (marks the item dirty).
+    pub fn set_grade(&mut self, v: u8) {
+        self.grade = v;
+        self.dirty = true;
+    }
+
+    /// `Count` setter (marks the item dirty).
+    pub fn set_count(&mut self, v: i32) {
+        self.count = v;
+        self.dirty = true;
+    }
+
+    /// `Slot` setter (marks the item dirty).
+    pub fn set_slot(&mut self, v: i32) {
+        self.slot = v;
+        self.dirty = true;
+    }
+
     /// `UccId` setter.
     pub fn set_ucc(&mut self, v: u64) {
         self.set_ucc_id(v);
@@ -951,6 +1012,10 @@ impl Marshal for Item {
             .write_i64(self.unpack_time);
     }
 }
+
+#[cfg(test)]
+#[path = "item_tests.rs"]
+mod item_tests;
 
 #[cfg(test)]
 mod tests {

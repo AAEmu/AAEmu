@@ -54,6 +54,8 @@ pub mod mail_packets;
 #[cfg(test)]
 mod mail_tests;
 pub mod mate_equipment;
+#[cfg(test)]
+mod ported_unit_tests;
 pub mod repair;
 pub mod specialty;
 pub mod store;

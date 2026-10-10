@@ -215,6 +215,22 @@ impl NameManager {
     pub fn no_names_registered(&self) -> bool {
         self.inner.read().expect("names poisoned").ids.is_empty()
     }
+
+    /// `Load(characterIds, characterNames, characterAccounts)` (the C# "for testing purposes"
+    /// overload): replaces the registrations.
+    #[cfg(test)]
+    fn load_from(
+        &self,
+        ids: HashMap<u32, String>,
+        names: HashMap<String, u32>,
+        accounts: HashMap<u32, u32>,
+    ) {
+        *self.inner.write().expect("names poisoned") = Names {
+            ids,
+            names,
+            accounts,
+        };
+    }
 }
 
 #[cfg(test)]
@@ -258,3 +274,7 @@ mod tests {
         assert_eq!(m.get_character_id("Taken"), 0);
     }
 }
+
+#[cfg(test)]
+#[path = "name_tests.rs"]
+mod name_tests;

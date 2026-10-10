@@ -114,6 +114,11 @@ impl Buff {
         t.max(0) as f64
     }
 
+    /// `IsEnded()`: `Finished` or `Finishing`.
+    pub fn is_ended(&self) -> bool {
+        self.state == effect_state::FINISHED || self.state == effect_state::FINISHING
+    }
+
     /// `GetTimeElapsed`.
     pub fn time_elapsed(&self, now_ms: i64) -> u32 {
         (now_ms - self.start_time_ms) as u32
@@ -270,6 +275,28 @@ impl Buffs {
     /// `CheckBuffs(ids)`: any of them.
     pub fn check_buffs(&self, ids: &[u32]) -> bool {
         ids.iter().any(|&id| self.check_buff(id))
+    }
+
+    /// `CheckBuffsExcludingTags(ids, excludedTagIds)`: whether an effect of one of `ids` is
+    /// active whose buff tags (`buff_tags`, `SkillManager.GetBuffTags`) contain none of
+    /// `excluded_tag_ids`. `None` / an empty list (C# `null` / `Count == 0`) is false.
+    pub fn check_buffs_excluding_tags<'a>(
+        &self,
+        ids: Option<&[u32]>,
+        excluded_tag_ids: &[u32],
+        buff_tags: impl Fn(u32) -> &'a [u32],
+    ) -> bool {
+        let Some(ids) = ids.filter(|l| !l.is_empty()) else {
+            return false;
+        };
+        self.effects.iter().any(|e| {
+            let id = e.template.id;
+            if id == 0 || !ids.contains(&id) {
+                return false;
+            }
+            let tags = buff_tags(id);
+            !excluded_tag_ids.iter().any(|ex| tags.contains(ex))
+        })
     }
 
     /// `GetBuffCountById(buffId)`.

@@ -7,6 +7,7 @@
 //! "next clear bit after the last allocated id, wrap to 0, then grow", and `ReleaseId` lowering
 //! the next-free cursor.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use sqlx::mysql::MySqlPool;
@@ -129,6 +130,8 @@ pub struct IdManager {
     obj_tables: &'static [(&'static str, &'static str)],
     distinct: bool,
     state: Mutex<State>,
+    /// `_initialized`.
+    initialized: AtomicBool,
 }
 
 impl IdManager {
@@ -145,9 +148,11 @@ impl IdManager {
                 free_id_count: 0,
                 next_free_id: 0,
             }),
+            initialized: AtomicBool::new(false),
         };
-        // Usable before the DB-backed Initialize (tests, managers without tables).
-        m.initialize_with(&[]);
+        // Usable before the DB-backed Initialize (tests, managers without tables); this does
+        // not count as `_initialized`.
+        m.reset(&[]);
         m
     }
 
@@ -158,6 +163,23 @@ impl IdManager {
     /// `Initialize()` with the used ids already extracted (`ExtractUsedObjectIdTable`).
     /// Exclusion lists are empty for every manager of this phase.
     pub fn initialize_with(&self, used: &[u32]) {
+        self.reset(used);
+        self.initialized.store(true, Ordering::Release);
+    }
+
+    /// `Initialize(forceReset)` without a database (the C# catches the failed read, logs
+    /// "reverting to default" and starts with no used ids). An already initialized manager is
+    /// left untouched unless `force_reset`. Returns true (C# result).
+    pub fn initialize_without_db(&self, force_reset: bool) -> bool {
+        if self.initialized.load(Ordering::Acquire) && !force_reset {
+            return true;
+        }
+        self.initialize_with(&[]);
+        true
+    }
+
+    /// The body of `Initialize()`: a fresh bit set with `used` marked.
+    fn reset(&self, used: &[u32]) {
         let mut st = self.state.lock().expect("id manager poisoned");
         st.free_ids = BitSet::new(next_prime(100_000) as usize);
         st.free_id_count = self.free_id_size as i64;
@@ -186,6 +208,10 @@ impl IdManager {
     /// `Initialize()`: reads the used ids from the MySQL tables. On a database error the C# logs
     /// "failed to read from database, reverting to default" and starts empty.
     pub async fn initialize(&self, pool: &MySqlPool) {
+        // `Load()` -> `Initialize(forceReset: false)`
+        if self.initialized.load(Ordering::Acquire) {
+            return;
+        }
         let used = match self.extract_used(pool).await {
             Ok(v) => v,
             Err(e) => {
@@ -242,10 +268,11 @@ impl IdManager {
         Ok(out)
     }
 
-    /// `ReleaseId`.
+    /// `ReleaseId`. The offset is `(int)(usedObjectId - _firstId)` as in the C#: ids below the
+    /// first id, or more than `int.MaxValue` above it, are rejected.
     pub fn release_id(&self, used_id: u32) {
         let mut st = self.state.lock().expect("id manager poisoned");
-        let object_id = i64::from(used_id) - i64::from(self.first_id);
+        let object_id = used_id.wrapping_sub(self.first_id) as i32;
         if object_id > -1 {
             let object_id = object_id as usize;
             if object_id < st.free_ids.count {
@@ -285,6 +312,18 @@ impl IdManager {
         }
         st.next_free_id = next.unwrap_or(usize::MAX);
         Ok(new_id as u32 + self.first_id)
+    }
+
+    /// `GetNextId(count)`.
+    pub fn get_next_ids(&self, count: usize) -> Result<Vec<u32>, OutOfIds> {
+        (0..count).map(|_| self.get_next_id()).collect()
+    }
+
+    /// `ReleaseId(IEnumerable<uint>)`.
+    pub fn release_ids(&self, used_ids: impl IntoIterator<Item = u32>) {
+        for id in used_ids {
+            self.release_id(id);
+        }
     }
 }
 
@@ -644,3 +683,7 @@ mod tests {
         assert_eq!(m.get_next_id().unwrap(), 0x0100_0001);
     }
 }
+
+#[cfg(test)]
+#[path = "id_tests.rs"]
+mod id_tests;

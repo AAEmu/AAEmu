@@ -174,6 +174,8 @@ pub fn register(reg: &mut PacketRegistry) {
 #[cfg(test)]
 mod flow_tests;
 #[cfg(test)]
+mod manager_tests;
+#[cfg(test)]
 mod spawn_tests;
 
 /// Installs the NPC subsystem's implementations of the other subsystems' hooks (no I/O; also

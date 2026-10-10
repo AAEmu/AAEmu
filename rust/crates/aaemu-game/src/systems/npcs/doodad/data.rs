@@ -2609,3 +2609,11 @@ mod tests {
             .all(|t| t.total_doodad_growth_time == t.growth_time));
     }
 }
+
+#[cfg(test)]
+#[path = "manager_tests.rs"]
+mod manager_tests;
+
+#[cfg(test)]
+#[path = "group_loading_tests.rs"]
+mod group_loading_tests;

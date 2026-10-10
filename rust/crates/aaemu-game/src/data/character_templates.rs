@@ -139,6 +139,15 @@ impl CharacterData {
         self.actabilities.iter().find(|a| a.id == id)
     }
 
+    /// `GetActabilityIdByCategoryId(id)`: the actability of the category's group (0 when the
+    /// category or the actability is unknown).
+    pub fn actability_id_by_category_id(&self, id: u32) -> u32 {
+        self.actability_categories
+            .get(&id)
+            .and_then(|&group_id| self.actability(group_id))
+            .map_or(0, |a| a.id)
+    }
+
     /// `GetExpertLimit(step)`.
     pub fn expert_limit(&self, step: usize) -> Option<&ExpertLimit> {
         self.expert_limits.get(step)

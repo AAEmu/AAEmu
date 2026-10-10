@@ -27,6 +27,10 @@ pub mod templates;
 pub mod unit_reqs;
 
 #[cfg(test)]
+mod manager_tests;
+#[cfg(test)]
+mod quest_tests;
+#[cfg(test)]
 mod tests;
 
 use std::collections::{HashMap, VecDeque};

@@ -290,6 +290,12 @@ impl SpawnManagers {
             .clone()
     }
 
+    /// Whether the 1 s active-region ticker runs (`WorldManager.Initialize` subscription; tests).
+    #[cfg(test)]
+    pub(crate) fn active_tick_started(&self) -> bool {
+        self.active_tick_started.load(Ordering::SeqCst)
+    }
+
     /// Drops an instance's manager (`WorldInstance` removed; systems::instances).
     pub fn remove(&self, world_id: u32) -> Option<Arc<SpawnManager>> {
         self.managers.remove(&world_id).map(|(_, m)| m)

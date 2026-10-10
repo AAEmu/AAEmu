@@ -12,6 +12,8 @@ pub mod unit_state;
 #[cfg(test)]
 mod unit_state_tests;
 pub mod visibility;
+#[cfg(test)]
+mod world_manager_tests;
 
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
@@ -271,6 +273,14 @@ impl WorldInstance {
         self.objects
             .iter()
             .filter_map(|o| o.as_doodad().cloned())
+            .collect()
+    }
+
+    /// `GetAllSlaves`.
+    pub fn all_slaves(&self) -> Vec<SlaveRef> {
+        self.objects
+            .iter()
+            .filter_map(|o| o.as_slave().cloned())
             .collect()
     }
 
@@ -987,6 +997,59 @@ impl WorldManager {
     /// `GetAllCharacters`.
     pub fn all_characters(&self) -> Vec<PlayerRef> {
         self.characters.iter().map(|p| p.clone()).collect()
+    }
+
+    /// `GetWorldsByTemplate(templateId)`.
+    pub fn worlds_by_template(&self, template_id: u32) -> Vec<Arc<WorldInstance>> {
+        self.worlds
+            .iter()
+            .filter(|w| w.template.id == template_id)
+            .map(|w| w.clone())
+            .collect()
+    }
+
+    /// `GetAllNpcsFromWorld(worldInstanceId)`: empty for an unknown instance.
+    pub fn all_npcs_from_world(&self, world_instance_id: u32) -> Vec<NpcRef> {
+        self.worlds
+            .get(&world_instance_id)
+            .map_or_else(Vec::new, |w| w.all_npcs())
+    }
+
+    /// `GetAllDoodadsFromWorld(worldId)`: empty for an unknown instance.
+    pub fn all_doodads_from_world(&self, world_id: u32) -> Vec<DoodadRef> {
+        self.worlds
+            .get(&world_id)
+            .map_or_else(Vec::new, |w| w.all_doodads())
+    }
+
+    /// `GetAllSlavesFromWorld(worldId)`: empty for an unknown instance.
+    pub fn all_slaves_from_world(&self, world_id: u32) -> Vec<SlaveRef> {
+        self.worlds
+            .get(&world_id)
+            .map_or_else(Vec::new, |w| w.all_slaves())
+    }
+
+    /// `GetTargetOrSelf(character, targetName, out firstNonNameArgument)`: the online character
+    /// named `target_name` (and 1), else the character's current target when it is a player,
+    /// else `character` itself (both with 0). `None` is the C# `null` name.
+    pub fn target_or_self(
+        &self,
+        character: &PlayerRef,
+        target_name: Option<&str>,
+    ) -> (PlayerRef, i32) {
+        if let Some(name) = target_name.filter(|n| !n.trim().is_empty()) {
+            if let Some(player) = self.character_by_name(name) {
+                return (player, 1);
+            }
+        }
+        // `character.CurrentTarget is Character targetCharacter` (lock dropped before lookup).
+        let target = character.data().unit.current_target;
+        if target != 0 {
+            if let Some(t) = self.character_by_obj_id(target) {
+                return (t, 0);
+            }
+        }
+        (character.clone(), 0)
     }
 
     /// `BroadcastPacketToServer`.

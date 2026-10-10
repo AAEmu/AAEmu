@@ -451,3 +451,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "sc_character_list_packet_tests.rs"]
+mod sc_character_list_packet_tests;

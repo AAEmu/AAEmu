@@ -32,7 +32,11 @@ pub mod util;
 pub mod zone_conflict;
 
 #[cfg(test)]
+mod achievement_game_data_tests;
+#[cfg(test)]
 mod flow_tests;
+#[cfg(test)]
+mod manager_tests;
 #[cfg(test)]
 mod trial_flow_tests;
 
@@ -47,6 +51,8 @@ use crate::systems::{DataLoadCtx, SaveStage};
 pub struct Data {
     /// `SystemFaction.Relations` (`FactionManager.Load`, relation part).
     pub relations: faction::FactionRelations,
+    /// `AchievementGameData.Load`.
+    pub achievements: achievement::AchievementGameData,
 }
 
 impl Data {
@@ -54,6 +60,7 @@ impl Data {
     pub fn load(ctx: &DataLoadCtx<'_>) -> Result<Self, crate::data::GameDataError> {
         Ok(Self {
             relations: faction::FactionRelations::load(ctx)?,
+            achievements: achievement::AchievementGameData::load(ctx.conn)?,
         })
     }
 }

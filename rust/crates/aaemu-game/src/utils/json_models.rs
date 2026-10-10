@@ -209,3 +209,7 @@ mod tests {
         assert_eq!(text, expected);
     }
 }
+
+#[cfg(test)]
+#[path = "json_models_converter_tests.rs"]
+mod json_models_converter_tests;

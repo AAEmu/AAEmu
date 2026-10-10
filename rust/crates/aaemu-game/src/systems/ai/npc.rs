@@ -209,23 +209,13 @@ pub fn is_silenced(server: &GameServer, obj: &WorldObject) -> bool {
 /// Buffs.CheckBuffs(GetBuffsByTagId(Snare))`.
 pub fn is_shackled_or_snared(server: &GameServer, obj: &WorldObject) -> bool {
     let data = &server.game_data.systems.skills;
-    let shackled = match data
-        .buffs_by_tag(skill_constants::SHACKLE)
-        .filter(|l| !l.is_empty())
-    {
-        None => false,
-        Some(ids) => {
-            let effects: Vec<u32> =
-                obj.with_base_unit(|b| b.buffs().effects.iter().map(|e| e.template.id).collect());
-            effects.into_iter().any(|id| {
-                id != 0
-                    && ids.contains(&id)
-                    && !data
-                        .buff_tags(id)
-                        .contains(&skill_constants::DECREASE_MOVE_SPEED)
-            })
-        }
-    };
+    let shackled = obj.with_base_unit(|b| {
+        b.buffs().check_buffs_excluding_tags(
+            data.buffs_by_tag(skill_constants::SHACKLE),
+            &[skill_constants::DECREASE_MOVE_SPEED],
+            |id| data.buff_tags(id),
+        )
+    });
     shackled || buffs::check_buffs_by_tag(server, obj, skill_constants::SNARE)
 }
 

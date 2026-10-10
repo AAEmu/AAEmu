@@ -1,7 +1,106 @@
-//! `Models/Game/Achievement` data types and enums. The 1.2 C# has no achievement manager (the
-//! types are only the DB / packet shapes); the S->C packets live in `packets::misc`.
+//! `Models/Game/Achievement` data types and enums, and `GameData/AchievementGameData` (the
+//! table loader). The 1.2 C# has no achievement manager (the types are only the DB / packet
+//! shapes); the S->C packets live in `packets::misc`.
+
+use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use rusqlite::Connection;
+
+use crate::data::sqlite::for_each_row;
+use crate::data::GameDataError;
+
+/// `AchievementGameData` (`[GameData]`, `Load(SqliteConnection)`). The C# keeps the tables in
+/// private dictionaries without accessors; they are public fields here.
+///
+/// C# quirk mirrored: the boolean columns (`complete_or`, `is_active`, `is_hidden`,
+/// `or_unit_reqs`) hold the text `'t'` / `'f'` in compact.sqlite3 and are read with
+/// `GetBoolean(column)` (Microsoft.Data.Sqlite `GetInt64 != 0`), so they always load as `false`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AchievementGameData {
+    /// `_charRecords` (`char_records` by id; `Dictionary.Add`, a duplicate id fails the load).
+    pub char_records: HashMap<u32, CharRecords>,
+    /// `_achievements` (`achievements` by id; `TryAdd`, the first row of an id wins).
+    pub achievements: HashMap<u32, Achievements>,
+    /// `_achievementObjectives` (`achievement_objectives` grouped by `achievement_id`).
+    pub achievement_objectives: HashMap<u32, Vec<AchievementObjectives>>,
+    /// `_preCompletedAchievements` (`pre_completed_achievements` grouped by
+    /// `completed_achievement_id`).
+    pub pre_completed_achievements: HashMap<u32, Vec<PreCompletedAchievements>>,
+}
+
+impl AchievementGameData {
+    /// `AchievementGameData.Load(connection)`.
+    pub fn load(conn: &Connection) -> Result<Self, GameDataError> {
+        let mut d = Self::default();
+        for_each_row(conn, "SELECT * FROM achievements", [], |r| {
+            let t = Achievements {
+                id: r.u32("id")?,
+                category_id: r.u32_or("category_id", 0)?,
+                complete_num: r.u32_or("complete_num", 0)?,
+                complete_or: r.bool("complete_or")?,
+                icon_id: r.u32_or("icon_id", 0)?,
+                is_active: r.bool("is_active")?,
+                is_hidden: r.bool("is_hidden")?,
+                item_id: r.u32_or("item_id", 0)?,
+                or_unit_reqs: r.bool("or_unit_reqs")?,
+                parent_achievement_id: r.u32_or("parent_achievement_id", 0)?,
+                priority: r.u32_or("priority", 0)?,
+                sub_category_id: r.u32_or("sub_category_id", 0)?,
+                ..Default::default()
+            };
+            d.achievements.entry(t.id).or_insert(t);
+            Ok(())
+        })?;
+        for_each_row(conn, "SELECT * FROM achievement_objectives", [], |r| {
+            let t = AchievementObjectives {
+                id: r.u32("id")?,
+                achievement_id: r.u32("achievement_id")?,
+                or_unit_reqs: r.bool("or_unit_reqs")?,
+                record_id: r.u32("record_id")?,
+            };
+            d.achievement_objectives
+                .entry(t.achievement_id)
+                .or_default()
+                .push(t);
+            Ok(())
+        })?;
+        for_each_row(conn, "SELECT * FROM pre_completed_achievements", [], |r| {
+            let t = PreCompletedAchievements {
+                id: r.u32("id")?,
+                completed_achievement_id: r.u32("completed_achievement_id")?,
+                my_achievement_id: r.u32("my_achievement_id")?,
+            };
+            d.pre_completed_achievements
+                .entry(t.completed_achievement_id)
+                .or_default()
+                .push(t);
+            Ok(())
+        })?;
+        let mut duplicate = None;
+        for_each_row(conn, "SELECT * FROM char_records", [], |r| {
+            let t = CharRecords {
+                id: r.u32("id")?,
+                kind_id: r.u32("kind_id")?,
+                value1: r.u32("value1")?,
+                value2: r.u32("value2")?,
+            };
+            if d.char_records.insert(t.id, t).is_some() && duplicate.is_none() {
+                duplicate = Some(t.id);
+            }
+            Ok(())
+        })?;
+        if let Some(id) = duplicate {
+            return Err(GameDataError::File(format!(
+                "char_records: duplicate id {id}"
+            )));
+        }
+        Ok(d)
+    }
+
+    /// `PostLoad()` (empty in the C#).
+    pub fn post_load(&mut self) {}
+}
 
 /// `AchievementInfo` (one entry of `SCAchievementsPacket`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
