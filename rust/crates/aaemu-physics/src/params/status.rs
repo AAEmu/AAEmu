@@ -12,7 +12,7 @@ pe_struct! {
     /// Position status (id 1). In: `part_id` / `ipart` (-1 = whole entity; the oracle uses
     /// -1/-1), `flags` (1 local/part frame, 2 skip lock, 4 AddRef geometries). The bbox is
     /// relative to `pos`.
-    StatusPos: Status(id::POS, size 120) {
+    StatusPos: Status(id::POS, size 128) {
         4 => part_id: i32 = -1,
         8 => ipart: i32 = -1,
         12 => flags: u32 = 0,
@@ -30,6 +30,8 @@ pe_struct! {
         96 => mtx3x3: RawPtr = RawPtr::NULL,
         104 => geom: RawPtr = RawPtr::NULL,
         112 => geom_proxy: RawPtr = RawPtr::NULL,
+        /// Rigid: `> 0` reports the pose of the previous step (`CRigidEntity::GetStatus`).
+        120 => time_back: f32 = 0.0,
     }
 }
 

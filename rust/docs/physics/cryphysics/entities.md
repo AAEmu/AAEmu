@@ -731,7 +731,7 @@ Ids handled after the base returns 0:
   - +108 submerged fraction (+1136), +112 mass.
   - When asleep, v/w/a/wa are zero.
 - **9:** returns (contact list non-empty).
-- **19:** sub_350AF550 fits a contact-patch centre/normal (out +4 vec3, +16 vec3) (inferred).
+- **19:** sub_350AF550 fits a contact patch through all contacts (stop flags 0, iCaller 0, tolerance 0.1·((dy+dx)+dz) of the bbox). +4 and +16 are **inputs** (the centre of mass and the gravity of the inside test); the fitted normal goes to a stack temporary, so nothing is written; the result is the inside test (P7 port: `entities::interface::status`).
 
 Other ids return 0.
 
@@ -839,7 +839,7 @@ Then CapVelocities. Wakes the body if v or w is nonzero. A zero velocity with Mi
 | +60 | "angVel" |
 | +76 | "minPosDiff" |
 
-+74 byte flag selects smoothing (lerp 0.1). Re-issues SetParams(pos) via vt+56 and Action(10) via vt+80.
++74 byte flag set = take the values as given; clear = smoothing (positions blended by distance, velocities lerped by 0.1, slerp `sub_350CD980` for the rotation). Re-issues SetParams(pos) via vt+56 and Action(10) via vt+80.
 
 Every other id goes to the base Action. Base ids used: 9, 13, 15, 16 per the other agent.
 

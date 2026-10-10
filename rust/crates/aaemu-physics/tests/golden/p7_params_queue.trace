@@ -1,0 +1,35 @@
+physoracle 1
+ret part st 0
+ret part rb 0
+echo immediate
+ret params st 23 1
+ret getparams st 23 1 3f800000 40000000
+ret action rb 10 1
+ret status rb 8 1 3f800000 00000000 00000000
+echo queued
+ret params st 23 1
+ret getparams st 23 1 3f800000 40000000
+ret params st 23 1
+ret getparams st 23 1 3f800000 40000000
+ret params st 23 1
+ret getparams st 23 1 40c00000 40000000
+ret action rb 10 1
+ret status rb 8 1 3f800000 00000000 00000000
+ret action rb 10 1
+ret status rb 8 1 3f800000 00000000 00000000
+ret params rb 10 1
+ret getparams rb 10 1 42c80000
+ret params st 0 1
+ret status st 1 1 41200000 41400000 3f800000
+echo replay
+step 1
+ret getparams st 23 1 40400000 40a00000
+ret status rb 8 1 00000000 00000000 40400000
+ret getparams rb 10 1 42040000
+ret status st 1 1 41300000 41400000 3f800000
+echo queued_unported
+ret action rb 5 1
+ret action rb 5 2
+ret action rb 5 9
+ret action st 9 1
+ret getparams st 6 1 1001809f

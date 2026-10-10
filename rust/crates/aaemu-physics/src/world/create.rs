@@ -62,7 +62,8 @@ impl World {
         self.set_physical_entity_id(e, id, true, false);
         self.ent_mut(e).flags |= 0x8000_0000;
         if let Some(p) = params {
-            crate::entities::base::params::set_params_pos(self, e, p, true);
+            // slot 7 SetParams (lock-or-queue tail included: `processed |= 0x10000` for a position)
+            crate::entities::interface::set(self, e, p);
         }
         if self.tls_thread >= 4 || life_time != 0.0 {
             self.queue.push(Command::Reposition { ent: e, flags: 2 });

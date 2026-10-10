@@ -18,7 +18,7 @@ use crate::world::{EntIdx, World};
 pub fn impulse(w: &mut World, e: EntIdx, a: &ActionImpulse) -> i32 {
     let body_id = w.ent(e).rigid().expect("rigid").body;
     let b = *w.bodies.get(body_id);
-    if !(b.minv > 0.0) {
+    if b.minv.partial_cmp(&0.0) != Some(std::cmp::Ordering::Greater) {
         return 1;
     }
     let (mut v9, mut v10, mut v11) = (0.0f32, 0.0f32, 0.0f32);
@@ -117,7 +117,17 @@ pub fn reset(w: &mut World, e: EntIdx, a: &ActionReset) -> i32 {
     }
     if a.clear_contacts != 0 {
         super::contacts::drop_contacts(w, e);
-        // update_constraint {id unused, bRemove 1}: no constraints in the port
+        // Action(update_constraint {id unused, bRemove 1, flags 2}): no constraints in the
+        // port, so only its slot-80 part-flag refresh remains
+        crate::entities::interface::action::update_constraint(
+            w,
+            e,
+            &crate::params::ActionUpdateConstraint {
+                remove: 1,
+                flags: 2,
+                ..Default::default()
+            },
+        );
     }
     let r = w.ent_mut(e).rigid_mut().expect("rigid");
     r.f_ext = Vec3::ZERO;
