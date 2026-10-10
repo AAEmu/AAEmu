@@ -30,7 +30,7 @@ const HEAL_SKILL: u32 = 10_002;
 const PLOT_SKILL: u32 = 10_003;
 const BUFF_ID: u32 = 50_001;
 
-fn damage_effect(id: u32, amount: i32) -> DamageEffect {
+pub(crate) fn damage_effect(id: u32, amount: i32) -> DamageEffect {
     DamageEffect {
         id,
         damage_type: 1,
@@ -84,7 +84,7 @@ fn damage_effect(id: u32, amount: i32) -> DamageEffect {
     }
 }
 
-fn skill_effect(effect_id: u32, kind: EffectKind, actual: u32) -> SkillEffect {
+pub(crate) fn skill_effect(effect_id: u32, kind: EffectKind, actual: u32) -> SkillEffect {
     SkillEffect {
         effect_id,
         template: Some((kind, actual)),
@@ -111,7 +111,7 @@ fn skill_effect(effect_id: u32, kind: EffectKind, actual: u32) -> SkillEffect {
     }
 }
 
-fn skill_template(id: u32) -> SkillTemplate {
+pub(crate) fn skill_template(id: u32) -> SkillTemplate {
     SkillTemplate {
         id,
         target_type: 4, // Hostile

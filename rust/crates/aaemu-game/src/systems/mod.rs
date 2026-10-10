@@ -28,6 +28,9 @@ pub mod quests;
 pub mod skills;
 pub mod social;
 
+#[cfg(test)]
+mod integration_tests;
+
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 

@@ -41,7 +41,7 @@ pub mod types;
 pub mod unit_reqs;
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
