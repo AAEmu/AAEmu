@@ -17,7 +17,11 @@ publish/
 **/launchSettings.json
 /AAEmu.Game/Properties/PublishProfiles
 /AAEmu.Game/ClientData/*
+# Game server client files (game_pak, extracted client data); only the readme is tracked
+/rust/crates/aaemu-game/app/ClientData/*
+!/rust/crates/aaemu-game/app/ClientData/readme.txt
 /AAEmu.IntegrationTests/Config.json
+# compact.sqlite3 lives in rust/crates/aaemu-game/app/Data/ (never committed)
 *.sqlite3
 .server_files
 .client_files

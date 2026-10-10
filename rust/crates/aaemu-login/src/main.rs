@@ -1,10 +1,12 @@
 //! `AAEmu.Login` entry point (`Program.Main`).
 //!
-//! Configuration is read from `Config.json` / `Config.Local.json` next to the executable (or, if
-//! there is no `Config.json` there, from the current directory), then environment variables and
-//! command-line arguments. Logging is controlled with `RUST_LOG` (default `info`).
+//! Configuration is read from `Config.json` / `Config.Local.json` in the application directory,
+//! then environment variables and command-line arguments. The application directory is
+//! `AAEMU_APP_PATH`, else the executable's directory or the current directory when it holds a
+//! `Config.json` (published layout), else this crate's `app/` folder (`cargo run` in a source
+//! checkout). Logging is controlled with `RUST_LOG` (default `info`).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use aaemu_login::config::AppConfig;
@@ -12,13 +14,7 @@ use tokio_util::sync::CancellationToken;
 use tracing_subscriber::EnvFilter;
 
 fn config_dir() -> PathBuf {
-    let exe_dir = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(PathBuf::from));
-    match exe_dir {
-        Some(dir) if dir.join("Config.json").exists() => dir,
-        _ => std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
-    }
+    aaemu_commons::file_manager::resolve_app_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("app"))
 }
 
 #[tokio::main]

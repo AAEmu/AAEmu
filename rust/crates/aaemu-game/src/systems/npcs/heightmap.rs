@@ -1295,7 +1295,7 @@ mod real_data_tests {
     use crate::systems::npcs::json;
 
     pub(crate) fn app_path() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("app")
     }
 
     #[test]

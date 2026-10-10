@@ -212,7 +212,7 @@ mod real_data_tests {
             .unwrap();
         assert_eq!(d.templates.len() as i64, rows);
         assert!(d.exist(manager::FLOAT_TO_SURFACE_TEMPLATE_ID));
-        let app = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game");
+        let app = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("app");
         let text = std::fs::read_to_string(app.join("Data/Worlds/main_world/gimmick_spawns.json"))
             .unwrap();
         let spawners = parse_gimmick_spawners(&json::parse(&text).unwrap()).unwrap();

@@ -2,8 +2,10 @@
 //! (`GameService`, `WebApiService`, `DiscordBotService`).
 //!
 //! APP_PATH holds `Config.json`, `Configurations/`, `Config.Local.json` and
-//! `Data/compact.sqlite3` (defaults to the current directory; the C# server uses its exe dir).
-//! It is taken from the first argument when that names an existing directory; every other
+//! `Data/compact.sqlite3`. It is taken from the first argument when that names an existing
+//! directory; otherwise it is `AAEMU_APP_PATH`, else the executable's directory or the current
+//! directory when it holds a `Config.json` (published layout), else this crate's `app/` folder
+//! (`cargo run` in a source checkout). Every other
 //! argument is a configuration override like the C# command-line provider
 //! (`--World:ExpRate=2`, `/Network:Port 1239`, `Id=2`). `compiler-check` as the first
 //! argument checks the scripts and exits (they are compiled in: always successful).
@@ -29,7 +31,12 @@ fn split_args(args: Vec<String>) -> (PathBuf, Vec<String>) {
         {
             (PathBuf::from(first), args[1..].to_vec())
         }
-        _ => (PathBuf::from("."), args),
+        _ => (
+            aaemu_commons::file_manager::resolve_app_dir(
+                &Path::new(env!("CARGO_MANIFEST_DIR")).join("app"),
+            ),
+            args,
+        ),
     }
 }
 
@@ -77,6 +84,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let (app_path, config_args) = split_args(args);
+    aaemu_commons::file_manager::remember_app_dir(&app_path);
+    tracing::info!("Application directory: {}", app_path.display());
     // BuildConfiguration: JSON files, user secrets, environment, command line.
     let config = AppConfig::load_with(&app_path, &config_args).context("loading configuration")?;
 

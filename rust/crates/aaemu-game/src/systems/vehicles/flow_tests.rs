@@ -1211,7 +1211,7 @@ async fn npc_and_social_hooks_reach_the_vehicles() {
 // ---------------------------------------------------------------------------------------------
 
 fn app_path() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("app")
 }
 
 fn load_real(db: &str, sources: &[String]) -> super::Data {

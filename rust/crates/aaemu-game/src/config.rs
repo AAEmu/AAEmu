@@ -1027,9 +1027,9 @@ mod tests {
         assert_eq!(a, json!({ "A": [9, 2, 3] }));
     }
 
-    /// The C# server directory of this worktree (`AAEmu.Game/`).
+    /// The shipped application directory (`aaemu-game/app/`).
     fn shipped_app_path() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game")
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("app")
     }
 
     #[test]

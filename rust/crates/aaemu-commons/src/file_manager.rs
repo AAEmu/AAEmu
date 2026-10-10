@@ -24,6 +24,80 @@ pub fn app_path() -> &'static str {
     })
 }
 
+/// Environment variable that forces a server's application directory (the folder holding its
+/// `Config.json` and, for the game server, `Configurations/` and `Data/`).
+pub const APP_PATH_ENV: &str = "AAEMU_APP_PATH";
+
+static RESOLVED_APP_DIR: OnceLock<PathBuf> = OnceLock::new();
+
+/// Resolves a server's application directory (`Config.json`, `Data/`, ...), in this order:
+///
+/// 1. `AAEMU_APP_PATH` when it names an existing directory;
+/// 2. the executable's directory when it holds a `Config.json` (published layout);
+/// 3. the current directory when it holds a `Config.json`;
+/// 4. `dev_dir` when it holds a `Config.json` — the servers pass their crate's `app/` folder
+///    (`CARGO_MANIFEST_DIR/app`), so `cargo run -p aaemu-login` / `-p aaemu-game` works from
+///    anywhere in a source checkout;
+/// 5. the current directory.
+///
+/// The result is remembered for [`updates_search_roots`].
+pub fn resolve_app_dir(dev_dir: &Path) -> PathBuf {
+    let env = std::env::var_os(APP_PATH_ENV).map(PathBuf::from);
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(Path::to_path_buf));
+    let cwd = std::env::current_dir().ok();
+    let dir = resolve_app_dir_from(env.as_deref(), exe_dir.as_deref(), cwd.as_deref(), dev_dir);
+    remember_app_dir(&dir);
+    dir
+}
+
+/// [`resolve_app_dir`] with explicit inputs (testable).
+pub fn resolve_app_dir_from(
+    env: Option<&Path>,
+    exe_dir: Option<&Path>,
+    cwd: Option<&Path>,
+    dev_dir: &Path,
+) -> PathBuf {
+    if let Some(dir) = env.filter(|d| d.is_dir()) {
+        return dir.to_path_buf();
+    }
+    let has_config = |d: &&Path| d.join("Config.json").is_file();
+    exe_dir
+        .filter(has_config)
+        .or(cwd.filter(has_config))
+        .or(Some(dev_dir).filter(has_config))
+        .or(cwd)
+        .map_or_else(|| PathBuf::from("."), Path::to_path_buf)
+}
+
+/// Records an application directory chosen elsewhere (e.g. the game server's `APP_PATH`
+/// argument) for [`updates_search_roots`]. The first recorded directory wins.
+pub fn remember_app_dir(dir: &Path) {
+    let dir = std::path::absolute(dir).unwrap_or_else(|_| dir.to_path_buf());
+    let _ = RESOLVED_APP_DIR.set(dir);
+}
+
+/// The application directory recorded by [`resolve_app_dir`] / [`remember_app_dir`], or the
+/// executable's directory ([`app_path`]) when none was recorded.
+pub fn resolved_app_dir() -> PathBuf {
+    RESOLVED_APP_DIR
+        .get()
+        .cloned()
+        .unwrap_or_else(|| PathBuf::from(app_path()))
+}
+
+/// Starting points for the upward search of repository-level folders such as `SQL/updates`:
+/// the executable's directory (C# behaviour; finds `SQL/` next to a published layout), the
+/// resolved application directory (finds the repository's `SQL/` in a source checkout even when
+/// the cargo target directory lives elsewhere), then the current directory.
+pub fn updates_search_roots() -> Vec<PathBuf> {
+    let mut roots = vec![PathBuf::from(app_path())];
+    roots.extend(RESOLVED_APP_DIR.get().cloned());
+    roots.extend(std::env::current_dir().ok());
+    roots
+}
+
 /// `FileManager.DirectorySeparator`.
 pub const DIRECTORY_SEPARATOR: char = MAIN_SEPARATOR;
 
@@ -222,6 +296,38 @@ pub fn decode_text(data: &[u8]) -> String {
 mod tests {
     use super::*;
     use crate::test_util::TempDir;
+
+    #[test]
+    fn app_dir_resolution_order() {
+        let tmp = TempDir::new("app_dir");
+        let mk = |name: &str, config: bool| {
+            let d = tmp.path().join(name);
+            std::fs::create_dir_all(&d).unwrap();
+            if config {
+                std::fs::write(d.join("Config.json"), "{}").unwrap();
+            }
+            d
+        };
+        let (env, exe, cwd, dev) = (
+            mk("env", false),
+            mk("exe", true),
+            mk("cwd", true),
+            mk("dev", true),
+        );
+        let bare_exe = mk("bare_exe", false);
+        let bare_cwd = mk("bare_cwd", false);
+        let r = resolve_app_dir_from;
+        assert_eq!(r(Some(&env), Some(&exe), Some(&cwd), &dev), env);
+        let missing = tmp.path().join("missing");
+        assert_eq!(r(Some(&missing), Some(&exe), Some(&cwd), &dev), exe);
+        assert_eq!(r(None, Some(&bare_exe), Some(&cwd), &dev), cwd);
+        assert_eq!(r(None, Some(&bare_exe), Some(&bare_cwd), &dev), dev);
+        assert_eq!(
+            r(None, Some(&bare_exe), Some(&bare_cwd), &missing),
+            bare_cwd
+        );
+        assert_eq!(r(None, None, None, &missing), PathBuf::from("."));
+    }
 
     #[test]
     fn wildcards() {

@@ -772,8 +772,7 @@ pub(crate) mod tests {
 
     #[test]
     fn real_bindings_file_parses() {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../AAEmu.Game/Data/housing_bindings.json");
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("app/Data/housing_bindings.json");
         let Ok(text) = std::fs::read_to_string(&path) else {
             return;
         };

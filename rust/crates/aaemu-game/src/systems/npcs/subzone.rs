@@ -544,7 +544,7 @@ mod real_data_tests {
             return;
         };
         let conn = Connection::open_with_flags(&path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-        let app = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game");
+        let app = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("app");
         let files = ClientFileManager::from_sources(&[pak], &app);
         let ctx = DataLoadCtx {
             conn: &conn,

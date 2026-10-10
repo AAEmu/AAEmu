@@ -186,9 +186,16 @@ async fn install_update_files(
     Ok(true)
 }
 
-/// Crawls up from the executable's directory looking for `SQL/updates` with matching files.
+/// Crawls up from the executable's directory (then the application directory and the current
+/// directory, see `file_manager::updates_search_roots`) looking for `SQL/updates` with matching
+/// files.
 fn find_updates_folder(prefix: &str) -> Option<(PathBuf, Vec<PathBuf>)> {
-    let start = std::env::current_exe().ok()?.parent()?.to_path_buf();
+    aaemu_commons::file_manager::updates_search_roots()
+        .iter()
+        .find_map(|start| find_updates_folder_from(start, prefix))
+}
+
+fn find_updates_folder_from(start: &Path, prefix: &str) -> Option<(PathBuf, Vec<PathBuf>)> {
     for dir in start.ancestors() {
         let test = dir.join("SQL").join("updates");
         let Ok(entries) = std::fs::read_dir(&test) else {

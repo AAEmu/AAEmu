@@ -206,14 +206,21 @@ pub fn find_updates_folder(start: &Path, prefix: &str) -> Option<(PathBuf, Vec<P
 }
 
 /// `MySqlDatabaseUpdater.Run`, searching for `SQL/updates` upwards from the executable's
-/// directory. Returns `Ok(false)` if the database could not be brought up to date.
+/// directory, then from the resolved application directory and the current directory
+/// ([`file_manager::updates_search_roots`]). Returns `Ok(false)` if the database could not be
+/// brought up to date.
 pub async fn run_updates(
     conn: &mut MySqlConnection,
     module_name_prefix: &str,
     database_schema_name: &str,
     auto_apply: bool,
 ) -> Result<bool, UpdaterError> {
-    let start = PathBuf::from(file_manager::app_path());
+    let roots = file_manager::updates_search_roots();
+    let start = roots
+        .iter()
+        .find(|r| find_updates_folder(r, module_name_prefix).is_some())
+        .unwrap_or(&roots[0])
+        .clone();
     run_updates_from(
         conn,
         module_name_prefix,

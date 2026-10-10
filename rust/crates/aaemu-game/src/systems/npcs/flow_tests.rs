@@ -29,7 +29,7 @@ fn real_server(db: &str) -> Arc<GameServer> {
     let conn =
         rusqlite::Connection::open_with_flags(db, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
             .expect("compact db");
-    let app_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game");
+    let app_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("app");
     let files = ClientFileManager::from_sources(&[], &app_path);
     let mut data = GameData::empty();
     data.systems.npcs = super::Data::load(&DataLoadCtx {

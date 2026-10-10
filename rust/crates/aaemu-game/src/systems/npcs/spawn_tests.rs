@@ -686,8 +686,8 @@ async fn real_data_main_world_spawn_files() {
     let Ok(db) = std::env::var("AAEMU_COMPACT_DB") else {
         return;
     };
-    let world_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../AAEmu.Game/Data/Worlds/main_world");
+    let world_path =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("app/Data/Worlds/main_world");
     if !world_path.exists() {
         return;
     }

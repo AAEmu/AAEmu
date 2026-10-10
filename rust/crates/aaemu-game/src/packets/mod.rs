@@ -71,44 +71,25 @@ mod tests {
         assert_eq!(r.len(), 13 + 22 + 2 + systems.len());
     }
 
-    /// Parses `public const ushort Name = 0x...;` lines of a C# offsets class.
-    fn cs_consts(src: &str) -> std::collections::HashMap<String, u16> {
-        let re = regex::Regex::new(r"const\s+ushort\s+(\w+)\s*=\s*0x([0-9A-Fa-f]+)").unwrap();
-        re.captures_iter(src)
-            .map(|c| (c[1].to_string(), u16::from_str_radix(&c[2], 16).unwrap()))
-            .collect()
-    }
-
-    /// Every (uncommented) `RegisterPacket` call of the C# `GameNetwork()` constructor is
-    /// registered in Rust under the same (level, opcode) with the same packet class name, and
-    /// Rust registers nothing the C# does not.
+    /// Every `RegisterPacket` call of the C# `GameNetwork()` constructor is registered in Rust
+    /// under the same (level, opcode) with the same packet class name, and Rust registers
+    /// nothing the C# does not. The C# table is a checked-in snapshot
+    /// (`tests/fixtures/csharp_game_network_registry.tsv`) taken while the C# sources existed.
     #[test]
     fn registry_matches_csharp_game_network() {
-        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../AAEmu.Game/Core");
-        let Ok(net) = std::fs::read_to_string(format!("{root}/Network/Game/GameNetwork.cs")) else {
-            eprintln!("C# sources not found next to the workspace; skipped");
-            return;
-        };
-        let offsets = cs_consts(
-            &std::fs::read_to_string(format!("{root}/Packets/C2G/CSOffsets.cs")).unwrap(),
-        );
-        let re = regex::Regex::new(
-            r"RegisterPacket\(\s*(?:CSOffsets\.(\w+)|0x([0-9A-Fa-f]+))\s*,\s*(\d+)\s*,\s*typeof\((\w+)\)\s*\)",
-        )
-        .unwrap();
+        let fixture = include_str!("../../tests/fixtures/csharp_game_network_registry.tsv");
         let r = super::build_registry();
         let mut expected = std::collections::HashMap::new();
-        for line in net.lines() {
-            let code = line.split("//").next().unwrap();
-            let Some(c) = re.captures(code) else { continue };
-            let opcode = match (c.get(1), c.get(2)) {
-                (Some(name), _) => offsets[name.as_str()],
-                (_, Some(hex)) => u16::from_str_radix(hex.as_str(), 16).unwrap(),
-                _ => unreachable!(),
-            };
-            let level: u8 = c[3].parse().unwrap();
-            // C# `_packets[level][type] = classType`: a later registration wins.
-            expected.insert((level, opcode), c[4].to_string());
+        for line in fixture.lines() {
+            if line.starts_with('#') || line.trim().is_empty() {
+                continue;
+            }
+            let mut cols = line.split('\t');
+            let level: u8 = cols.next().unwrap().parse().unwrap();
+            let opcode =
+                u16::from_str_radix(cols.next().unwrap().trim_start_matches("0x"), 16).unwrap();
+            let name = cols.next().unwrap().to_string();
+            expected.insert((level, opcode), name);
         }
         assert!(
             expected.len() > 250,

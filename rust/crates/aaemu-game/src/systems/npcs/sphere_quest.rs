@@ -1272,7 +1272,7 @@ mod real_data_tests {
         let Ok(pak) = std::env::var("AAEMU_GAME_PAK") else {
             return;
         };
-        let app = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game");
+        let app = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("app");
         let files = ClientFileManager::from_sources(&[pak], &app);
         let worlds = WorldTemplates::load(&files, &app).unwrap();
         let main = worlds.get_world_template_by_name("main_world").unwrap();

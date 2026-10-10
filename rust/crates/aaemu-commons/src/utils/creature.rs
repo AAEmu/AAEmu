@@ -79,12 +79,12 @@ impl Creature {
 
     /// `GetAllDoodads`: `<AppPath>/Data/Doodads.xml`.
     pub fn get_all_doodads() -> HashMap<u32, Creature> {
-        Self::load_file(format!("{}/Data/Doodads.xml", file_manager::app_path()))
+        Self::load_file(file_manager::resolved_app_dir().join("Data/Doodads.xml"))
     }
 
     /// `GetAllCreatures`: `<AppPath>/Data/Creatures.xml`.
     pub fn get_all_creatures() -> HashMap<u32, Creature> {
-        Self::load_file(format!("{}/Data/Creatures.xml", file_manager::app_path()))
+        Self::load_file(file_manager::resolved_app_dir().join("Data/Creatures.xml"))
     }
 }
 
@@ -134,10 +134,10 @@ mod tests {
         );
     }
 
-    /// Loads the real data files shipped with AAEmu.Game when present.
+    /// Loads the real data files shipped with the game server (`aaemu-game/app/Data`).
     #[test]
     fn load_repo_data_files() {
-        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game/Data");
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../aaemu-game/app/Data");
         if !dir.join("Creatures.xml").is_file() {
             return;
         }

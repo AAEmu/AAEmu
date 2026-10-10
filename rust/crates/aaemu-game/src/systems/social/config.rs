@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn binds_the_shipped_sections() {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("app");
         let mut merged = serde_json::Value::Object(Default::default());
         for f in [
             "Configurations/Expedition.json",

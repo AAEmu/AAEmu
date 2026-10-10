@@ -1,7 +1,12 @@
-"""Builds rust/PORT-AUDIT.md from a fresh scan of the C# and Rust trees plus the verdict files.
+"""Builds rust/PORT-AUDIT.md from a fresh scan of the Rust tree, the C# type inventory and the
+verdict files.
 
 Usage: python rust/tools/port_audit/gen.py rust/PORT-AUDIT.md (without an argument: print the
 counts and the files with a MISSING type). verdicts_*.txt lines: `Type[,Type...]|STATUS|note`.
+
+The C# side comes from `csharp_types.json`, a snapshot of every `.cs` file of AAEmu.Commons,
+AAEmu.Login and AAEmu.Game with the types it declares (the C# projects are no longer part of the
+repository). `--refresh-csharp` rebuilds the snapshot from a checkout that still has them.
 """
 import os, re, json, collections, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -78,24 +83,45 @@ def classify(name, kind):
         return ('dropped', 'interface only (DI / abstraction); implementations audited separately')
     return ('MISSING', '')
 
+SNAPSHOT = os.path.join(HERE, 'csharp_types.json')
+
+
+def scan_csharp():
+    """[[dir, file, [[kind, name], ...]], ...] for every C# source file, in walk order."""
+    out = []
+    for proj in ['AAEmu.Commons', 'AAEmu.Login', 'AAEmu.Game']:
+        for dp, dn, fn in os.walk(os.path.join(ROOT, proj)):
+            dn.sort()
+            rp = os.path.relpath(dp, ROOT).replace(chr(92), '/')
+            parts = rp.split('/')
+            if 'obj' in parts or 'bin' in parts:
+                continue
+            if any(rp == e or rp.startswith(e + '/') for e in EXCL):
+                continue
+            for f in sorted(fn):
+                if not f.endswith('.cs'):
+                    continue
+                src = open(os.path.join(dp, f), encoding='utf-8-sig', errors='replace').read()
+                nc = re.sub(r'/\*.*?\*/', '', src, flags=re.S)
+                nc = re.sub(r'//[^\n]*', '', nc)
+                out.append([rp, f, [[m.group(1).split()[0], m.group(2)] for m in typere.finditer(nc)]])
+    return out
+
+
+args = [a for a in sys.argv[1:] if a != '--refresh-csharp']
+if '--refresh-csharp' in sys.argv[1:]:
+    inventory = scan_csharp()
+    with open(SNAPSHOT, 'w', encoding='utf-8', newline='\n') as fh:
+        # one source file per line
+        fh.write('[\n' + ',\n'.join(json.dumps(row, ensure_ascii=False) for row in inventory) + '\n]\n')
+else:
+    inventory = json.load(open(SNAPSHOT, encoding='utf-8'))
+
 rows = collections.defaultdict(list)
 counts = collections.Counter()
 missing = []
-for proj in ['AAEmu.Commons', 'AAEmu.Login', 'AAEmu.Game']:
-    for dp, dn, fn in os.walk(os.path.join(ROOT, proj)):
-        rp = os.path.relpath(dp, ROOT).replace(chr(92), '/')
-        parts = rp.split('/')
-        if 'obj' in parts or 'bin' in parts:
-            continue
-        if any(rp == e or rp.startswith(e + '/') for e in EXCL):
-            continue
-        for f in sorted(fn):
-            if not f.endswith('.cs'):
-                continue
-            src = open(os.path.join(dp, f), encoding='utf-8-sig', errors='replace').read()
-            nc = re.sub(r'/\*.*?\*/', '', src, flags=re.S)
-            nc = re.sub(r'//[^\n]*', '', nc)
-            types = [(m.group(1).split()[0], m.group(2)) for m in typere.finditer(nc)]
+for rp, f, types in inventory:
+            types = [tuple(t) for t in types]
             if not types:
                 st, note = over.get(f[:-3], ('dropped', 'no type declarations (comments / global usings only)'))
                 rows[rp].append((f, '-', st, note))
@@ -129,7 +155,7 @@ print(counts)
 for m in missing:
     print('MISSING', m)
 
-if len(sys.argv) > 1:
+if args:
     out = [open(os.path.join(HERE, 'header.md'), encoding='utf-8').read().replace('{COUNTS}', ', '.join(f"{k}: {v}" for k, v in sorted(counts.items())))]
     for d in sorted(rows):
         out.append(f"\n### `{d}`\n\n| File | Types | Status | Rust |\n|---|---|---|---|")
@@ -137,4 +163,4 @@ if len(sys.argv) > 1:
             det = det.replace('|', '\\|')
             out.append(f"| `{f}` | {ty} | {st} | {det} |")
     out.append(open(os.path.join(HERE, 'footer.md'), encoding='utf-8').read())
-    open(sys.argv[1], 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(args[0], 'w', encoding='utf-8').write('\n'.join(out) + '\n')

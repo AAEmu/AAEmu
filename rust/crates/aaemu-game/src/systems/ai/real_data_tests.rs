@@ -26,7 +26,7 @@ use super::geodata::manager::AiGeoData;
 use super::geodata::ClientBaiFiles;
 
 fn app_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("app")
 }
 
 fn pak_files() -> Option<Arc<ClientFileManager>> {

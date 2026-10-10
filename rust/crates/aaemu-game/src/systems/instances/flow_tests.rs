@@ -1068,7 +1068,7 @@ async fn real_dungeon_spawns_load_and_leave_returns_to_main_world() {
     let conn =
         rusqlite::Connection::open_with_flags(&db, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
             .expect("compact db");
-    let app_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../AAEmu.Game");
+    let app_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("app");
     let files = crate::data::client_files::ClientFileManager::from_sources(&[], &app_path);
     let ctx = crate::systems::DataLoadCtx {
         conn: &conn,
