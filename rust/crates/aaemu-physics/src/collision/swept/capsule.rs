@@ -306,8 +306,7 @@ pub fn unproject_cap_cap(
         );
         r.n = Vec3::new(-r.n.x, -r.n.y, -r.n.z);
     };
-    let ret;
-    if ucomiss_eq(dl2, 0.0) {
+    let ret = if ucomiss_eq(dl2, 0.0) {
         let mut best_dir = Vec3::ZERO;
         let mut r0 = super::cyl_cyl::unproject_cyl_cyl(
             p,
@@ -359,7 +358,7 @@ pub fn unproject_cap_cap(
             }
         }
         p.dir = best_dir;
-        ret = r0;
+        r0
     } else {
         let mut r = super::cyl_cyl::unproject_cyl_cyl(
             p,
@@ -397,8 +396,8 @@ pub fn unproject_cap_cap(
         }
         super::common::negate_dir(p);
         p.tmin = tmin0;
-        ret = r;
-    }
+        r
+    };
     if let Some(ar) = area {
         ar.npt = 0;
     }

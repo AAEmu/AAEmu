@@ -358,9 +358,6 @@ pub fn ucomisd_eq(a: f64, b: f64) -> bool {
     a == b || a.is_nan() || b.is_nan()
 }
 
-/// Groups that own no cells yet use this as their `fill`.
-pub fn fill_none(_t: &mut super::UnprojTables) {}
-
 #[cfg(test)]
 mod tests {
     use super::*;

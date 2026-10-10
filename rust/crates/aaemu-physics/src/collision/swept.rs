@@ -214,10 +214,8 @@ mod tests {
                                 || (b == 3 && prims.contains(&a) && a != 3)
                         }
                     };
-                    let have = !std::ptr::eq(
-                        t.t[mode][a][b] as *const (),
-                        unproject_none as *const (),
-                    );
+                    let have =
+                        !std::ptr::eq(t.t[mode][a][b] as *const (), unproject_none as *const ());
                     assert_eq!(have, want, "cell [{mode}][{a}][{b}]");
                     n += usize::from(have);
                 }
