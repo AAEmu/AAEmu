@@ -144,6 +144,9 @@ mod tests {
         assert_eq!(gm.chat(), ["[Packet] /packet <hex/file path>"]);
         // One byte: the C# reads raw[1] and throws.
         harness::run(&server, &gm.p, "packet 0a").await;
-        assert_eq!(gm.chat(), ["Index was outside the bounds of the array."]);
+        assert_eq!(
+            gm.chat(),
+            ["|cFFFF0000Index was outside the bounds of the array.|r"]
+        );
     }
 }
