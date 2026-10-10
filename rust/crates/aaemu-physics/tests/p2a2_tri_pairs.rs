@@ -139,7 +139,7 @@ fn words_inters(w: &[u32]) -> PrimInters {
         } else {
             Vec::new()
         },
-        border_cap: if has_border(w) { w[17] as i32 } else { 0 },
+        border_max: if has_border(w) { w[17] as i32 } else { 0 },
         n_alt: wv(&w[18..]),
         unk_84: w[21] as i32,
     }
@@ -160,7 +160,7 @@ fn inters_words(p: &PrimInters, init: &[u32]) -> Vec<u32> {
     o.push(p.i_node[0] as u32);
     o.push(p.i_node[1] as u32);
     if has_border(init) {
-        o.extend([BORDER_MARK, BORDER_MARK, p.border.len() as u32, p.border_cap as u32]);
+        o.extend([BORDER_MARK, BORDER_MARK, p.border.len() as u32, p.border_max as u32]);
     } else {
         // ptborder / nborderpt / nbordersz without a buffer: untouched.
         assert!(p.border.is_empty());

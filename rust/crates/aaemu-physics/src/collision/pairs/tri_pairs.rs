@@ -563,7 +563,7 @@ fn qcmp(a: (f64, f64), b: (f64, f64)) -> f64 {
 ///    otherwise no contact.
 /// 4. With a contact and a triangle large compared with the box face most parallel to it,
 ///    the 12 box edges that pierce the triangle append their piercing points to the border
-///    buffer (while `border.len() < border_cap`); if that box face is within ~11.5° of the
+///    buffer (while `border.len() < border_max`); if that box face is within ~11.5° of the
 ///    triangle (`|n_local| > 0.98`), at least two points were added, `unk_84 < 6`, and the
 ///    face centre projects into the triangle, `n = tri.n`, `n_alt = first added point` and
 ///    `unk_84 = 6`.
@@ -797,7 +797,7 @@ pub fn intersect_tri_box(tri: &Triangle, bx: &BoxPrim, out: &mut PrimInters) -> 
             hit &= signbit32(side_d(e, q, nl) as f32);
         }
         let len = out.border.len() as i32;
-        if hit != 0 && len.wrapping_sub(out.border_cap) < 0 {
+        if hit != 0 && len.wrapping_sub(out.border_max) < 0 {
             let w = box_to_world(bx, pp, 1.0 / den);
             out.border.push(w);
         }
