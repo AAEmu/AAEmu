@@ -37,7 +37,7 @@
 //!      quartic `A(s)² − 4·B(s)²·(1 − s²)` (built with the engine's inline polynomial template
 //!      arithmetic, including its `0.0 +` accumulators and the `1 − s²` factor stored as
 //!      `{1, −0, −1}`), which is passed to the polynomial routines `sub_3514A2E0` (any root in
-//!      [0, 1]) and `sub_35149170` (find up to 20 roots in [0, 1]). Each root `s` (last first) is
+//!      [0, 1]) and `sub_35149170` (find the roots in [0, 1]). Each root `s` (last first) is
 //!      accepted when the point is within the cylinder length (`|(p − c)·k| < hh`) and its
 //!      distance to the axis is within 1 % of `R` (`|0.9801R² + 1.0201R² − 2d²| <
 //!      |0.9801R² − 1.0201R²|`, which rejects the roots introduced by squaring). Fraction `s / 1`,
@@ -69,6 +69,7 @@
 //! `tmax` is not).
 
 use super::common::{as_cap, as_ray, swap_rot};
+use super::poly::{count_roots, find_roots, Poly4};
 use super::{UnprojTables, MODE_ROTATIONAL};
 use crate::collision::contact::{ContactArea, UnprojParams, UnprojResult};
 use crate::geometry::primitives::{CapsulePrim, Primitive, RayPrim};
@@ -76,24 +77,33 @@ use crate::ids::GeomType;
 use crate::math::Vec3;
 
 /// The two polynomial routines the cell calls on its quartics. A polynomial is the engine's
-/// 6-double block `{scale, c0, c1, c2, c3, c4}` (`scale · Σ cᵢ xⁱ`, always `scale = 1` here).
+/// 6-double block `{denominator, c0, c1, c2, c3, c4}` ([`Poly4`] layout; the denominator is
+/// always 1 here).
 pub trait QuarticSolver {
-    /// `sub_3514A2E0(p, 0.0, 1.0)`: non-zero when the polynomial has a root in [0, 1].
+    /// `sub_3514A2E0(p, 0.0, 1.0)`: number of roots in [0, 1] (Sturm count).
     fn has_root(&mut self, p: &[f64; 6]) -> i32;
-    /// `sub_35149170(p, 0.0, 1.0, roots, 20, 4, 0)`: the roots in [0, 1] (at most 20) written to
-    /// `roots`, returns their count.
-    fn roots(&mut self, p: &[f64; 6], roots: &mut [f64; 20]) -> i32;
+    /// `sub_35149170(p, 0.0, 1.0, roots, 20, 4, 0)`: the roots in [0, 1] (ascending at the front
+    /// of `roots`); returns their count.
+    fn roots(&mut self, p: &[f64; 6], roots: &mut [f64; 4]) -> i32;
 }
 
-/// The engine's solvers (the `poly` group's ports of `sub_3514A2E0` / `sub_35149170`).
+/// The engine's solvers: the `poly` group's ports of `sub_3514A2E0` ([`count_roots`]) and
+/// `sub_35149170` ([`find_roots`]).
 pub struct EngineSolver;
 
-impl QuarticSolver for EngineSolver {
-    fn has_root(&mut self, _p: &[f64; 6]) -> i32 {
-        unimplemented!("waiting for the poly group's solver")
+fn poly4(p: &[f64; 6]) -> Poly4 {
+    Poly4 {
+        denom: p[0],
+        data: [p[1], p[2], p[3], p[4], p[5]],
     }
-    fn roots(&mut self, _p: &[f64; 6], _roots: &mut [f64; 20]) -> i32 {
-        unimplemented!("waiting for the poly group's solver")
+}
+
+impl QuarticSolver for EngineSolver {
+    fn has_root(&mut self, p: &[f64; 6]) -> i32 {
+        count_roots(&poly4(p), 0.0, 1.0)
+    }
+    fn roots(&mut self, p: &[f64; 6], roots: &mut [f64; 4]) -> i32 {
+        find_roots(&poly4(p), 0.0, 1.0, roots, 20)
     }
 }
 
@@ -190,7 +200,7 @@ fn quartic_ab(a0: f64, a1: f64, a2: f64, b0: f64, b1: f64) -> [f64; 6] {
 
 /// Run the two solver calls like the binary: `has_root`, then `roots`; returns the roots found
 /// (iterated by the caller from the last to the first).
-fn solve(solver: &mut dyn QuarticSolver, p: &[f64; 6], roots: &mut [f64; 20]) -> i32 {
+fn solve(solver: &mut dyn QuarticSolver, p: &[f64; 6], roots: &mut [f64; 4]) -> i32 {
     if solver.has_root(p) == 0 {
         return 0;
     }
@@ -211,7 +221,11 @@ pub fn unproject_ray_cap_rot(
 
 /// [`unproject_ray_cap_rot`] with the polynomial solvers supplied by the caller (tests replay the
 /// DLL's roots through this).
-#[allow(clippy::too_many_lines, clippy::similar_names, clippy::many_single_char_names)]
+#[allow(
+    clippy::too_many_lines,
+    clippy::similar_names,
+    clippy::many_single_char_names
+)]
 pub fn unproject_ray_cap_rot_with(
     p: &mut UnprojParams,
     ray: &RayPrim,
@@ -249,7 +263,7 @@ pub fn unproject_ray_cap_rot_with(
     let mut feat: i32 = -1;
     let mut bnum = 0.0f64;
     let mut bden = 1.0f64;
-    let mut roots = [0.0f64; 20];
+    let mut roots = [0.0f64; 4];
 
     // ---- phase 1: the ray ends (end point first)
     let mut ep: i32 = 1;
@@ -433,7 +447,8 @@ pub fn unproject_ray_cap_rot_with(
             (g0 * g0 + g1sq) - ((((va[1] * va[1] + va[0] * va[0]) + va[2] * va[2]) + vrr) * r2);
         let va_vw = ((va[1] * vw[1] + va[0] * vw[0]) + va[2] * vw[2]) * r2;
         let a1 = ((g0 * g2) - va_vw) * 2.0;
-        let a2 = ((g2 * g2) - g1sq) - ((((vw[1] * vw[1] + vw[0] * vw[0]) + vw[2] * vw[2]) - vrr) * r2);
+        let a2 =
+            ((g2 * g2) - g1sq) - ((((vw[1] * vw[1] + vw[0] * vw[0]) + vw[2] * vw[2]) - vrr) * r2);
         let qq = q_sin * q_cos;
         let qq2 = qq + qq;
         let s02 = a0 * a2;

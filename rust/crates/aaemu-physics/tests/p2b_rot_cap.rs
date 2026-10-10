@@ -7,11 +7,13 @@
 //! very same quartics (bit for bit) and produces the same answer from the DLL's roots. This
 //! verifies the cell independently of the polynomial solvers (ported by the `poly` group).
 
+#![allow(clippy::field_reassign_with_default)]
+
 use aaemu_physics::collision::contact::UnprojParams;
+use aaemu_physics::collision::swept::common::swap_rot;
 use aaemu_physics::collision::swept::probe::{
     self, check, format_answer, params_from_words, prim_from_words, result_from_words, Case, Rng,
 };
-use aaemu_physics::collision::swept::common::swap_rot;
 use aaemu_physics::collision::swept::rot_cap::{unproject_ray_cap_rot_with, QuarticSolver};
 use aaemu_physics::geometry::primitives::{CylinderPrim, Primitive, RayPrim};
 use aaemu_physics::math::Vec3;
@@ -53,7 +55,11 @@ fn perp(rng: &mut Rng, k: Vec3) -> Vec3 {
 fn rot(v: Vec3, a: Vec3, ang: f32) -> Vec3 {
     let (s, c) = ang.sin_cos();
     let d = v.x * a.x + v.y * a.y + v.z * a.z;
-    let cr = Vec3::new(a.y * v.z - a.z * v.y, a.z * v.x - a.x * v.z, a.x * v.y - a.y * v.x);
+    let cr = Vec3::new(
+        a.y * v.z - a.z * v.y,
+        a.z * v.x - a.x * v.z,
+        a.x * v.y - a.y * v.x,
+    );
     Vec3::new(
         v.x * c + cr.x * s + a.x * d * (1.0 - c),
         v.y * c + cr.y * s + a.y * d * (1.0 - c),
@@ -83,7 +89,11 @@ fn gen_cfg(rng: &mut Rng) -> (RayPrim, CylinderPrim, UnprojParams) {
     let cap = CylinderPrim {
         center: cc,
         axis: k,
-        r: if quant { (r / 0.25).round().max(1.0) * 0.25 } else { r },
+        r: if quant {
+            (r / 0.25).round().max(1.0) * 0.25
+        } else {
+            r
+        },
         hh: if quant { (hh / 0.5).round() * 0.5 } else { hh },
     };
     // rotation axis: random, or parallel / perpendicular to the capsule axis
@@ -106,7 +116,10 @@ fn gen_cfg(rng: &mut Rng) -> (RayPrim, CylinderPrim, UnprojParams) {
             // a cap
             let sgn = if rng.chance(0.5) { 1.0 } else { -1.0 };
             let u = rng.unit();
-            add(add(cc, scale(k, sgn * cap.hh)), scale(u, cap.r * rng.f(0.9, 1.1)))
+            add(
+                add(cc, scale(k, sgn * cap.hh)),
+                scale(u, cap.r * rng.f(0.9, 1.1)),
+            )
         }
         _ => add(cc, rng.vec(-3.0, 3.0)),
     };
@@ -142,7 +155,11 @@ fn gen_cfg(rng: &mut Rng) -> (RayPrim, CylinderPrim, UnprojParams) {
         }
         _ => rng.unit_or_axis(0.3),
     };
-    let at = if rng.chance(0.3) { 0.5 } else { rng.f(0.0, 1.0) };
+    let at = if rng.chance(0.3) {
+        0.5
+    } else {
+        rng.f(0.0, 1.0)
+    };
     let mut origin0 = Vec3::new(
         target.x - center.x - dir0.x * len * at,
         target.y - center.y - dir0.y * len * at,
@@ -211,8 +228,15 @@ fn gen_cap_ray(rng: &mut Rng) -> Case {
 
 #[derive(Debug, Clone)]
 enum Call {
-    Has { p: [u64; 6], ret: i32 },
-    Roots { p: [u64; 6], ret: i32, roots: Vec<u64> },
+    Has {
+        p: [u64; 6],
+        ret: i32,
+    },
+    Roots {
+        p: [u64; 6],
+        ret: i32,
+        roots: Vec<u64>,
+    },
 }
 
 fn parse_log(line: &str) -> Result<(Vec<Call>, String), String> {
@@ -242,7 +266,7 @@ fn parse_log(line: &str) -> Result<(Vec<Call>, String), String> {
                 let _fl = q(it.next())?;
                 let ret = q(it.next())? as i32;
                 let mut roots = Vec::new();
-                for _ in 0..ret.clamp(0, 20) {
+                for _ in 0..ret.clamp(0, 4) {
                     roots.push(q(it.next())?);
                 }
                 calls.push(Call::Roots { p, ret, roots });
@@ -270,21 +294,31 @@ impl QuarticSolver for Replay {
         match c {
             Some(Call::Has { p: q, ret }) => {
                 if q != bits(p) && self.err.is_none() {
-                    self.err = Some(format!("H#{} poly {:x?} vs dll {:x?}", self.pos - 1, bits(p), q));
+                    self.err = Some(format!(
+                        "H#{} poly {:x?} vs dll {:x?}",
+                        self.pos - 1,
+                        bits(p),
+                        q
+                    ));
                 }
                 ret
             }
             other => {
-                self.err.get_or_insert(format!("expected H at {}, dll {:?}", self.pos - 1, other));
+                self.err
+                    .get_or_insert(format!("expected H at {}, dll {:?}", self.pos - 1, other));
                 0
             }
         }
     }
-    fn roots(&mut self, p: &[f64; 6], roots: &mut [f64; 20]) -> i32 {
+    fn roots(&mut self, p: &[f64; 6], roots: &mut [f64; 4]) -> i32 {
         let c = self.calls.get(self.pos).cloned();
         self.pos += 1;
         match c {
-            Some(Call::Roots { p: q, ret, roots: r }) => {
+            Some(Call::Roots {
+                p: q,
+                ret,
+                roots: r,
+            }) => {
                 if q != bits(p) && self.err.is_none() {
                     self.err = Some(format!("S poly {:x?} vs dll {:x?}", bits(p), q));
                 }
@@ -294,7 +328,8 @@ impl QuarticSolver for Replay {
                 ret
             }
             other => {
-                self.err.get_or_insert(format!("expected S at {}, dll {:?}", self.pos - 1, other));
+                self.err
+                    .get_or_insert(format!("expected S at {}, dll {:?}", self.pos - 1, other));
                 0
             }
         }
@@ -405,7 +440,7 @@ fn ray_cap_rot_no_solver_needed_cases() {
         fn has_root(&mut self, _p: &[f64; 6]) -> i32 {
             0
         }
-        fn roots(&mut self, _p: &[f64; 6], _r: &mut [f64; 20]) -> i32 {
+        fn roots(&mut self, _p: &[f64; 6], _r: &mut [f64; 4]) -> i32 {
             0
         }
     }
@@ -446,4 +481,3 @@ fn ray_cap_rot_matches_dll() {
 fn cap_ray_rot_matches_dll() {
     check("p2b_rot_cap_cap_ray", 200, &gen_cap_ray);
 }
-
