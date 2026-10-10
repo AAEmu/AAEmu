@@ -1,0 +1,20 @@
+# P2a-1 (box-sphere / sphere-box): spheres dropped onto a tilted static box (they roll off it)
+# and onto a dynamic box resting on the ground.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=ramp type=box size=2,1,0.2
+entity name=ramp type=static pos=30,32,1 q=0,0.1736482,0,0.9848078
+part ent=ramp geom=ramp mass=0
+geom name=ball type=sphere r=0.3
+entity name=b1 type=rigid pos=30.3,32,3
+part ent=b1 geom=ball mass=5
+geom name=crate type=box size=0.5,0.5,0.5
+entity name=crate type=rigid pos=35,32,0.5 q=0,0,0.2588190,0.9659258
+part ent=crate geom=crate mass=30
+entity name=b2 type=rigid pos=35.2,32.1,3
+part ent=b2 geom=ball mass=5
+trace ents=b1,b2,crate
+print
+step n=300

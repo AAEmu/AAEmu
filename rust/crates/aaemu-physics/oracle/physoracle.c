@@ -638,10 +638,13 @@ typedef float (*fn_f2)(float, float);
 typedef double (*fn_d1)(double);
 typedef double (*fn_d2)(double, double);
 
+#include "probe_p2a1.c" /* P2a-1 box pair probes (additive) */
+
 static void math_probe(const char *name, int count, uint64_t seed) {
   g_rng = seed;
   HMODULE crt = GetModuleHandleA("MSVCR100.dll");
   printf("physoracle-math 1 %s %d %llu\n", name, count, (unsigned long long)seed);
+  if (!strncmp(name, "p2a1_", 5)) { p2a1_probe(name, count); return; }
   if (!strcmp(name, "quat2mat")) {
     /* sub_350247B0: Matrix33 (row-major) from quaternion (x,y,z,w) */
     fn_q2m f = (fn_q2m)VA(g_phys, 0x350247B0ULL);
