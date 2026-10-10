@@ -196,8 +196,10 @@ fn pairs() -> Vec<(i32, i32)> {
     all.into_iter()
         .filter(|&(a, b)| {
             let f = t.get(0, probe_a(a).geom_type(), probe_a(b).geom_type());
-            f as *const () as usize
-                != aaemu_physics::collision::swept::unproject_none as *const () as usize
+            !std::ptr::eq(
+                f as *const (),
+                aaemu_physics::collision::swept::unproject_none as *const (),
+            )
         })
         .collect()
 }
@@ -443,7 +445,10 @@ fn inters_from(w: &[u32]) -> PrimInters {
 
 fn is_ported(t: &UnprojTables, mode: usize, a: &Primitive, b: &Primitive) -> bool {
     let f = t.get(mode, a.geom_type(), b.geom_type());
-    f as *const () as usize != aaemu_physics::collision::swept::unproject_none as *const () as usize
+    !std::ptr::eq(
+        f as *const (),
+        aaemu_physics::collision::swept::unproject_none as *const (),
+    )
 }
 
 fn rand_world_prim(rng: &mut Rng, t: i32) -> Primitive {
