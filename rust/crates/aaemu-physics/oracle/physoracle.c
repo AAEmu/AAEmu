@@ -1027,7 +1027,9 @@ static void pairfn_probe(uint64_t va, int na, int nb, const char *path) {
 }
 
 /* ------------------------------------------------------------------ P2b unprojection probe */
+static int p4a_ext_intersect(char *line); /* P4a primitive Intersect probe */
 #include "p2b_probe.c"
+#include "p4a_probe_intersect.c"
 
 /* ------------------------------------------------------------------ main */
 int main(int argc, char **argv) {

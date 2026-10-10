@@ -166,7 +166,7 @@ static void p2b_run(void) {
     } else if (p2b_ext_poly(line) || p2b_ext_box_box(line) || p2b_ext_box_cyl(line) || p2b_ext_cyl_cyl(line) ||
                p2b_ext_box_round(line) || p2b_ext_tri(line) || p2b_ext_tri_cyl(line) || p2b_ext_ray_cyl(line) ||
                p2b_ext_rot_tri(line) || p2b_ext_rot_box(line) || p2b_ext_rot_cyl(line) || p2b_ext_rot_cap(line) ||
-               p2b_ext_sweep(line)) {
+               p2b_ext_sweep(line) || p4a_ext_intersect(line)) {
     } else {
       die("p2b: unknown command", line);
     }
