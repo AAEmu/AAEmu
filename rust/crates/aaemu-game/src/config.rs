@@ -55,6 +55,11 @@ pub struct AppConfig {
     pub debug_info: bool,
     #[serde(rename = "debuginfolevel", deserialize_with = "lenient")]
     pub debug_info_level: u32,
+    /// `Expedition` / `Justice` (`systems::social::config`).
+    #[serde(rename = "expedition")]
+    pub expedition: crate::systems::social::config::ExpeditionConfig,
+    #[serde(rename = "justice")]
+    pub justice: crate::systems::social::config::JusticeConfig,
     /// `FileManager.AppPath`: the directory holding `Config.json` and `Data/compact.sqlite3`.
     #[serde(skip)]
     pub app_path: PathBuf,
@@ -80,6 +85,8 @@ impl Default for AppConfig {
             default_language: "en_us".into(),
             debug_info: true,
             debug_info_level: 100,
+            expedition: Default::default(),
+            justice: Default::default(),
             app_path: PathBuf::from("."),
         }
     }
@@ -444,7 +451,7 @@ where
 
 /// Accepts a JSON number, bool or numeric string (the Microsoft binder stores everything as
 /// strings).
-fn lenient<'de, D, T>(d: D) -> Result<T, D::Error>
+pub(crate) fn lenient<'de, D, T>(d: D) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     T: FromStr,

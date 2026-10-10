@@ -74,35 +74,15 @@ fn mother_id(server: &GameServer, faction_id: u32) -> u32 {
         .map_or(0, |f| f.mother_id)
 }
 
-/// `FriendMananger.SendStatusChange(unit, forOnline, value)`.
-fn send_friend_status_change(server: &GameServer, p: &PlayerRef, for_online: bool, value: bool) {
-    let owners = server.friends.owners_of(p.character_id);
-    if owners.is_empty() {
-        return;
-    }
-    let mut info = format_friend(&p.data(), false);
-    if for_online {
-        info.is_online = value;
-    } else {
-        info.in_party = value;
-    }
-    for owner in owners {
-        if let Some(o) = server.world.character_by_id(owner) {
-            o.send(SCFriendStatusChangedPacket {
-                friend: info.clone(),
-            });
-        }
-    }
-}
-
 /// `Character.IsOnline` setter.
 pub fn set_online(server: &GameServer, p: &PlayerRef, value: bool) {
     if p.data().is_online == value {
         return;
     }
-    send_friend_status_change(server, p, true, value);
+    crate::systems::social::friend::send_status_change(server, p, true, value);
     p.data().is_online = value;
-    // !value -> TeamManager.SetOffline (teams are a later phase).
+    // !value -> TeamManager.SetOffline
+    crate::systems::social::session::on_online_changed(server, p, value);
 }
 
 /// `Expedition.SendPacket`: every online member.
@@ -451,7 +431,8 @@ pub fn select_loaded(
         let mut infos = Vec::new();
         for f in &snapshot.friends {
             if let Some(o) = server.world.character_by_id(f.friend_id) {
-                infos.push(format_friend(&o.data(), false));
+                let c = o.data();
+                infos.push(format_friend(&c, c.in_party));
             }
         }
         infos.extend(db.offline_friends.iter().cloned());
@@ -627,7 +608,8 @@ pub fn notify_in_game(server: &GameServer, conn: &mut GameConnection) {
         .chat
         .faction_chat(mother_id(server, faction))
         .join(&p);
-    // TeamManager.UpdateAtLogin: later phase.
+    // TODO: Maybe move to spawn character? (C#)
+    crate::systems::social::session::on_notify_in_game_team(server, &p);
     if expedition != 0 {
         expedition_refresh(server, &p);
         if let Some(e) = server.expeditions.get(expedition) {
@@ -637,7 +619,8 @@ pub fn notify_in_game(server: &GameServer, conn: &mut GameConnection) {
                 .join(&p);
         }
     }
-    // UpdateGearBonuses / TrialManager.HandlePlayerLogin: later phases.
+    // UpdateGearBonuses: skills subsystem.
+    crate::systems::social::session::on_notify_in_game_trial(server, &p);
     tracing::info!("NotifyInGame: {name} ({id})");
 }
 
@@ -653,7 +636,8 @@ pub fn notify_in_game_completed(server: &GameServer, conn: &mut GameConnection) 
             .is_snowing
             .load(std::sync::atomic::Ordering::Relaxed),
     });
-    // Family login: later phase.
+    // Family stuff
+    crate::systems::social::session::on_player_join(server, &p);
     let c = p.data();
     tracing::info!(
         "NotifyInGameCompleted SubZoneId 0, {} ({})",
@@ -815,8 +799,17 @@ pub async fn send_chat_message(
                 broadcast(&world, &me, &msg(chat, &sender), true);
             }
         }
-        chat_type::RAID_LEADER | chat_type::RAID => error(error_message::CHAT_NOT_IN_RAID),
-        chat_type::PARTY => error(error_message::CHAT_NOT_IN_PARTY),
+        chat_type::RAID_LEADER | chat_type::RAID | chat_type::PARTY => {
+            crate::systems::social::session::route_chat(
+                server,
+                &me,
+                chat,
+                &sender,
+                message,
+                ability,
+                language_type,
+            );
+        }
         chat_type::TRADE | chat_type::GROUP_FIND | chat_type::SHOUT => {
             let zone = me.data().unit.transform.zone_id;
             zone_chat(server, zone).send_packet(&msg(chat, &sender));
@@ -878,8 +871,15 @@ pub async fn send_chat_message(
                 );
         }
         chat_type::JUDGE => {
-            // GetTrialChat needs the TrialManager (later phase).
-            tracing::warn!("Trial chat is not ported yet ({})", sender.name);
+            crate::systems::social::session::route_chat(
+                server,
+                &me,
+                chat,
+                &sender,
+                message,
+                ability,
+                language_type,
+            );
         }
         other => tracing::warn!("Unsupported chat type {other} from {}", sender.name),
     }
@@ -942,7 +942,8 @@ pub async fn leave_world_task(
         p.data().leave_time = Utc::now().timestamp();
         // Quest timers, mates, slaves, coffers, dismount: later phases.
         server.chat.leave_all_channels(p);
-        // Family logout: later phase.
+        // Handle Family
+        crate::systems::social::session::on_leave_world_family(server, p);
         let (exp, id) = {
             let c = p.data();
             (c.unit.expedition_id, c.id)
