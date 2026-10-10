@@ -857,12 +857,20 @@ impl World {
         }
         loop {
             if first_slot57 {
-                // entity slot 57: base `return 0` (particles / ropes override; P5/P6)
+                // entity slot 57: base `return 0`; particles 0x3503AB10 (P5); ropes: P6
                 first_slot57 = false;
                 ctx.ent_slot57 = 1;
-                let n_contacts = 0;
+                let contacts: Vec<GeomContact> = match self.ent(ent).kind {
+                    crate::entities::base::EntityKind::Particle(_) => {
+                        crate::entities::particle::ray_trace(self, ent, &ctx.ray)
+                            .into_iter()
+                            .collect()
+                    }
+                    _ => Vec::new(),
+                };
+                let n_contacts = contacts.len() as i32;
                 v71 = ctx.part_mask & ((1 - ctx.n_parts) >> 31) & ((n_contacts - 1) >> 31);
-                self.register_ray_contacts(ctx, hits, &[], PartSrc::Entity(ent), ent, i, end);
+                self.register_ray_contacts(ctx, hits, &contacts, PartSrc::Entity(ent), ent, i, end);
             } else {
                 let bound = ctx.n_parts + (ctx.part_mask & (ctx.part_lo - ctx.n_parts + 1));
                 if i >= bound {

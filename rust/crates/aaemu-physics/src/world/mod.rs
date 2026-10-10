@@ -217,6 +217,9 @@ pub struct World {
     pub solver: Vec<Option<Box<crate::solver::SolverThread>>>,
     /// Query state: ray-limit settings, query queues, terrain basis ([`queries::QueryState`]).
     pub queries: queries::QueryState,
+    /// **P5** per-thread particle state (`CParticleEntity::DoStep` hit buffers and the
+    /// particle each thread is stepping), see [`crate::entities::particle::ParticleTls`].
+    pub particle_tls: crate::entities::particle::ParticleTls,
 }
 
 impl World {
@@ -291,6 +294,7 @@ impl World {
             agg_contact_id: crate::solver::ContactId::NONE,
             solver: (0..MAX_CALLERS).map(|_| None).collect(),
             queries: queries::QueryState::default(),
+            particle_tls: crate::entities::particle::ParticleTls::default(),
         };
         w.ccd_scratch
             .resize_with(MAX_CALLERS, crate::entities::rigid::contacts::ContactScratch::default);
