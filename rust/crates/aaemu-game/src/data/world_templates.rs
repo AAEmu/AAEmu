@@ -7,8 +7,10 @@
 //! `Xml/XmlWorld*.cs` readers, `XmlHelper.ReadAttribute`, `WorldSpawnPosition` and
 //! `WorldSpawnLocation`.
 //!
-//! Not ported: heightmaps / `WorldCell`, geodata (`AiGeoDataManager`), BAI navmesh loaders, water,
-//! sub zones / housing zones and everything from `#region LoadServerDB` onwards.
+//! The other `WorldManager` parts live with their subsystems: heightmaps / `WorldCell`
+//! (`systems::npcs::heightmap`), geodata and BAI navmesh loaders (`systems::ai::geodata`), water
+//! (`systems::ai::physics::water`), sub zones / housing zones (`systems::npcs::subzone`) and the
+//! `LoadServerDB` spawns (`systems::npcs::spawn_manager`).
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, MAIN_SEPARATOR};

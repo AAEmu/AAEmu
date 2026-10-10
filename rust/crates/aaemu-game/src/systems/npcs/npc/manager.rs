@@ -556,6 +556,20 @@ pub fn initialize_spawn_buffs(server: &GameServer, npc: &NpcRef, template: &NpcT
     }
 }
 
+/// `Npc.Delete()`: detaches the AI (`Ai.ShouldTick = false; Ai.Owner = null; Ai = null`: the AI
+/// is forgotten by the AI manager), then `GameObject.Delete()`.
+pub fn delete(server: &GameServer, world: &crate::world::WorldInstance, npc: &NpcRef) {
+    {
+        let mut n = npc.data();
+        n.ai_should_tick = false;
+        n.has_ai = false;
+    }
+    if let Some(ai) = server.systems.hooks.ai.get() {
+        ai.npc_deleted(server, npc.obj_id);
+    }
+    world.delete(npc);
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;

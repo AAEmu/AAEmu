@@ -170,7 +170,7 @@ pub trait NpcSkillHooks: Send + Sync {
     /// An effect template owned by the npc subsystem (`SpawnEffect`, `NpcSpawnerSpawnEffect`,
     /// `NpcSpawnerDespawnEffect`, `NpcControlEffect`, `KillNpcWithoutCorpseEffect`,
     /// `SpawnGimmickEffect`, `InteractionEffect`, `ScopedFEffect`, `PutDownBackpackEffect`,
-    /// `SpawnFishEffect`, `PhysicalExplosionEffect`, ...). `true` = handled.
+    /// `SpawnFishEffect`, ...). `true` = handled.
     fn apply_effect(
         &self,
         _server: &GameServer,

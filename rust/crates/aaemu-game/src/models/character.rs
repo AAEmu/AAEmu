@@ -206,6 +206,8 @@ pub struct Character {
     pub finished_loading: bool,
     pub disabled_set_position: bool,
     pub breath: u32,
+    /// `SubZoneId` (last `CSNotifySubZonePacket`, for the Memory Tome recall points).
+    pub sub_zone_id: u32,
     // ---- phase 3 / skills: add this subsystem's Character fields below ----
     /// Character skill / combat state (`SkillCancelled`, `LastCast`, `IsInAggroListOf`, ...).
     pub skill_char: crate::systems::skills::state::CharacterSkillState,
@@ -334,6 +336,7 @@ impl Character {
             finished_loading: false,
             disabled_set_position: false,
             breath: 60_000,
+            sub_zone_id: 0,
             // ---- phase 3 / skills ----
             skill_char: Default::default(),
             // ---- phase 3 / npcs ----

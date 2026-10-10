@@ -485,7 +485,7 @@ pub fn validate(
         }
         0x43 => {
             // TimedRewardsManager.GetMaxLabor(premium) - LaborPower
-            let remaining = player.map_or(0, |p| MAX_LABOR - i32::from(p.data().labor_power));
+            let remaining = player.map_or(0, |p| max_labor() - i32::from(p.data().labor_power));
             ret_value("skill_urk_labor_power_margin", v1, v1 as i32 <= remaining)
         }
         0x45 => ret(
@@ -529,9 +529,15 @@ pub fn validate(
 pub const QUEST_STEP_PROGRESS: u8 = 4;
 pub const QUEST_STEP_READY: u8 = 6;
 
-/// `TimedRewardsManager.GetMaxLabor(isPremium: false)` (the premium state lives on the
-/// connection, which the skill code does not see: the non-premium cap is used).
-const MAX_LABOR: i32 = 2000;
+/// `TimedRewardsManager.GetMaxLabor(player.Connection.Payment.PremiumState)` (every
+/// connection's `AccountPayment` is the default premium one until 2030).
+pub fn max_labor() -> i32 {
+    let premium = crate::systems::services::accounts::connection_payment()
+        .premium_state(chrono::Utc::now().timestamp());
+    i32::from(crate::systems::services::timed_rewards::get_max_labor(
+        premium,
+    ))
+}
 
 /// `UnitRequirementsGameData.CanUseSkill(skillTemplate, ownerUnit, skillCaster)`.
 pub fn can_use_skill(

@@ -675,7 +675,7 @@ impl SphereQuestTrigger {
             } else {
                 // Any NPC near the player (the template is not compared in C#).
                 for (o, npc_pos) in
-                    get_around_units(world, &owner_obj, self.sphere.radius * 1.5, false)
+                    get_around_units(server, world, &owner_obj, self.sphere.radius * 1.5, false)
                 {
                     if o.as_npc().is_none() {
                         continue;

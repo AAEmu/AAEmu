@@ -583,7 +583,8 @@ pub struct CombatBuffTemplate {
     pub is_heal_spell: bool,
 }
 
-/// `CombatBuffs` (per-unit, keyed by hit type). `TriggerCombatBuffs` is behaviour: TODO(skills).
+/// `CombatBuffs` (per-unit, keyed by hit type). `TriggerCombatBuffs` is
+/// `systems::skills::effects::combat::trigger_combat_buffs`.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct CombatBuffs {
     pub by_hit_type: HashMap<u8, Vec<CombatBuffTemplate>>,
@@ -636,7 +637,7 @@ pub struct UnitBase {
     pub hp: i32,
     pub mp: i32,
     /// `MaxHp` / `MaxMp` and the other formula attributes are computed by the kind (the
-    /// character formulas in `models::stats`, NPC formulas: TODO(npcs)); these are the cached
+    /// character formulas in `models::stats`, NPC formulas in `systems::npcs::npc::stats`); these are the cached
     /// values shared code reads.
     pub max_hp: i32,
     pub max_mp: i32,

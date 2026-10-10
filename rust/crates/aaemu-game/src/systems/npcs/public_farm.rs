@@ -338,8 +338,7 @@ pub fn public_farm_tick(server: &GameServer, now_ms: i64) -> Vec<DoodadRef> {
             d.owner_type = doodad_owner_type::SYSTEM;
             d.farm_type = farm_group_kind::INVALID;
         }
-        // TODO(npcs/doodad): `doodad.Save()` (persistent doodad row update) belongs to the
-        // doodad persistence port.
+        crate::systems::npcs::doodad::db::save(server, &doodad);
         released.push(doodad);
     }
     for doodad in &released {

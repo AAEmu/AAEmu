@@ -14,7 +14,7 @@ use crate::systems::npcs::doodad::templates::{
 };
 use crate::systems::npcs::hooks::{DoodadSkillCaster, DoodadSkillTarget};
 use crate::systems::npcs::public_farm;
-use crate::world::{now_ms, WorldInstance, WorldObject};
+use crate::world::{now_ms, WorldObject};
 
 /// `DoodadFuncUse.Use`.
 pub fn use_(
@@ -219,31 +219,17 @@ pub fn skill_hit(
     set_to_next_phase(ctx, f.skill_id == skill_id);
 }
 
-/// `WorldManager.GetAround<BaseUnit>(obj, radius, useModelSize)`: every unit or doodad (other
-/// than `obj`) within `radius` (2D, strict) in the region neighbourhood. `ModelSize` is 0 for
-/// every object (not ported).
+/// `WorldManager.GetAround<BaseUnit>(obj, radius, true)`: every base unit (other than `obj`)
+/// within `radius` widened by the model sizes (2D, strict) in the region neighbourhood.
 pub fn around_base_units(
-    world: &WorldInstance,
+    server: &crate::server::GameServer,
     obj: &WorldObject,
     radius: f32,
 ) -> Vec<WorldObject> {
-    if radius <= 0.0 || obj.region().is_none() {
-        return Vec::new();
-    }
-    let origin = world.world_pos_rot(obj);
-    let sq = radius * radius;
-    world
-        .objects_around(obj)
+    use crate::systems::skills::geometry::{around_radius, Target};
+    around_radius(server, &Target::Obj(obj.clone()), radius, true)
         .into_iter()
-        .filter(|o| {
-            let p = world.world_pos_rot(o);
-            let dx = (p.x - origin.x) * (p.x - origin.x);
-            if dx > sq {
-                return false;
-            }
-            let dy = (p.y - origin.y) * (p.y - origin.y);
-            dx + dy < sq
-        })
+        .filter(|o| !matches!(o, WorldObject::Gimmick(_)))
         .collect()
 }
 
@@ -259,10 +245,7 @@ pub fn buff(f: &DoodadFuncBuff, ctx: &DoodadCtx<'_>, caster: Option<&WorldObject
         // Caster only
         hook.add_buff(ctx.server, caster, f.buff_id, caster);
     } else {
-        let Some(world) = ctx.server.world.world_of(caster) else {
-            return;
-        };
-        for target in around_base_units(&world, caster, f.radius) {
+        for target in around_base_units(ctx.server, caster, f.radius) {
             hook.add_buff(ctx.server, &target, f.buff_id, caster);
         }
     }

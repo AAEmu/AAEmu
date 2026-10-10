@@ -703,7 +703,7 @@ impl NpcSpawner {
     pub fn despawn(&self, server: &GameServer, npc: &NpcRef) {
         let _lock = server.systems.npcs.spawns.spawn_lock();
         self.remove_npc_from_spawned_list(server, npc);
-        // TODO(npcs): npc.UnregisterNpcEvents() (world events are not ported).
+        // npc.UnregisterNpcEvents(): `Npc.Delete` drops the AI with its registrations.
         spawn_manager::delete_object(server, &WorldObject::from(npc), self.parent_world());
         self.st().is_despawn_scheduled = false;
     }
@@ -1325,7 +1325,7 @@ fn spawn_npc(
         return Err(format!("spawner {} has no parent world", spawner.id));
     };
     spawn_manager::forget_object_fields(server, npc.obj_id);
-    // TODO(npcs): npc.RegisterNpcEvents() (world events are not ported).
+    // npc.RegisterNpcEvents(): `ai::hooks::spawn_positioned` (before GoToSpawn).
     let can_fly = npc.data().can_fly;
     if !can_fly {
         let mut p = spawner.position();

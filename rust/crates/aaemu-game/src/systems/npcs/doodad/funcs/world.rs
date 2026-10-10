@@ -25,10 +25,9 @@ pub fn binding(f: &DoodadFuncBinding, ctx: &DoodadCtx<'_>, caster: Option<&World
     let server = ctx.server;
     let (faction_id, sub_zone_id) = {
         let c = player.data();
-        (c.unit.faction_id, c.unit.transform.zone_id)
+        (c.unit.faction_id, c.sub_zone_id)
     };
     let return_point_id = portal::district_return_point(server, f.district_id, faction_id);
-    // `SubZonesId` is the character's sub zone; the zone key is logged instead (not tracked).
     let msg = format!(
         "DoodadFuncBinding: DistrictId {} ==> ReturnPointId {return_point_id}, SubZonesId {sub_zone_id}",
         f.district_id

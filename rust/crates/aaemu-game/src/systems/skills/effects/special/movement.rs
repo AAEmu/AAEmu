@@ -454,15 +454,16 @@ pub fn return_(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     let Some(t) = trp else {
         let tr = p.data().unit.transform;
         let pos = world_pos(server, &Target::Obj(WorldObject::from(p)));
-        // `character.SubZoneId` is not tracked by the Rust character yet (printed as 0).
+        let sub_zone_id = p.data().sub_zone_id;
         tracing::info!(
-            "Return: Need to add information to worldgates.json:\r\n        \"Id\": {}\r\n        \"ZoneId\": {},\r\n        \"X\": {},\r\n        \"Y\": {},\r\n        \"Z\": {},\r\n        \"Yaw\": {},\r\n        \"SubZoneId\": 0\r\nThe coordinates need to be set correctly, these are just an example.",
+            "Return: Need to add information to worldgates.json:\r\n        \"Id\": {}\r\n        \"ZoneId\": {},\r\n        \"X\": {},\r\n        \"Y\": {},\r\n        \"Z\": {},\r\n        \"Yaw\": {},\r\n        \"SubZoneId\": {}\r\nThe coordinates need to be set correctly, these are just an example.",
             v[0],
             tr.zone_id,
             pos.x,
             pos.y,
             pos.z,
-            pos.rot_z
+            pos.rot_z,
+            sub_zone_id
         );
         return;
     };

@@ -788,3 +788,15 @@ impl crate::systems::skills::ext::NpcSkillHooks for AiParts {
         false
     }
 }
+
+/// `Npc.Delete()`: the AI is detached and forgotten with the NPC.
+#[tokio::test]
+async fn npc_delete_detaches_its_ai() {
+    let f = fixture(300.0);
+    assert!(f.server.systems.ai.ais.get(NPC_OBJ).is_some());
+    let world = f.server.world.world(0).expect("world");
+    crate::systems::npcs::npc::manager::delete(&f.server, &world, &f.npc);
+    assert!(f.server.systems.ai.ais.get(NPC_OBJ).is_none());
+    assert!(!f.npc.data().has_ai);
+    assert!(world.npc(NPC_OBJ).is_none());
+}

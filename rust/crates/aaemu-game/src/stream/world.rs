@@ -1,8 +1,7 @@
 //! Game-world lookups the stream server needs but which are owned by other subsystems
 //! (WorldManager / Doodad, NameManager, ItemManager, the connection's ActiveChar and its
-//! inventory). Those subsystems are not ported yet, so [`NullStreamWorld`] answers "not found"
-//! everywhere; once they exist, implement [`StreamWorld`] and install it with
-//! `server.streams.set_world(..)`.
+//! inventory). [`NullStreamWorld`] answers "not found" everywhere (tests); the server installs
+//! `stream_world::GameStreamWorld` with `server.streams.set_world(..)`.
 
 /// Snapshot of what `TCDoodadStreamPacket` writes for one `Doodad`.
 #[derive(Debug, Clone, PartialEq)]

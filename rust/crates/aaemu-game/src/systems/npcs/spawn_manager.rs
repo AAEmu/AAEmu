@@ -400,8 +400,8 @@ pub fn delete_object(server: &GameServer, obj: &WorldObject, fallback_world: Opt
     };
     match obj {
         WorldObject::Doodad(d) => backend::doodad_delete(server, &world, d),
-        // TODO(npcs): Npc.Delete / Slave.Delete / Mate.Delete kind-specific cleanup belongs to
-        // the owning managers; the world part is the common GameObject.Delete.
+        // Npc.Delete detaches the AI; Slave / Mate have no Delete override.
+        WorldObject::Npc(n) => crate::systems::npcs::npc::manager::delete(server, &world, n),
         o => world.delete(o.clone()),
     }
 }
@@ -1031,6 +1031,7 @@ impl SpawnManager {
         }
         let rows = q.fetch_all(&server.db).await?;
         let mut count = 0;
+        let mut new_coffers = Vec::new();
         for r in rows {
             let template_id = int(&r, "template_id")? as u32;
             let db_id = int(&r, "id")? as u32;
@@ -1136,9 +1137,47 @@ impl SpawnManager {
                 .data()
                 .transform
                 .set_position(x, y, z, roll, pitch, yaw);
-            // TODO(npcs/economy): DoodadCoffer ItemContainer attach / InitializeCoffer
-            // (item_container_id {item_container_id}); Slave AttachedDoodads.
-            let _ = item_container_id;
+            // Attach ItemContainer to coffer if needed
+            if doodad.data().coffer.is_some() {
+                if item_container_id > 0 {
+                    let is_coffer_container = server
+                        .items
+                        .container_by_id(item_container_id)
+                        .is_some_and(|c| {
+                            c.lock().expect("container poisoned").kind
+                                == crate::models::container::ContainerKind::Coffer
+                        });
+                    if is_coffer_container {
+                        if let Some(c) = doodad.data().coffer.as_mut() {
+                            c.container_id = item_container_id;
+                        }
+                    } else {
+                        tracing::error!(
+                            "Unable to attach ItemContainer {item_container_id} to DoodadCoffer, objId: {}, DbId: {db_id}",
+                            doodad.obj_id
+                        );
+                    }
+                } else {
+                    tracing::warn!(
+                        "DoodadCoffer has no persistent ItemContainer assigned to it, creating new one, objId: {}, DbId: {db_id}",
+                        doodad.obj_id
+                    );
+                    if let Some(h) = server.systems.npcs.hooks.economy.get() {
+                        h.initialize_coffer(server, &doodad, owner_id);
+                    }
+                    // Mark for saving again later when we're done with this loop
+                    new_coffers.push(doodad.clone());
+                }
+            }
+            // Slave AttachedDoodads
+            if owner_type_to_spawn == doodad_owner_type::SLAVE {
+                if let Some(slave) = use_parent_object.and_then(WorldObject::as_slave) {
+                    let mut s = slave.data();
+                    if !s.attached_doodads.contains(&doodad.obj_id) {
+                        s.attached_doodads.push(doodad.obj_id);
+                    }
+                }
+            }
             // `doodad.InitDoodad()`.
             crate::systems::npcs::doodad::manager::init_doodad(server, &self.world, &doodad);
             self.inner().player_doodads.push(doodad.clone());
@@ -1146,6 +1185,10 @@ impl SpawnManager {
             if do_spawn {
                 backend::doodad_spawn(server, &self.world, &doodad);
             }
+        }
+        // Save Coffer Doodads that had a new ItemContainer created for them
+        for coffer in new_coffers {
+            crate::systems::npcs::doodad::db::save(server, &coffer);
         }
         Ok(count)
     }
@@ -1453,7 +1496,8 @@ impl SpawnManager {
                 // `npc.Spawner.Respawn(npc)` is disabled: Update() spawns again.
                 (SpawnerLink::Npc(s), _) => s.set_spawn_scheduled(false),
                 (SpawnerLink::Doodad(s), WorldObject::Doodad(d)) => s.respawn(server, d),
-                // Transfer spawner respawns (vehicles). TODO(npcs): Gimmick spawner respawns.
+                // Transfer spawner respawns (vehicles). Gimmicks are never scheduled in the 1.2
+                // C# (`GimmickSpawner.DecreaseCount` has no caller).
                 (_, o) => crate::systems::vehicles::respawn_object(server, o),
             }
             Self::remove_entry(&self.respawns, &e);
@@ -1706,7 +1750,7 @@ impl SpawnManager {
                     s.set_respawn_time(9_999_999);
                     s.do_despawn(server, &npc);
                 }
-                None => self.world.delete(&npc),
+                None => crate::systems::npcs::npc::manager::delete(server, &self.world, &npc),
             }
             res += 1;
         }
@@ -1724,7 +1768,7 @@ impl SpawnManager {
             }
             res += 1;
         }
-        // TODO(npcs): Mate.Delete / Slave.Delete (mate / slave managers).
+        // Mate / Slave: GameObject.Delete (no override in C#).
         for kind in [ObjectKind::Mate, ObjectKind::Slave] {
             for o in self.world.all_of_kind(kind) {
                 self.world.delete(o);
@@ -1745,7 +1789,8 @@ impl SpawnManager {
             .collect();
         for s in npc_spawners {
             for npc in s.spawned_npcs().into_values().flatten() {
-                // TODO(npcs): npc.UnregisterNpcEvents()
+                // npc.UnregisterNpcEvents(): the AI (and its event registrations) goes with the
+                // deleted NPC.
                 s.despawn(server, &npc);
             }
             s.clear_spawned_npcs();
@@ -1761,7 +1806,8 @@ impl SpawnManager {
         }
         self.inner().doodad_spawners.clear();
         self.inner().gimmick_spawners.clear();
-        // TODO(npcs): World.GimmickManager._activeGimmicks -> gimmick.Delete() (gimmick module).
+        // World.GimmickManager._activeGimmicks -> gimmick.Delete() (GameObject.Delete: the
+        // active list itself is left as is, as in C#).
         for g in self.world.all_of_kind(ObjectKind::Gimmick) {
             self.world.delete(g);
         }

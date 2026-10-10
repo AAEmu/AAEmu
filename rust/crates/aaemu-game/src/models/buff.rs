@@ -6,9 +6,9 @@
 //! [`BuffEvent`]; the owner drains them with `systems::dispatch_buff_events` once its lock is
 //! released, which hands them to the skills subsystem (`systems::UnitHooks::on_buff_event`).
 //!
-//! TODO(skills): buff effects and bonuses (`BuffTemplate.Start` / `Dispel`), effect / dispel
-//! tasks (buffs never expire on their own here), tolerance counters, triggers,
-//! `TriggerRemoveOn`, tag checks, modifier-cache updates, `SCBuffCreatedPacket` broadcasts.
+//! The buff behaviour (`BuffTemplate.Start` / `Dispel`, effect / dispel tasks, tolerance
+//! counters, triggers, `TriggerRemoveOn`, tag checks, modifier-cache updates,
+//! `SCBuffCreatedPacket` broadcasts) is `systems::skills::buffs`.
 
 use aaemu_commons::PacketStream;
 

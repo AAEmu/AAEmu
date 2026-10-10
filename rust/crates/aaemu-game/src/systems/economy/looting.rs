@@ -93,8 +93,8 @@ pub trait LootNpcHooks: Send + Sync {
         false
     }
 
-    /// `a.GetDistanceTo(b)` (2D, minus the actor model radii). `None` = use the raw 2D
-    /// distance (model radii are not ported in the economy).
+    /// `a.GetDistanceTo(b)` (2D, minus the actor model radii; the npcs subsystem's
+    /// implementation is installed). `None` = use the raw 2D distance.
     fn distance_to(&self, _server: &GameServer, _a: &WorldObject, _b: &WorldObject) -> Option<f32> {
         None
     }

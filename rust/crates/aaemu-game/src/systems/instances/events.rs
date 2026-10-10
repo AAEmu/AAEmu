@@ -458,12 +458,7 @@ pub fn execute(server: &GameServer, action: &IndunAction, world: &Arc<WorldInsta
                     continue;
                 }
                 // Npc.Delete(): detach the AI, then GameObject.Delete().
-                {
-                    let mut n = npc.data();
-                    n.ai_should_tick = false;
-                    n.has_ai = false;
-                }
-                world.delete(&npc);
+                crate::systems::npcs::npc::manager::delete(server, world, &npc);
             }
             tracing::warn!("IndunActionRemoveTaggedNpcs: {tag_id}");
         }

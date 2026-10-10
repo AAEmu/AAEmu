@@ -299,7 +299,7 @@ pub struct WorldConfig {
     pub ignore_fall_damage_access_level: i32,
     #[serde(rename = "godmode", deserialize_with = "lenient")]
     pub god_mode: bool,
-    /// `GeoDataMode` (navmesh heights; geodata is not ported, the `false` path is used).
+    /// `GeoDataMode` (navmesh heights and A* paths, `systems::ai::geodata`).
     #[serde(rename = "geodatamode", deserialize_with = "lenient")]
     pub geo_data_mode: bool,
     /// `PreLoadTerrain`: load every heightmap cell at startup instead of on demand.

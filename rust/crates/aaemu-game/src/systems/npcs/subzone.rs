@@ -431,11 +431,11 @@ impl ClientPacket for CSNotifySubZonePacket {
                 return Ok(());
             };
             let (name, id) = {
-                let c = player.data();
+                let mut c = player.data();
+                // needed to store Memory Tome points for Recall
+                c.sub_zone_id = self.sub_zone_id;
                 (c.unit.name.clone(), c.id)
             };
-            // TODO(npcs): `ActiveChar.SubZoneId = subZoneId` (Memory Tome recall points) needs
-            // a `Character.sub_zone_id` field (not added: shared model file).
             info!("Enter RegionId: {} by {name} ({id})", self.sub_zone_id);
             crate::systems::npcs::portal::notify_sub_zone(server, &player, self.sub_zone_id);
             Ok(())

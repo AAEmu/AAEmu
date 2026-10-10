@@ -10,8 +10,8 @@
 //! when their trigger count drops to 0; every `TickRate` ms the trigger's effects are applied to
 //! the units inside (skills hook).
 //!
-//! Not ported: `ModelSize` of units (`ModelManager` actor radius) is 0, so `GetAround(…,
-//! useModelSize: true)` uses the plain radius.
+//! `GetAround(…, useModelSize: true)` widens the radius by the units' `ModelSize` (actor model
+//! radius × scale; doodad owners have none).
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
@@ -204,16 +204,21 @@ fn radius_fits_current_region(x: f32, y: f32, radius: f32) -> bool {
 }
 
 /// `WorldManager.GetAround<Unit>(obj, radius, useModelSize)` with each unit's world position.
-/// `ModelSize` is 0 for every object (not ported; doodads have 0 in C# too).
 pub fn get_around_units(
+    server: &GameServer,
     world: &WorldInstance,
     obj: &WorldObject,
     radius: f32,
-    _use_model_size: bool,
+    use_model_size: bool,
 ) -> Vec<(WorldObject, [f32; 3])> {
+    use crate::systems::skills::geometry::{model_size, Target};
     let mut result = Vec::new();
     if radius <= 0.0 {
         return result;
+    }
+    let mut radius = radius;
+    if use_model_size {
+        radius += model_size(server, &Target::Obj(obj.clone()));
     }
     let Some((inst, rx, ry)) = obj.region() else {
         return result;
@@ -235,7 +240,11 @@ pub fn get_around_units(
                 continue;
             }
             let p = world.world_pos_rot(&o);
-            let final_rad = sqrad; // + ModelSize² (0)
+            let mut final_rad = sqrad;
+            if use_model_size {
+                let ms = model_size(server, &Target::Obj(o.clone()));
+                final_rad += ms * ms;
+            }
             let dx = (p.x - origin.x) * (p.x - origin.x);
             if dx > final_rad {
                 continue;
@@ -251,6 +260,7 @@ pub fn get_around_units(
 
 /// `WorldManager.GetAroundByShape<Unit>(obj, shape)`: `None` for an unknown shape type.
 pub fn get_around_by_shape(
+    server: &GameServer,
     world: &WorldInstance,
     obj: &WorldObject,
     shape: &AreaShape,
@@ -263,7 +273,7 @@ pub fn get_around_by_shape(
                 40.0
             };
             Some(
-                get_around_units(world, obj, radius, true)
+                get_around_units(server, world, obj, radius, true)
                     .into_iter()
                     .map(|(o, _)| o)
                     .collect(),
@@ -272,7 +282,7 @@ pub fn get_around_by_shape(
         AREA_SHAPE_CUBOID => {
             let diagonal =
                 f64::from(shape.value1 * shape.value1 + shape.value2 * shape.value2).sqrt();
-            let res = get_around_units(world, obj, diagonal as f32, true);
+            let res = get_around_units(server, world, obj, diagonal as f32, true);
             let origin = world.world_pos_rot(obj);
             Some(
                 shape
@@ -397,7 +407,7 @@ impl AreaTrigger {
             return;
         };
         // Get units currently in the shape
-        let Some(current) = get_around_by_shape(&world, &owner_obj, shape) else {
+        let Some(current) = get_around_by_shape(server, &world, &owner_obj, shape) else {
             return;
         };
         let old = self.state().units.clone();

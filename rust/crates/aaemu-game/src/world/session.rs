@@ -684,7 +684,8 @@ pub fn notify_in_game_completed(server: &GameServer, conn: &mut GameConnection) 
     crate::systems::social::session::on_player_join(server, &p);
     let c = p.data();
     tracing::info!(
-        "NotifyInGameCompleted SubZoneId 0, {} ({})",
+        "NotifyInGameCompleted SubZoneId {}, {} ({})",
+        c.sub_zone_id,
         c.unit.name,
         c.id
     );
@@ -787,6 +788,18 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
                 .leave_other_instance(&crate::world::WorldObject::from(&target), world.id);
             let changes = world.add_visible_object(&target, &server.view_ctx());
             handle_zone_changes(server, changes);
+            // FinalizeTransform: every 5 s the movement speed analysis (SusManager)
+            let new_pos = {
+                let t = target.transform();
+                (t.x, t.y, t.z)
+            };
+            if new_pos != old_pos {
+                server
+                    .systems
+                    .services
+                    .sus
+                    .finalize_transform(server, &target);
+            }
             match target.as_player() {
                 // Character.SetPosition (BuffRemoveOn.Move when moved) + DoFallDamage(FallVel).
                 Some(player) => {

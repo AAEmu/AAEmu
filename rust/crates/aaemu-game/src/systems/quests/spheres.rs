@@ -489,7 +489,7 @@ impl super::engine::Ctx<'_> {
                 sphere_id,
                 or_unit_reqs,
                 &owner,
-                &super::engine::TargetView(t),
+                &super::engine::TargetView(t, self.server),
                 &env,
             ),
             None => self.data.unit_reqs.can_trigger_sphere(

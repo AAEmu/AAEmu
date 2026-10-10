@@ -1917,15 +1917,13 @@ impl TrialManager {
         participating_trial(&st.rooms, &st.trials, player)
     }
 
-    /// `JoinTrialAudience(player, doodadTemplateId)`. Distances use `GetDistanceTo` without the
-    /// player's model radius (actor models are not ported).
+    /// `JoinTrialAudience(player, doodadTemplateId)`.
     pub fn join_trial_audience(
         &self,
         server: &GameServer,
         player: &PlayerRef,
         doodad_template_id: u32,
     ) {
-        let ppos = world_pos_rot(server, &WorldObject::from(player));
         let mut st = self.st();
         for room in st.rooms.iter_mut() {
             if room.audience_members.iter().any(|a| Arc::ptr_eq(a, player)) {
@@ -1936,13 +1934,14 @@ impl TrialManager {
                 if seat.data().template_id != doodad_template_id {
                     continue;
                 }
-                let spos = world_pos_rot(server, &WorldObject::from(seat));
-                let dist = if (ppos.x, ppos.y, ppos.z) == (spos.x, spos.y, spos.z) {
-                    0.0
-                } else {
-                    util::distance((ppos.x, ppos.y, ppos.z), (spos.x, spos.y, spos.z), false)
-                        .max(0.0)
-                };
+                // player.GetDistanceTo(seat) (2D, minus the player's model size)
+                use crate::systems::skills::geometry::{distance_to, Target};
+                let dist = distance_to(
+                    server,
+                    &Target::Obj(WorldObject::from(player)),
+                    &Target::Obj(WorldObject::from(seat)),
+                    false,
+                );
                 // `!(dist <= 5f)` (NaN never matches).
                 if dist.is_nan() || dist > 5.0 {
                     continue;

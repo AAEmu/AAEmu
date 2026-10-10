@@ -672,12 +672,18 @@ fn make_portal(
             world_rot.2,
         );
     }
-    // `InitializeSpawnBuffs` / `UpdateGearBonuses(null, null)` (skills: buffs / gear bonuses);
-    // `MaxHp` / `MaxMp` are the NPC stat getters.
-    super::npc::stats::refresh_cached_stats(&server.game_data, &mut npc);
-    npc.unit.hp = npc.unit.max_hp;
-    npc.unit.mp = npc.unit.max_mp;
     let npc = Entity::new(obj_id, npc);
+    // `InitializeSpawnBuffs` / `UpdateGearBonuses(null, null)`; `MaxHp` / `MaxMp` are the NPC
+    // stat getters.
+    super::npc::manager::initialize_spawn_buffs(server, &npc, template);
+    crate::systems::skills::stats::update_npc_gear_bonuses(server, &npc, None, None);
+    crate::systems::dispatch_buff_events(server, &WorldObject::from(&npc));
+    {
+        let mut n = npc.data();
+        super::npc::stats::refresh_cached_stats(&server.game_data, &mut n);
+        n.unit.hp = n.unit.max_hp;
+        n.unit.mp = n.unit.max_mp;
+    }
     let changes = world.spawn(&npc, &server.view_ctx());
     session::handle_zone_changes(server, changes);
     schedule_kill(server, &npc);
@@ -744,12 +750,7 @@ pub fn delete_portal_npc(server: &GameServer, npc: &NpcRef) {
         },
         false,
     );
-    {
-        let mut n = npc.data();
-        n.ai_should_tick = false;
-        n.has_ai = false;
-    }
-    world.delete(npc);
+    super::npc::manager::delete(server, &world, npc);
     // KillLinkedPortal
     npc.data().unit.hp = 0;
     if linked != 0 {

@@ -940,7 +940,7 @@ impl HeightmapWorlds {
         let mut loaded = 0;
         for t in worlds.templates() {
             info!("Loading heightmap of {}", t.name);
-            // LoadZoneBaiFiles: GeoDataMode only (not ported).
+            // LoadZoneBaiFiles: GeoDataMode only (`systems::ai::geodata`).
             let world_xml = format!("game/worlds/{}/world.xml", t.name);
             if !self.files.file_exists(&world_xml) {
                 continue;

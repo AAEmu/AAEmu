@@ -832,13 +832,27 @@ pub fn update_vehicle_gear_bonuses(
     refresh_cached_stats(server, unit);
 }
 
-/// `Unit.UpdateGearBonuses` for an NPC (its `Equipment`): the gear unit modifiers only (the
-/// item-side gear buffs are the item subsystem's and only apply to characters). The cached
-/// stats are refreshed by the NPC subsystem's getters.
-pub fn update_npc_gear_bonuses(server: &GameServer, npc: &crate::world::NpcRef) {
+/// `Unit.UpdateGearBonuses(itemAdded, itemRemoved)` for an NPC (its `Equipment`): the gear
+/// unit modifiers, then the gear buffs (equip effects, weapon-wield buff, armor-grade buff,
+/// item-set bonuses) as for any unit; the cached stats are refreshed by the NPC subsystem.
+pub fn update_npc_gear_bonuses(
+    server: &GameServer,
+    npc: &crate::world::NpcRef,
+    added: Option<&crate::models::item::Item>,
+    removed: Option<&crate::models::item::Item>,
+) {
+    {
+        let mut n = npc.data();
+        let bonuses = gear_bonuses(server, n.equipment.iter().flatten());
+        set_gear_bonuses(&mut n.unit, bonuses);
+    }
+    server.systems.skills.ext.items().apply_gear_buffs(
+        server,
+        &WorldObject::from(npc),
+        added,
+        removed,
+    );
     let mut n = npc.data();
-    let bonuses = gear_bonuses(server, n.equipment.iter().flatten());
-    set_gear_bonuses(&mut n.unit, bonuses);
     crate::systems::npcs::npc::stats::refresh_cached_stats(&server.game_data, &mut n);
 }
 

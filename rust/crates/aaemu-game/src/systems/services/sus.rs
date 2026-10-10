@@ -1,6 +1,6 @@
 //! `Core/Managers/SusManager`: the suspicious-activity log (`audit_char_sus`) and the movement
-//! speed analysis of players and mounts (run every 5 s by `Transform.FinalizeTransform`, whose
-//! batching is not ported yet: callers pass the world position and flags).
+//! speed analysis of players and mounts, run every 5 s of `Transform.FinalizeTransform`
+//! ([`SusManager::finalize_transform`], called by the unit movement handler).
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -31,9 +31,94 @@ pub struct SusManager {
     last_player_positions: Mutex<HashMap<u32, ([f32; 3], f32)>>,
     /// `LastPetPositions` (mate id -> (pos, skipTime)).
     last_pet_positions: Mutex<HashMap<u32, ([f32; 3], f32)>>,
+    /// `Transform._lastFinalizeTime` (unix ms) / `_skipCheckTime` (s) per object.
+    finalize_checks: Mutex<HashMap<u32, (i64, f32)>>,
 }
 
 impl SusManager {
+    /// The `_skipCheckTime` part of `Transform.FinalizeTransform` for an object whose world
+    /// position changed: `true` once every 5 s (the first finalize of an object included).
+    pub fn finalize_check(&self, obj_id: u32, now_ms: i64) -> bool {
+        let mut m = self.finalize_checks.lock().expect("sus poisoned");
+        let e = m.entry(obj_id).or_insert((now_ms, 0.0));
+        let delta = (now_ms - e.0) as f32 / 1000.0;
+        e.0 = now_ms;
+        e.1 -= delta;
+        if e.1 <= 0.0 {
+            e.1 = 5.0;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Forgets an object's `FinalizeTransform` timer (the object left the world).
+    pub fn forget_object(&self, obj_id: u32) {
+        self.finalize_checks
+            .lock()
+            .expect("sus poisoned")
+            .remove(&obj_id);
+    }
+
+    /// `Transform.FinalizeTransform` every 5 s: `AnalyzePlayerDeltaMovement(player, 5f)` for a
+    /// character, `AnalyzeMountDeltaMovement(mount, 5f)` for a mate (the database log runs on
+    /// a task).
+    pub fn finalize_transform(&self, server: &GameServer, obj: &WorldObject) {
+        if !matches!(obj, WorldObject::Player(_) | WorldObject::Mate(_)) {
+            return;
+        }
+        if !self.finalize_check(obj.obj_id(), crate::world::now_ms()) {
+            return;
+        }
+        let (Some(arc), Ok(rt)) = (server.self_arc(), tokio::runtime::Handle::try_current()) else {
+            return;
+        };
+        let obj = obj.clone();
+        rt.spawn(async move {
+            let sus = &arc.systems.services.sus;
+            match &obj {
+                WorldObject::Player(p) => {
+                    let riding = p.data().is_riding;
+                    sus.analyze_player(&arc, p, riding, 5.0).await;
+                }
+                WorldObject::Mate(m) => sus.analyze_mount(&arc, m, 5.0).await,
+                _ => {}
+            }
+        });
+    }
+
+    /// `AnalyzeMountDeltaMovement(pet, deltaTime)` including the `audit_char_sus` entry of the
+    /// pet's owner.
+    pub async fn analyze_mount(
+        &self,
+        server: &GameServer,
+        pet: &crate::world::MateRef,
+        delta_time: f32,
+    ) {
+        let obj = WorldObject::from(pet);
+        let pos = match server.world.world_of(&obj) {
+            Some(w) => {
+                let p = w.world_pos_rot(&obj);
+                [p.x, p.y, p.z]
+            }
+            None => {
+                let t = obj.transform();
+                [t.x, t.y, t.z]
+            }
+        };
+        let (id, name, disabled, owner_obj_id) = {
+            let m = pet.data();
+            (m.id, m.unit.name.clone(), false, m.owner_obj_id)
+        };
+        if let Some(speed) = self.analyze_mount_delta_movement(id, pos, disabled, delta_time) {
+            let owner = server.world.character_by_obj_id(owner_obj_id);
+            let owner_name = owner.as_ref().map(|o| o.data().unit.name.clone());
+            let text = Self::mount_report(&name, owner_name.as_deref(), speed);
+            self.log_activity_player(server, CATEGORY_CHEATING, owner.as_ref(), &text)
+                .await;
+        }
+    }
+
     /// `LogActivity(category, accountId, playerId, zoneGroup, position, description)`.
     #[allow(clippy::too_many_arguments)]
     pub async fn log_activity(
@@ -247,6 +332,19 @@ fn world_position(server: &GameServer, player: &PlayerRef) -> [f32; 3] {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn finalize_check_runs_every_five_seconds() {
+        let s = SusManager::default();
+        assert!(s.finalize_check(7, 1_000)); // first finalize
+        assert!(!s.finalize_check(7, 3_000));
+        assert!(!s.finalize_check(7, 5_999));
+        assert!(s.finalize_check(7, 6_000));
+        assert!(!s.finalize_check(7, 6_100));
+        s.forget_object(7);
+        assert!(s.finalize_check(7, 6_200));
+    }
+
     use super::*;
 
     #[test]

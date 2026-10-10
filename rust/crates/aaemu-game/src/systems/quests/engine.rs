@@ -940,7 +940,7 @@ impl<'a> Ctx<'a> {
                 component_id,
                 ct.or_unit_reqs,
                 &owner,
-                &TargetView(t),
+                &TargetView(t, self.server),
                 &env,
             ),
             None => self.data.unit_reqs.can_component_run(
@@ -1826,8 +1826,13 @@ impl ReqSubject for OwnerView<'_> {
     fn has_buff(&self, buff_id: u32) -> bool {
         self.c.unit.buffs.check_buff(buff_id)
     }
-    fn has_buff_tag(&self, _tag: u32) -> bool {
-        false // buff tags (TagsGameData) are not loaded
+    fn has_buff_tag(&self, tag: u32) -> bool {
+        // Buffs.CheckBuffTag(tag)
+        has_buff_tag_in(
+            self.server,
+            self.c.unit.buffs.effects.iter().map(|b| b.template.id),
+            tag,
+        )
     }
     fn hpp(&self) -> i32 {
         self.c.unit.hpp()
@@ -1885,8 +1890,8 @@ impl ReqSubject for OwnerView<'_> {
         (t.x, t.y, t.z)
     }
     fn labor_margin(&self) -> Option<i32> {
-        // TimedRewardsManager.GetMaxLabor(premium): not ported; 5000 is the non-premium cap
-        Some(5000 - i32::from(self.c.labor_power))
+        // TimedRewardsManager.GetMaxLabor(Connection.Payment.PremiumState) - LaborPower
+        Some(crate::systems::skills::unit_reqs::max_labor() - i32::from(self.c.labor_power))
     }
     fn expedition(&self) -> Option<(u32, u32)> {
         (self.c.unit.expedition_id > 0).then_some((self.c.unit.expedition_id, 0))
@@ -1896,8 +1901,16 @@ impl ReqSubject for OwnerView<'_> {
     }
 }
 
+/// `Buffs.CheckBuffTag(tag)` over the template ids of a unit's buffs.
+fn has_buff_tag_in(server: &GameServer, mut buff_ids: impl Iterator<Item = u32>, tag: u32) -> bool {
+    match server.game_data.systems.skills.buffs_by_tag(tag) {
+        Some(ids) => buff_ids.any(|id| ids.contains(&id)),
+        None => false,
+    }
+}
+
 /// The current target, from its snapshot.
-pub struct TargetView<'a>(pub &'a UnitSnapshot);
+pub struct TargetView<'a>(pub &'a UnitSnapshot, pub &'a GameServer);
 
 impl ReqSubject for TargetView<'_> {
     fn is_unit(&self) -> bool {
@@ -1936,8 +1949,8 @@ impl ReqSubject for TargetView<'_> {
     fn has_buff(&self, buff_id: u32) -> bool {
         self.0.buff_ids.contains(&buff_id)
     }
-    fn has_buff_tag(&self, _tag: u32) -> bool {
-        false
+    fn has_buff_tag(&self, tag: u32) -> bool {
+        has_buff_tag_in(self.1, self.0.buff_ids.iter().copied(), tag)
     }
     fn hpp(&self) -> i32 {
         self.0.hpp
