@@ -114,10 +114,15 @@ fn basic_slots_match_the_oracle() {
 
 #[test]
 fn point_inside_matches_the_oracle() {
+    // includes the fixed degenerate primitives of `gdegen` (basic slots too)
     let cs = cases("p1a_inside");
     let mut fails = Vec::new();
     for c in &cs {
         let a = AnyGeom::of(c);
+        if c.probe == "basic" {
+            check(c, &basic_tokens(&a), &mut fails);
+            continue;
+        }
         let r = a.g().point_inside_status(c.v(0));
         check(c, &[r.to_string()], &mut fails);
     }
@@ -246,4 +251,31 @@ fn geometry_trait_defaults() {
     assert_eq!(b.foreign_idx(0), -1);
     assert_eq!(b.normal(0), Vec3::Z);
     assert_eq!(b.extent(0), 8.0);
+}
+
+/// Large fuzz runs straight from the oracle (only with `AAEMU_PHYS_ORACLE`; no goldens).
+#[test]
+fn basic_and_inside_large_fuzz_with_oracle() {
+    let text = "gprobe probe=basic type=box n=3000 seed=1101\n\
+                gprobe probe=basic type=sphere n=1000 seed=1102\n\
+                gprobe probe=basic type=cylinder n=3000 seed=1103\n\
+                gprobe probe=basic type=capsule n=3000 seed=1104\n\
+                gprobe probe=basic type=ray n=1000 seed=1105\n\
+                gprobe probe=inside type=box n=5000 seed=1201\n\
+                gprobe probe=inside type=sphere n=3000 seed=1202\n\
+                gprobe probe=inside type=cylinder n=5000 seed=1203\n\
+                gprobe probe=inside type=capsule n=5000 seed=1204\n";
+    let Some(cs) = adhoc_cases(text) else {
+        return;
+    };
+    let mut fails = Vec::new();
+    for c in &cs {
+        let a = AnyGeom::of(c);
+        if c.probe == "basic" {
+            check(c, &basic_tokens(&a), &mut fails);
+        } else {
+            check(c, &[a.g().point_inside_status(c.v(0)).to_string()], &mut fails);
+        }
+    }
+    finish("basic/inside fuzz", cs.len(), &fails);
 }

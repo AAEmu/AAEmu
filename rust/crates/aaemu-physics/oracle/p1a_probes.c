@@ -371,6 +371,58 @@ static void cmd_gphysblob(const Toks *t) {
   }
 }
 
+/* gdegen: fixed degenerate primitives (zero / non-unit axes, -0.0 and NaN in the box basis,
+   zero sizes, negative radii, a zero-length ray) through the basic slots and slot 8 at a few
+   points. Printed as "gp basic" and "gp inside" lines. */
+static void cmd_gdegen(const Toks *t) {
+  (void)t;
+  float nan = bitsf(0x7FC00000u);
+  float prims[][16] = {
+    /* boxes: basis[9], (bOriented), center, size */
+    {1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+    {1, -0.0f, 0, 0, 1, 0, 0, 0, 1, 0, 1, 2, 3, 0.5f, 0.5f, 0.5f},
+    {1, nan, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1},
+    {0, 1, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 2, 3},
+    {1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, -1, 2, 0.5f},
+    {2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 1, 1, 1},
+  };
+  float cyls[][8] = {
+    {0, 0, 0, 0, 0, 0, 1, 1},          /* zero axis */
+    {0, 0, 0, 3, 0, 0, 1, 1},          /* non-unit axis */
+    {1, 2, 3, 0.6f, 0.8f, 0, 0.5f, 2}, /* x/y axis */
+    {0, 0, 0, 1, 0, 0, -1, 1},         /* negative r */
+    {0, 0, 0, 0, 0, -1, 0.5f, 0},      /* zero hh */
+    {0, 0, 0, 1e-12f, 0, 1e-12f, 1, 1},
+  };
+  float sphs[][4] = {{0, 0, 0, 0}, {1, 2, 3, -1}, {0, 0, 0, 1e-20f}};
+  float rays[][6] = {{0, 0, 0, 0, 0, 0}, {1, 2, 3, 1e-11f, 0, 0}, {0, 0, 0, 0, 0, -5}};
+  float pts[][3] = {{0, 0, 0}, {0.25f, 0.25f, 0.25f}, {1, 2, 3}, {-0.0f, 0, 0}, {0.5f, 0.5f, 0.5f}, {0, 0, 1}};
+  for (int type = 0; type < 7; type++) {
+    int np = type == 0 ? 6 : type == 3 ? 3 : type == 4 ? 3 : (type == 5 || type == 6) ? 6 : 0;
+    for (int k = 0; k < np; k++) {
+      __declspec(align(16)) float prim[32];
+      memset(prim, 0, sizeof prim);
+      if (type == 0) memcpy(prim, prims[k], 64);
+      else if (type == 3) memcpy(prim, rays[k], 24);
+      else if (type == 4) memcpy(prim, sphs[k], 16);
+      else memcpy(prim, cyls[k], 32);
+      void *g = p1a_create(type, prim);
+      printf("gp basic %d", type);
+      p1a_out_w("P", prim, p1a_prim_words(type));
+      printf(" I");
+      p1a_basic(g, type);
+      printf("\n");
+      for (int j = 0; j < 6; j++) {
+        printf("gp inside %d", type);
+        p1a_out_w("P", prim, p1a_prim_words(type));
+        p1a_out_w("I", pts[j], 3);
+        printf(" O %d\n", ((p1a_fn_ip)VT(g)[P1A_PointInside])(g, pts[j]));
+      }
+      p1a_release(g);
+    }
+  }
+}
+
 /* per-module probe files (one owner each) */
 #include "p1a_probes_closest.c"
 #include "p1a_probes_drag.c"
@@ -381,6 +433,7 @@ static void cmd_gphysblob(const Toks *t) {
 static int p1a_command(const char *c, const Toks *t) {
   if (!strcmp(c, "gprobe")) cmd_gprobe(t);
   else if (!strcmp(c, "gphysblob")) cmd_gphysblob(t);
+  else if (!strcmp(c, "gdegen")) cmd_gdegen(t);
   else if (p1a_cmd_closest(c, t) || p1a_cmd_drag(c, t) || p1a_cmd_buoyancy(c, t) || p1a_cmd_protocol(c, t) ||
            p1a_cmd_misc(c, t)) {
   } else return 0;

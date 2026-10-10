@@ -5,3 +5,4 @@ gprobe probe=inside type=sphere n=400 seed=203
 gprobe probe=inside type=cylinder n=600 seed=204
 gprobe probe=inside type=capsule n=600 seed=205
 gprobe probe=inside type=ray n=20 seed=206
+gdegen
