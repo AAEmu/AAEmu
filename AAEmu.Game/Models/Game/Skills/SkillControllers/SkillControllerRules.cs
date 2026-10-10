@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -51,6 +52,26 @@ public static class SkillControllerRules
         zoneAuthority && unit is Npc { IsZoneMirror: true };
 
     /// <summary>
+    /// Whether this server would build a controller for <paramref name="template"/>'s kind.
+    /// </summary>
+    /// <remarks>
+    /// Rope / anchor / rotate / flowgraph / crawl / rope_ready have no World controller; Mate and Slave
+    /// casters also never pass <see cref="CanCreateController"/>. Closing those casts early would skip
+    /// mana, cooldown and effects (mount dash, harpoon, ship boosts).
+    /// </remarks>
+    public static bool ServerBuildsController(SkillControllerTemplate template)
+    {
+        if (template == null)
+            return false;
+
+        return (SkillControllerKind)template.KindId is
+            SkillControllerKind.Floating or
+            SkillControllerKind.Leap or
+            SkillControllerKind.Wandering or
+            SkillControllerKind.Dash;
+    }
+
+    /// <summary>
     /// Whether a controller cast whose controller was not built has to be closed immediately.
     /// </summary>
     /// <remarks>
@@ -58,7 +79,8 @@ public static class SkillControllerRules
     /// deferred until the controller is done. When there is no controller to build — no target, or a target
     /// outside the skill's own window — nothing moves the caster and nothing ends the cast: the started cast
     /// stays open and the client keeps the action, so the player cannot move, act, or leave. Closing the cast
-    /// in place is what unlocks it.
+    /// in place is what unlocks it. Only applies when <see cref="ServerBuildsController"/> is true for the
+    /// skill's controller kind and the caster may own one.
     /// </remarks>
     public static bool ControllerCastMustCloseNow(bool hasController, bool controllerRealized) =>
         hasController && !controllerRealized;

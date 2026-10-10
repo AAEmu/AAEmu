@@ -17,6 +17,8 @@ using AAEmu.World.Core.Packets.Wz;
 
 using NLog;
 
+using GameTransform = AAEmu.Game.Models.Game.World.Transform.Transform;
+
 namespace AAEmu.World.Core.Relay;
 
 /// <summary>
@@ -268,6 +270,18 @@ public class MovementRelay
     {
         if (source == null || unit?.Transform == null)
             return true;
+
+        // Prefer the dedicate that registered the unit. Transform.ZoneId is re-sampled when a unit
+        // enters a new region, so a border-crossing mirror would otherwise fail the zone match and
+        // freeze for clients.
+        if (source.Units.Contains(unit.ObjId))
+        {
+            var unitInstance = unit.Transform.InstanceId;
+            if (unitInstance == GameTransform.NoInstanceId)
+                return true;
+            return source.InstanceId == unitInstance;
+        }
+
         return ZoneMoveOwnershipRules.IsOwnedBy(
             source.ZoneId, source.InstanceId, unit.Transform.ZoneId, unit.Transform.InstanceId);
     }

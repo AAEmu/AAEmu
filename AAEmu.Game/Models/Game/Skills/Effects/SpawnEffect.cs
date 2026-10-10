@@ -280,7 +280,7 @@ public class SpawnEffect : EffectTemplate
             return;
         }
 
-        if (SummonCompanionRules.ShouldFollowSummoner(caster is Character, MateStateId)
+        if (SummonCompanionRules.ShouldFollowSummoner(caster is Character, MateStateId, UseSummonerFaction)
             && caster is Character followOwner)
         {
             WorldIntegration.RelayQuestNpcAiToZone?.Invoke(

@@ -741,6 +741,12 @@ public static class WorldIntegration
     public static Func<uint, uint, uint, bool> EndInstanceTowerDef { get; set; }
 
     /// <summary>
+    /// True when <c>RunningInstances</c> still holds <c>(towerDefId, instanceId)</c>. A host drop finishes
+    /// the run without destroying the Dungeon; the copy uses this to clear its started flag and restart.
+    /// </summary>
+    public static Func<uint, uint, bool> IsInstanceTowerDefRunning { get; set; }
+
+    /// <summary>
     /// Broadcast a finished SC body (opcode + body only) to in-world clients only.
     /// Must NOT target lobby/select/loading connections — ActiveChar is set on SelectCharacter,
     /// and premature SCUnitMovements (zone flood) hard-closes the client before enter finishes.

@@ -224,6 +224,7 @@ public static class Program
         // has left its ready window, and stops it as the copy is destroyed.
         WorldIntegration.StartInstanceTowerDef = TowerDefScheduler.StartInstanceTowerDef;
         WorldIntegration.EndInstanceTowerDef = TowerDefScheduler.EndInstanceTowerDef;
+        WorldIntegration.IsInstanceTowerDefRunning = TowerDefScheduler.IsInstanceTowerDefRunning;
         WorldIntegration.OnMainWorldReady = () =>
         {
             // Arm the schedule gate before remirroring, so the pass that re-accepts already
@@ -562,9 +563,10 @@ public static class Program
         {
             // Several dungeon copies of the same zone key have no unique host
             // (ForZoneId is null). Name the copy or the Create never leaves World.
+            // A copy whose host is not loaded must not fall back to ForZoneId — that can return a
+            // sibling copy of the same zone key and Create into the wrong one.
             var zone = request.InstanceId != 0
                 ? PlayerEnterService.ForZoneInstance(request.ZoneId, request.InstanceId)
-                    ?? PlayerEnterService.ForZoneId(request.ZoneId)
                 : PlayerEnterService.ForZoneId(request.ZoneId);
             if (zone == null || request.Body is not { Length: > 0 })
                 return false;

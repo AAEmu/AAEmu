@@ -8,10 +8,10 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// "time until dawn" countdown of the night phase.
 /// </summary>
 /// <remarks>
-/// Field order, widths and offsets come from the 10.0.2.13 client's handler: <c>curRound</c> u8@16,
-/// <c>roundLimitTime</c> u32@20, <c>roundPlayTime</c> u32@24, <c>isTimeLimitRound</c> u8@28,
-/// <c>bossRound</c> u8@29. The limit comes from the round's authored <c>indun_rounds.timer</c>, never a
-/// per-instance constant.
+/// Wire order (client serializer): <c>u8 curRound</c>, <c>bool isTimeLimitRound</c>,
+/// <c>u32 roundLimitTime</c>, <c>u32 roundPlayTime</c>, <c>bool bossRound</c>. Struct field offsets in
+/// the client object are not wire order. The limit comes from the round's authored
+/// <c>indun_rounds.timer</c>, never a per-instance constant.
 /// </remarks>
 public class SCIndunUpdateRoundInfoPacket(
     sbyte curRound,
@@ -23,9 +23,9 @@ public class SCIndunUpdateRoundInfoPacket(
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(curRound);
+        stream.Write(isTimeLimitRound);
         stream.Write(roundLimitTime);
         stream.Write(roundPlayTime);
-        stream.Write(isTimeLimitRound);
         stream.Write(bossRound);
         return stream;
     }

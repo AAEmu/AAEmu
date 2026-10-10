@@ -175,10 +175,11 @@ public class Dungeon : IPreparedIndunInstance
         // The copy's own zone scores. Every level move on it is what the zone group's authored
         // indun_event_zone_score_level_changeds rows (scenery and round chains) hang on, and the copy's
         // players see each move through SCZoneScoreUpdatePacket.
+        // In-memory only until something scores (no AddZoneScore caller yet). A MySQL load keyed by
+        // zone group would also share and inherit saved scores across copies of the same group.
         ZoneScores = new ZoneScoreRuntime(
-            indunZone.ZoneGroupId, FactionScoringGameData.Instance, new MySqlZoneScoreRuntimeStore());
+            indunZone.ZoneGroupId, FactionScoringGameData.Instance);
         ZoneScores.ScoreChanged += OnZoneScoreChanged;
-        ZoneScores.Load();
 
         _isTeamOwned = team != null;
         _ownerTeam = team;
@@ -280,18 +281,18 @@ public class Dungeon : IPreparedIndunInstance
             : 0;
 
     /// <summary>
-    /// Drives the copy's phase clock: logs each phase change (ready → play → end → finished) and starts the
-    /// copy's authored <c>tower_defs</c> run once, at the end of the ready ("wait time") window.
+    /// Drives the copy's phase clock under <see cref="_lock"/> and returns any scheduler call that must
+    /// run after the lock is released (starting a tower_def can re-enter this copy through doodad spawn).
     /// </summary>
-    private void TickInstanceScript()
+    private Action TickInstanceScriptUnderLock()
     {
         var option = _indunZone.Option;
         if (!option.IsScripted)
-            return;
+            return null;
 
         // Nothing is running while nobody is inside: the clock starts with the first arrival.
         if (!IndunInstancePhaseRules.TryGetClockOrigin(_copyStartUtc, out var copyStart))
-            return;
+            return null;
 
         var now = DateTime.UtcNow;
         var phase = IndunInstancePhaseRules.PhaseAt(option, copyStart, now);
@@ -303,35 +304,55 @@ public class Dungeon : IPreparedIndunInstance
                 World, phase, IndunInstancePhaseRules.SecondsRemaining(option, copyStart, now));
         }
 
+        if (_zoneKey == 0 || World == null)
+            return null;
+
+        // A host drop finishes the run without destroying this Dungeon; clear the flag so a new host can start it.
+        if (_instanceScriptStarted
+            && WorldIntegration.IsInstanceTowerDefRunning?.Invoke(World.Id, option.TowerDefId) != true)
+        {
+            _instanceScriptStarted = false;
+            _instanceScriptRefusedLogged = false;
+        }
+
         // Claim before calling out: a per-second tick and an arrival can both reach this at once, and the
         // run must start exactly once.
-        if (_instanceScriptStarted || _zoneKey == 0 || World == null)
-            return;
+        if (_instanceScriptStarted)
+            return null;
         if (!IndunInstancePhaseRules.ShouldStartScript(
                 option, FinishedLoading, _instanceScriptStarted, copyStart, now))
-            return;
-        var start = WorldIntegration.StartInstanceTowerDef;
-        if (start == null)
-            return;
+            return null;
+        if (WorldIntegration.StartInstanceTowerDef == null)
+            return null;
 
         _instanceScriptStarted = true;
-        var started = start(_zoneKey, World.Id, option.TowerDefId, (ushort)_indunZone.ZoneGroupId);
-        if (started)
+        var zoneKey = _zoneKey;
+        var worldId = World.Id;
+        var towerDefId = option.TowerDefId;
+        var zoneGroupId = (ushort)_indunZone.ZoneGroupId;
+        return () =>
         {
-            Logger.Info(
-                "[{0}] instance script: tower_def {1} started on zone {2}/{3}",
-                World, option.TowerDefId, _zoneKey, World.Id);
-            return;
-        }
+            var started = WorldIntegration.StartInstanceTowerDef(zoneKey, worldId, towerDefId, zoneGroupId);
+            if (started)
+            {
+                Logger.Info(
+                    "[{0}] instance script: tower_def {1} started on zone {2}/{3}",
+                    World, towerDefId, zoneKey, worldId);
+                return;
+            }
 
-        _instanceScriptStarted = false; // the host is not loaded yet; retry on the next tick
-        if (!_instanceScriptRefusedLogged)
-        {
-            _instanceScriptRefusedLogged = true;
-            Logger.Warn(
-                "[{0}] instance script: tower_def {1} refused by zone {2}/{3}; retrying until the host answers",
-                World, option.TowerDefId, _zoneKey, World.Id);
-        }
+            lock (_lock)
+            {
+                _instanceScriptStarted = false; // the host is not loaded yet; retry on the next tick
+                if (!_instanceScriptRefusedLogged)
+                {
+                    _instanceScriptRefusedLogged = true;
+                    Logger.Warn(
+                        "[{0}] instance script: tower_def {1} refused by zone {2}/{3}; retrying until the host answers",
+                        World, towerDefId, zoneKey, worldId);
+                }
+            }
+        };
     }
 
     /// <summary>
@@ -351,10 +372,12 @@ public class Dungeon : IPreparedIndunInstance
         _copyStartUtc = DateTime.UtcNow;
         Logger.Info($"[{World}] instance clock started on {character?.Name ?? "?"}'s arrival");
         // A copy whose ready budget is zero starts its script right here, without waiting for the tick.
+        Action startScript;
         lock (_lock)
         {
-            TickInstanceScript();
+            startScript = TickInstanceScriptUnderLock();
         }
+        startScript?.Invoke();
     }
 
     /// <summary>
@@ -1307,7 +1330,8 @@ public class Dungeon : IPreparedIndunInstance
         // ids are the one source, so they fill both from the table (empty for a zone group that authors none).
         var gainRuleIds = new List<uint>();
         var gainRules = new List<ulong>();
-        foreach (var rule in IndunGameData.Instance.GetInstanceGainRules(GetZoneGroupId))
+        // instance_gain_rules.instance_id is instances.id (catalog), not zone_group_id.
+        foreach (var rule in IndunGameData.Instance.GetInstanceGainRules(GetInstanceCatalogId))
         {
             gainRuleIds.Add(rule.Id);
             gainRules.Add(rule.Id);
@@ -1583,11 +1607,12 @@ public class Dungeon : IPreparedIndunInstance
 
     private void AreaClearTick(TimeSpan delta)
     {
+        Action startScript;
         lock (_lock)
         {
             // A scripted copy starts its authored tower_defs run once its ready ("wait time") window has
             // elapsed — checked here because this is the copy's own per-second tick.
-            TickInstanceScript();
+            startScript = TickInstanceScriptUnderLock();
             AdvanceOpenings();
             RefreshPlayingInfoOnChange();
 
@@ -1616,5 +1641,7 @@ public class Dungeon : IPreparedIndunInstance
                 room.SetRoomPlayerCount(World.Id, (uint)radiusCount);
             }
         }
+
+        startScript?.Invoke();
     }
 }

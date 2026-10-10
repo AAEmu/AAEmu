@@ -37,6 +37,9 @@ public static partial class ZoneTimeOfDayCatalog
     [GeneratedRegex("\\bTimeAnimSpeed\\s*=\\s*\"([^\"]+)\"", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex AnimSpeedAttribute();
 
+    [GeneratedRegex("\\bUseStaticTime\\s*=\\s*\"([^\"]+)\"", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex UseStaticTimeAttribute();
+
     /// <summary>The authored clock of a world, or null when the level does not author one.</summary>
     public static AuthoredTimeOfDay? TryGet(string worldName)
     {
@@ -165,6 +168,12 @@ public static partial class ZoneTimeOfDayCatalog
         if (hour < 0f || hour >= 24f)
             return null;
 
+        // Static levels freeze the clock. Their documents still carry a non-zero TimeAnimSpeed
+        // (0.001, or 1–5 from the editor) — seeding that as dedicate clock speed lets the copy drift
+        // or race. Force speed 0 when UseStaticTime is on.
+        if (IsStaticTime(element.Value))
+            return new AuthoredTimeOfDay(hour, 0f);
+
         var speedAttribute = AnimSpeedAttribute().Match(element.Value);
         var speed = 0f;
         if (speedAttribute.Success)
@@ -172,5 +181,15 @@ public static partial class ZoneTimeOfDayCatalog
                 CultureInfo.InvariantCulture, out speed);
 
         return new AuthoredTimeOfDay(hour, speed);
+    }
+
+    private static bool IsStaticTime(string timeOfDayElement)
+    {
+        var attr = UseStaticTimeAttribute().Match(timeOfDayElement);
+        if (!attr.Success)
+            return false;
+
+        var raw = attr.Groups[1].Value.Trim();
+        return raw is "1" or "true" or "True" or "TRUE";
     }
 }

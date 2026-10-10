@@ -37,8 +37,12 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
 
     private WorldSphereData _data;
 
-    /// <summary>Trigger time of each fired area sphere in this world instance, keyed by spheres.id.</summary>
-    private readonly ConcurrentDictionary<uint, DateTime> _areaSphereFiredUtc = new();
+    /// <summary>
+    /// Trigger time of each fired area sphere in this world instance, keyed by
+    /// (characterId, spheres.id). Per-character so a once_at_all / interval SphereSkill in the open
+    /// world is not consumed for every player by the first one who crosses it.
+    /// </summary>
+    private readonly ConcurrentDictionary<(uint CharacterId, uint SphereId), DateTime> _areaSphereFiredUtc = new();
 
     private readonly List<SphereQuestTrigger> _sphereQuestTriggers = [];
     private List<SphereQuestTrigger> _addQueue = [];
@@ -279,36 +283,39 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
     }
 
     /// <summary>
-    /// Claims an area sphere's trigger in this world instance: true when its trigger condition lets it
-    /// fire now, in which case the firing is recorded. Retried claims made in the same instant fire once.
+    /// Claims an area sphere's trigger for one character in this world instance: true when its trigger
+    /// condition lets that character fire it now, in which case the firing is recorded. Retried claims
+    /// made in the same instant fire once.
     /// </summary>
-    public bool TryClaimAreaSphereTrigger(Spheres dbSphere, DateTime nowUtc)
+    public bool TryClaimAreaSphereTrigger(Spheres dbSphere, DateTime nowUtc, uint characterId)
     {
-        if (dbSphere == null)
+        if (dbSphere == null || characterId == 0)
             return false;
 
+        var key = (characterId, dbSphere.Id);
         while (true)
         {
-            var hasFired = _areaSphereFiredUtc.TryGetValue(dbSphere.Id, out var lastFiredUtc);
+            var hasFired = _areaSphereFiredUtc.TryGetValue(key, out var lastFiredUtc);
             if (!AreaSphereTriggerRules.CanFire(dbSphere.TriggerConditionId, dbSphere.TriggerConditionTime,
                     hasFired ? lastFiredUtc : null, nowUtc))
                 return false;
 
             if (hasFired
-                    ? _areaSphereFiredUtc.TryUpdate(dbSphere.Id, nowUtc, lastFiredUtc)
-                    : _areaSphereFiredUtc.TryAdd(dbSphere.Id, nowUtc))
+                    ? _areaSphereFiredUtc.TryUpdate(key, nowUtc, lastFiredUtc)
+                    : _areaSphereFiredUtc.TryAdd(key, nowUtc))
                 return true;
         }
     }
 
     /// <summary>
     /// Undoes a claim whose firing did not happen, so the sphere is not left dormant for nothing. A claim
-    /// made since by someone else is kept.
+    /// made since by the same character is kept.
     /// </summary>
-    public void ReleaseAreaSphereTrigger(Spheres dbSphere, DateTime claimedUtc)
+    public void ReleaseAreaSphereTrigger(Spheres dbSphere, DateTime claimedUtc, uint characterId)
     {
-        if (dbSphere != null)
-            _areaSphereFiredUtc.TryRemove(new KeyValuePair<uint, DateTime>(dbSphere.Id, claimedUtc));
+        if (dbSphere != null && characterId != 0)
+            _areaSphereFiredUtc.TryRemove(
+                new KeyValuePair<(uint, uint), DateTime>((characterId, dbSphere.Id), claimedUtc));
     }
 
     public List<SphereQuestTrigger> GetSphereQuestTriggers()

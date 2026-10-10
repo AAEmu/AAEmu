@@ -44,6 +44,18 @@ public class ZoneTimeOfDayCatalogTests
     }
 
     [Test]
+    public async Task StaticTime_ForcesClockSpeedZero()
+    {
+        // Static levels still author a non-zero TimeAnimSpeed; seeding that races the copy clock.
+        var authored = ZoneTimeOfDayCatalog.Parse(
+            """<TimeOfDay Time="22.5" TimeStart="0" TimeEnd="24" TimeAnimSpeed="1.5" UseStaticTime="1">""");
+
+        await Assert.That(authored).IsNotNull();
+        await Assert.That(authored!.Value.StartHour).IsEqualTo(22.5f);
+        await Assert.That(authored.Value.AnimSpeed).IsEqualTo(0f);
+    }
+
+    [Test]
     public async Task MissingElement_ReadsNull()
     {
         await Assert.That(ZoneTimeOfDayCatalog.Parse("<Environment/>")).IsNull();

@@ -1498,12 +1498,12 @@ public class CharacterQuests(Character owner)
 
         var spheres = Owner.ParentWorld?.SphereQuestManager;
         var now = DateTime.UtcNow;
-        if (spheres == null || !spheres.TryClaimAreaSphereTrigger(db, now))
+        if (spheres == null || !spheres.TryClaimAreaSphereTrigger(db, now, Owner.Id))
             return;
 
         var result = Owner.UseSkill(detail.SkillId, Owner);
         if (result != SkillResult.Success)
-            spheres.ReleaseAreaSphereTrigger(db, now);
+            spheres.ReleaseAreaSphereTrigger(db, now, Owner.Id);
 
         Logger.Info("SphereSkill char={0} sphere={1} skill={2} result={3}", Owner.Name, db.Id, detail.SkillId, result);
     }

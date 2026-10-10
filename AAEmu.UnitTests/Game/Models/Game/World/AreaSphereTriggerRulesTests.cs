@@ -52,14 +52,25 @@ public class AreaSphereTriggerRulesTests
     }
 
     [Test]
-    public async Task AClaimedSphere_StaysDormantForEveryoneInThatWorldInstance()
+    public async Task AClaimedSphere_StaysDormantForThatCharacter()
     {
         var sphere = IntervalSphere(3_600_000);
         var spheres = new SphereQuestManager(null);
 
-        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now)).IsTrue();
-        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddMinutes(59))).IsFalse();
-        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddHours(1))).IsTrue();
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now, characterId: 8)).IsTrue();
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddMinutes(59), characterId: 8)).IsFalse();
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddHours(1), characterId: 8)).IsTrue();
+    }
+
+    [Test]
+    public async Task TwoCharacters_EachGetTheirOwnClaim()
+    {
+        var sphere = IntervalSphere(3_600_000);
+        var spheres = new SphereQuestManager(null);
+
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now, characterId: 8)).IsTrue();
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now, characterId: 39)).IsTrue();
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddSeconds(1), characterId: 8)).IsFalse();
     }
 
     [Test]
@@ -67,8 +78,8 @@ public class AreaSphereTriggerRulesTests
     {
         var sphere = IntervalSphere(3_600_000);
 
-        await Assert.That(new SphereQuestManager(null).TryClaimAreaSphereTrigger(sphere, Now)).IsTrue();
-        await Assert.That(new SphereQuestManager(null).TryClaimAreaSphereTrigger(sphere, Now)).IsTrue();
+        await Assert.That(new SphereQuestManager(null).TryClaimAreaSphereTrigger(sphere, Now, 8)).IsTrue();
+        await Assert.That(new SphereQuestManager(null).TryClaimAreaSphereTrigger(sphere, Now, 8)).IsTrue();
     }
 
     [Test]
@@ -77,9 +88,9 @@ public class AreaSphereTriggerRulesTests
         var sphere = IntervalSphere(3_600_000);
         var spheres = new SphereQuestManager(null);
 
-        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now)).IsTrue();
-        spheres.ReleaseAreaSphereTrigger(sphere, Now);
-        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddSeconds(1))).IsTrue();
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now, 8)).IsTrue();
+        spheres.ReleaseAreaSphereTrigger(sphere, Now, 8);
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddSeconds(1), 8)).IsTrue();
     }
 
     [Test]
@@ -88,10 +99,17 @@ public class AreaSphereTriggerRulesTests
         var sphere = IntervalSphere(3_600_000);
         var spheres = new SphereQuestManager(null);
 
-        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now)).IsTrue();
-        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddHours(1))).IsTrue();
-        spheres.ReleaseAreaSphereTrigger(sphere, Now);
-        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddHours(1).AddMinutes(1))).IsFalse();
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now, 8)).IsTrue();
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddHours(1), 8)).IsTrue();
+        spheres.ReleaseAreaSphereTrigger(sphere, Now, 8);
+        await Assert.That(spheres.TryClaimAreaSphereTrigger(sphere, Now.AddHours(1).AddMinutes(1), 8)).IsFalse();
+    }
+
+    [Test]
+    public async Task ZeroCharacterId_NeverClaims()
+    {
+        var sphere = IntervalSphere(3_600_000);
+        await Assert.That(new SphereQuestManager(null).TryClaimAreaSphereTrigger(sphere, Now, 0)).IsFalse();
     }
 
     private static Spheres IntervalSphere(uint intervalMs) => new()

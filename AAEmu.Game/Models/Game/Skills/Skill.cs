@@ -1146,40 +1146,45 @@ public class Skill
         // own leap is the same movement and now gets one too, for a unit the caster controls
         // (SkillControllerRules); the distance gate below still applies to both.
         var controllerRealized = false;
+        var expectServerController = false;
         if (Template.SkillControllerId != 0 && SkillControllerRules.CanCreateController(caster, unit))
         {
             var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
-
-            // Get a random number (from 0 to n)
-            var value = Random.Shared.Next(0, 1);
-            // для skillId = 2 - for skillId = 2
-            // 87 (35) - удар наотмаш, chr - overhead swing, chr
-            // 2 (00) - удар сбоку, NPC - side strike, NPC
-            // 3 (46) - удар сбоку, chr - side strike, chr
-            // 1 (00) - удар похож на 2 удар сбоку, NPC - strike similar to 2, side strike, NPC
-            // 91 - удар сверху (немного справа) - strike from above (slightly from the right)
-            // 92 - удар наотмашь слева вниз направо - swing from left to right downwards
-            // 0 - удар не наносится (расстояние большое и надо подойти поближе), no strike is made (distance is too great and need to get closer) f=1, c=15
-            var effectDelay = new Dictionary<int, short> { { 0, 46 }, { 1, 35 } };
-            var fireAnimId = new Dictionary<int, int> { { 0, 3 }, { 1, 87 } };
-            var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
-            var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
-
-            //var targetUnit = (Unit)target; // unnecessary type cast
-            var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, target.Transform.World.Position, true);
-            if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
+            if (SkillControllerRules.ServerBuildsController(scTemplate))
             {
-                var sc = SkillController.CreateSkillController(scTemplate, caster, target);
-#pragma warning disable CA1508 // Avoid dead conditional code
-                if (sc != null)
+                expectServerController = true;
+
+                // Get a random number (from 0 to n)
+                var value = Random.Shared.Next(0, 1);
+                // для skillId = 2 - for skillId = 2
+                // 87 (35) - удар наотмаш, chr - overhead swing, chr
+                // 2 (00) - удар сбоку, NPC - side strike, NPC
+                // 3 (46) - удар сбоку, chr - side strike, chr
+                // 1 (00) - удар похож на 2 удар сбоку, NPC - strike similar to 2, side strike, NPC
+                // 91 - удар сверху (немного справа) - strike from above (slightly from the right)
+                // 92 - удар наотмашь слева вниз направо - swing from left to right downwards
+                // 0 - удар не наносится (расстояние большое и надо подойти поближе), no strike is made (distance is too great and need to get closer) f=1, c=15
+                var effectDelay = new Dictionary<int, short> { { 0, 46 }, { 1, 35 } };
+                var fireAnimId = new Dictionary<int, int> { { 0, 3 }, { 1, 87 } };
+                var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
+                var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
+
+                //var targetUnit = (Unit)target; // unnecessary type cast
+                var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, target.Transform.World.Position, true);
+                if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
                 {
-                    if (unit.ActiveSkillController != null)
-                        unit.ActiveSkillController.End();
-                    unit.ActiveSkillController = sc;
-                    sc.Execute();
-                    controllerRealized = true;
-                }
+                    var sc = SkillController.CreateSkillController(scTemplate, caster, target);
+#pragma warning disable CA1508 // Avoid dead conditional code
+                    if (sc != null)
+                    {
+                        if (unit.ActiveSkillController != null)
+                            unit.ActiveSkillController.End();
+                        unit.ActiveSkillController = sc;
+                        sc.Execute();
+                        controllerRealized = true;
+                    }
 #pragma warning restore CA1508 // Avoid dead conditional code
+                }
             }
         }
         unit.SkillTask = null;
@@ -1187,11 +1192,10 @@ public class Skill
         // A leap/dash whose controller could not be built (no target, or a target outside the skill's own
         // window) has nothing that moves the caster and nothing that ends the cast: the started cast stayed
         // open, the client kept the action, and the player could not move, act, or leave the instance. Close
-        // it here instead of deferring to the delayed-apply path, which has nothing to apply. A caster whose
-        // position the zone moves gets no controller here by design and keeps the normal apply path.
-        var serverDrivesController = Template.SkillControllerId != 0
-                                     && !SkillControllerRules.ZoneOwnsPosition(caster, WorldIntegration.ZoneAuthority);
-        if (SkillControllerRules.ControllerCastMustCloseNow(serverDrivesController, controllerRealized))
+        // it here instead of deferring to the delayed-apply path, which has nothing to apply. Only when this
+        // server would have built a controller — rope/mount/harpoon kinds and Mate/Slave casters keep the
+        // normal apply path.
+        if (SkillControllerRules.ControllerCastMustCloseNow(expectServerController, controllerRealized))
         {
             EndSkill(caster);
             return;

@@ -92,7 +92,8 @@ public class DoodadFuncSpawn : DoodadFuncTemplate
             return;
         }
 
-        if (SummonCompanionRules.ShouldFollowSummoner(caster is Character, (MateState)MateStateId)
+        if (SummonCompanionRules.ShouldFollowSummoner(
+                caster is Character, (MateState)MateStateId, UseSummonerFaction)
             && caster is Character followOwner)
         {
             WorldIntegration.RelayQuestNpcAiToZone?.Invoke(

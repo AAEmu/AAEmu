@@ -4,40 +4,54 @@ using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 namespace AAEmu.UnitTests.Game.Models.Game.Skills.Effects;
 
 /// <summary>
-/// Player-summoned companions follow the summoner; event-army spawns and unset stance rows do not.
-/// Leaving a copy retires only the World-authored NPCs that character owns.
+/// Player companions follow only when the spawn row sets use_summoner_faction; hostile quest
+/// summons and doodad pop-outs do not. Leaving a copy retires only World-authored NPCs that
+/// character owns.
 /// </summary>
 public class SummonCompanionRulesTests
 {
     [Test]
-    public async Task CharacterAggressive_Follows()
+    public async Task CharacterAggressiveWithSummonerFaction_Follows()
     {
-        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(true, MateState.Aggressive)).IsTrue();
+        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(
+            true, MateState.Aggressive, useSummonerFaction: true)).IsTrue();
     }
 
     [Test]
-    public async Task CharacterProtective_Follows()
+    public async Task CharacterProtectiveWithSummonerFaction_Follows()
     {
-        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(true, MateState.Protective)).IsTrue();
+        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(
+            true, MateState.Protective, useSummonerFaction: true)).IsTrue();
     }
 
     [Test]
-    public async Task CharacterPassive_Follows()
+    public async Task CharacterPassiveWithSummonerFaction_Follows()
     {
-        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(true, MateState.Passive)).IsTrue();
+        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(
+            true, MateState.Passive, useSummonerFaction: true)).IsTrue();
+    }
+
+    [Test]
+    public async Task CharacterAggressiveWithoutSummonerFaction_DoesNotFollow()
+    {
+        // Every spawn_effects row carries stance 1–3; without use_summoner_faction the rule
+        // would make hostile quest summons and doodad chests follow the player.
+        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(
+            true, MateState.Aggressive, useSummonerFaction: false)).IsFalse();
     }
 
     [Test]
     public async Task CharacterUnsetStance_DoesNotFollow()
     {
-        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(true, default)).IsFalse();
+        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(
+            true, default, useSummonerFaction: true)).IsFalse();
     }
 
     [Test]
     public async Task NpcCasterAggressive_DoesNotFollow()
     {
-        // Event-army SpawnEffect rows carry the same stance. They must not follow the player.
-        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(false, MateState.Aggressive)).IsFalse();
+        await Assert.That(SummonCompanionRules.ShouldFollowSummoner(
+            false, MateState.Aggressive, useSummonerFaction: true)).IsFalse();
     }
 
     [Test]

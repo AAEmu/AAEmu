@@ -205,30 +205,45 @@ public static class TowerDefScheduler
         }
     }
 
-    /// <summary>Drop playability cache rows for a disconnected zone, and the instance run of that copy.</summary>
+    /// <summary>Drop playability cache rows for a disconnected zone, and finish the instance run of that copy.</summary>
     public static void OnZoneDisconnected(uint zoneId, uint instanceId = 0)
     {
         if (zoneId == 0)
             return;
+
+        var finished = new List<(TowerDef Tower, RunState State)>();
         lock (Sync)
         {
             foreach (var byZone in Playability.Values)
                 byZone.Remove(zoneId);
 
             // An instance copy's run cannot outlive the host holding it. Sibling copies share the
-            // zone key, so only the run whose copy id matches this host is dropped.
+            // zone key, so only the run whose copy id matches this host is finished — removing
+            // without FinishRun left stage doodads and World-spawned units behind.
             foreach (var key in RunningInstances.Keys.ToList())
             {
                 if (!TowerDefCopyOwnershipRules.InstanceRunOwnedByHost(key.InstanceId, instanceId))
                     continue;
+                if (!RunningInstances.Remove(key, out var state))
+                    continue;
 
-                RunningInstances.Remove(key);
+                var towerDef = TowerDefGameData.Instance.GetTowerDef(key.TowerDefId);
+                if (towerDef != null)
+                    finished.Add((towerDef, state));
+
                 Logger.Info(
-                    "Instance tower run dropped: zoneId={0} towerDef={1} instance={2} (host disconnected)",
+                    "Instance tower run finishing: zoneId={0} towerDef={1} instance={2} (host disconnected)",
                     zoneId, key.TowerDefId, key.InstanceId);
             }
         }
+
+        foreach (var (towerDef, state) in finished)
+            FinishRun(towerDef, state, "host disconnected");
     }
+
+    /// <summary>True when <see cref="RunningInstances"/> still holds this copy's tower_def run.</summary>
+    public static bool IsInstanceTowerDefRunning(uint instanceId, uint towerDefId) =>
+        instanceId != 0 && RunningInstances.ContainsKey((towerDefId, instanceId));
 
     /// <summary>
     /// After a dedicate reaches ZoneLoaded, refresh playability for scheduled tower defs.
@@ -1134,9 +1149,11 @@ public static class TowerDefScheduler
         {
             character.SendPacket(new SCTowerDefStartPacket(key, zoneId));
             // Start alone does not place the event's map entry — the client draws it from the active-info
-            // list — so the copy's own state follows, built with the copy's runs included.
-            character.SendPacket(new SCTowerDefActiveInfoListPacket(BuildActiveInfoList(includeInstances: true)));
-            character.SendPacket(new SCTowerDefListPacket(BuildPositionedList(includeInstances: true)));
+            // list — so this copy's own run follows (not every sibling copy's).
+            character.SendPacket(new SCTowerDefActiveInfoListPacket(
+                BuildActiveInfoList(includeInstances: true, onlyInstanceId: instanceId)));
+            character.SendPacket(new SCTowerDefListPacket(
+                BuildPositionedList(includeInstances: true, onlyInstanceId: instanceId)));
             sent++;
         }
 
@@ -1447,11 +1464,14 @@ public static class TowerDefScheduler
             yield return (key.TowerDefId, state);
     }
 
-    private static List<TowerDefActiveInfo> BuildActiveInfoList(bool includeInstances = false)
+    private static List<TowerDefActiveInfo> BuildActiveInfoList(bool includeInstances = false, uint? onlyInstanceId = null)
     {
         var result = new List<TowerDefActiveInfo>();
         foreach (var (id, state) in AllRuns(includeInstances))
         {
+            if (onlyInstanceId is uint want && state.InstanceId != want)
+                continue;
+
             var def = TowerDefGameData.Instance.GetTowerDef(id);
             if (def == null)
                 continue;
@@ -1483,11 +1503,14 @@ public static class TowerDefScheduler
         return result;
     }
 
-    private static List<TowerDefInfo> BuildPositionedList(bool includeInstances = false)
+    private static List<TowerDefInfo> BuildPositionedList(bool includeInstances = false, uint? onlyInstanceId = null)
     {
         var result = new List<TowerDefInfo>();
         foreach (var (id, state) in AllRuns(includeInstances))
         {
+            if (onlyInstanceId is uint want && state.InstanceId != want)
+                continue;
+
             var def = TowerDefGameData.Instance.GetTowerDef(id);
             if (def == null)
                 continue;
@@ -1581,6 +1604,11 @@ public static class TowerDefScheduler
 
         foreach (var zone in LoadedZones())
         {
+            // Instance copies start their own runs; world schedules must not arm them (e.g. tower 103
+            // daily at 21:00 would stack a world-event WZTowerDefStart onto a carcass copy).
+            if (zone.InstanceId != 0)
+                continue;
+
             var group = (ushort)ZoneGroupOf(zone);
             if (byZone != null && byZone.TryGetValue(zone.ZoneId, out var spots))
             {
@@ -1610,6 +1638,10 @@ public static class TowerDefScheduler
 
     private static void QueryPlayabilityForZone(ZoneConnection zone)
     {
+        // Copy hosts are not world-event hosts — skip their playability queries too.
+        if (zone.InstanceId != 0)
+            return;
+
         foreach (var towerDef in TowerDefGameData.Instance.GetGameTimeScheduledTowerDefs())
             QueryPlayability(zone, towerDef.Id);
         foreach (var towerDef in TowerDefGameData.Instance.GetScheduledTowerDefs())
