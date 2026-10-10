@@ -651,9 +651,9 @@ pub trait ItemSkillHooks: Send + Sync {
         None
     }
 
-    /// `MusicManager.GetMidiCache(characterId)`.
-    fn midi_cache(&self, _server: &GameServer, _character_id: u32) -> Vec<u8> {
-        Vec::new()
+    /// `MusicManager.GetMidiCache(characterId)` (`systems::services::music`).
+    fn midi_cache(&self, server: &GameServer, character_id: u32) -> Vec<u8> {
+        server.systems.services.music.get_midi_cache(character_id)
     }
 
     /// `MusicManager.CreateSheetMusic(player, ItemManager.GetItemByItemId(itemId))`.

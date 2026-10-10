@@ -14,7 +14,10 @@
 //! | [`timed_rewards`] | `TimedRewardsManager`, `TimedRewardsTask` |
 //! | [`beauty_salon`] | `CharacterManager.ApplyBeautySalon`, beauty salon packets |
 //! | [`character`] | `CharacterManager` remainder (access level, dice, online tracking, offline crime points) |
+//! | [`character_packets`] | the small character packets (weapon, visual options, appellation, idle, UI data, action slots, restrict check, LP, log-only requests) |
 //! | [`commands`] | `CommandManager`, `AccessLevelManager`, `ICommand`, `Utils/Scripts/**` |
+//! | [`expands`] | `bag_expands` / `expand_expert_limits`, `Inventory.ExpandSlot`, `CharacterActability.Regrade` / `ExpandExpert` + packets |
+//! | [`item_ops`] | the inventory operations needed from the economy (`CHARACTER_ITEM_OPS`) |
 //! | [`express_text`] | `ExpressTextManager`, `CSExpressEmotionPacket` |
 //! | [`localization`] | `LocalizationManager` |
 //! | [`models`] | `ModelManager` (complete) |
@@ -29,10 +32,13 @@
 pub mod accounts;
 pub mod beauty_salon;
 pub mod character;
+pub mod character_packets;
 pub mod commands;
 pub mod discord;
+pub mod expands;
 pub mod express_text;
 pub mod game_service;
+pub mod item_ops;
 pub mod localization;
 pub mod models;
 pub mod music;
@@ -62,6 +68,8 @@ pub struct Data {
     pub localization: localization::LocalizationManager,
     /// `ModelManager` (complete).
     pub models: models::ModelManager,
+    /// `CharacterManager` `bag_expands` / `expand_expert_limits`.
+    pub expands: expands::ExpandData,
 }
 
 impl Data {
@@ -71,6 +79,7 @@ impl Data {
             express_texts: express_text::ExpressTexts::load(ctx.conn)?,
             localization: localization::LocalizationManager::load(ctx.conn, ctx.language)?,
             models: models::ModelManager::load(ctx.conn)?,
+            expands: expands::ExpandData::load(ctx.conn)?,
         })
     }
 }
@@ -176,6 +185,8 @@ impl System {
 
 /// Registers this subsystem's C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
+    character_packets::register(reg);
+    expands::register(reg);
     reg.register::<character::CSRollDicePacket>(LEVEL_PLAIN, cs::CSRollDicePacket);
     reg.register::<beauty_salon::CSEnterBeautySalonPacket>(
         LEVEL_PLAIN,

@@ -3,13 +3,12 @@
 //! `SCCharacterGenderAndModelModifiedPacket`.
 //!
 //! The item work (counting / consuming the Salon Certificate, swapping the hair item in the
-//! equipment) goes through [`BeautySalonItems`], implemented by the economy subsystem.
-
-use std::sync::Arc;
+//! equipment) goes through `item_ops::CHARACTER_ITEM_OPS` (economy subsystem).
 
 use aaemu_commons::{Marshal, PacketStream};
 use futures::future::BoxFuture;
 
+use super::item_ops::{item_task, CHARACTER_ITEM_OPS};
 use crate::error::Result;
 use crate::models::container::equip_slot;
 use crate::models::unit_model::UnitCustomModelParams;
@@ -20,29 +19,12 @@ use crate::opcodes::sc;
 use crate::packets::packet_def;
 use crate::server::GameServer;
 use crate::systems::skills::packets_special::SCToggleBeautyshopResponsePacket;
-use crate::systems::HookSlot;
 use crate::world::{broadcast, PlayerRef, WorldObject};
 
 /// `BuffConstants.InBeautySalon`.
 pub const BUFF_IN_BEAUTY_SALON: u32 = 6117;
 /// `Item.SalonCertificate`.
 pub const SALON_CERTIFICATE: u32 = 30811;
-
-/// The inventory side of `ApplyBeautySalon` (economy subsystem).
-pub trait BeautySalonItems: Send + Sync {
-    /// `Inventory.GetItemsCount(SlotType.Inventory, Item.SalonCertificate)`.
-    fn salon_certificates(&self, server: &GameServer, player: &PlayerRef) -> i32;
-    /// Removes the old hair item (`RemoveItem(Invalid, oldHair, true)`) and acquires
-    /// `hair_model` into the hair slot (`AcquireDefaultItemEx(..., Hair)`); `false` logs the
-    /// C# errors.
-    fn replace_hair(&self, server: &GameServer, player: &PlayerRef, hair_model: u32) -> bool;
-    /// `Bag.ConsumeItem(EditCosmetic, SalonCertificate, 1, null)` (consumed count).
-    fn consume_certificate(&self, server: &GameServer, player: &PlayerRef) -> i32;
-}
-
-/// The installed [`BeautySalonItems`].
-pub static BEAUTY_SALON_ITEMS: std::sync::LazyLock<HookSlot<dyn BeautySalonItems>> =
-    std::sync::LazyLock::new(HookSlot::default);
 
 /// `SCCharacterGenderAndModelModifiedPacket(character)`.
 #[derive(Debug, Clone, PartialEq)]
@@ -73,12 +55,12 @@ pub fn apply_beauty_salon(
     hair_model: u32,
     model_params: UnitCustomModelParams,
 ) {
-    let Some(items) = BEAUTY_SALON_ITEMS.get() else {
+    let Some(items) = CHARACTER_ITEM_OPS.get() else {
         tracing::warn!("ApplyBeautySalon: item operations are not available (economy)");
         return;
     };
     // TODO (C#): Add support for future X-day Salon Certificate items
-    if items.salon_certificates(server, player) <= 0 {
+    if items.items_count(server, player, SALON_CERTIFICATE) <= 0 {
         return;
     }
     let old_hair = hair_template(player);
@@ -108,7 +90,14 @@ pub fn apply_beauty_salon(
         Some(world) => broadcast(&world, &me, &packet, true),
         None => player.send(packet),
     }
-    if items.consume_certificate(server, player) <= 0 {
+    if items.consume_item(
+        server,
+        player,
+        item_task::EDIT_COSMETIC,
+        SALON_CERTIFICATE,
+        1,
+    ) <= 0
+    {
         let (name, id) = {
             let c = player.data();
             (c.unit.name.clone(), c.id)
@@ -221,9 +210,6 @@ impl ClientPacket for CSBeautyshopDataPacket {
         })
     }
 }
-
-/// Keeps the trait object type nameable for installers.
-pub type BeautySalonItemsRef = Arc<dyn BeautySalonItems>;
 
 #[cfg(test)]
 mod tests {
