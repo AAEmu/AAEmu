@@ -33,6 +33,10 @@ pub mod error_message;
 pub mod fx;
 pub mod hooks;
 pub mod inventory;
+pub mod item_effect_packets;
+pub mod item_effects;
+#[cfg(test)]
+mod item_effects_tests;
 pub mod item_handlers;
 pub mod item_packets;
 pub mod item_timers;
@@ -48,6 +52,7 @@ pub mod mail_kinds;
 pub mod mail_packets;
 #[cfg(test)]
 mod mail_tests;
+pub mod mate_equipment;
 pub mod repair;
 pub mod specialty;
 pub mod store;
@@ -95,6 +100,8 @@ pub struct System {
     pub loot: looting::LootManager,
     /// `ItemManager.UpdateItemTimers` state.
     pub item_timers: item_timers::ItemTimers,
+    /// Item skill effects (their hooks: mates, housing, backpack doodads).
+    pub item_effects: item_effects::ItemEffectsManager,
 }
 
 impl System {
@@ -125,6 +132,7 @@ impl System {
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
         wiring::install(server);
+        mate_equipment::install_default_summon_hooks(server);
         if server.systems.economy.auction.load(server).await {
             auction::AuctionManager::start_timer(server);
         }
@@ -189,4 +197,5 @@ pub fn register(reg: &mut PacketRegistry) {
     mail_packets::register(reg);
     looting::register(reg);
     repair::register(reg);
+    mate_equipment::register(reg);
 }

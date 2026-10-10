@@ -36,6 +36,8 @@ pub struct Data {
     pub items: super::items_data::ItemsData,
     /// `LootGameData`.
     pub loot: super::loot_data::LootData,
+    /// Item effect tables (fishing loot packs by zone group, repairable slaves).
+    pub item_effects: super::item_effects::ItemEffectsData,
 }
 
 impl Data {
@@ -63,6 +65,7 @@ impl Data {
         data.mail = super::mail_data::MailData::load(ctx)?;
         data.items = super::items_data::ItemsData::load(ctx.conn, ctx.language)?;
         data.loot = super::loot_data::LootData::load(ctx.conn)?;
+        data.item_effects = super::item_effects::ItemEffectsData::load(ctx.conn)?;
         Ok(data)
     }
 
