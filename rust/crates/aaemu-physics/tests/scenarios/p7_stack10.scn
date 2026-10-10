@@ -1,0 +1,29 @@
+# P7 stress: a stack of 10 1 m boxes (10 kg) resting on the ground, slightly offset and yawed.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=cube type=box size=0.5,0.5,0.5
+entity name=b0 type=rigid pos=32.000,32.000,0.500 q=0,0,0.0000000,1.0000000
+part ent=b0 geom=cube mass=10
+entity name=b1 type=rigid pos=32.030,31.980,1.510 q=0,0,0.0249974,0.9996875
+part ent=b1 geom=cube mass=10
+entity name=b2 type=rigid pos=32.060,31.960,2.520 q=0,0,0.0499792,0.9987503
+part ent=b2 geom=cube mass=10
+entity name=b3 type=rigid pos=32.090,31.940,3.530 q=0,0,0.0749297,0.9971888
+part ent=b3 geom=cube mass=10
+entity name=b4 type=rigid pos=32.120,31.920,4.540 q=0,0,0.0998334,0.9950042
+part ent=b4 geom=cube mass=10
+entity name=b5 type=rigid pos=32.150,31.900,5.550 q=0,0,0.1246747,0.9921977
+part ent=b5 geom=cube mass=10
+entity name=b6 type=rigid pos=32.180,31.880,6.560 q=0,0,0.1494381,0.9887711
+part ent=b6 geom=cube mass=10
+entity name=b7 type=rigid pos=32.210,31.860,7.570 q=0,0,0.1741081,0.9847265
+part ent=b7 geom=cube mass=10
+entity name=b8 type=rigid pos=32.240,31.840,8.580 q=0,0,0.1986693,0.9800666
+part ent=b8 geom=cube mass=10
+entity name=b9 type=rigid pos=32.270,31.820,9.590 q=0,0,0.2231064,0.9747941
+part ent=b9 geom=cube mass=10
+trace ents=b0,b1,b2,b3,b4,b5,b6,b7,b8,b9
+print
+step n=240
