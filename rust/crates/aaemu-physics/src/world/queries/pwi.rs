@@ -37,7 +37,7 @@
 use super::{aabb_overlap6, map_surface, prim_supported, QueryIntersectionParams};
 use crate::collision::contact::{GeomContact, IntersectionParams};
 use crate::collision::prim_intersect::scratch::{c, ThreadScratch};
-use crate::collision::prim_intersect::{env_with_generic, intersect, with_thread_scratch};
+use crate::collision::prim_intersect::{env_with_generic, intersect};
 use crate::geometry::primitives::Primitive;
 use crate::geometry::{GeomWorldData, Geometry};
 use crate::math::{Mat33, Vec3};
@@ -141,7 +141,11 @@ pub(crate) fn query_box(geom: &dyn Geometry, off: Vec3, d: Vec3) -> [Vec3; 2] {
     let s = bb.size;
     let e = |i: usize| ((s.x * b[i].abs()) + (s.y * b[3 + i].abs())) + (s.z * b[6 + i].abs());
     let ext = [e(0), e(1), e(2)];
-    let c = [bb.center.x + off.x, bb.center.y + off.y, bb.center.z + off.z];
+    let c = [
+        bb.center.x + off.x,
+        bb.center.y + off.y,
+        bb.center.z + off.z,
+    ];
     let dv = [d.x, d.y, d.z];
     let mut lo = [0f32; 3];
     let mut hi = [0f32; 3];
@@ -150,7 +154,10 @@ pub(crate) fn query_box(geom: &dyn Geometry, off: Vec3, d: Vec3) -> [Vec3; 2] {
         lo[k] = ((dv[k] - a) * 0.5) + (c[k] - ext[k]);
         hi[k] = ((dv[k] + a) * 0.5) + (c[k] + ext[k]);
     }
-    [Vec3::new(lo[0], lo[1], lo[2]), Vec3::new(hi[0], hi[1], hi[2])]
+    [
+        Vec3::new(lo[0], lo[1], lo[2]),
+        Vec3::new(hi[0], hi[1], hi[2]),
+    ]
 }
 
 /// The part placement `gwd2`: `pos + q·part.pos`, `R(q ⊗ part.q)`, `part.scale`.
@@ -235,6 +242,28 @@ fn sort_by_axis(w: &World, list: &mut [EntIdx], kmin: [f32; 3], kmax: [f32; 3], 
 }
 
 impl World {
+    /// PWI with the event-10 callback of a queued request (`SPWIParams +16`). With
+    /// `entTypes & 0x800`, no contact output and no params the request is queued and 1.0 is
+    /// returned (the binary returns its initial result register, 1.0); with 0x800 otherwise
+    /// 0. Without 0x800 this is [`World::pwi`].
+    pub fn pwi_with_callback(
+        &mut self,
+        p: &PwiParams,
+        callback: Option<super::queue::PwiCallback>,
+    ) -> PwiResult {
+        if p.ent_types & 0x800 == 0 {
+            return self.pwi(p);
+        }
+        if !p.want_contacts && p.ip.is_none() && prim_supported(&p.prim) {
+            self.pwi_queued(p.clone(), callback);
+            return PwiResult {
+                dist: 1.0,
+                contacts: Vec::new(),
+            };
+        }
+        PwiResult::default()
+    }
+
     /// `PrimitiveWorldIntersection(SPWIParams&, tag)` (slot 65, 0x35093100; slot 64
     /// 0x350964F0 builds the params from an argument list). The caller index is the calling
     /// thread's ([`World::tls_thread`]). See the module docs for the flow; with `entTypes &
@@ -243,10 +272,7 @@ impl World {
     pub fn pwi(&mut self, p: &PwiParams) -> PwiResult {
         let caller = self.tls_thread.clamp(0, 4);
         if p.ent_types & 0x800 != 0 {
-            if !p.want_contacts && p.ip.is_none() && prim_supported(&p.prim) {
-                self.pwi_queued(p.clone(), None);
-            }
-            return PwiResult::default();
+            return self.pwi_with_callback(p, None);
         }
         let Some((geom, center)) = query_geometry(&p.prim) else {
             return PwiResult::default();
@@ -290,7 +316,13 @@ impl World {
                     e.processed = e.processed.wrapping_add(bit);
                 }
             }
-            list = self.get_entities_in_box(qbox[0], qbox[1], p.ent_types as i32, None, caller as usize);
+            list = self.get_entities_in_box(
+                qbox[0],
+                qbox[1],
+                p.ent_types as i32,
+                None,
+                caller as usize,
+            );
         }
         let n = list.len() as i32;
         let mut kmin = [0f32; 3];
@@ -314,6 +346,7 @@ impl World {
             best_pt = last[sign];
         }
         let env = env_with_generic();
+        let tid = caller as usize;
         let mut out_contacts: Option<Vec<GeomContact>> = None;
         let mut stopped = false;
         'ents: for &e in &list {
@@ -321,7 +354,8 @@ impl World {
                 continue;
             }
             let bb = self.ent(e).bbox;
-            let v142 = (((bb[1].y - bb[0].y) * (bb[1].y - bb[0].y)) + ((bb[1].x - bb[0].x) * (bb[1].x - bb[0].x)))
+            let v142 = (((bb[1].y - bb[0].y) * (bb[1].y - bb[0].y))
+                + ((bb[1].x - bb[0].x) * (bb[1].x - bb[0].x)))
                 + ((bb[1].z - bb[0].z) * (bb[1].z - bb[0].z));
             let lhs = ((((kmin[1] * bb[0].y) + (kmin[0] * bb[0].x)) + (kmin[2] * bb[0].z))
                 + (((kmax[1] * bb[1].y) + (kmax[0] * bb[1].x)) + (kmax[2] * bb[1].z)))
@@ -349,10 +383,18 @@ impl World {
                     continue;
                 }
                 let gwd2 = part_gwd(self, e, ip_i);
-                let parts_snapshot = &self.ent(e).parts;
+                let parts_snapshot = &self.ents[e.0 as usize].as_ref().expect("live entity").parts;
                 let pgeom = parts_snapshot[ip_i].pgeom.geom.clone();
-                let r = with_thread_scratch(|s| {
-                    let out = intersect(&env, s, geom.as_ref(), pgeom.as_ref(), &mut gwd1, &gwd2, &mut ip);
+                let r = (|s: &mut ThreadScratch| {
+                    let out = intersect(
+                        &env,
+                        s,
+                        geom.as_ref(),
+                        pgeom.as_ref(),
+                        &mut gwd1,
+                        &gwd2,
+                        &mut ip,
+                    );
                     if out.ret == 0 {
                         return None;
                     }
@@ -374,7 +416,7 @@ impl World {
                         return Some((out, Some(rc), None));
                     }
                     Some((out, None, None))
-                });
+                })(&mut self.tscratch[tid]);
                 let Some((out, rc, pool)) = r else {
                     continue;
                 };
@@ -402,15 +444,19 @@ impl World {
         let contacts = if stopped {
             out_contacts.unwrap_or_default()
         } else if ip.sweep_test {
-            with_thread_scratch(|s| best.as_ref().map(|b| vec![b.decode(s)]).unwrap_or_default())
+            best.as_ref()
+                .map(|b| vec![b.decode(&self.tscratch[tid])])
+                .unwrap_or_default()
         } else {
-            with_thread_scratch(|s| {
-                let n = s.n_contacts();
-                s.contacts(0, n)
-            })
+            let s = &self.tscratch[tid];
+            s.contacts(0, s.n_contacts())
         };
         for &s in &p.skip {
-            if !p.entities_only && !s.is_none() && self.ent_alive(s) && (self.ent(s).processed >> caller) & 1 != 0 {
+            if !p.entities_only
+                && !s.is_none()
+                && self.ent_alive(s)
+                && (self.ent(s).processed >> caller) & 1 != 0
+            {
                 let e = self.ent_mut(s);
                 e.processed = e.processed.wrapping_add((-1i32 << caller) as u32);
             }
@@ -418,7 +464,11 @@ impl World {
         let dist = if best_t >= 1.0e10 { 0.0 } else { best_t as f32 };
         PwiResult {
             dist,
-            contacts: if p.want_contacts { contacts } else { Vec::new() },
+            contacts: if p.want_contacts {
+                contacts
+            } else {
+                Vec::new()
+            },
         }
     }
 }

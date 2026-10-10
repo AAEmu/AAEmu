@@ -134,7 +134,7 @@ static uint32_t parse_u(const char *s) {
 }
 
 /* ------------------------------------------------------------------ named objects */
-#define MAXN 128
+#define MAXN 1024
 typedef struct { char name[32]; void *p; int kind; /* 0 geom(phys_geometry*), 1 entity, 2 area */ } Named;
 static Named g_obj[MAXN];
 static int g_nobj;
@@ -288,6 +288,7 @@ static void apply_fields(const Toks *t, unsigned char *b, int cap) {
 
 /* P1a primitive-geometry probes (gprobe, gphysblob): owned by package P1a */
 #include "p1a_probes.c"
+#include "p3_queries.c" /* P3 query commands (additive) */
 
 /* ------------------------------------------------------------------ heightfield callbacks */
 static struct { int mode; float h0, kx, ky, amp; } g_hf;
@@ -635,6 +636,7 @@ static void run_line(char *line) {
     for (int i = 1; i < t.n; i++) printf(" %s", t.k[i]);
     printf("\n");
   } else if (p1a_command(c, &t)) {
+  } else if (p3q_command(c, &t)) {
   } else {
     die("unknown command", c);
   }

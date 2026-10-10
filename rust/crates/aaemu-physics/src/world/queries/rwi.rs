@@ -21,6 +21,7 @@
 //!    * the "beyond the ray end" threshold `(len + √2)·len + 1e-4` (double);
 //!    * `grid_flags & 1` and a ray start or end outside the grid → the out-of-grid cell;
 //!    * the grid walk ("DrawRayOnGrid" limit inside).
+//!
 //!    Then the caller bits are removed again and, with flag 0x200, the hits are ordered.
 //! 6. Hit 0: valid if `dist <= 1e9` (else `dist = -1`, `pt = org + dir`); hits `1..`: valid
 //!    if `dist <= 1e9` and not beyond hit 0 (else `dist = -1`). Valid hits on real entities
@@ -253,7 +254,9 @@ impl RayCtx {
 pub(crate) enum PartSrc {
     Entity(EntIdx),
     /// The static dummy entity (`0x3520C6E0`): 0 parts, its dummy part's flags.
-    Dummy { part_flags: u32 },
+    Dummy {
+        part_flags: u32,
+    },
 }
 
 #[inline]
@@ -281,7 +284,9 @@ impl World {
         caller: i32,
     ) -> i32 {
         let dir0 = p.dir;
-        if ((dir0.x * dir0.x + dir0.y * dir0.y) + dir0.z * dir0.z) <= 0.0 || !self.temp_pools_ready() {
+        if ((dir0.x * dir0.x + dir0.y * dir0.y) + dir0.z * dir0.z) <= 0.0
+            || !self.temp_pools_ready()
+        {
             return 0;
         }
         assert!(!hits.is_empty(), "RWI needs at least one hit slot");
@@ -402,7 +407,8 @@ impl World {
             }
             // (len + sqrt2)·len + 1e-4 in double
             let l = f64::from(len);
-            ctx.max_proj = ((l + std::f64::consts::SQRT_2) * l + f64::from(f32::from_bits(0x38D1_B717))) as f32;
+            ctx.max_proj = ((l + std::f64::consts::SQRT_2) * l
+                + f64::from(f32::from_bits(0x38D1_B717))) as f32;
             if self.vars.grid_flags & 1 != 0 {
                 let g = &self.grid;
                 let nx = g.size[0] as f32;
@@ -512,7 +518,13 @@ impl World {
     /// true or the end cell is reached. Returns 0 when the ray misses the grid, is too short,
     /// or is rejected by the "DrawRayOnGrid" limit.
     #[allow(clippy::too_many_lines)]
-    fn ray_grid_walk(&mut self, ctx: &mut RayCtx, hits: &mut [RayHit], a2: &mut [f32; 3], a3: &mut [f32; 3]) -> i32 {
+    fn ray_grid_walk(
+        &mut self,
+        ctx: &mut RayCtx,
+        hits: &mut [RayHit],
+        a2: &mut [f32; 3],
+        a3: &mut [f32; 3],
+    ) -> i32 {
         if !self.queries.env_byte_289 {
             if let Some(lim) = self.queries.ray_dir_limit {
                 let v8 = lim as f32;
@@ -530,7 +542,10 @@ impl World {
         let v11 = a3[1];
         let v12 = a2[0];
         let v13 = a2[1];
-        let s = [((v10 >> 30) & !1) + 1, (((v11.to_bits() as i32) >> 30) & !1) + 1];
+        let s = [
+            ((v10 >> 30) & !1) + 1,
+            (((v11.to_bits() as i32) >> 30) & !1) + 1,
+        ];
         let negx = ((v10 as u32) >> 31) as usize;
         let negy = (v11.to_bits() >> 31) as usize;
         let mut x = [0f32; 4];
@@ -548,7 +563,7 @@ impl World {
         y[2 * v20 + 1] = v19 * v11;
         y[2 * v20] = ((ny as f32) * step[1] - v13) * v19;
         let e20 = f32::from_bits(0x1E3C_E508); // 9.9999997e-21
-        // tmin = max(tx_in, ty_in, 0)
+                                               // tmin = max(tx_in, ty_in, 0)
         let v23 = x[0];
         let tin = if ((y[1] * v23) - (x[1] * y[0])) + ((v23 - y[0]) * e20) <= 0.0 {
             (y[0], y[1])
@@ -585,7 +600,7 @@ impl World {
             let (v78, v79, v42) = (a3[0], a3[1], a3[2]);
             a2[0] = v41 * v78 + v12;
             a2[1] = v41 * v79 + v13;
-            a2[2] = v41 * v42 + a2[2];
+            a2[2] += v41 * v42;
             l26 = true;
         }
         if l26 || (v36 - v37) < 0.0 {
@@ -594,7 +609,7 @@ impl World {
             let v45 = if v43 == 0.0 { 0.0 } else { v44 / v43 };
             let v46 = v45 * a3[0];
             let v47 = v45 * a3[1];
-            a3[2] = v45 * a3[2];
+            a3[2] *= v45;
             a3[0] = v46;
             a3[1] = v47;
         }
@@ -651,7 +666,8 @@ impl World {
         } else {
             ((((cell[maj] + ((xi[maj] + 1) >> 1)) as f32) * step[maj]) - a2[maj]) / v66
         };
-        let mut v69 = ((((v68 * a3[mnr]) + a2[mnr]) * inv[mnr]) - (cell[mnr] as f32)) * (v59 as f32)
+        let mut v69 = ((((v68 * a3[mnr]) + a2[mnr]) * inv[mnr]) - (cell[mnr] as f32))
+            * (v59 as f32)
             + (((1 - v59) >> 1) as f32);
         if !(v69 <= 1.0) {
             cell[mnr] += v59;
@@ -685,11 +701,19 @@ impl World {
     /// entity) against the ray. Returns true when the walk should stop: the cell lies beyond
     /// the ray end, or it is the end cell (`*end`, moved to the cell of a solid hit).
     #[allow(clippy::too_many_lines)]
-    fn ray_cell(&mut self, ctx: &mut RayCtx, hits: &mut [RayHit], c: [i32; 2], end: &mut i32) -> bool {
+    fn ray_cell(
+        &mut self,
+        ctx: &mut RayCtx,
+        hits: &mut [RayHit],
+        c: [i32; 2],
+        end: &mut i32,
+    ) -> bool {
         let (x, y) = (c[0], c[1]);
         let v7 = x as f32;
         let v8 = y as f32;
-        if ((v8 + ctx.c284) * ctx.c292) + ((v7 + ctx.c280) * ctx.c288) > ctx.max_proj && (x & y) != -1 {
+        if ((v8 + ctx.c284) * ctx.c292) + ((v7 + ctx.c280) * ctx.c288) > ctx.max_proj
+            && (x & y) != -1
+        {
             return true;
         }
         // POD activation (vars +360-gated, needs the POD grid): not ported.
@@ -766,7 +790,13 @@ impl World {
     }
 
     /// The entity part of the cell callback (from `LABEL_37`).
-    fn ray_test_entity(&mut self, ctx: &mut RayCtx, hits: &mut [RayHit], ent: EntIdx, end: &mut i32) {
+    fn ray_test_entity(
+        &mut self,
+        ctx: &mut RayCtx,
+        hits: &mut [RayHit],
+        ent: EntIdx,
+        end: &mut i32,
+    ) {
         let caller = ctx.caller;
         ctx.ent_slot57 = 0;
         let mut v71: i32 = 0;
@@ -798,7 +828,8 @@ impl World {
             let fl = ctx.flags;
             let part_flags = (((fl & 0x1000) ^ (fl & 0x1000).wrapping_sub(1)) >> 31) & 1;
             let part_flags = part_flags * 0x8000;
-            v71 = ctx.part_mask & ((1 - ctx.n_parts) >> 31) & ((1 - 1) >> 31);
+            // `(nContacts − 1) >> 31` with one contact is 0
+            v71 = 0;
             self.register_ray_contacts(
                 ctx,
                 hits,
@@ -905,9 +936,17 @@ impl World {
         ctx.gwd.r = Mat33::from_quat(e.q.product(part.q));
         ctx.gwd.scale = part.scale;
         let geom = part.pgeom.geom.clone();
-        let mut contacts = Vec::new();
-        let gwd = ctx.gwd;
-        let n = geom.intersect(&ctx.ray, &gwd, &GeomWorldData::default(), &mut ctx.ip, &mut contacts) as i32;
+        let mut gwd = ctx.gwd;
+        let ray = ctx.ray.clone();
+        let contacts = self.query_geom_intersect(
+            geom.as_ref(),
+            &ray,
+            &mut gwd,
+            &GeomWorldData::default(),
+            &mut ctx.ip,
+        );
+        ctx.gwd = gwd;
+        let n = contacts.len() as i32;
         let v71 = ctx.part_mask & ((1 - ctx.n_parts) >> 31) & ((n - 1) >> 31);
         self.register_ray_contacts(ctx, hits, &contacts, PartSrc::Entity(ent), ent, i, end);
         Some(v71)
@@ -953,7 +992,9 @@ impl World {
             let v31 = self.surfaces.flags[(surf & 0x1FF) as usize] & 0xF;
             let v33 = part_flags as i32;
             let m = v33 & 0x8FFB;
-            let thr = ((16 - v31) & ((-((a5 & 0x1000) as i32)) >> 31) & ((m ^ m.wrapping_sub(1)) >> 31)) + v31;
+            let thr =
+                ((16 - v31) & ((-((a5 & 0x1000) as i32)) >> 31) & ((m ^ m.wrapping_sub(1)) >> 31))
+                    + v31;
             let slot: usize;
             if ((a5 & 0xF) as i32) < thr {
                 // pierceable

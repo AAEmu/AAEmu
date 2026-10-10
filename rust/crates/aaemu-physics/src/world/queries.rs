@@ -5,13 +5,13 @@
 //! |---|---|---|
 //! | RayWorldIntersection (world slot 42) | 0x351AA730 | [`World::rwi`] ([`rwi`]) |
 //! | RayWorldIntersection arg-list wrapper (slot 104) | 0x35096EE0 | [`World::rwi`] (same params) |
-//! | ray context ctor | 0x351AC4F0 | [`rwi::RayCtx::new`] |
+//! | ray context ctor | 0x351AC4F0 | [`rwi`] `RayCtx::new` |
 //! | grid ray walk ("DrawRayOnGrid") | 0x351AD6A0 | [`rwi`] `ray_grid_walk` |
 //! | per-cell callback | 0x351AC640 | [`rwi`] `ray_cell` |
 //! | per-part hit registration | 0x351ABC10 | [`rwi`] `register_ray_contacts` |
 //! | part material mapping | 0x35037930 | [`map_surface`] |
 //! | water-plane ray (global + big areas) | 0x351A9540 | [`water`] |
-//! | area ray test (plane-only areas) | 0x3504E5E0 / 0x3504CF00 | [`water::area_ray`] |
+//! | area ray test (plane-only areas) | 0x3504E5E0 / 0x3504CF00 | [`water`] (`World::area_ray`) |
 //! | terrain ray (slot 44) | 0x351A9BA0 | [`crate::world::terrain`] |
 //! | queued RWI / PWI (flag 0x800) | 0x351AA730 / 0x35093100 head | [`queue`] |
 //! | process queued queries (slot 43) | 0x351A9FC0 | [`World::process_queued_queries`] |
@@ -25,6 +25,30 @@
 //! | CollideEntityWithBeam (slot 59) | 0x35086DB0 | [`World::collide_entity_with_beam`] |
 //! | point-in-box (oriented) | 0x350974A0 | [`entity`] |
 //! | AABB overlap (`min,max` pairs) | 0x35038180 | [`aabb_overlap6`] |
+//!
+//! # Public API (game-server integration)
+//!
+//! * [`World::rwi`]`(&RwiParams, hits: &mut [RayHit], hit_last: Option<&mut HitLast>, caller)
+//!   -> i32` — RayWorldIntersection. `RwiParams { org, dir, objtypes, flags, skip, .. }`;
+//!   `hits.len()` is nMaxHits; returns the number of valid hits (hit 0 = closest solid hit,
+//!   `dist = -1` when none). Typical game masks: `0x101` static + terrain, `0x107` + rigid,
+//!   `0x11F` all simulated + terrain, `0x301` static + terrain + water; flags as in
+//!   [`rwi_flags`] (pierceability in bits 0–3, collision class in the high word).
+//! * [`World::rwi_queued`] / [`World::pwi_with_callback`] (flag / entTypes 0x800),
+//!   [`World::process_queued_queries`]`(mode)` (slot 43), [`World::deliver_query_results`]
+//!   (the event-9/10 part of `PumpLoggedEvents`).
+//! * [`World::pwi`]`(&PwiParams) -> PwiResult { dist, contacts }` — PrimitiveWorldIntersection
+//!   for a box / sphere / cylinder / capsule, static (`dist` 1.0 on the first hit) or swept
+//!   (`dist` = travel before the first contact, 0 = none).
+//! * [`World::ray_trace_entity`], [`World::collide_entity_with_primitive`],
+//!   [`World::collide_entity_with_beam`] — one entity, results in a [`RayHit`].
+//! * Terrain: [`World::set_heightfield_data_with`] (slot 17), [`World::set_terrain_origin`]
+//!   (slot 4), [`World::get_heightfield_data`] (18), [`World::set_heightfield_mat_mapping`] (19).
+//! * Settings: [`QueryState::ray_dir_limit`], [`QueryState::env_byte_289`].
+//!
+//! The caller index of PWI and the entity queries is the calling thread's
+//! ([`World::tls_thread`]); RWI takes it as a parameter (the game passes 4 from its own
+//! threads). Queries run on the thread's intersection arena (`World::tscratch`).
 //!
 //! # Engine facts kept
 //!
@@ -68,6 +92,8 @@
 //! * Area ray tests for geometry areas, spline/polygon areas and areas with a circle
 //!   (`+544`): only plane-only areas (the global water area) are tested.
 //! * The debug ray callback (`world+656`, vars `+228 & 0x40`) and the profiler.
+
+#![allow(clippy::neg_cmp_op_on_partial_ord)] // `!(a < b)` = the binary's NaN behaviour
 
 pub mod entity;
 pub mod pwi;
@@ -150,8 +176,6 @@ pub struct QueryState {
     pub logged_results: Vec<queue::QueuedResult>,
     /// `world+1616` the terrain heightfield basis (SetHeightfieldData).
     pub hf_basis: crate::math::Mat33,
-    /// The intersection-params byte `+100` and ints `+104 … +120` are not modelled.
-    _private: (),
 }
 
 impl Default for QueryState {
@@ -163,7 +187,6 @@ impl Default for QueryState {
             pwi_queue: std::collections::VecDeque::new(),
             logged_results: Vec::new(),
             hf_basis: crate::math::Mat33::IDENTITY,
-            _private: (),
         }
     }
 }
@@ -209,7 +232,8 @@ pub(crate) fn idmat_org(id: i32, surface_bits: u32) -> i16 {
 #[must_use]
 pub fn aabb_overlap6(a: &[Vec3; 2], b: &[Vec3; 2]) -> bool {
     let d = |i: usize| {
-        ((((a[0][i] + a[1][i]) - b[0][i]) - b[1][i]).abs() - (a[1][i] - a[0][i])) - (b[1][i] - b[0][i])
+        ((((a[0][i] + a[1][i]) - b[0][i]) - b[1][i]).abs() - (a[1][i] - a[0][i]))
+            - (b[1][i] - b[0][i])
     };
     let v2 = d(1);
     let v3 = d(0);
@@ -219,6 +243,35 @@ pub fn aabb_overlap6(a: &[Vec3; 2], b: &[Vec3; 2]) -> bool {
 }
 
 impl World {
+    /// Geometry slot 10 as the queries call it, on the calling thread's intersection arena
+    /// (`World::tscratch[tls_thread]`): the primitive `Intersect` (0x35151F20, with its `gwd1`
+    /// write-back) when `a` is a primitive, else the geometry's own slot 10 (P1c meshes /
+    /// heightfields). Returns copies of the new contact records.
+    pub(crate) fn query_geom_intersect(
+        &mut self,
+        a: &dyn crate::geometry::Geometry,
+        b: &dyn crate::geometry::Geometry,
+        gwd1: &mut crate::geometry::GeomWorldData,
+        gwd2: &crate::geometry::GeomWorldData,
+        ip: &mut IntersectionParams,
+    ) -> Vec<GeomContact> {
+        if a.is_a_primitive() {
+            let env = crate::collision::prim_intersect::env_with_generic();
+            let tid = self.tls_thread.clamp(0, 4) as usize;
+            let s = &mut self.tscratch[tid];
+            let out = crate::collision::prim_intersect::intersect(&env, s, a, b, gwd1, gwd2, ip);
+            match (out.first, out.ret > 0) {
+                (Some(f), true) => s.contacts(f, out.ret),
+                _ => Vec::new(),
+            }
+        } else {
+            let mut v = Vec::new();
+            let n = a.intersect(b, gwd1, gwd2, ip, &mut v);
+            v.truncate(n);
+            v
+        }
+    }
+
     /// The engine's "temp entity pools exist" test (`world+792 != 0`), required by RWI.
     /// The pools are allocated by the pool growth of entity registration
     /// (`World::grow_pools`); the `TimeStep` path is what triggers it for entities created
