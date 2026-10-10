@@ -48,6 +48,9 @@ impl World {
             self.tls_thread = 0;
         }
         self.flush_command_queue();
+        // the world lock +22468 is held from here to the end of the step: SetParams / Action
+        // with bThreadSafe <= 0 issued during the step are queued
+        self.step_lock = true;
         // 3. dt
         let mut dt = dt_in;
         let mut dt7 = dt_in;
@@ -151,6 +154,7 @@ impl World {
         if dt > 0.0 {
             self.step_counter += 1;
         }
+        self.step_lock = false;
     }
 
     /// `pe_status_dynamics` velocity of an entity (the slow-motion re-awake test).
@@ -639,8 +643,30 @@ impl World {
         res: &crate::solver::SolveResult,
         _tid: usize,
     ) {
-        // breakable contacts (part flag 0x400000) → slot 59 OnContactResolved: constraints and
-        // breakable parts are not ported
+        // contacts on parts with flag 0x400000 → slot 59 of that side's entity (**P5**:
+        // wheeled vehicles count hull contacts; the rigid / base slot 59 — breakable parts and
+        // constraints — is not ported)
+        let list = self.solver[_tid].as_ref().map(|s| s.contacts()).unwrap_or_default();
+        for &c in list.iter().take(res.n_contacts.max(0) as usize) {
+            let rec = *self.contacts.get(c);
+            if (rec.ipart[0] | rec.ipart[1]) < 0 {
+                continue;
+            }
+            for side in 0..2usize {
+                let pe = rec.pent[side];
+                if pe.is_none() {
+                    continue;
+                }
+                let has = self
+                    .ent(pe)
+                    .parts
+                    .get(rec.ipart[side] as usize)
+                    .is_some_and(|p| p.flags & 0x40_0000 != 0);
+                if has {
+                    crate::entities::on_contact(self, pe, c, side as i32);
+                }
+            }
+        }
         let leader = self.group_leader[gi];
         let v32_flag = ((self.vars.group_damping_min_ents - n_ents - 1) as u32 >> 31) as f32;
         let mut damping = 1.0 - v32_flag * (dt * self.vars.group_damping);

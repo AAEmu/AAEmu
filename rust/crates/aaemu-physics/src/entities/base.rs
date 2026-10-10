@@ -61,6 +61,10 @@ pub struct Part {
     /// (0x350ABF20): `Some(box)` holds the copy's box (`+32` of the 56-byte record), which
     /// ComputeBBox with flag 2 writes and UpdatePosition commits. `None` = the part itself.
     pub bbox_tmp: Option<[Vec3; 2]>,
+    /// **P5** `+120` pointing at a wheel record of a `CWheeledVehicleEntity` (`E+1200+544·k`):
+    /// `Some(k)`. ComputeBBox then reads the part pose from that record and stores the part box
+    /// there; UpdatePosition copies the record's pose back into the part.
+    pub coords_wheel: Option<usize>,
 }
 
 impl Part {

@@ -198,6 +198,9 @@ pub struct World {
     pub done_list: EntIdx,
     /// The calling thread's physics index (TLS); 4 until the first `TimeStep` with dt > 0.
     pub tls_thread: i32,
+    /// The world lock `+22468` held by `TimeStep` after its command queue (deferrable calls
+    /// made during a step are queued).
+    pub step_lock: bool,
     /// `+4448` POD thread id (-1).
     pub pod_thread: i32,
     /// Deferred command queue (`+20872 …`).
@@ -280,6 +283,7 @@ impl World {
             awake_list: EntIdx::NONE,
             done_list: EntIdx::NONE,
             tls_thread: 4,
+            step_lock: false,
             pod_thread: -1,
             queue: queue::CommandQueue::default(),
             events: events::EventState::default(),

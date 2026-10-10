@@ -66,7 +66,8 @@ pub fn base_compute_bbox(
                     accumulate(&mut mn, &mut mx, lo, hi);
                     continue;
                 };
-                let qp = part.q;
+                // the part's new coords (`part+120`): itself / its copy, or a wheel record
+                let (pp, qp, ps) = part_coords(ent, part);
                 let q = c.q.product(qp);
                 let r = Mat33::from_quat(q);
                 let m = r.m;
@@ -92,7 +93,6 @@ pub fn base_compute_bbox(
                             _ => ((m[ri][0] * b[bj][0] + b[bj][1] * m[ri][1]) + b[bj][2] * m[ri][2]).abs(),
                         }
                     };
-                    let ps = part.scale;
                     // x: ((sy·|a01| + sx·|a00|) + sz·|a02|)·s
                     let ex = ((s.y * a(0, 1, 1) + s.x * a(0, 0, 0)) + s.z * a(0, 2, 1)) * ps;
                     // y: ((|a10|·sx + sy·|a11|) + sz·|a12|)·s
@@ -101,7 +101,7 @@ pub fn base_compute_bbox(
                     let ez = ((a(2, 0, 1) * s.x + s.y * a(2, 1, 0)) + s.z * a(2, 2, 0)) * ps;
                     // centre: q_ent·(q_part·c·s + p_part) + p_ent
                     let ctr = rotate_inline(qp, bb.center);
-                    let p1 = Vec3::new(ctr.x * ps + part.pos.x, ctr.y * ps + part.pos.y, ctr.z * ps + part.pos.z);
+                    let p1 = Vec3::new(ctr.x * ps + pp.x, ctr.y * ps + pp.y, ctr.z * ps + pp.z);
                     let p2 = rotate_inline(c.q, p1);
                     let cw = Vec3::new(p2.x + c.pos.x, p2.y + c.pos.y, p2.z + c.pos.z);
                     let (l, h) = (
@@ -134,8 +134,12 @@ pub fn base_compute_bbox(
                 pmax = hi;
             } else {
                 let part = &ent.parts[i];
-                pmin = part.bbox[0];
-                pmax = part.bbox[1];
+                let b = match (part.coords_wheel, ent.wheeled()) {
+                    (Some(k), Some(wd)) => wd.wheels[k].bbox,
+                    _ => part.bbox,
+                };
+                pmin = b[0];
+                pmax = b[1];
             }
             accumulate(&mut mn, &mut mx, pmin, pmax);
         }
@@ -179,6 +183,12 @@ pub fn base_compute_bbox(
     }
     let ent = w.ent_mut(e);
     for (i, b) in part_boxes {
+        if let Some(k) = ent.parts[i].coords_wheel {
+            if let Some(wd) = ent.wheeled_mut() {
+                wd.wheels[k].bbox = b;
+                continue;
+            }
+        }
         let p = &mut ent.parts[i];
         match &mut p.bbox_tmp {
             Some(t) => *t = b,
@@ -189,6 +199,17 @@ pub fn base_compute_bbox(
         unreachable!("areas have their own bbox code");
     }
     [Vec3::new(mn[0], mn[1], mn[2]), Vec3::new(mx[0], mx[1], mx[2])]
+}
+
+/// The pose a part's new-coords pointer (`part+120`) designates: the part itself (or its
+/// ComputeBBoxRE copy, identical), or the wheel record of a wheeled vehicle (**P5**).
+#[inline]
+fn part_coords(ent: &super::Entity, part: &super::Part) -> (Vec3, crate::math::Quat, f32) {
+    if let (Some(k), Some(wd)) = (part.coords_wheel, ent.wheeled()) {
+        let wh = &wd.wheels[k];
+        return (wh.pos, wh.q, wh.scale);
+    }
+    (part.pos, part.q, part.scale)
 }
 
 /// The per-part min/max merge (`if (acc >= v) acc = v` / `if (acc <= v) acc = v`).

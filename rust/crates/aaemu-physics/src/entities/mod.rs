@@ -382,6 +382,60 @@ pub fn class_detach_hook(w: &mut World, e: EntIdx, mode: i32) {
     }
 }
 
+/// Slot 59 `OnContact(contact, iside)` (the post-solve calls it for contacts on parts with
+/// flag `0x400000`): wheeled vehicles 0x35104760 count hull contacts; the rigid / base slots
+/// (breakable parts) are not ported.
+pub fn on_contact(w: &mut World, e: EntIdx, c: crate::solver::ContactId, side: i32) {
+    if w.ent(e).wheeled().is_some() {
+        wheeled::on_contact(w, e, c, side);
+    }
+}
+
+/// Slot 51 `HasPartContactsWith(pent, ipart, bGreater)`: wheeled 0x35104FF0, rigid
+/// 0x350AAF80; base 0. (Its callers, the base SetParams(part) wake-up of static neighbours
+/// and the base RemoveGeometry, are not ported.)
+#[must_use]
+pub fn has_part_contacts_with(w: &World, e: EntIdx, other: EntIdx, ipart: i32, greater: i32) -> bool {
+    if w.ent(e).wheeled().is_some() {
+        return wheeled::has_part_contacts_with(w, e, other, ipart, greater);
+    }
+    class_has_part_contacts_with(w, e, other, ipart, greater)
+}
+
+/// Slot 51 of `CRigidEntity` (0x350AAF80): a contact of the collider run of `other` (or a
+/// constraint — none in the port) on part `ipart` of the other side (or a higher part with
+/// `greater`).
+#[must_use]
+pub fn class_has_part_contacts_with(w: &World, e: EntIdx, other: EntIdx, ipart: i32, greater: i32) -> bool {
+    let ent = w.ent(e);
+    let EntityKind::Rigid(r) = &ent.kind else {
+        return false;
+    };
+    let Some(i) = ent.colliders.iter().position(|&x| x == other) else {
+        return false;
+    };
+    let hit = |p: i32| {
+        let d = ipart.wrapping_sub(p);
+        let eq = (((d ^ d.wrapping_sub(1)) >> 31) as u32).wrapping_neg();
+        let gt = (greater.wrapping_neg() as u32) & ((d as u32) >> 31);
+        (eq | gt) != 0
+    };
+    let mut k = r.collider_contacts[i];
+    if k.is_none() {
+        return false;
+    }
+    loop {
+        let c = w.contacts.get(k);
+        if hit(c.ipart[1]) {
+            return true;
+        }
+        if c.flags & 0x8_0000 != 0 {
+            return false;
+        }
+        k = c.next;
+    }
+}
+
 /// Action id 4 (reset): rigid `0x350C5D30` id-4 branch; other classes ignore it.
 pub fn action_reset(w: &mut World, e: EntIdx, a: &crate::params::ActionReset) -> i32 {
     match w.ent(e).kind {
