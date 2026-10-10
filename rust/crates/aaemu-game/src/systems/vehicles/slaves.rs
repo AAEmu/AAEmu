@@ -1367,8 +1367,9 @@ fn finish_create(
             }
         }
     }
-    // Apply equipped gear (used for future parts customization): UpdateGearBonuses(null, null)
-    crate::systems::skills::stats::update_vehicle_gear_bonuses(server, &slave_obj, None, None);
+    // summonedSlave.UpdateGearBonuses(null, null)
+    crate::systems::skills::stats::update_unit_gear_bonuses(server, &slave_obj, None, None);
+    crate::systems::dispatch_buff_events(server, &slave_obj);
     let (owner_id, owner_obj_id, slave_db_id, faction, spawn_time) = {
         let d = slave.data();
         (

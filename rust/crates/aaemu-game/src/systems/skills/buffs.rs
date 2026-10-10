@@ -85,10 +85,18 @@ pub fn new_buff(
     now: i64,
 ) -> Buff {
     let caster_info = caster.and_then(|c| {
+        // `Caster.Id`: character id, `Npc.Id` = template id, slave / mate db id (read before
+        // `with_unit` takes the object lock).
+        let db_id = match c {
+            WorldObject::Slave(s) => Some(s.data().id),
+            WorldObject::Mate(m) => Some(m.data().id),
+            _ => None,
+        };
         c.with_unit(|u| {
             let id = match c {
                 WorldObject::Player(p) => p.character_id,
-                _ => 0,
+                WorldObject::Npc(_) => u.unit().template_id,
+                _ => db_id.unwrap_or(0),
             };
             (id, u.unit().level)
         })

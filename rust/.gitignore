@@ -1,2 +1,4 @@
 /target
 /.cargo
+# live-testing credentials / local settings (see LIVE-TESTING.md)
+*.local.json

@@ -42,6 +42,8 @@ axum = { version = "0.8", default-features = false, features = ["http1", "tokio"
 twilight-gateway = { version = "0.16", default-features = false, features = ["rustls-ring", "rustls-webpki-roots", "twilight-http"] }
 twilight-http = { version = "0.16", default-features = false, features = ["rustls-ring", "rustls-webpki-roots"] }
 twilight-model = "0.16"
+# aaemu-testclient: inflating the level-4 (DD04) compressed game packets
+miniz_oxide = "0.8"
 
 # aaemu-login: keep password hashing (PBKDF2 @ 600k iterations, sha256_crypt) usable in debug
 # builds and tests.

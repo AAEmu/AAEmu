@@ -806,17 +806,18 @@ pub fn update_gear_bonuses(
     refresh_cached_stats(server, &WorldObject::from(p));
 }
 
-/// `Unit.UpdateGearBonuses(itemAdded, itemRemoved)` for a mate or a slave (their `Equipment`
-/// mirror `equipment`): the gear unit modifiers, the gear buffs (equip effects, weapon wield,
-/// armor grade, item sets: item subsystem hook) and the cached stats (the vehicle getters).
-/// Other kinds are ignored.
-pub fn update_vehicle_gear_bonuses(
+/// `Unit.UpdateGearBonuses` for a non-character unit (NPC, mate, slave: their `Equipment`): the
+/// gear unit modifiers, then the gear buffs (equip effects, weapon wield, armor grade, item
+/// sets) exactly like characters, then the cached stats (NPC: the NPC stat getters; vehicles:
+/// the vehicle getters). Other kinds are ignored.
+pub fn update_unit_gear_bonuses(
     server: &GameServer,
     unit: &WorldObject,
     added: Option<&crate::models::item::Item>,
     removed: Option<&crate::models::item::Item>,
 ) {
     let items: Vec<crate::models::item::Item> = match unit {
+        WorldObject::Npc(n) => n.data().equipment.iter().flatten().cloned().collect(),
         WorldObject::Mate(m) => m.data().equipment.iter().flatten().cloned().collect(),
         WorldObject::Slave(s) => s.data().equipment.iter().flatten().cloned().collect(),
         _ => return,
@@ -829,31 +830,35 @@ pub fn update_vehicle_gear_bonuses(
         .ext
         .items()
         .apply_gear_buffs(server, unit, added, removed);
-    refresh_cached_stats(server, unit);
+    match unit {
+        WorldObject::Npc(n) => {
+            let mut d = n.data();
+            crate::systems::npcs::npc::stats::refresh_cached_stats(&server.game_data, &mut d);
+        }
+        _ => refresh_cached_stats(server, unit),
+    }
 }
 
-/// `Unit.UpdateGearBonuses(itemAdded, itemRemoved)` for an NPC (its `Equipment`): the gear
-/// unit modifiers, then the gear buffs (equip effects, weapon-wield buff, armor-grade buff,
-/// item-set bonuses) as for any unit; the cached stats are refreshed by the NPC subsystem.
+/// [`update_unit_gear_bonuses`] for a mate or a slave only (other kinds are ignored).
+pub fn update_vehicle_gear_bonuses(
+    server: &GameServer,
+    unit: &WorldObject,
+    added: Option<&crate::models::item::Item>,
+    removed: Option<&crate::models::item::Item>,
+) {
+    if matches!(unit, WorldObject::Mate(_) | WorldObject::Slave(_)) {
+        update_unit_gear_bonuses(server, unit, added, removed);
+    }
+}
+
+/// [`update_unit_gear_bonuses`] for an NPC.
 pub fn update_npc_gear_bonuses(
     server: &GameServer,
     npc: &crate::world::NpcRef,
     added: Option<&crate::models::item::Item>,
     removed: Option<&crate::models::item::Item>,
 ) {
-    {
-        let mut n = npc.data();
-        let bonuses = gear_bonuses(server, n.equipment.iter().flatten());
-        set_gear_bonuses(&mut n.unit, bonuses);
-    }
-    server.systems.skills.ext.items().apply_gear_buffs(
-        server,
-        &WorldObject::from(npc),
-        added,
-        removed,
-    );
-    let mut n = npc.data();
-    crate::systems::npcs::npc::stats::refresh_cached_stats(&server.game_data, &mut n);
+    update_unit_gear_bonuses(server, &WorldObject::from(npc), added, removed);
 }
 
 #[cfg(test)]

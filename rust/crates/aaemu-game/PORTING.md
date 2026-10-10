@@ -395,8 +395,8 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 ## Known deviations from the C#
 
 * `LGPlayerEnter` for an already registered connection id: C# `Dictionary.Add` throws inside the
-  login handler, which has no catch (the exception escapes into the network client). Rust logs it,
-  sends nothing (same as C#) and keeps the link up.
+  login handler, which has no catch (the exception escapes into the network client, the world is
+  shown inactive afterwards). Rust replaces the stale entry and replies 0 (see "Live testing").
 * `Character.Load` for a character with InfamyPoint >= 3000: the Wanted / Contemptuous buffs are
   added and the faction becomes Pirate as in C#; `SetFaction`'s side effects (house factions,
   `ExpeditionManager.Kick(this.Connection, ...)` — which throws on the null lobby connection and
@@ -570,6 +570,45 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   `game_data.systems.npcs.area_trigger`, the rest on `world::WorldManager` (`GetTargetOrSelf` is
   `target_or_self`, `None` = the C# `null` name). Unit tests: `world/world_manager_tests.rs`.
 * systems::npcs: `Doodad.PlantTime` is unix seconds and the guard-time checks (`IsProtectedByPublicFarm`, `IsPublicPropertyByAge`) take `now` in unix milliseconds, so their deadlines resolve to the millisecond instead of the 100 ns `DateTime` tick (the comparisons themselves are the C# ones).
+
+## Live testing (phase 5): fixes and deliberate deviations
+
+Found by running the servers against MySQL, the real `compact.sqlite3` / `game_pak` and the
+`aaemu-testclient` bot, and by diffing the S->C traffic of the same scenarios against the C#
+servers (see `rust/LIVE-TESTING.md`). Fixed porting bugs are in the git history (commit
+"live-test porting fixes"); these are the remaining, deliberate differences:
+
+* Game DB sessions run at `READ COMMITTED` (`after_connect`). Under the server default
+  (`REPEATABLE READ`) concurrent character saves (`DELETE FROM character_active_buffs WHERE
+  character_id = ?` + `INSERT`) deadlock on next-key gap locks (seen with 50 bots logging out at
+  once; the C# has the same pattern but rarely overlaps since its saves are slower).
+* Periodic world ticks (active-region spawning, regen, area triggers, gimmicks, quest spheres,
+  instances, vehicles) run on the blocking pool (`systems::run_blocking`), one run at a time per
+  ticker, instead of on the async workers.
+* The heightmap cell of an NPC is loaded before `WorldInstance::spawn` takes the grid lock
+  (the C# loads it lazily while writing `SCUnitStatePacket`); same result, no multi-second
+  stall of the whole world grid on the first visit to an area.
+* Positions are saved with full `f32` precision. The C# (MySql.Data float parameters) stores
+  them with ~6 significant digits (`15578.041` -> `15578.0`), so a re-login spawns a few cm away
+  from where the C# would put it.
+* `X2EnterWorldResponsePacket.token` (= game session id) is a counter (see above), so stream
+  `CTJoin` tokens are small integers rather than `RemoteEndPoint.GetHashCode()` values.
+* A character created in this session keeps its in-memory state until it is selected (as C#
+  keeps the `Character` object in `Connection.Characters`): its gear buffs (indices 2..8) exist
+  before the first select and are not announced again. A character loaded from the DB on a
+  later session gets fresh buffs on select in both servers.
+* `UpdateGearBonuses` is ported for characters, NPCs, mates and slaves (the "Stats" bullet
+  above predates it).
+* A client that takes its world cookie (`CAEnterWorld`) but never connects to the game server
+  leaves `EnterWorldManager._accounts[connectionId]` behind, and the login server leases the
+  same (lowest free) connection id to the next client. C# then throws in `AddAccount` and stops
+  answering the login server (every later enter-world is denied, the world shows as inactive).
+  Rust replaces the stale entry and answers.
+
+Parity status of the scripted scenarios: `login`, `lobby` and `full` (fresh character) produce
+the same S->C traffic as the C# servers after id / time normalisation (0 findings); a second
+`full` round with the existing character only differs in the saved position precision above
+and in NPC wandering / buff remaining times.
 
 ## C# bugs noticed (mirrored, not fixed)
 

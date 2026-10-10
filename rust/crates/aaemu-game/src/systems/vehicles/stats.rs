@@ -140,8 +140,10 @@ impl Eval<'_> {
                 };
                 HashMap::from([("level", self.level()), ("mate_kind", mate_kind)])
             }
-            VehicleKind::Slave => HashMap::from([("level", self.level())]),
-            VehicleKind::Transfer | VehicleKind::Shipyard => self.full_params(),
+            // `Slave` getters pass `level` + `str`..`fai` like transfers and shipyards.
+            VehicleKind::Slave | VehicleKind::Transfer | VehicleKind::Shipyard => {
+                self.full_params()
+            }
         }
     }
 

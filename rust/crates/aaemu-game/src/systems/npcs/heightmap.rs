@@ -1016,6 +1016,16 @@ pub fn adjust_npc_reference_height(npc: &mut Npc) {
     npc.unit.transform.set_height(height);
 }
 
+/// Loads (on demand) the heightmap cell an NPC's unit state will read, without holding any
+/// world lock. No-op without installed heightmaps.
+pub fn warm_npc_height(npc: &crate::world::NpcRef) {
+    let Some(h) = ACTIVE.read().unwrap_or_else(|e| e.into_inner()).clone() else {
+        return;
+    };
+    let t = npc.data().unit.transform;
+    let _ = h.get_height(t.zone_id, t.x, t.y, t.z);
+}
+
 /// `WorldManager.GetHeight(zoneKey, x, y, z)` on `server`'s heightmaps (0 before startup).
 pub fn get_height(server: &GameServer, zone_key: u32, x: f32, y: f32, z: f32) -> f32 {
     server

@@ -559,7 +559,7 @@ pub fn select_loaded(
         apply_active_buffs(server, &mut live, &db.saved_buffs, now_ms());
         live.check_wanted_threshold(server, now_ms());
         // UpdateGearBonuses(null, null): gear bonuses are a later phase.
-        live.restore_saved_hp_mp(&data.formulas);
+        live.restore_saved_hp_mp();
         live.breath = 60_000; // LungCapacity
     }
     crate::systems::skills::on_character_loaded(server, &player); // buffs, gear bonuses, exact MaxHp/MaxMp
@@ -584,6 +584,9 @@ pub fn spawn_character(server: &GameServer, conn: &mut GameConnection, visual: V
         c.visual_options = Some(visual);
         unit_state::unit_state(&mut c, &server.game_data, now_ms())
     };
+    // Writing the unit state force-adds the patron / auction-license buffs; their
+    // SCBuffCreatedPacket goes out first (C# broadcasts them from inside the packet's Write).
+    crate::systems::dispatch_buff_events(server, &WorldObject::from(&player));
     conn.send(&state);
     let sub = server.time.subscribe_with(
         &player.conn,
@@ -663,7 +666,9 @@ pub fn notify_in_game(server: &GameServer, conn: &mut GameConnection) {
                 .join(&p);
         }
     }
-    // UpdateGearBonuses: skills subsystem.
+    // Connection.ActiveChar.UpdateGearBonuses(null, null)
+    crate::systems::skills::stats::update_gear_bonuses(server, &p, None, None);
+    crate::systems::dispatch_buff_events(server, &WorldObject::from(&p));
     crate::systems::social::session::on_notify_in_game_trial(server, &p);
     tracing::info!("NotifyInGame: {name} ({id})");
 }
@@ -984,9 +989,13 @@ pub fn leave(server: &GameServer, conn: &mut GameConnection, target: u8) {
             send_message(p, chat_type::SYSTEM, &server.config.world.logout_message);
         }
     }
-    // Combat (x30): later phase. Active slave: +10 minutes.
-    let mut logout_time = 10_000;
+    let mut logout_time = 10_000; // in ms
     if let Some(p) = &conn.active_char {
+        // Make it 5 minutes if you're still in combat
+        if p.data().unit.is_in_battle {
+            logout_time *= 30;
+        }
+        // Add 10 minutes if you have a Slave Active
         logout_time += crate::systems::vehicles::leave_extra_logout_ms(server, p);
     }
     conn.send(&SCPrepareLeaveWorldPacket {

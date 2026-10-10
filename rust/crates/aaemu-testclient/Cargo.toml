@@ -1,0 +1,29 @@
+[package]
+name = "aaemu-testclient"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Headless 1.2 client bot: scripted login/game/stream scenarios, packet capture, parity diff and load testing"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "aaemu-testclient"
+path = "src/main.rs"
+
+[dependencies]
+aaemu-commons.workspace = true
+# Only for the opcode tables (`aaemu_game::opcodes`), so names match the C# constants.
+aaemu-game = { path = "../aaemu-game" }
+anyhow.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+futures.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+hex.workspace = true
+miniz_oxide.workspace = true

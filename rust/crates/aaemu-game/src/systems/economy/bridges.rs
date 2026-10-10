@@ -165,7 +165,16 @@ const CATEGORY_DYE: i32 = 33;
 impl EconomyForSkills {
     /// `new Buff(this, this, SkillCasterUnit(..), template, null, now) { AbLevel }` +
     /// `Buffs.AddBuff`.
-    fn add_gear_buff(server: &GameServer, unit: &WorldObject, buff_id: u32, ab_level: u32) {
+    /// `Buffs.AddBuff(new Buff(this, this, skillCaster, template, ...) { AbLevel })` of the gear
+    /// code; `caster_obj` is the `SkillCasterUnit` object id (`new SkillCasterUnit()` = 0 for
+    /// equip effects and armor buffs, `SkillCasterUnit(ObjId)` for wield and item-set buffs).
+    fn add_gear_buff(
+        server: &GameServer,
+        unit: &WorldObject,
+        buff_id: u32,
+        ab_level: u32,
+        caster_obj: u32,
+    ) {
         use crate::systems::skills::buffs;
         let Some(t) = server.game_data.systems.skills.buff(buff_id).cloned() else {
             return;
@@ -174,7 +183,7 @@ impl EconomyForSkills {
             server,
             &t,
             Some(unit),
-            &SkillCaster::Unit(unit.obj_id()),
+            &SkillCaster::Unit(caster_obj),
             None,
             crate::world::now_ms(),
         );
@@ -260,10 +269,10 @@ impl EconomyForSkills {
             if !Self::is_destroyed(server, a) {
                 let level = data.template(a.template_id).map_or(0, |t| t.level) as u32;
                 if let Some(id) = Self::item_buff(server, a) {
-                    Self::add_gear_buff(server, unit, id, level);
+                    Self::add_gear_buff(server, unit, id, level, 0);
                 }
                 if let Some(id) = Self::charge_buff_active(server, a) {
-                    Self::add_gear_buff(server, unit, id, level);
+                    Self::add_gear_buff(server, unit, id, level, 0);
                 }
             }
         }
@@ -277,11 +286,11 @@ impl EconomyForSkills {
                 let level = t.level as u32;
                 if t.buff_id != 0 {
                     if let Some(id) = Self::item_buff(server, item) {
-                        Self::add_gear_buff(server, unit, id, level);
+                        Self::add_gear_buff(server, unit, id, level, 0);
                     }
                 }
                 if let Some(id) = Self::charge_buff_active(server, item) {
-                    Self::add_gear_buff(server, unit, id, level);
+                    Self::add_gear_buff(server, unit, id, level, 0);
                 }
             }
         }
@@ -314,7 +323,7 @@ impl EconomyForSkills {
             _ => (off == Some(gear_slot_type::SHIELD)).then_some(buff_constants::EQUIP_SHIELD),
         };
         if let Some(id) = buff {
-            Self::add_gear_buff(server, unit, id, 0);
+            Self::add_gear_buff(server, unit, id, 0, unit.obj_id());
         }
     }
 
@@ -395,7 +404,7 @@ impl EconomyForSkills {
             _ => None,
         };
         if let Some(id) = set_buff {
-            Self::add_gear_buff(server, unit, id, 0);
+            Self::add_gear_buff(server, unit, id, 0, 0);
         }
         // Get only pieces >= arcane
         let above: Vec<&&Item> = pieces
@@ -420,7 +429,13 @@ impl EconomyForSkills {
             );
             return;
         };
-        Self::add_gear_buff(server, unit, grade_buff.buff_id, grade_buff_ab_level as u32);
+        Self::add_gear_buff(
+            server,
+            unit,
+            grade_buff.buff_id,
+            grade_buff_ab_level as u32,
+            0,
+        );
     }
 
     /// `Unit.ApplyEquipItemSetBonuses()`. The item procs of the set bonuses are not registered:
@@ -465,7 +480,7 @@ impl EconomyForSkills {
                             applied.insert(bonus.buff_id);
                             continue;
                         }
-                        Self::add_gear_buff(server, unit, bonus.buff_id, level);
+                        Self::add_gear_buff(server, unit, bonus.buff_id, level, unit.obj_id());
                         applied.insert(bonus.buff_id);
                     }
                 } else if bonus.buff_id != 0

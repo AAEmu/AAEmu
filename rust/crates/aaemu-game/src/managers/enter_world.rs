@@ -21,9 +21,12 @@ pub enum LoginDecision {
 pub enum AddAccountResult {
     /// Send `GLPlayerEnterPacket` with this `result` byte.
     Reply(u8),
-    /// The connection id was already registered: C# `Dictionary.Add` throws before any reply is
-    /// sent (see `login::handle`).
-    DuplicateConnectionId,
+    /// The connection id was already registered for `stale_account` (a client that got its
+    /// world cookie but never connected to the game server). The login server reuses a
+    /// connection id only after that connection closed, so the old entry is replaced; reply 0.
+    /// (C# `Dictionary.Add` throws there, no reply is sent and the login link breaks: every
+    /// later login on the reused id is denied.)
+    ReplacedStale { stale_account: u32 },
 }
 
 #[derive(Debug, Default)]
@@ -46,11 +49,10 @@ impl EnterWorldManager {
             return AddAccountResult::Reply(1);
         }
         let mut accounts = self.accounts.lock().expect("enter world state poisoned");
-        if accounts.contains_key(&connection_id) {
-            return AddAccountResult::DuplicateConnectionId;
+        match accounts.insert(connection_id, account_id) {
+            Some(stale_account) => AddAccountResult::ReplacedStale { stale_account },
+            None => AddAccountResult::Reply(0),
         }
-        accounts.insert(connection_id, account_id);
-        AddAccountResult::Reply(0)
     }
 
     /// The token check of `Login(connection, accountId, token)`.
@@ -77,10 +79,18 @@ mod tests {
         assert_eq!(m.add_account(10, 111, false), AddAccountResult::Reply(0));
         // Contains(accountId): refused, nothing registered.
         assert_eq!(m.add_account(11, 112, true), AddAccountResult::Reply(1));
-        // Dictionary.Add on an existing key throws.
+        // A reused connection id replaces the stale entry (C#: Dictionary.Add throws).
         assert_eq!(
             m.add_account(12, 111, false),
-            AddAccountResult::DuplicateConnectionId
+            AddAccountResult::ReplacedStale { stale_account: 10 }
+        );
+        assert_eq!(
+            m.login(10, 111),
+            LoginDecision::AccountMismatch { expected: 12 }
+        );
+        assert_eq!(
+            m.add_account(10, 111, false),
+            AddAccountResult::ReplacedStale { stale_account: 12 }
         );
         // Wrong account for a known token: refused, entry kept.
         assert_eq!(

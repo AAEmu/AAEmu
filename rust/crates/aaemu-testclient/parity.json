@@ -1,0 +1,82 @@
+{
+  "ignore": [
+    "PongPacket",
+    "SCTimeOfDayPacket"
+  ],
+  "optional": [
+    "SCOneUnitMovementPacket",
+    "SCUnitMovementsPacket",
+    "SCUnitModelPostureChangedPacket",
+    "SCNpcChangeTargetPacket",
+    "SCAiAggroPacket",
+    "SCUnitsRemovedPacket"
+  ],
+  "count_only": [
+    "SCDetailedTimeOfDayPacket",
+    "SCConflictZoneStatePacket"
+  ],
+  "whole_run": [
+    "SCUnitStatePacket",
+    "SCUnitPointsPacket",
+    "SCTargetChangedPacket",
+    "SCDoodadsCreatedPacket",
+    "SCDoodadsRemovedPacket",
+    "SCBuffRemovedPacket"
+  ],
+  "mask_unix_times": true,
+  "masks": {
+    "X2EnterWorldResponsePacket": [
+      {
+        "start": 3,
+        "end": 7,
+        "why": "token = game session id: C# RemoteEndPoint.GetHashCode(), Rust a counter (PORTING.md)"
+      },
+      {
+        "start": 7,
+        "end": 9,
+        "why": "stream server port (configuration)"
+      },
+      {
+        "start": 9,
+        "end": 17,
+        "why": "wf: server unix time"
+      }
+    ],
+    "SCCharacterStatePacket": [
+      {
+        "start": 6,
+        "end": 22,
+        "why": "character guid: random per character"
+      }
+    ],
+    "SCDoodadsCreatedPacket": [
+      {
+        "start": 59,
+        "end": 63,
+        "stride": 91,
+        "why": "doodad timeLeft (growth timer, depends on spawn time)"
+      }
+    ],
+    "ACWorldCookiePacket": [
+      {
+        "start": 8,
+        "end": 10,
+        "stride": 6,
+        "why": "game server port (configuration)"
+      }
+    ]
+  },
+  "ignore_steps": [],
+  "raw_ids": [
+    "SCFactionListPacket",
+    "SCFactionRelationListPacket",
+    "SCActabilityPacket",
+    "SCActionSlotsPacket",
+    "SCCompletedQuestsPacket",
+    "SCConflictZoneStatePacket",
+    "SCInitialConfigPacket",
+    "SCLevelRestrictionConfigPacket",
+    "SCTrionConfigPacket",
+    "SCAccountAttributeConfigPacket"
+  ]
+}

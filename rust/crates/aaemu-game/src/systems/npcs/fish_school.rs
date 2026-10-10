@@ -190,12 +190,10 @@ pub fn load_world(server: &GameServer, world: &Arc<WorldInstance>) {
     tracing::info!("Loaded {count} FishSchool for world {} ...", world.id);
 }
 
-/// Startup, after the spawners ran: `Initialize()` + `Load(world)` for every world instance.
+/// Startup: `Initialize()`. `Load(world)` runs at the end of each world's doodad spawn task
+/// (`SpawnManager.SpawnAll`), once the fish school doodads exist.
 pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
     server.systems.npcs.fish_schools.initialize();
-    for world in server.world.worlds() {
-        load_world(server, &world);
-    }
     Ok(())
 }
 

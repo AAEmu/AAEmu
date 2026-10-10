@@ -1,0 +1,11 @@
+{
+  "login": "127.0.0.1:21237",
+  "user": "bot1",
+  "password": "change-me",
+  "character": "Botone",
+  "game_server_id": 1,
+  "skill_id": 2,
+  "quest_id": 330,
+  "quest_npc_template": 3597,
+  "wait_leave_granted": true
+}

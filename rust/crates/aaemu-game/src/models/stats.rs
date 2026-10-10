@@ -79,13 +79,12 @@ impl Character {
         CharacterStats::compute(f, self.unit.level)
     }
 
-    /// `RestoreSavedHpMp`: `Hp = Min(_savedHp, MaxHp)`, `Mp = Min(_savedMp, MaxMp)`. Also caches
-    /// `MaxHp` / `MaxMp` in `unit.max_hp` / `unit.max_mp` (shared code reads those).
-    pub fn restore_saved_hp_mp(&mut self, f: &FormulaManager) {
-        let s = self.stats(f);
-        (self.unit.max_hp, self.unit.max_mp) = (s.max_hp, s.max_mp);
-        self.unit.hp = self.saved_hp.min(s.max_hp);
-        self.unit.mp = self.saved_mp.min(s.max_mp);
+    /// `RestoreSavedHpMp`: `Hp = Min(_savedHp, MaxHp)`, `Mp = Min(_savedMp, MaxMp)`.
+    pub fn restore_saved_hp_mp(&mut self) {
+        // `MaxHp` / `MaxMp` are the full getters (gear bonuses, buffs): use the cached values
+        // the skills subsystem keeps up to date, not the bare formulas.
+        self.unit.hp = self.saved_hp.min(self.unit.max_hp);
+        self.unit.mp = self.saved_mp.min(self.unit.max_mp);
     }
 
     /// The `Character.Load` clamp: `if (Hp > MaxHp) Hp = MaxHp` (same for Mp).

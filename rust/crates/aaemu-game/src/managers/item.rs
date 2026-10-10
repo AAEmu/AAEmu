@@ -567,7 +567,7 @@ const ITEM_SELECT: &str = "SELECT `type`, CAST(id AS UNSIGNED) AS id, CAST(templ
      CAST(slot AS SIGNED) AS slot, CAST(`count` AS SIGNED) AS item_count, CAST(lifespan_mins AS SIGNED) AS lifespan_mins, \
      CAST(made_unit_id AS SIGNED) AS made_unit_id, unsecure_time, unpack_time, created_at, CAST(`owner` AS UNSIGNED) AS owner, \
      CAST(flags AS SIGNED) AS flags, CAST(ucc AS SIGNED) AS ucc, details, CAST(grade AS SIGNED) AS grade, charge_time, \
-     expire_time, CAST(expire_online_minutes AS DOUBLE) AS expire_online_minutes, CAST(charge_count AS SIGNED) AS charge_count \
+     expire_time, (expire_online_minutes + 0E0) AS expire_online_minutes, CAST(charge_count AS SIGNED) AS charge_count \
      FROM items";
 
 fn item_row(r: &MySqlRow) -> Result<ItemRow> {

@@ -124,8 +124,10 @@ struct CharacterTemplateConfig {
 }
 
 /// `float.DegToRad()`.
+/// `NumericExtensions.DegToRad(float)`: `MathF.PI / 180f * val` (that evaluation order: `v * PI
+/// / 180` rounds differently and the client sees a different spawn yaw).
 fn deg_to_rad(v: f32) -> f32 {
-    v * std::f32::consts::PI / 180.0
+    std::f32::consts::PI / 180.0 * v
 }
 
 impl CharacterData {

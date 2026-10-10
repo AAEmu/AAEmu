@@ -1294,7 +1294,9 @@ impl SpawnManager {
             self.world.template.name,
             start.elapsed()
         );
-        // FishSchoolManager.Load(World) runs from `fish_school::start` after this task.
+        // You have to wait for all the doodads to spawn before trying to initialize the fish
+        // schools (FishSchoolManager.Load(World)).
+        crate::systems::npcs::fish_school::load_world(server, &self.world);
         // Link doodads seats to the trial system
         if self.world.id == crate::models::character::DEFAULT_INSTANCE_ID {
             self.link_trial_spawners(server);
@@ -1861,7 +1863,7 @@ pub fn start_active_region_tick(server: &Arc<GameServer>) {
                 break;
             };
             let start = std::time::Instant::now();
-            active_region_tick(&server);
+            crate::systems::run_blocking(&server, active_region_tick).await;
             if start.elapsed() > Duration::from_millis(100) {
                 tracing::warn!("ActiveRegionTick took {} ms", start.elapsed().as_millis());
             }

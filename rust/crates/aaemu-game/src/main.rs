@@ -92,6 +92,18 @@ async fn main() -> anyhow::Result<()> {
     // Test the MySQL connection ("MySQL connection failed, check your configuration!" is fatal).
     let db = MySqlPoolOptions::new()
         .max_connections(16)
+        // Saves run concurrently (logouts, SaveManager): `DELETE ... WHERE character_id = ?` on
+        // an empty range takes next-key gap locks under REPEATABLE READ, and the following
+        // INSERTs of other characters' rows deadlock on them (seen with 50 bots logging out at
+        // once). READ COMMITTED takes no gap locks.
+        .after_connect(|conn, _meta| {
+            Box::pin(async move {
+                use sqlx::Executor;
+                conn.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+                    .await?;
+                Ok(())
+            })
+        })
         .connect_with(config.connections.mysql_provider.connect_options())
         .await
         .context("MySQL connection failed, check your configuration!")?;
