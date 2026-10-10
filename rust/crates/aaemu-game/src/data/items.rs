@@ -124,10 +124,33 @@ pub struct ItemTemplate {
     pub exp_online_lifetime: i32,
     /// `ExpDate` as unix seconds (`None` = `DateTime.MinValue`).
     pub exp_date: Option<i64>,
+    pub category_id: i32,
+    pub level: i32,
+    pub price: i32,
+    pub refund: i32,
+    pub pickup_limit: i32,
+    pub sellable: bool,
+    pub use_skill_id: u32,
+    pub use_skill_as_reagent: bool,
+    /// `ImplId` (`ItemImplEnum`).
+    pub impl_id: i32,
+    pub buff_id: u32,
+    pub loot_multi: bool,
+    pub loot_quest_id: u32,
+    pub honor_price: i32,
+    pub level_requirement: i32,
+    pub auction_category_a: i32,
+    pub auction_category_b: i32,
+    pub auction_category_c: i32,
+    pub level_limit: i32,
+    pub disenchantable: bool,
+    pub living_point_price: i32,
+    pub char_gender: u8,
+    pub specialty_zone_id: u32,
 }
 
 impl ItemTemplate {
-    fn new(id: u32, kind: TemplateKind) -> Self {
+    pub fn new(id: u32, kind: TemplateKind) -> Self {
         Self {
             id,
             kind,
@@ -139,6 +162,28 @@ impl ItemTemplate {
             exp_abs_lifetime: 0,
             exp_online_lifetime: 0,
             exp_date: None,
+            category_id: 0,
+            level: 0,
+            price: 0,
+            refund: 0,
+            pickup_limit: 0,
+            sellable: false,
+            use_skill_id: 0,
+            use_skill_as_reagent: false,
+            impl_id: 0,
+            buff_id: 0,
+            loot_multi: false,
+            loot_quest_id: 0,
+            honor_price: 0,
+            level_requirement: 0,
+            auction_category_a: 0,
+            auction_category_b: 0,
+            auction_category_c: 0,
+            level_limit: 0,
+            disenchantable: false,
+            living_point_price: 0,
+            char_gender: 0,
+            specialty_zone_id: 0,
         }
     }
 
@@ -485,6 +530,32 @@ impl ItemData {
                 parse_sqlite_datetime(&r.string("exp_date")?)
             };
             t.fixed_grade = r.i32("fixed_grade")?;
+            t.category_id = r.i32("category_id")?;
+            t.level = r.i32("level")?;
+            t.price = r.i32("price")?;
+            t.refund = r.i32("refund")?;
+            t.pickup_limit = r.i32("pickup_limit")?;
+            t.sellable = r.bool_str("sellable")?;
+            t.use_skill_id = r.u32("use_skill_id")?;
+            t.use_skill_as_reagent = r.bool_str("use_skill_as_reagent")?;
+            t.impl_id = r.i32("impl_id")?;
+            t.buff_id = r.u32("buff_id")?;
+            t.loot_multi = r.bool_str("loot_multi")?;
+            t.loot_quest_id = r.u32("loot_quest_id")?;
+            t.honor_price = r.i32("honor_price")?;
+            t.specialty_zone_id = if r.is_null("specialty_zone_id")? {
+                0
+            } else {
+                r.u32("specialty_zone_id")?
+            };
+            t.level_requirement = r.i32("level_requirement")?;
+            t.auction_category_a = r.i32_or("auction_a_category_id", 0)?;
+            t.auction_category_b = r.i32_or("auction_b_category_id", 0)?;
+            t.auction_category_c = r.i32_or("auction_c_category_id", 0)?;
+            t.level_limit = r.i32("level_limit")?;
+            t.disenchantable = r.bool_str("disenchantable")?;
+            t.living_point_price = r.i32("living_point_price")?;
+            t.char_gender = r.u8("char_gender_id")?;
             Ok(())
         })?;
         let _ = grades_ordered;

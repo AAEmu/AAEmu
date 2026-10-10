@@ -1,39 +1,74 @@
 //! Phase-3 subsystem: items / craft / loot / mail / auction / trade / cash shop.
 //!
 //! C# scope: item actions / tasks (`Models/Game/Items/Actions`, `SCItemTaskSuccessPacket`),
-//! moving / consuming items between containers, `CraftManager`, loot (`LootingContainer`,
-//! `Models/Game/Items/Loots`), `MailManager`, `AuctionManager`, `TradeManager`,
-//! `CashShopManager` and their packets.
+//! moving / consuming items between containers (`Inventory`, `ItemContainer`), money / points /
+//! labor changes, `CraftManager`, loot (`LootingContainer`, `Models/Game/Items/Loots`),
+//! `MailManager`, `AuctionManager`, `TradeManager`, `CashShopManager`, stores and their packets.
 //!
-//! Foundation to build on: `models::item`, `models::container`, `managers::item::ItemManager`,
-//! `world::object` for doodad / unit lookups.
-//!
-//! Module layout (see `CONTRIBUTING-PORT.md`): packets in `packets.rs` (C2G + G2C of this
-//! subsystem), tables in `data.rs`, managers in their own files; everything is wired through
-//! the five items below, which `systems/mod.rs` already calls.
+//! Layering:
+//! * `models::item_task` — `ItemTask` / `ItemTaskType` / the recorded side effects (`ItemFx`);
+//! * `models::container` — the container operations (`AddOrMoveExistingItem`, `RemoveItem`,
+//!   `ConsumeItem`, `AcquireDefaultItem`, ...), pure, under the container locks;
+//! * [`inventory`] — `Inventory` / `Character` operations of a player ([`inventory::ItemTxn`]
+//!   serialises item operations and flushes the effects through [`fx::flush`]);
+//! * [`hooks`] — what the economy needs from other subsystems (quests, gear bonuses, NPC shop
+//!   flags, slaves / mates); installed into `server.systems.economy.hooks` by their owners.
 
-use std::sync::Arc;
+pub mod data;
+pub mod error_message;
+pub mod fx;
+pub mod hooks;
+pub mod inventory;
+pub mod item_handlers;
+pub mod item_packets;
+#[cfg(test)]
+pub(crate) mod tests;
+
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::net::registry::PacketRegistry;
 use crate::server::GameServer;
-use crate::systems::{DataLoadCtx, SaveStage};
+use crate::systems::SaveStage;
 
-/// Game-data tables of this subsystem (`server.game_data.systems.economy`).
+pub use data::Data;
+
+/// Managers of this subsystem (`server.systems.economy`).
 #[derive(Debug, Default)]
-pub struct Data {}
-
-impl Data {
-    /// Loads this subsystem's tables from `ctx` (TODO(economy): port the C# loaders).
-    pub fn load(_ctx: &DataLoadCtx<'_>) -> Result<Self, crate::data::GameDataError> {
-        Ok(Self::default())
-    }
+pub struct System {
+    /// Hooks other subsystems install (see [`hooks`]).
+    pub hooks: hooks::EconomyHooks,
+    /// Serialises item operations (see [`inventory::ItemTxn`]).
+    ops: Mutex<()>,
+    /// `Inventory.PreviousBackPackItemId` by character id (glider re-equip after a trade pack).
+    previous_backpack: Mutex<HashMap<u32, u64>>,
 }
 
-/// Managers of this subsystem (`server.systems.economy`); add one field per manager.
-#[derive(Debug, Default)]
-pub struct System {}
-
 impl System {
+    /// The item-operation lock (outermost lock of every economy operation; never taken while a
+    /// character or container lock is held).
+    pub fn ops_lock(&self) -> MutexGuard<'_, ()> {
+        self.ops.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// `Inventory.PreviousBackPackItemId = id`.
+    pub fn set_previous_backpack(&self, character_id: u32, item_id: u64) {
+        self.previous_backpack
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(character_id, item_id);
+    }
+
+    /// `Inventory.PreviousBackPackItemId`.
+    pub fn previous_backpack(&self, character_id: u32) -> u64 {
+        self.previous_backpack
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&character_id)
+            .copied()
+            .unwrap_or(0)
+    }
+
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
     pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
         Ok(())
@@ -51,5 +86,7 @@ impl System {
     }
 }
 
-/// Registers this subsystem's C->S packets (`reg.register::<P>(LEVEL_PLAIN, cs::P)`).
-pub fn register(_reg: &mut PacketRegistry) {}
+/// Registers this subsystem's C->S packets.
+pub fn register(reg: &mut PacketRegistry) {
+    item_handlers::register(reg);
+}

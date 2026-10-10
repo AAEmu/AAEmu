@@ -14,39 +14,51 @@ use crate::managers::id::IdManager;
 use crate::models::container::{slot_type, ContainerKind, ContainerRef, ItemContainer};
 use crate::models::item::{Item, ItemClass, ItemRow};
 
-#[derive(Debug, Default)]
-struct Store {
-    /// `_allPersistentContainers` in insertion order.
-    containers: Vec<ContainerRef>,
-    /// Items that are in `_allItems` but in no container (orphans).
-    loose: Vec<Item>,
-    /// `_removedItems`.
-    removed: Vec<u64>,
-}
-
 /// `ItemManager` (user items).
+///
+/// Lock order: the lists below are leaf locks that are never held while a container is locked
+/// (lookups snapshot the container handles first), so they may be taken while a container lock
+/// is held (`GetNewId` / `ReleaseId` during container operations).
 #[derive(Debug, Default)]
 pub struct ItemManager {
-    store: Mutex<Store>,
+    /// `_allPersistentContainers` in insertion order.
+    containers: Mutex<Vec<ContainerRef>>,
+    /// Items that are in `_allItems` but in no persistent container (orphans, merged stacks).
+    loose: Mutex<Vec<Item>>,
+    /// `_removedItems`.
+    removed: Mutex<Vec<u64>>,
+    /// Serialises `GetItemContainerForCharacter`'s find-or-create.
+    create_lock: Mutex<()>,
+}
+
+fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    m.lock().expect("item manager poisoned")
 }
 
 impl ItemManager {
-    fn store(&self) -> std::sync::MutexGuard<'_, Store> {
-        self.store.lock().expect("item store poisoned")
+    /// Snapshot of `_allPersistentContainers`.
+    pub fn all_containers(&self) -> Vec<ContainerRef> {
+        lock(&self.containers).clone()
     }
 
     /// `GetItemContainerByDbId`.
     pub fn container_by_id(&self, id: u64) -> Option<ContainerRef> {
-        self.store()
-            .containers
-            .iter()
+        self.all_containers()
+            .into_iter()
             .find(|c| c.lock().expect("container poisoned").container_id == id)
-            .cloned()
+    }
+
+    /// `GetContainerSlotTypeByContainerId`.
+    pub fn container_slot_type(&self, id: u64) -> u8 {
+        self.container_by_id(id).map_or(slot_type::NONE, |c| {
+            c.lock().expect("container poisoned").slot_type
+        })
     }
 
     /// `GetItemContainerForCharacter(characterId, slotType, parentUnit, mateId)`: the first
     /// persistent container matching owner/slot/mate, or a new one (new container id unless the
-    /// slot type is `None`, persistent unless `None`).
+    /// slot type is `None`, persistent unless `None`). Never call it while holding a container
+    /// lock.
     pub fn container_for_character(
         &self,
         character_id: u32,
@@ -54,11 +66,12 @@ impl ItemManager {
         mate_id: u32,
         container_ids: &IdManager,
     ) -> ContainerRef {
-        let mut store = self.store();
-        for c in &store.containers {
+        let _create = lock(&self.create_lock);
+        for c in self.all_containers() {
             let g = c.lock().expect("container poisoned");
             if g.owner_id == character_id && g.slot_type == slot && g.mate_id == mate_id {
-                return c.clone();
+                drop(g);
+                return c;
             }
         }
         let kind = match slot {
@@ -83,9 +96,52 @@ impl ItemManager {
         }
         let c = c.into_ref();
         if slot != slot_type::NONE {
-            store.containers.push(c.clone());
+            lock(&self.containers).push(c.clone());
         }
         c
+    }
+
+    /// `NewCofferContainer(characterId)`.
+    pub fn new_coffer_container(
+        &self,
+        character_id: u32,
+        container_ids: &IdManager,
+    ) -> ContainerRef {
+        let id = match container_ids.get_next_id() {
+            Ok(id) => u64::from(id),
+            Err(e) => {
+                tracing::error!("{e}");
+                0
+            }
+        };
+        let c = ItemContainer::new(ContainerKind::Coffer, character_id, slot_type::TRADE, id)
+            .into_ref();
+        lock(&self.containers).push(c.clone());
+        c
+    }
+
+    /// `DeleteItemContainer(container)` (the list part; the C# also deletes the
+    /// `item_containers` row, see [`ItemManager::delete_container_row`]).
+    pub fn forget_container(&self, container_id: u64) -> bool {
+        let list = self.all_containers();
+        let Some(idx) = list
+            .iter()
+            .position(|c| c.lock().expect("container poisoned").container_id == container_id)
+        else {
+            return false;
+        };
+        let target = list[idx].clone();
+        lock(&self.containers).retain(|c| !Arc::ptr_eq(c, &target));
+        true
+    }
+
+    /// The SQL half of `DeleteItemContainer`.
+    pub async fn delete_container_row(pool: &MySqlPool, container_id: u64) -> Result<bool> {
+        let r = sqlx::query("DELETE FROM item_containers WHERE container_id = ?")
+            .bind(container_id)
+            .execute(pool)
+            .await?;
+        Ok(r.rows_affected() > 0)
     }
 
     /// `GetNewId` (+ removal from the deleted-items list).
@@ -97,8 +153,7 @@ impl ItemManager {
                 return None;
             }
         };
-        let mut store = self.store();
-        store.removed.retain(|&r| r != id);
+        lock(&self.removed).retain(|&r| r != id);
         Some(id)
     }
 
@@ -121,22 +176,38 @@ impl ItemManager {
         ))
     }
 
+    /// `MarkItemForDbDeletion` (queue the row for deletion without freeing the id).
+    pub fn mark_for_db_deletion(&self, item_id: u64) {
+        let mut removed = lock(&self.removed);
+        if item_id != 0 && !removed.contains(&item_id) {
+            removed.push(item_id);
+        }
+    }
+
     /// `ReleaseId`: queue the row for deletion and free the id.
     pub fn release_id(&self, item_id: u64, item_ids: &IdManager) {
-        {
-            let mut store = self.store();
-            if item_id != 0 && !store.removed.contains(&item_id) {
-                store.removed.push(item_id);
-            }
-            store.loose.retain(|i| i.id != item_id);
-        }
+        self.mark_for_db_deletion(item_id);
+        lock(&self.loose).retain(|i| i.id != item_id);
         item_ids.release_id(item_id as u32);
+    }
+
+    /// Keeps an item that is in no persistent container (`_allItems` only).
+    pub fn add_loose(&self, item: Item) {
+        let mut loose = lock(&self.loose);
+        loose.retain(|i| i.id != item.id);
+        loose.push(item);
+    }
+
+    /// Takes a loose item back (it is about to be placed in a container).
+    pub fn take_loose(&self, item_id: u64) -> Option<Item> {
+        let mut loose = lock(&self.loose);
+        let idx = loose.iter().position(|i| i.id == item_id)?;
+        Some(loose.remove(idx))
     }
 
     /// `GetItemByItemId`.
     pub fn item_by_id(&self, item_id: u64) -> Option<Item> {
-        let store = self.store();
-        for c in &store.containers {
+        for c in self.all_containers() {
             if let Some(i) = c
                 .lock()
                 .expect("container poisoned")
@@ -145,12 +216,22 @@ impl ItemManager {
                 return Some(i.clone());
             }
         }
-        store.loose.iter().find(|i| i.id == item_id).cloned()
+        lock(&self.loose).iter().find(|i| i.id == item_id).cloned()
+    }
+
+    /// The persistent container that holds `item_id` (`item._holdingContainer`).
+    pub fn holding_container(&self, item_id: u64) -> Option<ContainerRef> {
+        self.all_containers().into_iter().find(|c| {
+            c.lock()
+                .expect("container poisoned")
+                .get_item_by_id(item_id)
+                .is_some()
+        })
     }
 
     /// Adds an already loaded container (tests / `LoadUserItems`).
     pub fn add_container(&self, c: ContainerRef) {
-        self.store().containers.push(c);
+        lock(&self.containers).push(c);
     }
 
     /// `LoadUserItems`.
@@ -180,7 +261,7 @@ impl ItemManager {
             c.set_container_size(int(&r, "container_size")? as i32);
             c.mate_id = r.try_get::<u64, _>("mate_id")? as u32;
             c.dirty = false;
-            self.store().containers.push(c.into_ref());
+            lock(&self.containers).push(c.into_ref());
         }
 
         let rows = sqlx::query(ITEM_SELECT).fetch_all(pool).await?;
@@ -237,7 +318,7 @@ impl ItemManager {
                                 "Failed to add item {} to existing container {container_id} !",
                                 item.id
                             );
-                            self.store().loose.push(item);
+                            lock(&self.loose).push(item);
                         }
                     }
                 }
@@ -270,7 +351,7 @@ impl ItemManager {
                                 item.slot = this_slot;
                                 item.dirty = false;
                                 drop(g);
-                                self.store().loose.push(item);
+                                lock(&self.loose).push(item);
                             }
                         }
                     } else {
@@ -281,7 +362,7 @@ impl ItemManager {
                         );
                         item.slot = this_slot;
                         item.dirty = false;
-                        self.store().loose.push(item);
+                        lock(&self.loose).push(item);
                     }
                 }
             }
@@ -293,14 +374,9 @@ impl ItemManager {
     /// `ItemManager.Save`: deletes queued rows, writes dirty containers and items. Returns
     /// `(updated items, deleted items, updated containers)`.
     pub async fn save(&self, tx: &mut Transaction<'_, MySql>) -> Result<(usize, usize, usize)> {
-        let (removed, containers, loose) = {
-            let mut s = self.store();
-            (
-                std::mem::take(&mut s.removed),
-                s.containers.clone(),
-                s.loose.clone(),
-            )
-        };
+        let removed = std::mem::take(&mut *lock(&self.removed));
+        let containers = self.all_containers();
+        let loose = lock(&self.loose).clone();
         let mut deleted = 0;
         if !removed.is_empty() {
             let list = removed

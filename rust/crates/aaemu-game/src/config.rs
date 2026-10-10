@@ -183,6 +183,21 @@ pub struct WorldConfig {
     pub exp_rate: f64,
     #[serde(rename = "ignorefalldamageaccesslevel", deserialize_with = "lenient")]
     pub ignore_fall_damage_access_level: i32,
+    // ---- phase 3 / economy ----
+    #[serde(rename = "honorrate", deserialize_with = "lenient")]
+    pub honor_rate: f64,
+    #[serde(rename = "vocationrate", deserialize_with = "lenient")]
+    pub vocation_rate: f64,
+    #[serde(rename = "lootrate", deserialize_with = "lenient")]
+    pub loot_rate: f64,
+    #[serde(rename = "goldlootmultiplier", deserialize_with = "lenient")]
+    pub gold_loot_multiplier: f64,
+    #[serde(rename = "growthrate", deserialize_with = "lenient")]
+    pub growth_rate: f64,
+    #[serde(rename = "daysfortaxpayment", deserialize_with = "lenient")]
+    pub days_for_tax_payment: u32,
+    #[serde(rename = "actabilityrate", deserialize_with = "lenient")]
+    pub actability_rate: f64,
 }
 
 impl Default for WorldConfig {
@@ -193,6 +208,13 @@ impl Default for WorldConfig {
             auto_save_interval: 5.0,
             exp_rate: 1.0,
             ignore_fall_damage_access_level: 100,
+            honor_rate: 1.0,
+            vocation_rate: 1.0,
+            loot_rate: 1.0,
+            gold_loot_multiplier: 1.0,
+            growth_rate: 1.0,
+            days_for_tax_payment: 7,
+            actability_rate: 1.0,
         }
     }
 }

@@ -430,6 +430,11 @@ impl Item {
         debug_assert!(r.is_ok());
     }
 
+    /// The subclass `WriteDetails` overrides (`ItemTask` pads these to 128 bytes).
+    pub fn write_details_to(&self, s: &mut PacketStream) {
+        self.write_details(s);
+    }
+
     /// The subclass `WriteDetails` overrides.
     fn write_details(&self, s: &mut PacketStream) {
         let d = &self.details;
