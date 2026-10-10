@@ -33,6 +33,8 @@ pub mod util;
 #[cfg(test)]
 mod flow_tests;
 #[cfg(test)]
+mod manager_tests;
+#[cfg(test)]
 mod trial_flow_tests;
 
 use std::sync::Arc;

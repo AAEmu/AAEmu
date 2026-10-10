@@ -50,6 +50,9 @@ pub mod tick;
 pub mod timed_rewards;
 pub mod webapi;
 
+#[cfg(test)]
+mod manager_tests;
+
 use std::sync::Arc;
 
 use crate::data::FeatureSet;

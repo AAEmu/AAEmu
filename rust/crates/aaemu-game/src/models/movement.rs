@@ -1207,3 +1207,7 @@ mod tests {
         assert_eq!(p, std::f32::consts::FRAC_PI_2);
     }
 }
+
+#[cfg(test)]
+#[path = "world_pos_tests.rs"]
+mod world_pos_tests;
