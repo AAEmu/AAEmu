@@ -2,7 +2,7 @@
 //! triangles' surface (principal axes, sub_35195400).
 //!
 //! Layout: `+8` geometry, `+16` nodes (72 bytes each), `+24` nNodes, `+28` nNodesAlloc (256,
-//! grows by 256), `+32` int[nTris] triangle → leaf, `+40` largest leaf, `+44` min tris per side
+//! grows by 256), `+32` `int[nTris]` triangle → leaf, `+40` largest leaf, `+44` min tris per side
 //! (2), `+48` max tris per leaf (4), `+52` maxSkipDim, `+56/+64` build-only scratch (vertex
 //! bitmap, unique-vertex buffer).
 //!
