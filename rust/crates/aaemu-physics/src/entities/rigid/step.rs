@@ -292,14 +292,15 @@ pub fn step(w: &mut World, e: EntIdx, dt: f32) -> bool {
             } else {
                 let o = ThreadScratch::contact_off(res.i_best);
                 let s = &w.tscratch[tidu];
-                let v78 = f64::from(v354) + s.rd_d(o);
+                // (float)(contact_gap/2 + t), then single precision
+                let v78 = (f64::from(v354) + s.rd_d(o)) as f32;
                 let d = s.rd_v(o + i64::from(c::DIR));
                 n_ccd = s.rd_v(o + i64::from(c::N));
                 {
                     let r = rm(w, e);
-                    r.pos_new.x -= (f64::from(d.x) * v78) as f32;
-                    r.pos_new.z -= (f64::from(d.z) * v78) as f32;
-                    r.pos_new.y -= (f64::from(d.y) * v78) as f32;
+                    r.pos_new.x -= d.x * v78;
+                    r.pos_new.z -= d.z * v78;
+                    r.pos_new.y -= d.y * v78;
                 }
                 let (pn, qn) = (rd(w, e).pos_new, rd(w, e).q_new);
                 let off = qn.rotate(b.offsfb);
@@ -404,8 +405,8 @@ pub fn step(w: &mut World, e: EntIdx, dt: f32) -> bool {
                 && ct < f64::from((v23 * cvel) * 1.1)
             {
                 v363 = 1;
-                let v140 = ct - f64::from(v354);
-                let m = |d: f32| (f64::from(d) * v140) as f32;
+                let v140 = (ct - f64::from(v354)) as f32;
+                let m = |d: f32| d * v140;
                 let r = rm(w, e);
                 r.pos_new = Vec3::new(m(cdir.x) + r.pos_new.x, m(cdir.y) + r.pos_new.y, m(cdir.z) + r.pos_new.z);
                 let b = w.bodies.get_mut(body_id);
@@ -525,7 +526,7 @@ fn register_record(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32, v393: f3
         let mut first_flag = 0x80000u32;
         if v167.wrapping_neg() & npt > 0 {
             for (k, q) in pts.iter().enumerate() {
-                let v211 = ((t - f64::from(dot(*q))) as f32) + v177;
+                let v211 = ((t as f32) - dot(*q)) + v177;
                 if v211 > -v354 {
                     let p2 = Vec3::new(q.x - v162, q.y - v371, q.z - v355);
                     let id = ids[k];
@@ -568,7 +569,7 @@ fn register_record(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32, v393: f3
         let s = &w.tscratch[tidu];
         let ctr = s.rd_v(o + i64::from(c::CENTER));
         let dot = |q: Vec3| ((q.x - pt.x) * an.x + (q.y - pt.y) * an.y) + (q.z - pt.z) * an.z;
-        let v259 = ((t - f64::from(dot(ctr))) as f32) + v156;
+        let v259 = ((t as f32) - dot(ctr)) + v156;
         register_contact_point(
             w,
             e,
@@ -589,7 +590,7 @@ fn register_record(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32, v393: f3
         for k in 0..nb.max(0) {
             let s = &w.tscratch[tidu];
             let q = s.rd_v_at(pb.wrapping_add(12 * k as u64));
-            let v268 = ((t - f64::from(dot(q))) as f32) + v156;
+            let v268 = ((t as f32) - dot(q)) + v156;
             register_contact_point(
                 w,
                 e,
