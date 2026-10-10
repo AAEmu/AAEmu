@@ -31,7 +31,7 @@ use crate::world::{Entity, PlayerRef, WorldObject};
 // ----- recording hooks -----
 
 #[derive(Default)]
-struct Rec {
+pub(super) struct Rec {
     calls: Mutex<Vec<String>>,
     /// Template ids `is_auto_equip_trade_pack` answers true for.
     trade_packs: Vec<u32>,
@@ -277,7 +277,7 @@ fn main_quest(d: &mut QuestData) {
     );
 }
 
-fn server_with(build: impl FnOnce(&mut QuestData)) -> (GameServer, Arc<Rec>) {
+pub(super) fn server_with(build: impl FnOnce(&mut QuestData)) -> (GameServer, Arc<Rec>) {
     let mut d = QuestData::default();
     build(&mut d);
     d.finish();
@@ -291,7 +291,7 @@ fn server_with(build: impl FnOnce(&mut QuestData)) -> (GameServer, Arc<Rec>) {
 
 /// Runs `f` on a data-level context (no player: packets land in `ctx.sent`, evaluations in
 /// the local queue).
-fn with_ctx<R>(
+pub(super) fn with_ctx<R>(
     server: &GameServer,
     c: &mut Character,
     env: QuestEnv,
@@ -344,7 +344,7 @@ fn active(ctx: &Ctx<'_>, quest_id: u32) -> QuestHandle {
     ctx.st.active_handle(quest_id).expect("quest active")
 }
 
-fn character() -> Character {
+pub(super) fn character() -> Character {
     test_character(1, "Tester", 100.0, 100.0)
 }
 

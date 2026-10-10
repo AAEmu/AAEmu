@@ -355,14 +355,23 @@ impl Marshal for BlockedInfo {
     }
 }
 
-/// `CompletedQuest` (`Body` kept as the stored bytes).
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// `CompletedQuest` (`Body` kept as the stored bytes). `Default` is the parameterless C#
+/// constructor (`Body` null = empty).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct CompletedQuest {
     pub id: u16,
     pub body: Vec<u8>,
 }
 
 impl CompletedQuest {
+    /// `new CompletedQuest(id)`: `Body = new BitArray(64)` (8 zero bytes).
+    pub fn new(id: u16) -> Self {
+        Self {
+            id,
+            body: vec![0; 8],
+        }
+    }
+
     /// `quest.Body.CopyTo(new byte[8])`.
     pub fn body8(&self) -> [u8; 8] {
         let mut b = [0u8; 8];
@@ -628,3 +637,7 @@ mod tests {
         assert!(v.write_options(&mut PacketStream::new()).is_none());
     }
 }
+
+#[cfg(test)]
+#[path = "completed_quest_tests.rs"]
+mod completed_quest_tests;

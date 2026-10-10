@@ -539,3 +539,11 @@ async fn character_delete_task(server: Arc<GameServer>, mut next: i64) {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "character_tests.rs"]
+mod character_tests;
+
+#[cfg(test)]
+#[path = "unit_character_manager_tests.rs"]
+mod unit_character_manager_tests;

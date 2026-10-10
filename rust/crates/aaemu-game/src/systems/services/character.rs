@@ -13,6 +13,7 @@ use futures::future::BoxFuture;
 use rand::Rng;
 
 use super::tasks::{GameTask, TaskState};
+use crate::db::AccountDetails;
 use crate::error::Result;
 use crate::net::connection::GameConnection;
 use crate::net::packet::LEVEL_PLAIN;
@@ -30,7 +31,13 @@ pub async fn effective_access_level(server: &GameServer, player: &PlayerRef) -> 
         (c.access_level, c.account_id)
     };
     let details = super::accounts::get_account_details(server, account).await;
-    access.max(details.access_level)
+    effective_access_level_of(access, &details)
+}
+
+/// The rule of `GetEffectiveAccessLevel`: `Math.Max(character.AccessLevel,
+/// accountDetails.AccessLevel)`.
+pub fn effective_access_level_of(character_access_level: i32, details: &AccountDetails) -> i32 {
+    character_access_level.max(details.access_level)
 }
 
 /// `SCDiceValuePacket(name, max, value)`.
