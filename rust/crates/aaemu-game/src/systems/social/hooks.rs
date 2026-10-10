@@ -114,6 +114,26 @@ pub trait SocialHooks: Send + Sync {
     fn judge_obj_id(&self, _server: &GameServer, _court_room_id: u32) -> u32 {
         0
     }
+
+    /// skills: `Buffs.CheckBuffTag(tagId)` of a player (buff tags need the skill tag tables,
+    /// which are not ported). Called without the player's data lock held, possibly while the
+    /// trial / crime manager holds its own state lock: must not call back into them.
+    /// Default: `false` (no buff carries a tag).
+    fn check_buff_tag(&self, _server: &GameServer, _player: &PlayerRef, _tag: u32) -> bool {
+        false
+    }
+
+    /// skills: `Buffs.RemoveBuffs(kind, count, tagId)` of a player. Called without any lock
+    /// held. Default: no-op (no buff carries a tag).
+    fn remove_buffs_by_tag(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _kind: crate::data::skills::BuffKind,
+        _count: i32,
+        _tag: u32,
+    ) {
+    }
 }
 
 /// `server.systems.social.hooks`.
