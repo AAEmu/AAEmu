@@ -59,6 +59,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aaemu-launcher"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "hex",
+ "rand",
+ "sha2",
+]
+
+[[package]]
 name = "aaemu-login"
 version = "0.1.0"
 dependencies = [

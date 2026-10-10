@@ -132,6 +132,7 @@ const PUBLISH_PACKAGES: &[(&str, &str)] = &[
     ("aaemu-tool-worldconverter", "Tools"),
     ("aaemu-tool-updatesfortransform", "Tools"),
     ("aaemu-testclient", "Tools"),
+    ("aaemu-launcher", "Tools"),
 ];
 
 fn host_triple() -> Result<String> {
