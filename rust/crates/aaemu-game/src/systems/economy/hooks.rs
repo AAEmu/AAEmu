@@ -1,7 +1,7 @@
 //! Behaviour the economy needs from other subsystems (and the events it raises for them). Each
 //! trait is installed by its owning subsystem in its `System::start`:
 //!
-//! ```ignore
+//! ```text
 //! server.systems.economy.hooks.quests.install(Arc::new(MyQuestHooks));
 //! ```
 //!
