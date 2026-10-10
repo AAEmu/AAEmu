@@ -875,8 +875,9 @@ pub fn spawn_mount(server: &GameServer, owner: &PlayerRef, skill_item_id: u64) {
             None,
         );
     }
-    // UpdateGearBonuses(null, null): mate gear stats belong to the economy subsystem.
-    stats::refresh_object_pools(server, &mate_obj);
+    // mount.UpdateGearBonuses(null, null) (refreshes the pools too).
+    crate::systems::skills::stats::update_unit_gear_bonuses(server, &mate_obj, None, None);
+    crate::systems::dispatch_buff_events(server, &mate_obj);
     {
         let mut d = mate.data();
         d.unit.hp = d.unit.hp.min(d.unit.max_hp);

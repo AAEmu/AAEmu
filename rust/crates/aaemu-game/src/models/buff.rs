@@ -121,11 +121,15 @@ impl Buff {
 
     /// `SCUnitStatePacket.WriteBuff`.
     pub fn write_net(&self, s: &mut PacketStream, now_ms: i64) {
-        s.write_u32(self.index)
-            .write_u32(self.template.id)
-            .write_u8(self.skill_caster.kind)
-            .write_bc(self.skill_caster.obj_id)
-            .write_u32(self.caster.map_or(0, |c| c.0))
+        s.write_u32(self.index).write_u32(self.template.id);
+        // `stream.Write(effect.SkillCaster)`: item / doodad / mount casters carry more fields.
+        if self.skill_caster_bytes.is_empty() {
+            s.write_u8(self.skill_caster.kind)
+                .write_bc(self.skill_caster.obj_id);
+        } else {
+            s.write_raw(&self.skill_caster_bytes);
+        }
+        s.write_u32(self.caster.map_or(0, |c| c.0))
             .write_u8(self.caster.map_or(1, |c| c.1))
             .write_i16(self.ab_level as i16)
             .write_i32(self.duration)

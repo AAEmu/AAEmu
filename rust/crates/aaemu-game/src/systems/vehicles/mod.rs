@@ -165,6 +165,7 @@ fn spawn_ticker(
     first_delay: Duration,
     f: impl Fn(&GameServer) + Send + Sync + 'static,
 ) {
+    let f = Arc::new(f);
     let weak = Arc::downgrade(server);
     tokio::spawn(async move {
         if !first_delay.is_zero() {
@@ -174,7 +175,8 @@ fn spawn_ticker(
         loop {
             iv.tick().await;
             let Some(s) = weak.upgrade() else { break };
-            f(&s);
+            let f = f.clone();
+            crate::systems::run_blocking(&s, move |s| f(s)).await;
         }
     });
 }

@@ -498,8 +498,8 @@ pub async fn load_character_details(server: &GameServer, c: &mut Character) -> R
 
     // Portals
     c.portals = CharacterPortals::default();
-    for r in sqlx::query("SELECT CAST(id AS SIGNED) AS id, name, CAST(x AS DOUBLE) AS x, CAST(y AS DOUBLE) AS y, CAST(z AS DOUBLE) AS z, \
-         CAST(zone_id AS SIGNED) AS zone_id, CAST(z_rot AS DOUBLE) AS z_rot, CAST(sub_zone_id AS SIGNED) AS sub_zone_id, CAST(owner AS SIGNED) AS owner \
+    for r in sqlx::query("SELECT CAST(id AS SIGNED) AS id, name, (x + 0E0) AS x, (y + 0E0) AS y, (z + 0E0) AS z, \
+         CAST(zone_id AS SIGNED) AS zone_id, (z_rot + 0E0) AS z_rot, CAST(sub_zone_id AS SIGNED) AS sub_zone_id, CAST(owner AS SIGNED) AS owner \
          FROM portal_book_coords WHERE `owner` = ?")
         .bind(id)
         .fetch_all(pool)

@@ -20,6 +20,7 @@ use crate::managers::name::{normalize_name, CharacterCreateError};
 use crate::models::char_data::{ability, ActionSlotType, CharacterAbilities, CharacterActability};
 use crate::models::character::{Character, Inventory, Transform};
 use crate::models::container::{equip_slot, slot_type, ContainerRef};
+use crate::models::item::Item;
 use crate::models::unit_model::UnitCustomModelParams;
 use crate::net::connection::GameConnection;
 use crate::packets::world::{
@@ -180,9 +181,9 @@ fn set_equip_item_template(
     template_id: u32,
     slot: i32,
     grade: u8,
-) {
+) -> Option<Item> {
     if template_id == 0 {
-        return; // AddOrMoveExistingItem(null) -> false
+        return None; // AddOrMoveExistingItem(null) -> false
     }
     let data = &server.game_data.items;
     let Some(mut item) = server.items.create(
@@ -195,20 +196,30 @@ fn set_equip_item_template(
         Utc::now().timestamp(),
     ) else {
         // Create returned null -> AddOrMoveExistingItem(null).
-        return;
+        return None;
     };
     item.slot_type = slot_type::EQUIPMENT;
     item.slot = slot;
+    let added = item.clone();
     let mut eq = inventory.equipment().lock().expect("container poisoned");
-    if let Err(item) = eq.add_new_item(item, slot, data) {
-        tracing::warn!(
-            "SetEquipItemTemplate: item {} ({template_id}) refused in slot {slot}",
-            item.id
-        );
+    match eq.add_new_item(item, slot, data) {
+        Ok(_) => Some(added),
+        Err(item) => {
+            tracing::warn!(
+                "SetEquipItemTemplate: item {} ({template_id}) refused in slot {slot}",
+                item.id
+            );
+            None
+        }
     }
 }
 
-fn equip_pack(server: &GameServer, inv: &Inventory, i: &EquipItemsTemplate) {
+fn equip_pack(
+    server: &GameServer,
+    inv: &Inventory,
+    i: &EquipItemsTemplate,
+    on_equip: &mut dyn FnMut(&Item),
+) {
     use equip_slot::*;
     for (slot, (id, grade)) in [
         (HEAD, i.headgear),
@@ -228,7 +239,9 @@ fn equip_pack(server: &GameServer, inv: &Inventory, i: &EquipItemsTemplate) {
         (MUSICAL, i.musical),
         (COSPLAY, i.cosplay),
     ] {
-        set_equip_item_template(server, inv, id, slot, grade);
+        if let Some(item) = set_equip_item_template(server, inv, id, slot, grade) {
+            on_equip(&item);
+        }
     }
 }
 
@@ -333,15 +346,33 @@ pub async fn create(
         .get(&req.ability1)
         .cloned()
         .ok_or_else(|| GameError::Protocol(format!("no ability items for {}", req.ability1)))?;
-    equip_pack(server, &c.inventory, &items.items);
+    // Every equipped piece fires `EquipmentContainer.OnEnterContainer` ->
+    // `UpdateGearBonuses(item, null)` (gear bonuses and buffs: weapon wield, armor grade, item
+    // sets). C# keeps this `Character` object, buffs and buff index counter included, in
+    // `Connection.Characters` until it is selected, so the gear buffs exist before the client
+    // ever sees the character and are not announced again on select.
+    let inv = c.inventory.clone();
+    let detached =
+        crate::net::connection::ConnectionHandle::detached(conn.id, conn.ip, conn.account_id());
+    let player = crate::world::Player::new(c, detached.clone());
+    let mut gear = |item: &Item| {
+        crate::systems::skills::stats::update_gear_bonuses(server, &player, Some(item), None);
+    };
+    equip_pack(server, &inv, &items.items, &mut gear);
     for (i, &body) in req.body_items.iter().enumerate() {
         let item = if body == 0 && template.items[i] > 0 {
             template.items[i]
         } else {
             body
         };
-        set_equip_item_template(server, &c.inventory, item, i as i32 + 19, 0);
+        if let Some(item) = set_equip_item_template(server, &inv, item, i as i32 + 19, 0) {
+            gear(&item);
+        }
     }
+    let mut c = player.data().clone();
+    drop(player);
+    // Nobody is in the world to receive these (`Character.Connection` is null in C#).
+    let _ = c.unit.buffs.take_events();
 
     let mut slot = 10usize;
     let bag = c.inventory.bag().clone();
@@ -404,10 +435,18 @@ pub async fn create(
     }
     let _ = learn_skill;
 
-    let stats = c.stats(&data.formulas);
-    c.unit.hp = stats.max_hp;
-    c.unit.mp = stats.max_mp;
-    c.restore_saved_hp_mp(&data.formulas);
+    // character.Hp = character.MaxHp (the getters include the gear bonuses and buffs).
+    let player = crate::world::Player::new(c, detached);
+    crate::systems::skills::stats::refresh_cached_stats(
+        server,
+        &crate::world::WorldObject::from(&player),
+    );
+    let mut c = player.data().clone();
+    drop(player);
+    let _ = c.unit.buffs.take_events();
+    c.unit.hp = c.unit.max_hp;
+    c.unit.mp = c.unit.max_mp;
+    c.restore_saved_hp_mp();
 
     if save_directly_to_database(&server.db, &mut c).await {
         let resp = create_character_response(&c);

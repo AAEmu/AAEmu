@@ -226,7 +226,7 @@ pub fn start_tickers(server: &Arc<GameServer>) {
         loop {
             iv.tick().await;
             let Some(s) = weak.upgrade() else { break };
-            active_region_tick(&s);
+            crate::systems::run_blocking(&s, active_region_tick).await;
         }
     });
     let weak = Arc::downgrade(server);
@@ -235,7 +235,7 @@ pub fn start_tickers(server: &Arc<GameServer>) {
         loop {
             iv.tick().await;
             let Some(s) = weak.upgrade() else { break };
-            mana_regen_tick(&s);
+            crate::systems::run_blocking(&s, mana_regen_tick).await;
         }
     });
 }

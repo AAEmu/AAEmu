@@ -83,6 +83,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "aaemu-testclient"
+version = "0.1.0"
+dependencies = [
+ "aaemu-commons",
+ "aaemu-game",
+ "anyhow",
+ "futures",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "aaemu-tool-updatesfortransform"
 version = "0.1.0"
 dependencies = [

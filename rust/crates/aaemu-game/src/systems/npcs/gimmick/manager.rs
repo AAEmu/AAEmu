@@ -664,7 +664,7 @@ pub fn start_tick(server: &Arc<GameServer>) {
             let now = Instant::now();
             let delta = now - last;
             last = now;
-            tick_all(&server, delta);
+            crate::systems::run_blocking(&server, move |s| tick_all(s, delta)).await;
         }
     });
 }

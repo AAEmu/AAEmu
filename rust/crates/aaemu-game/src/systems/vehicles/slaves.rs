@@ -1350,7 +1350,9 @@ fn finish_create(
             }
         }
     }
-    // UpdateGearBonuses(null, null): vehicle parts customization (economy) not in 1.2.
+    // summonedSlave.UpdateGearBonuses(null, null)
+    crate::systems::skills::stats::update_unit_gear_bonuses(server, &slave_obj, None, None);
+    crate::systems::dispatch_buff_events(server, &slave_obj);
     let (owner_id, owner_obj_id, slave_db_id, faction, spawn_time) = {
         let d = slave.data();
         (

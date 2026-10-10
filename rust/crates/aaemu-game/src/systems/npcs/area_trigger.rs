@@ -623,7 +623,7 @@ pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
             let Some(server) = weak.upgrade() else {
                 break;
             };
-            server.systems.npcs.area_triggers.tick(&server);
+            crate::systems::run_blocking(&server, |s| s.systems.npcs.area_triggers.tick(s)).await;
         }
     });
     Ok(())

@@ -138,10 +138,14 @@ impl System {
         if server.systems.economy.auction.load(server).await {
             auction::AuctionManager::start_timer(server);
         }
+        tracing::debug!("economy: loading cash shop");
         cash_shop::load(server).await?;
+        tracing::debug!("economy: initializing specialty");
         specialty::initialize(server);
+        tracing::debug!("economy: loading mails");
         server.systems.economy.mail.load(server).await?;
         mail::start_delivery_task(server);
+        tracing::debug!("economy: starting item timers");
         item_timers::start(server);
         Ok(())
     }

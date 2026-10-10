@@ -1079,7 +1079,7 @@ pub async fn start_world_side(server: &Arc<GameServer>) -> anyhow::Result<()> {
             let Some(server) = weak.upgrade() else {
                 break;
             };
-            server.systems.npcs.spheres.tick(&server);
+            crate::systems::run_blocking(&server, |s| s.systems.npcs.spheres.tick(s)).await;
         }
     });
     Ok(())

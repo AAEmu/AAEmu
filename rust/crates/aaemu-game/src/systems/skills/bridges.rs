@@ -128,7 +128,9 @@ impl SkillsBridge for SkillsForNpcs {
             WorldObject::Player(p) => {
                 super::stats::update_gear_bonuses(server, p, item_added, item_removed)
             }
-            WorldObject::Npc(n) => super::stats::update_npc_gear_bonuses(server, n),
+            WorldObject::Npc(_) | WorldObject::Mate(_) | WorldObject::Slave(_) => {
+                super::stats::update_unit_gear_bonuses(server, unit, item_added, item_removed)
+            }
             _ => {}
         }
     }
@@ -424,8 +426,9 @@ impl crate::systems::economy::hooks::GearHooks for SkillsForEconomy {
             WorldObject::Player(p) => {
                 super::stats::update_gear_bonuses(server, p, equipped, unequipped)
             }
-            WorldObject::Npc(n) => super::stats::update_npc_gear_bonuses(server, n),
-            // Mates: their gear stats are the vehicles subsystem's (`vehicles::stats`).
+            WorldObject::Npc(_) | WorldObject::Mate(_) | WorldObject::Slave(_) => {
+                super::stats::update_unit_gear_bonuses(server, unit, equipped, unequipped)
+            }
             _ => super::stats::refresh_cached_stats(server, unit),
         }
     }

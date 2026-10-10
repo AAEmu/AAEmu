@@ -797,21 +797,43 @@ pub fn update_gear_bonuses(
     };
     let bonuses = gear_bonuses(server, &items);
     set_gear_bonuses(&mut p.data().unit, bonuses);
+    server.systems.skills.ext.items().apply_gear_buffs(
+        server,
+        &WorldObject::from(p),
+        added,
+        removed,
+    );
+    refresh_cached_stats(server, &WorldObject::from(p));
+}
+
+/// `Unit.UpdateGearBonuses` for a non-character unit (NPC, mate, slave: their `Equipment`): the
+/// gear unit modifiers, then the gear buffs (equip effects, weapon wield, armor grade, item
+/// sets) exactly like characters, then the cached stats.
+pub fn update_unit_gear_bonuses(
+    server: &GameServer,
+    unit: &WorldObject,
+    added: Option<&crate::models::item::Item>,
+    removed: Option<&crate::models::item::Item>,
+) {
+    let items: Vec<crate::models::item::Item> = match unit {
+        WorldObject::Npc(n) => n.data().equipment.iter().flatten().cloned().collect(),
+        WorldObject::Mate(m) => m.data().equipment.iter().flatten().cloned().collect(),
+        WorldObject::Slave(s) => s.data().equipment.iter().flatten().cloned().collect(),
+        _ => return,
+    };
+    let bonuses = gear_bonuses(server, &items);
+    unit.with_unit(|u| set_gear_bonuses(u.unit_mut(), bonuses));
     server
         .systems
         .skills
         .ext
         .items()
-        .apply_gear_buffs(server, p, added, removed);
-    refresh_cached_stats(server, &WorldObject::from(p));
-}
-
-/// `Unit.UpdateGearBonuses` for an NPC (its `Equipment`): the gear unit modifiers only (the
-/// item-side gear buffs are the item subsystem's and only apply to characters). The cached
-/// stats are refreshed by the NPC subsystem's getters.
-pub fn update_npc_gear_bonuses(server: &GameServer, npc: &crate::world::NpcRef) {
-    let mut n = npc.data();
-    let bonuses = gear_bonuses(server, n.equipment.iter().flatten());
-    set_gear_bonuses(&mut n.unit, bonuses);
-    crate::systems::npcs::npc::stats::refresh_cached_stats(&server.game_data, &mut n);
+        .apply_gear_buffs(server, unit, added, removed);
+    match unit {
+        WorldObject::Npc(n) => {
+            let mut d = n.data();
+            crate::systems::npcs::npc::stats::refresh_cached_stats(&server.game_data, &mut d);
+        }
+        _ => crate::systems::vehicles::stats::refresh_object_pools(server, unit),
+    }
 }

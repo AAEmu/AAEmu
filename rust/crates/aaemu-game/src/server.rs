@@ -140,7 +140,25 @@ impl GameServer {
             )));
         }
         match self.registry.get(raw.level, raw.opcode) {
-            Some(reg) => (reg.handler)(self, conn, raw.body).await,
+            Some(reg) => {
+                let started = std::time::Instant::now();
+                let res = (reg.handler)(self, conn, raw.body).await;
+                let took = started.elapsed();
+                if took > std::time::Duration::from_millis(250) {
+                    let names = if raw.level == LEVEL_PROXY {
+                        opcodes::pp::NAMES
+                    } else {
+                        opcodes::cs::NAMES
+                    };
+                    tracing::warn!(
+                        "Slow packet handler: {} took {} ms (session {})",
+                        opcodes::name_of(names, raw.opcode).unwrap_or("?"),
+                        took.as_millis(),
+                        conn.id
+                    );
+                }
+                res
+            }
             None => {
                 let names = if raw.level == LEVEL_PROXY {
                     opcodes::pp::NAMES

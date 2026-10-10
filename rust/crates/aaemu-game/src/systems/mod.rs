@@ -132,16 +132,40 @@ pub fn register_packets(reg: &mut PacketRegistry) {
 
 /// Starts every subsystem after the phase-1/2 managers are up (`ManagerOrchestrator` order:
 /// skills before NPCs / spawns before quests).
+/// Runs a synchronous periodic tick body on the blocking pool and waits for it. World ticks take
+/// std locks and can run for seconds (e.g. spawning the NPCs of newly active regions); run on an
+/// async worker they stall the connection tasks queued behind them on that worker (the LIFO
+/// slot is not stealable), which showed up as multi-second packet delays under live testing.
+pub async fn run_blocking<F>(server: &Arc<GameServer>, f: F)
+where
+    F: FnOnce(&GameServer) + Send + 'static,
+{
+    let s = server.clone();
+    if let Err(e) = tokio::task::spawn_blocking(move || f(&s)).await {
+        tracing::error!("tick task failed: {e}");
+    }
+}
+
 pub async fn start_all(server: &Arc<GameServer>) -> anyhow::Result<()> {
+    tracing::debug!("Starting subsystem skills");
     skills::System::start(server).await?;
+    tracing::debug!("Starting subsystem npcs");
     npcs::System::start(server).await?;
+    tracing::debug!("Starting subsystem economy");
     economy::System::start(server).await?;
+    tracing::debug!("Starting subsystem social");
     social::System::start(server).await?;
+    tracing::debug!("Starting subsystem quests");
     quests::System::start(server).await?;
+    tracing::debug!("Starting subsystem instances");
     instances::System::start(server).await?;
+    tracing::debug!("Starting subsystem housing");
     housing::System::start(server).await?;
+    tracing::debug!("Starting subsystem vehicles");
     vehicles::System::start(server).await?;
+    tracing::debug!("Starting subsystem services");
     services::System::start(server).await?;
+    tracing::debug!("Starting subsystem ai");
     ai::System::start(server).await?;
     Ok(())
 }

@@ -85,6 +85,21 @@ pub struct ConnectionHandle {
 }
 
 impl ConnectionHandle {
+    /// A handle whose packets go nowhere (C# `Character.Connection == null`): used for
+    /// characters that exist before anyone plays them (character creation).
+    pub fn detached(id: u32, ip: SocketAddr, account_id: u32) -> Self {
+        let (tx, _) = mpsc::unbounded_channel();
+        let (writer, _) = mpsc::unbounded_channel();
+        Self {
+            id,
+            ip,
+            account_id: Arc::new(AtomicU32::new(account_id)),
+            last_ping_ms: Arc::new(AtomicI64::new(i64::MIN)),
+            tx,
+            writer,
+        }
+    }
+
     pub fn account_id(&self) -> u32 {
         self.account_id.load(Ordering::Relaxed)
     }

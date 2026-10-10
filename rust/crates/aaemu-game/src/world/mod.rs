@@ -728,6 +728,12 @@ impl WorldInstance {
     /// `GameObject.Spawn()` (`ParentWorld.AddObject(this); Show()`).
     pub fn spawn(&self, obj: impl Into<WorldObject>, ctx: &ViewCtx<'_>) -> Vec<ZoneChange> {
         let obj = obj.into();
+        if let WorldObject::Npc(n) = &obj {
+            // The NPC's SCUnitStatePacket (written under the grid lock in `show`) reads the
+            // terrain height; load that heightmap cell first, without the lock, so a first visit
+            // to an area does not stall every other user of this world's grid.
+            crate::systems::npcs::heightmap::warm_npc_height(n);
+        }
         self.add_object(&obj);
         self.show(obj, ctx)
     }

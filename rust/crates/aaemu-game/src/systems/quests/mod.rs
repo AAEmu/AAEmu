@@ -110,7 +110,7 @@ impl System {
                 let Some(server) = weak.upgrade() else {
                     break;
                 };
-                server.systems.quests.spheres.tick(&server);
+                crate::systems::run_blocking(&server, |s| s.systems.quests.spheres.tick(s)).await;
             }
         });
         // QuestDailyResetTask ("0 0 0 */1 * *": every day at midnight, UTC here)

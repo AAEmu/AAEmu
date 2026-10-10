@@ -176,7 +176,7 @@ fn start_ticks(server: &Arc<GameServer>) {
             let Some(server) = weak.upgrade() else {
                 break;
             };
-            tick(&server, second);
+            crate::systems::run_blocking(&server, move |s| tick(s, second)).await;
         }
     });
 }

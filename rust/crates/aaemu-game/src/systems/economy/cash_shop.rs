@@ -731,11 +731,12 @@ pub async fn load(server: &GameServer) -> Result<()> {
     if empty {
         disable_shop(server);
     }
-    tracing::info!(
-        "Loaded {} cash shop items in {} menu entries",
-        manager(server).state().shop_items.len(),
-        manager(server).state().menu_items.len()
-    );
+    // One guard: two `state()` temporaries in the same statement would self-deadlock.
+    let (items, menus) = {
+        let st = manager(server).state();
+        (st.shop_items.len(), st.menu_items.len())
+    };
+    tracing::info!("Loaded {items} cash shop items in {menus} menu entries");
     // GameService: CashShopManager.Instance.EnabledShop() after the load stage.
     enable_shop(server);
     Ok(())
