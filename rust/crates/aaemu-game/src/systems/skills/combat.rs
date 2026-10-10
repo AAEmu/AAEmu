@@ -823,9 +823,9 @@ pub fn set_faction(server: &GameServer, unit: &WorldObject, faction_id: u32) {
             unit,
             &SCUnitFactionChangedPacket {
                 obj_id: unit.obj_id(),
-                name,
-                old_faction: old,
-                new_faction: faction_id,
+                unit_name: name,
+                id: old,
+                id2: faction_id,
                 temp: false,
             },
             true,

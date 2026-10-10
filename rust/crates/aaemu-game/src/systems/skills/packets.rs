@@ -577,7 +577,7 @@ impl Marshal for SCCombatFirstHitPacket {
 }
 
 /// `SCAiAggroPacket(npcId, count, hostileUnitId, summarizeDamage, val2, val3)`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct SCAiAggroPacket {
     pub npc_id: u32,
     pub count: i32,
@@ -585,6 +585,16 @@ pub struct SCAiAggroPacket {
     pub summarize_damage: i32,
     pub val2: i32,
     pub val3: i32,
+}
+impl SCAiAggroPacket {
+    /// `new SCAiAggroPacket(npcId, count)`.
+    pub fn new(npc_id: u32, count: i32) -> Self {
+        Self {
+            npc_id,
+            count,
+            ..Self::default()
+        }
+    }
 }
 packet_def!(
     SCAiAggroPacket,
@@ -638,29 +648,8 @@ impl Marshal for SCUnitInvisiblePacket {
     }
 }
 
-/// `SCUnitFactionChangedPacket(unitId, unitName, id, id2, temp)`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SCUnitFactionChangedPacket {
-    pub obj_id: u32,
-    pub name: String,
-    pub old_faction: u32,
-    pub new_faction: u32,
-    pub temp: bool,
-}
-packet_def!(
-    SCUnitFactionChangedPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCUnitFactionChangedPacket
-);
-impl Marshal for SCUnitFactionChangedPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_bc(self.obj_id)
-            .write_str(&self.name)
-            .write_u32(self.old_faction)
-            .write_u32(self.new_faction)
-            .write_bool(self.temp);
-    }
-}
+/// `SCUnitFactionChangedPacket`: the social subsystem's definition (one per opcode).
+pub use crate::systems::social::packets::faction::SCUnitFactionChangedPacket;
 
 /// `EnvSource`.
 pub mod env_source {

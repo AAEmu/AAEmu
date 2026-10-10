@@ -1253,7 +1253,7 @@ pub(crate) fn schedule_npc_do_despawn(server: &GameServer, npc: &NpcRef, secs: f
 /// `ParentWorld.Template.GeoData.GetHeight(position)` (`AiGeoDataManager.GetHeight`): the
 /// navmesh (`.bai`, GeoDataMode) is not ported, so this is its fallback
 /// `GetRawHeightMapHeight((int)Round(x), (int)Round(y))`; exceptions give 0.
-fn geo_data_height(server: &GameServer, world: &WorldInstance, x: f32, y: f32) -> f32 {
+pub fn geo_data_height(server: &GameServer, world: &WorldInstance, x: f32, y: f32) -> f32 {
     let Some(h) = server.systems.npcs.heightmaps.get() else {
         return 0.0;
     };

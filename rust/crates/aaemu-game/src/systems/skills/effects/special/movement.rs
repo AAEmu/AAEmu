@@ -1,10 +1,8 @@
 //! Special effect actions that move units: `Blink`, `TeleportToUnit`, `KnockBack`, `Escape`,
 //! `Return`, plus the server-side NPC displacement they share with `ImpulseEffect`.
 //!
-//! Deviation (all NPC displacements): the C# snaps the end position to the ground when
-//! `GeoData.GetHeight` is within 5 m; height maps / geodata are not ported
-//! (`data::world_templates`), which is the C# behaviour with height maps disabled
-//! (`GetHeight` = 0, so the `groundZ > 0` snap never applies).
+//! NPC displacements snap the end position to the ground when `GeoData.GetHeight` (the npcs
+//! subsystem's heightmaps; the navmesh path is not ported) is positive and within 5 m.
 
 use crate::data::world_data::Portal;
 use crate::models::character::DEFAULT_INSTANCE_ID;
@@ -68,7 +66,14 @@ pub(crate) fn move_npc(
     displaced: bool,
 ) {
     let obj = WorldObject::from(npc);
-    let (x, y, z) = end;
+    let (x, y, mut z) = end;
+    // `GeoData.GetHeight(end)`: snap to the ground when it is within 5 m.
+    if let Some(world) = world_of(server, &obj) {
+        let ground_z = crate::systems::npcs::npc::spawner::geo_data_height(server, &world, x, y);
+        if ground_z > 0.0 && (z - ground_z).abs() < 5.0 {
+            z = ground_z;
+        }
+    }
     let (rot_z, in_battle) = {
         let mut d = npc.data();
         if displaced {

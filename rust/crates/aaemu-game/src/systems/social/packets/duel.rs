@@ -2,11 +2,9 @@
 //! `DuelManager` sends).
 
 use super::{cs_packet, sc_packet};
-use crate::models::doodad::Doodad;
 use crate::net::packet::LEVEL_PLAIN;
 use crate::net::registry::PacketRegistry;
-use crate::opcodes::{cs, sc};
-use crate::packets::raw_body_packet;
+use crate::opcodes::cs;
 
 sc_packet!(
     /// `SCDuelChallengedPacket(challengerId)` (sent to the challenged character only; the C#
@@ -62,46 +60,10 @@ sc_packet!(
     }
 );
 
-sc_packet!(
-    /// `SCCombatEngagedPacket(objId)`.
-    SCCombatEngagedPacket { obj_id: u32 } |self, s| {
-        s.write_bc(self.obj_id);
-    }
-);
-
-sc_packet!(
-    /// `SCDoodadPhaseChangedPacket(doodad)`: `ObjId`, `FuncGroupId`, `TimeLeft`, a constant
-    /// puzzle group of -1 (the C# never writes `Doodad.PuzzleGroup`) and `ItemTemplateId`.
-    SCDoodadPhaseChangedPacket {
-        obj_id: u32,
-        func_group_id: u32,
-        time_left: u32,
-        item_template_id: u32,
-    } |self, s| {
-        s.write_bc(self.obj_id)
-            .write_u32(self.func_group_id)
-            .write_u32(self.time_left)
-            .write_i32(-1) // puzzleGroup
-            .write_u32(self.item_template_id);
-    }
-);
-
-impl SCDoodadPhaseChangedPacket {
-    /// Built from the stored doodad fields (the doodad's lock is held by the caller).
-    pub fn from_doodad(obj_id: u32, d: &Doodad, now_ms: i64) -> Self {
-        Self {
-            obj_id,
-            func_group_id: d.func_group_id,
-            time_left: d.time_left(now_ms),
-            item_template_id: d.item_template_id,
-        }
-    }
-}
-
-raw_body_packet!(
-    SCDoodadPhaseChangedRawPacket,
-    sc::SCDoodadPhaseChangedPacket
-);
+/// `SCCombatEngagedPacket` (skills) and `SCDoodadPhaseChangedPacket` (npcs): one definition per
+/// opcode.
+pub use crate::systems::npcs::doodad::packets::SCDoodadPhaseChangedPacket;
+pub use crate::systems::skills::packets::SCCombatEngagedPacket;
 
 cs_packet!(
     /// `CSChallengeDuelPacket`: the character id of the challenged player.
@@ -141,6 +103,7 @@ pub fn register(reg: &mut PacketRegistry) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::doodad::Doodad;
     use crate::net::registry::ClientPacket;
     use crate::systems::social::packets::body;
     use aaemu_commons::PacketStream;
@@ -194,7 +157,7 @@ mod tests {
         d.func_group_id = 7;
         d.item_template_id = 27606;
         d.growth_time_ms = 10_500;
-        let p = SCDoodadPhaseChangedPacket::from_doodad(0x33, &d, 10_000);
+        let p = SCDoodadPhaseChangedPacket::new(0x33, &d, 10_000);
         assert_eq!(p.time_left, 500);
         let mut e = PacketStream::new();
         e.write_bc(0x33)
@@ -203,10 +166,6 @@ mod tests {
             .write_i32(-1)
             .write_u32(27606);
         assert_eq!(body(&p), e.into_bytes());
-        assert_eq!(
-            body(&SCDoodadPhaseChangedRawPacket { body: vec![1, 2] }),
-            vec![1, 2]
-        );
     }
 
     #[test]

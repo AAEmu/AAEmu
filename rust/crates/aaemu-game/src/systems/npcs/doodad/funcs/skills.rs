@@ -287,7 +287,7 @@ pub fn quest(
     if !quests.has_quest(ctx.server, player, f.quest_id) {
         player.send(SCDoodadQuestAcceptPacket {
             doodad_obj_id: ctx.doodad.obj_id,
-            quest_context_id: f.quest_id,
+            quest_id: f.quest_id,
         });
     } else {
         quests.do_report_events(ctx.server, player, f.quest_id, 0, ctx.doodad.obj_id, 0);

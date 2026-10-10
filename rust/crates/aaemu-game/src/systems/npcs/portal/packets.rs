@@ -239,59 +239,10 @@ pub mod teleport_reason {
     pub const PORTAL: u8 = 0;
 }
 
-/// `SCTeleportUnitPacket(reason, errorMessage, x, y, z, z2)`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct SCTeleportUnitPacket {
-    pub reason: u8,
-    pub error_message: i16,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub z2: f32,
-}
-packet_def!(
-    SCTeleportUnitPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCTeleportUnitPacket
-);
-impl Marshal for SCTeleportUnitPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_u8(self.reason)
-            .write_i16(self.error_message)
-            .write_position(self.x, self.y, self.z)
-            .write_f32(self.z2);
-    }
-}
-
-/// `SCLoadInstancePacket(instanceId, zoneId, x, y, z, angX, angY, angZ)`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct SCLoadInstancePacket {
-    pub instance_id: u32,
-    pub zone_id: u32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub ang_x: f32,
-    pub ang_y: f32,
-    pub ang_z: f32,
-}
-packet_def!(
-    SCLoadInstancePacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCLoadInstancePacket
-);
-impl Marshal for SCLoadInstancePacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_u32(self.instance_id)
-            .write_u32(self.zone_id)
-            .write_f32(self.x)
-            .write_f32(self.y)
-            .write_f32(self.z)
-            .write_f32(self.ang_x)
-            .write_f32(self.ang_y)
-            .write_f32(self.ang_z);
-    }
-}
+/// `SCTeleportUnitPacket`, `SCLoadInstancePacket`, `SCUnitDeathPacket`: the skills subsystem's
+/// definitions (one per opcode).
+pub use crate::systems::skills::packets::SCUnitDeathPacket;
+pub use crate::systems::skills::packets_special::{SCLoadInstancePacket, SCTeleportUnitPacket};
 
 /// `SCPortalDeletedPacket(portalType, portalId)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -380,33 +331,8 @@ impl Marshal for SCAboxTeleportPacket {
 }
 
 /// `KillReason.PortalTimeout`.
-pub const KILL_REASON_PORTAL_TIMEOUT: u8 = 0xE;
-
-/// `SCUnitDeathPacket(objId, killReason, 0, 0, 0)` without a killer (what `Portal.Delete`
-/// broadcasts).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SCUnitDeathPacket {
-    pub obj_id: u32,
-    pub kill_reason: u8,
-    pub resurrect_wait_time: i32,
-    pub lost_exp: i32,
-    pub durability_loss_rate: u8,
-}
-packet_def!(
-    SCUnitDeathPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCUnitDeathPacket
-);
-impl Marshal for SCUnitDeathPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_bc(self.obj_id)
-            .write_u8(self.kill_reason)
-            .write_i32(self.resurrect_wait_time)
-            .write_i32(self.lost_exp)
-            .write_u8(self.durability_loss_rate)
-            .write_bc(0); // killer?.ObjId ?? 0
-    }
-}
+pub const KILL_REASON_PORTAL_TIMEOUT: crate::systems::skills::types::KillReason =
+    crate::systems::skills::types::KillReason::PortalTimeout;
 
 #[cfg(test)]
 mod tests {
@@ -575,7 +501,8 @@ mod tests {
                 kill_reason: KILL_REASON_PORTAL_TIMEOUT,
                 resurrect_wait_time: 0,
                 lost_exp: 0,
-                durability_loss_rate: 0
+                durability_loss_rate: 0,
+                killer: None,
             }),
             vec![3, 2, 1, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         );

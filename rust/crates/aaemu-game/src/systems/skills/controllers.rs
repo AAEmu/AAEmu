@@ -9,10 +9,11 @@
 //!
 //! `ShipHarpoonRopeController` is not ported here: ships belong to the slaves subsystem.
 //!
+//! `GeoData.GetHeight` is the npcs subsystem's heightmap height (its navmesh path is not
+//! ported): the steps snap to the ground within 1 m (3 m for wandering) and the floating
+//! controller falls to it (`_startZ` when it is not positive).
+//!
 //! Deviations (documented in place):
-//! * height maps (`GeoData.GetHeight`) are not loaded in Rust: the "snap to ground when within
-//!   1 m (3 m for wandering)" step is skipped and the floating controller's ground height is its
-//!   fallback (`_startZ`, the height the lift started from);
 //! * actor model stances (`ModelManager.GetActorModel(..).Stances`) are not loaded: the fear speed
 //!   of the wandering controller is its 7 m/s fallback;
 //! * `Npc.StopMovement` writes `CurrentGameStance` / `CurrentAlertness`, which belong to the npc
@@ -207,6 +208,27 @@ pub fn heading(from: Vec3, to: Vec3) -> (f32, i16, i16) {
 }
 
 /// `(uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds`.
+/// `Owner.ParentWorld.Template.GeoData.GetHeight(Owner.Transform.World.Position)` (the npcs
+/// subsystem's heightmaps; 0 without a world or heightmaps, like the C# exception path).
+fn geo_height(server: &GameServer, owner: &WorldObject) -> f32 {
+    let Some(w) = world_of(server, owner) else {
+        return 0.0;
+    };
+    let p = w.world_pos_rot(owner);
+    crate::systems::npcs::npc::spawner::geo_data_height(server, &w, p.x, p.y)
+}
+
+/// `FloatingSkillController.GetGroundHeight()`: the heightmap height, `_startZ` when it is not
+/// positive.
+fn ground_height(server: &GameServer, owner: &WorldObject, start_z: f32) -> f32 {
+    let geo = geo_height(server, owner);
+    if geo > 0.0 {
+        geo
+    } else {
+        start_z
+    }
+}
+
 fn ms_of_day() -> u32 {
     now_ms().rem_euclid(86_400_000) as u32
 }
@@ -719,8 +741,7 @@ impl SkillControllerRef {
         let behavior = self.lock().behavior;
         if let Behavior::Floating(f) = behavior {
             if !force && f.is_lift_mode && !f.is_falling && owner_present && !self.owner_dead() {
-                // GetGroundHeight(): no height maps -> _startZ.
-                let ground_z = f.start_z;
+                let ground_z = ground_height(server, &self.owner, f.start_z);
                 let z = self.owner.transform().z;
                 if ground_z > 0.0 && z > ground_z + 0.5 {
                     tracing::debug!(
@@ -1024,8 +1045,20 @@ impl SkillController {
         actor_flags: u8,
         flags: MoveTypeFlags,
     ) {
-        let new = add_distance_to_front_between(travel, target_dist, cur, end);
-        // GeoData.GetHeight snap (|newZ - groundZ| < 1 m, 3 m for wandering): no height maps.
+        let mut new = add_distance_to_front_between(travel, target_dist, cur, end);
+        self.owner
+            .with_transform(|t| t.set_xyz(new.x, new.y, new.z));
+        // GeoData.GetHeight snap: |newZ - groundZ| < 1 m (wandering: ground > 0 and < 3 m).
+        let wandering = matches!(self.lock().behavior, Behavior::Wandering(_));
+        let upd_z = geo_height(server, &self.owner);
+        let snap = if wandering {
+            upd_z > 0.0 && (new.z - upd_z).abs() < 3.0
+        } else {
+            (new.z - upd_z).abs() < 1.0
+        };
+        if snap {
+            new.z = upd_z;
+        }
         let (yaw, vel_x, vel_y) = heading(new, end);
         self.owner.with_transform(|t| {
             t.set_xyz(new.x, new.y, new.z);
@@ -1114,8 +1147,7 @@ impl SkillController {
     /// `FloatingSkillController.FallTick`.
     fn fall_tick(&self, server: &GameServer, f: &FloatingMove, dt: f32) -> Next {
         let cur = self.local_pos();
-        // GetGroundHeight(): no height maps -> _startZ (and `<= 0` falls back to _startZ too).
-        let ground_z = f.start_z;
+        let ground_z = ground_height(server, &self.owner, f.start_z);
         if cur.z <= ground_z + 0.1 {
             tracing::debug!(
                 "FloatingSC [FALL]: owner={} reached ground Z={ground_z:.1}",

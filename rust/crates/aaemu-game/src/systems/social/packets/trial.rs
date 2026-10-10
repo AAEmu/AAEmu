@@ -11,6 +11,13 @@ use crate::opcodes::cs;
 use crate::systems::social::crime::BountyDescription;
 use crate::systems::social::util;
 
+/// `SCBotSuspectReportedPacket`, `SCCharacterResurrectedPacket`, `SCForceAttackSetPacket`,
+/// `SCTeleportUnitPacket`: the skills subsystem's definitions (one per opcode).
+pub use crate::systems::skills::packets::SCForceAttackSetPacket;
+pub use crate::systems::skills::packets_special::{
+    SCBotSuspectReportedPacket, SCCharacterResurrectedPacket, SCTeleportUnitPacket,
+};
+
 // ---------------------------------------------------------------------------------------------
 // S->C
 // ---------------------------------------------------------------------------------------------
@@ -24,12 +31,6 @@ sc_packet!(
 sc_packet!(
     /// `SCBotSuspectArrestedPacket(reporter, suspect)`.
     SCBotSuspectArrestedPacket { reporter: String, suspect: String }
-    |self, s| { s.write_str(&self.reporter).write_str(&self.suspect); }
-);
-
-sc_packet!(
-    /// `SCBotSuspectReportedPacket(reporter, suspect)`.
-    SCBotSuspectReportedPacket { reporter: String, suspect: String }
     |self, s| { s.write_str(&self.reporter).write_str(&self.suspect); }
 );
 
@@ -69,16 +70,6 @@ sc_packet!(
             .write_u8(self.state)
             .write_i32(self.cur_jury)
             .write_u32(self.remain_time);
-    }
-);
-
-sc_packet!(
-    /// `SCCharacterResurrectedPacket(unitId, x, y, z, zRot)`.
-    SCCharacterResurrectedPacket { unit_id: u32, x: f32, y: f32, z: f32, z_rot: f32 }
-    |self, s| {
-        s.write_bc(self.unit_id)
-            .write_position(self.x, self.y, self.z)
-            .write_f32(self.z_rot);
     }
 );
 
@@ -206,12 +197,6 @@ sc_packet!(
 );
 
 sc_packet!(
-    /// `SCForceAttackSetPacket(objId, on)`.
-    SCForceAttackSetPacket { obj_id: u32, on: bool }
-    |self, s| { s.write_bc(self.obj_id).write_bool(self.on); }
-);
-
-sc_packet!(
     /// `SCInviteJuryPacket(defendantName, trial)`.
     SCInviteJuryPacket { defendant_name: String, trial: u32 }
     |self, s| { s.write_str(&self.defendant_name).write_u32(self.trial); }
@@ -300,17 +285,6 @@ pub mod teleport_reason {
     pub const JURY: u8 = 4;
     pub const JAIL: u8 = 5;
 }
-
-sc_packet!(
-    /// `SCTeleportUnitPacket(reason, errorMessage, x, y, z, z2)`.
-    SCTeleportUnitPacket { reason: u8, error_message: i16, x: f32, y: f32, z: f32, z2: f32 }
-    |self, s| {
-        s.write_u8(self.reason)
-            .write_i16(self.error_message)
-            .write_position(self.x, self.y, self.z)
-            .write_f32(self.z2);
-    }
-);
 
 sc_packet!(
     /// `SCTrialAudienceJoinedPacket(trialId, bc, audienceName)`.

@@ -129,23 +129,8 @@ impl Marshal for SCDoodadOriginatorPacket {
     }
 }
 
-/// `SCDoodadQuestAcceptPacket(doodadObjId, questContextId)`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SCDoodadQuestAcceptPacket {
-    pub doodad_obj_id: u32,
-    pub quest_context_id: u32,
-}
-packet_def!(
-    SCDoodadQuestAcceptPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCDoodadQuestAcceptPacket
-);
-impl Marshal for SCDoodadQuestAcceptPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_bc(self.doodad_obj_id)
-            .write_u32(self.quest_context_id);
-    }
-}
+/// `SCDoodadQuestAcceptPacket`: the quest subsystem's definition (one per opcode).
+pub use crate::systems::quests::packets::SCDoodadQuestAcceptPacket;
 
 /// `SCBondDoodadPacket(unitObjId, bond)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -463,7 +448,7 @@ mod tests {
         e.extend(4321u32.to_le_bytes());
         let p = SCDoodadQuestAcceptPacket {
             doodad_obj_id: 11,
-            quest_context_id: 4321,
+            quest_id: 4321,
         };
         assert_eq!(body(&p), e);
         assert_eq!(p.opcode(), sc::SCDoodadQuestAcceptPacket);

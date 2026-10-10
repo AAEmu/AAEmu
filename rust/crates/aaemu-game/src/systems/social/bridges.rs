@@ -312,24 +312,12 @@ impl SocialHooks for GameSocialHooks {
         spawner.spawn(server, 0)
     }
 
-    fn doodad_phase_changed(&self, _server: &GameServer, doodad: &DoodadRef) -> Option<Vec<u8>> {
-        let packet = {
-            let d = doodad.data();
-            crate::systems::npcs::doodad::packets::SCDoodadPhaseChangedPacket::new(
-                doodad.obj_id,
-                &d,
-                chrono::Utc::now().timestamp_millis(),
-            )
-        };
-        let mut s = aaemu_commons::PacketStream::new();
-        aaemu_commons::Marshal::write(&packet, &mut s);
-        Some(s.into_bytes())
-    }
-
     fn terrain_height(&self, server: &GameServer, instance_id: u32, x: f32, y: f32) -> Option<f32> {
+        // `GeoData.GetHeight(position)` (heightmap fallback of the navmesh); 0 = no height
+        // known (the duel then keeps the challenger's Z).
         let world = server.world.world(instance_id)?;
-        server.systems.npcs.heightmaps.get()?;
-        crate::systems::npcs::heightmap::world_height(server, &world, x, y).ok()
+        let z = crate::systems::npcs::npc::spawner::geo_data_height(server, &world, x, y);
+        (z > 0.0).then_some(z)
     }
 
     fn create_player_doodad(

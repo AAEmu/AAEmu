@@ -840,9 +840,16 @@ fn update_area_target(
             pos.add_distance_to_front(args.distance as f32 / 1000.0 - 0.01);
         }
     }
-    // WorldManager.GetHeight: no heightmaps are loaded (0)
+    // Max(previous Z + offset, WorldManager.GetHeight(posUnit.Transform))
     let prev_z = world_pos(server, &prev).z;
-    pos.pos.z = (prev_z + args.height_offset as f32 / 1000.0).max(0.0);
+    let ground = crate::systems::npcs::heightmap::get_height(
+        server,
+        pos.zone_id,
+        pos.pos.x,
+        pos.pos.y,
+        pos.pos.z,
+    );
+    pos.pos.z = (prev_z + args.height_offset as f32 / 1000.0).max(ground);
     let pos_t = Target::Pos(pos);
     if args.max_targets == 0 {
         ti.effected.push(pos_t.clone());

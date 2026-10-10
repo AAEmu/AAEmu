@@ -357,7 +357,7 @@ impl DuelManager {
         let x = a.x - (a.x - b.x) / 2.0;
         let y = a.y - (a.y - b.y) / 2.0;
         let hooks = server.systems.social.hooks.get();
-        // Without height maps the challenger's Z is kept (the C# `GetHeight` needs GeoData).
+        // Without a height (no heightmaps) the challenger's Z is kept.
         let z = hooks
             .terrain_height(server, instance_id, x, y)
             .unwrap_or(a.z);
@@ -440,22 +440,11 @@ impl DuelManager {
         // Make the flag flutter in the wind (`_combatFlag.Last`: the last accepted duel's flag).
         let last_flag = self.st().last_flag.clone();
         if let Some(f) = last_flag {
-            match server
-                .systems
-                .social
-                .hooks
-                .get()
-                .doodad_phase_changed(server, &f)
-            {
-                Some(body) => duel.challenger.send(SCDoodadPhaseChangedRawPacket { body }),
-                None => {
-                    let packet = {
-                        let d = f.data();
-                        SCDoodadPhaseChangedPacket::from_doodad(f.obj_id, &d, util::now_ms())
-                    };
-                    duel.challenger.send(packet);
-                }
-            }
+            let packet = {
+                let d = f.data();
+                SCDoodadPhaseChangedPacket::new(f.obj_id, &d, util::now_ms())
+            };
+            duel.challenger.send(packet);
         }
         // The players can be attacked.
         duel.send_both(SCCombatEngagedPacket { obj_id: a });

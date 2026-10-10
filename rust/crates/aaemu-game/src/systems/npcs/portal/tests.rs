@@ -342,7 +342,8 @@ async fn open_portal_spawns_linked_portals_and_delete_kills_both() {
             kill_reason: KILL_REASON_PORTAL_TIMEOUT,
             resurrect_wait_time: 0,
             lost_exp: 0,
-            durability_loss_rate: 0
+            durability_loss_rate: 0,
+            killer: None,
         })
     );
     assert!(frames.iter().any(|f| f.0 == sc::SCUnitsRemovedPacket));

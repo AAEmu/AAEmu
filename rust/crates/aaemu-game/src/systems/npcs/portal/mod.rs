@@ -740,6 +740,7 @@ pub fn delete_portal_npc(server: &GameServer, npc: &NpcRef) {
             resurrect_wait_time: 0,
             lost_exp: 0,
             durability_loss_rate: 0,
+            killer: None,
         },
         false,
     );

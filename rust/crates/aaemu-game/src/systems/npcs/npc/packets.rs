@@ -76,78 +76,8 @@ impl Marshal for SCNpcInteractionSkillListPacket {
     }
 }
 
-/// `SCAiAggroPacket(npcId, count, hostileUnitId, summarizeDamage, val2, val3)`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct SCAiAggroPacket {
-    pub npc_id: u32,
-    pub count: i32,
-    pub hostile_unit_id: u32,
-    pub summarize_damage: i32,
-    pub val2: i32,
-    pub val3: i32,
-}
-impl SCAiAggroPacket {
-    /// `new SCAiAggroPacket(npcId, count)`.
-    pub fn new(npc_id: u32, count: i32) -> Self {
-        Self {
-            npc_id,
-            count,
-            ..Self::default()
-        }
-    }
-}
-packet_def!(
-    SCAiAggroPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCAiAggroPacket
-);
-impl Marshal for SCAiAggroPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_bc(self.npc_id).write_i32(self.count);
-        if self.count > 0 {
-            s.write_bc(self.hostile_unit_id)
-                .write_i32(self.summarize_damage)
-                .write_i32(self.val2)
-                .write_i32(self.val3)
-                .write_u8(135); // topFlags
-        }
-    }
-}
-
-/// `SCUnitDeathPacket(objId, killReason, resurrectWaitTime, lostExp, durabilityLossRate,
-/// killer)`; `killer` = (`ObjId`, `Name`) of the killer unit.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SCUnitDeathPacket {
-    pub obj_id: u32,
-    pub kill_reason: u8,
-    pub resurrect_wait_time: i32,
-    pub lost_exp: i32,
-    pub durability_loss_rate: u8,
-    pub killer: Option<(u32, String)>,
-}
-packet_def!(
-    SCUnitDeathPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCUnitDeathPacket
-);
-impl Marshal for SCUnitDeathPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_bc(self.obj_id)
-            .write_u8(self.kill_reason)
-            .write_i32(self.resurrect_wait_time)
-            .write_i32(self.lost_exp)
-            .write_u8(self.durability_loss_rate)
-            .write_bc(self.killer.as_ref().map_or(0, |k| k.0));
-        if let Some((_, name)) = &self.killer {
-            s.write_u8(0) // GameType
-                .write_u16(0) // killStreak
-                .write_u8(0) // param1
-                .write_u8(0) // param2
-                .write_u8(0) // param3
-                .write_str(name);
-        }
-    }
-}
+/// `SCAiAggroPacket` / `SCUnitDeathPacket`: the skills subsystem's definitions (one per opcode).
+pub use crate::systems::skills::packets::{SCAiAggroPacket, SCUnitDeathPacket};
 
 /// `SCNpcChatMessagePacket(chatType, npc, character, kind, type, message)`. `npc_name` is the
 /// resolved name (see [`npc_chat_name`]); `faction_id` = `npc?.Faction.Id ?? 0`.
@@ -568,7 +498,7 @@ mod tests {
     fn unit_death_bytes() {
         let mut p = SCUnitDeathPacket {
             obj_id: 0x200,
-            kill_reason: kill_reason::DAMAGE,
+            kill_reason: crate::systems::skills::types::KillReason::Damage,
             resurrect_wait_time: 60,
             lost_exp: 0,
             durability_loss_rate: 0,

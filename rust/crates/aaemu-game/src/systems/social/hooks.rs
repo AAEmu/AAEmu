@@ -36,12 +36,6 @@ pub trait SocialHooks: Send + Sync {
         None
     }
 
-    /// npcs: `SCDoodadPhaseChangedPacket(doodad)` body for a spawned doodad (`TimeLeft` needs
-    /// the phase funcs). Default: built from the stored doodad fields.
-    fn doodad_phase_changed(&self, _server: &GameServer, _doodad: &DoodadRef) -> Option<Vec<u8>> {
-        None
-    }
-
     /// npcs: `WorldInstance.Template.GeoData.GetHeight(x, y)`. Default: no height maps.
     fn terrain_height(
         &self,
