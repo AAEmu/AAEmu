@@ -5,7 +5,7 @@
 //! |---|---|---|
 //! | RayWorldIntersection (world slot 42) | 0x351AA730 | [`World::rwi`] ([`rwi`]) |
 //! | RayWorldIntersection arg-list wrapper (slot 104) | 0x35096EE0 | [`World::rwi`] (same params) |
-//! | ray context ctor | 0x351AC4F0 | [`rwi::RayCtx::new`] |
+//! | ray context ctor | 0x351AC4F0 | [`rwi`] `RayCtx::new` |
 //! | grid ray walk ("DrawRayOnGrid") | 0x351AD6A0 | [`rwi`] `ray_grid_walk` |
 //! | per-cell callback | 0x351AC640 | [`rwi`] `ray_cell` |
 //! | per-part hit registration | 0x351ABC10 | [`rwi`] `register_ray_contacts` |
@@ -25,6 +25,30 @@
 //! | CollideEntityWithBeam (slot 59) | 0x35086DB0 | [`World::collide_entity_with_beam`] |
 //! | point-in-box (oriented) | 0x350974A0 | [`entity`] |
 //! | AABB overlap (`min,max` pairs) | 0x35038180 | [`aabb_overlap6`] |
+//!
+//! # Public API (game-server integration)
+//!
+//! * [`World::rwi`]`(&RwiParams, hits: &mut [RayHit], hit_last: Option<&mut HitLast>, caller)
+//!   -> i32` — RayWorldIntersection. `RwiParams { org, dir, objtypes, flags, skip, .. }`;
+//!   `hits.len()` is nMaxHits; returns the number of valid hits (hit 0 = closest solid hit,
+//!   `dist = -1` when none). Typical game masks: `0x101` static + terrain, `0x107` + rigid,
+//!   `0x11F` all simulated + terrain, `0x301` static + terrain + water; flags as in
+//!   [`rwi_flags`] (pierceability in bits 0–3, collision class in the high word).
+//! * [`World::rwi_queued`] / [`World::pwi_with_callback`] (flag / entTypes 0x800),
+//!   [`World::process_queued_queries`]`(mode)` (slot 43), [`World::deliver_query_results`]
+//!   (the event-9/10 part of `PumpLoggedEvents`).
+//! * [`World::pwi`]`(&PwiParams) -> PwiResult { dist, contacts }` — PrimitiveWorldIntersection
+//!   for a box / sphere / cylinder / capsule, static (`dist` 1.0 on the first hit) or swept
+//!   (`dist` = travel before the first contact, 0 = none).
+//! * [`World::ray_trace_entity`], [`World::collide_entity_with_primitive`],
+//!   [`World::collide_entity_with_beam`] — one entity, results in a [`RayHit`].
+//! * Terrain: [`World::set_heightfield_data_with`] (slot 17), [`World::set_terrain_origin`]
+//!   (slot 4), [`World::get_heightfield_data`] (18), [`World::set_heightfield_mat_mapping`] (19).
+//! * Settings: [`QueryState::ray_dir_limit`], [`QueryState::env_byte_289`].
+//!
+//! The caller index of PWI and the entity queries is the calling thread's
+//! ([`World::tls_thread`]); RWI takes it as a parameter (the game passes 4 from its own
+//! threads). Queries run on the thread's intersection arena (`World::tscratch`).
 //!
 //! # Engine facts kept
 //!

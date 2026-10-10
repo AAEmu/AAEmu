@@ -359,7 +359,76 @@ impl Scenario {
             "echo" => {
                 let _ = writeln!(self.out, "echo {}", toks.join(" "));
             }
+            // P3 queries: RayWorldIntersection (oracle `cmd_rwi`) and the fake-gEnv knobs
+            "ray" => self.cmd_ray(&kv)?,
+            "env" => {
+                if let Some(v) = kv.get("raymax") {
+                    self.world.queries.ray_dir_limit = Some(v.parse().map_err(|e| format!("raymax: {e}"))?);
+                }
+                if let Some(v) = kv.get("b289") {
+                    self.world.queries.env_byte_289 = *v != "0";
+                }
+                // b290 only affects TimeStep's vars (+328) in the original; not modelled here
+            }
             c => return Err(format!("command {c} not supported by the port interpreter")),
+        }
+        Ok(())
+    }
+}
+
+impl Scenario {
+    /// The oracle's name of an object (`-` null, `terrain` for the terrain entities, `?`
+    /// unknown).
+    fn obj_name(&self, e: EntIdx) -> String {
+        if e.is_none() {
+            return "-".into();
+        }
+        if let Some(n) = self.names.get(&e) {
+            return n.clone();
+        }
+        if self.world.terrain.contains(&e) {
+            return "terrain".into();
+        }
+        "?".into()
+    }
+
+    /// `ray name= org= dir= [types=0x13F] [flags=0] [max=1] [caller=4]` (oracle `cmd_rwi`):
+    /// prints `ray NAME n N` and one `h` line per hit slot (empty slots after the first
+    /// skipped).
+    fn cmd_ray(&mut self, kv: &HashMap<&str, &str>) -> Result<(), String> {
+        let get = |k: &str, d: &str| -> String { kv.get(k).copied().unwrap_or(d).to_string() };
+        let nmax = get("max", "1").parse::<i32>().map_err(|e| e.to_string())?.clamp(1, 16) as usize;
+        let p = crate::world::queries::RwiParams {
+            org: v3(&get("org", "0,0,0")),
+            dir: v3(&get("dir", "0,0,0")),
+            objtypes: pu(&get("types", "0x13F")),
+            flags: pu(&get("flags", "0")),
+            ..crate::world::queries::RwiParams::default()
+        };
+        let mut hits = vec![crate::world::queries::RayHit::default(); nmax];
+        let caller = get("caller", "4").parse::<i32>().map_err(|e| e.to_string())?;
+        let n = self.world.rwi(&p, &mut hits, None, caller);
+        let _ = writeln!(self.out, "ray {} n {}", get("name", "-"), n);
+        for (i, h) in hits.iter().enumerate() {
+            if h.dist < 0.0 && i > 0 {
+                continue;
+            }
+            let line = format!(
+                "h {} d {:08x} e {} ip {} pid {} s {} p {:08x} {:08x} {:08x} n {:08x} {:08x} {:08x}",
+                i,
+                h.dist.to_bits(),
+                self.obj_name(h.collider),
+                h.ipart,
+                h.partid,
+                h.foreign_idx,
+                h.pt.x.to_bits(),
+                h.pt.y.to_bits(),
+                h.pt.z.to_bits(),
+                h.n.x.to_bits(),
+                h.n.y.to_bits(),
+                h.n.z.to_bits()
+            );
+            let _ = writeln!(self.out, "{line}");
         }
         Ok(())
     }
