@@ -1278,7 +1278,11 @@ fn real_compact_db_vehicle_tables() {
     // Boats have a ship model, carriages a vehicle model. In the 1.2 data 9 of the 49
     // boat-kind slaves have none (vehicle / prefab / missing models, e.g. 7, 19, 105), so
     // count them instead of sampling one (HashMap order made that flaky).
-    let boats: Vec<_> = d.slave_templates.values().filter(|t| t.is_a_boat()).collect();
+    let boats: Vec<_> = d
+        .slave_templates
+        .values()
+        .filter(|t| t.is_a_boat())
+        .collect();
     let with_ship_model = boats
         .iter()
         .filter(|t| d.ship_model(t.model_id).is_some())
