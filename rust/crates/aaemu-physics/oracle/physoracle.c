@@ -7,6 +7,7 @@
  *   physoracle.exe [--rt DIR] SCENARIO.txt|-        run a scenario, trace on stdout
  *   physoracle.exe [--rt DIR] --math NAME COUNT SEED   probe an internal math routine
  *   physoracle.exe [--rt DIR] --p2b                    P2b unprojection probe (p2b_probe.c)
+ *   physoracle.exe [--rt DIR] --p4b                    P4b contact solver probe (p4b_probe_solver.c)
  *   physoracle.exe [--rt DIR] --pairfn VA NA NB FILE   call an INTERSECT pair function per line
  *
  * DIR defaults to %AAEMU_PHYS_RT% or D:\aa-re\cryphysics\harness\rt. It must hold
@@ -1034,6 +1035,7 @@ static void pairfn_probe(uint64_t va, int na, int nb, const char *path) {
 static int p4a_ext_intersect(char *line); /* P4a primitive Intersect probe */
 #include "p2b_probe.c"
 #include "p4a_probe_intersect.c"
+#include "p4b_probe_solver.c" /* P4b contact solver probe */
 
 /* ------------------------------------------------------------------ main */
 int main(int argc, char **argv) {
@@ -1055,6 +1057,10 @@ int main(int argc, char **argv) {
   if (!g_phys) { printf("ERROR LoadLibrary %s failed (%lu)\n", dll, GetLastError()); return 1; }
   if (!strcmp(argv[a], "--p2b")) { /* P2b: unprojection / helper probe, commands on stdin */
     p2b_run();
+    return 0;
+  }
+  if (!strcmp(argv[a], "--p4b")) { /* P4b: contact solver probe, commands on stdin */
+    p4b_run();
     return 0;
   }
   if (!strcmp(argv[a], "--p2a2")) { /* P2a-2 pair probes, see p2a2_probe */
