@@ -285,3 +285,86 @@ fn sine_table_matches_the_dll_image() {
         assert_eq!(*w, v.to_bits(), "sin table entry {i}");
     }
 }
+
+/// RayWorldIntersection against static sphere / cylinder / capsule entities: each hit point and
+/// normal equals the ported pair function's output on the world-space primitives (entity
+/// orientation is identity, so the primitive centre is the entity position).
+#[test]
+fn ray_world_intersection_hits_match_the_pair_functions() {
+    use aaemu_physics::collision::pairs::round_pairs::{cap_ray, cyl_ray, sph_ray};
+    let t = scenario_trace("p2a4_ray_round").unwrap_or_else(|e| panic!("{e}"));
+    let cyl = |c: [f32; 3], axis: [f32; 3], r: f32, hh: f32| CylinderPrim {
+        center: Vec3::from_array(c),
+        axis: Vec3::from_array(axis),
+        r,
+        hh,
+    };
+    let rays: [(&str, [f32; 3], [f32; 3]); 17] = [
+        ("ball_down", [20.3, 19.8, 10.0], [0.0, 0.0, -20.0]),
+        ("ball_side", [10.0, 20.5, 2.4], [20.0, 0.0, 0.0]),
+        ("ball_diag", [17.0, 17.0, 6.0], [6.0, 6.0, -8.0]),
+        ("ball_graze", [10.0, 21.2, 2.0], [20.0, 0.0, 0.0]),
+        ("ball_short", [20.0, 20.0, 10.0], [0.0, 0.0, -5.0]),
+        ("pole_top", [30.1, 20.2, 10.0], [0.0, 0.0, -20.0]),
+        ("pole_side", [25.0, 20.1, 2.5], [10.0, 0.0, 0.0]),
+        ("pole_slant", [27.0, 18.0, 6.0], [6.0, 4.0, -6.0]),
+        ("pole_up", [30.2, 19.9, -5.0], [0.0, 0.0, 20.0]),
+        ("tilt_down", [40.2, 20.1, 10.0], [0.0, 0.0, -20.0]),
+        ("tilt_side", [35.0, 20.3, 3.1], [10.0, 0.0, 0.0]),
+        ("pill_top", [20.1, 30.05, 10.0], [0.0, 0.0, -20.0]),
+        ("pill_side", [15.0, 30.2, 2.3], [10.0, 0.0, 0.0]),
+        ("pill_slant", [17.0, 27.0, 7.0], [5.0, 5.0, -9.0]),
+        ("lpill_down", [30.05, 31.4, 10.0], [0.0, 0.0, -20.0]),
+        ("lpill_side", [25.0, 29.5, 1.9], [10.0, 0.0, 0.0]),
+        ("miss", [50.0, 50.0, 10.0], [0.0, 0.0, -20.0]),
+    ];
+    let mut checked = 0;
+    for (name, org, dir) in rays {
+        let rec = t.ray(name).unwrap_or_else(|| panic!("ray {name}"));
+        let ray = RayPrim {
+            origin: Vec3::from_array(org),
+            dir: Vec3::from_array(dir),
+        };
+        let mut o = PrimInters::default();
+        let entity = name.split('_').next().unwrap();
+        let hit = match entity {
+            "ball" => sph_ray(
+                &SpherePrim {
+                    center: Vec3::new(20.0, 20.0, 2.0),
+                    r: 1.25,
+                },
+                &ray,
+                &mut o,
+            ),
+            "pole" => cyl_ray(
+                &cyl([30.0, 20.0, 2.0], [0.0, 0.0, 1.0], 0.5, 1.5),
+                &ray,
+                &mut o,
+            ),
+            "tilt" => cyl_ray(
+                &cyl([40.0, 20.0, 3.0], [0.6, 0.0, 0.8], 0.75, 1.0),
+                &ray,
+                &mut o,
+            ),
+            "pill" => cap_ray(
+                &cyl([20.0, 30.0, 2.0], [0.0, 0.0, 1.0], 0.6, 1.2),
+                &ray,
+                &mut o,
+            ),
+            "lpill" => cap_ray(
+                &cyl([30.0, 30.0, 3.0], [0.0, 0.8, 0.6], 0.4, 2.0),
+                &ray,
+                &mut o,
+            ),
+            _ => false,
+        };
+        assert_eq!(i32::from(hit), rec.n_hits, "{name}: hit count");
+        if hit {
+            let h = &rec.hits[0];
+            assert_eq!(o.pt[0].to_bits(), h.pt, "{name}: point");
+            assert_eq!(o.n.to_bits(), h.n, "{name}: normal");
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, 14);
+}
