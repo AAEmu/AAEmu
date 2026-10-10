@@ -344,6 +344,8 @@ pub struct GeomTestMotion {
 /// `unproj_params` (kept bug): `minPtDist` (+40) is never written, and `tmax` (+32) is only
 /// written on the velocity / rotation path, so the penetration fallback after a too-slow relative
 /// velocity uses whatever is on the stack. The cells that read them see these values instead.
+/// (The oracle test fills the stack with a known word before the call and passes the same word
+/// here; with that, every output matches — so these two slots are the only stale reads.)
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StaleUnprojSlots {
     pub tmax: f32,

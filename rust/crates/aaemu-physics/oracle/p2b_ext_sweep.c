@@ -73,7 +73,7 @@ static int p2b_sweep_overlap(void *a, void *b, float *ga, float *gb, const uint3
 
 
 /* REG <tA> <primA> <tB> <primB> SA <13: v w com rc mvd> SB <13> PI <22 words prim_inters>
-       IP <28> AREA <0|1>
+       IP <28> AREA <0|1> STALE <word written over the stack below the call>
    -> reg <ncontacts> STOP <flag> PI <n xyz after> C <22 contact words> NB <+104> SELF <+88 == &pt>
       [AREA <npt> <nmax> <minedge> <n3> <pts…>|NOAREA]
    Calls CGeometry::RegisterIntersection (slot 54, 0x3514F3F0) with hand-built
@@ -81,6 +81,12 @@ static int p2b_sweep_overlap(void *a, void *b, float *ga, float *gb, const uint3
    +280 type, +360 minVtxDist, +368 contacts, +376 &count, +384 nMax, +388 thread). The first
    contact slot is pre-filled with 0x11111111 words. */
 typedef int (*p2b_reg_fn)(void *self, void *pa, void *pb, void *gta, void *gtb, void *inters);
+/* RegisterIntersection reads uninitialised stack slots (unproj_params tmax / minPtDist on some
+   paths); fill the stack below us with a known word first so those reads are reproducible. */
+static __declspec(noinline) void p2b_fill_stack(uint32_t w) {
+  volatile uint32_t buf[8192];
+  for (int i = 0; i < 8192; i++) buf[i] = w;
+}
 static void p2b_gtest_side(char **cur, unsigned char *gt) {
   uint32_t w[13];
   p2b_words(cur, w, 13);
@@ -110,6 +116,8 @@ static int p2b_ext_reg(char *line) {
   p2b_expect(&cur, "IP"); p2b_words(&cur, ip, 28);
   p2b_expect(&cur, "AREA");
   int use_area = (int)p2b_word(&cur);
+  p2b_expect(&cur, "STALE");
+  uint32_t stale = p2b_word(&cur);
   memset(contacts, 0x11, sizeof contacts);
   int count = 0;
   for (int i = 0; i < 4; i++) *(void **)(contacts + 136 * i + 128) = 0;
@@ -128,6 +136,7 @@ static int p2b_ext_reg(char *line) {
   void *cp = contacts, *cnt = &count;
   memcpy(gta + 368, &cp, 8); memcpy(gta + 376, &cnt, 8);
   *(int *)(gta + 384) = 4; *(int *)(gta + 388) = 4;
+  p2b_fill_stack(stale);
   ((p2b_reg_fn)VA(g_phys, 0x3514F3F0ULL))(0, pa, pb, gta, gtb, pi);
   printf("reg %08x STOP %08x PI", (uint32_t)count, *(uint32_t *)(gta + 40));
   p2b_print_words(pi + 6, 3);

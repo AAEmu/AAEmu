@@ -530,14 +530,15 @@ fn gen_reg_with(rng: &mut Rng, pairs: &[(i32, i32)]) -> String {
         ..IntersectionParams::default()
     };
     format!(
-        "REG {ta:x}{} {tb:x}{} SA{} SB{} PI{} IP{} AREA {}",
+        "REG {ta:x}{} {tb:x}{} SA{} SB{} PI{} IP{} AREA {} STALE {:08x}",
         fmt_words(&prim_words(&pa)),
         fmt_words(&prim_words(&pb)),
         fmt_words(&motion_words(&rand_motion(rng))),
         fmt_words(&motion_words(&rand_motion(rng))),
         fmt_words(&inters_words(&pi)),
         fmt_words(&ip_words(&ip)),
-        u32::from(rng.chance(0.5))
+        u32::from(rng.chance(0.5)),
+        rng.pick(&[0.0f32, 1e10, 0.01, 2.5]).to_bits()
     )
 }
 
@@ -558,6 +559,8 @@ fn port_reg(line: &str, _oracle: &str) -> String {
     let ip = ip_from(&hex_words(&mut it, 28));
     assert_eq!(it.next(), Some("AREA"));
     let use_area = it.next() == Some("1");
+    assert_eq!(it.next(), Some("STALE"));
+    let stale = f32::from_bits(u32::from_str_radix(it.next().unwrap(), 16).unwrap());
     let s32 = f32::from_bits(0x1111_1111);
     let s3 = Vec3::splat(s32);
     let mut c = GeomContact {
@@ -583,7 +586,10 @@ fn port_reg(line: &str, _oracle: &str) -> String {
         &mut pi,
         &ip,
         &mut c,
-        StaleUnprojSlots::default(),
+        StaleUnprojSlots {
+            tmax: stale,
+            min_pt_dist: stale,
+        },
     );
     let t = c.t.to_bits();
     let mut w = vec![t as u32, (t >> 32) as u32];
