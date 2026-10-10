@@ -26,6 +26,10 @@ pub struct Data {
     pub auction: super::auction_data::AuctionData,
     /// Cash shop texts (`LocalizationManager` item names).
     pub cash_shop: super::cash_shop::CashShopData,
+    /// Crafting tables.
+    pub craft: super::craft_data::CraftData,
+    /// Store / specialty / taxation / expert / item-look tables.
+    pub store: super::store_data::StoreData,
 }
 
 impl Data {
@@ -48,6 +52,8 @@ impl Data {
             data.expands.entry(e.step).or_default().push(e);
             Ok(())
         })?;
+        data.craft = super::craft_data::CraftData::load(ctx)?;
+        data.store = super::store_data::StoreData::load(ctx)?;
         Ok(data)
     }
 

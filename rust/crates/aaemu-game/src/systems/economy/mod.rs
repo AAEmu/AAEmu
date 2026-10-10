@@ -21,6 +21,9 @@ pub mod auction_packets;
 mod auction_tests;
 pub mod cash_shop;
 mod cash_shop_tests;
+pub mod craft;
+pub mod craft_data;
+mod craft_store_tests;
 pub mod data;
 pub mod error_message;
 pub mod fx;
@@ -28,6 +31,9 @@ pub mod hooks;
 pub mod inventory;
 pub mod item_handlers;
 pub mod item_packets;
+pub mod specialty;
+pub mod store;
+pub mod store_data;
 #[cfg(test)]
 pub(crate) mod tests;
 pub mod trade;
@@ -58,6 +64,12 @@ pub struct System {
     pub trade: trade::TradeManager,
     /// `CashShopManager`.
     pub cash_shop: cash_shop::CashShopManager,
+    /// `CharacterCraft` of every character.
+    pub craft: craft::CraftManager,
+    /// Store state (`Character.BuyBackItems`) and its hooks.
+    pub store: store::StoreManager,
+    /// `SpecialtyManager` (trade pack ratios).
+    pub specialty: specialty::SpecialtyManager,
 }
 
 impl System {
@@ -91,6 +103,7 @@ impl System {
             auction::AuctionManager::start_timer(server);
         }
         cash_shop::load(server).await?;
+        specialty::initialize(server);
         Ok(())
     }
 
@@ -120,4 +133,7 @@ pub fn register(reg: &mut PacketRegistry) {
     auction_packets::register(reg);
     trade::register(reg);
     cash_shop::register(reg);
+    craft::register(reg);
+    store::register(reg);
+    specialty::register(reg);
 }
