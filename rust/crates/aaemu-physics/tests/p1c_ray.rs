@@ -1074,8 +1074,8 @@ fn corpus_rays_match_the_dll() {
     let mut rng = Rng(0x0005_EED3);
     let mut job = Job::default();
     let (mut used, mut batch, mut n_closed) = (0usize, 0usize, 0usize);
-    let mut tot = (0usize, 0usize, 0usize, 0usize);
-    let flush = |job: &mut Job, batch: &mut usize, tot: &mut (usize, usize, usize, usize)| {
+    let mut tot = [0usize; 6];
+    let flush = |job: &mut Job, batch: &mut usize, tot: &mut [usize; 6]| {
         if job.cmds.is_empty() {
             return;
         }
@@ -1085,10 +1085,12 @@ fn corpus_rays_match_the_dll() {
         let port = job.replay(&text);
         p1c_common::assert_same_text(&format!("corpus batch {batch}"), &port, &text);
         let s = stats(&text);
-        tot.0 += s.0;
-        tot.1 += s.1;
-        tot.2 += s.2;
-        tot.3 += s.3;
+        tot[0] += s.0;
+        tot[1] += s.1;
+        tot[2] += s.2;
+        tot[3] += s.3;
+        tot[4] += job.skipped.get();
+        tot[5] += job.n_usph;
         *batch += 1;
         *job = Job::default();
     };
@@ -1147,11 +1149,13 @@ fn corpus_rays_match_the_dll() {
     }
     flush(&mut job, &mut batch, &mut tot);
     println!(
-        "corpus: {used} meshes ({n_closed} closed) of {} trimesh blobs; {} preps built, {} isect ({} contacts), {} usph hits: all match",
+        "corpus: {used} meshes ({n_closed} closed) of {} trimesh blobs; {} preps built, {} isect ({} contacts, {} skipped: priority-1 fallback needs mesh slot 54), {} usph ({} hits): all match",
         meshes.len(),
-        tot.3,
-        tot.0,
-        tot.1,
-        tot.2
+        tot[3],
+        tot[0],
+        tot[1],
+        tot[4],
+        tot[5],
+        tot[2]
     );
 }
