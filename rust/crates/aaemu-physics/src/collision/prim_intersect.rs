@@ -855,7 +855,14 @@ pub fn install_generic_intersect(f: GenericIntersectFn) -> bool {
 /// The generic `CGeometry::Intersect` installed with [`install_generic_intersect`], if any
 /// (added for the world queries, which call [`intersect`] directly to keep the `gwd` write-back).
 pub fn installed_generic() -> Option<GenericIntersectFn> {
-    GENERIC.get().copied()
+    // P1c: the port's generic Intersect (meshes, heightfields, rays) unless another one was
+    // installed explicitly.
+    Some(
+        GENERIC
+            .get()
+            .copied()
+            .unwrap_or(crate::geometry::trimesh::geometry_impl::generic_intersect_fn),
+    )
 }
 
 /// The shared tables with the installed generic fallback (what [`geometry_intersect`] uses).
@@ -887,7 +894,7 @@ pub fn geometry_intersect(
     contacts: &mut Vec<GeomContact>,
 ) -> usize {
     let mut env = *shared_env();
-    env.generic = GENERIC.get().copied();
+    env.generic = installed_generic();
     let mut g1 = *gwd1;
     with_thread_scratch(|s| {
         let out = intersect(&env, s, a, b, &mut g1, gwd2, params);

@@ -150,7 +150,13 @@ impl World {
     }
 
     /// World slot 25 `SetPhysicalEntityId(ent, id, bReplace, bThreadSafe)` (0x3507EDE0).
-    pub fn set_physical_entity_id(&mut self, e: EntIdx, id: i32, replace: bool, _thread_safe: bool) -> bool {
+    pub fn set_physical_entity_id(
+        &mut self,
+        e: EntIdx,
+        id: i32,
+        replace: bool,
+        _thread_safe: bool,
+    ) -> bool {
         let old = self.ent(e).id();
         if (old as u32) < self.id_table.len() as u32 {
             self.id_table[old as usize] = EntIdx::NONE;
@@ -232,7 +238,11 @@ impl World {
             return 0;
         }
         let v38 = self.pump_counter;
-        let v39 = if self.vars.keep_temp_memory != 0 { v38 + 3 } else { v38 + 2 };
+        let v39 = if self.vars.keep_temp_memory != 0 {
+            v38 + 3
+        } else {
+            v38 + 2
+        };
         self.ent_mut(e).deleted = 4 - ((4 - v39) & ((4 - v39) >> 31));
         for c in &mut self.box_cache {
             c.objtypes = -1;

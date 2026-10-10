@@ -32,8 +32,16 @@
 //! 7. `P += ΣF`, `v = P·Minv` (clamped to the max speed, `P = v·M`), `L += Στ`, `w = Iinv·L`;
 //!    the load display values.
 
-#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::too_many_lines, clippy::excessive_precision)]
-
+// The arithmetic is written in the binary's operand order and with its single-precision
+// constants (`a = b + a`, `x * -1.0`, `3.1415927`, NaN-aware negated comparisons).
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_multiply,
+    clippy::excessive_precision,
+    clippy::approx_constant,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::too_many_lines
+)]
 use super::{n_wheels, wd, wflags, wm};
 use crate::math::{crt, Mat33, Vec3};
 use crate::world::{EntIdx, World};
@@ -288,7 +296,10 @@ pub fn step_drive(w: &mut World, e: EntIdx, dt: f32) {
             wh.brake_impulse = v31 * dt;
             if v32 & 1 != 0 {
                 let mut v34 = v23;
-                if !(tank == 0.0 || tank.is_nan()) && steer.abs() > 0.009_999_999_8 && steer * wh.pivot.x > 0.0 {
+                if !(tank == 0.0 || tank.is_nan())
+                    && steer.abs() > 0.009_999_999_8
+                    && steer * wh.pivot.x > 0.0
+                {
                     let p = v28 * pedal;
                     if !(p < 0.0 || p.is_nan()) {
                         let v36 = v23.abs();
@@ -296,7 +307,8 @@ pub fn step_drive(w: &mut World, e: EntIdx, dt: f32) {
                     }
                     let v37 = 1.0 - (steer * tank).abs();
                     let v239 = maxw - weng;
-                    v34 = ((((-1.0 - v37).abs() + (v37 - 1.0)) * 0.5) * v34) * sgn_bits(v239) as f32;
+                    v34 =
+                        ((((-1.0 - v37).abs() + (v37 - 1.0)) * 0.5) * v34) * sgn_bits(v239) as f32;
                 }
                 wh.brake_torque = (v34 * wh.drive_scale) + v31;
             }
@@ -334,7 +346,10 @@ pub fn step_drive(w: &mut World, e: EntIdx, dt: f32) {
     };
     // 4. suspension
     let b = *w.bodies.get(body_id);
-    let (k_stab, gz) = (wd(w, e).k_stabilizer, w.ent(e).rigid().expect("rigid").gravity.z);
+    let (k_stab, gz) = (
+        wd(w, e).k_stabilizer,
+        w.ent(e).rigid().expect("rigid").gravity.z,
+    );
     for i in 0..nw.max(0) as usize {
         let d = wm(w, e);
         let lens: Vec<f32> = d.wheels.iter().map(|x| x.len).collect();
@@ -354,7 +369,8 @@ pub fn step_drive(w: &mut World, e: EntIdx, dt: f32) {
             let v65 = wh.len;
             let v66 = wh.k;
             let v68 = wh.len_rest - wh.len_min_off;
-            let mut v69 = ((wh.len_max - (((v65 - v68).abs() + (v65 + v68)) * 0.5)) * v66) - (v64 * wh.c);
+            let mut v69 =
+                ((wh.len_max - (((v65 - v68).abs() + (v65 + v68)) * 0.5)) * v66) - (v64 * wh.c);
             if wh.partner >= 0 && k_stab > 0.0 {
                 v69 -= ((v65 - lens[wh.partner as usize]) * v66) * k_stab;
             }
@@ -645,7 +661,8 @@ pub fn step_drive(w: &mut World, e: EntIdx, dt: f32) {
                 let fl = v153 | 0x20;
                 wm(w, e).wheels[i].flags = fl;
                 let v291 = v177 - v128;
-                let a = ((sgn_bits(v152) as f32) * v137) * (u32::from((v180 & (1 - v181)) > 0) as f32);
+                let a =
+                    ((sgn_bits(v152) as f32) * v137) * (u32::from((v180 & (1 - v181)) > 0) as f32);
                 let bb = ((sgn_bits(v291) as f32) * v137) * (u32::from(v181 > 0) as f32);
                 v152 = a + bb;
                 if wd(w, e).footbrake != 0 {
@@ -663,7 +680,9 @@ pub fn step_drive(w: &mut World, e: EntIdx, dt: f32) {
                 let dd = v128 - v177;
                 let v183 = v182.abs();
                 let wh = &mut wm(w, e).wheels[i];
-                wh.w = ((((v183 + dd.abs()) - (v183 - dd.abs()).abs()) * 0.5) * sgn_bits(dd) as f32) + v177;
+                wh.w = ((((v183 + dd.abs()) - (v183 - dd.abs()).abs()) * 0.5)
+                    * sgn_bits(dd) as f32)
+                    + v177;
             } else {
                 wm(w, e).wheels[i].w = v128;
             }
@@ -718,7 +737,11 @@ pub fn step_drive(w: &mut World, e: EntIdx, dt: f32) {
             let t = &mut wm(w, e).wheels[i];
             t.f524 = Vec3::new(v152 * v123, v124 * v152, v125 * v152);
             t.f512 = Vec3::new(v204 * v188, v191 * v204, v192 * v204);
-            t.f536 = if v137 <= 0.0 { 0.0 } else { (v152 / v137).abs() };
+            t.f536 = if v137 <= 0.0 {
+                0.0
+            } else {
+                (v152 / v137).abs()
+            };
         }
     }
     // 6. tank steering: ω / free flag from the side's driving wheel
@@ -751,7 +774,11 @@ pub fn step_drive(w: &mut World, e: EntIdx, dt: f32) {
             let v219 = ((v215 * v215) + (v213 * v213)) + (v217 * v217);
             if v219 > max_speed * max_speed {
                 let v220 = 1.0 / v219.sqrt();
-                bb.v = Vec3::new((v220 * v213) * max_speed, (v220 * v215) * max_speed, (v220 * v217) * max_speed);
+                bb.v = Vec3::new(
+                    (v220 * v213) * max_speed,
+                    (v220 * v215) * max_speed,
+                    (v220 * v217) * max_speed,
+                );
                 let v221 = m_tot;
                 bb.p = Vec3::new(bb.v.x * v221, bb.v.y * v221, bb.v.z * v221);
             }

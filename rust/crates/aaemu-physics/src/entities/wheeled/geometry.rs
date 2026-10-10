@@ -6,6 +6,16 @@
 //! ported: the port has no `RemoveGeometry` of the base / rigid classes (entity slot 12, queue
 //! op 3) for it to wrap.
 
+// The arithmetic is written in the binary's operand order and with its single-precision
+// constants (`a = b + a`, `x * -1.0`, `3.1415927`, NaN-aware negated comparisons).
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_multiply,
+    clippy::excessive_precision,
+    clippy::approx_constant,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::too_many_lines
+)]
 use super::{n_wheels, wd, wm, MAX_WHEELS};
 use crate::entities::interface::{rd_i32, rd_u32, wr_i32, wr_u32};
 use crate::geometry::PhysGeometry;

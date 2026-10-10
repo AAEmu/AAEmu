@@ -191,7 +191,8 @@ pub fn add_collider(w: &mut World, e: EntIdx, c: EntIdx) -> i32 {
         let n = w.ent(e).colliders.len();
         let r = w.ent_mut(e).rigid_mut().expect("rigid");
         if r.collider_contacts.len() < n {
-            r.collider_contacts.insert(i as usize, crate::solver::ContactId::NONE);
+            r.collider_contacts
+                .insert(i as usize, crate::solver::ContactId::NONE);
             r.collider_masks.insert(i as usize, 0);
         }
         r.flags2 &= 0xFFFF_FE01;
@@ -282,7 +283,12 @@ fn base_remove_collider(w: &mut World, e: EntIdx, c: EntIdx) -> i32 {
 
 /// Slot 53 `HasConstraintContactsWith(pent, flagsIgnore)`: rigid `0x350A9CE0`; base 0.
 #[must_use]
-pub fn has_constraint_contacts_with(w: &World, e: EntIdx, other: EntIdx, flags_ignore: i32) -> bool {
+pub fn has_constraint_contacts_with(
+    w: &World,
+    e: EntIdx,
+    other: EntIdx,
+    flags_ignore: i32,
+) -> bool {
     let ent = w.ent(e);
     let EntityKind::Rigid(r) = &ent.kind else {
         return false;
@@ -357,7 +363,8 @@ pub fn class_detach_hook(w: &mut World, e: EntIdx, mode: i32) {
         w.ent_mut(e).colliders.clear();
         let ent = w.ent(e);
         if ent.flags & 0x20 == 0
-            && ((ent.pod_refs > 0 && ((ent.id_bits & 0xFF00_0000) as i32) < 0x300_0000) || ent.flags & 0x10_0000 != 0)
+            && ((ent.pod_refs > 0 && ((ent.id_bits & 0xFF00_0000) as i32) < 0x300_0000)
+                || ent.flags & 0x10_0000 != 0)
         {
             let v10 = w.vars.contact_gap * 4.0;
             let bb = ent.bbox;
@@ -365,7 +372,11 @@ pub fn class_detach_hook(w: &mut World, e: EntIdx, mode: i32) {
             let v12 = (bb[1].z - bb[0].z) * 0.001 + v10;
             let v13 = (bb[1].y - bb[0].y) * 0.001 + v10;
             let v14 = if ent.flags & 0x10_0000 != 0 { 2.0 } else { 0.0 };
-            let hi = crate::math::Vec3::new(0.0 + (v11 + bb[1].x), 0.0 + (v13 + bb[1].y), (v12 + bb[1].z) + v14);
+            let hi = crate::math::Vec3::new(
+                0.0 + (v11 + bb[1].x),
+                0.0 + (v13 + bb[1].y),
+                (v12 + bb[1].z) + v14,
+            );
             let lo = crate::math::Vec3::new(bb[0].x - v11, bb[0].y - v13, bb[0].z - v12);
             let caller = w.tls_thread.clamp(0, 4) as usize;
             let list = w.get_entities_in_box(lo, hi, 94, None, caller);
@@ -383,11 +394,13 @@ pub fn class_detach_hook(w: &mut World, e: EntIdx, mode: i32) {
 }
 
 /// Slot 59 `OnContact(contact, iside)` (the post-solve calls it for contacts on parts with
-/// flag `0x400000`): wheeled vehicles 0x35104760 count hull contacts; the rigid / base slots
-/// (breakable parts) are not ported.
+/// flag `0x400000`): living 0x350279B0, wheeled vehicles 0x35104760 (count hull contacts);
+/// the rigid / base slots (breakable parts) are not ported.
 pub fn on_contact(w: &mut World, e: EntIdx, c: crate::solver::ContactId, side: i32) {
     if w.ent(e).wheeled().is_some() {
         wheeled::on_contact(w, e, c, side);
+    } else if w.ent(e).living().is_some() {
+        living::solver::on_contact(w, e, c, side);
     }
 }
 

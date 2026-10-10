@@ -34,8 +34,16 @@
 //!    suspension length `min(len + 7·dt, lenMax − depth)` and the record position.
 //! 6. (step 2) the interpolated wheels.
 
-#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::too_many_lines)]
-
+// The arithmetic is written in the binary's operand order and with its single-precision
+// constants (`a = b + a`, `x * -1.0`, `3.1415927`, NaN-aware negated comparisons).
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_multiply,
+    clippy::excessive_precision,
+    clippy::approx_constant,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::too_many_lines
+)]
 use super::{n_wheels, wd, wflags, wm};
 use crate::collision::contact::IntersectionParams;
 use crate::collision::prim_intersect::scratch::{c, ThreadScratch};
@@ -88,7 +96,15 @@ fn eq1(i: i32, x: i32) -> i32 {
 /// Slot 72 `RemoveContacts(ipart, iside, pentOther, iotherside, bWake)`: `CRigidEntity`
 /// 0x350AAAE0 frees the contacts whose part index on side `side` is `ipart` and whose entity
 /// on side `other_side` is `other` (`sub_350AA810` with `bWake`); the base class has no slot.
-pub fn remove_contacts(w: &mut World, e: EntIdx, ipart: i32, side: usize, other: EntIdx, other_side: usize, wake: bool) {
+pub fn remove_contacts(
+    w: &mut World,
+    e: EntIdx,
+    ipart: i32,
+    side: usize,
+    other: EntIdx,
+    other_side: usize,
+    wake: bool,
+) {
     let Some(r) = w.ent(e).rigid() else {
         return;
     };
@@ -282,7 +298,11 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
         let v233 = ((v609[0].abs() * wh0.width) + (v609[1].abs() * v223)) + v225;
         let v234 = ((wh0.width * v609[6].abs()) + (v609[7].abs() * v223)) + v228;
         let si = ((wh0.width * v609[3].abs()) + (v609[4].abs() * v223)) + v230;
-        let bc = qn.rotate(Vec3::new(wh0.center0.x, wh0.center0.y, wh0.center0.z - wh0.len_rest));
+        let bc = qn.rotate(Vec3::new(
+            wh0.center0.x,
+            wh0.center0.y,
+            wh0.center0.z - wh0.len_rest,
+        ));
         let cx = bc.x + pn.x;
         let cy = bc.y + pn.y;
         let cz = bc.z + pn.z;
@@ -307,8 +327,8 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
             wh.contact_body = None;
         }
         let side = (wh0.pivot.x.to_bits() >> 31) as usize;
-        let process = !v476
-            || ((eq1(v176, v468[side]) | eq1(v176, v467[side])) as f32) * wh0.len_max != 0.0;
+        let process =
+            !v476 || ((eq1(v176, v468[side]) | eq1(v176, v467[side])) as f32) * wh0.len_max != 0.0;
         if !process {
             continue;
         }
@@ -345,7 +365,11 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
             ip.sweep_test = true;
             v554 = v254;
             gwd1.v = Vec3::new(v527, v517, v512);
-            gwd1.offset = Vec3::new(v492 - (v254 * v527), v491 - (v517 * v254), v489 - (v512 * v254));
+            gwd1.offset = Vec3::new(
+                v492 - (v254 * v527),
+                v491 - (v517 * v254),
+                v489 - (v512 * v254),
+            );
         } else {
             ray_mode = true;
             ip.sweep_test = false;
@@ -363,8 +387,7 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
                     + (pb[1].z - pb[0].z) * (pb[1].z - pb[0].z)
                     == 0.0;
                 let mask = wd(w, e).wheels[iw].part_flags_collider;
-                if (v279 & mask) == 0
-                    || !(deg || crate::world::queries::aabb_overlap6(&pb, &wbox))
+                if (v279 & mask) == 0 || !(deg || crate::world::queries::aabb_overlap6(&pb, &wbox))
                 {
                     v483 |= v279 & 0x200_0000;
                     v273 += 1;
@@ -407,7 +430,10 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
                             s.rd_v(o_c + i64::from(c::N)),
                             s.rd_v(o_c + i64::from(c::DIR)),
                             s.rd_f(o_c + i64::from(c::VEL)),
-                            [s.rd_i(o_c + i64::from(c::ID)), s.rd_i(o_c + i64::from(c::ID) + 4)],
+                            [
+                                s.rd_i(o_c + i64::from(c::ID)),
+                                s.rd_i(o_c + i64::from(c::ID) + 4),
+                            ],
                         )
                     };
                     let mut n = n;
@@ -415,14 +441,17 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
                         let mut use84 = true;
                         if vel > 0.0 {
                             if v496 == 0
-                                && t * t > f64::from(((v246 * v246) + (v247 * v247)) + (v245 * v245))
+                                && t * t
+                                    > f64::from(((v246 * v246) + (v247 * v247)) + (v245 * v245))
                             {
                                 let v313 = t as f32;
                                 v247 = dir.x * v313;
                                 v246 = dir.y * v313;
                                 v245 = dir.z * v313;
                             }
-                        } else if !(((dir.y * n.y) + (dir.x * n.x)) + (dir.z * n.z) <= -0.800_000_01) {
+                        } else if !(((dir.y * n.y) + (dir.x * n.x)) + (dir.z * n.z)
+                            <= -0.800_000_01)
+                        {
                             n = Vec3::new(-dir.x, -dir.y, -dir.z);
                             let s = &mut w.tscratch[tid];
                             s.wr_v(o_c + i64::from(c::N), n);
@@ -430,7 +459,8 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
                             use84 = true;
                         }
                         if use84 {
-                            (f64::from(-(((v251 * dir.y) + (v252 * dir.x)) + (v253 * dir.z))) * t) as f32
+                            (f64::from(-(((v251 * dir.y) + (v252 * dir.x)) + (v253 * dir.z))) * t)
+                                as f32
                         } else {
                             (f64::from(v554) - t) as f32
                         }
@@ -443,7 +473,8 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
                     let v320 = v513 * n.y;
                     v479 += -v319 * n.z;
                     let fwd = ((v320 + (v537 * n.x)) + (v514 * n.z)).abs();
-                    let below = (((pt.y - v491) * v251) + (v252 * (pt.x - v492))) + ((pt.z - v489) * v253);
+                    let below =
+                        (((pt.y - v491) * v251) + (v252 * (pt.x - v492))) + ((pt.z - v489) * v253);
                     if fwd >= wd(w, e).min_contact_cos || below <= 0.0 {
                         if ((v251 * n.y) + (v252 * n.x)) + (v253 * n.z) > -0.009_999_999_8 {
                             let ob = rigid_body_id(w, o);
@@ -461,8 +492,10 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
                             v632 = v319;
                             best_dir = dir;
                             let body = rigid_body_id(w, o);
-                            let s0 = crate::entities::rigid::colliders::map_material(w, e, ids[0], v174);
-                            let s1 = crate::entities::rigid::colliders::map_material(w, o, ids[1], v273);
+                            let s0 =
+                                crate::entities::rigid::colliders::map_material(w, e, ids[0], v174);
+                            let s1 =
+                                crate::entities::rigid::colliders::map_material(w, o, ids[1], v273);
                             {
                                 let wh = &mut wm(w, e).wheels[iw];
                                 wh.flags |= wflags::CONTACT;
@@ -495,7 +528,9 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
                                     let id = w.tscratch[tid]
                                         .rd_i(ThreadScratch::contact_off(f0) + i64::from(c::ID));
                                     // (`v482`: the part index of the candidate loop)
-                                    let s1 = crate::entities::rigid::colliders::map_material(w, o, id, v273);
+                                    let s1 = crate::entities::rigid::colliders::map_material(
+                                        w, o, id, v273,
+                                    );
                                     wm(w, e).wheels[iw].surf[1] = s1;
                                 }
                                 ip.sweep_test = true;
@@ -512,7 +547,11 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
         if v480 > v632 * 1.01 {
             let (pf, pfc, keep) = {
                 let d = wd(w, e);
-                (d.wheels[iw].part_flags, d.wheels[iw].part_flags_collider, d.keep_contact)
+                (
+                    d.wheels[iw].part_flags,
+                    d.wheels[iw].part_flags_collider,
+                    d.keep_contact,
+                )
             };
             {
                 let p = &mut w.ent_mut(e).parts[pi];
@@ -590,7 +629,9 @@ pub fn check_additional_geometry(w: &mut World, e: EntIdx, dt: f32) {
                 wm(w, e).wheels[iw].n = nn;
                 let dir = best_dir;
                 let gap = w.vars.contact_gap;
-                let v411 = ((((-(v364 - gap)).abs() + (v364 - gap)) * 0.5) * w.vars.unproject_vel_gain) * 2.0;
+                let v411 = ((((-(v364 - gap)).abs() + (v364 - gap)) * 0.5)
+                    * w.vars.unproject_vel_gain)
+                    * 2.0;
                 let k = w.vars.max_unproject_vel * 0.699_999_99;
                 let v412 = ((v411 + k) - (k - v411).abs()) * 0.5;
                 let v413 = ((v471 * dir.x) + (dir.y * v470)) + (dir.z * v469);
@@ -646,9 +687,17 @@ fn wake_light(w: &mut World, e: EntIdx, o: EntIdx) {
         let ey = ps * (((s.x * bp[0][1]) + (s.y * bp[1][1])) + (s.z * bp[2][1]));
         let ez = ps * (((s.x * bp[0][2]) + (s.y * bp[1][2])) + (s.z * bp[2][2]));
         let cr = p.q.rotate(bx.center);
-        let c1 = Vec3::new(cr.x * ps + p.pos.x, ps * cr.y + p.pos.y, ps * cr.z + p.pos.z);
+        let c1 = Vec3::new(
+            cr.x * ps + p.pos.x,
+            ps * cr.y + p.pos.y,
+            ps * cr.z + p.pos.z,
+        );
         let c2 = oq.rotate(c1);
-        let d = Vec3::new((c2.x + opos.x) - pn.x, (c2.y + opos.y) - pn.y, (c2.z + opos.z) - pn.z);
+        let d = Vec3::new(
+            (c2.x + opos.x) - pn.x,
+            (c2.y + opos.y) - pn.y,
+            (c2.z + opos.z) - pn.z,
+        );
         let cl = crate::entities::base::geometry::rotate_inv(qn, d);
         let c = [cl.x, cl.y, cl.z];
         let ext = [ex, ey, ez];
@@ -657,7 +706,10 @@ fn wake_light(w: &mut World, e: EntIdx, o: EntIdx) {
             hi[k] = mx(hi[k], c[k] + ext[k]);
         }
     }
-    let obox = [Vec3::new(lo[0], lo[1], lo[2]), Vec3::new(hi[0], hi[1], hi[2])];
+    let obox = [
+        Vec3::new(lo[0], lo[1], lo[2]),
+        Vec3::new(hi[0], hi[1], hi[2]),
+    ];
     let nw = n_wheels(w, e);
     for i in 0..nw.max(0) as usize {
         let wh = &wd(w, e).wheels[i];
@@ -700,10 +752,19 @@ fn area_surface(w: &mut World, e: EntIdx, iw: usize, kept: &[EntIdx], n: usize) 
             let pt = wd(w, e).wheels[iw].pt;
             let v577 = Vec3::new(pt.x - opos.x, pt.y - opos.y, pt.z - opos.z);
             let v350 = crate::entities::base::geometry::rotate_inv(oq, v577);
-            let v502 = Vec3::new(v350.x - part.pos.x, v350.y - part.pos.y, v350.z - part.pos.z);
+            let v502 = Vec3::new(
+                v350.x - part.pos.x,
+                v350.y - part.pos.y,
+                v350.z - part.pos.z,
+            );
             let v360 = crate::entities::base::geometry::rotate_inv(part.q, v502);
             if part.pgeom.geom.point_inside_status(v360) != 0 {
-                let s = crate::entities::rigid::colliders::map_material(w, o, part.pgeom.surface_idx, k as i32);
+                let s = crate::entities::rigid::colliders::map_material(
+                    w,
+                    o,
+                    part.pgeom.surface_idx,
+                    k as i32,
+                );
                 wm(w, e).wheels[iw].surf[1] = s;
             }
         }

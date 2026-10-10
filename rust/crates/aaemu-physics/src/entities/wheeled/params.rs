@@ -21,12 +21,19 @@
 //! makes SetParams / GetParams of id 2 return 0 without side effects. The typed API
 //! [`set_params_car`] / [`get_params_car`] takes and returns the ratios as slices.
 
-#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
-
+// The arithmetic is written in the binary's operand order and with its single-precision
+// constants (`a = b + a`, `x * -1.0`, `3.1415927`, NaN-aware negated comparisons).
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_multiply,
+    clippy::excessive_precision,
+    clippy::approx_constant,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::too_many_lines
+)]
 use super::{n_wheels, wd, wflags, wm, MAX_WHEELS};
 use crate::entities::interface::{
-    action_gate, params_gate, rd_i32, rd_u32, rd_u64, wr_f32, wr_i32, wr_u32,
-    wr_u64, Gate,
+    action_gate, params_gate, rd_i32, rd_u32, rd_u64, wr_f32, wr_i32, wr_u32, wr_u64, Gate,
 };
 use crate::math::{crt, Quat, Vec3};
 use crate::params::{ParamsCar, PeStruct};
@@ -142,7 +149,10 @@ pub fn set_params(w: &mut World, e: EntIdx, buf: &mut [u8], ts: i32) -> i32 {
         } else {
             let id = rd_i32(buf, 4);
             let parts = &w.ent(e).parts;
-            parts.iter().position(|p| p.id == id).map_or(n_parts, |i| i as i32)
+            parts
+                .iter()
+                .position(|p| p.id == id)
+                .map_or(n_parts, |i| i as i32)
         }
     } else {
         v8
@@ -233,7 +243,9 @@ fn set_car(w: &mut World, e: EntIdx, b: &[u8]) {
         // following members; the port stops at the array end)
         let n = d.n_gears.max(0) as usize;
         for i in 0..n {
-            let v = b.get(o + 4 * i..o + 4 * i + 4).map(|s| f32::from_le_bytes(s.try_into().unwrap_or([0; 4])));
+            let v = b
+                .get(o + 4 * i..o + 4 * i + 4)
+                .map(|s| f32::from_le_bytes(s.try_into().unwrap_or([0; 4])));
             if i < d.gears.len() {
                 if let Some(v) = v {
                     d.gears[i] = v;
@@ -518,7 +530,10 @@ pub fn get_status(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
         let v7 = rd_i32(buf, 4);
         if v7 >= 0 {
             let parts = &w.ent(e).parts;
-            v5 = parts.iter().position(|p| p.id == v7).map_or(parts.len() as i32, |i| i as i32);
+            v5 = parts
+                .iter()
+                .position(|p| p.id == v7)
+                .map_or(parts.len() as i32, |i| i as i32);
             if v5 == parts.len() as i32 {
                 return 0;
             }
@@ -585,7 +600,15 @@ fn status_vehicle(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
     wr_i32(buf, 16, d.footbrake);
     let g = d.cur_gear;
     let s = ((g.wrapping_sub(2) >> 31) + (g.wrapping_sub(1) >> 31) + 1) as f32;
-    wr_f32(buf, 20, if s * d.pedal > 0.0 { 0.0 } else { d.pedal.abs() });
+    wr_f32(
+        buf,
+        20,
+        if s * d.pedal > 0.0 {
+            0.0
+        } else {
+            d.pedal.abs()
+        },
+    );
     wr_f32(buf, 24, body.x);
     wr_f32(buf, 28, body.y);
     wr_f32(buf, 32, body.z);
@@ -760,7 +783,11 @@ fn status_abilities(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
         let sb = steer.to_bits() as i32;
         let sgn = ((sb.wrapping_sub(1) >> 31) + (sb >> 31) + 1) as f32;
         // `v135` (side 0's x) is overwritten: the centre is (v135, side0.y, side0.z)
-        let t = Vec3::new((v107 / crt::tanf(steer)) * sgn + side[1][0], side[0][1], side[0][2]);
+        let t = Vec3::new(
+            (v107 / crt::tanf(steer)) * sgn + side[1][0],
+            side[0][1],
+            side[0][2],
+        );
         let r = q.rotate(t);
         wr_f32(buf, 8, pos.x + r.x);
         wr_f32(buf, 12, r.y + pos.y);
@@ -989,11 +1016,7 @@ fn ackermann(w: &mut World, e: EntIdx) {
         (0.0, 0.0, 1.0)
     } else {
         let v39 = v38.sqrt();
-        (
-            (1.0 / v39) * v35,
-            v36 * (1.0 / v39),
-            v37 * (1.0 / v39),
-        )
+        ((1.0 / v39) * v35, v36 * (1.0 / v39), v37 * (1.0 / v39))
     };
     let (v27, v28, v29) = (s[0][0], s[0][1], s[0][2]);
     for i in 0..nw.max(0) as usize {

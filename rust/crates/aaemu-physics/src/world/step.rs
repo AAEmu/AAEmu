@@ -48,8 +48,7 @@ impl World {
             self.tls_thread = 0;
         }
         self.flush_command_queue();
-        // the world lock +22468 is held from here to the end of the step: SetParams / Action
-        // with bThreadSafe <= 0 issued during the step are queued
+        // the world lock (+22468) is held from here to the end of the step
         self.step_lock = true;
         // 3. dt
         let mut dt = dt_in;
@@ -643,26 +642,26 @@ impl World {
         res: &crate::solver::SolveResult,
         _tid: usize,
     ) {
-        // contacts on parts with flag 0x400000 → slot 59 of that side's entity (**P5**:
-        // wheeled vehicles count hull contacts; the rigid / base slot 59 — breakable parts and
-        // constraints — is not ported)
-        let list = self.solver[_tid].as_ref().map(|s| s.contacts()).unwrap_or_default();
-        for &c in list.iter().take(res.n_contacts.max(0) as usize) {
-            let rec = *self.contacts.get(c);
-            if (rec.ipart[0] | rec.ipart[1]) < 0 {
+        // contacts on parts with flag 0x400000 → slot 59 OnContactResolved of that side
+        // (living 0x350279B0 clips its velocities, wheeled vehicles 0x35104760 count hull
+        // contacts; the rigid slot 59 (breakable parts and constraints) is not ported)
+        let cl = self.solver[_tid].as_ref().map(|s| s.contacts()).unwrap_or_default();
+        for c in cl {
+            let k = *self.contacts.get(c);
+            if (k.ipart[0] | k.ipart[1]) < 0 {
                 continue;
             }
-            for side in 0..2usize {
-                let pe = rec.pent[side];
+            for side in 0..2 {
+                let pe = k.pent[side];
                 if pe.is_none() {
                     continue;
                 }
-                let has = self
+                let brk = self
                     .ent(pe)
                     .parts
-                    .get(rec.ipart[side] as usize)
+                    .get(k.ipart[side] as usize)
                     .is_some_and(|p| p.flags & 0x40_0000 != 0);
-                if has {
+                if brk {
                     crate::entities::on_contact(self, pe, c, side as i32);
                 }
             }

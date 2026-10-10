@@ -1,8 +1,8 @@
-//! `CTriMesh` slot 12 `CalcVolumetricPressure` (0x351CBE20) over a [`TriMeshView`]; see
-//! [`volumetric_pressure`].
+//! `CTriMesh` slot 12 `CalcVolumetricPressure` (0x351CBE20) over a [`MeshView`]; see
+//! [`volumetric_pressure`]. Ported by P1a (formerly `geometry/shapes/buoyancy/mesh_pressure.rs`,
+//! verified through the box's temporary mesh); the triangle loop runs to the explicit `nTris`.
 
-use super::super::super::INC_MOD3;
-use super::TriMeshView;
+use super::{MeshView, INC_MOD3};
 use crate::geometry::GeomWorldData;
 use crate::math::{Mat33, Vec3};
 
@@ -97,7 +97,7 @@ fn mid(ax: f32, bx: f32, ay: f32, by: f32, az: f32, bz: f32) -> Vec3 {
 /// vertex 64); the 300-pop limit silently drops the rest of the stack.
 #[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
 pub fn volumetric_pressure(
-    m: &TriMeshView,
+    m: &MeshView,
     gwd: &GeomWorldData,
     epicenter: Vec3,
     k: f32,
@@ -121,7 +121,7 @@ pub fn volumetric_pressure(
     let (mut lx, mut ly, mut lz) = (0.0f32, 0.0f32, 0.0f32);
     let mut s = [Vec3::ZERO; STACK_VERTS];
 
-    for t in 0..m.n_tris() {
+    for t in 0..m.count() {
         let n = m.normals[t];
         let v0 = m.vertices[m.indices[3 * t] as usize];
         let facing = (n.x * (v0.x - e.x) + n.y * (v0.y - e.y)) + n.z * (v0.z - e.z);

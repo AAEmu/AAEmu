@@ -88,9 +88,13 @@ pub fn base_compute_bbox(
                     let a = |ri: usize, bj: usize, order: u8| -> f32 {
                         match order {
                             // (B[j][1]·R[i][1] + B[j][0]·R[i][0]) + B[j][2]·R[i][2]
-                            0 => ((b[bj][1] * m[ri][1] + b[bj][0] * m[ri][0]) + b[bj][2] * m[ri][2]).abs(),
+                            0 => ((b[bj][1] * m[ri][1] + b[bj][0] * m[ri][0])
+                                + b[bj][2] * m[ri][2])
+                                .abs(),
                             // (R[i][0]·B[j][0] + B[j][1]·R[i][1]) + B[j][2]·R[i][2]
-                            _ => ((m[ri][0] * b[bj][0] + b[bj][1] * m[ri][1]) + b[bj][2] * m[ri][2]).abs(),
+                            _ => ((m[ri][0] * b[bj][0] + b[bj][1] * m[ri][1])
+                                + b[bj][2] * m[ri][2])
+                                .abs(),
                         }
                     };
                     // x: ((sy·|a01| + sx·|a00|) + sz·|a02|)·s
@@ -198,7 +202,10 @@ pub fn base_compute_bbox(
     if let EntityKind::Area(_) = ent.kind {
         unreachable!("areas have their own bbox code");
     }
-    [Vec3::new(mn[0], mn[1], mn[2]), Vec3::new(mx[0], mx[1], mx[2])]
+    [
+        Vec3::new(mn[0], mn[1], mn[2]),
+        Vec3::new(mx[0], mx[1], mx[2]),
+    ]
 }
 
 /// The pose a part's new-coords pointer (`part+120`) designates: the part itself (or its

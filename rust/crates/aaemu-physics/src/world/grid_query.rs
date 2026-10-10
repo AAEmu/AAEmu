@@ -73,8 +73,16 @@ impl World {
         }
         let g = &self.grid;
         let (ax, ay, az) = (g.iaxis[0], g.iaxis[1], g.axisz);
-        let lo = Vec3::new(bmin.x - g.origin.x, bmin.y - g.origin.y, bmin.z - g.origin.z);
-        let hi = Vec3::new(bmax.x - g.origin.x, bmax.y - g.origin.y, bmax.z - g.origin.z);
+        let lo = Vec3::new(
+            bmin.x - g.origin.x,
+            bmin.y - g.origin.y,
+            bmin.z - g.origin.z,
+        );
+        let hi = Vec3::new(
+            bmax.x - g.origin.x,
+            bmax.y - g.origin.y,
+            bmax.z - g.origin.z,
+        );
         let v44 = lo[ax] * g.step_r[0];
         let v46 = lo[ay] * g.step_r[1];
         let v271 = lo[az] * g.zstep_r;
@@ -152,10 +160,13 @@ impl World {
                         let v123 = f32::from(th.sub[0]) * 0.003_906_25 + x as f32;
                         let v124 = f32::from(th.z[0]);
                         let v125 = f32::from(th.sub[1]) * 0.003_906_25 + y as f32;
-                        let v126 = ((((v270 + v46) - v125) - v121).abs() - (v270 - v46)) - (v121 - v125);
-                        let v127 = ((((v269 + v44) - v123) - v120).abs() - (v269 - v44)) - (v120 - v123);
+                        let v126 =
+                            ((((v270 + v46) - v125) - v121).abs() - (v270 - v46)) - (v121 - v125);
+                        let v127 =
+                            ((((v269 + v44) - v123) - v120).abs() - (v269 - v44)) - (v120 - v123);
                         let v128 = ((v127 - v126).abs() + (v127 + v126)) * 0.5;
-                        let v129 = ((((v266 + v271) - v124) - v122).abs() - (v266 - v271)) - (v122 - v124);
+                        let v129 =
+                            ((((v266 + v271) - v124) - v122).abs() - (v266 - v271)) - (v122 - v124);
                         if (((v128 - v129).abs() + (v129 + v128)) * 0.5) < 0.0 {
                             let e = th.ent;
                             let eb = self.ent(e).bbox;
@@ -192,7 +203,10 @@ impl World {
             out.push(self.terrain[caller]);
         }
         if objtypes & 0x20000 != 0 && out.len() > 1 {
-            let mut keys: Vec<f32> = out.iter().map(|&o| crate::entities::mass_inv(self, o)).collect();
+            let mut keys: Vec<f32> = out
+                .iter()
+                .map(|&o| crate::entities::mass_inv(self, o))
+                .collect();
             sort_static_last(&mut out, &mut keys, self);
         }
         if objtypes & 0x20 != 0 && !self.global_area.is_none() {

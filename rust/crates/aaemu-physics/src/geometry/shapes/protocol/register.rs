@@ -54,6 +54,7 @@ pub fn ray_register_intersection(
         center: pt,
         border_consecutive: false,
         area: None,
+        border_closed: 0,
     });
     if contacts.len() as i32 >= gt.n_max_contacts || gt.params_stop_at_first {
         gt.stop = 1;

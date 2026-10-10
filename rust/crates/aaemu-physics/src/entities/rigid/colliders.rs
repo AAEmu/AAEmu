@@ -657,6 +657,10 @@ pub fn body_of(w: &mut World, e: EntIdx) -> crate::solver::RigidBody {
 
 /// Body id for a contact's `pbody`.
 pub fn body_id_of(w: &mut World, e: EntIdx) -> crate::solver::BodyId {
+    if w.ent(e).living().is_some() {
+        // P5: living slot 64 with bWillModify = 1 creates / refreshes the proxy body
+        return crate::entities::living::solver::get_rigid_body(w, e, true);
+    }
     match w.ent(e).rigid() {
         Some(r) => r.body,
         None => {

@@ -308,6 +308,11 @@ impl PrimitiveGeom for CapsuleGeom {
 }
 
 impl Geometry for CylinderGeom {
+    /// P1c hook: the intersection protocol (`trimesh::protocol::shapes`).
+    fn as_protocol(&self) -> Option<&dyn crate::geometry::trimesh::protocol::GeomProtocol> {
+        Some(self)
+    }
+
     cylinder_common_slots!();
 
     /// Slot 1 (0x35038A00).
@@ -388,6 +393,11 @@ impl Geometry for CylinderGeom {
 }
 
 impl Geometry for CapsuleGeom {
+    /// P1c hook: the intersection protocol (`trimesh::protocol::shapes`).
+    fn as_protocol(&self) -> Option<&dyn crate::geometry::trimesh::protocol::GeomProtocol> {
+        Some(self)
+    }
+
     cylinder_common_slots!();
 
     /// Slot 1 (0x35020A60).

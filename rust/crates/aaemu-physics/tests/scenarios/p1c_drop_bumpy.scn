@@ -1,0 +1,30 @@
+# P1c: the primitive drop set onto a bumpy static trimesh floor (32x32 cells of 1 m, every
+# vertex z = noise in [-0.25, 0.25], OBB tree).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=floor type=mesh gen=grid nx=32 ny=32 step=1 noise=7,0.25 flags=0x20
+entity name=floor type=static pos=64,64,0
+part ent=floor geom=floor mass=0
+geom name=cube type=box size=0.5,0.5,0.5
+geom name=ball type=sphere r=0.5
+geom name=cyl type=cylinder r=0.4 hh=0.6
+geom name=cap type=capsule r=0.3 hh=0.5
+entity name=box type=rigid pos=55,64,3.25
+part ent=box geom=cube mass=10
+entity name=boxtilt type=rigid pos=58,64,3.25 q=0.1312388,0.2624775,0.0656194,0.9537170
+part ent=boxtilt geom=cube mass=10
+entity name=boxspin type=rigid pos=61,64,3.25 q=0.0000000,0.0000000,0.1736482,0.9848078
+part ent=boxspin geom=cube mass=10
+action target=boxspin type=10 v24=1,2,3
+entity name=ball type=rigid pos=64,64,3.25
+part ent=ball geom=ball mass=10
+entity name=cyl type=rigid pos=67,64,3.25
+part ent=cyl geom=cyl mass=10
+entity name=cyltilt type=rigid pos=70,64,3.25 q=0.3826834,0.0000000,0.0000000,0.9238795
+part ent=cyltilt geom=cyl mass=10
+entity name=capspin type=rigid pos=73,64,3.25 q=0.0000000,0.2588190,0.0000000,0.9659258
+part ent=capspin geom=cap mass=10
+action target=capspin type=10 v24=0,0,4
+trace ents=box,boxtilt,boxspin,ball,cyl,cyltilt,capspin
+print
+step n=90
+step n=210 every=5

@@ -1,0 +1,27 @@
+# P5: particles falling into water (global area with a water plane at z=5 and a flow):
+# the area check every N steps (period 1, 3, the default 6, flag 0x800000 = never), the
+# water depth, water gravity scaled by the immersion, water resistance and the flow, the
+# restored gravity0 and a particle resting on the bottom under water.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+area name=water kind=global
+params target=water type=12 f4=1000 f16=1000 v24=0.5,-0.3,0 v40=0,0,1 v52=32,32,5 i72=0
+entity name=a type=particle pos=30,30,7
+entity name=b type=particle pos=31,30,7
+entity name=c type=particle pos=32,30,6
+entity name=d type=particle pos=33,30,7
+entity name=f type=particle pos=34,30,5.5
+params target=a type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.2 v20=0,0,-1 f32=1 i160=1
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.3 v20=0.6,0,-0.8 f32=3 f40=2 v80=0,0,-2 i160=3
+params target=c type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=1 f12=0.2 v20=0,0,-1 f32=0 f36=0.1 f40=4
+params target=d type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x800000 f8=0.5 f12=0.2 v20=0,0,-1 f32=2 i160=1
+params target=f type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=2 f12=0.4 v20=1,0,0 f32=2 v68=0,0,-5 v80=0,0,-1 f40=0.3 i160=2
+trace ents=a,b,c,d,f
+print
+step n=180
+status target=a type=8 dump=0,30
+status target=b type=8 dump=0,30
+status target=f type=8 dump=0,30
+getparams target=f type=3 dump=0,36

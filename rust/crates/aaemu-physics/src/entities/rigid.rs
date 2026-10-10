@@ -12,10 +12,10 @@ pub mod buoyancy;
 pub mod colliders;
 pub mod contacts;
 pub mod mass;
+pub mod patch;
 pub mod register;
 pub mod step;
 pub mod update;
-pub mod patch;
 pub mod velocity;
 
 use crate::math::{Quat, Vec3};

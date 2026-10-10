@@ -1,0 +1,181 @@
+# P1c rays (needs AAEMU_PHYS_CGF_DIR): RayWorldIntersection against real static corpus models
+# (cliff rock, castle tower, castle wall (OBB), river rock): vertical grids, horizontal rays
+# and rays from inside.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=rock type=mesh cgf=game\objects\env\05_nature\08_cry_source\rocks\cliff_rocks\cliff_rock_a_med.cgf
+geom name=tower type=mesh cgf=game\objects\env\01_nuia\001_housing\housing_castle\housing_castle_tower_c.cgf
+geom name=wall type=mesh cgf=game\objects\env\01_nuia\001_housing\housing_castle\nuia_h_castle_wall_21m_4b.cgf
+geom name=rrock type=mesh cgf=game\objects\env\05_nature\08_cry_source\rocks\river_rocks\brown_riverrock_big_c.cgf
+entity name=rock type=static pos=40,40,6
+part ent=rock geom=rock mass=0 id=21
+entity name=tower type=static pos=90,40,5.6 q=0.0000000,0.0000000,0.1305262,0.9914449
+part ent=tower geom=tower mass=0 id=22
+entity name=wall type=static pos=40,90,0
+part ent=wall geom=wall mass=0 id=23
+entity name=rrock type=static pos=90,90,1.2
+part ent=rrock geom=rrock mass=0 id=24
+step n=1
+ray name=rk_0_0 org=32.9,34.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_1_0 org=34.9,34.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_2_0 org=36.9,34.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_3_0 org=38.9,34.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_4_0 org=40.9,34.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_5_0 org=42.9,34.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_6_0 org=44.9,34.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_0_1 org=32.9,36.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_1_1 org=34.9,36.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_2_1 org=36.9,36.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_3_1 org=38.9,36.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_4_1 org=40.9,36.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_5_1 org=42.9,36.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_6_1 org=44.9,36.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_0_2 org=32.9,38.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_1_2 org=34.9,38.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_2_2 org=36.9,38.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_3_2 org=38.9,38.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_4_2 org=40.9,38.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_5_2 org=42.9,38.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_6_2 org=44.9,38.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_0_3 org=32.9,40.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_1_3 org=34.9,40.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_2_3 org=36.9,40.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_3_3 org=38.9,40.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_4_3 org=40.9,40.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_5_3 org=42.9,40.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_6_3 org=44.9,40.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_0_4 org=32.9,42.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_1_4 org=34.9,42.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_2_4 org=36.9,42.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_3_4 org=38.9,42.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_4_4 org=40.9,42.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_5_4 org=42.9,42.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_6_4 org=44.9,42.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_0_5 org=32.9,44.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_1_5 org=34.9,44.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_2_5 org=36.9,44.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_3_5 org=38.9,44.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_4_5 org=40.9,44.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_5_5 org=42.9,44.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_6_5 org=44.9,44.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_0_6 org=32.9,46.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_1_6 org=34.9,46.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_2_6 org=36.9,46.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_3_6 org=38.9,46.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_4_6 org=40.9,46.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_5_6 org=42.9,46.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rk_6_6 org=44.9,46.8,20 dir=0,0,-30 max=4 ext=1
+ray name=rkh_0_0 org=34.9,26,6 dir=0,25,0 max=4 ext=1
+ray name=rkh_1_0 org=38.9,26,6 dir=0,25,0 max=4 ext=1
+ray name=rkh_2_0 org=42.9,26,6 dir=0,25,0 max=4 ext=1
+ray name=rkh_0_1 org=34.9,30,6 dir=0,25,0 max=4 ext=1
+ray name=rkh_1_1 org=38.9,30,6 dir=0,25,0 max=4 ext=1
+ray name=rkh_2_1 org=42.9,30,6 dir=0,25,0 max=4 ext=1
+ray name=rkh_0_2 org=34.9,34,6 dir=0,25,0 max=4 ext=1
+ray name=rkh_1_2 org=38.9,34,6 dir=0,25,0 max=4 ext=1
+ray name=rkh_2_2 org=42.9,34,6 dir=0,25,0 max=4 ext=1
+ray name=rk_in org=38.9,40.8,6 dir=0,0,15 max=4 ext=1
+ray name=tw_0_0 org=81,31,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_1_0 org=83,31,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_2_0 org=85,31,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_3_0 org=87,31,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_4_0 org=89,31,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_5_0 org=91,31,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_6_0 org=93,31,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_0_1 org=81,33,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_1_1 org=83,33,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_2_1 org=85,33,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_3_1 org=87,33,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_4_1 org=89,33,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_5_1 org=91,33,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_6_1 org=93,33,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_0_2 org=81,35,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_1_2 org=83,35,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_2_2 org=85,35,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_3_2 org=87,35,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_4_2 org=89,35,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_5_2 org=91,35,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_6_2 org=93,35,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_0_3 org=81,37,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_1_3 org=83,37,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_2_3 org=85,37,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_3_3 org=87,37,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_4_3 org=89,37,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_5_3 org=91,37,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_6_3 org=93,37,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_0_4 org=81,39,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_1_4 org=83,39,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_2_4 org=85,39,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_3_4 org=87,39,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_4_4 org=89,39,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_5_4 org=91,39,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_6_4 org=93,39,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_0_5 org=81,41,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_1_5 org=83,41,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_2_5 org=85,41,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_3_5 org=87,41,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_4_5 org=89,41,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_5_5 org=91,41,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_6_5 org=93,41,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_0_6 org=81,43,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_1_6 org=83,43,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_2_6 org=85,43,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_3_6 org=87,43,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_4_6 org=89,43,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_5_6 org=91,43,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_6_6 org=93,43,25 dir=0,0,-35 max=4 ext=1
+ray name=tw_h org=75,37.1,6 dir=25,0,0 max=4 ext=1
+ray name=tw_h2 org=87.1,25,10 dir=0,25,0 max=4 ext=1
+ray name=wl_0_0 org=30,80.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_1_0 org=35,80.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_2_0 org=40,80.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_3_0 org=45,80.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_4_0 org=50,80.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_0_1 org=30,85.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_1_1 org=35,85.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_2_1 org=40,85.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_3_1 org=45,85.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_4_1 org=50,85.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_0_2 org=30,90.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_1_2 org=35,90.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_2_2 org=40,90.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_3_2 org=45,90.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_4_2 org=50,90.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_0_3 org=30,95.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_1_3 org=35,95.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_2_3 org=40,95.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_3_3 org=45,95.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_4_3 org=50,95.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_0_4 org=30,100.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_1_4 org=35,100.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_2_4 org=40,100.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_3_4 org=45,100.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_4_4 org=50,100.5,20 dir=0,0,-30 max=4 ext=1
+ray name=wl_h org=40,80,3 dir=0,25,0 max=4 ext=1
+ray name=wl_hd org=32,80,8 dir=10,25,-3 max=4 ext=1
+ray name=rr_0_0 org=88.4,88.4,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_1_0 org=89.2,88.4,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_2_0 org=90,88.4,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_3_0 org=90.8,88.4,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_4_0 org=91.6,88.4,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_0_1 org=88.4,89.2,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_1_1 org=89.2,89.2,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_2_1 org=90,89.2,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_3_1 org=90.8,89.2,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_4_1 org=91.6,89.2,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_0_2 org=88.4,90,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_1_2 org=89.2,90,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_2_2 org=90,90,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_3_2 org=90.8,90,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_4_2 org=91.6,90,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_0_3 org=88.4,90.8,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_1_3 org=89.2,90.8,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_2_3 org=90,90.8,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_3_3 org=90.8,90.8,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_4_3 org=91.6,90.8,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_0_4 org=88.4,91.6,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_1_4 org=89.2,91.6,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_2_4 org=90,91.6,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_3_4 org=90.8,91.6,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_4_4 org=91.6,91.6,6 dir=0,0,-10 max=4 ext=1
+ray name=rr_in org=90,90,1.3 dir=3,0.5,0.2 max=4 ext=1
+ray name=rr_h org=85,90,1.3 dir=10,0,0 max=4 ext=1

@@ -1,0 +1,31 @@
+# P1c mesh-mesh: rigid trimesh bodies (box incl. tilted+spinning, icosphere by density,
+# tilted cylinder, OBB-tree box by density) dropped onto a static trimesh floor. Ends with
+# pe_status_dynamics (+60 centre of mass, +72 inertia, +112 mass) of each body.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=floor type=mesh gen=grid nx=8 ny=8 step=4
+entity name=floor type=static pos=64,64,0
+part ent=floor geom=floor mass=0
+geom name=mbox type=mesh gen=box size=0.5,0.5,0.5
+geom name=mico type=mesh gen=icosphere r=0.5 sub=2
+geom name=mcyl type=mesh gen=cylinder r=0.4 hh=0.6 seg=16
+geom name=mobb type=mesh gen=box size=0.6,0.4,0.3 flags=0x20
+entity name=mbox type=rigid pos=58,64,3
+part ent=mbox geom=mbox mass=10
+entity name=mboxspin type=rigid pos=61,64,3 q=0.1830127,0.0000000,0.1830127,0.9659258
+part ent=mboxspin geom=mbox mass=10
+action target=mboxspin type=10 v24=2,0,3
+entity name=mico type=rigid pos=64,64,3
+part ent=mico geom=mico density=1000
+entity name=mcyl type=rigid pos=67,64,3 q=0.3826834,0.0000000,0.0000000,0.9238795
+part ent=mcyl geom=mcyl mass=20
+entity name=mobb type=rigid pos=70,64,3 q=0.0000000,0.1305262,0.0000000,0.9914449
+part ent=mobb geom=mobb density=500
+trace ents=mbox,mboxspin,mico,mcyl,mobb
+print
+step n=90
+step n=210 every=5
+status target=mbox type=8 dump=60,16
+status target=mboxspin type=8 dump=60,16
+status target=mico type=8 dump=60,16
+status target=mcyl type=8 dump=60,16
+status target=mobb type=8 dump=60,16

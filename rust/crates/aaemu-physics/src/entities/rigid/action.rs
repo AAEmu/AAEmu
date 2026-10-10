@@ -83,8 +83,16 @@ pub fn impulse(w: &mut World, e: EntIdx, a: &ActionImpulse) -> i32 {
     }
     if a.i_apply_time != 0 {
         let r = w.ent_mut(e).rigid_mut().expect("rigid");
-        r.p_deferred = Vec3::new(v20 + r.p_deferred.x, v21 + r.p_deferred.y, v22 + r.p_deferred.z);
-        r.l_deferred = Vec3::new(v9 + r.l_deferred.x, v10 + r.l_deferred.y, v11 + r.l_deferred.z);
+        r.p_deferred = Vec3::new(
+            v20 + r.p_deferred.x,
+            v21 + r.p_deferred.y,
+            v22 + r.p_deferred.z,
+        );
+        r.l_deferred = Vec3::new(
+            v9 + r.l_deferred.x,
+            v10 + r.l_deferred.y,
+            v11 + r.l_deferred.z,
+        );
     } else {
         let b = w.bodies.get_mut(body_id);
         b.p = Vec3::new(v20 + b.p.x, v21 + b.p.y, v22 + b.p.z);

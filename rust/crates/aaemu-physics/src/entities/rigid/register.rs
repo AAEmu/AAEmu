@@ -6,7 +6,7 @@
 // constants).
 #![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
 
-use super::colliders::{body_id_of, body_of};
+use super::colliders::body_id_of;
 use crate::collision::prim_intersect::scratch::{c, ThreadScratch};
 use crate::entities::base::EntityKind;
 use crate::math::Vec3;
@@ -179,7 +179,9 @@ pub fn register_contact_point(
         )
     };
     let pbody0 = body_id_of(w, e);
-    let b1 = body_of(w, col);
+    // the collider's body as its slot 64 returned it above (bWillModify = 1: a living
+    // entity's proxy body)
+    let b1 = *w.bodies.get(pbody1);
     let b0 = *w.bodies.get(pbody0);
     let vn;
     let rel;

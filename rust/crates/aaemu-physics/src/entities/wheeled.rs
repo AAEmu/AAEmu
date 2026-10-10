@@ -31,6 +31,15 @@
 //! **The inline solver contact** (`wheel+336`, 176 bytes) is a dedicated record of the world
 //! contact pool ([`Wheel::contact`], allocated by the constructor and never freed).
 
+// The arithmetic is written in the binary's operand order and with its single-precision
+// constants (`a = b + a`, `x * -1.0`, `3.1415927`, NaN-aware negated comparisons).
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_multiply,
+    clippy::excessive_precision,
+    clippy::approx_constant,
+    clippy::neg_cmp_op_on_partial_ord
+)]
 pub mod contacts;
 pub mod detect;
 pub mod drive;
@@ -336,7 +345,9 @@ impl WheeledData {
 /// contact records, the car defaults, entity flags `|= 0x40000` (`&= ~0x40`) and rigid
 /// `flags2 |= 0x8000001`.
 pub fn construct(w: &mut World, ent: &mut Entity) {
-    let wheels = (0..MAX_WHEELS).map(|_| Wheel::new(w.contacts.new_sentinel())).collect();
+    let wheels = (0..MAX_WHEELS)
+        .map(|_| Wheel::new(w.contacts.new_sentinel()))
+        .collect();
     let Some(r) = ent.rigid_mut() else {
         return;
     };
@@ -462,11 +473,10 @@ pub fn update(w: &mut World, e: EntIdx, dt: f32, damping: f32) -> u32 {
         v4 |= u32::from(wd(w, e).wheels[i].flags & wflags::CONTACT != 0);
     }
     {
-        let r_emin;
         let d = wm(w, e);
         let v9 = (d.time_no_hull_contact - 0.5).to_bits() >> 31;
         d.hull_contact = v9 as i32;
-        r_emin = if (v9 | (v4 ^ 1)) != 0 {
+        let r_emin = if (v9 | (v4 ^ 1)) != 0 {
             d.min_energy_hull
         } else {
             d.min_energy
@@ -539,7 +549,13 @@ pub fn has_contacts_with(w: &World, e: EntIdx, other: EntIdx) -> bool {
 /// part `ipart` of `other` (or on a part with a higher index when `greater`), else the rigid
 /// slot 0x350AAF80 ([`super::class_has_part_contacts_with`]).
 #[must_use]
-pub fn has_part_contacts_with(w: &World, e: EntIdx, other: EntIdx, ipart: i32, greater: i32) -> bool {
+pub fn has_part_contacts_with(
+    w: &World,
+    e: EntIdx,
+    other: EntIdx,
+    ipart: i32,
+    greater: i32,
+) -> bool {
     let nw = n_wheels(w, e);
     let d = wd(w, e);
     for i in 0..nw.max(0) as usize {
@@ -735,6 +751,12 @@ fn contact_word(c: &crate::solver::contact::Contact, o: usize) -> Option<u32> {
 }
 
 /// Entity slot 11 for the raw-image entry ([`crate::entities::base::geometry::add_geometry_raw`]).
-pub fn add_geometry_raw(w: &mut World, e: EntIdx, g: &Arc<PhysGeometry>, buf: &[u8], id: i32) -> i32 {
+pub fn add_geometry_raw(
+    w: &mut World,
+    e: EntIdx,
+    g: &Arc<PhysGeometry>,
+    buf: &[u8],
+    id: i32,
+) -> i32 {
     geometry::add_geometry(w, e, g, buf, id)
 }

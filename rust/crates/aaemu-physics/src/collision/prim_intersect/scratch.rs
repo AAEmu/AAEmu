@@ -425,6 +425,7 @@ impl ThreadScratch {
             center: v(c::CENTER),
             border_consecutive: self.rd(o + i64::from(c::CONSECUTIVE)) & 0xFF != 0,
             area,
+            border_closed: self.rd_i(o + 108),
         }
     }
 

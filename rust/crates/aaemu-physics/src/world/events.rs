@@ -40,11 +40,26 @@ pub enum Event {
         radius: f32,
     },
     /// Type 2: grid/state change (RepositionEntity with flag 2).
-    StateChange { ent: EntIdx, simclass_old: i32, simclass_new: i32, time_idle: f32 },
+    StateChange {
+        ent: EntIdx,
+        simclass_old: i32,
+        simclass_new: i32,
+        time_idle: f32,
+    },
     /// Type 3: awake / simclass change.
-    SimClassChange { ent: EntIdx, simclass_old: i32, simclass_new: i32 },
+    SimClassChange {
+        ent: EntIdx,
+        simclass_old: i32,
+        simclass_new: i32,
+    },
     /// Type 4: post step.
-    PostStep { ent: EntIdx, dt: f32, pos: Vec3, q: crate::math::Quat, step: i32 },
+    PostStep {
+        ent: EntIdx,
+        dt: f32,
+        pos: Vec3,
+        q: crate::math::Quat,
+        step: i32,
+    },
     /// Type 11: area callback (logged copy; immediate clients are the area hooks,
     /// [`World::add_area_callback`]).
     AreaCallback(Box<super::areas::AreaCallbackEvent>),
@@ -111,14 +126,23 @@ impl World {
     /// World slot 75 `AddEventClient(type, fn, bLogged, priority)`: insert sorted by
     /// priority (descending; equal priorities after the existing ones). Returns a handle for
     /// [`World::remove_event_client`].
-    pub fn add_event_client(&mut self, etype: usize, logged: bool, prio: f32, f: EventClient) -> u64 {
+    pub fn add_event_client(
+        &mut self,
+        etype: usize,
+        logged: bool,
+        prio: f32,
+        f: EventClient,
+    ) -> u64 {
         if self.events.clients.len() < 16 {
             self.events.clients.resize_with(16, Default::default);
         }
         self.events.next_handle += 1;
         let h = self.events.next_handle;
         let list = &mut self.events.clients[etype][usize::from(logged)];
-        let pos = list.iter().position(|c| c.prio < prio).unwrap_or(list.len());
+        let pos = list
+            .iter()
+            .position(|c| c.prio < prio)
+            .unwrap_or(list.len());
         list.insert(pos, ClientNode { handle: h, prio, f });
         h
     }
@@ -195,7 +219,8 @@ impl World {
         match self.events.logged.get(idx) {
             Some(Event::Collision { v, .. }) => {
                 let (a, b) = (v[0], v[1]);
-                (((a.y - b.y) * (a.y - b.y)) + ((a.x - b.x) * (a.x - b.x))) + ((a.z - b.z) * (a.z - b.z))
+                (((a.y - b.y) * (a.y - b.y)) + ((a.x - b.x) * (a.x - b.x)))
+                    + ((a.z - b.z) * (a.z - b.z))
             }
             _ => 1e10,
         }
@@ -220,10 +245,19 @@ impl World {
         self.pump_counter += 1;
         let evs = std::mem::take(&mut self.events.logged);
         for ev in evs {
-            let alive = |w: &World, e: EntIdx| e.is_none() || w.ents.get(e.0 as usize).is_some_and(|o| o.as_ref().is_some_and(|x| x.deleted == 0));
+            let alive = |w: &World, e: EntIdx| {
+                e.is_none()
+                    || w.ents
+                        .get(e.0 as usize)
+                        .is_some_and(|o| o.as_ref().is_some_and(|x| x.deleted == 0))
+            };
             let ok = match &ev {
-                Event::Collision { ent, .. } | Event::BBoxOverlap { ent } => alive(self, ent[0]) && alive(self, ent[1]),
-                Event::StateChange { ent, .. } | Event::SimClassChange { ent, .. } | Event::PostStep { ent, .. } => alive(self, *ent),
+                Event::Collision { ent, .. } | Event::BBoxOverlap { ent } => {
+                    alive(self, ent[0]) && alive(self, ent[1])
+                }
+                Event::StateChange { ent, .. }
+                | Event::SimClassChange { ent, .. }
+                | Event::PostStep { ent, .. } => alive(self, *ent),
                 Event::AreaChange { .. } => true,
                 Event::AreaCallback(e) => e.ent.is_none_or(|x| alive(self, x)),
             };

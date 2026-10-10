@@ -1,0 +1,32 @@
+# P5: player_dimensions: cylinder/capsule swap, a larger collider next to a wall (unprojection
+# along dirUnproj), a head sphere walking under a low ceiling (eye offset), the stance check
+# (GetStatus 21), step-up eye smoothing.
+grid axisz=2 org=-128,-128,-100 n=64,64 step=4,4
+geom name=ground type=box size=20,20,1
+geom name=wallg type=box size=0.2,3,2
+geom name=ceilg type=box size=2,2,0.2
+geom name=stepg type=box size=1,1,0.15
+entity name=floor type=static pos=0,0,-1
+part ent=floor geom=ground
+entity name=wall type=static pos=1.0,0,2
+part ent=wall geom=wallg
+entity name=ceil type=static pos=-4,0,2.1
+part ent=ceil geom=ceilg
+entity name=stp type=static pos=-1,6,0.15
+part ent=stp geom=stepg
+entity name=a type=living pos=0,0,0
+entity name=b type=living pos=-1,4,0
+trace ents=a,b
+step n=5
+params target=a type=1 f4=U f8=1.6 v12=0.95,0.95,0.3 f24=1.0 f28=0.25 f32=1.65 v36=-1,0,0 f48=1 i52=0 i56=0 i60=0
+getparams target=a type=1 dump=4,15
+status target=a type=21 v4=U f16=U v32=0.9,0.9,0.4 f44=1.1 v48=-1,0,0 i64=1 dump=48,4
+status target=a type=21 v4=-3,0,0 f16=U v28=U v32=0.5,0.5,0.4 f44=1.1 v48=0,0,0 i64=U dump=48,4
+step n=5
+action target=a type=1 v4=-1.5,0,0 i16=0 f20=0
+step n=80
+status target=a type=2 dump=4,27
+params target=b type=1 f4=U f8=U v12=U f24=U f28=0.2 f32=U v36=0,0,1 f48=0 i52=U i56=0 i60=0
+action target=b type=1 v4=0,1.5,0 i16=0 f20=0
+step n=60
+status target=b type=2 dump=4,27

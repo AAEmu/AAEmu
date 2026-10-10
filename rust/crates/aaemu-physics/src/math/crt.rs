@@ -12,6 +12,7 @@
 //!   (single argument widened to double, Cody–Waite reduction by π/2 in one or two stages,
 //!   Taylor/minimax polynomials, one rounding to single at the end). Larger arguments (the CRT
 //!   switches to a Payne–Hanek reduction) fall back to the double library function.
+//! * [`sin`] (double) is a bit-exact port of MSVCR100's x64 `sin` for |x| < 500000 (P5).
 //! * The other functions are **not yet bit-exact**: they evaluate in double and round once.
 //!   Their known mismatch rates are asserted by `tests/math_oracle.rs`; a port that needs
 //!   exactness for one of them must replace it here (open item, see the crate README).

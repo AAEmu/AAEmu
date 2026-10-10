@@ -5,7 +5,11 @@
 //! Supported commands: `grid`, `var`, `geom` (box, sphere, cylinder, capsule), `entity`
 //! (static, rigid, wheeled, living, particle), `part` (field setters on the geomparams image), `surface`, `area kind=global`, `params` (ids handled by
 //! [`crate::entities::set_params`]), `action` (ids handled by [`crate::entities::action`]),
-//! `trace`, `print`, `step`, `echo`. Unsupported commands return an error naming them.
+//! `trace`, `print`, `step`, `echo`, and (P1c, [`p1c`]) `geom type=mesh` (file / gen / cgf),
+//! `geom type=heightfield [worldhf=1]`, `geominfo`, `ray … ext=1`. Unsupported commands return
+//! an error naming them.
+
+pub mod p1c;
 
 use crate::geometry::primitives::{BoxPrim, CylinderPrim, Primitive, SpherePrim};
 use crate::geometry::PhysGeometry;
@@ -29,11 +33,11 @@ pub fn pf(s: &str) -> f32 {
     s.parse::<f64>().unwrap_or(0.0) as f32
 }
 
-fn pv(s: &str) -> Vec<f32> {
+pub(crate) fn pv(s: &str) -> Vec<f32> {
     s.split(',').map(pf).collect()
 }
 
-fn v3(s: &str) -> Vec3 {
+pub(crate) fn v3(s: &str) -> Vec3 {
     let v = pv(s);
     Vec3::new(v[0], v[1], v[2])
 }
@@ -64,6 +68,8 @@ pub struct Scenario {
     pub trace: Vec<EntIdx>,
     pub step: i32,
     pub out: String,
+    /// The scenario file's directory (`file=` mesh paths are relative to it).
+    pub base_dir: Option<std::path::PathBuf>,
 }
 
 impl Default for Scenario {
@@ -83,12 +89,19 @@ impl Scenario {
             trace: Vec::new(),
             step: 0,
             out: String::from("physoracle 1\n"),
+            base_dir: None,
         }
     }
 
     /// Run a whole scenario text; returns the output.
     pub fn run(text: &str) -> Result<String, String> {
+        Self::run_in(text, None)
+    }
+
+    /// [`Self::run`] with the scenario's directory (for relative `file=` paths).
+    pub fn run_in(text: &str, dir: Option<&std::path::Path>) -> Result<String, String> {
         let mut s = Self::new();
+        s.base_dir = dir.map(std::path::Path::to_path_buf);
         for line in text.lines() {
             s.line(line)?;
         }
@@ -96,10 +109,16 @@ impl Scenario {
     }
 
     fn target(&self, n: &str) -> Result<EntIdx, String> {
-        self.ents
-            .get(n)
-            .copied()
-            .ok_or_else(|| format!("unknown target {n}"))
+        if let Some(e) = self.ents.get(n) {
+            return Ok(*e);
+        }
+        // the oracle names the terrain entities "terrain" (the first one is found first)
+        if n == "terrain" {
+            if let Some(e) = self.world.terrain.iter().find(|e| !e.is_none()) {
+                return Ok(*e);
+            }
+        }
+        Err(format!("unknown target {n}"))
     }
 
     /// The oracle's `print_entity`.
@@ -232,6 +251,9 @@ impl Scenario {
                 b[o..o + 4].copy_from_slice(&word.to_le_bytes());
                 w.vars = crate::physvars::PhysVars::from_bytes(&b);
             }
+            "geom" if kv.get("type") == Some(&"mesh") => self.cmd_geom_mesh(&kv)?,
+            "geom" if kv.get("type") == Some(&"heightfield") => self.cmd_geom_heightfield(&kv)?,
+            "geominfo" => self.cmd_geominfo(&kv)?,
             "geom" => {
                 let center = v3(&get("center", "0,0,0"));
                 let prim = match need("type")?.as_str() {
@@ -291,7 +313,7 @@ impl Scenario {
                 for (i, x) in [p.x, p.y, p.z, q.x, q.y, q.z, q.w].into_iter().enumerate() {
                     put(&mut b, 4 + 4 * i, x.to_bits());
                 }
-                apply_fields(&toks, &mut b)?;
+                apply_fields(&toks, &mut b, &self.ents)?;
                 let pp = <ParamsPos as crate::params::PeStruct>::read(&b);
                 let id = get("id", "-1").parse::<i32>().unwrap_or(-1);
                 let e = w
@@ -325,7 +347,7 @@ impl Scenario {
                 put(&mut b, 76, pf(&get("mincontact", "U")).to_bits());
                 put(&mut b, 80, u32::MAX);
                 put(&mut b, 108, 1);
-                apply_fields(&toks, &mut b)?;
+                apply_fields(&toks, &mut b, &self.ents)?;
                 let id = get("id", "-1").parse::<i32>().unwrap_or(-1);
                 let r = crate::entities::base::geometry::add_geometry_raw(
                     &mut self.world,
@@ -369,7 +391,7 @@ impl Scenario {
                 if !(tmpl && template(fam, ty, &mut b[..512])) {
                     b[..4].copy_from_slice(&ty.to_le_bytes());
                 }
-                apply_fields(&toks, &mut b)?;
+                apply_fields(&toks, &mut b, &self.ents)?;
                 let ts = get("ts", "1").parse::<i32>().unwrap_or(1);
                 let is_area = matches!(
                     self.world.ent(e).kind,
@@ -464,7 +486,7 @@ impl Scenario {
                         s += &(h(v.x) + &h(v.y) + &h(v.z));
                     }
                     s += " 00000000";
-                    let nm = |x: EntIdx| self.names.get(&x).cloned().unwrap_or_else(|| "?".into());
+                    let nm = |x: EntIdx| self.obj_name(x);
                     let _ = write!(s, " e {} {}", nm(c.pent[0]), nm(c.pent[1]));
                     let _ = write!(s, " {:08x} {:08x}", c.ipart[0] as u32, c.ipart[1] as u32);
                     s += &(h(c.nloc.x) + &h(c.nloc.y) + &h(c.nloc.z) + &h(c.friction));
@@ -549,7 +571,7 @@ impl Scenario {
             if h.dist < 0.0 && i > 0 {
                 continue;
             }
-            let line = format!(
+            let mut line = format!(
                 "h {} d {:08x} e {} ip {} pid {} s {} p {:08x} {:08x} {:08x} n {:08x} {:08x} {:08x}",
                 i,
                 h.dist.to_bits(),
@@ -564,6 +586,14 @@ impl Scenario {
                 h.n.y.to_bits(),
                 h.n.z.to_bits()
             );
+            if get("ext", "0").parse::<i32>().unwrap_or(0) != 0 {
+                // P1c: +24/+26 int16, +32, +60, +64 iPrim
+                let _ = write!(
+                    line,
+                    " x {} {} {} {} {}",
+                    h.surface_idx, h.idmat_org, h.inode, h.terrain, h.iprim
+                );
+            }
             let _ = writeln!(self.out, "{line}");
         }
         Ok(())
@@ -572,7 +602,11 @@ impl Scenario {
 
 /// The oracle's `apply_fields` in token order: `fOFF=`, `iOFF=`, `uOFF=`, `bOFF=`,
 /// `vOFF=x,y,z`, `qOFF=`, `pOFF=null|unused`, `hex=`.
-fn apply_fields(toks: &[&str], b: &mut [u8]) -> Result<(), String> {
+fn apply_fields(
+    toks: &[&str],
+    b: &mut [u8],
+    ents: &HashMap<String, EntIdx>,
+) -> Result<(), String> {
     for t in toks {
         let Some((k, v)) = t.split_once('=') else {
             continue;
@@ -607,6 +641,13 @@ fn apply_fields(toks: &[&str], b: &mut [u8]) -> Result<(), String> {
                     crate::entities::wheeled::params::BUF_PTR_TAG
                         | v[4..].parse::<u64>().map_err(|e| e.to_string())?,
                 ),
+                // the port's entity "pointer" (see `entities::particle::ent_ptr`)
+                v if v.starts_with("ent:") => {
+                    let e = ents
+                        .get(&v[4..])
+                        .ok_or_else(|| format!("unknown entity {v}"))?;
+                    put_p(b, off, crate::entities::particle::ent_ptr(*e));
+                }
                 _ => return Err(format!("pointer value {v} not supported")),
             },
             _ => {}
@@ -771,6 +812,9 @@ pub fn entity_word(w: &World, e: EntIdx, off: usize) -> Option<u32> {
         92 => return Some(ent.flags),
         68 => return Some(ent.id_bits),
         _ => {}
+    }
+    if let Some(l) = ent.living() {
+        return crate::entities::living::member_word(l, off);
     }
     let r = ent.rigid()?;
     if off >= 1200 {

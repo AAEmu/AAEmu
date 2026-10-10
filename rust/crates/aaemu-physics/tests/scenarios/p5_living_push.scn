@@ -1,0 +1,13 @@
+# P5: a living entity walks into a light rigid box and pushes it.
+grid axisz=2 org=-128,-128,-100 n=64,64 step=4,4
+geom name=ground type=box size=30,30,1
+geom name=crate type=box size=0.4,0.4,0.9
+entity name=floor type=static pos=0,0,-1
+part ent=floor geom=ground
+entity name=box type=rigid pos=2,0,0.9
+part ent=box geom=crate mass=10
+entity name=p type=living pos=0,0,0
+trace ents=p,box
+step n=5
+action target=p type=1 v4=1.5,0,0 i16=0 f20=0
+step n=80

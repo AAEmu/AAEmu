@@ -1,0 +1,22 @@
+# P5: network-quantised living entity (entity flag 4): action_move / impulse quantisation, and a
+# rotated living entity (status 8 angular velocity from the orientation change).
+grid axisz=2 org=-128,-128,-100 n=64,64 step=4,4
+geom name=ground type=box size=20,20,1
+entity name=floor type=static pos=0,0,-1
+part ent=floor geom=ground
+entity name=a type=living pos=0,0,0
+params target=a type=15 i4=U i8=U i12=4
+trace ents=a
+step n=10
+action target=a type=1 v4=1.3,0.7,0.2 i16=0 f20=0
+step n=20
+action target=a type=1 v4=-0.4,2.1,-0.3 i16=0 f20=0
+step n=20
+action target=a type=1 v4=0.9,-1.7,4 i16=1 f20=0
+step n=30
+action target=a type=2 v4=40,-25,10 f16=U f28=U f40=U f52=U i64=U i68=U i72=0 i76=0
+step n=20
+status target=a type=2 dump=4,27
+params target=a type=0 f4=U f8=U f12=U q16=0,0,0.38268343,0.92387953
+step n=3
+status target=a type=8 dump=12,6

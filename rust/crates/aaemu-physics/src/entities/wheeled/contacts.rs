@@ -1,6 +1,16 @@
 //! Slot 40 `RegisterContacts(dt, nMaxPlaneContacts)` of `CWheeledVehicleEntity`
 //! (0x35105E50).
 
+// The arithmetic is written in the binary's operand order and with its single-precision
+// constants (`a = b + a`, `x * -1.0`, `3.1415927`, NaN-aware negated comparisons).
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_multiply,
+    clippy::excessive_precision,
+    clippy::approx_constant,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::too_many_lines
+)]
 use super::{n_wheels, wd, wflags, wm};
 use crate::math::Vec3;
 use crate::world::events::Event;

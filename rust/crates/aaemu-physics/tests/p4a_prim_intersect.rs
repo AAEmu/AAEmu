@@ -92,6 +92,9 @@ fn ip_from(w: &[u32]) -> IntersectionParams {
         keep_prev_contacts: (w[24] >> 8) & 0xFF != 0,
         no_area_contacts: (w[24] >> 24) & 0xFF != 0,
         no_intersection: w[27] != 0,
+        unproj_plane_normal: v(11),
+        no_border_walk: w[25] & 0xFF != 0,
+        border_by_tri_pairs: w[26] as i32,
     }
 }
 

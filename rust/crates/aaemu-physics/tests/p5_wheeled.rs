@@ -9,7 +9,7 @@ fn replay(name: &str) -> Result<(), String> {
     let scn = std::fs::read_to_string(scenario_dir().join(format!("{name}.scn")))
         .map_err(|e| e.to_string())?;
     let golden = check_scenario_golden(name)?.replace("\r\n", "\n");
-    let port = Scenario::run(&scn)?;
+    let port = Scenario::run_in(&scn, Some(&scenario_dir()))?;
     let mut step = String::new();
     for (i, (a, b)) in port.lines().zip(golden.lines()).enumerate() {
         if b.starts_with("step ") {
@@ -55,17 +55,16 @@ fn crt_sin_is_bit_exact() {
     assert_eq!(bad, 0, "{bad}/1000 sin results differ from MSVCR100");
 }
 
-#[test]
-fn tmp_sin_big_sample() {
-    let Ok(s) = std::fs::read_to_string("D:/aaemu-target/phys-p5-helpers/wheeled-work/m/sin.txt") else { return };
-    let mut bad = 0;
-    let mut n = 0;
-    for l in s.lines().filter(|l| l.starts_with("in ")) {
-        let v: Vec<&str> = l.split_whitespace().collect();
-        let i = u64::from_str_radix(v[1], 16).unwrap();
-        let o = u64::from_str_radix(v[3], 16).unwrap();
-        n += 1;
-        if crt::sin(f64::from_bits(i)).to_bits() != o { bad += 1; if bad < 5 { eprintln!("{:e} {:x} {:x}", f64::from_bits(i), crt::sin(f64::from_bits(i)).to_bits(), o); } }
-    }
-    assert_eq!(bad, 0, "{bad}/{n}");
-}
+golden!(p5_wheeled_settle, "p5_wheeled_settle");
+golden!(p5_wheeled_settle_ray, "p5_wheeled_settle_ray");
+golden!(p5_wheeled_drive, "p5_wheeled_drive");
+golden!(p5_wheeled_brake, "p5_wheeled_brake");
+golden!(p5_wheeled_turn, "p5_wheeled_turn");
+golden!(p5_wheeled_slope, "p5_wheeled_slope");
+golden!(p5_wheeled_gears, "p5_wheeled_gears");
+golden!(p5_wheeled_params, "p5_wheeled_params");
+golden!(p5_wheeled_tank, "p5_wheeled_tank");
+golden!(p5_wheeled_platform, "p5_wheeled_platform");
+golden!(p5_wheeled_terrain_slope, "p5_wheeled_terrain_slope");
+golden!(p5_wheeled_terrain_bumps, "p5_wheeled_terrain_bumps");
+golden!(p5_wheeled_mesh, "p5_wheeled_mesh");

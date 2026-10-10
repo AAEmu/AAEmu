@@ -1,0 +1,41 @@
+# P5: free flight with thrust (along the heading), lift (accLift / |v|, direction
+# h x (h x g)), air resistance, a custom gravity (also the area check's gravity0 without a
+# global area) and the actions: set velocity (id 10, also spin), impulse (id 2: with a point,
+# with an angular impulse, zero-mass particle), reset (id 4), awake (id 8 through the base),
+# and GetStatus 8 (acceleration) / 9 / 7 and GetParams dumps along the way.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-10.5
+part ent=ground geom=ground mass=0
+entity name=a type=particle pos=20,30,5
+entity name=b type=particle pos=22,30,5
+entity name=c type=particle pos=24,30,5
+entity name=d type=particle pos=26,30,5
+entity name=f type=particle pos=28,30,5
+params target=a type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.2 f12=0.1 v20=1,0,0 f32=10 f44=5 f36=0.3
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.3 f12=0.1 v20=0.8,0,0.6 f32=12 f48=6 f36=0.1
+params target=c type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=1 f12=0.2 v20=0,0.6,0.8 f32=5 v68=1,0,-3 f44=-1 f48=2 f36=0.05
+params target=d type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.2 v20=0,0,1 f32=0
+params target=f type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0 f12=0.2 v20=0,0,1 f32=1
+trace ents=a,b,c,d,f
+print
+status target=b type=8 dump=0,30
+step n=20
+status target=a type=8 dump=0,30
+status target=b type=8 dump=0,30
+status target=c type=8 dump=0,30
+getparams target=b type=3 dump=0,36
+action target=d type=10 v12=3,1,4 v24=0,2,1
+action target=a type=2 v4=0,0,2 v52=21,30,5
+action target=b type=2 v4=1,0,0 v16=0,0,3
+action target=f type=2 v4=1,0,0 v52=28,30,5
+action target=c type=4
+step n=20
+action target=d type=8 i4=0
+status target=d type=7
+action target=d type=10 v12=U v24=1,1,1
+step n=10
+action target=d type=8 i4=1
+step n=40
+getparams target=d type=3 dump=0,36
+status target=a type=8 dump=0,30

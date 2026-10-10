@@ -198,9 +198,6 @@ pub struct World {
     pub done_list: EntIdx,
     /// The calling thread's physics index (TLS); 4 until the first `TimeStep` with dt > 0.
     pub tls_thread: i32,
-    /// The world lock `+22468` held by `TimeStep` after its command queue (deferrable calls
-    /// made during a step are queued).
-    pub step_lock: bool,
     /// `+4448` POD thread id (-1).
     pub pod_thread: i32,
     /// Deferred command queue (`+20872 …`).
@@ -220,6 +217,16 @@ pub struct World {
     pub solver: Vec<Option<Box<crate::solver::SolverThread>>>,
     /// Query state: ray-limit settings, query queues, terrain basis ([`queries::QueryState`]).
     pub queries: queries::QueryState,
+    /// **P5**: per-caller part-record flags of the living step (`world+21912 + 80·tid`, the
+    /// records persist between steps and one is read past the end).
+    pub living_part_flags: Vec<Vec<u32>>,
+    /// The world lock `+22468` TimeStep holds from after its command queue until its end:
+    /// SetParams / Action calls with `bThreadSafe <= 0` made meanwhile (from inside a step)
+    /// are queued for the next TimeStep.
+    pub step_lock: bool,
+    /// **P5** per-thread particle state (`CParticleEntity::DoStep` hit buffers and the
+    /// particle each thread is stepping), see [`crate::entities::particle::ParticleTls`].
+    pub particle_tls: crate::entities::particle::ParticleTls,
 }
 
 impl World {
@@ -283,7 +290,6 @@ impl World {
             awake_list: EntIdx::NONE,
             done_list: EntIdx::NONE,
             tls_thread: 4,
-            step_lock: false,
             pod_thread: -1,
             queue: queue::CommandQueue::default(),
             events: events::EventState::default(),
@@ -295,9 +301,14 @@ impl World {
             agg_contact_id: crate::solver::ContactId::NONE,
             solver: (0..MAX_CALLERS).map(|_| None).collect(),
             queries: queries::QueryState::default(),
+            living_part_flags: Vec::new(),
+            step_lock: false,
+            particle_tls: crate::entities::particle::ParticleTls::default(),
         };
-        w.ccd_scratch
-            .resize_with(MAX_CALLERS, crate::entities::rigid::contacts::ContactScratch::default);
+        w.ccd_scratch.resize_with(
+            MAX_CALLERS,
+            crate::entities::rigid::contacts::ContactScratch::default,
+        );
         w
     }
 
@@ -316,8 +327,15 @@ impl World {
     }
 
     /// The solver block of thread `tid` together with the contact pool.
-    pub fn solver_and_pool(&mut self, tid: usize) -> (&mut crate::solver::SolverThread, &mut crate::solver::ContactPool) {
-        let s = self.solver[tid].get_or_insert_with(|| Box::new(crate::solver::SolverThread::new(tid)));
+    pub fn solver_and_pool(
+        &mut self,
+        tid: usize,
+    ) -> (
+        &mut crate::solver::SolverThread,
+        &mut crate::solver::ContactPool,
+    ) {
+        let s =
+            self.solver[tid].get_or_insert_with(|| Box::new(crate::solver::SolverThread::new(tid)));
         (s, &mut self.contacts)
     }
 
@@ -344,7 +362,11 @@ impl World {
     #[inline]
     #[must_use]
     pub fn gravity(&self) -> Vec3 {
-        Vec3::new(self.vars.gravity_x, self.vars.gravity_y, self.vars.gravity_z)
+        Vec3::new(
+            self.vars.gravity_x,
+            self.vars.gravity_y,
+            self.vars.gravity_z,
+        )
     }
 
     /// `sub_35077650`: move an entity (and the run of entities sharing its group leader, for

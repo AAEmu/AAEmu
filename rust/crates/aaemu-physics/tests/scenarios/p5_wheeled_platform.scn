@@ -1,0 +1,42 @@
+# P5: a 6-wheel cart on a heavy rigid platform (3000 kg: the platform is a wheel ground that
+# gets the reaction impulses through Action(impulse) — queued while the step holds the world
+# lock), driving off it onto the floor and into light boxes (woken by the wheel boxes). With
+# entity flag 8 and maxTimeIdle 2 only the front / rear wheel of each side is cast, the middle
+# wheels interpolate their contact; then the same cart with the flag cleared.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+surface idx=0 friction=1
+geom name=ground type=box size=50,50,0.5
+geom name=plat type=box size=3,4,0.25
+geom name=small type=box size=0.3,0.3,0.3
+geom name=hull type=box size=1,2,0.35
+geom name=wheel type=cylinder r=0.4 hh=0.15 axis=1,0,0
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=plat type=rigid pos=32,32,0.25
+part ent=plat geom=plat mass=3000
+entity name=b1 type=rigid pos=32.9,40,0.3
+part ent=b1 geom=small mass=10
+entity name=b2 type=rigid pos=31.1,41,0.3
+part ent=b2 geom=small mass=10
+entity name=car type=wheeled pos=32,31,1.5
+part ent=car geom=hull mass=400 i0=1 i112=U
+part ent=car geom=wheel mass=20 pos=1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=-1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=-1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=1.1,0,-0.45 i0=1 i112=0 i116=2 i120=1 i124=0 v128=1.1,0,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,0,-0.45 i0=1 i112=0 i116=2 i120=1 i124=0 v128=-1.1,0,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+params target=car type=15 i8=8
+params target=car type=23 f8=2
+trace ents=car,plat,b1,b2
+step n=40 every=5
+params target=car type=2 f8=200000 i84=5 p88=buf:400 f400=-2 f404=0 f408=3 f412=2 f416=1.2 i96=4 i100=0
+action target=car type=3 f4=0.7 f20=1 i24=0 i28=0 i32=2
+step n=50
+status target=car type=5 i4=4 i8=U dump=0,32
+status target=car type=5 i4=5 i8=U dump=0,32
+status target=car type=4 dump=0,15
+params target=car type=15 i12=-9
+step n=40
+status target=car type=5 i4=4 i8=U dump=0,32
+status target=car type=4 dump=0,15
