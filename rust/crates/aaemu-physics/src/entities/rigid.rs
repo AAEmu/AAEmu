@@ -11,6 +11,7 @@ pub mod awake;
 pub mod buoyancy;
 pub mod contacts;
 pub mod mass;
+pub mod patch;
 pub mod velocity;
 
 use crate::math::{Quat, Vec3};
