@@ -57,6 +57,10 @@ pub struct Part {
     pub has_lattice: bool,
     /// `+128` (cleared on add).
     pub unk128: u64,
+    /// `+120` new-coords pointer redirected to a temporary copy by ComputeBBoxRE
+    /// (0x350ABF20): `Some(box)` holds the copy's box (`+32` of the 56-byte record), which
+    /// ComputeBBox with flag 2 writes and UpdatePosition commits. `None` = the part itself.
+    pub bbox_tmp: Option<[Vec3; 2]>,
 }
 
 impl Part {

@@ -126,6 +126,7 @@ pub fn base_add_geometry(w: &mut World, e: EntIdx, pgeom: &Arc<PhysGeometry>, gp
         mat_mapping: None,
         has_lattice: false,
         unk128: 0,
+        bbox_tmp: None,
     };
     ent.parts.push(part);
     if gp.recalc_bbox != 0 {

@@ -9,8 +9,11 @@
 pub mod action;
 pub mod awake;
 pub mod buoyancy;
+pub mod colliders;
 pub mod contacts;
 pub mod mass;
+pub mod register;
+pub mod step;
 pub mod patch;
 pub mod velocity;
 
@@ -130,6 +133,8 @@ pub struct RigidData {
     pub queued_impulse: Option<crate::params::ActionImpulse>,
     /// `+1192` water-level offset.
     pub water_level_offset: f32,
+    /// `+1088` per-step logged collision slots (indices into the world's logged queue).
+    pub coll_log: Vec<usize>,
 }
 
 impl RigidData {
@@ -204,6 +209,7 @@ impl RigidData {
             unk1168: 0,
             queued_impulse: None,
             water_level_offset: 0.0,
+            coll_log: Vec::new(),
         }
     }
 

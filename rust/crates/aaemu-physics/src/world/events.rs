@@ -156,6 +156,47 @@ impl World {
         r
     }
 
+    /// Call the immediate clients of the event's type and return the sum of their results
+    /// (0 without clients) — the loops the rigid code inlines over `W+21232 + 16·type`.
+    pub fn call_immediate_clients(&mut self, ev: &Event) -> i32 {
+        let t = ev.type_id();
+        let mut r = 0;
+        if let Some(l) = self.events.clients.get_mut(t) {
+            for c in &mut l[0] {
+                r += (c.f)(ev);
+            }
+        }
+        r
+    }
+
+    /// Append an event to the logged queue unconditionally (the rigid code posts collision
+    /// events under the queue lock itself) → its queue index.
+    pub fn post_logged_event(&mut self, ev: Event) -> usize {
+        self.events.logged.push(ev);
+        self.events.logged.len() - 1
+    }
+
+    /// Overwrite a queued event (the per-step collision slots of a rigid entity are pointers
+    /// into the queue). Indices from an earlier pump are ignored.
+    pub fn replace_logged_event(&mut self, idx: usize, ev: Event) {
+        if let Some(x) = self.events.logged.get_mut(idx) {
+            *x = ev;
+        }
+    }
+
+    /// `|v₀ − v₁|²` of a queued collision event (`(dx² + dy²) + dz²` in the order of
+    /// `sub_350AE0D0`'s slot scan: y, x, z), 1e10 when absent.
+    #[must_use]
+    pub fn logged_collision_dv(&self, idx: usize) -> f32 {
+        match self.events.logged.get(idx) {
+            Some(Event::Collision { v, .. }) => {
+                let (a, b) = (v[0], v[1]);
+                (((a.y - b.y) * (a.y - b.y)) + ((a.x - b.x) * (a.x - b.x))) + ((a.z - b.z) * (a.z - b.z))
+            }
+            _ => 1e10,
+        }
+    }
+
     /// `sub_350962D0`: event 2 for a re-listed entity.
     pub fn signal_state_change(&mut self, e: EntIdx, simclass_old: i32) {
         let ent = self.ent(e);

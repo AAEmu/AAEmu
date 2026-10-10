@@ -201,6 +201,10 @@ pub struct World {
     pub events: events::EventState,
     /// Per-thread contact table of CheckForNewContacts (`qword_35218710[tid]`).
     pub ccd_scratch: Vec<crate::entities::rigid::contacts::ContactScratch>,
+    /// Per-thread intersection arenas (`0x35256F80 + 0x39FB8·tid`).
+    pub tscratch: Vec<crate::collision::prim_intersect::scratch::ThreadScratch>,
+    /// The static dummy contact of RegisterContactPoint's aggregate path (`qword_3521AF50`).
+    pub agg_contact_id: crate::solver::ContactId,
 }
 
 impl World {
@@ -267,10 +271,23 @@ impl World {
             queue: queue::CommandQueue::default(),
             events: events::EventState::default(),
             ccd_scratch: Vec::new(),
+            tscratch: (0..MAX_CALLERS as i32)
+                .map(crate::collision::prim_intersect::scratch::ThreadScratch::new)
+                .collect(),
+            agg_contact_id: crate::solver::ContactId::NONE,
         };
         w.ccd_scratch
             .resize_with(MAX_CALLERS, crate::entities::rigid::contacts::ContactScratch::default);
         w
+    }
+
+    /// The aggregate dummy contact (created on first use; a self-linked record outside the
+    /// pool counters, zero-initialised like the `.data` original).
+    pub fn agg_contact(&mut self) -> crate::solver::ContactId {
+        if self.agg_contact_id.is_none() {
+            self.agg_contact_id = self.contacts.new_sentinel();
+        }
+        self.agg_contact_id
     }
 
     /// The entity object behind `e`.

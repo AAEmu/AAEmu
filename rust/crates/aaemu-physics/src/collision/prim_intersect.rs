@@ -848,6 +848,12 @@ pub fn install_generic_intersect(f: GenericIntersectFn) -> bool {
     GENERIC.set(f).is_ok()
 }
 
+/// The installed generic `CGeometry::Intersect` (P1c), if any.
+#[must_use]
+pub fn generic_intersect() -> Option<GenericIntersectFn> {
+    GENERIC.get().copied()
+}
+
 /// The shared tables used by the [`Geometry::intersect`] glue.
 pub fn shared_env() -> &'static PrimIntersectEnv {
     ENV.get_or_init(PrimIntersectEnv::new)
