@@ -1,0 +1,13 @@
+# P1a: slot 53 PrepareForIntersectionTest (record pre-filled with 0xA5) and slot 56
+# GetPrimitiveList (box: random outside pivots of the other side, mode=2 thin boxes).
+gproto probe=prep53 type=box n=12 seed=5301
+gproto probe=prep53 type=sphere n=8 seed=5302
+gproto probe=prep53 type=cylinder n=8 seed=5303
+gproto probe=prep53 type=capsule n=8 seed=5304
+gproto probe=prep53 type=ray n=15 seed=5305
+gproto probe=list56 type=box n=40 seed=5601
+gproto probe=list56 type=box n=80 seed=5602 mode=2
+gproto probe=list56 type=sphere n=15 seed=5603
+gproto probe=list56 type=cylinder n=15 seed=5604
+gproto probe=list56 type=capsule n=15 seed=5605
+gproto probe=list56 type=ray n=15 seed=5606

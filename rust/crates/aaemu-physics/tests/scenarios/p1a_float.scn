@@ -1,0 +1,23 @@
+# P1a: each primitive dropped into water (global area, plane z=2, density 1000, resistance 1000)
+# and left to settle; the port's CalculateBuoyancy at the final pose must balance the weight.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ball type=sphere r=0.6
+geom name=can type=cylinder r=0.5 hh=0.8
+geom name=pill type=capsule r=0.4 hh=0.9 axis=1,0,0
+geom name=crate type=box size=0.7,0.5,0.4
+entity name=ball type=rigid pos=20,20,5
+part ent=ball geom=ball mass=300
+entity name=can type=rigid pos=40,20,5
+part ent=can geom=can mass=500
+entity name=pill type=rigid pos=20,40,5
+part ent=pill geom=pill mass=250
+entity name=crate type=rigid pos=40,40,5 q=0.1,0.05,0.2,0.97
+part ent=crate geom=crate mass=400
+area name=water kind=global
+params target=water type=12 f4=1000 f16=1000 v24=0,0,0 v40=0,0,1 v52=32,32,2 i72=0
+params target=ball type=12 f4=1000 f16=1000
+params target=can type=12 f4=1000 f16=1000
+params target=pill type=12 f4=1000 f16=1000
+params target=crate type=12 f4=1000 f16=1000
+trace ents=ball,can,pill,crate
+step n=900 every=100

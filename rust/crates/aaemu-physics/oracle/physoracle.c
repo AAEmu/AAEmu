@@ -284,6 +284,9 @@ static void apply_fields(const Toks *t, unsigned char *b, int cap) {
   }
 }
 
+/* P1a primitive-geometry probes (gprobe, gphysblob): owned by package P1a */
+#include "p1a_probes.c"
+
 /* ------------------------------------------------------------------ heightfield callbacks */
 static struct { int mode; float h0, kx, ky, amp; } g_hf;
 static float hf_height(int ix, int iy) {
@@ -617,6 +620,7 @@ static void run_line(char *line) {
     printf("echo");
     for (int i = 1; i < t.n; i++) printf(" %s", t.k[i]);
     printf("\n");
+  } else if (p1a_command(c, &t)) {
   } else {
     die("unknown command", c);
   }

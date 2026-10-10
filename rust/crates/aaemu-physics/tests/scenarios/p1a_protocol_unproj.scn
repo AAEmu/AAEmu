@@ -1,0 +1,7 @@
+# P1a: slot 49 UnprojectSphere (box/cylinder print the forwarded pair-function results as
+# inputs, see oracle/p1a_probes_protocol.c) and ray slot 54 RegisterIntersection.
+gproto probe=unproj49 type=box n=80 seed=4901
+gproto probe=unproj49 type=sphere n=60 seed=4902
+gproto probe=unproj49 type=cylinder n=80 seed=4903
+gproto probe=unproj49 type=capsule n=80 seed=4904
+gproto probe=reg54 type=ray n=60 seed=5401

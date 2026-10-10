@@ -1,0 +1,9 @@
+# P1a misc: box GetFeature (slot 20), xlcommon CryRandom, GetMemoryStatistics (slot 24).
+gfeat n=200 seed=7001
+gcryrand n=40 seed=1 rseed=5489
+gcryrand n=400 seed=1 rseed=3735928559
+gmem type=box
+gmem type=sphere
+gmem type=cylinder
+gmem type=capsule
+gmem type=ray
