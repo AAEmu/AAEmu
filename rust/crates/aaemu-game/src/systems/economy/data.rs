@@ -22,12 +22,17 @@ pub struct Expand {
 pub struct Data {
     /// `CharacterManager._expands` (by step, rows in table order).
     pub expands: BTreeMap<i32, Vec<Expand>>,
+    /// Cash shop texts (`LocalizationManager` item names).
+    pub cash_shop: super::cash_shop::CashShopData,
 }
 
 impl Data {
     /// Loads this subsystem's tables from `ctx`.
     pub fn load(ctx: &DataLoadCtx<'_>) -> Result<Self, GameDataError> {
-        let mut data = Self::default();
+        let mut data = Self {
+            cash_shop: super::cash_shop::CashShopData::load(ctx)?,
+            ..Self::default()
+        };
         for_each_row(ctx.conn, "SELECT * FROM bag_expands", [], |r| {
             let e = Expand {
                 is_bank: r.bool_str("is_bank")?,

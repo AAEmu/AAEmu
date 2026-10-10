@@ -14,6 +14,9 @@
 //! * [`hooks`] — what the economy needs from other subsystems (quests, gear bonuses, NPC shop
 //!   flags, slaves / mates); installed into `server.systems.economy.hooks` by their owners.
 
+pub mod cash_shop;
+#[cfg(test)]
+mod cash_shop_tests;
 pub mod data;
 pub mod error_message;
 pub mod fx;
@@ -23,6 +26,9 @@ pub mod item_handlers;
 pub mod item_packets;
 #[cfg(test)]
 pub(crate) mod tests;
+pub mod trade;
+#[cfg(test)]
+mod trade_tests;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -42,6 +48,10 @@ pub struct System {
     ops: Mutex<()>,
     /// `Inventory.PreviousBackPackItemId` by character id (glider re-equip after a trade pack).
     previous_backpack: Mutex<HashMap<u32, u64>>,
+    /// `TradeManager`.
+    pub trade: trade::TradeManager,
+    /// `CashShopManager`.
+    pub cash_shop: cash_shop::CashShopManager,
 }
 
 impl System {
@@ -70,7 +80,8 @@ impl System {
     }
 
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
-    pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
+    pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        cash_shop::load(server).await?;
         Ok(())
     }
 
@@ -89,4 +100,6 @@ impl System {
 /// Registers this subsystem's C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
     item_handlers::register(reg);
+    trade::register(reg);
+    cash_shop::register(reg);
 }
