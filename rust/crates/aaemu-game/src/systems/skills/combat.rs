@@ -75,6 +75,12 @@ pub fn reduce_current_hp(
             c.unit.hp = (c.unit.hp - value).max(1);
             value = 0;
         }
+        // PvP assist tracking: remember who hit us recently
+        if let Some(enemy) = attacker.and_then(WorldObject::as_player) {
+            if value > 0 && enemy.character_id != p.character_id {
+                record_pvp_damage_from(p, enemy.character_id);
+            }
+        }
     }
     // base.ReduceCurrentHp
     let Some((hp, _)) = unit_hp_mp(target) else {
@@ -255,6 +261,8 @@ pub fn do_die(
     let mut durability_loss = 0u8;
     let mut wait = 0;
     if let Some(p) = victim.as_player() {
+        // Escalating respawn timer — runs BEFORE base.DoDie sends SCUnitDeathPacket
+        compute_death_wait_time(p, now_ms());
         (lost_exp, durability_loss) = character_death_losses(server, p);
         wait = p.data().rez_wait_duration;
     }
@@ -298,12 +306,67 @@ pub fn do_die(
     }
 }
 
+/// `DeathWaitTimesSeconds`: escalating death respawn wait times; resets after
+/// `DeathCountResetMinutes` (5) without dying.
+const DEATH_WAIT_TIMES_SECONDS: [i32; 9] = [15, 30, 60, 90, 120, 150, 180, 210, 240];
+const DEATH_COUNT_RESET_MS: i64 = 5 * 60_000;
+/// `PvpAssistWindowSeconds`.
+const PVP_ASSIST_WINDOW_MS: i64 = 30_000;
+/// `WarZoneHonorLoss` (clamped to the victim's current honor).
+const WAR_ZONE_HONOR_LOSS: i32 = 10;
+
+/// `RecordPvpDamageFrom(attacker)`.
+pub fn record_pvp_damage_from(victim: &PlayerRef, attacker_id: u32) {
+    record_at(
+        &mut victim.data().skill_char.pvp_damage_history,
+        attacker_id,
+        now_ms(),
+    );
+}
+
+/// `RecordPvpHealFrom(healer)`.
+pub fn record_pvp_heal_from(target: &PlayerRef, healer_id: u32) {
+    record_at(
+        &mut target.data().skill_char.pvp_heal_history,
+        healer_id,
+        now_ms(),
+    );
+}
+
+fn record_at(history: &mut Vec<(u32, i64)>, id: u32, now: i64) {
+    match history.iter_mut().find(|(i, _)| *i == id) {
+        Some(e) => e.1 = now,
+        None => history.push((id, now)),
+    }
+}
+
+/// `ComputeDeathWaitTime()`: stores the escalating wait in `RezWaitDuration` and `DeadTime`.
+pub fn compute_death_wait_time(p: &PlayerRef, now: i64) {
+    let mut c = p.data();
+    let s = &mut c.skill_char;
+    if s.last_death_time_ms != 0 && now - s.last_death_time_ms >= DEATH_COUNT_RESET_MS {
+        s.consecutive_death_count = 0;
+    }
+    let index = s
+        .consecutive_death_count
+        .min(DEATH_WAIT_TIMES_SECONDS.len() - 1);
+    let wait_seconds = DEATH_WAIT_TIMES_SECONDS[index];
+    s.consecutive_death_count += 1;
+    s.last_death_time_ms = now;
+    let count = s.consecutive_death_count;
+    c.rez_wait_duration = wait_seconds * 1000;
+    c.dead_time = now.div_euclid(1000);
+    tracing::debug!(
+        "Death #{count} for {}: respawn wait = {wait_seconds}s",
+        c.unit.name
+    );
+}
+
 /// The loss part of `Character.DoDie` before `base.DoDie`: `LastDurabilityLoss`
 /// (`GetDeathDurabilityLossRatio()` from `MinimumExpLossLevel` on) and, below the max level in
 /// the main world, `LastExpLoss` (`GetExpLoss(level, ExpLossRateAtDeath)` capped to the exp of
 /// the current level, 80 % of it recoverable; a free resurrection offer below
-/// `MinimumExpLossLevel`). Returns `(LastExpLoss, LastDurabilityLoss)`. Not ported: the
-/// escalating respawn timer (`ComputeDeathWaitTime`).
+/// `MinimumExpLossLevel`). Returns `(LastExpLoss, LastDurabilityLoss)`.
 fn character_death_losses(server: &GameServer, p: &PlayerRef) -> (i32, u8) {
     let world = &server.config.get().world;
     let exp_table = &server.game_data.experience;
@@ -454,24 +517,91 @@ fn do_die_base(
     }
 }
 
-/// `Character.DoDie` after `base.DoDie`: crime evidence for a friendly-fire kill (unless it
-/// was retaliation), `ClearAllAggro()` and the arrest of a wanted character killed by another
-/// character. Not ported: escalating respawn timers, exp / durability loss, PvP honor and
-/// kill counts, `DropTradePackToFloor` (items).
+/// `Character.DoDie` after `base.DoDie` (and the durability loss): PvP kill bookkeeping
+/// (`HostileFactionKills`, `AwardPvpHonor`, the `DiedInPvp` / `DiedInPvpWarZone` flags,
+/// `SCUnitPvPPointsChangedPacket`s, the War-zone honor loss of the victim) or crime evidence
+/// for a friendly-fire kill (unless it was retaliation), `DropTradePackToFloor`,
+/// `ClearAllAggro()`, the damage history reset and the arrest of a wanted character killed by
+/// another character.
 fn character_death_tail(
     server: &GameServer,
     victim_p: &PlayerRef,
     victim: &WorldObject,
     killer: &WorldObject,
 ) {
+    use crate::data::world_data::conflict_type;
+    // Resolve the victim's zone-conflict state once for both PvP-honor award and War-zone
+    // honor-loss
+    let zone_key = victim_p.data().unit.transform.zone_id;
+    let victim_zone_group = server
+        .game_data
+        .zones
+        .zone_by_key(zone_key)
+        .map(|z| z.group_id);
+    let conflict = victim_zone_group.and_then(|g| server.systems.social.conflicts.get(g));
+    let zone_state = conflict
+        .as_ref()
+        .map_or(conflict_type::PEACE, |c| c.current_state);
+
+    let relation = super::relation::relation_to(
+        server,
+        &Target::Obj(killer.clone()),
+        &Target::Obj(victim.clone()),
+    );
     let arrestor = killer.as_player().cloned();
-    if arrestor.is_some() {
-        let relation = super::relation::relation_to(
-            server,
-            &Target::Obj(killer.clone()),
-            &Target::Obj(victim.clone()),
-        );
-        if relation == super::types::RelationState::Friendly {
+    if let Some(enemy) = &arrestor {
+        if relation != super::types::RelationState::Friendly {
+            enemy.data().hostile_faction_kills += 1;
+            award_pvp_honor(
+                server,
+                victim_p,
+                enemy,
+                victim_zone_group,
+                conflict.as_ref(),
+                zone_state,
+            );
+            // Mark victim as PvP death (prevents Weakened Body debuff on temple-revive)
+            {
+                let mut c = victim_p.data();
+                c.died_in_pvp = true;
+                if zone_state == conflict_type::WAR {
+                    c.died_in_pvp_war_zone = true;
+                }
+            }
+            // Broadcast PvP stats: kind=0 → HonorGainedInCombat, kind=1 → HostileFactionKills
+            let (honor, kills) = {
+                let c = enemy.data();
+                (c.honor_gained_in_combat, c.hostile_faction_kills)
+            };
+            let enemy_obj = WorldObject::from(enemy);
+            for (kind, point) in [(0u8, honor), (1u8, kills)] {
+                broadcast(
+                    server,
+                    &enemy_obj,
+                    &crate::packets::g2c_misc::SCUnitPvPPointsChangedPacket {
+                        unit_id: enemy.obj_id,
+                        kind,
+                        point: point as i32,
+                    },
+                    true,
+                );
+            }
+            // Victim loses honor in War zone (clamped >= 0)
+            let honor_point = victim_p.data().honor_point;
+            if zone_state == conflict_type::WAR && honor_point > 0 {
+                let loss = WAR_ZONE_HONOR_LOSS.min(honor_point);
+                super::progress::change_game_points(
+                    server,
+                    victim_p,
+                    super::progress::GAME_POINT_HONOR,
+                    -loss,
+                );
+                tracing::debug!(
+                    "PvP Death: {} lost {loss} honor (War zone death)",
+                    victim_p.data().unit.name
+                );
+            }
+        } else {
             // Friendly-fire kill -> generate crime evidence (unless retaliation)
             let killer_owner = super::relation::owner_character(server, killer);
             if let Some(owner) = killer_owner {
@@ -491,7 +621,15 @@ fn character_death_tail(
             }
         }
     }
+    server
+        .systems
+        .skills
+        .ext
+        .items()
+        .drop_trade_pack_to_floor(server, victim_p);
     clear_all_aggro(server, victim);
+    // Clear damage history on death (heal history is intentionally kept)
+    victim_p.data().skill_char.pvp_damage_history.clear();
     // Arrest if wanted
     let Some(arrestor) = arrestor else {
         return;
@@ -506,7 +644,6 @@ fn character_death_tail(
         true
     } else {
         // If a pirate, only arrest in faction zones
-        let zone_key = victim_p.data().unit.transform.zone_id;
         let zones = &server.game_data.zones;
         let desperado = zones
             .zone_by_key(zone_key)
@@ -520,6 +657,147 @@ fn character_death_tail(
             .social
             .trials
             .arrest_criminal(server, victim_p, Some(&arrestor));
+    }
+}
+
+/// `CollectAssists(killer)`: players who damaged the victim recently, players who healed the
+/// killer recently (both within `PvpAssistWindowSeconds`, the killer excluded) and the
+/// character casters of active crowd-control debuffs on the victim.
+pub fn collect_assists(
+    server: &GameServer,
+    victim: &PlayerRef,
+    killer: &PlayerRef,
+    now: i64,
+) -> Vec<u32> {
+    let mut assists: Vec<u32> = Vec::new();
+    let mut add = |id: u32| {
+        if !assists.contains(&id) {
+            assists.push(id);
+        }
+    };
+    let cutoff = now - PVP_ASSIST_WINDOW_MS;
+    let killer_id = killer.character_id;
+    let (damage, bad_casters) = {
+        let c = victim.data();
+        let damage = c.skill_char.pvp_damage_history.clone();
+        let bad: Vec<(u32, u32)> = c
+            .unit
+            .buffs
+            .all_buffs(false)
+            .map(|(_, bad, _)| {
+                bad.iter()
+                    .filter_map(|b| b.caster.map(|(id, _)| (id, b.template.id)))
+                    .collect()
+            })
+            .unwrap_or_default();
+        (damage, bad)
+    };
+    // 1) Players who damaged the victim recently (excluding the killer)
+    for (id, time) in damage {
+        if id != killer_id && time >= cutoff {
+            add(id);
+        }
+    }
+    // 2) Players who healed the killer recently (excluding the killer themselves)
+    let heals = killer.data().skill_char.pvp_heal_history.clone();
+    for (id, time) in heals {
+        if id != killer_id && time >= cutoff {
+            add(id);
+        }
+    }
+    // 3) Active CC-debuff casters on the victim
+    let skills = &server.game_data.systems.skills;
+    for (caster_id, buff_id) in bad_casters {
+        // `buff.Caster is not Character ccCaster` (a non-character caster has no character id)
+        if caster_id == 0 || caster_id == killer_id {
+            continue;
+        }
+        if let Some(t) = skills.buff(buff_id) {
+            if t.stun || t.root || t.sleep || t.silence || t.crippled {
+                add(caster_id);
+            }
+        }
+    }
+    assists
+}
+
+/// `AwardPvpHonor(killer, victimZone, conflictData, zoneState)`: Conflict 10 solo (6 killer +
+/// 4 each assist), War 20 solo (16 killer + 4 each assist), nothing in other states; the kill
+/// also counts for the zone conflict.
+fn award_pvp_honor(
+    server: &GameServer,
+    victim: &PlayerRef,
+    killer: &PlayerRef,
+    victim_zone_group: Option<u32>,
+    conflict: Option<&crate::data::world_data::ZoneConflict>,
+    zone_state: u8,
+) {
+    use crate::data::world_data::conflict_type;
+    let (solo, killer_share, assist_share) = match zone_state {
+        conflict_type::CONFLICT => (10, 6, 4),
+        conflict_type::WAR => (20, 16, 4),
+        // No honor outside Conflict/War zones
+        _ => return,
+    };
+    // Register zone kill (drives zone state escalation)
+    if let Some(c) = conflict {
+        server
+            .systems
+            .social
+            .conflicts
+            .add_zone_kill(server, c.zone_group_id);
+    }
+    let rate = server.config.get().world.pvp_honor_rate;
+    let assist_ids = collect_assists(server, victim, killer, now_ms());
+    // Resolve to online assistants before choosing the kill path (offline assists fall back
+    // to the solo award).
+    let online: Vec<PlayerRef> = assist_ids
+        .iter()
+        .filter_map(|id| server.world.character_by_id(*id))
+        .collect();
+    let round = |share: i32| (f64::from(share) * rate).round_ties_even() as i32;
+    let gain = |p: &PlayerRef, honor: i32| {
+        super::progress::change_game_points(server, p, super::progress::GAME_POINT_HONOR, honor);
+        let mut c = p.data();
+        c.honor_gained_in_combat = c.honor_gained_in_combat.wrapping_add(honor as u32);
+        c.honor_gained_in_combat
+    };
+    if !online.is_empty() {
+        let killer_honor = round(killer_share);
+        if killer_honor > 0 {
+            gain(killer, killer_honor);
+        }
+        let assist_honor = round(assist_share);
+        if assist_honor > 0 {
+            for assistant in &online {
+                let total = gain(assistant, assist_honor);
+                broadcast(
+                    server,
+                    &WorldObject::from(assistant),
+                    &crate::packets::g2c_misc::SCUnitPvPPointsChangedPacket {
+                        unit_id: assistant.obj_id,
+                        kind: 0,
+                        point: total as i32,
+                    },
+                    true,
+                );
+            }
+        }
+    } else {
+        let honor = round(solo);
+        if honor > 0 {
+            gain(killer, honor);
+        }
+    }
+    if let Some(group) = victim_zone_group {
+        // The conflict-zone honor UI keys on ZoneGroupId.
+        let sum = killer.data().honor_gained_in_combat;
+        killer.send(
+            crate::packets::g2c_misc::SCConflictZoneHonorPointSumPacket {
+                zone_id: group as u16,
+                sum: sum as i32,
+            },
+        );
     }
 }
 
@@ -791,6 +1069,42 @@ pub fn clear_all_aggro(server: &GameServer, owner: &WorldObject) {
     for id in ids {
         if let Some(set) = watch.get_mut(&id) {
             set.remove(&owner.obj_id());
+        }
+    }
+    drop(watch);
+    // Character.ClearAllAggro: AggroTable.Clear() + ClearAssaultList()
+    if let Some(p) = owner.as_player() {
+        p.data().unit.skill_state.aggro_table.clear();
+        clear_assault_list(server, p);
+    }
+}
+
+/// `List<uint>.Remove(value)` (first occurrence).
+fn remove_first(list: &mut Vec<u32>, value: u32) {
+    if let Some(i) = list.iter().position(|v| *v == value) {
+        list.remove(i);
+    }
+}
+
+/// `Character.ClearAssaultList()`: this character leaves the assault lists of the characters
+/// it assaulted / was assaulted by, then both of its lists are cleared.
+pub fn clear_assault_list(server: &GameServer, p: &PlayerRef) {
+    let (me, assaulted_by, assault_on) = {
+        let mut c = p.data();
+        (
+            c.id,
+            std::mem::take(&mut c.skill_char.assaulted_by),
+            std::mem::take(&mut c.skill_char.assault_on),
+        )
+    };
+    for criminal_id in assaulted_by {
+        if let Some(criminal) = server.world.character_by_id(criminal_id) {
+            remove_first(&mut criminal.data().skill_char.assault_on, me);
+        }
+    }
+    for victim_id in assault_on {
+        if let Some(victim) = server.world.character_by_id(victim_id) {
+            remove_first(&mut victim.data().skill_char.assaulted_by, me);
         }
     }
 }

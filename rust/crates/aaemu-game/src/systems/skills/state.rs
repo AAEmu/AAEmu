@@ -270,7 +270,7 @@ impl PartialEq for PlotStateRef {
 }
 
 /// Per-character skill / combat state (`Character.skill_char`).
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CharacterSkillState {
     /// `SkillCancelled`.
     pub skill_cancelled: bool,
@@ -290,6 +290,36 @@ pub struct CharacterSkillState {
     /// `ResurrectHpPercent` / `ResurrectMpPercent` (set by the `Resurrection` special effect).
     pub resurrect_hp_percent: u32,
     pub resurrect_mp_percent: u32,
+    /// `_pvpDamageHistory` (character id -> last damage, unix ms). Cleared on death.
+    pub pvp_damage_history: Vec<(u32, i64)>,
+    /// `_pvpHealHistory` (character id -> last heal, unix ms). Kept on death.
+    pub pvp_heal_history: Vec<(u32, i64)>,
+    /// `_consecutiveDeathCount` / `_lastDeathTime` (unix ms, 0 = `DateTime.MinValue`) of the
+    /// escalating respawn timer.
+    pub consecutive_death_count: usize,
+    pub last_death_time_ms: i64,
+}
+
+impl Default for CharacterSkillState {
+    fn default() -> Self {
+        Self {
+            skill_cancelled: false,
+            last_cast_ms: 0,
+            is_in_post_cast: false,
+            ignore_skill_cooldowns: false,
+            is_in_aggro_list_of: Vec::new(),
+            assaulted_by: Vec::new(),
+            assault_on: Vec::new(),
+            hostile_players: Vec::new(),
+            // `ResurrectHpPercent { get; set; } = 1`
+            resurrect_hp_percent: 1,
+            resurrect_mp_percent: 1,
+            pvp_damage_history: Vec::new(),
+            pvp_heal_history: Vec::new(),
+            consecutive_death_count: 0,
+            last_death_time_ms: 0,
+        }
+    }
 }
 
 /// A process-wide counter for task generations (dispel tasks of refreshed buffs become no-ops).

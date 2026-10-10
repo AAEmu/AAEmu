@@ -158,6 +158,9 @@ pub struct BackpackDoodadSpawn {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+    /// Rotation (roll, pitch, yaw): 0 for a pack put down, the character's rotation for a pack
+    /// dropped on death.
+    pub rot: [f32; 3],
     /// The house the pack is put on (`OwnerType = Housing`, `ParentObj = house`).
     pub house: Option<HouseAtLocation>,
 }
@@ -1397,6 +1400,7 @@ pub fn put_down_backpack(
         x,
         y,
         z,
+        rot: [0.0; 3],
         house,
     };
     if !hooks.spawn_backpack_doodad(server, player, &spawn) {
@@ -1434,6 +1438,119 @@ pub fn put_down_backpack(
                 0,
             );
         }
+    }
+}
+
+/// `Character.DropTradePackToFloor()` (`Character.DoDie`): an equipped trade pack is moved to
+/// the system container and spawned as a doodad (the `PutDownBackpackEffect` doodad of the
+/// pack's use skill) where the character died, on the ground.
+pub fn drop_trade_pack_to_floor(server: &GameServer, player: &PlayerRef) {
+    let inv = Inv::of(player);
+    let Some(item) = inv.equipped(equip_slot::BACKPACK) else {
+        return;
+    };
+    let use_skill_id = match server.game_data.items.template(item.template_id) {
+        Some(t) => match t.kind {
+            TemplateKind::Backpack { backpack_type }
+                if backpack_type == crate::data::items::backpack_kind::TRADE_PACK =>
+            {
+                t.use_skill_id
+            }
+            _ => return,
+        },
+        None => return,
+    };
+    // Find the linked doodad of this item's put down effect
+    let skills = &server.game_data.systems.skills;
+    let Some(item_skill) = skills.skill(use_skill_id) else {
+        // C#: `itemSkill.Effects` of a null skill throws.
+        tracing::error!("DropTradePackToFloor: skill {use_skill_id} not found");
+        return;
+    };
+    use crate::systems::skills::data::effects::{EffectKind, EffectTemplate};
+    let backpack_doodad_id = item_skill
+        .effects
+        .iter()
+        .filter_map(|e| e.template)
+        .find_map(|(kind, id)| match (kind, skills.effect(kind, id)) {
+            (
+                EffectKind::PutDownBackpackEffect,
+                Some(EffectTemplate::PutDownBackpack {
+                    backpack_doodad_id, ..
+                }),
+            ) => Some(*backpack_doodad_id),
+            _ => None,
+        })
+        .unwrap_or(0);
+    if backpack_doodad_id == 0 {
+        return;
+    }
+    let equipment = inv.equipment();
+    {
+        let mut txn = ItemTxn::begin(server);
+        let Some(system) = inv.get(slot_type::SYSTEM) else {
+            tracing::error!(
+                "DropTradePackToFloor: character {} has no system container",
+                player.character_id
+            );
+            return;
+        };
+        let data = txn.data();
+        let moved = {
+            let (mut sys, eq) = lock_pair(&system, &equipment);
+            match eq {
+                Some(mut eq) => sys.move_item_from(
+                    &mut eq,
+                    task_type::DROP_BACKPACK,
+                    item.id,
+                    -1,
+                    data,
+                    &mut txn.env.fx,
+                ),
+                None => false,
+            }
+        };
+        if !moved {
+            return;
+        }
+    }
+    // Spawn doodad
+    tracing::trace!("Spawn tradepack on floor on death");
+    let obj = WorldObject::from(player);
+    let here = match server.world.world_of(&obj) {
+        Some(w) => w.world_pos_rot(&obj),
+        None => obj.transform().local(),
+    };
+    let ground = crate::systems::ai::geodata::geo_data_height(
+        server,
+        &obj,
+        crate::systems::skills::controllers::Vec3::new(here.x, here.y, here.z),
+    );
+    let spawn = BackpackDoodadSpawn {
+        doodad_template_id: backpack_doodad_id,
+        item_id: item.id,
+        item_template_id: item.template_id,
+        ucc_id: item.ucc_id,
+        x: here.x,
+        y: here.y,
+        z: ground,
+        rot: [here.rot_x, here.rot_y, here.rot_z],
+        house: None,
+    };
+    let hooks = server.systems.economy.item_effects.hooks();
+    if !hooks.spawn_backpack_doodad(server, player, &spawn) {
+        return;
+    }
+    if let Some(world) = server.world.world_of(&obj) {
+        crate::world::broadcast(
+            &world,
+            obj.clone(),
+            &SCUnitEquipmentsChangedPacket {
+                obj_id: player.obj_id,
+                items: vec![(equip_slot::BACKPACK as u8, None)],
+            },
+            false,
+        );
     }
 }
 

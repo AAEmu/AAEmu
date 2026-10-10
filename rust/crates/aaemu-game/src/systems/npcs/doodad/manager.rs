@@ -566,6 +566,8 @@ pub fn unbond_doodad(
         c.unit.transform.parent_obj_id != 0
     };
     if let Some(world) = &world {
+        // UnLoadPassenger: StickyParent = null (which also clears the parent).
+        world.set_sticky_parent(&pobj, None);
         if had_parent {
             world.detach_child(&pobj);
         }

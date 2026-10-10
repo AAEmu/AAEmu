@@ -24,7 +24,7 @@ use crate::models::char_data::{BlockedInfo, FriendInfo};
 use crate::models::character::{Character, DEFAULT_INSTANCE_ID};
 use crate::models::container::slot_type;
 use crate::models::item::Item;
-use crate::models::movement::{MoveKind, MoveType};
+use crate::models::movement::{MoveKind, MoveType, MoveTypeActorFlags};
 use crate::net::connection::{ConnCommand, GameConnection, GameState};
 use crate::packets::proxy::ChangeStatePacket;
 use crate::packets::world::*;
@@ -477,7 +477,7 @@ pub fn select_loaded(
     }
     // Houses (SCMyHousePacket)
     crate::systems::housing::send_my_houses(server, conn, snapshot.id);
-    for conflict in &data.zones.conflicts {
+    for conflict in &server.systems.social.conflicts.conflicts() {
         conn.send(&SCConflictZoneStatePacket {
             zone_group_id: conflict.zone_group_id,
             state: conflict.current_state,
@@ -729,8 +729,19 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
                     send_message(&me, chat_type::SYSTEM, &server.config.world.motd);
                 }
             }
-            // Standing on objects (ship decks); sticky parents are not modelled.
+            // Standing on objects (ship decks).
             crate::systems::vehicles::movement::standing_on(&world, &target, &mt, u);
+            // If ActorFlag 0x40 is no longer set, it means we're no longer climbing/holding
+            // onto something.
+            let is_sticky = u
+                .actor_flags
+                .contains(MoveTypeActorFlags::HANGING_FROM_OBJECT);
+            if target.core().sticky_parent() != 0
+                && !is_sticky
+                && !crate::systems::vehicles::movement::is_boarded_on_transfer(&world, &target)
+            {
+                world.set_sticky_parent(&target, None);
+            }
             let old_pos = {
                 let t = target.transform();
                 (t.x, t.y, t.z)

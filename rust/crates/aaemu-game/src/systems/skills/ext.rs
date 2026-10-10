@@ -448,6 +448,9 @@ pub trait ItemSkillHooks: Send + Sync {
     ) {
     }
 
+    /// `Character.DropTradePackToFloor()` (death).
+    fn drop_trade_pack_to_floor(&self, _server: &GameServer, _player: &PlayerRef) {}
+
     /// `ItemManager.GetDurabilityDecrementChance()`.
     fn durability_decrement_chance(&self, server: &GameServer) -> f32 {
         server.game_data.items.config.durability_decrement_chance

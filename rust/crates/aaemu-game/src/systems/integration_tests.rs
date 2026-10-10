@@ -606,3 +606,394 @@ async fn character_death_loses_exp_into_recoverable_exp() {
         assert!(ops.contains(&op), "missing {op:#x} in {ops:x?}");
     }
 }
+
+// ------------------------------------------------------------------------------------------
+// PvP deaths, resurrection, sticky parents, underwater (CharacterCombat / CSResurrectCharacter
+// / CSHang / CSUnhang / Character.SetPosition)
+// ------------------------------------------------------------------------------------------
+
+const CONFLICT_GROUP: u16 = 14;
+
+/// `server_with(false)` whose test zone belongs to a conflict zone group in `state`.
+fn conflict_server(state: u8, num_kills: [i32; 5]) -> Arc<GameServer> {
+    let mut gd = game_data();
+    gd.zones.zones.insert(
+        crate::test_support::TEST_ZONE,
+        crate::data::world_data::Zone {
+            id: 1,
+            name: "test".into(),
+            zone_key: crate::test_support::TEST_ZONE,
+            group_id: u32::from(CONFLICT_GROUP),
+            ..Default::default()
+        },
+    );
+    let s = &mut gd.systems.skills;
+    for id in [
+        crate::systems::skills::resurrect::WEAKENED_BODY,
+        crate::systems::skills::resurrect::RESPAWN_COOLDOWN,
+        crate::systems::skills::resurrect::WAR_ZONE_LEECH,
+    ] {
+        s.add_buff(crate::systems::skills::data::templates::BuffTemplate {
+            id,
+            kind: 2,
+            duration: 60_000,
+            stack_rule: 1,
+            ..Default::default()
+        });
+    }
+    let server = test_server_with(gd);
+    let server = Arc::new(server);
+    server.set_self();
+    crate::systems::skills::bind(&server);
+    crate::systems::npcs::install_hooks(&server);
+    crate::systems::social::install_hooks(&server);
+    crate::systems::quests::install_hooks(&server);
+    crate::systems::economy::wiring::install(&server);
+    crate::systems::economy::bridges::install(&server);
+    server.systems.social.conflicts.init(
+        &[crate::data::world_data::ZoneConflict {
+            zone_group_id: CONFLICT_GROUP,
+            num_kills,
+            conflict_min: 5,
+            war_min: 80,
+            peace_min: 120,
+            current_state: state,
+            ..Default::default()
+        }],
+        crate::world::now_ms(),
+    );
+    server
+}
+
+/// `pc` of an unknown faction (relation Neutral: a PvP kill, not friendly fire).
+fn enemy_pc(server: &GameServer, id: u32, name: &str, x: f32) -> Pc {
+    let pc = pc(server, id, name, x);
+    pc.p.data().unit.faction_id = 9_999;
+    pc
+}
+
+#[tokio::test]
+async fn solo_pvp_kill_in_a_conflict_zone_awards_honor() {
+    use crate::data::world_data::conflict_type;
+    use crate::systems::skills::types::KillReason;
+    let server = conflict_server(conflict_type::CONFLICT, [0; 5]);
+    let mut victim = pc(&server, 1, "Victim", 100.0);
+    let mut killer = enemy_pc(&server, 2, "Killer", 102.0);
+    // Damage history of the victim is cleared on death.
+    crate::systems::skills::combat::record_pvp_damage_from(&victim.p, killer.p.character_id);
+    victim.client.drain();
+    killer.client.drain();
+
+    crate::systems::skills::combat::do_die(
+        &server,
+        &WorldObject::from(&victim.p),
+        Some(&WorldObject::from(&killer.p)),
+        KillReason::Damage,
+    );
+
+    {
+        let k = killer.p.data();
+        assert_eq!(k.hostile_faction_kills, 1);
+        assert_eq!(k.honor_point, 10); // solo Conflict kill
+        assert_eq!(k.honor_gained_in_combat, 10);
+    }
+    {
+        let v = victim.p.data();
+        assert!(v.died_in_pvp);
+        assert!(!v.died_in_pvp_war_zone);
+        assert!(v.skill_char.pvp_damage_history.is_empty());
+        // ComputeDeathWaitTime: the first death waits 15 s.
+        assert_eq!(v.rez_wait_duration, 15_000);
+    }
+    let ops = killer.client.drain_ops();
+    assert_eq!(
+        ops.iter()
+            .filter(|o| **o == sc::SCUnitPvPPointsChangedPacket)
+            .count(),
+        2,
+        "{ops:x?}"
+    );
+    assert!(ops.contains(&sc::SCConflictZoneHonorPointSumPacket));
+    assert!(ops.contains(&sc::SCGamePointChangedPacket));
+    // No honor change for the victim outside War.
+    assert!(!victim
+        .client
+        .drain_ops()
+        .contains(&sc::SCGamePointChangedPacket));
+}
+
+#[tokio::test]
+async fn war_zone_kill_splits_honor_with_assists_and_costs_the_victim_honor() {
+    use crate::data::world_data::conflict_type;
+    use crate::systems::skills::types::KillReason;
+    let server = conflict_server(conflict_type::WAR, [0; 5]);
+    let victim = pc(&server, 1, "Victim", 100.0);
+    let killer = enemy_pc(&server, 2, "Killer", 102.0);
+    let helper = enemy_pc(&server, 3, "Helper", 104.0);
+    victim.p.data().honor_point = 25;
+    crate::systems::skills::combat::record_pvp_damage_from(&victim.p, helper.p.character_id);
+    // A heal of the killer by the helper counts too (no duplicate assist).
+    crate::systems::skills::combat::record_pvp_heal_from(&killer.p, helper.p.character_id);
+
+    crate::systems::skills::combat::do_die(
+        &server,
+        &WorldObject::from(&victim.p),
+        Some(&WorldObject::from(&killer.p)),
+        KillReason::Damage,
+    );
+
+    assert_eq!(killer.p.data().honor_point, 16);
+    assert_eq!(helper.p.data().honor_point, 4);
+    assert_eq!(helper.p.data().honor_gained_in_combat, 4);
+    assert_eq!(victim.p.data().honor_point, 15); // -10 in War
+    let v = victim.p.data();
+    assert!(v.died_in_pvp && v.died_in_pvp_war_zone);
+}
+
+#[tokio::test]
+async fn kills_in_a_conflict_zone_do_not_move_the_kill_counter() {
+    use crate::data::world_data::conflict_type;
+    use crate::systems::skills::types::KillReason;
+    // AddZoneKill ignores zones in Conflict or later.
+    let server = conflict_server(conflict_type::CONFLICT, [1, 2, 3, 4, 5]);
+    let victim = pc(&server, 1, "Victim", 100.0);
+    let killer = enemy_pc(&server, 2, "Killer", 102.0);
+    crate::systems::skills::combat::do_die(
+        &server,
+        &WorldObject::from(&victim.p),
+        Some(&WorldObject::from(&killer.p)),
+        KillReason::Damage,
+    );
+    let c = server
+        .systems
+        .social
+        .conflicts
+        .get(u32::from(CONFLICT_GROUP))
+        .unwrap();
+    assert_eq!(
+        (c.current_state, c.kill_count),
+        (conflict_type::CONFLICT, 0)
+    );
+}
+
+#[tokio::test]
+async fn death_wait_time_escalates_and_resets() {
+    let server = test_server_with(game_data());
+    let client = TestClient::new(&server, 1, 1001);
+    let p = spawn_player(
+        &server,
+        &client,
+        test_character(1, "A", 100.0, 100.0),
+        0x101,
+    );
+    let t0 = 1_000_000_000_000;
+    let waits: Vec<i32> = (0..11)
+        .map(|i| {
+            crate::systems::skills::combat::compute_death_wait_time(&p, t0 + i * 1000);
+            p.data().rez_wait_duration
+        })
+        .collect();
+    assert_eq!(
+        waits,
+        [15, 30, 60, 90, 120, 150, 180, 210, 240, 240, 240].map(|s| s * 1000)
+    );
+    assert_eq!(p.data().dead_time, (t0 + 10_000) / 1000);
+    // 5 minutes without dying reset the counter.
+    crate::systems::skills::combat::compute_death_wait_time(&p, t0 + 10_000 + 300_000);
+    assert_eq!(p.data().rez_wait_duration, 15_000);
+}
+
+fn buff_ids(p: &PlayerRef) -> Vec<u32> {
+    let mut v: Vec<u32> = p
+        .data()
+        .unit
+        .buffs
+        .effects
+        .iter()
+        .map(|b| b.template.id)
+        .filter(|id| *id < 8_000_000) // not the test_support SCUnitState buffs
+        .collect();
+    v.sort_unstable();
+    v
+}
+
+#[tokio::test]
+async fn temple_resurrection_applies_the_death_debuffs() {
+    use crate::systems::skills::resurrect::{
+        resurrect_character, RESPAWN_COOLDOWN, WAR_ZONE_LEECH, WEAKENED_BODY,
+    };
+    let server = conflict_server(crate::data::world_data::conflict_type::PEACE, [0; 5]);
+    let mut a = pc(&server, 1, "A", 100.0);
+    let mut b = pc(&server, 2, "B", 102.0);
+
+    // PvE death: Weakened Body + Respawn-CD, 10 % HP / MP, broadcast to the others too.
+    a.p.data().unit.hp = 0;
+    b.client.drain();
+    a.client.drain();
+    resurrect_character(&server, &a.p, false);
+    let hp_mp = {
+        let d = a.p.data();
+        (d.unit.hp, d.unit.mp)
+    };
+    assert_eq!(hp_mp, (500, 100));
+    assert_eq!(buff_ids(&a.p), [WEAKENED_BODY, RESPAWN_COOLDOWN]);
+    let ops = a.client.drain_ops();
+    assert!(ops.contains(&sc::SCCharacterResurrectedPacket), "{ops:x?}");
+    assert!(ops.contains(&sc::SCUnitPointsPacket));
+    assert!(b
+        .client
+        .drain_ops()
+        .contains(&sc::SCCharacterResurrectedPacket));
+    // Respawn-CD has the forced 5 minute duration.
+    let cd =
+        a.p.data()
+            .unit
+            .buffs
+            .effects
+            .iter()
+            .find(|b| b.template.id == RESPAWN_COOLDOWN)
+            .map(|b| b.duration);
+    assert_eq!(cd, Some(300_000));
+
+    // War-zone PvP death: Leech + Respawn-CD, flags cleared.
+    let c = pc(&server, 3, "C", 104.0);
+    {
+        let mut d = c.p.data();
+        d.died_in_pvp = true;
+        d.died_in_pvp_war_zone = true;
+    }
+    resurrect_character(&server, &c.p, false);
+    assert_eq!(buff_ids(&c.p), [RESPAWN_COOLDOWN, WAR_ZONE_LEECH]);
+    let flags = {
+        let d = c.p.data();
+        (d.died_in_pvp, d.died_in_pvp_war_zone)
+    };
+    assert_eq!(flags, (false, false));
+
+    // Plain PvP death: Respawn-CD only.
+    let d = pc(&server, 4, "D", 106.0);
+    d.p.data().died_in_pvp = true;
+    resurrect_character(&server, &d.p, false);
+    assert_eq!(buff_ids(&d.p), [RESPAWN_COOLDOWN]);
+    assert!(!d.p.data().died_in_pvp);
+
+    // In place (player resurrection): percent of max, no debuffs, percents reset to 1.
+    let e = pc(&server, 5, "E", 108.0);
+    {
+        let mut x = e.p.data();
+        x.died_in_pvp = true;
+        x.skill_char.resurrect_hp_percent = 50;
+        x.skill_char.resurrect_mp_percent = 20;
+    }
+    resurrect_character(&server, &e.p, true);
+    let x = e.p.data();
+    assert_eq!((x.unit.hp, x.unit.mp), (2_500, 200));
+    assert_eq!(
+        (
+            x.skill_char.resurrect_hp_percent,
+            x.skill_char.resurrect_mp_percent
+        ),
+        (1, 1)
+    );
+    assert!(!x.died_in_pvp);
+    drop(x);
+    assert!(buff_ids(&e.p).is_empty());
+}
+
+#[tokio::test]
+async fn clear_all_aggro_clears_the_assault_lists_both_ways() {
+    let server = server_with(false);
+    let a = pc(&server, 1, "A", 100.0);
+    let b = pc(&server, 2, "B", 102.0);
+    a.p.data().skill_char.assaulted_by.push(2);
+    b.p.data().skill_char.assault_on.push(1);
+    b.p.data().skill_char.assaulted_by.push(1);
+    a.p.data().skill_char.assault_on.push(2);
+    crate::systems::skills::combat::clear_all_aggro(&server, &WorldObject::from(&a.p));
+    assert!(a.p.data().skill_char.assaulted_by.is_empty());
+    assert!(a.p.data().skill_char.assault_on.is_empty());
+    assert!(b.p.data().skill_char.assault_on.is_empty());
+    assert!(b.p.data().skill_char.assaulted_by.is_empty());
+}
+
+#[tokio::test]
+async fn hang_and_unhang_track_the_sticky_parent() {
+    let server = server_with(false);
+    let mut a = pc(&server, 1, "A", 100.0);
+    let mut b = pc(&server, 2, "B", 102.0);
+    let npc = villager(&server, 0x900, 100);
+    npc.data().unit.scale = 1.0;
+    let me = WorldObject::from(&a.p);
+    a.client.drain();
+    b.client.drain();
+
+    crate::systems::vehicles::harpoon::hang(&server, &a.p, a.p.obj_id, npc.obj_id);
+    let world = server.world.world(0).unwrap();
+    assert_eq!(me.core().sticky_parent(), npc.obj_id);
+    // StickyParent is also the parent (world position kept).
+    assert_eq!(me.transform().parent_obj_id, npc.obj_id);
+    let w = world.world_pos_rot(&me);
+    assert!(
+        (w.x - 100.0).abs() < 1e-3 && (w.y - 100.0).abs() < 1e-3,
+        "{w:?} local {:?} parent scale {}",
+        me.transform(),
+        WorldObject::from(&npc).scale()
+    );
+    // SCHungPacket goes to the others only.
+    assert!(b.client.drain_ops().contains(&sc::SCHungPacket));
+    assert!(!a.client.drain_ops().contains(&sc::SCHungPacket));
+
+    crate::systems::vehicles::harpoon::unhang(&server, &a.p, a.p.obj_id, 2);
+    assert_eq!(me.core().sticky_parent(), 0);
+    assert_eq!(me.transform().parent_obj_id, 0);
+    let unhung: Vec<_> = b
+        .client
+        .drain()
+        .into_iter()
+        .filter(|(op, _)| *op == sc::SCUnhungPacket)
+        .collect();
+    assert_eq!(unhung.len(), 1);
+    // bc unit, bc target (the former sticky parent), u32 reason
+    let body = &unhung[0].1;
+    assert_eq!(&body[3..6], &npc.obj_id.to_le_bytes()[..3]);
+}
+
+#[tokio::test]
+async fn moving_under_the_water_surface_toggles_the_underwater_state() {
+    let server = server_with(false);
+    let mut a = pc(&server, 1, "A", 100.0);
+    a.client.drain();
+    let me = WorldObject::from(&a.p);
+    // Ocean level 100: the surface band is 2 m, the exit hysteresis 0.35 m.
+    crate::systems::vehicles::set_unit_position(&server, &me, 100.0, 100.0, 97.0, 0.0, 0.0, 0.0);
+    assert!(a.p.data().unit.is_under_water);
+    let sent: Vec<_> = a
+        .client
+        .drain()
+        .into_iter()
+        .filter(|(op, _)| *op == sc::SCUnderWaterPacket)
+        .collect();
+    assert_eq!(sent, vec![(sc::SCUnderWaterPacket, vec![1])]);
+    a.p.data().breath = 10;
+    // Inside the hysteresis band: still under water.
+    crate::systems::vehicles::set_unit_position(&server, &me, 100.0, 100.0, 98.2, 0.0, 0.0, 0.0);
+    assert!(a.p.data().unit.is_under_water);
+    crate::systems::vehicles::set_unit_position(&server, &me, 100.0, 100.0, 98.5, 0.0, 0.0, 0.0);
+    assert!(!a.p.data().unit.is_under_water);
+    assert_eq!(a.p.data().breath, 60_000); // LungCapacity
+    let sent: Vec<_> = a
+        .client
+        .drain()
+        .into_iter()
+        .filter(|(op, _)| *op == sc::SCUnderWaterPacket)
+        .collect();
+    assert_eq!(sent, vec![(sc::SCUnderWaterPacket, vec![0])]);
+
+    // NPCs: below OceanLevel - 2.
+    let npc = villager(&server, 0x901, 100);
+    let n = WorldObject::from(&npc);
+    crate::systems::vehicles::set_unit_position(&server, &n, 105.0, 100.0, 97.9, 0.0, 0.0, 0.0);
+    assert!(npc.data().unit.is_under_water);
+    crate::systems::vehicles::set_unit_position(&server, &n, 105.0, 100.0, 98.1, 0.0, 0.0, 0.0);
+    assert!(!npc.data().unit.is_under_water);
+}

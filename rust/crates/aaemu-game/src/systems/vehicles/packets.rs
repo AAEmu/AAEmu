@@ -430,6 +430,17 @@ cs_packet!(
     }
 );
 
+cs_packet!(
+    /// `CSHangPacket`.
+    CSHangPacket { unit_obj_id: u32, target_obj_id: u32 }
+    read |s| { Ok(Self { unit_obj_id: s.read_bc()?, target_obj_id: s.read_bc()? }) }
+    handle |self, server, conn| {
+        let p = active_char!(conn);
+        super::harpoon::hang(server, &p, self.unit_obj_id, self.target_obj_id);
+        Ok(())
+    }
+);
+
 /// Registers this subsystem's C->S packets. `CSChangeSlaveTargetPacket` has no 1.2 opcode
 /// (`0xfff`) and is not registered.
 pub fn register(reg: &mut PacketRegistry) {
@@ -448,6 +459,7 @@ pub fn register(reg: &mut PacketRegistry) {
     reg.register::<CSBoardingTransferPacket>(LEVEL_PLAIN, cs::CSBoardingTransferPacket);
     reg.register::<CSCreateShipyardPacket>(LEVEL_PLAIN, cs::CSCreateShipyardPacket);
     reg.register::<CSUnhangPacket>(LEVEL_PLAIN, cs::CSUnhangPacket);
+    reg.register::<CSHangPacket>(LEVEL_PLAIN, cs::CSHangPacket);
 }
 
 #[cfg(test)]

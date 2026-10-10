@@ -98,6 +98,11 @@ impl PacketRegistry {
         self.packets.len()
     }
 
+    /// Every `((level, opcode), registration)` pair (unordered).
+    pub fn iter(&self) -> impl Iterator<Item = ((u8, u16), Registration)> + '_ {
+        self.packets.iter().map(|(k, v)| (*k, *v))
+    }
+
     pub fn is_empty(&self) -> bool {
         self.packets.is_empty()
     }

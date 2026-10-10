@@ -249,8 +249,9 @@ pub fn set_unit_position(
         let changes = world.add_visible_object(obj, &server.view_ctx());
         crate::world::session::handle_zone_changes(server, changes);
     }
-    if let Some(p) = obj.as_player() {
-        crate::systems::skills::on_moved(server, p, old, 0);
+    match obj.as_player() {
+        Some(p) => crate::systems::skills::on_moved(server, p, old, 0),
+        None => crate::systems::skills::water::update_unit_under_water(server, obj),
     }
 }
 

@@ -147,6 +147,18 @@ pub fn player_riding(server: &GameServer, character: &PlayerRef, player: &Player
 /// The standing-on-object part of `UnitMoveType` (`MoveTypeFlags.StandingOnObject` of the move
 /// header + `GcId`): parents the moving unit to the object it stands on (ship decks), or
 /// detaches it.
+/// `CSMoveUnitPacket.IsBoardedOnTransfer(unit)`: a character whose sticky parent is a transfer
+/// that lists it in `AttachedCharacters`.
+pub fn is_boarded_on_transfer(world: &WorldInstance, unit: &WorldObject) -> bool {
+    if unit.as_player().is_none() {
+        return false;
+    }
+    world
+        .sticky_parent(unit)
+        .and_then(|s| s.as_transfer().cloned())
+        .is_some_and(|t| t.data().attached_characters.contains(&unit.obj_id()))
+}
+
 pub fn standing_on(world: &WorldInstance, target: &WorldObject, mt: &MoveType, u: &UnitMove) {
     let standing = mt.flags.contains(MoveTypeFlags::STANDING_ON_OBJECT);
     // GcId 1 probably means "current parent" and is ignored.

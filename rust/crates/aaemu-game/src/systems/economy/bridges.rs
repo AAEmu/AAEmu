@@ -719,6 +719,10 @@ impl EconomyForSkills {
 }
 
 impl ItemSkillHooks for EconomyForSkills {
+    fn drop_trade_pack_to_floor(&self, server: &GameServer, player: &PlayerRef) {
+        item_effects::drop_trade_pack_to_floor(server, player);
+    }
+
     fn gear_stats(&self, server: &GameServer, player: &PlayerRef) -> GearStats {
         let data = &server.game_data.items;
         let formulas = &server.game_data.formulas;
@@ -2863,8 +2867,9 @@ impl item_effects::ItemEffectHooks for EconomyComposite {
             d.is_persistent = true;
             d.transform.instance_id = world.id;
             d.transform.zone_id = zone_id;
+            let [rx, ry, rz] = spawn.rot;
             d.transform
-                .set_position(spawn.x, spawn.y, spawn.z, 0.0, 0.0, 0.0);
+                .set_position(spawn.x, spawn.y, spawn.z, rx, ry, rz);
             d.attach_point = crate::models::unit::attach_point::NONE;
             d.item_id = spawn.item_id;
             d.item_template_id = spawn.item_template_id;

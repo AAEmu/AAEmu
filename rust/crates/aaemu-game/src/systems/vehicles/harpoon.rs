@@ -458,16 +458,32 @@ pub fn on_slave_skill_used(
     }
 }
 
-/// `CSUnhangPacket.Read`. Sticky parents (climbing ship ladders) are not part of the Rust
-/// transform model, so the target is always 0 and no rope is broken here.
+/// `CSUnhangPacket.Read`. 1.2 does not send the target obj id: it is the unit's sticky parent,
+/// which is cleared; a ship the unit was hanging on (its harpoon rope) has its rope broken for
+/// the clients.
 pub fn unhang(server: &GameServer, character: &PlayerRef, unit_obj_id: u32, reason: u32) {
-    let target_obj_id = 0;
+    let me = WorldObject::from(character);
+    let world = world_of(server, &me);
+    let mut target_obj_id = 0;
+    let mut sticky_slave = None;
+    if let Some(world) = &world {
+        // Connection.ActiveChar.ParentWorld.GetBaseUnit(unitObjId)
+        let unit = world
+            .object(unit_obj_id)
+            .filter(|o| !matches!(o, WorldObject::Gimmick(_)));
+        if let Some(unit) = unit {
+            let sticky = world.sticky_parent(&unit);
+            sticky_slave = sticky.as_ref().and_then(|s| s.as_slave().cloned());
+            target_obj_id = sticky.as_ref().map_or(0, WorldObject::obj_id);
+            world.set_sticky_parent(&unit, None);
+        }
+    }
     tracing::trace!(
         "Unhang, unitObjId: {unit_obj_id}, targetObjId: {target_obj_id}, Reason: {reason}"
     );
     broadcast(
         server,
-        &WorldObject::from(character),
+        &me,
         &SCUnhungPacket {
             unit_obj_id,
             target_obj_id,
@@ -475,4 +491,44 @@ pub fn unhang(server: &GameServer, character: &PlayerRef, unit_obj_id: u32, reas
         },
         false,
     );
+    if let Some(slave) = sticky_slave {
+        break_rope_for_clients(server, &slave, false);
+    }
+}
+
+/// `CSHangPacket.Read`: the unit's sticky parent becomes the target, `SCHungPacket` goes to
+/// the others around the active character and a doodad target is used by the unit.
+pub fn hang(server: &GameServer, character: &PlayerRef, unit_obj_id: u32, target_obj_id: u32) {
+    tracing::trace!("Hang, unitObjId: {unit_obj_id}, targetObjId: {target_obj_id}");
+    let me = WorldObject::from(character);
+    let Some(world) = world_of(server, &me) else {
+        return;
+    };
+    let unit = world
+        .object(unit_obj_id)
+        .filter(|o| !matches!(o, WorldObject::Gimmick(_)));
+    let target = world.object(target_obj_id);
+    if let (Some(unit), Some(target)) = (&unit, &target) {
+        world.set_sticky_parent(unit, Some(target));
+    }
+    crate::world::broadcast(
+        &world,
+        &me,
+        &crate::systems::npcs::doodad::interactions::SCHungPacket {
+            unit_obj_id,
+            target_obj_id,
+        },
+        false,
+    );
+    if let Some(doodad) = target.as_ref().and_then(WorldObject::as_doodad) {
+        // doodad.Use(character): a null character is passed on as a null caster.
+        crate::systems::npcs::doodad::manager::use_doodad(
+            server,
+            &world,
+            doodad,
+            unit.as_ref(),
+            0,
+            0,
+        );
+    }
 }

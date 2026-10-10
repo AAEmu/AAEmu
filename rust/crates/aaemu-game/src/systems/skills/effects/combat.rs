@@ -709,6 +709,13 @@ pub fn heal(
         },
         true,
     );
+    // PvP assist tracking: a healer on the target's side earns assist credit for the target's
+    // next PvP kill (within 30s window).
+    if let (Some(healer), Some(target)) = (caster.as_player(), trg.as_player()) {
+        if healer.character_id != target.character_id && target.data().unit.is_in_battle {
+            unit_combat::record_pvp_heal_from(target, healer.character_id);
+        }
+    }
     unit_combat::on_abuser_healed(server, &trg, &caster, value);
     unit_combat::post_update_current_hp(server, &trg, Some(&trg), old, hp, KillReason::Unknown);
 }

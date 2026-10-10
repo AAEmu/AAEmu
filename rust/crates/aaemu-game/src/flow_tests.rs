@@ -475,7 +475,7 @@ async fn dispatch_edge_cases() {
         .unwrap();
     assert_eq!(c.drain(), vec![l2(pp::FastPongPacket, &[9, 0, 0, 0])]);
 
-    // Unknown-but-named opcode: logged, connection stays up.
+    // A packet whose C# `Read` only logs an error: the connection stays up.
     server
         .handle_frame(&mut c.conn, &c2s_l1(cs::CSEditCharacterPacket, &[1, 2, 3]))
         .await

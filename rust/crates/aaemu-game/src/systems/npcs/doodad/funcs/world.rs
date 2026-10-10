@@ -102,11 +102,15 @@ pub fn attachment(f: &DoodadFuncAttachment, ctx: &DoodadCtx<'_>, caster: Option<
             },
             true,
         );
-        // `VehicleSeat.AddSeat` (Parent = null, StickyParent = vehicle) then
-        // `StickyParent = owner.StickyParent; Parent = owner.Transform`: the character ends up a
-        // child of the doodad (sticky parents are not modelled).
+        // `VehicleSeat.AddSeat` (Parent = null, StickyParent = the seat doodad) then
+        // `StickyParent = owner.StickyParent; Parent = owner.Transform`.
         let me = WorldObject::from(player);
-        attach_keeping_world(&ctx.world, &ctx.obj(), &me);
+        let owner = ctx.obj();
+        ctx.world.detach_child(&me);
+        ctx.world.set_sticky_parent(&me, Some(&owner));
+        let owner_sticky = ctx.world.sticky_parent(&owner);
+        ctx.world.set_sticky_parent(&me, owner_sticky.as_ref());
+        attach_keeping_world(&ctx.world, &owner, &me);
     } else {
         // Ships. TODO (C#): check how to sit on the ship.
         // `SlaveManager.BindSlave(character, owner.ParentObjId, AttachPointId,

@@ -33,12 +33,14 @@ pub mod plots;
 pub mod progress;
 pub mod regen;
 pub mod relation;
+pub mod resurrect;
 pub mod skill;
 pub mod state;
 pub mod stats;
 pub mod tasks;
 pub mod types;
 pub mod unit_reqs;
+pub mod water;
 
 #[cfg(test)]
 pub(crate) mod tests;
@@ -207,17 +209,21 @@ pub fn on_move_request(server: &GameServer, unit: &PlayerRef, vel_x: i16, vel_y:
     }
 }
 
-/// The skills tail of a unit move: `Character.SetPosition` (`BuffRemoveOn.Move` when the
-/// position changed) and `DoFallDamage(FallVel)` when the client reports a fall velocity.
+/// The tail of `Character.SetPosition` after a move: the underwater state, then, when the
+/// position changed, `BuffRemoveOn.Move` and the party position update
+/// (`TeamManager.UpdatePosition` when `InParty`); plus `DoFallDamage(FallVel)` when the client
+/// reports a fall velocity.
 pub fn on_moved(server: &GameServer, unit: &PlayerRef, old_pos: (f32, f32, f32), fall_vel: u16) {
     let obj = WorldObject::from(unit);
     let moved = {
         let t = unit.data().unit.transform;
         t.x != old_pos.0 || t.y != old_pos.1 || t.z != old_pos.2
     };
+    water::update_character_under_water(server, unit);
     if moved {
         buffs::trigger_remove_on(server, &obj, types::BuffRemoveOn::Move, 0);
         crate::systems::dispatch_buff_events(server, &obj);
+        crate::systems::social::session::on_moved(server, unit);
     }
     if fall_vel > 0 {
         combat::do_fall_damage(server, &obj, fall_vel);
@@ -248,4 +254,8 @@ pub fn register(reg: &mut PacketRegistry) {
     reg.register::<CSCreateSkillControllerPacket>(LEVEL_PLAIN, cs::CSCreateSkillControllerPacket);
     reg.register::<CSSetForceAttackPacket>(LEVEL_PLAIN, cs::CSSetForceAttackPacket);
     reg.register::<CSChangeTargetPacket>(LEVEL_PLAIN, cs::CSChangeTargetPacket);
+    reg.register::<resurrect::CSResurrectCharacterPacket>(
+        LEVEL_PLAIN,
+        cs::CSResurrectCharacterPacket,
+    );
 }

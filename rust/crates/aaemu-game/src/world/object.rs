@@ -19,7 +19,7 @@
 //!    broadcasts) while holding an object's data lock.
 //! 4. `ObjectCore` locks are leaves: never lock anything else while holding them.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::models::doodad::Doodad;
@@ -46,6 +46,10 @@ pub struct ObjectCore {
     /// `Transform.Children` (the objects attached to this one, see
     /// `WorldInstance::attach_child`).
     children: Mutex<Vec<WorldObject>>,
+    /// `Transform.StickyParent?.GameObject.ObjId` (0 = none): the object a unit hangs on /
+    /// is bound to (ladders, vehicle seats, transfer carriages). Set through
+    /// `WorldInstance::set_sticky_parent`; not copied by transform clones (`CloneDetached`).
+    sticky_parent: AtomicU32,
 }
 
 impl ObjectCore {
@@ -84,6 +88,15 @@ impl ObjectCore {
         let before = c.len();
         c.retain(|o| o.obj_id() != obj_id);
         c.len() != before
+    }
+
+    /// `Transform.StickyParent?.GameObject.ObjId` (0 = none).
+    pub fn sticky_parent(&self) -> u32 {
+        self.sticky_parent.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn set_sticky_parent_id(&self, obj_id: u32) {
+        self.sticky_parent.store(obj_id, Ordering::Relaxed);
     }
 
     pub(crate) fn take_children(&self) -> Vec<WorldObject> {

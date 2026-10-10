@@ -189,6 +189,10 @@ pub struct ZoneGroup {
 /// `ZoneConflictType`.
 pub mod conflict_type {
     pub const TENSION: u8 = 0;
+    pub const DANGER: u8 = 1;
+    pub const DISPUTE: u8 = 2;
+    pub const UNREST: u8 = 3;
+    pub const CRISIS: u8 = 4;
     pub const CONFLICT: u8 = 5;
     pub const WAR: u8 = 6;
     pub const PEACE: u8 = 7;
@@ -203,10 +207,16 @@ pub struct ZoneConflict {
     pub conflict_min: i32,
     pub war_min: i32,
     pub peace_min: i32,
+    pub peace_protected_faction_id: u32,
+    pub nuia_return_point_id: u32,
+    pub harihara_return_point_id: u32,
+    pub war_tower_def_id: u32,
     pub closed: bool,
     pub current_state: u8,
     /// `NextStateTime` (unix seconds, 0 = `DateTime.MinValue`).
     pub next_state_time: i64,
+    /// `KillCount`.
+    pub kill_count: u32,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -276,7 +286,12 @@ impl ZoneData {
                 conflict_min: r.i32("conflict_min")?,
                 war_min: r.i32("war_min")?,
                 peace_min: r.i32("peace_min")?,
-                closed: r.bool_str("closed")?,
+                peace_protected_faction_id: r.u32_or("peace_protected_faction_id", 0)?,
+                nuia_return_point_id: r.u32_or("nuia_return_point_id", 0)?,
+                harihara_return_point_id: r.u32_or("harihara_return_point_id", 0)?,
+                war_tower_def_id: r.u32_or("war_tower_def_id", 0)?,
+                // GetBoolean("closed", true)
+                closed: r.is_null("closed")? || r.bool_str("closed")?,
                 current_state: conflict_type::TENSION,
                 ..ZoneConflict::default()
             };

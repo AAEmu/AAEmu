@@ -344,9 +344,9 @@ fn hang(server: &GameServer, caster: &WorldObject, target: Option<&WorldObject>,
     let (Some(target), Some(_)) = (target, caster.as_player()) else {
         return;
     };
-    // `character.Transform.StickyParent = target.Transform`: sticky parents are not modelled
-    // (TODO(world): StickyParent).
     if let Some(world) = server.world.world_of(caster) {
+        // character.Transform.StickyParent = target.Transform
+        world.set_sticky_parent(caster, Some(target));
         let packet = SCHungPacket {
             unit_obj_id: caster.obj_id(),
             target_obj_id: target.obj_id(),

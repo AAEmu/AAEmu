@@ -29,6 +29,7 @@ pub mod session;
 pub mod team;
 pub mod trial;
 pub mod util;
+pub mod zone_conflict;
 
 #[cfg(test)]
 mod flow_tests;
@@ -65,6 +66,8 @@ pub struct System {
     pub duels: duel::DuelManager,
     pub crimes: crime::CrimeManager,
     pub trials: trial::TrialManager,
+    /// `ZoneManager.GetConflicts()` runtime state (`ZoneConflict`).
+    pub conflicts: zone_conflict::ZoneConflictManager,
     /// Services other subsystems provide (`hooks::SocialHooks`).
     pub hooks: hooks::SocialHookSlot,
 }
@@ -74,6 +77,8 @@ impl System {
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
         use anyhow::Context;
         install_hooks(server);
+        // ZoneManager.Load: SetState(Conflict) of the open zones schedules their timers.
+        zone_conflict::ZoneConflictManager::start(server);
         server
             .systems
             .social

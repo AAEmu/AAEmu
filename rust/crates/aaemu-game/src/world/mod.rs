@@ -382,6 +382,31 @@ impl WorldInstance {
         }
     }
 
+    /// `Transform.StickyParent = parent?.Transform` (`SetStickyParent`): detaches the object
+    /// from its parent (`Parent = null`), records the sticky parent and, when there is one,
+    /// makes it the real parent too (`Parent = stickyParent`, world position kept). The C#
+    /// never fills `StickyChildren` (`AttachStickyTransform` has no caller), so sticky parents
+    /// carry no delta movement of their own.
+    pub fn set_sticky_parent(&self, child: &WorldObject, parent: Option<&WorldObject>) {
+        let new_id = parent.map_or(0, WorldObject::obj_id);
+        if child.core().sticky_parent() == new_id {
+            return;
+        }
+        self.detach_child(child);
+        child.core().set_sticky_parent_id(new_id);
+        if let Some(parent) = parent {
+            crate::systems::npcs::doodad::funcs::world::attach_keeping_world(self, parent, child);
+        }
+    }
+
+    /// `Transform.StickyParent?.GameObject` (when it is still in this world).
+    pub fn sticky_parent(&self, obj: &WorldObject) -> Option<WorldObject> {
+        match obj.core().sticky_parent() {
+            0 => None,
+            id => self.object(id),
+        }
+    }
+
     // ----- visibility (`WorldManager.AddVisibleObject` / `RemoveVisibleObject`, `Region`) -----
 
     /// `Region.AddToCharacters(obj)`.

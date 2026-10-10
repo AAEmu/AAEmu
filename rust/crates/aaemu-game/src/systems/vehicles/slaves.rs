@@ -313,6 +313,7 @@ fn clear_slave_attachment_state(server: &GameServer, character: &PlayerRef) {
     let me = WorldObject::from(character);
     if let Some(w) = world_of(server, &me) {
         w.detach_child(&me);
+        w.set_sticky_parent(&me, None);
     }
     let mut c = character.data();
     c.is_riding = false;
