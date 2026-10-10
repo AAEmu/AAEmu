@@ -9,6 +9,8 @@
 pub mod object;
 pub mod session;
 pub mod unit_state;
+#[cfg(test)]
+mod unit_state_tests;
 pub mod visibility;
 
 use std::collections::HashMap;
@@ -17,7 +19,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use dashmap::DashMap;
 
-use crate::data::world_templates::{WorldTemplate, REGION_SIZE};
+use crate::data::world_templates::{WorldTemplate, REGION_SIZE, SECTORS_PER_CELL};
 use crate::data::GameData;
 use crate::managers::name::NameManager;
 use crate::models::character::Character;
@@ -757,6 +759,20 @@ impl WorldInstance {
     pub fn objects_in_region(&self, region: (i32, i32)) -> Vec<WorldObject> {
         let grid = self.grid.lock().expect("grid poisoned");
         grid.objects(region).to_vec()
+    }
+
+    /// `GetInCell<GameObject>(x, y)`: the objects of every sector of a cell, sector by sector.
+    pub fn objects_in_cell(&self, x: i32, y: i32) -> Vec<WorldObject> {
+        let grid = self.grid.lock().expect("grid poisoned");
+        let mut out = Vec::new();
+        for a in x * SECTORS_PER_CELL..(x + 1) * SECTORS_PER_CELL {
+            for b in y * SECTORS_PER_CELL..(y + 1) * SECTORS_PER_CELL {
+                if self.template.valid_region(a, b) {
+                    out.extend(grid.objects((a, b)).iter().cloned());
+                }
+            }
+        }
+        out
     }
 
     /// The obj ids of one sector, in list order (tests / debugging).

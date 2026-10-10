@@ -679,6 +679,15 @@ pub struct UnitBase {
     pub hp_trigger_points_percent: Vec<i32>,
     /// `IncrementTriggerCount` / `GetTriggerCount` (buff id -> count).
     pub trigger_counts: HashMap<u32, i32>,
+    // ---- phase 3 / skills: add this subsystem's per-unit fields below ----
+
+    // ---- phase 3 / npcs: add this subsystem's per-unit fields below ----
+
+    // ---- phase 3 / economy: add this subsystem's per-unit fields below ----
+
+    // ---- phase 3 / social: add this subsystem's per-unit fields below ----
+
+    // ---- phase 3 / quests: add this subsystem's per-unit fields below ----
 }
 
 impl Default for UnitBase {
@@ -731,6 +740,15 @@ impl Default for UnitBase {
             bonuses: Bonuses::default(),
             hp_trigger_points_percent: Vec::new(),
             trigger_counts: HashMap::new(),
+            // ---- phase 3 / skills ----
+
+            // ---- phase 3 / npcs ----
+
+            // ---- phase 3 / economy ----
+
+            // ---- phase 3 / social ----
+
+            // ---- phase 3 / quests ----
         }
     }
 }

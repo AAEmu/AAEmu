@@ -4,6 +4,8 @@ Reference: `AAEmu.Game` at upstream `develop` 6e2f40734 (1.2 client, `client_12_
 Status: **done** = ported for its current C# scope, **partial** = only what the lobby / world
 entry / movement path needs, **todo** = not started.
 
+Layout rules, the object model API and testing conventions: `CONTRIBUTING-PORT.md`.
+
 ## 1.2 lobby flow (phase 1)
 
 ```
@@ -75,6 +77,22 @@ Sending: `ConnectionHandle::send` encodes and queues on the connection's writer 
 packets sent to a player from another connection's handler keep the C# call order relative to the
 packets its own handler sends.
 
+## Object model (phase 3a)
+
+All world objects share one model (details in `CONTRIBUTING-PORT.md` §2):
+
+```
+WorldObject = Player(Arc<Player>) | Npc | Doodad | Slave | Mate | House | Transfer | Shipyard | Gimmick
+              (Entity<D> = obj_id + ObjectCore{region, IsVisible, children} + Mutex<D>)
+D: Character | Npc | Doodad | Slave | Mate | House | Transfer | Shipyard | Gimmick
+   every unit kind embeds UnitBase (GameObject + BaseUnit + Unit members) and implements UnitData
+WorldInstance: objects (by obj id) + characters + region grid; spawn / show / hide / delete /
+   add_visible_object / remove_visible_object for every kind; around / objects_in_cell;
+   attach_child / world_pos_rot (parent transforms)
+systems::{skills, npcs, economy, social, quests}: Data (tables), System (managers), register
+   (packets), start, save stages; systems::Hooks (UnitHooks: buff events, unit zone change)
+```
+
 ## Subsystems
 
 | Area (C#) | Rust | Status | Notes |
@@ -82,7 +100,7 @@ packets its own handler sends.
 | `Core/Network/Game` (GameNetwork, GameProtocolHandler, GamePacket) | `net/` | done | Levels 1/2 framing, registry keyed by (level, opcode), `0xFFF` packets dropped on send. |
 | `Core/Network/Connections` (GameConnection, GameConnectionTable, GameState) | `net/connection.rs`, `world/session.rs` | partial | ActiveChar, LeaveTask (+ cancel), OnDisconnect / SaveAndRemoveFromWorld. Houses, session attributes, connection subscribers todo. |
 | `Core/Network/Login` + `Packets/G2L`, `Packets/L2G` | `login/` | done | All 5 G2L and 4 L2G packets (byte-identical), LoadTask, reconnect loop. |
-| `Core/Network/Stream` + `Packets/C2S`, `Packets/S2C` (stream server) | `stream/` | done | StreamNetwork listener on `StreamNetwork.Host:Port`, `[u16 len][u16 op][body]` framing, connection table, all 17 CT and 15 TC packets (byte-exact). World lookups go through `stream::world::StreamWorld`, implemented by `stream_world::GameStreamWorld` (names, items/UCC ids, ActiveChar, money, Crest Ink grant; doodad cells are empty until doodads are ported). Truncated packet bodies close the connection (C# reads zeros). |
+| `Core/Network/Stream` + `Packets/C2S`, `Packets/S2C` (stream server) | `stream/` | done | StreamNetwork listener on `StreamNetwork.Host:Port`, `[u16 len][u16 op][body]` framing, connection table, all 17 CT and 15 TC packets (byte-exact). World lookups go through `stream::world::StreamWorld`, implemented by `stream_world::GameStreamWorld` (names, items/UCC ids, ActiveChar, money, Crest Ink grant, doodads of a cell via `WorldInstance::objects_in_cell`). Truncated packet bodies close the connection (C# reads zeros). |
 | `Core/Packets/C2G` | `packets/c2g.rs`, `packets/c2g_world.rs` | partial | X2EnterWorld, CSLeaveWorld, CSCancelLeaveWorld, CSListCharacter, CSCreateCharacter, CSDeleteCharacter, CSCancelCharacterDelete, CSSelectCharacter, CSSpawnCharacter, CSNotifyInGame, CSNotifyInGameCompleted, CSMoveUnit, CSSendChatMessage. Others todo; full opcode table in `opcodes.rs`. |
 | `Core/Packets/G2C` | `packets/g2c.rs`, `packets/world.rs` | partial | Lobby packets + every packet sent by the phase-2 paths (≈45, byte-exact tests). `SCLoginCharInfoHouse`, `SCMyHouse`, item tasks, buff packets todo. |
 | `Core/Packets/Proxy` | `packets/proxy.rs` | done | All registered proxy packets (most are inert in C# too). |
@@ -91,16 +109,22 @@ packets its own handler sends.
 | `Core/Managers/AccountManager` | `managers/account.rs`, `db.rs` | partial | Add/Remove/Contains/Count, GetAccountDetails, UpdateLoginTime. Credits/labor/loyalty updates, dead-connection sweep todo. |
 | `Core/Managers/FeaturesManager`, `Models/Game/Features` | `data/features.rs` | done | |
 | `Core/Managers/ExperienceManager` (+ `SqliteExperienceLevelTemplateLoader`) | `data/experience.rs` | partial | Loader validation, level caps, GetExpForLevel, GetLevelFromExp (both overloads), GetSkillPointsForLevel. Mate/exp-loss helpers todo. |
-| `Core/Managers/Id/*` (`IdManager`, `BitSet`, `PrimeFinder`) | `managers/id.rs` | partial | Object, Character, Item, Container, Chat, VisitedSubZone, PrivateBook managers with the C# allocation algorithm and DB seeding. Other id managers todo. |
+| `Core/Managers/Id/*` (`IdManager`, `BitSet`, `PrimeFinder`) | `managers/id.rs` | done | Every C# id manager (incl. `distinct` for FamilyIdManager) with the C# allocation algorithm and DB seeding; `UccIdManager` in `stream/ucc.rs`. The static `SkillTlIdManager` is the skills subsystem's. |
 | `Core/Managers/NameManager` | `managers/name.rs` | done | Load, ValidateCharacterName (regex from `CharacterNameRegex`), Add/Remove, NormalizeName. |
 | `Core/Managers/ItemManager` (templates + user items) | `data/items.rs`, `managers/item.rs`, `models/item.rs`, `models/container.rs` | partial | Item templates of every class (durability / slot / bind / stack data), grades, item config; LoadUserItems (all containers and items in memory), GetItemContainerForCharacter, Create (subclass ctor incl. MaxDurability and the plain-Item fallback), ReleaseId, Save (dirty containers/items, deleted rows). Loot, enchanting, sets, procs, timers, item tasks todo. |
 | `Models/Game/Items/Containers` (ItemContainer, EquipmentContainer) | `models/container.rs` | partial | Slots, GetUnusedSlot, AddOrMoveExistingItem for new items (stacking, equipment slot rules, CanAccept), AcquireDefaultItem, ApplyBindRules, GetSlottedItemsList. Moving between containers, consuming, item task packets todo. |
 | `Core/Managers/UnitManagers/CharacterManager` | `data/character_templates.rs`, `managers/character.rs`, `db_character.rs` | partial | Load (templates, body parts, buffs, supplies, equip packs, appellations, actabilities, expert limits, CharTemplates.json), Create, SetDeleteCharacter, SetRestoreCharacter, CheckForDeletedCharacters(+Deletion) with the delete task, IsCharacterPendingDeletion, LoadCharacters. Bag expands, beauty salon, rolls, online tracking todo. |
 | `Models/Game/Char` (Character, Inventory, Abilities, Actability, Skills, Appellations, Portals, Friends, Blocked, Quests (rows), VisualOptions, ActionSlot) | `models/character.rs`, `models/char_data.rs`, `db_character.rs` | partial | Character.Load (both variants' columns), Character.Load() sub-loads, Save / SaveDirectlyToDatabase (characters, options, abilities, actabilities, appellations, active buffs, portals, friends, blocked, skills, quests), Write, CheckWantedThreshold (buffs + pirate faction). Mates, craft, combat, events todo. |
-| `Models/Game/Units/Buffs`, `Models/Game/Skills/Buff` | `models/buff.rs` | partial | Indices, stack rules, GetAllBuffs, CheckBuff, RemoveBuff, persistence (SaveActiveBuffs / LoadActiveBuffs) and the NetBuff wire format. Effects, bonuses, timers/dispel, packets todo. |
+| `Models/Game/Units/Buffs`, `Models/Game/Skills/Buff` | `models/buff.rs`, `systems/mod.rs` | partial | Indices, stack rules, GetAllBuffs, CheckBuff(s), GetEffectByIndex / FromBuffId, GetBuffCountById, RemoveBuff / RemoveEffect (index, template+skill) / RemoveAllEffects, persistence (SaveActiveBuffs / LoadActiveBuffs), the NetBuff wire format and `BuffEvent`s (started / refreshed / removed) dispatched to `systems::UnitHooks`. Effects (`Start` / `Dispel`), tolerance, triggers, `TriggerRemoveOn`, tag checks, timers, buff packets: skills subsystem. |
+| `Models/Game/World/GameObject`, `Models/Game/Units/{BaseUnit,Unit,IBaseUnit,IUnit,BaseUnitType,UnitTypeFlag,ModelPostureType}` | `models/unit.rs`, `world/object.rs` | partial | All data members (`UnitBase`), `Hpp`, `IsDead`, `NeedsRegen`, trigger counts, `CalculateWithBonuses`, `UnitData` / `BaseUnitData` traits, handles (`Entity<D>`, `WorldObject`). Behaviour (`ReduceCurrentHp`, `DoDie`, `CanAttack`, regen, aggro, `UseSkill`, `SetFaction`, `UpdateGearBonuses`) belongs to the phase-3 subsystems. |
+| `Models/Game/Units/{UnitCooldowns,CombatBuffs,UnitAttribute,UnitModifierType}`, `Models/Game/Skills/{Bonus,DynamicBonus,SkillModifier(s),BuffModifier(s)}`, `Skills/Static/{SkillAttribute,BuffAttribute}`, `Templates/{BonusTemplate,DynamicBonusTemplate,LinearFuncTemplate}` | `models/unit.rs` | done / partial | Data model + pure logic (`ApplyModifiers`, `Evaluate`, cooldown checks). The DB loaders for the rows and `TriggerCombatBuffs` are the skills subsystem's. |
+| `Models/Game/World/Transform` (`Transform`, `PositionAndRotation`) | `models/transform.rs`, `world/mod.rs` | partial | Local position/rotation, `ToRollPitchYawSBytes/Shorts`, quaternions, `GetWorldPosition` parent composition (`WorldInstance::world_pos_rot`), `GetRootObj`, attach / detach children. Sticky parents, debug trackers, `FinalizeTransform` batching: later. |
+| `Models/Game/NPChar/Npc`, `Units/Portal`, `DoodadObj/Doodad`, `Units/{Slave,Mate,Transfer}`, `Housing/House`, `Shipyard/{Shipyard,ShipyardData}`, `Gimmicks/Gimmick` | `models/{npc,doodad,slave,mate,transfer,house,shipyard,gimmick}.rs` | partial | Identity / state fields the visibility packets read, `Doodad.Write`, `House.Write`, `ShipyardData.Write`, `Gimmick.Write`, `TimeLeft`. Templates, funcs, spawners, AI, physics, persistence: phase-3 subsystems. |
+| `Core/Packets/G2C` object visibility (`SCUnitStatePacket` all kinds, `SCDoodadCreated/sCreated/Removed/sRemoved`, `SCGimmicksCreated/Removed`, `SCGimmickJointsBroken`, `SCHouseState`, `SCShipyardState`, `SCMateState`, `SCSlaveState`, `SCTargetChanged`, `SCUnitAttached`) | `packets/world_objects.rs`, `world/unit_state.rs`, `world/visibility.rs` | done | Byte-exact tests (`world/unit_state_tests.rs`, `packets/world_objects.rs`, `object_flow_tests.rs`). The NPC reference-height adjust in `SCUnitStatePacket` needs heightmaps (todo). |
+| Phase-3 subsystem framework | `systems/` | done | Per-subsystem data / managers / packets / start / save stages / hooks; packet registration per module with duplicate detection. |
 | `Core/Managers/SkillManager` | `data/skills.rs` | partial | skills (learning fields), default_skills, passive_buffs, buffs (subset), start-ability / common skill lists. Effects, plots, tags, modifiers todo. |
 | `Core/Managers/FormulaManager` + Jace engine | `data/formulas.rs`, `models/stats.rs` | done / partial | Formula tables + a Jace-compatible evaluator (differentially tested against Jace 1.0.0). Character Str..Fai / MaxHp / MaxMp from the unit formulas; bonuses and gear stats are approximated (see deviations). |
-| `Core/Managers/World/WorldManager` (+ `WorldInstance`, `Region`) | `world/mod.rs`, `data/world_templates.rs` | partial | World templates from `game/worlds/*/world.xml` (directory or game_pak) + world_spawns.json, GetZoneId, main_world instance, region grid, AddVisibleObject / RemoveVisibleObject / AddToCharacters / RemoveFromCharacters, GetAround, server/instance character lists, UsedCharacterObjIds, OnPlayerJoin. Players only (NPCs, doodads, gimmicks, slaves, mates, transfers, heightmaps, water, physics todo). |
+| `Core/Managers/World/WorldManager` (+ `WorldInstance`, `Region`) | `world/mod.rs`, `world/visibility.rs`, `data/world_templates.rs` | partial | World templates from `game/worlds/*/world.xml` (directory or game_pak) + world_spawns.json, GetZoneId, main_world instance, region grid, AddVisibleObject / RemoveVisibleObject / AddToCharacters / RemoveFromCharacters (all object kinds, region batches, children, the non-player removal filter), Show / Hide / Spawn / Delete, AddObject / RemoveObject / Get* lookups, GetAround, GetInCell, GetRegion / GetRootObj, server/instance character lists, UsedCharacterObjIds, OnPlayerJoin. Heightmaps, water, physics, `ResendVisibleObjectsToCharacter` todo. |
 | `IO` (ClientFileManager, AAPak) | `data/client_files.rs`, `data/pak.rs` | done | Read-only pak (types A/B/F) and directory sources, file listing semantics of both. |
 | `Core/Managers/World/ZoneManager` | `data/world_data.rs` | partial | zones, zone_groups, conflict_zones (initial state only; the state timers are todo). |
 | `Core/Managers/World/FactionManager`, `LocalizationManager` | `data/world_data.rs` | partial | system factions (+ localized names), relations, SendFactions / SendRelations. Relation checks todo. |
@@ -109,7 +133,7 @@ packets its own handler sends.
 | `Core/Managers/PortalManager` | `data/world_data.rs` | partial | recalls.json + district_return_points (GetRecallBySubZoneId, GetDistrictReturnPoint). Teleports, world gates, respawns todo. |
 | `Core/Managers/ChatManager`, `Models/Game/Chat` | `managers/chat.rs`, `world/session.rs` | partial | Faction / nation / zone / guild / family channels, join/leave/send; CSSendChatMessage for every chat type (party/raid -> "not in party/raid" errors as there are no teams). Trial channels, commands todo. |
 | `Core/Managers/TimeManager` (+ `TimeOfDayObserver`) | `managers/time.rs` | done | Storm-ship time override todo. |
-| `Core/Managers/SaveManager` | `managers/save.rs` | partial | Periodic + final save of items and online characters. Houses, mails, auction, crimes, slaves todo. |
+| `Core/Managers/SaveManager` | `managers/save.rs` | partial | Periodic + final save of items and online characters; the subsystems' rows through `systems::save_stage` (`BeforeItems`: houses, mails; `AfterItems`: auction, crimes; `AfterCharacters`: slaves). |
 | `Core/Managers/World/StreamManager` | `managers/stream.rs`, `stream/cells.rs` | done | AddToken/RemoveToken/Login (wrong account removes the token, as C#), RequestCell/ContinueCell incl. the C# `next - 1` copy off-by-one. |
 | `Core/Managers/Stream/UccManager`, `Models/Stream`, `Core/Managers/Id/UccIdManager` | `stream/ucc.rs`, `stream/models.rs` | partial | Load/Save (`uccs` table, data in the MEDIUMBLOB as the default C# build), upload (simple + custom), download, checks, id allocation. `CreateStamp`/`ApplyStamp` (item-side, used by skill effects) todo. ConfirmDefaultUcc saves before granting the Crest Ink (C# creates the item first). |
 | `Core/Managers/TimedRewardsManager` | – | todo | Daily login + offline labor on enter (called from AccountManager.Add). |
@@ -123,7 +147,41 @@ packets its own handler sends.
 | Other `Models/Game/*` (AI, Achievement, Auction, Crafts, Crime, DoodadObj, Mails, Mate, NPChar, Quests logic, Slaves, Team, ...) | – | todo | |
 | `Scripts/Commands`, `Utils/Scripts` | – | todo | Chat commands behave like the C# with no commands loaded ("No commands available" + the text is sent as chat). |
 | `Services` (WebApi, DiscordBot) | – | todo | |
-| `GameService` startup / `ManagerOrchestrator` | `main.rs` | partial | MySQL check, game data (fatal on failure), id managers, names, expeditions, friends, user items, StreamWorld, time, save manager, deletion task, login link, game + stream listeners, final save. |
+| `GameService` startup / `ManagerOrchestrator` | `main.rs`, `systems/mod.rs` | partial | MySQL check, game data (fatal on failure), id managers, names, expeditions, friends, user items, StreamWorld, time, save manager, deletion task, `systems::start_all`, login link, game + stream listeners, final save. |
+
+## Phase 3 subsystems
+
+Each subsystem records its status here, in its own section only (see `CONTRIBUTING-PORT.md` §3).
+
+### systems::skills
+
+| Area (C#) | Rust | Status | Notes |
+|---|---|---|---|
+| SkillManager, effects, plots, buff behaviour, combat, cooldowns | `systems/skills/` | todo | Foundation: `models::unit`, `models::buff` (`BuffEvent`), `systems::UnitHooks`. |
+
+### systems::npcs
+
+| Area (C#) | Rust | Status | Notes |
+|---|---|---|---|
+| NpcManager, DoodadManager, SpawnManager, GimmickManager, AI | `systems/npcs/` | todo | Foundation: `models::{npc,doodad,gimmick}`, `world::object`, `WorldInstance::spawn`. |
+
+### systems::economy
+
+| Area (C#) | Rust | Status | Notes |
+|---|---|---|---|
+| Item actions / tasks, craft, loot, mail, auction, trade, cash shop | `systems/economy/` | todo | |
+
+### systems::social
+
+| Area (C#) | Rust | Status | Notes |
+|---|---|---|---|
+| Team, expedition management, family, friends add/remove, duel, crime / trial | `systems/social/` | todo | |
+
+### systems::quests
+
+| Area (C#) | Rust | Status | Notes |
+|---|---|---|---|
+| QuestManager, quest templates / acts / components | `systems/quests/` | todo | |
 
 ## Known deviations from the C#
 
@@ -144,6 +202,14 @@ packets its own handler sends.
   unit formula evaluates to 0 (C# throws). `UpdateGearBonuses` is not ported.
 * Buffs never expire on their own (no effect / dispel tasks), are never removed on move
   (`BuffRemoveOn.Move`) and have no effects; buff packets (`SCBuffCreated` etc.) are not sent.
+  `Buffs.RemoveBuff` removes only the first matching effect, as in C# (phase 2 removed all).
+* Phase 3a object model: C# virtual getters that read templates (`Npc.Scale`, `RaceGender`,
+  `AnimActionId`, `MaxHp`, `Doodad.TimeLeft` funcs, `House.Template.*`) are stored fields that
+  the owning subsystem keeps current. `DynamicBonus` copies `StartTime` / `Duration` of its
+  source buff instead of referencing it. The NPC `SCUnitStatePacket` height adjustment
+  (`GetReferenceHeight`) is not done (no heightmaps).
+* `ChatIdManager` / `PrivateBookIdManager` now use the 1.2 C# ranges (`1..0xFFFE`,
+  `0x1000..0xFFFFFF`); phase 2 had `1..0xFFFFFF` / `1..0xFFFFFF`.
   `save_rule_id` / `real_time` default to 0 / false when the `buffs` table lacks those columns.
 * Quests: only the rows are loaded / saved / written; the quest template existence check,
   `QuestInitialized` / `RequestEvaluation` and the daily reset at login need the QuestManager.
@@ -170,7 +236,18 @@ packets its own handler sends.
 
 * `WorldManager.RemoveVisibleObject` calls `RemoveFromCharacters` on the object's own region and
   then again for every neighbour, which includes that region: players in the same sector receive
-  `SCUnitsRemovedPacket` twice (and the leaving player twice the list of its sector).
+  `SCUnitsRemovedPacket` (or `SCDoodadRemovedPacket`, ...) twice (and the leaving player twice the
+  list of its sector).
+* `WorldManager.AddVisibleObject` on a first placement shows the children through
+  `GameObject.AddVisibleObject` and then places each region-less child itself, whose own
+  `AddToCharacters` shows it again: a child is sent twice.
+* `Region.RemoveFromCharacters` for a character: gimmicks are units, so their ids are in both
+  `SCUnitsRemovedPacket` and `SCGimmicksRemovedPacket`.
+* `House.RemoveVisibleObject`: the `SCDoodadsRemovedPacket` chunk offset is
+  `i * MaxCountPerPacket` with `i` already stepping by `MaxCountPerPacket`, so with more than 400
+  attached doodads the second chunk throws; only the first chunk is sent (an error is logged).
+* `Region.AddObject` / `RemoveObject` swap-remove: an object that leaves a sector moves the last
+  entry into its slot, which changes the order other players later receive the sector in.
 * `new SCFactionListPacket()` / `new SCFactionRelationListPacket()` (empty lists) use the
   hard-coded type ids 0x007 / 0x008, which are `SCTrionConfigPacket` / `SCFactionListPacket` in
   the 1.2 table.

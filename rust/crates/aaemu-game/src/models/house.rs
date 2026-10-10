@@ -135,3 +135,62 @@ impl_unit_data!(House, BaseUnitType::Housing, unit_type_flag::HOUSING, {
         ModelPostureType::HouseState
     }
 });
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn house_state_layout() {
+        let mut h = House::new(0x0A0B0C0D, 300);
+        h.unit.tl_id = 7;
+        h.unit.model_id = 0x10;
+        h.unit.owner_id = 5;
+        h.unit.name = "Hut".into();
+        h.co_owner_id = 6;
+        h.account_id = 9;
+        h.permission = housing_permission::PUBLIC;
+        h.current_step = 1;
+        h.all_action = 40;
+        h.base_action = 3;
+        h.num_action = 4;
+        h.tax = 250;
+        h.allow_recover = true;
+        h.sell_price = 1000;
+        h.sell_to_player_id = 8;
+        let pos = PositionAndRotation::new(1.0, 2.0, 3.5, 0.0, 0.0, 0.0);
+        let mut s = PacketStream::new();
+        h.write(0x010203, &pos, "Own", "", &mut s);
+
+        let mut e = PacketStream::new();
+        e.write_u16(7)
+            .write_u32(0x0A0B0C0D)
+            .write_bc(0x010203)
+            .write_u32(300)
+            .write_pisc(&[0x10, 0])
+            .write_u32(6)
+            .write_u32(5)
+            .write_str("Own")
+            .write_u32(9)
+            .write_u8(2)
+            .write_i32(40)
+            .write_i32(7) // CurrentAction = base + num
+            .write_i32(250)
+            .write_i64(4096 << 32)
+            .write_i64(8192 << 32)
+            .write_f32(3.5)
+            .write_str("Hut")
+            .write_bool(true)
+            .write_u32(1000)
+            .write_u32(8)
+            .write_str("");
+        assert_eq!(s.as_bytes(), e.as_bytes());
+
+        // Finished house: allstep / curstep are 0.
+        h.current_step = -1;
+        let mut s2 = PacketStream::new();
+        h.write(0x010203, &pos, "Own", "", &mut s2);
+        assert_eq!(s2.len(), s.len());
+        assert_eq!(s2.as_bytes()[34..42], [0; 8]);
+    }
+}

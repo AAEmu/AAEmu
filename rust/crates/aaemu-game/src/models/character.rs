@@ -206,6 +206,15 @@ pub struct Character {
     pub finished_loading: bool,
     pub disabled_set_position: bool,
     pub breath: u32,
+    // ---- phase 3 / skills: add this subsystem's Character fields below ----
+
+    // ---- phase 3 / npcs: add this subsystem's Character fields below ----
+
+    // ---- phase 3 / economy: add this subsystem's Character fields below ----
+
+    // ---- phase 3 / social: add this subsystem's Character fields below ----
+
+    // ---- phase 3 / quests: add this subsystem's Character fields below ----
 }
 
 /// `Guid.NewGuid().ToByteArray()` (random, version 4 / variant 1).
@@ -306,6 +315,15 @@ impl Character {
             finished_loading: false,
             disabled_set_position: false,
             breath: 60_000,
+            // ---- phase 3 / skills ----
+
+            // ---- phase 3 / npcs ----
+
+            // ---- phase 3 / economy ----
+
+            // ---- phase 3 / social ----
+
+            // ---- phase 3 / quests ----
         }
     }
 

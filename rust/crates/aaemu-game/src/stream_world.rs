@@ -25,9 +25,35 @@ pub struct GameStreamWorld {
 }
 
 impl StreamWorld for GameStreamWorld {
-    fn doodads_in_cell(&self, instance_id: u32, _x: i32, _y: i32) -> Option<Vec<StreamDoodad>> {
-        // Doodads are a later phase; an unknown instance is still `None` (C# NRE).
-        self.world.world(instance_id).map(|_| Vec::new())
+    fn doodads_in_cell(&self, instance_id: u32, x: i32, y: i32) -> Option<Vec<StreamDoodad>> {
+        // An unknown instance is `None` (C# NRE).
+        let world = self.world.world(instance_id)?;
+        let now = crate::world::now_ms();
+        let doodads = world
+            .objects_in_cell(x, y)
+            .into_iter()
+            .filter(|o| o.as_doodad().is_some())
+            .map(|o| {
+                let pos = world.world_pos_rot(&o);
+                let (roll, pitch, yaw) = pos.roll_pitch_yaw_shorts();
+                let d = o.as_doodad().expect("doodad").data();
+                StreamDoodad {
+                    obj_id: o.obj_id(),
+                    template_id: d.template_id,
+                    x: pos.x,
+                    y: pos.y,
+                    z: pos.z,
+                    roll,
+                    pitch,
+                    yaw,
+                    scale: d.scale,
+                    func_group_id: d.func_group_id,
+                    time_left: d.time_left(now),
+                    plant_time: d.plant_time,
+                }
+            })
+            .collect();
+        Some(doodads)
     }
 
     fn character_name(&self, character_id: u32) -> Option<String> {

@@ -29,7 +29,7 @@ use crate::net::connection::{ConnCommand, GameConnection, GameState};
 use crate::packets::proxy::ChangeStatePacket;
 use crate::packets::world::*;
 use crate::server::GameServer;
-use crate::world::{broadcast, unit_state, Player, PlayerRef, WorldInstance};
+use crate::world::{broadcast, unit_state, Player, PlayerRef, WorldInstance, WorldObject};
 
 /// `LeaveWorldTargetType`.
 pub mod leave_target {
@@ -152,18 +152,27 @@ fn expedition_refresh(server: &GameServer, p: &PlayerRef) {
 }
 
 /// Dispatches the `OnZoneChange` calls collected by a visibility update (after the grid lock is
-/// released): `Character.OnZoneChange` for players; other units' `Unit.OnZoneChange` (zone
-/// group buffs) is TODO(skills).
+/// released): `Character.OnZoneChange` for players, `Unit.OnZoneChange` (zone group buffs:
+/// `systems::UnitHooks::on_unit_zone_change`) for the other units. Doodads have no override.
 pub fn handle_zone_changes(server: &GameServer, changes: Vec<crate::world::ZoneChange>) {
     for z in changes {
         if let Some(p) = z.object.as_player() {
             on_zone_change(server, p, z.old_zone, z.new_zone);
+        } else if z.object.is_unit() {
+            // Unit.OnZoneChange (Mate / Slave overrides call it first too).
+            if let Some(h) = server.systems.hooks.unit.get() {
+                h.on_unit_zone_change(server, &z.object, z.old_zone, z.new_zone);
+            }
         }
     }
 }
 
 /// `Character.OnZoneChange(lastZoneKey, newZoneKey)`.
 pub fn on_zone_change(server: &GameServer, p: &PlayerRef, last_zone: u32, new_zone: u32) {
+    // base.OnZoneChange (Unit: zone group buffs) -> the skills subsystem's hook.
+    if let Some(h) = server.systems.hooks.unit.get() {
+        h.on_unit_zone_change(server, &WorldObject::from(p), last_zone, new_zone);
+    }
     let zones = &server.game_data.zones;
     let last = zones.zone_by_key(last_zone).cloned();
     let new = zones.zone_by_key(new_zone).cloned();

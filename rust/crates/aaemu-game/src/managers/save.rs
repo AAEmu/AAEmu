@@ -1,6 +1,7 @@
 //! `Core/Managers/SaveManager`: the periodic save (`AutoSaveInterval` minutes) of items and
-//! online characters in one transaction, and the final save on shutdown. Houses, mails, auction
-//! and crime records are later phases (their managers are not ported).
+//! online characters in one transaction, and the final save on shutdown. The subsystems' rows
+//! (houses, mails, auction, crimes, slaves) are written by `systems::save_stage` at the C#
+//! positions of the transaction.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -10,6 +11,7 @@ use chrono::Utc;
 
 use crate::db_character::save_character;
 use crate::server::GameServer;
+use crate::systems::{save_stage, SaveStage};
 
 #[derive(Debug, Default)]
 pub struct SaveManager {
@@ -29,7 +31,9 @@ impl SaveManager {
         tracing::debug!("Saving DB ...");
         let res: crate::Result<bool> = async {
             let mut tx = server.db.begin().await?;
+            let mut systems = save_stage(server, &mut tx, SaveStage::BeforeItems).await?;
             let (items, deleted, containers) = server.items.save(&mut tx).await?;
+            systems += save_stage(server, &mut tx, SaveStage::AfterItems).await?;
             let mut characters = 0;
             for p in server.world.all_characters() {
                 let mut c = p.data().clone();
@@ -53,7 +57,8 @@ impl SaveManager {
                     }
                 }
             }
-            let total = items + deleted + containers + characters;
+            systems += save_stage(server, &mut tx, SaveStage::AfterCharacters).await?;
+            let total = items + deleted + containers + characters + systems;
             if total == 0 {
                 tracing::debug!("No data to update ...");
                 return Ok(true);

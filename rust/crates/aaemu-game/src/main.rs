@@ -91,6 +91,11 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("loading UCCs")?;
 
+    // Phase-3 subsystems (their managers' loads, timers and hooks).
+    aaemu_game::systems::start_all(&server)
+        .await
+        .context("starting subsystems")?;
+
     tokio::spawn(login::run(server.clone()));
     let network = tokio::spawn(net::listener::run(server.clone()));
     let stream_network = tokio::spawn(aaemu_game::stream::listener::run(server.clone()));

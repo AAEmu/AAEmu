@@ -59,6 +59,8 @@ impl std::fmt::Debug for Registration {
 #[derive(Debug, Default)]
 pub struct PacketRegistry {
     packets: HashMap<(u8, u16), Registration>,
+    /// (level, opcode, replaced name, new name) of every registration that replaced another.
+    duplicates: Vec<(u8, u16, &'static str, &'static str)>,
 }
 
 impl PacketRegistry {
@@ -69,14 +71,23 @@ impl PacketRegistry {
     /// `RegisterPacket(type, level, typeof(P))`. A later registration replaces an earlier one
     /// (C# `_packets[level][type] = classType`).
     pub fn register<P: ClientPacket>(&mut self, level: u8, opcode: u16) -> &mut Self {
-        self.packets.insert(
+        let old = self.packets.insert(
             (level, opcode),
             Registration {
                 name: P::NAME,
                 handler: dispatch::<P>,
             },
         );
+        if let Some(old) = old {
+            self.duplicates.push((level, opcode, old.name, P::NAME));
+        }
         self
+    }
+
+    /// Registrations that replaced an earlier one (two modules claiming the same opcode is a
+    /// porting mistake; `packets::tests::no_duplicate_registrations` guards against it).
+    pub fn duplicates(&self) -> &[(u8, u16, &'static str, &'static str)] {
+        &self.duplicates
     }
 
     pub fn get(&self, level: u8, opcode: u16) -> Option<Registration> {

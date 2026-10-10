@@ -39,55 +39,30 @@ macro_rules! raw_body_packet {
 }
 pub(crate) use raw_body_packet;
 
-use crate::net::packet::{LEVEL_PLAIN, LEVEL_PROXY};
 use crate::net::registry::PacketRegistry;
-use crate::opcodes::{cs, pp};
 
-/// `GameNetwork()` registrations for the packets ported so far. Every other C# registration is
-/// logged as "not ported yet" by the dispatcher (see `opcodes::cs::NAMES`).
+/// `GameNetwork()` registrations: one `register` call per module that owns C->S packets (this
+/// is the central list; a phase-3 subsystem registers through `systems::register_packets`).
+/// Every other C# registration is logged as "not ported yet" by the dispatcher (see
+/// `opcodes::cs::NAMES`).
 pub fn build_registry() -> PacketRegistry {
-    use c2g::*;
-    use c2g_world::*;
-    use proxy::*;
-
     let mut r = PacketRegistry::new();
-    // World / lobby
-    r.register::<X2EnterWorldPacket>(LEVEL_PLAIN, cs::X2EnterWorldPacket)
-        .register::<CSLeaveWorldPacket>(LEVEL_PLAIN, cs::CSLeaveWorldPacket)
-        .register::<CSListCharacterPacket>(LEVEL_PLAIN, cs::CSListCharacterPacket)
-        .register::<CSCancelLeaveWorldPacket>(LEVEL_PLAIN, cs::CSCancelLeaveWorldPacket)
-        .register::<CSCreateCharacterPacket>(LEVEL_PLAIN, cs::CSCreateCharacterPacket)
-        .register::<CSDeleteCharacterPacket>(LEVEL_PLAIN, cs::CSDeleteCharacterPacket)
-        .register::<CSCancelCharacterDeletePacket>(LEVEL_PLAIN, cs::CSCancelCharacterDeletePacket)
-        .register::<CSSelectCharacterPacket>(LEVEL_PLAIN, cs::CSSelectCharacterPacket)
-        .register::<CSSpawnCharacterPacket>(LEVEL_PLAIN, cs::CSSpawnCharacterPacket)
-        .register::<CSNotifyInGamePacket>(LEVEL_PLAIN, cs::CSNotifyInGamePacket)
-        .register::<CSNotifyInGameCompletedPacket>(LEVEL_PLAIN, cs::CSNotifyInGameCompletedPacket)
-        .register::<CSMoveUnitPacket>(LEVEL_PLAIN, cs::CSMoveUnitPacket)
-        .register::<CSSendChatMessagePacket>(LEVEL_PLAIN, cs::CSSendChatMessagePacket);
-
-    // Proxy
-    r.register::<ChangeStateClientPacket>(LEVEL_PROXY, pp::ChangeStatePacket)
-        .register::<FinishStatePacket>(LEVEL_PROXY, pp::FinishStatePacket)
-        .register::<FlushMsgsPacket>(LEVEL_PROXY, pp::FlushMsgsPacket)
-        .register::<UpdatePhysicsTimePacket>(LEVEL_PROXY, pp::UpdatePhysicsTimePacket)
-        .register::<BeginUpdateObjPacket>(LEVEL_PROXY, pp::BeginUpdateObjPacket)
-        .register::<EndUpdateObjPacket>(LEVEL_PROXY, pp::EndUpdateObjPacket)
-        .register::<BeginBindObjPacket>(LEVEL_PROXY, pp::BeginBindObjPacket)
-        .register::<EndBindObjPacket>(LEVEL_PROXY, pp::EndBindObjPacket)
-        .register::<UnbindPredictedObjPacket>(LEVEL_PROXY, pp::UnbindPredictedObjPacket)
-        .register::<RemoveStaticObjPacket>(LEVEL_PROXY, pp::RemoveStaticObjPacket)
-        .register::<VoiceDataPacket>(LEVEL_PROXY, pp::VoiceDataPacket)
-        .register::<UpdateAspectPacket>(LEVEL_PROXY, pp::UpdateAspectPacket)
-        .register::<SetAspectProfilePacket>(LEVEL_PROXY, pp::SetAspectProfilePacket)
-        .register::<PartialAspectPacket>(LEVEL_PROXY, pp::PartialAspectPacket)
-        .register::<SetGameTypeClientPacket>(LEVEL_PROXY, pp::SetGameTypePacket)
-        .register::<ChangeCVarPacket>(LEVEL_PROXY, pp::ChangeCVarPacket)
-        .register::<EntityClassRegistrationPacket>(LEVEL_PROXY, pp::EntityClassRegistrationPacket)
-        .register::<PingPacket>(LEVEL_PROXY, pp::PingPacket)
-        .register::<PongClientPacket>(LEVEL_PROXY, pp::PongPacket)
-        .register::<PacketSeqChange>(LEVEL_PROXY, pp::PacketSeqChange)
-        .register::<FastPingPacket>(LEVEL_PROXY, pp::FastPingPacket)
-        .register::<FastPongClientPacket>(LEVEL_PROXY, pp::FastPongPacket);
+    c2g::register(&mut r); // X2EnterWorld, leave world, character list
+    c2g_world::register(&mut r); // character lifecycle, world entry, movement, chat
+    proxy::register(&mut r); // level-2 proxy packets
+    crate::systems::register_packets(&mut r);
+    for (level, opcode, old, new) in r.duplicates() {
+        tracing::warn!("Packet 0x{opcode:03x}({level}) registered twice: {old} replaced by {new}");
+    }
     r
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn no_duplicate_registrations() {
+        let r = super::build_registry();
+        assert!(r.duplicates().is_empty(), "{:?}", r.duplicates());
+        assert_eq!(r.len(), 13 + 22);
+    }
 }

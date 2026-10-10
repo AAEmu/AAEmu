@@ -69,6 +69,8 @@ pub struct GameData {
     pub portals: PortalData,
     pub formulas: FormulaManager,
     pub worlds: WorldTemplates,
+    /// The phase-3 subsystems' tables (`systems::SystemsData`).
+    pub systems: crate::systems::SystemsData,
 }
 
 impl GameData {
@@ -100,6 +102,12 @@ impl GameData {
             worlds.default_world_template_id(),
         )?;
         let portals = PortalData::load(&conn, app_path, &localization)?;
+        let systems = crate::systems::SystemsData::load(&crate::systems::DataLoadCtx {
+            conn: &conn,
+            app_path,
+            files: &files,
+            language,
+        })?;
 
         let data = GameData {
             features: FeatureSet::initialized(
@@ -115,6 +123,7 @@ impl GameData {
             portals,
             formulas,
             worlds,
+            systems,
         };
         tracing::info!(
             "Game data loaded: max level {}/{}, {} item templates, {} worlds, fsets {}",
@@ -179,6 +188,15 @@ mod real_db_tests {
         let app = Path::new(&path).parent().unwrap().parent().unwrap();
         let chars = CharacterData::load(&conn, app, |_, _| 0, 0).unwrap();
         let portals = PortalData::load(&conn, app, &loc).unwrap();
+        // Every phase-3 subsystem's loaders (client files: none here).
+        let files = client_files::ClientFileManager::from_sources(&[], app);
+        let _systems = crate::systems::SystemsData::load(&crate::systems::DataLoadCtx {
+            conn: &conn,
+            app_path: app,
+            files: &files,
+            language: "en_us",
+        })
+        .unwrap();
         let stats = crate::models::stats::CharacterStats::compute(&formulas, 1);
         let stats50 = crate::models::stats::CharacterStats::compute(&formulas, 50);
         eprintln!(

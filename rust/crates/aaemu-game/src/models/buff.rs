@@ -2,9 +2,13 @@
 //! durations, stack rules (`Refresh` / `ChargeRefresh` / `MaxStack`), `GetAllBuffs`,
 //! `CheckBuff`, persistence rules (`ShouldPersistBuff`) and the `NetBuff` wire format.
 //!
-//! Not ported (later phase): buff effects and bonuses (`BuffTemplate.Start`), effect / dispel
-//! tasks (buffs never expire on their own here), tolerance counters, triggers, skill/buff
-//! modifier caches, `SCBuffCreatedPacket` broadcasts.
+//! Behaviour hooks: every effect that enters, is refreshed in or leaves `_effects` queues a
+//! [`BuffEvent`]; the owner drains them with `systems::dispatch_buff_events` once its lock is
+//! released, which hands them to the skills subsystem (`systems::UnitHooks::on_buff_event`).
+//!
+//! TODO(skills): buff effects and bonuses (`BuffTemplate.Start` / `Dispel`), effect / dispel
+//! tasks (buffs never expire on their own here), tolerance counters, triggers,
+//! `TriggerRemoveOn`, tag checks, modifier-cache updates, `SCBuffCreatedPacket` broadcasts.
 
 use aaemu_commons::PacketStream;
 
@@ -43,6 +47,8 @@ pub struct Buff {
     pub passive: bool,
     pub ab_level: u32,
     pub in_use: bool,
+    /// `Skill?.Template.Id` (0 = not from a skill).
+    pub skill_id: u32,
 }
 
 impl Buff {
@@ -65,6 +71,7 @@ impl Buff {
             passive: false,
             ab_level: 1,
             in_use: false,
+            skill_id: 0,
         }
     }
 
@@ -125,11 +132,28 @@ impl Buff {
     }
 }
 
+/// A change of a unit's effect list, for the behaviour hooks (see the module docs).
+#[derive(Debug, Clone, PartialEq)]
+pub enum BuffEvent {
+    /// A new effect entered `_effects` (C#: `OnBuffStarted`, `SkillModifiersCache` /
+    /// `BuffModifiersCache.AddModifiers`, `CombatBuffs.AddCombatBuffs`, stun / silence /
+    /// sleep -> `InterruptSkills`, then `SetInUse(true)` or `Template.Start`).
+    Started(Buff),
+    /// An existing effect was replaced by a stack rule (`last.OverwriteWith(buff)`); carries
+    /// the new state (old index kept).
+    Refreshed(Buff),
+    /// An effect left `_effects` (C#: `Template.Dispel`, `SetInUse(false)`, `RemoveModifiers`,
+    /// `CombatBuffs.RemoveCombatBuff`, gliding -> `TriggerRemoveOn(Land)`).
+    Removed(Buff),
+}
+
 /// `Buffs` (one per unit).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Buffs {
     pub effects: Vec<Buff>,
     next_index: u32,
+    /// Pending [`BuffEvent`]s (drained by `systems::dispatch_buff_events`).
+    events: Vec<BuffEvent>,
 }
 
 impl Default for Buffs {
@@ -137,6 +161,7 @@ impl Default for Buffs {
         Self {
             effects: Vec::new(),
             next_index: FIRST_BUFF_INDEX,
+            events: Vec::new(),
         }
     }
 }
@@ -149,9 +174,72 @@ impl Buffs {
             .any(|e| e.template.id > 0 && e.template.id == id)
     }
 
-    /// `RemoveBuff(buffId)` (effects only; no dispel / packet).
+    /// Takes the pending [`BuffEvent`]s.
+    pub fn take_events(&mut self) -> Vec<BuffEvent> {
+        std::mem::take(&mut self.events)
+    }
+
+    /// Whether events are waiting to be dispatched.
+    pub fn has_events(&self) -> bool {
+        !self.events.is_empty()
+    }
+
+    fn remove_at(&mut self, i: usize) {
+        let mut b = self.effects.remove(i);
+        b.in_use = false; // SetInUse(false)
+        self.events.push(BuffEvent::Removed(b));
+    }
+
+    /// `RemoveBuff(buffId)`: removes the first effect of that buff (the C# `break`s after one).
     pub fn remove_buff(&mut self, id: u32) {
-        self.effects.retain(|e| e.template.id != id);
+        if let Some(i) = self.effects.iter().position(|e| e.template.id == id) {
+            self.remove_at(i);
+        }
+    }
+
+    /// `RemoveEffect(index)`.
+    pub fn remove_effect_by_index(&mut self, index: u32) {
+        if let Some(i) = self.effects.iter().position(|e| e.index == index) {
+            self.remove_at(i);
+        }
+    }
+
+    /// `RemoveEffect(templateId, skillId)` (every match).
+    pub fn remove_effect_by_skill(&mut self, template_id: u32, skill_id: u32) {
+        while let Some(i) = self
+            .effects
+            .iter()
+            .position(|e| e.template.id == template_id && e.skill_id == skill_id)
+        {
+            self.remove_at(i);
+        }
+    }
+
+    /// `RemoveAllEffects()` (bookkeeping; C# `Exit()`s each effect, which removes it).
+    pub fn remove_all_effects(&mut self) {
+        while !self.effects.is_empty() {
+            self.remove_at(0);
+        }
+    }
+
+    /// `GetEffectByIndex(index)`.
+    pub fn effect_by_index(&self, index: u32) -> Option<&Buff> {
+        self.effects.iter().find(|e| e.index == index)
+    }
+
+    /// `GetEffectFromBuffId(id)`.
+    pub fn effect_from_buff_id(&self, id: u32) -> Option<&Buff> {
+        self.effects.iter().find(|e| e.template.id == id)
+    }
+
+    /// `CheckBuffs(ids)`: any of them.
+    pub fn check_buffs(&self, ids: &[u32]) -> bool {
+        ids.iter().any(|&id| self.check_buff(id))
+    }
+
+    /// `GetBuffCountById(buffId)`.
+    pub fn buff_count_by_id(&self, id: u32) -> i32 {
+        self.count_by_id(id)
     }
 
     fn count_by_id(&self, id: u32) -> i32 {
@@ -217,10 +305,13 @@ impl Buffs {
                 let idx = self.effects[i].index;
                 self.effects[i] = Buff { index: idx, ..buff };
                 self.effects[i].in_use = true;
+                self.events
+                    .push(BuffEvent::Refreshed(self.effects[i].clone()));
             }
             None => {
                 buff.tick = buff.template.tick;
                 buff.in_use = true;
+                self.events.push(BuffEvent::Started(buff.clone()));
                 self.effects.push(buff);
             }
         }
@@ -286,6 +377,36 @@ mod tests {
         assert!(b.check_buff(10));
         let (g, bad, h) = b.all_buffs(false).unwrap();
         assert_eq!((g.len(), bad.len(), h.len()), (1, 0, 0));
+        let ev = b.take_events();
+        assert!(
+            matches!(&ev[..], [BuffEvent::Started(s), BuffEvent::Refreshed(r)]
+            if s.index == 2 && r.start_time_ms == 500)
+        );
+        assert!(!b.has_events());
+    }
+
+    #[test]
+    fn removal_is_first_match_and_queues_events() {
+        let mut b = Buffs::default();
+        let t = BuffTemplate::simple(10, BuffKind::Good);
+        for _ in 0..2 {
+            b.add_buff(
+                Buff::new(t.clone(), SkillCaster::default(), None, 0),
+                0,
+                0,
+                0,
+            );
+        }
+        b.take_events();
+        b.remove_buff(10);
+        assert_eq!(b.buff_count_by_id(10), 1);
+        assert_eq!(b.effects[0].index, 3);
+        b.remove_all_effects();
+        let ev = b.take_events();
+        assert!(
+            matches!(&ev[..], [BuffEvent::Removed(x), BuffEvent::Removed(y)]
+            if x.index == 2 && y.index == 3 && !y.in_use)
+        );
     }
 
     #[test]

@@ -75,3 +75,47 @@ impl Gimmick {
 
 // C#: `TypeFlag => None`, `BaseUnitType` not overridden (Invalid).
 impl_unit_data!(Gimmick, BaseUnitType::Invalid, unit_type_flag::NONE);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gimmick_write_layout() {
+        let mut g = Gimmick::new(44);
+        g.entity_guid = -2;
+        g.unit.faction_id = 1;
+        g.unit.transform.zone_id = 100;
+        g.model_path = "m".into();
+        g.vel = [1.0, 2.0, 3.0];
+        g.scale_vel = 0.5;
+        let pos = PositionAndRotation::new(1.0, 2.0, 3.0, 0.0, 0.0, 0.0);
+        let mut s = PacketStream::new();
+        g.write(0x0102, &pos, &mut s);
+        let mut e = PacketStream::new();
+        e.write_u32(0x0102)
+            .write_u32(44)
+            .write_i64(-2)
+            .write_u32(1)
+            .write_u32(0)
+            .write_u32(0)
+            .write_u32(100)
+            .write_str("m")
+            .write_i64(4096 << 32)
+            .write_i64(8192 << 32)
+            .write_f32(3.0)
+            .write_f32(0.0) // identity quaternion x, y, z, w
+            .write_f32(0.0)
+            .write_f32(0.0)
+            .write_f32(1.0)
+            .write_f32(1.0) // scale
+            .write_f32(1.0)
+            .write_f32(2.0)
+            .write_f32(3.0)
+            .write_f32(0.0)
+            .write_f32(0.0)
+            .write_f32(0.0)
+            .write_f32(0.5);
+        assert_eq!(s.as_bytes(), e.as_bytes());
+    }
+}

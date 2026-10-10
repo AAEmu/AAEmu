@@ -257,6 +257,15 @@ impl ClientPacket for CSLeaveWorldPacket {
     }
 }
 
+/// Registers the C->S packets of this module (enter world, leave world, character list).
+pub fn register(r: &mut crate::net::registry::PacketRegistry) {
+    use crate::net::packet::LEVEL_PLAIN;
+    use crate::opcodes::cs;
+    r.register::<X2EnterWorldPacket>(LEVEL_PLAIN, cs::X2EnterWorldPacket)
+        .register::<CSLeaveWorldPacket>(LEVEL_PLAIN, cs::CSLeaveWorldPacket)
+        .register::<CSListCharacterPacket>(LEVEL_PLAIN, cs::CSListCharacterPacket);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

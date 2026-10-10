@@ -46,6 +46,8 @@ pub struct GameServer {
     pub expeditions: ExpeditionManager,
     pub friends: FriendManager,
     pub save: SaveManager,
+    /// The phase-3 subsystems' managers and behaviour hooks (`systems`).
+    pub systems: crate::systems::Systems,
     /// A weak self reference for the timers that outlive a packet handler.
     self_ref: std::sync::OnceLock<std::sync::Weak<GameServer>>,
     next_connection_id: AtomicU32,
@@ -73,6 +75,7 @@ impl GameServer {
             expeditions: ExpeditionManager::default(),
             friends: FriendManager::default(),
             save: SaveManager::default(),
+            systems: crate::systems::Systems::default(),
             config,
             db,
             game_data: Arc::new(game_data),

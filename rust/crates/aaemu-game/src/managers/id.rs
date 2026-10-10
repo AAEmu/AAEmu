@@ -116,6 +116,8 @@ pub struct IdManagerSpec {
     pub first_id: u32,
     pub last_id: u32,
     pub obj_tables: &'static [(&'static str, &'static str)],
+    /// `distinct` (only `FamilyIdManager`): `SELECT DISTINCT`, duplicates allowed.
+    pub distinct: bool,
 }
 
 /// `IdManager`.
@@ -125,6 +127,7 @@ pub struct IdManager {
     first_id: u32,
     free_id_size: usize,
     obj_tables: &'static [(&'static str, &'static str)],
+    distinct: bool,
     state: Mutex<State>,
 }
 
@@ -136,6 +139,7 @@ impl IdManager {
             first_id: spec.first_id,
             free_id_size,
             obj_tables: spec.obj_tables,
+            distinct: spec.distinct,
             state: Mutex::new(State {
                 free_ids: BitSet::new(0),
                 free_id_count: 0,
@@ -202,9 +206,10 @@ impl IdManager {
             return Ok(Vec::new());
         }
         let (t0, c0) = self.obj_tables[0];
-        let mut query = format!("SELECT CAST({c0} AS UNSIGNED) AS v, 0 AS i FROM {t0}");
+        let d = if self.distinct { "DISTINCT " } else { "" };
+        let mut query = format!("SELECT {d}CAST({c0} AS UNSIGNED) AS v, 0 AS i FROM {t0}");
         for (i, (t, c)) in self.obj_tables.iter().enumerate().skip(1) {
-            query += &format!(" UNION SELECT CAST({c} AS UNSIGNED), {i} FROM {t}");
+            query += &format!(" UNION SELECT {d}CAST({c} AS UNSIGNED), {i} FROM {t}");
         }
         let counts = sqlx::query(&format!(
             "SELECT COUNT(*) AS a, COUNT(DISTINCT v) AS b FROM ( {query} ) AS all_ids"
@@ -212,7 +217,7 @@ impl IdManager {
         .fetch_one(pool)
         .await?;
         let (a, b): (i64, i64) = (counts.try_get("a")?, counts.try_get("b")?);
-        if a != b {
+        if a != b && !self.distinct {
             return Err(crate::GameError::Protocol(
                 "IdManager: there are duplicates in object ids".into(),
             ));
@@ -289,6 +294,7 @@ pub const OBJECT_ID: IdManagerSpec = IdManagerSpec {
     first_id: 0x0000_0100,
     last_id: 0x00FF_FFFE,
     obj_tables: &[],
+    distinct: false,
 };
 /// `CharacterIdManager`.
 pub const CHARACTER_ID: IdManagerSpec = IdManagerSpec {
@@ -296,6 +302,7 @@ pub const CHARACTER_ID: IdManagerSpec = IdManagerSpec {
     first_id: 0x0000_0001,
     last_id: 0x00FF_FFFF,
     obj_tables: &[("characters", "id"), ("slaves", "id")],
+    distinct: false,
 };
 /// `ItemIdManager`.
 pub const ITEM_ID: IdManagerSpec = IdManagerSpec {
@@ -303,6 +310,7 @@ pub const ITEM_ID: IdManagerSpec = IdManagerSpec {
     first_id: 0x0100_0000,
     last_id: 0xFFFF_FFFF,
     obj_tables: &[("items", "id")],
+    distinct: false,
 };
 /// `ContainerIdManager`.
 pub const CONTAINER_ID: IdManagerSpec = IdManagerSpec {
@@ -310,13 +318,15 @@ pub const CONTAINER_ID: IdManagerSpec = IdManagerSpec {
     first_id: 0x0001_0000,
     last_id: 0xFFFF_FFFF,
     obj_tables: &[("item_containers", "container_id")],
+    distinct: false,
 };
 /// `ChatIdManager`.
 pub const CHAT_ID: IdManagerSpec = IdManagerSpec {
     name: "ChatIdManager",
     first_id: 0x0000_0001,
-    last_id: 0x00FF_FFFF,
+    last_id: 0x0000_FFFE,
     obj_tables: &[],
+    distinct: false,
 };
 /// `VisitedSubZoneIdManager`.
 pub const VISITED_SUB_ZONE_ID: IdManagerSpec = IdManagerSpec {
@@ -324,16 +334,180 @@ pub const VISITED_SUB_ZONE_ID: IdManagerSpec = IdManagerSpec {
     first_id: 0x0000_0001,
     last_id: 0x00FF_FFFF,
     obj_tables: &[("portal_visited_district", "id")],
+    distinct: false,
 };
 /// `PrivateBookIdManager`.
 pub const PRIVATE_BOOK_ID: IdManagerSpec = IdManagerSpec {
     name: "PrivateBookIdManager",
-    first_id: 0x0000_0001,
+    first_id: 0x0000_1000,
     last_id: 0x00FF_FFFF,
     obj_tables: &[("portal_book_coords", "id")],
+    distinct: false,
 };
 
-/// The id managers this phase uses (the C# singletons).
+/// `AuctionIdManager`.
+pub const AUCTION_ID: IdManagerSpec = IdManagerSpec {
+    name: "AuctionIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0xFFFF_FFFF,
+    obj_tables: &[("auction_house", "id")],
+    distinct: false,
+};
+/// `CrimeIdManager`.
+pub const CRIME_ID: IdManagerSpec = IdManagerSpec {
+    name: "CrimeIdManager",
+    first_id: 0x0000_1000,
+    last_id: 0xFFFF_FFFF,
+    obj_tables: &[("crime", "id")],
+    distinct: false,
+};
+/// `DoodadIdManager`.
+pub const DOODAD_ID: IdManagerSpec = IdManagerSpec {
+    name: "DoodadIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0xFFFF_FFFF,
+    obj_tables: &[("doodads", "id")],
+    distinct: false,
+};
+/// `ExpeditionIdManager`.
+pub const EXPEDITION_ID: IdManagerSpec = IdManagerSpec {
+    name: "ExpeditionIdManager",
+    first_id: 0x0000_03E8,
+    last_id: 0xFFFF_FFFF,
+    obj_tables: &[("expeditions", "id")],
+    distinct: false,
+};
+/// `FamilyIdManager`.
+pub const FAMILY_ID: IdManagerSpec = IdManagerSpec {
+    name: "FamilyIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x00FF_FFFF,
+    obj_tables: &[("characters", "family")],
+    distinct: true,
+};
+/// `FriendIdManager`.
+pub const FRIEND_ID: IdManagerSpec = IdManagerSpec {
+    name: "FriendIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x00FF_FFFF,
+    obj_tables: &[("friends", "id")],
+    distinct: false,
+};
+/// `GimmickIdManager`.
+pub const GIMMICK_ID: IdManagerSpec = IdManagerSpec {
+    name: "GimmickIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x0000_FFFE,
+    obj_tables: &[],
+    distinct: false,
+};
+/// `HousingIdManager`.
+pub const HOUSING_ID: IdManagerSpec = IdManagerSpec {
+    name: "HousingIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x00FF_FFFF,
+    obj_tables: &[("housings", "id")],
+    distinct: false,
+};
+/// `HousingTldManager`.
+pub const HOUSING_TL_ID: IdManagerSpec = IdManagerSpec {
+    name: "HousingTldManager",
+    first_id: 0x0000_0001,
+    last_id: 0x0000_FFFE,
+    obj_tables: &[],
+    distinct: false,
+};
+/// `MailIdManager`.
+pub const MAIL_ID: IdManagerSpec = IdManagerSpec {
+    name: "MailIdManager",
+    first_id: 0x0000_2710,
+    last_id: 0xFFFF_FFFF,
+    obj_tables: &[("mails", "id")],
+    distinct: false,
+};
+/// `MateIdManager`.
+pub const MATE_ID: IdManagerSpec = IdManagerSpec {
+    name: "MateIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x00FF_FFFF,
+    obj_tables: &[("mates", "id")],
+    distinct: false,
+};
+/// `MusicIdManager`.
+pub const MUSIC_ID: IdManagerSpec = IdManagerSpec {
+    name: "MusicIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x00FF_FFFF,
+    obj_tables: &[("music", "id")],
+    distinct: false,
+};
+/// `QuestIdManager`.
+pub const QUEST_ID: IdManagerSpec = IdManagerSpec {
+    name: "QuestIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x00FF_FFFF,
+    obj_tables: &[("quests", "id")],
+    distinct: false,
+};
+/// `ShipyardIdManager`.
+pub const SHIPYARD_ID: IdManagerSpec = IdManagerSpec {
+    name: "ShipyardIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0xFFFF_FFFF,
+    obj_tables: &[("shipyards", "id")],
+    distinct: false,
+};
+/// `TaskIdManager`.
+pub const TASK_ID: IdManagerSpec = IdManagerSpec {
+    name: "TaskIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x7FFF_FFFF,
+    obj_tables: &[],
+    distinct: false,
+};
+/// `TeamIdManager`.
+pub const TEAM_ID: IdManagerSpec = IdManagerSpec {
+    name: "TeamIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x00FF_FFFF,
+    obj_tables: &[],
+    distinct: false,
+};
+/// `TlIdManager`.
+pub const TL_ID: IdManagerSpec = IdManagerSpec {
+    name: "TlIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x0000_FFFE,
+    obj_tables: &[],
+    distinct: false,
+};
+/// `TradeIdManager`.
+pub const TRADE_ID: IdManagerSpec = IdManagerSpec {
+    name: "TradeIdManager",
+    first_id: 0x0000_0001,
+    last_id: 0x00FF_FFFF,
+    obj_tables: &[],
+    distinct: false,
+};
+/// `TrialIdManager`.
+pub const TRIAL_ID: IdManagerSpec = IdManagerSpec {
+    name: "TrialIdManager",
+    first_id: 0x0000_1000,
+    last_id: 0xFFFF_FFFF,
+    obj_tables: &[],
+    distinct: false,
+};
+/// `WorldIdManager`.
+pub const WORLD_ID: IdManagerSpec = IdManagerSpec {
+    name: "WorldIdManager",
+    first_id: 0x0000_0064,
+    last_id: 0xFFFF_FFFE,
+    obj_tables: &[],
+    distinct: false,
+};
+
+/// Every `Core/Managers/Id` singleton (`UccIdManager` lives in `stream::ucc`, the static
+/// `SkillTlIdManager` belongs to the skills subsystem).
 #[derive(Debug)]
 pub struct IdManagers {
     pub object: IdManager,
@@ -343,6 +517,26 @@ pub struct IdManagers {
     pub chat: IdManager,
     pub visited_sub_zone: IdManager,
     pub private_book: IdManager,
+    pub auction: IdManager,
+    pub crime: IdManager,
+    pub doodad: IdManager,
+    pub expedition: IdManager,
+    pub family: IdManager,
+    pub friend: IdManager,
+    pub gimmick: IdManager,
+    pub housing: IdManager,
+    pub housing_tl: IdManager,
+    pub mail: IdManager,
+    pub mate: IdManager,
+    pub music: IdManager,
+    pub quest: IdManager,
+    pub shipyard: IdManager,
+    pub task: IdManager,
+    pub team: IdManager,
+    pub tl: IdManager,
+    pub trade: IdManager,
+    pub trial: IdManager,
+    pub world: IdManager,
 }
 
 impl Default for IdManagers {
@@ -355,6 +549,26 @@ impl Default for IdManagers {
             chat: IdManager::new(CHAT_ID),
             visited_sub_zone: IdManager::new(VISITED_SUB_ZONE_ID),
             private_book: IdManager::new(PRIVATE_BOOK_ID),
+            auction: IdManager::new(AUCTION_ID),
+            crime: IdManager::new(CRIME_ID),
+            doodad: IdManager::new(DOODAD_ID),
+            expedition: IdManager::new(EXPEDITION_ID),
+            family: IdManager::new(FAMILY_ID),
+            friend: IdManager::new(FRIEND_ID),
+            gimmick: IdManager::new(GIMMICK_ID),
+            housing: IdManager::new(HOUSING_ID),
+            housing_tl: IdManager::new(HOUSING_TL_ID),
+            mail: IdManager::new(MAIL_ID),
+            mate: IdManager::new(MATE_ID),
+            music: IdManager::new(MUSIC_ID),
+            quest: IdManager::new(QUEST_ID),
+            shipyard: IdManager::new(SHIPYARD_ID),
+            task: IdManager::new(TASK_ID),
+            team: IdManager::new(TEAM_ID),
+            tl: IdManager::new(TL_ID),
+            trade: IdManager::new(TRADE_ID),
+            trial: IdManager::new(TRIAL_ID),
+            world: IdManager::new(WORLD_ID),
         }
     }
 }
@@ -370,6 +584,26 @@ impl IdManagers {
             &self.chat,
             &self.visited_sub_zone,
             &self.private_book,
+            &self.auction,
+            &self.crime,
+            &self.doodad,
+            &self.expedition,
+            &self.family,
+            &self.friend,
+            &self.gimmick,
+            &self.housing,
+            &self.housing_tl,
+            &self.mail,
+            &self.mate,
+            &self.music,
+            &self.quest,
+            &self.shipyard,
+            &self.task,
+            &self.team,
+            &self.tl,
+            &self.trade,
+            &self.trial,
+            &self.world,
         ] {
             m.initialize(pool).await;
         }

@@ -351,6 +351,34 @@ inert_packet!(
     FastPongClientPacket
 );
 
+/// Registers the level-2 proxy packets.
+pub fn register(r: &mut crate::net::registry::PacketRegistry) {
+    use crate::net::packet::LEVEL_PROXY;
+    use crate::opcodes::pp;
+    r.register::<ChangeStateClientPacket>(LEVEL_PROXY, pp::ChangeStatePacket)
+        .register::<FinishStatePacket>(LEVEL_PROXY, pp::FinishStatePacket)
+        .register::<FlushMsgsPacket>(LEVEL_PROXY, pp::FlushMsgsPacket)
+        .register::<UpdatePhysicsTimePacket>(LEVEL_PROXY, pp::UpdatePhysicsTimePacket)
+        .register::<BeginUpdateObjPacket>(LEVEL_PROXY, pp::BeginUpdateObjPacket)
+        .register::<EndUpdateObjPacket>(LEVEL_PROXY, pp::EndUpdateObjPacket)
+        .register::<BeginBindObjPacket>(LEVEL_PROXY, pp::BeginBindObjPacket)
+        .register::<EndBindObjPacket>(LEVEL_PROXY, pp::EndBindObjPacket)
+        .register::<UnbindPredictedObjPacket>(LEVEL_PROXY, pp::UnbindPredictedObjPacket)
+        .register::<RemoveStaticObjPacket>(LEVEL_PROXY, pp::RemoveStaticObjPacket)
+        .register::<VoiceDataPacket>(LEVEL_PROXY, pp::VoiceDataPacket)
+        .register::<UpdateAspectPacket>(LEVEL_PROXY, pp::UpdateAspectPacket)
+        .register::<SetAspectProfilePacket>(LEVEL_PROXY, pp::SetAspectProfilePacket)
+        .register::<PartialAspectPacket>(LEVEL_PROXY, pp::PartialAspectPacket)
+        .register::<SetGameTypeClientPacket>(LEVEL_PROXY, pp::SetGameTypePacket)
+        .register::<ChangeCVarPacket>(LEVEL_PROXY, pp::ChangeCVarPacket)
+        .register::<EntityClassRegistrationPacket>(LEVEL_PROXY, pp::EntityClassRegistrationPacket)
+        .register::<PingPacket>(LEVEL_PROXY, pp::PingPacket)
+        .register::<PongClientPacket>(LEVEL_PROXY, pp::PongPacket)
+        .register::<PacketSeqChange>(LEVEL_PROXY, pp::PacketSeqChange)
+        .register::<FastPingPacket>(LEVEL_PROXY, pp::FastPingPacket)
+        .register::<FastPongClientPacket>(LEVEL_PROXY, pp::FastPongPacket);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
