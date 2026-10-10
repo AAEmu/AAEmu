@@ -177,13 +177,15 @@ impl Geometry for BoxGeom {
     /// unprojection); until it is wired this returns no contacts.
     fn intersect(
         &self,
-        _other: &dyn Geometry,
-        _gwd1: &GeomWorldData,
-        _gwd2: &GeomWorldData,
-        _params: &mut IntersectionParams,
-        _contacts: &mut Vec<GeomContact>,
+        other: &dyn Geometry,
+        gwd1: &GeomWorldData,
+        gwd2: &GeomWorldData,
+        params: &mut IntersectionParams,
+        contacts: &mut Vec<GeomContact>,
     ) -> usize {
-        0
+        crate::collision::prim_intersect::geometry_intersect(
+            self, other, gwd1, gwd2, params, contacts,
+        )
     }
 
     /// Slot 11 (0x3513D020), see [`super::closest`].
