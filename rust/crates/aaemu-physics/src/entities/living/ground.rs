@@ -416,7 +416,11 @@ pub fn ground_probe(
             }
             let gwd = pr.gwd();
             let mut ip = IntersectionParams::default();
+            contacts.clear();
             let n = pr.geom.intersect(&ray, &gwd, &gwd_ray, &mut ip, &mut contacts);
+            if std::env::var_os("AAEMU_LIVING_DEBUG").is_some() {
+                eprintln!("liv:  probe rec {:?} part {} n={} pts={:?}", ent, pr.ipart, n, contacts.iter().take(n).map(|c| (c.pt, c.n)).collect::<Vec<_>>());
+            }
             if n == 0 {
                 continue;
             }

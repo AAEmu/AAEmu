@@ -69,6 +69,8 @@ pub fn intersect_wb(
             o.ret.max(0) as usize
         })
     } else {
+        // the mesh glue appends to `out`: start from an empty list like the primitive path
+        out.clear();
         a.intersect(b, g1, g2, ip, out)
     }
 }
@@ -1102,7 +1104,16 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                 if v471 <= v828
                                     || v471 >= v803s
                                     || (v475 * dir.y + v474 * dir.x) >= 0.0
-                                    || !zov(v471)
+                                    || {
+                                        let t = v471;
+                                        let top = ((v465 + (v459 + dir.z * t))
+                                            - ((v459 + dir.z * t) - v465).abs())
+                                            * 0.5;
+                                        let bot = (((v462 + dir.z * t) - v467).abs()
+                                            + (v467 + (v462 + dir.z * t)))
+                                            * 0.5;
+                                        top <= bot
+                                    }
                                 {
                                     v476 = v803s;
                                 } else {

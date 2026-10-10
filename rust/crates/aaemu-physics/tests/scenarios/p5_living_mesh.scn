@@ -1,0 +1,30 @@
+# P5: living entities on trimesh geometry: a noisy grid floor, stairs built from box meshes,
+# and the wedge mesh as a ramp.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=floor type=mesh gen=grid nx=8 ny=8 step=4 noise=7,0.05
+entity name=floor type=static pos=64,64,0
+part ent=floor geom=floor mass=0
+geom name=stepm type=mesh gen=box size=0.2,1.5,0.1
+entity name=stairs type=static pos=60,70,0
+part ent=stairs geom=stepm pos=0,0,0.1
+part ent=stairs geom=stepm pos=0.4,0,0.3
+part ent=stairs geom=stepm pos=0.8,0,0.5
+part ent=stairs geom=stepm pos=1.2,0,0.7
+geom name=wedge type=mesh file=p1c_meshes/wedge.mesh
+entity name=ramp type=static pos=70,60,0
+part ent=ramp geom=wedge
+entity name=a type=living pos=57,70,1
+entity name=b type=living pos=66,60,1
+entity name=c type=living pos=50,50,1
+trace ents=a,b,c
+step n=30
+action target=a type=1 v4=1.5,0,0 i16=0 f20=0
+action target=b type=1 v4=1.5,0,0 i16=0 f20=0
+action target=c type=1 v4=2,2,0 i16=0 f20=0
+step n=90
+status target=a type=2 dump=4,27
+status target=b type=2 dump=4,27
+action target=a type=1 v4=-1.5,0,0 i16=0 f20=0
+action target=b type=1 v4=-1.5,0,0 i16=0 f20=0
+step n=60
+status target=a type=2 dump=4,27

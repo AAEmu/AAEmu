@@ -1,0 +1,22 @@
+# P5: living entities against living entities: head-on walk (analytic vertical-cylinder test),
+# a cylinder collider against a capsule, one landing on another's head, pLivingEntToIgnore.
+grid axisz=2 org=-128,-128,-100 n=64,64 step=4,4
+geom name=ground type=box size=20,20,1
+entity name=floor type=static pos=0,0,-1
+part ent=floor geom=ground
+entity name=a type=living pos=-2,0,0
+entity name=b type=living pos=2,0.3,0
+entity name=c type=living pos=0,4,0
+entity name=d type=living pos=0.05,4,3
+params target=b type=1 f4=U f8=U v12=0.5,0.5,0.25 f24=U f28=U f32=U v36=0,0,1 f48=0 i52=0 i56=0 i60=0
+trace ents=a,b,c,d
+step n=10
+action target=a type=1 v4=1.5,0,0 i16=0 f20=0
+action target=b type=1 v4=-1.5,0,0 i16=0 f20=0
+step n=80
+status target=a type=2 dump=4,27
+status target=d type=2 dump=4,27
+action target=a type=1 v4=0,0,0 i16=0 f20=0
+action target=b type=1 v4=0,0,0 i16=0 f20=0
+action target=d type=1 v4=1,0,0 i16=0 f20=0
+step n=40
