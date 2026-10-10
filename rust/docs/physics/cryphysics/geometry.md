@@ -1103,3 +1103,15 @@ Arguments: `(wd, epicenter, k, rmin, …, P&[, L&])`. The caller was not found.
 5. **Inferred fields:** the entity, body and medium-element field offsets are inferred from usage only.
 6. **Transcribed in outline only:** the sphere slot 14 partial case and the cylinder wedge/cap polynomials. Re-read 0x351afcb0 and 0x35146f40 for exact arithmetic before porting.
 7. **Not inspected:** box→trimesh conversion winding (sub_3513AC00).
+
+### 6.7 Resolved by the P1a port (bit-exact against the oracle; see `aaemu-physics/src/geometry/shapes/`)
+
+- **Decision for 6.6 items 1–4:** all quirks are kept for client parity. The port returns the mesh volume even when it is ≤ 0 (centre zeroed) and the sphere's non-centroid "centre".
+- **In/out semantics of slot 14:** base `CGeometry` (ray) **zeroes** dP/dL; box, cylinder and capsule zero them first and then accumulate (`-=`) their faces; the sphere **assigns** both. The caller (ApplyBuoyancy) does not reset dP between parts, so these differences matter.
+- **Capsule slot 14** adds the sphere slot 14 of two temporary spheres (unscaled r) at `c ± axis·hh`, `+axis` first.
+- **Cylinder slot 14 caps:** the water-line point is the projection of the **first** cap's centre on the water plane, reused for the second cap; parallel water/cap planes keep the whole disk when the centre is below the plane.
+- **Side quads** (cylinder, capsule) step 30° in **double** (`(x·√3 ∓ y)·0.5`); everything else in slot 14 is single precision.
+- **Box → temporary mesh** (sub_3513AC00): vertex `i = ((2(i&1)−1)·sx, ((i&2)−1)·sy, (((i>>1)&2)−1)·sz)` rotated by Basisᵀ, index table 0x35209A70 (faces −x, +x, −y, +y, −z, +z, two triangles each, outward winding), one normal per face.
+- **asinf:** the cylinder buoyancy and slot-14 code call MSVCR100 `asinf`; `math::crt::asinf` is now a bit-exact port (100,000 oracle samples).
+- **IsIdentity** (sub_3513A010) sums |m − I| and compares with 0 through `ucomiss`/`jne`: a NaN basis counts as the identity (`bOriented = 0`).
+- **Mesh slot 12** (0x351CBE20): epicenter and centre of mass go to the mesh frame without the 1/scale, k and rmin are scaled; the refinement test compares squared distances with the raw `rmin`; the projection-split test has the wrong sign (dead for consistently wound meshes); at most 300 subdivision pops per triangle, the rest is dropped; P and L are rotated back without scale.
