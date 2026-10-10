@@ -274,7 +274,11 @@ fn basic_and_inside_large_fuzz_with_oracle() {
         if c.probe == "basic" {
             check(c, &basic_tokens(&a), &mut fails);
         } else {
-            check(c, &[a.g().point_inside_status(c.v(0)).to_string()], &mut fails);
+            check(
+                c,
+                &[a.g().point_inside_status(c.v(0)).to_string()],
+                &mut fails,
+            );
         }
     }
     finish("basic/inside fuzz", cs.len(), &fails);
