@@ -16,7 +16,7 @@
 //! | (this file) | the object, construction (`CGeomManager::CreatePrimitive(2)` 0x3514B9F0 → ctor 0x35103E50 + `SetData` 0x35154F40), slots 1, 6, 8, 17, 21, 22, 24, 28, 29, 32, 46, 52 |
 //! | [`bv`] | `CHeightfieldBV` slots 1–4, 9, 11, 23, 25 (+ [`BvTree`](crate::geometry::bvtree::BvTree)), the collider cell range sub_35154220 |
 //! | [`region`] | the region mesh build of slot 53 (0x35155180) up to the `CTriMesh` slot-53 tail call |
-//! | `ray` | the ray branch of slot 10 (0x35156E20): grid march sub_35158BA0, cell test sub_35158080, contact |
+//! | [`ray`] | the ray branch of slot 10 (0x35156E20): grid march sub_35158BA0, cell test sub_35158080, contact |
 //!
 //! ## Object layout (x64)
 //!
@@ -69,11 +69,11 @@
 //!   distance-along-ray contact with `iUnprojMode = −1`.
 
 pub mod bv;
-// pub mod ray; (WIP)
+pub mod ray;
 pub mod region;
 
 pub use bv::{HeightfieldBv, Slot56Call};
-// pub use ray::{march_grid, HfRayContext, RayGeomData, RayIntersectInput, RayMarchResult};
+pub use ray::{march_grid, HfRayContext, RayGeomData, RayIntersectInput, RayMarchResult};
 pub use region::{HfFrame, RegionOutcome};
 
 use crate::geometry::primitives::{BoxPrim, HeightfieldPrim};

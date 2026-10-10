@@ -60,13 +60,15 @@ pub fn golden(name: &str, probe_name: &str, args: &[&str]) -> Option<String> {
     let stored = std::fs::read_to_string(&path)
         .ok()
         .map(|s| s.replace("\r\n", "\n"));
-    let fresh = probe(probe_name).map(|exe| run_probe(&exe, args).unwrap_or_else(|e| panic!("{e}")));
+    let fresh =
+        probe(probe_name).map(|exe| run_probe(&exe, args).unwrap_or_else(|e| panic!("{e}")));
     match (fresh, stored) {
         (None, s) => s,
         (Some(f), Some(s)) if f == s => Some(s),
         (Some(f), stored) => {
             if bless() || stored.is_none() {
-                std::fs::write(&path, &f).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
+                std::fs::write(&path, &f)
+                    .unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
                 return Some(f);
             }
             let s = stored.unwrap_or_default();
@@ -114,7 +116,13 @@ fn words(rest: &[&str]) -> Vec<u32> {
 
 fn vecs(w: &[u32]) -> Vec<Vec3> {
     w.chunks(3)
-        .map(|c| Vec3::new(f32::from_bits(c[0]), f32::from_bits(c[1]), f32::from_bits(c[2])))
+        .map(|c| {
+            Vec3::new(
+                f32::from_bits(c[0]),
+                f32::from_bits(c[1]),
+                f32::from_bits(c[2]),
+            )
+        })
         .collect()
 }
 

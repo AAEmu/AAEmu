@@ -20,6 +20,9 @@
 //!
 //! `hmin`/`hmax` of the BV are the min/max idioms over the vertex heights.
 
+// Negated float comparisons mirror the binary's NaN behaviour (comiss + jb/jae/ja).
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
+
 use crate::geometry::bvtree::swept::sweep_box;
 use crate::geometry::primitives::BoxPrim;
 use crate::math::{Mat33, Vec3};
@@ -110,7 +113,8 @@ impl Heightfield {
         let p = self.bv.prim;
         let cells = collider_cells(&bx, &p, gtest.as_deref());
         let (ix, iy, w, h) = (cells.ix, cells.iy, cells.w, cells.h);
-        if (h.wrapping_sub(1) | w.wrapping_sub(1) | 1_000_000i32.wrapping_sub(h.wrapping_mul(w))) < 0
+        if (h.wrapping_sub(1) | w.wrapping_sub(1) | 1_000_000i32.wrapping_sub(h.wrapping_mul(w)))
+            < 0
         {
             return RegionOutcome::Reject;
         }
@@ -125,7 +129,8 @@ impl Heightfield {
                 ((tx * m[2][0] + ty * m[2][1]) + m[2][2] * 0.0) + g.offset.z,
             );
         }
-        let changed = ((self.bv.w ^ w) | (self.bv.ix ^ ix) | (self.bv.h ^ h) | (self.bv.iy ^ iy)) != 0;
+        let changed =
+            ((self.bv.w ^ w) | (self.bv.ix ^ ix) | (self.bv.h ^ h) | (self.bv.iy ^ iy)) != 0;
         if changed {
             let hs = p.height_scale;
             let mut hmax = height(&p, ix, iy) * hs;
@@ -243,6 +248,7 @@ impl Heightfield {
             v += 1;
         }
         let mats = self.mesh.mats.clone().unwrap_or_default();
+        #[allow(clippy::needless_range_loop)]
         for i in 0..nt.max(0) as usize {
             if mats[i] != -1 {
                 continue;
