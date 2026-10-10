@@ -33,6 +33,23 @@ impl ContactId {
     pub fn is_none(self) -> bool {
         self == Self::NONE
     }
+
+    /// Bit marking a solver temp-buffer record ([`ContactPool::temp`]).
+    pub const TEMP_BIT: u32 = 0x8000_0000;
+
+    /// Temp-buffer record `i` (`AllocSolverTmpBuf` 0x3509A9C0).
+    #[inline]
+    #[must_use]
+    pub const fn temp(i: u32) -> ContactId {
+        ContactId(Self::TEMP_BIT | i)
+    }
+
+    /// True for a temp-buffer record.
+    #[inline]
+    #[must_use]
+    pub fn is_temp(self) -> bool {
+        self.0 & Self::TEMP_BIT != 0 && !self.is_none()
+    }
 }
 
 /// Contact flag bits (`+128`), `dynamics.md` §3.2.
@@ -158,6 +175,10 @@ impl Contact {
 #[derive(Clone, Debug)]
 pub struct ContactPool {
     pub recs: Vec<Contact>,
+    /// Solver temp-buffer records (ids [`ContactId::temp`]); handed out by
+    /// [`ContactPool::alloc_temp`] / `SolverThread::alloc_tmp_contacts` and dropped when the
+    /// next island starts (`InitSolver` resets the temp offsets).
+    pub temp: Vec<Contact>,
     /// `W+21592` number of free records.
     pub n_free: i32,
     /// `W+21596` number of pooled records.
@@ -168,6 +189,7 @@ impl Default for ContactPool {
     fn default() -> Self {
         let mut s = Self {
             recs: Vec::new(),
+            temp: Vec::new(),
             n_free: 0,
             n_total: 0,
         };
@@ -181,12 +203,29 @@ impl ContactPool {
     #[inline]
     #[must_use]
     pub fn get(&self, id: ContactId) -> &Contact {
-        &self.recs[id.0 as usize]
+        if id.is_temp() {
+            &self.temp[(id.0 & !ContactId::TEMP_BIT) as usize]
+        } else {
+            &self.recs[id.0 as usize]
+        }
     }
 
     #[inline]
     pub fn get_mut(&mut self, id: ContactId) -> &mut Contact {
-        &mut self.recs[id.0 as usize]
+        if id.is_temp() {
+            &mut self.temp[(id.0 & !ContactId::TEMP_BIT) as usize]
+        } else {
+            &mut self.recs[id.0 as usize]
+        }
+    }
+
+    /// `n` contiguous zeroed temp records; returns the first (`ContactId::temp(k)`, the
+    /// following ones are `temp(k + 1)`, …). Prefer `SolverThread::alloc_tmp_contacts`, which
+    /// also resets the arena at the first allocation after `InitSolver`.
+    pub fn alloc_temp(&mut self, n: usize) -> ContactId {
+        let k = self.temp.len() as u32;
+        self.temp.extend(std::iter::repeat_n(Contact::zeroed(), n));
+        ContactId::temp(k)
     }
 
     /// A self-linked list sentinel (an entity's `E+536` head, or the world free list).

@@ -9,8 +9,13 @@
 pub mod action;
 pub mod awake;
 pub mod buoyancy;
+pub mod colliders;
 pub mod contacts;
 pub mod mass;
+pub mod register;
+pub mod step;
+pub mod update;
+pub mod patch;
 pub mod velocity;
 
 use crate::math::{Quat, Vec3};
@@ -101,7 +106,7 @@ pub struct RigidData {
     pub e_cached: f32,
     pub e_clamp: f32,
     /// `+1040`, `+1044`.
-    pub unk1040: i32,
+    pub unk1040: f32,
     pub unk1044: u32,
     /// `+1048` external force, `+1060` external torque.
     pub f_ext: Vec3,
@@ -129,6 +134,8 @@ pub struct RigidData {
     pub queued_impulse: Option<crate::params::ActionImpulse>,
     /// `+1192` water-level offset.
     pub water_level_offset: f32,
+    /// `+1088` per-step logged collision slots (indices into the world's logged queue).
+    pub coll_log: Vec<usize>,
 }
 
 impl RigidData {
@@ -184,7 +191,7 @@ impl RigidData {
             prev_q: Quat::IDENTITY,
             e_cached: 0.0,
             e_clamp: 0.0,
-            unk1040: 0,
+            unk1040: 0.0,
             unk1044: 0,
             f_ext: Vec3::ZERO,
             t_ext: Vec3::ZERO,
@@ -203,6 +210,7 @@ impl RigidData {
             unk1168: 0,
             queued_impulse: None,
             water_level_offset: 0.0,
+            coll_log: Vec::new(),
         }
     }
 

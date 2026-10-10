@@ -14,9 +14,8 @@ pub struct ContactScratch {
     pub collider: Vec<EntIdx>,
     pub parts: Vec<(i32, i32)>,
     pub area_start: i32,
-    /// The upper half of `[256]` (number of contacts of the area run, read by
-    /// RegisterContactPoint).
-    pub area_count: i32,
+    /// The upper half of `[256]`: the number of records of the last call.
+    pub count: i32,
 }
 
 impl Default for ContactScratch {
@@ -25,7 +24,7 @@ impl Default for ContactScratch {
             collider: vec![EntIdx::NONE; 128],
             parts: vec![(0, 0); 128],
             area_start: -1,
-            area_count: 0,
+            count: 0,
         }
     }
 }

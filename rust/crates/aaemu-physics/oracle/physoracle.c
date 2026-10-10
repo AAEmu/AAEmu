@@ -7,6 +7,7 @@
  *   physoracle.exe [--rt DIR] SCENARIO.txt|-        run a scenario, trace on stdout
  *   physoracle.exe [--rt DIR] --math NAME COUNT SEED   probe an internal math routine
  *   physoracle.exe [--rt DIR] --p2b                    P2b unprojection probe (p2b_probe.c)
+ *   physoracle.exe [--rt DIR] --p4b                    P4b contact solver probe (p4b_probe_solver.c)
  *   physoracle.exe [--rt DIR] --pairfn VA NA NB FILE   call an INTERSECT pair function per line
  *
  * DIR defaults to %AAEMU_PHYS_RT% or D:\aa-re\cryphysics\harness\rt. It must hold
@@ -37,7 +38,7 @@
 enum {
   W_GetGeomManager = 9, W_SetupEntityGrid = 11, W_GetPhysVars = 20, W_CreatePhysicalEntity = 21,
   W_DestroyPhysicalEntity = 24, W_TimeStep = 32, W_RayWorldIntersection = 42, W_AddGlobalArea = 80,
-  W_SetHeightfieldData = 17
+  W_SetHeightfieldData = 17, W_SetSurfaceParameters = 29
 };
 /* ---- IGeomManager slots ---- */
 enum { G_CreatePrimitive = 7, G_RegisterGeometry = 9 };
@@ -58,6 +59,7 @@ typedef int (*fn_stat)(void *, void *);
 typedef int (*fn_addg)(void *, void *, void *, int, int);
 typedef int (*fn_rwi)(void *, void *, const char *, int);
 typedef void (*fn_hfdata)(void *, void *, int *, int);
+typedef int (*fn_surf)(void *, int, float, float, unsigned);
 
 static HMODULE g_phys;
 static void *g_world, *g_gm;
@@ -451,6 +453,9 @@ static void cmd_rwi(const Toks *t) {
   }
 }
 
+/* P3 areas / P4a water probes (package P3-areas) */
+#include "p3_areas.c"
+
 static void run_line(char *line) {
   Toks t;
   char *hash = strchr(line, '#');
@@ -458,6 +463,7 @@ static void run_line(char *line) {
   tokenize(line, &t);
   if (!t.n) return;
   const char *c = t.k[0];
+  if (p3_command(c, &t)) return;
   if (!strcmp(c, "grid")) {
     float org[3] = {0, 0, -100}, st[2] = {4, 4};
     int n[2] = {64, 64};
@@ -521,6 +527,10 @@ static void run_line(char *line) {
     apply_fields(&t, gp, 512);
     int id = ((fn_addg)VT(e)[E_AddGeometry])(e, g, gp, atoi(get(&t, "id", "-1")), 1);
     printf("ret part %s %d\n", need(&t, "ent"), id);
+  } else if (!strcmp(c, "surface")) { /* SetSurfaceParameters(idx, bounciness, friction, flags) */
+    int r = ((fn_surf)VT(g_world)[W_SetSurfaceParameters])(g_world, atoi(need(&t, "idx")), parse_f(get(&t, "bounce", "0")),
+                                                        parse_f(get(&t, "friction", "h:3f99999a")), parse_u(get(&t, "flags", "0")));
+    printf("ret surface %d\n", r);
   } else if (!strcmp(c, "area")) {
     const char *kind = get(&t, "kind", "global");
     if (strcmp(kind, "global")) die("only kind=global areas are supported", kind);
@@ -1032,6 +1042,7 @@ static void pairfn_probe(uint64_t va, int na, int nb, const char *path) {
 static int p4a_ext_intersect(char *line); /* P4a primitive Intersect probe */
 #include "p2b_probe.c"
 #include "p4a_probe_intersect.c"
+#include "p4b_probe_solver.c" /* P4b contact solver probe */
 
 /* ------------------------------------------------------------------ main */
 int main(int argc, char **argv) {
@@ -1053,6 +1064,10 @@ int main(int argc, char **argv) {
   if (!g_phys) { printf("ERROR LoadLibrary %s failed (%lu)\n", dll, GetLastError()); return 1; }
   if (!strcmp(argv[a], "--p2b")) { /* P2b: unprojection / helper probe, commands on stdin */
     p2b_run();
+    return 0;
+  }
+  if (!strcmp(argv[a], "--p4b")) { /* P4b: contact solver probe, commands on stdin */
+    p4b_run();
     return 0;
   }
   if (!strcmp(argv[a], "--p2a2")) { /* P2a-2 pair probes, see p2a2_probe */

@@ -161,7 +161,11 @@ pub fn compute_bbox(
     }
     let ent = w.ent_mut(e);
     for (i, b) in part_boxes {
-        ent.parts[i].bbox = b;
+        let p = &mut ent.parts[i];
+        match &mut p.bbox_tmp {
+            Some(t) => *t = b,
+            None => p.bbox = b,
+        }
     }
     if let EntityKind::Area(_) = ent.kind {
         unreachable!("areas have their own bbox code");

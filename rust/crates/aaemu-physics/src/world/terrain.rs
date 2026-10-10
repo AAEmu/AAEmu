@@ -117,6 +117,7 @@ impl World {
                     mat_mapping: None,
                     has_lattice: false,
                     unk128: 0,
+                    bbox_tmp: None,
                 });
                 self.store(ent)
             };
