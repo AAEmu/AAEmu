@@ -7,6 +7,7 @@
  *   physoracle.exe [--rt DIR] SCENARIO.txt|-        run a scenario, trace on stdout
  *   physoracle.exe [--rt DIR] --math NAME COUNT SEED   probe an internal math routine
  *   physoracle.exe [--rt DIR] --p2b                    P2b unprojection probe (p2b_probe.c)
+ *   physoracle.exe [--rt DIR] --pairfn VA NA NB FILE   call an INTERSECT pair function per line
  *
  * DIR defaults to %AAEMU_PHYS_RT% or D:\aa-re\cryphysics\harness\rt. It must hold
  * cryphysics_dedicate.dll, MSVCR100.dll, MSVCP100.dll, tbb.dll, xldiag.dll, xlcommon.dll (the
@@ -748,6 +749,48 @@ static void math_probe(const char *name, int count, uint64_t seed) {
   }
 }
 
+/* ------------------------------------------------------------------ pair-function probe (P2a-3) */
+/* --pairfn VA NA NB FILE: call the INTERSECT-table function at VA (`int f(primA*, primB*,
+   prim_inters*)`) once per input line. A line holds NA + NB + 22 hex dwords: primA, primB and the
+   initial 88-byte prim_inters (dwords 14/15, the ptborder pointer, are replaced by a 64-point
+   buffer pre-filled with 0x7fc0dead; dword 16 = nborderpt, 17 = nbordersz). Output per line:
+   "in <the input words> out <ret> <22 dwords, ptborder as 0> b <points 0..nborderpt>". */
+static void pairfn_probe(uint64_t va, int na, int nb, const char *path) {
+  typedef int (*fn_pair)(void *, void *, void *);
+  fn_pair f = (fn_pair)VA(g_phys, va);
+  FILE *in = fopen(path, "rb");
+  if (!in) die("cannot open pair input", path);
+  printf("physoracle-pairfn 1 %llx %d %d\n", (unsigned long long)va, na, nb);
+  char line[8192];
+  while (fgets(line, sizeof line, in)) {
+    uint32_t w[256];
+    int n = 0;
+    for (char *t = strtok(line, " \t\r\n"); t && n < 256; t = strtok(0, " \t\r\n")) w[n++] = (uint32_t)strtoul(t, 0, 16);
+    if (n == 0) continue;
+    if (n != na + nb + 22) die("pair input: wrong word count", path);
+    __declspec(align(16)) uint32_t a[64], b[64], pi[32], border[64 * 3 + 8];
+    memcpy(a, w, 4 * na);
+    memcpy(b, w + na, 4 * nb);
+    memcpy(pi, w + na + nb, 4 * 22);
+    for (int i = 0; i < 64 * 3 + 8; i++) border[i] = 0x7fc0deadu;
+    void *pb = border;
+    memcpy(&pi[14], &pb, 8);
+    int r = f(a, b, pi);
+    printf("in");
+    for (int i = 0; i < n; i++) printf(" %08x", w[i]);
+    printf(" out %d", r);
+    pi[14] = pi[15] = 0;
+    for (int i = 0; i < 22; i++) printf(" %08x", pi[i]);
+    int nb_out = (int)pi[16];
+    if (nb_out < 0) nb_out = 0;
+    if (nb_out > 64) nb_out = 64;
+    printf(" b");
+    for (int i = 0; i < 3 * nb_out; i++) printf(" %08x", border[i]);
+    printf("\n");
+  }
+  fclose(in);
+}
+
 /* ------------------------------------------------------------------ P2b unprojection probe */
 #include "p2b_probe.c"
 
@@ -771,6 +814,12 @@ int main(int argc, char **argv) {
   if (!g_phys) { printf("ERROR LoadLibrary %s failed (%lu)\n", dll, GetLastError()); return 1; }
   if (!strcmp(argv[a], "--p2b")) { /* P2b: unprojection / helper probe, commands on stdin */
     p2b_run();
+    return 0;
+  }
+  if (!strcmp(argv[a], "--pairfn")) { /* P2a-3 probe, see pairfn_probe */
+    if (a + 4 >= argc) return 1;
+    pairfn_probe(strtoull(argv[a + 1], 0, 16), atoi(argv[a + 2]), atoi(argv[a + 3]), argv[a + 4]);
+    fflush(stdout);
     return 0;
   }
   if (!strcmp(argv[a], "--math")) {
