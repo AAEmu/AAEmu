@@ -396,6 +396,14 @@ fn run(
             print_contact(&mut out, cc, kind);
         }
     }
+    if out != dll {
+        if let Some(d) = std::env::var_os("AAEMU_PHYS_P1C_REG_DUMP") {
+            let d = std::path::PathBuf::from(d);
+            let _ = std::fs::write(d.join(format!("{name}.port")), &out);
+            let _ = std::fs::write(d.join(format!("{name}.dll")), &dll);
+            let _ = std::fs::write(d.join(format!("{name}.cases")), &file);
+        }
+    }
     p1c_common::assert_same_text(name, &out, &dll);
     let count = |p: &str| dll.lines().filter(|l| l.starts_with(p)).count();
     [count("c "), count("a "), count("ap ")]
@@ -1273,4 +1281,149 @@ fn corpus_meshes() {
         tot[1],
         tot[2]
     );
+}
+
+/// Debug helper: replays a dumped `.cases` file (`AAEMU_PHYS_P1C_REG_REPLAY=<file>`, optional
+/// `AAEMU_PHYS_P1C_REG_ONLY=<k>` keeps the meshes/prims and only isect `k` plus all isects
+/// before it with `keep_prev_contacts`... simply all isects up to `k`).
+#[test]
+#[ignore]
+fn replay_cases_file() {
+    let Some(f) = std::env::var_os("AAEMU_PHYS_P1C_REG_REPLAY") else {
+        return;
+    };
+    let text = std::fs::read_to_string(f).unwrap();
+    let upto: Option<usize> = std::env::var("AAEMU_PHYS_P1C_REG_ONLY")
+        .ok()
+        .and_then(|s| s.parse().ok());
+    let hx = |s: &str| f32::from_bits(u32::from_str_radix(s, 16).unwrap());
+    let mut meshes = Vec::new();
+    let mut prims = Vec::new();
+    let mut cases = Vec::new();
+    for l in text.lines() {
+        let t: Vec<&str> = l.split_whitespace().collect();
+        match t.first().copied() {
+            Some("mesh") | Some("meshmat") => {
+                let b = std::fs::read(t[1]).unwrap();
+                let rd = |o: usize| u32::from_le_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]]);
+                let (nv, nt) = (rd(0) as usize, rd(4) as usize);
+                let v = (0..nv)
+                    .map(|i| {
+                        let o = 8 + 12 * i;
+                        Vec3::new(
+                            f32::from_bits(rd(o)),
+                            f32::from_bits(rd(o + 4)),
+                            f32::from_bits(rd(o + 8)),
+                        )
+                    })
+                    .collect();
+                let idx = (0..3 * nt)
+                    .map(|i| rd(8 + 12 * nv + 4 * i) as i32)
+                    .collect();
+                let flags = u32::from_str_radix(t[2].trim_start_matches("0x"), 16).unwrap();
+                let mats = (t[0] == "meshmat")
+                    .then(|| t[5..].iter().map(|s| s.parse().unwrap()).collect());
+                meshes.push(MeshSpec {
+                    v,
+                    idx,
+                    flags,
+                    mats,
+                });
+            }
+            Some("prim") => {
+                let w: Vec<f32> = t[2..].iter().map(|s| hx(s)).collect();
+                let v3 = |k: usize| Vec3::new(w[k], w[k + 1], w[k + 2]);
+                prims.push(match t[1] {
+                    "0" => Prim::Box(BoxPrim {
+                        basis: Mat33::from_array(std::array::from_fn(|k| w[k])),
+                        oriented: w[9].to_bits() as i32,
+                        center: v3(10),
+                        size: v3(13),
+                    }),
+                    "4" => Prim::Sphere(SpherePrim {
+                        center: v3(0),
+                        r: w[3],
+                    }),
+                    "5" => Prim::Cyl(CylinderPrim {
+                        center: v3(0),
+                        axis: v3(3),
+                        r: w[6],
+                        hh: w[7],
+                    }),
+                    _ => Prim::Cap(CylinderPrim {
+                        center: v3(0),
+                        axis: v3(3),
+                        r: w[6],
+                        hh: w[7],
+                    }),
+                });
+            }
+            Some("isect") => {
+                let mut k = 4;
+                let gwd = |k: &mut usize| -> Option<GeomWorldData> {
+                    if t[*k] == "-" {
+                        *k += 1;
+                        return None;
+                    }
+                    let f: Vec<f32> = t[*k..*k + 23].iter().map(|s| hx(s)).collect();
+                    *k += 23;
+                    Some(GeomWorldData {
+                        offset: Vec3::new(f[0], f[1], f[2]),
+                        r: Mat33::from_array(std::array::from_fn(|i| f[3 + i])),
+                        scale: f[12],
+                        v: Vec3::new(f[13], f[14], f[15]),
+                        w: Vec3::new(f[16], f[17], f[18]),
+                        center_of_mass: Vec3::new(f[19], f[20], f[21]),
+                    })
+                };
+                let ga = gwd(&mut k);
+                let gb = gwd(&mut k);
+                let (ip, first) = if t[k] == "-" {
+                    (None, false)
+                } else {
+                    let d: Vec<u32> = t[k..k + 36]
+                        .iter()
+                        .map(|s| u32::from_str_radix(s, 16).unwrap())
+                        .collect();
+                    let f = |i: usize| f32::from_bits(d[i]);
+                    let v = |i: usize| Vec3::new(f(i), f(i + 1), f(i + 2));
+                    (
+                        Some(IntersectionParams {
+                            i_unprojection_mode: d[0] as i32,
+                            center_of_rotation: v(1),
+                            axis_of_rotation: v(4),
+                            time_interval: f(7),
+                            vrel_min: f(8),
+                            max_surface_gap_angle: f(9),
+                            min_axis_dist: f(10),
+                            unproj_plane_normal: v(11),
+                            unproj_dir: v(14),
+                            max_unproj: f(17),
+                            pt_outside_pivot: [v(18), v(21)],
+                            sweep_test: d[24] & 0xFF != 0,
+                            keep_prev_contacts: (d[24] >> 8) & 0xFF != 0,
+                            no_area_contacts: (d[24] >> 24) & 0xFF != 0,
+                            no_intersection: d[27] != 0,
+                            no_border_walk: d[25] & 0xFF != 0,
+                            border_by_tri_pairs: d[26] as i32,
+                        }),
+                        (d[24] >> 16) & 0xFF != 0,
+                    )
+                };
+                cases.push(Case {
+                    a: t[1].into(),
+                    b: t[2].into(),
+                    ga,
+                    gb,
+                    ip,
+                    first,
+                });
+            }
+            _ => {}
+        }
+    }
+    if let Some(u) = upto {
+        cases.truncate(u + 1);
+    }
+    run("p1c_reg_replay", &meshes, &prims, &cases, true);
 }
