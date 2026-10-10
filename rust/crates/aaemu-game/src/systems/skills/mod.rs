@@ -41,6 +41,18 @@ pub mod types;
 pub mod unit_reqs;
 
 #[cfg(test)]
+mod buff_tests;
+#[cfg(test)]
+mod effect_task_manager_tests;
+#[cfg(test)]
+mod leap_skill_controller_tests;
+#[cfg(test)]
+mod mana_regen_manager_tests;
+#[cfg(test)]
+mod sc_unit_impulse_packet_tests;
+#[cfg(test)]
+mod skill_tests;
+#[cfg(test)]
 pub(crate) mod tests;
 
 use std::collections::{HashMap, HashSet};
