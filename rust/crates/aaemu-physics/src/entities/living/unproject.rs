@@ -80,7 +80,8 @@ pub fn unproject_test(
                 && (((hc + pos.z) - pivot) - ((ol.height_collider + oe.pos.z) - ol.height_pivot))
                     .abs()
                     < ol.size.z + size.z
-                && ((pos.y - oe.pos.y) * (pos.y - oe.pos.y) + (pos.x - oe.pos.x) * (pos.x - oe.pos.x))
+                && ((pos.y - oe.pos.y) * (pos.y - oe.pos.y)
+                    + (pos.x - oe.pos.x) * (pos.x - oe.pos.x))
                     < (ol.size.x + size.x) * (ol.size.x + size.x)
             {
                 return 1.0e10;
@@ -114,7 +115,10 @@ pub fn unproject_test(
                 )
             };
             contacts.clear();
-            let mut hit = col.geom.intersect(pgeom.as_ref(), &gwd, &gwd2, &mut ip, &mut contacts) != 0;
+            let mut hit = col
+                .geom
+                .intersect(pgeom.as_ref(), &gwd, &gwd2, &mut ip, &mut contacts)
+                != 0;
             if !hit {
                 let sp: Vec<(u32, Vec3, std::sync::Arc<crate::geometry::PhysGeometry>)> = w
                     .ent(e)
@@ -137,7 +141,11 @@ pub fn unproject_test(
                         center_of_mass: Vec3::ZERO,
                     };
                     contacts.clear();
-                    if pg.geom.intersect(pgeom.as_ref(), &g1, &gwd2, &mut ip, &mut contacts) != 0 {
+                    if pg
+                        .geom
+                        .intersect(pgeom.as_ref(), &g1, &gwd2, &mut ip, &mut contacts)
+                        != 0
+                    {
                         hit = true;
                         break;
                     }

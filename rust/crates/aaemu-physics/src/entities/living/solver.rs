@@ -3,6 +3,11 @@
 //! diagonals (67/68), and the collision event `sub_35026300`.
 
 #![allow(
+    clippy::manual_range_contains,
+    clippy::assign_op_pattern,
+    clippy::collapsible_if,
+    clippy::needless_late_init,
+    clippy::approx_constant,
     clippy::neg_cmp_op_on_partial_ord,
     clippy::excessive_precision,
     clippy::float_cmp,
@@ -174,7 +179,11 @@ pub fn register_contacts(w: &mut World, e: EntIdx, _dt: f32, _n_max: i32) -> i32
             let pos = w.ent(e).pos;
             let (sol, pool) = w.solver_and_pool(tid);
             let c = sol.alloc_tmp_contacts(pool, 1);
-            let (pent1, ip1) = if g.is_none() { (EntIdx::NONE, -1) } else { (g, gip) };
+            let (pent1, ip1) = if g.is_none() {
+                (EntIdx::NONE, -1)
+            } else {
+                (g, gip)
+            };
             let b1 = if g.is_none() {
                 w.bodies.get_mut(BodyId::STATIC).reset_static_dummy();
                 BodyId::STATIC
@@ -356,7 +365,10 @@ pub fn collision_event(
     let partid = if other.is_none() {
         0
     } else {
-        w.ent(other).parts.get(ipart.max(0) as usize).map_or(0, |p| p.id)
+        w.ent(other)
+            .parts
+            .get(ipart.max(0) as usize)
+            .map_or(0, |p| p.id)
     };
     let mat = if other.is_none() {
         idmat

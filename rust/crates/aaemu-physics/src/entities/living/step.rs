@@ -29,6 +29,11 @@
 //!     event.
 
 #![allow(
+    clippy::manual_range_contains,
+    clippy::assign_op_pattern,
+    clippy::collapsible_if,
+    clippy::needless_late_init,
+    clippy::approx_constant,
     clippy::neg_cmp_op_on_partial_ord,
     clippy::excessive_precision,
     clippy::float_cmp,
@@ -384,7 +389,11 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                 continue;
             }
             let obb = w.ent(o).bbox;
-            let osz = Vec3::new(obb[1].x - obb[0].x, obb[1].y - obb[0].y, obb[1].z - obb[0].z);
+            let osz = Vec3::new(
+                obb[1].x - obb[0].x,
+                obb[1].y - obb[0].y,
+                obb[1].z - obb[0].z,
+            );
             let mut overlap_test = true;
             if w.ent(o).id_bits & 0xFF00_0000 == 0x0200_0000 {
                 if w.ent(o).flags & 0x100 != 0 {
@@ -541,7 +550,7 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
         let mut g_oth_vw = (Vec3::ZERO, Vec3::ZERO);
         let mut g_oth_com = Vec3::ZERO;
         let ent_flags = w.ent(e).flags; // v294
-        // ---- 5. overlap pass ----
+                                        // ---- 5. overlap pass ----
         if part0_fc & 2 != 0 {
             'restart: loop {
                 let mut ri = 0usize;
@@ -637,7 +646,11 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                 g_own.offset = v805;
                                 sweep = true;
                                 v290 = ((d.y * d.y + d.x * d.x) + d.z * d.z).sqrt();
-                                g_own.v = Vec3::new(d.x * (1.0 / v290), d.y * (1.0 / v290), d.z * (1.0 / v290));
+                                g_own.v = Vec3::new(
+                                    d.x * (1.0 / v290),
+                                    d.y * (1.0 / v290),
+                                    d.z * (1.0 / v290),
+                                );
                             } else {
                                 v290 = v939;
                                 g_own.v = Vec3::ZERO;
@@ -647,9 +660,23 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                             let n = if use_part_gwd {
                                 let gp = gpart.as_mut().expect("part gwd");
                                 gp.v = g_own.v;
-                                intersect_wb(cur_geom.as_ref(), pr.geom.as_ref(), gp, &g1, &mut ip, &mut contacts)
+                                intersect_wb(
+                                    cur_geom.as_ref(),
+                                    pr.geom.as_ref(),
+                                    gp,
+                                    &g1,
+                                    &mut ip,
+                                    &mut contacts,
+                                )
                             } else {
-                                intersect_wb(cur_geom.as_ref(), pr.geom.as_ref(), &mut g_own, &g1, &mut ip, &mut contacts)
+                                intersect_wb(
+                                    cur_geom.as_ref(),
+                                    pr.geom.as_ref(),
+                                    &mut g_own,
+                                    &g1,
+                                    &mut ip,
+                                    &mut contacts,
+                                )
                             };
                             let restore = |g: &mut GeomWorldData, sweep: bool| {
                                 if sweep {
@@ -723,7 +750,8 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                         }
                                     }
                                 } else if v312 & 0x1000_0000 == 0 {
-                                    let v857 = ((nlast.y * c.n.y + nlast.x * c.n.x) + nlast.z * c.n.z)
+                                    let v857 = ((nlast.y * c.n.y + nlast.x * c.n.x)
+                                        + nlast.z * c.n.z)
                                         + 0.990_000_01;
                                     let l = lm(w, e);
                                     let v333 = l.coll_count + 5 * i32::from(v857 < 0.0);
@@ -745,7 +773,9 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                             saved.y - v805.y,
                                             saved.z - v805.z,
                                         );
-                                        ct = f64::from(((dd.x * dd.x + dd.y * dd.y) + dd.z * dd.z).sqrt()) - ct;
+                                        ct = f64::from(
+                                            ((dd.x * dd.x + dd.y * dd.y) + dd.z * dd.z).sqrt(),
+                                        ) - ct;
                                         contacts[ci].t = ct;
                                         g_own.offset = saved;
                                     }
@@ -767,7 +797,8 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                         g_own.offset.z + push_z,
                                     );
                                     if f64::from(size.x) < ct {
-                                        ip.pt_outside_pivot[0] = Vec3::new(1e11, 1e11, 9.999_999_8e10);
+                                        ip.pt_outside_pivot[0] =
+                                            Vec3::new(1e11, 1e11, 9.999_999_8e10);
                                     }
                                 }
                             }
@@ -857,15 +888,29 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                 }
                                 if v349 {
                                     let mut j = imp;
-                                    if (up.y * c.dir.y + up.x * c.dir.x + up.z * c.dir.z).abs() < 0.699_999_99 {
+                                    if (up.y * c.dir.y + up.x * c.dir.x + up.z * c.dir.z).abs()
+                                        < 0.699_999_99
+                                    {
                                         let v387 = (j.x * up.x + j.y * up.y) + j.z * up.z;
-                                        j = Vec3::new(j.x - v387 * up.x, j.y - v387 * up.y, j.z - v387 * up.z);
+                                        j = Vec3::new(
+                                            j.x - v387 * up.x,
+                                            j.y - v387 * up.y,
+                                            j.z - v387 * up.z,
+                                        );
                                     }
                                     j = Vec3::new(-j.x, -j.y, -j.z);
                                     if w.ent(o).etype < 4 {
                                         j = Vec3::new(j.x * 0.2, j.y * 0.2, j.z * 0.2);
                                     }
-                                    ground::apply_impulse(w, o, j, Vec3::new(cx, cy, cz), v836, 2, 1);
+                                    ground::apply_impulse(
+                                        w,
+                                        o,
+                                        j,
+                                        Vec3::new(cx, cy, cz),
+                                        v836,
+                                        2,
+                                        1,
+                                    );
                                     lm(w, e).push_time = 0.0;
                                 }
                                 let mat = if contacts[ci].id[1] < 0 {
@@ -896,7 +941,11 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                 break;
             }
         }
-        dbg(|| format!("after overlap p={p:?} vdes={vdes:?} v817={v817} v869={v869} v870={v870} mv={mv:?}"));
+        dbg(|| {
+            format!(
+                "after overlap p={p:?} vdes={vdes:?} v817={v817} v869={v869} v870={v870} mv={mv:?}"
+            )
+        });
         // ---- LABEL_286 ----
         let mut endz;
         if v869 != 0 && v870 != 0 && ld(w, e).coll_count != 0 {
@@ -982,7 +1031,9 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
             v827 = ((m427 * m427 + m426 * m426) + m428 * m428).sqrt();
         }
         let _ = endz;
-        dbg(|| format!("probe v405={v405} n_end={n_end:?} v410={v410} adjust={do_adjust} cancel={cancel} mv=({m427},{m426},{m428}) len={v827}"));
+        dbg(|| {
+            format!("probe v405={v405} n_end={n_end:?} v410={v410} adjust={do_adjust} cancel={cancel} mv=({m427},{m426},{m428}) len={v827}")
+        });
         let p_before = p; // v841, v838, v833
         if ld(w, e).flags & lflags::JUMP != 0 {
             let gn = ld(w, e).ground_normal;
@@ -1055,7 +1106,8 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                 let v460 = (v457 - (v459 - (v458 + v456) * 2.0)).abs()
                                     + (v457 + (v459 - (v458 + v456) * 2.0));
                                 let v462 = v460 * 0.5;
-                                let v463 = f32::from(u8::from(ol.flags & 8 != 0)) as i32 as f32 * v453;
+                                let v463 =
+                                    f32::from(u8::from(ol.flags & 8 != 0)) as i32 as f32 * v453;
                                 let v464 = opos.z - ol.height_pivot;
                                 let v938 = ol.size.z + v463;
                                 let v465 = ((ol.height_collider + v464) + ol.size.z) + v463;
@@ -1067,8 +1119,12 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                 let v857e = v468;
                                 let v828 = -v452;
                                 let zov = |t: f32| -> bool {
-                                    let top = ((v465 + (v459 + dir.z * t)) - ((v459 + dir.z * t) - v465).abs()) * 0.5;
-                                    let bot = (((v462 + dir.z * t) - v467).abs() + (v467 + (v462 + dir.z * t))) * 0.5;
+                                    let top = ((v465 + (v459 + dir.z * t))
+                                        - ((v459 + dir.z * t) - v465).abs())
+                                        * 0.5;
+                                    let bot = (((v462 + dir.z * t) - v467).abs()
+                                        + (v467 + (v462 + dir.z * t)))
+                                        * 0.5;
                                     top < bot
                                 };
                                 if v468 > -v452
@@ -1144,7 +1200,9 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                     let a = dir.z * v940 + dir.x * v482;
                                     let b = dir.z * v951 + v482 * dir.y;
                                     if v939b < 0.0
-                                        && a * a + b * b < ((ol.size.x + v478) * dir.z) * ((ol.size.x + v478) * dir.z)
+                                        && a * a + b * b
+                                            < ((ol.size.x + v478) * dir.z)
+                                                * ((ol.size.x + v478) * dir.z)
                                     {
                                         hit_ent = o;
                                         v432 = -1;
@@ -1180,17 +1238,20 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                             continue;
                         }
                         if v490 & 0x20_0000 != 0 {
-                            w.signal_event(
-                                w.ent(e).flags,
-                                Event::BBoxOverlap { ent: [e, o] },
-                            );
+                            w.signal_event(w.ent(e).flags, Event::BBoxOverlap { ent: [e, o] });
                             if v490 & 2 == 0 {
                                 continue;
                             }
                         }
                         let g1 = pr.gwd();
-                        let mut nhit =
-                            intersect_wb(collider.as_ref(), pr.geom.as_ref(), &mut g_own, &g1, &mut ip, &mut contacts);
+                        let mut nhit = intersect_wb(
+                            collider.as_ref(),
+                            pr.geom.as_ref(),
+                            &mut g_own,
+                            &g1,
+                            &mut ip,
+                            &mut contacts,
+                        );
                         let mut v493 = 1usize;
                         loop {
                             if nhit != 0 {
@@ -1205,7 +1266,8 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                         v443 = c.i_prim[1];
                                         v432 = pr.ipart;
                                         let id1 = c.id[1];
-                                        v829 = ((id1 >> 31) & pr.surface) | (id1 - ((id1 >> 31) & id1));
+                                        v829 = ((id1 >> 31) & pr.surface)
+                                            | (id1 - ((id1 >> 31) & id1));
                                     }
                                 }
                             }
@@ -1233,7 +1295,14 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                                         w: Vec3::ZERO,
                                         center_of_mass: off,
                                     };
-                                    nhit = intersect_wb(g.as_ref(), pr.geom.as_ref(), &mut g2, &g1, &mut ip, &mut contacts);
+                                    nhit = intersect_wb(
+                                        g.as_ref(),
+                                        pr.geom.as_ref(),
+                                        &mut g2,
+                                        &g1,
+                                        &mut ip,
+                                        &mut contacts,
+                                    );
                                     v493 += 1;
                                     if nhit != 0 {
                                         break;
@@ -1250,7 +1319,9 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                     v442 += 1;
                 }
                 let _ = v803s;
-                dbg(|| format!("sweep pass {v846} hit={hit_ent:?} t={v444} lim={} hn={hn:?} hp={hp:?} dir={dir:?} p={p:?}", ip.time_interval));
+                dbg(|| {
+                    format!("sweep pass {v846} hit={hit_ent:?} t={v444} lim={} hn={hn:?} hp={hp:?} dir={dir:?} p={p:?}", ip.time_interval)
+                });
                 if !hit_ent.is_none() && v444 <= ip.time_interval {
                     let o = hit_ent;
                     let v522 = v444 - eps;
@@ -1320,7 +1391,8 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                             let opos = w.ent(o).pos;
                             let d = Vec3::new(p.x - opos.x, p.y - opos.y, p.z - opos.z);
                             let v553 = (up.x * d.x + d.y * up.y) + d.z * up.z;
-                            let hd = Vec3::new(d.x - up.x * v553, d.y - up.y * v553, d.z - up.z * v553);
+                            let hd =
+                                Vec3::new(d.x - up.x * v553, d.y - up.y * v553, d.z - up.z * v553);
                             let v558 = (hd.y * hd.y + hd.x * hd.x) + hd.z * hd.z;
                             let h = if v558 <= 9.999_999_7e-21 {
                                 Vec3::new(0.0, 0.0, 1.0)
@@ -1381,7 +1453,8 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                     }
                     if v539 != 0 {
                         let m = self_minv;
-                        vdes = Vec3::new(vdes.x + imp.x * m, vdes.y + imp.y * m, vdes.z + imp.z * m);
+                        vdes =
+                            Vec3::new(vdes.x + imp.x * m, vdes.y + imp.y * m, vdes.z + imp.z * m);
                         vnew = vdes;
                         let l = lm(w, e);
                         if l.inertia == 0.0 && ((sf & 0x200) as i32 | (osc - 3)) != 0 {
@@ -1433,7 +1506,11 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                         dir = Vec3::new(v601 * cn.x, cn.y * v601, cn.z * v601);
                     } else {
                         let v602 = (dir.x * hn.x + hn.y * dir.y) + dir.z * hn.z;
-                        let d = Vec3::new(dir.x - v602 * hn.x, dir.y - hn.y * v602, dir.z - hn.z * v602);
+                        let d = Vec3::new(
+                            dir.x - v602 * hn.x,
+                            dir.y - hn.y * v602,
+                            dir.z - hn.z * v602,
+                        );
                         let v606 = len2(d).sqrt() * 0.02;
                         dir = Vec3::new(
                             d.x * 0.999_800_03 + v606 * hn.x,
@@ -1468,11 +1545,15 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
             }
             let _ = v430;
             let v609 = (nsum.x * nsum.x + nsum.y * nsum.y) + nsum.z * nsum.z;
-            if v586 < v840 * 0.001 && (nsum.z.abs() * nsum.z > v609 * 0.160_000_01 || v609 < 0.990_000_01) {
+            if v586 < v840 * 0.001
+                && (nsum.z.abs() * nsum.z > v609 * 0.160_000_01 || v609 < 0.990_000_01)
+            {
                 lm(w, e).flags |= lflags::STUCK;
             }
             // ---- 8. the final static overlap check ----
-            if !(w.ent(e).parts[0].flags_collider & 2 == 0 || (v997 == 0 && w.ent(e).flags & 8 != 0)) {
+            if !(w.ent(e).parts[0].flags_collider & 2 == 0
+                || (v997 == 0 && w.ent(e).flags & 8 != 0))
+            {
                 reset_params(&mut ip);
                 let pp0 = w.ent(e).parts[0].pos;
                 g_own.offset = place(&r, pp0, p);
@@ -1489,8 +1570,14 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                             continue;
                         }
                         let g1 = pr.gwd();
-                        if intersect_wb(collider.as_ref(), pr.geom.as_ref(), &mut g_own, &g1, &mut ip, &mut contacts)
-                            != 0
+                        if intersect_wb(
+                            collider.as_ref(),
+                            pr.geom.as_ref(),
+                            &mut g_own,
+                            &g1,
+                            &mut ip,
+                            &mut contacts,
+                        ) != 0
                         {
                             found = Some(contacts[0].t);
                             break 'recs;
@@ -1509,7 +1596,12 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
             }
         }
         let _ = v586;
-        dbg(|| format!("after sweep p={p:?} vdes={vdes:?} stuck={}", ld(w, e).flags & 0x100));
+        dbg(|| {
+            format!(
+                "after sweep p={p:?} vdes={vdes:?} stuck={}",
+                ld(w, e).flags & 0x100
+            )
+        });
         // ---- 9. ground ----
         let gv_save = if ld(w, e).ground.is_none() {
             Vec3::ZERO
@@ -1545,7 +1637,8 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
         let v648 = l.cos_fall - ((gn.x * up.x + gn.y * up.y) + gn.z * up.z);
         let v650 = (up.x * p.x + up.y * p.y) + p.z * up.z;
         let v651 = (v650 - pivot)
-            - ((((0.004_000_000_2 - size.z * 0.01).abs() + (size.z * 0.01 + 0.004_000_000_2)) * 0.5)
+            - ((((0.004_000_000_2 - size.z * 0.01).abs() + (size.z * 0.01 + 0.004_000_000_2))
+                * 0.5)
                 + v630);
         let v652 = (mx(v651, v648).to_bits() >> 31) != 0;
         let gdot = (up.y * l.gravity.y + up.x * l.gravity.x) + up.z * l.gravity.z;
@@ -1612,7 +1705,9 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                 }
                 if !skip_to_532 {
                     if path_522 {
-                        if (v652 && len2(l.vel_requested) <= 0.0) || (v665 <= l.cos_climb && v660 >= 0.0) {
+                        if (v652 && len2(l.vel_requested) <= 0.0)
+                            || (v665 <= l.cos_climb && v660 >= 0.0)
+                        {
                             v642 = 0.0;
                             v658 = 0.0;
                             vz = 0.0;
@@ -1674,7 +1769,8 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
             }
             let mut v = Vec3::new(st.x * v696 + v642, st.y * v696 + v658, st.z * v696 + v670);
             if (v.x * v642 + v.y * v658) + v.z * v670 < 0.0
-                && (l.vel_requested.y * v.y + l.vel_requested.x * v.x) + l.vel_requested.z * v.z <= 0.0
+                && (l.vel_requested.y * v.y + l.vel_requested.x * v.x) + l.vel_requested.z * v.z
+                    <= 0.0
             {
                 v = Vec3::ZERO;
             }
@@ -1907,7 +2003,15 @@ pub fn airborne_vel(
 /// The head-sphere ceiling check of Step: the head sphere swept upward over
 /// `heightHead − heightCollider − min(eyeOffset, 0)` against the parts (flag 2) of the static
 /// neighbours; the eye offset is limited to stay under the nearest hit.
-fn head_check(w: &mut World, e: EntIdx, kept: &[EntIdx], r: &[[f32; 3]; 3], p: Vec3, up: Vec3, _tid: usize) {
+fn head_check(
+    w: &mut World,
+    e: EntIdx,
+    kept: &[EntIdx],
+    r: &[[f32; 3]; 3],
+    p: Vec3,
+    up: Vec3,
+    _tid: usize,
+) {
     let mut ip = IntersectionParams {
         sweep_test: true,
         ..IntersectionParams::default()
@@ -1958,7 +2062,15 @@ fn head_check(w: &mut World, e: EntIdx, kept: &[EntIdx], r: &[[f32; 3]; 3], p: V
                     pt.pgeom_proxy.geom.clone(),
                 )
             };
-            if intersect_wb(head.as_ref(), geom.as_ref(), &mut g_own, &g1, &mut ip, &mut contacts) != 0 {
+            if intersect_wb(
+                head.as_ref(),
+                geom.as_ref(),
+                &mut g_own,
+                &g1,
+                &mut ip,
+                &mut contacts,
+            ) != 0
+            {
                 let t = contacts[0].t as f32;
                 v722 = ((t + v722) - (v722 - t).abs()) * 0.5;
             }
@@ -2027,13 +2139,28 @@ fn static_moving_away(
             scale: 1.0,
             ..GeomWorldData::default()
         };
-        if intersect_wb(collider.as_ref(), geom.as_ref(), &mut g, &g1, &mut ip, &mut contacts) != 0 {
+        if intersect_wb(
+            collider.as_ref(),
+            geom.as_ref(),
+            &mut g,
+            &g1,
+            &mut ip,
+            &mut contacts,
+        ) != 0
+        {
             return true;
         }
         let inv = 1.0 / mlen;
         g.v = Vec3::new(mv.x * inv, inv * mv.y, inv * mv.z);
         g.offset = place(&r.m, pp0, Vec3::new(p.x + mv.x, p.y + mv.y, p.z + mv.z));
-        let n = intersect_wb(collider.as_ref(), geom.as_ref(), &mut g, &g1, &mut ip, &mut contacts);
+        let n = intersect_wb(
+            collider.as_ref(),
+            geom.as_ref(),
+            &mut g,
+            &g1,
+            &mut ip,
+            &mut contacts,
+        );
         if n != 0 {
             let c = &contacts[n - 1];
             let cx = (pb[1].x - pb[0].x) * 0.5 + pb[0].x;

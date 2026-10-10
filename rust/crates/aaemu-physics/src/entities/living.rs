@@ -44,6 +44,11 @@
 // comparisons keep its NaN behaviour; the literals are the decompile's single-precision
 // constants).
 #![allow(
+    clippy::manual_range_contains,
+    clippy::assign_op_pattern,
+    clippy::collapsible_if,
+    clippy::needless_late_init,
+    clippy::approx_constant,
     clippy::neg_cmp_op_on_partial_ord,
     clippy::excessive_precision,
     clippy::float_cmp,
@@ -253,9 +258,10 @@ pub fn make_collider(capsule: bool, r: f32, hh: f32) -> Arc<PhysGeometry> {
     };
     let geom = crate::world::geoman::create_primitive(&prim).expect("cylinder/capsule geometry");
     let pp = geom.calc_physical_properties();
-    let (inertia, q, origin, volume) = pp.map_or((Vec3::ZERO, Quat::IDENTITY, Vec3::ZERO, 0.0), |p| {
-        (p.inertia, p.q, p.origin, p.volume)
-    });
+    let (inertia, q, origin, volume) = pp
+        .map_or((Vec3::ZERO, Quat::IDENTITY, Vec3::ZERO, 0.0), |p| {
+            (p.inertia, p.q, p.origin, p.volume)
+        });
     Arc::new(PhysGeometry {
         geom,
         inertia,
@@ -550,7 +556,8 @@ pub fn quantize_vel_requested(v: Vec3) -> Vec3 {
         let s = ((v.z / len + 1.0) - (v.z / len - 1.0).abs()) * 0.5;
         let p = crt::asinf(((s - -1.0).abs() + (s - 1.0)) * 0.5) * 40.425_355_545_341_42_f64 as f32;
         let p = (p + 12_582_912.0).to_bits() as u8;
-        let m = ((((len + 20.0) - (20.0 - len).abs()) * 0.5) * 12.75 + 12_582_912.0).to_bits() as u8;
+        let m =
+            ((((len + 20.0) - (20.0 - len).abs()) * 0.5) * 12.75 + 12_582_912.0).to_bits() as u8;
         packed = u32::from(yaw) | (u32::from(p) << 16) | (u32::from(m) << 24);
     }
     let mag = f32::from((packed >> 24) as u8) * 0.078_431_375;
@@ -639,7 +646,11 @@ fn deferred_dimensions_check(w: &mut World, e: EntIdx, b: &[u8]) -> i32 {
         let max = f(48);
         let mut v25;
         loop {
-            let p = Vec3::new(dir.x * v22 + pos.x, dir.y * v22 + pos.y, dir.z * v22 + pos.z);
+            let p = Vec3::new(
+                dir.x * v22 + pos.x,
+                dir.y * v22 + pos.y,
+                dir.z * v22 + pos.z,
+            );
             v25 = unproject::unproject_test(
                 w,
                 e,
@@ -976,13 +987,21 @@ pub fn get_status(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
         2 if buf.len() >= 168 => {
             let l = ld(w, e);
             let q = w.ent(e).q;
-            wr_i32(buf, 4, ((l.flags & 0xFF) & u32::from(l.flags & 0x40 != 0)) as i32);
+            wr_i32(
+                buf,
+                4,
+                ((l.flags & 0xFF) & u32::from(l.flags & 0x40 != 0)) as i32,
+            );
             wr_f32(buf, 8, l.time_flying);
             let eye = q.rotate(Vec3::new(0.0, 0.0, -l.eye_offset));
             wr_v3(buf, 12, eye);
             let mut v = l.vel;
             if !l.ground.is_none() {
-                v = Vec3::new(l.ground_vel.x + v.x, l.ground_vel.y + v.y, l.ground_vel.z + v.z);
+                v = Vec3::new(
+                    l.ground_vel.x + v.x,
+                    l.ground_vel.y + v.y,
+                    l.ground_vel.z + v.z,
+                );
             }
             wr_v3(buf, 24, v);
             wr_v3(buf, 36, l.vel);
@@ -994,7 +1013,15 @@ pub fn get_status(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
             wr_v3(buf, 92, l.ground_normal);
             wr_i32(buf, 104, l.ground_surface[0]);
             wr_i32(buf, 108, l.ground_surface[1]);
-            wr_u64(buf, 112, if l.ground.is_none() { 0 } else { u64::from(l.ground.0) + 1 });
+            wr_u64(
+                buf,
+                112,
+                if l.ground.is_none() {
+                    0
+                } else {
+                    u64::from(l.ground.0) + 1
+                },
+            );
             wr_i32(buf, 120, l.ground_ipart);
             wr_i32(buf, 124, l.ground_partid);
             wr_v3(buf, 128, l.ground_local);
@@ -1008,7 +1035,11 @@ pub fn get_status(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
             let l = ld(w, e);
             let mut v = l.vel;
             if !l.ground.is_none() {
-                v = Vec3::new(l.ground_vel.x + v.x, l.ground_vel.y + v.y, l.ground_vel.z + v.z);
+                v = Vec3::new(
+                    l.ground_vel.x + v.x,
+                    l.ground_vel.y + v.y,
+                    l.ground_vel.z + v.z,
+                );
             }
             wr_v3(buf, 12, v);
             let dq = l.dq;

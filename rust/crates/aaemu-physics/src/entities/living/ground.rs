@@ -3,6 +3,11 @@
 //! (`sub_3502C700` / `sub_35024CF0`) and the jump reaction impulse (`sub_35025DF0`).
 
 #![allow(
+    clippy::manual_range_contains,
+    clippy::assign_op_pattern,
+    clippy::collapsible_if,
+    clippy::needless_late_init,
+    clippy::approx_constant,
     clippy::neg_cmp_op_on_partial_ord,
     clippy::excessive_precision,
     clippy::float_cmp,
@@ -343,11 +348,7 @@ pub fn ground_probe(
         ((v41 * m22) + v35) + pos.z,
     );
     let mut n_out = l.ground_normal;
-    let dir = Vec3::new(
-        (v44 * m02) + v33,
-        (v44 * m12) + v34,
-        (v44 * m22) + v35,
-    );
+    let dir = Vec3::new((v44 * m02) + v33, (v44 * m12) + v34, (v44 * m22) + v35);
     let mut ray = RayGeom::new(&RayPrim { origin, dir });
     ray.ndir = ndir;
     let (size_x, size_z) = (l.size.x, l.size.z);
@@ -417,9 +418,21 @@ pub fn ground_probe(
             let gwd = pr.gwd();
             let mut ip = IntersectionParams::default();
             contacts.clear();
-            let n = pr.geom.intersect(&ray, &gwd, &gwd_ray, &mut ip, &mut contacts);
+            let n = pr
+                .geom
+                .intersect(&ray, &gwd, &gwd_ray, &mut ip, &mut contacts);
             if std::env::var_os("AAEMU_LIVING_DEBUG").is_some() {
-                eprintln!("liv:  probe rec {:?} part {} n={} pts={:?}", ent, pr.ipart, n, contacts.iter().take(n).map(|c| (c.pt, c.n)).collect::<Vec<_>>());
+                eprintln!(
+                    "liv:  probe rec {:?} part {} n={} pts={:?}",
+                    ent,
+                    pr.ipart,
+                    n,
+                    contacts
+                        .iter()
+                        .take(n)
+                        .map(|c| (c.pt, c.n))
+                        .collect::<Vec<_>>()
+                );
             }
             if n == 0 {
                 continue;
@@ -519,7 +532,10 @@ pub fn ground_probe(
             l.ground_w = gw;
         }
     }
-    GroundHit { height: v16, n: n_out }
+    GroundHit {
+        height: v16,
+        n: n_out,
+    }
 }
 
 /// `sub_35025DF0(dir, n, bWithGroundVel)`: on a jump, push the ground (simclass 1 or 2 with
@@ -530,7 +546,10 @@ pub fn ground_probe(
 /// other colliders, and its contact patch status (GetStatus 19 at the feet with the gravity)
 /// fails.
 pub fn push_ground(w: &mut World, e: EntIdx, dir: Vec3, n: Vec3, with_ground_vel: bool) {
-    let pv = w.ent(e).q.rotate(Vec3::new(0.0, 0.0, ld(w, e).height_pivot));
+    let pv = w
+        .ent(e)
+        .q
+        .rotate(Vec3::new(0.0, 0.0, ld(w, e).height_pivot));
     let p = w.ent(e).pos;
     let pt = Vec3::new(p.x - pv.x, p.y - pv.y, p.z - pv.z);
     let g = ld(w, e).ground;
