@@ -236,6 +236,7 @@ pub fn aabb_overlap(amin: Vec3, amax: Vec3, bmin: Vec3, bmax: Vec3) -> bool {
 impl World {
     /// World slot 11 `SetupEntityGrid(axisz, origin, nx, ny, stepx, stepy, log2PODscale,
     /// bCyclic)` (0x3507E5A0). `bCyclic` is not read by the x64 build.
+    #[allow(clippy::too_many_arguments)]
     pub fn setup_entity_grid(
         &mut self,
         axisz: usize,

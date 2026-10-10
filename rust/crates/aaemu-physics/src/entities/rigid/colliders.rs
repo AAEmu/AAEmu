@@ -8,6 +8,11 @@
 //! base); the per-thread table `qword_35218710[tid]` that pairs each record with its collider
 //! and part indices is [`ContactScratch`].
 
+// NaN-aware comparisons and float literals are written as in the binary (the negated
+// comparisons keep its NaN behaviour; the literals are the decompile's single-precision
+// constants).
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
+
 use super::contacts::ContactScratch;
 use crate::collision::contact::IntersectionParams;
 use crate::collision::prim_intersect::scratch::{c, ThreadScratch};

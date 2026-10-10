@@ -1,6 +1,11 @@
 //! `CRigidEntity::Action` (slot 10, 0x350C5D30): the ids the port supports — 2
 //! `action_impulse`, 4 reset, 8 awake, 10 set_velocity.
 
+// NaN-aware comparisons and float literals are written as in the binary (the negated
+// comparisons keep its NaN behaviour; the literals are the decompile's single-precision
+// constants).
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
+
 use crate::math::Vec3;
 use crate::params::{ActionImpulse, ActionReset};
 use crate::sentinel::is_unused;

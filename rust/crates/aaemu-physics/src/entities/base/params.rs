@@ -1,6 +1,11 @@
 //! `SetParams` (entity slot 7): `CPhysicalEntity::SetParams` 0x3506EF20 and the rigid
 //! post-processing of `CRigidEntity::SetParams` 0x350C4CC0, per params id.
 
+// NaN-aware comparisons and float literals are written as in the binary (the negated
+// comparisons keep its NaN behaviour; the literals are the decompile's single-precision
+// constants).
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
+
 use super::{compute_bbox, Coords, EntityKind};
 use crate::math::{Quat, Vec3};
 use crate::params::ParamsPos;
@@ -74,12 +79,9 @@ fn base_set_params_pos(w: &mut World, e: EntIdx, p: &ParamsPos) {
     }
     {
         let ent = w.ent_mut(e);
-        match &mut ent.kind {
-            EntityKind::Rigid(r) => {
-                r.pos_new = pos;
-                r.q_new = q;
-            }
-            _ => {}
+        if let EntityKind::Rigid(r) = &mut ent.kind {
+            r.pos_new = pos;
+            r.q_new = q;
         }
         ent.pos = pos;
         ent.q = q;

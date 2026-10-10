@@ -2,6 +2,11 @@
 //! `ComputeBBoxRE` (0x350ABF20), `UpdatePosition` (0x350AC080) and `VerifyExistingContacts`
 //! (0x350ADB90).
 
+// NaN-aware comparisons and float literals are written as in the binary (the negated
+// comparisons keep its NaN behaviour; the literals are the decompile's single-precision
+// constants).
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
+
 use super::colliders::{check_contact_conflicts, check_for_new_contacts, get_potential_colliders};
 use super::register::register_contact_point;
 use crate::collision::contact::IntersectionParams;
@@ -11,7 +16,7 @@ use crate::math::{Mat33, Quat, Vec3};
 use crate::solver::contact::flags as cf;
 use crate::world::{EntIdx, World};
 
-fn rd<'a>(w: &'a World, e: EntIdx) -> &'a super::RigidData {
+fn rd(w: &World, e: EntIdx) -> &super::RigidData {
     w.ent(e).rigid().expect("rigid")
 }
 fn rm(w: &mut World, e: EntIdx) -> &mut super::RigidData {
@@ -657,9 +662,9 @@ fn finish_step(w: &mut World, e: EntIdx, v23: f32, v25: u32, v363: u32, deep: u3
         let m21 = (v312 * r[1][1] + v315 * r[1][0]) + v316 * r[1][2];
         let m22 = (v312 * r[2][1] + v315 * r[2][0]) + v316 * r[2][2];
         let (ax, ay, az) = (alpha.x, alpha.y, alpha.z);
-        b.l.x = (((m00 * v23) * ax + ay * (m10 * v23)) + az * (m20 * v23)) + b.l.x;
-        b.l.y = ((ay * (m11 * v23) + ax * (m01 * v23)) + az * (m21 * v23)) + b.l.y;
-        b.l.z = ((ay * (m12 * v23) + ax * (m02 * v23)) + az * (m22 * v23)) + b.l.z;
+        b.l.x += ((m00 * v23) * ax + ay * (m10 * v23)) + az * (m20 * v23);
+        b.l.y += (ay * (m11 * v23) + ax * (m01 * v23)) + az * (m21 * v23);
+        b.l.z += (ay * (m12 * v23) + ax * (m02 * v23)) + az * (m22 * v23);
     }
     {
         let r = rm(w, e);

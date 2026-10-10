@@ -2,6 +2,11 @@
 //! StepBack (27), GetMaxTimeStep (37), GetLastTimeStep (38), GetContactCount (39),
 //! RegisterContacts (40), Update (41), CalcEnergy (42), GetDamping (43), GetMaxFriction (44).
 
+// NaN-aware comparisons and float literals are written as in the binary (the negated
+// comparisons keep its NaN behaviour; the literals are the decompile's single-precision
+// constants).
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
+
 use super::colliders::boxes_overlap;
 use super::patch::{fit_contact_patch, patch_next};
 use super::step::{compute_bbox_re, update_position};
@@ -104,6 +109,7 @@ pub fn calc_energy(w: &World, e: EntIdx, dt: f32) -> f32 {
     let mut v9 = ((w.vars.max_velocity * w.vars.max_velocity) * v7) * 2.0;
     if dt <= 0.0 {
         let v38 = (b.v.x * b.v.x + b.v.y * b.v.y) + b.v.z * b.v.z;
+        #[allow(clippy::eq_op)]
         return (((v38 - v38).abs() + (v38 + v38)) * 0.5) * v7 + wl;
     }
     let f92 = w.ent(e).flags;

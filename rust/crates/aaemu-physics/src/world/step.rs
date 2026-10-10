@@ -8,6 +8,11 @@
 //! Not ported: worker threads, the deformation/breakage queues, the water manager, POD cell
 //! ageing and streaming, living and independent entities (P5), profiling.
 
+// NaN-aware comparisons and float literals are written as in the binary (the negated
+// comparisons keep its NaN behaviour; the literals are the decompile's single-precision
+// constants).
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
+
 use super::{EntIdx, World};
 use crate::entities::base::EntityKind;
 use crate::entities::rigid::{step as rstp, update as rstep};

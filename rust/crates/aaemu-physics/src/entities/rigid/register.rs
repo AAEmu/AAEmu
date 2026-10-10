@@ -1,6 +1,11 @@
 //! Contact registration of `CRigidEntity`: `RegisterContactPoint` (0x350B5E10) and the
 //! collision-event poster `sub_350AE0D0`.
 
+// NaN-aware comparisons and float literals are written as in the binary (the negated
+// comparisons keep its NaN behaviour; the literals are the decompile's single-precision
+// constants).
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
+
 use super::colliders::{body_id_of, body_of};
 use crate::collision::prim_intersect::scratch::{c, ThreadScratch};
 use crate::entities::base::EntityKind;

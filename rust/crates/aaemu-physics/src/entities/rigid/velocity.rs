@@ -1,5 +1,10 @@
 //! The rigid velocity clamp `sub_350B9440` and its helpers.
 
+// NaN-aware comparisons and float literals are written as in the binary (the negated
+// comparisons keep its NaN behaviour; the literals are the decompile's single-precision
+// constants).
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::excessive_precision)]
+
 use crate::math::{Quat, Vec3};
 use crate::solver::RigidBody;
 use crate::world::{EntIdx, World};
