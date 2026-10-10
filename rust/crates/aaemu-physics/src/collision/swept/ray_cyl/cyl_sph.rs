@@ -32,6 +32,7 @@ use super::super::common::{
     as_cyl, as_sph, le_or_nan, lt_or_nan_d, normalize_in_place, swap_linear, ucomisd_eq,
     ucomiss_eq, DEC_MOD3, INC_MOD3,
 };
+use super::super::poly::{find_roots, Poly4};
 use super::{sb, select, sgn_pm1};
 use crate::collision::contact::{ContactArea, UnprojParams, UnprojResult};
 use crate::geometry::primitives::{CylinderPrim, Primitive, SpherePrim};
@@ -176,7 +177,7 @@ pub fn unproject_cyl_sph(
                 1.0 * s3,
                 1.0 * s4,
             ];
-            let mut roots = [0.0f64; 32];
+            let mut roots = [0.0f64; 4];
             let n = rim_roots(&poly, 0.0, tmax, &mut roots);
             let lim = r2 + sr2;
             let mut i = n - 1;
@@ -267,8 +268,13 @@ pub fn unproject_cyl_sph(
 }
 
 /// The common tail: `pt = cS − n·rS` (float).
+///
+/// `n` goes through `black_box`: in the `dir = 0` branch `n = −dir`, and LLVM would otherwise
+/// fold `c − (−d)·r` into `c + d·r`, which differs from the binary in the sign of a NaN result
+/// (degenerate inputs such as `r = 0` with the sphere centre on the axis).
 #[inline]
 fn sphere_point(sph: &SpherePrim, n: Vec3) -> Vec3 {
+    let n = std::hint::black_box(n);
     let r = sph.r;
     Vec3::new(
         sph.center.x - n.x * r,
@@ -381,10 +387,14 @@ fn least_penetration(
 }
 
 /// The quartic root finder call of the rim test: sub_35149170(poly, 0.0, tmax, roots, 20, 4,
-/// false) → number of roots in `[0, tmax]`.
-fn rim_roots(poly: &[f64; 6], tmin: f64, tmax: f64, roots: &mut [f64; 32]) -> i32 {
-    let _ = (poly, tmin, tmax, roots);
-    0
+/// false) → number of roots in `[0, tmax]` (ascending at the front of `roots`). `poly` is the
+/// `polynomial_tpl<double, 4>` as built on the stack: denominator, then `c0..c4`.
+fn rim_roots(poly: &[f64; 6], lo: f64, hi: f64, roots: &mut [f64; 4]) -> i32 {
+    let p = Poly4 {
+        denom: poly[0],
+        data: [poly[1], poly[2], poly[3], poly[4], poly[5]],
+    };
+    find_roots(&p, lo, hi, roots, 20)
 }
 
 /// 0x35189260: sph–cyl, the 335-byte swap wrapper around [`unproject_cyl_sph`] (the capsule

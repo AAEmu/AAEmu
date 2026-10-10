@@ -417,3 +417,41 @@ fn ray_cyl_generator_coverage() {
         assert!(m.contains_key(&key), "{key:x?} not reached");
     }
 }
+
+#[test]
+fn cyl_sph_generator_coverage() {
+    // dir = 0 and dir != 0 separately (the feature ids overlap)
+    let zero = |rng: &mut Rng| {
+        let (c, s, mut p, fc) = gen_cyl_sph_parts(rng);
+        p.dir = Vec3::ZERO;
+        Case::new(0, &Primitive::Cylinder(c), &Primitive::Sphere(s), &p).with_features(fc, -1)
+    };
+    let moving = |rng: &mut Rng| {
+        let (c, s, mut p, fc) = gen_cyl_sph_parts(rng);
+        if p.dir == Vec3::ZERO {
+            p.dir = rng.unit();
+        }
+        Case::new(0, &Primitive::Cylinder(c), &Primitive::Sphere(s), &p).with_features(fc, -1)
+    };
+    let mz = distribution(&zero, 20000, 2);
+    let mm = distribution(&moving, 20000, 3);
+    println!("dir = 0: {mz:x?}\ndir != 0: {mm:x?}");
+    for key in [
+        (1, 0x40, 0x40),
+        (1, 0x41, 0x40),
+        (1, 0x42, 0x40),
+        (1, 0x20, 0x40),
+        (1, 0x21, 0x40),
+    ] {
+        assert!(mz.contains_key(&key), "dir = 0: {key:x?} not reached");
+    }
+    for key in [
+        (0, 0, 0),
+        (1, 0x40, 0x40),
+        (1, 0x41, 0x40),
+        (1, 0x42, 0x40),
+        (1, 0x20, 0x40),
+    ] {
+        assert!(mm.contains_key(&key), "dir != 0: {key:x?} not reached");
+    }
+}
