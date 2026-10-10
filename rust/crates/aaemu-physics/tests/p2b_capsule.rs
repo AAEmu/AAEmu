@@ -168,3 +168,35 @@ fn box_cap_matches_dll() {
 fn cap_box_matches_dll() {
     check("p2b_capsule_cap_box", 200, &|r| gen_pair(r, CAP, BOX));
 }
+
+#[test]
+fn cyl_cap_matches_dll() {
+    // cyl–cap copies `cos` from an uninitialised temporary (see capsule.rs)
+    check_masked(
+        "p2b_capsule_cyl_cap",
+        250,
+        &|r| gen_pair(r, CYL, CAP),
+        &mask_cos,
+    );
+}
+
+#[test]
+fn cap_cyl_matches_dll() {
+    check_masked(
+        "p2b_capsule_cap_cyl",
+        200,
+        &|r| gen_pair(r, CAP, CYL),
+        &mask_cos,
+    );
+}
+
+#[test]
+fn cap_cap_matches_dll() {
+    // cap–cap copies `cos` from an uninitialised temporary too
+    check_masked(
+        "p2b_capsule_cap_cap",
+        250,
+        &|r| gen_pair(r, CAP, CAP),
+        &mask_cos,
+    );
+}

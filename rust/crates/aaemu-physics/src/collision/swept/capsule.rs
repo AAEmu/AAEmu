@@ -43,11 +43,13 @@
 //! linear callers never read `cos`. Tests compare these cells with `cos` masked.
 
 use super::common::{
-    as_box, as_cap, as_ray, as_sph, as_tri, swap_linear, swap_linear_area, ucomiss_eq,
+    as_box, as_cap, as_cyl, as_ray, as_sph, as_tri, swap_linear, swap_linear_area, ucomiss_eq,
 };
 use super::{UnprojTables, MODE_LINEAR};
 use crate::collision::contact::{ContactArea, UnprojParams, UnprojResult};
-use crate::geometry::primitives::{BoxPrim, CapsulePrim, Primitive, RayPrim, SpherePrim, Triangle};
+use crate::geometry::primitives::{
+    BoxPrim, CapsulePrim, CylinderPrim, Primitive, RayPrim, SpherePrim, Triangle,
+};
 use crate::ids::GeomType;
 use crate::math::Vec3;
 
@@ -270,6 +272,164 @@ pub fn unproject_ray_cap(
     )
 }
 
+/// cap–cap 0x35190C20 (see the module docs, "cap–cap").
+pub fn unproject_cap_cap(
+    p: &mut UnprojParams,
+    a: &CapsulePrim,
+    _fa: i32,
+    b: &CapsulePrim,
+    _fb: i32,
+    out: &mut UnprojResult,
+    mut area: Option<&mut ContactArea>,
+) -> i32 {
+    let caps = [a, b];
+    let tmin0 = p.tmin;
+    out.t = 0.0;
+    let dl2 = (p.dir.x * p.dir.x + p.dir.y * p.dir.y) + p.dir.z * p.dir.z;
+    let end = |c: &CapsulePrim, k: f32| -> SpherePrim {
+        SpherePrim {
+            center: Vec3::new(
+                c.axis.x * k + c.center.x,
+                c.axis.y * k + c.center.y,
+                c.axis.z * k + c.center.z,
+            ),
+            r: c.r,
+        }
+    };
+    // pt −= dir·(float)t, n = −n (features are not swapped)
+    let flip = |p: &UnprojParams, r: &mut UnprojResult| {
+        let t = r.t as f32;
+        r.pt = Vec3::new(
+            r.pt.x - p.dir.x * t,
+            r.pt.y - p.dir.y * t,
+            r.pt.z - p.dir.z * t,
+        );
+        r.n = Vec3::new(-r.n.x, -r.n.y, -r.n.z);
+    };
+    let ret;
+    if ucomiss_eq(dl2, 0.0) {
+        let mut best_dir = Vec3::ZERO;
+        let mut r0 = super::cyl_cyl::unproject_cyl_cyl(
+            p,
+            a,
+            CAPSULE_FEATURE,
+            b,
+            CAPSULE_FEATURE,
+            out,
+            area.as_deref_mut(),
+        );
+        if r0 != 0 {
+            best_dir = p.dir;
+        }
+        let mut tmp = UnprojResult { cos_t: 0.0, ..*out };
+        for i in 0..2usize {
+            let c = caps[i];
+            let o = caps[i ^ 1];
+            let sgn = (1 - 2 * i as i32) as f32;
+            for (k, w) in [(-1i32, 1i32), (1, -1)] {
+                let s1 = end(c, k as f32 * c.hh);
+                p.dir = Vec3::ZERO;
+                if super::ray_cyl::unproject_cyl_sph(p, o, CAPSULE_FEATURE, &s1, -1, &mut tmp) != 0
+                    && tmp.t > out.t
+                {
+                    if i == 0 {
+                        flip(p, &mut tmp);
+                        super::common::negate_dir(p);
+                    }
+                    *out = tmp;
+                    r0 = 1;
+                    best_dir = p.dir;
+                }
+                let s2 = end(o, (k as f32 * o.hh) * sgn);
+                p.dir = Vec3::ZERO;
+                if super::sph::unproject_sph_sph(p, &s2, -1, &s1, -1, &mut tmp) != 0 {
+                    let d = (c.axis.x * tmp.n.x + tmp.n.y * c.axis.y) + tmp.n.z * c.axis.z;
+                    let v46 = f64::from(d) * f64::from(w);
+                    let dt = tmp.t - out.t;
+                    if ((dt + v46) - (tmp.t - out.t - v46).abs()) * 0.5 > 0.0 {
+                        if i == 0 {
+                            flip(p, &mut tmp);
+                            super::common::negate_dir(p);
+                        }
+                        *out = tmp;
+                        r0 = 1;
+                        best_dir = p.dir;
+                    }
+                }
+            }
+        }
+        p.dir = best_dir;
+        ret = r0;
+    } else {
+        let mut r = super::cyl_cyl::unproject_cyl_cyl(
+            p,
+            a,
+            CAPSULE_FEATURE,
+            b,
+            CAPSULE_FEATURE,
+            out,
+            area.as_deref_mut(),
+        );
+        bump_tmin(p, out.t, r);
+        super::common::negate_dir(p);
+        for i in 0..2usize {
+            let c = caps[i];
+            let o = caps[i ^ 1];
+            let first = i == 0;
+            let sgn = (1 - 2 * i as i32) as f32;
+            for k in [-1i32, 1] {
+                let s1 = end(c, k as f32 * c.hh);
+                let r1 = super::ray_cyl::unproject_cyl_sph(p, o, CAPSULE_FEATURE, &s1, -1, out);
+                r |= r1;
+                bump_tmin(p, out.t, r1);
+                if first && r1 != 0 {
+                    flip(p, out);
+                }
+                let s2 = end(o, (k as f32 * o.hh) * sgn);
+                let r2 = super::sph::unproject_sph_sph(p, &s2, -1, &s1, -1, out);
+                r |= r2;
+                bump_tmin(p, out.t, r2);
+                if first && r2 != 0 {
+                    flip(p, out);
+                }
+            }
+            super::common::negate_dir(p);
+        }
+        super::common::negate_dir(p);
+        p.tmin = tmin0;
+        ret = r;
+    }
+    if let Some(ar) = area {
+        ar.npt = 0;
+    }
+    ret
+}
+
+/// cyl–cap 0x35190570: [`compose_full`] with cyl–cyl 0x351893C0 (area) and cyl–sph 0x35187780;
+/// in least-penetration mode a sphere result that is not taken over counts as 0.
+pub fn unproject_cyl_cap(
+    p: &mut UnprojParams,
+    a: &CylinderPrim,
+    fa: i32,
+    b: &CapsulePrim,
+    _fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    compose_full(
+        p,
+        b,
+        out,
+        area,
+        ComposeFlags {
+            zero_t_on_cyl_fail: false,
+            ret_only_taken: true,
+        },
+        |p, out, ar| super::cyl_cyl::unproject_cyl_cyl(p, a, fa, b, CAPSULE_FEATURE, out, ar),
+        |p, s, out, _| super::ray_cyl::unproject_cyl_sph(p, a, fa, s, -1, out),
+    )
+}
+
 /// box–cap 0x351870D0: [`compose_full`] with box–cyl 0x351801A0 (area) and box–sph 0x35185B80;
 /// `out.t = 0` when box–cyl fails in least-penetration mode.
 pub fn unproject_box_cap(
@@ -293,6 +453,46 @@ pub fn unproject_box_cap(
         |p, out, ar| super::box_cyl::unproject_box_cyl(p, a, fa, b, CAPSULE_FEATURE, out, ar),
         |p, s, out, _| super::box_round::unproject_box_sph(p, a, fa, s, -1, out),
     )
+}
+
+fn cell_cyl_cap(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    unproject_cyl_cap(p, as_cyl(a), fa, as_cap(b), fb, out, area)
+}
+
+/// cap–cyl 0x35190B40: 215-byte area swap of [`unproject_cyl_cap`].
+fn cell_cap_cyl(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    let (cap, cyl) = (as_cap(a), as_cyl(b));
+    swap_linear_area(p, out, area, |p, out, ar| {
+        unproject_cyl_cap(p, cyl, fb, cap, fa, out, ar)
+    })
+}
+
+fn cell_cap_cap(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    unproject_cap_cap(p, as_cap(a), fa, as_cap(b), fb, out, area)
 }
 
 fn cell_box_cap(
@@ -419,7 +619,10 @@ fn cell_cap_ray(
 
 /// Fill the capsule cells.
 pub fn fill(t: &mut UnprojTables) {
-    use GeomType::{Box, Capsule, Ray, Sphere, TriMesh};
+    use GeomType::{Box, Capsule, Cylinder, Ray, Sphere, TriMesh};
+    t.set(MODE_LINEAR, Cylinder, Capsule, cell_cyl_cap);
+    t.set(MODE_LINEAR, Capsule, Cylinder, cell_cap_cyl);
+    t.set(MODE_LINEAR, Capsule, Capsule, cell_cap_cap);
     t.set(MODE_LINEAR, Box, Capsule, cell_box_cap);
     t.set(MODE_LINEAR, Capsule, Box, cell_cap_box);
     t.set(MODE_LINEAR, TriMesh, Capsule, cell_tri_cap);

@@ -713,4 +713,3 @@ fn thin_wall_sweeps_match_dll() {
     let name = format!("p2b_sweep_thin_wall_{}movers", movers.len());
     check_raw(&name, 200, &|rng| gen_thin_wall(rng, &movers), &port_sweep);
 }
-
