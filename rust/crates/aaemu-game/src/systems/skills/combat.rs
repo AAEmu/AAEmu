@@ -159,15 +159,17 @@ pub fn post_update_current_hp(
     if !triggers.is_empty() && max_hp != 0 {
         let old_p = (old_hp as f32 * 100.0 / max_hp as f32).round_ties_even() as i32;
         let new_p = (new_hp as f32 * 100.0 / max_hp as f32).round_ties_even() as i32;
-        // DoHpChangeTrigger is a no-op for every unit kind ported here (npc AI hooks it).
+        // DoHpChangeTrigger: the vehicle overrides (slave repair points); npc AI hooks it.
         if old_p > new_p {
             if let Some(t) = triggers.iter().find(|t| old_p > **t && new_p <= **t) {
                 tracing::trace!("hp trigger {t} (down) on {}", target.obj_id());
+                crate::systems::vehicles::on_hp_change_trigger(server, target, *t);
             }
         }
         if old_p < new_p {
             if let Some(t) = triggers.iter().find(|t| old_p < **t && new_p >= **t) {
                 tracing::trace!("hp trigger {t} (up) on {}", target.obj_id());
+                crate::systems::vehicles::on_hp_change_trigger(server, target, *t);
             }
         }
     }
@@ -221,6 +223,10 @@ pub fn do_die(
     killer: Option<&WorldObject>,
     kill_reason: KillReason,
 ) {
+    // `Slave.DoDie` replaces the base implementation (vehicles subsystem).
+    if crate::systems::vehicles::on_do_die(server, victim, killer, kill_reason) {
+        return;
+    }
     let npc_hooks = server.systems.skills.ext.npcs();
     if let Some(n) = victim.as_npc() {
         n.data().dead_time_ms = now_ms();
@@ -228,7 +234,7 @@ pub fn do_die(
     }
     super::skill::interrupt_skills(server, victim);
     set_in_battle(server, victim, false);
-    // Events.OnDeath (buff triggers listening to the victim)
+    // Events.OnDeath (buff triggers listening to the victim, `Shipyard.OnDeath`)
     buffs::fire_unit_event(server, victim.obj_id(), BuffEventTriggerKind::Death, 0);
     // killerUnit?.Events.OnKill(this, { Killer, Victim }) (quest subscribers of a player)
     if let Some(kp) = killer.and_then(WorldObject::as_player) {
@@ -238,6 +244,7 @@ pub fn do_die(
     crate::systems::instances::events::on_do_die(server, victim, killer);
     // House.OnDeath
     crate::systems::housing::on_unit_died(server, victim);
+    crate::systems::vehicles::on_death_event(server, victim);
     // Abusers that died leave the aggro tables they are in (OnAbuserDied).
     on_abuser_died(server, victim);
     buffs::remove_effects_on_death(server, victim);
@@ -313,7 +320,8 @@ fn do_die_base(
         true,
     );
     if killer.same(victim) {
-        // DespawnMate (mates subsystem)
+        // DespawnMate(owner of the mate / the character) (vehicles subsystem)
+        crate::systems::vehicles::mates::despawn_mate_on_death(server, victim);
         return;
     }
     // LootingContainer.GenerateLoot(killer) (NPC loot: npcs -> economy).
@@ -365,6 +373,7 @@ fn do_die_base(
             stop_auto_skill(p);
             set_in_battle(server, victim, false);
             p.data().dead_time = chrono::Utc::now().timestamp();
+            crate::systems::vehicles::mates::despawn_mate_on_death(server, victim);
         }
         if let Some(kp) = killer.as_player() {
             let kt = kp.data().unit.current_target;

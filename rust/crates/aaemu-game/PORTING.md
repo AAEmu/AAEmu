@@ -278,6 +278,19 @@ Hooks the economy subsystem must install (`server.systems.housing.hooks`): `inve
 | Tower defense runtime, `towerdef` GM command, `TowerDefenseAttackerAiCharacter` | – | todo | The C# has no tower defense manager (only data + the GM command); commands and NPC AI are not ported. |
 
 Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMates` on dungeon entry (`dungeon::add_player`); slaves `GetActiveSlaveByOwnerObjId` in `PlayerCanEnter`; economy: the entry item goes through `npcs::portal::check_item_and_remove` (`EconomyBridge::consume_item`) and `SocialHooks::update_owned_housing_faction` on `SetFaction`. Instant games have no rewards in C#.
+### systems::vehicles
+
+| Area (C#) | Rust | Status | Notes |
+|---|---|---|---|
+| `MateGameData`, `SlaveGameData` (templates, unit modifiers, initial items / buffs, passive buffs, doodad / healing point / slave bindings, drop doodads, mount skills, repairable slaves, `slave_attach_points*.json`), `TransferGameData` (templates, bindings, binding doodads, paths, client `transfer_path.xml` roads + `GetOwnerPaths`), `ShipyardManager.Load`, `TaxationsManager` table, `ModelManager` vehicle / ship models | `systems/vehicles/data.rs` | done | Gated test `real_compact_db_vehicle_tables` checks the row counts; `real_transfer_follows_its_client_route` loads the roads from the game_pak. |
+| `MateManager` (per instance), `CharacterMates` (load / save / spawn / despawn), `Mate` (`AddExp`, `MateXpUpdateTask`, `RegenTick`, `DoFallDamage`, `OnZoneChange`, stats) | `systems/vehicles/mates.rs`, `stats.rs` | done | Mount / dismount (`SCUnitAttached` / `SCUnitDetached`, rider becomes a transform child), rename, target, user state, mate equipment packet (item move through `VehicleItemHooks`), kill exp, stun / unmount skills, death despawn. |
+| `SlaveManager` (per instance), `SlaveSpawner`, `SummonSlave` details, `Slave` (`DoDie`, `DoHpChangeTrigger` / repair points, `RegenTick`, `Save`, `OnZoneChange`, stats) | `systems/vehicles/slaves.rs` | done | Create (saved slave / persistent doodads / saved child slaves from MySQL, position, boats on the water surface, doodad and slave bindings at the model attach points), bind / unbind, delete with portal-time despawn, Rider's Escape, repair cooldown, `RepairSlaveEffect`, `SendMySlaveTask`, logout (+10 min) / disconnect despawn task, `slaves` table (`AfterCharacters`). |
+| `TransferManager` (per instance, 100 ms tick), `TransferSpawner`, `Transfer` route following (`GoToPath`, `MoveTo`, `NextPoint`) | `systems/vehicles/transfers.rs` | done | Carriage motor + boarding part + bench doodads, `SCOneUnitMovementPacket` (transfer move type) for both parts. Spawned from `SpawnManager.SpawnAll`. |
+| `ShipyardManager` runtime, `Shipyard` build steps, `CraftEffect` shipyard branches, `ShipyardTickTask`, `ShipyardCompleteTask` | `systems/vehicles/shipyards.rs`, `effects.rs` | done | Requirements via the skills item hooks + money (`SCItemTaskSuccess` money form). |
+| `ShipHarpoonRopeController`, `CSUnhangPacket` | `systems/vehicles/harpoon.rs` | done | Tow forces are physics (`ShipHarpoonTowPhysics`): the per-tick entry points are exposed for the physics port. |
+| `CSMoveUnitPacket` vehicle branches (ship request, vehicle, mate xp, riding, standing on objects) | `systems/vehicles/movement.rs`, `world/session.rs` | done | Sticky parents are not modelled. |
+| Mate / slave / transfer / shipyard C2G and G2C packets | `systems/vehicles/packets.rs` | done | 18 C->S, 16 S->C (byte-exact tests). `CSChangeSlaveTargetPacket` has no 1.2 opcode (0xfff). |
+| Hooks | `systems/vehicles/hooks.rs` | – | Installs wrappers over the skills `NpcSkillHooks` and the social `SocialHooks` (forwarding to the previously installed hooks); `VehiclePhysicsHooks` (AddShip / RemoveShip / water surface / IsWater) and `VehicleItemHooks` (mate equipment move, EndCraft) for the physics / economy owners. |
 
 ## Known deviations from the C#
 
@@ -400,6 +413,26 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
   operation is aborted and logged.
 
 * systems::instances: the dungeon loader awaits the spawn tasks before registering the indun events again (C# does not await `Task.WhenAll`, a race) and reads the spawn files there instead of in `CreateWorldInstance`; `DestroyInstantGame` cleans the instance up and releases its id right away (C#: the finalizer, later); `Environment.TickCount` is a process-relative monotonic clock; the `World.Template.SpawnPosition` mutation in `MoveCharacterTo*` is a local value; paths that throw in C# (missing action / room / zone / rule set, `_members[x]` of a non-member, a destroyed dungeon's `World`) log and return, keeping the side effects done before the throw; `EndGame().Start()` throwing after a victory is modelled as "the rest of `OnKill` (respawn) does not run"; the cross-instance region switch removes the object from every old neighbour once (no double notification of its own sector).
+
+* systems::vehicles: supersedes the phase-2 `CSMoveUnit` and `LeaveWorldTask` bullets above:
+  slave / vehicle / mate moves, riding, standing on objects, the mate / slave logout handling
+  and the +10 minute logout delay with an active vehicle are ported (combat x30: skills).
+* systems::vehicles: the transfer motor is not a transform child of its boarding part (the C#
+  sets and immediately clears that parent); the boarding part is moved explicitly by the motor's
+  tick, as the C# does for its packets. Sticky parents (ladders, boarding) are not modelled, so
+  `CSUnhangPacket` always reports target 0 and breaks no rope.
+* systems::vehicles: `Transform.Parent = null` keeps the world position (`detach_child`); the C#
+  keeps the local values until the next position update.
+* systems::vehicles: `Thread.Sleep(50)` between `SCMateSpawnedPacket` and the mate spawn is not
+  reproduced. Mate / slave gear bonuses (`UpdateGearBonuses`) and slave weapon dps are 0
+  (economy). Ship physics, water bodies and the weather storm-ship skill block are hooks /
+  not ported.
+* systems::vehicles: a stale (already deleted) mate left in the active list by the logout bug
+  below is despawned again without releasing its obj / tl ids a second time.
+* systems::vehicles: DB failures of the saved-slave lookups behave like "no saved slave"; the
+  slave / mate saves outside `DoSave` are fire-and-forget tasks.
+* systems::vehicles: a missing unit formula evaluates to 0 (C# NullReferenceException); index
+  errors of `NextPoint` / `ShipyardSteps[-1]` are logged and end the call (C# exceptions).
 
 ## C# bugs noticed (mirrored, not fixed)
 
@@ -530,3 +563,21 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
   `CraftEffect` on a finished house throws (`BuildSteps[-1]`). The `BaseAction` sum is not
   reset when the step goes back to 0 / -1. `SetForSale` on a house already for sale adds a second
   set of sale signs. `RemoveDeadHouse` queues the house id for deletion a second time.
+* systems::vehicles: `MateManager.RemoveAndDespawnAllActiveOwnedMates` removes the active-list
+  entries by `OwnerObjId` while the list is keyed by the character id, so the deleted mates stay
+  listed; after a relog the first whistle use only "despawns" the stale mate.
+* systems::vehicles: `ShipyardCompleted` builds a `SkillItem` with only `ItemId`, so
+  `SlaveManager.Create` returns on its `ItemTemplateId == 0` check: the finished ship is never
+  summoned (the owner's active vehicle is still removed).
+* systems::vehicles: a slave's `TlId` is never released; the transfer spawner's `Despawn` and
+  the spawn manager's despawn tick both release the transfer's obj id.
+* systems::vehicles: `SummonSlave.ReadDetails` always fails on `RepairStartTime` (so the repair
+  cooldown does not survive a restart); `DoodadFuncRecoverItem` looks the owning slave up by its
+  DB id as an obj id; `GetActiveMates(...).FirstOrDefault()` decides the `Raid` relation mate.
+* systems::vehicles: `Unit.DespawnMate` on a mate's own death only despawns when its owner is
+  dead; `UnitMoveType` without the standing flag detaches a driver from its vehicle.
+* systems::vehicles: `SpawnEffect` (slave) writes `PosDistance = 2` back into the template and
+  `Rotate(Rotation with { Z = .. })` doubles the roll / pitch; an owner-less boat throws in
+  `Create` after spawning (`GetWorld(owner.Transform.InstanceId)`).
+* systems::vehicles: `CSChangeMateUserStatePacket` / `ChangeStateMate` sends nothing (the packet
+  is commented out in C#); `RenameMount` broadcasts the un-normalized name.

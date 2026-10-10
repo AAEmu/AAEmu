@@ -218,8 +218,16 @@ pub fn filter_with_relation(
             let social = server.systems.skills.ext.social();
             let team = social.team_of(server, caster.obj_id());
             let mut out: Vec<WorldObject> = if team == 0 {
-                // units.Where(o => o.ObjId == mate?.ObjId): the active mate (pets: mates subsystem)
-                Vec::new()
+                // units.Where(o => o.ObjId == mate?.ObjId): the first active mate
+                let mate = caster
+                    .as_obj()
+                    .and_then(WorldObject::as_player)
+                    .and_then(|p| crate::systems::vehicles::mates::first_active_mate(server, p))
+                    .map(|m| m.obj_id);
+                units
+                    .into_iter()
+                    .filter(|o| Some(o.obj_id()) == mate)
+                    .collect()
             } else {
                 units
                     .into_iter()

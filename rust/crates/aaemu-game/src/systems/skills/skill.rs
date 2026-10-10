@@ -425,7 +425,12 @@ pub fn use_skill(
         return (skill_result::NO_TARGET, 0);
     };
     skill.state().initial_target = target.obj_id();
-    // Unmount when the template asks for it: mates subsystem.
+    // Unmount character if skill asks for it (vehicles subsystem)
+    if template.unmount {
+        if let Some(p) = caster.as_player() {
+            crate::systems::vehicles::mates::unmount_riding_character(server, p, true);
+        }
+    }
     let mp = caster.with_unit(|u| u.unit().mp).unwrap_or(0);
     if mana_cost(server, skill, caster) > mp {
         return (skill_result::LACK_MANA, 0);

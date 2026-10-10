@@ -164,8 +164,8 @@ pub struct ItemDetails {
     pub slave_type: u8,
     pub slave_db_id: u32,
     pub slave_is_destroyed: u8,
-    /// `SummonSlave.RepairStartTime` (0 = `MinValue`; never restored from the DB, see
-    /// `ReadDetails`).
+    /// `SummonSlave.RepairStartTime` (unix seconds, 0 = `DateTime.MinValue`). Never restored
+    /// from the DB (the C# `ReadDetails` always falls back to `MinValue`).
     pub slave_repair_start_time: UnixTime,
     // TreasureMap
     pub map_position_x: i64,
@@ -389,6 +389,14 @@ impl Item {
         self.dirty = true;
     }
 
+    /// `DetailType` + `WriteDetails` (the 128-byte detail block of item task packets, unpadded).
+    pub fn detail_type_and_details(&self) -> Vec<u8> {
+        let mut s = PacketStream::new();
+        s.write_u8(self.class.detail_type());
+        self.write_details(&mut s);
+        s.into_bytes()
+    }
+
     /// `WriteDetails` into a fresh stream (the `items.details` column).
     pub fn details_blob(&self) -> Vec<u8> {
         let mut s = PacketStream::new();
@@ -515,7 +523,7 @@ impl Item {
                 if d.slave_repair_start_time == 0 {
                     s.write_i32(0); // RepairStartTime == MinValue
                 } else {
-                    s.write_i64(d.slave_repair_start_time);
+                    s.write_i64(d.slave_repair_start_time); // Write(DateTime)
                 }
                 for _ in 0..5 {
                     s.write_i32(0);

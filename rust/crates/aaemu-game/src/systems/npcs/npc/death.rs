@@ -139,10 +139,13 @@ pub fn before_death(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObje
 
     let killer_player = killer.and_then(|k| k.as_player().cloned());
     if eligible.is_empty() {
-        if let (Some(ck), Some(q)) = (&killer_player, &quests) {
-            // No eligible owner, but the killer is a character.
-            q.on_npc_killed(server, ck, npc);
-            q.add_exp(server, ck, kill_exp, npc.obj_id);
+        if let Some(ck) = &killer_player {
+            if let Some(q) = &quests {
+                q.on_npc_killed(server, ck, npc);
+                q.add_exp(server, ck, kill_exp, npc.obj_id);
+            }
+            // The killer's active mates (vehicles subsystem).
+            crate::systems::vehicles::mates::reward_kill_exp(server, ck, kill_exp);
         }
     } else {
         let (is_raid, is_full_team) = match (tag_team != 0, &team) {
@@ -157,6 +160,11 @@ pub fn before_death(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObje
                 if let Some(q) = &quests {
                     q.add_exp(server, pl, exp, npc.obj_id);
                 }
+            }
+            // mateKillXp: mateMod is 0.66 in a raid, else plMod.
+            let mate_mod = if is_raid { 0.66 } else { pl_mod };
+            if let Some(mate_exp) = kill_exp_for(kill_exp, mate_mod, level, npc_level) {
+                crate::systems::vehicles::mates::reward_kill_exp(server, pl, mate_exp);
             }
             if let Some(q) = &quests {
                 q.on_npc_killed(server, pl, npc);

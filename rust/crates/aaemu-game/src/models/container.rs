@@ -248,6 +248,11 @@ impl ItemContainer {
         self.items.iter().find(|i| i.id == id)
     }
 
+    /// `GetItemByItemId` for in-place updates (the item's `IsDirty` is the caller's job).
+    pub fn get_item_by_id_mut(&mut self, id: u64) -> Option<&mut Item> {
+        self.items.iter_mut().find(|i| i.id == id)
+    }
+
     /// `GetSlottedItemsList` (one entry per slot `0..ContainerSize`).
     pub fn slotted_items(&self) -> Vec<Option<Item>> {
         (0..self.size.max(0))
@@ -1040,10 +1045,6 @@ impl ItemContainer {
             i.slot = c as i32;
             i.dirty = true;
         }
-    }
-
-    pub fn get_item_by_id_mut(&mut self, id: u64) -> Option<&mut Item> {
-        self.items.iter_mut().find(|i| i.id == id)
     }
 
     pub fn get_item_by_slot_mut(&mut self, slot: i32) -> Option<&mut Item> {

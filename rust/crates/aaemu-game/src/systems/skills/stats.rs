@@ -657,6 +657,14 @@ pub fn stats(server: &GameServer, obj: &WorldObject, kinds: &[StatKind]) -> Vec<
                 })
                 .collect()
         }
+        WorldObject::Mate(_)
+        | WorldObject::Slave(_)
+        | WorldObject::Transfer(_)
+        | WorldObject::Shipyard(_) => {
+            // The vehicle kinds' getters (vehicles subsystem).
+            crate::systems::vehicles::stats::stats(server, obj, kinds)
+                .unwrap_or_else(|| vec![0.0; kinds.len()])
+        }
         other => other
             .with_unit(|u| {
                 kinds
@@ -694,7 +702,14 @@ pub fn refresh_cached_stats(server: &GameServer, obj: &WorldObject) {
             StatKind::CastTimeMul,
         ],
     );
-    if obj.as_player().is_none() && obj.as_npc().is_none() {
+    let vehicle = matches!(
+        obj,
+        WorldObject::Mate(_)
+            | WorldObject::Slave(_)
+            | WorldObject::Transfer(_)
+            | WorldObject::Shipyard(_)
+    );
+    if obj.as_player().is_none() && obj.as_npc().is_none() && !vehicle {
         return; // base units: the cached fields are the getters themselves
     }
     obj.with_unit(|u| {

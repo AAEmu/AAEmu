@@ -812,8 +812,11 @@ pub fn use_portal(server: &GameServer, player: &PlayerRef, obj_id: u32) {
         c.unit.transform.instance_id
     };
     if teleport.instance_id != current_instance {
-        // TODO(slaves / mates): the loaded-slave check (SlaveEquipmentLoadedItem) and
-        // `RemoveAndDespawnAllActiveOwnedMates/Slaves` need the slave / mate managers.
+        // The loaded-slave check (SlaveEquipmentLoadedItem) and
+        // `RemoveAndDespawnAllActiveOwnedMates/Slaves` (vehicles subsystem).
+        if !crate::systems::vehicles::on_instance_change(server, player) {
+            return;
+        }
         player.send(SCLoadInstancePacket {
             instance_id: teleport.world_id,
             zone_id: teleport.zone_id,

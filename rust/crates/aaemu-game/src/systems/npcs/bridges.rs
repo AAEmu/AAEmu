@@ -185,11 +185,15 @@ impl NpcSkillHooks for NpcSkills {
     fn apply_effect(
         &self,
         server: &GameServer,
-        _kind: EffectKind,
+        kind: EffectKind,
         template: &EffectTemplate,
         args: &EffectArgs<'_>,
     ) -> bool {
         use EffectTemplate as T;
+        // Slave `SpawnEffect`, `RepairSlaveEffect`, ... (vehicles subsystem).
+        if crate::systems::vehicles::effects::apply_effect(server, kind, template, args) {
+            return true;
+        }
         match template {
             T::Interaction {
                 world_interaction,
@@ -322,8 +326,69 @@ impl NpcSkillHooks for NpcSkills {
     }
 
     // npc_move_state: the NPC AI / movement simulation keeps the stance (later phase).
-    // unmount_active_mates / spawn_mount / mate_* / bind_slave / spawn_slave / riders_escape /
-    // character_slave: the vehicles subsystem (mates, slaves).
+    // ---- mates / slaves: systems::vehicles ----
+
+    fn unmount_active_mates(&self, server: &GameServer, player: &PlayerRef) {
+        crate::systems::vehicles::mates::unmount_active_mates_on_blink(server, player);
+    }
+
+    fn spawn_mount(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        skill_item: &crate::systems::skills::types::SkillCaster,
+    ) {
+        if let crate::systems::skills::types::SkillCaster::Item { item_id, .. } = skill_item {
+            crate::systems::vehicles::mates::spawn_mount(server, player, *item_id);
+        }
+    }
+
+    fn mate_is_max_level(&self, server: &GameServer, mate: &crate::world::MateRef) -> bool {
+        crate::systems::vehicles::mates::is_max_level(server, &mate.data())
+    }
+
+    fn mate_add_exp(&self, server: &GameServer, mate: &crate::world::MateRef, exp: i32) {
+        crate::systems::vehicles::mates::add_exp(server, mate, exp);
+    }
+
+    fn bind_slave(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        slave_obj_id: u32,
+        attach_point: i32,
+    ) {
+        use crate::systems::vehicles::slaves;
+        slaves::bind_slave(
+            server,
+            player,
+            slave_obj_id,
+            attach_point as u8,
+            slaves::attach_reason::NEW_MASTER,
+        );
+    }
+
+    fn spawn_slave(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        skill_item: &crate::systems::skills::types::SkillCaster,
+    ) {
+        crate::systems::vehicles::slaves::create_from_skill(server, player, skill_item);
+    }
+
+    fn riders_escape(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        target: &crate::systems::skills::types::SkillCastTarget,
+    ) {
+        crate::systems::vehicles::slaves::riders_escape(server, player, target);
+    }
+
+    fn character_slave(&self, server: &GameServer, player: &PlayerRef) -> Option<WorldObject> {
+        crate::systems::vehicles::slaves::character_slave(server, player)
+    }
 
     fn world_gate(&self, server: &GameServer, id: u32) -> Option<Portal> {
         super::portal::world_gates_by_id(server, id).cloned()

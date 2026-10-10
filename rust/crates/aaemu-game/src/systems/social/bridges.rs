@@ -388,7 +388,14 @@ impl SocialHooks for GameSocialHooks {
     }
 
     // update_owned_housing_faction: HousingManager (housing subsystem).
-    // force_dismount: mates / slaves (vehicles subsystem).
+    fn force_dismount(&self, server: &GameServer, player: &PlayerRef) {
+        // `Character.ForceDismount()` (systems::vehicles)
+        crate::systems::vehicles::force_dismount(
+            server,
+            player,
+            crate::systems::vehicles::slaves::attach_reason::PREFAB_CHANGED,
+        );
+    }
 
     fn post_update_current_hp(
         &self,

@@ -229,6 +229,11 @@ pub struct Character {
     /// The live quest objects (`Quests.ActiveQuests`, quest event subscriptions,
     /// `CurrentlyPlayingCinemaId`); `quests` holds their DB / wire rows.
     pub quest_state: crate::systems::quests::state::QuestState,
+    // ---- phase 3 / vehicles: add this subsystem's Character fields below ----
+    /// `IsRiding` (mounted on a mate).
+    pub is_riding: bool,
+    /// `AttachedPoint` (`AttachPointKind` of the mate / slave seat, 0 = None).
+    pub attached_point: u8,
 }
 
 /// `Guid.NewGuid().ToByteArray()` (random, version 4 / variant 1).
@@ -342,6 +347,9 @@ impl Character {
             main_world_position: None,
             // ---- phase 3 / quests ----
             quest_state: Default::default(),
+            // ---- phase 3 / vehicles ----
+            is_riding: false,
+            attached_point: 0,
         }
     }
 
