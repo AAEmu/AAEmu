@@ -5,9 +5,10 @@ A Rust port of **CryPhysics**, the physics engine inside the ArcheAge zone serve
 `cryphysics.dll` (see [`docs/physics/CRYPHYSICS-MAP.md`](../../docs/physics/CRYPHYSICS-MAP.md) §2).
 It will replace the Jitter2-subset ship physics in `aaemu-game/src/systems/ai/physics/`.
 
-Status: **P0 (math, primitives, parameter interface, world defaults) and PT (oracle tooling)
-are done.** Everything else is a stub with its owner, sources and addresses noted in the module
-docs.
+Status: **P0, PT, P1a (primitive geometries), P1b (BV trees), P1c (`CTriMesh`, `CHeightfield`,
+the generic `CGeometry::Intersect` with its tree traversals and the mesh side of collision),
+P2a and P2b are done.** The world, entities and solver (P3+) are stubs with their owner,
+sources and addresses noted in the module docs.
 
 ## Fidelity policy
 
@@ -136,7 +137,9 @@ accept decimals, `U` (the unused sentinel) or `h:XXXXXXXX` (raw bits); ints acce
 | `trace` | `ents=a,b,…` (entities printed after each step) |
 | `step` | `n= [dt=h:3d088889] [flags=0x9F] [every=1]` (TimeStep; `every=0` prints nothing) |
 | `print` | print the traced entities now |
-| `ray` | `name= org= dir= [types=0x13F] [flags=0] [max=1] [caller=4]` (RayWorldIntersection) |
+| `geom … type=mesh` | (P1c) `name=` + one source: `file=PATH` (relative to the scenario: u32 nVerts, u32 nTris, f32 verts[3·nV], i32 idx[3·nT], LE; ≤ 65536 verts) · `gen=grid nx= ny= step=s\|sx,sy [z=] [noise=seed,amp]` · `gen=terrainmesh nx= ny= step= amp= [k=kx,ky] [z=]` · `gen=box size=` · `gen=icosphere r= [sub=1]` · `gen=cylinder r= hh= [seg=16]` · `cgf=REL [slot=k]` (k-th 0xCCCC0018 chunk in chunk-table order of `%AAEMU_PHYS_CGF_DIR%\REL`, through LoadPhysGeometry; blobs that use the render mesh's vertices are refused). file/gen options: `[flags=0x40] [mintris=2] [maxtris=4] [obb=1] [tol=0] [mat=id] [scale=] [offset=x,y,z]`; any source: `[dump=1]`. Prints `geominfo` (+ `cgfload NAME used N of LEN` for cgf) |
+| `geominfo` | (P1c) `name=` — `geominfo NAME type T nprims N nv N flags F bbox <GetBBox: Basis 9, bOriented, center 3, size 3> vol <GetVolume> pg <V> <Ibody 3> <q 4> <origin 3> <surface>` for any registered geometry |
+| `ray` | `name= org= dir= [types=0x13F] [flags=0] [max=1] [caller=4] [ext=1]` (RayWorldIntersection; `ext=1` (P1c) appends `x <i16 +24> <i16 +26> <+32> <+60> <iPrim +64>` to each hit line) |
 | `peek` / `peekworld` / `peekdll` | raw words of an entity, the world, or the DLL image (`va=`) |
 | `snap` / `snapdiff` | remember an object, then print the byte offsets that changed (pointer-free) |
 | `listwhere` | which world entity lists hold an entity |
@@ -152,14 +155,44 @@ acosf expf logf sqrtf atan2f powf sin cos exp log asin atan2`.
 * Works: static/rigid/living/particle entities, box/sphere/cylinder/capsule geometries, global
   area with buoyancy, all SetParams/Action/GetStatus ids (raw field access), TimeStep,
   RayWorldIntersection, heightfield terrain through world slot 17, internal-function probes.
-* Not yet: trimesh geometry (needs `CreateMesh`, add a `geom type=mesh` command when P1c starts),
-  non-global areas, PrimitiveWorldIntersection, events (no event clients are registered),
+* Trimesh geometry (P1c, `oracle/p1c_mesh.c`): CreateMesh from mesh files and built-in
+  generators, LoadPhysGeometry from real CGF physics blobs, on static and rigid entities. The
+  generators are deterministic single-precision formulas (sin/cos as a double Taylor series),
+  documented in `p1c_mesh.c` and rebuilt bit for bit in Rust by `tests/p1c_scenarios.rs`
+  (`gen` module). `dump=1` prints `meshv NAME <verts>` / `mesht NAME <tris>` (stored order) /
+  `meshf NAME <foreign ids>` (if any).
+* Not yet: shared-render-mesh CGF blobs (341 corpus models; would need the CGF DataStream
+  positions/indices), non-global areas, PrimitiveWorldIntersection, events (no event clients are registered),
   multi-threaded stepping (needs a real thread-task manager behind `gEnv`).
 * Engine facts learned through the oracle (also in CRYPHYSICS-MAP): RWI returns 0 until the
   world's temp pools exist (first step with an ordinary entity); default RWI flags require part
   flag 0x8000; RWI rejects rays whose |dir.x| or |dir.y| exceeds a gEnv config integer unless
   gEnv byte 289 is set ("DrawRayOnGrid", ArcheAge-specific); a heightfield geometry on an
   ordinary entity never collides; entities join the simclass lists at the first step.
+* Trimesh facts (P1c-oracle):
+  * `IGeomManager` slot 3 (0x3514B710) is CreateMesh(strided vtx*, strided idx*, mats, foreignIdx,
+    nTris, flags, approx_tolerance, SMeshBVParams* {minTris, maxTris, favorAABB}); slot 4
+    (0x35095CB0) takes the three values as arguments (and clears flag 0x80000 = voxel); slot 5
+    uses tol 0.05, 2, 4, 1.0. Strided pointers are `{ptr, int stride}`; **indices are u16**
+    (copied to int; flag 2 + stride 4 uses an int array in place), nVerts = max index + 1.
+  * CreateMesh first tries a primitive (slot 6 → 0x3512D650): only when tol > 0, the material
+    array is absent or uniform, and the flag of the shape is set: **0x800 cylinder, 0x1000 box,
+    0x2000 sphere, 0x200000 capsule** (0x203800 = all). Otherwise a CTriMesh is built.
+  * Tree choice: 0x20 OBB, 0x40 AABB, 0x40000 AABB in principal axes (+152 then shows 0x40 and
+    the bbox is oriented), 0x80 single box; with several bits the cheapest tree wins and only its
+    bit stays in +152. The build permutes the triangles; hit `iPrim` (+64) indexes the stored order.
+  * LoadPhysGeometry (slot 16, 0x3514B340) takes `(CMemStream*, strided vtx*, strided idx*,
+    mats)`, returns a ready phys_geometry (no RegisterGeometry) whose V/inertia come from the
+    blob header (for open meshes ≠ GetVolume); corpus blobs keep flag 0x8000.
+  * RegisterGeometry's V differs from GetVolume in the last bits for curved meshes (icosphere).
+    Rigid mesh parts: `mass=` is used as is, `density=` gives density·V (pe_status_dynamics +112).
+  * RWI on a trimesh is **two-sided** (rays from below / inside hit, the reported normal is the
+    triangle's outward normal regardless); heightfield terrain is **one-sided** (upward rays from
+    below miss). Hit +24/+26 int16: the triangle's material id for corpus meshes (0 / −1 for
+    meshes without materials, 0 / 0 for terrain); +60 is 1 for terrain hits, 0 for entities; +32
+    unidentified; surface (+28) is −1 without a material mapping.
+  * Nothing special is needed for trimesh parts: default part flags 0x1809F include 0x8000 for
+    rays, and rigid trimesh bodies collide with trimesh floors, objects and terrain.
 
 ## Dynamics port status (P3 world, P4a rigid, P4b solver)
 
@@ -179,6 +212,14 @@ acosf expf logf sqrtf atan2f powf sin cos exp log asin atan2`.
 * Convenience API for the server: `world::api` (`World::with_grid`, `geometry`, `add_static`,
   `add_rigid`, `set_ocean`, `set_body_buoyancy`, `step`, `body_state`), plus the ported
   `rwi`/`pwi`, `set_heightfield_data`, `add_event_client`/`pump_logged_events`.
+* P1c in the world: the interpreter runs the P1c commands (`geom type=mesh` file / gen / cgf,
+  `geom type=heightfield … worldhf=1`, `geominfo`, `ray … ext=1`; `scenario::p1c`, with
+  `Scenario::run_in(text, dir)` for relative mesh files). Meshes go through the geometry
+  manager's `CreateMesh` (slots 3 / 4 / 5, `World::create_mesh*`, incl. the slot-6 mesh →
+  primitive approximation `geometry::trimesh::approx`) and `RegisterGeometry`
+  (`geoman::register_mesh`); corpus models through `LoadPhysGeometry`.
+  `tests/p1c_world_goldens.rs` replays all 17 `p1c_*` goldens bit for bit (the corpus ones
+  only with `AAEMU_PHYS_CGF_DIR`).
 
 ## Parallel phase: ownership
 

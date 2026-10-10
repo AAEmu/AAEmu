@@ -257,4 +257,27 @@ pub trait Geometry: Send + Sync + std::fmt::Debug {
     ) {
         shapes::misc::random::base_get_random_pos(&self.bbox(), out, rng, form);
     }
+
+    // ---- Added by P1c (additive) ----
+
+    /// The intersection protocol of the geometry (`geometry_under_test` slots 46/53–59), what
+    /// the generic `CGeometry::Intersect` needs from both sides. `None`: not available.
+    fn as_protocol(&self) -> Option<&dyn trimesh::protocol::GeomProtocol> {
+        None
+    }
+
+    /// The ray geometry, for the classes that special-case a ray partner (`GetType() == 3`).
+    fn as_ray(&self) -> Option<&shapes::RayGeom> {
+        None
+    }
+
+    /// The `CTriMesh`, for the callers that need the mesh's own slot 10 (P1c).
+    fn as_trimesh(&self) -> Option<&trimesh::TriMesh> {
+        None
+    }
+
+    /// The `CHeightfield`, for the callers that need its own slot 10 (P1c).
+    fn as_heightfield(&self) -> Option<&heightfield::protocol::SharedHeightfield> {
+        None
+    }
 }

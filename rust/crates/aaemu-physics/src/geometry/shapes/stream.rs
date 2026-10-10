@@ -22,7 +22,10 @@
 
 use super::cylinder::CylinderData;
 use super::{BoxGeom, CapsuleGeom, CylinderGeom, SingleBoxBv, SphereGeom};
+use crate::geometry::bvtree::MemReader;
 use crate::geometry::primitives::{BoxPrim, CylinderPrim, SpherePrim};
+use crate::geometry::trimesh::stream::RenderArrays;
+use crate::geometry::trimesh::TriMesh;
 use crate::geometry::{Geometry, PhysGeometry};
 use crate::ids::GeomType;
 use crate::math::{max_idiom, Mat33, Quat, Vec3};
@@ -199,6 +202,38 @@ impl LoadedGeom {
     }
 }
 
+/// Any geometry `LoadGeometry` constructs: a primitive, or a `CTriMesh` (P1c,
+/// [`TriMesh::load`]).
+#[derive(Clone, Debug)]
+pub enum AnyGeom {
+    Primitive(LoadedGeom),
+    TriMesh(Box<TriMesh>),
+}
+
+impl AnyGeom {
+    /// Into a shared geometry (the mesh's caches are filled first, see
+    /// `TriMesh::warm_caches`).
+    #[must_use]
+    pub fn into_arc(self) -> Arc<dyn Geometry> {
+        match self {
+            AnyGeom::Primitive(g) => g.into_arc(),
+            AnyGeom::TriMesh(mut m) => {
+                m.warm_caches();
+                Arc::new(*m)
+            }
+        }
+    }
+
+    /// The geometry.
+    #[must_use]
+    pub fn as_geom(&self) -> &dyn Geometry {
+        match self {
+            AnyGeom::Primitive(g) => g.as_geom(),
+            AnyGeom::TriMesh(m) => &**m,
+        }
+    }
+}
+
 /// Why a blob was not loaded.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BlobError {
@@ -210,12 +245,30 @@ pub enum BlobError {
     UnknownType(i32),
     /// The data ended early (the original reads past the buffer).
     Truncated,
+    /// `CTriMesh::Load` failed (truncated stream, unknown tree type, missing render arrays).
+    Mesh(String),
 }
 
-/// `CGeomManager::LoadGeometry` (slot 14, 0x3514B070) for the primitive ids: reads the type
-/// word, constructs the class (ctor only, no `SetData`) and calls slot 26 → 27.
+/// `CGeomManager::LoadGeometry` (slot 14, 0x3514B070) for the primitive ids (see
+/// [`load_geometry_any`]); a mesh id is [`BlobError::NotAPrimitive`].
 pub fn load_geometry(r: &mut Reader) -> Result<LoadedGeom, BlobError> {
+    match load_geometry_any(r, &RenderArrays::default())? {
+        AnyGeom::Primitive(g) => Ok(g),
+        AnyGeom::TriMesh(_) => Err(BlobError::NotAPrimitive(1)),
+    }
+}
+
+/// `CGeomManager::LoadGeometry` (slot 14, 0x3514B070): reads the type word, constructs the
+/// class (ctor only, no `SetData`) and calls its slot 26 with the render arrays `ra`
+/// (primitives: → slot 27; a `CTriMesh`: [`TriMesh::load`]).
+pub fn load_geometry_any(r: &mut Reader, ra: &RenderArrays<'_>) -> Result<AnyGeom, BlobError> {
     let t = r.u32().ok_or(BlobError::Truncated)? as i32;
+    if t == 1 {
+        let mut mr = MemReader::new(r.data.get(r.pos..).ok_or(BlobError::Truncated)?);
+        let m = TriMesh::load(&mut mr, ra).map_err(|e| BlobError::Mesh(e.to_string()))?;
+        r.pos += mr.pos;
+        return Ok(AnyGeom::TriMesh(Box::new(m)));
+    }
     let g = match t {
         0 => {
             let mut g = BoxGeom::empty();
@@ -233,10 +286,9 @@ pub fn load_geometry(r: &mut Reader) -> Result<LoadedGeom, BlobError> {
             let mut g = CapsuleGeom::empty();
             g.0.load(r).map(|()| LoadedGeom::Capsule(g))
         }
-        1 => return Err(BlobError::NotAPrimitive(t)),
         _ => return Err(BlobError::UnknownType(t)),
     };
-    g.ok_or(BlobError::Truncated)
+    g.map(AnyGeom::Primitive).ok_or(BlobError::Truncated)
 }
 
 /// `CGeomManager::SaveGeometry` (slot 13, 0x3514AFF0): type word + slot 25.
@@ -262,22 +314,48 @@ pub struct PhysGeomHeader {
     pub surface_idx: i32,
 }
 
+impl PhysGeomHeader {
+    /// The 16 header words `SavePhysGeometry` writes; words 0, 14 and 15 (uninitialised stack
+    /// in the original) as 0.
+    #[must_use]
+    pub fn to_words(&self) -> [u32; 16] {
+        let mut w = [0u32; 16];
+        w[1] = self.inertia.x.to_bits();
+        w[2] = self.inertia.y.to_bits();
+        w[3] = self.inertia.z.to_bits();
+        for (k, f) in self.q.to_array().into_iter().enumerate() {
+            w[4 + k] = f.to_bits();
+        }
+        w[8] = self.origin.x.to_bits();
+        w[9] = self.origin.y.to_bits();
+        w[10] = self.origin.z.to_bits();
+        w[11] = self.volume.to_bits();
+        w[12] = self.unk52 as u32;
+        w[13] = self.surface_idx as u32;
+        w
+    }
+}
+
 /// `CGeomManager::SavePhysGeometry` (slot 15, 0x3514B1A0). Header words 0, 14, 15 are
 /// uninitialised in the original; written as 0 here.
 pub fn save_phys_geometry(h: &PhysGeomHeader, g: &dyn Geometry, out: &mut Vec<u8>) {
     put_u32(out, 1);
-    put_u32(out, 0);
-    put_vec(out, h.inertia);
-    for f in h.q.to_array() {
-        put_f32(out, f);
+    for w in h.to_words() {
+        put_u32(out, w);
     }
-    put_vec(out, h.origin);
-    put_f32(out, h.volume);
-    put_u32(out, h.unk52 as u32);
-    put_u32(out, h.surface_idx as u32);
-    put_u32(out, 0);
-    put_u32(out, 0);
     save_geometry(g, out);
+}
+
+/// `SavePhysGeometry` for a `CTriMesh` (P1c): version 1, the 16 header words as given (pass
+/// [`LoadedPhysGeomAny::raw_header`] to reproduce a loaded blob, or
+/// [`PhysGeomHeader::to_words`]), type 1 and [`TriMesh::save`].
+pub fn save_phys_geometry_mesh(header: &[u32; 16], m: &TriMesh, out: &mut Vec<u8>) {
+    put_u32(out, 1);
+    for &w in header {
+        put_u32(out, w);
+    }
+    put_u32(out, 1);
+    out.extend_from_slice(&m.save_to_vec());
 }
 
 /// Result of [`load_phys_geometry`]: the geometry and its `phys_geometry` record.
@@ -319,6 +397,35 @@ impl LoadedPhysGeom {
 /// Not modelled: the original first returns null when a world flag (`GetPhysVars()+496`,
 /// reached through the geometry manager's world) is set.
 pub fn load_phys_geometry(data: &[u8]) -> Result<LoadedPhysGeom, BlobError> {
+    let any = load_phys_geometry_any(data, &RenderArrays::default())?;
+    match any.geom {
+        AnyGeom::Primitive(geom) => Ok(LoadedPhysGeom {
+            geom,
+            header: any.header,
+            len: any.len,
+        }),
+        AnyGeom::TriMesh(_) => Err(BlobError::NotAPrimitive(1)),
+    }
+}
+
+/// [`load_phys_geometry`] for any geometry, with the render-mesh arrays a `CTriMesh` blob may
+/// reference (`LoadPhysGeometry(stream, pVtx, pIdx, pMats)`).
+#[derive(Clone, Debug)]
+pub struct LoadedPhysGeomAny {
+    pub geom: AnyGeom,
+    pub header: PhysGeomHeader,
+    /// The 16 header words as stored (for byte-exact re-saving).
+    pub raw_header: [u32; 16],
+    /// Bytes consumed.
+    pub len: usize,
+}
+
+/// `CGeomManager::LoadPhysGeometry` (slot 16, 0x3514B340) for any geometry type (see
+/// [`load_phys_geometry`] for the steps).
+pub fn load_phys_geometry_any(
+    data: &[u8],
+    ra: &RenderArrays<'_>,
+) -> Result<LoadedPhysGeomAny, BlobError> {
     let mut r = Reader::new(data);
     let ver = r.u32().ok_or(BlobError::Truncated)?;
     if ver != 1 {
@@ -339,18 +446,21 @@ pub fn load_phys_geometry(data: &[u8]) -> Result<LoadedPhysGeom, BlobError> {
         unk52: 1,
         surface_idx: w[13] as i32,
     };
-    let geom = load_geometry(&mut r)?;
-    if geom.as_geom().geom_type() == GeomType::Sphere {
-        if let Some(p) = geom.as_geom().calc_physical_properties() {
-            header.inertia = p.inertia;
-            header.q = p.q;
-            header.origin = p.origin;
-            header.volume = p.volume;
+    let geom = load_geometry_any(&mut r, ra)?;
+    if let AnyGeom::Primitive(g) = &geom {
+        if g.as_geom().geom_type() == GeomType::Sphere {
+            if let Some(p) = g.as_geom().calc_physical_properties() {
+                header.inertia = p.inertia;
+                header.q = p.q;
+                header.origin = p.origin;
+                header.volume = p.volume;
+            }
         }
     }
-    Ok(LoadedPhysGeom {
+    Ok(LoadedPhysGeomAny {
         geom,
         header,
+        raw_header: w,
         len: r.pos,
     })
 }

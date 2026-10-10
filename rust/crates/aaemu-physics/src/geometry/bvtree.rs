@@ -188,7 +188,11 @@ impl BvArena {
             swept_pool: vec![[0; 34]; SWEPT_POOL_SIZE],
             swept_count: 0,
             ray_bv: [0; 8],
-            hf_bv: HeightfieldBvRecord::default(),
+            // the static initialiser 0x35153F10 sets the record type to 2 (heightfield)
+            hf_bv: HeightfieldBvRecord {
+                kind: 2,
+                ..HeightfieldBvRecord::default()
+            },
             used_map_pool: vec![0; USED_MAP_POOL_DWORDS],
             used_map_count: 0,
             used_list_pool: [0; USED_LIST_POOL_INTS],

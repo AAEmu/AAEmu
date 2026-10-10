@@ -92,6 +92,9 @@ pub struct GeomContact {
     pub center: Vec3,
     pub border_consecutive: bool,
     pub area: Option<ContactArea>,
+    /// `+108`: set by `CTriMesh::RegisterIntersection` when its border walk closed the
+    /// intersection loop (`sub_351C2D40` returned 2), else 0. (Added by P1c-register.)
+    pub border_closed: i32,
 }
 
 /// `intersection_params` (inferred names; defaults are inlined in every constructor).
@@ -123,6 +126,17 @@ pub struct IntersectionParams {
     pub no_area_contacts: bool,
     /// `+108` skip contact generation, unproject only.
     pub no_intersection: bool,
+    /// `+44` (inferred role, P1c-register): `CTriMesh::RegisterIntersection` removes the
+    /// component along this axis from a linear unprojection direction that is within 45° of
+    /// perpendicular to it (`|dir·a| < 0.707`), when `|a|² > 0`.
+    pub unproj_plane_normal: Vec3,
+    /// `+100` (P1c-register): disables `CTriMesh::RegisterIntersection`'s walk of the
+    /// intersection border across neighbouring triangles.
+    pub no_border_walk: bool,
+    /// `+104` (P1c-register): `CTriMesh::RegisterIntersection` dedups contacts by triangle
+    /// pair instead of by point distance, allows 1000 instead of 100 border points, never
+    /// closes the walk by proximity and keeps long pair borders.
+    pub border_by_tri_pairs: i32,
 }
 
 impl Default for IntersectionParams {
@@ -142,6 +156,9 @@ impl Default for IntersectionParams {
             keep_prev_contacts: false,
             no_area_contacts: false,
             no_intersection: false,
+            unproj_plane_normal: Vec3::ZERO,
+            no_border_walk: false,
+            border_by_tri_pairs: 0,
         }
     }
 }

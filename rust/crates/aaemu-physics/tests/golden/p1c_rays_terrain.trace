@@ -1,0 +1,213 @@
+physoracle 1
+ret part marker 0
+step 1
+ray v_0_0 n 1
+h 0 d 40a00000 e terrain ip 0 pid 0 s -1 p 41e00000 41e00000 00000000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_1_0 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41e40000 41e00000 3e9999a0 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_2_0 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41e80000 41e00000 3f199998 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_3_0 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41ec0000 41e00000 3f666668 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_4_0 n 1
+h 0 d 40733333 e terrain ip 0 pid 0 s -1 p 41f00000 41e00000 3f99999a n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_5_0 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41f40000 41e00000 3f400000 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_6_0 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41f80000 41e00000 3e9999a0 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_7_0 n 1
+h 0 d 408ccccc e terrain ip 0 pid 0 s -1 p 41fc0000 41e00000 3f1999a0 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_8_0 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 42000000 41e00000 3f666668 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_0_1 n 1
+h 0 d 4091999a e terrain ip 0 pid 0 s -1 p 41e00000 41e40000 3ee66660 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_1_1 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41e40000 41e40000 3f400000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_2_1 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41e80000 41e40000 3e9999a0 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_3_1 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41ec0000 41e40000 3f199998 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_4_1 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41f00000 41e40000 3f666668 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_5_1 n 1
+h 0 d 4091999a e terrain ip 0 pid 0 s -1 p 41f40000 41e40000 3ee66660 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_6_1 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41f80000 41e40000 3f400000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_7_1 n 1
+h 0 d 407ccccc e terrain ip 0 pid 0 s -1 p 41fc0000 41e40000 3f866668 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_8_1 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 42000000 41e40000 3f199998 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_0_2 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41e00000 41e80000 3f666668 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_1_2 n 1
+h 0 d 40919999 e terrain ip 0 pid 0 s -1 p 41e40000 41e80000 3ee66670 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_2_2 n 1
+h 0 d 40a00000 e terrain ip 0 pid 0 s -1 p 41e80000 41e80000 00000000 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_3_2 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41ec0000 41e80000 3e9999a0 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_4_2 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41f00000 41e80000 3f199998 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_5_2 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41f40000 41e80000 3f666668 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_6_2 n 1
+h 0 d 40733334 e terrain ip 0 pid 0 s -1 p 41f80000 41e80000 3f999998 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_7_2 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41fc0000 41e80000 3f400000 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_8_2 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 42000000 41e80000 3e9999a0 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_0_3 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41e00000 41ec0000 3f199998 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_1_3 n 1
+h 0 d 409b3333 e terrain ip 0 pid 0 s -1 p 41e40000 41ec0000 3e1999a0 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_2_3 n 1
+h 0 d 40919999 e terrain ip 0 pid 0 s -1 p 41e80000 41ec0000 3ee66670 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_3_3 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41ec0000 41ec0000 3f400000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_4_3 n 1
+h 0 d 40966667 e terrain ip 0 pid 0 s -1 p 41f00000 41ec0000 3e999990 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_5_3 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41f40000 41ec0000 3f199998 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_6_3 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41f80000 41ec0000 3f666668 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_7_3 n 1
+h 0 d 4091999a e terrain ip 0 pid 0 s -1 p 41fc0000 41ec0000 3ee66660 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_8_3 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 42000000 41ec0000 3f400000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_0_4 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41e00000 41f00000 3e9999a0 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_1_4 n 1
+h 0 d 408ccccc e terrain ip 0 pid 0 s -1 p 41e40000 41f00000 3f1999a0 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_2_4 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41e80000 41f00000 3f666668 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_3_4 n 1
+h 0 d 40919999 e terrain ip 0 pid 0 s -1 p 41ec0000 41f00000 3ee66670 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_4_4 n 1
+h 0 d 40a00000 e terrain ip 0 pid 0 s -1 p 41f00000 41f00000 00000000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_5_4 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41f40000 41f00000 3e9999a0 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_6_4 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41f80000 41f00000 3f199998 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_7_4 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41fc0000 41f00000 3f666668 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_8_4 n 1
+h 0 d 40733333 e terrain ip 0 pid 0 s -1 p 42000000 41f00000 3f99999a n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_0_5 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41e00000 41f40000 3f400000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_1_5 n 1
+h 0 d 407ccccc e terrain ip 0 pid 0 s -1 p 41e40000 41f40000 3f866668 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_2_5 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41e80000 41f40000 3f199998 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_3_5 n 1
+h 0 d 409b3333 e terrain ip 0 pid 0 s -1 p 41ec0000 41f40000 3e1999a0 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_4_5 n 1
+h 0 d 4091999a e terrain ip 0 pid 0 s -1 p 41f00000 41f40000 3ee66660 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_5_5 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41f40000 41f40000 3f400000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_6_5 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41f80000 41f40000 3e9999a0 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_7_5 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41fc0000 41f40000 3f199998 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_8_5 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 42000000 41f40000 3f666668 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_0_6 n 1
+h 0 d 40733332 e terrain ip 0 pid 0 s -1 p 41e00000 41f80000 3f99999c n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_1_6 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41e40000 41f80000 3f400000 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_2_6 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41e80000 41f80000 3e9999a0 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_3_6 n 1
+h 0 d 408ccccc e terrain ip 0 pid 0 s -1 p 41ec0000 41f80000 3f1999a0 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_4_6 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41f00000 41f80000 3f666668 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_5_6 n 1
+h 0 d 40919999 e terrain ip 0 pid 0 s -1 p 41f40000 41f80000 3ee66670 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_6_6 n 1
+h 0 d 40a00000 e terrain ip 0 pid 0 s -1 p 41f80000 41f80000 00000000 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_7_6 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41fc0000 41f80000 3e9999a0 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_8_6 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 42000000 41f80000 3f199998 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_0_7 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41e00000 41fc0000 3f666668 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_1_7 n 1
+h 0 d 4091999a e terrain ip 0 pid 0 s -1 p 41e40000 41fc0000 3ee66660 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_2_7 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41e80000 41fc0000 3f400000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_3_7 n 1
+h 0 d 407ccccc e terrain ip 0 pid 0 s -1 p 41ec0000 41fc0000 3f866668 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_4_7 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41f00000 41fc0000 3f199998 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_5_7 n 1
+h 0 d 409b3333 e terrain ip 0 pid 0 s -1 p 41f40000 41fc0000 3e1999a0 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_6_7 n 1
+h 0 d 40919999 e terrain ip 0 pid 0 s -1 p 41f80000 41fc0000 3ee66670 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_7_7 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41fc0000 41fc0000 3f400000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_8_7 n 1
+h 0 d 40966667 e terrain ip 0 pid 0 s -1 p 42000000 41fc0000 3e999990 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_0_8 n 1
+h 0 d 408ccccd e terrain ip 0 pid 0 s -1 p 41e00000 42000000 3f199998 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_1_8 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41e40000 42000000 3f666668 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_2_8 n 1
+h 0 d 40733334 e terrain ip 0 pid 0 s -1 p 41e80000 42000000 3f999998 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray v_3_8 n 1
+h 0 d 40880000 e terrain ip 0 pid 0 s -1 p 41ec0000 42000000 3f400000 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_4_8 n 1
+h 0 d 40966666 e terrain ip 0 pid 0 s -1 p 41f00000 42000000 3e9999a0 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_5_8 n 1
+h 0 d 408ccccc e terrain ip 0 pid 0 s -1 p 41f40000 42000000 3f1999a0 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_6_8 n 1
+h 0 d 40833333 e terrain ip 0 pid 0 s -1 p 41f80000 42000000 3f666668 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray v_7_8 n 1
+h 0 d 40919999 e terrain ip 0 pid 0 s -1 p 41fc0000 42000000 3ee66670 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray v_8_8 n 1
+h 0 d 40a00000 e terrain ip 0 pid 0 s -1 p 42000000 42000000 00000000 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray sl_0_0 n 1
+h 0 d 40af8414 e terrain ip 0 pid 0 s -1 p 42454d65 4242fa0c 3eb29ad0 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray sl_1_0 n 1
+h 0 d 40b171fe e terrain ip 0 pid 0 s -1 p 42516793 42430dae 3e986d70 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray sl_2_0 n 1
+h 0 d 40a28e04 e terrain ip 0 pid 0 s -1 p 425c9d8a 42427627 3f313b18 n 3f1c67de 3ed08a7d 3f2dc8bd x 0 0 0 1 0
+ray sl_0_1 n 1
+h 0 d 409cb474 e terrain ip 0 pid 0 s -1 p 42444e2b 424e3aa0 3f58ea80 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray sl_1_1 n 1
+h 0 d 40af8414 e terrain ip 0 pid 0 s -1 p 42514d65 424efa0c 3eb29ad0 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray sl_2_1 n 1
+h 0 d 40b171fe e terrain ip 0 pid 0 s -1 p 425d6793 424f0dae 3e986d70 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray sl_0_2 n 1
+h 0 d 40a39e4c e terrain ip 0 pid 0 s -1 p 4244abf8 425a80fa 3f2a03e8 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray sl_1_2 n 1
+h 0 d 409cb474 e terrain ip 0 pid 0 s -1 p 42504e2b 425a3aa0 3f58ea80 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray sl_2_2 n 1
+h 0 d 40af8414 e terrain ip 0 pid 0 s -1 p 425d4d65 425afa0c 3eb29ad0 n beea3ce2 3eea3ce2 3f4332bc x 0 0 0 1 0
+ray graze1 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 42480000 41a40000 3f999999 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray graze2 n 1
+h 0 d 3f1bc164 e terrain ip 0 pid 0 s -1 p 41a2084f 41a4de04 3f333333 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray graze3 n 1
+h 0 d 3f10dd19 e terrain ip 0 pid 0 s -1 p 412666f2 412666f2 3f19a6b7 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray up_0_0 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 42890000 42890000 40800000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray up_1_0 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 428c0000 42890000 40800000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray up_2_0 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 428f0000 42890000 40800000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray up_0_1 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 42890000 428c0000 40800000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray up_1_1 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 428c0000 428c0000 40800000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray up_2_1 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 428f0000 428c0000 40800000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray up_0_2 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 42890000 428f0000 40800000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray up_1_2 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 428c0000 428f0000 40800000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray up_2_2 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 428f0000 428f0000 40800000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray terrain_only n 1
+h 0 d 4088f5c6 e terrain ip 0 pid 0 s -1 p 42213333 42226666 3f3851d0 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0
+ray no_terrain n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 42213333 42226666 c0a00000 n 00000000 00000000 00000000 x 0 0 0 0 0
+ray long n 1
+h 0 d 42f8a120 e terrain ip 0 pid 0 s -1 p 42bb390e 42adf44d 3f723fc4 n bed08a7d bf1c67de 3f2dc8bd x 0 0 0 1 0

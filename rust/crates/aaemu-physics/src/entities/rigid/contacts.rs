@@ -101,22 +101,45 @@ pub fn insert_contact(w: &mut World, e: EntIdx, c: ContactId, i: i32, collider: 
 /// its run, the run start moves to the next contact (or none if it was also the last); with
 /// `check_colliders` a collider left without contacts and constraints is removed in both
 /// directions. Otherwise the run's last-flag moves to the previous contact.
-pub fn remove_contact(w: &mut World, e: EntIdx, c: ContactId, icollider: i32, check_colliders: bool) {
+pub fn remove_contact(
+    w: &mut World,
+    e: EntIdx,
+    c: ContactId,
+    icollider: i32,
+    check_colliders: bool,
+) {
     w.contacts.unlink(c);
     let mut i = icollider;
     if i < 0 {
         let other = w.contacts.get(c).pent[1];
-        i = w.ent(e).colliders.iter().position(|&x| x == other).map_or(w.ent(e).colliders.len() as i32, |k| k as i32);
+        i = w
+            .ent(e)
+            .colliders
+            .iter()
+            .position(|&x| x == other)
+            .map_or(w.ent(e).colliders.len() as i32, |k| k as i32);
     }
     let iu = i as usize;
-    let first = w.ent(e).rigid().expect("rigid").collider_contacts.get(iu).copied();
+    let first = w
+        .ent(e)
+        .rigid()
+        .expect("rigid")
+        .collider_contacts
+        .get(iu)
+        .copied();
     if first == Some(c) {
         let rec = *w.contacts.get(c);
-        let nf = if rec.flags & 0x8_0000 != 0 { ContactId::NONE } else { rec.next };
+        let nf = if rec.flags & 0x8_0000 != 0 {
+            ContactId::NONE
+        } else {
+            rec.next
+        };
         w.ent_mut(e).rigid_mut().expect("rigid").collider_contacts[iu] = nf;
         if check_colliders {
             let col = w.ent(e).colliders[iu];
-            if !crate::entities::has_contacts_with(w, e, col) && !crate::entities::has_contacts_with(w, col, e) {
+            if !crate::entities::has_contacts_with(w, e, col)
+                && !crate::entities::has_contacts_with(w, col, e)
+            {
                 crate::entities::remove_collider(w, col, e, true);
                 crate::entities::remove_collider(w, e, col, true);
             }

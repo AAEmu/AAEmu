@@ -292,8 +292,10 @@ impl World {
             solver: (0..MAX_CALLERS).map(|_| None).collect(),
             queries: queries::QueryState::default(),
         };
-        w.ccd_scratch
-            .resize_with(MAX_CALLERS, crate::entities::rigid::contacts::ContactScratch::default);
+        w.ccd_scratch.resize_with(
+            MAX_CALLERS,
+            crate::entities::rigid::contacts::ContactScratch::default,
+        );
         w
     }
 
@@ -312,8 +314,15 @@ impl World {
     }
 
     /// The solver block of thread `tid` together with the contact pool.
-    pub fn solver_and_pool(&mut self, tid: usize) -> (&mut crate::solver::SolverThread, &mut crate::solver::ContactPool) {
-        let s = self.solver[tid].get_or_insert_with(|| Box::new(crate::solver::SolverThread::new(tid)));
+    pub fn solver_and_pool(
+        &mut self,
+        tid: usize,
+    ) -> (
+        &mut crate::solver::SolverThread,
+        &mut crate::solver::ContactPool,
+    ) {
+        let s =
+            self.solver[tid].get_or_insert_with(|| Box::new(crate::solver::SolverThread::new(tid)));
         (s, &mut self.contacts)
     }
 
@@ -340,7 +349,11 @@ impl World {
     #[inline]
     #[must_use]
     pub fn gravity(&self) -> Vec3 {
-        Vec3::new(self.vars.gravity_x, self.vars.gravity_y, self.vars.gravity_z)
+        Vec3::new(
+            self.vars.gravity_x,
+            self.vars.gravity_y,
+            self.vars.gravity_z,
+        )
     }
 
     /// `sub_35077650`: move an entity (and the run of entities sharing its group leader, for

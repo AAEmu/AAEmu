@@ -513,8 +513,12 @@ pub fn register_contacts(w: &mut World, e: EntIdx, _dt: f32, n_max: i32) -> i32 
                 * 0.5;
             let v87 = ((v40 + (cb[1].x - c81)) - ((cb[1].x - c81) - v40).abs()) * 0.5;
             let v41 = v87.abs();
-            let v42 =
-                v87 - ((((v41.to_bits() ^ v41.to_bits().wrapping_sub(1)) >> 31) as f32) * v13);
+            // `sar ecx, 0x1f` (0x350BDF13): an *arithmetic* shift, so a collider with a zero
+            // extent (the terrain entities' bbox is zero) gives -1 and the size becomes
+            // `0 + v13` (the own extent), not `-v13` (P1c-world fix: the unsigned shift made the
+            // patch tolerance negative and the fit always fail on terrain).
+            let zero = ((v41.to_bits() ^ v41.to_bits().wrapping_sub(1)) as i32) >> 31;
+            let v42 = v87 - (zero as f32 * v13);
             let v43 = ((v42 + v13) - (v13 - v42).abs()) * 0.5;
             let (head, com, g) = {
                 let r = rd(w, e);

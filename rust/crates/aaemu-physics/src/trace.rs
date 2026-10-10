@@ -9,6 +9,10 @@
 //! e <name> p <x> <y> <z> q <x> <y> <z> <w> [v <x> <y> <z> w <x> <y> <z>] sc <simclass> aw <awake>
 //! ray <name> n <nhits>
 //! h <i> d <dist> e <entity|-|?> ip <ipart> pid <partid> s <surface> p <x> <y> <z> n <x> <y> <z>
+//!     [x <i16 +24> <i16 +26> <int +32> <int +60> <iprim +64>]   (P1c, `ray ... ext=1`)
+//! geominfo <name> type <t> nprims <n> nv <n> flags <hex> bbox <16 words> vol <bits>
+//!     pg <V> <Ibody 3> <q 4> <origin 3> <surface>             (P1c, `geom type=mesh`, `geominfo`)
+//! meshv <name> <3*nv words> / mesht <name> <3*nt ints> [/ meshf <name> <nt ints>]  (P1c, dump=1)
 //! ret <command> <args...>          (return values of part/params/action/status)
 //! vars <world offset> <132 words>  (dumpvars)
 //! peek / peekworld / peekdll / listwhere / echo ...
@@ -66,6 +70,61 @@ pub struct Hit {
     pub surface: i32,
     pub pt: [u32; 3],
     pub n: [u32; 3],
+    /// The extra hit fields printed with `ray ... ext=1` (P1c).
+    pub ext: Option<HitExt>,
+}
+
+/// Raw hit-record fields beyond the classic ones (`ray ... ext=1`, added by P1c).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HitExt {
+    /// int16 at +24 (corpus meshes: the triangle's material id; synthetic meshes 0; terrain 0).
+    pub w24: i16,
+    /// int16 at +26 (corpus meshes: the triangle's material id; synthetic meshes −1; terrain 0).
+    pub w26: i16,
+    /// int at +32 (not identified; varies per hit triangle).
+    pub w32: i32,
+    /// int at +60 (order / next index; 1 for terrain hits, 0 for entity hits).
+    pub w60: i32,
+    /// int at +64: the primitive (triangle) index in the geometry's **stored** order (trimesh:
+    /// after the BV-tree build permuted the triangles; see `mesht` of `dump=1`).
+    pub iprim: i32,
+}
+
+/// The `geominfo` summary of a registered geometry (P1c).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GeomInfo {
+    pub name: String,
+    /// Geometry type id (0 box, 1 trimesh, 4 sphere, …).
+    pub gtype: i32,
+    /// GetPrimitiveCount (slot 28): triangles of a trimesh, 1 for primitives.
+    pub nprims: i32,
+    /// CTriMesh +124 (0 for other types).
+    pub nverts: i32,
+    /// CTriMesh +152 (0 for other types).
+    pub flags: u32,
+    /// GetBBox (slot 6) as `primitives::box`: Basis (9), bOriented, center (3), size (3).
+    pub bbox: [u32; 16],
+    /// GetVolume (slot 31).
+    pub volume: u32,
+    /// `phys_geometry` +48 V, +8 Ibody, +20 q, +36 origin, +56 surface_idx.
+    pub pg_volume: u32,
+    pub pg_inertia: [u32; 3],
+    pub pg_q: [u32; 4],
+    pub pg_origin: [u32; 3],
+    pub pg_surface: i32,
+}
+
+impl GeomInfo {
+    /// bbox centre (geometry frame).
+    #[must_use]
+    pub fn bbox_center(&self) -> Vec3 {
+        Vec3::from_bits([self.bbox[10], self.bbox[11], self.bbox[12]])
+    }
+    /// bbox half-size.
+    #[must_use]
+    pub fn bbox_size(&self) -> Vec3 {
+        Vec3::from_bits([self.bbox[13], self.bbox[14], self.bbox[15]])
+    }
 }
 
 /// A ray query and its hit slots.
@@ -193,7 +252,18 @@ impl Trace {
         if t.len() < 20 {
             return Err("short hit line".into());
         }
+        let ext = match t.get(20) {
+            Some(&"x") if t.len() >= 26 => Some(HitExt {
+                w24: t[21].parse::<i16>().map_err(|e| e.to_string())?,
+                w26: t[22].parse::<i16>().map_err(|e| e.to_string())?,
+                w32: int(t[23])?,
+                w60: int(t[24])?,
+                iprim: int(t[25])?,
+            }),
+            _ => None,
+        };
         Ok(Hit {
+            ext,
             index: int(t[1])?,
             dist: hex32(t[3])?,
             entity: t[5].to_string(),
@@ -237,6 +307,71 @@ impl Trace {
         self.other
             .iter()
             .find(|l| l.first().map(String::as_str) == Some(key))
+    }
+
+    /// The (last) `geominfo` line of a geometry (P1c).
+    #[must_use]
+    pub fn geom_info(&self, name: &str) -> Option<GeomInfo> {
+        let l = self
+            .other
+            .iter()
+            .rev()
+            .find(|l| l.len() >= 2 && l[0] == "geominfo" && l[1] == name)?;
+        Self::parse_geom_info(l).ok()
+    }
+
+    fn parse_geom_info(l: &[String]) -> Result<GeomInfo, String> {
+        let t: Vec<&str> = l.iter().map(String::as_str).collect();
+        let find = |key: &str| {
+            t.iter()
+                .position(|s| *s == key)
+                .ok_or_else(|| format!("geominfo: missing {key}"))
+        };
+        let (ty, np, nv, fl) = (find("type")?, find("nprims")?, find("nv")?, find("flags")?);
+        let (bb, vol, pg) = (find("bbox")?, find("vol")?, find("pg")?);
+        Ok(GeomInfo {
+            name: t[1].to_string(),
+            gtype: int(t.get(ty + 1).ok_or("type")?)?,
+            nprims: int(t.get(np + 1).ok_or("nprims")?)?,
+            nverts: int(t.get(nv + 1).ok_or("nv")?)?,
+            flags: hex32(t.get(fl + 1).ok_or("flags")?)?,
+            bbox: hex_n::<16>(&t[bb + 1..])?,
+            volume: hex32(t.get(vol + 1).ok_or("vol")?)?,
+            pg_volume: hex32(t.get(pg + 1).ok_or("pg")?)?,
+            pg_inertia: hex_n::<3>(&t[pg + 2..])?,
+            pg_q: hex_n::<4>(&t[pg + 5..])?,
+            pg_origin: hex_n::<3>(&t[pg + 9..])?,
+            pg_surface: int(t.get(pg + 12).ok_or("surface")?)?,
+        })
+    }
+
+    /// The stored vertices and triangle indices of a mesh geometry printed with `dump=1` (P1c).
+    #[must_use]
+    pub fn mesh_data(&self, name: &str) -> Option<(Vec<Vec3>, Vec<[i32; 3]>)> {
+        let line = |key: &str| {
+            self.other
+                .iter()
+                .rev()
+                .find(|l| l.len() >= 2 && l[0] == key && l[1] == name)
+        };
+        let v = line("meshv")?[2..]
+            .iter()
+            .map(|s| hex32(s))
+            .collect::<Result<Vec<u32>, _>>()
+            .ok()?;
+        let i = line("mesht")?[2..]
+            .iter()
+            .map(|s| int(s))
+            .collect::<Result<Vec<i32>, _>>()
+            .ok()?;
+        Some((
+            v.as_chunks::<3>()
+                .0
+                .iter()
+                .map(|c| Vec3::from_bits(*c))
+                .collect(),
+            i.as_chunks::<3>().0.to_vec(),
+        ))
     }
 }
 
@@ -326,6 +461,31 @@ peek box 420 3dd2b33d
         assert_eq!(t.other_line("peek").unwrap()[3], "3dd2b33d");
         assert!(Trace::parse("garbage").is_err());
         assert!(Trace::parse("physoracle 1\nERROR x\n").is_err());
+    }
+
+    #[test]
+    fn parse_p1c_records() {
+        let t = Trace::parse(
+            "physoracle 1
+geominfo bx type 1 nprims 12 nv 8 flags 00000040 bbox 3f800000 00000000 00000000 00000000 3f800000 00000000 00000000 00000000 3f800000 00000000 00000000 00000000 00000000 3f000000 3f000000 3f000000 vol 3f800000 pg 3f800000 3e2aaaab 3e2aaaab 3e2aaaab 00000000 00000000 00000000 3f800000 00000000 00000000 00000000 0
+meshv bx 00000000 00000000 00000000 3f800000 00000000 00000000 00000000 3f800000 00000000
+mesht bx 0 1 2
+ray r n 1
+h 0 d 41200000 e floor ip 0 pid 7 s -1 p 41580000 41580000 00000000 n 00000000 00000000 3f800000 x 0 -1 20 0 1
+",
+        )
+        .unwrap();
+        let g = t.geom_info("bx").unwrap();
+        assert_eq!((g.gtype, g.nprims, g.nverts, g.flags), (1, 12, 8, 0x40));
+        assert_eq!(g.bbox_size(), Vec3::new(0.5, 0.5, 0.5));
+        assert_eq!(f32::from_bits(g.volume), 1.0);
+        assert_eq!(g.pg_q[3], 0x3f80_0000);
+        assert_eq!(g.pg_surface, 0);
+        let (v, i) = t.mesh_data("bx").unwrap();
+        assert_eq!((v.len(), i), (3, vec![[0, 1, 2]]));
+        let x = t.ray("r").unwrap().hits[0].ext.unwrap();
+        assert_eq!((x.w24, x.w26, x.w32, x.w60, x.iprim), (0, -1, 20, 0, 1));
+        assert!(Trace::parse(SAMPLE).unwrap().rays[0].hits[0].ext.is_none());
     }
 
     #[test]

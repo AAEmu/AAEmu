@@ -1121,3 +1121,53 @@ Arguments: `(wd, epicenter, k, rmin, …, P&[, L&])`. The caller was not found.
 - **asinf:** the cylinder buoyancy and slot-14 code call MSVCR100 `asinf`; `math::crt::asinf` is now a bit-exact port (100,000 oracle samples).
 - **IsIdentity** (sub_3513A010) sums |m − I| and compares with 0 through `ucomiss`/`jne`: a NaN basis counts as the identity (`bOriented = 0`).
 - **Mesh slot 12** (0x351CBE20): epicenter and centre of mass go to the mesh frame without the 1/scale, k and rmin are scaled; the refinement test compares squared distances with the raw `rmin`; the projection-split test has the wrong sign (dead for consistently wound meshes); at most 300 subdivision pops per triangle, the rest is dropped; P and L are rotated back without scale.
+
+## Corrections from the P1c heightfield port (bit-exact against the DLL)
+
+- **Where the heightfield triangles come from:** `CHeightfieldBV` slot 23 does not generate
+  triangles. `CHeightfield` slot 53 (0x35155180) rebuilds the `CTriMesh` base arrays as the mesh
+  of the cells under the other geometry's (swept) box (the *region*, cached in BV `+24..+36`,
+  height range `+40/+44`; capacities at object `+792/+796`), moves the gtest offset to the
+  region corner and then tail-calls `CTriMesh` slot 53. Slot 23 only emits one `CTriMesh`
+  slot-56 call per region row (`(2·cell, 2·count)`, or single triangles filtered by the used
+  mask `+48`); materials carry the surface type (−1 = hole, skipped by slot 56). Its counts use
+  `min(ix+w, W)` instead of `min(ix+w, W) − ix` (over-report, kept).
+- **`CHeightfield` overrides** also slot 22 (`return 0`), 24 (mesh statistics + 800), 51
+  (0x35156430, cubemap), 52 (`r0`); slot 21 is `r0`.
+- **GetCenter** (slot 32) is `Basisᵀ·(nx/2, ny/2, 0) + origin`: cell units, no step.
+- **PointInsideStatus** accepts cells `0..=n−2` only (unsigned compare) and interpolates the upper
+  triangle as `((1−u)·H(ix,iy+1) + u·H(ix+1,iy+1))·v' + H(ix+1,iy)·(1−v')` with `v' = 1 − v`.
+- **SetData** writes `stepr` back into the caller's primitive; `+784/+788 = −1000/1000`;
+  `minVtxDist = (step.y + step.x)·0.001`; `heightmask` is never read.
+- **Ray branch of slot 10:** the unprojection path needs ray priority ≥ heightfield priority
+  (never true with 0 / 1); the normal contact is a distance along the ray (`iUnprojMode −1`,
+  features 0x40/0x20, border = centre). The grid march clips with quotient comparisons and
+  culls cells by the max corner height; the DrawRayOnGrid limit applies to the local direction.
+- **BV slots 9/11** never write the record's type word; the static initialiser 0x35153F10 sets
+  it to 2 once per caller.
+
+## Corrections from the P1c mesh / intersection port (bit-exact against the DLL)
+
+- **Who registers a contact (§3.4):** the traversal calls slot 54 on the geometry with the
+  **lower** `+20` priority (A on ties) and runs `INTERSECT[low][high]` in that order. Mesh vs
+  primitive: the mesh registers (`CTriMesh` 0x351D3950); ray vs anything: the ray (0x3519A380);
+  mesh vs mesh: A. `CGeometry::RegisterIntersection` 0x3514F3F0 is never reached from a mesh
+  or heightfield pair.
+- **After the traversal** `CGeometry::Intersect` mirrors every contact to A's point of view when
+  B registered (n, dir negated, `pt` moved back by `t`, area normal / id arrays swapped,
+  `id[0]` moved to `id[1]` as a *signed byte*), then selection-sorts the contacts by `t`,
+  **largest first** (sign of `(float)(t_i − t_j)`).
+- **Recentring:** before the traversal both gtests are translated so that B's offset is the
+  origin (sub_3514EFB0, double subtraction), and the offset is added back to points, centres,
+  borders and area points at the end (double addition).
+- **Start nodes:** the traversal starts from `gwd+88` of A/B only when their *sum* is non-zero,
+  and restarts from the roots when that gave no contact.
+- **Zero-velocity sweeps** are turned off by writing `v = (0,0,1)` into gwd A and
+  `vrel_min = 0` into the caller's params (through const pointers).
+- **Primitive slot 56 (box):** a thin box (min half-size·8 < max) is grown away from the other
+  side's outside pivot by its largest half-size (signed pivot tests).
+- **Mesh slot 56:** id −1 triangles are skipped; with an outside pivot only triangles facing
+  away from it are kept; `bLocal = −1` (sweep traversal) lists every triangle without tests.
+- **Probe dumps:** `CAABBTree` node 1 (except nTris), byte +11 of internal AABB nodes and
+  `COBBTree` node 1 (except iParent / nTris) are never written by the builders (heap garbage
+  in saved trees; the P1c probe zeroes them for reproducible dumps).
