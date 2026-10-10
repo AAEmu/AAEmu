@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills.Plots.Tree;
+﻿using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills.Plots;
 
@@ -45,5 +45,22 @@ public class PlotAreaHeightTests
             anchorZ: 500f, ground: 37f, offsetMetres: 500f, previousIsFlyingNpc: false,
             overWater: true, waterSurfaceZ: 100f))
             .IsEqualTo(100f);
+    }
+
+    [Test]
+    public async Task GroundCast_SmallHeightOffset_LandsOnFloor()
+    {
+        // Meteor Strike plot RandomArea: HeightOffset 8 m on a ground aim must not hang at +8.
+        await Assert.That(PlotTargetInfo.ChoosePlotAreaHeight(
+            anchorZ: 139.9f, ground: 139.9f, offsetMetres: 8f, previousIsFlyingNpc: false))
+            .IsEqualTo(139.9f);
+    }
+
+    [Test]
+    public async Task NearGroundJump_SmallHeightOffset_StillLandsOnFloor()
+    {
+        await Assert.That(PlotTargetInfo.ChoosePlotAreaHeight(
+            anchorZ: 142f, ground: 140f, offsetMetres: 8f, previousIsFlyingNpc: false))
+            .IsEqualTo(140f);
     }
 }

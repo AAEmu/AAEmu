@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills;
+﻿using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -37,6 +37,21 @@ public class PlotTargetRulesTests
         // 12 events, e.g. plot 2506's "6버블 대상 검색".
         await Assert.That(PlotTargetRules.PassesEventFilters(true, false, false, false, Facts(dead: true))).IsTrue();
         await Assert.That(PlotTargetRules.PassesEventFilters(true, false, false, false, Facts())).IsFalse();
+    }
+
+    [Test]
+    public async Task UnitTypeMaskZero_AllowsEveryKind()
+    {
+        // Unset mask must not empty the AoE: (flag & 0) != 0 is never true.
+        await Assert.That(PlotTargetRules.PassesUnitTypeMask(2, 0)).IsTrue();
+        await Assert.That(PlotTargetRules.PassesUnitTypeMask(1, 0)).IsTrue();
+    }
+
+    [Test]
+    public async Task UnitTypeMask_KeepsMatchingBitsOnly()
+    {
+        await Assert.That(PlotTargetRules.PassesUnitTypeMask(2, 111)).IsTrue(); // Npc in 111
+        await Assert.That(PlotTargetRules.PassesUnitTypeMask(16, 111)).IsFalse(); // Transfer not in 111
     }
 
     [Test]

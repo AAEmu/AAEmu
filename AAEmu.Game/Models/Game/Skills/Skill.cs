@@ -99,6 +99,10 @@ public class Skill
     private bool _zoneSkillStartedRelayed;
     /// <summary>Plot-only GCD / cooldown armed at Use so hold-repeat cannot stack a new cast every 150 ms.</summary>
     private bool _plotOnlyFireCostsApplied;
+    /// <summary>Shared GCD armed once per accept (Use), not again at Cast fire.</summary>
+    private bool _gcdArmed;
+    /// <summary>Individual skill CD armed once per accept; Cast / plot-end must not re-arm.</summary>
+    private bool _skillCooldownArmed;
     private bool _zoneSkillFiredRelayed;
     private bool _zoneSkillEndedRelayed;
     private bool _laborConsumed;
@@ -302,6 +306,8 @@ public class Skill
         _zoneSkillFiredRelayed = false;
         _zoneSkillEndedRelayed = false;
         _plotOnlyFireCostsApplied = false;
+        _gcdArmed = false;
+        _skillCooldownArmed = false;
         _laborConsumed = false;
         _chargesAfterCast = -1;
         _zoneSkillCaster = null;
@@ -687,6 +693,12 @@ public class Skill
                 previous.Skill.Cancelled = true;
                 previous.Skill.Stop(unit);
             }
+
+            // Shared GCD and the skill's own CD start with SkillStarted (cast accepted).
+            // The client greys both clocks on that packet; arming only at Cast() left a
+            // cast-time window where the server still accepted a re-press.
+            EnsureGlobalCooldownArmed(unit);
+            EnsureSkillCooldownArmed(unit);
 
             // Has casting time, schedule a task for it
             // ZoneAuthority: cast begins now — Started before cast-end Cast()/EndSkill.
@@ -1133,10 +1145,8 @@ public class Skill
             return;
         }
 
-        if (!_bypassGcd)
-        {
-            ApplyGlobalCooldown(unit);
-        }
+        // Idempotent: cast-time skills already armed at SkillStarted; instant / Cast()-only paths arm here.
+        EnsureGlobalCooldownArmed(unit);
 
         // Instant ZoneAuthority casts: WZSkillStarted before ScheduleEffects/EndSkill (melee 2
         // clears TlId immediately). Cast-time / plot_only already relayed at Use() entry.
@@ -1208,7 +1218,7 @@ public class Skill
         else
         {
             ConsumeMana(caster);
-            ArmCooldowns(unit);
+            EnsureSkillCooldownArmed(unit);
             // fire_skill item procs (enum_proc_chance_type 19): the fire edge of the cast, once its costs are
             // paid. A pure-unsupported cast pays no mana and no cooldown, so it raises none of them either;
             // 13 of the 26 fire_skill procs name no trigger skill or tag, so rolling them off an uncharged
@@ -2688,10 +2698,9 @@ public class Skill
         if (!Template.PlotOnly && !ForcePlotGraphOnly)
             return;
         _plotOnlyFireCostsApplied = true;
-        ApplyGlobalCooldown(unit);
-        // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast() and blocks re-cast spam.
-        if (Template.CooldownTime > 0)
-            ArmCooldowns(unit);
+        EnsureGlobalCooldownArmed(unit);
+        // Skill cooldown is also applied in DoPlotEnd; Ensure is idempotent so the end edge is a no-op.
+        EnsureSkillCooldownArmed(unit);
         // The plot-only fire edge, for the fire_skill item procs: six of the ten trigger_skill_id rows name a
         // plot_only skill (11934, 11943, 11973, 15096, 16210, 16783), which never reaches Cast(). A
         // pure-unsupported cast is refused the roll in Cast() for the same reason, so it gets none here.
@@ -2700,8 +2709,14 @@ public class Skill
     }
 
     /// <summary>
+    /// Arms the cast's skill cooldown once. Cast-time skills call this at SkillStarted; instant and
+    /// plot paths call it from Cast / ApplyPlotOnlyFireCosts / DoPlotEnd. A second call is a no-op.
+    /// </summary>
+    private void EnsureSkillCooldownArmed(Unit unit) => ArmCooldowns(unit);
+
+    /// <summary>
     /// Arms the cast's cooldown on the skill id, on every cooldown tag the skill carries, and on the
-    /// account when <c>account_cooldown</c> is set.
+    /// account when <c>account_cooldown</c> is set. Idempotent per cast instance.
     /// </summary>
     /// <remarks>
     /// A <c>switch_to_skill_cooldown</c> variant (10534 빛과 어둠 → 36630/36631) takes over the running
@@ -2715,14 +2730,20 @@ public class Skill
     /// </remarks>
     internal void ArmCooldowns(Unit unit)
     {
-        if (unit == null)
+        if (unit == null || _skillCooldownArmed || IsPureUnsupportedCast())
             return;
+        _skillCooldownArmed = true;
 
         // The timer goes on the player for anything the player fired, including a mount/pet bar skill that is
         // cast as the mount — see SkillCooldownOwnershipRules. Simulation-driven casts keep their own table.
         var owner = SkillCooldownOwnershipRules.CooldownOwner(unit, !_bypassGcd, ResolveCooldownOwnerUnit);
 
-        var duration = Template.CooldownTime > 0 ? (uint)Template.CooldownTime : 0u;
+        var baseDuration = Template.CooldownTime > 0 ? (uint)Template.CooldownTime : 0u;
+        // skill_modifiers CoolDown (attribute 1) then unit CoolDown rating via GlobalCooldownMul %.
+        var modified = baseDuration == 0
+            ? 0u
+            : (uint)Math.Max(0, Math.Round(owner.ApplySkillModifiers(this, SkillAttribute.Cooldown, baseDuration)));
+        var duration = SkillCooldownDurationRules.ResolveDuration(modified, owner.GlobalCooldownMul);
         if (Template.SwitchToSkillCooldown)
         {
             duration = SkillCooldownGateRules.SwitchToCooldownDuration(
@@ -2807,6 +2828,18 @@ public class Skill
             return;
 
         _zoneSkillEndedRelayed = WorldIntegration.RelaySkillEndedToZone(TlId, _zoneSkillCaster);
+    }
+
+    /// <summary>
+    /// Arms the shared GCD once per accepted cast. Cast-time skills call this at SkillStarted;
+    /// instant and plot-only paths call it from Cast / ApplyPlotOnlyFireCosts. A second call is a no-op.
+    /// </summary>
+    private void EnsureGlobalCooldownArmed(Unit unit)
+    {
+        if (_bypassGcd || _gcdArmed || unit == null)
+            return;
+        ApplyGlobalCooldown(unit);
+        _gcdArmed = true;
     }
 
     private void ApplyGlobalCooldown(Unit unit)

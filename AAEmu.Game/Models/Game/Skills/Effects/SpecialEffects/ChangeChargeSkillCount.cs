@@ -1,4 +1,6 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -45,6 +47,12 @@ public class ChangeChargeSkillCount : SpecialEffectAction
         // The name says "count", and 56119 adds three to a 3-charge skill, so the value is a delta on
         // the pool rather than a new ceiling.
         unit.Cooldowns.ChangeChargeCount(skillId, template.ChargeCount, value2);
+        if (unit is Character character)
+        {
+            character.SendPacket(new SCChargeSkillCooldownChangedPacket(
+                character.ObjId, skillId, percent: 0, count: value2, reduce: 0));
+        }
+
         Logger.Debug("Special effects: ChangeChargeSkillCount skill {0} delta {1}", value1, value2);
     }
 }

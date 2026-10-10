@@ -260,9 +260,22 @@ public class CharacterSkills(Character owner)
         return ids;
     }
 
-    /// <summary>Whether the character holds <paramref name="skillId"/>, learned or granted.</summary>
-    public bool HasSkill(uint skillId) =>
-        Skills.ContainsKey(skillId) || TemporarySkills.ContainsKey(skillId);
+    /// <summary>
+    /// Whether the character holds <paramref name="skillId"/> — learned, buff-granted, the
+    /// currently selected Heir successor, or a Combo follow-up of any of those roots.
+    /// ZoneAuthority keys off this; without the Combo branch, hold-to-cycle skills (Triple Slash,
+    /// Quake heir, Gods' Whip, Whirlwind Slash, …) only land the first hit and the rest are refused unlearned.
+    /// </summary>
+    public bool HasSkill(uint skillId)
+    {
+        if (Skills.ContainsKey(skillId) || TemporarySkills.ContainsKey(skillId) || IsActiveHeirSuccessor(skillId))
+            return true;
+
+        var roots = Skills.Keys
+            .Concat(TemporarySkills.Keys)
+            .Concat(Owner.HeirSkills?.ActiveSuccessorSkillIds() ?? []);
+        return SkillComboRules.IsHeldOrComboFollowUp(skillId, roots, SkillComboRules.NextFollowUp);
+    }
 
     private void ReconcileBuffGrants()
     {

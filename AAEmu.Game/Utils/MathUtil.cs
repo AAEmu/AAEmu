@@ -301,11 +301,12 @@ public class MathUtil
 
     public static bool PointInTriangle((float, float) point, (float, float) v1, (float, float) v2, (float, float) v3)
     {
-        bool b1, b2, b3;
-
-        b1 = Sign(point, v1, v2) < 0.0f;
-        b2 = Sign(point, v2, v3) < 0.0f;
-        b3 = Sign(point, v3, v1) < 0.0f;
+        // Inclusive edges (<=). Cuboid AoE fans the rectangle into two triangles that share a
+        // diagonal through the box centre; a strict < rejects Sign==0, so the centre and every unit
+        // on that diagonal never counted as inside.
+        var b1 = Sign(point, v1, v2) <= 0.0f;
+        var b2 = Sign(point, v2, v3) <= 0.0f;
+        var b3 = Sign(point, v3, v1) <= 0.0f;
 
         return b1 == b2 && b2 == b3;
     }

@@ -65,4 +65,17 @@ public class SkillComboRulesTests
         await Assert.That(SkillComboRules.IsComboFollowUpOf(Root, Root, NextOf)).IsFalse();
         await Assert.That(SkillComboRules.IsComboFollowUpOf(Second, Root, NextOf)).IsFalse();
     }
+
+    [Test]
+    public async Task IsHeldOrComboFollowUp_AllowsLaterHitsOfAHeldRoot()
+    {
+        // Triple Slash / Quake heir / Whirlwind Slash: only the first hit is held; the bar swaps to 2 then 3.
+        uint[] held = [Root];
+
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(Root, held, NextOf)).IsTrue();
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(Second, held, NextOf)).IsTrue();
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(Third, held, NextOf)).IsTrue();
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(99, held, NextOf)).IsFalse();
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(Second, [], NextOf)).IsFalse();
+    }
 }
