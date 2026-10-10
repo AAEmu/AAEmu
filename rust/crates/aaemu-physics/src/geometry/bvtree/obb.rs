@@ -25,7 +25,7 @@ use crate::ids::BvTreeType;
 use crate::math::{max_idiom, min_idiom, Mat33, Vec3};
 
 /// A 72-byte OBB node.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ObbNode {
     /// `+0` rows = unit axes.
     pub axes: Mat33,
@@ -39,6 +39,22 @@ pub struct ObbNode {
     pub ichild: i32,
     /// `+68` triangle count, 0 = internal.
     pub ntris: i32,
+}
+
+impl Default for ObbNode {
+    /// All zero. The original's nodes come from `operator new` and the unused node 1 keeps
+    /// whatever was there (only `iParent = −1` and `ntris = 0` are written); the port uses
+    /// zeros, which is what a fresh heap block holds in the oracle runs.
+    fn default() -> Self {
+        Self {
+            axes: Mat33::ZERO,
+            center: Vec3::ZERO,
+            size: Vec3::ZERO,
+            i_parent: 0,
+            ichild: 0,
+            ntris: 0,
+        }
+    }
 }
 
 impl ObbNode {
@@ -518,7 +534,9 @@ impl BvTree for ObbTree {
         (((nd.ntris - 1) >> 31) & 1) as f32 * ((s.y * s.x) * s.z)
     }
 
-    /// 0x35194F80: the children's own boxes swept; `bOriented = iNode + 1`.
+    /// 0x35194F80: the children's own boxes swept. **Bug kept:** the second child's
+    /// `bOriented = iNode + 1` is written into the *first* child's record, so the first ends up
+    /// with `ichild + 2` and the second keeps the sweep's 1.
     fn get_node_children_bvs_swept(
         &self,
         arena: &mut BvArena,
@@ -527,14 +545,17 @@ impl BvTree for ObbTree {
         len: f32,
     ) -> Option<(BvHandle, BvHandle)> {
         let ich = self.nodes[arena.bv_node(parent) as usize].ichild;
-        let mut out = [0usize; 2];
-        for (k, o) in out.iter_mut().enumerate() {
-            let node = ich + k as i32;
-            let mut b = sweep_box(&self.nodes[node as usize].as_box(), dir, len);
-            b.oriented = node + 1;
-            *o = Self::write_rec(arena, node, &b);
+        let c0 = arena.alloc_bv();
+        let c1 = arena.alloc_bv();
+        for (c, node) in [(c0, ich), (c1, ich + 1)] {
+            let b = sweep_box(&self.nodes[node as usize].as_box(), dir, len);
+            let w = &mut arena.bv_pool[c];
+            w[rec::TYPE] = 0;
+            w[rec::NODE] = node as u32;
+            box_to_words(w, rec::BOX, &b);
+            arena.bv_pool[c0][rec::BOX + 9] = (node + 1) as u32;
         }
-        Some((BvHandle::Pool(out[0] as i32), BvHandle::Pool(out[1] as i32)))
+        Some((BvHandle::Pool(c0 as i32), BvHandle::Pool(c1 as i32)))
     }
 
     /// 0x35194D70: the children's boxes; `bOriented = iNode + 1`.

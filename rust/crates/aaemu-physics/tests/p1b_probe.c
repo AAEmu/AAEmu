@@ -11,6 +11,9 @@
  *   fit  MESH                                            sub_35195400 (all triangles)
  *   hull MESH                                            sub_35128440 (the vertices)
  *   mesh MESH flags minTris maxTris obbFactor           CTriMesh constructor 0x351CF1B0 (tree choice)
+ *   slots MESH aabb|obb minTris maxTris skipRel        BV slots 5-17, 19, 25 on the built tree
+ *   prims                                               CSingleBoxTree / CRayBV slots on a fixed box / ray
+ *   sweep COUNT SEED                                    the swept box sub_35135490 on generated boxes
  * The runtime directory (--rt, %AAEMU_PHYS_RT%, default D:\aa-re\cryphysics\harness\rt) is the
  * one physoracle uses. */
 #include <windows.h>
@@ -18,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 
 #define IMAGE_BASE 0x35000000ULL
 #define VA(h, va) ((void *)((char *)(h) + ((va) - IMAGE_BASE)))
@@ -189,24 +193,236 @@ static void cmd_mesh(Mesh *m, int argc, char **argv) {
   printf("\n");
 }
 
+/* ---- slot sequences on built trees (the records come from the DLL's own per-caller arena,
+ * caller 0, which starts zeroed like the port's BvArena). */
+#define ARENA(off) ((unsigned char *)VA(g_phys, 0x35256F80ULL) + (off))
+#define VSLOT(obj, n) ((*(void ***)(obj))[n])
+typedef void (*fn_bv11)(void *t, void **out, int iNode, int iCaller);
+typedef void (*fn_bv9)(void *t, float *R, float *off, float scale, void **out, int iNode, int iCaller);
+typedef void (*fn_bv10)(void *t, void **out, float *dir, float len, int iNode, int iCaller);
+typedef void (*fn_bv8)(void *t, float *R, float *off, float scale, void **out, float *dir, float len, int iNode, int iCaller);
+typedef float (*fn_bv12)(void *t, void *bv);
+typedef void (*fn_bv13)(void *t, void *bv, float *dir, float len, void **c0, void **c1, int iCaller);
+typedef void (*fn_bv14)(void *t, void *bv, void **c0, void **c1, int iCaller);
+typedef void (*fn_bv15)(void *t, float *R, float *off, float scale, void *bv, void **c0, void **c1, int iCaller);
+typedef void (*fn_bv16)(void *t, int iCaller);
+typedef int (*fn_bv6)(void *t, void *gtest);
+typedef void (*fn_bv7)(void *t, void *gtest);
+typedef void (*fn_bv25)(void *t, int iTri, void *gtest);
+typedef void (*fn_bv5)(void *t);
+
+static float g_R[9], g_off[3] = {1.5f, -2.25f, 0.75f}, g_dir[3] = {0.6f, -0.48f, 0.64f};
+static const float g_scale = 1.25f, g_len = 2.5f;
+
+static void init_rot(void) {
+  /* rotation by 0.6 rad about (2,1,3)/|.|, computed in double and rounded: any fixed matrix
+   * works, the port reads the same bits from the trace header */
+  double ax[3] = {2, 1, 3}, n = sqrt(14.0), c = cos(0.6), s = sin(0.6), C = 1 - c;
+  for (int i = 0; i < 3; i++) ax[i] /= n;
+  double m[9] = {c + ax[0] * ax[0] * C, ax[0] * ax[1] * C - ax[2] * s, ax[0] * ax[2] * C + ax[1] * s,
+                 ax[1] * ax[0] * C + ax[2] * s, c + ax[1] * ax[1] * C, ax[1] * ax[2] * C - ax[0] * s,
+                 ax[2] * ax[0] * C - ax[1] * s, ax[2] * ax[1] * C + ax[0] * s, c + ax[2] * ax[2] * C};
+  for (int i = 0; i < 9; i++) g_R[i] = (float)m[i];
+  printf("xf");
+  for (int i = 0; i < 9; i++) printf(" %08x", fb(g_R[i]));
+  printf("\n");
+}
+
+static void prec(const char *tag, void *p, int words) {
+  printf("%s", tag);
+  for (int i = 0; i < words; i++) printf(" %08x", ((uint32_t *)p)[i]);
+  printf("\n");
+}
+
+static void counters(void) {
+  printf("counters %d %d %d %d\n", *(int *)ARENA(0x359DC), *(int *)ARENA(0x39DE0), *(int *)ARENA(0xC6B0),
+         *(int *)ARENA(0xC7B4));
+}
+
+/* gtest fields the trees use: +16 map, +24 list, +32 iLast, +36 cap, +44 marked, +388 iCaller */
+static void pgtest(const char *tag, unsigned char *g, int nNodes) {
+  unsigned char *map = *(unsigned char **)(g + 16);
+  unsigned char *list = *(unsigned char **)(g + 24);
+  long long mo = map ? (long long)(map - ARENA(0x46B0)) / 4 : -1, lo = list ? (long long)(list - ARENA(0xC6B4)) / 4 : -1;
+  printf("%s map %lld list %lld last %d cap %d marked %d", tag, map == g + 32 ? -2LL : mo, lo,
+         *(int *)(g + 32), *(int *)(g + 36), *(int *)(g + 44));
+  if (map && map != g + 32)
+    for (int i = 0; i < ((nNodes - 1) >> 5) + 1; i++) printf(" %08x", ((uint32_t *)map)[i]);
+  printf("\n");
+}
+
+static void slot_sequence(void *t, int swept_words, int nNodes, int nTris) {
+  void *r, *c0, *c1, *d0, *d1;
+  ((fn_bv11)VSLOT(t, 11))(t, &r, 0, 0);
+  prec("bv11", r, 18);
+  ((fn_bv14)VSLOT(t, 14))(t, r, &c0, &c1, 0);
+  prec("ch14a", c0, 18);
+  prec("ch14b", c1, 18);
+  float p0 = ((fn_bv12)VSLOT(t, 12))(t, r), p1 = ((fn_bv12)VSLOT(t, 12))(t, c0), p2 = ((fn_bv12)VSLOT(t, 12))(t, c1);
+  printf("prio %08x %08x %08x\n", fb(p0), fb(p1), fb(p2));
+  if (p1 > 0) {
+    ((fn_bv14)VSLOT(t, 14))(t, c0, &d0, &d1, 0);
+    prec("ch14c", d0, 18);
+    prec("ch14d", d1, 18);
+    ((fn_bv16)VSLOT(t, 16))(t, 0);
+  }
+  ((fn_bv16)VSLOT(t, 16))(t, 0);
+  counters();
+  ((fn_bv9)VSLOT(t, 9))(t, g_R, g_off, g_scale, &r, 1, 0);
+  prec("bv9", r, 18);
+  ((fn_bv15)VSLOT(t, 15))(t, g_R, g_off, g_scale, r, &c0, &c1, 0);
+  prec("ch15a", c0, 18);
+  prec("ch15b", c1, 18);
+  if (((fn_bv12)VSLOT(t, 12))(t, c1) > 0) {
+    ((fn_bv15)VSLOT(t, 15))(t, g_R, g_off, g_scale, c1, &d0, &d1, 0);
+    prec("ch15c", d0, 18);
+    prec("ch15d", d1, 18);
+    ((fn_bv16)VSLOT(t, 16))(t, 0);
+  }
+  ((fn_bv16)VSLOT(t, 16))(t, 0);
+  counters();
+  ((fn_bv10)VSLOT(t, 10))(t, &r, g_dir, g_len, 0, 0);
+  prec("bv10", r, swept_words);
+  ((fn_bv13)VSLOT(t, 13))(t, r, g_dir, g_len, &c0, &c1, 0);
+  prec("ch13a", c0, swept_words);
+  prec("ch13b", c1, swept_words);
+  if (((fn_bv12)VSLOT(t, 12))(t, c0) > 0) {
+    ((fn_bv13)VSLOT(t, 13))(t, c0, g_dir, g_len, &d0, &d1, 0);
+    prec("ch13c", d0, swept_words);
+    prec("ch13d", d1, swept_words);
+    ((fn_bv16)VSLOT(t, 17))(t, 0);
+  }
+  ((fn_bv16)VSLOT(t, 17))(t, 0);
+  counters();
+  /* used-node marking */
+  unsigned char *g = (unsigned char *)calloc(1, 392);
+  *(int *)(g + 388) = 0;
+  int ok = ((fn_bv6)VSLOT(t, 6))(t, g);
+  printf("prep %d\n", ok);
+  pgtest("g6", g, nNodes);
+  counters();
+  for (int i = 0; i < nTris; i += 3) ((fn_bv25)VSLOT(t, 25))(t, i, g);
+  pgtest("g25", g, nNodes);
+  ((fn_bv7)VSLOT(t, 7))(t, g);
+  pgtest("g7", g, nNodes);
+  printf("skip %08x\n", fb(((float (*)(void *))VSLOT(t, 19))(t)));
+}
+
+static void cmd_slots(Mesh *m, int argc, char **argv) {
+  (void)argc;
+  init_rot();
+  const char *kind = argv[0];
+  int minT = atoi(argv[1]), maxT = atoi(argv[2]);
+  float skip = (float)atof(argv[3]);
+  unsigned char *g = fake_mesh(m);
+  if (!strcmp(kind, "aabb")) {
+    float basis[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+    unsigned char *t = (unsigned char *)calloc(1, 128);
+    *(void **)t = VA(g_phys, 0x351F30E8ULL);
+    ((fn_aabb_setup)VA(g_phys, 0x35136960ULL))(t, minT, maxT, skip, basis, 0);
+    ((fn_build)VA(g_phys, 0x35139490ULL))(t, g);
+    slot_sequence(t, 34, *(int *)(t + 24), m->nt);
+  } else {
+    unsigned char *t = (unsigned char *)calloc(1, 72);
+    *(void **)t = VA(g_phys, 0x351F3008ULL);
+    *(int *)(t + 44) = minT;
+    *(int *)(t + 48) = maxT;
+    *(float *)(t + 52) = skip;
+    ((fn_build)VA(g_phys, 0x35195210ULL))(t, g);
+    slot_sequence(t, 18, *(int *)(t + 24), m->nt);
+    ((fn_bv5)VSLOT(t, 5))(t);
+    printf("convex %08x\n", *(uint32_t *)(t + 52));
+  }
+}
+
+/* CSingleBoxTree and CRayBV slots on a fixed box / ray. */
+static void cmd_prims(void) {
+  init_rot();
+  unsigned char *t = (unsigned char *)calloc(1, 88);
+  *(void **)t = VA(g_phys, 0x351EE4A8ULL);
+  float box[16];
+  memcpy(box, g_R, 36);
+  ((uint32_t *)box)[9] = 1;
+  box[10] = 0.5f; box[11] = -1.0f; box[12] = 2.0f; box[13] = 0.75f; box[14] = 1.5f; box[15] = 0.25f;
+  memcpy(t + 16, box, 64);
+  *(int *)(t + 80) = 1;
+  void *r;
+  ((fn_bv11)VSLOT(t, 11))(t, &r, 0, 0);
+  prec("sb11", r, 18);
+  ((fn_bv9)VSLOT(t, 9))(t, g_R, g_off, g_scale, &r, 0, 0);
+  prec("sb9", r, 18);
+  ((fn_bv10)VSLOT(t, 10))(t, &r, g_dir, g_len, 0, 0);
+  prec("sb10", r, 18);
+  ((fn_bv8)VSLOT(t, 8))(t, g_R, g_off, g_scale, &r, g_dir, g_len, 0, 0);
+  prec("sb8", r, 18);
+  counters();
+  unsigned char *g = (unsigned char *)calloc(1, 392);
+  ((fn_bv6)VSLOT(t, 6))(t, g);
+  ((fn_bv25)VSLOT(t, 25))(t, 0, g);
+  pgtest("sbg", g, 1);
+  ((fn_bv5)VSLOT(t, 5))(t);
+  ((fn_bv25)VSLOT(t, 25))(t, 0, g);
+  pgtest("sbg5", g, 1);
+  float ray[6] = {1.0f, -0.5f, 2.0f, 0.3f, 4.0f, -1.25f};
+  unsigned char *rb = (unsigned char *)calloc(1, 24);
+  *(void **)rb = VA(g_phys, 0x351EDEC8ULL);
+  *(float **)(rb + 16) = ray;
+  ((fn_bv9)VSLOT(rb, 9))(rb, g_R, g_off, g_scale, &r, 0, 0);
+  prec("ray9", r, 8);
+  ((fn_bv11)VSLOT(rb, 11))(rb, &r, 0, 0);
+  prec("ray11", r, 8);
+}
+
+/* sub_35135490 on generated boxes. */
+typedef void (*fn_sweep)(float *box, float *dir, float len, float *out);
+static uint32_t g_seed;
+static float frnd(void) { g_seed = g_seed * 1664525u + 1013904223u; return (float)(g_seed >> 8) / 16777216.0f; }
+
+static void cmd_sweep(int n, unsigned seed) {
+  g_seed = seed;
+  for (int k = 0; k < n; k++) {
+    float box[16], dir[3], out[16];
+    /* a random orthonormal-ish basis: perturbed rotation rows, normalised in float */
+    for (int i = 0; i < 9; i++) box[i] = frnd() * 2 - 1;
+    ((uint32_t *)box)[9] = 1;
+    for (int i = 10; i < 13; i++) box[i] = frnd() * 10 - 5;
+    for (int i = 13; i < 16; i++) box[i] = frnd() * 3;
+    float l = 0;
+    for (int i = 0; i < 3; i++) { dir[i] = frnd() * 2 - 1; l += dir[i] * dir[i]; }
+    l = 1.0f / sqrtf(l);
+    for (int i = 0; i < 3; i++) dir[i] *= l;
+    float len = frnd() * 8 - 2;
+    if (k % 7 == 3) { dir[0] = box[3]; dir[1] = box[4]; dir[2] = box[5]; } /* degenerate case */
+    ((fn_sweep)VA(g_phys, 0x35135490ULL))(box, dir, len, out);
+    printf("in");
+    for (int i = 0; i < 16; i++) printf(" %08x", fb(box[i]));
+    printf(" %08x %08x %08x %08x out", fb(dir[0]), fb(dir[1]), fb(dir[2]), fb(len));
+    for (int i = 0; i < 16; i++) printf(" %08x", ((uint32_t *)out)[i]);
+    printf("\n");
+  }
+}
+
 int main(int argc, char **argv) {
   const char *rt = getenv("AAEMU_PHYS_RT");
   if (!rt) rt = "D:\\aa-re\\cryphysics\\harness\\rt";
   int a = 1;
   if (a + 1 < argc && !strcmp(argv[a], "--rt")) { rt = argv[a + 1]; a += 2; }
-  if (a + 1 >= argc) { fprintf(stderr, "usage: p1b_probe [--rt DIR] aabb|obb|fit|hull MESH [args]\n"); return 1; }
+  if (a >= argc || (a + 1 >= argc && strcmp(argv[a], "prims"))) { fprintf(stderr, "usage: p1b_probe [--rt DIR] aabb|obb|fit|hull MESH [args]\n"); return 1; }
   char dll[MAX_PATH];
   snprintf(dll, sizeof dll, "%s\\cryphysics_dedicate.dll", rt);
   SetDllDirectoryA(rt);
   g_phys = LoadLibraryA(dll);
   if (!g_phys) { printf("ERROR LoadLibrary %s failed (%lu)\n", dll, GetLastError()); return 1; }
-  Mesh m = load_mesh(argv[a + 1]);
   const char *cmd = argv[a];
+  if (!strcmp(cmd, "prims")) { cmd_prims(); fflush(stdout); return 0; }
+  if (!strcmp(cmd, "sweep")) { cmd_sweep(atoi(argv[a + 1]), (unsigned)strtoul(argv[a + 2], 0, 0)); fflush(stdout); return 0; }
+  Mesh m = load_mesh(argv[a + 1]);
   if (!strcmp(cmd, "aabb")) cmd_aabb(&m, argc - a - 2, argv + a + 2);
   else if (!strcmp(cmd, "obb")) cmd_obb(&m, argc - a - 2, argv + a + 2);
   else if (!strcmp(cmd, "fit")) cmd_fit(&m);
   else if (!strcmp(cmd, "hull")) cmd_hull(&m);
   else if (!strcmp(cmd, "mesh")) cmd_mesh(&m, argc - a - 2, argv + a + 2);
+  else if (!strcmp(cmd, "slots")) cmd_slots(&m, argc - a - 2, argv + a + 2);
   else { printf("ERROR unknown command %s\n", cmd); return 1; }
   fflush(stdout);
   return 0;

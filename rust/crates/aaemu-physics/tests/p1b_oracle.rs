@@ -15,7 +15,12 @@
 use aaemu_physics::geometry::bvtree::fit::principal_axes;
 use aaemu_physics::geometry::bvtree::hull::convex_hull;
 use aaemu_physics::geometry::bvtree::select::{build_mesh_tree, MeshTree};
-use aaemu_physics::geometry::bvtree::{AabbTree, BuildMesh, BvTree, MemReader, MemWriter, ObbTree};
+use aaemu_physics::geometry::bvtree::swept::sweep_box;
+use aaemu_physics::geometry::bvtree::{
+    AabbTree, BuildMesh, BvArena, BvHandle, BvTestState, BvTree, MemReader, MemWriter, ObbTree,
+    RayBv, SingleBoxTree, UsedNodeMap,
+};
+use aaemu_physics::geometry::primitives::{BoxPrim, RayPrim};
 use aaemu_physics::math::{Mat33, Vec3};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -610,4 +615,321 @@ fn p1b_corpus_builds_match_dll() {
         eprintln!("  {b}");
     }
     assert!(bad.is_empty());
+}
+
+// ---------------------------------------------------------------- slot sequences
+
+/// The fixed transform of the probe's slot sequences (`xf` line; rotation by 0.6 rad about
+/// (2, 1, 3), computed by the probe in double and rounded).
+const XF_BITS: [u32; 9] = [
+    0x3f60_0fb6,
+    0xbedb_048d,
+    0x3e67_2e79,
+    0x3ef4_9195,
+    0x3f56_7ad3,
+    0xbe87_5d9b,
+    0xbd9b_c091,
+    0x3ead_b127,
+    0x3f70_07db,
+];
+const XF_OFF: Vec3 = Vec3::new(1.5, -2.25, 0.75);
+const XF_DIR: Vec3 = Vec3::new(0.6, -0.48, 0.64);
+const XF_SCALE: f32 = 1.25;
+const XF_LEN: f32 = 2.5;
+
+fn xf() -> (Mat33, String) {
+    let r = Mat33::from_bits(XF_BITS);
+    let mut s = String::from("xf");
+    for b in XF_BITS {
+        let _ = write!(s, " {b:08x}");
+    }
+    (r, s + "\n")
+}
+
+fn prec(s: &mut String, tag: &str, a: &BvArena, h: BvHandle, words: usize) {
+    *s += tag;
+    let w: Vec<u32> = match h {
+        BvHandle::Swept(i) if words == 34 => a.swept_pool[i as usize].to_vec(),
+        BvHandle::Ray => a.ray_bv.to_vec(),
+        _ => a.bv_words(h).to_vec(),
+    };
+    for x in w.iter().take(words) {
+        let _ = write!(s, " {x:08x}");
+    }
+    *s += "\n";
+}
+
+fn counters(s: &mut String, a: &BvArena) {
+    let _ = writeln!(
+        s,
+        "counters {} {} {} {}",
+        a.bv_count, a.swept_count, a.used_map_count, a.used_list_count
+    );
+}
+
+fn pgtest(s: &mut String, tag: &str, g: &BvTestState, a: &BvArena, n_nodes: i32) {
+    let map = match &g.used_map {
+        UsedNodeMap::None => -1i64,
+        UsedNodeMap::AliasLastUsed => -2,
+        UsedNodeMap::Arena(o) => *o as i64,
+        UsedNodeMap::Heap(_) => -3,
+    };
+    let list = g.used_list.map_or(-1, |l| l as i64);
+    let _ = write!(
+        s,
+        "{tag} map {map} list {list} last {} cap {} marked {}",
+        g.i_last_used, g.n_used_cap, g.b_marked
+    );
+    if let UsedNodeMap::Arena(o) = g.used_map {
+        for k in 0..(((n_nodes - 1) >> 5) + 1) as usize {
+            let _ = write!(s, " {:08x}", a.used_map_pool[o + k]);
+        }
+    }
+    *s += "\n";
+}
+
+fn slot_sequence(t: &dyn BvTree, swept_words: usize, n_nodes: i32, n_tris: i32) -> String {
+    let (rm, mut s) = xf();
+    let mut a = BvArena::new();
+    let r = t.get_node_bv(&mut a, 0);
+    prec(&mut s, "bv11", &a, r, 18);
+    let (c0, c1) = t.get_node_children_bvs(&mut a, r).unwrap();
+    prec(&mut s, "ch14a", &a, c0, 18);
+    prec(&mut s, "ch14b", &a, c1, 18);
+    let (p0, p1, p2) = (
+        t.split_priority(&a, r),
+        t.split_priority(&a, c0),
+        t.split_priority(&a, c1),
+    );
+    let _ = writeln!(
+        s,
+        "prio {:08x} {:08x} {:08x}",
+        p0.to_bits(),
+        p1.to_bits(),
+        p2.to_bits()
+    );
+    if p1 > 0.0 {
+        let (d0, d1) = t.get_node_children_bvs(&mut a, c0).unwrap();
+        prec(&mut s, "ch14c", &a, d0, 18);
+        prec(&mut s, "ch14d", &a, d1, 18);
+        t.release_last_bvs(&mut a);
+    }
+    t.release_last_bvs(&mut a);
+    counters(&mut s, &a);
+    let r = t.get_node_bv_transformed(&mut a, &rm, XF_OFF, XF_SCALE, 1);
+    prec(&mut s, "bv9", &a, r, 18);
+    let (c0, c1) = t
+        .get_node_children_bvs_transformed(&mut a, &rm, XF_OFF, XF_SCALE, r)
+        .unwrap();
+    prec(&mut s, "ch15a", &a, c0, 18);
+    prec(&mut s, "ch15b", &a, c1, 18);
+    if t.split_priority(&a, c1) > 0.0 {
+        let (d0, d1) = t
+            .get_node_children_bvs_transformed(&mut a, &rm, XF_OFF, XF_SCALE, c1)
+            .unwrap();
+        prec(&mut s, "ch15c", &a, d0, 18);
+        prec(&mut s, "ch15d", &a, d1, 18);
+        t.release_last_bvs(&mut a);
+    }
+    t.release_last_bvs(&mut a);
+    counters(&mut s, &a);
+    let r = t.get_node_bv_swept(&mut a, XF_DIR, XF_LEN, 0).unwrap();
+    prec(&mut s, "bv10", &a, r, swept_words);
+    let (c0, c1) = t
+        .get_node_children_bvs_swept(&mut a, r, XF_DIR, XF_LEN)
+        .unwrap();
+    prec(&mut s, "ch13a", &a, c0, swept_words);
+    prec(&mut s, "ch13b", &a, c1, swept_words);
+    if t.split_priority(&a, c0) > 0.0 {
+        let (d0, d1) = t
+            .get_node_children_bvs_swept(&mut a, c0, XF_DIR, XF_LEN)
+            .unwrap();
+        prec(&mut s, "ch13c", &a, d0, swept_words);
+        prec(&mut s, "ch13d", &a, d1, swept_words);
+        t.release_last_swept_bvs(&mut a);
+    }
+    t.release_last_swept_bvs(&mut a);
+    counters(&mut s, &a);
+    let mut g = BvTestState::default();
+    let ok = t.prepare_for_intersection_test(&mut g, &mut a);
+    let _ = writeln!(s, "prep {ok}");
+    pgtest(&mut s, "g6", &g, &a, n_nodes);
+    counters(&mut s, &a);
+    for i in (0..n_tris).step_by(3) {
+        t.mark_used_triangle(i, &mut g, &mut a);
+    }
+    pgtest(&mut s, "g25", &g, &a, n_nodes);
+    t.cleanup_after_intersection_test(&mut g, &mut a);
+    pgtest(&mut s, "g7", &g, &a, n_nodes);
+    let _ = writeln!(s, "skip {:08x}", t.max_skip_dim().to_bits());
+    s
+}
+
+fn port_slots(m: &Mesh, kind: &str, min_t: i32, max_t: i32, skip: f32) -> String {
+    let mut idx = m.idx.clone();
+    let mut bm = BuildMesh {
+        vertices: &m.v,
+        indices: &mut idx,
+        mats: None,
+        foreign_idx: None,
+        aux: None,
+    };
+    let n_tris = (m.idx.len() / 3) as i32;
+    if kind == "aabb" {
+        let mut t = AabbTree::new(min_t, max_t, skip, Mat33::IDENTITY, false);
+        t.build(&mut bm);
+        slot_sequence(&t, 34, t.nodes.len() as i32, n_tris)
+    } else {
+        let mut t = ObbTree::new(min_t, max_t, skip);
+        t.build(&mut bm);
+        let mut s = slot_sequence(&t, 18, t.nodes.len() as i32, n_tris);
+        t.set_geom_convex();
+        let _ = writeln!(s, "convex {:08x}", t.max_skip_dim.to_bits());
+        s
+    }
+}
+
+fn port_prims() -> String {
+    let (rm, mut s) = xf();
+    let mut a = BvArena::new();
+    let mut t = SingleBoxTree::new(
+        BoxPrim {
+            basis: rm,
+            oriented: 1,
+            center: Vec3::new(0.5, -1.0, 2.0),
+            size: Vec3::new(0.75, 1.5, 0.25),
+        },
+        1,
+    );
+    let r = t.get_node_bv(&mut a, 0);
+    prec(&mut s, "sb11", &a, r, 18);
+    let r = t.get_node_bv_transformed(&mut a, &rm, XF_OFF, XF_SCALE, 0);
+    prec(&mut s, "sb9", &a, r, 18);
+    let r = t.get_node_bv_swept(&mut a, XF_DIR, XF_LEN, 0).unwrap();
+    prec(&mut s, "sb10", &a, r, 18);
+    let r = t
+        .get_node_bv_swept_transformed(&mut a, &rm, XF_OFF, XF_SCALE, XF_DIR, XF_LEN, 0)
+        .unwrap();
+    prec(&mut s, "sb8", &a, r, 18);
+    counters(&mut s, &a);
+    let mut g = BvTestState::default();
+    t.prepare_for_intersection_test(&mut g, &mut a);
+    t.mark_used_triangle(0, &mut g, &mut a);
+    pgtest(&mut s, "sbg", &g, &a, 1);
+    t.set_geom_convex();
+    t.mark_used_triangle(0, &mut g, &mut a);
+    pgtest(&mut s, "sbg5", &g, &a, 1);
+    let ray = RayBv::new(RayPrim {
+        origin: Vec3::new(1.0, -0.5, 2.0),
+        dir: Vec3::new(0.3, 4.0, -1.25),
+    });
+    let r = ray.get_node_bv_transformed(&mut a, &rm, XF_OFF, XF_SCALE, 0);
+    prec(&mut s, "ray9", &a, r, 8);
+    let r = ray.get_node_bv(&mut a, 0);
+    prec(&mut s, "ray11", &a, r, 8);
+    s
+}
+
+fn port_sweep(n: usize, seed: u32) -> String {
+    let mut st = seed;
+    let mut rnd = || {
+        st = st.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+        (st >> 8) as f32 / 16_777_216.0
+    };
+    let mut s = String::new();
+    for k in 0..n {
+        let mut b = [0f32; 16];
+        for v in b.iter_mut().take(9) {
+            *v = rnd() * 2.0 - 1.0;
+        }
+        for v in b.iter_mut().take(13).skip(10) {
+            *v = rnd() * 10.0 - 5.0;
+        }
+        for v in b.iter_mut().skip(13) {
+            *v = rnd() * 3.0;
+        }
+        let mut d = [0f32; 3];
+        let mut l = 0f32;
+        for v in &mut d {
+            *v = rnd() * 2.0 - 1.0;
+            l += *v * *v;
+        }
+        let l = 1.0 / l.sqrt();
+        for v in &mut d {
+            *v *= l;
+        }
+        let len = rnd() * 8.0 - 2.0;
+        if k % 7 == 3 {
+            d = [b[3], b[4], b[5]];
+        }
+        let bx = BoxPrim {
+            basis: Mat33::from_array([b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8]]),
+            oriented: 1,
+            center: Vec3::new(b[10], b[11], b[12]),
+            size: Vec3::new(b[13], b[14], b[15]),
+        };
+        let out = sweep_box(&bx, Vec3::new(d[0], d[1], d[2]), len);
+        s += "in";
+        for (i, v) in b.iter().enumerate() {
+            let _ = write!(s, " {:08x}", if i == 9 { 1 } else { v.to_bits() });
+        }
+        let _ = write!(
+            s,
+            " {:08x} {:08x} {:08x} {:08x} out",
+            d[0].to_bits(),
+            d[1].to_bits(),
+            d[2].to_bits(),
+            len.to_bits()
+        );
+        let mut w = out.basis.to_bits().to_vec();
+        w.push(out.oriented as u32);
+        w.extend(out.center.to_bits());
+        w.extend(out.size.to_bits());
+        for x in w {
+            let _ = write!(s, " {x:08x}");
+        }
+        s += "\n";
+    }
+    s
+}
+
+fn run_probe_raw(exe: &Path, args: &[&str]) -> String {
+    let out = Command::new(exe)
+        .args(args)
+        .output()
+        .expect("run p1b_probe");
+    String::from_utf8_lossy(&out.stdout).replace("\r\n", "\n")
+}
+
+#[test]
+fn p1b_slots_match_dll() {
+    for (name, m) in cases().into_iter().filter(|(n, _)| *n != "blob12") {
+        for (kind, min_t, max_t, skip) in [
+            ("aabb", 2, 4, 0.1f32),
+            ("aabb", 1, 3, 10.0),
+            ("obb", 2, 4, 10.0),
+            ("obb", 2, 5, 0.0),
+        ] {
+            let port = port_slots(&m, kind, min_t, max_t, skip);
+            let args = vec![
+                kind.to_string(),
+                min_t.to_string(),
+                max_t.to_string(),
+                format!("{skip}"),
+            ];
+            check(
+                &format!("slots_{name}_{kind}_{min_t}{max_t}"),
+                &port,
+                |exe| run_probe(exe, "slots", &m, &args),
+            );
+        }
+    }
+}
+
+#[test]
+fn p1b_prims_and_sweep_match_dll() {
+    check("prims", &port_prims(), |exe| run_probe_raw(exe, &["prims"]));
+    check("sweep", &port_sweep(200, 77), |exe| {
+        run_probe_raw(exe, &["sweep", "200", "77"])
+    });
 }
