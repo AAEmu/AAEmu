@@ -377,7 +377,7 @@ fn render_mesh(f: &CgfFile<'_>, mesh: &[u8]) -> Result<RenderMesh, CgfError> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     /// A minimal 0x745 file: one node → one mesh → one box physics blob.

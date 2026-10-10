@@ -29,6 +29,7 @@ pub mod data;
 pub mod displacement;
 pub mod fall;
 pub mod models;
+pub mod movement;
 pub mod move_verify;
 pub mod objects;
 pub mod query;
@@ -36,6 +37,8 @@ pub mod residency;
 pub mod terrain;
 pub mod world;
 
+#[cfg(test)]
+mod flow_tests;
 #[cfg(test)]
 mod real_data_tests;
 #[cfg(test)]
@@ -72,6 +75,8 @@ pub struct CollisionSystem {
     shapes: std::sync::Mutex<HashMap<String, Option<objects::ColliderShape>>>,
     /// Tests: force the service on (without `Physics.Enable` / client data checks).
     pub(crate) test_files: OnceLock<Arc<HashMap<String, Vec<u8>>>>,
+    /// Tests: the terrain of every world (instead of the heightmaps).
+    pub(crate) test_terrain: OnceLock<Arc<dyn TerrainSource>>,
 }
 
 impl std::fmt::Debug for CollisionSystem {
@@ -217,7 +222,7 @@ pub fn phys_world(server: &GameServer, instance_id: u32) -> Option<Arc<PhysWorld
     files(server)?;
     let inst = server.world.world(instance_id)?;
     let t = &inst.template;
-    let terrain: Option<Arc<dyn TerrainSource>> =
+    let terrain: Option<Arc<dyn TerrainSource>> = sys.test_terrain.get().cloned().or_else(|| {
         server.systems.npcs.heightmaps.get().and_then(|hm| {
             hm.template(t.id)?;
             Some(Arc::new(HeightmapTerrain {
@@ -228,7 +233,8 @@ pub fn phys_world(server: &GameServer, instance_id: u32) -> Option<Arc<PhysWorld
                     t.cell_y * crate::systems::npcs::heightmap::CELL_HMAP_RESOLUTION,
                 ),
             }) as Arc<dyn TerrainSource>)
-        });
+        })
+    });
     let entry = sys.worlds.entry(instance_id).or_insert_with(|| {
         tracing::info!(
             "collision: physics world for instance {instance_id} ({}, {}×{} cells)",

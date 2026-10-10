@@ -156,11 +156,21 @@ pub fn resurrect_character(server: &GameServer, p: &PlayerRef, in_place: bool) {
             Some(w) => w.world_pos_rot(&me),
             None => me.transform().local(),
         };
+        // GetResurrectablePosition (x2game sub_3925D3B0, rays 0x107 | 0x8F): the ground under
+        // the body (collision service; the body's z otherwise)
+        let z = crate::systems::ai::collision::ground_height_or(
+            server,
+            me.transform().instance_id,
+            pos.x,
+            pos.y,
+            pos.z,
+            || pos.z,
+        );
         SCCharacterResurrectedPacket {
             unit_id: p.obj_id,
             x: pos.x,
             y: pos.y,
-            z: pos.z,
+            z,
             z_rot: 0.0,
         }
     };

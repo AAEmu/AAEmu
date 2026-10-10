@@ -66,9 +66,37 @@ pub(crate) fn move_npc(
     displaced: bool,
 ) {
     let obj = WorldObject::from(npc);
-    let (x, y, mut z) = end;
-    // `GeoData.GetHeight(end)`: snap to the ground when it is within 5 m.
-    if let Some(world) = world_of(server, &obj) {
+    let (mut x, mut y, mut z) = end;
+    let instance_id = obj.transform().instance_id;
+    let start = world_pos(server, &Target::Obj(obj.clone()));
+    // Displacements (knockback, impulse, explosion): the zone moves the unit's physics
+    // (WZKnockBackUnit 0x39258BB0 / X2::Unit::Impulse 0x3925C7D0), so it stops at walls and
+    // lands on the ground: `GetBlinkPosition` along the push, then the ground under the end
+    // point (collision service).
+    let physics_end = if displaced {
+        crate::systems::ai::collision::displacement::clip_move(
+            server,
+            instance_id,
+            [start.x, start.y, start.z],
+            [x, y, start.z],
+        )
+        .and_then(|p| {
+            let g = crate::systems::ai::collision::ground_height(
+                server,
+                instance_id,
+                p[0],
+                p[1],
+                z.max(p[2]),
+            )?;
+            Some((p[0], p[1], g))
+        })
+    } else {
+        None
+    };
+    if let Some(p) = physics_end {
+        (x, y, z) = p;
+    } else if let Some(world) = world_of(server, &obj) {
+        // `GeoData.GetHeight(end)`: snap to the ground when it is within 5 m.
         let ground_z = crate::systems::npcs::npc::spawner::geo_data_height(server, &world, x, y);
         if ground_z > 0.0 && (z - ground_z).abs() < 5.0 {
             z = ground_z;
@@ -313,7 +341,7 @@ pub fn knock_back(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     }
     let len = (dir.0 * dir.0 + dir.1 * dir.1).sqrt();
     let dir = (dir.0 / len, dir.1 / len);
-    let mut end = (
+    let end = (
         target_pos.x + dir.0 * knock_dist,
         target_pos.y + dir.1 * knock_dist,
         target_pos.z + v[2] as f32 / 1000.0,
@@ -321,16 +349,7 @@ pub fn knock_back(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     if target.as_player().is_some() {
         return;
     }
-    // the zone pushes the unit's physics (WZKnockBackUnit 0x39258BB0): it stops at walls and
-    // lands on the ground — `GetBlinkPosition` along the push (collision service)
-    if let Some(p) = crate::systems::ai::collision::displacement::clip_move(
-        server,
-        target.transform().instance_id,
-        [target_pos.x, target_pos.y, target_pos.z],
-        [end.0, end.1, target_pos.z],
-    ) {
-        end = (p[0], p[1], p[2]);
-    }
+
     if let Some(npc) = target.as_npc() {
         move_npc(server, npc, end, None, true);
     }

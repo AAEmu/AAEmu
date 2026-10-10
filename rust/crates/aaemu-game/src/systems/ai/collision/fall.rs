@@ -7,6 +7,11 @@
 //! `impactVel = min(maxVel, hVel)` only when `impactVel ≥ pl_fallDamage_SpeedSafe` (20 m/s).
 //! Only unit kinds 0, 1, 2, 5 (character, NPC, mate, …) are reported.
 //!
+//! The zone has a second sender: the WZUnitMovement path (`sub_39232570`) forwards the
+//! client's `state.fallVel` (+84) unchanged when it exceeds 20 m/s. That path equals the C#
+//! behaviour (client value, no cap) and is what runs with `Physics.FallDamageZoneCap = false`
+//! or without the collision service; the default applies the tracker's (path a) gate and cap.
+//!
 //! The 1.2 client reports its own `fallVel` (u16) and the C# `DoFallDamage` uses it directly.
 //! With `Physics.FallDamageZoneCap` the world now runs the zone's check first:
 //!
