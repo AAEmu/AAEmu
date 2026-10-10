@@ -217,6 +217,17 @@ pub fn parse_mesh_dump(lines: &[&str]) -> (TriMesh, usize) {
                         2 => MeshTree::SingleBox(SingleBoxTree::load(&mut r).unwrap()),
                         t => panic!("tree type {t}"),
                     });
+                    // the constructor marks the tree convex (BV slot `SetGeomConvex`) for a
+                    // convex mesh; the stream does not carry it for every tree type
+                    if m.is_convex != 0 {
+                        use aaemu_physics::geometry::bvtree::BvTree;
+                        match m.tree.as_mut() {
+                            Some(MeshTree::Obb(t)) => t.set_geom_convex(),
+                            Some(MeshTree::Aabb(t)) => t.set_geom_convex(),
+                            Some(MeshTree::SingleBox(t)) => t.set_geom_convex(),
+                            None => {}
+                        }
+                    }
                 }
                 break;
             }
