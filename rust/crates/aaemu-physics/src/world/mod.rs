@@ -21,6 +21,7 @@
 //! `TimeStep` with `dt > 0`, then 0. Several paths depend on it (entity creation is queued while
 //! it is 4, per-caller query caches).
 
+pub mod api;
 pub mod areas;
 pub mod create;
 pub mod events;

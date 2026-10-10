@@ -239,6 +239,9 @@ impl World {
                 }
             }
         }
+        // event types 9/10: results of queued ray/primitive queries (delivered after the
+        // entity events of the same pump)
+        self.deliver_query_results();
     }
 
     /// World slot 79: drop the logged queue.
