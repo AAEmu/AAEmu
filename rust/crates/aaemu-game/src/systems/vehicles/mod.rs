@@ -114,10 +114,43 @@ impl System {
     }
 }
 
-/// Hook installation of this subsystem (kept for the start order; see the body).
-pub fn install_hooks(_server: &GameServer) {
-    // Nothing to install: the npcs `NpcSkillHooks` and social `SocialHooks` call
-    // `systems::vehicles` directly for the mate / slave / dismount parts.
+/// Hook installation of this subsystem: the services radar ship lists
+/// ([`RadarShips`]). The npcs `NpcSkillHooks` and social `SocialHooks` call
+/// `systems::vehicles` directly for the mate / slave / dismount parts.
+pub fn install_hooks(server: &GameServer) {
+    server
+        .systems
+        .services
+        .radar
+        .ships
+        .install(Arc::new(RadarShips));
+}
+
+/// `RadarShipHooks`: `SlaveManager.GetActiveSlavesByKinds(Boat, Fishboat, Speedboat,
+/// MerchantShip, BigSailingShip, SmallSailingShip)` of one world instance.
+pub struct RadarShips;
+
+impl crate::systems::services::radar::RadarShipHooks for RadarShips {
+    fn active_ships(
+        &self,
+        server: &GameServer,
+        world: &Arc<WorldInstance>,
+    ) -> Vec<crate::world::SlaveRef> {
+        use data::slave_kind::*;
+        slaves::get_active_slaves_by_kinds(
+            server,
+            world,
+            &[
+                BOAT,
+                FISHBOAT,
+                SPEEDBOAT,
+                MERCHANT_SHIP,
+                BIG_SAILING_SHIP,
+                SMALL_SAILING_SHIP,
+            ],
+            u32::MAX,
+        )
+    }
 }
 
 fn spawn_ticker(

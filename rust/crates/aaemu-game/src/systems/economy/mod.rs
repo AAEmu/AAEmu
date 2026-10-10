@@ -19,6 +19,7 @@ pub mod auction_data;
 pub mod auction_packets;
 #[cfg(test)]
 mod auction_tests;
+pub mod bridges;
 pub mod cash_shop;
 #[cfg(test)]
 mod cash_shop_tests;
@@ -132,6 +133,7 @@ impl System {
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
         wiring::install(server);
+        bridges::install(server);
         mate_equipment::install_default_summon_hooks(server);
         if server.systems.economy.auction.load(server).await {
             auction::AuctionManager::start_timer(server);

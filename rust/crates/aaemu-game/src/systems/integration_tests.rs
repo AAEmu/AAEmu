@@ -9,7 +9,12 @@
 //!   social crimes -> npcs player doodad);
 //! * a party member kills an NPC tagged by the party -> both members share the kill exp and
 //!   get the quest credit; with `TagShareEnabled` a solo damage dealer gets the quest credit
-//!   too (skills tagging -> npcs death -> social teams -> quests).
+//!   too (skills tagging -> npcs death -> social teams -> quests);
+//! * the quest item / money hooks run under the character lock and reach the inventory once it
+//!   is released (quests -> economy, `after_unlock`);
+//! * the skills item hooks read and change the economy inventory (skills -> economy);
+//! * a character death loses exp into recoverable exp (skills `Character.DoDie` -> economy
+//!   durability).
 
 use std::sync::Arc;
 
@@ -50,6 +55,8 @@ const INTERACTION_QUEST: u32 = 200;
 
 /// `WorldInteractionType.Use`.
 const WI_USE: i32 = 19;
+/// A stackable item template (max 10) handed out by the quest item hooks.
+const QUEST_ITEM: u32 = 5_000;
 
 /// Quest `qid`: Start (auto) -> Progress (`act`, count 1) -> Ready (report to NPC 1).
 fn single_act_quest(d: &mut crate::systems::quests::data::QuestData, qid: u32, act: ActKind) {
@@ -184,6 +191,10 @@ fn game_data() -> GameData {
         },
     );
     q.finish();
+    gd.items.templates.insert(
+        QUEST_ITEM,
+        crate::data::items::ItemTemplate::plain(QUEST_ITEM, 10),
+    );
     gd
 }
 
@@ -199,6 +210,8 @@ fn server_with(tag_share: bool) -> Arc<GameServer> {
     crate::systems::npcs::install_hooks(&server);
     crate::systems::social::install_hooks(&server);
     crate::systems::quests::install_hooks(&server);
+    crate::systems::economy::wiring::install(&server);
+    crate::systems::economy::bridges::install(&server);
     server
 }
 
@@ -481,5 +494,115 @@ async fn tag_share_gives_quest_credit_to_a_solo_contributor() {
             "TagShare {tag_share}"
         );
         let _ = WorldObject::from(&c.p);
+    }
+}
+
+#[tokio::test]
+async fn quest_locked_item_hooks_reach_the_inventory_after_unlock() {
+    use crate::models::item_task::task_type;
+    let server = server_with(false);
+    let mut a = pc(&server, 1, "Quester", 100.0);
+    a.client.drain();
+
+    // A quest operation holds the character lock: the economy QuestHooks work on the
+    // character's containers and flush their effects once the lock is released.
+    let given = crate::systems::quests::events::with_quests(&server, &a.p, None, |ctx| {
+        let p = ctx.player.clone();
+        let given = ctx.hooks.acquire_default_item(
+            ctx.server,
+            p.as_ref(),
+            ctx.c,
+            task_type::QUEST_SUPPLY_ITEMS,
+            QUEST_ITEM,
+            3,
+            0,
+        );
+        ctx.hooks.change_money(ctx.server, p.as_ref(), ctx.c, 250);
+        let consumed = ctx.hooks.consume_item(
+            ctx.server,
+            p.as_ref(),
+            ctx.c,
+            task_type::QUEST_REMOVE_SUPPLIES,
+            QUEST_ITEM,
+            1,
+            None,
+        );
+        (given, consumed)
+    });
+    assert_eq!(given, Some((true, 1)));
+
+    let inv = crate::systems::economy::inventory::Inv::of(&a.p);
+    assert_eq!(inv.items_count(QUEST_ITEM, -1), 2);
+    assert_eq!(a.p.data().money, 250);
+    let ops = a.client.drain_ops();
+    let tasks = ops
+        .iter()
+        .filter(|o| **o == sc::SCItemTaskSuccessPacket)
+        .count();
+    assert_eq!(tasks, 3, "{ops:x?}");
+}
+
+#[tokio::test]
+async fn item_skill_hooks_use_the_economy_inventory() {
+    use crate::models::item_task::task_type;
+    let server = server_with(false);
+    let a = pc(&server, 1, "Crafter", 100.0);
+    let items = server.systems.skills.ext.items();
+
+    assert!(items.item_template_exists(&server, QUEST_ITEM));
+    assert!(items.try_add_new_item(
+        &server,
+        &a.p,
+        task_type::SKILL_EFFECT_GAIN_ITEM,
+        QUEST_ITEM,
+        4,
+        0
+    ));
+    assert_eq!(items.item_count(&server, &a.p, QUEST_ITEM), 4);
+    assert_eq!(
+        items.consume_bag_item(&server, &a.p, task_type::SKILL_REAGENTS, QUEST_ITEM, 3),
+        3
+    );
+    assert_eq!(items.item_count(&server, &a.p, QUEST_ITEM), 1);
+    // No equipment: no gear stats, no holdable.
+    assert_eq!(
+        items.gear_stats(&server, &a.p),
+        crate::systems::skills::ext::GearStats::default()
+    );
+    assert!(items
+        .weapon_holdable(&server, &WorldObject::from(&a.p), 15)
+        .is_none());
+}
+
+#[tokio::test]
+async fn character_death_loses_exp_into_recoverable_exp() {
+    use crate::systems::skills::types::KillReason;
+    let server = server_with(false);
+    let mut a = pc(&server, 1, "Victim", 100.0);
+    let b = pc(&server, 2, "Killer", 102.0);
+    {
+        let mut c = a.p.data();
+        c.unit.level = 10;
+        c.experience = 95_000; // level 10 + 5 000
+    }
+    a.client.drain();
+
+    crate::systems::skills::combat::do_die(
+        &server,
+        &WorldObject::from(&a.p),
+        Some(&WorldObject::from(&b.p)),
+        KillReason::Damage,
+    );
+
+    // GetExpLoss(10, 0.05) = floor(10 000 * 0.05) = 500, 80 % recoverable.
+    assert_eq!(a.p.data().experience, 94_500);
+    assert_eq!(a.p.data().recoverable_exp, 400);
+    let ops = a.client.drain_ops();
+    for op in [
+        sc::SCRecoverableExpPacket,
+        sc::SCExpChangedPacket,
+        sc::SCUnitDeathPacket,
+    ] {
+        assert!(ops.contains(&op), "missing {op:#x} in {ops:x?}");
     }
 }

@@ -72,6 +72,24 @@ impl<'a> ItemTxn<'a> {
         }
     }
 
+    /// An operation without the operation lock, for callers that already hold a character
+    /// lock (the quest "locked hooks"): starting a normal transaction there could deadlock with
+    /// an operation that holds the lock and waits for that character. Hand the effects to
+    /// [`ItemTxn::into_fx`] and flush them once the character lock is released.
+    pub fn unlocked(server: &'a GameServer) -> Self {
+        Self {
+            server,
+            guard: None,
+            env: server_env(server),
+        }
+    }
+
+    /// Ends the operation without flushing: the recorded effects are returned (flush them with
+    /// [`super::fx::flush`] once every lock is released).
+    pub fn into_fx(mut self) -> ItemFxList {
+        self.env.take_fx()
+    }
+
     pub fn data(&self) -> &'a ItemData {
         &self.server.game_data.items
     }

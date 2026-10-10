@@ -130,15 +130,17 @@ pub fn reduce_current_hp(
     }
 }
 
-/// `DurabilityLossTargets`.
+/// `DurabilityLossTargets` (the C# enum values).
 pub mod durability_targets {
-    pub const ALL_ARMOR: u8 = 0;
-    pub const ALL_WEAPONS: u8 = 1;
-    pub const ALL_MAIN_WEAPONS: u8 = 2;
-    pub const PRIMARY_WEAPON: u8 = 3;
-    pub const SECONDARY_WEAPON: u8 = 4;
-    pub const RANGED_WEAPON: u8 = 5;
-    pub const SHIELD: u8 = 6;
+    pub const ALL: u8 = 0;
+    pub const ALL_ARMOR: u8 = 1;
+    pub const ALL_WEAPONS: u8 = 2;
+    pub const ALL_MAIN_WEAPONS: u8 = 3;
+    pub const PRIMARY_WEAPON: u8 = 4;
+    pub const SECONDARY_WEAPON: u8 = 5;
+    pub const RANGED_WEAPON: u8 = 6;
+    pub const SHIELD: u8 = 7;
+    pub const FEET: u8 = 8;
 }
 
 /// `Unit.PostUpdateCurrentHp(attacker, oldHp, newHp, killReason)`.
@@ -253,12 +255,8 @@ pub fn do_die(
     let mut durability_loss = 0u8;
     let mut wait = 0;
     if let Some(p) = victim.as_player() {
-        let c = p.data();
-        wait = c.rez_wait_duration;
-        lost_exp = 0; // LastExpLoss: exp loss on death is a later phase
-        durability_loss = 0;
-        let _ = &mut durability_loss;
-        let _ = &mut lost_exp;
+        (lost_exp, durability_loss) = character_death_losses(server, p);
+        wait = p.data().rez_wait_duration;
     }
     if let Some(n) = victim.as_npc() {
         wait = npc_hooks.npc_respawn_time(server, n);
@@ -286,8 +284,78 @@ pub fn do_die(
         npc_hooks.npc_after_death(server, n, Some(killer));
     }
     if let Some(p) = victim.as_player() {
+        // ApplyDurabilityLossToEquipment(LastDurabilityLoss, All, -1f)
+        if durability_loss > 0 {
+            server.systems.skills.ext.items().durability_loss(
+                server,
+                p,
+                i32::from(durability_loss),
+                durability_targets::ALL,
+                -1.0,
+            );
+        }
         character_death_tail(server, p, victim, killer);
     }
+}
+
+/// The loss part of `Character.DoDie` before `base.DoDie`: `LastDurabilityLoss`
+/// (`GetDeathDurabilityLossRatio()` from `MinimumExpLossLevel` on) and, below the max level in
+/// the main world, `LastExpLoss` (`GetExpLoss(level, ExpLossRateAtDeath)` capped to the exp of
+/// the current level, 80 % of it recoverable; a free resurrection offer below
+/// `MinimumExpLossLevel`). Returns `(LastExpLoss, LastDurabilityLoss)`. Not ported: the
+/// escalating respawn timer (`ComputeDeathWaitTime`).
+fn character_death_losses(server: &GameServer, p: &PlayerRef) -> (i32, u8) {
+    let world = &server.config.get().world;
+    let exp_table = &server.game_data.experience;
+    let (level, experience, instance_id) = {
+        let c = p.data();
+        (c.unit.level, c.experience, c.unit.transform.instance_id)
+    };
+    let qualifies = i32::from(level) >= world.minimum_exp_loss_level;
+    let durability_loss = if qualifies {
+        server.game_data.items.config.death_durability_loss_ratio
+    } else {
+        0
+    };
+    let mut lost_exp = 0;
+    let mut recoverable = p.data().recoverable_exp;
+    if level < exp_table.max_player_level()
+        && instance_id == crate::models::character::DEFAULT_INSTANCE_ID
+    {
+        if qualifies {
+            // ExperienceManager.GetExpLoss(level, rate)
+            let this_level = exp_table.exp_for_level(level, false);
+            let next_level = exp_table.exp_for_level(level.saturating_add(1), false);
+            let loss = (f64::from(next_level - this_level)
+                * f64::from(world.exp_loss_rate_at_death))
+            .floor() as i32;
+            lost_exp = loss.min(experience - this_level);
+            recoverable = (lost_exp as f32 * 0.80f32).round() as i32;
+            p.data().recoverable_exp = recoverable;
+        } else {
+            // Free resurrect below level 10
+            p.send(super::packets_special::SCNotifyResurrectionPacket {
+                caster: SkillCaster::Unit(p.obj_id),
+            });
+        }
+    }
+    if lost_exp > 0 || recoverable > 0 {
+        p.data().experience -= lost_exp;
+        p.send(super::progress::SCRecoverableExpPacket {
+            obj_id: p.obj_id,
+            recoverable_exp: recoverable,
+            penaltied_exp: lost_exp,
+            reason: 1, // KillReason.Damage
+        });
+        if lost_exp > 0 {
+            p.send(super::packets::SCExpChangedPacket {
+                obj_id: p.obj_id,
+                exp: -lost_exp,
+                should_add_ability_exp: false,
+            });
+        }
+    }
+    (lost_exp, durability_loss)
 }
 
 /// The part of `Unit.DoDie` after the death events (the death packet, loot, target cleanup).

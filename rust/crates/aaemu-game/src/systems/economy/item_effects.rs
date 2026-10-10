@@ -73,6 +73,8 @@ pub struct ItemEffectsData {
     pub fishing_loot_packs: HashMap<u32, FishingLootPacks>,
     /// `SlaveGameData._repairableSlaves` (slave id -> repair effect id; first row wins).
     pub repairable_slaves: HashMap<u32, u32>,
+    /// `ItemGameData._itemGradeBuffs` (item template id -> grade -> buff id).
+    pub item_grade_buffs: HashMap<u32, HashMap<u8, u32>>,
 }
 
 /// The fishing loot packs of a zone group.
@@ -95,6 +97,16 @@ impl ItemEffectsData {
             );
             Ok(())
         })?;
+        for_each_row(conn, "SELECT * FROM item_grade_buffs", [], |r| {
+            // `_itemGradeBuffs[itemId].Add(itemGrade, buffId)` (a duplicate throws in C#; the first
+            // row is kept).
+            d.item_grade_buffs
+                .entry(r.u32("item_id")?)
+                .or_default()
+                .entry(r.u8("item_grade_id")?)
+                .or_insert(r.u32("buff_id")?);
+            Ok(())
+        })?;
         for_each_row(conn, "SELECT * FROM repairable_slaves", [], |r| {
             let slave_id = r.u32("slave_id")?;
             let effect_id = r.u32("repair_slave_effect_id")?;
@@ -109,6 +121,11 @@ impl ItemEffectsData {
             Ok(())
         })?;
         Ok(d)
+    }
+
+    /// `ItemGameData.GetItemBuff(itemId, gradeId)` (the buff id).
+    pub fn item_grade_buff(&self, item_id: u32, grade: u8) -> Option<u32> {
+        self.item_grade_buffs.get(&item_id)?.get(&grade).copied()
     }
 
     /// `SlaveGameData.HasRepairEffectId(templateId, expectedEffectId)`.

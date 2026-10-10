@@ -49,6 +49,28 @@ impl Marshal for SCCharacterLaborPowerChangedPacket {
     }
 }
 
+/// `SCRecoverableExpPacket(objId, recoverableExp, penaltiedExp, reason)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SCRecoverableExpPacket {
+    pub obj_id: u32,
+    pub recoverable_exp: i32,
+    pub penaltied_exp: i32,
+    pub reason: i32,
+}
+packet_def!(
+    SCRecoverableExpPacket,
+    level = LEVEL_PLAIN,
+    opcode = sc::SCRecoverableExpPacket
+);
+impl Marshal for SCRecoverableExpPacket {
+    fn write(&self, s: &mut PacketStream) {
+        s.write_bc(self.obj_id)
+            .write_i32(self.recoverable_exp)
+            .write_i32(self.penaltied_exp)
+            .write_i32(self.reason);
+    }
+}
+
 /// `SCGamePointChangedPacket(kind, amount)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SCGamePointChangedPacket {

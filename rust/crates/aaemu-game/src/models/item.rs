@@ -770,20 +770,22 @@ impl Item {
         }
     }
 
-    /// `Armor.BaseArmor` (armor items only).
+    /// `Armor.BaseArmor` / `Accessory.BaseArmor` (armor and accessory items only).
     pub fn base_armor(&self, data: &ItemData, formulas: &FormulaManager) -> Option<i32> {
         self.armor_value(data, formulas, true)
     }
 
-    /// `Armor.BaseMagicResistance` (armor items only).
+    /// `Armor.BaseMagicResistance` / `Accessory.BaseMagicResistance`.
     pub fn base_magic_resistance(&self, data: &ItemData, formulas: &FormulaManager) -> Option<i32> {
         self.armor_value(data, formulas, false)
     }
 
     fn armor_value(&self, data: &ItemData, formulas: &FormulaManager, armor: bool) -> Option<i32> {
-        if self.class != ItemClass::Armor {
+        if !matches!(self.class, ItemClass::Armor | ItemClass::Accessory) {
             return None;
         }
+        // The accessory getters ignore the tempers.
+        let tempered = self.class == ItemClass::Armor;
         let t = self.equip_template(data)?;
         let e = t.equip()?;
         let grade = data.full_grade(i32::from(self.grade))?;
@@ -810,7 +812,7 @@ impl Item {
         ]);
         let mut res = formula.evaluate(&params);
         res = res * f64::from(ratio) * f64::from(F_001);
-        if temper > 100 {
+        if tempered && temper > 100 {
             res *= f64::from(f32::from(temper) / 100.0f32);
         }
         Some((res * f64::from(e.coverage) * f64::from(F_001)) as i32)
