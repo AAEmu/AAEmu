@@ -78,6 +78,11 @@ impl PrimitiveGeom for BoxGeom {
 }
 
 impl Geometry for BoxGeom {
+    /// P1c hook: the intersection protocol (`trimesh::protocol::shapes`).
+    fn as_protocol(&self) -> Option<&dyn crate::geometry::trimesh::protocol::GeomProtocol> {
+        Some(self)
+    }
+
     /// Slot 1: shared `return 0` stub 0x350376D0.
     fn geom_type(&self) -> GeomType {
         GeomType::Box
@@ -177,12 +182,19 @@ impl Geometry for BoxGeom {
     /// unprojection); until it is wired this returns no contacts.
     fn intersect(
         &self,
-        _other: &dyn Geometry,
-        _gwd1: &GeomWorldData,
-        _gwd2: &GeomWorldData,
-        _params: &mut IntersectionParams,
-        _contacts: &mut Vec<GeomContact>,
+        other: &dyn Geometry,
+        gwd1: &GeomWorldData,
+        gwd2: &GeomWorldData,
+        params: &mut IntersectionParams,
+        contacts: &mut Vec<GeomContact>,
     ) -> usize {
+        // 0x35151F20 falls back to the generic `CGeometry::Intersect` when the other
+        // geometry is not a primitive (wired by P1c); primitive pairs are not ported yet.
+        if !other.is_a_primitive() {
+            return crate::geometry::trimesh::geometry_impl::geometry_intersect(
+                self, None, other, gwd1, gwd2, params, contacts,
+            );
+        }
         0
     }
 

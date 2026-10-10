@@ -222,12 +222,19 @@ macro_rules! cylinder_common_slots {
         /// Slot 10: shared primitive Intersect 0x35151F20 (P2a/P2b), not wired yet.
         fn intersect(
             &self,
-            _other: &dyn Geometry,
-            _gwd1: &GeomWorldData,
-            _gwd2: &GeomWorldData,
-            _params: &mut IntersectionParams,
-            _contacts: &mut Vec<GeomContact>,
+            other: &dyn Geometry,
+            gwd1: &GeomWorldData,
+            gwd2: &GeomWorldData,
+            params: &mut IntersectionParams,
+            contacts: &mut Vec<GeomContact>,
         ) -> usize {
+            // 0x35151F20 falls back to the generic `CGeometry::Intersect` when the other
+            // geometry is not a primitive (wired by P1c); primitive pairs are not ported yet.
+            if !other.is_a_primitive() {
+                return crate::geometry::trimesh::geometry_impl::geometry_intersect(
+                    self, None, other, gwd1, gwd2, params, contacts,
+                );
+            }
             0
         }
 
@@ -306,6 +313,11 @@ impl PrimitiveGeom for CapsuleGeom {
 }
 
 impl Geometry for CylinderGeom {
+    /// P1c hook: the intersection protocol (`trimesh::protocol::shapes`).
+    fn as_protocol(&self) -> Option<&dyn crate::geometry::trimesh::protocol::GeomProtocol> {
+        Some(self)
+    }
+
     cylinder_common_slots!();
 
     /// Slot 1 (0x35038A00).
@@ -386,6 +398,11 @@ impl Geometry for CylinderGeom {
 }
 
 impl Geometry for CapsuleGeom {
+    /// P1c hook: the intersection protocol (`trimesh::protocol::shapes`).
+    fn as_protocol(&self) -> Option<&dyn crate::geometry::trimesh::protocol::GeomProtocol> {
+        Some(self)
+    }
+
     cylinder_common_slots!();
 
     /// Slot 1 (0x35020A60).

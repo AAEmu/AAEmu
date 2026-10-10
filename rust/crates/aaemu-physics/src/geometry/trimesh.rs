@@ -33,6 +33,7 @@
 pub mod build;
 pub mod closest;
 pub mod fluid;
+pub mod geometry_impl;
 pub mod inside;
 pub mod intersect;
 pub mod props;

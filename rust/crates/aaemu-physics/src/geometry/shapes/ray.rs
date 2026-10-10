@@ -74,6 +74,15 @@ impl PrimitiveGeom for RayGeom {
 }
 
 impl Geometry for RayGeom {
+    /// P1c hook: the intersection protocol (`trimesh::protocol::shapes`).
+    fn as_protocol(&self) -> Option<&dyn crate::geometry::trimesh::protocol::GeomProtocol> {
+        Some(self)
+    }
+
+    fn as_ray(&self) -> Option<&RayGeom> {
+        Some(self)
+    }
+
     /// Slot 1 (0x35024CD0).
     fn geom_type(&self) -> GeomType {
         GeomType::Ray
@@ -155,13 +164,16 @@ impl Geometry for RayGeom {
     /// Slot 10: the ray uses the base `CGeometry::Intersect` 0x3514FD70 (P2a/P2b), not wired.
     fn intersect(
         &self,
-        _other: &dyn Geometry,
-        _gwd1: &GeomWorldData,
-        _gwd2: &GeomWorldData,
-        _params: &mut IntersectionParams,
-        _contacts: &mut Vec<GeomContact>,
+        other: &dyn Geometry,
+        gwd1: &GeomWorldData,
+        gwd2: &GeomWorldData,
+        params: &mut IntersectionParams,
+        contacts: &mut Vec<GeomContact>,
     ) -> usize {
-        0
+        // CRayGeom slot 10 is the CGeometry base: the generic Intersect (P1c).
+        crate::geometry::trimesh::geometry_impl::geometry_intersect(
+            self, None, other, gwd1, gwd2, params, contacts,
+        )
     }
 
     /// Slot 48 (0x3519A020), see [`super::protocol`].
