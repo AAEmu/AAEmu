@@ -201,6 +201,8 @@ pub struct Hooks {
     pub unit: HookSlot<dyn UnitHooks>,
     /// Installed by the ai subsystem (`npc.Ai` call sites of npcs / skills).
     pub ai: HookSlot<dyn ai::hooks::AiHooks>,
+    /// Installed by the slaves subsystem (harpoon rope state for the ship physics).
+    pub ship_physics: HookSlot<dyn ai::physics::ShipPhysicsHooks>,
 }
 
 /// Drains `owner`'s buff events and hands them to [`UnitHooks::on_buff_event`]. Call it after

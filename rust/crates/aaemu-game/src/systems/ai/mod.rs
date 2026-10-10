@@ -24,6 +24,7 @@
 //! | [`geodata`] | `AiGeoDataManager`, `.bai` readers, A* `PathNode` |
 //! | [`manager`] | `AIManager` (registry, 100 ms tick, posting calls to an AI) |
 //! | [`hooks`] | the AI entry points for npcs / skills |
+//! | [`physics`] | `Physics/**`, `PhysicsManager`, `WaterBodies` (ship physics, water) |
 
 pub mod behaviors;
 pub mod combat;
@@ -40,6 +41,7 @@ pub mod numerics;
 pub mod packets;
 pub mod params;
 pub mod path_handler;
+pub mod physics;
 pub mod simulation;
 pub mod skills;
 
@@ -85,6 +87,8 @@ pub struct System {
     pub geodata: geodata::GeoDataStore,
     /// `Gimmick.Target` / barrel angles of the gimmicks moved by NPCs.
     pub gimmick_moves: gimmick::GimmickMoves,
+    /// `WorldInstance.Physics` / `WorldInstance.Water`.
+    pub physics: physics::PhysicsSystem,
     /// `Data/Path` (set at start).
     paths_folder: Mutex<Option<PathBuf>>,
 }

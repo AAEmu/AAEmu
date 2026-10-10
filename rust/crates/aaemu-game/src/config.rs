@@ -203,6 +203,15 @@ pub struct WorldConfig {
     /// `GrowthRate` (doodad growth time divisor).
     #[serde(rename = "growthrate", deserialize_with = "lenient")]
     pub growth_rate: f64,
+    /// `TargetPhysicsTps` (systems::ai physics threads).
+    #[serde(rename = "targetphysicstps", deserialize_with = "lenient")]
+    pub target_physics_tps: f32,
+    /// `WindModel` (`Official` / `Realistic`, or the enum number).
+    #[serde(rename = "windmodel", deserialize_with = "lenient")]
+    pub wind_model: String,
+    /// `SeaWeatherModel` (`Official` / `Realistic`, or the enum number).
+    #[serde(rename = "seaweathermodel", deserialize_with = "lenient")]
+    pub sea_weather_model: String,
 }
 
 impl Default for WorldConfig {
@@ -216,6 +225,9 @@ impl Default for WorldConfig {
             geo_data_mode: false,
             pre_load_terrain: false,
             growth_rate: 1.0,
+            target_physics_tps: 25.0,
+            wind_model: "Official".into(),
+            sea_weather_model: "Official".into(),
         }
     }
 }

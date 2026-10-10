@@ -243,6 +243,8 @@ pub struct NpcAi {
     pub npc_intervals: HashMap<NpcIntervalSite, i64>,
     /// The NPC was spawned by `NpcSpawnerNpc.Spawn` (`npc.Simulation != null`).
     pub has_simulation: bool,
+    /// `npc.RegisterNpcEvents()` ran (`NpcSpawnerNpc.Spawn`, before `GoToSpawn`).
+    pub events_registered: bool,
     /// The NPC has been in a region at least once (used to detect `Npc.Delete`).
     pub was_in_world: bool,
 }
@@ -286,6 +288,7 @@ impl NpcAi {
             ai_time_out: 0,
             npc_intervals: HashMap::new(),
             has_simulation: false,
+            events_registered: false,
             was_in_world: false,
         };
         ai.build();

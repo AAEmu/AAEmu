@@ -6,7 +6,7 @@
 //! `RegisterNpcEvents` subscribes the handler once per `np_skills` row of that condition, so a
 //! handler runs as many times per event as the template has skills of that kind (the C#
 //! multicast delegate); the events are registered only for NPCs spawned by a spawner
-//! (`NpcSpawnerNpc.Spawn`).
+//! (`NpcSpawnerNpc.Spawn`, before `GoToSpawn`, so `SpawningBehavior.Enter`'s `OnSpawn` fires).
 
 use crate::systems::skills::types::{SkillCastTarget, SkillCaster};
 use crate::world::now_ms;
@@ -15,7 +15,7 @@ use super::framework::AiCtx;
 use super::skills::{self as ai_skills, SkillUseConditionKind as K};
 
 fn registrations(c: &AiCtx<'_>, kind: K) -> usize {
-    if !c.ai.has_simulation {
+    if !c.ai.events_registered {
         return 0;
     }
     ai_skills::template_skills(c, kind).len()

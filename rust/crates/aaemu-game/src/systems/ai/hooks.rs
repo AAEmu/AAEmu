@@ -119,6 +119,8 @@ pub fn spawn_positioned(server: &GameServer, npc: &NpcRef) {
         .map(|s| s.position().z);
     npc.data().spawner_z = spawner_z;
     post(server, npc.obj_id, move |c| {
+        // RegisterNpcEvents() runs before the home position / GoToSpawn()
+        c.ai.events_registered = true;
         c.ai.home_position = pos;
         c.ai.idle_position = pos;
         c.go_to_spawn();
@@ -281,8 +283,8 @@ fn npc_control_effect(
         3 => {
             // AttackUnit: SetFaction(Monstrosity)
             let obj = WorldObject::from(target);
+            // Unit.SetFaction's nearby-player aggro runs through the npc_faction_set hook.
             crate::systems::skills::combat::set_faction(server, &obj, 115);
-            faction_set(server, target);
         }
         5 => {
             // RunCommandSet

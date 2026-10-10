@@ -534,6 +534,13 @@ impl WorldHeightmap {
             .is_some_and(|s| s.loaded.get().is_some())
     }
 
+    /// `WorldCell.Loaded && HeightMap != null` (the cell's `heightmap.dat` was read; only then
+    /// does `LoadCell` read the cell's `object.dat` — systems::ai water bodies).
+    pub fn cell_has_height_map(&self, cell_x: i32, cell_y: i32) -> bool {
+        self.slot(cell_x, cell_y)
+            .is_some_and(|s| matches!(s.loaded.get(), Some(Some(_))))
+    }
+
     /// Number of loaded cells.
     pub fn loaded_cell_count(&self) -> usize {
         self.cells

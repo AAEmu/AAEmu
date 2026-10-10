@@ -280,3 +280,114 @@ fn real_ai_areas_missions_match_csharp() {
     }
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }
+
+/// Every cell `object.dat` of every world parses (`ObjectsFile.ReadFile`) and its water volumes
+/// become water areas (`WaterBodies.AddFromCellData`). With `AAEMU_OBJ_DUMP` the files are
+/// written there (`<world>__<cx>__<cy>__<ocean bits>.dat`) for the C# harness; with
+/// `AAEMU_OBJ_EXPECTED` (the harness output) every file's prefab summary and water areas must
+/// match the C# bit for bit.
+#[test]
+#[ignore = "needs AAEMU_GAME_PAK"]
+fn real_ai_object_dat_water_bodies() {
+    use super::physics::objects_file::{ObjectsFile, Prefab};
+    use super::physics::water::WaterBodies;
+    let Some(files) = pak_files() else { return };
+    let worlds = WorldTemplates::load(&files, &app_path()).expect("world templates");
+    let dump = std::env::var("AAEMU_OBJ_DUMP").ok();
+    let mut lines: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let (mut total, mut failed, mut water_prefabs, mut areas) = (0, 0, 0, 0);
+    for t in worlds.templates() {
+        for cx in 0..t.cell_x {
+            for cy in 0..t.cell_y {
+                let f = format!(
+                    "game/worlds/{}/cells/{cx:03}_{cy:03}/client/object.dat",
+                    t.name
+                );
+                let Some(bytes) = files.read_file(&f) else {
+                    continue;
+                };
+                total += 1;
+                let key = format!(
+                    "{}__{cx}__{cy}__{:08X}.dat",
+                    t.name,
+                    t.ocean_level.to_bits()
+                );
+                if let Some(d) = &dump {
+                    std::fs::write(PathBuf::from(d).join(&key), &bytes).expect("dump");
+                }
+                let objects = ObjectsFile::read(&bytes);
+                if !objects.ok {
+                    failed += 1;
+                }
+                let waters = objects
+                    .prefabs
+                    .iter()
+                    .filter(|p| matches!(p, Prefab::Water(_)))
+                    .count();
+                water_prefabs += waters;
+                let mut out = vec![format!(
+                    "OBJ\t{}\t{}\t{}",
+                    objects.ok,
+                    objects.prefabs.len(),
+                    waters
+                )];
+                let w = WaterBodies::new(t.ocean_level);
+                w.add_from_cell_data(None, t.ocean_level, cx, cy, &objects);
+                for a in w.areas_snapshot() {
+                    areas += 1;
+                    let b = a.bounding_box;
+                    out.push(format!(
+                        "AREA\t{}\t{:?}\t{}\t{:08X} {:08X} {:08X} {:08X}\t{:08X}\t{:08X}\t{:08X}\t{:08X}\t{:08X} {:08X}\t{:08X}",
+                        a.name,
+                        a.area_type,
+                        a.points.len(),
+                        b.x.to_bits(),
+                        b.y.to_bits(),
+                        b.width.to_bits(),
+                        b.height.to_bits(),
+                        a.highest.to_bits(),
+                        a.lowest.to_bits(),
+                        a.depth.to_bits(),
+                        a.flow_speed_signed.to_bits(),
+                        a.flow_axis.0.to_bits(),
+                        a.flow_axis.1.to_bits(),
+                        a.river_width.to_bits()
+                    ));
+                }
+                lines.insert(key, out);
+            }
+        }
+    }
+    println!("{total} object.dat files, {failed} not fully read, {water_prefabs} water volumes, {areas} water areas");
+    assert!(total > 0 && water_prefabs > 0 && areas > 0);
+    if let Ok(expected) = std::env::var("AAEMU_OBJ_EXPECTED") {
+        let text = std::fs::read_to_string(expected).expect("expected file");
+        let mut want: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for l in text.lines() {
+            if let Some((k, rest)) = l.split_once('\t') {
+                want.entry(k.to_string())
+                    .or_default()
+                    .push(rest.to_string());
+            }
+        }
+        let mut mismatches = Vec::new();
+        for (k, got) in &lines {
+            match want.get(k) {
+                Some(w) if w == got => {}
+                Some(w) => mismatches.push(format!("{k}:\n  want {w:?}\n  got  {got:?}")),
+                None => mismatches.push(format!("{k}: missing in the C# output")),
+            }
+        }
+        assert!(
+            mismatches.is_empty(),
+            "{} mismatches:\n{}",
+            mismatches.len(),
+            mismatches
+                .iter()
+                .take(10)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+    }
+}

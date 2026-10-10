@@ -665,8 +665,10 @@ impl Marshal for SCUnitFactionChangedPacket {
 /// `EnvSource`.
 pub mod env_source {
     pub const FALLING: u8 = 0;
-    pub const DROWNING: u8 = 1;
-    pub const GIMMICK: u8 = 2;
+    pub const GIMMICK: u8 = 1;
+    pub const DROWNING: u8 = 2;
+    /// Ship hull collisions (systems::ai physics).
+    pub const COLLISION: u8 = 3;
 }
 
 /// `SCEnvDamagePacket(source, target, amount, gimmickId)`.
