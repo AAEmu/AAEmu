@@ -29,7 +29,9 @@
 //! | [`intersect`] | the generic `CGeometry::Intersect` (0x3514FD70) with its tree traversals and the mesh's slot 10 |
 //! | [`raytest`] | slot 10 ray branch (0x351C9910) on the grid of [`inside`], slot 48 `PreparePrimitive` (0x351C2A60) |
 //! | [`unproject_sphere`] | slot 49 `UnprojectSphere` |
+//! | [`approx`] | `CreateMesh`'s primitive approximation: `CGeomManager` slot 6 (0x35098490), sub_350975D0, the fitter sub_3512D650 |
 
+pub mod approx;
 pub mod build;
 pub mod closest;
 pub mod fluid;
