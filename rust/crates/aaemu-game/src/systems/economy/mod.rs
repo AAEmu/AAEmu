@@ -19,6 +19,8 @@ pub mod auction_data;
 pub mod auction_packets;
 #[cfg(test)]
 mod auction_tests;
+pub mod cash_shop;
+mod cash_shop_tests;
 pub mod data;
 pub mod error_message;
 pub mod fx;
@@ -28,6 +30,9 @@ pub mod item_handlers;
 pub mod item_packets;
 #[cfg(test)]
 pub(crate) mod tests;
+pub mod trade;
+#[cfg(test)]
+mod trade_tests;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -49,6 +54,10 @@ pub struct System {
     previous_backpack: Mutex<HashMap<u32, u64>>,
     /// `AuctionManager`.
     pub auction: auction::AuctionManager,
+    /// `TradeManager`.
+    pub trade: trade::TradeManager,
+    /// `CashShopManager`.
+    pub cash_shop: cash_shop::CashShopManager,
 }
 
 impl System {
@@ -81,6 +90,7 @@ impl System {
         if server.systems.economy.auction.load(server).await {
             auction::AuctionManager::start_timer(server);
         }
+        cash_shop::load(server).await?;
         Ok(())
     }
 
@@ -108,4 +118,6 @@ impl System {
 pub fn register(reg: &mut PacketRegistry) {
     item_handlers::register(reg);
     auction_packets::register(reg);
+    trade::register(reg);
+    cash_shop::register(reg);
 }

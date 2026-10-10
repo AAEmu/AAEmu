@@ -24,6 +24,8 @@ pub struct Data {
     pub expands: BTreeMap<i32, Vec<Expand>>,
     /// `LocalizationManager` item names (auction search / auction mails).
     pub auction: super::auction_data::AuctionData,
+    /// Cash shop texts (`LocalizationManager` item names).
+    pub cash_shop: super::cash_shop::CashShopData,
 }
 
 impl Data {
@@ -31,6 +33,7 @@ impl Data {
     pub fn load(ctx: &DataLoadCtx<'_>) -> Result<Self, GameDataError> {
         let mut data = Self {
             auction: super::auction_data::AuctionData::load(ctx)?,
+            cash_shop: super::cash_shop::CashShopData::load(ctx)?,
             ..Self::default()
         };
         for_each_row(ctx.conn, "SELECT * FROM bag_expands", [], |r| {
