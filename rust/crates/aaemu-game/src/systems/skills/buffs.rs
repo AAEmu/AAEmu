@@ -134,7 +134,7 @@ pub fn buff_skill(server: &GameServer, b: &Buff) -> Option<Arc<SkillRun>> {
     Some(SkillRun::new(t, b.skill_level))
 }
 
-fn find_obj(server: &GameServer, obj_id: u32) -> Option<WorldObject> {
+pub(crate) fn find_obj(server: &GameServer, obj_id: u32) -> Option<WorldObject> {
     if obj_id == 0 {
         return None;
     }
@@ -850,32 +850,13 @@ pub fn start(server: &GameServer, owner: &WorldObject, index: u32) {
         let p = buff_created_packet(server, owner, &b);
         broadcast(server, owner, &p, true);
     }
-    // SkillControllerId / Gliding / Psychokinesis for non-character owners: the skill
-    // controllers move NPCs server side (physics / movement simulation of the npc subsystem);
-    // here only the active controller is recorded.
-    if owner.is_unit() && owner.as_player().is_none() && b.caster_obj_id != 0 {
-        if template.skill_controller_id > 0 {
-            if data
-                .skill_controller(template.skill_controller_id)
-                .is_some()
-            {
-                owner.with_unit(|u| {
-                    u.unit_mut().skill_state.active_skill_controller =
-                        Some((template.skill_controller_id, template.id));
-                });
-            } else {
-                tracing::warn!(
-                    "BuffTemplate.Start: buff {} SC template not found for sc_id={}",
-                    template.id,
-                    template.skill_controller_id
-                );
-            }
-        } else if template.gliding || (template.psychokinesis && template.psychokinesis_speed > 0.0)
-        {
-            owner.with_unit(|u| {
-                u.unit_mut().skill_state.active_skill_controller = Some((0, template.id));
-            });
-        }
+    // Buff-driven SkillController for non-character owners (pull / lift / fear / leap / dash);
+    // characters move themselves from the buff payload.
+    let caster = (owner.is_unit() && owner.as_player().is_none())
+        .then(|| find_obj(server, b.caster_obj_id))
+        .flatten();
+    if let Some(caster) = caster {
+        start_skill_controller(server, &template, owner, &caster);
     }
     if let Some(p) = owner.as_player() {
         if template.find_school_of_fish_range > 0.0
@@ -898,6 +879,107 @@ pub fn start(server: &GameServer, owner: &WorldObject, index: u32) {
         }
     }
     super::stats::refresh_cached_stats(server, owner);
+}
+
+/// The skill controller part of `BuffTemplate.Start` (owner: a non-character unit; caster: the
+/// buff's caster): `SkillControllerId`, else the Gliding lift / Psychokinesis pull fallbacks.
+fn start_skill_controller(
+    server: &GameServer,
+    template: &BuffTemplate,
+    owner: &WorldObject,
+    caster: &WorldObject,
+) {
+    use super::controllers;
+    let target = Target::Obj(caster.clone());
+    let sc = if template.skill_controller_id > 0 {
+        let Some(sct) = server
+            .game_data
+            .systems
+            .skills
+            .skill_controller(template.skill_controller_id)
+        else {
+            tracing::warn!(
+                "BuffTemplate.Start: buff {} SC template not found for sc_id={}",
+                template.id,
+                template.skill_controller_id
+            );
+            return;
+        };
+        // Bubbletrap-style buffs set Gliding but leave GlidingLiftHeight = 0: lift 5 m.
+        let lift_height = if template.gliding_lift_height > 0.0 {
+            template.gliding_lift_height
+        } else if template.gliding {
+            5.0
+        } else {
+            0.0
+        };
+        tracing::debug!(
+            "BuffTemplate.Start: buff {} creating SC sc_id={} kind={} for owner={} caster={} psychoSpeed={} liftH={}",
+            template.id,
+            template.skill_controller_id,
+            sct.kind_id,
+            owner.obj_id(),
+            caster.obj_id(),
+            template.psychokinesis_speed,
+            lift_height
+        );
+        match controllers::create(
+            server,
+            sct,
+            owner,
+            &target,
+            template.psychokinesis_speed,
+            lift_height,
+            template.gliding_lift_speed,
+            template.gliding_lift_duration,
+        ) {
+            Some(sc) => sc,
+            None => {
+                tracing::warn!(
+                    "BuffTemplate.Start: buff {} SC factory returned null for kind={} — controller class not implemented",
+                    template.id,
+                    sct.kind_id
+                );
+                return;
+            }
+        }
+    } else if template.gliding {
+        let lift_height = if template.gliding_lift_height > 0.0 {
+            template.gliding_lift_height
+        } else {
+            5.0
+        };
+        let lift_speed = if template.gliding_lift_speed > 0.0 {
+            template.gliding_lift_speed
+        } else {
+            3.0
+        };
+        controllers::new_floating(
+            server,
+            None,
+            owner,
+            &target,
+            0.0,
+            lift_height,
+            lift_speed,
+            template.gliding_lift_duration,
+        )
+    } else if template.psychokinesis && template.psychokinesis_speed > 0.0 {
+        controllers::new_floating(
+            server,
+            None,
+            owner,
+            &target,
+            template.psychokinesis_speed,
+            0.0,
+            0.0,
+            0.0,
+        )
+    } else {
+        return;
+    };
+    sc.set_source_buff_id(template.id);
+    controllers::activate(server, &sc);
 }
 
 fn remove_bonuses(owner: &WorldObject, template: &BuffTemplate, index: u32) {
@@ -945,16 +1027,12 @@ fn dispel(
     b: &Buff,
     replaced: bool,
 ) {
-    let ends_controller = owner
-        .with_unit(|u| {
-            u.unit()
-                .skill_state
-                .active_skill_controller
-                .is_some_and(|(_, src)| src == template.id)
-        })
-        .unwrap_or(false);
-    if ends_controller {
-        owner.with_unit(|u| u.unit_mut().skill_state.active_skill_controller = None);
+    // Stop the controller this buff started. End() may keep it running for the floating
+    // controller's fall phase, so the slot is not cleared here (the controller clears itself).
+    if let Some(sc) = super::controllers::active(owner) {
+        if sc.source_buff_id() == template.id {
+            sc.end(server, false);
+        }
     }
     remove_bonuses(owner, template, b.index);
     let requiring: Vec<u32> = {

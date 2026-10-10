@@ -13,18 +13,21 @@
 //! * [`packets`] / [`handlers`] — S->C / C->S packets;
 //! * [`skill`] — `Skill` (use, cast, channel, apply, end, stop) and auto attack;
 //! * [`buffs`] — buff behaviour, triggers, tolerance; [`effects`] — effect templates;
+//! * [`controllers`] — server-side skill controllers (pull / lift / fear / leap / dash);
 //! * [`plots`] — plot trees; [`combat`] — hp / mp / death / aggro / states; [`regen`] — ticks;
 //! * [`stats`] — attribute getters; [`relation`] / [`geometry`] — targeting helpers;
 //! * [`ext`] — hooks into the npcs / economy / quests / social subsystems.
 
 pub mod buffs;
 pub mod combat;
+pub mod controllers;
 pub mod data;
 pub mod effects;
 pub mod ext;
 pub mod geometry;
 pub mod handlers;
 pub mod packets;
+pub mod packets_special;
 pub mod plots;
 pub mod progress;
 pub mod regen;
@@ -61,6 +64,7 @@ pub struct SkillsConfig {
     pub pvp_durability_loss_rate: f32,
     pub vocation_rate: f64,
     pub actability_rate: f64,
+    pub honor_rate: f64,
 }
 
 impl Default for SkillsConfig {
@@ -71,6 +75,7 @@ impl Default for SkillsConfig {
             pvp_durability_loss_rate: 1.0,
             vocation_rate: 1.0,
             actability_rate: 1.0,
+            honor_rate: 1.0,
         }
     }
 }
@@ -184,6 +189,33 @@ pub fn send_to_players(_server: &GameServer, units: &[WorldObject], packet: &dyn
 /// The part of `Character.Load()` / world entry that needs the buff behaviour: the buffs added
 /// while loading are started (bonuses, modifier caches, timers), the cached stats are
 /// recomputed with them, and `RestoreSavedHpMp` clamps to the exact `MaxHp` / `MaxMp`.
+/// `CSMoveUnitPacket.RemoveEffects`: a moving velocity removes `RemoveOnMove` buffs
+/// (called by `world::session::move_unit` before the position update).
+pub fn on_move_request(server: &GameServer, unit: &PlayerRef, vel_x: i16, vel_y: i16, vel_z: i16) {
+    if vel_x != 0 || vel_y != 0 || vel_z != 0 {
+        let obj = WorldObject::from(unit);
+        buffs::trigger_remove_on(server, &obj, types::BuffRemoveOn::Move, 0);
+        crate::systems::dispatch_buff_events(server, &obj);
+    }
+}
+
+/// The skills tail of a unit move: `Character.SetPosition` (`BuffRemoveOn.Move` when the
+/// position changed) and `DoFallDamage(FallVel)` when the client reports a fall velocity.
+pub fn on_moved(server: &GameServer, unit: &PlayerRef, old_pos: (f32, f32, f32), fall_vel: u16) {
+    let obj = WorldObject::from(unit);
+    let moved = {
+        let t = unit.data().unit.transform;
+        t.x != old_pos.0 || t.y != old_pos.1 || t.z != old_pos.2
+    };
+    if moved {
+        buffs::trigger_remove_on(server, &obj, types::BuffRemoveOn::Move, 0);
+        crate::systems::dispatch_buff_events(server, &obj);
+    }
+    if fall_vel > 0 {
+        combat::do_fall_damage(server, &obj, fall_vel);
+    }
+}
+
 pub fn on_character_loaded(server: &GameServer, player: &PlayerRef) {
     let obj = WorldObject::from(player);
     crate::systems::dispatch_buff_events(server, &obj);

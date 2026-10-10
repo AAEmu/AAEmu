@@ -525,6 +525,41 @@ impl Data {
         self.npc_tags.get(&tag).map_or(&[], Vec::as_slice)
     }
 
+    /// `SkillManager.GetNpSkillTemplate(npcSkill)`: the template of an NPC skill, `None` for an
+    /// unknown skill or (the dungeon `InCombat` filter, `SkillUseConditionKind.InCombat = 0`) a
+    /// skill that respects the global cooldown or has a plot.
+    pub fn np_skill(&self, skill_id: u32, use_condition: i32) -> Option<&Arc<SkillTemplate>> {
+        let t = self.skill(skill_id);
+        if use_condition == 0 {
+            if let Some(t) = t {
+                if !t.ignore_global_cooldown || t.plot_id.is_some() {
+                    return None;
+                }
+            }
+        }
+        t
+    }
+
+    /// `SkillManager.GetSkillActAbility(skillId)` (`ActabilityType`, 0 = None).
+    pub fn skill_actability(&self, skill_id: u32) -> i32 {
+        self.skill(skill_id).map_or(0, |t| t.actability_group_id)
+    }
+
+    /// `SkillManager.GetSpawnGimmickEffect(gimmickTemplateId)`: the first spawn effect of a
+    /// gimmick (dictionary order: by effect id here).
+    pub fn spawn_gimmick_effect(
+        &self,
+        gimmick_template_id: u32,
+    ) -> Option<&effects::SpawnGimmickEffect> {
+        let map = self.effects.get(&EffectKind::SpawnGimmickEffect)?;
+        let mut ids: Vec<&u32> = map.keys().collect();
+        ids.sort();
+        ids.into_iter().find_map(|id| match map.get(id) {
+            Some(EffectTemplate::SpawnGimmick(e)) if e.gimmick_id == gimmick_template_id => Some(e),
+            _ => None,
+        })
+    }
+
     /// `IsDefaultSkill` / `IsCommonSkill` live in `data::skills::SkillData` (phase 2).
     pub fn is_loaded(&self) -> bool {
         !self.skills.is_empty()

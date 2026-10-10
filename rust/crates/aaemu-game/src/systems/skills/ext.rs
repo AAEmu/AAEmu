@@ -4,7 +4,7 @@
 //! base-`Unit` value), so the skills subsystem works stand-alone. The owning subsystem installs
 //! its implementation in its `System::start`:
 //!
-//! ```ignore
+//! ```text
 //! server.systems.skills.ext.npcs.install(Arc::new(MyNpcSkillHooks));
 //! ```
 //!
@@ -12,15 +12,61 @@
 //! through `apply_effect` / `apply_special_effect`: the first installed hook that returns `true`
 //! handled it; if none does, the skills subsystem logs it (or runs its own fallback).
 
+use crate::data::world_data::Portal;
 use crate::models::item::Item;
+use crate::models::movement::{GameStanceType, MoveTypeAlertness};
 use crate::models::npc::Npc;
+use crate::models::transform::PositionAndRotation;
 use crate::server::GameServer;
 use crate::systems::HookSlot;
-use crate::world::{NpcRef, PlayerRef, WorldObject};
+use crate::world::{MateRef, NpcRef, PlayerRef, WorldObject};
 
 use super::data::{EffectKind, EffectTemplate};
 use super::effects::EffectArgs;
 use super::stats::StatKind;
+use super::types::{SkillCastTarget, SkillCaster};
+
+/// Logs a hook whose owning subsystem has not installed an implementation yet.
+fn not_ported(what: &str) {
+    tracing::debug!("{what}: not ported (owning subsystem hook not installed)");
+}
+
+/// `Character.MainWorldPosition` (the position to return to when leaving an instance).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MainWorldPosition {
+    pub instance_id: u32,
+    pub zone_id: u32,
+    /// `MainWorldPosition.World` (rotation in radians).
+    pub pos: PositionAndRotation,
+}
+
+/// Outcome of an item action that can cancel the skill and show an error (`skill.Cancelled =
+/// true` + `SendErrorMessage`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ItemActionResult {
+    /// The action was done.
+    Done,
+    /// `skill.Cancelled = true` (and return).
+    Cancel,
+    /// `skill.Cancelled = true` + `character.SendErrorMessage(error)`.
+    CancelWithError(i16),
+}
+
+/// The arguments of `GradeEnchant.Execute` the item subsystem needs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GradeEnchantRequest {
+    /// `SkillItem.ItemId` / `ItemTemplateId` of the regrade scroll.
+    pub scroll_item_id: u64,
+    pub scroll_template_id: u32,
+    /// `SkillCastItemTarget.Id` (the item to regrade).
+    pub target_item_id: u64,
+    /// `SkillObjectItemGradeEnchantingSupport.SupportItemId` (0 = no charm).
+    pub support_item_id: u64,
+    /// `value1 != 0`.
+    pub is_lucky: bool,
+    /// `value3` (the `GoldCost` item kind: 1 weapon, 2 armor, 24 accessory).
+    pub item_type: i32,
+}
 
 /// Equipment contributions of a character (`EquipItem.Str` ... sums, weapon / armor values), as
 /// computed by the item subsystem (`Item` stat formulas, grades, gems).
@@ -133,6 +179,144 @@ pub trait NpcSkillHooks: Send + Sync {
         _args: &EffectArgs<'_>,
     ) -> bool {
         false
+    }
+
+    /// `SpawnDoodad`: `DoodadManager.Create(world, 0, templateId, caster, true)` placed at `pos`
+    /// (the C# then replaces `pos.z` with `GeoData.GetHeight`), `InitDoodad`, then `Spawn` after
+    /// `delay_ms` (the C# sleeps the effect thread when `delay > 0`).
+    fn spawn_doodad(
+        &self,
+        _server: &GameServer,
+        _caster: &WorldObject,
+        _template_id: u32,
+        _zone_id: u32,
+        _pos: PositionAndRotation,
+        _delay_ms: i32,
+    ) {
+        not_ported("SpawnDoodad");
+    }
+
+    /// `npc.Template.PetItemId` (0 = none).
+    fn npc_pet_item_id(&self, _server: &GameServer, _npc: &NpcRef) -> u32 {
+        0
+    }
+
+    /// `npc.DoDespawn(npc)`.
+    fn despawn_npc(&self, _server: &GameServer, _npc: &NpcRef) {
+        not_ported("Npc.DoDespawn");
+    }
+
+    /// `npc.Template.NonPushableByActor`.
+    fn npc_non_pushable_by_actor(&self, _server: &GameServer, _npc: &NpcRef) -> bool {
+        false
+    }
+
+    /// `npc.CurrentGameStance` / `npc.CurrentAlertness` (C# defaults: `Combat`, `Idle`).
+    fn npc_move_state(
+        &self,
+        _server: &GameServer,
+        _npc: &NpcRef,
+    ) -> (GameStanceType, MoveTypeAlertness) {
+        (GameStanceType::COMBAT, MoveTypeAlertness::IDLE)
+    }
+
+    /// `Blink`: `if (character.IsRiding)` every `MateManager.GetActiveMates(character.Id)` is
+    /// `UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None)`.
+    fn unmount_active_mates(&self, _server: &GameServer, _player: &PlayerRef) {}
+
+    /// `owner.Mates.SpawnMount(skillItem)` (`SpawnPet`).
+    fn spawn_mount(&self, _server: &GameServer, _player: &PlayerRef, _skill_item: &SkillCaster) {
+        not_ported("Mates.SpawnMount");
+    }
+
+    /// `mate.IsMaxLevel`.
+    fn mate_is_max_level(&self, _server: &GameServer, _mate: &MateRef) -> bool {
+        false
+    }
+
+    /// `mate.AddExp(exp)`.
+    fn mate_add_exp(&self, _server: &GameServer, _mate: &MateRef, _exp: i32) {
+        not_ported("Mate.AddExp");
+    }
+
+    /// `SlaveManager.BindSlave(character, slaveObjId, (AttachPointKind)attachPoint,
+    /// AttachUnitReason.NewMaster)` (`AttachTo`).
+    fn bind_slave(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _slave_obj_id: u32,
+        _attach_point: i32,
+    ) {
+        not_ported("SlaveManager.BindSlave");
+    }
+
+    /// `SlaveManager.Create(owner, skillItem)` (`SpawnSlave`).
+    fn spawn_slave(&self, _server: &GameServer, _player: &PlayerRef, _skill_item: &SkillCaster) {
+        not_ported("SlaveManager.Create");
+    }
+
+    /// `SlaveManager.RidersEscape(player, positionTarget)` (`EscapeMySlave`).
+    fn riders_escape(&self, _server: &GameServer, _player: &PlayerRef, _target: &SkillCastTarget) {
+        not_ported("SlaveManager.RidersEscape");
+    }
+
+    /// `SlaveManager.GetIsMounted(character.ObjId) ?? GetActiveSlaveByOwnerObjId(character.ObjId)`
+    /// (`ImpulseEffect`).
+    fn character_slave(&self, _server: &GameServer, _player: &PlayerRef) -> Option<WorldObject> {
+        None
+    }
+
+    /// `PortalManager.GetWorldGatesById(id)` (`Data/Portal/worldgates.json`).
+    fn world_gate(&self, _server: &GameServer, _id: u32) -> Option<Portal> {
+        None
+    }
+
+    /// `PortalManager.GetClosestReturnPortal(character)` (respawn points). `None` = no respawn
+    /// point qualified (the C# then returns its fail-safe portal at the current position).
+    fn closest_return_portal(&self, _server: &GameServer, _player: &PlayerRef) -> Option<Portal> {
+        None
+    }
+
+    /// `character.MainWorldPosition` (`None` = null).
+    fn main_world_position(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+    ) -> Option<MainWorldPosition> {
+        None
+    }
+
+    /// `character.Portals.AddPrivatePortal(x, y, z, zRot, zoneId, name)` (`SavePortal`).
+    #[allow(clippy::too_many_arguments)]
+    fn add_private_portal(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _x: f32,
+        _y: f32,
+        _z: f32,
+        _z_rot: f32,
+        _zone_id: u32,
+        _name: &str,
+    ) {
+        not_ported("Portals.AddPrivatePortal");
+    }
+
+    /// `character.Portals.ChangePrivatePortalName(id, name)` (`SavePortal`).
+    fn rename_private_portal(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _id: u32,
+        _name: &str,
+    ) {
+        not_ported("Portals.ChangePrivatePortalName");
+    }
+
+    /// `IndunManager.RequestLeaveInstance(character)` (`ExitArchemall`).
+    fn leave_instance(&self, _server: &GameServer, _player: &PlayerRef) {
+        not_ported("IndunManager.RequestLeaveInstance");
     }
 
     /// A `SpecialEffect` action owned by the npc subsystem (`SpawnDoodad`, `RemoveDoodad`,
@@ -289,6 +473,195 @@ pub trait ItemSkillHooks: Send + Sync {
         false
     }
 
+    /// `character.Inventory.TryAddNewItem(taskType, templateId, count, grade)` (`GainItem`).
+    fn try_add_new_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task_type: u8,
+        _template_id: u32,
+        _count: i32,
+        _grade: u8,
+    ) -> bool {
+        not_ported("Inventory.TryAddNewItem");
+        false
+    }
+
+    /// `ItemManager.GetTemplate(templateId) != null`.
+    fn item_template_exists(&self, _server: &GameServer, _template_id: u32) -> bool {
+        false
+    }
+
+    /// `Inventory.Bag.AcquireDefaultItem(taskType, templateId, amount)`.
+    fn acquire_default_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task_type: u8,
+        _template_id: u32,
+        _amount: i32,
+    ) -> bool {
+        not_ported("Bag.AcquireDefaultItem");
+        false
+    }
+
+    /// `Inventory.Bag.ConsumeItem(taskType, templateId, amount, null)`: the consumed amount.
+    fn consume_bag_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task_type: u8,
+        _template_id: u32,
+        _amount: i32,
+    ) -> i32 {
+        not_ported("Bag.ConsumeItem");
+        0
+    }
+
+    /// `ItemManager.GetItemByItemId(sourceItemId)` and, when it exists,
+    /// `UccManager.CreateStamp(player, sourceItem)` (`GainItemWithEmblemImprint`).
+    fn ucc_create_stamp(&self, _server: &GameServer, _player: &PlayerRef, _source_item_id: u64) {
+        not_ported("UccManager.CreateStamp");
+    }
+
+    /// `ItemConversion` from `Bag.GetItemByItemId(itemId)` on (disenchantable check, reagent /
+    /// product lookup, roll, `AcquireDefaultItem(Conversion)`, `ConsumeItem(Conversion)`, the
+    /// `BagFull` error). `true` = `skill.Cancelled = true`.
+    fn item_conversion(&self, _server: &GameServer, _player: &PlayerRef, _item_id: u64) -> bool {
+        not_ported("ItemConversion");
+        true
+    }
+
+    /// `Dyeing` from `Inventory.GetItemById(targetItemId)` on (dye category check, `DyeItemId`,
+    /// `SCItemTaskSuccessPacket(Dyeing)`).
+    fn dye_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _dye_item_id: u64,
+        _dye_template_id: u32,
+        _target_item_id: u64,
+    ) {
+        not_ported("Dyeing");
+    }
+
+    /// `FishingLoot`: `LootGameData.GetPack(zoneGroup.FishingLandLootPackId` (`land`) or
+    /// `FishingSeaLootPackId)` + `GiveLootPack(character, Fishing, SkillEffectGainItem)`.
+    /// `None` = no pack / an empty pack, `Some(false)` = the bag was full.
+    fn give_fishing_loot(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _zone_group_id: u32,
+        _land: bool,
+    ) -> Option<bool> {
+        not_ported("FishingLoot");
+        None
+    }
+
+    /// `ItemCapScale`: `GetItemById(targetItemId)` as `EquipItem`, random tempers from
+    /// `GetItemCapScale(skillId)`, `SCItemTaskSuccessPacket(EnchantPhysical)`. Returns the
+    /// (physical, magical) tempers, `None` when the item was not found.
+    fn item_cap_scale(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _target_item_id: u64,
+        _skill_id: u32,
+    ) -> Option<(u16, u16)> {
+        not_ported("ItemCapScale");
+        None
+    }
+
+    /// `ItemCapScaleReset`: tempers set to 0 + `SCItemTaskSuccessPacket(EnchantPhysical)`.
+    /// `false` when the item was not found.
+    fn item_cap_scale_reset(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _target_item_id: u64,
+    ) -> bool {
+        not_ported("ItemCapScaleReset");
+        false
+    }
+
+    /// `CleanupLookConvert` from the item lookups on (`ImageItemTemplateId` check / reset, the
+    /// powder consumption, `SCItemTaskSuccessPacket(ConvertItemLook)`). `powder_item_id` is
+    /// `None` when the caster is not a `SkillItem` (checked after the target item checks).
+    fn cleanup_look_convert(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _target_item_id: u64,
+        _powder_item_id: Option<u64>,
+    ) -> ItemActionResult {
+        not_ported("CleanupLookConvert");
+        ItemActionResult::Cancel
+    }
+
+    /// `Skinize` from the item lookups on (`ItemFlag.Skinized` check / set, the powder
+    /// consumption, `SCItemTaskSuccessPacket(Skinize)`). `powder_item_id` is `None` when the
+    /// caster is not a `SkillItem` (checked by the C# after the target item checks).
+    fn skinize(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _target_item_id: u64,
+        _powder_item_id: Option<u64>,
+    ) -> ItemActionResult {
+        not_ported("Skinize");
+        ItemActionResult::Cancel
+    }
+
+    /// `ItemSocketing` from the item lookups on (lunagem / dawnstone roll,
+    /// `SCItemTaskSuccessPacket(Socketing)`, `SCItemSocketingLunagemResultPacket`). `true` = the
+    /// C# reached the end (the skills subsystem then broadcasts `SCSkillEndedPacket`).
+    fn item_socketing(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _gem_item_id: u64,
+        _target_item_id: u64,
+    ) -> bool {
+        not_ported("ItemSocketing");
+        false
+    }
+
+    /// `GradeEnchant` from the item lookup on (cost, scroll / charm checks, roll, break / grade
+    /// change, money, charm consumption, `SCGradeEnchantResultPacket`, the server-wide
+    /// `SCGradeEnchantBroadcastPacket`). `true` = the C# reached `SCSkillEndedPacket` (sent by
+    /// the skills subsystem).
+    fn grade_enchant(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _request: &GradeEnchantRequest,
+    ) -> bool {
+        not_ported("GradeEnchant");
+        false
+    }
+
+    /// `Equipment.GetItemBySlot(slot)?.Template.CategoryId` (`None` = empty slot).
+    fn equipped_item_category(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _slot: i32,
+    ) -> Option<u32> {
+        None
+    }
+
+    /// `MusicManager.GetMidiCache(characterId)`.
+    fn midi_cache(&self, _server: &GameServer, _character_id: u32) -> Vec<u8> {
+        Vec::new()
+    }
+
+    /// `MusicManager.CreateSheetMusic(player, ItemManager.GetItemByItemId(itemId))`.
+    fn create_sheet_music(&self, _server: &GameServer, _player: &PlayerRef, _item_id: u64) -> bool {
+        not_ported("MusicManager.CreateSheetMusic");
+        false
+    }
+
     /// A `SpecialEffect` action owned by the item subsystem (`GainItem`, `ItemSocketing`,
     /// `GradeEnchant`, `ItemCapScale`, `Dyeing`, ...). `true` = handled.
     fn apply_special_effect(
@@ -404,6 +777,42 @@ pub trait SocialSkillHooks: Send + Sync {
         _args: &EffectArgs<'_>,
     ) -> bool {
         false
+    }
+
+    /// `CrimeManager.ReportBot(suspect, reporter, msg)`.
+    fn report_bot(
+        &self,
+        _server: &GameServer,
+        _suspect: &PlayerRef,
+        _reporter: &PlayerRef,
+        _msg: &str,
+    ) -> bool {
+        not_ported("CrimeManager.ReportBot");
+        false
+    }
+
+    /// `CrimeManager.ReportBotExpired(player)`.
+    fn report_bot_expired(&self, _server: &GameServer, _player: &PlayerRef) -> bool {
+        not_ported("CrimeManager.ReportBotExpired");
+        false
+    }
+
+    /// `DeclareDominion` after the expedition / lodestone checks: the new `DominionData`, the
+    /// server-wide `SCDominionDataPacket(dominion, true, true)` and (caster is a character) the
+    /// backpack consumed from the equipment (`ConsumeItem(SkillReagents, ...)`).
+    fn declare_dominion(
+        &self,
+        _server: &GameServer,
+        _caster: &WorldObject,
+        _expedition_id: u32,
+        _lodestone: &WorldObject,
+    ) {
+        not_ported("DeclareDominion");
+    }
+
+    /// `character.Appellations.Add(appellationId)`.
+    fn give_appellation(&self, _server: &GameServer, _player: &PlayerRef, _appellation_id: u32) {
+        not_ported("Appellations.Add");
     }
 
     /// `SpecialEffect` actions owned by the social subsystem (expedition / family / crime ones).

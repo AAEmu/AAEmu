@@ -5,6 +5,7 @@
 
 pub mod combat;
 pub mod special;
+pub mod unit_fx;
 
 use std::sync::Arc;
 
@@ -110,9 +111,9 @@ pub fn apply(
         T::FlyingStateChange { .. } => combat::flying_state_change(server, template, args),
         T::ResetAoeDiminishing { .. } => {}
         T::SkillController(t) => combat::skill_controller(server, t, args),
-        T::Bubble { .. }
-        | T::Impulse(_)
-        | T::MoveToRezPoint { .. }
+        T::Bubble { id, kind_id } => unit_fx::bubble(server, *id, *kind_id, args),
+        T::Impulse(t) => unit_fx::impulse(server, t, args),
+        T::MoveToRezPoint { .. }
         | T::OpenPortal { .. }
         | T::AccountAttribute(_)
         | T::AcceptQuest { .. }

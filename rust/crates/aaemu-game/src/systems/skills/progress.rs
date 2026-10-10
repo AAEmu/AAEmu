@@ -82,6 +82,12 @@ impl Marshal for SCLevelChangedPacket {
     }
 }
 
+/// `Actability.GetLaborCostMultiplier()` (1.2 values by rank).
+pub fn labor_cost_multiplier(step: u8) -> f32 {
+    const M: [f32; 8] = [1.00, 1.00, 0.95, 0.90, 0.85, 0.80, 0.77, 0.77];
+    M[usize::from(step).min(M.len() - 1)]
+}
+
 /// `Actability.GetExpMultiplier()` (all 1.0 in 1.2).
 fn actability_exp_multiplier(_step: u8) -> f32 {
     1.0

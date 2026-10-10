@@ -634,10 +634,11 @@ pub fn cast(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
                 true,
             );
             if dist >= t.min_range as f32 && dist <= t.max_range as f32 {
-                let id = sc.id;
-                caster.with_unit(|u| {
-                    u.unit_mut().skill_state.active_skill_controller = Some((id, 0))
-                });
+                if let Some(sc) =
+                    super::controllers::create(server, sc, caster, &ctx.target, 0.0, 0.0, 0.0, 0.0)
+                {
+                    super::controllers::activate(server, &sc);
+                }
             }
         }
     }
@@ -1417,6 +1418,17 @@ pub fn end_skill(server: &GameServer, skill: &SkillRef, caster: &WorldObject) {
         let cancelled = skill.cancelled();
         let labor = t.consume_labor_power;
         let mut cost = labor;
+        let step = p
+            .data()
+            .actability
+            .actabilities
+            .iter()
+            .find(|a| a.id == t.actability_group_id as u8 as u32)
+            .map(|a| a.step);
+        if let Some(step) = step {
+            cost = (f64::from(cost) * f64::from(super::progress::labor_cost_multiplier(step)))
+                .round_ties_even() as i32;
+        }
         if labor > 0 && cost < 1 {
             cost = 1;
         }

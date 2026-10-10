@@ -794,3 +794,61 @@ pub fn combat_tick(server: &GameServer, unit: &WorldObject) {
 pub fn buff_of(unit: &WorldObject, buff_id: u32) -> Option<Buff> {
     unit.with_base_unit(|b| b.buffs().effect_from_buff_id(buff_id).cloned())
 }
+
+/// `Unit.DoFallDamage(fallVel)` (+ the `Character` override that ignores fall damage from
+/// `IgnoreFallDamageAccessLevel` up). Returns the damage dealt. Called by the movement code.
+pub fn do_fall_damage(server: &GameServer, unit: &WorldObject, fall_vel: u16) -> i32 {
+    if let Some(p) = unit.as_player() {
+        let access = p.data().access_level;
+        if access >= server.config.world.ignore_fall_damage_access_level {
+            tracing::debug!("FallDamage negated because of IgnoreFallDamageAccessLevel settings");
+            return 0;
+        }
+    }
+    let Some((hp, max_hp, mul)) = unit.with_unit(|u| {
+        let u = u.unit();
+        (
+            u.hp,
+            u.max_hp,
+            u.calculate_with_bonuses(
+                0.0,
+                crate::models::unit::UnitAttribute::FallDamageMul,
+                now_ms(),
+            ) / 100.0,
+        )
+    }) else {
+        return 0;
+    };
+    let mut fall_dmg =
+        max_hp.min((max_hp as f32 * ((i32::from(fall_vel) - 8600) as f32 / 15000.0)) as i32);
+    let min_hp_left = max_hp / 20;
+    let max_dmg_left = hp - min_hp_left;
+    fall_dmg = (f64::from(fall_dmg) + f64::from(fall_dmg) * mul) as i32;
+    if fall_vel >= 32000 {
+        reduce_current_hp(server, unit, Some(unit), hp, KillReason::Damage);
+    } else if fall_dmg < max_dmg_left {
+        reduce_current_hp(server, unit, Some(unit), fall_dmg, KillReason::Damage);
+    } else {
+        if min_hp_left == 0 {
+            tracing::error!("DoFallDamage: MaxHp / 20 == 0 (DivideByZeroException)");
+            return fall_dmg;
+        }
+        let duration = 500 * (fall_dmg / min_hp_left);
+        buffs::add_buff_by_id(server, unit, buff_constants::FALL_STUN, unit, duration);
+        if hp > min_hp_left {
+            reduce_current_hp(server, unit, Some(unit), max_dmg_left, KillReason::Damage);
+        }
+    }
+    broadcast(
+        server,
+        unit,
+        &super::packets::SCEnvDamagePacket {
+            source: super::packets::env_source::FALLING,
+            target: unit.obj_id(),
+            amount: fall_dmg as u32,
+            gimmick_id: 0,
+        },
+        true,
+    );
+    fall_dmg
+}

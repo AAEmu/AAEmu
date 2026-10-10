@@ -982,9 +982,9 @@ pub fn flying_state_change(server: &GameServer, template: &EffectTemplate, args:
     );
 }
 
-/// `SkillControllerTemplate.Apply`: the controller of a non-character caster (server-side NPC
-/// displacement is the npc subsystem's movement; the active controller is recorded).
-pub fn skill_controller(_server: &GameServer, t: &SkillControllerTemplate, args: &EffectArgs<'_>) {
+/// `SkillControllerTemplate.Apply`: runs the controller on a non-character caster (the moved
+/// unit; the target is the reference point).
+pub fn skill_controller(server: &GameServer, t: &SkillControllerTemplate, args: &EffectArgs<'_>) {
     let Some(caster) = args.caster.as_ref().filter(|c| c.is_unit()) else {
         return;
     };
@@ -999,7 +999,14 @@ pub fn skill_controller(_server: &GameServer, t: &SkillControllerTemplate, args:
         );
         return;
     }
-    caster.with_unit(|u| u.unit_mut().skill_state.active_skill_controller = Some((t.id, 0)));
+    match super::super::controllers::create(server, t, caster, &args.target, 0.0, 0.0, 0.0, 0.0) {
+        Some(sc) => super::super::controllers::activate(server, &sc),
+        None => tracing::warn!(
+            "SkillControllerTemplate.Apply: factory returned null for sc_id={} kind={} — controller class not implemented",
+            t.id,
+            t.kind_id
+        ),
+    }
 }
 
 /// Damage effect helper for the tests: the level-damage range of `DamageEffect`.

@@ -249,11 +249,14 @@ pub struct UnitSkillState {
     pub tagging: Tagging,
     /// `Buffs._toleranceCounters` (by tolerance id).
     pub tolerance_counters: HashMap<u32, ToleranceCounter>,
-    /// `ActiveSkillController` (template id + source buff id, 0 = none).
-    pub active_skill_controller: Option<(u32, u32)>,
+    /// `ActiveSkillController` (the running controller; compares by pointer).
+    pub active_skill_controller: Option<super::controllers::SkillControllerRef>,
     /// `GetAbLevel` override for units whose ability levels are not the unit level (set by the
     /// owner of the unit kind; characters compute it from their abilities).
     pub ab_level_override: Option<u8>,
+    /// `Unit.DisplacedUntil` (unix ms, 0 = `null`): set by knock back / impulse / blink effects
+    /// so the NPC AI does not walk the unit back while the client plays the displacement.
+    pub displaced_until_ms: i64,
 }
 
 /// `ActivePlotState` handle (compares by pointer).
@@ -284,6 +287,9 @@ pub struct CharacterSkillState {
     pub assault_on: Vec<u32>,
     /// `_hostilePlayers` (attacker obj id -> last hostile action, unix ms).
     pub hostile_players: Vec<(u32, i64)>,
+    /// `ResurrectHpPercent` / `ResurrectMpPercent` (set by the `Resurrection` special effect).
+    pub resurrect_hp_percent: u32,
+    pub resurrect_mp_percent: u32,
 }
 
 /// A process-wide counter for task generations (dispel tasks of refreshed buffs become no-ops).
