@@ -1,0 +1,19 @@
+aaemu-clientdriver: run Lua inside a running ArcheAge 1.2 client
+
+  list                              list running clients and whether the driver is loaded
+  inject [--dll PATH] [--pid N]     load the in-client driver (aadriver.dll) and ping it
+  ping   [--pid N]                  driver / engine info
+  lua    [-t system|ui|third] [--pid N] <code...>|-
+                                    compile `return <code>` (else as statements), run it on the
+                                    client main thread, print the returned values (TAB-joined)
+  exec   [-t ...] [--pid N] <code...>|-
+                                    run <code> through IScriptSystem::ExecuteBuffer (no result)
+  repl   [-t ...] [--pid N]         interactive line REPL
+  unload [--pid N]                  unhook and unload the driver
+
+With no --pid the single running client is used. Code read from stdin when the argument is `-`
+or absent. The driver DLL is found next to this exe, under --dll, or at $AADRIVER_DLL.
+
+This controller must be built 32-bit to match the x86 client:
+  cargo build -p aaemu-clientdriver --target i686-pc-windows-msvc --release
+See rust/docs/client/LUA-DRIVER.md.

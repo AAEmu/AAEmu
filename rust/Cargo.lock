@@ -3,6 +3,13 @@
 version = 4
 
 [[package]]
+name = "aaemu-clientdriver"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "aaemu-commons"
 version = "0.1.0"
 dependencies = [
