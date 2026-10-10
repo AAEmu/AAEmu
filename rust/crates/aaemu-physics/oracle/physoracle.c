@@ -808,11 +808,26 @@ static void p2a2_probe(void) {
       if (k + 24 > n) die("p2a2: missing prim_inters words", p2a2_fns[fi].name);
       memcpy(o, w + k, 24 * 4); k += 24;
     }
+    /* Border buffer: words 14/15 (ptborder) == B0B0B0B0 select a zeroed 64-point buffer;
+       nborderpt/nbordersz (words 16/17) are taken as given. The pointer is printed back as the
+       marker and the first 16 points follow the buffer words. */
+    static float border[64 * 3];
+    int use_border = p2a2_fns[fi].inters && o[14] == 0xB0B0B0B0u && o[15] == 0xB0B0B0B0u;
+    if (use_border) {
+      float *bp = border;
+      memset(border, 0, sizeof border);
+      memcpy(&o[14], &bp, 8);
+    }
     int r = ((fn_pair3)VA(g_phys, (uint64_t)p2a2_fns[fi].va))(a, b, o);
+    if (use_border) o[14] = o[15] = 0xB0B0B0B0u;
     printf("%s in", p2a2_fns[fi].name);
     for (int i = 0; i < n; i++) printf(" %08x", w[i]);
     printf(" out %d", r);
     if (p2a2_fns[fi].inters) for (int i = 0; i < 24; i++) printf(" %08x", o[i]);
+    if (use_border) {
+      printf(" border");
+      out_f(border, 48);
+    }
     printf("\n");
   }
 }

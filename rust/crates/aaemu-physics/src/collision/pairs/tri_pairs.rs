@@ -13,7 +13,7 @@
 
 use super::PairTables;
 use crate::collision::contact::PrimInters;
-use crate::geometry::primitives::{Primitive, RayPrim, SpherePrim, Triangle};
+use crate::geometry::primitives::{BoxPrim, Primitive, RayPrim, SpherePrim, Triangle};
 use crate::math::{sgnnz, Vec3};
 
 /// Sign bit of `(float)x` (`cvtsd2ss` + `shr 31`).
@@ -483,6 +483,348 @@ pub fn intersect_sph_tri(sph: &SpherePrim, tri: &Triangle, out: &mut PrimInters)
     let r = intersect_tri_sph(tri, sph, out);
     out.pt.swap(0, 1);
     swap_features(out);
+    r
+}
+
+// ---------------------------------------------------------------------------------------------
+// tri–box 0x35162AA0, box–tri 0x35164780
+// ---------------------------------------------------------------------------------------------
+
+/// `0.98f` as stored in double (qword_351F2D00): the "box face nearly parallel" threshold.
+const TRI_BOX_FACE_COS: f64 = 0.980_000_019_073_486_3;
+
+/// The `sel = (((m ^ 2) | 4) >> 1) & m` idiom with `m = c1 | 2·c2`: index of the extreme of
+/// three values from two sign bits.
+#[inline]
+fn pick3(c1: usize, c2: usize) -> usize {
+    let m = c1 | (c2 << 1);
+    (((m ^ 2) | 4) >> 1) & m
+}
+
+/// `n · (q × e)` in double, as tri–box evaluates it for its edge tests.
+#[inline]
+fn side_d(e: [f64; 3], q: [f64; 3], n: [f64; 3]) -> f64 {
+    let wx = q[1] * e[2] - q[2] * e[1];
+    let wy = q[2] * e[0] - q[0] * e[2];
+    let wz = q[0] * e[1] - q[1] * e[0];
+    (n[0] * wx + n[1] * wy) + n[2] * wz
+}
+
+/// `q = p − l·den` (component-wise, double).
+#[inline]
+fn sub_scaled(p: [f64; 3], l: [f64; 3], den: f64) -> [f64; 3] {
+    [p[0] - l[0] * den, p[1] - l[1] * den, p[2] - l[2] * den]
+}
+
+#[inline]
+fn sub3(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
+    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+
+/// Box-local (scaled) point back to world: `center + Basisᵀ·(p·inv)`, rounded to float.
+#[inline]
+fn box_to_world(bx: &BoxPrim, p: [f64; 3], inv: f64) -> Vec3 {
+    let m = &bx.basis.m;
+    let lx = inv * p[0];
+    let ly = p[1] * inv;
+    let lz = p[2] * inv;
+    let md = |r: usize, c: usize| f64::from(m[r][c]);
+    let wx = (md(0, 0) * lx + md(1, 0) * ly) + md(2, 0) * lz;
+    let wy = (md(0, 1) * lx + md(1, 1) * ly) + md(2, 1) * lz;
+    let wz = (md(0, 2) * lx + md(1, 2) * ly) + md(2, 2) * lz;
+    Vec3::new(
+        (f64::from(bx.center.x) + wx) as f32,
+        (f64::from(bx.center.y) + wy) as f32,
+        (f64::from(bx.center.z) + wz) as f32,
+    )
+}
+
+/// Rational parameter comparison of the slab clipper: `a.n·b.d − b.n·a.d + (a.n − b.n)·1e-80`.
+#[inline]
+fn qcmp(a: (f64, f64), b: (f64, f64)) -> f64 {
+    (a.0 * b.1 - b.0 * a.1) + (a.0 - b.0) * TRI_SPH_ROOT_EPS
+}
+
+/// INTERSECT tri–box (0x35162AA0).
+///
+/// Works in the box frame (`Basis·(v − center)`, every coordinate kept in double):
+/// 1. Vertices are classified against the three slabs. **All three inside → no contact.**
+///    If at least one vertex is inside, the first inside vertex goes to `n_alt` (`+72`), `n`
+///    becomes the box face normal nearest to it (`±Basis` row) and `unk_84 = 6`.
+/// 2. Each triangle edge (walked `i → i−1` from the highest-index outside vertex) is clipped
+///    by the slabs as rational parameters; the clipped end points that lie strictly inside the
+///    edge alternate entering/leaving by a parity bit running across edges, exactly as in
+///    [`intersect_tri_sph`] (the nearest entering point to the buffer's `pt[1]` wins).
+/// 3. Without an entering point: the box corner deepest along `−n` is swept towards the
+///    opposite corner; if that segment pierces the triangle, the piercing point is a face
+///    contact (`pt[0] = pt[1] = n_alt`, `n = tri.n`, features `0x40`×4, `unk_84 = 1000`),
+///    otherwise no contact.
+/// 4. With a contact and a triangle large compared with the box face most parallel to it,
+///    the 12 box edges that pierce the triangle append their piercing points to the border
+///    buffer (while `border.len() < border_cap`); if that box face is within ~11.5° of the
+///    triangle (`|n_local| > 0.98`), at least two points were added, `unk_84 < 6`, and the
+///    face centre projects into the triangle, `n = tri.n`, `n_alt = first added point` and
+///    `unk_84 = 6`.
+///
+/// Binary quirks kept: `pt[1]` of the buffer is read as the reference point before anything
+/// writes it; on an edge contact with no vertex inside the box, `n` is **not written**; in
+/// step 4 the face-centre test uses an unscaled point (it is a plain sign test).
+pub fn intersect_tri_box(tri: &Triangle, bx: &BoxPrim, out: &mut PrimInters) -> bool {
+    let size = [bx.size.x, bx.size.y, bx.size.z];
+    let basis = &bx.basis;
+    let l: [[f64; 3]; 3] = [
+        vd(basis.mul_vec(tri.pt[0] - bx.center)),
+        vd(basis.mul_vec(tri.pt[1] - bx.center)),
+        vd(basis.mul_vec(tri.pt[2] - bx.center)),
+    ];
+    let nl = vd(basis.mul_vec(tri.n));
+
+    let outside = |k: usize| -> i32 {
+        let mut bits = 0u32;
+        for a in 0..3 {
+            bits |= ((f64::from(size[a]) - l[k][a].abs()) as f32).to_bits();
+        }
+        (bits >> 31) as i32
+    };
+    let o0 = outside(0);
+    let o1 = outside(1);
+    let o2 = outside(2);
+    let m01 = ((o1 - 1) & (o0 - 1)) | (o1.wrapping_neg() & 1);
+    let start = ((o2 - 1) & m01) | (o2.wrapping_neg() & 2);
+    if start < 0 {
+        return false;
+    }
+    if o0 + o1 + o2 < 3 {
+        let k = (o0 + (o1 & o0)) as usize;
+        out.n_alt = tri.pt[k];
+        let d = [
+            (l[k][0].abs() - f64::from(size[0])).abs(),
+            (l[k][1].abs() - f64::from(size[1])).abs(),
+            (l[k][2].abs() - f64::from(size[2])).abs(),
+        ];
+        let c1 = signbit_f(d[1] - d[0]);
+        let c2 = signbit_f(d[2] - d[c1]);
+        let sel = pick3(c1, c2);
+        let s = (-sgnnz(l[k][sel] as f32)) as f32;
+        let row = basis.m[sel];
+        out.n = Vec3::new(row[0] * s, row[1] * s, row[2] * s);
+        out.unk_84 = 6;
+    }
+
+    // Edge clipping. rec[i] = [lo.n, lo.d, hi.n, hi.d].
+    let mut rec = [[0.0f64; 4]; 3];
+    let mut best_den2 = 0.0f64;
+    let mut best_dist2 = 1.0f64;
+    let mut exit_prev: i32 = -1;
+    let mut entry: i32 = -1;
+    let mut exit: i32 = -1;
+    let mut parity: i32 = 0;
+    let p = tri.pt;
+    let mut i = start as usize;
+    loop {
+        let j = DEC3[i];
+        let e = sub3(l[j], l[i]);
+        let mut lo = (0.0f64, 1.0f64);
+        let mut hi = (1.0f64, 1.0f64);
+        for a in 0..3 {
+            let s = f64::from(size[a]);
+            let neg = signbit_f(e[a]);
+            let sg = f64::from(1 - 2 * neg as i32);
+            let pm = (f64::from(-size[a]) - l[i][a]) * sg;
+            let pp = (s - l[i][a]) * sg;
+            let es = e[a] * sg;
+            let mut par = [(0.0, 0.0); 2];
+            par[neg] = (pm, es);
+            par[neg ^ 1] = (pp, es);
+            // `comisd` + `ja` keeps lo (NaN replaces it); `jb` keeps hi (NaN keeps it).
+            if !(qcmp(lo, par[0]) > 0.0) {
+                lo = par[0];
+            }
+            if !(qcmp(hi, par[1]) < 0.0) {
+                hi = par[1];
+            }
+        }
+        rec[i] = [lo.0, lo.1, hi.0, hi.1];
+        if (hi.0 * lo.1 - lo.0 * hi.1) + (hi.0 - lo.0) * TRI_SPH_ROOT_EPS > 0.0 {
+            let ref_pt = out.pt[1];
+            let ew = p[j] - p[i];
+            let dx = f64::from(p[i].x - ref_pt.x);
+            let dy = f64::from(p[i].y - ref_pt.y);
+            let dz = f64::from(p[i].z - ref_pt.z);
+            for root in 0..2 {
+                let num = rec[i][2 * root];
+                let den = rec[i][2 * root + 1];
+                let id = (2 * i + root) as i32;
+                let nf = num as f32;
+                let inside = signbit32(((num * 2.0 - den).abs() - den.abs()) as f32);
+                let a = inside & parity;
+                exit = (a.wrapping_neg() & id) | ((a - 1) & exit);
+                let x = f64::from(ew.x * nf) + den * dx;
+                let y = f64::from(nf * ew.y) + den * dy;
+                let z = f64::from(nf * ew.z) + den * dz;
+                let den2 = den * den;
+                let dist2 = (x * x + y * y) + z * z;
+                let cmp = signbit32((best_den2 * dist2 - den2 * best_dist2) as f32);
+                let better = cmp & (parity ^ 1) & inside;
+                let cb = f64::from(better);
+                let nb = f64::from(1 - better);
+                best_den2 = nb * best_den2 + cb * den2;
+                best_dist2 = nb * best_dist2 + cb * dist2;
+                let mask = better.wrapping_neg();
+                entry = (id & mask) | (entry & (better - 1));
+                exit_prev = (exit_prev & (better - 1)) | (mask & exit);
+                parity ^= inside;
+            }
+        }
+        i = j;
+        if i as i32 == start {
+            break;
+        }
+    }
+
+    if entry >= 0 {
+        let lo = exit_prev >> 31;
+        let leave = (exit_prev - lo) | (lo & exit);
+        if leave < 0 {
+            return false;
+        }
+        let edge_point = |id: i32| -> (Vec3, u8) {
+            let e = (id >> 1) as usize;
+            let k = (id & 1) as usize;
+            let den = rec[e][2 * k + 1];
+            let t = if den == 0.0 || den.is_nan() {
+                0.0
+            } else {
+                rec[e][2 * k] / den
+            };
+            let t = t as f32;
+            let vi = p[e];
+            let vj = p[DEC3[e]];
+            (
+                Vec3::new(
+                    (vj.x - vi.x) * t + vi.x,
+                    (vj.y - vi.y) * t + vi.y,
+                    (vj.z - vi.z) * t + vi.z,
+                ),
+                DEC3[e] as u8 | 0xA0,
+            )
+        };
+        let (p0, f0) = edge_point(entry);
+        out.pt[0] = p0;
+        out.i_feature[1][1] = 0x40;
+        out.i_feature[0][1] = 0x40;
+        out.i_feature[0][0] = f0;
+        let (p1, f1) = edge_point(leave);
+        out.pt[1] = p1;
+        out.i_feature[1][0] = f1;
+    } else {
+        // The box corner deepest against the normal, swept to the opposite corner.
+        let corner = [
+            f64::from((-sgnnz(nl[0] as f32)) as f32 * size[0]),
+            f64::from((-sgnnz(nl[1] as f32)) as f32 * size[1]),
+            f64::from((-sgnnz(nl[2] as f32)) as f32 * size[2]),
+        ];
+        let k2 = [corner[0] * -2.0, corner[1] * -2.0, corner[2] * -2.0];
+        let num = ((l[0][0] - corner[0]) * nl[0] + (l[0][1] - corner[1]) * nl[1])
+            + (l[0][2] - corner[2]) * nl[2];
+        let den = (k2[0] * nl[0] + k2[1] * nl[1]) + k2[2] * nl[2];
+        let mut hit = signbit32(((num * 2.0 - den).abs() - den.abs()) as f32);
+        let pp = [
+            corner[0] * den + k2[0] * num,
+            corner[1] * den + k2[1] * num,
+            corner[2] * den + k2[2] * num,
+        ];
+        for k in 0..3 {
+            let e = sub3(l[INC3[k]], l[k]);
+            let q = sub_scaled(pp, l[k], den);
+            hit &= signbit32(side_d(e, q, nl) as f32);
+        }
+        if hit == 0 {
+            return false;
+        }
+        let w = box_to_world(bx, pp, 1.0 / den);
+        out.pt = [w, w];
+        out.i_feature = [[0x40, 0x40], [0x40, 0x40]];
+        out.n_alt = w;
+        out.n = tri.n;
+        out.unk_84 = 1000;
+    }
+
+    // Box edges piercing a large triangle → border points.
+    let an = [nl[0].abs(), nl[1].abs(), nl[2].abs()];
+    let c1 = signbit_f(an[0] - an[1]);
+    let c2 = signbit_f(an[c1] - an[2]);
+    let sel = pick3(c1, c2);
+    let e1 = sub3(l[1], l[0]);
+    let e2 = sub3(l[2], l[0]);
+    let cx = e1[1] * e2[2] - e1[2] * e2[1];
+    let cy = e1[2] * e2[0] - e2[2] * e1[0];
+    let cz = e2[1] * e1[0] - e1[1] * e2[0];
+    let area2 = (cx * cx + cy * cy) + cz * cz;
+    let fa = size[INC3[sel]] * size[DEC3[sel]];
+    // `comisd` + `jbe`: NaN skips.
+    if !(area2 > f64::from(fa * fa)) {
+        return true;
+    }
+    let n0 = out.border.len() as i32;
+    let mut ci = [0i32; 3];
+    for edge in 0..12usize {
+        let a = edge >> 2;
+        ci[a] = -1;
+        ci[INC3[a]] = 2 * (edge as i32 & 1) - 1;
+        ci[DEC3[a]] = (edge as i32 & 2) - 1;
+        let cor = [
+            f64::from(ci[0] as f32 * size[0]),
+            f64::from(ci[1] as f32 * size[1]),
+            f64::from(ci[2] as f32 * size[2]),
+        ];
+        let num = (nl[0] * (l[0][0] - cor[0]) + (l[0][1] - cor[1]) * nl[1])
+            + (l[0][2] - cor[2]) * nl[2];
+        let dd = (f64::from(size[a]) * nl[a]) * 2.0;
+        if signbit32(((dd - num * 2.0).abs() - (-dd).abs()) as f32) == 0 {
+            continue;
+        }
+        let sg = f64::from(sgnnz(nl[a] as f32));
+        let den = nl[a] * sg;
+        let mut pp = [cor[0] * den, cor[1] * den, cor[2] * den];
+        pp[a] += num * sg;
+        let mut hit = 1;
+        for k in 0..3 {
+            let e = sub3(l[INC3[k]], l[k]);
+            let q = sub_scaled(pp, l[k], den);
+            hit &= signbit32(side_d(e, q, nl) as f32);
+        }
+        let len = out.border.len() as i32;
+        if hit != 0 && len.wrapping_sub(out.border_cap) < 0 {
+            let w = box_to_world(bx, pp, 1.0 / den);
+            out.border.push(w);
+        }
+    }
+    if an[sel] > TRI_BOX_FACE_COS
+        && (out.border.len() as i32) > n0 + 1
+        && out.unk_84 < 6
+    {
+        let mut cc = [0.0f64; 3];
+        cc[sel] = f64::from(sgnnz(l[0][sel] as f32) as f32 * size[sel]);
+        let s1 = side_d(e1, sub3(cc, l[0]), nl) as f32;
+        let s2 = side_d(sub3(l[2], l[1]), sub3(cc, l[1]), nl) as f32;
+        let s3 = side_d(sub3(l[0], l[2]), sub3(cc, l[2]), nl) as f32;
+        if (s1.to_bits() & s2.to_bits() & s3.to_bits()) >> 31 != 0 {
+            out.unk_84 = 6;
+            out.n = tri.n;
+            out.n_alt = out.border[n0 as usize];
+        }
+    }
+    true
+}
+
+/// INTERSECT box–tri (0x35164780): [`intersect_tri_box`] with swapped operands, then (always)
+/// `pt[0] ↔ pt[1]`, the feature swap and `n = −n`.
+pub fn intersect_box_tri(bx: &BoxPrim, tri: &Triangle, out: &mut PrimInters) -> bool {
+    let r = intersect_tri_box(tri, bx, out);
+    out.pt.swap(0, 1);
+    swap_features(out);
+    negate_n(out);
     r
 }
 

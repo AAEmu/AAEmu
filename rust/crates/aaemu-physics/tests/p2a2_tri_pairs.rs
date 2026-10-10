@@ -13,7 +13,7 @@
 use aaemu_physics::collision::contact::PrimInters;
 use aaemu_physics::collision::pairs::tri_pairs as tp;
 use aaemu_physics::geometry::primitives::{BoxPrim, HeightfieldPrim, RayPrim, SpherePrim, Triangle};
-use aaemu_physics::math::{Mat33, Vec3};
+use aaemu_physics::math::{Mat33, Quat, Vec3};
 use std::io::Write as _;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -134,7 +134,12 @@ fn words_inters(w: &[u32]) -> PrimInters {
         tolerance: wf(w[10]),
         id: [w[11] as u16 as i16, (w[11] >> 16) as u16 as i16],
         i_node: [w[12] as i32, w[13] as i32],
-        border: Vec::new(),
+        border: if has_border(w) {
+            vec![Vec3::ZERO; w[16] as usize]
+        } else {
+            Vec::new()
+        },
+        border_cap: if has_border(w) { w[17] as i32 } else { 0 },
         n_alt: wv(&w[18..]),
         unk_84: w[21] as i32,
     }
@@ -154,11 +159,30 @@ fn inters_words(p: &PrimInters, init: &[u32]) -> Vec<u32> {
     o.push(u32::from(p.id[0] as u16) | u32::from(p.id[1] as u16) << 16);
     o.push(p.i_node[0] as u32);
     o.push(p.i_node[1] as u32);
-    o.extend_from_slice(&init[14..18]); // ptborder / nborderpt / nbordersz: untouched by tri pairs
+    if has_border(init) {
+        o.extend([BORDER_MARK, BORDER_MARK, p.border.len() as u32, p.border_cap as u32]);
+    } else {
+        // ptborder / nborderpt / nbordersz without a buffer: untouched.
+        assert!(p.border.is_empty());
+        o.extend_from_slice(&init[14..18]);
+    }
     vw(p.n_alt, &mut o);
     o.push(p.unk_84 as u32);
     o.extend_from_slice(&init[22..24]);
+    if has_border(init) {
+        // The oracle prints the first 16 points of its zeroed buffer.
+        for k in 0..16 {
+            vw(p.border.get(k).copied().unwrap_or(Vec3::ZERO), &mut o);
+        }
+    }
     o
+}
+
+/// `ptborder` words set to this marker make the oracle supply a real border buffer.
+const BORDER_MARK: u32 = 0xB0B0_B0B0;
+
+fn has_border(w: &[u32]) -> bool {
+    w[14] == BORDER_MARK && w[15] == BORDER_MARK
 }
 
 // ------------------------------------------------------------------------------ oracle
@@ -234,7 +258,10 @@ fn parse(probe: &str, text: &str) -> Vec<Row> {
                 input.push(u32::from_str_radix(t, 16).unwrap());
             }
             let ret = it.next().unwrap().parse().unwrap();
-            let out = it.map(|t| u32::from_str_radix(t, 16).unwrap()).collect();
+            let out = it
+                .filter(|t| *t != "border")
+                .map(|t| u32::from_str_radix(t, 16).unwrap())
+                .collect();
             Row { input, ret, out }
         })
         .collect()
@@ -592,6 +619,142 @@ fn gen_tri_sph(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
         .collect()
 }
 
+fn rand_box(rng: &mut Rng) -> BoxPrim {
+    let basis = if rng.chance(25) {
+        Mat33::IDENTITY
+    } else {
+        let mut q = [0.0f32; 4];
+        loop {
+            for c in &mut q {
+                *c = rng.f(-1.0, 1.0);
+            }
+            let l2 = q.iter().map(|c| c * c).sum::<f32>();
+            if l2 > 0.01 && l2 <= 1.0 {
+                let inv = 1.0 / l2.sqrt();
+                for c in &mut q {
+                    *c *= inv;
+                }
+                break;
+            }
+        }
+        Mat33::from_quat(Quat::new(q[0], q[1], q[2], q[3]))
+    };
+    let size = if rng.chance(15) {
+        Vec3::new(
+            (rng.i(4) + 1) as f32 * 0.5,
+            (rng.i(4) + 1) as f32 * 0.5,
+            (rng.i(4) + 1) as f32 * 0.5,
+        )
+    } else {
+        Vec3::new(rng.f(0.05, 2.0), rng.f(0.05, 2.0), rng.f(0.05, 2.0))
+    };
+    let center = if rng.chance(20) { rng.v(500.0) } else { rng.v(2.0) };
+    BoxPrim {
+        oriented: i32::from(!basis.is_identity()),
+        basis,
+        center,
+        size,
+    }
+}
+
+/// A triangle related to a box: random around it, large through it, one vertex inside, all
+/// inside, nearly parallel to a face (border / face-normal paths), on grid coordinates.
+fn box_tri(rng: &mut Rng, b: &BoxPrim) -> Triangle {
+    let to_world = |l: Vec3| b.basis.t_mul_vec(l) + b.center;
+    let s = b.size;
+    let in_box = |rng: &mut Rng| {
+        Vec3::new(
+            rng.f(-1.0, 1.0) * s.x,
+            rng.f(-1.0, 1.0) * s.y,
+            rng.f(-1.0, 1.0) * s.z,
+        )
+    };
+    let around = |rng: &mut Rng, k: f32| {
+        Vec3::new(
+            rng.f(-k, k) * s.x,
+            rng.f(-k, k) * s.y,
+            rng.f(-k, k) * s.z,
+        )
+    };
+    let l = match rng.i(9) {
+        0 => [in_box(rng), around(rng, 3.0), around(rng, 3.0)],
+        1 => [in_box(rng), in_box(rng), in_box(rng)],
+        2 | 3 => {
+            // large, nearly parallel to a face, crossing the box
+            let ax = rng.i(3) as usize;
+            let h = rng.f(-1.1, 1.1) * s[ax];
+            let big = rng.f(3.0, 30.0) * (s.x + s.y + s.z);
+            let mut p = [Vec3::ZERO; 3];
+            for (k, v) in p.iter_mut().enumerate() {
+                let ang = k as f32 * 2.094_395 + rng.f(-0.3, 0.3);
+                let mut w = Vec3::ZERO;
+                w[(ax + 1) % 3] = big * ang.cos();
+                w[(ax + 2) % 3] = big * ang.sin();
+                w[ax] = h + rng.f(-0.1, 0.1) * s[ax] * f32::from(u8::from(rng.chance(50)));
+                *v = w;
+            }
+            if rng.chance(50) {
+                p.swap(1, 2);
+            }
+            p
+        }
+        4 => [around(rng, 6.0), around(rng, 6.0), around(rng, 6.0)],
+        5 => {
+            let mut g = || {
+                let mut c = |n: f32| (rng.i(9) as f32 - 4.0) * 0.5 * n;
+                Vec3::new(c(1.0), c(1.0), c(1.0))
+            };
+            [g(), g(), g()]
+        }
+        _ => [around(rng, 2.0), around(rng, 2.0), around(rng, 2.0)],
+    };
+    make_tri(rng, [to_world(l[0]), to_world(l[1]), to_world(l[2])])
+}
+
+fn gen_tri_box(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
+    let mut rng = Rng(seed);
+    (0..n)
+        .map(|_| {
+            let b = rand_box(&mut rng);
+            let t = box_tri(&mut rng, &b);
+            let mut w = Vec::new();
+            if swapped {
+                box_words(&b, &mut w);
+                tri_words(&t, &mut w);
+            } else {
+                tri_words(&t, &mut w);
+                box_words(&b, &mut w);
+            }
+            let k = w.len();
+            init_words(&mut rng, &mut w);
+            if rng.chance(70) {
+                w[k + 14] = BORDER_MARK;
+                w[k + 15] = BORDER_MARK;
+                w[k + 16] = rng.i(3);
+                w[k + 17] = [0, 2, 4, 16, 16][rng.i(5) as usize];
+            }
+            match rng.i(3) {
+                0 => {}
+                1 => {
+                    w[k + 3] = fw(b.center.x);
+                    w[k + 4] = fw(b.center.y);
+                    w[k + 5] = fw(b.center.z);
+                }
+                _ => {
+                    let q = t.pt[0] + rng.v(2.0);
+                    w[k + 3] = fw(q.x);
+                    w[k + 4] = fw(q.y);
+                    w[k + 5] = fw(q.z);
+                }
+            }
+            if rng.chance(10) {
+                w[k + 21] = rng.i(8); // unk_84 below / at / above 6
+            }
+            Case { words: w }
+        })
+        .collect()
+}
+
 // -------------------------------------------------------------------------------- tests
 
 #[test]
@@ -653,6 +816,30 @@ fn fuzz_tri_sph() {
     }
     if let Some(rows) = live("p2a2_i_sph_tri", gen_tri_sph(1005, 5000, true)) {
         check_inters("sph_tri", &rows, 4, 12, words_sph, words_tri, tp::intersect_sph_tri);
+    }
+}
+
+#[test]
+fn tri_box_matches_sub_35162aa0() {
+    let rows = golden("p2a2_i_tri_box", || gen_tri_box(6, 800, false));
+    let hits = check_inters("tri_box", &rows, 12, 16, words_tri, words_box, tp::intersect_tri_box);
+    assert!(hits > 80, "too few contacts in the golden set: {hits}");
+}
+
+#[test]
+fn box_tri_matches_sub_35164780() {
+    let rows = golden("p2a2_i_box_tri", || gen_tri_box(7, 300, true));
+    let hits = check_inters("box_tri", &rows, 16, 12, words_box, words_tri, tp::intersect_box_tri);
+    assert!(hits > 30, "too few contacts in the golden set: {hits}");
+}
+
+#[test]
+fn fuzz_tri_box() {
+    if let Some(rows) = live("p2a2_i_tri_box", gen_tri_box(1006, 30000, false)) {
+        check_inters("tri_box", &rows, 12, 16, words_tri, words_box, tp::intersect_tri_box);
+    }
+    if let Some(rows) = live("p2a2_i_box_tri", gen_tri_box(1007, 5000, true)) {
+        check_inters("box_tri", &rows, 16, 12, words_box, words_tri, tp::intersect_box_tri);
     }
 }
 
