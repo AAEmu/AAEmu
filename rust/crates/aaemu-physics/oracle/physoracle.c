@@ -416,6 +416,8 @@ static int ent_type_id(const char *s) {
   return atoi(s);
 }
 
+#include "p1c_mesh.c" /* P1c: trimesh geometry (type=mesh, geominfo) */
+
 static void cmd_rwi(const Toks *t) {
   unsigned char p[96];
   unsigned char hits[80 * 16];
@@ -443,6 +445,8 @@ static void cmd_rwi(const Toks *t) {
     out_f((float *)(h + 36), 3);
     printf(" n");
     out_f((float *)(h + 48), 3);
+    if (atoi(get(t, "ext", "0"))) /* P1c: +24/+26 int16, +32, +60 order index, +64 iPrim (geom-local id) */
+      printf(" x %d %d %d %d %d", *(short *)(h + 24), *(short *)(h + 26), *(int *)(h + 32), *(int *)(h + 60), *(int *)(h + 64));
     printf("\n");
   }
 }
@@ -480,7 +484,12 @@ static void run_line(char *line) {
     for (int o = 0; o < 632 - 104; o += 4) printf(" %08x", *(uint32_t *)((char *)vars + o));
     printf("\n");
   } else if (!strcmp(c, "geom")) {
-    add_obj(need(&t, "name"), box_prim_geom(&t, geom_type_id(need(&t, "type"))), 0);
+    if (!strcmp(need(&t, "type"), "mesh")) add_obj(need(&t, "name"), p1c_geom_mesh(&t), 0); /* P1c */
+    else add_obj(need(&t, "name"), box_prim_geom(&t, geom_type_id(need(&t, "type"))), 0);
+  } else if (!strcmp(c, "geominfo")) { /* P1c: summary of a registered geometry */
+    void *g = find_obj(need(&t, "name"), 0);
+    if (!g) die("unknown geom", need(&t, "name"));
+    p1c_geominfo(need(&t, "name"), g);
   } else if (!strcmp(c, "entity")) {
     unsigned char pp[512];
     tmpl_params(0, pp);
@@ -1071,6 +1080,7 @@ int main(int argc, char **argv) {
 
   FILE *f = strcmp(argv[a], "-") ? fopen(argv[a], "rb") : stdin;
   if (!f) die("cannot open scenario", argv[a]);
+  p1c_set_scenario_path(argv[a]);
   printf("physoracle 1\n");
   char line[4096];
   while (fgets(line, sizeof line, f)) run_line(line);
