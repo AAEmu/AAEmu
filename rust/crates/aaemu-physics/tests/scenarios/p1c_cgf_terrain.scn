@@ -1,0 +1,17 @@
+# P1c (needs AAEMU_PHYS_CGF_DIR): corpus rigid bodies (river rock, barrel, crate) dropped onto
+# bumpy heightfield terrain (h = 0.3*((7ix + 13iy) mod 5)).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=hf type=heightfield n=128,128 step=1,1 hscale=1 fn=bumps h0=0 amp=0.3 worldhf=1
+geom name=rockb type=mesh cgf=game\objects\env\05_nature\08_cry_source\rocks\river_rocks\brown_riverrock_big_b.cgf
+geom name=barrel type=mesh cgf=game\objects\env\04_thirdforce\01_orc\barrel_orc_b01.cgf
+geom name=crate type=mesh cgf=game\objects\env\01_nuia\001_ndeco\ndeco_box01.cgf
+entity name=rockb type=rigid pos=60,64,4 q=0.0000000,0.2164396,0.0000000,0.9762960
+part ent=rockb geom=rockb density=2500
+entity name=barrel type=rigid pos=64,64,4 q=0.5735764,0.0000000,0.0000000,0.8191520
+part ent=barrel geom=barrel mass=30
+entity name=crate type=rigid pos=68,64,4
+part ent=crate geom=crate mass=5
+trace ents=rockb,barrel,crate
+print
+step n=90
+step n=210 every=5

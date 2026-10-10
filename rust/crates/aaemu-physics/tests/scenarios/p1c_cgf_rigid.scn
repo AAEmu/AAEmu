@@ -1,0 +1,30 @@
+# P1c mesh-mesh (needs AAEMU_PHYS_CGF_DIR): real corpus models as rigid bodies: a river rock
+# (OBB tree) onto a static trimesh floor, a barrel onto a static corpus rock, a small crate
+# onto the floor tilted, a single-box-tree model (ndeco_alchemy_gas01) onto the floor.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=rrock type=mesh cgf=game\objects\env\05_nature\08_cry_source\rocks\river_rocks\brown_riverrock_big_c.cgf
+geom name=rockb type=mesh cgf=game\objects\env\05_nature\08_cry_source\rocks\river_rocks\brown_riverrock_big_b.cgf
+geom name=barrel type=mesh cgf=game\objects\env\04_thirdforce\01_orc\barrel_orc_b01.cgf
+geom name=crate type=mesh cgf=game\objects\env\01_nuia\001_ndeco\ndeco_box01.cgf
+geom name=gas type=mesh cgf=game\objects\env\01_nuia\001_ndeco\ndeco_alchemy_gas01.cgf
+geom name=floor type=mesh gen=grid nx=8 ny=8 step=4
+entity name=floor type=static pos=64,64,0
+part ent=floor geom=floor mass=0
+entity name=rrock type=static pos=70,64,1.2
+part ent=rrock geom=rrock mass=0
+entity name=rockb type=rigid pos=58,64,3 q=0.1736482,0.0000000,0.0000000,0.9848078
+part ent=rockb geom=rockb density=2500
+entity name=barrel type=rigid pos=70.3,64.2,5 q=0.0000000,0.0871557,0.0000000,0.9961947
+part ent=barrel geom=barrel mass=30
+entity name=crate type=rigid pos=62,60,2.5 q=0.1830127,0.1830127,0.0000000,0.9659258
+part ent=crate geom=crate mass=5
+entity name=gas type=rigid pos=66,60,2.5
+part ent=gas geom=gas mass=3
+trace ents=rockb,barrel,crate,gas
+print
+step n=90
+step n=210 every=5
+status target=rockb type=8 dump=60,16
+status target=barrel type=8 dump=60,16
+status target=crate type=8 dump=60,16
+status target=gas type=8 dump=60,16
