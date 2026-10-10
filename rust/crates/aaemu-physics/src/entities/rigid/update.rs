@@ -327,7 +327,7 @@ fn swept_box_clear(w: &mut World, e: EntIdx, v41: f32, v192: u32, tid: usize) ->
     let hi = Vec3::new(hi[0], hi[1], hi[2]);
     let list = w.get_entities_in_box(lo, hi, 263, Some(e), tid);
     let half = Vec3::new((bbox[1].x - bbox[0].x) * 0.5, (bbox[1].y - bbox[0].y) * 0.5, (bbox[1].z - bbox[0].z) * 0.5);
-    let bx = crate::geometry::shapes::BoxGeom::new(crate::geometry::BoxPrim {
+    let bx = crate::geometry::shapes::BoxGeom::new(&crate::geometry::primitives::BoxPrim {
         basis: Mat33::IDENTITY,
         center: Vec3::ZERO,
         size: half,
@@ -491,7 +491,10 @@ pub fn register_contacts(w: &mut World, e: EntIdx, _dt: f32, n_max: i32) -> i32 
                 v94 = d;
             }
             if w.contacts.get(v77).flags & 0x100_0000 != 0 && fit.ok && v94 < v43 * 0.050_000_001 {
-                let base = w.solver_thread(tid).alloc_tmp_contacts_ext(&mut w.contacts, 2);
+                let base = {
+                    let (sol, pool) = w.solver_and_pool(tid);
+                    sol.alloc_tmp_contacts(pool, 2)
+                };
                 let rec1 = base;
                 let rec2 = ContactId(base.0 + 1);
                 v80 = rec2;

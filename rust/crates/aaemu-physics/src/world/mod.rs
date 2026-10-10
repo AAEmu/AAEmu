@@ -29,6 +29,7 @@ pub mod grid;
 pub mod grid_query;
 pub mod queries;
 pub mod queue;
+pub mod step;
 pub mod terrain;
 
 use crate::entities::base::Entity;
@@ -192,6 +193,8 @@ pub struct World {
     pub group_848: Vec<i32>,
     /// `+1752` awake list (post-step job list head).
     pub awake_list: EntIdx,
+    /// `+22440` entities whose island finished in the post-solve.
+    pub done_list: EntIdx,
     /// The calling thread's physics index (TLS); 4 until the first `TimeStep` with dt > 0.
     pub tls_thread: i32,
     /// `+4448` POD thread id (-1).
@@ -208,6 +211,9 @@ pub struct World {
     pub tscratch: Vec<crate::collision::prim_intersect::scratch::ThreadScratch>,
     /// The static dummy contact of RegisterContactPoint's aggregate path (`qword_3521AF50`).
     pub agg_contact_id: crate::solver::ContactId,
+    /// Per-thread contact-solver blocks (`W+21928+80·tid` → solver context), created on
+    /// first use.
+    pub solver: Vec<Option<Box<crate::solver::SolverThread>>>,
     /// Query state: ray-limit settings, query queues, terrain basis ([`queries::QueryState`]).
     pub queries: queries::QueryState,
 }
@@ -271,6 +277,7 @@ impl World {
             group_840: Vec::new(),
             group_848: Vec::new(),
             awake_list: EntIdx::NONE,
+            done_list: EntIdx::NONE,
             tls_thread: 4,
             pod_thread: -1,
             queue: queue::CommandQueue::default(),
@@ -281,6 +288,7 @@ impl World {
                 .map(crate::collision::prim_intersect::scratch::ThreadScratch::new)
                 .collect(),
             agg_contact_id: crate::solver::ContactId::NONE,
+            solver: (0..MAX_CALLERS).map(|_| None).collect(),
             queries: queries::QueryState::default(),
         };
         w.ccd_scratch
@@ -295,6 +303,17 @@ impl World {
             self.agg_contact_id = self.contacts.new_sentinel();
         }
         self.agg_contact_id
+    }
+
+    /// The solver block of thread `tid`.
+    pub fn solver_thread(&mut self, tid: usize) -> &mut crate::solver::SolverThread {
+        self.solver[tid].get_or_insert_with(|| Box::new(crate::solver::SolverThread::new(tid)))
+    }
+
+    /// The solver block of thread `tid` together with the contact pool.
+    pub fn solver_and_pool(&mut self, tid: usize) -> (&mut crate::solver::SolverThread, &mut crate::solver::ContactPool) {
+        let s = self.solver[tid].get_or_insert_with(|| Box::new(crate::solver::SolverThread::new(tid)));
+        (s, &mut self.contacts)
     }
 
     /// The entity object behind `e`.
