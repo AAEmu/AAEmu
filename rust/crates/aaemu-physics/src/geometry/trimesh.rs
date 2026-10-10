@@ -27,7 +27,7 @@
 //! | [`protocol`] | the `geometry_under_test` protocol: slots 48, 53, 55, 56, 57 (mesh and primitives) |
 //! | [`register`] | slot 54 `RegisterIntersection` and the feature-polygon helpers (slots 58 / 59) |
 //! | [`intersect`] | the generic `CGeometry::Intersect` (0x3514FD70) with its tree traversals and the mesh's slot 10 |
-//! | [`raytest`] | the mesh ray path (uses the grid of [`inside`]) |
+//! | [`raytest`] | slot 10 ray branch (0x351C9910) on the grid of [`inside`], slot 48 `PreparePrimitive` (0x351C2A60) |
 //! | [`unproject_sphere`] | slot 49 `UnprojectSphere` |
 
 pub mod build;

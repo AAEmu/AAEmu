@@ -192,6 +192,9 @@ impl GeomProtocol for RayGeom {
     fn proto_bbox(&self) -> crate::geometry::primitives::BoxPrim {
         crate::geometry::Geometry::bbox(self)
     }
+    fn proto_ray(&self) -> Option<(crate::geometry::primitives::RayPrim, crate::math::Vec3)> {
+        Some((self.prim, self.ndir))
+    }
     fn proto_prepare(&self, ctx: &mut IntersectCtx<'_>, side: usize, keep_prev: bool) -> i32 {
         self.prepare_for_intersection_test(&mut ctx.s[side].gt, None, None, keep_prev)
     }

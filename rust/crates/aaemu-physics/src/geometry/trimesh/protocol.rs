@@ -233,6 +233,12 @@ pub trait GeomProtocol: IntersectionProtocol + std::fmt::Debug {
         self.proto_bv_tree().tree().bbox()
     }
 
+    /// `CRayGeom` only: the ray primitive (`+48` origin, `+60` dir) and its normalised direction
+    /// (`+72`), which the mesh's slot 10 ray path reads directly (P1c-ray, additive).
+    fn proto_ray(&self) -> Option<(crate::geometry::primitives::RayPrim, Vec3)> {
+        None
+    }
+
     /// Slot 53 `PrepareForIntersectionTest(gtest, other, gtestOther, bKeepPrevContacts)`.
     /// Returns 0 to abort the test.
     fn proto_prepare(&self, ctx: &mut IntersectCtx<'_>, side: usize, keep_prev: bool) -> i32;
