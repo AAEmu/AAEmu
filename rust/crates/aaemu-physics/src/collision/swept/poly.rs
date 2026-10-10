@@ -50,6 +50,9 @@
 //! neighbours (so `−0` counts). Returns `|changes(lo) − changes(hi)|`.
 
 pub mod crt;
+pub mod rot_ray_sph;
+
+pub use rot_ray_sph::unproject_rot_ray_sph;
 
 use super::common::{le_or_nan_d, lt_or_nan_d};
 use super::UnprojTables;
@@ -456,7 +459,7 @@ fn solve_quartic(d: &[f64; 5], roots: &mut [f64; 4]) -> Option<usize> {
     Some(n)
 }
 
-/// Fill the cells this group owns.
+/// Fill the cells this group owns: `[1][ray][sph]` and `[1][sph][ray]`.
 pub fn fill(t: &mut UnprojTables) {
-    super::common::fill_none(t);
+    rot_ray_sph::fill(t);
 }

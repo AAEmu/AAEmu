@@ -6,12 +6,15 @@
 //! check mirrors `probe::check` (oracle → regenerate + compare, `AAEMU_PHYS_BLESS`,
 //! `AAEMU_PHYS_P2B_LIVE`, `AAEMU_PHYS_P2B_DUMP`; no oracle → port vs. golden).
 
+use aaemu_physics::collision::contact::UnprojParams;
 use aaemu_physics::collision::swept::poly::{
     self, count_roots, crt, derivative, divide, find_roots_deg, Poly4,
 };
 use aaemu_physics::collision::swept::probe::{
-    oracle_raw, seed_of, word_diff, Rng, DUMP_ENV, LIVE_ENV,
+    self as probe, oracle_raw, seed_of, word_diff, Case, Rng, DUMP_ENV, LIVE_ENV,
 };
+use aaemu_physics::geometry::primitives::{Primitive, RayPrim, SpherePrim};
+use aaemu_physics::math::Vec3;
 use aaemu_physics::oracle::{golden_dir, oracle_path, BLESS_ENV};
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -621,4 +624,175 @@ fn hand_checked_roots() {
     let l = Poly4::new([0.5, 1.0, 0.0, 0.0, 0.0]);
     assert_eq!(poly::find_roots(&l, 0.0, 1.0, &mut r, 20), 1);
     assert_eq!(r[0], 0.5);
+}
+
+// ------------------------------------------------------------------ rotational ray–sphere
+
+fn add(a: Vec3, b: Vec3) -> Vec3 {
+    Vec3::new(a.x + b.x, a.y + b.y, a.z + b.z)
+}
+fn scale(a: Vec3, k: f32) -> Vec3 {
+    Vec3::new(a.x * k, a.y * k, a.z * k)
+}
+fn cross(a: Vec3, b: Vec3) -> Vec3 {
+    Vec3::new(
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x,
+    )
+}
+fn dot(a: Vec3, b: Vec3) -> f32 {
+    a.x * b.x + a.y * b.y + a.z * b.z
+}
+
+/// `pt` rotated by `phi` about the axis `a` through `c` (Rodrigues, float — only used to place
+/// test geometry).
+fn rotate(pt: Vec3, c: Vec3, a: Vec3, phi: f32) -> Vec3 {
+    let v = Vec3::new(pt.x - c.x, pt.y - c.y, pt.z - c.z);
+    let (s, co) = phi.sin_cos();
+    let along = scale(a, dot(a, v) * (1.0 - co));
+    add(c, add(add(scale(v, co), scale(cross(a, v), s)), along))
+}
+
+/// Ray + sphere + rotational params (axis, centre, tmax = sin(max angle), min_pt_dist) placed so
+/// that the rotating segment meets the sphere at its ends, at its side, never, or already.
+fn rot_ray_sph_setup(rng: &mut Rng) -> (RayPrim, SpherePrim, UnprojParams) {
+    let axis = rng.unit_or_axis(0.3);
+    let center = if rng.chance(0.2) {
+        Vec3::new(0.0, 0.0, 0.0)
+    } else {
+        rng.vec(-10.0, 10.0)
+    };
+    let len = if rng.chance(0.05) {
+        0.0
+    } else {
+        rng.f(0.1, 6.0)
+    };
+    let origin = if rng.chance(0.15) {
+        // origin at / near the rotation centre (exercises the min_pt_dist skip)
+        add(center, rng.vec(-0.02, 0.02))
+    } else {
+        add(center, rng.vec(-4.0, 4.0))
+    };
+    let dir = if rng.chance(0.1) {
+        // along the axis or perpendicular to it
+        if rng.chance(0.5) {
+            scale(axis, len)
+        } else {
+            let u = cross(axis, rng.unit());
+            let l = dot(u, u).sqrt();
+            if l > 1e-3 {
+                scale(u, len / l)
+            } else {
+                scale(rng.unit(), len)
+            }
+        }
+    } else {
+        scale(rng.unit_or_axis(0.2), len)
+    };
+    let r = if rng.chance(0.05) {
+        rng.f(0.001, 0.05)
+    } else {
+        rng.f(0.05, 2.5)
+    };
+    // the point of the segment that should touch: an end or an interior point
+    let u = match rng.below(4) {
+        0 => 0.0,
+        1 => 1.0,
+        _ => rng.f(0.0, 1.0),
+    };
+    let x = add(origin, scale(dir, u));
+    let phi = rng.f(-0.3, 1.9);
+    let xr = rotate(x, center, axis, phi);
+    let sc = match rng.below(6) {
+        0 => rng.vec(-10.0, 10.0),
+        1 => add(x, rng.vec(-r, r)), // overlapping already
+        _ => {
+            let off = rng.unit();
+            add(xr, scale(off, r * rng.f(0.3, 1.3)))
+        }
+    };
+    let p = UnprojParams {
+        dir: axis,
+        center,
+        tmax: rng.f(0.05, 1.0),
+        min_pt_dist: if rng.chance(0.2) {
+            rng.f(0.0, 1.0)
+        } else {
+            rng.f(0.001, 0.05)
+        },
+        max_cos: rng.pick(&[0.1, 0.9998]),
+        ..UnprojParams::default()
+    };
+    (RayPrim { origin, dir }, SpherePrim { center: sc, r }, p)
+}
+
+fn gen_rot_ray_sph(rng: &mut Rng) -> Case {
+    let (ray, sph, p) = rot_ray_sph_setup(rng);
+    let c = Case::new(1, &Primitive::Ray(ray), &Primitive::Sphere(sph), &p);
+    if rng.chance(0.2) {
+        c.with_area(rng.pick(&[1, 4, 256]), 0.01)
+    } else {
+        c
+    }
+}
+
+fn gen_rot_sph_ray(rng: &mut Rng) -> Case {
+    let (ray, sph, p) = rot_ray_sph_setup(rng);
+    let c = Case::new(1, &Primitive::Sphere(sph), &Primitive::Ray(ray), &p);
+    if rng.chance(0.2) {
+        c.with_area(rng.pick(&[1, 4, 256]), 0.01)
+    } else {
+        c
+    }
+}
+
+#[test]
+fn rot_ray_sph_matches_dll() {
+    probe::check("p2b_poly_rot_ray_sph", 300, &gen_rot_ray_sph);
+}
+
+#[test]
+fn rot_sph_ray_matches_dll() {
+    probe::check("p2b_poly_rot_sph_ray", 300, &gen_rot_sph_ray);
+}
+
+#[test]
+fn rot_ray_sph_hand_checked() {
+    // The segment x = 2, y ∈ [−3, 3] rotates about +z through the origin; its line stays at
+    // distance 2 from the axis. A sphere of radius 0.5 centred on the segment at (2, 0, 0) is
+    // left by the side of the segment when 2 − 2·cos φ = 0.5: cos φ = 0.75, sin φ = √7/4 (the
+    // end points, on a circle of radius √13, are far away).
+    let mut p = UnprojParams {
+        dir: Vec3::new(0.0, 0.0, 1.0),
+        min_pt_dist: 0.01,
+        ..UnprojParams::default()
+    };
+    let ray = RayPrim {
+        origin: Vec3::new(2.0, -3.0, 0.0),
+        dir: Vec3::new(0.0, 6.0, 0.0),
+    };
+    let sph = SpherePrim {
+        center: Vec3::new(2.0, 0.0, 0.0),
+        r: 0.5,
+    };
+    let mut out = aaemu_physics::collision::contact::UnprojResult::default();
+    let ret = poly::unproject_rot_ray_sph(&mut p, &ray, -1, &sph, -1, &mut out);
+    assert_eq!(ret, 1);
+    assert!((out.t - 7f64.sqrt() / 4.0).abs() < 1e-6, "{out:?}");
+    assert!((out.cos_t - 0.75).abs() < 1e-6, "{out:?}");
+    assert_eq!(out.i_feature, [0x20, 0]);
+    // pt: the point of the rotated line closest to the centre, (2 + 0.5·cos φ, 0.5·sin φ);
+    // n points from it to the sphere centre
+    assert!((out.pt.x - 2.375).abs() < 1e-5, "{out:?}");
+    assert!((out.n.x + 0.75).abs() < 1e-5 && (f64::from(out.n.y) + 7f64.sqrt() / 4.0).abs() < 1e-5);
+    // a sphere the segment does not touch now is not unprojected
+    let far = SpherePrim {
+        center: Vec3::new(0.0, 2.5, 0.0),
+        r: 0.5,
+    };
+    assert_eq!(
+        poly::unproject_rot_ray_sph(&mut p, &ray, -1, &far, -1, &mut out),
+        0
+    );
 }
