@@ -1,0 +1,138 @@
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+area name=glob kind=global
+# the temp lists GetEntitiesInBox needs exist after the first step with an ordinary entity
+geom name=pool_g type=box size=0.5,0.5,0.5
+entity name=pool_e type=static pos=250,250,-90
+part ent=pool_e geom=pool_g mass=0
+step n=1 every=0
+params target=glob type=12 v40=0,0,1 v52=0,0,-5 i72=0
+area name=s0 kind=spline pts=10,10,0;20,12,1;30,10,2;40,15,0;45,25,-1 r=3
+params target=s0 type=18 i32=0 v4=0,0,6 f28=0.4 f40=0.3
+params target=s0 type=12 v40=0,0,1 v52=0,0,1 v24=0,0,2.5 i72=0
+area name=s1 kind=spline pts=0,0,0;5,1,0;9,4,1 r=2 pos=30,30,0 q=0,0,0.3826834,0.9238795 scale=1.3
+params target=s1 type=18 i32=0 v4=0,0,-4
+area name=s2 kind=spline pts=0,0,0;8,0,0 r=2.5 pos=10,40,0
+params target=s2 type=18 i32=0 f28=0.8
+params target=s2 type=12 v40=0,0,1 v52=0,0,0.5 v24=0,0,-1.5 i72=1
+area name=s3 kind=spline pts=50,50,0;55,52,0 r=2
+checkareas tag=p0 pt=9.2602,12.0628,-2.4936 vel=-0.9245,-0.1729,0.6206 
+checkareas tag=p1 pt=8.1505,8.2567,-2.5486 vel=-2.2476,-1.5236,1.3540 
+checkareas tag=p2 pt=8.8088,11.6169,-2.2254 vel=1.6155,0.8244,0.1191 
+checkareas tag=p3 pt=8.6370,12.4003,1.5846 vel=-0.3794,-1.8586,0.5382 
+checkareas tag=p4 pt=11.1270,9.4562,0.9870 vel=-1.6173,1.8734,-2.3864 
+checkareas tag=p5 pt=11.2287,11.7098,1.2189 vel=-2.0331,1.0861,1.8114 
+checkareas tag=p6 pt=8.2713,11.5645,-2.8550 vel=1.7556,-0.4654,1.8774 
+checkareas tag=p7 pt=10.3347,11.7439,-0.7514 vel=-0.4821,1.6084,2.1076 
+checkareas tag=p8 pt=18.8716,10.2234,-1.4492 vel=-2.9975,-1.1877,2.0521 
+checkareas tag=p9 pt=19.0713,14.7464,2.2218 vel=-2.1429,-2.2414,2.6324 
+checkareas tag=p10 pt=22.9817,9.8121,1.6665 vel=2.4147,0.3002,2.2641 
+checkareas tag=p11 pt=22.4587,9.1409,0.9489 vel=0.2326,0.0717,2.9293 
+checkareas tag=p12 pt=21.4210,14.9057,0.7399 vel=1.9181,-1.0718,2.4163 
+checkareas tag=p13 pt=21.9859,12.1645,-0.7106 vel=-2.7920,-1.1811,-1.2740 
+checkareas tag=p14 pt=17.8563,10.3873,3.9237 vel=-0.9758,1.6747,1.9546 
+checkareas tag=p15 pt=20.9076,13.5276,0.9245 vel=0.9968,0.4436,0.3776 
+checkareas tag=p16 pt=32.3964,8.2703,0.3696 vel=1.5716,-0.6215,-1.6828 
+checkareas tag=p17 pt=28.9632,12.2983,2.8456 vel=-0.0998,-1.9573,-0.5234 
+checkareas tag=p18 pt=29.4070,9.1252,-0.1343 vel=-1.4338,-0.2027,-2.6409 
+checkareas tag=p19 pt=27.6808,12.9073,3.4771 vel=-0.1946,-1.8910,-0.2229 
+checkareas tag=p20 pt=32.2891,10.0613,1.3219 vel=0.5605,-1.3149,-2.5336 
+checkareas tag=p21 pt=30.5143,8.0337,2.7410 vel=-1.1985,-0.8831,-2.0874 
+checkareas tag=p22 pt=29.9130,12.9127,0.4302 vel=-1.1348,-1.4622,-0.0054 
+checkareas tag=p23 pt=28.4304,8.1597,4.2567 vel=0.5330,1.5746,2.2730 
+checkareas tag=p24 pt=41.5168,17.2895,2.5842 vel=0.2522,1.1061,0.9768 
+checkareas tag=p25 pt=39.7129,12.5901,1.8653 vel=-1.8152,1.4093,2.5585 
+checkareas tag=p26 pt=41.4881,15.4122,-1.2324 vel=2.7942,1.2889,1.5421 
+checkareas tag=p27 pt=42.3702,17.5353,-2.5464 vel=-0.9300,1.0951,2.4144 
+checkareas tag=p28 pt=42.7589,14.3637,2.0230 vel=1.6666,-0.9069,1.8405 
+checkareas tag=p29 pt=41.8313,13.8769,0.1487 vel=-2.4949,1.6811,-2.7772 
+checkareas tag=p30 pt=38.3930,13.4158,-2.2370 vel=-2.7932,-1.0960,2.3203 
+checkareas tag=p31 pt=41.0358,13.9431,0.7916 vel=-2.4493,-0.1952,1.3348 
+checkareas tag=p32 pt=46.5546,26.0652,-0.2895 vel=-1.3710,-0.0381,2.1404 
+checkareas tag=p33 pt=45.8255,24.3737,-0.2516 vel=2.1937,-2.2136,2.9757 
+checkareas tag=p34 pt=42.4421,23.7035,-3.9899 vel=1.1677,1.4664,2.8226 
+checkareas tag=p35 pt=43.8128,24.6251,-3.1317 vel=-1.3742,2.3041,1.9608 
+checkareas tag=p36 pt=42.6273,24.2644,-1.0180 vel=1.8735,1.1658,-2.2167 
+checkareas tag=p37 pt=47.6822,26.1540,-3.3619 vel=1.1716,1.7655,2.5163 
+checkareas tag=p38 pt=42.4636,27.1551,1.1574 vel=1.0706,1.3128,-1.7290 
+checkareas tag=p39 pt=45.3957,23.6759,0.4603 vel=-1.3340,-1.6985,2.9864 
+checkareas tag=p40 pt=13.9600,9.5559,-1.0810 vel=0.4943,1.8904,0.8682 
+checkareas tag=p41 pt=12.1730,10.9185,-2.2940 vel=-0.5007,2.5600,1.8370 
+checkareas tag=p42 pt=17.5784,13.7807,2.2332 vel=-0.0502,2.1915,-1.5138 
+checkareas tag=p43 pt=12.2721,11.5350,0.5047 vel=-2.1682,2.1993,-2.3323 
+checkareas tag=p44 pt=13.8345,9.5831,1.3207 vel=-1.0442,-1.5604,-2.9798 
+checkareas tag=p45 pt=13.2653,9.1888,-2.1198 vel=2.2020,-1.6923,-2.4072 
+checkareas tag=p46 pt=13.7902,11.0730,-1.3320 vel=1.9853,-0.3408,0.3458 
+checkareas tag=p47 pt=12.0080,8.9571,-1.7448 vel=0.4901,2.2862,1.1765 
+checkareas tag=p48 pt=32.5750,11.3528,2.8437 vel=1.0255,-1.1362,0.4107 
+checkareas tag=p49 pt=33.1685,11.9380,1.1602 vel=-1.0418,1.5106,-2.8154 
+checkareas tag=p50 pt=36.0748,9.7950,-0.6000 vel=-1.3980,-2.1762,0.5434 
+checkareas tag=p51 pt=34.9144,12.2887,2.8741 vel=1.1448,-2.4024,-0.9362 
+checkareas tag=p52 pt=33.4420,13.9937,2.6537 vel=-2.3297,-0.8241,0.5411 
+checkareas tag=p53 pt=37.3898,9.0776,2.2823 vel=1.8415,1.4493,0.1188 
+checkareas tag=p54 pt=33.2378,11.4106,2.9795 vel=-0.9568,0.0044,0.4939 
+checkareas tag=p55 pt=33.3500,9.7549,1.1139 vel=2.7184,-1.7035,-1.4665 
+checkareas tag=p56 pt=42.9404,19.1743,-2.7113 vel=-2.9110,-0.2845,0.6369 
+checkareas tag=p57 pt=41.3291,18.3606,-1.0081 vel=-2.2023,-2.9205,-0.6778 
+checkareas tag=p58 pt=40.8926,19.0574,2.4957 vel=2.3926,2.9219,-2.9313 
+checkareas tag=p59 pt=41.7136,18.6469,2.0075 vel=0.2134,-2.0993,-2.7383 
+checkareas tag=p60 pt=41.1003,17.3955,-1.5895 vel=0.3184,1.6348,-0.3683 
+checkareas tag=p61 pt=41.7585,18.8610,-2.4073 vel=-0.6863,1.6490,-1.8717 
+checkareas tag=p62 pt=41.3147,18.7337,-1.2101 vel=-2.2610,1.7217,-0.1166 
+checkareas tag=p63 pt=40.4878,17.1552,0.4654 vel=1.6061,1.0709,-1.3136 
+checkareas tag=p64 pt=28.4120,27.2682,0.8827 vel=0.5833,0.2792,-1.0682 
+checkareas tag=p65 pt=37.2698,38.7642,1.1795 vel=1.7284,1.7458,1.5424 
+checkareas tag=p66 pt=33.0360,35.9737,-0.4539 vel=2.9140,2.1846,2.4937 
+checkareas tag=p67 pt=31.3957,35.3316,-0.4652 vel=0.1898,2.0945,-0.0877 
+checkareas tag=p68 pt=36.7403,36.3183,-0.4930 vel=-0.0954,0.6636,1.5747 
+checkareas tag=p69 pt=27.8620,36.9952,0.2095 vel=1.9585,-0.6324,2.6905 
+checkareas tag=p70 pt=28.6574,34.1191,0.1603 vel=2.5304,-0.2624,1.1526 
+checkareas tag=p71 pt=30.3944,33.2307,1.3062 vel=-2.2308,-1.7600,-0.6364 
+checkareas tag=p72 pt=36.0208,28.4998,0.5625 vel=-1.2952,-0.1480,-2.9281 
+checkareas tag=p73 pt=35.7966,29.8364,-0.8289 vel=0.6579,-1.1326,2.2107 
+checkareas tag=p74 pt=29.3055,36.9359,2.3610 vel=0.2465,1.3615,-1.6175 
+checkareas tag=p75 pt=27.3307,36.2181,0.1677 vel=2.6721,-0.4310,-0.8885 
+checkareas tag=p76 pt=28.2612,32.5652,0.5722 vel=-2.3956,2.2928,-2.8065 
+checkareas tag=p77 pt=30.5205,27.3040,-0.7722 vel=0.8482,2.5116,1.2883 
+checkareas tag=p78 pt=38.6131,34.6537,-0.0767 vel=-1.3240,1.4277,-1.7129 
+checkareas tag=p79 pt=30.3898,32.4301,0.6660 vel=0.4882,1.5549,-0.4591 
+checkareas tag=p80 pt=33.5236,27.4494,-0.9556 vel=-1.0524,-0.2998,1.6876 
+checkareas tag=p81 pt=31.3956,36.2853,-0.4062 vel=-2.6787,-0.9250,0.0112 
+checkareas tag=p82 pt=33.8089,32.5518,0.8408 vel=-1.1104,0.1587,2.0823 
+checkareas tag=p83 pt=32.6029,28.6168,2.0655 vel=-0.1522,-1.6076,2.6976 
+checkareas tag=p84 pt=11.2088,42.3238,0.4536 vel=1.5055,-0.4364,-1.6621 
+checkareas tag=p85 pt=8.5433,40.7494,-1.6071 vel=-1.1023,-0.2487,1.4601 
+checkareas tag=p86 pt=17.2340,38.7931,-1.1143 vel=-2.0840,-1.5911,-2.4332 
+checkareas tag=p87 pt=13.6197,39.1886,0.4280 vel=0.2885,-0.8438,-0.7360 
+checkareas tag=p88 pt=16.1355,38.4454,-0.2310 vel=1.8079,-2.6297,-0.8179 
+checkareas tag=p89 pt=10.6142,37.2777,-0.5323 vel=1.0563,-1.9916,-2.7046 
+checkareas tag=p90 pt=15.1215,40.2042,1.1941 vel=-2.0816,0.9764,2.5928 
+checkareas tag=p91 pt=18.9409,41.6797,1.2603 vel=-0.2185,-1.3719,0.8639 
+checkareas tag=p92 pt=14.8388,39.0088,0.6821 vel=1.6137,0.3562,2.2913 
+checkareas tag=p93 pt=18.5270,39.6878,-1.6586 vel=-1.2136,0.6708,-1.3877 
+checkareas tag=p94 pt=16.4059,40.0171,1.6915 vel=-0.3131,-2.5267,1.8335 
+checkareas tag=p95 pt=18.6433,38.6673,0.7240 vel=2.1600,-0.0971,-1.2839 
+checkareas tag=p96 pt=52.9507,48.0161,-1.3473 vel=-1.2545,-0.5712,-0.0699 
+checkareas tag=p97 pt=53.6770,51.8523,0.8040 vel=1.7353,-2.7371,1.6700 
+checkareas tag=p98 pt=51.5889,49.2208,1.1294 vel=-2.6615,-2.4479,-2.5704 
+checkareas tag=p99 pt=54.7269,48.5539,1.6259 vel=2.6966,-0.6587,-2.0264 
+checkareas tag=p100 pt=54.3756,49.7380,-1.8163 vel=-1.5025,0.7046,1.6208 
+checkareas tag=p101 pt=52.6073,50.4645,-0.6089 vel=-1.7079,-1.3926,1.4958 
+checkareas tag=p102 pt=10.0000,10.0000,0.0000 vel=-1.2452,-1.2402,-1.8390 
+checkareas tag=p103 pt=45.0000,25.0000,-1.0000 vel=-2.4693,2.4435,2.3023 
+checkareas tag=p104 pt=20.0000,12.0000,1.0000 vel=-1.4240,-0.7690,2.1774 
+checkareas tag=q0 pt=24.9147,13.8820,1.9910 imedium=0 caller=0 nareas=3
+checkareas tag=q1 pt=19.1307,14.2891,-0.6115 imedium=0 caller=0 nareas=3
+checkareas tag=q2 pt=14.3889,15.5212,0.3225 imedium=0 caller=0 nareas=3
+checkareas tag=q3 pt=21.0960,18.2562,1.7912 imedium=0 caller=0 nareas=3
+checkareas tag=q4 pt=23.9710,20.1620,-1.9799 imedium=0 caller=0 nareas=3
+checkareas tag=q5 pt=29.9320,11.0552,-1.1240 imedium=0 caller=0 nareas=3
+checkareas tag=q6 pt=18.6686,15.3880,1.1040 imedium=0 caller=0 nareas=3
+checkareas tag=q7 pt=20.1944,9.2125,1.1668 imedium=0 caller=0 nareas=3
+checkareas tag=q8 pt=10.5314,11.6760,1.4205 imedium=0 caller=0 nareas=3
+checkareas tag=q9 pt=26.8600,15.3086,-0.4170 imedium=0 caller=0 nareas=3
+checkareas tag=k0 pt=9.8758,38.2466,-0.3029 imedium=1 caller=0 nareas=3
+checkareas tag=k1 pt=19.2772,41.4847,-0.6614 imedium=1 caller=0 nareas=3
+checkareas tag=k2 pt=10.9982,41.2375,-1.7652 imedium=1 caller=0 nareas=3
+checkareas tag=k3 pt=17.4248,42.7728,-0.5756 imedium=1 caller=0 nareas=3
+checkareas tag=k4 pt=12.7718,40.4884,-0.1236 imedium=1 caller=0 nareas=3
+checkareas tag=k5 pt=19.3636,41.9579,-0.2053 imedium=1 caller=0 nareas=3

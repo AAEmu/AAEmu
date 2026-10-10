@@ -78,6 +78,7 @@ pub struct Replay {
     rnames: HashMap<EntIdx, String>,
     buf: Vec<ParamsBuoyancy>,
     nbuoy: i32,
+    cb_handle: Option<u64>,
     pub out: Arc<Mutex<String>>,
 }
 
@@ -140,6 +141,7 @@ impl Replay {
             rnames: HashMap::new(),
             buf: Vec::new(),
             nbuoy: 0,
+            cb_handle: None,
             out: Arc::new(Mutex::new(String::from("physoracle 1\n"))),
         };
         r.buf = vec![fill_rec(); BUF_RECS];
@@ -526,7 +528,12 @@ impl Replay {
                 let mode: i32 = t.or("mode", "0").parse().unwrap();
                 let out = self.out.clone();
                 let rn = self.rnames.clone();
-                self.w.add_area_callback(
+                // the oracle registers the same C function every time and AddEventClient first
+                // removes an existing registration of that function: one client, latest mode
+                if let Some(h) = self.cb_handle.take() {
+                    self.w.remove_area_callback(h);
+                }
+                let h = self.w.add_area_callback(
                     parse_f(t.or("prio", "0")),
                     Box::new(move |ev| {
                         if mode == 1 {
@@ -551,6 +558,7 @@ impl Replay {
                         1
                     }),
                 );
+                self.cb_handle = Some(h);
             }
             "areanext" => {
                 let a = t.get("after").map(|n| self.target(n));
@@ -561,6 +569,15 @@ impl Replay {
                 let n = t.need("target");
                 let a = self.target(n);
                 self.line(format!("areavalid {n} {}", i32::from(self.w.is_area_valid(a))));
+            }
+            "step" => {
+                let n: i32 = t.or("n", "1").parse().unwrap();
+                let dt = parse_f(t.or("dt", "h:3d088889"));
+                let flags = parse_u(t.or("flags", "0x9F")) as i32;
+                assert_eq!(t.or("every", "1"), "0", "replay: step only with every=0");
+                for _ in 0..n {
+                    self.w.time_step(dt, flags);
+                }
             }
             "echo" => {
                 let mut o = String::from("echo");
