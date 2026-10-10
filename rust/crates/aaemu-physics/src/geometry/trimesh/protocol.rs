@@ -34,7 +34,6 @@ use crate::collision::pairs::PairTables;
 use crate::collision::swept::UnprojTables;
 use crate::geometry::bvtree::{BvArena, BvRecord, BvTestState, BvTree};
 use crate::geometry::primitives::BoxPrim;
-use crate::geometry::primitives::RayPrim;
 use crate::geometry::shapes::protocol::{ContactFrame, FeaturePolygon};
 use crate::geometry::shapes::protocol::{GeomUnderTest, IntersectionProtocol, UsedNodeMap};
 use crate::geometry::trimesh::register::{CandidateList, CurPrim};
@@ -310,12 +309,6 @@ pub trait GeomProtocol: IntersectionProtocol + std::fmt::Debug {
     /// mesh paths of slots 57/58/59 below read mesh arrays through it. (Added by P1c-register.)
     fn proto_with_mesh(&self, _f: &mut dyn FnMut(&TriMesh)) -> bool {
         false
-    }
-
-    /// The ray primitive of a `CRayGeom` (`+48`), for slot 54's `GetType() == 3` branch.
-    /// (Added by P1c-register.)
-    fn proto_ray(&self) -> Option<RayPrim> {
-        None
     }
 
     /// Slot 57 `GetUnprojectionCandidates` as slot 54 drives it: `cur` is what the caller's

@@ -537,7 +537,7 @@ pub fn mesh_register_intersection(
             // `ucomiss; jne`: NaN counts as zero
             if !(l != 0.0) && other.proto_type() == GeomType::Ray {
                 {
-                    let rd = other.proto_ray().expect("ray geometry").dir;
+                    let rd = other.proto_ray().expect("ray geometry").0.dir;
                     let r = &ctx.s[so].gt.r.m;
                     let rx = (rd.y * r[0][1] + rd.x * r[0][0]) + rd.z * r[0][2];
                     let ry = (rd.x * r[1][0] + rd.y * r[1][1]) + rd.z * r[1][2];

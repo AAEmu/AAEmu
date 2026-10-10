@@ -188,9 +188,6 @@ impl GeomProtocol for RayGeom {
     fn proto_bv_tree(&self) -> BvRef<'_> {
         BvRef::Owned(Box::new(RayBv::new(self.prim)))
     }
-    fn proto_ray(&self) -> Option<crate::geometry::primitives::RayPrim> {
-        Some(self.prim)
-    }
     /// Slot 6 (0x35199F50): the segment's axis-aligned box.
     fn proto_bbox(&self) -> crate::geometry::primitives::BoxPrim {
         crate::geometry::Geometry::bbox(self)

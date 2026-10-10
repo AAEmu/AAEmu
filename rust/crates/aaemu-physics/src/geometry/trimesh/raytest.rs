@@ -619,6 +619,7 @@ impl TriMesh {
             max_cos: f32::from_bits(0x3DCC_CCCD),
             flag: 0,
         };
+        let ip_axis = ip.as_deref().map_or(Vec3::ZERO, |p| p.axis_of_rotation);
         let (first_only, keep) = match ip.as_deref() {
             Some(ipr) => {
                 if b.proto_priority() >= self.priority {
@@ -724,6 +725,8 @@ impl TriMesh {
             border_kinds: kinds,
             contacts,
             ip_convex: 0,
+            // the ray branch leaves `ip+16` alone
+            ip_axis,
         }
     }
 }
