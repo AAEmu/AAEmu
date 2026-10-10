@@ -24,6 +24,9 @@
 //!
 //! # How later phases use these goldens
 //!
+//! (P1c-world) `tests/p1c_world_goldens.rs` replays every one of them on the port through the
+//! scenario interpreter and compares the whole trace line by line.
+//!
 //! * **P1c (trimesh / heightfield port)**: `p1c_mesh_gen` pins what the port's CTriMesh build
 //!   must reproduce from the same input: `Trace::geom_info(name)` (bbox from GetBBox, GetVolume,
 //!   the phys_geometry V / inertia / q / origin) and `Trace::mesh_data(name)` (the vertices and

@@ -591,6 +591,29 @@ pub fn generic_intersect_fn(
     });
     let n = r.contacts.len() as i32;
     let first = with_arena(|ca| ca.n_contacts) - n;
+    // The callee's counters are the arena's: when it reset them (`!keep_prev_contacts`) the
+    // scratch must restart from the same place, otherwise the stored areas run past the
+    // 32-record pool into the area points (P1c-world fix: an area count of 56 made `npt` of a
+    // later contact read point data and the rigid Step allocate gigabytes). The new contacts'
+    // areas, area points and pool borders were the last ones handed out.
+    with_arena(|ca| {
+        let used_areas = r.contacts.iter().filter(|c| c.area.is_some()).count() as i32;
+        let used_pts: i32 = r
+            .contacts
+            .iter()
+            .filter_map(|c| c.area.as_ref().map(|a| a.npt.max(0)))
+            .sum();
+        let used_border: i32 = r
+            .contacts
+            .iter()
+            .zip(&r.border_kinds)
+            .filter(|(_, k)| **k == BorderKind::Pool)
+            .map(|(c, _)| c.border.len() as i32)
+            .sum();
+        s.set_n_areas(ca.n_areas - used_areas);
+        s.set_n_area_pts(ca.n_area_pts - used_pts);
+        s.set_n_border(ca.w16ec8 as u32 as i32 - used_border);
+    });
     for (k, c) in r.contacts.iter().enumerate() {
         let kind = r.border_kinds.get(k).copied().unwrap_or_default();
         store_contact(s, first + k as i32, c, kind);

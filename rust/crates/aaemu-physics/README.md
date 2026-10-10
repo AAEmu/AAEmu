@@ -212,6 +212,14 @@ acosf expf logf sqrtf atan2f powf sin cos exp log asin atan2`.
 * Convenience API for the server: `world::api` (`World::with_grid`, `geometry`, `add_static`,
   `add_rigid`, `set_ocean`, `set_body_buoyancy`, `step`, `body_state`), plus the ported
   `rwi`/`pwi`, `set_heightfield_data`, `add_event_client`/`pump_logged_events`.
+* P1c in the world: the interpreter runs the P1c commands (`geom type=mesh` file / gen / cgf,
+  `geom type=heightfield … worldhf=1`, `geominfo`, `ray … ext=1`; `scenario::p1c`, with
+  `Scenario::run_in(text, dir)` for relative mesh files). Meshes go through the geometry
+  manager's `CreateMesh` (slots 3 / 4 / 5, `World::create_mesh*`, incl. the slot-6 mesh →
+  primitive approximation `geometry::trimesh::approx`) and `RegisterGeometry`
+  (`geoman::register_mesh`); corpus models through `LoadPhysGeometry`.
+  `tests/p1c_world_goldens.rs` replays all 17 `p1c_*` goldens bit for bit (the corpus ones
+  only with `AAEMU_PHYS_CGF_DIR`).
 
 ## Parallel phase: ownership
 
