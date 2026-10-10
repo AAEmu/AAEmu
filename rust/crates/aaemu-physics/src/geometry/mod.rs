@@ -237,4 +237,17 @@ pub trait Geometry: Send + Sync + std::fmt::Debug {
     fn size_of_object(&self) -> i32 {
         0
     }
+
+    /// Slot 43 `GetRandomPos(PosNorm&, CRndGen&, EGeomForm)`: a random point (and normal) of
+    /// the vertices (form 0), edges (1), surface (2) or volume (3), drawn from xlcommon's
+    /// `CryRandom` generator (`rng`). Default: the `CGeometry` base 0x35151A10 on the slot-6
+    /// bounding box (used by the box and the ray), see [`shapes::misc::random`].
+    fn get_random_pos(
+        &self,
+        out: &mut shapes::misc::PosNorm,
+        rng: &mut shapes::misc::CryRandom,
+        form: i32,
+    ) {
+        shapes::misc::random::base_get_random_pos(&self.bbox(), out, rng, form);
+    }
 }
