@@ -198,7 +198,8 @@ public static class Program
             // call TowerDefScheduler here or Zone deaths decrement twice.
             WorldIntegration.ResolveKillCreditThenForget(bcId);
         };
-        WorldIntegration.OnWorldNpcKilled = tpl => TowerDefScheduler.OnNpcKilled(tpl);
+        WorldIntegration.OnWorldNpcKilled = (tpl, zoneId, instanceId) =>
+            TowerDefScheduler.OnNpcKilled(tpl, zoneId, instanceId);
         WorldIntegration.AllowsPlotSelfDamageBypass = unit =>
             unit is Npc npc && TowerDefScheduler.IsActiveKillQuotaTemplate(npc.TemplateId);
         WorldIntegration.OnWorldInstanceRemoved = ZoneNpcSpawnerCatalog.RemoveInstance;

@@ -258,7 +258,6 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
 
         var doodads = UnitManagers.DoodadManager.Instance;
         var rows = new List<IndunPortalPoint>();
-        var droppedByRequirement = 0;
 
         foreach (var doodad in world.GetAllDoodads())
         {
@@ -284,9 +283,10 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
                     if (instanceZone == 0)
                         continue;
 
-                    // Only portals the client's window has an entry for and the character may enter: the
-                    // target has to be a zone we know, it has to be an instance, and the instance's own
-                    // level/gear requirements have to pass. Everything else is a door that goes nowhere.
+                    // Only portals the client's window has an entry for: the target has to be a zone we
+                    // know and it has to be an instance. Level and gear stay on the client — it already
+                    // shows those requirements — so a character who levels up mid-session still sees the
+                    // door. A door the compact has no instance row for goes nowhere and is skipped.
                     var targetZone = zoneManager.GetZoneById(instanceZone);
                     if (targetZone == null)
                         continue;
@@ -294,18 +294,6 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
                     var dungeon = IndunGameData.Instance.GetDungeonZone(targetZone.GroupId);
                     if (dungeon == null)
                         continue;
-
-                    if (!IndunPortalListRules.CanEnter(
-                            dungeon.LevelMin, dungeon.LevelMax, dungeon.GearScore,
-                            character.Level, character.GearScore))
-                    {
-                        droppedByRequirement++;
-                        Logger.Debug(
-                            "SendPortalList: zoneGroup={0} dropped for char={1} (level {2} of {3}~{4}, gear {5} of {6})",
-                            targetZone.GroupId, character.Name, character.Level,
-                            dungeon.LevelMin, dungeon.LevelMax, character.GearScore, dungeon.GearScore);
-                        continue;
-                    }
 
                     // The window keys every entry by zone GROUP, not by zone: its Lua pulls the list from
                     // X2Indun:GetIndunList() and looks each row up with FillContent(zoneGroup). A zone id
@@ -337,11 +325,10 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
                 character.Name, world.Id, portals.Count);
         }
 
-        // The character's own numbers ride along: the window's Enter gate is a level / equipment-points
-        // check, so a refusal has to be readable without guessing which of the two failed.
+        // The character's own numbers ride along so a later Enter refusal is readable as level or gear.
         Logger.Info(
-            "SendPortalList char={0} world={1} level={2} gearScore={3} portals={4} droppedByRequirement={5}",
-            character.Name, world.Id, character.Level, character.GearScore, portals.Count, droppedByRequirement);
+            "SendPortalList char={0} world={1} level={2} gearScore={3} portals={4}",
+            character.Name, world.Id, character.Level, character.GearScore, portals.Count);
 
         return portals.Count;
     }

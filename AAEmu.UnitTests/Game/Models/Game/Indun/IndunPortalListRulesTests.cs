@@ -62,6 +62,17 @@ public class IndunPortalListRulesTests
     }
 
     [Test]
+    public async Task Build_ListsAPortalTheCharacterCannotEnterYet()
+    {
+        // The list is not the enter gate: the client shows the instance's own requirements, so a
+        // character who is under the level band still has the door in the window.
+        var rows = IndunPortalListRules.Build([Portal(130, 4)]);
+
+        await Assert.That(rows.Count).IsEqualTo(1);
+        await Assert.That(IndunPortalListRules.CanEnter(50u, 70u, 0u, 10, 0)).IsFalse();
+    }
+
+    [Test]
     public async Task CanEnter_UsesTheInstancesOwnRequirements()
     {
         // Inside the band, no gear requirement.

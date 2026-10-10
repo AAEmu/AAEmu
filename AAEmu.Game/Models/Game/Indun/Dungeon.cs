@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Indun.Events;
 using AAEmu.Game.Models.Game.Indun.Matching;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.TowerDefs;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -1247,30 +1248,14 @@ public class Dungeon : IPreparedIndunInstance
     }
 
     /// <summary>
-    /// Builds the copy's HUD readout (SCIndunPlayingInfoBroadcastingPacket, 0x2D8): one row per
-    /// <c>indun_event_npc_info_broadcastings</c> row of this zone group, read live from that npc's buff, plus
-    /// the copy's gain rules. Everything comes from the loaded tables, so a zone group that authors these
-    /// readouts gets them with no per-instance code.
-    /// </summary>
-    /// <summary>
     /// The units a copy's HUD readouts may be read from: the copy's own npcs plus every zone mirror that
-    /// belongs to the copy's zone.
-    /// </summary>
-    /// <remarks>
-    /// A zone's units are mirrored into the world that owned the zone when they spawned, which for a
-    /// dungeon copy is the copy's <see cref="WorldInstance"/> — but a mirror can also be filed in the
-    /// world that resolved at spawn time, and the readout must not depend on which of the two it landed
-    /// in. Both sources are searched, keyed by object id so a unit present in both is one entry.
-    /// </remarks>
-    /// <summary>
-    /// The units a copy's HUD readouts may be read from: the copy's own npcs plus every zone mirror that
-    /// belongs to the copy.
+    /// belongs to this copy.
     /// </summary>
     /// <remarks>
     /// A zone's units are mirrored into the world that owned the zone when they spawned — but a mirror can
-    /// also be filed elsewhere, so the pool takes both the copy's own list and every mirror whose transform
-    /// names this copy, by instance id where the zone id is not enough. Both sources are searched, keyed by
-    /// object id so a unit present in both is one entry.
+    /// also be filed elsewhere, so the pool takes both the copy's own list and every mirror whose
+    /// transform names this copy by instance id. Sibling copies share a zone key, so a zone match is
+    /// not enough. Both sources are searched, keyed by object id so a unit present in both is one entry.
     /// </remarks>
     private List<Npc> FindReadoutUnits(List<Npc> copyNpcs)
     {
@@ -1292,11 +1277,7 @@ public class Dungeon : IPreparedIndunInstance
                 if (npc is not { IsZoneMirror: true })
                     continue;
 
-                var transform = npc.Transform;
-                var belongsToCopy = transform != null &&
-                                    ((instanceId != 0 && transform.InstanceId == instanceId) ||
-                                     (zoneId != 0 && transform.ZoneId == zoneId));
-                if (!belongsToCopy)
+                if (!TowerDefCopyOwnershipRules.SameCopy(instanceId, npc.Transform?.InstanceId ?? 0))
                     continue;
 
                 mirrors++;

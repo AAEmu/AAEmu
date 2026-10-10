@@ -29,11 +29,11 @@ public static class IndunPortalListRules
             or nameof(DoodadObj.Funcs.DoodadFuncEnterSysInstance);
 
     /// <summary>
-    /// Whether the window should offer a portal to this character.
+    /// Whether this character meets the instance's own level and gear rows.
     /// </summary>
     /// <remarks>
-    /// The instance's own requirement rows decide: an entry the character cannot enter is a door that goes
-    /// nowhere, and the client lists what it is shown. A gear score of 0 on the row means no requirement.
+    /// The portal list itself is unfiltered — the client already shows those requirements on each
+    /// entry. This is the enter gate. A gear score of 0 on the row means no requirement.
     /// </remarks>
     public static bool CanEnter(uint levelMin, uint levelMax, uint gearScore, int level, int characterGearScore)
     {

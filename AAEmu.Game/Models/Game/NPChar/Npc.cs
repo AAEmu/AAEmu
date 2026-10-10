@@ -1242,7 +1242,14 @@ public partial class Npc : Unit
         // Zone kills go through MirrorZoneNpcKilled → DoDie; at most once per life (cleared on Spawn).
         if (WorldIntegration.ZoneAuthority
             && TryConsumeTowerDefKillQuotaNotification(out var killQuotaTemplateId))
-            WorldIntegration.OnWorldNpcKilled?.Invoke(killQuotaTemplateId);
+        {
+            WorldIntegration.OnWorldNpcKilled?.Invoke(
+                killQuotaTemplateId,
+                Transform?.ZoneId ?? 0,
+                ZoneCopySpawnRouteRules.InstanceIdForSpawn(
+                    ParentWorld?.Id ?? 0,
+                    Transform?.InstanceId ?? 0));
+        }
 
         Spawner?.DoDespawn(this);
         // Zone mirrors have no Spawner — World schedules corpse cleanup, but Zone owns respawn.

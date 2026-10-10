@@ -41,7 +41,7 @@ public class ZoneProtocolHandler : BaseProtocolHandler
         if (connection != null)
         {
             NpcSpawnRelay.RemoveMirrorsForConnection(connection, $"zone TCP disconnect {session.Ip}");
-            TowerDefScheduler.OnZoneDisconnected(connection.ZoneId);
+            TowerDefScheduler.OnZoneDisconnected(connection.ZoneId, connection.InstanceId);
         }
         ZoneSession.Instance.Remove(session.SessionId);
         NpcSpawnRelay.ResetNpcStateSentForZone(zoneId, instanceId, $"zone TCP disconnect {session.Ip}");

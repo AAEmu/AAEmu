@@ -148,11 +148,10 @@ public static class TowerDefScheduler
             {
                 if (now < state.Deadline)
                     continue;
+                RunningInstances.Remove((id, instanceId));
                 var towerDef = TowerDefGameData.Instance.GetTowerDef(id);
                 if (towerDef != null)
                     FinishRun(towerDef, state, "instance force_end_time reached");
-                else
-                    RunningInstances.Remove((id, instanceId));
             }
         }
     }
@@ -206,8 +205,8 @@ public static class TowerDefScheduler
         }
     }
 
-    /// <summary>Drop playability cache rows for a disconnected zone.</summary>
-    public static void OnZoneDisconnected(uint zoneId)
+    /// <summary>Drop playability cache rows for a disconnected zone, and the instance run of that copy.</summary>
+    public static void OnZoneDisconnected(uint zoneId, uint instanceId = 0)
     {
         if (zoneId == 0)
             return;
@@ -216,17 +215,17 @@ public static class TowerDefScheduler
             foreach (var byZone in Playability.Values)
                 byZone.Remove(zoneId);
 
-            // An instance copy's run cannot outlive the host holding it: the zone process took the
-            // copy's units with it, so drop the run rather than keep opening steps into nothing.
+            // An instance copy's run cannot outlive the host holding it. Sibling copies share the
+            // zone key, so only the run whose copy id matches this host is dropped.
             foreach (var key in RunningInstances.Keys.ToList())
             {
-                if (RunningInstances[key].HostZoneIds.Contains(zoneId))
-                {
-                    RunningInstances.Remove(key);
-                    Logger.Info(
-                        "Instance tower run dropped: zoneId={0} towerDef={1} instance={2} (host disconnected)",
-                        zoneId, key.TowerDefId, key.InstanceId);
-                }
+                if (!TowerDefCopyOwnershipRules.InstanceRunOwnedByHost(key.InstanceId, instanceId))
+                    continue;
+
+                RunningInstances.Remove(key);
+                Logger.Info(
+                    "Instance tower run dropped: zoneId={0} towerDef={1} instance={2} (host disconnected)",
+                    zoneId, key.TowerDefId, key.InstanceId);
             }
         }
     }
@@ -296,9 +295,11 @@ public static class TowerDefScheduler
     }
 
     /// <summary>
-    /// Zone (or World combat) killed an NPC — advance kill-gated tower steps.
+    /// Zone (or World combat) killed an NPC — advance kill-gated tower steps on the run that owns
+    /// that copy. A world event (instance id 0) is charged only by an overworld kill; a copy is
+    /// charged only by a kill inside that copy.
     /// </summary>
-    public static void OnNpcKilled(uint templateId)
+    public static void OnNpcKilled(uint templateId, uint zoneId = 0, uint instanceId = 0)
     {
         if (templateId == 0)
             return;
@@ -308,26 +309,32 @@ public static class TowerDefScheduler
             var now = DateTime.UtcNow;
             foreach (var (id, state) in Running.ToList())
             {
+                if (!TowerDefCopyOwnershipRules.SameCopy(state.InstanceId, instanceId))
+                    continue;
+
                 var met = ChargeKill(state, templateId);
                 if (met < 0)
                     continue;
 
                 Logger.Info(
-                    "TowerDef {0} step {1} kill quotas met — scheduling next wave",
-                    id, met);
+                    "TowerDef {0} step {1} kill quotas met (zone={2} copy={3}) — scheduling next wave",
+                    id, met, zoneId, instanceId);
                 state.NextWaveAt = now;
             }
 
-            // Instance copies are not in Running; they charge the same way on their own runs.
+            // Instance copies are not in Running; they charge only the copy the kill happened in.
             foreach (var (key, state) in RunningInstances.ToList())
             {
+                if (!TowerDefCopyOwnershipRules.SameCopy(key.InstanceId, instanceId))
+                    continue;
+
                 var met = ChargeKill(state, templateId);
                 if (met < 0)
                     continue;
 
                 Logger.Info(
-                    "TowerDef {0} instance copy {1} step {2} kill quotas met — scheduling next wave",
-                    key.TowerDefId, key.InstanceId, met);
+                    "TowerDef {0} instance copy {1} step {2} kill quotas met (zone={3}) — scheduling next wave",
+                    key.TowerDefId, key.InstanceId, met, zoneId);
                 state.NextWaveAt = now;
             }
 
@@ -1210,9 +1217,9 @@ public static class TowerDefScheduler
     {
         try
         {
-            var doodads = TowerDefProgDoodads.DespawnAll(towerDef.Id);
+            var doodads = TowerDefProgDoodads.DespawnAll(towerDef.Id, state.InstanceId);
             if (doodads > 0)
-                Logger.Info("TowerDef {0} End despawned prog doodads={1}", towerDef.Id, doodads);
+                Logger.Info("TowerDef {0} End despawned prog doodads={1} copy={2}", towerDef.Id, doodads, state.InstanceId);
         }
         catch (Exception ex)
         {
@@ -1254,18 +1261,19 @@ public static class TowerDefScheduler
             ? (IReadOnlyList<uint>)state.HostZoneIds.ToList()
             : Array.Empty<uint>();
         var towerId = towerDef.Id;
+        var copyId = state.InstanceId;
         _ = Task.Run(async () =>
         {
             try
             {
-                var n = WorldIntegration.DespawnTowerDefEventUnits(towerId, hostZones);
+                var n = WorldIntegration.DespawnTowerDefEventUnits(towerId, hostZones, copyId);
                 if (n > 0)
-                    Logger.Info("TowerDef {0} End cleanup pass-1 despawned={1}", towerId, n);
+                    Logger.Info("TowerDef {0} End cleanup pass-1 despawned={1} copy={2}", towerId, n, copyId);
                 // Late plot tickets keep SpawnEffect after stage Interrupt — second sweep.
                 await Task.Delay(2500).ConfigureAwait(false);
-                var n2 = WorldIntegration.DespawnTowerDefEventUnits(towerId, hostZones);
+                var n2 = WorldIntegration.DespawnTowerDefEventUnits(towerId, hostZones, copyId);
                 if (n2 > 0)
-                    Logger.Info("TowerDef {0} End cleanup pass-2 despawned={1}", towerId, n2);
+                    Logger.Info("TowerDef {0} End cleanup pass-2 despawned={1} copy={2}", towerId, n2, copyId);
             }
             catch (Exception ex)
             {

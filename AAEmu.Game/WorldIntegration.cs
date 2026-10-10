@@ -20,6 +20,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Models.Game.TowerDefs;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -668,10 +669,11 @@ public static class WorldIntegration
     public static Func<BaseUnit, bool> AllowsPlotSelfDamageBypass { get; set; }
 
     /// <summary>
-    /// NPC death that reached <c>DoDie</c> (Zone mirror kill or World plot/GM). Template id
-    /// only — advances tower-def kill quotas. Fired at most once per NPC instance.
+    /// NPC death that reached <c>DoDie</c> (Zone mirror kill or World plot/GM). Template id,
+    /// zone key and world-instance id — advances only the tower-def run that owns that copy.
+    /// Fired at most once per NPC instance.
     /// </summary>
-    public static Action<uint> OnWorldNpcKilled { get; set; }
+    public static Action<uint, uint, uint> OnWorldNpcKilled { get; set; }
 
     /// <summary>Fired once MainWorld exists — World remirrors any zone units that arrived early.</summary>
     public static Action OnMainWorldReady { get; set; }
@@ -1091,7 +1093,7 @@ public static class WorldIntegration
     /// Retire event NPCs (seed/stage + World-authored army) on End. Prefer zone notify so dedic
     /// retires units; then delete World mirrors.
     /// </summary>
-    public static int DespawnTowerDefEventUnits(uint towerDefId, IReadOnlyList<uint> hostZoneIds)
+    public static int DespawnTowerDefEventUnits(uint towerDefId, IReadOnlyList<uint> hostZoneIds, uint instanceId = 0)
     {
         if (!ZoneAuthority || towerDefId == 0)
             return 0;
@@ -1112,6 +1114,8 @@ public static class WorldIntegration
                 if (npc is not { IsZoneMirror: true })
                     continue;
                 if (!templates.Contains(npc.TemplateId))
+                    continue;
+                if (!TowerDefCopyOwnershipRules.SameCopy(instanceId, npc.Transform?.InstanceId ?? 0))
                     continue;
                 if (filterZones != null)
                 {
@@ -1141,9 +1145,10 @@ public static class WorldIntegration
         if (victims.Count > 0)
         {
             Logger.Info(
-                "DespawnTowerDefEventUnits tower={0} count={1} zones=[{2}]",
+                "DespawnTowerDefEventUnits tower={0} count={1} copy={2} zones=[{3}]",
                 towerDefId,
                 victims.Count,
+                instanceId,
                 filterZones == null ? "*" : string.Join(',', filterZones.OrderBy(z => z)));
         }
 
