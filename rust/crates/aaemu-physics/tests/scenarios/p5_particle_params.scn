@@ -1,0 +1,34 @@
+# P5: the particle parameter interface: validation (vars+312 strict: an unnormalised heading,
+# a negative-square-free mass, q0), deferred SetParams / Action (bThreadSafe -1, replayed at
+# the next TimeStep), base ids on a particle (pe_params_pos, pe_params_flags, GetStatus pos /
+# 7 / 9 / 8), and GetParams round trips.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=a type=particle pos=30,30,2
+entity name=b type=particle pos=32,30,2
+params target=a type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.3 f16=0.05 v20=0.5,0.5,0 f32=2 f36=0.2 f40=0.7 f44=1 f48=3 i52=7 v56=1,2,3 v68=0,0,-9 v80=0,0,-4 v92=0,0.6,0.8 v104=1,0,0 q116=0,0,0.6,0.8 f132=2 f136=0.05 i152=3 i156=0x107 i160=4
+getparams target=a type=3 dump=0,36
+var off=312 i=1
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.3 v20=0.5,0.5,0 f32=2
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.3 v20=0,0,-1 f32=2 q116=0,0,1,1
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.3 v20=0,0,-1 f32=2 v92=0,0,1.5
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.6 f12=0.3 v20=0,0,-1 f32=2
+var off=312 i=0
+getparams target=b type=3 dump=0,36
+params target=a type=3 ts=-1 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f32=5
+action target=b type=10 ts=-1 v12=0,2,0
+trace ents=a,b
+print
+step n=3
+params target=b type=0 v4=33,30,3
+status target=b type=1 i4=-1 i8=-1 dump=0,30
+status target=b type=7
+step n=30
+status target=a type=8 dump=0,30
+status target=a type=9
+status target=a type=9
+params target=a type=15 i4=0x8 i8=U i12=U
+getparams target=a type=3 dump=0,36
+step n=20

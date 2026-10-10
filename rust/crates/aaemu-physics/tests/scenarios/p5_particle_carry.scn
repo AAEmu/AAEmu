@@ -1,0 +1,30 @@
+# P5: particles in contact with moving rigid bodies. c rests on a plank that is pushed and
+# woken (contact mode on a moving surface: the plank's point velocity from GetStatus 8);
+# d and e are traceable (flag 0x400, in the entity grid): a rigid box thrown at them wakes
+# them and queues them for the post-step awake-list job, where DoStep takes collision path
+# (a) (old position carried along with the box since its previous pose, RayTraceEntity).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+geom name=cube type=box size=0.4,0.4,0.4
+geom name=plank type=box size=1.5,0.4,0.1
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=pl type=rigid pos=28,32,0.1
+part ent=pl geom=plank mass=5
+entity name=box type=rigid pos=33,36,0.45
+part ent=box geom=cube mass=20
+entity name=c type=particle pos=28,32,0.4
+entity name=d type=particle pos=36,36,0.1
+entity name=e type=particle pos=36.3,36.5,0.15
+params target=c type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x400 f8=0.3 f12=0.2 f16=0.1 v20=0,0,-1 f32=0.5
+params target=d type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x400 f8=0.5 f12=0.2 v20=0,1,0 f32=0
+params target=e type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x404 f8=1 f12=0.3 v20=1,0,0 f32=0
+trace ents=c,d,e,pl,box
+print
+step n=30
+action target=pl type=2 v4=40,10,0 v52=28.5,32,0.1
+action target=c type=8
+action target=box type=10 v12=8,0,1
+step n=90
+status target=d type=9
+status target=e type=8 dump=0,30

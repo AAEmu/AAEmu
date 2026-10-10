@@ -1,0 +1,32 @@
+# P5: particles rolling and sliding on a flat floor and on tilted static boxes (20 and 60
+# degrees): the contact (sliding) mode with its probe ray, the rolling branch (spin from the
+# velocity, q0 rolled about the roll axis), the friction branch (flag 4, steep normals),
+# flag 1 (no tangential motion), sleep, and falling off the slope edge.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+surface idx=1 bounce=0.1 friction=0.5
+surface idx=2 bounce=0 friction=0.05
+geom name=ground type=box size=50,50,0.5
+geom name=slab type=box size=2,6,0.25
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0 i64=1
+entity name=s20 type=static pos=24,32,2 q=0.17364818,0,0,0.98480775
+part ent=s20 geom=slab mass=0 i64=1
+entity name=s60 type=static pos=28,32,3 q=0.5,0,0,0.8660254
+part ent=s60 geom=slab mass=0 i64=2
+entity name=a type=particle pos=24,30,3.1
+entity name=b type=particle pos=24,33,3.6
+entity name=c type=particle pos=28,31,4.4
+entity name=d type=particle pos=40,30,0.2
+entity name=f type=particle pos=42,30,0.5
+params target=a type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.3 f12=0.2 v20=0,1,0 f32=0.5 i52=1
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=4 f8=0.3 f12=0.2 f16=0.05 v20=1,0,0 f32=0.3 i52=1 v104=0,1,0
+params target=c type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=1 f12=0.3 f16=0.1 v20=0,0,-1 f32=1 i52=2
+params target=d type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.2 f12=0.3 v20=0.8,0.6,0 f32=3 i52=1 f136=0.05
+params target=f type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=1 f8=0.2 f12=0.2 v20=0.6,0,-0.8 f32=5 i52=1
+trace ents=a,b,c,d,f
+print
+step n=240
+status target=a type=8 dump=0,30
+status target=b type=8 dump=0,30
+getparams target=d type=3 dump=0,36
+status target=f type=7

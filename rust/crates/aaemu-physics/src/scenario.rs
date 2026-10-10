@@ -313,7 +313,7 @@ impl Scenario {
                 for (i, x) in [p.x, p.y, p.z, q.x, q.y, q.z, q.w].into_iter().enumerate() {
                     put(&mut b, 4 + 4 * i, x.to_bits());
                 }
-                apply_fields(&toks, &mut b)?;
+                apply_fields(&toks, &mut b, &self.ents)?;
                 let pp = <ParamsPos as crate::params::PeStruct>::read(&b);
                 let id = get("id", "-1").parse::<i32>().unwrap_or(-1);
                 let e = w
@@ -347,7 +347,7 @@ impl Scenario {
                 put(&mut b, 76, pf(&get("mincontact", "U")).to_bits());
                 put(&mut b, 80, u32::MAX);
                 put(&mut b, 108, 1);
-                apply_fields(&toks, &mut b)?;
+                apply_fields(&toks, &mut b, &self.ents)?;
                 let id = get("id", "-1").parse::<i32>().unwrap_or(-1);
                 let r = crate::entities::base::geometry::add_geometry_raw(
                     &mut self.world,
@@ -391,7 +391,7 @@ impl Scenario {
                 if !(tmpl && template(fam, ty, &mut b[..512])) {
                     b[..4].copy_from_slice(&ty.to_le_bytes());
                 }
-                apply_fields(&toks, &mut b)?;
+                apply_fields(&toks, &mut b, &self.ents)?;
                 let ts = get("ts", "1").parse::<i32>().unwrap_or(1);
                 let is_area = matches!(
                     self.world.ent(e).kind,
@@ -602,7 +602,11 @@ impl Scenario {
 
 /// The oracle's `apply_fields` in token order: `fOFF=`, `iOFF=`, `uOFF=`, `bOFF=`,
 /// `vOFF=x,y,z`, `qOFF=`, `pOFF=null|unused`, `hex=`.
-fn apply_fields(toks: &[&str], b: &mut [u8]) -> Result<(), String> {
+fn apply_fields(
+    toks: &[&str],
+    b: &mut [u8],
+    ents: &HashMap<String, EntIdx>,
+) -> Result<(), String> {
     for t in toks {
         let Some((k, v)) = t.split_once('=') else {
             continue;
@@ -630,6 +634,13 @@ fn apply_fields(toks: &[&str], b: &mut [u8]) -> Result<(), String> {
             "p" => match v {
                 "null" => put_p(b, off, 0),
                 "unused" => put_p(b, off, u64::MAX),
+                // the port's entity "pointer" (see `entities::particle::ent_ptr`)
+                v if v.starts_with("ent:") => {
+                    let e = ents
+                        .get(&v[4..])
+                        .ok_or_else(|| format!("unknown entity {v}"))?;
+                    put_p(b, off, crate::entities::particle::ent_ptr(*e));
+                }
                 _ => return Err(format!("pointer value {v} not supported")),
             },
             _ => {}

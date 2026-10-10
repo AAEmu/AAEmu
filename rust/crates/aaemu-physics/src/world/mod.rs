@@ -224,6 +224,9 @@ pub struct World {
     /// SetParams / Action calls with `bThreadSafe <= 0` made meanwhile (from inside a step)
     /// are queued for the next TimeStep.
     pub step_lock: bool,
+    /// **P5** per-thread particle state (`CParticleEntity::DoStep` hit buffers and the
+    /// particle each thread is stepping), see [`crate::entities::particle::ParticleTls`].
+    pub particle_tls: crate::entities::particle::ParticleTls,
 }
 
 impl World {
@@ -300,6 +303,7 @@ impl World {
             queries: queries::QueryState::default(),
             living_part_flags: Vec::new(),
             step_lock: false,
+            particle_tls: crate::entities::particle::ParticleTls::default(),
         };
         w.ccd_scratch.resize_with(
             MAX_CALLERS,

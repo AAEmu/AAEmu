@@ -1,0 +1,33 @@
+# P5: particle flag variants with spin: 2 (orientation kept), 8 (q = q0), 0x10 (no spin in
+# flight), 1 (stop on contact), 4 (no spin from contacts), none (large spin: exact rotation;
+# small spin: first-order update), a custom normal / roll axis / q0, and a pe_params_flags
+# change (base id 15) that re-applies the blank particle params.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+surface idx=1 bounce=0.6 friction=0.4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0 i64=1
+entity name=a type=particle pos=26,30,2
+entity name=b type=particle pos=28,30,2
+entity name=c type=particle pos=30,30,2
+entity name=d type=particle pos=32,30,2
+entity name=e type=particle pos=34,30,2
+entity name=f type=particle pos=36,30,2
+entity name=g type=particle pos=38,30,2
+entity name=h type=particle pos=40,30,1
+params target=a type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=2 f8=0.5 f12=0.2 v20=0.6,0,-0.8 f32=3 v56=0,5,0 i52=1
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=8 f8=0.5 f12=0.2 v20=0,0.6,-0.8 f32=3 v56=3,0,1 q116=0,0,0.38268343,0.9238795 i52=1
+params target=c type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x10 f8=0.5 f12=0.2 v20=0.8,0.6,0 f32=2 v56=2,2,0 i52=1
+params target=d type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=1 f8=0.5 f12=0.2 v20=0.6,0.8,0 f32=4 v56=0,0,3 i52=1
+params target=e type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.2 v20=0,1,0 f32=1 v56=8,-3,2 i52=1 v92=0,1,0 v104=1,0,0
+params target=f type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.2 v20=1,0,0 f32=1 v56=0.1,0.2,-0.05 i52=1 v92=0.6,0,0.8
+params target=g type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=4 f8=0.5 f12=0.4 f16=0.1 v20=0.6,0.8,0 f32=3 i52=1
+params target=h type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.2 v20=1,0,0 f32=2 v56=0,0,6 i52=1
+trace ents=a,b,c,d,e,f,g,h
+print
+step n=60
+params target=h type=15 i4=0x18
+params target=a type=15 u8=0xFFFFFFFD u12=0x8
+step n=100
+getparams target=b type=3 dump=0,36
+getparams target=h type=3 dump=0,36
