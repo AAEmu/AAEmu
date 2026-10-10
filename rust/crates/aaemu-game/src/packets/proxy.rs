@@ -151,7 +151,7 @@ impl ClientPacket for FinishStatePacket {
                         immersive: 1,
                     });
                     conn.send(&SCInitialConfigPacket {
-                        fsets: server.game_data.features.clone(),
+                        fsets: server.systems.services.features(server),
                     });
                     conn.send(&SCTrionConfigPacket {
                         activate: true,

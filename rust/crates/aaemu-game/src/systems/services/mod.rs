@@ -12,10 +12,12 @@
 //! | [`tasks`] | `TaskManager2`, `Models/Tasks/Task` |
 //! | [`accounts`] | `AccountManager` remainder (Add, dead connections, account values) |
 //! | [`timed_rewards`] | `TimedRewardsManager`, `TimedRewardsTask` |
+//! | [`beauty_salon`] | `CharacterManager.ApplyBeautySalon`, beauty salon packets |
 //! | [`character`] | `CharacterManager` remainder (access level, dice, online tracking, offline crime points) |
 //! | [`commands`] | `CommandManager`, `AccessLevelManager`, `ICommand`, `Utils/Scripts/**` |
 //! | [`express_text`] | `ExpressTextManager`, `CSExpressEmotionPacket` |
 //! | [`localization`] | `LocalizationManager` |
+//! | [`models`] | `ModelManager` (complete) |
 //! | [`music`] | `MusicManager`, music packets |
 //! | [`radar`] | `RadarManager`, telescope / fish finder packets |
 //! | [`sus`] | `SusManager` |
@@ -24,12 +26,14 @@
 //! | [`game_service`] | `GameService` clock, `Program.UpTime`, `ManagerOrchestrator` |
 
 pub mod accounts;
+pub mod beauty_salon;
 pub mod character;
 pub mod commands;
 pub mod discord;
 pub mod express_text;
 pub mod game_service;
 pub mod localization;
+pub mod models;
 pub mod music;
 pub mod radar;
 pub mod sus;
@@ -54,6 +58,8 @@ pub struct Data {
     pub express_texts: express_text::ExpressTexts,
     /// `LocalizationManager` (complete).
     pub localization: localization::LocalizationManager,
+    /// `ModelManager` (complete).
+    pub models: models::ModelManager,
 }
 
 impl Data {
@@ -62,6 +68,7 @@ impl Data {
         Ok(Self {
             express_texts: express_text::ExpressTexts::load(ctx.conn)?,
             localization: localization::LocalizationManager::load(ctx.conn, ctx.language)?,
+            models: models::ModelManager::load(ctx.conn)?,
         })
     }
 }
@@ -93,26 +100,39 @@ pub struct System {
 
 impl System {
     /// The startup work of the managers of this subsystem, in `GameService.StartAsync` order:
-    /// `ILoadable.Load` (access levels, music), `TaskManager.Start`, `IInitializable.Initialize`
-    /// (tick thread, dead-connection sweep, timed rewards, radar), the command scripts and
-    /// `CharacterManager.StartOnlineTracking`. The WebApi / Discord hosted services are started
-    /// by `main.rs` after the networks.
+    /// `ILoadable.Load` (access levels, music), the command scripts, `TaskManager.Start` and
+    /// `IInitializable.Initialize` (tick thread, dead-connection sweep, timed rewards, radar).
+    /// `CharacterManager.StartOnlineTracking` (stage 5) and the WebApi / Discord hosted services
+    /// are started by `main.rs`.
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
         let s = &server.systems.services;
         s.commands.access_levels.load(&server.config.access_level);
         s.music.load(server).await?;
-        s.tasks.start(&s.tick.on_tick);
         // Scripts (`ScriptReflector.Reflect` / `ScriptCompiler.Compile`).
         s.commands.reload();
+        s.tasks.start(&s.tick.on_tick);
         // Stage 4: `IInitializable.Initialize()`.
         s.tick.initialize();
         s.tasks.initialize();
         accounts::initialize(server);
         timed_rewards::initialize(server);
         radar::RadarManager::initialize(server);
-        // Stage 5.
-        character::start_online_tracking(server);
         Ok(())
+    }
+
+    /// The hosted services after `GameService.StartAsync` (`WebApiService`,
+    /// `DiscordBotService`).
+    pub async fn start_hosted_services(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        let s = &server.systems.services;
+        s.webapi.start(server).await?;
+        s.discord.start(server);
+        Ok(())
+    }
+
+    /// The hosted services stop in reverse registration order (Discord, then WebApi).
+    pub async fn stop_hosted_services(&self) {
+        self.discord.stop().await;
+        self.webapi.stop().await;
     }
 
     /// This subsystem's part of `SaveManager.DoSave` (nothing: its managers write directly).
@@ -153,6 +173,12 @@ impl System {
 /// Registers this subsystem's C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
     reg.register::<character::CSRollDicePacket>(LEVEL_PLAIN, cs::CSRollDicePacket);
+    reg.register::<beauty_salon::CSEnterBeautySalonPacket>(
+        LEVEL_PLAIN,
+        cs::CSEnterBeautySalonPacket,
+    );
+    reg.register::<beauty_salon::CSExitBeautySalonPacket>(LEVEL_PLAIN, cs::CSExitBeautySalonPacket);
+    reg.register::<beauty_salon::CSBeautyshopDataPacket>(LEVEL_PLAIN, cs::CSBeautyshopDataPacket);
     reg.register::<express_text::CSExpressEmotionPacket>(LEVEL_PLAIN, cs::CSExpressEmotionPacket);
     reg.register::<music::CSSaveUserMusicNotesPacket>(LEVEL_PLAIN, cs::CSSaveUserMusicNotesPacket);
     reg.register::<music::CSSendUserMusicPacket>(LEVEL_PLAIN, cs::CSSendUserMusicPacket);

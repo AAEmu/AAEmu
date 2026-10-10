@@ -859,11 +859,16 @@ pub fn start(server: &GameServer, owner: &WorldObject, index: u32) {
         start_skill_controller(server, &template, owner, &caster);
     }
     if let Some(p) = owner.as_player() {
-        if template.find_school_of_fish_range > 0.0
-            || template.transfer_telescope_range > 0.0
-            || template.telescope_range > 0.0
-        {
-            tracing::debug!("Buff {}: radar registrations are not ported", template.id);
+        // RadarManager registrations (`systems::services::radar`).
+        let radar = &server.systems.services.radar;
+        if template.find_school_of_fish_range > 0.0 {
+            radar.register_for_fish_school(p, template.find_school_of_fish_range);
+        }
+        if template.transfer_telescope_range > 0.0 {
+            radar.register_for_public_transport(p, template.transfer_telescope_range);
+        }
+        if template.telescope_range > 0.0 {
+            radar.register_for_ships(p, template.telescope_range);
         }
         if p.data()
             .unit
@@ -1062,6 +1067,19 @@ fn dispel(
             },
             true,
         );
+    }
+    // RadarManager unregistrations (`systems::services::radar`).
+    if let Some(p) = owner.as_player() {
+        let radar = &server.systems.services.radar;
+        if template.find_school_of_fish_range > 0.0 {
+            radar.register_for_fish_school(p, 0.0);
+        }
+        if template.transfer_telescope_range > 0.0 {
+            radar.register_for_public_transport(p, 0.0);
+        }
+        if template.telescope_range > 0.0 {
+            radar.register_for_ships(p, 0.0);
+        }
     }
 }
 

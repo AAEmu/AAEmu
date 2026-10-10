@@ -736,16 +736,6 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
     }
 }
 
-/// `CharacterManager.GetEffectiveAccessLevel`.
-async fn effective_access_level(server: &GameServer, p: &PlayerRef) -> i32 {
-    let (access, account) = {
-        let c = p.data();
-        (c.access_level, c.account_id)
-    };
-    let details = crate::db::get_account_details(&server.db, &server.config, account).await;
-    access.max(details.access_level)
-}
-
 /// `CSSendChatMessagePacket.Read`.
 #[allow(clippy::too_many_arguments)]
 pub async fn send_chat_message(
@@ -762,13 +752,16 @@ pub async fn send_chat_message(
     };
     tracing::debug!("{message}");
     if let Some(cmd) = message.strip_prefix('/') {
-        // CommandManager has no commands in this phase (`_commands.Count <= 0`): it answers with
-        // an error and returns false, so the text is still handled as chat below.
-        let _ = cmd;
-        if effective_access_level(server, &me).await >= 100 {
-            send_message(&me, chat_type::SYSTEM, "|cFFFF0000[Error] No commands have been loaded, this is usually because of compile errors. Try using \"/scripts reload\" after the issues have been fixed.|r");
-        } else {
-            send_message(&me, chat_type::SYSTEM, "[Error] No commands available.");
+        // `CommandManager.Handle(ActiveChar, message.Substring(1).Trim())`: a handled command
+        // is not sent as chat.
+        let (handled, _) = server
+            .systems
+            .services
+            .commands
+            .handle(server, &me, cmd.trim())
+            .await;
+        if handled {
+            return;
         }
     }
     let sender = {
@@ -1006,7 +999,8 @@ pub async fn save_and_remove_from_world(server: &GameServer, active: Option<&Pla
     let Some(p) = active else {
         return;
     };
-    // RadarManager / buff effect tasks: later phases.
+    // Remove Radars (buff effect tasks: skills subsystem).
+    server.systems.services.radar.unregister(p.character_id);
     delete(server, p);
     if server
         .world
