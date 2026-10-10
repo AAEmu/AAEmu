@@ -934,16 +934,15 @@ impl ItemSkillHooks for EconomyForSkills {
     fn apply_gear_buffs(
         &self,
         server: &GameServer,
-        player: &PlayerRef,
+        unit: &WorldObject,
         added: Option<&Item>,
         removed: Option<&Item>,
     ) {
-        let unit = WorldObject::from(player);
-        let items = equipment_items(&unit);
-        Self::apply_equip_effects(server, &unit, &items, added, removed);
-        Self::apply_weapon_wield_buff(server, &unit);
-        Self::apply_armor_grade_buff(server, &unit, &items, added, removed);
-        Self::apply_equip_item_set_bonuses(server, &unit, &items);
+        let items = equipment_items(unit);
+        Self::apply_equip_effects(server, unit, &items, added, removed);
+        Self::apply_weapon_wield_buff(server, unit);
+        Self::apply_armor_grade_buff(server, unit, &items, added, removed);
+        Self::apply_equip_item_set_bonuses(server, unit, &items);
     }
 
     fn apply_effect(

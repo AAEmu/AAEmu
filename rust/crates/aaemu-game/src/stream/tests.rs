@@ -4,7 +4,7 @@
 //! UCC `Save` step fails exactly like an uncaught C# MySqlException would.
 
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
 use aaemu_commons::helpers::encode_position;
@@ -42,7 +42,16 @@ fn test_server() -> GameServer {
     let db = MySqlPoolOptions::new()
         .acquire_timeout(Duration::from_millis(300))
         .connect_lazy_with(config.connections.mysql_provider.connect_options());
-    GameServer::new(config, db, GameData::empty())
+    let mut data = GameData::empty();
+    // `ConfirmDefaultUcc` creates a Crest Ink (the C# hack-fix template).
+    data.items.templates.insert(
+        ITEM_CREST_INK,
+        crate::data::items::ItemTemplate::new(
+            ITEM_CREST_INK,
+            crate::data::items::TemplateKind::Ucc,
+        ),
+    );
+    GameServer::new(config, db, data)
 }
 
 fn hex(s: &str) -> Vec<u8> {
@@ -138,8 +147,6 @@ fn doodad(i: u32) -> StreamDoodad {
 #[derive(Default)]
 struct TestWorld {
     doodads: Vec<StreamDoodad>,
-    money: Mutex<Vec<(u32, i32)>>,
-    granted: Mutex<Vec<(u32, u32, u64)>>,
 }
 
 impl StreamWorld for TestWorld {
@@ -160,19 +167,6 @@ impl StreamWorld for TestWorld {
             id: 555,
             name: "Tester".into(),
         })
-    }
-    fn change_money(&self, game_connection_id: u32, amount: i32) {
-        self.money
-            .lock()
-            .unwrap()
-            .push((game_connection_id, amount));
-    }
-    fn grant_ucc_item(&self, game_connection_id: u32, template_id: u32, ucc_id: u64) -> bool {
-        self.granted
-            .lock()
-            .unwrap()
-            .push((game_connection_id, template_id, ucc_id));
-        true
     }
 }
 
@@ -203,6 +197,11 @@ async fn joined(world: Arc<TestWorld>) -> (GameServer, StreamClient, GameClient)
     let server = test_server();
     server.streams.set_world(world);
     let g = game_connection(&server, 77);
+    // The ActiveChar of game connection 77 (character 555, as `TestWorld::active_character`).
+    let mut character = crate::test_support::test_character(555, "Tester", 0.0, 0.0);
+    character.money = 100;
+    let p = crate::world::Player::new(character, g.0.handle());
+    assert!(server.world.try_add_character(&p));
     assert!(server.streams.add_token(1000, 77));
     let mut c = stream_client(&server, 900);
     c.recv(
@@ -649,7 +648,6 @@ async fn no_game_connection_or_active_char_is_fatal_for_ucc_requests() {
 async fn cell_streaming_in_batches_of_30() {
     let world = Arc::new(TestWorld {
         doodads: (0..70).map(doodad).collect(),
-        ..TestWorld::default()
     });
     let (server, mut c, _g) = joined(world).await;
 
@@ -920,7 +918,7 @@ async fn ucc_download_flow() {
 #[tokio::test]
 async fn ucc_simple_upload() {
     let world = Arc::new(TestWorld::default());
-    let (server, mut c, _g) = joined(world.clone()).await;
+    let (server, mut c, mut g) = joined(world.clone()).await;
     let mut start = hex("03 02 01  00 00 00 00 00 00 00 00  00 00 00 00");
     start.extend(appearance());
     c.recv(&server, &frame(ct::CT_START_UPLOAD_EMBLEM_STREAM, &start))
@@ -933,14 +931,25 @@ async fn ucc_simple_upload() {
         .await
         .is_err());
 
-    // Upload status -> ConfirmDefaultUcc: id 1, End, 5 gold taken, then the MySQL save fails
-    // (no database in tests), which closes the connection like the uncaught C# exception.
+    // Upload status -> ConfirmDefaultUcc: id 1, End, 5 gold taken (no balance check: 100 copper
+    // becomes -49900), the Crest Ink is created, then the MySQL save fails (no database in
+    // tests), which closes the connection like the uncaught C# exception: no ink in the bag.
     let res = c
         .recv(&server, &frame(ct::CT_EMBLEM_STREAM_UPLOAD_STATUS, &[1]))
         .await;
     assert!(res.is_err());
     assert_eq!(c.drain(), vec![hex("0A 00  02  00 00 00 00")]);
-    assert_eq!(*world.money.lock().unwrap(), vec![(77, -50_000)]);
+    // SCItemTaskSuccessPacket(DepositMoney = 83, [MoneyChange(-50000)], [])
+    assert_eq!(
+        game_frames(&mut g),
+        vec![(
+            crate::opcodes::sc::SCItemTaskSuccessPacket,
+            hex("53  01  01 B0 3C FF FF  00  00 00 00 00")
+        )]
+    );
+    let p = server.world.character_by_connection(77).unwrap();
+    assert_eq!(p.data().money, 100 - 50_000);
+    assert!(bag_items(&p).is_empty());
     let stored = server.streams.ucc.get_ucc(1).unwrap();
     assert_eq!(stored.ty, UccType::Simple);
     assert_eq!(stored.uploader_id, 555);
@@ -955,7 +964,7 @@ async fn ucc_simple_upload() {
 #[tokio::test]
 async fn ucc_custom_upload() {
     let world = Arc::new(TestWorld::default());
-    let (server, mut c, _g) = joined(world.clone()).await;
+    let (server, mut c, mut g) = joined(world.clone()).await;
     let mut start = hex("03 02 01  00 00 00 00 00 00 00 00  05 00 00 00");
     start.extend(appearance());
     c.recv(&server, &frame(ct::CT_START_UPLOAD_EMBLEM_STREAM, &start))
@@ -993,10 +1002,10 @@ async fn ucc_custom_upload() {
     assert_eq!(stored.ty, UccType::Complex);
     assert_eq!(stored.uploader_id, 555);
     assert_eq!(stored.data, vec![0xAA, 0xBB, 0xCC, 0xDD, 0xEE]);
-    assert_eq!(world.money.lock().unwrap().len(), 1);
-    // The save failed before the Crest Ink grant.
-    assert!(world.granted.lock().unwrap().is_empty());
-    let _ = ITEM_CREST_INK;
+    assert_eq!(game_frames(&mut g).len(), 1); // the money task
+                                              // The save failed before the Crest Ink went to the bag.
+    let p = server.world.character_by_connection(77).unwrap();
+    assert!(bag_items(&p).is_empty());
 
     // C# never clears _complexUploadParts: a second custom upload on the same stream
     // connection throws.
@@ -1004,6 +1013,59 @@ async fn ucc_custom_upload() {
         .recv(&server, &frame(ct::CT_START_UPLOAD_EMBLEM_STREAM, &start))
         .await
         .is_err());
+}
+
+/// The frames a game connection received, as (opcode, body) (level-1 frames only).
+fn game_frames(g: &mut GameClient) -> Vec<(u16, Vec<u8>)> {
+    let mut v = Vec::new();
+    while let Ok(f) = g.1.try_recv() {
+        assert_eq!(f[1], 1, "level-1 frame");
+        v.push((u16::from_le_bytes([f[4], f[5]]), f[6..].to_vec()));
+    }
+    v
+}
+
+fn bag_items(p: &crate::world::PlayerRef) -> Vec<crate::models::item::Item> {
+    let bag = crate::systems::economy::inventory::Inv::of(p).bag();
+    let items = bag.lock().unwrap().items.clone();
+    items
+}
+
+#[tokio::test]
+async fn ucc_confirm_crest_ink_in_csharp_order() {
+    use super::ucc::{add_crest_ink, charge_and_create_crest_ink};
+    use crate::models::item_task::task_type;
+    let world = Arc::new(TestWorld::default());
+    let (server, _c, mut g) = joined(world).await;
+    let p = server.world.character_by_connection(77).unwrap();
+
+    // Before Save(ucc): the money task is sent at once and the ink exists (not in the bag).
+    let item = charge_and_create_crest_ink(&server, &p, 42).expect("crest ink created");
+    assert_eq!(item.template_id, ITEM_CREST_INK);
+    assert_eq!(item.ucc_id, 42);
+    assert_eq!(item.count, 1);
+    assert_ne!(item.id, 0);
+    assert_eq!(
+        game_frames(&mut g),
+        vec![(
+            crate::opcodes::sc::SCItemTaskSuccessPacket,
+            hex("53  01  01 B0 3C FF FF  00  00 00 00 00")
+        )]
+    );
+    assert!(bag_items(&p).is_empty());
+
+    // After Save(ucc): Bag.AddOrMoveExistingItem(GainItemWithUcc, ink).
+    let id = item.id;
+    add_crest_ink(&server, &p, item);
+    let bag = bag_items(&p);
+    let ink = bag.iter().find(|i| i.id == id).expect("ink in the bag");
+    assert_eq!(ink.ucc_id, 42);
+    assert_eq!(ink.slot, 0);
+    let frames = game_frames(&mut g);
+    assert_eq!(frames.len(), 1);
+    assert_eq!(frames[0].0, crate::opcodes::sc::SCItemTaskSuccessPacket);
+    assert_eq!(frames[0].1[0], task_type::GAIN_ITEM_WITH_UCC);
+    assert_eq!(frames[0].1[1], 1); // one ItemAdd task
 }
 
 // ---------------------------------------------------------------------------------------------

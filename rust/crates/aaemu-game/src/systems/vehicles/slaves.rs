@@ -1279,9 +1279,25 @@ pub(crate) fn create_spawn(
             };
             let mut it = Item::create(0, t, 1, 0, server.config.id, &server.game_data.items, now);
             it.slot = i32::from(initial.equip_slot_id);
-            let mut d = slave.data();
-            if let Some(slot) = d.equipment.get_mut(usize::from(initial.equip_slot_id)) {
-                *slot = Some(it);
+            let entered = {
+                let mut d = slave.data();
+                match d.equipment.get_mut(usize::from(initial.equip_slot_id)) {
+                    Some(slot) => {
+                        *slot = Some(it.clone());
+                        true
+                    }
+                    None => false,
+                }
+            };
+            // EquipmentContainer.OnEnterContainer: the SCUnitEquipmentsChanged broadcast reaches
+            // nobody (not spawned yet), then ParentUnit.UpdateGearBonuses(item, null).
+            if entered {
+                crate::systems::skills::stats::update_vehicle_gear_bonuses(
+                    server,
+                    &slave_obj,
+                    Some(&it),
+                    None,
+                );
             }
         }
     }
@@ -1350,7 +1366,8 @@ fn finish_create(
             }
         }
     }
-    // UpdateGearBonuses(null, null): vehicle parts customization (economy) not in 1.2.
+    // Apply equipped gear (used for future parts customization): UpdateGearBonuses(null, null)
+    crate::systems::skills::stats::update_vehicle_gear_bonuses(server, &slave_obj, None, None);
     let (owner_id, owner_obj_id, slave_db_id, faction, spawn_time) = {
         let d = slave.data();
         (

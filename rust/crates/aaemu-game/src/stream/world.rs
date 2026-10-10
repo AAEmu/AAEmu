@@ -59,14 +59,6 @@ pub trait StreamWorld: Send + Sync {
 
     /// `GameConnectionTable.GetConnection(id)?.ActiveChar`.
     fn active_character(&self, game_connection_id: u32) -> Option<ActiveCharacter>;
-
-    /// `ActiveChar.ChangeMoney(SlotType.Inventory, amount)`.
-    fn change_money(&self, game_connection_id: u32, amount: i32);
-
-    /// `ItemManager.Create(templateId, 1, 0, true)` with `UccId = ucc_id`, then
-    /// `ActiveChar.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.GainItemWithUcc, item)`.
-    /// Returns `false` when the item could not be created.
-    fn grant_ucc_item(&self, game_connection_id: u32, template_id: u32, ucc_id: u64) -> bool;
 }
 
 /// Placeholder until the world / character / item subsystems are ported: every world instance
@@ -89,11 +81,5 @@ impl StreamWorld for NullStreamWorld {
 
     fn active_character(&self, _game_connection_id: u32) -> Option<ActiveCharacter> {
         None
-    }
-
-    fn change_money(&self, _game_connection_id: u32, _amount: i32) {}
-
-    fn grant_ucc_item(&self, _game_connection_id: u32, _template_id: u32, _ucc_id: u64) -> bool {
-        false
     }
 }
