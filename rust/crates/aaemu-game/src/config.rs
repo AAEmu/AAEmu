@@ -198,6 +198,10 @@ pub struct WorldConfig {
     pub days_for_tax_payment: u32,
     #[serde(rename = "actabilityrate", deserialize_with = "lenient")]
     pub actability_rate: f64,
+    #[serde(rename = "pvedurabilitylossrate", deserialize_with = "lenient")]
+    pub pve_durability_loss_rate: f32,
+    #[serde(rename = "pvpdurabilitylossrate", deserialize_with = "lenient")]
+    pub pvp_durability_loss_rate: f32,
 }
 
 impl Default for WorldConfig {
@@ -215,6 +219,8 @@ impl Default for WorldConfig {
             growth_rate: 1.0,
             days_for_tax_payment: 7,
             actability_rate: 1.0,
+            pve_durability_loss_rate: 1.0,
+            pvp_durability_loss_rate: 1.0,
         }
     }
 }

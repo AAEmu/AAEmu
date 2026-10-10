@@ -32,6 +32,10 @@ pub struct Data {
     pub store: super::store_data::StoreData,
     /// Mail localization lookups.
     pub mail: super::mail_data::MailData,
+    /// `ItemGameData`, `ItemConversionGameData`, `FishDetailsGameData`, localized item names.
+    pub items: super::items_data::ItemsData,
+    /// `LootGameData`.
+    pub loot: super::loot_data::LootData,
 }
 
 impl Data {
@@ -57,6 +61,8 @@ impl Data {
         data.craft = super::craft_data::CraftData::load(ctx)?;
         data.store = super::store_data::StoreData::load(ctx)?;
         data.mail = super::mail_data::MailData::load(ctx)?;
+        data.items = super::items_data::ItemsData::load(ctx.conn, ctx.language)?;
+        data.loot = super::loot_data::LootData::load(ctx.conn)?;
         Ok(data)
     }
 

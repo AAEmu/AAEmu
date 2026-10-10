@@ -27,12 +27,20 @@ pub mod craft_data;
 #[cfg(test)]
 mod craft_store_tests;
 pub mod data;
+#[cfg(test)]
+mod econ_data_tests;
 pub mod error_message;
 pub mod fx;
 pub mod hooks;
 pub mod inventory;
 pub mod item_handlers;
 pub mod item_packets;
+pub mod item_timers;
+pub mod items_data;
+pub mod loot;
+pub mod loot_data;
+pub mod loot_packets;
+pub mod looting;
 pub mod mail;
 pub mod mail_character;
 pub mod mail_data;
@@ -40,6 +48,7 @@ pub mod mail_kinds;
 pub mod mail_packets;
 #[cfg(test)]
 mod mail_tests;
+pub mod repair;
 pub mod specialty;
 pub mod store;
 pub mod store_data;
@@ -82,6 +91,10 @@ pub struct System {
     pub specialty: specialty::SpecialtyManager,
     /// `MailManager`.
     pub mail: mail::MailManager,
+    /// Looting containers + loot hooks (`LootingContainer`).
+    pub loot: looting::LootManager,
+    /// `ItemManager.UpdateItemTimers` state.
+    pub item_timers: item_timers::ItemTimers,
 }
 
 impl System {
@@ -119,6 +132,7 @@ impl System {
         specialty::initialize(server);
         server.systems.economy.mail.load(server).await?;
         mail::start_delivery_task(server);
+        item_timers::start(server);
         Ok(())
     }
 
@@ -173,4 +187,6 @@ pub fn register(reg: &mut PacketRegistry) {
     store::register(reg);
     specialty::register(reg);
     mail_packets::register(reg);
+    looting::register(reg);
+    repair::register(reg);
 }
