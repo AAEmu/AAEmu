@@ -14,6 +14,7 @@ pub mod contacts;
 pub mod mass;
 pub mod register;
 pub mod step;
+pub mod update;
 pub mod patch;
 pub mod velocity;
 
@@ -105,7 +106,7 @@ pub struct RigidData {
     pub e_cached: f32,
     pub e_clamp: f32,
     /// `+1040`, `+1044`.
-    pub unk1040: i32,
+    pub unk1040: f32,
     pub unk1044: u32,
     /// `+1048` external force, `+1060` external torque.
     pub f_ext: Vec3,
@@ -190,7 +191,7 @@ impl RigidData {
             prev_q: Quat::IDENTITY,
             e_cached: 0.0,
             e_clamp: 0.0,
-            unk1040: 0,
+            unk1040: 0.0,
             unk1044: 0,
             f_ext: Vec3::ZERO,
             t_ext: Vec3::ZERO,
