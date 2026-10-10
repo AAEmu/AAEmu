@@ -78,6 +78,11 @@ impl PrimitiveGeom for BoxGeom {
 }
 
 impl Geometry for BoxGeom {
+    /// P1c hook: the intersection protocol (`trimesh::protocol::shapes`).
+    fn as_protocol(&self) -> Option<&dyn crate::geometry::trimesh::protocol::GeomProtocol> {
+        Some(self)
+    }
+
     /// Slot 1: shared `return 0` stub 0x350376D0.
     fn geom_type(&self) -> GeomType {
         GeomType::Box

@@ -160,7 +160,12 @@ impl Grid {
     #[must_use]
     pub fn cell(&self, i: i32) -> u32 {
         let (p, s) = self.cell_loc(i);
-        match self.pages.as_ref().and_then(|v| v.get(p)).and_then(|o| o.as_ref()) {
+        match self
+            .pages
+            .as_ref()
+            .and_then(|v| v.get(p))
+            .and_then(|o| o.as_ref())
+        {
             Some(pg) => pg[s],
             None => 0,
         }
@@ -312,7 +317,8 @@ impl World {
             if g.thunks[i].w8 & 0x80_0000 != 0 {
                 let mut cell = g.size[0] * g.size[1];
                 if g.cell(cell) != t {
-                    cell = (prev & 0x3FF) as i32 * g.stride[0] + ((prev >> 10) & 0x3FF) as i32 * g.stride[1];
+                    cell = (prev & 0x3FF) as i32 * g.stride[0]
+                        + ((prev >> 10) & 0x3FF) as i32 * g.stride[1];
                 }
                 *g.cell_mut(cell) = next;
             } else {
@@ -425,7 +431,8 @@ impl World {
                 let g = &self.grid;
                 let (nx, ny) = (g.size[0], g.size[1]);
                 // `(-1 - y0 + v123)` = `-1 - y`, `(v139 + v119)` = `-1 - x`.
-                let cell_ok = ((-1 - y) >> 31) & ((-1 - x) >> 31) & ((y - ny) >> 31) & ((x - nx) >> 31);
+                let cell_ok =
+                    ((-1 - y) >> 31) & ((-1 - x) >> 31) & ((y - ny) >> 31) & ((x - nx) >> 31);
                 let cell = (!cell_ok & (ny * nx)) | (cell_ok & (x * g.stride[0] + y * g.stride[1]));
                 if self.grid.free_thunk == 0 {
                     let n = self.grid.thunks.len();
@@ -455,10 +462,14 @@ impl World {
                 if first != 0 && g.thunks[first as usize].w8 & 0x70_0000 == 0x50_0000 {
                     // keep simclass-5 thunks at the front: insert after the last of them
                     let mut f = first;
-                    if g.thunks[(g.thunks[f as usize].w0 & 0xFFFFF) as usize].w8 & 0x70_0000 == 0x50_0000 {
+                    if g.thunks[(g.thunks[f as usize].w0 & 0xFFFFF) as usize].w8 & 0x70_0000
+                        == 0x50_0000
+                    {
                         loop {
                             f = g.thunks[f as usize].w0 & 0xFFFFF;
-                            if g.thunks[(g.thunks[f as usize].w0 & 0xFFFFF) as usize].w8 & 0x70_0000 != 0x50_0000 {
+                            if g.thunks[(g.thunks[f as usize].w0 & 0xFFFFF) as usize].w8 & 0x70_0000
+                                != 0x50_0000
+                            {
                                 break;
                             }
                         }
@@ -471,7 +482,8 @@ impl World {
                     let nxt = g.thunks[f as usize].w0 & 0xFFFFF;
                     g.thunks[ti].w0 |= nxt;
                     let nn = nxt as usize;
-                    g.thunks[nn].w4 = (g.thunks[nn].w4 & 0xFFF0_0000) | (t & ((-(nxt as i32) >> 31) as u32) & 0xFFFFF);
+                    g.thunks[nn].w4 = (g.thunks[nn].w4 & 0xFFF0_0000)
+                        | (t & ((-(nxt as i32) >> 31) as u32) & 0xFFFFF);
                     g.thunks[f as usize].w0 ^= (t ^ g.thunks[f as usize].w0) & 0xFFFFF;
                 } else {
                     {
@@ -483,7 +495,8 @@ impl World {
                         th.w0 |= first & 0xFFFFF;
                     }
                     let fi = first as usize;
-                    g.thunks[fi].w4 = (g.thunks[fi].w4 & 0xFFF0_0000) | (t & ((-(first as i32) >> 31) as u32) & 0xFFFFF);
+                    g.thunks[fi].w4 = (g.thunks[fi].w4 & 0xFFF0_0000)
+                        | (t & ((-(first as i32) >> 31) as u32) & 0xFFFFF);
                     g.thunks[fi].w8 &= !0x80_0000;
                     *g.cell_mut(cell) = t;
                 }
@@ -495,7 +508,8 @@ impl World {
                 th.sub[1] = (sub[0][1] as u8) & !((v123 >> 31) as u8);
                 let v87 = x - x1;
                 th.sub[2] = (sub[1][0] as u8).wrapping_add(((-1 - sub[1][0]) & (v87 >> 31)) as u8);
-                th.sub[3] = (sub[1][1] as u8).wrapping_add(((-1 - sub[1][1]) & ((y - y1) >> 31)) as u8);
+                th.sub[3] =
+                    (sub[1][1] as u8).wrapping_add(((-1 - sub[1][1]) & ((y - y1) >> 31)) as u8);
                 th.z[0] = if iz[0] >= 0 {
                     if iz[0] < 0xFFFF {
                         iz[0] as u16
@@ -541,7 +555,8 @@ impl World {
                 th.sub[0] = (sub[0][0] as u8) & !(v101 as u8);
                 th.sub[1] = (sub[0][1] as u8) & !((v100 >> 31) as u8);
                 th.sub[2] = (sub[1][0] as u8).wrapping_add(((-1 - sub[1][0]) & v102) as u8);
-                th.sub[3] = (sub[1][1] as u8).wrapping_add(((-1 - sub[1][1]) & ((y - y1) >> 31)) as u8);
+                th.sub[3] =
+                    (sub[1][1] as u8).wrapping_add(((-1 - sub[1][1]) & ((y - y1) >> 31)) as u8);
                 th.z[0] = if iz[0] >= 0 {
                     if iz[0] < 0xFFFF {
                         iz[0] as u16
@@ -575,7 +590,8 @@ impl World {
         if flags & 2 != 0 {
             let ent = self.ent(e);
             let lc = ent.list_class();
-            if lc != ent.sim_class() || ((ent.list_bits ^ (ent.list_bits << 4)) & 0xF000_0000) != 0 {
+            if lc != ent.sim_class() || ((ent.list_bits ^ (ent.list_bits << 4)) & 0xF000_0000) != 0
+            {
                 self.relist_entity(e);
                 if self.ent(e).flags & 0x100_1000 != 0 {
                     self.signal_state_change(e, lc);

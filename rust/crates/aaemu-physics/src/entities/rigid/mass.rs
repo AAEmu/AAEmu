@@ -38,7 +38,11 @@ pub fn recompute_mass(w: &mut World, e: EntIdx) {
         }
         let ps = part.scale;
         let o = part.q.rotate(part.pgeom.origin);
-        let p = Vec3::new(o.x * ps + part.pos.x, o.y * ps + part.pos.y, o.z * ps + part.pos.z);
+        let p = Vec3::new(
+            o.x * ps + part.pos.x,
+            o.y * ps + part.pos.y,
+            o.z * ps + part.pos.z,
+        );
         let r = qn.rotate(p);
         let com = Vec3::new(r.x + epos.x, r.y + epos.y, r.z + epos.z);
         let q78 = qn.product(part.q);

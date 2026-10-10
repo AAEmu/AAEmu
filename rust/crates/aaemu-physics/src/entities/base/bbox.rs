@@ -87,9 +87,13 @@ pub fn base_compute_bbox(
                     let a = |ri: usize, bj: usize, order: u8| -> f32 {
                         match order {
                             // (B[j][1]·R[i][1] + B[j][0]·R[i][0]) + B[j][2]·R[i][2]
-                            0 => ((b[bj][1] * m[ri][1] + b[bj][0] * m[ri][0]) + b[bj][2] * m[ri][2]).abs(),
+                            0 => ((b[bj][1] * m[ri][1] + b[bj][0] * m[ri][0])
+                                + b[bj][2] * m[ri][2])
+                                .abs(),
                             // (R[i][0]·B[j][0] + B[j][1]·R[i][1]) + B[j][2]·R[i][2]
-                            _ => ((m[ri][0] * b[bj][0] + b[bj][1] * m[ri][1]) + b[bj][2] * m[ri][2]).abs(),
+                            _ => ((m[ri][0] * b[bj][0] + b[bj][1] * m[ri][1])
+                                + b[bj][2] * m[ri][2])
+                                .abs(),
                         }
                     };
                     let ps = part.scale;
@@ -101,7 +105,11 @@ pub fn base_compute_bbox(
                     let ez = ((a(2, 0, 1) * s.x + s.y * a(2, 1, 0)) + s.z * a(2, 2, 0)) * ps;
                     // centre: q_ent·(q_part·c·s + p_part) + p_ent
                     let ctr = rotate_inline(qp, bb.center);
-                    let p1 = Vec3::new(ctr.x * ps + part.pos.x, ctr.y * ps + part.pos.y, ctr.z * ps + part.pos.z);
+                    let p1 = Vec3::new(
+                        ctr.x * ps + part.pos.x,
+                        ctr.y * ps + part.pos.y,
+                        ctr.z * ps + part.pos.z,
+                    );
                     let p2 = rotate_inline(c.q, p1);
                     let cw = Vec3::new(p2.x + c.pos.x, p2.y + c.pos.y, p2.z + c.pos.z);
                     let (l, h) = (
@@ -188,7 +196,10 @@ pub fn base_compute_bbox(
     if let EntityKind::Area(_) = ent.kind {
         unreachable!("areas have their own bbox code");
     }
-    [Vec3::new(mn[0], mn[1], mn[2]), Vec3::new(mx[0], mx[1], mx[2])]
+    [
+        Vec3::new(mn[0], mn[1], mn[2]),
+        Vec3::new(mx[0], mx[1], mx[2]),
+    ]
 }
 
 /// The per-part min/max merge (`if (acc >= v) acc = v` / `if (acc <= v) acc = v`).

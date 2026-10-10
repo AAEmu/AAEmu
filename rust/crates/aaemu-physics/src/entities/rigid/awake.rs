@@ -30,7 +30,8 @@ pub fn awake(w: &mut World, e: EntIdx, b_awake: i32, i_source: i32) -> i32 {
     }
     let r = w.ent(e).rigid().expect("rigid");
     let b = w.bodies.get(r.body);
-    let wv = ((b.w.x * b.w.x + b.w.y * b.w.y) + b.w.z * b.w.z) + ((b.v.x * b.v.x + b.v.y * b.v.y) + b.v.z * b.v.z);
+    let wv = ((b.w.x * b.w.x + b.w.y * b.w.y) + b.w.z * b.w.z)
+        + ((b.v.x * b.v.x + b.v.y * b.v.y) + b.v.z * b.v.z);
     let awake_byte = (r.awake_bits & 0xFF) as i32;
     if (w.ent(e).sim_class() != b_awake + 1 || (awake_byte != b_awake && i_source == 5))
         && (b.minv > 0.0 || wv > 0.0 || b_awake == 0 || i_source == 1)

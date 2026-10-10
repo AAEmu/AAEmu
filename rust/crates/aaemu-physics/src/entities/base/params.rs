@@ -140,7 +140,11 @@ fn scaled_bbox(w: &World, e: EntIdx, pos: Vec3, q: Quat, scale: f32) -> [Vec3; 2
             let ez = v46 * ((s.y * a(1, 2) + s.x * a(0, 2)) + s.z * a(2, 2));
             let c = part.q.rotate(bb.center);
             let k = v46 / part.scale;
-            let p1 = Vec3::new(part.pos.x * k + v46 * c.x, part.pos.y * k + v46 * c.y, part.pos.z * k + v46 * c.z);
+            let p1 = Vec3::new(
+                part.pos.x * k + v46 * c.x,
+                part.pos.y * k + v46 * c.y,
+                part.pos.z * k + v46 * c.z,
+            );
             let p2 = q.rotate(p1);
             let cw = Vec3::new(pos.x + p2.x, p2.y + pos.y, p2.z + pos.z);
             if lo.z >= cw.z - ez {
@@ -167,7 +171,14 @@ fn scaled_bbox(w: &World, e: EntIdx, pos: Vec3, q: Quat, scale: f32) -> [Vec3; 2
 }
 
 /// `CRigidEntity::SetParams` post-processing for id 0 (0x350C4CC0).
-fn rigid_post_params_pos(w: &mut World, e: EntIdx, p: &ParamsPos, old_com: Vec3, old_qb: Quat, old_bbox: [Vec3; 2]) {
+fn rigid_post_params_pos(
+    w: &mut World,
+    e: EntIdx,
+    p: &ParamsPos,
+    old_com: Vec3,
+    old_qb: Quat,
+    old_bbox: [Vec3; 2],
+) {
     let body_id = w.ent(e).rigid().expect("rigid").body;
     let (epos, eq) = (w.ent(e).pos, w.ent(e).q);
     {
@@ -185,12 +196,16 @@ fn rigid_post_params_pos(w: &mut World, e: EntIdx, p: &ParamsPos, old_com: Vec3,
     }
     if p.sim_class != i32::MIN && p.sim_class <= 2 {
         let sc = w.ent(e).sim_class();
-        w.ent_mut(e).rigid_mut().expect("rigid").set_awake(1 - sc < 0);
+        w.ent_mut(e)
+            .rigid_mut()
+            .expect("rigid")
+            .set_awake(1 - sc < 0);
     }
     let b = *w.bodies.get(body_id);
     let dq = Vec3::new(old_qb.x - b.q.x, old_qb.y - b.q.y, old_qb.z - b.q.z);
     let v31 = (dq.y * dq.y + dq.x * dq.x) + dq.z * dq.z;
-    let dp2 = ((old_com.y - b.pos.y) * (old_com.y - b.pos.y) + (old_com.x - b.pos.x) * (old_com.x - b.pos.x))
+    let dp2 = ((old_com.y - b.pos.y) * (old_com.y - b.pos.y)
+        + (old_com.x - b.pos.x) * (old_com.x - b.pos.x))
         + (old_com.z - b.pos.z) * (old_com.z - b.pos.z);
     let v33 = f32::from_bits(0x3716_FEB5) - dp2; // 9.0000003e-6
     let v30 = f32::from_bits(0x3B23_D70B) - v31; // 0.0025000002
@@ -215,7 +230,10 @@ fn rigid_post_params_pos(w: &mut World, e: EntIdx, p: &ParamsPos, old_com: Vec3,
             // world+420 > 0: move constraint anchors (sub_350B0940; no constraints in the port)
         }
     }
-    if !is_unused(p.scale) && !w.ent(e).parts.is_empty() && (p.scale - w.ent(e).parts[0].scale).abs() > 0.001 {
+    if !is_unused(p.scale)
+        && !w.ent(e).parts.is_empty()
+        && (p.scale - w.ent(e).parts[0].scale).abs() > 0.001
+    {
         crate::entities::rigid::mass::recompute_mass(w, e);
     }
     let ent = w.ent(e);
@@ -227,7 +245,10 @@ fn rigid_post_params_pos(w: &mut World, e: EntIdx, p: &ParamsPos, old_com: Vec3,
     {
         let b = *w.bodies.get(body_id);
         if b.minv == 0.0 {
-            let fl = ent.parts.iter().fold(0u32, |a, p| a | p.flags | p.flags_collider);
+            let fl = ent
+                .parts
+                .iter()
+                .fold(0u32, |a, p| a | p.flags | p.flags_collider);
             if fl & 1 != 0 {
                 let bb = ent.bbox;
                 let caller = w.tls_thread.min(4) as usize;

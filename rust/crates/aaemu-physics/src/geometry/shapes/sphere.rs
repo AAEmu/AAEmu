@@ -75,6 +75,11 @@ impl PrimitiveGeom for SphereGeom {
 }
 
 impl Geometry for SphereGeom {
+    /// P1c hook: the intersection protocol (`trimesh::protocol::shapes`).
+    fn as_protocol(&self) -> Option<&dyn crate::geometry::trimesh::protocol::GeomProtocol> {
+        Some(self)
+    }
+
     /// Slot 1 (0x35037C40).
     fn geom_type(&self) -> GeomType {
         GeomType::Sphere
