@@ -55,6 +55,9 @@ pub struct AppConfig {
     pub debug_info: bool,
     #[serde(rename = "debuginfolevel", deserialize_with = "lenient")]
     pub debug_info_level: u32,
+    /// `HeightMapsEnable` (C# default false; the shipped Config.json sets it to true).
+    #[serde(rename = "heightmapsenable", deserialize_with = "lenient")]
+    pub heightmaps_enable: bool,
     /// `FileManager.AppPath`: the directory holding `Config.json` and `Data/compact.sqlite3`.
     #[serde(skip)]
     pub app_path: PathBuf,
@@ -80,6 +83,7 @@ impl Default for AppConfig {
             default_language: "en_us".into(),
             debug_info: true,
             debug_info_level: 100,
+            heightmaps_enable: false,
             app_path: PathBuf::from("."),
         }
     }
@@ -183,6 +187,12 @@ pub struct WorldConfig {
     pub exp_rate: f64,
     #[serde(rename = "ignorefalldamageaccesslevel", deserialize_with = "lenient")]
     pub ignore_fall_damage_access_level: i32,
+    /// `GeoDataMode` (navmesh heights; geodata is not ported, the `false` path is used).
+    #[serde(rename = "geodatamode", deserialize_with = "lenient")]
+    pub geo_data_mode: bool,
+    /// `PreLoadTerrain`: load every heightmap cell at startup instead of on demand.
+    #[serde(rename = "preloadterrain", deserialize_with = "lenient")]
+    pub pre_load_terrain: bool,
 }
 
 impl Default for WorldConfig {
@@ -193,6 +203,8 @@ impl Default for WorldConfig {
             auto_save_interval: 5.0,
             exp_rate: 1.0,
             ignore_fall_damage_access_level: 100,
+            geo_data_mode: false,
+            pre_load_terrain: false,
         }
     }
 }

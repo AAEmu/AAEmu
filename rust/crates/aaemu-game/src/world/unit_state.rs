@@ -443,8 +443,8 @@ pub fn write_net_unit(
         }
     }
     s.write_str(if unit.owner_id > 0 { owner_name } else { "" });
-    // TODO(npcs): Npc -> `Transform.Local.SetHeight(WorldManager.GetReferenceHeight(..))`
-    // (needs heightmaps / AI).
+    // Npc: `Transform.Local.SetHeight(WorldManager.GetReferenceHeight(..))` is applied by
+    // `npc_unit_state` before writing (`systems::npcs::heightmap::adjust_npc_reference_height`).
     let t = unit.transform;
     s.write_position(t.x, t.y, t.z)
         .write_f32(unit.scale)
@@ -537,6 +537,7 @@ pub fn npc_unit_state(
     owner_name: &str,
     now_ms: i64,
 ) -> SCUnitStatePacket {
+    crate::systems::npcs::heightmap::adjust_npc_reference_height(npc);
     let equipment = std::mem::take(&mut npc.equipment);
     let spec = NetUnitSpec {
         header: NetUnitHeader::Npc {

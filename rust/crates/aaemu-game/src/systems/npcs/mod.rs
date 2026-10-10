@@ -171,3 +171,5 @@ pub fn register(reg: &mut PacketRegistry) {
 
 #[cfg(test)]
 mod flow_tests;
+#[cfg(test)]
+mod spawn_tests;
