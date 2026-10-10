@@ -122,12 +122,29 @@ pub fn start_skill(server: &GameServer, conn: &mut GameConnection, p: CSStartSki
             &caster,
             p.caster,
             &mut target,
-            Some(p.skill_object),
+            Some(p.skill_object.clone()),
             false,
         );
-        let _ = r;
-        // MateGameData.GetMountAttachedSkills (rider / operator skill): mates subsystem
-        return;
+        // Harpoon rope controller + MateGameData.GetMountAttachedSkills (vehicles subsystem)
+        let mount_attached_skill = crate::systems::vehicles::on_mount_skill_used(
+            server,
+            &player,
+            &caster,
+            skill_id,
+            r == skill_result::SUCCESS,
+            &target,
+        );
+        // If no rider/operator skill is linked, we can stop here
+        if mount_attached_skill == 0 {
+            return;
+        }
+        // Use player's currently selected target for the rider/operator skill
+        let current = player.data().unit.current_target;
+        let rider_target = super::geometry::world_of(server, &me)
+            .and_then(|w| w.object(current))
+            .filter(WorldObject::is_unit)
+            .unwrap_or_else(|| me.clone());
+        result = skill::unit_use_skill(server, &me, mount_attached_skill, &rider_target);
     } else if is_auto
         && auto
             .as_ref()
@@ -525,13 +542,24 @@ impl ClientPacket for CSSkillControllerStatePacket {
         _conn: &'a mut GameConnection,
     ) -> BoxFuture<'a, Result<()>> {
         Box::pin(async move {
-            // ShipHarpoonRopeController.TryApplySkillControllerState: ships (slaves subsystem)
             tracing::debug!(
                 "CSSkillControllerState objId={} scType={} {:?}",
                 self.obj_id,
                 self.sc_type,
                 self.rope
             );
+            // ShipHarpoonRopeController.TryApplySkillControllerState (vehicles subsystem)
+            if let (Some((len, teared, cutouted)), Some(p)) = (self.rope, _conn.active_char.clone())
+            {
+                crate::systems::vehicles::harpoon::try_apply_skill_controller_state(
+                    _server,
+                    &p,
+                    self.obj_id,
+                    len,
+                    teared,
+                    cutouted,
+                );
+            }
             Ok(())
         })
     }

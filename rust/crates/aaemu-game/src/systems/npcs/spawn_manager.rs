@@ -1242,19 +1242,24 @@ impl SpawnManager {
     }
 
     /// The transfer / gimmick / slave tasks of `SpawnAll` (returns the gimmicks spawned).
-    // TODO(npcs): TransferSpawner.SpawnAll and SlaveSpawner.Spawn(0) are not ported: the loaded
-    // spawners are only counted.
+    /// `TransferSpawner.SpawnAll` / `SlaveSpawner.Spawn(0)` are the vehicles subsystem's.
     pub fn spawn_other_spawners(&self, server: &GameServer) -> usize {
-        let (transfers, gimmicks, slaves) = {
+        let (transfer_defs, gimmicks, slave_defs) = {
             let inner = self.inner();
             (
-                inner.transfer_spawners.len(),
+                inner
+                    .transfer_spawners
+                    .values()
+                    .cloned()
+                    .collect::<Vec<_>>(),
                 inner.gimmick_spawners.values().cloned().collect::<Vec<_>>(),
-                inner.slave_spawners.len(),
+                inner.slave_spawners.values().cloned().collect::<Vec<_>>(),
             )
         };
+        let (transfers, slaves) = (transfer_defs.len(), slave_defs.len());
         let name = &self.world.template.name;
         tracing::info!("Spawning {transfers} Transfers in world {name}");
+        crate::systems::vehicles::transfers::spawn_all(server, &self.world, transfer_defs);
         tracing::info!("Spawning {} Gimmicks in world {name}", gimmicks.len());
         let mut count = 0;
         for g in &gimmicks {
@@ -1267,6 +1272,7 @@ impl SpawnManager {
         }
         tracing::info!("In world {name} Gimmicks spawned: {count}");
         tracing::info!("Spawning {slaves} Slaves in world {name}");
+        crate::systems::vehicles::slaves::spawn_all(server, &self.world, slave_defs);
         count
     }
 
@@ -1409,8 +1415,8 @@ impl SpawnManager {
                 // `npc.Spawner.Respawn(npc)` is disabled: Update() spawns again.
                 (SpawnerLink::Npc(s), _) => s.set_spawn_scheduled(false),
                 (SpawnerLink::Doodad(s), WorldObject::Doodad(d)) => s.respawn(server, d),
-                // TODO(npcs): Transfer / Gimmick spawner respawns (not ported).
-                _ => {}
+                // Transfer spawner respawns (vehicles). TODO(npcs): Gimmick spawner respawns.
+                (_, o) => crate::systems::vehicles::respawn_object(server, o),
             }
             Self::remove_entry(&self.respawns, &e);
         }
@@ -1422,8 +1428,12 @@ impl SpawnManager {
             match (&e.link, &e.obj) {
                 (SpawnerLink::Npc(s), WorldObject::Npc(n)) => s.despawn(server, n),
                 (SpawnerLink::Doodad(s), WorldObject::Doodad(d)) => s.despawn(server, d),
-                // TODO(npcs): Transfer / Gimmick spawner despawns; Slave.Delete (slave manager).
-                (_, o) => delete_object(server, o, Some(self.world.id)),
+                // Transfer spawner despawns (vehicles); `slave.Delete()` is the common delete.
+                (_, o) => {
+                    if !crate::systems::vehicles::despawn_object(server, o) {
+                        delete_object(server, o, Some(self.world.id));
+                    }
+                }
             }
             server.ids.object.release_id(e.obj.obj_id());
             forget_object(server, e.obj.obj_id());

@@ -33,6 +33,12 @@ pub struct Mate {
     pub skills: Vec<u32>,
     /// `Equipment` (28 slots).
     pub equipment: Vec<Option<Item>>,
+    /// `Template.MateKindId` (the formulas' `mate_kind`).
+    pub mate_kind_id: i32,
+    /// `MateXpUpdateTask` (generation of the pending task, 0 = none).
+    pub xp_task: u64,
+    /// `SusManager` / despawn bookkeeping: the mate was deleted (`Delete()` ran).
+    pub deleted: bool,
 }
 
 impl Mate {
@@ -52,7 +58,26 @@ impl Mate {
             spawn_delay_time: 0,
             skills: Vec::new(),
             equipment: vec![None; UNIT_EQUIPMENT_SLOTS],
+            mate_kind_id: 0,
+            xp_task: 0,
+            deleted: false,
         }
+    }
+
+    /// `Passengers.TryGetValue(attachPoint)`.
+    pub fn passenger(&self, point: u8) -> Option<&MatePassengerInfo> {
+        self.passengers
+            .iter()
+            .find(|(p, _)| *p == point)
+            .map(|(_, i)| i)
+    }
+
+    /// Mutable `Passengers[attachPoint]`.
+    pub fn passenger_mut(&mut self, point: u8) -> Option<&mut MatePassengerInfo> {
+        self.passengers
+            .iter_mut()
+            .find(|(p, _)| *p == point)
+            .map(|(_, i)| i)
     }
 }
 

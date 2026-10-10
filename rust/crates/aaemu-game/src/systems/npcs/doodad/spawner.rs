@@ -150,8 +150,8 @@ impl DoodadSpawnerDef {
     }
 }
 
-/// A `TransferSpawner` / `SlaveSpawner` entry (`Count` defaults to 1). Spawning transfers and
-/// slaves is not ported: the spawners are loaded and counted only.
+/// A `TransferSpawner` / `SlaveSpawner` entry (`Count` defaults to 1). The vehicles subsystem
+/// spawns them (`systems::vehicles::{transfers, slaves}::spawn_all`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleSpawnerDef {
     pub base: SpawnerBase,

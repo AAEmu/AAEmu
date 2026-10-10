@@ -143,6 +143,9 @@ pub fn handle_zone_changes(server: &GameServer, changes: Vec<crate::world::ZoneC
             if let Some(h) = server.systems.hooks.unit.get() {
                 h.on_unit_zone_change(server, &z.object, z.old_zone, z.new_zone);
             }
+            crate::systems::vehicles::on_unit_zone_change(
+                server, &z.object, z.old_zone, z.new_zone,
+            );
         }
     }
 }
@@ -280,6 +283,8 @@ pub async fn select_character(
     // Force player into main_world when coming from character select
     c.unit.transform.instance_id = DEFAULT_INSTANCE_ID;
     load_character_details(server, &mut c).await?;
+    // Character.Load(): Mates.Load (vehicles subsystem)
+    crate::systems::vehicles::load_character(server, c.id).await;
     let offline_friend_ids: Vec<u32> = c
         .friends
         .iter()
@@ -307,7 +312,7 @@ pub fn select_loaded(
     mut c: Character,
     db: SelectDbData,
 ) -> Result<()> {
-    // Mates of all instances: later phase.
+    // Mates of all instances: despawned below (vehicles::on_character_selected).
     let obj_id = match server.world.used_obj_id(c.id) {
         Some(o) => o,
         None => {
@@ -325,7 +330,8 @@ pub fn select_loaded(
     conn.active_char = Some(player.clone());
     server.world.try_add_character(&player);
     crate::systems::quests::on_character_selected(server, &player);
-    // Slaves / simulation: later phase.
+    // Mates of every instance despawned, pending vehicle despawn task aborted.
+    crate::systems::vehicles::on_character_selected(server, &player);
 
     let data = &server.game_data;
     let snapshot = player.data().clone();
@@ -653,7 +659,7 @@ fn direction_to_radian(d: i8) -> f32 {
     crate::models::movement::convert_direction_to_radian(d) as f32
 }
 
-/// `CSMoveUnitPacket.Execute` for this phase's units (characters).
+/// `CSMoveUnitPacket.Execute` (characters, mates, slaves / vehicles, any base unit).
 pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u32, mt: MoveType) {
     let Some(me) = conn.active_char.clone() else {
         return;
@@ -667,53 +673,61 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
     let Some(world) = parent_world(server, &me) else {
         return;
     };
-    // `ParentWorld.GetBaseUnit(objId)`: only players exist in this phase.
+    // `ParentWorld.GetBaseUnit(objId)`.
     let target = if obj_id == me.obj_id {
-        Some(me.clone())
+        Some(WorldObject::from(&me))
     } else {
-        server
-            .world
-            .character_by_obj_id(obj_id)
-            .filter(|p| p.data().unit.transform.instance_id == world.id)
+        world.object(obj_id)
     };
     let Some(target) = target else {
         tracing::warn!("Invalid target {obj_id} from {}", me.data().unit.name);
         return;
     };
     match &mt.kind {
-        MoveKind::ShipRequest(_) | MoveKind::Vehicle(_) => {
-            // `targetUnit is not Slave` -> return (slaves are a later phase).
+        MoveKind::ShipRequest(r) => {
+            crate::systems::vehicles::movement::ship_request(server, &me, &target, r);
+        }
+        MoveKind::Vehicle(v) => {
+            crate::systems::vehicles::movement::vehicle_move(server, &world, &me, &target, &mt, v);
         }
         MoveKind::Unit(u) => {
-            // RemoveEffects (BuffRemoveOn.Move): later phase. IsRiding: mates are a later phase.
-            let first_move = {
-                let mut c = target.data();
-                let first = !c.finished_loading;
-                c.finished_loading = true;
-                first
-            };
-            if first_move && Arc::ptr_eq(&target, &me) {
-                // SetPlayerMoved: MOTD on the first movement after loading.
-                send_message(&me, chat_type::SYSTEM, &server.config.world.motd);
+            // Its moving Pets, handle Pet XP for moving
+            if let Some(mate) = target.as_mate() {
+                crate::systems::vehicles::movement::on_mate_unit_move(server, &me, mate, u);
             }
-            // Standing on / sticky parents (slaves, transfers): later phase.
-            // RemoveEffects (BuffRemoveOn.Move on a moving velocity): skills subsystem.
-            crate::systems::skills::on_move_request(server, &target, u.vel_x, u.vel_y, u.vel_z);
+            if let Some(player) = target.as_player() {
+                // RemoveEffects (BuffRemoveOn.Move on a moving velocity): skills subsystem.
+                crate::systems::skills::on_move_request(server, player, u.vel_x, u.vel_y, u.vel_z);
+                if crate::systems::vehicles::movement::player_riding(server, &me, player) {
+                    return;
+                }
+                // SetPlayerMoved: MOTD on the first movement after loading.
+                let first_move = {
+                    let mut c = player.data();
+                    let first = !c.finished_loading;
+                    c.finished_loading = true;
+                    first
+                };
+                if first_move && Arc::ptr_eq(player, &me) {
+                    send_message(&me, chat_type::SYSTEM, &server.config.world.motd);
+                }
+            }
+            // Standing on objects (ship decks); sticky parents are not modelled.
+            crate::systems::vehicles::movement::standing_on(&world, &target, &mt, u);
             let old_pos = {
-                let t = target.data().unit.transform;
+                let t = target.transform();
                 (t.x, t.y, t.z)
             };
-            {
-                let mut c = target.data();
-                c.unit.transform.set_position(
+            target.with_transform(|t| {
+                t.set_position(
                     u.x,
                     u.y,
                     u.z,
                     direction_to_radian(u.rotation_x),
                     direction_to_radian(u.rotation_y),
                     direction_to_radian(u.rotation_z),
-                );
-            }
+                )
+            });
             let packet = SCOneUnitMovementPacket {
                 obj_id,
                 move_type: mt.clone(),
@@ -722,15 +736,24 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
             // FinalizeTransform -> AddVisibleObject (region change) -> SetPosition.
             let changes = world.add_visible_object(&target, &server.view_ctx());
             handle_zone_changes(server, changes);
-            // Character.SetPosition (BuffRemoveOn.Move when moved) + DoFallDamage(FallVel).
-            crate::systems::skills::on_moved(server, &target, old_pos, u.fall_vel);
+            match target.as_player() {
+                // Character.SetPosition (BuffRemoveOn.Move when moved) + DoFallDamage(FallVel).
+                Some(player) => {
+                    crate::systems::skills::on_moved(server, player, old_pos, u.fall_vel)
+                }
+                None => {
+                    if u.fall_vel > 0 && target.is_unit() {
+                        crate::systems::vehicles::do_fall_damage(server, &target, u.fall_vel);
+                    }
+                }
+            }
         }
         _ => {
             tracing::warn!(
                 "Unknown MoveType: {:?} by {} for {}",
                 mt.move_type(),
                 me.data().unit.name,
-                target.data().unit.name
+                target.with_base_unit(|b| b.name().to_string())
             );
         }
     }
@@ -904,8 +927,11 @@ pub fn leave(server: &GameServer, conn: &mut GameConnection, target: u8) {
             send_message(p, chat_type::SYSTEM, &server.config.world.logout_message);
         }
     }
-    // Combat (x30) and active slave (+10 min) extensions: later phases.
-    let logout_time = 10_000;
+    // Combat (x30): later phase. Active slave: +10 minutes.
+    let mut logout_time = 10_000;
+    if let Some(p) = &conn.active_char {
+        logout_time += crate::systems::vehicles::leave_extra_logout_ms(server, p);
+    }
     conn.send(&SCPrepareLeaveWorldPacket {
         time: logout_time,
         target,
@@ -950,8 +976,15 @@ pub async fn leave_world_task(
         set_online(server, p, false);
         p.data().leave_time = Utc::now().timestamp();
         crate::systems::quests::on_leave_world(server, p.character_id);
+        // Despawn and unmount everybody from owned Mates / Slaves
+        crate::systems::vehicles::on_leave_world(server, p);
         crate::systems::npcs::doodad::coffer::close_coffers_opened_by(server, p);
-        // Mates, slaves, dismount: later phases.
+        // Check if still mounted on somebody else's mount and dismount that if needed
+        crate::systems::vehicles::force_dismount(
+            server,
+            p,
+            crate::systems::vehicles::slaves::attach_reason::PREFAB_CHANGED,
+        );
         server.chat.leave_all_channels(p);
         // Handle Family
         crate::systems::social::session::on_leave_world_family(server, p);
@@ -1019,6 +1052,8 @@ pub async fn save_and_remove_from_world(server: &GameServer, active: Option<&Pla
     if save_directly_to_database(&server.db, &mut c).await {
         p.data().updated = c.updated;
     }
+    // Character.Save: Mates.Save
+    crate::systems::vehicles::save_character(server, c.id).await;
 }
 
 /// The `ActiveChar` part of `GameConnection.OnDisconnect`.
@@ -1032,8 +1067,9 @@ pub async fn on_disconnect(server: &GameServer, conn: &mut GameConnection) {
     for sub in p.subscribers().drain(..) {
         server.time.unsubscribe(sub);
     }
-    // Events.OnDisconnect, mates / slaves / coffers: later phases. Note (C#): chat channels are
-    // not left on a hard disconnect.
+    // Events.OnDisconnect: later phase. Note (C#): chat channels are not left on a hard
+    // disconnect.
+    crate::systems::vehicles::on_disconnect(server, &p);
     crate::systems::npcs::doodad::coffer::close_coffers_opened_by(server, &p);
     save_and_remove_from_world(server, Some(&p)).await;
 }

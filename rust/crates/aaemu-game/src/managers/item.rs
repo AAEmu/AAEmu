@@ -148,6 +148,19 @@ impl ItemManager {
         store.loose.iter().find(|i| i.id == item_id).cloned()
     }
 
+    /// `GetItemByItemId(id)` followed by an in-place change of the live item (`None` when the
+    /// item is in no persistent container or the loose list).
+    pub fn update_item<R>(&self, item_id: u64, f: impl FnOnce(&mut Item) -> R) -> Option<R> {
+        let mut store = self.store();
+        for c in &store.containers {
+            let mut g = c.lock().expect("container poisoned");
+            if let Some(i) = g.get_item_by_id_mut(item_id) {
+                return Some(f(i));
+            }
+        }
+        store.loose.iter_mut().find(|i| i.id == item_id).map(f)
+    }
+
     /// Adds an already loaded container (tests / `LoadUserItems`).
     pub fn add_container(&self, c: ContainerRef) {
         self.store().containers.push(c);

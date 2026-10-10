@@ -60,6 +60,10 @@ pub struct Shipyard {
     pub current_step: i32,
     pub all_action: i32,
     pub num_action: i32,
+    /// `BaseAction`.
+    pub base_action: i32,
+    /// `IsDirty`.
+    pub is_dirty: bool,
 }
 
 impl Shipyard {
@@ -73,6 +77,8 @@ impl Shipyard {
             current_step: 0,
             all_action: 0,
             num_action: 0,
+            base_action: 0,
+            is_dirty: true,
         }
     }
 }

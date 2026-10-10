@@ -25,6 +25,33 @@ pub struct Transfer {
     pub reverse: bool,
     /// `WaitTime` (unix ms).
     pub wait_time_ms: i64,
+    // ---- movement state (`Transfer` route following) ----
+    /// `Steering` (index of the current route, 1 by default).
+    pub steering: i32,
+    pub throttle: i8,
+    /// `Rot` (x, y, z, w).
+    pub rot: [f32; 4],
+    pub velocity: [f32; 3],
+    pub ang_vel: [f32; 3],
+    pub rotation_degrees: f32,
+    /// `Routes` (route index -> points).
+    pub routes: Vec<Vec<crate::data::world_templates::WorldSpawnPosition>>,
+    /// `TransferPath` (current route).
+    pub transfer_path: Vec<crate::data::world_templates::WorldSpawnPosition>,
+    pub move_to_path_enabled: bool,
+    pub move_to_forward: bool,
+    pub move_step_index: i32,
+    pub v_position: [f32; 3],
+    pub v_target: [f32; 3],
+    pub v_distance: [f32; 3],
+    pub v_velocity: [f32; 3],
+    pub distance: f32,
+    pub max_velocity_forward: f32,
+    pub range_to_check_point: f32,
+    pub vel_accel: f32,
+    pub angle: f64,
+    pub mass: f32,
+    pub max_force: f32,
 }
 
 impl Transfer {
@@ -45,6 +72,28 @@ impl Transfer {
             rot_speed: 0.0,
             reverse: false,
             wait_time_ms: 0,
+            steering: 1,
+            throttle: 0,
+            rot: [0.0; 4],
+            velocity: [0.0; 3],
+            ang_vel: [0.0; 3],
+            rotation_degrees: 0.0,
+            routes: Vec::new(),
+            transfer_path: Vec::new(),
+            move_to_path_enabled: false,
+            move_to_forward: false,
+            move_step_index: 0,
+            v_position: [0.0; 3],
+            v_target: [0.0; 3],
+            v_distance: [0.0; 3],
+            v_velocity: [0.0; 3],
+            distance: 0.0,
+            max_velocity_forward: 5.4,
+            range_to_check_point: 1.5,
+            vel_accel: 0.3,
+            angle: 0.0,
+            mass: 0.0,
+            max_force: 0.0,
         }
     }
 
