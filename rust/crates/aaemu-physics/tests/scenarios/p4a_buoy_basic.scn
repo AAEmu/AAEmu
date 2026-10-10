@@ -1,0 +1,51 @@
+# P4a ApplyBuoyancy called directly (oracle/p3_areas.c abuoy): global water plane z=0.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+area name=glob kind=global
+params target=glob type=12 v40=0,0,1 v52=0,0,0 i72=0
+geom name=b1 type=box size=1,0.5,0.75
+geom name=s1 type=sphere r=0.8
+geom name=c1 type=cylinder r=0.5 hh=1
+geom name=k1 type=capsule r=0.4 hh=0.7
+# box, partial, moving
+entity name=box type=rigid pos=10,10,0.2
+part ent=box geom=b1 mass=300
+params target=box type=12 f4=1000
+poke target=box off=448 v=10,10,0.2
+poke target=box off=476 v=9,9.5,-0.55
+poke target=box off=488 v=11,10.5,0.95
+poke target=box off=808 v=1,0.5,-2
+poke target=box off=796 v=0.3,-0.2,0.1
+gather tag=g1 ent=box dt=0.0333
+abuoy tag=b1 ent=box dt=0.0333
+abuoy tag=b1b ent=box dt=0.02
+# sphere, fully submerged
+entity name=sph type=rigid pos=20,10,-3
+part ent=sph geom=s1 mass=100
+params target=sph type=12 f4=1000 f12=0.5
+poke target=sph off=448 v=20,10,-3
+poke target=sph off=476 v=19.2,9.2,-3.8
+poke target=sph off=488 v=20.8,10.8,-2.2
+poke target=sph off=808 v=0,0,1
+gather tag=g2 ent=sph dt=0.0333
+abuoy tag=b2 ent=sph dt=0.0333
+# cylinder, partial, tilted
+entity name=cyl type=rigid pos=30,10,0.3 q=0.2,0.1,0,0.9747
+part ent=cyl geom=c1 mass=200
+params target=cyl type=12 f4=1000
+poke target=cyl off=448 v=30,10,0.3
+poke target=cyl off=460 q=0.2,0.1,0,0.9747
+poke target=cyl off=476 v=29.3,9.3,-0.8
+poke target=cyl off=488 v=30.7,10.7,1.4
+poke target=cyl off=808 v=-1,0,-0.5
+gather tag=g3 ent=cyl dt=0.0333
+abuoy tag=b3 ent=cyl dt=0.0333
+# capsule, resistance off
+entity name=cap type=rigid pos=40,10,0.1
+part ent=cap geom=k1 mass=50 pos=0.1,0,0
+params target=cap type=12 f4=1000 f16=0
+poke target=cap off=448 v=40,10,0.1
+poke target=cap off=476 v=39.5,9.6,-1.0
+poke target=cap off=488 v=40.5,10.4,1.2
+poke target=cap off=808 v=0,0,-1
+gather tag=g4 ent=cap dt=0.0333
+abuoy tag=b4 ent=cap dt=0.0333

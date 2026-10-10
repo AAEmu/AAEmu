@@ -8,6 +8,13 @@
 //! radius) contains the point by solving `d/dt |B(t) − p|² / 2 = 0` (a cubic, coefficients in
 //! single precision, solved in double) and over the two end points.
 
+// Bit-exact port: operand order and NaN-aware negated comparisons follow the binary.
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::needless_range_loop
+)]
+
 use super::super::{EntIdx, World};
 use crate::math::crt;
 use crate::math::Vec3;
@@ -44,7 +51,13 @@ fn fneg(x: f64) -> usize {
 /// Degrees >= 4 (Sturm-free bisection on the derivative's roots) are not used by the areas
 /// and not ported.
 #[must_use]
-pub fn find_roots(c: &[f64; 4], start: f64, end: f64, degree: usize, roots: &mut [f64; 4]) -> usize {
+pub fn find_roots(
+    c: &[f64; 4],
+    start: f64,
+    end: f64,
+    degree: usize,
+    roots: &mut [f64; 4],
+) -> usize {
     // degree reduction
     let mut m = ABS(c[0]);
     for &ck in c.iter().take(degree + 1).skip(1) {
@@ -169,14 +182,18 @@ impl World {
     pub fn area_spline_closest(&mut self, a: EntIdx, pt: Vec3) -> (f32, i32, f32) {
         let d = self.area(a);
         let cp = d.cache_pt;
-        let dc = ((pt.x - cp.x) * (pt.x - cp.x) + (pt.y - cp.y) * (pt.y - cp.y)) + (pt.z - cp.z) * (pt.z - cp.z);
+        let dc = ((pt.x - cp.x) * (pt.x - cp.x) + (pt.y - cp.y) * (pt.y - cp.y))
+            + (pt.z - cp.z) * (pt.z - cp.z);
         if !(dc != 0.0) {
             return (d.cache_d2, d.cache_seg, d.cache_t);
         }
         let p = &d.points;
         let n = d.npoints;
         let rad = d.radius;
-        let dist2 = |q: Vec3| ((pt.x - q.x) * (pt.x - q.x) + (pt.y - q.y) * (pt.y - q.y)) + (pt.z - q.z) * (pt.z - q.z);
+        let dist2 = |q: Vec3| {
+            ((pt.x - q.x) * (pt.x - q.x) + (pt.y - q.y) * (pt.y - q.y))
+                + (pt.z - q.z) * (pt.z - q.z)
+        };
         let mut best = dist2(p[0]);
         let mut seg = 0i32;
         let mut tb = 0.0f32;
@@ -197,10 +214,21 @@ impl World {
             let sy = p1.y + p0.y;
             let az = (p0.z - p1.z).abs();
             let sz = p1.z + p0.z;
-            let mn = |s: f32, a: f32, c: f32| ((((s - a) * 0.5) + c) - (((s - a) * 0.5) - c).abs()) * 0.5;
-            let mx = |s: f32, a: f32, c: f32| (((a + s) * 0.5 - c).abs() + ((a + s) * 0.5 + c)) * 0.5;
-            let bmin = Vec3::new(mn(sx, ax, p2.x) - rad, mn(sy, ay, p2.y) - rad, mn(sz, az, p2.z) - rad);
-            let bmax = Vec3::new(rad + mx(sx, ax, p2.x), rad + mx(sy, ay, p2.y), rad + mx(sz, az, p2.z));
+            let mn = |s: f32, a: f32, c: f32| {
+                ((((s - a) * 0.5) + c) - (((s - a) * 0.5) - c).abs()) * 0.5
+            };
+            let mx =
+                |s: f32, a: f32, c: f32| (((a + s) * 0.5 - c).abs() + ((a + s) * 0.5 + c)) * 0.5;
+            let bmin = Vec3::new(
+                mn(sx, ax, p2.x) - rad,
+                mn(sy, ay, p2.y) - rad,
+                mn(sz, az, p2.z) - rad,
+            );
+            let bmax = Vec3::new(
+                rad + mx(sx, ax, p2.x),
+                rad + mx(sy, ay, p2.y),
+                rad + mx(sz, az, p2.z),
+            );
             if !point_in_box_4ff30(bmin, bmax, pt) {
                 continue;
             }
@@ -214,7 +242,8 @@ impl World {
             let b_x = p1.x - p0.x;
             let b_y = p1.y - p0.y;
             let b_z = p1.z - p0.z;
-            let c1 = ((dy * a_y + dx * a_x) + dz * a_z) * 2.0 + ((b_y * b_y + b_x * b_x) + b_z * b_z);
+            let c1 =
+                ((dy * a_y + dx * a_x) + dz * a_z) * 2.0 + ((b_y * b_y + b_x * b_x) + b_z * b_z);
             let c2 = ((b_y * a_y + b_x * a_x) + b_z * a_z) * 3.0;
             let c3 = ((a_y * a_y + a_x * a_x) + a_z * a_z) * 2.0;
             let c0 = ((dy * b_y) + (dx * b_x)) + dz * b_z;

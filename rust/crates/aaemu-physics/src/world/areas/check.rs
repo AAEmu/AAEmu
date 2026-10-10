@@ -1,6 +1,13 @@
 //! `CheckAreas` (world slot 87, 0x3504E000), the per-area evaluation (`sub_3504A2E0`), the
 //! inside test (`sub_3504C770`) and the area callback (event 11, `sub_3504FD40`).
 
+// Bit-exact port: operand order and NaN-aware negated comparisons follow the binary.
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::needless_range_loop
+)]
+
 use super::super::events::Event;
 use super::super::{EntIdx, World};
 use crate::collision::pairs::PairTables;
@@ -60,7 +67,9 @@ pub struct AreaHooks {
 
 impl std::fmt::Debug for AreaHooks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AreaHooks").field("clients", &self.clients.len()).finish()
+        f.debug_struct("AreaHooks")
+            .field("clients", &self.clients.len())
+            .finish()
     }
 }
 
@@ -94,7 +103,11 @@ impl World {
         let h = &mut self.area_hooks;
         h.next += 1;
         let id = h.next;
-        let pos = h.clients.iter().position(|c| c.0 < prio).unwrap_or(h.clients.len());
+        let pos = h
+            .clients
+            .iter()
+            .position(|c| c.0 < prio)
+            .unwrap_or(h.clients.len());
         h.clients.insert(pos, (prio, id, f));
         id
     }
@@ -309,7 +322,8 @@ impl World {
         let mut keep = 1i32; // v442
         let mut copied = 0i32; // v384 / v18
         let mut slot = n; // v31
-        let skip_global = ent.is_some_and(|e| self.ent(e).flags & 0x2_0000 != 0) && a == self.global_area;
+        let skip_global =
+            ent.is_some_and(|e| self.ent(e).flags & 0x2_0000 != 0) && a == self.global_area;
         if !(unused(d.buoyancy.water_plane_origin.x) || skip_global) {
             if d.buoyancy.i_medium == *seen {
                 slot = 0;
@@ -392,7 +406,9 @@ impl World {
                     let gm = d.gravity.z;
                     let v84 = (v81 * m[1][1]) + (v83 * m[1][0]);
                     let v87 = ((((v81 * m[2][1]) + (v83 * m[2][0])) + (v82 * m[2][2])) * gm) - v80;
-                    gravity.x = (((((v83 * m[0][0]) + (v81 * m[0][1])) + (v82 * m[0][2])) * gm) - v78) + gravity.x;
+                    gravity.x = (((((v83 * m[0][0]) + (v81 * m[0][1])) + (v82 * m[0][2])) * gm)
+                        - v78)
+                        + gravity.x;
                     let v88 = v87 + gravity.z;
                     gravity.y = (((v84 + (v82 * m[1][2])) * gm) - v79) + gravity.y;
                     gravity.z = v88;
@@ -414,13 +430,25 @@ impl World {
                 (((a_y * t) + b_y) * t) + c_y,
                 (((a_z * t) + b_z) * t) + c_z,
             );
-            self.area_callback_eval(a, &d, pt, closest, Vec3::new(gx, gy, gz), gravity, buoy, slot, nmax, ent);
+            self.area_callback_eval(
+                a,
+                &d,
+                pt,
+                closest,
+                Vec3::new(gx, gy, gz),
+                gravity,
+                buoy,
+                slot,
+                nmax,
+                ent,
+            );
             return copied & keep;
         }
 
         // ---- ellipsoid / uniform / geometry areas ----
         let iv = d.inv_size;
-        let mut v138 = (((ly * iv.y) * (ly * iv.y)) + ((lx * iv.x) * (lx * iv.x))) + ((lz * iv.z) * (lz * iv.z));
+        let mut v138 = (((ly * iv.y) * (ly * iv.y)) + ((lx * iv.x) * (lx * iv.x)))
+            + ((lz * iv.z) * (lz * iv.z));
         if !(v138 <= 1.0) {
             return 0;
         }
@@ -442,7 +470,8 @@ impl World {
                 if d.uniform == 2 {
                     let v142 = ((gv.x * m[1][0]) + (gv.y * m[1][1])) + (gv.z * m[1][2]);
                     let v143 = ((gv.x * m[2][0]) + (gv.y * m[2][1])) + (gv.z * m[2][2]);
-                    gravity.x = (v141 * (((gv.x * m[0][0]) + (gv.y * m[0][1])) + (gv.z * m[0][2]))) + gravity.x;
+                    gravity.x = (v141 * (((gv.x * m[0][0]) + (gv.y * m[0][1])) + (gv.z * m[0][2])))
+                        + gravity.x;
                     let v144 = (v143 * v141) + gravity.z;
                     gravity.y = (v142 * v141) + gravity.y;
                     gravity.z = v144;
