@@ -3,8 +3,6 @@
 
 use std::sync::Arc;
 
-use chrono::Utc;
-
 use crate::data::GameData;
 use crate::managers::id::IdManagers;
 use crate::managers::item::ItemManager;
@@ -77,40 +75,5 @@ impl StreamWorld for GameStreamWorld {
                     name: c.unit.name.clone(),
                 }
             })
-    }
-
-    fn change_money(&self, game_connection_id: u32, amount: i32) {
-        // `ChangeMoney(SlotType.Inventory, amount)`; the SCItemTaskSuccessPacket is a later
-        // phase (item tasks).
-        if let Some(p) = self.world.character_by_connection(game_connection_id) {
-            p.data().money += i64::from(amount);
-        }
-    }
-
-    fn grant_ucc_item(&self, game_connection_id: u32, template_id: u32, ucc_id: u64) -> bool {
-        let Some(p) = self.world.character_by_connection(game_connection_id) else {
-            return false;
-        };
-        let Some(mut item) = self.items.create(
-            template_id,
-            1,
-            0,
-            self.server_id,
-            &self.game_data.items,
-            &self.ids.item,
-            Utc::now().timestamp(),
-        ) else {
-            return false;
-        };
-        item.set_ucc(ucc_id);
-        let bag = p.data().inventory.bag().clone();
-        let res = bag
-            .lock()
-            .expect("bag poisoned")
-            .add_new_item(item, -1, &self.game_data.items);
-        if res.is_err() {
-            tracing::warn!("grant_ucc_item: bag full for connection {game_connection_id}");
-        }
-        true
     }
 }

@@ -16,6 +16,9 @@ use sqlx::mysql::{MySqlPool, MySqlRow};
 use sqlx::Row;
 
 use crate::error::{GameError, Result};
+use crate::models::container::slot_type;
+use crate::models::item::Item;
+use crate::models::item_task::{task_type, ItemFx};
 use crate::server::GameServer;
 use crate::stream::connection::StreamConnection;
 use crate::stream::models::{DotNetDateTime, Ucc, UccPart, UccType, UccUploadHandle};
@@ -24,6 +27,8 @@ use crate::stream::s2c::{
     TCEmblemStreamSendStatusPacket, TCUccComplexCheckValidPacket, TCUccComplexPacket,
 };
 use crate::stream::world::{ActiveCharacter, ITEM_CREST_INK};
+use crate::systems::economy::inventory::{self, Inv, ItemTxn};
+use crate::world::PlayerRef;
 
 /// Money taken by `ConfirmDefaultUcc` (5 gold).
 pub const UCC_PRICE: i32 = 50_000;
@@ -424,11 +429,11 @@ impl UccManager {
     }
 
     /// `ConfirmDefaultUcc(connection)`: assigns an id, registers the UCC, sends
-    /// `TCEmblemStreamRecvStatus(End)`, charges 5 gold, saves the row and grants a Crest Ink.
-    ///
-    /// Deviation in ordering: C# creates the Crest Ink item before `Save` (a failed creation
-    /// dereferences null and skips the save); here the row is saved first and a failed grant is
-    /// logged.
+    /// `TCEmblemStreamRecvStatus(End)`, then, in the C# order: `ActiveChar.ChangeMoney(
+    /// Inventory, -50000)` (no balance check: the money may go negative), creates the Crest Ink
+    /// with the new `UccId`, saves the row and puts the ink in the bag (`GainItemWithUcc`).
+    /// A failed save (C# MySqlException) or a missing Crest Ink template (C# NRE) ends the
+    /// operation with an error after the money was taken.
     pub async fn confirm_default_ucc(
         &self,
         server: &GameServer,
@@ -453,18 +458,74 @@ impl UccManager {
             status: EmblemStreamStatus::End,
         });
 
-        active_character(server, conn)?;
-        let gid = conn.game_connection_id.unwrap_or_default();
-        let world = server.streams.world();
-        world.change_money(gid, -UCC_PRICE);
-        save(&server.db, &ucc).await?;
-        if !world.grant_ucc_item(gid, ITEM_CREST_INK, u64::from(ucc.id)) {
-            tracing::error!(
-                "UCC {}: could not create the Crest Ink item for game connection {gid}",
+        // connection.GameConnection.ActiveChar (NullReferenceException when missing)
+        let player = active_player(server, conn)?;
+        let Some(item) = charge_and_create_crest_ink(server, &player, ucc.id) else {
+            return Err(GameError::Protocol(format!(
+                "UCC {}: could not create the Crest Ink item (NullReferenceException)",
                 ucc.id
-            );
-        }
+            )));
+        };
+        save(&server.db, &ucc).await?;
+        add_crest_ink(server, &player, item);
         Ok(())
+    }
+}
+
+/// The character of the stream connection's game connection (`GameConnection.ActiveChar`).
+fn active_player(server: &GameServer, conn: &StreamConnection) -> Result<PlayerRef> {
+    let gid = conn.game_connection_id.ok_or_else(|| {
+        GameError::Protocol(format!(
+            "stream connection {}: GameConnection is null (not joined)",
+            conn.id
+        ))
+    })?;
+    server.world.character_by_connection(gid).ok_or_else(|| {
+        GameError::Protocol(format!(
+            "stream connection {}: game connection {gid} has no ActiveChar",
+            conn.id
+        ))
+    })
+}
+
+/// The part of `ConfirmDefaultUcc` before `Save(ucc)`: `ChangeMoney(SlotType.Inventory, -50000)`
+/// (`SCItemTaskSuccess(DepositMoney, [MoneyChange(-50000)])`, sent now) and
+/// `(UccItem)ItemManager.Create(Item.CrestInk, 1, 0, true)` with `UccId = ucc_id`. `None` when
+/// the item could not be created.
+pub fn charge_and_create_crest_ink(
+    server: &GameServer,
+    player: &PlayerRef,
+    ucc_id: u32,
+) -> Option<Item> {
+    let mut txn = ItemTxn::begin(server);
+    inventory::change_money_at(
+        &mut txn.out(),
+        player,
+        slot_type::INVENTORY,
+        -UCC_PRICE,
+        task_type::DEPOSIT_MONEY,
+    );
+    let mut item = txn.env.create(ITEM_CREST_INK, 1, 0)?;
+    item.set_ucc(u64::from(ucc_id));
+    Some(item)
+}
+
+/// The part of `ConfirmDefaultUcc` after `Save(ucc)`:
+/// `character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.GainItemWithUcc, newItem)`.
+pub fn add_crest_ink(server: &GameServer, player: &PlayerRef, item: Item) {
+    let mut txn = ItemTxn::begin(server);
+    let bag = Inv::of(player).bag();
+    let data = txn.data();
+    let res = bag.lock().expect("bag poisoned").add_item(
+        task_type::GAIN_ITEM_WITH_UCC,
+        item,
+        -1,
+        data,
+        &mut txn.env.fx,
+    );
+    if let Err(item) = res {
+        // Bag full: the new item stays in the C# `_allItems`.
+        txn.env.fx.push(ItemFx::Orphaned(Box::new(item)));
     }
 }
 

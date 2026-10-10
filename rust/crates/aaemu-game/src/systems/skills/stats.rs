@@ -797,13 +797,39 @@ pub fn update_gear_bonuses(
     };
     let bonuses = gear_bonuses(server, &items);
     set_gear_bonuses(&mut p.data().unit, bonuses);
+    server.systems.skills.ext.items().apply_gear_buffs(
+        server,
+        &WorldObject::from(p),
+        added,
+        removed,
+    );
+    refresh_cached_stats(server, &WorldObject::from(p));
+}
+
+/// `Unit.UpdateGearBonuses(itemAdded, itemRemoved)` for a mate or a slave (their `Equipment`
+/// mirror `equipment`): the gear unit modifiers, the gear buffs (equip effects, weapon wield,
+/// armor grade, item sets: item subsystem hook) and the cached stats (the vehicle getters).
+/// Other kinds are ignored.
+pub fn update_vehicle_gear_bonuses(
+    server: &GameServer,
+    unit: &WorldObject,
+    added: Option<&crate::models::item::Item>,
+    removed: Option<&crate::models::item::Item>,
+) {
+    let items: Vec<crate::models::item::Item> = match unit {
+        WorldObject::Mate(m) => m.data().equipment.iter().flatten().cloned().collect(),
+        WorldObject::Slave(s) => s.data().equipment.iter().flatten().cloned().collect(),
+        _ => return,
+    };
+    let bonuses = gear_bonuses(server, &items);
+    unit.with_unit(|u| set_gear_bonuses(u.unit_mut(), bonuses));
     server
         .systems
         .skills
         .ext
         .items()
-        .apply_gear_buffs(server, p, added, removed);
-    refresh_cached_stats(server, &WorldObject::from(p));
+        .apply_gear_buffs(server, unit, added, removed);
+    refresh_cached_stats(server, unit);
 }
 
 /// `Unit.UpdateGearBonuses` for an NPC (its `Equipment`): the gear unit modifiers only (the
@@ -814,4 +840,160 @@ pub fn update_npc_gear_bonuses(server: &GameServer, npc: &crate::world::NpcRef) 
     let bonuses = gear_bonuses(server, n.equipment.iter().flatten());
     set_gear_bonuses(&mut n.unit, bonuses);
     crate::systems::npcs::npc::stats::refresh_cached_stats(&server.game_data, &mut n);
+}
+
+#[cfg(test)]
+mod vehicle_gear_tests {
+    use std::sync::Arc;
+
+    use crate::data::items::{EquipTemplate, Holdable, ItemTemplate, TemplateKind};
+    use crate::data::GameData;
+    use crate::models::container::equip_slot;
+    use crate::models::item::Item;
+    use crate::models::mate::Mate;
+    use crate::models::slave::Slave;
+    use crate::models::unit::{BonusTemplate, UnitAttribute, UnitModifierType};
+    use crate::server::GameServer;
+    use crate::systems::skills::data::BuffTemplate;
+    use crate::world::{Entity, WorldObject};
+
+    use super::*;
+
+    const TWO_HANDED_SWORD: u32 = 9001;
+    const SHIELD: u32 = 9002;
+    const EQUIP_SHIELD: u32 = 8226;
+    const EQUIP_TWO_HANDED: u32 = 8227;
+
+    fn weapon(id: u32, holdable_id: u32, slot_type_id: u32) -> ItemTemplate {
+        ItemTemplate {
+            level: 10,
+            ..ItemTemplate::new(
+                id,
+                TemplateKind::Weapon(EquipTemplate {
+                    slot_type_id,
+                    holdable_id,
+                    ..EquipTemplate::default()
+                }),
+            )
+        }
+    }
+
+    fn server() -> Arc<GameServer> {
+        let mut d = GameData::empty();
+        for (id, slot_type_id) in [(1, 16), (2, 20)] {
+            d.items.holdables.insert(
+                id,
+                Holdable {
+                    id,
+                    slot_type_id,
+                    ..Holdable::default()
+                },
+            );
+        }
+        d.items
+            .templates
+            .insert(TWO_HANDED_SWORD, weapon(TWO_HANDED_SWORD, 1, 16));
+        d.items.templates.insert(SHIELD, weapon(SHIELD, 2, 20));
+        let s = &mut d.systems.skills;
+        for id in [4899, EQUIP_SHIELD, EQUIP_TWO_HANDED] {
+            s.add_buff(BuffTemplate {
+                id,
+                kind: 1,
+                stack_rule: 1,
+                ..BuffTemplate::default()
+            });
+        }
+        s.item_unit_modifiers.insert(
+            TWO_HANDED_SWORD,
+            vec![BonusTemplate {
+                attribute: UnitAttribute::MaxHealth,
+                modifier_type: UnitModifierType::Value,
+                value: 500,
+                linear_level_bonus: 0,
+            }],
+        );
+        let server = Arc::new(crate::test_support::test_server_with(d));
+        crate::systems::skills::bind(&server);
+        crate::systems::economy::bridges::install(&server);
+        server
+    }
+
+    fn item(server: &GameServer, id: u64, template_id: u32, slot: i32) -> Item {
+        let data = &server.game_data.items;
+        let t = data.template(template_id).unwrap();
+        let mut it = Item::create(id, t, 1, 0, 1, data, 0);
+        // No grade templates in the test data: keep the equip class (`Weapon`).
+        it.class = t.class_type();
+        it.slot = slot;
+        it
+    }
+
+    fn has_buff(obj: &WorldObject, id: u32) -> bool {
+        obj.with_base_unit(|b| b.buffs().check_buff(id))
+    }
+
+    fn gear_bonus_values(obj: &WorldObject) -> Vec<i32> {
+        use crate::models::buff::GEAR_BONUSES_INDEX;
+        obj.with_unit(|u| {
+            u.unit()
+                .bonuses
+                .statics
+                .iter()
+                .filter(|(i, _)| *i == GEAR_BONUSES_INDEX)
+                .flat_map(|(_, l)| l.iter().map(|b| b.value))
+                .collect()
+        })
+        .unwrap_or_default()
+    }
+
+    /// `Mate.UpdateGearBonuses`: on summon (null, null) and on an equipment change through the
+    /// economy `GearHooks` (the mate equipment container events).
+    #[tokio::test]
+    async fn mate_gear_bonuses_and_weapon_wield_buff() {
+        let server = server();
+        let mate = Entity::new(0x500, Mate::new(1, 100));
+        let obj = WorldObject::from(&mate);
+        refresh_cached_stats(&server, &obj);
+        let base_max_hp = mate.data().unit.max_hp;
+
+        let sword = item(&server, 11, TWO_HANDED_SWORD, equip_slot::MAINHAND);
+        mate.data().equipment[equip_slot::MAINHAND as usize] = Some(sword.clone());
+        update_vehicle_gear_bonuses(&server, &obj, None, None);
+        assert!(has_buff(&obj, EQUIP_TWO_HANDED));
+        assert!(!has_buff(&obj, EQUIP_SHIELD));
+        assert_eq!(gear_bonus_values(&obj), vec![500]);
+        assert_eq!(mate.data().unit.max_hp, base_max_hp + 500);
+
+        // Unequip (EquipmentContainer.OnLeaveContainer -> UpdateGearBonuses(null, item)).
+        mate.data().equipment[equip_slot::MAINHAND as usize] = None;
+        let gear = server.systems.economy.hooks.gear.get().expect("gear hooks");
+        gear.update_gear_bonuses(&server, &obj, None, Some(&sword));
+        assert!(!has_buff(&obj, EQUIP_TWO_HANDED));
+        assert!(gear_bonus_values(&obj).is_empty());
+        assert_eq!(mate.data().unit.max_hp, base_max_hp);
+    }
+
+    /// `Slave.UpdateGearBonuses` through the npcs `SkillsBridge` (shield in the offhand only).
+    #[tokio::test]
+    async fn slave_gear_buffs_through_the_skills_bridge() {
+        let server = server();
+        let slave = Entity::new(0x600, Slave::new(2, 200));
+        let obj = WorldObject::from(&slave);
+        let shield = item(&server, 12, SHIELD, equip_slot::OFFHAND);
+        slave.data().equipment[equip_slot::OFFHAND as usize] = Some(shield.clone());
+        let bridge = crate::systems::skills::bridges::SkillsForNpcs;
+        crate::systems::npcs::hooks::SkillsBridge::update_gear_bonuses(
+            &bridge,
+            &server,
+            &obj,
+            Some(&shield),
+            None,
+        );
+        assert!(has_buff(&obj, EQUIP_SHIELD));
+        assert!(!has_buff(&obj, EQUIP_TWO_HANDED));
+        assert!(gear_bonus_values(&obj).is_empty());
+        // Other kinds are ignored.
+        let npc = Entity::new(0x700, crate::models::npc::Npc::new(1));
+        update_vehicle_gear_bonuses(&server, &WorldObject::from(&npc), None, None);
+    }
 }

@@ -460,11 +460,12 @@ pub trait ItemSkillHooks: Send + Sync {
     fn unlock_item(&self, _server: &GameServer, _player: &PlayerRef, _item_id: u64) {}
 
     /// `UpdateGearBonuses` buff part (`ApplyEquipEffects`, weapon wield / armor grade / item set
-    /// buffs) for `player` (the unit-modifier part is done by the skills subsystem).
+    /// buffs) for `unit` (a character, mate or slave: its `Equipment`; the unit-modifier part
+    /// is done by the skills subsystem).
     fn apply_gear_buffs(
         &self,
         _server: &GameServer,
-        _player: &PlayerRef,
+        _unit: &WorldObject,
         _added: Option<&Item>,
         _removed: Option<&Item>,
     ) {
