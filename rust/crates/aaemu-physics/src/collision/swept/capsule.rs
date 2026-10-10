@@ -37,10 +37,10 @@
 //! three cell results (cyl–cap: in the zero-direction mode a sphere that succeeds but is not taken
 //! over counts as 0).
 
-use super::common::{as_cap, swap_linear, swap_linear_area, ucomiss_eq};
+use super::common::{as_cap, as_ray, as_sph, swap_linear, ucomiss_eq};
 use super::{UnprojTables, MODE_LINEAR};
 use crate::collision::contact::{ContactArea, UnprojParams, UnprojResult};
-use crate::geometry::primitives::{CapsulePrim, SpherePrim};
+use crate::geometry::primitives::{CapsulePrim, Primitive, RayPrim, SpherePrim};
 use crate::ids::GeomType;
 use crate::math::Vec3;
 
@@ -189,7 +189,134 @@ pub fn compose_simple(
     r1 | r2 | r3
 }
 
-/// Fill the capsule cells whose component cells exist.
+/// sph–cap 0x351916F0: [`compose_full`] with sph–cyl 0x35189260 and sph–sph 0x35178110
+/// (both 6-argument cells; the area is only used for the final `npt` reset).
+pub fn unproject_sph_cap(
+    p: &mut UnprojParams,
+    a: &SpherePrim,
+    fa: i32,
+    b: &CapsulePrim,
+    _fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    compose_full(
+        p,
+        b,
+        out,
+        area,
+        ComposeFlags {
+            zero_t_on_cyl_fail: false,
+            ret_only_taken: false,
+        },
+        |p, out, _| super::ray_cyl::unproject_sph_cyl(p, a, fa, b, CAPSULE_FEATURE, out),
+        |p, s, out, _| super::sph::unproject_sph_sph(p, a, -1, s, -1, out),
+    )
+}
+
+/// cap–sph 0x35191CB0 (449 bytes): the 335-byte linear swap of [`unproject_sph_cap`] plus, when
+/// an area pointer is present (no `npt` check for the normal), swapping the A/B feature ids of
+/// the first `npt` area points and negating the area normal.
+pub fn unproject_cap_sph(
+    p: &mut UnprojParams,
+    a: &CapsulePrim,
+    fa: i32,
+    b: &SpherePrim,
+    fb: i32,
+    out: &mut UnprojResult,
+    mut area: Option<&mut ContactArea>,
+) -> i32 {
+    super::common::negate_dir(p);
+    let r = unproject_sph_cap(p, b, fb, a, fa, out, area.as_deref_mut());
+    if r != 0 {
+        super::common::fix_swapped_linear(p, out);
+        if let Some(ar) = area {
+            let mut i = 0usize;
+            while (i as i32) < ar.npt {
+                let [f0, f1] = &mut ar.feature;
+                std::mem::swap(&mut f0[i], &mut f1[i]);
+                i += 1;
+            }
+            ar.n = Vec3::new(-ar.n.x, -ar.n.y, -ar.n.z);
+        }
+    }
+    super::common::negate_dir(p);
+    r
+}
+
+/// ray–cap 0x3517C9E0: [`compose_simple`] with ray–cyl 0x35179650 and ray–sph 0x3517BDA0.
+pub fn unproject_ray_cap(
+    p: &mut UnprojParams,
+    a: &RayPrim,
+    fa: i32,
+    b: &CapsulePrim,
+    _fb: i32,
+    out: &mut UnprojResult,
+) -> i32 {
+    compose_simple(
+        p,
+        b,
+        out,
+        |p, out| super::ray_cyl::unproject_ray_cyl(p, a, fa, b, CAPSULE_FEATURE, out),
+        |p, s, out| super::box_round::unproject_ray_sph(p, a, fa, s, -1, out),
+    )
+}
+
+fn cell_sph_cap(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    unproject_sph_cap(p, as_sph(a), fa, as_cap(b), fb, out, area)
+}
+
+fn cell_cap_sph(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    unproject_cap_sph(p, as_cap(a), fa, as_sph(b), fb, out, area)
+}
+
+fn cell_ray_cap(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    _area: Option<&mut ContactArea>,
+) -> i32 {
+    unproject_ray_cap(p, as_ray(a), fa, as_cap(b), fb, out)
+}
+
+/// cap–ray 0x3517CC00: 335-byte linear swap of [`unproject_ray_cap`].
+fn cell_cap_ray(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    _area: Option<&mut ContactArea>,
+) -> i32 {
+    let (cap, ray) = (as_cap(a), as_ray(b));
+    swap_linear(p, out, |p, out| unproject_ray_cap(p, ray, fb, cap, fa, out))
+}
+
+/// Fill the capsule cells.
 pub fn fill(t: &mut UnprojTables) {
-    let _ = (t, MODE_LINEAR, GeomType::Capsule, as_cap, swap_linear, swap_linear_area);
+    use GeomType::{Capsule, Ray, Sphere};
+    t.set(MODE_LINEAR, Sphere, Capsule, cell_sph_cap);
+    t.set(MODE_LINEAR, Capsule, Sphere, cell_cap_sph);
+    t.set(MODE_LINEAR, Ray, Capsule, cell_ray_cap);
+    t.set(MODE_LINEAR, Capsule, Ray, cell_cap_ray);
 }
