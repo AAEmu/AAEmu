@@ -11,7 +11,7 @@
 //! | per-part hit registration | 0x351ABC10 | [`rwi`] `register_ray_contacts` |
 //! | part material mapping | 0x35037930 | [`map_surface`] |
 //! | water-plane ray (global + big areas) | 0x351A9540 | [`water`] |
-//! | area ray test (plane-only areas) | 0x3504E5E0 / 0x3504CF00 | [`water::area_ray`] |
+//! | area ray test (plane-only areas) | 0x3504E5E0 / 0x3504CF00 | [`water`] (`World::area_ray`) |
 //! | terrain ray (slot 44) | 0x351A9BA0 | [`crate::world::terrain`] |
 //! | queued RWI / PWI (flag 0x800) | 0x351AA730 / 0x35093100 head | [`queue`] |
 //! | process queued queries (slot 43) | 0x351A9FC0 | [`World::process_queued_queries`] |
