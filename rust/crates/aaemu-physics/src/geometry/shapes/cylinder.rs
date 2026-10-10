@@ -268,6 +268,16 @@ macro_rules! cylinder_common_slots {
         fn size_of_object(&self) -> i32 {
             176
         }
+
+        /// Slot 43 (0x35145120, both classes), see [`super::misc::random`].
+        fn get_random_pos(
+            &self,
+            out: &mut super::misc::PosNorm,
+            rng: &mut super::misc::CryRandom,
+            form: i32,
+        ) {
+            super::misc::random::cylinder_get_random_pos(&self.0, out, rng, form);
+        }
     };
 }
 

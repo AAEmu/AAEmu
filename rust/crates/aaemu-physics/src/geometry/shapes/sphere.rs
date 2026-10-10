@@ -238,4 +238,14 @@ impl Geometry for SphereGeom {
     fn size_of_object(&self) -> i32 {
         152
     }
+
+    /// Slot 43 (0x351AF140), see [`super::misc::random`].
+    fn get_random_pos(
+        &self,
+        out: &mut super::misc::PosNorm,
+        rng: &mut super::misc::CryRandom,
+        form: i32,
+    ) {
+        super::misc::random::sphere_get_random_pos(self, out, rng, form);
+    }
 }

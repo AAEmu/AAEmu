@@ -1,0 +1,7 @@
+# P1a misc: the polygon rasteriser sub_35131AB0 on random convex polygons (changed pixels only);
+# kinds=4 adds axis-aligned polygons with exact zeros, kinds=0xB degenerate point sets.
+grast n=150 seed=7201 res=4 kinds=4
+grast n=60 seed=7202 res=7 kinds=4
+grast n=40 seed=7203 res=1 kinds=4
+grast n=40 seed=7204 res=2 kinds=4
+grast n=60 seed=7205 res=4 kinds=0xB timeout=5000

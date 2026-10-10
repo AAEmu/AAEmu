@@ -1,0 +1,6 @@
+# P1a misc: GetRandomPos (slot 43), two calls per case after CryRandomSeed; forms -1..4.
+grandpos type=box n=80 seed=7101
+grandpos type=ray n=30 seed=7102
+grandpos type=sphere n=80 seed=7103
+grandpos type=cylinder n=80 seed=7104
+grandpos type=capsule n=40 seed=7105
