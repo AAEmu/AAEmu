@@ -175,7 +175,18 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 
 | Area (C#) | Rust | Status | Notes |
 |---|---|---|---|
-| Team, expedition management, family, friends add/remove, duel, crime / trial | `systems/social/` | todo | |
+| `TeamManager`, `Models/Game/Team` | `systems/social/team.rs`, `packets/team.rs` | done | Invitations (single / area, 60 s timeout), create, AskRiskyTeam (leave / kick / dismiss + auto-disband), owner / role / marker / looting rule / ping / move, raid conversion, SetOffline / MemberRemoveFromTeam / UpdateAtLogin / UpdatePosition, 500 ms remote-member sync (delta cache, 5 s forced resync, upper-triangle pairs), zombie-team disband (5 min), loot winner helpers. Events (OnTeamJoin/Leave) are quest-side: not called. |
+| `ExpeditionManager`, `Models/Game/Expeditions` | `systems/social/expedition.rs`, `packets/expedition.rs` (`managers::expedition` re-exports) | done | Load, create (party checks, cost, `SCItemTaskSuccessPacket` money-only form), invite / reply, leave, kick, member role, owner, role policy, disband (stays listed as `$deleted-guild-<id>`), `Expedition.Save` per change, offline leave for character deletion. Rename / sponsor are log-only / not in 1.2 as in C#. |
+| `FamilyManager`, `Models/Game/Family` | `systems/social/family.rs`, `packets/family.rs` | done | Load, invite / reply / create, leave, kick (offline existence check), title, steward, login / logout, disband, save, offline leave for character deletion. |
+| `FriendMananger`, `CharacterFriends`, `CharacterBlocked` | `systems/social/friend.rs`, `packets/friend.rs` (`managers::friend` re-exports) | done | Add / remove friends (online or by DB name lookup), block / unblock (online only), status changes incl. `InParty`. |
+| `ChatManager`, `Models/Game/Chat` | `systems/social/chat.rs`, `session.rs` (`managers::chat` re-exports) | done | All channel kinds incl. party / raid / court, CleanUpChannels, party / raid / raid-leader / judge routing. User channels (`CSJoinUserChatChannel`) are log-only as in C#. |
+| `FactionManager` relations, `SystemFaction.GetRelationState`, `Unit/Character.SetFaction` | `systems/social/faction.rs`, `packets/faction.rs` | done | Relation table validated against compact.sqlite3 (gated test). Faction CS packets are log-only as in C#; every SCFaction* struct ported. |
+| `DuelManager`, `Models/Game/Duels`, duel tasks | `systems/social/duel.rs`, `packets/duel.rs` | done | Request / accept (flag via hook) / start / stop / cancel, distance + HP checks, end timer (tokio tasks; `set_delays` test hook). |
+| `CrimeManager`, `TrialManager`, `Models/Game/Crime`, `TrialUpdateTask` | `systems/social/{crime,trial}.rs`, `packets/trial.rs` | done | Crime table load / save (`AfterItems`), report / evidence (hooks), bot reports, full trial / jury flow with 5 s tick, audience, bounty board (empty list as C#). |
+| `DominionData`, `Models/Game/Achievement`, rename / chat bubble / NPC chat / spam packets | `systems/social/{dominion,achievement}.rs`, `packets/misc.rs` | done (data + packets) | No C# manager drives them in 1.2. |
+| `RadarManager` | – | not social | Telescope / fish school registration from buff templates: skills / npcs. |
+
+Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.initialize_doodads` / `initialize_npc` after spawning `justice.*` spawners and install `SocialHooks` (spawn_doodad, doodad_phase_changed, terrain_height, create_player_doodad, evidence_func, doodad_change_phase, judge_obj_id); skills/combat -> `crimes.generate_evidence_from_damage/kill`, `trials.arrest_criminal`, `teams.are_team_members` / `team_by_obj_id` / `is_obj_member`, `duels` queries, `report_bot*`, and hooks `check_buff_tag` / `remove_buffs_by_tag` / `post_update_current_hp`; economy -> `teams.next_loot_winner` / `next_eligible_looter`, hook `update_owned_housing_faction`; instance / portal entry -> `trials.is_player_in_court`; mates -> hook `force_dismount`; teleports -> `session::on_moved` (C# `Character.SetPosition` -> `TeamManager.UpdatePosition`; plain movement does not call it in C# either).
 
 ### systems::quests
 
@@ -232,7 +243,26 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
   active character back into the lobby list when `LeaveWorldTask` runs.
 * Combat / slave logout delays (x30, +10 min) are not applied (no combat state / slaves).
 
+* systems::social: saves of guilds / families run inline in the handler (C# synchronous); a
+  failed guild save keeps the removed-member ids for the next attempt. `ExpeditionConfig`
+  defaults to the shipped `Expedition.json` (C# throws without the section). Player names /
+  positions in team packets are snapshots taken when the packet is built. `DeleteCharacterAssets`
+  does not send the guild/family packets to the lobby character. Duel flag height uses the hook
+  (no height maps). Crime record packets prefetch offline victims (C# `Character.Load` inside
+  `Write`). `SCDoodadPhaseChangedPacket` is defined in `systems/social/packets/duel.rs` until the
+  npcs subsystem's version can be used.
+
 ## C# bugs noticed (mirrored, not fixed)
+
+* systems::social: `AskRiskyTeam` makes the acting unit (the kicker) leave its chat channels;
+  any member may dismiss a team; a member joining an existing team never joins the party / raid
+  chat (but can still talk into it); `IsMarked` compares mark object ids with character ids;
+  `ExpeditionManager.ChangeOwner` does not update `OwnerName`; `ReplyInvite` does not check an
+  existing guild; `ChangeExpeditionRolePolicy` requires the Expel right; disbanded guilds stay in
+  the list; family invitations always carry family id 1; family title / steward changes are not
+  saved; hard disconnects keep the family member's character set; `Character.AddCrime` wraps on
+  overflow; `GetTrialChat` throws when the faction has no court and the player is in no trial;
+  `CSAddFriend` accepts yourself.
 
 * `WorldManager.RemoveVisibleObject` calls `RemoveFromCharacters` on the object's own region and
   then again for every neighbour, which includes that region: players in the same sector receive
