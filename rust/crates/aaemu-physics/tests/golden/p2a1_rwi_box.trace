@@ -1,0 +1,21 @@
+physoracle 1
+ret part ground 0
+ret part crate 0
+ret part plate 0
+step 1
+ray down n 1
+h 0 d 4106aaaa e crate ip 0 pid 0 s -1 p 42000000 42000000 3fcaaab0 n 3edca4c9 bd86165f 3f666666
+ray inside n 1
+h 0 d 3f77dc80 e crate ip 0 pid 0 s -1 p 4203df72 42000000 3f400000 n 3f0433e9 bf4ccccd be9c66e0
+ray diag n 1
+h 0 d 40873f4a e crate ip 0 pid 0 s -1 p 41fb8571 41fb8571 3fc7a8f0 n bf3d70a4 bf18aeca 3e9f3425
+ray graze n 1
+h 0 d 3fe736c0 e crate ip 0 pid 0 s -1 p 41fe736c 42020000 3f400000 n bf0433e9 3f4ccccd 3e9c66e0
+ray plate_x n 1
+h 0 d 3f800000 e plate ip 0 pid 0 s -1 p 42080000 42100000 3f800000 n bf800000 80000000 80000000
+ray plate_dn n 1
+h 0 d 405b797a e plate ip 0 pid 0 s -1 p 42120000 42120000 3fc90d0c n 00000000 bf3504f2 3f3504f4
+ray plate_up n 1
+h 0 d 3e831742 e plate ip 0 pid 0 s -1 p 42120000 420e1a17 3ee8d716 n 80000000 3f3504f2 bf3504f4
+ray edge_on n 1
+h 0 d 40bdbcc0 e plate ip 0 pid 0 s -1 p 42100000 420fb798 3f800000 n 00000000 bf3504f2 3f3504f4

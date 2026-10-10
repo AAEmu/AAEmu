@@ -1,0 +1,15 @@
+# P2a-1 (box-box): a box dropped edge-first (45 deg about x) and one dropped vertex-first
+# (rotated about x and y) onto the ground box.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=brick type=box size=0.6,0.3,0.2
+entity name=edge type=rigid pos=30,32,2 q=0.3826834,0,0,0.9238795
+part ent=edge geom=brick mass=15
+geom name=cube type=box size=0.35,0.35,0.35
+entity name=vertex type=rigid pos=34,32,2.5 q=0.3647052,0.2798481,0.1159169,0.8804762
+part ent=vertex geom=cube mass=10
+trace ents=edge,vertex
+print
+step n=180

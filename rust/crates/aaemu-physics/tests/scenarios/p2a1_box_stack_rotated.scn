@@ -1,0 +1,21 @@
+# P2a-1 (box-box): three cubes dropped on a static box pedestal, each yawed/tilted differently,
+# so face-face, edge-face and vertex-face box-box contacts occur between dynamic bodies and
+# against the (rotated) static pedestal.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=pedestal type=box size=1.5,1.5,0.5
+entity name=pedestal type=static pos=32,32,0.5 q=0,0,0.1305262,0.9914449
+part ent=pedestal geom=pedestal mass=0
+geom name=cube type=box size=0.4,0.4,0.4
+entity name=a type=rigid pos=32,32,2 q=0,0,0.3826834,0.9238795
+part ent=a geom=cube mass=8
+entity name=b type=rigid pos=32.15,31.9,3.2 q=0.2705981,0.2705981,0,0.9238795
+part ent=b geom=cube mass=8
+geom name=slab type=box size=0.7,0.3,0.15
+entity name=c type=rigid pos=31.8,32.1,4.5 q=0.1,0.3,0.2,0.9273618
+part ent=c geom=slab mass=12
+trace ents=a,b,c
+print
+step n=180
