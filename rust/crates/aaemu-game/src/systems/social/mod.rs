@@ -67,6 +67,14 @@ pub struct System {
 impl System {
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        use anyhow::Context;
+        server
+            .systems
+            .social
+            .families
+            .load(&server.db)
+            .await
+            .context("FamilyManager")?;
         team::TeamManager::start_tick(server);
         Ok(())
     }
