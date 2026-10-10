@@ -45,6 +45,8 @@ pub mod skills;
 
 #[cfg(test)]
 mod flow_tests;
+#[cfg(test)]
+mod real_data_tests;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
