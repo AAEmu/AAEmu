@@ -2,17 +2,17 @@
 //! funcs, `DoodadSpawner`, persistence of player doodads, `SCDoodad*` packets, doodad C->S
 //! packets, `Models/Game/World/Interactions`.
 
-pub mod data;
-pub mod manager;
-pub mod spawner;
-pub mod funcs;
 pub mod coffer;
-pub mod interactions;
+pub mod data;
 pub mod db;
+pub mod funcs;
+pub mod interactions;
+pub mod manager;
 pub mod packets;
 pub mod phase;
 pub mod phase_funcs;
 pub mod runtime;
+pub mod spawner;
 pub mod tasks;
 pub mod templates;
 
@@ -25,6 +25,11 @@ use crate::systems::SaveStage;
 /// Startup of the doodad part: `zone_climate_elems` (`ZoneManager` climates, used by the growth
 /// bonus) and the doodad half of `TimeManager.OnTimeOfDayChange`.
 pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+    server
+        .systems
+        .npcs
+        .doodads
+        .set_growth_rate(server.config.world.growth_rate);
     manager::load_climate_elems(server);
     manager::start_tod_watch(server);
     Ok(())

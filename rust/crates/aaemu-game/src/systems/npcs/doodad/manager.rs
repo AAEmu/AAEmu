@@ -624,6 +624,43 @@ pub fn on_time_of_day_change(server: &GameServer, new_time: f32, old_time: f32) 
         return;
     }
     for world in server.world.worlds() {
+        // NPC idle postures (`SCUnitModelPostureChangedPacket` when the posture of the time of
+        // day changes).
+        for npc in world.all_npcs() {
+            let template_id = npc.data().unit.template_id;
+            let Some(t) = server.game_data.systems.npcs.npc.template(template_id) else {
+                continue;
+            };
+            if t.npc_posture_sets.len() <= 1 {
+                continue;
+            }
+            let pick = |tod: f32| {
+                t.npc_posture_sets
+                    .iter()
+                    .find(|p| p.start_tod_time <= tod)
+                    .map_or(0, |p| p.anim_action_id)
+            };
+            let (old_anim, new_anim) = (pick(old_time), pick(new_time));
+            if old_anim != new_anim {
+                let p = {
+                    let mut n = npc.data();
+                    // `AnimActionId` is a getter evaluated with the current game time.
+                    n.anim_action_id = new_anim;
+                    crate::systems::npcs::npc::packets::SCUnitModelPostureChangedPacket {
+                        obj_id: npc.obj_id,
+                        posture: if new_anim > 0 {
+                            crate::models::unit::ModelPostureType::ActorModelState
+                        } else {
+                            crate::models::unit::ModelPostureType::None
+                        },
+                        has_loot_left: n.unit.has_loot_left,
+                        anim_action_id: new_anim,
+                        activate_animation: true,
+                    }
+                };
+                crate::world::broadcast(&world, &npc, &p, false);
+            }
+        }
         for doodad in world.all_doodads() {
             let triggers = doodad.data().phase.tod_triggers.clone();
             for (tod, next_phase) in triggers {

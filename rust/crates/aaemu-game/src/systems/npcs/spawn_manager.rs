@@ -1,4 +1,4 @@
-//! `SpawnManager` (`Core/Managers/World/SpawnManager.cs`), one per world instance, kept in
+//! `SpawnManager` (`Core/Managers/World/SpawnManager.cs`), one per world insance, kept in
 //! [`SpawnManagers`] (`server.systems.npcs.spawns`), plus the spawner part of
 //! `WorldManager.ActiveRegionTick` and the C# object-graph links the spawners need:
 //!
@@ -1053,14 +1053,11 @@ impl SpawnManager {
                 let mut d = doodad.data();
                 d.is_persistent = true;
                 d.db_id = db_id;
-                d.func_group_id = phase_id;
                 d.owner_id = owner_id;
                 d.owner_type = owner_type;
                 d.attach_point = attach_point;
                 d.plant_time = unix(plant_time);
                 d.growth_time_ms = growth_time.map_or(0, |t| t.and_utc().timestamp_millis().max(0));
-                // OverridePhaseTime / PhaseTime
-                d.phase_time_ms = phase_time.map_or(0, |t| t.and_utc().timestamp_millis().max(0));
                 d.item_id = item_id;
                 d.owner_db_id = house_id;
                 d.scale = if scale != 0.0 { scale } else { 1.0 };
@@ -1068,6 +1065,15 @@ impl SpawnManager {
                 d.ucc_id = ucc;
                 d.data = data;
                 d.farm_type = farm_type;
+            }
+            // `FuncGroupId = phaseId` (setter: PhaseTime = now, Save, phase caches), then
+            // `OverridePhaseTime = PhaseTime = phase_time`.
+            crate::systems::npcs::doodad::manager::set_func_group_id(server, &doodad, phase_id);
+            {
+                let pt = phase_time.map_or(0, |t| t.and_utc().timestamp_millis().max(0));
+                let mut d = doodad.data();
+                d.phase.override_phase_time_ms = pt;
+                d.phase_time_ms = pt;
             }
             let doodad_obj = WorldObject::from(&doodad);
             let mut has_parent = false;
@@ -1116,8 +1122,10 @@ impl SpawnManager {
                 .transform
                 .set_position(x, y, z, roll, pitch, yaw);
             // TODO(npcs/economy): DoodadCoffer ItemContainer attach / InitializeCoffer
-            // (item_container_id {item_container_id}); Slave AttachedDoodads; doodad.InitDoodad().
+            // (item_container_id {item_container_id}); Slave AttachedDoodads.
             let _ = item_container_id;
+            // `doodad.InitDoodad()`.
+            crate::systems::npcs::doodad::manager::init_doodad(server, &self.world, &doodad);
             self.inner().player_doodads.push(doodad.clone());
             count += 1;
             if do_spawn {

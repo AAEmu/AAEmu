@@ -193,6 +193,9 @@ pub struct WorldConfig {
     /// `PreLoadTerrain`: load every heightmap cell at startup instead of on demand.
     #[serde(rename = "preloadterrain", deserialize_with = "lenient")]
     pub pre_load_terrain: bool,
+    /// `GrowthRate` (doodad growth time divisor).
+    #[serde(rename = "growthrate", deserialize_with = "lenient")]
+    pub growth_rate: f64,
 }
 
 impl Default for WorldConfig {
@@ -205,6 +208,7 @@ impl Default for WorldConfig {
             ignore_fall_damage_access_level: 100,
             geo_data_mode: false,
             pre_load_terrain: false,
+            growth_rate: 1.0,
         }
     }
 }

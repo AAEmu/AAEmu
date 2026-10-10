@@ -136,9 +136,15 @@ fn write_unit_state(c: &mut Character, data: &GameData, now_ms: i64, s: &mut Pac
     s.write_bc(0)
         .write_i32(c.unit.hp.wrapping_mul(100)) // preciseHealth
         .write_i32(c.unit.mp.wrapping_mul(100)) // preciseMana
-        .write_u8(ATTACH_POINT_SYSTEM) // AttachPoint1
-        .write_i8(-1); // AttachPoint2: no Bonding
-                       // Unit.ModelPosture
+        .write_u8(ATTACH_POINT_SYSTEM); // AttachPoint1
+                                        // AttachPoint2: `Bonding` (BondDoodad.Write) or -1.
+    match &c.bonding {
+        Some(b) => b.write(s),
+        None => {
+            s.write_i8(-1);
+        }
+    }
+    // Unit.ModelPosture
     s.write_u8(MODEL_POSTURE_NONE).write_bool(false); // isLooted
     s.write_u8(0); // ActiveWeapon
 

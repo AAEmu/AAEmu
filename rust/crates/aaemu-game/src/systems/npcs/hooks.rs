@@ -39,7 +39,13 @@ pub trait SkillsBridge: Send + Sync {
     /// `ParentWorld.Events.OnUnitKilled` / `killer.Events.OnKill`, `Buffs.RemoveEffectsOnDeath()`.
     /// Called by `npc::death::do_die` at the start of `base.DoDie`; `npc::death` itself does the
     /// rest (`IsInBattle = false`, `SCUnitDeathPacket`, loot, target / aggro cleanup packets).
-    fn on_unit_died(&self, _server: &GameServer, _unit: &WorldObject, _killer: Option<&WorldObject>) {}
+    fn on_unit_died(
+        &self,
+        _server: &GameServer,
+        _unit: &WorldObject,
+        _killer: Option<&WorldObject>,
+    ) {
+    }
 
     /// `Unit.UpdateGearBonuses(itemAdded, itemRemoved)` (gear `unit_modifiers` + gems under
     /// `Buffs.GearBonusesIndex`, `ApplyEquipEffects`, weapon-wield / armor-grade / item-set
@@ -63,7 +69,13 @@ pub trait SkillsBridge: Send + Sync {
 
     /// `SkillTargetingUtil.IsRelationValid(relation, caster, target)` (`AreaTrigger.OnEnter`).
     /// Default: [`super::area_trigger::default_is_relation_valid`] (no faction relations).
-    fn is_relation_valid(&self, _server: &GameServer, relation: u8, caster: &WorldObject, target: &WorldObject) -> bool {
+    fn is_relation_valid(
+        &self,
+        _server: &GameServer,
+        relation: u8,
+        caster: &WorldObject,
+        target: &WorldObject,
+    ) -> bool {
         super::area_trigger::default_is_relation_valid(relation, caster, target)
     }
 
@@ -83,7 +95,14 @@ pub trait SkillsBridge: Send + Sync {
     /// `AreaTrigger.OnEnter`: `InsideBuffTemplate.Apply(caster, SkillCasterUnit(caster), unit,
     /// SkillCastUnitTarget(unit), null, new EffectSource(), null, now)` for the first trigger
     /// the unit is inside. Default: no buff.
-    fn apply_area_buff(&self, _server: &GameServer, _caster: &WorldObject, _unit: &WorldObject, _buff_id: u32) {}
+    fn apply_area_buff(
+        &self,
+        _server: &GameServer,
+        _caster: &WorldObject,
+        _unit: &WorldObject,
+        _buff_id: u32,
+    ) {
+    }
 
     /// `AreaTrigger.ApplyEffects` for one unit inside: for every effect template of
     /// `effect_ids` (skipping `BuffEffect`s whose buff the unit has) `effect.Apply(caster, ...,
@@ -145,7 +164,14 @@ pub trait SkillsBridge: Send + Sync {
     }
 
     /// `target.Buffs.AddBuff(buffId, caster)` (`DoodadFuncBuff`). Default: no buff.
-    fn add_buff(&self, _server: &GameServer, _target: &WorldObject, _buff_id: u32, _caster: &WorldObject) {}
+    fn add_buff(
+        &self,
+        _server: &GameServer,
+        _target: &WorldObject,
+        _buff_id: u32,
+        _caster: &WorldObject,
+    ) {
+    }
 
     /// `character.SkillCancelled = true` (harvest protection in `DoodadFuncUse` /
     /// `CropHarvest`). Default: nothing.
@@ -158,7 +184,13 @@ pub trait SkillsBridge: Send + Sync {
 
     /// `CrimeManager.GenerateEvidenceFromTheft(criminal, doodad)` (`Doodad.Use` on a doodad owned
     /// by another character). Default: no evidence.
-    fn generate_theft_evidence(&self, _server: &GameServer, _criminal: &PlayerRef, _doodad: &crate::world::DoodadRef) {}
+    fn generate_theft_evidence(
+        &self,
+        _server: &GameServer,
+        _criminal: &PlayerRef,
+        _doodad: &crate::world::DoodadRef,
+    ) {
+    }
 
     /// `SkillManager.GetSkillTemplate(skillId)?.ConsumeLaborPower` (`CSCreateDoodadPacket` labor
     /// cost). Default: 0.
@@ -189,7 +221,12 @@ pub enum DoodadSkillTarget {
 pub trait EconomyBridge: Send + Sync {
     /// `Npc.DoDie` loot: `LootingContainer` creation / `LootGameData` drops for `npc` killed
     /// by `killer`; returns whether loot is left (`HasLootLeft` / `SCLootableStatePacket`).
-    fn on_npc_loot(&self, _server: &GameServer, _npc: &NpcRef, _killer: Option<&PlayerRef>) -> bool {
+    fn on_npc_loot(
+        &self,
+        _server: &GameServer,
+        _npc: &NpcRef,
+        _killer: Option<&PlayerRef>,
+    ) -> bool {
         false
     }
 
@@ -232,15 +269,33 @@ pub trait EconomyBridge: Send + Sync {
 
     /// Doodad loot (`DoodadFuncLootItem` / `LootPack` / `ItemManager.LootPack`): gives the pack
     /// to `player`; returns false if nothing was given.
-    fn give_loot_pack(&self, _server: &GameServer, _player: &PlayerRef, _loot_pack_id: u32) -> bool {
+    fn give_loot_pack(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _loot_pack_id: u32,
+    ) -> bool {
         false
     }
 
     /// `Character.ChangeLabor(change, actabilityId)`.
-    fn change_labor(&self, _server: &GameServer, _player: &PlayerRef, _change: i16, _actability: i32) {}
+    fn change_labor(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _change: i16,
+        _actability: i32,
+    ) {
+    }
 
     /// `Character.ChangeMoney(...)`/`SubtractMoney`; returns false if not enough money.
-    fn change_money(&self, _server: &GameServer, _player: &PlayerRef, _amount: i64, _task: u8) -> bool {
+    fn change_money(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _amount: i64,
+        _task: u8,
+    ) -> bool {
         false
     }
 
@@ -292,13 +347,23 @@ pub trait EconomyBridge: Send + Sync {
 
     /// `Inventory.TakeoffBackpack(task, glidersOnly)` (true when nothing is equipped). Default:
     /// true when the backpack slot is empty, else false (moving items is not ported).
-    fn takeoff_backpack(&self, _server: &GameServer, player: &PlayerRef, _task: u8, _gliders_only: bool) -> bool {
+    fn takeoff_backpack(
+        &self,
+        _server: &GameServer,
+        player: &PlayerRef,
+        _task: u8,
+        _gliders_only: bool,
+    ) -> bool {
         backpack_slot_empty(player)
     }
 
     /// `Inventory.CanReplaceGliderInBackpackSlot()`. Default: true when the backpack slot is
     /// empty (glider templates are not known here).
-    fn can_replace_glider_in_backpack_slot(&self, _server: &GameServer, player: &PlayerRef) -> bool {
+    fn can_replace_glider_in_backpack_slot(
+        &self,
+        _server: &GameServer,
+        player: &PlayerRef,
+    ) -> bool {
         backpack_slot_empty(player)
     }
 
@@ -317,32 +382,68 @@ pub trait EconomyBridge: Send + Sync {
 
     /// `Inventory.Equipment.AddOrMoveExistingItem(task, item, Backpack)` of an existing item
     /// (`DoodadFuncRecoverItem`).
-    fn move_item_to_backpack_slot(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _item_id: u64) -> bool {
+    fn move_item_to_backpack_slot(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task: u8,
+        _item_id: u64,
+    ) -> bool {
         false
     }
 
     /// `Inventory.Bag.AddOrMoveExistingItem(task, item)` of an existing item.
-    fn move_item_to_bag(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _item_id: u64) -> bool {
+    fn move_item_to_bag(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task: u8,
+        _item_id: u64,
+    ) -> bool {
         false
     }
 
     /// `Inventory.SystemContainer.AddOrMoveExistingItem(task, item)` (`DoodadFuncConsumeChanger`).
-    fn move_item_to_system_container(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _item_id: u64) -> bool {
+    fn move_item_to_system_container(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task: u8,
+        _item_id: u64,
+    ) -> bool {
         false
     }
 
     /// `Equipment.RemoveItem(task, item, true)` (`DoodadFuncBuyFish` / `ConvertFish`).
-    fn remove_equipment_item(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _item_id: u64) -> bool {
+    fn remove_equipment_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task: u8,
+        _item_id: u64,
+    ) -> bool {
         false
     }
 
     /// `Inventory.Bag.SpaceLeftForItem(templateId)`.
-    fn bag_space_left_for_item(&self, _server: &GameServer, _player: &PlayerRef, _template_id: u32) -> i32 {
+    fn bag_space_left_for_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _template_id: u32,
+    ) -> i32 {
         0
     }
 
     /// `Inventory.Bag.ConsumeItem(task, templateId, count, null)`; returns the number consumed.
-    fn bag_consume_item(&self, _server: &GameServer, _player: &PlayerRef, _task: u8, _template_id: u32, _count: i32) -> i32 {
+    fn bag_consume_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _task: u8,
+        _template_id: u32,
+        _count: i32,
+    ) -> i32 {
         0
     }
 
@@ -376,17 +477,35 @@ pub trait EconomyBridge: Send + Sync {
 
     /// `DoodadFuncConvertFish`: `GetLootConvertFish(backpackTemplateId)`, first trophy ->
     /// `FishDetailsGameData.Create` + `Bag.AddOrMoveExistingItem(task, fish)`. Default: nothing.
-    fn give_convert_fish_trophy(&self, _server: &GameServer, _player: &PlayerRef, _backpack_template_id: u32, _task: u8) {}
+    fn give_convert_fish_trophy(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _backpack_template_id: u32,
+        _task: u8,
+    ) {
+    }
 
     /// `HousingManager.GetHouseById(houseId)` + `house.AllowedToInteract(player)`: `None` when
     /// the house does not exist. Default: `Some(true)` for a house in the world (permissions not
     /// ported), else `None`.
-    fn house_allowed_to_interact(&self, server: &GameServer, house_db_id: u32, _player: &PlayerRef) -> Option<bool> {
+    fn house_allowed_to_interact(
+        &self,
+        server: &GameServer,
+        house_db_id: u32,
+        _player: &PlayerRef,
+    ) -> Option<bool> {
         house_by_db_id(server, house_db_id).map(|_| true)
     }
 
     /// `HousingManager.Demolish(connection, house, false, false)` (`Demolish` interaction).
-    fn demolish_house(&self, _server: &GameServer, _player: &PlayerRef, _house: &crate::world::HouseRef) {}
+    fn demolish_house(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _house: &crate::world::HouseRef,
+    ) {
+    }
 
     /// `CofferContainer.CofferType` (`ChestType`) of coffer container `container_id`.
     fn coffer_chest_type(&self, _server: &GameServer, _container_id: u64) -> u8 {
@@ -407,7 +526,14 @@ pub trait EconomyBridge: Send + Sync {
     /// `MagicalEnchant` interaction: `Bag.GetItemByItemId(targetItemId) is EquipItem` ->
     /// `RuneId = runeTemplateId`, `SCItemSocketingLunastoneResultPacket` +
     /// `SCItemTaskSuccessPacket(EnchantMagical, [ItemUpdate])`. Default: nothing.
-    fn magical_enchant(&self, _server: &GameServer, _player: &PlayerRef, _target_item_id: u64, _rune_template_id: u32) {}
+    fn magical_enchant(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _target_item_id: u64,
+        _rune_template_id: u32,
+    ) {
+    }
 
     // ---- doodad phase machine / DoodadManager runtime (`systems::npcs::doodad::{manager, db}`) ----
 
@@ -441,7 +567,13 @@ pub trait EconomyBridge: Send + Sync {
 
     /// `DoodadCoffer.InitializeCoffer(ownerId)`: creates the coffer container and stores its id
     /// in `doodad.coffer.container_id`. Default: nothing.
-    fn initialize_coffer(&self, _server: &GameServer, _doodad: &crate::world::DoodadRef, _owner_character_id: u32) {}
+    fn initialize_coffer(
+        &self,
+        _server: &GameServer,
+        _doodad: &crate::world::DoodadRef,
+        _owner_character_id: u32,
+    ) {
+    }
 
     /// `Doodad.Delete()` item cleanup: `GetItemByItemId(itemId)` held by a `None` / `System`
     /// container -> `RemoveItem(Invalid, item, true)`. Default: nothing.
@@ -449,7 +581,13 @@ pub trait EconomyBridge: Send + Sync {
 
     /// `DeleteDoodadById` item part: the attached item loses its container and its id is
     /// released; the attached container is deleted. Default: nothing.
-    fn release_deleted_doodad_items(&self, _server: &GameServer, _item_id: u64, _container_id: u64) {}
+    fn release_deleted_doodad_items(
+        &self,
+        _server: &GameServer,
+        _item_id: u64,
+        _container_id: u64,
+    ) {
+    }
 
     /// `HousingManager.GetHouseAtLocation(x, y)` (database id of the house whose land covers
     /// the point). Default: `None`.
@@ -495,7 +633,12 @@ pub trait QuestsBridge: Send + Sync {
     }
 
     /// `Character.Quests.IsQuestComplete(questId)` (completed before).
-    fn is_quest_completed(&self, _server: &GameServer, _player: &PlayerRef, _quest_id: u32) -> bool {
+    fn is_quest_completed(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _quest_id: u32,
+    ) -> bool {
         false
     }
 
@@ -533,7 +676,12 @@ pub trait QuestsBridge: Send + Sync {
     }
 
     /// `UnitRequirementsGameData.CanTriggerSphere(sphere, unit)`. Default: no requirements.
-    fn can_trigger_sphere(&self, _server: &GameServer, _sphere_id: u32, _unit: &WorldObject) -> bool {
+    fn can_trigger_sphere(
+        &self,
+        _server: &GameServer,
+        _sphere_id: u32,
+        _unit: &WorldObject,
+    ) -> bool {
         true
     }
 

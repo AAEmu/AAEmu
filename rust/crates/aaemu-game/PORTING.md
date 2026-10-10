@@ -163,7 +163,24 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 
 | Area (C#) | Rust | Status | Notes |
 |---|---|---|---|
-| NpcManager, DoodadManager, SpawnManager, GimmickManager, AI | `systems/npcs/` | todo | Foundation: `models::{npc,doodad,gimmick}`, `world::object`, `WorldInstance::spawn`. |
+| `NpcManager.Load` (customs, body parts, templates, equip packs, postures, unit modifiers, initial buffs, merchants / goods) | `npc/data.rs` | done | 13 382 templates on the real DB. Creatures.xml names, `LoadAiParams` not ported. |
+| `NpcManager.Create`, `LoadCustom` (.NET `Random(123456789)` parity), `Npc` stats (Str..KillExp from the unit formulas + template bonuses), `InitializeSpawnBuffs`, `AnimActionId` | `npc/manager.rs`, `npc/stats.rs` | done | Every real template creates without error. AI: `has_ai` only (later phase). |
+| `Npc.DoDie` (non-AI part) | `npc/death.rs` | partial | `SCUnitDeathPacket`, `DeadTime`, loot / exp / kill hooks, spawner despawn. Aggro clearing (AI) and team tag XP (social) not done. |
+| NPC interaction packets (CSStartInteraction, CSInteractNPC(End), CSSelectInteractionEx; SCNpcInteractionSkillList, SCAiAggro, SCNpcChatMessage, SCUnitModelPostureChanged, SCAggroTargetChanged) | `npc/packets.rs` | done | Byte-exact tests. Merchant / bank / auction UIs are economy's. |
+| `NpcGameData` (npc_spawners, npc_spawner_npcs, member index, generated spawners) | `npc/spawner_data.rs` | done | |
+| `NpcSpawner`, `NpcSpawnerNpc`, `DoodadSpawner`, `Spawner<T>` | `npc/spawner.rs`, `doodad/spawner.rs` | done | Schedules / time windows / population caches, respawn + despawn timing. Follow path / NPC (AI) TODO. |
+| `SpawnManager` (one per instance) + `WorldManager.ActiveRegionTick` spawner part | `spawn_manager.rs` | done | main_world: 25 118 NPC entries → 38 166 spawner clones, 42 649 doodads, 69 transfers, 14 gimmicks, 5 slaves, 0 parse errors. Persistent doodads from MySQL. Transfer / slave spawning and housing are TODO (not ported by any subsystem yet). |
+| `DoodadManager.Load` (templates, func groups, funcs, phase funcs, all 121 func template tables) | `doodad/data.rs`, `doodad/templates.rs` | done | 7 124 templates, 13 974 funcs, 24 465 phase funcs (counts match the DB). |
+| `Doodad` phase machine (`Use`, `DoFunc`, `DoPhaseFuncs`, `DoChangePhase`, `InitDoodad`, `OnSkillHit`, `FuncGroupId` setter, ToD triggers), 42 phase funcs, func tasks, `DoodadManager` runtime (Create, CreatePlayerDoodad, ChangeDoodadData, coffers), persistence (`doodads` table) | `doodad/{phase,phase_funcs,tasks,manager,db}.rs` | done | Timers are tokio tasks cancelled through a generation counter (`DoodadPhaseState::func_task`). `Task.Run(InitDoodad)` in Create is a spawned task. |
+| 79 non-phase funcs, 41 world interactions (`execute_interaction` for the skills InteractionEffect), coffers, bond / seats | `doodad/funcs/`, `doodad/interactions.rs`, `doodad/coffer.rs` | done / partial | Items, loot, skills, housing, quests through `npcs::hooks` bridges. Instance / slave / sticky-parent funcs log + TODO. |
+| SCDoodad* packets, doodad C->S packets (CSChangeDoodadData/Phase, CSCreateDoodad, CSSetLogicDoodad, CSSaveDoodadUccString, CSUnbondDoodad, CSCofferInteraction) | `doodad/packets.rs`, `doodad/coffer.rs` | done | Byte-exact tests. |
+| Heightmaps (`WorldCell` heightmap.dat, `GetHeight`, `GetReferenceHeight`), NPC reference height in `SCUnitStatePacket` | `heightmap.rs`, `world/unit_state.rs` | done | Lazy per cell (`PreLoadTerrain`), geodata path not ported. Median error 0.098 m vs 4 002 real spawn Z values. |
+| `GimmickManager`, `GimmickGameData`, `GimmickSpawner`, movement handlers | `gimmick/` | done | |
+| `AreaTriggerManager` (+ aoe_shapes, wi_group_wis), `SubZoneManager`, `SphereQuestManager` (world side) | `area_trigger.rs`, `subzone.rs`, `sphere_quest.rs` | done | Quest effects via `QuestsBridge`. Sub-zone index scan of the pak is slow in debug (~25 s). |
+| `PortalManager` (recall, district return, summoned portals, portal book, teleports) | `portal/` | done | Trial court check and slave/mate handling on instance change TODO. |
+| `SpecialtyManager`, `PublicFarmManager`, `FishSchoolManager`, `GameScheduleManager` (+ NCrontab subset) | `specialty.rs`, `public_farm.rs`, `fish_school.rs`, `schedule.rs` | done | |
+| `TimeManager.OnTimeOfDayChange` (NPC postures, doodad ToD triggers) | `doodad/manager.rs` | done | 10 s poller started by the doodad part (TimeManager has no callback). |
+| Cross-subsystem behaviour | `hooks.rs` | – | `SkillsBridge`, `EconomyBridge`, `QuestsBridge` (`server.systems.npcs.hooks`), default "not ported" bodies. |
 
 ### systems::economy
 
@@ -232,6 +249,8 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
   active character back into the lobby list when `LeaveWorldTask` runs.
 * Combat / slave logout delays (x30, +10 min) are not applied (no combat state / slaves).
 
+* `systems::npcs`: doodad func timers are tokio tasks (cancel = generation bump); `DoodadManager.Create`'s `Task.Run(InitDoodad)` is a spawned task; `TimeManager.OnTimeOfDayChange` runs from a 10 s poller. `GetNpcSpawner` template rewrites do not propagate to already loaded spawners; the "first" concurrent-dictionary entry is the lowest key; spawn files are processed in sorted name order (C# `Directory.GetFiles` order is unspecified). Portal book deletions are written at the next periodic save. Debug messages check only the character's access level. Coffer slot counting stops at 255 (C# loops forever). Where the C# would throw on a null / failed cast the Rust code returns quietly. Geodata (navmesh heights), physics, water, sticky parents, AI, transfers / slaves spawning and housing are not ported.
+
 ## C# bugs noticed (mirrored, not fixed)
 
 * `WorldManager.RemoveVisibleObject` calls `RemoveFromCharacters` on the object's own region and
@@ -266,3 +285,6 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
   `PacketStream.Write(PacketMarshaler)` swallows it. Both reproduced.
 * `SCUnitMovementsPacket` writes no move-type byte per entry (unlike `SCOneUnitMovementPacket`).
 * Hard disconnects do not leave chat channels (only `LeaveWorldTask` does).
+* `systems::npcs`: a generated (fake) spawner's first member never spawns; the "spawn all" schedule check is inverted; `DoRandomSpawn` leaks an obj id and spawns twice; a doodad despawn may release its obj id twice; gimmick spawn rotations are not converted from degrees; scheduled doodad spawns stack cron tasks; the player-in-radius check scans every player; NPCs are not despawned when players leave.
+* `systems::npcs`: dated game schedules compare `StartTime` / `EndTime` (usually 0) instead of the start / end hours (a one-day event counts as ended at 00:00); the cron builder tests the captured day of week instead of its parameter, and undated schedules produce day / month 0 (rejected by the cron parser); `VendorExist` reads the `id` column; deleting a portal sends no packet; `NotifySubZone` re-sends the portal book once per recall portal of the sub zone; the exit portal's yaw is the book rotation in degrees.
+* `systems::npcs`: `DoodadFuncLootItem` with coins (item 500) and `DoodadFuncBuyFish` add the money twice; a trade pack whose backpack take-off fails still counts as looted; `CheckGrowth` runs funcs with `nextPhase = 0`; some `doodad_func_*` loaders store templates in the phase dictionary (e.g. `DoodadFuncBuyFishItem`), mirrored; `DoodadPhaseFunc.PulseTriggered` is state shared by every doodad of the group.
