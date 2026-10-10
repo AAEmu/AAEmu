@@ -1,0 +1,27 @@
+# P5: living entities on slopes (tilted static boxes): climbing a gentle slope, sliding on a
+# steep one, walking down.
+grid axisz=2 org=-128,-128,-100 n=64,64 step=4,4
+geom name=ground type=box size=30,30,1
+geom name=ramp type=box size=6,3,0.5
+entity name=floor type=static pos=0,0,-1
+part ent=floor geom=ground
+# 20 degrees about y (rises towards -x)
+entity name=r1 type=static pos=8,0,1.2 q=0,0.17364818,0,0.98480775
+part ent=r1 geom=ramp
+# 50 degrees about y
+entity name=r2 type=static pos=8,10,2.5 q=0,0.42261826,0,0.90630779
+part ent=r2 geom=ramp
+entity name=a type=living pos=14,0,0.3
+entity name=b type=living pos=9,10,6
+trace ents=a,b
+step n=10
+action target=a type=1 v4=-2,0,0 i16=0 f20=0
+action target=b type=1 v4=-1,0,0 i16=0 f20=0
+step n=60
+status target=a type=2 dump=4,37
+status target=b type=2 dump=4,37
+action target=a type=1 v4=2.5,0,0 i16=0 f20=0
+action target=b type=1 v4=0,0,0 i16=0 f20=0
+step n=40
+status target=a type=2 dump=4,37
+status target=b type=2 dump=4,37

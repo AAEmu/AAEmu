@@ -29,8 +29,30 @@ use crate::sentinel::{is_unused, UNUSED_I32 as UI};
 use crate::world::queue::Command;
 use crate::world::{EntIdx, World};
 
-/// Raw `Action(action, bThreadSafe)`: `buf` starts with the action type id.
+/// Raw `Action(action, bThreadSafe)`: `buf` starts with the action type id. Dispatches on the
+/// entity class.
 pub fn action(w: &mut World, e: EntIdx, buf: &mut [u8], thread_safe: i32) -> i32 {
+    if buf.len() < 4 || !is_entity(w, e) {
+        return 0;
+    }
+    match &w.ent(e).kind {
+        crate::entities::base::EntityKind::Living(_) => {
+            return crate::entities::living::action(w, e, buf, thread_safe)
+        }
+        crate::entities::base::EntityKind::Particle(_) => {
+            return crate::entities::particle::action(w, e, buf, thread_safe)
+        }
+        crate::entities::base::EntityKind::Rigid(r) if r.wheeled.is_some() => {
+            return crate::entities::wheeled::action(w, e, buf, thread_safe)
+        }
+        _ => {}
+    }
+    class_action(w, e, buf, thread_safe)
+}
+
+/// `CRigidEntity::Action` 0x350C5D30 for rigid entities, `CPhysicalEntity::Action`
+/// 0x350583C0 otherwise (what the derived classes call after their own ids).
+pub fn class_action(w: &mut World, e: EntIdx, buf: &mut [u8], thread_safe: i32) -> i32 {
     if buf.len() < 4 || !is_entity(w, e) {
         return 0;
     }
@@ -67,7 +89,7 @@ fn supported(w: &World, e: EntIdx, buf: &[u8]) -> bool {
 /// id 9 marks every part `0x10000000` (removed) and resets the next part id, id 16 AddRefs
 /// its target (no objects to count in the port); rigid — id 5 returns the constraint id
 /// (auto-assigned into the queued copy when unused; 0 without a record). Returns 1 otherwise.
-fn slot76(w: &mut World, e: EntIdx, buf: &[u8], queued: Option<usize>) -> i32 {
+pub(crate) fn slot76(w: &mut World, e: EntIdx, buf: &[u8], queued: Option<usize>) -> i32 {
     let ty = rd_i32(buf, 0);
     if is_rigid(w, e) && ty == 5 {
         let Some(i) = queued else {

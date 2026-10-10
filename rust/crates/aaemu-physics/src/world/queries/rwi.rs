@@ -828,6 +828,7 @@ impl World {
             let fl = ctx.flags;
             let part_flags = (((fl & 0x1000) ^ (fl & 0x1000).wrapping_sub(1)) >> 31) & 1;
             let part_flags = part_flags * 0x8000;
+            self.particle_tls.dummy_part_flags = part_flags;
             // `(nContacts − 1) >> 31` with one contact is 0
             v71 = 0;
             self.register_ray_contacts(
@@ -857,12 +858,20 @@ impl World {
         }
         loop {
             if first_slot57 {
-                // entity slot 57: base `return 0` (particles / ropes override; P5/P6)
+                // entity slot 57: base `return 0`; particles 0x3503AB10 (P5); ropes: P6
                 first_slot57 = false;
                 ctx.ent_slot57 = 1;
-                let n_contacts = 0;
+                let contacts: Vec<GeomContact> = match self.ent(ent).kind {
+                    crate::entities::base::EntityKind::Particle(_) => {
+                        crate::entities::particle::ray_trace(self, ent, &ctx.ray)
+                            .into_iter()
+                            .collect()
+                    }
+                    _ => Vec::new(),
+                };
+                let n_contacts = contacts.len() as i32;
                 v71 = ctx.part_mask & ((1 - ctx.n_parts) >> 31) & ((n_contacts - 1) >> 31);
-                self.register_ray_contacts(ctx, hits, &[], PartSrc::Entity(ent), ent, i, end);
+                self.register_ray_contacts(ctx, hits, &contacts, PartSrc::Entity(ent), ent, i, end);
             } else {
                 let bound = ctx.n_parts + (ctx.part_mask & (ctx.part_lo - ctx.n_parts + 1));
                 if i >= bound {
@@ -985,7 +994,14 @@ impl World {
                     let parts = &self.ent(e).parts;
                     let s = map_surface(parts, c.id[0], ipart);
                     let p = parts.get(ipart.max(0) as usize);
-                    (s, p.map_or(0, |p| p.flags), p.map_or(0, |p| p.surface_bits))
+                    // a part-less entity (particle, slot 57) points at the static dummy part
+                    // `dword_3520C8A0`, whose flags are global state (P5)
+                    let dummy = if parts.is_empty() {
+                        self.particle_tls.dummy_part_flags
+                    } else {
+                        0
+                    };
+                    (s, p.map_or(dummy, |p| p.flags), p.map_or(0, |p| p.surface_bits))
                 }
                 PartSrc::Dummy { part_flags } => (c.id[0], part_flags, 0),
             };

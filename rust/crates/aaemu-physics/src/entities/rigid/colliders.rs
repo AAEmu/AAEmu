@@ -332,7 +332,14 @@ pub fn check_for_new_contacts(
     let mut stop = false;
     let mut ipart = start;
     while ipart < start + v21 && !stop {
-        let own = w.ent(e).parts[ipart as usize].clone();
+        let mut own = w.ent(e).parts[ipart as usize].clone();
+        // P5: a wheel part's new coords (`part+120`) are its wheel record
+        if let (Some(k), Some(wd)) = (own.coords_wheel, w.ent(e).wheeled()) {
+            let wh = &wd.wheels[k];
+            own.pos = wh.pos;
+            own.q = wh.q;
+            own.scale = wh.scale;
+        }
         if own.flags_collider == 0 {
             ipart += 1;
             continue;
@@ -650,6 +657,10 @@ pub fn body_of(w: &mut World, e: EntIdx) -> crate::solver::RigidBody {
 
 /// Body id for a contact's `pbody`.
 pub fn body_id_of(w: &mut World, e: EntIdx) -> crate::solver::BodyId {
+    if w.ent(e).living().is_some() {
+        // P5: living slot 64 with bWillModify = 1 creates / refreshes the proxy body
+        return crate::entities::living::solver::get_rigid_body(w, e, true);
+    }
     match w.ent(e).rigid() {
         Some(r) => r.body,
         None => {

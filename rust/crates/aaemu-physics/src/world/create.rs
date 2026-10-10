@@ -11,7 +11,8 @@ use crate::params::ParamsPos;
 
 impl World {
     /// World slot 21 `CreatePhysicalEntity(type, lifeTime, params, foreignData, iForeignData,
-    /// id, hostPlaceholder, flags)` (0x35082F00) for the ported classes (1 static, 2 rigid).
+    /// id, hostPlaceholder, flags)` (0x35082F00) for the ported classes (1 static, 2 rigid,
+    /// 3 wheeled, 4 living, 5 particle).
     /// `id < 0` = automatic. Placeholders (`hostPlaceholder`, `lifeTime > 0` with a host) are
     /// not ported. Returns `None` for unsupported types.
     ///
@@ -30,8 +31,8 @@ impl World {
         id: i32,
     ) -> Option<EntIdx> {
         let kind = match etype {
-            1 => EntityKind::Static,
-            2 => {
+            1 | 4 | 5 => EntityKind::Static,
+            2 | 3 => {
                 let body = self.bodies.alloc(self.ents.len() as u64 + 1);
                 let head = self.contacts.new_sentinel();
                 EntityKind::Rigid(Box::new(RigidData::new(self.gravity(), body, head)))
@@ -42,8 +43,16 @@ impl World {
             }
         };
         let mut ent = Entity::new_base(etype, kind);
-        if etype == 2 {
+        if etype == 2 || etype == 3 {
             ent.set_sim_class(2);
+        }
+        // P5 class constructors (CWheeledVehicleEntity 0x35104900 on top of the rigid ctor,
+        // CLivingEntity 0x35025530, CParticleEntity 0x35039D40)
+        match etype {
+            3 => crate::entities::wheeled::construct(self, &mut ent),
+            4 => crate::entities::living::construct(self, &mut ent),
+            5 => crate::entities::particle::construct(self, &mut ent),
+            _ => {}
         }
         self.ent_count_by_type[etype as usize] += 1;
         if etype != 1 {

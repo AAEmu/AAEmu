@@ -1,0 +1,26 @@
+# P5: a living entity walks up and down stairs made of boxes (0.2 m rise, 0.4 m run).
+grid axisz=2 org=-128,-128,-100 n=64,64 step=4,4
+geom name=ground type=box size=20,20,1
+geom name=stepg type=box size=0.2,2,0.1
+entity name=floor type=static pos=0,0,-1
+part ent=floor geom=ground
+entity name=s1 type=static pos=2.2,0,0.1
+part ent=s1 geom=stepg
+entity name=s2 type=static pos=2.6,0,0.3
+part ent=s2 geom=stepg
+entity name=s3 type=static pos=3.0,0,0.5
+part ent=s3 geom=stepg
+entity name=s4 type=static pos=3.4,0,0.7
+part ent=s4 geom=stepg
+geom name=landing type=box size=1,2,0.1
+entity name=top type=static pos=4.6,0,0.9
+part ent=top geom=landing
+entity name=p type=living pos=0,0,0.2
+trace ents=p
+step n=10
+action target=p type=1 v4=1.5,0,0 i16=0 f20=0
+step n=60
+status target=p type=2 dump=4,37
+action target=p type=1 v4=-1.5,0,0 i16=0 f20=0
+step n=60
+status target=p type=2 dump=4,37

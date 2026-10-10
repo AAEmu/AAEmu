@@ -6,7 +6,7 @@
 //! binary does the same: no worker exists and the main thread pulls every job itself).
 //!
 //! Not ported: worker threads, the deformation/breakage queues, the water manager, POD cell
-//! ageing and streaming, living and independent entities (P5), profiling.
+//! ageing and streaming, profiling. Living (job 3) and independent (job 4) entities: **P5**.
 
 // NaN-aware comparisons and float literals are written as in the binary (the negated
 // comparisons keep its NaN behaviour; the literals are the decompile's single-precision
@@ -15,7 +15,6 @@
 
 use super::{EntIdx, World};
 use crate::entities::base::EntityKind;
-use crate::entities::rigid::{step as rstp, update as rstep};
 use crate::math::{max_idiom, min_idiom};
 
 /// TimeStep flags (`world.md` §4).
@@ -49,6 +48,8 @@ impl World {
             self.tls_thread = 0;
         }
         self.flush_command_queue();
+        // the world lock (+22468) is held from here to the end of the step
+        self.step_lock = true;
         // 3. dt
         let mut dt = dt_in;
         let mut dt7 = dt_in;
@@ -91,7 +92,17 @@ impl World {
             }
         }
         let do_living = step_flags & 8 != 0;
-        // (flag 8: StartStep of the living entities — none in the port)
+        if do_living {
+            // flag 8: StartStep(dt7 * timeScale) of the living entities (list 3) that pass the
+            // flagged-step filter
+            let ts = dt7 * self.vars.time_scale;
+            for e in self.list(3) {
+                let fl = self.ent(e).flags;
+                if (fl & v61) | (self.flagged_step & (fl ^ 0x800)) == 0 {
+                    crate::entities::start_step(self, e, ts);
+                }
+            }
+        }
         if self.vars.single_step_mode == 0 || self.vars.do_step != 0 {
             // slow-motion re-awake
             let v70 = i32::from(self.vars.time_scale != 1.0 && dt > 0.0);
@@ -108,24 +119,41 @@ impl World {
                     crate::entities::awake(self, e, 0, 0);
                 }
             }
-            // (flag 0x10: StartStep of the independent entities — none in the port)
+            if step_flags & 0x10 != 0 {
+                // StartStep(dt) of every independent entity (list 4)
+                for e in self.list(4) {
+                    let fl = self.ent(e).flags;
+                    if (fl & v61) | (self.flagged_step & (fl ^ 0x800)) == 0 {
+                        crate::entities::start_step(self, e, dt);
+                    }
+                }
+            }
             if step_flags & 4 != 0 && dt > 0.0 && !self.list_head[2].is_none() {
                 self.rigid_step(dt, v61);
             }
             self.rigid_loop_counter += 1;
-            let _ = do_living;
+            if do_living {
+                self.living_job(dt, v61);
+            }
+            if step_flags & 0x10 != 0 {
+                self.independent_job(dt, v61);
+            }
             if step_flags & 0x80 != 0 {
                 self.cleanup_step(dt7);
                 self.cleanup_deleted_areas();
             }
         } else {
             self.rigid_loop_counter += 1;
+            if do_living {
+                self.living_job(dt, v61);
+            }
         }
         self.flagged_step = 0;
         self.flag1744 = 0;
         if dt > 0.0 {
             self.step_counter += 1;
         }
+        self.step_lock = false;
     }
 
     /// `pe_status_dynamics` velocity of an entity (the slow-motion re-awake test).
@@ -133,6 +161,57 @@ impl World {
         match &self.ent(e).kind {
             EntityKind::Rigid(r) if r.awake() => self.bodies.get(r.body).v,
             _ => crate::math::Vec3::ZERO,
+        }
+    }
+
+    /// Job mode 3 (`sub_350801B0`): every living entity (list 3, in list order) that passes
+    /// the flagged-step filter gets `Step(GetMaxTimeStep(dt * timeScale))`. With one physics
+    /// thread the bbox-overlap grouping of the job only batches entities; the order is the
+    /// list order.
+    fn living_job(&mut self, dt: f32, v61: u32) {
+        let mut e = self.list_head[3];
+        while !e.is_none() {
+            let next = self.ent(e).list_next;
+            let fl = self.ent(e).flags;
+            if (v61 & fl) | (self.flagged_step & (fl ^ 0x800)) == 0 {
+                let mts = crate::entities::get_max_time_step(self, e, dt * self.vars.time_scale);
+                crate::entities::step(self, e, mts);
+            }
+            e = next;
+        }
+    }
+
+    /// Job mode 4 (`sub_3507A520`): the independent entities from the simclass-4 list marker
+    /// (`+760`) on, chained through `+160`: per entity (flagged-step filter), the island flag
+    /// from entity flag `0x10000`, then `Step(GetMaxTimeStep(dt))` until Step returns nonzero,
+    /// at most `max_substeps` times.
+    fn independent_job(&mut self, dt: f32, v61: u32) {
+        let mut list = Vec::new();
+        let mut e = self.list_marker[4];
+        while !e.is_none() {
+            list.push(e);
+            e = self.ent(e).list_next;
+        }
+        for (i, &e) in list.iter().enumerate() {
+            self.ent_mut(e).job_next = list.get(i + 1).copied().unwrap_or(EntIdx::NONE);
+        }
+        for e in list {
+            let fl = self.ent(e).flags;
+            if (v61 & fl) | (self.flagged_step & (fl ^ 0x800)) == 0 {
+                let tid = self.tls_thread.clamp(0, 4) as usize;
+                self.island[tid].flag = i32::from(fl & 0x1_0000 != 0);
+                let mut k = 0;
+                loop {
+                    let mts = crate::entities::get_max_time_step(self, e, dt);
+                    if crate::entities::step(self, e, mts) != 0 {
+                        break;
+                    }
+                    k += 1;
+                    if k >= self.vars.max_substeps {
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -236,7 +315,7 @@ impl World {
                     self.group_840[gi] = 0;
                     self.group_mass[gi] = 1.0 / crate::entities::mass_inv(self, e);
                     if first_call {
-                        rstep::start_step(self, e, _dt);
+                        crate::entities::start_step(self, e, _dt);
                     }
                     {
                         let ent = self.ent_mut(e);
@@ -271,7 +350,7 @@ impl World {
                                         ce.group_idx = gi as i32;
                                     }
                                     if first_call {
-                                        rstep::start_step(self, c, _dt);
+                                        crate::entities::start_step(self, c, _dt);
                                     }
                                     let mi = crate::entities::mass_inv(self, c);
                                     self.group_mass[gi] += 1.0 / mi;
@@ -295,13 +374,13 @@ impl World {
                     ng += 1;
                 } else {
                     if first_call {
-                        rstep::start_step(self, e, _dt);
+                        crate::entities::start_step(self, e, _dt);
                         self.ent_mut(e).group_idx = -1;
                     }
                     if pass == 0 {
-                        let mts = rstep::get_max_time_step(self, e, _dt);
-                        rstp::step(self, e, mts);
-                        let r = rstep::update(self, e, mts, 1.0);
+                        let mts = crate::entities::get_max_time_step(self, e, _dt);
+                        crate::entities::step(self, e, mts);
+                        let r = crate::entities::update(self, e, mts, 1.0);
                         *done &= r as i32;
                     }
                 }
@@ -426,13 +505,13 @@ impl World {
                 {
                     if pass != 0 {
                         if self.ent(c).flags & 0x4_0000 != 0 {
-                            rstep::get_max_time_step(self, c, dt);
-                            let lt = rstep::last_time_step(self, c);
+                            crate::entities::get_max_time_step(self, c, dt);
+                            let lt = crate::entities::last_time_step(self, c, dt);
                             v14 = ((v14 - lt).abs() + (lt + v14)) * 0.5;
                         }
-                        let lt = rstep::last_time_step(self, c);
+                        let lt = crate::entities::last_time_step(self, c, dt);
                         v21 = ((v21 - lt).abs() + (lt + v21)) * 0.5;
-                        let mf = rstep::max_friction(self, c);
+                        let mf = crate::entities::max_friction(self, c);
                         v12 = ((mf + v12) - (v12 - mf).abs()) * 0.5;
                         let b = crate::entities::rigid::colliders::body_of(self, c);
                         let ebb = self.ent(c).bbox;
@@ -446,7 +525,7 @@ impl World {
                             + ((b.v.x * b.v.x + b.v.y * b.v.y) + b.v.z * b.v.z))
                             * self.group_dt;
                     } else {
-                        let mts = rstep::get_max_time_step(self, c, dt);
+                        let mts = crate::entities::get_max_time_step(self, c, dt);
                         v21 = ((mts + v21) - (v21 - mts).abs()) * 0.5;
                     }
                     let sc = self.ent(c).sim_class();
@@ -461,7 +540,7 @@ impl World {
         if pass == 0 {
             let mut m = leader;
             while !m.is_none() {
-                let mts = rstep::get_max_time_step(self, m, dt);
+                let mts = crate::entities::get_max_time_step(self, m, dt);
                 v21 = ((mts + v21) - (v21 - mts).abs()) * 0.5;
                 m = self.ent(m).group_next;
             }
@@ -470,7 +549,7 @@ impl World {
             while !m.is_none() {
                 let next = self.ent(m).group_next;
                 if ((self.ent(m).id_bits & 0xFF00_0000) as i32) < 0x300_0000 {
-                    ok &= i32::from(rstp::step(self, m, v21));
+                    ok &= i32::from(crate::entities::step(self, m, v21) != 0);
                 }
                 self.ent_mut(m).group_mark = 1;
                 m = next;
@@ -478,7 +557,7 @@ impl World {
             if ok == 0 {
                 let mut m = leader;
                 while !m.is_none() {
-                    rstep::step_back(self, m, v21);
+                    crate::entities::step_back(self, m, v21);
                     m = self.ent(m).group_next;
                 }
             }
@@ -497,7 +576,7 @@ impl World {
         let mut m = leader;
         while !m.is_none() {
             if (self.ent(m).id_bits & 0xFF00_0000) as i32 > 0x100_0000 {
-                let lt = rstep::last_time_step(self, m);
+                let lt = crate::entities::last_time_step(self, m, dt);
                 v52 = ((v52 - lt).abs() + (lt + v52)) * 0.5;
             }
             m = self.ent(m).group_next;
@@ -510,8 +589,8 @@ impl World {
         if self.vars.group_iters_large == self.vars.group_iters_small {
             let mut m = leader;
             while !m.is_none() {
-                rstep::register_contacts(self, m, v52, self.vars.group_iters_small);
-                v15 += rstep::calc_energy(self, m, v52);
+                crate::entities::register_contacts(self, m, v52, self.vars.group_iters_small);
+                v15 += crate::entities::calc_energy(self, m, v52);
                 n_ents += 1;
                 m = self.ent(m).group_next;
             }
@@ -519,8 +598,8 @@ impl World {
             let mut j = 0;
             let mut m = leader;
             while !m.is_none() {
-                j += rstep::contact_count(self, m, self.vars.group_iters_small);
-                v15 += rstep::calc_energy(self, m, v52);
+                j += crate::entities::contact_count(self, m, self.vars.group_iters_small);
+                v15 += crate::entities::calc_energy(self, m, v52);
                 n_ents += 1;
                 m = self.ent(m).group_next;
             }
@@ -531,7 +610,7 @@ impl World {
             };
             let mut m = leader;
             while !m.is_none() {
-                rstep::register_contacts(self, m, v52, iters);
+                crate::entities::register_contacts(self, m, v52, iters);
                 m = self.ent(m).group_next;
             }
         }
@@ -563,20 +642,42 @@ impl World {
         res: &crate::solver::SolveResult,
         _tid: usize,
     ) {
-        // breakable contacts (part flag 0x400000) → slot 59 OnContactResolved: constraints and
-        // breakable parts are not ported
+        // contacts on parts with flag 0x400000 → slot 59 OnContactResolved of that side
+        // (living 0x350279B0 clips its velocities, wheeled vehicles 0x35104760 count hull
+        // contacts; the rigid slot 59 (breakable parts and constraints) is not ported)
+        let cl = self.solver[_tid].as_ref().map(|s| s.contacts()).unwrap_or_default();
+        for c in cl {
+            let k = *self.contacts.get(c);
+            if (k.ipart[0] | k.ipart[1]) < 0 {
+                continue;
+            }
+            for side in 0..2 {
+                let pe = k.pent[side];
+                if pe.is_none() {
+                    continue;
+                }
+                let brk = self
+                    .ent(pe)
+                    .parts
+                    .get(k.ipart[side] as usize)
+                    .is_some_and(|p| p.flags & 0x40_0000 != 0);
+                if brk {
+                    crate::entities::on_contact(self, pe, c, side as i32);
+                }
+            }
+        }
         let leader = self.group_leader[gi];
         let v32_flag = ((self.vars.group_damping_min_ents - n_ents - 1) as u32 >> 31) as f32;
         let mut damping = 1.0 - v32_flag * (dt * self.vars.group_damping);
         let mut e_sum = 0.0f32;
         let mut m = leader;
         while !m.is_none() {
-            e_sum += rstep::calc_energy(self, m, 0.0);
+            e_sum += crate::entities::calc_energy(self, m, 0.0);
             if self.ent(m).flags & 0x4_0000 != 0 {
-                damping = rstep::get_damping(self, m, dt);
+                damping = crate::entities::get_damping(self, m, dt);
                 break;
             }
-            let d = rstep::get_damping(self, m, dt);
+            let d = crate::entities::get_damping(self, m, dt);
             damping = min_idiom(d, damping);
             m = self.ent(m).group_next;
         }
@@ -593,7 +694,7 @@ impl World {
         let mut v15 = 1;
         let mut m = leader;
         while !m.is_none() {
-            v15 &= rstep::update(self, m, dt, damping) as i32;
+            v15 &= crate::entities::update(self, m, dt, damping) as i32;
             m = self.ent(m).group_next;
         }
         let it = iter;
@@ -638,6 +739,14 @@ impl World {
         if list.is_empty() {
             return;
         }
+        // living entities on the list follow their moving ground first (`sub_3502B3F0` with
+        // dt = `+252`)
+        for &e in &list {
+            if self.ent(e).etype == 4 {
+                let dt = self.ent(e).time_idle;
+                crate::entities::living::follow_ground(self, e, dt);
+            }
+        }
         // `sub_35077370`: Hoare quicksort by the `+232` group pointer, then relinked
         let mut keys: Vec<u64> = list
             .iter()
@@ -660,7 +769,7 @@ impl World {
             ent.job_next = EntIdx::NONE;
             ent.flags &= !0x4000_0000;
             let edt = self.ent(e).time_idle;
-            rstp::step(self, e, edt);
+            crate::entities::step(self, e, edt);
             self.ent_mut(e).group_mark = 0;
         }
     }

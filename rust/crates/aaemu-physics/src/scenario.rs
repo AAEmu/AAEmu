@@ -3,7 +3,7 @@
 //! oracle prints, so the two traces can be compared line by line.
 //!
 //! Supported commands: `grid`, `var`, `geom` (box, sphere, cylinder, capsule), `entity`
-//! (static, rigid), `part`, `surface`, `area kind=global`, `params` (ids handled by
+//! (static, rigid, wheeled, living, particle), `part` (field setters on the geomparams image), `surface`, `area kind=global`, `params` (ids handled by
 //! [`crate::entities::set_params`]), `action` (ids handled by [`crate::entities::action`]),
 //! `trace`, `print`, `step`, `echo`, and (P1c, [`p1c`]) `geom type=mesh` (file / gen / cgf),
 //! `geom type=heightfield [worldhf=1]`, `geominfo`, `ray … ext=1`. Unsupported commands return
@@ -11,11 +11,10 @@
 
 pub mod p1c;
 
-use crate::entities::base::add_geometry;
 use crate::geometry::primitives::{BoxPrim, CylinderPrim, Primitive, SpherePrim};
 use crate::geometry::PhysGeometry;
 use crate::math::{Mat33, Quat, Vec3};
-use crate::params::{GeomParams, ParamsPos};
+use crate::params::ParamsPos;
 use crate::sentinel::UNUSED_I32;
 use crate::world::{EntIdx, World};
 use std::collections::HashMap;
@@ -124,6 +123,14 @@ impl Scenario {
 
     /// The oracle's `print_entity`.
     fn print_entity(&mut self, e: EntIdx) {
+        if matches!(
+            self.world.ent(e).kind,
+            crate::entities::base::EntityKind::Living(_)
+                | crate::entities::base::EntityKind::Particle(_)
+        ) {
+            self.print_entity_status(e);
+            return;
+        }
         let w = &self.world;
         let ent = w.ent(e);
         let name = self.names.get(&e).cloned().unwrap_or_else(|| "?".into());
@@ -149,6 +156,46 @@ impl Scenario {
         }
         let aw = crate::entities::is_awake(w, e);
         let _ = writeln!(s, " sc {} aw {aw}", ent.sim_class());
+        self.out += &s;
+    }
+
+    /// `print_entity` through the class's GetStatus (ids 1, 8 and 7, as the oracle calls them).
+    fn print_entity_status(&mut self, e: EntIdx) {
+        use crate::entities::interface::status::get_status;
+        let rd = |b: &[u8], o: usize| u32::from_le_bytes(b[o..o + 4].try_into().unwrap_or([0; 4]));
+        let mut sp = vec![0u8; 256];
+        put(&mut sp, 0, 1);
+        put(&mut sp, 4, u32::MAX);
+        put(&mut sp, 8, u32::MAX);
+        get_status(&mut self.world, e, &mut sp);
+        let mut sd = vec![0u8; 256];
+        put(&mut sd, 0, 8);
+        put(&mut sd, 4, u32::MAX);
+        put(&mut sd, 8, u32::MAX);
+        let dynamics = get_status(&mut self.world, e, &mut sd);
+        let mut sa = vec![0u8; 16];
+        put(&mut sa, 0, 7);
+        let aw = get_status(&mut self.world, e, &mut sa);
+        let name = self.names.get(&e).cloned().unwrap_or_else(|| "?".into());
+        let mut s = format!("e {name} p");
+        for o in [24, 28, 32] {
+            let _ = write!(s, " {:08x}", rd(&sp, o));
+        }
+        s += " q";
+        for o in [60, 64, 68, 72] {
+            let _ = write!(s, " {:08x}", rd(&sp, o));
+        }
+        if dynamics != 0 {
+            s += " v";
+            for o in [12, 16, 20] {
+                let _ = write!(s, " {:08x}", rd(&sd, o));
+            }
+            s += " w";
+            for o in [24, 28, 32] {
+                let _ = write!(s, " {:08x}", rd(&sd, o));
+            }
+        }
+        let _ = writeln!(s, " sc {} aw {aw}", rd(&sp, 80) as i32);
         self.out += &s;
     }
 
@@ -253,13 +300,21 @@ impl Scenario {
                 let ty = match need("type")?.as_str() {
                     "static" => 1,
                     "rigid" => 2,
-                    t => return Err(format!("entity type {t} not supported")),
+                    "wheeled" => 3,
+                    "living" => 4,
+                    "particle" => 5,
+                    t => t.parse::<i32>().map_err(|_| format!("entity type {t} not supported"))?,
                 };
-                let pp = ParamsPos {
-                    pos: v3(&get("pos", "0,0,0")),
-                    q: q4(&get("q", "0,0,0,1")),
-                    ..ParamsPos::default()
-                };
+                // the oracle's pe_params_pos image: template, pos, q, then the field setters
+                let mut b = vec![0u8; 512];
+                template(crate::params::PeKind::Params, 0, &mut b);
+                let p = v3(&get("pos", "0,0,0"));
+                let q = q4(&get("q", "0,0,0,1"));
+                for (i, x) in [p.x, p.y, p.z, q.x, q.y, q.z, q.w].into_iter().enumerate() {
+                    put(&mut b, 4 + 4 * i, x.to_bits());
+                }
+                apply_fields(&toks, &mut b, &self.ents)?;
+                let pp = <ParamsPos as crate::params::PeStruct>::read(&b);
                 let id = get("id", "-1").parse::<i32>().unwrap_or(-1);
                 let e = w
                     .create_physical_entity(ty, 0.0, Some(&pp), 0, 0, id)
@@ -276,19 +331,31 @@ impl Scenario {
                     .get(&need("geom")?)
                     .cloned()
                     .ok_or("unknown geom")?;
-                let gp = GeomParams {
-                    density: pf(&get("density", "0")),
-                    mass: pf(&get("mass", "0")),
-                    pos: v3(&get("pos", "0,0,0")),
-                    q: q4(&get("q", "0,0,0,1")),
-                    scale: pf(&get("scale", "1")),
-                    flags: pu(&get("flags", "0x1809F")),
-                    flags_collider: pu(&get("collider", "0x1")),
-                    min_contact_dist: pf(&get("mincontact", "U")),
-                    ..GeomParams::default()
-                };
+                // the oracle's pe_geomparams image (type 0 unless `i0=` says otherwise)
+                let mut b = vec![0u8; 512];
+                let p = v3(&get("pos", "0,0,0"));
+                let q = q4(&get("q", "0,0,0,1"));
+                put(&mut b, 4, pf(&get("density", "0")).to_bits());
+                put(&mut b, 8, pf(&get("mass", "0")).to_bits());
+                for (i, x) in [p.x, p.y, p.z, q.x, q.y, q.z, q.w].into_iter().enumerate() {
+                    put(&mut b, 12 + 4 * i, x.to_bits());
+                }
+                put(&mut b, 40, pf(&get("scale", "1")).to_bits());
+                put(&mut b, 64, UI);
+                put(&mut b, 68, pu(&get("flags", "0x1809F")));
+                put(&mut b, 72, pu(&get("collider", "0x1")));
+                put(&mut b, 76, pf(&get("mincontact", "U")).to_bits());
+                put(&mut b, 80, u32::MAX);
+                put(&mut b, 108, 1);
+                apply_fields(&toks, &mut b, &self.ents)?;
                 let id = get("id", "-1").parse::<i32>().unwrap_or(-1);
-                let r = add_geometry(&mut self.world, e, &g, &gp, id);
+                let r = crate::entities::base::geometry::add_geometry_raw(
+                    &mut self.world,
+                    e,
+                    &g,
+                    &b,
+                    id,
+                );
                 let _ = writeln!(self.out, "ret part {en} {r}");
             }
             "surface" => {
@@ -324,7 +391,7 @@ impl Scenario {
                 if !(tmpl && template(fam, ty, &mut b[..512])) {
                     b[..4].copy_from_slice(&ty.to_le_bytes());
                 }
-                apply_fields(&toks, &mut b)?;
+                apply_fields(&toks, &mut b, &self.ents)?;
                 let ts = get("ts", "1").parse::<i32>().unwrap_or(1);
                 let is_area = matches!(
                     self.world.ent(e).kind,
@@ -535,7 +602,11 @@ impl Scenario {
 
 /// The oracle's `apply_fields` in token order: `fOFF=`, `iOFF=`, `uOFF=`, `bOFF=`,
 /// `vOFF=x,y,z`, `qOFF=`, `pOFF=null|unused`, `hex=`.
-fn apply_fields(toks: &[&str], b: &mut [u8]) -> Result<(), String> {
+fn apply_fields(
+    toks: &[&str],
+    b: &mut [u8],
+    ents: &HashMap<String, EntIdx>,
+) -> Result<(), String> {
     for t in toks {
         let Some((k, v)) = t.split_once('=') else {
             continue;
@@ -563,6 +634,20 @@ fn apply_fields(toks: &[&str], b: &mut [u8]) -> Result<(), String> {
             "p" => match v {
                 "null" => put_p(b, off, 0),
                 "unused" => put_p(b, off, u64::MAX),
+                // an in-image pointer (`&image[N]`, see `entities::wheeled::params`)
+                v if v.starts_with("buf:") => put_p(
+                    b,
+                    off,
+                    crate::entities::wheeled::params::BUF_PTR_TAG
+                        | v[4..].parse::<u64>().map_err(|e| e.to_string())?,
+                ),
+                // the port's entity "pointer" (see `entities::particle::ent_ptr`)
+                v if v.starts_with("ent:") => {
+                    let e = ents
+                        .get(&v[4..])
+                        .ok_or_else(|| format!("unknown entity {v}"))?;
+                    put_p(b, off, crate::entities::particle::ent_ptr(*e));
+                }
                 _ => return Err(format!("pointer value {v} not supported")),
             },
             _ => {}
@@ -635,6 +720,25 @@ fn template(fam: crate::params::PeKind, ty: i32, b: &mut [u8]) -> bool {
             put(b, 12, UI);
         }
         (PeKind::Params, 23) => fill_unused(b, 4, 12),
+        (PeKind::Params, 2) => {
+            fill_unused(b, 4, 144);
+            for o in [28, 56, 84, 96, 100, 128, 136] {
+                put(b, o, UI);
+            }
+            put_p(b, 88, u64::MAX);
+        }
+        (PeKind::Params, 16) => {
+            fill_unused(b, 4, 80);
+            for o in [4, 8, 12, 16, 20, 52, 56] {
+                put(b, o, UI);
+            }
+        }
+        (PeKind::Action, 3) => {
+            fill_unused(b, 4, 24);
+            put(b, 24, UI);
+            put(b, 28, UI);
+            put(b, 32, UI);
+        }
         (PeKind::Action, 2) => {
             fill_unused(b, 4, 64);
             put(b, 64, UI);
@@ -709,7 +813,13 @@ pub fn entity_word(w: &World, e: EntIdx, off: usize) -> Option<u32> {
         68 => return Some(ent.id_bits),
         _ => {}
     }
+    if let Some(l) = ent.living() {
+        return crate::entities::living::member_word(l, off);
+    }
     let r = ent.rigid()?;
+    if off >= 1200 {
+        return crate::entities::wheeled::peek_word(w, e, off);
+    }
     if (744..956).contains(&off) {
         let b = w.bodies.get(r.body);
         let words = crate::solver::probe::body_words(b);

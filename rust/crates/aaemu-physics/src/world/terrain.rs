@@ -122,6 +122,7 @@ impl World {
                     has_lattice: false,
                     unk128: 0,
                     bbox_tmp: None,
+                    coords_wheel: None,
                 });
                 self.store(ent)
             };

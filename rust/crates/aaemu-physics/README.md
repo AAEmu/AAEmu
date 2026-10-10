@@ -30,7 +30,8 @@ for bit** wherever that is feasible:
 * **Same CRT.** The engine calls MSVCR100's math functions, which are not correctly rounded.
   `math::crt::sinf`/`cosf` are bit-exact ports of MSVCR100's algorithm; the others are double
   evaluations with known mismatch rates (asserted in `tests/math_oracle.rs`): `asinf` ≈7 %,
-  `acosf` ≈2 %, double `sin`/`cos`/`asin` ≈1 %, `exp` ≈0.4 %; `tanf`, `atanf`, `atan2f`, `powf`,
+  `acosf` ≈2 %, double `cos`/`asin` ≈1 %, `exp` ≈0.4 %; the double `sin` is a bit-exact port
+  (P5, the wheeled-vehicle engine; `tests/p5_wheeled.rs`); `tanf`, `atanf`, `atan2f`, `powf`,
   `expf`, `logf`, `log`, `atan2` matched on all samples. **Open item:** port `asinf`/`acosf` and
   the double functions if a phase hits them on a hot path.
 * **Bugs are kept.** Where the original looks wrong, match it and document it at the call site
@@ -199,7 +200,8 @@ acosf expf logf sqrtf atan2f powf sin cos exp log asin atan2`.
 * `World::time_step` (0x3508BD10) runs the rigid section exactly as the binary does with one
   physics thread: island building, per-island GetMaxTimeStep/Step/StepBack (pass 0), the
   awake-list job, RegisterContacts → `InvokeContactSolver` → post-solve/Update (pass 1), the
-  cleanup. Living/independent entities (P5) and worker threads are not ported.
+  cleanup, then the living job (StartStep(dt·timeScale) + Step per list-3 entity) and the
+  independent job (list 4 from the insertion marker). Worker threads are not ported.
 * `CRigidEntity::Step` with CheckForNewContacts, CheckContactConflicts, RegisterContactPoint,
   the contact-patch fit, CCD sweep + beam check, ray-mode (`0x100000`) parts with their spring
   contacts, buoyancy and air resistance; Update's sleep logic.
@@ -220,6 +222,23 @@ acosf expf logf sqrtf atan2f powf sin cos exp log asin atan2`.
   (`geoman::register_mesh`); corpus models through `LoadPhysGeometry`.
   `tests/p1c_world_goldens.rs` replays all 17 `p1c_*` goldens bit for bit (the corpus ones
   only with `AAEMU_PHYS_CGF_DIR`).
+
+## P5: living entities, particles, wheeled vehicles
+
+* `CLivingEntity` (`entities/living*`): params 1/4, status 1/2/8/9/11/21, actions 1/2/4/10,
+  Step 0x3502DED0 (overlap pass, step-up/snap-down, the 3-plane sweep with the analytic
+  living-vs-living test, ground probe, flying/landing/swimming velocity update, eye smoothing,
+  head-sphere ceiling check), moving-ground following, the rigid proxy body and the solver
+  slots 40/41/42/59/64. `tests/p5_living.rs` replays 13 goldens bit for bit (flat, slopes, box
+  and mesh stairs, heightfield terrain, jump/fall from 40 m, rigid platform, pushing, swimming,
+  dimensions, living pairs, network quantisation). Debug: `AAEMU_LIVING_DEBUG=1` traces the
+  step stages; `peek` reads the living members (`living::member_word`).
+* `CParticleEntity` (`entities/particle*`): `tests/p5_particle.rs`, 10 goldens.
+* World facts learned on the way: TimeStep holds the world lock `+22468` from after its command
+  queue to its end, so SetParams/Action with `bThreadSafe <= 0` from inside a step are queued
+  (`World::step_lock`); RegisterContactPoint takes the collider's body through slot 64 with
+  `bWillModify = 1` (a living entity's proxy body); the post-solve calls slot 59 for contacts on
+  parts with flag `0x400000`.
 
 ## Parallel phase: ownership
 

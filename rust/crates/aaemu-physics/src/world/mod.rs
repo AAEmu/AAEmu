@@ -217,6 +217,16 @@ pub struct World {
     pub solver: Vec<Option<Box<crate::solver::SolverThread>>>,
     /// Query state: ray-limit settings, query queues, terrain basis ([`queries::QueryState`]).
     pub queries: queries::QueryState,
+    /// **P5**: per-caller part-record flags of the living step (`world+21912 + 80·tid`, the
+    /// records persist between steps and one is read past the end).
+    pub living_part_flags: Vec<Vec<u32>>,
+    /// The world lock `+22468` TimeStep holds from after its command queue until its end:
+    /// SetParams / Action calls with `bThreadSafe <= 0` made meanwhile (from inside a step)
+    /// are queued for the next TimeStep.
+    pub step_lock: bool,
+    /// **P5** per-thread particle state (`CParticleEntity::DoStep` hit buffers and the
+    /// particle each thread is stepping), see [`crate::entities::particle::ParticleTls`].
+    pub particle_tls: crate::entities::particle::ParticleTls,
 }
 
 impl World {
@@ -291,6 +301,9 @@ impl World {
             agg_contact_id: crate::solver::ContactId::NONE,
             solver: (0..MAX_CALLERS).map(|_| None).collect(),
             queries: queries::QueryState::default(),
+            living_part_flags: Vec::new(),
+            step_lock: false,
+            particle_tls: crate::entities::particle::ParticleTls::default(),
         };
         w.ccd_scratch.resize_with(
             MAX_CALLERS,

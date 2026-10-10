@@ -170,7 +170,7 @@ fn adjusted_thread_safe(w: &World, e: EntIdx, thread_safe: i32) -> i32 {
 /// The queue decision shared by both helpers (`v9 <= 0` branch): queue unless the world can
 /// be locked right away (see the module docs for what the port models).
 fn must_queue(w: &World, e: EntIdx, v9: i32) -> bool {
-    v9 <= 0 && !(v9 >= 0 && w.ent(e).processed < 0x2_0000)
+    v9 <= 0 && !(v9 >= 0 && w.ent(e).processed < 0x2_0000 && !w.step_lock)
 }
 
 /// Copy the struct into the queue: `processed += 0x20000`, record `{op, size, ent, struct}`.

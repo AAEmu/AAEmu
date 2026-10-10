@@ -1,0 +1,19 @@
+# P5: particles bouncing and rolling on heightfield terrain (slope and bumps) and on a trimesh
+# floor.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=hf type=heightfield n=128,128 step=1,1 hscale=1 fn=bumps h0=0 amp=0.15 worldhf=1
+geom name=floor type=mesh gen=grid nx=4 ny=4 step=4 noise=3,0.1 z=3
+entity name=mfloor type=static pos=100,100,0
+part ent=mfloor geom=floor mass=0
+entity name=a type=particle pos=30,30,3
+entity name=b type=particle pos=40,32,2
+entity name=c type=particle pos=101,101,6
+entity name=d type=particle pos=99,102,5
+params target=a type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.2 v20=0.6,0,-0.8 f32=4
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=1 f12=0.4 f16=0.1 v20=0,1,0 f32=3 f132=0.5
+params target=c type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.3 f12=0.1 v20=0.5,0.5,-0.7 f32=5
+params target=d type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=2 f12=0.3 f16=0.3 v20=1,0,0 f32=2 f136=0.1
+trace ents=a,b,c,d
+print
+step n=150
+step n=150 every=5

@@ -23,7 +23,29 @@ use crate::sentinel::{is_unused, UNUSED_I32 as UI};
 use crate::world::{EntIdx, World};
 
 /// Raw `GetParams(params)`: `buf` starts with the params type id and receives the answer.
+/// Dispatches on the entity class.
 pub fn get_params(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
+    if buf.len() < 4 || !is_entity(w, e) {
+        return 0;
+    }
+    match &w.ent(e).kind {
+        crate::entities::base::EntityKind::Living(_) => {
+            return crate::entities::living::get_params(w, e, buf)
+        }
+        crate::entities::base::EntityKind::Particle(_) => {
+            return crate::entities::particle::get_params(w, e, buf)
+        }
+        crate::entities::base::EntityKind::Rigid(r) if r.wheeled.is_some() => {
+            return crate::entities::wheeled::get_params(w, e, buf)
+        }
+        _ => {}
+    }
+    class_get_params(w, e, buf)
+}
+
+/// `CRigidEntity::GetParams` 0x350AABD0 for rigid entities, `CPhysicalEntity::GetParams`
+/// 0x35054E60 otherwise (what the derived classes call first).
+pub fn class_get_params(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
     if buf.len() < 4 || !is_entity(w, e) {
         return 0;
     }

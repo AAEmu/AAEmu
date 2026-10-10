@@ -1,0 +1,29 @@
+# P5: particles hitting rigid bodies: the impulse on the body (Action 2 at the hit point),
+# the relative-velocity response with the body's GetMassInv, flag 0x200 (impulse only
+# reported), a particle landing on a moving body (surface velocity through GetStatus 8), and
+# traceable particles (flag 0x400) reached by a moving body.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+geom name=cube type=box size=0.5,0.5,0.5
+geom name=plank type=box size=1.5,0.4,0.1
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=box type=rigid pos=32,32,0.5
+part ent=box geom=cube mass=2
+entity name=box2 type=rigid pos=36,32,0.5
+part ent=box2 geom=cube mass=50
+entity name=pl type=rigid pos=28,32,0.12
+part ent=pl geom=plank mass=5
+entity name=a type=particle pos=29,32,0.6
+entity name=b type=particle pos=33,32,0.7
+entity name=c type=particle pos=28,32,1.5
+params target=a type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=1 f12=0.1 v20=1,0,0 f32=15
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x200 f8=2 f12=0.1 v20=1,0,0 f32=20
+params target=c type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.3 f12=0.2 v20=0,0,-1 f32=1
+trace ents=a,b,c,box,box2,pl
+print
+step n=40
+action target=pl type=2 v4=10,0,0 v52=28,32,0.12
+step n=80
+status target=a type=9
+status target=b type=9

@@ -26,7 +26,8 @@ use base::EntityKind;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EntityId(pub i32);
 
-/// Slot 69 `GetMassInv`: rigid `0x35020A10` (`Minv`, 0 when flag 2 is set); base 0.
+/// Slot 69 `GetMassInv`: rigid `0x35020A10` (`Minv`, 0 when flag 2 is set); living
+/// `0x35037C50` (`+584`); base 0.
 #[must_use]
 pub fn mass_inv(w: &World, e: EntIdx) -> f32 {
     let ent = w.ent(e);
@@ -38,24 +39,145 @@ pub fn mass_inv(w: &World, e: EntIdx) -> f32 {
                 w.bodies.get(r.body).minv
             }
         }
+        EntityKind::Living(l) => l.mass_inv,
         _ => 0.0,
     }
 }
 
-/// Slot 55 `Awake(bAwake, iSource)`: rigid `0x350AB170`; base: `return 0`.
+/// Slot 55 `Awake(bAwake, iSource)`: rigid `0x350AB170` (wheeled vehicles inherit it), living
+/// `0x35024F90`, particle `0x35039B60`; base: `return 0`.
 pub fn awake(w: &mut World, e: EntIdx, b_awake: i32, i_source: i32) -> i32 {
     match w.ent(e).kind {
         EntityKind::Rigid(_) => rigid::awake::awake(w, e, b_awake, i_source),
+        EntityKind::Living(_) => living::awake(w, e, b_awake, i_source),
+        EntityKind::Particle(_) => particle::awake(w, e, b_awake, i_source),
         _ => 0,
     }
 }
 
-/// Slot 56 `IsAwake(ipart)`: rigid 0x350CCD30 (`+508` byte); base 0.
+/// Slot 56 `IsAwake(ipart)`: rigid 0x350CCD30 (`+508` byte), particle 0x35039BB0; base 0
+/// (living entities inherit it).
 #[must_use]
 pub fn is_awake(w: &World, e: EntIdx) -> i32 {
     match &w.ent(e).kind {
         EntityKind::Rigid(r) => (r.awake_bits & 0xFF) as i32,
+        EntityKind::Particle(_) => particle::is_awake(w, e),
         _ => 0,
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// the step slots the world calls, dispatched on the class (base defaults from vtable 0x351EFE38)
+
+/// Slot 26 `StartStep(dt)`: rigid 0x350CCB20, living 0x35024DC0, particle 0x35039850; base
+/// nothing.
+pub fn start_step(w: &mut World, e: EntIdx, dt: f32) {
+    match w.ent(e).kind {
+        EntityKind::Rigid(_) => rigid::update::start_step(w, e, dt),
+        EntityKind::Living(_) => living::start_step(w, e, dt),
+        EntityKind::Particle(_) => particle::start_step(w, e, dt),
+        _ => {}
+    }
+}
+
+/// Slot 37 `GetMaxTimeStep(dt)`: rigid 0x350BCAA0, wheeled 0x35104790, living 0x35025390,
+/// particle 0x35039CE0; base `return dt` (0x35037C10).
+pub fn get_max_time_step(w: &mut World, e: EntIdx, dt: f32) -> f32 {
+    match &w.ent(e).kind {
+        EntityKind::Rigid(r) if r.wheeled.is_some() => wheeled::get_max_time_step(w, e, dt),
+        EntityKind::Rigid(_) => rigid::update::get_max_time_step(w, e, dt),
+        EntityKind::Living(_) => living::get_max_time_step(w, e, dt),
+        EntityKind::Particle(_) => particle::get_max_time_step(w, e, dt),
+        _ => dt,
+    }
+}
+
+/// Slot 34 `Step(dt)`: rigid 0x350C9DF0 (also wheeled vehicles, which hook slots 78/79),
+/// living 0x3502DED0, particle 0x350407E0; base `return 1`.
+pub fn step(w: &mut World, e: EntIdx, dt: f32) -> i32 {
+    match w.ent(e).kind {
+        EntityKind::Rigid(_) => i32::from(rigid::step::step(w, e, dt)),
+        EntityKind::Living(_) => living::step(w, e, dt),
+        EntityKind::Particle(_) => particle::step(w, e, dt),
+        _ => 1,
+    }
+}
+
+/// Slot 27 `StepBack(dt)`: rigid 0x350BBD60; base nothing.
+pub fn step_back(w: &mut World, e: EntIdx, dt: f32) {
+    if let EntityKind::Rigid(_) = w.ent(e).kind {
+        rigid::update::step_back(w, e, dt);
+    }
+}
+
+/// Slot 41 `Update(dt, damping)`: rigid 0x350BEB40, wheeled 0x351050A0, living 0x3502C240;
+/// base `return 1`.
+pub fn update(w: &mut World, e: EntIdx, dt: f32, damping: f32) -> u32 {
+    match &w.ent(e).kind {
+        EntityKind::Rigid(r) if r.wheeled.is_some() => wheeled::update(w, e, dt, damping),
+        EntityKind::Rigid(_) => rigid::update::update(w, e, dt, damping),
+        EntityKind::Living(_) => living::update(w, e, dt, damping),
+        _ => 1,
+    }
+}
+
+/// Slot 40 `RegisterContacts(dt, nMaxPlaneContacts)`: rigid 0x350C1520, wheeled 0x35105E50,
+/// living 0x35027190; base `return 0`.
+pub fn register_contacts(w: &mut World, e: EntIdx, dt: f32, n_max: i32) -> i32 {
+    match &w.ent(e).kind {
+        EntityKind::Rigid(r) if r.wheeled.is_some() => {
+            wheeled::register_contacts(w, e, dt, n_max)
+        }
+        EntityKind::Rigid(_) => rigid::update::register_contacts(w, e, dt, n_max),
+        EntityKind::Living(_) => living::register_contacts(w, e, dt, n_max),
+        _ => 0,
+    }
+}
+
+/// Slot 42 `CalcEnergy(dt)`: rigid 0x350AB8F0, living 0x35026FB0; base `0.0`.
+#[must_use]
+pub fn calc_energy(w: &World, e: EntIdx, dt: f32) -> f32 {
+    match w.ent(e).kind {
+        EntityKind::Rigid(_) => rigid::update::calc_energy(w, e, dt),
+        EntityKind::Living(_) => living::calc_energy(w, e, dt),
+        _ => 0.0,
+    }
+}
+
+/// Slot 43 `GetDamping(dt)`: rigid 0x350AC490, wheeled 0x35104FA0; base `1.0` (0x35037C20).
+#[must_use]
+pub fn get_damping(w: &World, e: EntIdx, dt: f32) -> f32 {
+    match &w.ent(e).kind {
+        EntityKind::Rigid(r) if r.wheeled.is_some() => wheeled::get_damping(w, e, dt),
+        EntityKind::Rigid(_) => rigid::update::get_damping(w, e, dt),
+        _ => 1.0,
+    }
+}
+
+/// Slot 39 `GetContactCount(nMax)`: rigid 0x350AC3E0; base 0.
+#[must_use]
+pub fn contact_count(w: &World, e: EntIdx, nmax: i32) -> i32 {
+    match w.ent(e).kind {
+        EntityKind::Rigid(_) => rigid::update::contact_count(w, e, nmax),
+        _ => 0,
+    }
+}
+
+/// Slot 38 `GetLastTimeStep(dt)`: rigid 0x35020A40 (`+604`); base `return dt` (0x35037C10).
+#[must_use]
+pub fn last_time_step(w: &World, e: EntIdx, dt: f32) -> f32 {
+    match w.ent(e).kind {
+        EntityKind::Rigid(_) => rigid::update::last_time_step(w, e),
+        _ => dt,
+    }
+}
+
+/// Slot 44 `GetMaxFriction`: rigid 0x35020A50 (`+704`); base `100.0` (0x35037C30).
+#[must_use]
+pub fn max_friction(w: &World, e: EntIdx) -> f32 {
+    match w.ent(e).kind {
+        EntityKind::Rigid(_) => rigid::update::max_friction(w, e),
+        _ => 100.0,
     }
 }
 
@@ -102,6 +224,15 @@ fn base_add_collider(w: &mut World, e: EntIdx, c: EntIdx) -> i32 {
 /// `bAlways`, only when no contact or constraint refers to the collider; frees that
 /// collider's contacts). Returns the former index or -1.
 pub fn remove_collider(w: &mut World, e: EntIdx, c: EntIdx, always: bool) -> i32 {
+    if w.ent(e).wheeled().is_some() {
+        return wheeled::remove_collider(w, e, c, always);
+    }
+    class_remove_collider(w, e, c, always)
+}
+
+/// Slot 48 of `CRigidEntity` / `CPhysicalEntity` (what `CWheeledVehicleEntity` 0x35104840
+/// calls after clearing its wheel contacts).
+pub fn class_remove_collider(w: &mut World, e: EntIdx, c: EntIdx, always: bool) -> i32 {
     if let EntityKind::Rigid(_) = w.ent(e).kind {
         if !always {
             let ent = w.ent(e);
@@ -177,6 +308,15 @@ pub fn has_constraint_contacts_with(
 /// for that collider); base 0.
 #[must_use]
 pub fn has_contacts_with(w: &World, e: EntIdx, other: EntIdx) -> bool {
+    if w.ent(e).wheeled().is_some() {
+        return wheeled::has_contacts_with(w, e, other);
+    }
+    class_has_contacts_with(w, e, other)
+}
+
+/// Slot 50 of `CRigidEntity` (what `CWheeledVehicleEntity` 0x351047F0 falls back to).
+#[must_use]
+pub fn class_has_contacts_with(w: &World, e: EntIdx, other: EntIdx) -> bool {
     let ent = w.ent(e);
     let EntityKind::Rigid(r) = &ent.kind else {
         return false;
@@ -192,6 +332,18 @@ pub fn has_contacts_with(w: &World, e: EntIdx, other: EntIdx) -> bool {
 /// or alerted entities), rigid `0x350A9DD0` (first wake the constraint buddies; flag 0x100000
 /// while the external-contact stamp is negative).
 pub fn detach_hook(w: &mut World, e: EntIdx, mode: i32) {
+    match &w.ent(e).kind {
+        EntityKind::Living(_) => return living::detach_hook(w, e, mode),
+        EntityKind::Particle(_) => return particle::detach_hook(w, e, mode),
+        EntityKind::Rigid(r) if r.wheeled.is_some() => return wheeled::detach_hook(w, e, mode),
+        _ => {}
+    }
+    class_detach_hook(w, e, mode);
+}
+
+/// Slot 54 of `CRigidEntity` (0x350A9DD0) / `CPhysicalEntity` (0x350530B0): what the derived
+/// classes call.
+pub fn class_detach_hook(w: &mut World, e: EntIdx, mode: i32) {
     let saved = w.ent(e).flags;
     if let EntityKind::Rigid(r) = &w.ent(e).kind {
         // constraint buddies: no constraints in the port
@@ -238,6 +390,62 @@ pub fn detach_hook(w: &mut World, e: EntIdx, mode: i32) {
     let _ = mode;
     if let EntityKind::Rigid(_) = w.ent(e).kind {
         w.ent_mut(e).flags = saved;
+    }
+}
+
+/// Slot 59 `OnContact(contact, iside)` (the post-solve calls it for contacts on parts with
+/// flag `0x400000`): living 0x350279B0, wheeled vehicles 0x35104760 (count hull contacts);
+/// the rigid / base slots (breakable parts) are not ported.
+pub fn on_contact(w: &mut World, e: EntIdx, c: crate::solver::ContactId, side: i32) {
+    if w.ent(e).wheeled().is_some() {
+        wheeled::on_contact(w, e, c, side);
+    } else if w.ent(e).living().is_some() {
+        living::solver::on_contact(w, e, c, side);
+    }
+}
+
+/// Slot 51 `HasPartContactsWith(pent, ipart, bGreater)`: wheeled 0x35104FF0, rigid
+/// 0x350AAF80; base 0. (Its callers, the base SetParams(part) wake-up of static neighbours
+/// and the base RemoveGeometry, are not ported.)
+#[must_use]
+pub fn has_part_contacts_with(w: &World, e: EntIdx, other: EntIdx, ipart: i32, greater: i32) -> bool {
+    if w.ent(e).wheeled().is_some() {
+        return wheeled::has_part_contacts_with(w, e, other, ipart, greater);
+    }
+    class_has_part_contacts_with(w, e, other, ipart, greater)
+}
+
+/// Slot 51 of `CRigidEntity` (0x350AAF80): a contact of the collider run of `other` (or a
+/// constraint — none in the port) on part `ipart` of the other side (or a higher part with
+/// `greater`).
+#[must_use]
+pub fn class_has_part_contacts_with(w: &World, e: EntIdx, other: EntIdx, ipart: i32, greater: i32) -> bool {
+    let ent = w.ent(e);
+    let EntityKind::Rigid(r) = &ent.kind else {
+        return false;
+    };
+    let Some(i) = ent.colliders.iter().position(|&x| x == other) else {
+        return false;
+    };
+    let hit = |p: i32| {
+        let d = ipart.wrapping_sub(p);
+        let eq = (((d ^ d.wrapping_sub(1)) >> 31) as u32).wrapping_neg();
+        let gt = (greater.wrapping_neg() as u32) & ((d as u32) >> 31);
+        (eq | gt) != 0
+    };
+    let mut k = r.collider_contacts[i];
+    if k.is_none() {
+        return false;
+    }
+    loop {
+        let c = w.contacts.get(k);
+        if hit(c.ipart[1]) {
+            return true;
+        }
+        if c.flags & 0x8_0000 != 0 {
+            return false;
+        }
+        k = c.next;
     }
 }
 

@@ -61,6 +61,8 @@ pub fn update_position(w: &mut World, e: EntIdx, _cells: i32) {
         ent.pos = nc.pos;
         ent.q = nc.q;
     }
+    // P5: wheel parts take their pose from the wheel record their `+120` points at
+    wheel_coords_to_parts(w, e, false);
     let (np, thr) = (w.ent(e).parts.len() as i32, rd(w, e).part_bbox_threshold);
     let v = thr + ((np - thr) & ((np - thr) >> 31));
     if v > 2 {
@@ -69,14 +71,45 @@ pub fn update_position(w: &mut World, e: EntIdx, _cells: i32) {
         }
         let bb = crate::entities::base::bbox::compute_bbox(w, e, 2, -1, None);
         w.ent_mut(e).bbox = bb;
+        wheel_coords_to_parts(w, e, true);
     } else {
         for p in &mut w.ent_mut(e).parts {
             if let Some(b) = p.bbox_tmp.take() {
                 p.bbox = b;
             }
         }
+        wheel_coords_to_parts(w, e, true);
         let bb = rd(w, e).bbox_new;
         w.ent_mut(e).bbox = bb;
+    }
+}
+
+/// **P5**: the copies UpdatePosition makes from a wheel part's new coords (the wheel record of
+/// a `CWheeledVehicleEntity`, `part+120`): the pose (`boxes == false`) or the box.
+fn wheel_coords_to_parts(w: &mut World, e: EntIdx, boxes: bool) {
+    let ent = w.ent_mut(e);
+    let Some(wd) = ent.rigid().and_then(|r| r.wheeled.as_deref()) else {
+        return;
+    };
+    let recs: Vec<(usize, Vec3, Quat, [Vec3; 2])> = ent
+        .parts
+        .iter()
+        .enumerate()
+        .filter_map(|(i, p)| {
+            p.coords_wheel.map(|k| {
+                let wh = &wd.wheels[k];
+                (i, wh.pos, wh.q, wh.bbox)
+            })
+        })
+        .collect();
+    for (i, pos, q, b) in recs {
+        let p = &mut ent.parts[i];
+        if boxes {
+            p.bbox = b;
+        } else {
+            p.pos = pos;
+            p.q = q;
+        }
     }
 }
 
@@ -205,7 +238,8 @@ pub fn step(w: &mut World, e: EntIdx, dt: f32) -> bool {
         if v27 & 0x3FC_0000 != 0 {
             get_potential_colliders(w, e, 0.0);
         }
-        // slot 78 hook: rigid no-op
+        // slot 78 (`vt+0x270`, xmm1 = dt): wheeled vehicles' CheckAdditionalGeometry
+        slot78(w, e, v23);
         let bb = w.ent(e).bbox;
         rm(w, e).bbox_new = bb;
     } else {
@@ -354,7 +388,8 @@ pub fn step(w: &mut World, e: EntIdx, dt: f32) -> bool {
         }
         let bbn = crate::entities::base::bbox::compute_bbox(w, e, 0, -1, None);
         rm(w, e).bbox_new = bbn;
-        // slot 78 hook: rigid no-op
+        // slot 78 (`vt+0x270`, xmm1 = dt): wheeled vehicles' CheckAdditionalGeometry
+        slot78(w, e, v23);
         ip.vrel_min = 1e10;
         let res = check_for_new_contacts(w, e, &mut gwd, &mut ip, Vec3::ZERO, 0, -1);
         let mut n = res.n;
@@ -732,7 +767,10 @@ fn finish_step(
         r.l_deferred = Vec3::ZERO;
     }
     w.bodies.get_mut(body_id).update_state();
-    // slot 79 hook: rigid no-op
+    // slot 79 (`vt+0x278`, xmm1 = dt): the wheeled vehicles' drivetrain / tyre impulses
+    if w.ent(e).wheeled().is_some() {
+        crate::entities::wheeled::drive::step_drive(w, e, v23);
+    }
     {
         let b = w.bodies.get_mut(body_id);
         b.fcoll = Vec3::ZERO;
@@ -773,6 +811,14 @@ fn finish_step(
 
 #[allow(dead_code)]
 fn _unused(_: Quat) {}
+
+/// Slot 78: `CWheeledVehicleEntity::CheckAdditionalGeometry` 0x3510C940 for wheeled vehicles
+/// (**P5**), the `nop` stub 0x35037700 for rigid bodies.
+fn slot78(w: &mut World, e: EntIdx, dt: f32) {
+    if w.ent(e).wheeled().is_some() {
+        crate::entities::wheeled::detect::check_additional_geometry(w, e, dt);
+    }
+}
 
 /// `sub_350BADE0(ent, contacts, i, dt, tid)`: the contact of a ray-mode part (`0x100000`):
 /// a spring along the ray. With `+1040 ≤ 3` (driving on the ray) the compression

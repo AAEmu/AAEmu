@@ -1,0 +1,24 @@
+# P5: the cart on bumpy heightfield terrain (world heightfield, 0.04 m steps): settling, then
+# driving over the bumps and steering.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+surface idx=0 friction=1
+geom name=hf type=heightfield n=128,128 step=1,1 hscale=1 fn=bumps h0=1 amp=0.04 worldhf=1
+geom name=hull type=box size=1,2,0.35
+geom name=wheel type=cylinder r=0.4 hh=0.15 axis=1,0,0
+entity name=car type=wheeled pos=64,40,2.2
+part ent=car geom=hull mass=400 i0=1 i112=U
+part ent=car geom=wheel mass=20 pos=1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=-1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=-1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+trace ents=car
+step n=40 every=5
+params target=car type=2 f8=200000 i84=5 p88=buf:400 f400=-2 f404=0 f408=3 f412=2 f416=1.2 i96=4 i100=0
+action target=car type=3 f4=1 f20=1 i24=0 i28=0 i32=2
+step n=60
+status target=car type=4 dump=0,15
+status target=car type=5 i4=0 i8=U dump=0,32
+status target=car type=5 i4=3 i8=U dump=0,32
+action target=car type=3 f12=0.3
+step n=40
+status target=car type=4 dump=0,15

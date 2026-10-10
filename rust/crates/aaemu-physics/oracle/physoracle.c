@@ -227,6 +227,16 @@ static int tmpl_params(int type, unsigned char *b) {
   case 23: /* timeout 12 */
     fill_unused_f(b, 4, 12);
     return 12;
+  case 2: /* car params 144 (P5 wheeled) */
+    fill_unused_f(b, 4, 144);
+    SETI(b, 28, UNUSED_I); SETI(b, 56, UNUSED_I); SETI(b, 84, UNUSED_I); SETP(b, 88, -1);
+    SETI(b, 96, UNUSED_I); SETI(b, 100, UNUSED_I); SETI(b, 128, UNUSED_I); SETI(b, 136, UNUSED_I);
+    return 144;
+  case 16: /* wheel params 80 (P5 wheeled) */
+    fill_unused_f(b, 4, 80);
+    SETI(b, 4, UNUSED_I); SETI(b, 8, UNUSED_I); SETI(b, 12, UNUSED_I); SETI(b, 16, UNUSED_I);
+    SETI(b, 20, UNUSED_I); SETI(b, 52, UNUSED_I); SETI(b, 56, UNUSED_I);
+    return 80;
   }
   return 0;
 }
@@ -238,6 +248,9 @@ static int tmpl_action(int type, unsigned char *b) {
     fill_unused_f(b, 4, 64);
     SETI(b, 64, UNUSED_I); SETI(b, 68, UNUSED_I); SETI(b, 72, 0); SETI(b, 76, 0);
     return 80;
+  case 3: /* drive 36 (P5 wheeled) */
+    fill_unused_f(b, 4, 24); SETI(b, 24, UNUSED_I); SETI(b, 28, UNUSED_I); SETI(b, 32, UNUSED_I);
+    return 36;
   case 4: /* reset 8 */
     SETI(b, 4, 0);
     return 8;
@@ -279,6 +292,7 @@ static void apply_fields(const Toks *t, unsigned char *b, int cap) {
       if (!strcmp(v, "null")) SETP(b, off, 0);
       else if (!strcmp(v, "unused")) SETP(b, off, -1);
       else if (!strncmp(v, "ent:", 4)) SETP(b, off, find_target(v + 4));
+      else if (!strncmp(v, "buf:", 4)) SETP(b, off, b + atoi(v + 4)); /* in-image pointer (P5 wheeled gear ratios) */
       else if (!strncmp(v, "geom:", 5)) { void *g = find_obj(v + 5, 0); if (!g) die("unknown geom", v); SETP(b, off, g); }
       else die("bad pointer value", v);
       break;
