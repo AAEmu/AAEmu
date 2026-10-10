@@ -20,6 +20,7 @@
 //! | [`models`] | `ModelManager` (complete) |
 //! | [`music`] | `MusicManager`, music packets |
 //! | [`radar`] | `RadarManager`, telescope / fish finder packets |
+//! | [`shutdown`] | `Models/Tasks/ShutdownTask`, `SCNoticeMessagePacket` |
 //! | [`sus`] | `SusManager` |
 //! | [`webapi`] | `Services/WebApi/**` |
 //! | [`discord`] | `Services/DiscordBotService` |
@@ -36,6 +37,7 @@ pub mod localization;
 pub mod models;
 pub mod music;
 pub mod radar;
+pub mod shutdown;
 pub mod sus;
 pub mod tasks;
 pub mod tick;
@@ -94,6 +96,8 @@ pub struct System {
     pub discord: discord::DiscordBotService,
     /// The economy behaviour the WebApi mail / auction controllers call.
     pub webapi_economy_hooks: HookSlot<dyn webapi::hooks::WebApiEconomyHooks>,
+    /// `SaveManager.ShutdownTask` (the pending GM shutdown).
+    pub shutdown_task: std::sync::Mutex<Option<Arc<shutdown::ShutdownTask>>>,
     /// The runtime `FeaturesManager.Fsets` (`None` = the loaded game data).
     features: commands::sub::RuntimeFeatures,
 }

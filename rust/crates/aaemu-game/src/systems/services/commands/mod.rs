@@ -1,6 +1,7 @@
 //! The chat-command infrastructure: `Core/Managers/CommandManager`, `AccessLevelManager`,
 //! `Models/Game/ICommand`, `Utils/Scripts/**` (`IMessageOutput`, `CharacterMessageOutput`,
-//! `ScriptReflector` / `ScriptCompiler` -> [`CommandManager::reload`], the sub-command and
+//! `ScriptReflector` / `ScriptCompiler` / `ScriptObject` -> [`CommandManager::reload`], the
+//! sub-command and
 //! parameter framework) and the sub commands that live in `Utils/Scripts/SubCommands`.
 //!
 //! The GM commands themselves (`Scripts/Commands/**`) are a later phase: they implement

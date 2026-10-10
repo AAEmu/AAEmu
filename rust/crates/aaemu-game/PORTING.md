@@ -106,7 +106,7 @@ systems::{skills, npcs, economy, social, quests}: Data (tables), System (manager
 | `Core/Packets/Proxy` | `packets/proxy.rs` | done | All registered proxy packets (most are inert in C# too). |
 | `Core/Packets/CompressedGamePackets`, `Debug` | – | todo | |
 | `Core/Managers/World/EnterWorldManager` | `managers/enter_world.rs`, `world/session.rs` | done | AddAccount, Login, Leave (all targets), LeaveWorldTask (mates/slaves/coffers/quest timers are no-ops: not ported). |
-| `Core/Managers/AccountManager` | `managers/account.rs`, `db.rs` | partial | Add/Remove/Contains/Count, GetAccountDetails, UpdateLoginTime. Credits/labor/loyalty updates, dead-connection sweep todo. |
+| `Core/Managers/AccountManager` | `managers/account.rs`, `db.rs`, `systems/services/accounts.rs` | done | Add (login time + timed rewards), Remove/Contains/Count, GetAccountDetails, UpdateLoginTime, AddCredits/RemoveCredits/AddLoyalty/UpdateLabor/UpdateTickTimes/UpdateDivineClock/GetDivineClock under the per-account lock, RemoveDeadConnections (30 s tick). See `systems::services`. |
 | `Core/Managers/FeaturesManager`, `Models/Game/Features` | `data/features.rs` | done | |
 | `Core/Managers/ExperienceManager` (+ `SqliteExperienceLevelTemplateLoader`) | `data/experience.rs` | partial | Loader validation, level caps, GetExpForLevel, GetLevelFromExp (both overloads), GetSkillPointsForLevel. Mate/exp-loss helpers todo. |
 | `Core/Managers/Id/*` (`IdManager`, `BitSet`, `PrimeFinder`) | `managers/id.rs` | done | Every C# id manager (incl. `distinct` for FamilyIdManager) with the C# allocation algorithm and DB seeding; `UccIdManager` in `stream/ucc.rs`. The static `SkillTlIdManager` is the skills subsystem's. |
@@ -127,27 +127,27 @@ systems::{skills, npcs, economy, social, quests}: Data (tables), System (manager
 | `Core/Managers/World/WorldManager` (+ `WorldInstance`, `Region`) | `world/mod.rs`, `world/visibility.rs`, `data/world_templates.rs` | partial | World templates from `game/worlds/*/world.xml` (directory or game_pak) + world_spawns.json, GetZoneId, main_world instance, region grid, AddVisibleObject / RemoveVisibleObject / AddToCharacters / RemoveFromCharacters (all object kinds, region batches, children, the non-player removal filter), Show / Hide / Spawn / Delete, AddObject / RemoveObject / Get* lookups, GetAround, GetInCell, GetRegion / GetRootObj, server/instance character lists, UsedCharacterObjIds, OnPlayerJoin. Heightmaps, water, physics, `ResendVisibleObjectsToCharacter` todo. |
 | `IO` (ClientFileManager, AAPak) | `data/client_files.rs`, `data/pak.rs` | done | Read-only pak (types A/B/F) and directory sources, file listing semantics of both. |
 | `Core/Managers/World/ZoneManager` | `data/world_data.rs` | partial | zones, zone_groups, conflict_zones (initial state only; the state timers are todo). |
-| `Core/Managers/World/FactionManager`, `LocalizationManager` | `data/world_data.rs` | partial | system factions (+ localized names), relations, SendFactions / SendRelations. Relation checks todo. |
+| `Core/Managers/World/FactionManager`, `LocalizationManager` | `data/world_data.rs`, `systems/services/localization.rs` | partial / done | system factions (+ localized names), relations, SendFactions / SendRelations (relation checks: `systems::social`). The complete `LocalizationManager` (all translations, item-name cache, `MatchItemName`) is `systems::services::localization`. |
 | `Core/Managers/ExpeditionManager`, `Models/Game/Expeditions` | `managers/expedition.rs` | partial | Load, GetExpedition, SendExpeditions, SendExpeditionInfo, member refresh / login / logout status packets. Guild management todo. |
 | `Core/Managers/FriendMananger` | `managers/friend.rs`, `db_character.rs` | partial | Load, SendStatusChange, GetFriendInfo, FormatFriend. Add/remove todo. |
 | `Core/Managers/PortalManager` | `data/world_data.rs` | partial | recalls.json + district_return_points (GetRecallBySubZoneId, GetDistrictReturnPoint). Teleports, world gates, respawns todo. |
 | `Core/Managers/ChatManager`, `Models/Game/Chat` | `managers/chat.rs`, `world/session.rs` | partial | Faction / nation / zone / guild / family channels, join/leave/send; CSSendChatMessage for every chat type (party/raid -> "not in party/raid" errors as there are no teams). Trial channels, commands todo. |
-| `Core/Managers/TimeManager` (+ `TimeOfDayObserver`) | `managers/time.rs` | done | Storm-ship time override todo. |
+| `Core/Managers/TimeManager` (+ `TimeOfDayObserver`) | `managers/time.rs` | done | `Get` / `Set` / `Stop` added (phase 4). Storm-ship time override todo. |
 | `Core/Managers/SaveManager` | `managers/save.rs` | partial | Periodic + final save of items and online characters; the subsystems' rows through `systems::save_stage` (`BeforeItems`: houses, mails; `AfterItems`: auction, crimes; `AfterCharacters`: slaves). |
 | `Core/Managers/World/StreamManager` | `managers/stream.rs`, `stream/cells.rs` | done | AddToken/RemoveToken/Login (wrong account removes the token, as C#), RequestCell/ContinueCell incl. the C# `next - 1` copy off-by-one. |
 | `Core/Managers/Stream/UccManager`, `Models/Stream`, `Core/Managers/Id/UccIdManager` | `stream/ucc.rs`, `stream/models.rs` | partial | Load/Save (`uccs` table, data in the MEDIUMBLOB as the default C# build), upload (simple + custom), download, checks, id allocation. `CreateStamp`/`ApplyStamp` (item-side, used by skill effects) todo. ConfirmDefaultUcc saves before granting the Crest Ink (C# creates the item first). |
-| `Core/Managers/TimedRewardsManager` | – | todo | Daily login + offline labor on enter (called from AccountManager.Add). |
+| `Core/Managers/TimedRewardsManager` | `systems/services/timed_rewards.rs` | done | `TimedRewardsTask` every minute, daily login reward, offline labor. |
 | `Core/Managers/HousingManager`, `Models/Game/Housing` | – | todo | Needed for `Connection.Houses` / `SCLoginCharInfoHouse` / `SCMyHouse`. |
 | `Core/Managers/CrimeManager` | `db_character.rs` | partial | CheckWantedThreshold thresholds only. |
-| Other `Core/Managers/*` (AI, AccessLevel, Animation, Auction, CashShop, Command, Craft, Duel, EffectTask, ExpressText, Family, FishSchool, Gimmick, Indun, InstantGame, Mail, ManaRegen, Mate, Model, Music, Plot, PublicFarm, Quest, Radar, Shipyard, Slave, SubZone, Sus, Task/Tick, Taxations, Team, Trade, Trial; World: Spawn, AreaTrigger, Physics, Specialty, SphereQuest) | – | todo | |
+| Other `Core/Managers/*` | – | see the subsystems | AccessLevel, Command, ExpressText, Model, Music, Radar, Sus, Task/Tick, TimedRewards: `systems::services`; Animation, EffectTask, ManaRegen, Plot: `systems::skills`; FishSchool, Gimmick, PublicFarm, SubZone, Spawn, AreaTrigger, Specialty, SphereQuest: `systems::npcs`; Family, Duel, Team, Trial, Crime: `systems::social`; Quest: `systems::quests`. Still todo (other owners): AI / AiPaths / AiGeodata, Auction, CashShop, Craft, Mail, Trade, Taxations (economy); Housing; Mate, Slave, Shipyard, Transfer (vehicles); Indun, InstantGame (instances); World/Physics. |
 | `Models/Game/Units/UnitCustomModelParams` | `models/unit_model.rs` | done | |
 | `Models/Game/Units/Movements` (MoveType hierarchy) + `MathUtil` direction helpers | `models/movement.rs` | done | Default / Unit / Vehicle / Ship / ShipRequest / Transfer, byte-exact read/write (all actor-flag combinations tested). |
 | `Models/AccountPayment`, `Models/Account` | `net/connection.rs`, `db.rs` | done | |
-| `Models/AppConfiguration`, `Models/Game/Configurations` + `Program` config loading | `config.rs` | partial | Config.json + Configurations/** + Config.Local.json merge; sections used so far (incl. World, ClientData, Account delete timings). No env/CLI/user-secrets. |
+| `Models/AppConfiguration`, `Models/Game/Configurations` + `Program` config loading | `config.rs` | done | Every member (incl. WebApiNetwork, DiscordToken, Dungeons, AccessLevel, LaborOffline, Specialty, Scripts, full World), Config.json + Configurations/** + Config.Local.json + user secrets + environment (`Section__Key`) + command line, enums by name / value, `ConfigCell` (= `AppConfiguration.Instance`, replaceable at runtime). |
 | Other `Models/Game/*` (AI, Achievement, Auction, Crafts, Crime, DoodadObj, Mails, Mate, NPChar, Quests logic, Slaves, Team, ...) | – | todo | |
-| `Scripts/Commands`, `Utils/Scripts` | – | todo | Chat commands behave like the C# with no commands loaded ("No commands available" + the text is sent as chat). |
-| `Services` (WebApi, DiscordBot) | – | todo | |
-| `GameService` startup / `ManagerOrchestrator` | `main.rs`, `systems/mod.rs` | partial | MySQL check, game data (fatal on failure), id managers, names, expeditions, friends, user items, StreamWorld, time, save manager, deletion task, `systems::start_all`, login link, game + stream listeners, final save. |
+| `Scripts/Commands`, `Utils/Scripts` | `systems/services/commands/` | partial | Infrastructure done (`CommandManager`, `AccessLevelManager`, `ICommand`, `IMessageOutput` / `CharacterMessageOutput`, `SubCommandBase` + parameters, script loader hook, the `Utils/Scripts/SubCommands` World / Time / FishFinder / Feature / AStar sub commands); chat `/` messages go through `CommandManager.Handle`. The commands of `Scripts/Commands/**` (and the `SphereCommandUtil` / `QuestCommandUtil` bodies) are the scripts phase. |
+| `Services` (WebApi, DiscordBot) | `systems/services/webapi/`, `systems/services/discord.rs` | done | axum transport with the C# regex routing; mail / auction controllers call the economy through `WebApiEconomyHooks`. |
+| `GameService` startup / `ManagerOrchestrator`, `Program` | `main.rs`, `systems/services/game_service.rs` | done | `Program.Main` (initialization log, `compiler-check`, config command line, MySQL / SQLite checks) and `GameService.StartAsync` stages in order (DB updater, client files, holdables check, game data, user items, DB loads, time / task managers, subsystems, save manager, deleted characters, online tracking, networks, "Server started! Took ..."), then WebApi / Discord; shutdown in reverse (Discord, WebApi, final save, task / tick / time managers). `GameService.StartTime` / `TimeSinceStart`, `Program.UpTime`, `ManagerOrchestrator.BuildBatches` ported with their tests. |
 
 ## Phase 3 subsystems
 
@@ -226,6 +226,28 @@ Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.init
 | `SphereQuestManager`, `SphereQuest*`, `SphereGameData` (spheres, sphere_quests, `IsInsideAreaSphere`, `GetSphereIdFromQuest`) | `spheres.rs`, `data.rs` | done | `quest_sign_sphere.g` of `main_world`; one manager per server (500 ms tick). Other `sphere_*` tables not loaded (unused by quests). |
 | Quest packets (CS: StartQuestContext, CompleteQuestContext, DropQuestContext, QuestTalkMade, QuestStartWith, TryQuestCompleteAsLetItDone, RestartMainQuest, SaveTutorial, StartedCinema, CompletedCinema; SC: QuestContextStarted/Updated/Completed/Reset, QuestRewardedByMail, DoodadQuestAccept, TutorialSaved, AppellationGained) | `packets.rs` | done | Byte-exact tests. `SCQuestsPacket` now writes `Quest.Id` as `long`. |
 | `QuestCommandUtil` / `QuestCmd` (GM) | – | todo | `Ctx::gm_set_step` is the `SetStep` helper. |
+
+### systems::services
+
+| Area (C#) | Rust | Status | Notes |
+|---|---|---|---|
+| `Services/WebApi/**` (`WebApiService`, `WebApiServer`, `WebApiSession`, `RouteMapper`, `RouteDefinition`, `WebApiGet/PostAttribute`, `IController`, controllers, models) | `systems/services/webapi/` | done | axum (HTTP/1.1) listener on `WebApiNetwork` (`*` = any); every request goes through `on_received_request` (`OnReceivedRequest`): unanchored, case-insensitive regex routes on the raw URL, `MatchCollection` with .NET group order, 404 "Not found", 500 HTML page. Responses use the Newtonsoft defaults (`json::JValue`), requests the System.Text.Json defaults (`json::Stj`). Status, World, Expedition, Character (MySQL), Command, Mail, Auction controllers. Ports of `RouteMapperTests` and `WebApiSessionTests` (+ controller tests). |
+| `Services/DiscordBotService` | `systems/services/discord.rs` | done | twilight gateway + HTTP, unprivileged intents, "Playing with N other players" every 5 s, `/online`. Not started without `DiscordToken`. |
+| `GameService`, `Program.UpTime`, `ManagerOrchestrator` | `systems/services/game_service.rs`, `main.rs` | done | Port of `GameServiceTests` and `ManagerOrchestratorTests`. |
+| `TickManager` (+ `TickEventHandler`) | `systems/services/tick.rs` | done | Thread loop (20 ms), sync / async subscribers, busy skip. Port of `TickManagerTests`. |
+| `TaskManager2`, `Models/Tasks/Task` | `systems/services/tasks.rs` | done | Delayed / repeating / cron tasks (NCrontab subset of `systems::npcs::schedule`), ids, cancel, `RemoveTasks`, `GetQueueCount`. Port of `TaskManagerTests`. |
+| `AccountManager` remainder | `systems/services/accounts.rs`, `db.rs` | done | |
+| `TimedRewardsManager`, `TimedRewardsTask` | `systems/services/timed_rewards.rs` | done | |
+| `CharacterManager` remainder (`GetEffectiveAccessLevel`, `PlayerRoll` + `CSRollDicePacket` / `SCDiceValuePacket`, `StartOnlineTracking` / `CharacterOnlineTrackingTask`, `AddOfflineCrimePoints`, `ApplyBeautySalon` + `CSEnter/ExitBeautySalonPacket`, `CSBeautyshopDataPacket`, `SCCharacterGenderAndModelModifiedPacket`) | `systems/services/{character,beauty_salon}.rs` | done | Beauty salon item work through `BEAUTY_SALON_ITEMS` (economy). |
+| `CommandManager`, `AccessLevelManager`, `Models/Game/ICommand`, `Utils/Scripts/**` | `systems/services/commands/` | done (infra) | Ports of `SubCommandBaseTests`, `NumericSubCommandParameterTests`, `AccessLevelManagerTests`. AStar sub commands need `ASTAR_HOOKS` (AI path finding). |
+| `ExpressTextManager`, `CSExpressEmotionPacket`, `SCEmotionExpressedPacket` | `systems/services/express_text.rs` | done | |
+| `LocalizationManager` | `systems/services/localization.rs` | done | 263 635 rows / 8 locales on the real DB. |
+| `ModelManager`, `Models/Game/Models/*` | `systems/services/models.rs` | done | Counts checked against compact.sqlite3 (gated test). |
+| `MusicManager`, `SongData`, music packets (`CSSaveUserMusicNotesPacket`, `CSSendUserMusicPacket`, `CSRequestMusicNotesPacket`, `CSEndMusicPacket`, `SCUserNoteLoadedPacket`) | `systems/services/music.rs` | done | `CreateSheetMusic` item work through `SheetMusicInventory` (economy; its `ItemSkillHooks::midi_cache` / `create_sheet_music` call this manager). |
+| `RadarManager`, `TelescopeRegistrationEntry`, telescope / fish finder packets | `systems/services/radar.rs` | done | Registered from `BuffTemplate.Start` / `Dispel` (skills), unregistered on leave. Ship lists through `RadarShipHooks` (vehicles). |
+| `Models/Tasks/ShutdownTask`, `SCNoticeMessagePacket` | `systems/services/shutdown.rs` | done | Count-down notices, final save, process exit; held in `server.systems.services.shutdown_task` (`SaveManager.ShutdownTask`). Buy-back wipe through `BUYBACK_WIPE` (economy). |
+| `SusManager` | `systems/services/sus.rs` | done | `audit_char_sus` log + speed analysis; the 5 s `FinalizeTransform` caller and the social / npcs log calls are not wired yet (see deviations). |
+| `Utils/{MathUtil, NumericExtensions, Converters/*, DB/HoldablesSchemaCheck}` | `utils/` | done | `Utils/DB/SQLite*` = `data::sqlite`, `Utils/IdManager` = `managers::id`. `SphereCommandUtil` / `QuestCommandUtil`: scripts phase. |
 
 ## Known deviations from the C#
 
@@ -317,6 +339,27 @@ Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.init
 * systems::skills: `saveFactions` KeyNotFound (C# throws) is logged as an error.
 * `systems::npcs`: doodad func timers are tokio tasks (cancel = generation bump); `DoodadManager.Create`'s `Task.Run(InitDoodad)` is a spawned task; `TimeManager.OnTimeOfDayChange` runs from a 10 s poller. `GetNpcSpawner` template rewrites do not propagate to already loaded spawners; the "first" concurrent-dictionary entry is the lowest key; spawn files are processed in sorted name order (C# `Directory.GetFiles` order is unspecified). Portal book deletions are written at the next periodic save. Debug messages check only the character's access level. Coffer slot counting stops at 255 (C# loops forever). Where the C# would throw on a null / failed cast the Rust code returns quietly. Geodata (navmesh heights), physics, water, sticky parents, AI, transfers / slaves spawning and housing are not ported.
 
+* systems::services: the WebApi 500 page shows the Rust error chain instead of a .NET stack
+  trace, and System.Text.Json / NotSupportedException messages are close paraphrases. Character
+  `CreatedAt` of characters created in the running session is written without the `Z` of a
+  `DateTimeKind.Utc` value. The mail / auction controllers answer "not found / not sent" until
+  the economy installs `WebApiEconomyHooks`.
+* systems::services: `TaskManager.GetQueueCount` (WebApi `/status`) only counts the tasks of
+  this queue; the other subsystems run their timers as Tokio tasks.
+* systems::services: `TimedRewardsManager.DoTick` skips connections without an account (C#
+  `GetAccountDetails(0)` inserts an `accounts` row 0); the payment of a connection reached from
+  the tick is the default `AccountPayment` (it is never changed in C# either).
+* systems::services: `AppConfiguration.Instance` mutations (World set commands,
+  `ReloadConfiguration`) replace the `ConfigCell` snapshot; subsystems that copied values at
+  start (skills config, doodad growth rate) are updated by the World set commands only.
+* systems::services: `SusManager` analysis runs only where callers pass positions (no
+  `FinalizeTransform`); `systems::social::crime::sus_log` and the npcs coffer check still only
+  log (switch them to `server.systems.services.sus.log_activity_player`).
+* systems::services: `QuestCommandUtil` / `SphereCommandUtil` and every `Scripts/Commands`
+  command are not ported (scripts phase); `scripts reload force` runs the installed loader.
+* systems::services: the Discord bot runs in the background (the C# `StartAsync` never returns
+  when a token is set, blocking the host start).
+
 ## C# bugs noticed (mirrored, not fixed)
 
 * systems::social: `AskRiskyTeam` makes the acting unit (the kicker) leave its chat channels;
@@ -407,3 +450,20 @@ Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.init
 * `systems::npcs`: a generated (fake) spawner's first member never spawns; the "spawn all" schedule check is inverted; `DoRandomSpawn` leaks an obj id and spawns twice; a doodad despawn may release its obj id twice; gimmick spawn rotations are not converted from degrees; scheduled doodad spawns stack cron tasks; the player-in-radius check scans every player; NPCs are not despawned when players leave.
 * `systems::npcs`: dated game schedules compare `StartTime` / `EndTime` (usually 0) instead of the start / end hours (a one-day event counts as ended at 00:00); the cron builder tests the captured day of week instead of its parameter, and undated schedules produce day / month 0 (rejected by the cron parser); `VendorExist` reads the `id` column; deleting a portal sends no packet; `NotifySubZone` re-sends the portal book once per recall portal of the sub zone; the exit portal's yaw is the book rotation in degrees.
 * `systems::npcs`: `DoodadFuncLootItem` with coins (item 500) and `DoodadFuncBuyFish` add the money twice; a trade pack whose backpack take-off fails still counts as looted; `CheckGrowth` runs funcs with `nextPhase = 0`; some `doodad_func_*` loaders store templates in the phase dictionary (e.g. `DoodadFuncBuyFishItem`), mirrored; `DoodadPhaseFunc.PulseTriggered` is state shared by every doodad of the group.
+* systems::services: `RemoveDeadConnections` shuts down every account connection that has
+  not sent a `PingPacket` within 30 s, including connections that never pinged (`LastPing =
+  DateTime.MinValue`).
+* systems::services: `WorldSetLootrateSubCommand` reports "Set GrowthRate {value}";
+  `SaveManager.SetAutoSaveInterval` only stores the delay (the running save task keeps its
+  interval); `AStarPathFindingSubCommand` reads its optional `templateId` with `parameters[...]`
+  (throws when missing); the AStar point commands look for an "ObjId" parameter that is never
+  declared.
+* systems::services: `MathUtil.GetDistance(.., point3d: true)` adds the Y difference twice;
+  `RotatePoint3D` builds its quaternions with the (vector, scalar) constructor and discards the
+  conjugate; `NumericExtensions.ToCellOffset` / `ToPathsOffset` subtract the cell index.
+* systems::services: `MailController` clamps the request's attachment counts in place (the
+  clamped value carries over to the next recipient); `AuctionController.SearchAuctionItems`
+  throws on lots without bidder when filtering by `BidderName`; `CommandController` passes the
+  raw regex group (query string included) as the command name.
+* systems::services: `CSExpressEmotionPacket` passes the animation id as the emotion id to
+  `DoOnExpressFireEvents`; `SCUserNotesLoadedPacket` writes the UTF-16 length of the song.

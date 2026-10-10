@@ -82,7 +82,9 @@ pub fn apply_world_setting(server: &GameServer, setting: WorldSetting, value: f3
     }
 }
 
-/// One of the numeric `WorldSet*rateSubCommand`s.
+/// One of the numeric world sub commands (`WorldSetGrowthrateSubCommand`,
+/// `WorldSetLootrateSubCommand`, `WorldSetVocationrateSubCommand`, `WorldSetHonorrateSubCommand`,
+/// `WorldSetExprateSubCommand`, `WorldSetAutosaveintervalSubCommand`).
 struct WorldSetRate {
     base: SubCommandBase,
     param: &'static str,

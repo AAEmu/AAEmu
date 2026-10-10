@@ -236,7 +236,7 @@ impl Marshal for SCUserNoteLoadedPacket {
     }
 }
 
-/// `CSSaveUserMusicNotesPacket`.
+/// `CSSaveUserMusicNotesPacket` (file `CSSaveUserMusicNotes.cs`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CSSaveUserMusicNotesPacket {
     pub song_size: u32,

@@ -1,5 +1,6 @@
 //! `Models/Json/{JsonPosition, JsonNpcSpawns, JsonDoodadSpawns, JsonQuestSphere}` and their
-//! `Utils/Converters` (`JsonModelsConverter`, `JsonPositionConverter`, ...): the minimal JSON
+//! `Utils/Converters` (`BaseJsonConverter`, `JsonModelsConverter`, `JsonPositionConverter`,
+//! `JsonNpcSpawnsConverter`, `JsonDoodadSpawnsConverter`, `JsonQuestSphereConverter`): the minimal JSON
 //! form the GM save commands write (`JsonConvert.SerializeObject(x, Formatting.Indented, new
 //! JsonModelsConverter())`).
 

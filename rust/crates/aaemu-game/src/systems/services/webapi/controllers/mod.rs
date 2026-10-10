@@ -111,7 +111,7 @@ impl Controller for WorldController {
     }
 }
 
-/// `ExpeditionController`.
+/// `ExpeditionController` (list of `ExpeditionModel`).
 pub struct ExpeditionController;
 
 impl Controller for ExpeditionController {

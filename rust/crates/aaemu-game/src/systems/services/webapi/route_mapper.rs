@@ -99,7 +99,8 @@ impl Method {
     }
 }
 
-/// `[WebApiGet(path)]` / `[WebApiPost(path)]` on a controller method.
+/// `[WebApiGet(path)]` / `[WebApiPost(path)]` on a controller method (`WebApiGetAttribute`,
+/// `WebApiPostAttribute`).
 pub struct RouteSpec {
     pub method: Method,
     pub path: &'static str,
