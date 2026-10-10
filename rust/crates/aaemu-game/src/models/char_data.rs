@@ -372,7 +372,9 @@ impl CompletedQuest {
     }
 }
 
-/// An active `Quest` as stored in the `quests` table (`ReadData` / `WriteData`).
+/// An active `Quest` as stored in the `quests` table (`ReadData` / `WriteData`) and written
+/// by `Quest.Write`. The live quest objects are `systems::quests::state::Quest`; these rows
+/// are re-derived from them after every quest operation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActiveQuest {
     pub id: u32,
@@ -383,12 +385,20 @@ pub struct ActiveQuest {
     pub acceptor_type: u8,
     pub component_id: u32,
     pub acceptor_id: u32,
-    /// `Time` (quest time limit end, unix seconds).
-    pub time: i64,
+    /// `Time` (quest time limit end) as unix ms; `DateTime.MinValue` is
+    /// `-62_135_596_800_000`, `DateTime.MaxValue` `253_402_300_799_999`.
+    pub time_ms: i64,
 }
 
 impl ActiveQuest {
-    /// `ReadData`.
+    /// `DateTime.MinValue` / `MaxValue` in unix ms.
+    pub const DATETIME_MIN_MS: i64 = -62_135_596_800_000;
+    pub const DATETIME_MAX_MS: i64 = 253_402_300_799_999;
+
+    /// `ReadData` (the step / objectives part; `Quest.ReadData` also runs the step change).
+    /// `Time` goes through `PacketStream.ReadDateTime` -> `Helpers.UnixTime(long)`, which
+    /// compares against `DateTime.MaxValue.Second` (59): any stored time above 59 s reads back
+    /// as `DateTime.MaxValue`, a negative one as `DateTime.MinValue` (mirrored C# bug).
     pub fn read_data(&mut self, data: &[u8]) -> Result<(), MarshalError> {
         let mut s = PacketStream::from_bytes(data.to_vec());
         for o in self.objectives.iter_mut() {
@@ -398,8 +408,24 @@ impl ActiveQuest {
         self.acceptor_type = s.read_u8()?;
         self.component_id = s.read_u32()?;
         self.acceptor_id = s.read_u32()?;
-        self.time = s.read_i64()?;
+        let t = s.read_i64()?;
+        self.time_ms = if t > 59 {
+            Self::DATETIME_MAX_MS
+        } else if t < 0 {
+            Self::DATETIME_MIN_MS
+        } else {
+            t * 1000
+        };
         Ok(())
+    }
+
+    /// `Helpers.UnixTime(Time)` (seconds, 0 before the epoch).
+    pub fn time_seconds(&self) -> i64 {
+        if self.time_ms <= Self::DATETIME_MIN_MS || self.time_ms < 0 {
+            0
+        } else {
+            self.time_ms / 1000
+        }
     }
 
     /// `WriteData`.
@@ -412,19 +438,23 @@ impl ActiveQuest {
             .write_u8(self.acceptor_type)
             .write_u32(self.component_id)
             .write_u32(self.acceptor_id)
-            .write_i64(self.time);
+            .write_i64(self.time_seconds());
         s.into_bytes()
     }
 
-    /// `Quest.Write` (`now` in unix ms for `LeftTime`, unix seconds for `acceptTime`).
-    pub fn write(&self, s: &mut PacketStream, now_ms: i64) {
-        let time_ms = self.time.saturating_mul(1000);
-        let left_time: i32 = if time_ms > now_ms {
-            (time_ms - now_ms) as i32
+    /// `LeftTime` (ms until `Time`, -1 when passed; the double -> int cast saturates).
+    pub fn left_time(&self, now_ms: i64) -> i32 {
+        if self.time_ms > now_ms {
+            (self.time_ms - now_ms).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32
         } else {
             -1
-        };
-        s.write_u32(self.id)
+        }
+    }
+
+    /// `Quest.Write` (`now_ms` = `DateTime.UtcNow` for `LeftTime` and `acceptTime`).
+    pub fn write(&self, s: &mut PacketStream, now_ms: i64) {
+        let left_time = self.left_time(now_ms);
+        s.write_i64(i64::from(self.id)) // Id (long)
             .write_u32(self.template_id)
             .write_u8(self.status);
         for o in self.objectives {
@@ -433,16 +463,16 @@ impl ActiveQuest {
         s.write_bool(false) // isCheckSet
             .write_bc(0) // ObjId
             .write_u32(0) // type(id)
-            .write_bc(0)
-            .write_bc(0)
-            .write_i32(left_time)
+            .write_bc(0) // ObjId
+            .write_bc(0) // ObjId
+            .write_i32(left_time) // quest time limit
             .write_u32(if left_time == -1 {
                 0
             } else {
                 self.component_id
             })
             .write_i64(0) // DoodadId
-            .write_i64(now_ms / 1000) // acceptTime
+            .write_i64(now_ms.div_euclid(1000)) // acceptTime
             .write_u8(self.acceptor_type)
             .write_u32(self.acceptor_id);
     }
@@ -558,7 +588,8 @@ mod tests {
             acceptor_type: 1,
             component_id: 9,
             acceptor_id: 10,
-            time: 0,
+            // DateTime.MinValue is written as 0 and reads back as the epoch
+            time_ms: 0,
         };
         let data = q.write_data();
         assert_eq!(data.len(), 20 + 1 + 1 + 4 + 4 + 8);
@@ -566,17 +597,23 @@ mod tests {
         r.objectives = [0; 5];
         r.read_data(&data).unwrap();
         assert_eq!(r, q);
-        q.time = 0;
         let mut s = PacketStream::new();
         q.write(&mut s, 5_000);
         assert_eq!(
             s.len(),
-            4 + 4 + 1 + 20 + 1 + 3 + 4 + 3 + 3 + 4 + 4 + 8 + 8 + 1 + 4
+            8 + 4 + 1 + 20 + 1 + 3 + 4 + 3 + 3 + 4 + 4 + 8 + 8 + 1 + 4
         );
         // LeftTime -1 -> component id written as 0.
         let b = s.as_bytes();
-        assert_eq!(b[43..47], (-1i32).to_le_bytes());
-        assert_eq!(b[47..51], [0, 0, 0, 0]);
+        assert_eq!(b[47..51], (-1i32).to_le_bytes());
+        assert_eq!(b[51..55], [0, 0, 0, 0]);
+        // ReadDateTime: stored seconds above 59 read back as DateTime.MaxValue.
+        q.time_ms = 120_000;
+        let mut r = q.clone();
+        r.read_data(&q.write_data()).unwrap();
+        assert_eq!(r.time_ms, ActiveQuest::DATETIME_MAX_MS);
+        assert_eq!(r.left_time(5_000), i32::MAX);
+        assert_eq!(r.time_seconds(), 253_402_300_799);
     }
 
     #[test]

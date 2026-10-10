@@ -215,6 +215,9 @@ pub struct Character {
     // ---- phase 3 / social: add this subsystem's Character fields below ----
 
     // ---- phase 3 / quests: add this subsystem's Character fields below ----
+    /// The live quest objects (`Quests.ActiveQuests`, quest event subscriptions,
+    /// `CurrentlyPlayingCinemaId`); `quests` holds their DB / wire rows.
+    pub quest_state: crate::systems::quests::state::QuestState,
 }
 
 /// `Guid.NewGuid().ToByteArray()` (random, version 4 / variant 1).
@@ -324,6 +327,7 @@ impl Character {
             // ---- phase 3 / social ----
 
             // ---- phase 3 / quests ----
+            quest_state: Default::default(),
         }
     }
 

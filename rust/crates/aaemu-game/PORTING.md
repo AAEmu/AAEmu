@@ -181,7 +181,15 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 
 | Area (C#) | Rust | Status | Notes |
 |---|---|---|---|
-| QuestManager, quest templates / acts / components | `systems/quests/` | todo | |
+| `QuestManager.Load` (contexts, components, base acts, all 65 `quest_act_*` detail tables, supplies, item / NPC groups, `UpdateQuestComponentActs`) | `systems/quests/data.rs`, `templates.rs` | done | Same table order (act order inside a component = objective indices), first-base-act linking, tutorial category skipped. Validated against compact.sqlite3 (`real_compact_db_quest_tables`: 4775 quests, 17720 components, 19047 acts, per-type counts). |
+| `Models/Game/Quests` (`Quest`, `NewQuestCode`, `QuestStep`, `QuestComponent`, `QuestAct`, all `Acts/*` + `UnusedActs/*`) | `state.rs`, `engine.rs`, `acts.rs` | done | Live quests on `Character::quest_state` (handles + act paths instead of object references); `c.quests` rows re-derived after every operation. Step machine, objective status / percent, rewards, drop / cleanup, event subscriptions in invocation-list order (`-=` removes the last occurrence). |
+| `CharacterQuests` (AddQuest*, DropQuest, completed flags, reset / daily reset, LetItDone, item destroy, `GetActiveActsWithUseItem`, Load) | `engine.rs`, `events.rs` | done | Save = existing `Character.Save` rows. |
+| `QuestManagerEvents` + other C# entry points (OnItemUse, OnKill, cinema, mate level) | `events.rs` | done | Public event API; nested calls from hooks are queued. |
+| `QuestManager` evaluation queue / timers / daily reset task | `mod.rs` | done | `QuestManagerRunQueueTask` as a 1 ms tokio task; timers as tokio tasks; daily reset at 00:00 UTC. |
+| `UnitRequirementsGameData` (`CanComponentRun`, `CanTriggerSphere`) + `UnitReqs.Validate` | `unit_reqs.rs` | done | `ReqSubject` / `ReqEnv` traits (owner = locked character, target = snapshot). `CanUseSkill` is the skills subsystem's (can reuse `validate`). |
+| `SphereQuestManager`, `SphereQuest*`, `SphereGameData` (spheres, sphere_quests, `IsInsideAreaSphere`, `GetSphereIdFromQuest`) | `spheres.rs`, `data.rs` | done | `quest_sign_sphere.g` of `main_world`; one manager per server (500 ms tick). Other `sphere_*` tables not loaded (unused by quests). |
+| Quest packets (CS: StartQuestContext, CompleteQuestContext, DropQuestContext, QuestTalkMade, QuestStartWith, TryQuestCompleteAsLetItDone, RestartMainQuest, SaveTutorial, StartedCinema, CompletedCinema; SC: QuestContextStarted/Updated/Completed/Reset, QuestRewardedByMail, DoodadQuestAccept, TutorialSaved, AppellationGained) | `packets.rs` | done | Byte-exact tests. `SCQuestsPacket` now writes `Quest.Id` as `long`. |
+| `QuestCommandUtil` / `QuestCmd` (GM) | – | todo | `Ctx::gm_set_step` is the `SetStep` helper. |
 
 ## Known deviations from the C#
 
@@ -211,8 +219,8 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 * `ChatIdManager` / `PrivateBookIdManager` now use the 1.2 C# ranges (`1..0xFFFE`,
   `0x1000..0xFFFFFF`); phase 2 had `1..0xFFFFFF` / `1..0xFFFFFF`.
   `save_rule_id` / `real_time` default to 0 / false when the `buffs` table lacks those columns.
-* Quests: only the rows are loaded / saved / written; the quest template existence check,
-  `QuestInitialized` / `RequestEvaluation` and the daily reset at login need the QuestManager.
+* Quests: `Character.Load` reads the rows; `systems::quests::on_character_selected` builds the
+  live quests from them (template check, `QuestInitialized` / `RequestEvaluation`, daily reset).
 * Mail counts at select are always 0 — this matches the C#, whose `GetCurrentMailList` runs before
   the character is registered in the WorldManager and therefore never counts.
 * `Character.OnZoneChange` into a closed or unknown zone: the system message is sent but the
@@ -231,6 +239,21 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 * The C# keeps `Connection.Characters[id]` and `ActiveChar` as the same object; Rust copies the
   active character back into the lobby list when `LeaveWorldTask` runs.
 * Combat / slave logout delays (x30, +10 min) are not applied (no combat state / slaves).
+
+* systems::quests: rewards, items, money, exp, skills, NPC faction, teams, mails go through
+  `quests::hooks::QuestHooks` (no-op defaults until the owning subsystems install theirs).
+  World effects (component skills, NPC faction, team-shared events) run after the character
+  lock is released instead of inline; item hooks that raise quest events are queued to the
+  end of the running operation.
+* systems::quests: model sizes are 0 (no model data) in `GetAround` / distance checks; buff tags
+  are not loaded (`CheckBuffTag` false); `EquipShield` unit req is false; labor margin uses the
+  non-premium cap 5000; debug messages use the character access level only.
+* systems::quests: C# exceptions inside quest code are modelled where reachable with the 1.2
+  data (`SetObjective` on a non-objective act, `MaxObjective` division by zero, the timer step
+  switch): they abort the event invocation list / sphere tick. Out-of-range objective reads
+  that would throw in RunAct / score sums read 0 (no 1.2 quest triggers them).
+* systems::quests: `CSCompletedCinemaPacket` does not call `ResendVisibleObjectsToCharacter`.
+* systems::quests: the daily reset runs at 00:00 UTC (C# cron in server local time).
 
 ## C# bugs noticed (mirrored, not fixed)
 
@@ -266,3 +289,28 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
   `PacketStream.Write(PacketMarshaler)` swallows it. Both reproduced.
 * `SCUnitMovementsPacket` writes no move-type byte per entry (unlike `SCOneUnitMovementPacket`).
 * Hard disconnects do not leave chat channels (only `LeaveWorldTask` does).
+* systems::quests: `QuestActConReportDoodad.FinalizeQuest` subscribes again (`+=`) instead of
+  unsubscribing; `QuestActCheckSphere.FinalizeAction` removes sphere triggers by the quest's DB
+  id instead of its template id; `QuestActCheckSphere` is not an objective, so its sphere
+  handlers throw on `Objectives[255]` (aborting the sphere tick).
+* systems::quests: `QuestActCheckTimer.OnQuestStepChanged` does not check `args.QuestId`: any
+  quest reaching Fail / Ready / Drop / Reward cancels every running quest timer of the owner;
+  `OnTimerExpired` fails its own quest whatever quest's timer expired.
+* systems::quests: `QuestActObjAggro` reads `OnKillArgs.Target`, which the C# only fills with
+  the attacker itself: aggro quests never progress for players.
+* systems::quests: `QuestActObjZoneMonsterHunt` (non-score) needs `count > Count` but the
+  objective is capped at `Count`: never completes.
+* systems::quests: `AddQuest(forcibly)` drops a completed quest with `DropQuest(id, true)` (not
+  forcibly): the completed flag stays set. `AddQuest` removes a running timer entry without
+  cancelling its task. A quest that fails `StartQuest` leaks its quest id.
+* systems::quests: a completed quest is removed through `DropQuest`, so `QuestCleanup` and
+  `QuestDropped` both consume its supply items.
+* systems::quests: `QuestActConReportNpc.RunAct` is true while the giver NPC is targeted, so a
+  quest accepted at an NPC is turned in as soon as it is Ready while still targeting it.
+* systems::quests: the shared `_questStartingLastPositionChecks` is updated per starter
+  sphere, so only the first starter near a player can trigger; `SphereQuestManager.Tick`
+  adds a trigger even when it already exists (the duplicate check's `break` is a no-op).
+* systems::quests: `PacketStream.ReadDateTime` returns `DateTime.MaxValue` for any stored
+  quest time above 59 s (`LeftTime` then saturates to `int.MaxValue`).
+* systems::quests: `SphereGameData` reads `spheres.enter_or_leave` / `or_unit_reqs` with
+  `GetBoolean(name)` (int conversion of 't'): always false.
