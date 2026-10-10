@@ -73,6 +73,13 @@ pub fn intersect_wb(
     }
 }
 
+/// Debug trace of the living step (`AAEMU_LIVING_DEBUG` set): one line per stage.
+fn dbg(msg: impl FnOnce() -> String) {
+    if std::env::var_os("AAEMU_LIVING_DEBUG").is_some() {
+        eprintln!("liv: {}", msg());
+    }
+}
+
 /// `sub_35022100`: reset intersection params (`+98`/`+100` are not modelled; the primitive
 /// driver does not read them).
 fn reset_params(ip: &mut IntersectionParams) {
@@ -887,6 +894,7 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                 break;
             }
         }
+        dbg(|| format!("after overlap p={p:?} vdes={vdes:?} v817={v817} v869={v869} v870={v870} mv={mv:?}"));
         // ---- LABEL_286 ----
         let mut endz;
         if v869 != 0 && v870 != 0 && ld(w, e).coll_count != 0 {
@@ -972,6 +980,7 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
             v827 = ((m427 * m427 + m426 * m426) + m428 * m428).sqrt();
         }
         let _ = endz;
+        dbg(|| format!("probe v405={v405} n_end={n_end:?} v410={v410} adjust={do_adjust} cancel={cancel} mv=({m427},{m426},{m428}) len={v827}"));
         let p_before = p; // v841, v838, v833
         if ld(w, e).flags & lflags::JUMP != 0 {
             let gn = ld(w, e).ground_normal;
@@ -1230,6 +1239,7 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                     v442 += 1;
                 }
                 let _ = v803s;
+                dbg(|| format!("sweep pass {v846} hit={hit_ent:?} t={v444} lim={} hn={hn:?} hp={hp:?} dir={dir:?} p={p:?}", ip.time_interval));
                 if !hit_ent.is_none() && v444 <= ip.time_interval {
                     let o = hit_ent;
                     let v522 = v444 - eps;
@@ -1245,6 +1255,7 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
                             && crate::entities::mass_inv(w, o) > ld(w, e).mass_inv * 0.25
                         {
                             n = norm(Vec3::new(n.x, n.y, 0.0));
+                            hn = n;
                         }
                     }
                     let v535;
@@ -1487,6 +1498,7 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
             }
         }
         let _ = v586;
+        dbg(|| format!("after sweep p={p:?} vdes={vdes:?} stuck={}", ld(w, e).flags & 0x100));
         // ---- 9. ground ----
         let gv_save = if ld(w, e).ground.is_none() {
             Vec3::ZERO
@@ -1497,6 +1509,7 @@ pub fn step(w: &mut World, e: EntIdx, a2: f32) -> i32 {
         let v630 = gh.height;
         let mut gn = gh.n;
         lm(w, e).ground_height = v630;
+        dbg(|| format!("ground v630={v630} n={gn:?} g={:?}", ld(w, e).ground));
         if (gn.x * up.x + gn.y * up.y) + gn.z * up.z >= 0.086_999_997 {
             lm(w, e).ground_normal = gn;
         } else {

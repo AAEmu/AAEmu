@@ -48,6 +48,8 @@ impl World {
             self.tls_thread = 0;
         }
         self.flush_command_queue();
+        // the world lock (+22468) is held from here to the end of the step
+        self.step_lock = true;
         // 3. dt
         let mut dt = dt_in;
         let mut dt7 = dt_in;
@@ -151,6 +153,7 @@ impl World {
         if dt > 0.0 {
             self.step_counter += 1;
         }
+        self.step_lock = false;
     }
 
     /// `pe_status_dynamics` velocity of an entity (the slow-motion re-awake test).
@@ -639,8 +642,30 @@ impl World {
         res: &crate::solver::SolveResult,
         _tid: usize,
     ) {
-        // breakable contacts (part flag 0x400000) → slot 59 OnContactResolved: constraints and
-        // breakable parts are not ported
+        // contacts on parts with flag 0x400000 → slot 59 OnContactResolved of that side
+        // (living 0x350279B0 clips its velocities; the rigid slot 59 (breakable parts and
+        // constraints) is not ported)
+        let cl = self.solver[_tid].as_ref().map(|s| s.contacts()).unwrap_or_default();
+        for c in cl {
+            let k = *self.contacts.get(c);
+            if (k.ipart[0] | k.ipart[1]) < 0 {
+                continue;
+            }
+            for side in 0..2 {
+                let pe = k.pent[side];
+                if pe.is_none() {
+                    continue;
+                }
+                let brk = self
+                    .ent(pe)
+                    .parts
+                    .get(k.ipart[side] as usize)
+                    .is_some_and(|p| p.flags & 0x40_0000 != 0);
+                if brk && self.ent(pe).living().is_some() {
+                    crate::entities::living::solver::on_contact(self, pe, c, side as i32);
+                }
+            }
+        }
         let leader = self.group_leader[gi];
         let v32_flag = ((self.vars.group_damping_min_ents - n_ents - 1) as u32 >> 31) as f32;
         let mut damping = 1.0 - v32_flag * (dt * self.vars.group_damping);

@@ -746,6 +746,9 @@ pub fn entity_word(w: &World, e: EntIdx, off: usize) -> Option<u32> {
         68 => return Some(ent.id_bits),
         _ => {}
     }
+    if let Some(l) = ent.living() {
+        return crate::entities::living::member_word(l, off);
+    }
     let r = ent.rigid()?;
     if (744..956).contains(&off) {
         let b = w.bodies.get(r.body);

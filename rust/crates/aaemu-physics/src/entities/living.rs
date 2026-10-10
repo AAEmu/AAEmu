@@ -1087,7 +1087,8 @@ pub fn get_status(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
             let t = unproject::unproject_test(w, e, pos, q, hc, pivot, size, cap, &mut dir, cl);
             wr_v3(buf, 48, dir);
             wr_f32(buf, 60, t);
-            i32::from(t == 0.0)
+            // `ucomiss; jne`: a NaN distance counts as "free" (no parity check)
+            i32::from(t == 0.0 || t.is_nan())
         }
         _ => 0,
     }
@@ -1538,4 +1539,81 @@ pub fn sync_from_net(w: &mut World, e: EntIdx, b: &mut [u8]) -> i32 {
 /// Entity-level helper for the world's awake-list job: `sub_3502B3F0` with dt = `+252`.
 pub fn follow_ground(w: &mut World, e: EntIdx, dt: f32) {
     ground::follow_ground(w, e, dt);
+}
+
+/// The modelled words of a living entity (`E+off`, 448 ≤ off < 0x468), for `peek`
+/// comparisons with the oracle; `None` for pointers and unmodelled words.
+#[must_use]
+pub fn member_word(l: &LivingData, off: usize) -> Option<u32> {
+    let f = |x: f32| Some(x.to_bits());
+    let v = |x: Vec3, o: usize| match o {
+        0 => Some(x.x.to_bits()),
+        4 => Some(x.y.to_bits()),
+        _ => Some(x.z.to_bits()),
+    };
+    match off {
+        448..=456 => v(l.vel, off - 448),
+        460..=468 => v(l.vel_requested, off - 460),
+        472..=480 => v(l.gravity, off - 472),
+        484..=492 => v(l.ground_normal, off - 484),
+        496..=504 => v(l.disp_vel, off - 496),
+        508 => Some(l.ground_mat_id as u32),
+        512 => f(l.dt_cap),
+        516 => f(l.inertia),
+        520 => f(l.inertia_accel),
+        524 => f(l.air_control),
+        528 => f(l.air_resistance),
+        532 => f(l.height_collider),
+        536 => f(l.height_eye),
+        540 => f(l.height_pivot),
+        544..=552 => v(l.size, off - 544),
+        556 => f(l.eye_offset),
+        560 => f(l.eye_vel),
+        564 => f(l.eye_acc),
+        568 => f(l.eye_timer),
+        572 => f(l.ground_height),
+        576 => f(l.nod_speed),
+        580 => f(l.mass),
+        584 => f(l.mass_inv),
+        588 => Some(l.surface_idx as u32),
+        592..=600 => Some(l.ground_surface[(off - 592) / 4] as u32),
+        604 => f(l.time_flying),
+        608 => f(l.impulse_recover),
+        612 => f(l.cos_slide),
+        616 => f(l.cos_climb),
+        620 => f(l.cos_jump),
+        624 => f(l.cos_fall),
+        628 => f(l.slide_deg),
+        632 => f(l.climb_deg),
+        636 => f(l.jump_deg),
+        640 => f(l.fall_deg),
+        644 => f(l.max_ground_vel),
+        648 => f(l.impulse_recover_time),
+        664 => f(l.height_head),
+        732 => f(l.head_r),
+        912 => f(l.lock_timer),
+        916 => f(l.eye_change_time),
+        920 => f(l.push_time),
+        924 => f(l.step_full),
+        928 => f(l.step_done),
+        932 => Some(l.frame_changes as u32),
+        936 => Some(l.last_frame as u32),
+        940 => Some(l.coll_types as u32),
+        952 => Some(l.flags),
+        956 => Some(l.coll_count as u32),
+        968 => Some(l.ground_ipart as u32),
+        972 => Some(l.ground_partid as u32),
+        976..=984 => v(l.ground_local, off - 976),
+        988..=996 => v(l.ground_anchor, off - 988),
+        1000 => f(l.ground_dz),
+        1004..=1012 => v(l.ground_vel, off - 1004),
+        1016..=1024 => v(l.ground_w, off - 1016),
+        1028..=1036 => v(l.net_err, off - 1028),
+        1040..=1048 => v(l.net_target, off - 1040),
+        1052..=1060 => v(l.dvel, off - 1052),
+        1064..=1076 => f(l.dq.to_array()[(off - 1064) / 4]),
+        1080 => f(l.last_dt),
+        1096 => Some(l.n_contacts as u32),
+        _ => None,
+    }
 }
