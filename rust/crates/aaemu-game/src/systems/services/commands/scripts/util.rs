@@ -412,6 +412,147 @@ pub fn name_of(p: &PlayerRef) -> String {
     p.data().unit.name.clone()
 }
 
+// ---- chars helpers ----
+
+/// `args[index]` (`IndexOutOfRangeException` when missing).
+pub fn arg_at(args: &[String], index: usize) -> anyhow::Result<&str> {
+    args.get(index)
+        .map(String::as_str)
+        .ok_or_else(|| anyhow::anyhow!("Index was outside the bounds of the array."))
+}
+
+/// `character.SendMessage(message)` for a world player (a system chat line).
+pub fn send_player_message(p: &PlayerRef, message: &str) {
+    crate::world::session::send_message(
+        p,
+        crate::systems::social::chat::chat_type::SYSTEM,
+        message,
+    );
+}
+
+/// `Enum.TryParse<TEnum>(text, ignoreCase: true, out value)`: a number of the underlying type
+/// (`min..=max`, any value, defined or not) or one or more comma separated member names (case
+/// insensitive, OR-ed together).
+pub fn enum_try_parse(text: &str, names: &[(&str, i64)], min: i64, max: i64) -> Option<i64> {
+    let t = text.trim();
+    let first = t.chars().next()?;
+    if first.is_ascii_digit() || first == '-' || first == '+' {
+        let v = parse_integer(t)?;
+        return i64::try_from(v).ok().filter(|v| (min..=max).contains(v));
+    }
+    let mut result = 0i64;
+    for part in t.split(',') {
+        let part = part.trim();
+        let (_, v) = names.iter().find(|(n, _)| n.eq_ignore_ascii_case(part))?;
+        result |= *v;
+    }
+    Some(result)
+}
+
+/// `enumValue.ToString()` of a non-flags enum: the member name, or the number when undefined.
+pub fn enum_name(value: i64, names: &[(&str, i64)]) -> String {
+    names
+        .iter()
+        .find(|(_, v)| *v == value)
+        .map_or_else(|| value.to_string(), |(n, _)| (*n).to_string())
+}
+
+/// `FactionsEnum` (uint).
+pub const FACTIONS_ENUM: &[(&str, i64)] = &[
+    ("Invalid", 0),
+    ("Friendly", 1),
+    ("Neutral", 2),
+    ("Hostile", 3),
+    ("Nuian", 101),
+    ("Elf", 103),
+    ("Harani", 109),
+    ("Firran", 113),
+    ("Monstrosity", 115),
+    ("Animal", 116),
+    ("NuiaAlliance", 148),
+    ("HaranyaAlliance", 149),
+    ("RedTeam", 159),
+    ("BlueTeam", 160),
+    ("Pirate", 161),
+    ("PcFriendly", 165),
+    ("Fish", 172),
+];
+
+/// `ChatType` (short).
+pub const CHAT_TYPE: &[(&str, i64)] = &[
+    ("Whispered", -4),
+    ("Whisper", -3),
+    ("System", -2),
+    ("Notice", -1),
+    ("White", 0),
+    ("Shout", 1),
+    ("Trade", 2),
+    ("GroupFind", 3),
+    ("Party", 4),
+    ("Raid", 5),
+    ("Region", 6),
+    ("Clan", 7),
+    ("System2", 8),
+    ("Family", 9),
+    ("RaidLeader", 10),
+    ("Judge", 11),
+    ("Ally", 14),
+    ("User", 15),
+];
+
+/// `SlotType` (byte).
+pub const SLOT_TYPE: &[(&str, i64)] = &[
+    ("None", 0),
+    ("Equipment", 1),
+    ("Inventory", 2),
+    ("Bank", 3),
+    ("Trade", 4),
+    ("Mail", 5),
+    ("Auction", 6),
+    ("EquipmentMate", 252),
+    ("System", 0xFF),
+];
+
+/// `EquipmentItemSlot` (byte).
+pub const EQUIPMENT_ITEM_SLOT: &[(&str, i64)] = &[
+    ("Head", 0),
+    ("Neck", 1),
+    ("Chest", 2),
+    ("Waist", 3),
+    ("Legs", 4),
+    ("Hands", 5),
+    ("Feet", 6),
+    ("Arms", 7),
+    ("Back", 8),
+    ("Ear1", 9),
+    ("Ear2", 10),
+    ("Finger1", 11),
+    ("Finger2", 12),
+    ("Undershirt", 13),
+    ("Underpants", 14),
+    ("Mainhand", 15),
+    ("Offhand", 16),
+    ("Ranged", 17),
+    ("Musical", 18),
+    ("Face", 19),
+    ("Hair", 20),
+    ("Glasses", 21),
+    ("Reserved", 22),
+    ("Tail", 23),
+    ("Body", 24),
+    ("Beard", 25),
+    ("Backpack", 26),
+    ("Cosplay", 27),
+];
+
+/// `DateTime.ToString()` (invariant culture: `MM/dd/yyyy HH:mm:ss`).
+pub fn date_time_string(t: chrono::DateTime<chrono::Utc>) -> String {
+    t.format("%m/%d/%Y %H:%M:%S").to_string()
+}
+
+/// `DateTime.MinValue.ToString()`.
+pub const MIN_DATE_TIME_STRING: &str = "01/01/0001 00:00:00";
+
 #[cfg(test)]
 mod tests {
     use super::*;
