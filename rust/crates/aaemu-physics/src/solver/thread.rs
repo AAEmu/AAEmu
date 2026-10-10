@@ -359,7 +359,8 @@ impl SolverThread {
         self.mem.si(off::N_BODIES, 0);
         self.mem.si(off::N_CONTACTS, 0);
         self.mem.si(off::TMP_USED, 0);
-        self.mem.su(off::CG_ALLOWED, (self.mem.u(off::CG_ALLOWED) & !0xFF) | 1);
+        self.mem
+            .su(off::CG_ALLOWED, (self.mem.u(off::CG_ALLOWED) & !0xFF) | 1);
         self.mem.si(off::OVF_USED, 0);
         self.tmp_used = 0;
     }
@@ -389,7 +390,8 @@ impl SolverThread {
     /// 0x35099570: forbid the CG fast path for this island (an entity with flag `0x8000000` or
     /// in water).
     pub fn disable_cg(&mut self) {
-        self.mem.su(off::CG_ALLOWED, self.mem.u(off::CG_ALLOWED) & !0xFF);
+        self.mem
+            .su(off::CG_ALLOWED, self.mem.u(off::CG_ALLOWED) & !0xFF);
     }
 
     /// "CG allowed" byte (`T+6275112`).

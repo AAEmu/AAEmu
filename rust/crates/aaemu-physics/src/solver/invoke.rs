@@ -5,10 +5,14 @@
 //! the binary's (see [`super::thread`]). Comments quote the binary's local names where it helps
 //! to compare (`v15` = island is "hard", `v19` = number of bodies, …).
 
+// `!(a > b)` etc. are deliberate: they reproduce the binary's unordered (NaN) branch
+// semantics of `comiss` + `jbe`/`jb`/`jae`/`ja`.
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
+
 use super::body::{BodyArena, BodyId, RigidBody};
 use super::contact::{flags as cf, ContactId, ContactOwner, ContactPool};
 use super::helpers::{fmax, imax, inv22, inv33, k_accum, outer, rotate};
-use super::thread::{crec, lcp, off, brec, bg, Mem, MultiBodyEntry, SolverThread};
+use super::thread::{bg, brec, crec, lcp, off, Mem, MultiBodyEntry, SolverThread};
 use crate::math::{Quat, Vec3};
 use crate::physvars::PhysVars;
 
@@ -241,9 +245,17 @@ impl Ctx<'_> {
             let b = self.bid(j);
             let bb = self.bm(b);
             let (p, f) = (bb.p, bb.fcoll);
-            bb.fcoll = Vec3::new(inv_dt * (p.x - f.x), (p.y - f.y) * inv_dt, (p.z - f.z) * inv_dt);
+            bb.fcoll = Vec3::new(
+                inv_dt * (p.x - f.x),
+                (p.y - f.y) * inv_dt,
+                (p.z - f.z) * inv_dt,
+            );
             let (l, t) = (bb.l, bb.tcoll);
-            bb.tcoll = Vec3::new((l.x - t.x) * inv_dt, (l.y - t.y) * inv_dt, (l.z - t.z) * inv_dt);
+            bb.tcoll = Vec3::new(
+                (l.x - t.x) * inv_dt,
+                (l.y - t.y) * inv_dt,
+                (l.z - t.z) * inv_dt,
+            );
         }
     }
 
@@ -291,7 +303,8 @@ impl Ctx<'_> {
                 self.pool.get_mut(cid).pn = 0.0;
             }
             let pp = proj_at(i);
-            self.t.sm9(pp, &[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]);
+            self.t
+                .sm9(pp, &[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]);
             let c = *self.pool.get(cid);
             if c.flags & cf::PROJ_AXIS != 0 {
                 let a = v3(c.nloc);
@@ -537,8 +550,16 @@ impl Ctx<'_> {
         if c.flags & cf::ANGULAR != 0 {
             return [b0.w.x - b1.w.x, b0.w.y - b1.w.y, b0.w.z - b1.w.z];
         }
-        let r0 = [c.pt[0].x - b0.pos.x, c.pt[0].y - b0.pos.y, c.pt[0].z - b0.pos.z];
-        let r1 = [c.pt[1].x - b1.pos.x, c.pt[1].y - b1.pos.y, c.pt[1].z - b1.pos.z];
+        let r0 = [
+            c.pt[0].x - b0.pos.x,
+            c.pt[0].y - b0.pos.y,
+            c.pt[0].z - b0.pos.z,
+        ];
+        let r1 = [
+            c.pt[1].x - b1.pos.x,
+            c.pt[1].y - b1.pos.y,
+            c.pt[1].z - b1.pos.z,
+        ];
         let (w0, v0, w1, v1) = (b0.w, b0.v, b1.w, b1.v);
         let x = (((w0.y * r0[2] - w0.z * r0[1]) + v0.x) - v1.x) - (w1.y * r1[2] - w1.z * r1[1]);
         let z = (((w0.x * r0[1] - w0.y * r0[0]) + v0.z) - v1.z) - (w1.x * r1[1] - w1.y * r1[0]);
@@ -632,8 +653,16 @@ impl Ctx<'_> {
                 (t.y * i[7] + t.x * i[6]) + t.z * i[8],
             ]
         };
-        let r0 = [c.pt[0].x - b0.pos.x, c.pt[0].y - b0.pos.y, c.pt[0].z - b0.pos.z];
-        let r1 = [c.pt[1].x - b1.pos.x, c.pt[1].y - b1.pos.y, c.pt[1].z - b1.pos.z];
+        let r0 = [
+            c.pt[0].x - b0.pos.x,
+            c.pt[0].y - b0.pos.y,
+            c.pt[0].z - b0.pos.z,
+        ];
+        let r1 = [
+            c.pt[1].x - b1.pos.x,
+            c.pt[1].y - b1.pos.y,
+            c.pt[1].z - b1.pos.z,
+        ];
         let w0 = dw(b0);
         let (f0, m0) = (b0.fcoll, b0.minv);
         let x0 = f0.x * m0 + (w0[1] * r0[2] - w0[2] * r0[1]);
@@ -803,8 +832,16 @@ impl Ctx<'_> {
         for j in 0..nb.max(0) as usize {
             let b = self.bid(j);
             let bb = self.bm(b);
-            bb.p = Vec3::new(bb.fcoll.x + bb.p.x, bb.fcoll.y + bb.p.y, bb.fcoll.z + bb.p.z);
-            bb.l = Vec3::new(bb.tcoll.x + bb.l.x, bb.tcoll.y + bb.l.y, bb.tcoll.z + bb.l.z);
+            bb.p = Vec3::new(
+                bb.fcoll.x + bb.p.x,
+                bb.fcoll.y + bb.p.y,
+                bb.fcoll.z + bb.p.z,
+            );
+            bb.l = Vec3::new(
+                bb.tcoll.x + bb.l.x,
+                bb.tcoll.y + bb.l.y,
+                bb.tcoll.z + bb.l.z,
+            );
             if !(0.0 >= bb.m) {
                 let m = bb.minv;
                 bb.v = Vec3::new(bb.p.x * m, bb.p.y * m, bb.p.z * m);
@@ -815,8 +852,16 @@ impl Ctx<'_> {
                     (l.x * i[6] + l.y * i[7]) + l.z * i[8],
                 );
             }
-            bb.fcoll = Vec3::new(inv_dt * bb.fcoll.x, inv_dt * bb.fcoll.y, inv_dt * bb.fcoll.z);
-            bb.tcoll = Vec3::new(inv_dt * bb.tcoll.x, inv_dt * bb.tcoll.y, inv_dt * bb.tcoll.z);
+            bb.fcoll = Vec3::new(
+                inv_dt * bb.fcoll.x,
+                inv_dt * bb.fcoll.y,
+                inv_dt * bb.fcoll.z,
+            );
+            bb.tcoll = Vec3::new(
+                inv_dt * bb.tcoll.x,
+                inv_dt * bb.tcoll.y,
+                inv_dt * bb.tcoll.z,
+            );
         }
         for i in 0..self.nc() as usize {
             let cid = self.cid(i);
@@ -838,10 +883,14 @@ impl Ctx<'_> {
             let p0 = self.b(c.pbody[0]).pos;
             let p1 = self.b(c.pbody[1]).pos;
             let rc = crec_at(i);
-            self.t
-                .sv3(rc + crec::R0, [c.pt[0].x - p0.x, c.pt[0].y - p0.y, c.pt[0].z - p0.z]);
-            self.t
-                .sv3(rc + crec::R1, [c.pt[1].x - p1.x, c.pt[1].y - p1.y, c.pt[1].z - p1.z]);
+            self.t.sv3(
+                rc + crec::R0,
+                [c.pt[0].x - p0.x, c.pt[0].y - p0.y, c.pt[0].z - p0.z],
+            );
+            self.t.sv3(
+                rc + crec::R1,
+                [c.pt[1].x - p1.x, c.pt[1].y - p1.y, c.pt[1].z - p1.z],
+            );
             self.t.sv3(rc + crec::N, v3(c.n));
             self.t.sv3(rc + crec::VREQ, v3(c.vreq));
             self.t.sf(rc + crec::PN, c.pn);

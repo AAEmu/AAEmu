@@ -623,7 +623,10 @@ pub fn word_diff(a: &str, b: &str) -> String {
     let mut base = 0usize;
     let mut n = 0;
     for i in 0..wa.len().max(wb.len()) {
-        let (x, y) = (wa.get(i).copied().unwrap_or("-"), wb.get(i).copied().unwrap_or("-"));
+        let (x, y) = (
+            wa.get(i).copied().unwrap_or("-"),
+            wb.get(i).copied().unwrap_or("-"),
+        );
         if x.len() != 8 || x.chars().any(|c| !c.is_ascii_hexdigit()) {
             sec = x;
             base = i + 1;
@@ -682,8 +685,11 @@ pub fn check_live(name: &str, n: usize, chunk: usize, gen: &dyn Fn(&mut Rng) -> 
         }
         done += k;
     }
-    assert!(bad == 0, "{name}: {bad} of {n} cases differ
-{report}");
+    assert!(
+        bad == 0,
+        "{name}: {bad} of {n} cases differ
+{report}"
+    );
 }
 
 /// Golden + oracle check of a generator (`n` golden cases from the seed of `name`).
@@ -732,8 +738,13 @@ pub fn check(name: &str, n: usize, gen: &dyn Fn(&mut Rng) -> Case) {
                     for l in chunk {
                         if oracle_raw(&exe, std::slice::from_ref(l)).is_err() {
                             if let Some(p) = std::env::var_os(DUMP_ENV) {
-                                let _ = std::fs::write(p, format!("case: {l}
-"));
+                                let _ = std::fs::write(
+                                    p,
+                                    format!(
+                                        "case: {l}
+"
+                                    ),
+                                );
                             }
                             break;
                         }

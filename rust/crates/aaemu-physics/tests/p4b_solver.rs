@@ -15,12 +15,14 @@ fn rot(q: Quat, v: Vec3) -> Vec3 {
 /// A box body (half sizes `h`, mass `m`) at `pos` with orientation `q`, linear velocity `v`
 /// and angular momentum `l`.
 fn box_body(pos: Vec3, q: Quat, h: Vec3, m: f32, v: Vec3, l: Vec3) -> RigidBody {
-    let mut b = RigidBody::default();
-    b.pos = pos;
-    b.q = q;
-    b.m = m;
-    b.minv = if m > 0.0 { 1.0 / m } else { 0.0 };
-    b.volume = 8.0 * h.x * h.y * h.z;
+    let mut b = RigidBody {
+        pos,
+        q,
+        m,
+        minv: if m > 0.0 { 1.0 / m } else { 0.0 },
+        volume: 8.0 * h.x * h.y * h.z,
+        ..RigidBody::default()
+    };
     if m > 0.0 {
         let k = m / 3.0;
         b.ibody = Vec3::new(
@@ -154,9 +156,17 @@ fn resting_box(rng: &mut Rng, vars: Vec<(usize, u32)>) -> Case {
     let mut isl = Island::new();
     let h = Vec3::new(rng.f(0.2, 2.0), rng.f(0.2, 2.0), rng.f(0.2, 1.5));
     let m = rng.pick(&[1.0f32, 10.0, 80.0, 500.0, 3000.0]) * rng.f(0.5, 1.5);
-    let q = if rng.chance(0.5) { yaw(rng) } else { tilt(rng, 0.05) * yaw(rng) };
+    let q = if rng.chance(0.5) {
+        yaw(rng)
+    } else {
+        tilt(rng, 0.05) * yaw(rng)
+    };
     let depth = rng.pick(&[0.0f32, 0.005, 0.012, 0.03, 0.2]) * rng.f(0.5, 1.5);
-    let pos = Vec3::new(rng.f(-50.0, 50.0), rng.f(-50.0, 50.0), h.z - depth + rng.f(-0.5, 0.5));
+    let pos = Vec3::new(
+        rng.f(-50.0, 50.0),
+        rng.f(-50.0, 50.0),
+        h.z - depth + rng.f(-0.5, 0.5),
+    );
     let v = Vec3::new(rng.f(-0.3, 0.3), rng.f(-0.3, 0.3), rng.f(-1.0, 0.1));
     let l = small_l(rng, m, 0.2);
     let b = isl.add(box_body(pos, q, h, m, v, l));
@@ -177,7 +187,7 @@ fn resting_box(rng: &mut Rng, vars: Vec<(usize, u32)>) -> Case {
         );
         let mut pt = pos + rot(q, corner);
         if k >= 4 {
-            pt = pt + Vec3::new(rng.f(-0.1, 0.1), rng.f(-0.1, 0.1), 0.0);
+            pt += Vec3::new(rng.f(-0.1, 0.1), rng.f(-0.1, 0.1), 0.0);
         }
         let d = depth + rng.f(-0.002, 0.002);
         let mu_k = if rng.chance(0.8) { mu } else { rng.pick(&MUS) };
@@ -199,10 +209,18 @@ fn stack(rng: &mut Rng, n: usize, vars: Vec<(usize, u32)>, heavy_light: bool) ->
         let h = Vec3::new(rng.f(0.3, 1.0), rng.f(0.3, 1.0), rng.f(0.2, 0.6));
         let mut m = rng.pick(&[1.0f32, 10.0, 100.0, 1000.0]) * rng.f(0.5, 1.5);
         if heavy_light {
-            m = if k % 2 == 1 { rng.f(0.1, 1.0) } else { rng.f(200.0, 5000.0) };
+            m = if k % 2 == 1 {
+                rng.f(0.1, 1.0)
+            } else {
+                rng.f(200.0, 5000.0)
+            };
         }
         let depth = rng.pick(&[0.0f32, 0.008, 0.02, 0.05]) * rng.f(0.5, 1.5);
-        let q = if rng.chance(0.6) { yaw(rng) } else { tilt(rng, 0.03) * yaw(rng) };
+        let q = if rng.chance(0.6) {
+            yaw(rng)
+        } else {
+            tilt(rng, 0.03) * yaw(rng)
+        };
         let pos = base + Vec3::new(rng.f(-0.05, 0.05), rng.f(-0.05, 0.05), z + h.z - depth);
         let v = Vec3::new(rng.f(-0.2, 0.2), rng.f(-0.2, 0.2), rng.f(-0.8, 0.1));
         let l = small_l(rng, m, 0.1);
@@ -307,7 +325,11 @@ fn random_island(rng: &mut Rng, max_b: usize, max_c: usize, vars: Vec<(usize, u3
         let b0 = ids[rng.below(nb as u32) as usize];
         let b1 = if nb > 1 && rng.chance(0.5) {
             let o = ids[rng.below(nb as u32) as usize];
-            if o == b0 { BodyId::STATIC } else { o }
+            if o == b0 {
+                BodyId::STATIC
+            } else {
+                o
+            }
         } else {
             BodyId::STATIC
         };
@@ -318,7 +340,11 @@ fn random_island(rng: &mut Rng, max_b: usize, max_c: usize, vars: Vec<(usize, u3
         }
         let p0 = isl.body(b0).pos;
         let pt = p0 + rng.vec(-1.0, 1.0);
-        let n = if rng.chance(0.4) { Vec3::new(0.0, 0.0, 1.0) } else { rng.unit() };
+        let n = if rng.chance(0.4) {
+            Vec3::new(0.0, 0.0, 1.0)
+        } else {
+            rng.unit()
+        };
         let d = rng.pick(&[0.0f32, 0.005, 0.02, 0.1]);
         let mu_k = if rng.chance(0.8) { mu } else { rng.pick(&MUS) };
         let i = isl.contact(b0, b1, pt, n, d, mu_k);
@@ -357,7 +383,9 @@ fn random_vars(rng: &mut Rng, lcp: bool) -> Vec<(usize, u32)> {
 
 #[test]
 fn p4b_resting_box_stage1() {
-    check("p4b_resting_box_stage1", 120, &|rng| resting_box(rng, no_lcp()));
+    check("p4b_resting_box_stage1", 120, &|rng| {
+        resting_box(rng, no_lcp())
+    });
 }
 
 #[test]
@@ -417,8 +445,12 @@ fn special_island(rng: &mut Rng, vars: Vec<(usize, u32)>) -> Case {
             c.contacts[i].flags |= rng.range(1, 3) as u32;
         }
         let (m0, m1) = (
-            c.bodies.get((c.contacts[i].pbody[0].0 as usize).wrapping_sub(1)).map_or(0.0, |b| b.minv),
-            c.bodies.get((c.contacts[i].pbody[1].0 as usize).wrapping_sub(1)).map_or(0.0, |b| b.minv),
+            c.bodies
+                .get((c.contacts[i].pbody[0].0 as usize).wrapping_sub(1))
+                .map_or(0.0, |b| b.minv),
+            c.bodies
+                .get((c.contacts[i].pbody[1].0 as usize).wrapping_sub(1))
+                .map_or(0.0, |b| b.minv),
         );
         if rng.chance(0.15) && (m0 != 0.0 || m1 != 0.0) {
             // rope-style multi-body constraint
@@ -512,10 +544,21 @@ fn p4b_large_live() {
                     -0.4,
                 );
                 let mu = rng.pick(&MUS);
-                isl.contact(b, BodyId::STATIC, pos + corner, Vec3::new(0.0, 0.0, 1.0), 0.02, mu);
+                isl.contact(
+                    b,
+                    BodyId::STATIC,
+                    pos + corner,
+                    Vec3::new(0.0, 0.0, 1.0),
+                    0.02,
+                    mu,
+                );
             }
         }
-        let vars = if rng.chance(0.5) { no_lcp() } else { Vec::new() };
+        let vars = if rng.chance(0.5) {
+            no_lcp()
+        } else {
+            Vec::new()
+        };
         let mut c = isl.case(rng, vars);
         c.cg = false;
         c
@@ -532,7 +575,10 @@ fn p4b_large_live() {
 #[ignore = "diagnostics: run the live special/repeat sets through the port with progress"]
 fn p4b_live_port_progress() {
     use aaemu_physics::solver::probe::seed_of;
-    let n: usize = std::env::var("AAEMU_PHYS_P4B_LIVE").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
+    let n: usize = std::env::var("AAEMU_PHYS_P4B_LIVE")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
     for name in ["p4b_special", "p4b_repeat"] {
         let mut rng = Rng::new(seed_of(name) ^ 0x5DEE_CE66_D1CE_4E5B);
         for i in 0..n {
@@ -545,7 +591,11 @@ fn p4b_live_port_progress() {
             };
             eprintln!("{name} {i}");
             if std::env::var_os("AAEMU_PHYS_P4B_WRITE").is_some() {
-                std::fs::write(std::env::var_os("AAEMU_PHYS_P4B_WRITE").unwrap(), c.to_line()).ok();
+                std::fs::write(
+                    std::env::var_os("AAEMU_PHYS_P4B_WRITE").unwrap(),
+                    c.to_line(),
+                )
+                .ok();
             }
             let _ = c.run_port();
         }
@@ -556,29 +606,47 @@ fn p4b_live_port_progress() {
 #[ignore = "diagnostics: path histogram of the generators"]
 fn p4b_path_stats() {
     use aaemu_physics::solver::probe::path_stats;
-    println!("{}", path_stats("resting", 300, &|rng| resting_box(rng, Vec::new())));
-    println!("{}", path_stats("stack", 300, &|rng| {
-        let n = rng.range(2, 10) as usize;
-        stack(rng, n, Vec::new(), false)
-    }));
-    println!("{}", path_stats("random", 300, &|rng| {
-        let vars = random_vars(rng, false);
-        random_island(rng, 6, 24, vars)
-    }));
-    println!("{}", path_stats("stack_lcp", 300, &|rng| {
-        let n = rng.range(2, 10) as usize;
-        let vars = random_vars(rng, true);
-        stack(rng, n, vars, false)
-    }));
-    println!("{}", path_stats("heavy_light", 300, &|rng| {
-        let n = rng.range(3, 8) as usize;
-        let vars = random_vars(rng, true);
-        stack(rng, n, vars, true)
-    }));
-    println!("{}", path_stats("random_lcp", 300, &|rng| {
-        let vars = random_vars(rng, true);
-        random_island(rng, 6, 24, vars)
-    }));
+    println!(
+        "{}",
+        path_stats("resting", 300, &|rng| resting_box(rng, Vec::new()))
+    );
+    println!(
+        "{}",
+        path_stats("stack", 300, &|rng| {
+            let n = rng.range(2, 10) as usize;
+            stack(rng, n, Vec::new(), false)
+        })
+    );
+    println!(
+        "{}",
+        path_stats("random", 300, &|rng| {
+            let vars = random_vars(rng, false);
+            random_island(rng, 6, 24, vars)
+        })
+    );
+    println!(
+        "{}",
+        path_stats("stack_lcp", 300, &|rng| {
+            let n = rng.range(2, 10) as usize;
+            let vars = random_vars(rng, true);
+            stack(rng, n, vars, false)
+        })
+    );
+    println!(
+        "{}",
+        path_stats("heavy_light", 300, &|rng| {
+            let n = rng.range(3, 8) as usize;
+            let vars = random_vars(rng, true);
+            stack(rng, n, vars, true)
+        })
+    );
+    println!(
+        "{}",
+        path_stats("random_lcp", 300, &|rng| {
+            let vars = random_vars(rng, true);
+            random_island(rng, 6, 24, vars)
+        })
+    );
 }
 
 #[allow(dead_code)]
