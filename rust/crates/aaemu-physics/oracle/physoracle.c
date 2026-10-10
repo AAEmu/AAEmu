@@ -450,6 +450,9 @@ static void cmd_rwi(const Toks *t) {
   }
 }
 
+/* P3 areas / P4a water probes (package P3-areas) */
+#include "p3_areas.c"
+
 static void run_line(char *line) {
   Toks t;
   char *hash = strchr(line, '#');
@@ -457,6 +460,7 @@ static void run_line(char *line) {
   tokenize(line, &t);
   if (!t.n) return;
   const char *c = t.k[0];
+  if (p3_command(c, &t)) return;
   if (!strcmp(c, "grid")) {
     float org[3] = {0, 0, -100}, st[2] = {4, 4};
     int n[2] = {64, 64};
