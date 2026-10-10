@@ -51,3 +51,4 @@ golden!(flags, "p5_particle_flags");
 golden!(flight, "p5_particle_flight");
 golden!(collide, "p5_particle_collide");
 golden!(params, "p5_particle_params");
+golden!(spawn, "p5_particle_spawn");

@@ -98,6 +98,12 @@ pub struct ParticleTls {
     /// `0x3520B3A0 + 8·i`: the particle being stepped (set by DoStep for its `iCaller`,
     /// read by RayTrace through the TLS index).
     pub cur: [EntIdx; MAX_CALLERS],
+    /// `dword_3520C8F0`: the flags of the static dummy `geom_part` (`dword_3520C8A0`, the
+    /// part array of every part-less entity). Global state: zeroed by the particle ctor,
+    /// written by the RWI area path (0x8000 unless RWI flag 0x1000; also by
+    /// `CWheeledVehicleEntity::AddGeometry`'s temporary part copy in the binary), read by the
+    /// RWI hit registration for particle hits.
+    pub dummy_part_flags: u32,
 }
 
 impl Default for ParticleTls {
@@ -120,6 +126,7 @@ impl Default for ParticleTls {
         Self {
             hits: [[z; 8]; MAX_CALLERS],
             cur: [EntIdx::NONE; MAX_CALLERS],
+            dummy_part_flags: 0,
         }
     }
 }
@@ -314,8 +321,10 @@ fn heading_basis(a: Vec3, h: Vec3) -> Quat {
 /// Constructor 0x35039D40 (on top of the base ctor): the defaults of `entities.md` §5.3.1,
 /// flags 0 (not the base's 0x8640), simclass 4, hidden from the grid (cells -3), gravity =
 /// the world gravity, water gravity = 0.8 · gravity, state 2, pierceability 15, area-check
-/// period 6.
-pub fn construct(w: &World, ent: &mut Entity) {
+/// period 6. Also zeroes the static dummy part's flags ([`ParticleTls::dummy_part_flags`]).
+pub fn construct(w: &mut World, ent: &mut Entity) {
+    // the ctor also resets the static dummy part (pos, q, scale, id, mass, flags)
+    w.particle_tls.dummy_part_flags = 0;
     let g = w.gravity();
     let k08 = f32::from_bits(0x3F4C_CCCD);
     let p = ParticleData {
