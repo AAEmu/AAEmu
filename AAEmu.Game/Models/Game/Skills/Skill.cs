@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -65,6 +65,24 @@ public class Skill
     public bool ReleaseActivePlotState(PlotState state) =>
         state != null && Interlocked.CompareExchange(ref _activePlotState, null, state) == state;
     public Dictionary<uint, SkillHitType> HitTypes { get; set; }
+    private readonly HashSet<uint> _markedPlotTargets = [];
+
+    /// <summary>
+    /// Records a unit one of this cast's plot searches picked out by a marker the data put on it
+    /// (<see cref="Plots.Tree.PlotTargetRules.SelectsMarkedVictims"/>).
+    /// </summary>
+    public void MarkPlotTarget(uint objId)
+    {
+        lock (_markedPlotTargets)
+            _markedPlotTargets.Add(objId);
+    }
+
+    public bool IsMarkedPlotTarget(uint objId)
+    {
+        lock (_markedPlotTargets)
+            return _markedPlotTargets.Contains(objId);
+    }
+
     public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
     /// <summary>
     /// The item a <see cref="SkillTargetType.Item"/> cast names, resolved from the client's
@@ -1127,6 +1145,7 @@ public class Skill
         // A controller drives its owner's position, so it used to be created for NPC casters only. A player's
         // own leap is the same movement and now gets one too, for a unit the caster controls
         // (SkillControllerRules); the distance gate below still applies to both.
+        var controllerRealized = false;
         if (Template.SkillControllerId != 0 && SkillControllerRules.CanCreateController(caster, unit))
         {
             var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
@@ -1158,11 +1177,25 @@ public class Skill
                         unit.ActiveSkillController.End();
                     unit.ActiveSkillController = sc;
                     sc.Execute();
+                    controllerRealized = true;
                 }
 #pragma warning restore CA1508 // Avoid dead conditional code
             }
         }
         unit.SkillTask = null;
+
+        // A leap/dash whose controller could not be built (no target, or a target outside the skill's own
+        // window) has nothing that moves the caster and nothing that ends the cast: the started cast stayed
+        // open, the client kept the action, and the player could not move, act, or leave the instance. Close
+        // it here instead of deferring to the delayed-apply path, which has nothing to apply. A caster whose
+        // position the zone moves gets no controller here by design and keeps the normal apply path.
+        var serverDrivesController = Template.SkillControllerId != 0
+                                     && !SkillControllerRules.ZoneOwnsPosition(caster, WorldIntegration.ZoneAuthority);
+        if (SkillControllerRules.ControllerCastMustCloseNow(serverDrivesController, controllerRealized))
+        {
+            EndSkill(caster);
+            return;
+        }
 
         if (IsPureUnsupportedCast())
         {

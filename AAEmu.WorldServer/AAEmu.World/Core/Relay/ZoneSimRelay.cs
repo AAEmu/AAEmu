@@ -72,8 +72,8 @@ public class ZoneSimRelay
             ZwOpcodes.ClearNpcAbusers => HandleClearNpcAbusers(stream),
             ZwOpcodes.TowerDefReportPlayability => HandleTowerDef(zoneId, stream),
             ZwOpcodes.ResponseCombatUnits => HandleResponseCombatUnits(stream, bodyLen),
-            ZwOpcodes.TimeOfDay => HandleTimeOfDay(zoneId, stream, detailed: false),
-            ZwOpcodes.DetailedTimeOfDay => HandleTimeOfDay(zoneId, stream, detailed: true),
+            ZwOpcodes.TimeOfDay => HandleTimeOfDay(zoneId, connection?.InstanceId ?? 0, stream, detailed: false),
+            ZwOpcodes.DetailedTimeOfDay => HandleTimeOfDay(zoneId, connection?.InstanceId ?? 0, stream, detailed: true),
             _ => false
         };
     }
@@ -781,7 +781,7 @@ public class ZoneSimRelay
         return true;
     }
 
-    private static bool HandleTimeOfDay(uint zoneId, PacketStream stream, bool detailed)
+    private static bool HandleTimeOfDay(uint zoneId, uint instanceId, PacketStream stream, bool detailed)
     {
         if (stream.Count < 4)
             return false;
@@ -795,12 +795,12 @@ public class ZoneSimRelay
             start = stream.ReadSingle();
             end = stream.ReadSingle();
             Logger.Info(
-                "ZWDetailedTimeOfDay zoneId={0} time={1:F2} speed={2:F3} start={3:F2} end={4:F2}",
-                zoneId, time, speed, start, end);
+                "ZWDetailedTimeOfDay zoneId={0} instanceId={1} time={2:F2} speed={3:F3} start={4:F2} end={5:F2}",
+                zoneId, instanceId, time, speed, start, end);
         }
         else
-            Logger.Info("ZWTimeOfDay zoneId={0} time={1:F2}", zoneId, time);
-        WorldIntegration.OnZoneTimeOfDay?.Invoke(zoneId, time, speed, start, end, detailed);
+            Logger.Info("ZWTimeOfDay zoneId={0} instanceId={1} time={2:F2}", zoneId, instanceId, time);
+        WorldIntegration.OnZoneTimeOfDay?.Invoke(zoneId, instanceId, time, speed, start, end, detailed);
         return true;
     }
 }

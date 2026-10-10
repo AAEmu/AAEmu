@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -6,6 +6,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -277,6 +278,13 @@ public class SpawnEffect : EffectTemplate
         {
             WorldIntegration.DeleteNpcMirror(npc, false);
             return;
+        }
+
+        if (SummonCompanionRules.ShouldFollowSummoner(caster is Character, MateStateId)
+            && caster is Character followOwner)
+        {
+            WorldIntegration.RelayQuestNpcAiToZone?.Invoke(
+                (int)NpcControlCategory.FollowUnit, npc.ObjId, followOwner.ObjId, null, 0, 0);
         }
 
         if (UseSummonerAggroTarget && (target ?? caster) is Unit aggroTarget)

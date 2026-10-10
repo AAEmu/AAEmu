@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Collections.Concurrent;
+using System.Globalization;
 using System.Numerics;
 using AAEmu.Game.GameData;
 using AAEmu.Game.IO;
@@ -7,6 +8,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Spheres;
 
 using NLog;
 
@@ -16,9 +18,27 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private static Dictionary<uint, List<SphereQuest>> _sphereQuests;
-    /// <summary>zoneId → quest_area_sphere.g entries (stype = spheres.id).</summary>
-    private static Dictionary<uint, List<SphereQuest>> _questAreaSpheres;
+    /// <summary>
+    /// Sphere files read once per world template and shared by every instance of it. Each world's
+    /// level files carry their own spheres in that world's coordinate space, so a dungeon copy must
+    /// never look them up in another world's set.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, Lazy<WorldSphereData>> SpheresByWorld =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private sealed class WorldSphereData(
+        Dictionary<uint, List<SphereQuest>> sphereQuests,
+        Dictionary<(int X, int Y), List<SphereQuest>> questAreaSphereGrid)
+    {
+        /// <summary>componentId → quest_sign_sphere.g entries.</summary>
+        public Dictionary<uint, List<SphereQuest>> SphereQuests { get; } = sphereQuests;
+        public Dictionary<(int X, int Y), List<SphereQuest>> QuestAreaSphereGrid { get; } = questAreaSphereGrid;
+    }
+
+    private WorldSphereData _data;
+
+    /// <summary>Trigger time of each fired area sphere in this world instance, keyed by spheres.id.</summary>
+    private readonly ConcurrentDictionary<uint, DateTime> _areaSphereFiredUtc = new();
 
     private readonly List<SphereQuestTrigger> _sphereQuestTriggers = [];
     private List<SphereQuestTrigger> _addQueue = [];
@@ -39,18 +59,15 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
 
     public void Load()
     {
-        // Load sphere data
-        if (_sphereQuests == null)
-            _sphereQuests = LoadQuestSpheres(parent.Template);
-        if (_questAreaSpheres == null)
-        {
-            _questAreaSpheres = LoadQuestAreaSpheres(parent.Template);
-            _questAreaSphereGrid = BuildQuestAreaSphereGrid(_questAreaSpheres);
-        }
+        var template = parent.Template;
+        _data = SpheresByWorld.GetOrAdd(template.Name, _ => new Lazy<WorldSphereData>(() =>
+            new WorldSphereData(
+                LoadQuestSpheres(template),
+                BuildQuestAreaSphereGrid(LoadQuestAreaSpheres(template))))).Value;
 
         // Link quest starters to spheres — build first, then swap atomically
         var newStartingSpheres = new List<SphereQuestStarter>();
-        foreach (var (componentId, sphereQuestList) in _sphereQuests)
+        foreach (var (componentId, sphereQuestList) in _data.SphereQuests)
         {
             // Get the relevant QuestComponentTemplate
             var questComponent = QuestManager.Instance.GetComponent(componentId);
@@ -258,7 +275,40 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
 
     public List<SphereQuest> GetQuestSpheres(uint componentId)
     {
-        return _sphereQuests.GetValueOrDefault(componentId);
+        return _data?.SphereQuests.GetValueOrDefault(componentId);
+    }
+
+    /// <summary>
+    /// Claims an area sphere's trigger in this world instance: true when its trigger condition lets it
+    /// fire now, in which case the firing is recorded. Retried claims made in the same instant fire once.
+    /// </summary>
+    public bool TryClaimAreaSphereTrigger(Spheres dbSphere, DateTime nowUtc)
+    {
+        if (dbSphere == null)
+            return false;
+
+        while (true)
+        {
+            var hasFired = _areaSphereFiredUtc.TryGetValue(dbSphere.Id, out var lastFiredUtc);
+            if (!AreaSphereTriggerRules.CanFire(dbSphere.TriggerConditionId, dbSphere.TriggerConditionTime,
+                    hasFired ? lastFiredUtc : null, nowUtc))
+                return false;
+
+            if (hasFired
+                    ? _areaSphereFiredUtc.TryUpdate(dbSphere.Id, nowUtc, lastFiredUtc)
+                    : _areaSphereFiredUtc.TryAdd(dbSphere.Id, nowUtc))
+                return true;
+        }
+    }
+
+    /// <summary>
+    /// Undoes a claim whose firing did not happen, so the sphere is not left dormant for nothing. A claim
+    /// made since by someone else is kept.
+    /// </summary>
+    public void ReleaseAreaSphereTrigger(Spheres dbSphere, DateTime claimedUtc)
+    {
+        if (dbSphere != null)
+            _areaSphereFiredUtc.TryRemove(new KeyValuePair<uint, DateTime>(dbSphere.Id, claimedUtc));
     }
 
     public List<SphereQuestTrigger> GetSphereQuestTriggers()
@@ -266,19 +316,15 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
         return _sphereQuestTriggers;
     }
 
-    /// <summary>Cell edge in world units for <see cref="_questAreaSphereGrid"/>.</summary>
+    /// <summary>Cell edge in world units for <see cref="WorldSphereData.QuestAreaSphereGrid"/>.</summary>
     private const float SphereGridCell = 256f;
-
-    /// <summary>
-    /// World-space grid over every zone's quest_area_sphere.g volume, each sphere registered in all
-    /// cells its bounding box touches. Built once from <see cref="_questAreaSpheres"/>.
-    /// </summary>
-    private static Dictionary<(int X, int Y), List<SphereQuest>> _questAreaSphereGrid;
 
     private static (int X, int Y) SphereGridCellOf(float x, float y) =>
         ((int)MathF.Floor(x / SphereGridCell), (int)MathF.Floor(y / SphereGridCell));
 
     /// <summary>
+    /// World-space grid over every zone's quest_area_sphere.g volume, each sphere registered in all
+    /// cells its bounding box touches.
     /// These volumes are authored per zone file but live in world space and routinely overhang the
     /// zone border — Two Crowns' dock sphere (spheres.id 2313) is 500 m wide, so a ship leaving the
     /// harbour crosses into the neighbouring zone while still deep inside the circle the map draws.
@@ -320,7 +366,7 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
     /// </summary>
     public IReadOnlyList<SphereQuest> GetContainingQuestAreaSpheres(uint zoneId, Vector3 worldPos)
     {
-        var grid = _questAreaSphereGrid;
+        var grid = _data?.QuestAreaSphereGrid;
         if (grid == null || !grid.TryGetValue(SphereGridCellOf(worldPos.X, worldPos.Y), out var candidates))
             return [];
 
@@ -569,43 +615,25 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
 
     private static IEnumerable<string> EnumerateZoneGameDataRoots()
     {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Offer(string candidate)
-        {
-            if (string.IsNullOrWhiteSpace(candidate))
-                return;
-            try
-            {
-                var full = Path.GetFullPath(candidate.Trim());
-                if (Directory.Exists(full))
-                    seen.Add(full);
-            }
-            catch
-            {
-                // ignore bad paths
-            }
-        }
-
-        Offer(Environment.GetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT"));
-        Offer(AppConfiguration.Instance.ZoneGameDataRoot);
-        if (seen.Count == 0)
+        var roots = ZoneGameDataRoots.Enumerate();
+        if (roots.Count == 0)
         {
             Logger.Error(
                 "ZoneGameDataRoot is not configured. Set World Config.ZoneGameDataRoot or AAEMU_ZONE_GAME_DATA_ROOT " +
                 "so quest_area_sphere.g can load from the extracted game data tree.");
         }
 
-        return seen;
+        return roots;
     }
 
     public static List<SphereQuest> GetSpheresForQuest(uint questSphereQuestId)
     {
         var res = new List<SphereQuest>();
-        if (_sphereQuests == null)
-            return res;
-
-        foreach (var questSpheres in _sphereQuests.Values)
-            res.AddRange(questSpheres.Where(x => x.QuestId == questSphereQuestId).ToList());
+        foreach (var world in LoadedWorlds())
+        {
+            foreach (var questSpheres in world.SphereQuests.Values)
+                res.AddRange(questSpheres.Where(x => x.QuestId == questSphereQuestId));
+        }
 
         return res;
     }
@@ -619,16 +647,22 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
         if (sphereId == 0)
             return null;
 
-        var grid = _questAreaSphereGrid;
-        if (grid == null || !grid.TryGetValue(SphereGridCellOf(worldPos.X, worldPos.Y), out var candidates))
-            return null;
-
-        foreach (var sphere in candidates)
+        var cell = SphereGridCellOf(worldPos.X, worldPos.Y);
+        foreach (var world in LoadedWorlds())
         {
-            if (sphere.SphereId == sphereId && sphere.Contains(worldPos))
-                return sphere;
+            if (!world.QuestAreaSphereGrid.TryGetValue(cell, out var candidates))
+                continue;
+
+            foreach (var sphere in candidates)
+            {
+                if (sphere.SphereId == sphereId && sphere.Contains(worldPos))
+                    return sphere;
+            }
         }
 
         return null;
     }
+
+    private static IEnumerable<WorldSphereData> LoadedWorlds() =>
+        SpheresByWorld.Values.Where(x => x.IsValueCreated).Select(x => x.Value);
 }

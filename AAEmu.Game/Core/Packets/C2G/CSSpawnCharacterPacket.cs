@@ -36,7 +36,12 @@ public class CSSpawnCharacterPacket() : GamePacket(CSOffsets.CSSpawnCharacterPac
             Connection.SendPacket(new SCUnitFactionChangedPacket(
                 me.ObjId, me.Name ?? "", FactionsEnum.Invalid, me.Faction.Id, false));
 
-        TimeOfDayClientPackets.SendEnterWorld(Connection.SendPacket, TimeManager.Instance.GetTime);
+        // The first hour bind force-applies lighting and water, so it has to land before the world load — but
+        // only for a zone that follows the shared game day. A character who logs in inside an instance spawns
+        // there, and the instance level authors a fixed time-of-day; binding the open-world hour lit the
+        // instance by the city's clock.
+        if (TimeManager.ZoneUsesSharedGameDay(me.Transform.ZoneId))
+            TimeOfDayClientPackets.SendEnterWorld(Connection.SendPacket, TimeManager.Instance.GetTime);
 
         // Deliberately no labor packet here. SCCharacterLaborPowerChanged is a delta - the handler does
         // `add [mgr+0xE58], amount` and `add [mgr+0xE68], localAmount`, never a store - and the client

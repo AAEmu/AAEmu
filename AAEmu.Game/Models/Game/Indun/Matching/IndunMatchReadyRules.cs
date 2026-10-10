@@ -34,17 +34,22 @@ public static class IndunMatchReadyRules
     /// What to do with a match whose instance copy is being built. Players hold on the registered
     /// screen until the copy answers, so that the offer they get can be entered without a wait.
     /// </summary>
+    /// <remarks>
+    /// Every match raises the enter dialog once its copy is ready — the invitation type does not skip
+    /// it. What <c>instances.matching_invitation_type_id</c> decides is how long the queue waited for
+    /// strangers before the copy was built (Perfect waits <c>min_matching_time</c>; Direct waits none),
+    /// which is handled upstream in <see cref="IsQueueReady"/>. So a Direct dungeon still offers its
+    /// "Enter Instance" prompt, just sooner.
+    /// </remarks>
     public static IndunPrepareOutcome NextAfterPreparing(bool instanceReady,
-        MatchingInvitationType invitationType, DateTime preparingSince, DateTime now)
+        DateTime preparingSince, DateTime now)
     {
         if (!instanceReady)
             return IsPrepareExpired(preparingSince, now)
                 ? IndunPrepareOutcome.GiveUp
                 : IndunPrepareOutcome.KeepWaiting;
 
-        return invitationType == MatchingInvitationType.Direct
-            ? IndunPrepareOutcome.Enter
-            : IndunPrepareOutcome.Offer;
+        return IndunPrepareOutcome.Offer;
     }
 
     public static bool IsInviteExpired(DateTime inviteOpenedAt, DateTime now, uint cleanupTermMs)

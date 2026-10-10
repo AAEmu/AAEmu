@@ -1784,6 +1784,17 @@ public partial class Npc : Unit
             if (skillTemplate?.Effects == null || skillTemplate.Effects.Count == 0)
                 continue;
 
+            // An effect that names another unit through a buff tag belongs to that unit. Applying it
+            // here would put the buff on the caster, so the whole skill is left to
+            // CastOnSpawnTargetEffectSkills, which runs it through the engine instead.
+            if (OnSpawnTargetEffectRules.ShouldWorldRun(
+                    zoneAuthority: WorldIntegration.ZoneAuthority,
+                    isZoneMirror: IsZoneMirror,
+                    isPriorityMirror: IsMirrorStreamPriority,
+                    hasPlot: skillTemplate.Plot != null,
+                    effects: OnSpawnTargetEffectRules.EffectsOf(skillTemplate)))
+                continue;
+
             foreach (var skillEffect in skillTemplate.Effects)
             {
                 if (skillEffect?.Template is not BuffEffect buffEffect || buffEffect.Buff == null)
@@ -1884,19 +1895,21 @@ public partial class Npc : Unit
     /// plot_only, Lusca 29515/29320 plot with plot_only false) so army SpawnEffects fire when
     /// the dedic is silent. When the dedic already fires OnSpawn (e.g. Grimghast), that is the
     /// zone path; World still suppresses WZ skill relay so this fill does not dual-start the
-    /// same graph on the zone. Gated to priority/event mirrors.
+    /// same graph on the zone. <c>plot_only</c> graphs run on every zone mirror; the rest only on
+    /// priority/event mirrors (<see cref="OnSpawnPlotWorldGate"/>).
     /// </summary>
     public void CastOnSpawnPlotSkills()
     {
         if (!WorldIntegration.ZoneAuthority)
             return;
-        if (!IsZoneMirror || !IsMirrorStreamPriority)
+        if (!IsZoneMirror)
             return;
 
         var skills = NpcGameData.Instance.GetNpSkills(TemplateId, SkillUseConditionKind.OnSpawn);
         if (skills == null || skills.Count == 0)
             return;
 
+        var isPriorityMirror = IsMirrorStreamPriority;
         var started = 0;
         foreach (var npcSkill in skills)
         {
@@ -1906,7 +1919,7 @@ public partial class Npc : Unit
             if (!OnSpawnPlotWorldGate.ShouldRun(
                     zoneAuthority: true,
                     isZoneMirror: true,
-                    isPriorityMirror: true,
+                    isPriorityMirror: isPriorityMirror,
                     hasPlot: skill.Template.Plot != null,
                     plotOnly: skill.Template.PlotOnly,
                     directSkillEffectCount: skill.Template.Effects?.Count ?? 0))
@@ -1974,6 +1987,114 @@ public partial class Npc : Unit
         {
             Logger.Info(
                 "OnSpawn plot scheduled bc={0} tpl={1} count={2}",
+                ObjId, TemplateId, started);
+        }
+    }
+
+    /// <summary>
+    /// ZoneAuthority: run an OnSpawn skill whose effects land on another unit (an event start
+    /// script — a plotless, <c>plot_only</c> skill whose area buff is filtered by the target's buff
+    /// tag) through the skill engine, so the effect reaches the skill's own targets.
+    /// </summary>
+    /// <remarks>
+    /// The two visual paths cannot deliver this shape: <see cref="ApplyOnSpawnSkillBuffs"/> puts
+    /// every BuffEffect on the caster, and <see cref="CastOnSpawnPlotSkills"/> needs a plot id. The
+    /// dedicated zone is silent for instance-authored event start NPCs, and the zone relay is
+    /// suppressed so the cast is not doubled back at it. Run once per life, like the plot path.
+    /// Kill: <c>AAEMU_DISABLE_ONSPAWN_TARGET_EFFECTS=1</c>.
+    /// </remarks>
+    public void CastOnSpawnTargetEffectSkills()
+    {
+        if (string.Equals(
+                Environment.GetEnvironmentVariable("AAEMU_DISABLE_ONSPAWN_TARGET_EFFECTS"),
+                "1",
+                StringComparison.Ordinal))
+            return;
+
+        if (!WorldIntegration.ZoneAuthority)
+            return;
+        if (!IsZoneMirror || !IsMirrorStreamPriority)
+            return;
+
+        var skills = NpcGameData.Instance.GetNpSkills(TemplateId, SkillUseConditionKind.OnSpawn);
+        if (skills == null || skills.Count == 0)
+            return;
+
+        var started = 0;
+        foreach (var npcSkill in skills)
+        {
+            var skill = SkillManager.Instance.GetNpSkillTemplate(npcSkill);
+            if (skill?.Template == null)
+                continue;
+            if (!OnSpawnTargetEffectRules.ShouldWorldRun(
+                    zoneAuthority: true,
+                    isZoneMirror: true,
+                    isPriorityMirror: true,
+                    hasPlot: skill.Template.Plot != null,
+                    effects: OnSpawnTargetEffectRules.EffectsOf(skill.Template)))
+                continue;
+
+            if (Cooldowns.CheckCooldown(skill.Id))
+                continue;
+            if (skill.Template.CooldownTime == 0)
+                Cooldowns.AddCooldown(skill.Id, uint.MaxValue);
+
+            // skill_use_param1: delay seconds before the script runs.
+            var delaySec = npcSkill.SkillUseParam1;
+            skill.SuppressZoneSkillRelay = true;
+            var caster = SkillCaster.GetByType(SkillCasterType.Unit);
+            caster.ObjId = ObjId;
+            var target = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+            target.ObjId = ObjId;
+
+            void Fire()
+            {
+                if (Hp <= 0 || !IsVisible)
+                    return;
+                try
+                {
+                    var result = skill.Use(this, caster, target, null, true, out _);
+                    Logger.Info(
+                        "OnSpawn target-effect Use bc={0} tpl={1} skill={2} result={3}",
+                        ObjId, TemplateId, skill.Id, result);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(
+                        ex,
+                        "OnSpawn target-effect failed bc={0} tpl={1} skill={2}",
+                        ObjId, TemplateId, skill.Id);
+                }
+            }
+
+            if (delaySec > 0.01f)
+            {
+                var delay = TimeSpan.FromSeconds(delaySec);
+                _ = System.Threading.Tasks.Task.Run(async () =>
+                {
+                    try
+                    {
+                        await System.Threading.Tasks.Task.Delay(delay).ConfigureAwait(false);
+                        Fire();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn(ex, "OnSpawn target-effect delay fire bc={0} skill={1}", ObjId, skill.Id);
+                    }
+                });
+            }
+            else
+            {
+                Fire();
+            }
+
+            started++;
+        }
+
+        if (started > 0)
+        {
+            Logger.Info(
+                "OnSpawn target-effect scheduled bc={0} tpl={1} count={2}",
                 ObjId, TemplateId, started);
         }
     }

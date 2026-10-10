@@ -6,6 +6,7 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Indun;
+using AAEmu.Game.Models.Game.Indun.Events;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -131,6 +132,11 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
             }
         }
 
+        // Refresh every copy's HUD readouts (0x2D8). The client ticks the time itself between updates, so the
+        // copy's existing coarse cadence is the right place for them.
+        foreach (var worldInstance in worldList)
+            worldInstance.DungeonInstance?.SendPlayingInfoBroadcast();
+
         if (sysInstanceCount + dungeonInstanceCount <= 0)
             return;
         
@@ -224,6 +230,120 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
             character.Name, dungeonZone.ZoneGroupId, dungeonZone.InstanceCatalogId, rows.Count,
             dungeonZone.MaxPlayers);
         return true;
+    }
+
+    /// <summary>
+    /// The instance portals in the world the character is standing in, sent as the world-entry burst opens.
+    /// </summary>
+    /// <remarks>
+    /// The client fills its instance window from this packet and never asks for the list, so a world that does
+    /// not send it leaves the window showing only what the client can work out on its own — which is the
+    /// difference between a window with the instances in it and one with a handful of entries and dead tabs.
+    /// The rows come from the enter-instance doodads of that world: the func names the instance the portal
+    /// leads to, the doodad supplies the zone it stands in and the position the window points at.
+    /// </remarks>
+    /// <param name="character">Who entered the world.</param>
+    /// <returns>The number of portals sent.</returns>
+    public int SendPortalList(Character character)
+    {
+        if (character == null)
+            return 0;
+
+        var world = character.ParentWorld;
+        if (world == null)
+        {
+            Logger.Warn("SendPortalList: {0} has no world to read instance portals from", character.Name);
+            return 0;
+        }
+
+        var doodads = UnitManagers.DoodadManager.Instance;
+        var rows = new List<IndunPortalPoint>();
+        var droppedByRequirement = 0;
+
+        foreach (var doodad in world.GetAllDoodads())
+        {
+            var template = doodad?.Template;
+            if (template == null)
+                continue;
+
+            var position = doodad.Transform.World.Position;
+            foreach (var group in template.FuncGroups)
+            {
+                foreach (var func in doodads.GetFuncsForGroup(group.Id))
+                {
+                    if (!IndunPortalListRules.IsInstancePortalFunc(func.FuncType))
+                        continue;
+
+                    var instanceZone = doodads.GetFuncTemplate(func.FuncId, func.FuncType) switch
+                    {
+                        Models.Game.DoodadObj.Funcs.DoodadFuncEnterInstance enter => enter.ZoneId,
+                        Models.Game.DoodadObj.Funcs.DoodadFuncEnterSysInstance enterSys => enterSys.ZoneId,
+                        _ => 0u
+                    };
+
+                    if (instanceZone == 0)
+                        continue;
+
+                    // Only portals the client's window has an entry for and the character may enter: the
+                    // target has to be a zone we know, it has to be an instance, and the instance's own
+                    // level/gear requirements have to pass. Everything else is a door that goes nowhere.
+                    var targetZone = zoneManager.GetZoneById(instanceZone);
+                    if (targetZone == null)
+                        continue;
+
+                    var dungeon = IndunGameData.Instance.GetDungeonZone(targetZone.GroupId);
+                    if (dungeon == null)
+                        continue;
+
+                    if (!IndunPortalListRules.CanEnter(
+                            dungeon.LevelMin, dungeon.LevelMax, dungeon.GearScore,
+                            character.Level, character.GearScore))
+                    {
+                        droppedByRequirement++;
+                        Logger.Debug(
+                            "SendPortalList: zoneGroup={0} dropped for char={1} (level {2} of {3}~{4}, gear {5} of {6})",
+                            targetZone.GroupId, character.Name, character.Level,
+                            dungeon.LevelMin, dungeon.LevelMax, character.GearScore, dungeon.GearScore);
+                        continue;
+                    }
+
+                    // The window keys every entry by zone GROUP, not by zone: its Lua pulls the list from
+                    // X2Indun:GetIndunList() and looks each row up with FillContent(zoneGroup). A zone id
+                    // there resolves to nothing, so the row is dropped and the window looks untouched.
+                    var portalZone = zoneManager.GetZoneById(doodad.Transform.ZoneId);
+                    if (portalZone == null)
+                        continue;
+
+                    rows.Add(new IndunPortalPoint(
+                        targetZone.GroupId, portalZone.GroupId, position.X, position.Y, position.Z));
+                }
+            }
+        }
+
+        var portals = IndunPortalListRules.Build(rows);
+        character.SendPacket(new SCIndunPortalsPacket(portals));
+
+        if (portals.Count == 0)
+        {
+            // Loud on purpose: a world that finds no instance portal doodads advertises an empty window on
+            // the client, which is indistinguishable from the client ignoring the packet. Warn reaches the
+            // file log; Info does not.
+            Logger.Warn("SendPortalList char={0} world={1} found no instance portal doodads",
+                character.Name, world.Id);
+        }
+        else
+        {
+            Logger.Info("SendPortalList char={0} world={1} portals={2}",
+                character.Name, world.Id, portals.Count);
+        }
+
+        // The character's own numbers ride along: the window's Enter gate is a level / equipment-points
+        // check, so a refusal has to be readable without guessing which of the two failed.
+        Logger.Info(
+            "SendPortalList char={0} world={1} level={2} gearScore={3} portals={4} droppedByRequirement={5}",
+            character.Name, world.Id, character.Level, character.GearScore, portals.Count, droppedByRequirement);
+
+        return portals.Count;
     }
 
     /// <summary>The copies of an instance that exist now, each with whether a host is serving it.</summary>
@@ -923,6 +1043,32 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
         }
     }
 
+    /// <summary>
+    /// Fans one zone-score change out to the copy's authored <c>indun_event_zone_score_level_changeds</c>
+    /// rows. The copy's own score runtime is the only thing that knows a level moved, so it calls this with
+    /// the change it applied; every row of the copy's zone group that the move satisfies runs its chain.
+    /// A move that changes no level runs nothing.
+    /// </summary>
+    public void DoZoneScoreLevelChangedEvents(WorldInstance worldInstance, ZoneScoreApplication application)
+    {
+        var dungeon = worldInstance?.DungeonInstance;
+        if (dungeon == null || !application.LevelChanged)
+            return;
+
+        var zoneGroupId = dungeon.GetZoneGroupId;
+        foreach (var indunEvent in IndunGameData.Instance.GetIndunEvents(zoneGroupId))
+        {
+            if (indunEvent is not IndunEventZoneScoreLevelChangeds scoreEvent || !scoreEvent.Matches(application))
+                continue;
+
+            Logger.Debug(
+                "IndunEventZoneScoreLevelChanged {0}: kind {1} level {2}->{3} (way {4}) in world {5}",
+                scoreEvent.Id, application.KindId, application.PreviousLevel, application.Level,
+                scoreEvent.ChangeWay, worldInstance.Id);
+            DoIndunActions(scoreEvent.StartActionId, worldInstance);
+        }
+    }
+
     /// <summary>H-window difficulty picks (CSSelectInstanceDifficultPacket) made outside a copy, by character id.</summary>
     private Dictionary<uint, byte> SelectedDifficult { get; } = [];
 
@@ -1230,6 +1376,37 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
         if (!PermitBonusCount.TryGetValue(characterId, out var byZone))
             return 0;
         return byZone.GetValueOrDefault(zoneGroupId);
+    }
+
+    /// <summary>
+    /// GM/ops: forget a character's daily dungeon entry history, so the visit cap stops blocking
+    /// (the gate behind <c>ErrorMessageType.InstanceVisitLimit</c>).
+    /// </summary>
+    /// <param name="characterId">Whose history to drop.</param>
+    /// <param name="zoneGroupId">A single zone group, or 0 to clear every group for that character.</param>
+    /// <returns>How many entry timestamps were dropped.</returns>
+    public int ClearEntryHistory(uint characterId, uint zoneGroupId)
+    {
+        lock (_lock)
+        {
+            if (!EntryHistory.TryGetValue(characterId, out var byZone))
+                return 0;
+
+            if (zoneGroupId != 0)
+            {
+                var dropped = byZone.TryGetValue(zoneGroupId, out var one) ? one.RemoveAll(_ => true) : 0;
+                Logger.Info("ClearEntryHistory character={0} zoneGroup={1} dropped={2}",
+                    characterId, zoneGroupId, dropped);
+                return dropped;
+            }
+
+            var total = 0;
+            foreach (var entries in byZone.Values)
+                total += entries.Count;
+            byZone.Clear();
+            Logger.Info("ClearEntryHistory character={0} all zone groups, dropped={1}", characterId, total);
+            return total;
+        }
     }
 
     private void InfoAttempt()

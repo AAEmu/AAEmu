@@ -58,6 +58,22 @@ public static partial class ZoneDoodadPlacementCatalog
         return matched ?? [];
     }
 
+    /// <summary>Every placement in a world's cells (empty when root/files missing).</summary>
+    public static IReadOnlyList<DoodadPlacement> GetAll(string worldName)
+    {
+        if (string.IsNullOrWhiteSpace(worldName))
+            return [];
+
+        var index = GetIndex(worldName);
+        if (index.Count == 0)
+            return [];
+
+        var all = new List<DoodadPlacement>();
+        foreach (var list in index.Values)
+            all.AddRange(list);
+        return all;
+    }
+
     public static void Invalidate(string? worldName = null)
     {
         if (string.IsNullOrWhiteSpace(worldName))

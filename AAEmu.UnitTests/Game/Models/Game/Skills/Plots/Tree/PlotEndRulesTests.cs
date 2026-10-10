@@ -58,4 +58,14 @@ public class PlotEndRulesTests
         await Assert.That(PlotEndRules.OwnsSkillEnd(plotOnly: false, forcePlotGraphOnly: true)).IsTrue();
         await Assert.That(PlotEndRules.OwnsSkillEnd(plotOnly: false, forcePlotGraphOnly: false)).IsFalse();
     }
+
+    [Test]
+    public async Task RelaysPlotEndToZone_OnlyForAPlotWhoseEventsReachedAZone()
+    {
+        await Assert.That(PlotEndRules.RelaysPlotEndToZone(zoneEventsRelayed: true, castTlId: 2540)).IsTrue();
+        // A plot the zone never saw has nothing to close there.
+        await Assert.That(PlotEndRules.RelaysPlotEndToZone(zoneEventsRelayed: false, castTlId: 2540)).IsFalse();
+        // Timeline 0 names no cast, so it cannot close one either.
+        await Assert.That(PlotEndRules.RelaysPlotEndToZone(zoneEventsRelayed: true, castTlId: 0)).IsFalse();
+    }
 }

@@ -34,6 +34,19 @@ public class LevelPackDoodadRulesTests
     }
 
     [Test]
+    public async Task ShouldAuthorInCopy_EveryRowExceptTowerIgnoreOrSchedule()
+    {
+        await Assert.That(LevelPackDoodadRules.ShouldAuthorInCopy(
+            towerAlmighty: false, ignoredPermanent: false, scheduledEvent: false)).IsTrue();
+        await Assert.That(LevelPackDoodadRules.ShouldAuthorInCopy(
+            towerAlmighty: true, ignoredPermanent: false, scheduledEvent: false)).IsFalse();
+        await Assert.That(LevelPackDoodadRules.ShouldAuthorInCopy(
+            towerAlmighty: false, ignoredPermanent: true, scheduledEvent: false)).IsFalse();
+        await Assert.That(LevelPackDoodadRules.ShouldAuthorInCopy(
+            towerAlmighty: false, ignoredPermanent: false, scheduledEvent: true)).IsFalse();
+    }
+
+    [Test]
     public async Task Plan_3901Pad_TakesEhnoirFeosExtras_SkipsIgnored()
     {
         var wanted = new HashSet<uint> { 14226, 14227, 14228 };

@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -13,6 +13,10 @@ using AAEmu.Game.Models.Game.Indun.Matching;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.InstantGame;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Utils;
 
 using NLog;
@@ -39,6 +43,32 @@ public class Dungeon : IPreparedIndunInstance
     /// </summary>
     public WorldInstance World { get; set; }
     private readonly ZoneInstanceId _zoneInstanceId;
+    /// <summary>
+    /// This copy's zone key (<c>ZoneKeys[0]</c>) — what the World's zone registry indexes the copy's host
+    /// by, together with <c>World.Id</c>. 0 when the zone group has no zone key (the copy never loads).
+    /// </summary>
+    private uint _zoneKey;
+    /// <summary>Set once the copy's authored <c>tower_defs</c> run has been started on its host.</summary>
+    private bool _instanceScriptStarted;
+    /// <summary>Throttles the "host refused the start" warning so a slow host does not fill the log.</summary>
+    private bool _instanceScriptRefusedLogged;
+    /// <summary>Last phase the copy logged, so each transition is reported once.</summary>
+    private IndunInstancePhase _lastPhase = IndunInstancePhase.None;
+    /// <summary>
+    /// UTC moment the copy's first player was placed inside it; null while the copy is still empty. The
+    /// copy's ready/play/end clock runs from here, not from creation, so an invite that sits unaccepted
+    /// cannot burn the copy's budgets.
+    /// </summary>
+    private DateTime? _copyStartUtc;
+    /// <summary>Characters admitted through a match whose client is waiting to be told it has joined this copy.</summary>
+    private readonly HashSet<uint> _matchedEntries = [];
+    /// <summary>Matched players being walked through the copy's opening, by character id.</summary>
+    private readonly Dictionary<uint, IndunOpeningStage> _openings = new();
+
+    private static readonly TimeSpan ReadoutUnitSearchInterval = TimeSpan.FromSeconds(5);
+    private List<Npc> _readoutUnits;
+    private DateTime _readoutUnitsSearchedAt;
+    private string _lastReadoutShape;
     public readonly IndunZone _indunZone;
     // unused private List<Character> _teleportList;
     private readonly ConcurrentDictionary<uint, DateTime> _leaveRequests;
@@ -52,6 +82,13 @@ public class Dungeon : IPreparedIndunInstance
     private readonly Dictionary<uint, bool> _rooms;
     /// <summary>Round counter for zone groups with indun_rounds rows (125, 126, 130); inert (TotalRounds 0) elsewhere.</summary>
     public IndunRoundState Rounds { get; }
+
+    /// <summary>
+    /// The copy's zone scores, one entry per <c>zone_score_kinds</c> row whose content names this zone
+    /// group. A level move on it fires the zone group's authored zone-score events (see
+    /// <see cref="OnZoneScoreChanged"/>); a zone group with no such kinds stays an empty table.
+    /// </summary>
+    public ZoneScoreRuntime ZoneScores { get; }
     /// <summary>The H-window difficulty applied to this copy; null until a pick reaches it.</summary>
     public byte? Difficult { get; private set; }
     private readonly IndunDifficultySelectionState _difficultySelection = new();
@@ -72,6 +109,20 @@ public class Dungeon : IPreparedIndunInstance
     public Team.Team GetOwnerTeam { get => _ownerTeam; }
     public uint GetZoneGroupId { get => _indunZone.ZoneGroupId; }
     public uint GetInstanceCatalogId { get => _indunZone.InstanceCatalogId; }
+    /// <summary>The zone and world instance that identify this copy on the instant-game packets.</summary>
+    public ZoneInstanceId ZoneInstance => _zoneInstanceId;
+
+    /// <summary>
+    /// Records that <paramref name="character"/> enters through a match: its client accepted this copy's
+    /// invite, so once its load is done it is told it has joined rather than handed a running copy.
+    /// </summary>
+    public void ExpectMatchedEntry(Character character)
+    {
+        if (character == null)
+            return;
+        lock (_lock)
+            _matchedEntries.Add(character.Id);
+    }
 
     /// <summary>
     /// Logical reward-run identity. The default is a live-copy key and is intentionally not a
@@ -120,6 +171,13 @@ public class Dungeon : IPreparedIndunInstance
         _leaveRequests = new ConcurrentDictionary<uint, DateTime>();
         _rooms = [];
         Rounds = new IndunRoundState(IndunGameData.Instance.GetRounds(indunZone.ZoneGroupId));
+        // The copy's own zone scores. Every level move on it is what the zone group's authored
+        // indun_event_zone_score_level_changeds rows (scenery and round chains) hang on, and the copy's
+        // players see each move through SCZoneScoreUpdatePacket.
+        ZoneScores = new ZoneScoreRuntime(
+            indunZone.ZoneGroupId, FactionScoringGameData.Instance, new MySqlZoneScoreRuntimeStore());
+        ZoneScores.ScoreChanged += OnZoneScoreChanged;
+        ZoneScores.Load();
 
         _isTeamOwned = team != null;
         _ownerTeam = team;
@@ -158,6 +216,7 @@ public class Dungeon : IPreparedIndunInstance
             ? $"live:{_liveRewardRunEpoch}:{Interlocked.Increment(ref _liveRewardRunSequence)}:{World.Id}:{_indunZone.InstanceCatalogId}:{_indunZone.ZoneGroupId}"
             : rewardRunId;
         _zoneInstanceId = new ZoneInstanceId(zoneKeys.First(), World.Id);
+        _zoneKey = zoneKeys.First();
 
         // Grant access here. The manager queues the player once so the create dialog is not stacked.
         if (character != null)
@@ -197,6 +256,121 @@ public class Dungeon : IPreparedIndunInstance
 
     /// <inheritdoc />
     public bool IsReady => FinishedLoading;
+
+    /// <summary>
+    /// The copy's phase, from its <c>indun_zones.option</c> budget and the moment its first player arrived:
+    /// ready ("wait time") → play → end → finished. A copy with nobody inside yet — or with no budget — is
+    /// <see cref="IndunInstancePhase.None"/>.
+    /// </summary>
+    public IndunInstancePhase InstancePhase
+    {
+        get
+        {
+            if (!IndunInstancePhaseRules.TryGetClockOrigin(_copyStartUtc, out var origin))
+                return IndunInstancePhase.None;
+            return IndunInstancePhaseRules.PhaseAt(_indunZone.Option, origin, DateTime.UtcNow);
+        }
+    }
+
+    /// <summary>Whole seconds left in the copy's current phase; 0 when it has no clock or has finished.</summary>
+    public int PhaseSecondsRemaining =>
+        IndunInstancePhaseRules.TryGetClockOrigin(_copyStartUtc, out var origin)
+            ? IndunInstancePhaseRules.SecondsRemaining(_indunZone.Option, origin, DateTime.UtcNow)
+            : 0;
+
+    /// <summary>
+    /// Drives the copy's phase clock: logs each phase change (ready → play → end → finished) and starts the
+    /// copy's authored <c>tower_defs</c> run once, at the end of the ready ("wait time") window.
+    /// </summary>
+    private void TickInstanceScript()
+    {
+        var option = _indunZone.Option;
+        if (!option.IsScripted)
+            return;
+
+        // Nothing is running while nobody is inside: the clock starts with the first arrival.
+        if (!IndunInstancePhaseRules.TryGetClockOrigin(_copyStartUtc, out var copyStart))
+            return;
+
+        var now = DateTime.UtcNow;
+        var phase = IndunInstancePhaseRules.PhaseAt(option, copyStart, now);
+        if (phase != _lastPhase)
+        {
+            _lastPhase = phase;
+            Logger.Info(
+                "[{0}] instance phase → {1} ({2}s left of this phase)",
+                World, phase, IndunInstancePhaseRules.SecondsRemaining(option, copyStart, now));
+        }
+
+        // Claim before calling out: a per-second tick and an arrival can both reach this at once, and the
+        // run must start exactly once.
+        if (_instanceScriptStarted || _zoneKey == 0 || World == null)
+            return;
+        if (!IndunInstancePhaseRules.ShouldStartScript(
+                option, FinishedLoading, _instanceScriptStarted, copyStart, now))
+            return;
+        var start = WorldIntegration.StartInstanceTowerDef;
+        if (start == null)
+            return;
+
+        _instanceScriptStarted = true;
+        var started = start(_zoneKey, World.Id, option.TowerDefId, (ushort)_indunZone.ZoneGroupId);
+        if (started)
+        {
+            Logger.Info(
+                "[{0}] instance script: tower_def {1} started on zone {2}/{3}",
+                World, option.TowerDefId, _zoneKey, World.Id);
+            return;
+        }
+
+        _instanceScriptStarted = false; // the host is not loaded yet; retry on the next tick
+        if (!_instanceScriptRefusedLogged)
+        {
+            _instanceScriptRefusedLogged = true;
+            Logger.Warn(
+                "[{0}] instance script: tower_def {1} refused by zone {2}/{3}; retrying until the host answers",
+                World, option.TowerDefId, _zoneKey, World.Id);
+        }
+    }
+
+    /// <summary>
+    /// Starts the copy's clock the first time a player is handed the copy after their load.
+    /// </summary>
+    /// <remarks>
+    /// The clock is anchored to the arrival, not to the copy's creation or the load: a player who takes
+    /// their time accepting the entry invite, or loading, must not burn the copy's ready and play budgets
+    /// before they can see it. The first arrival is the copy's start; later arrivals join a clock already
+    /// running.
+    /// </remarks>
+    private void AnchorCopyClock(Character character)
+    {
+        if (_copyStartUtc != null)
+            return;
+
+        _copyStartUtc = DateTime.UtcNow;
+        Logger.Info($"[{World}] instance clock started on {character?.Name ?? "?"}'s arrival");
+        // A copy whose ready budget is zero starts its script right here, without waiting for the tick.
+        lock (_lock)
+        {
+            TickInstanceScript();
+        }
+    }
+
+    /// <summary>
+    /// Ends the copy's authored <c>tower_defs</c> run so its World-authored units do not outlive the copy.
+    /// </summary>
+    private void StopInstanceScript()
+    {
+        if (!_instanceScriptStarted || _zoneKey == 0 || World == null)
+            return;
+
+        _instanceScriptStarted = false;
+        var stopped = WorldIntegration.EndInstanceTowerDef?.Invoke(
+            _zoneKey, World.Id, _indunZone.Option.TowerDefId) == true;
+        if (stopped)
+            Logger.Info("[{0}] instance script: tower_def {1} stopped with the copy",
+                World, _indunZone.Option.TowerDefId);
+    }
 
     /// <inheritdoc />
     public void Discard()
@@ -315,10 +489,33 @@ public class Dungeon : IPreparedIndunInstance
     private bool RemovePlayer(Character character)
     {
         if (character == null) { return false; }
+        DespawnPlayerSummons(character);
         lock (_lock)
         {
             return World.RemoveObject(character);
         }
+    }
+
+    /// <summary>
+    /// Player-summoned companions stay in the copy they were created in. Leaving without a
+    /// dismiss leaves them standing at that summon point — retire them with the leaver.
+    /// </summary>
+    private void DespawnPlayerSummons(Character character)
+    {
+        if (World == null || character.Id == 0)
+            return;
+
+        List<Npc> victims;
+        lock (_lock)
+        {
+            victims = World.GetAllNpcs()
+                .Where(npc => SummonCompanionRules.IsPlayerSummonedCompanion(
+                    npc.IsWorldAuthored, npc.OwnerId, character.Id))
+                .ToList();
+        }
+
+        foreach (var npc in victims)
+            WorldIntegration.DeleteNpcMirror(npc, notifyZone: true);
     }
 
     /// <summary>
@@ -388,6 +585,10 @@ public class Dungeon : IPreparedIndunInstance
         TickManager.Instance.OnTick.UnSubscribe(LeaveDungeonTick);
         TickManager.Instance.OnTick.UnSubscribe(AreaClearTick);
 
+        // Stop the copy's authored tower_defs run before its host goes away, so the World-authored units
+        // it left behind do not stick around after the copy is gone.
+        StopInstanceScript();
+
         WorldIntegration.StopInstanceZoneHost?.Invoke(World.Id);
         WorldManager.Instance.RemoveWorld(World.Id);
         // Cleans the instance up and returns the instance Id to the pool
@@ -404,39 +605,14 @@ public class Dungeon : IPreparedIndunInstance
     /// <param name="character"></param>
     private void MoveCharacterToSystemInstance(Character character)
     {
-        // we take the coordinates of the zone
-        foreach (var wz in World.Template.XmlWorldZones.Values)
+        if (!PlaceCharacterAtInstanceSpawn(character))
         {
-            if (wz.Id == _zoneInstanceId.ZoneId)
-            {
-                World.Template.SpawnPosition = wz.SpawnPosition;
-                break;
-            }
-        }
-        if (World.Template.SpawnPosition != null)
-        {
-            character.DisabledSetPosition = true;
-            RememberMainWorldReturn(character);
-            character.Transform.ApplyWorldSpawnPosition(World.Template.SpawnPosition, World.Id);
-            character.SendPacket(
-                new SCLoadInstancePacket(
-                    World.Id,
-                    _zoneInstanceId.ZoneId,
-                    World.Template.SpawnPosition.X,
-                    World.Template.SpawnPosition.Y,
-                    World.Template.SpawnPosition.Z,
-                World.Template.SpawnPosition.Roll.DegToRad(),
-                World.Template.SpawnPosition.Pitch.DegToRad(),
-                World.Template.SpawnPosition.Yaw.DegToRad()));
-
-            character.Events.OnDungeonLeave += OnDungeonLeave;
-            character.Events.OnDisconnect += OnDisconnect;
-        }
-        else
-        {
-            Logger.Info($"World #{World.Id}, not have default spawn position.");
             character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
+            return;
         }
+
+        character.Events.OnDungeonLeave += OnDungeonLeave;
+        character.Events.OnDisconnect += OnDisconnect;
     }
 
     /// <summary>
@@ -506,43 +682,105 @@ public class Dungeon : IPreparedIndunInstance
     /// <param name="character"></param>
     private void MoveCharacterToDungeon(Character character)
     {
-        // we take the coordinates of the zone
+        if (!PlaceCharacterAtInstanceSpawn(character))
+        {
+            character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
+            return;
+        }
+
+        character.Events.OnTeamJoin += OnTeamJoin;
+        character.Events.OnTeamKick += OnTeamLeave;
+        character.Events.OnTeamLeave += OnTeamLeave;
+        character.Events.OnDungeonLeave += OnDungeonLeave;
+        character.Events.OnDisconnect += OnDisconnect;
+    }
+
+    /// <summary>
+    /// Places the character at this copy's arrival point and sends the instance load. Returns false and
+    /// reports when the copy has no arrival point to use.
+    /// </summary>
+    private bool PlaceCharacterAtInstanceSpawn(Character character)
+    {
+        var spawn = ResolveArrivalSpawn();
+        if (spawn == null)
+        {
+            // Loud on purpose: without an arrival point the client is left at the zone origin, which is
+            // under the map, and a silent Info hid that. Reaches the file log as a warning.
+            Logger.Warn(
+                "World #{0} has no arrival spawn for zone {1} (no spawn_point.g and no world_spawns entry)",
+                World.Id, _zoneInstanceId.ZoneId);
+            return false;
+        }
+
+        character.DisabledSetPosition = true;
+        RememberMainWorldReturn(character);
+        // The copy's zone is applied explicitly: a template spawn carries no zone of its own, and the
+        // World routes the entering character by the zone on this transform.
+        character.Transform.ApplyInstanceSpawnPosition(spawn, _zoneInstanceId.ZoneId, World.Id);
+        // The instance's level authors its own fixed time-of-day. The client force-applies lighting
+        // from the first hour it is handed after the load opens, so bind that hour here — the zone's
+        // later report only eases and left the instance lit by the open-world clock.
+        WorldIntegration.BindInstanceTimeOfDayBeforeLoad?.Invoke(character, World.Template.Name, _zoneInstanceId.ZoneId);
+        character.SendPacket(
+            new SCLoadInstancePacket(
+                World.Id,
+                _zoneInstanceId.ZoneId,
+                spawn.X,
+                spawn.Y,
+                spawn.Z,
+                spawn.Roll.DegToRad(),
+                spawn.Pitch.DegToRad(),
+                spawn.Yaw.DegToRad()));
+        // The load packet alone carries the crossing. A unit-teleport sent with it is acted on in the world
+        // the client is still in: it jumps there to the copy's coordinates, drops and re-requests that
+        // world's cells, and only then loads the copy — the hitch on every entry and leave.
+        // The copy's clock does not start here: the player is still on the loading screen. It starts with
+        // the hand-over once the load is done (SendDungeonEntryHandshake).
+        return true;
+    }
+
+    /// <summary>
+    /// The spot a player arrives at inside this copy.
+    /// </summary>
+    /// <remarks>
+    /// The zone's own <c>spawn_point.g</c> is the level pack's authored arrival point and wins. The world
+    /// template's spawn is the older hand-kept table (<c>world_spawns.json</c>), which has no row for most
+    /// instances; it is used only when the level file is absent. Neither carries the zone, so the caller
+    /// applies <see cref="_zoneInstanceId"/>. Returns null when the copy has no arrival point at all.
+    /// </remarks>
+    private WorldSpawnPosition ResolveArrivalSpawn()
+    {
+        if (ZoneSpawnPointGCatalog.TryGetZoneSpawn(World.Template.Name, _zoneInstanceId.ZoneId, out var authored))
+        {
+            // The file is zone-local, the transform the World streams is continent: shift by the zone's
+            // origin cell or the arrival lands in a cell this zone does not occupy (empty level).
+            var origin = ZoneManager.Instance.GetZoneOriginCell(_zoneInstanceId.ZoneId);
+            var world = ZoneSpawnPointFileRules.ToWorldCoordinates(
+                origin.X, origin.Y, authored.X, authored.Y, authored.Z);
+            return new WorldSpawnPosition
+            {
+                WorldId = World.Template.Id,
+                ZoneId = _zoneInstanceId.ZoneId,
+                X = world.X,
+                Y = world.Y,
+                Z = world.Z,
+                Yaw = ZoneSpawnPointFileRules.YawDegreesFromZRot(authored.ZRotRadians)
+            };
+        }
+
+        // Legacy: the hand-kept table's row for this zone, when the level pack has no spawn_point.g.
         foreach (var wz in World.Template.XmlWorldZones.Values)
         {
-            if (wz.Id == _zoneInstanceId.ZoneId)
-            {
-                World.Template.SpawnPosition = wz.SpawnPosition;
-                break;
-            }
+            if (wz.Id == _zoneInstanceId.ZoneId && wz.SpawnPosition != null && !IsUnplaced(wz.SpawnPosition))
+                return wz.SpawnPosition;
         }
-        if (World.Template.SpawnPosition != null)
-        {
-            character.DisabledSetPosition = true;
-            RememberMainWorldReturn(character);
-            character.Transform.ApplyWorldSpawnPosition(World.Template.SpawnPosition, World.Id);
-            character.SendPacket(
-                new SCLoadInstancePacket(
-                    World.Id,
-                    _zoneInstanceId.ZoneId,
-                    World.Template.SpawnPosition.X,
-                    World.Template.SpawnPosition.Y,
-                    World.Template.SpawnPosition.Z,
-                World.Template.SpawnPosition.Roll.DegToRad(),
-                World.Template.SpawnPosition.Pitch.DegToRad(),
-                World.Template.SpawnPosition.Yaw.DegToRad()));
 
-            character.Events.OnTeamJoin += OnTeamJoin;
-            character.Events.OnTeamKick += OnTeamLeave;
-            character.Events.OnTeamLeave += OnTeamLeave;
-            character.Events.OnDungeonLeave += OnDungeonLeave;
-            character.Events.OnDisconnect += OnDisconnect;
-        }
-        else
-        {
-            Logger.Info($"World #{World.Id}, does not have default spawn position.");
-            character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
-        }
+        return null;
     }
+
+    /// <summary>True for a spawn row that was never filled in (the WorldSpawnLookups default).</summary>
+    private static bool IsUnplaced(WorldSpawnPosition position) =>
+        position.X == 0f && position.Y == 0f && position.Z == 0f;
 
     /// <summary>
     /// Moves player out of the instanced dungeon world.
@@ -846,6 +1084,140 @@ public class Dungeon : IPreparedIndunInstance
         }
 
         BroadcastToPlayers(new SCIndunRoundPlayStatusPacket(playing, success, IndunRoundRules.ToWireRound(round), nextRoundBoss, showUi));
+
+        // The round's own limit travels separately (0x2DA): a round with an authored `indun_rounds.timer`
+        // reports it so the client draws the countdown - zone group 130's "until dawn" is this timer.
+        (uint limit, uint play, bool isTimeLimit) timer;
+        lock (_lock)
+        {
+            timer = Rounds.RoundTimer(DateTime.UtcNow);
+        }
+
+        BroadcastToPlayers(new SCIndunUpdateRoundInfoPacket(
+            IndunRoundRules.ToWireRound(round), timer.limit, timer.play, timer.isTimeLimit, nextRoundBoss));
+
+        // The copy's players were told it was not playing yet (0x2D9 with playing=false), and that packet
+        // is what the client opens its round HUD on, so the first round going live is told the same way.
+        if (IndunRoundRules.OpensFirstRound(roundAlarmKindId, round))
+        {
+            BroadcastToPlayers(new SCIndunInitialRoundInfoPacket(
+                IndunRoundRules.ToWireRound(round), IndunRoundRules.ToWireRound(Rounds.TotalRounds), playing));
+        }
+    }
+
+    /// <summary>
+    /// Hands the copy over to a client whose loading screen has closed, starts the copy's clock on the first
+    /// arrival, and sends the copy's round and HUD readouts.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A player who entered through a match, into a copy with a ready window, is told it has joined
+    /// (<c>SCInstantGameJoinedPacket</c>): the client shows its standby banner and takes down the queue's
+    /// standby button. The copy's tick then walks them through ready (the wait countdown) and start (the
+    /// HUD) — see <see cref="AdvanceOpenings"/>. Each of those is accepted only from the stage before, and
+    /// the client was put at the first one by accepting this copy's invite.
+    /// </para>
+    /// <para>
+    /// Anyone else is handed the copy as already running with <c>SCInstantGameReentryPacket</c> (0x1E7),
+    /// which takes the client straight to the started state. That packet also re-applies the instance UI
+    /// permissions and replays the client's leaving-the-loading-screen handlers, so it is sent once, here,
+    /// and never before the load as well.
+    /// </para>
+    /// <para>
+    /// The client drops UI events raised while its loading screen is up, so this must not run from the
+    /// load itself. The caller sends it once the client reports it has left the loading screen (its
+    /// re-entry check).
+    /// </para>
+    /// </remarks>
+    public void SendDungeonEntryHandshake(Character character)
+    {
+        if (character == null)
+            return;
+
+        AnchorCopyClock(character);
+
+        bool opening;
+        lock (_lock)
+        {
+            opening = _matchedEntries.Remove(character.Id) && IndunOpeningRules.UsesOpening(_indunZone.Option);
+            if (opening)
+                _openings[character.Id] = IndunOpeningStage.Joined;
+        }
+
+        if (opening)
+        {
+            character.SendPacket(new SCInstantGameJoinedPacket(_zoneInstanceId, InstantGameWireContract.NoBattleFieldType));
+            Logger.Info($"[{World}] {character.Name} joined the copy; opening with standby");
+        }
+        else
+        {
+            character.SendPacket(new SCInstantGameReentryPacket(
+                _zoneInstanceId,
+                GetInstanceCatalogId,
+                InstantGameWireContract.NoBattleFieldType,
+                ClockOriginUnixSeconds()));
+        }
+
+        SendInitialRoundInfo(character);
+        SendPlayingInfo(character);
+    }
+
+    /// <summary>
+    /// The copy's clock origin in unix seconds; now while the copy has no clock yet. Seconds, because the
+    /// client adds the option's ready / play / end seconds to it and counts down against its own seconds
+    /// clock — milliseconds read as a countdown millions of seconds away.
+    /// </summary>
+    private long ClockOriginUnixSeconds() =>
+        IndunInstancePhaseRules.TryGetClockOrigin(_copyStartUtc, out var origin)
+            ? new DateTimeOffset(DateTime.SpecifyKind(origin, DateTimeKind.Utc)).ToUnixTimeSeconds()
+            : Helpers.UnixTimeNow();
+
+    /// <summary>
+    /// Walks every matched player one step through the copy's opening: ready once they have seen the
+    /// standby banner, start once the ready window is over. The ready packet carries the copy's clock
+    /// origin, so the client counts the same ready window the copy runs; the start carries the moment the
+    /// play phase began. Players who left the copy are dropped.
+    /// </summary>
+    private void AdvanceOpenings()
+    {
+        if (_openings.Count == 0 || World == null)
+            return;
+        if (!IndunInstancePhaseRules.TryGetClockOrigin(_copyStartUtc, out var clockOrigin))
+            return;
+
+        var option = _indunZone.Option;
+        var phase = IndunInstancePhaseRules.PhaseAt(option, clockOrigin, DateTime.UtcNow);
+        var origin = ClockOriginUnixSeconds();
+        var playStart = origin + Math.Max(0, option.ReadySeconds);
+
+        foreach (var (characterId, stage) in _openings.ToArray())
+        {
+            var character = WorldManager.Instance.GetCharacterById(characterId);
+            if (character == null || !World.HasCharacter(characterId))
+            {
+                _openings.Remove(characterId);
+                continue;
+            }
+
+            var step = IndunOpeningRules.Next(stage, phase);
+            if (step.SendReady)
+                character.SendPacket(new SCInstantGameReadyPacket(
+                    _zoneInstanceId, InstantGameWireContract.NoBattleFieldType, origin));
+            if (step.SendStart)
+            {
+                character.SendPacket(new SCInstantGameStartPacket(
+                    _zoneInstanceId, playStart, (uint)IndunRoundRules.ToWireRound(Rounds.CurrentRound)));
+                SendPlayingInfo(character);
+            }
+
+            if (step.Stage == IndunOpeningStage.Started)
+                _openings.Remove(characterId);
+            else
+                _openings[characterId] = step.Stage;
+
+            if (step.SendReady || step.SendStart)
+                Logger.Info($"[{World}] {character.Name} opening → {step.Stage} (phase {phase})");
+        }
     }
 
     /// <summary>SCIndunInitialRoundInfoPacket (0x2D9) on instance load, so a relog sees the live counter.</summary>
@@ -864,6 +1236,252 @@ public class Dungeon : IPreparedIndunInstance
         }
 
         character.SendPacket(new SCIndunInitialRoundInfoPacket(current, total, playing));
+
+        // A relog mid-round has to see the round's limit too, or the countdown disappears until the next alarm.
+        if (playing)
+        {
+            var timer = Rounds.RoundTimer(DateTime.UtcNow);
+            character.SendPacket(new SCIndunUpdateRoundInfoPacket(
+                current, timer.LimitSeconds, timer.PlaySeconds, timer.IsTimeLimitRound, Rounds.NextRoundIsBoss));
+        }
+    }
+
+    /// <summary>
+    /// Builds the copy's HUD readout (SCIndunPlayingInfoBroadcastingPacket, 0x2D8): one row per
+    /// <c>indun_event_npc_info_broadcastings</c> row of this zone group, read live from that npc's buff, plus
+    /// the copy's gain rules. Everything comes from the loaded tables, so a zone group that authors these
+    /// readouts gets them with no per-instance code.
+    /// </summary>
+    /// <summary>
+    /// The units a copy's HUD readouts may be read from: the copy's own npcs plus every zone mirror that
+    /// belongs to the copy's zone.
+    /// </summary>
+    /// <remarks>
+    /// A zone's units are mirrored into the world that owned the zone when they spawned, which for a
+    /// dungeon copy is the copy's <see cref="WorldInstance"/> — but a mirror can also be filed in the
+    /// world that resolved at spawn time, and the readout must not depend on which of the two it landed
+    /// in. Both sources are searched, keyed by object id so a unit present in both is one entry.
+    /// </remarks>
+    /// <summary>
+    /// The units a copy's HUD readouts may be read from: the copy's own npcs plus every zone mirror that
+    /// belongs to the copy.
+    /// </summary>
+    /// <remarks>
+    /// A zone's units are mirrored into the world that owned the zone when they spawned — but a mirror can
+    /// also be filed elsewhere, so the pool takes both the copy's own list and every mirror whose transform
+    /// names this copy, by instance id where the zone id is not enough. Both sources are searched, keyed by
+    /// object id so a unit present in both is one entry.
+    /// </remarks>
+    private List<Npc> FindReadoutUnits(List<Npc> copyNpcs)
+    {
+        var zoneId = _zoneInstanceId.ZoneId;
+        var instanceId = World?.Id ?? 0u;
+        var units = new List<Npc>(copyNpcs ?? []);
+        var seen = new HashSet<uint>();
+        foreach (var unit in units)
+        {
+            if (unit != null)
+                seen.Add(unit.ObjId);
+        }
+
+        var mirrors = 0;
+        foreach (var other in WorldManager.Instance.GetWorlds() ?? [])
+        {
+            foreach (var npc in other.GetAllNpcs())
+            {
+                if (npc is not { IsZoneMirror: true })
+                    continue;
+
+                var transform = npc.Transform;
+                var belongsToCopy = transform != null &&
+                                    ((instanceId != 0 && transform.InstanceId == instanceId) ||
+                                     (zoneId != 0 && transform.ZoneId == zoneId));
+                if (!belongsToCopy)
+                    continue;
+
+                mirrors++;
+                if (seen.Add(npc.ObjId))
+                    units.Add(npc);
+            }
+        }
+
+        // The pool is reported once per refresh: a readout with no unit behind it has to be readable as
+        // "the unit is not here" rather than "the buff is missing".
+        Logger.Debug(
+            "HUD readout unit pool world {0} zone {1}: {2} unit(s), {3} mirror(s); templates [{4}]",
+            instanceId, zoneId, units.Count, mirrors,
+            string.Join(",", units.Select(u => u.TemplateId).Distinct().OrderBy(t => t).Take(40)));
+
+        return units;
+    }
+
+    private SCIndunPlayingInfoBroadcastingPacket BuildPlayingInfoPacket() =>
+        BuildPlayingInfoPacket(ReadPlayingInfoRows(freshUnits: true, log: true));
+
+    private SCIndunPlayingInfoBroadcastingPacket BuildPlayingInfoPacket(List<IndunPlayingInfoNpc> rows)
+    {
+        // The handler reads the gain-rule ids twice — once as a 32-bit list and once as a 64-bit list — and
+        // resolves both through the same lookup into its gainRuleInfo readout; missing the first list shifts
+        // the second count and the client drops the whole packet. The copy's authored instance_gain_rules
+        // ids are the one source, so they fill both from the table (empty for a zone group that authors none).
+        var gainRuleIds = new List<uint>();
+        var gainRules = new List<ulong>();
+        foreach (var rule in IndunGameData.Instance.GetInstanceGainRules(GetZoneGroupId))
+        {
+            gainRuleIds.Add(rule.Id);
+            gainRules.Add(rule.Id);
+        }
+
+        Logger.Debug(
+            "HUD readout world {0} zoneGroup {1}: {2} npcInfo row(s) [{3}], gainRules={4}",
+            World?.Id, GetZoneGroupId, rows.Count,
+            string.Join(",", rows.Select(r => $"npc{r.NpcId}/buff{r.BuffId}={r.Value}/{r.Limit}")),
+            gainRuleIds.Count);
+
+        lock (_lock)
+            _lastReadoutShape = IndunPlayingInfoRules.Shape(rows);
+
+        return new SCIndunPlayingInfoBroadcastingPacket(_zoneInstanceId, rows, gainRuleIds, gainRules);
+    }
+
+    /// <summary>
+    /// The units the copy's readouts are read from. A fresh search walks every world's mirrors, so the
+    /// per-second change check reuses the last result and searches again only while a readout's unit is
+    /// still missing, and then at most every <see cref="ReadoutUnitSearchInterval"/>.
+    /// </summary>
+    private List<Npc> GetReadoutUnits(bool fresh, IReadOnlyCollection<uint> templates)
+    {
+        var world = World;
+        if (world == null)
+            return [];
+
+        var now = DateTime.UtcNow;
+        var cached = _readoutUnits;
+        var complete = cached != null && templates.All(t => cached.Exists(n => n != null && n.TemplateId == t));
+        if (!fresh && (complete || (cached != null && now - _readoutUnitsSearchedAt < ReadoutUnitSearchInterval)))
+            return cached;
+
+        var units = FindReadoutUnits(world.GetAllNpcs());
+        _readoutUnits = units;
+        _readoutUnitsSearchedAt = now;
+        return units;
+    }
+
+    private List<IndunPlayingInfoNpc> ReadPlayingInfoRows(bool freshUnits, bool log)
+    {
+        var world = World;
+        var rows = new List<IndunPlayingInfoNpc>();
+        var readouts = IndunGameData.Instance.GetIndunEvents(GetZoneGroupId)
+            .OfType<IndunEventNpcInfoBroadcastings>()
+            .Where(info => info.NpcId != 0 && info.BuffId != 0)
+            .ToList();
+
+        if (world != null && readouts.Count > 0)
+        {
+            var npcs = GetReadoutUnits(freshUnits, readouts.Select(r => r.NpcId).Distinct().ToList());
+            foreach (var info in readouts)
+            {
+                foreach (var npc in npcs)
+                {
+                    if (npc == null || npc.TemplateId != info.NpcId)
+                        continue;
+
+                    var buff = npc.Buffs?.GetEffectFromBuffId(info.BuffId);
+                    if (!IndunPlayingInfoRules.TryReadBuff(info.NpcInfoBroadcastingId, buff, out var value, out var limit))
+                        continue;
+
+                    // One row per authored readout: the copy's first unit of that template carries it, and
+                    // a second unit of the same template must not send a duplicate row for the same npc.
+                    rows.Add(new IndunPlayingInfoNpc(info.NpcId, info.BuffId, info.NpcInfoBroadcastingId, value, limit));
+                    if (log)
+                        Logger.Debug(
+                            "HUD readout npc {0} buff {1} type {2} of world {3} read live from unit {4}: {5}/{6}",
+                            info.NpcId, info.BuffId, info.NpcInfoBroadcastingId, World?.Id, npc.ObjId,
+                            value, limit);
+                    break;
+                }
+            }
+        }
+
+        // A readout whose unit the copy does not carry yet reads as not started: the script spawns the unit
+        // and applies its buffs, and until then the HUD shows zeros.
+        foreach (var info in readouts)
+        {
+            if (rows.Exists(row => row.NpcId == info.NpcId && row.BuffId == info.BuffId))
+                continue;
+
+            if (IndunPlayingInfoRules.TryReadAbsentBuff(info.NpcInfoBroadcastingId, out var value, out var limit))
+            {
+                rows.Add(new IndunPlayingInfoNpc(info.NpcId, info.BuffId, info.NpcInfoBroadcastingId, value, limit));
+                continue;
+            }
+
+            if (log)
+                Logger.Debug(
+                    "HUD readout npc {0} buff {1} has unknown type {2} in world {3}; skipped",
+                    info.NpcId, info.BuffId, info.NpcInfoBroadcastingId, World?.Id);
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// Pushes the copy's HUD readout the moment one of its readings changes shape — a buff going up or
+    /// down, a stack count moving, a running timer reaching its next second — instead of leaving the client
+    /// on stale rows until the next coarse refresh.
+    /// </summary>
+    private void RefreshPlayingInfoOnChange()
+    {
+        if (!HasPlayers)
+            return;
+
+        var rows = ReadPlayingInfoRows(freshUnits: false, log: false);
+        if (rows.Count == 0 || IndunPlayingInfoRules.Shape(rows) == _lastReadoutShape)
+            return;
+
+        BroadcastToPlayers(BuildPlayingInfoPacket(rows));
+    }
+
+    /// <summary>
+    /// Refreshes the copy's HUD readouts for every player in it, unconditionally; per-second timer movement
+    /// goes out through <see cref="RefreshPlayingInfoOnChange"/>.
+    /// </summary>
+    public void SendPlayingInfoBroadcast()
+    {
+        if (World == null)
+            return;
+
+        BroadcastToPlayers(BuildPlayingInfoPacket());
+    }
+
+    /// <summary>The copy's HUD readout to one player, sent with the other load-time info.</summary>
+    public void SendPlayingInfo(Character character)
+    {
+        if (character == null || World == null)
+            return;
+
+        character.SendPacket(BuildPlayingInfoPacket());
+    }
+
+    /// <summary>
+    /// Adds <paramref name="delta"/> to the copy's zone score of <paramref name="kindId"/> through the
+    /// catalog rules (the kind's <c>max_score</c> clamp and its level resolution) and returns the applied
+    /// change. The amount is always the caller's — nothing here invents one — and a kind the copy does not
+    /// own is refused by the rules rather than created.
+    /// </summary>
+    public ZoneScoreApplication AddZoneScore(uint kindId, int delta) =>
+        ZoneScores.Apply(kindId, delta);
+
+    /// <summary>
+    /// One applied zone-score change: the copy's players see it on the client's score list, and a move that
+    /// changed the level runs the copy's authored <c>indun_event_zone_score_level_changeds</c> chains.
+    /// </summary>
+    private void OnZoneScoreChanged(ZoneScoreApplication application)
+    {
+        new FactionScoringNotifier(BroadcastToPlayers).PublishZoneScoreChange(application);
+
+        if (application.LevelChanged)
+            IndunManager.Instance.DoZoneScoreLevelChangedEvents(World, application);
     }
 
     /// <summary>In-memory fast marker; the durable W03A ledger is authoritative for a logical run.</summary>
@@ -986,6 +1604,12 @@ public class Dungeon : IPreparedIndunInstance
     {
         lock (_lock)
         {
+            // A scripted copy starts its authored tower_defs run once its ready ("wait time") window has
+            // elapsed — checked here because this is the copy's own per-second tick.
+            TickInstanceScript();
+            AdvanceOpenings();
+            RefreshPlayingInfoOnChange();
+
             foreach (var ev in IndunGameData.Instance.GetIndunEvents(_indunZone.ZoneGroupId))
             {
                 if (ev is not IndunEventNoAliveChInRooms room) { continue; }

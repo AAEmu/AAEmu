@@ -24,4 +24,11 @@ public static class LevelPackDoodadRules
             return false;
         return clientDoodad || npcTypeModel || talkOrQuestFunc;
     }
+
+    /// <summary>
+    /// Dungeon copy plant: the copy's cells are its whole permanent doodad set, so every row
+    /// is authored except the ones a tower step, an ignore/open list or a schedule owns.
+    /// </summary>
+    public static bool ShouldAuthorInCopy(bool towerAlmighty, bool ignoredPermanent, bool scheduledEvent) =>
+        !towerAlmighty && !ignoredPermanent && !scheduledEvent;
 }

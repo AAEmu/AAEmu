@@ -65,6 +65,32 @@ public class OnSpawnPlotWorldGateTests
     }
 
     [Test]
+    public async Task EventScript_PlotOnly_RunsWithoutPriority()
+    {
+        // The hunter summoned onto an army stands still unless its plot_only OnSpawn graph runs:
+        // the dedic never fires plot_only skills, and it is not a tower-priority mirror.
+        await Assert.That(OnSpawnPlotWorldGate.ShouldRun(
+            zoneAuthority: true,
+            isZoneMirror: true,
+            isPriorityMirror: false,
+            hasPlot: true,
+            plotOnly: true,
+            directSkillEffectCount: 0)).IsTrue();
+    }
+
+    [Test]
+    public async Task NotAZoneMirror_PlotOnly_Skipped()
+    {
+        await Assert.That(OnSpawnPlotWorldGate.ShouldRun(
+            zoneAuthority: true,
+            isZoneMirror: false,
+            isPriorityMirror: false,
+            hasPlot: true,
+            plotOnly: true,
+            directSkillEffectCount: 0)).IsFalse();
+    }
+
+    [Test]
     public async Task WithoutZoneAuthority_Skipped()
     {
         await Assert.That(OnSpawnPlotWorldGate.ShouldRun(

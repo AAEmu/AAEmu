@@ -235,6 +235,37 @@ public class RemainingSkillControllerTests
         await Assert.That(template).IsNotNull();
     }
 
+    [Test]
+    public async Task AZoneMovedNpcGetsNoServerController()
+    {
+        // Under zone authority a mirrored NPC is moved by the zone's movement stream; a server-driven leap
+        // for the same unit would fight that stream and never arrive.
+        var npc = new RecordingNpc { ObjId = 600, Hp = 1000, MaxHp = 1000, IsZoneMirror = true };
+
+        await Assert.That(SkillControllerRules.ZoneOwnsPosition(npc, zoneAuthority: true)).IsTrue();
+        await Assert.That(SkillControllerRules.CanCreateController(npc, npc, zoneAuthority: true)).IsFalse();
+    }
+
+    [Test]
+    public async Task AServerMovedNpcStillGetsItsController()
+    {
+        var mirrorWithoutZone = new RecordingNpc { ObjId = 601, Hp = 1000, MaxHp = 1000, IsZoneMirror = true };
+        var localNpc = new RecordingNpc { ObjId = 602, Hp = 1000, MaxHp = 1000 };
+
+        await Assert.That(SkillControllerRules.CanCreateController(mirrorWithoutZone, mirrorWithoutZone, zoneAuthority: false)).IsTrue();
+        await Assert.That(SkillControllerRules.CanCreateController(localNpc, localNpc, zoneAuthority: true)).IsTrue();
+        await Assert.That(SkillControllerRules.ZoneOwnsPosition(localNpc, zoneAuthority: true)).IsFalse();
+    }
+
+    [Test]
+    public async Task ZoneAuthorityNeverOwnsAPlayersPosition()
+    {
+        var player = new TestPlayer { ObjId = 603, Hp = 1000, MaxHp = 1000 };
+
+        await Assert.That(SkillControllerRules.ZoneOwnsPosition(player, zoneAuthority: true)).IsFalse();
+        await Assert.That(SkillControllerRules.CanCreateController(player, player, zoneAuthority: true)).IsTrue();
+    }
+
     private sealed class TestPlayer : CharacterMock;
 }
 

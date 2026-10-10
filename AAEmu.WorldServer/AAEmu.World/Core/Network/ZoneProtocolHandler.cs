@@ -216,25 +216,52 @@ public class ZoneProtocolHandler : BaseProtocolHandler
         // Saved indun spawner state; empty last=1 for seamless worlds, which is every open-world
         var persistent = ZoneNpcSpawnerCatalog.GetPersistentSpawners(connection.ZoneId, connection.InstanceId);
         WZSpawnerListPacket.SendAll(connection, persistent);
-        // main_world: shared day. Instance maps: noon start + local advance (type-2 ZW report).
-        // WZWorldGameTime is UTC wall seconds-of-day, independent of game hour.
+        // main_world: shared day. Instance maps: the hour their own level authors + local advance
+        // (type-2 ZW report). WZWorldGameTime is UTC wall seconds-of-day, independent of game hour.
         var sharedDay = TimeManager.ZoneUsesSharedGameDay(connection.ZoneId);
-        var seedHour = sharedDay
-            ? TimeManager.Instance.GetTime
-            : TimeManager.InstanceDefaultStartHour;
-        connection.SendPacket(new WZTimeOfDayPacket(seedHour));
-        connection.SendPacket(new WZDetailedTimeOfDayPacket(
-            seedHour,
-            TimeManager.DefaultGameHourSpeed,
-            0.0f,
-            24.0f));
+        float? seedHour = null;
+        var seedSpeed = TimeManager.DefaultGameHourSpeed;
+        if (sharedDay)
+        {
+            seedHour = TimeManager.Instance.GetTime;
+        }
+        else
+        {
+            // The instance's level owns its clock, and its own zone file
+            // (worlds/{name}/zone/{zoneId}/time_of_day.xml) is asked for first: that is the file carrying
+            // the level's authored static hour, while the world-level file is the editor's *saved* clock —
+            // for a level saved at the end of its day that is the map's dawn, not the night it runs on. A
+            // level that authors no usable time is reported and left unseeded instead of guessed at.
+            var worldName = WorldManager.Instance?.GetWorldTemplateByZoneKey(connection.ZoneId)?.Name;
+            var authored = ZoneTimeOfDayCatalog.TryGetZone(worldName, connection.ZoneId)
+                           ?? ZoneTimeOfDayCatalog.TryGet(worldName);
+            seedHour = authored?.StartHour;
+            if (authored is { AnimSpeed: > 0f } zoned)
+                seedSpeed = zoned.AnimSpeed;
+            if (seedHour is null)
+                Logger.Error(
+                    "No authored time_of_day.xml for instance zoneId={0} world={1} — the dedicate keeps " +
+                    "its own clock default instead of a seeded hour",
+                    connection.ZoneId, worldName ?? "<unresolved>");
+        }
+
+        if (seedHour is not null)
+        {
+            connection.SendPacket(new WZTimeOfDayPacket(seedHour.Value));
+            connection.SendPacket(new WZDetailedTimeOfDayPacket(
+                seedHour.Value,
+                seedSpeed,
+                0.0f,
+                24.0f));
+        }
+
         connection.SendPacket(new WZWorldGameTimePacket((uint)DateTime.UtcNow.TimeOfDay.TotalSeconds));
         connection.State = ZoneConnectionState.Joined;
         Logger.Info(
-            "Sent bring-online gate (JoinResponse + FactionList/Relations + SpawnerList({0}) + ToD seed={1:F2}h speed={2} sharedDay={3} UTC-s={4}) to {5} zoneId={6} realFactions={7}",
+            "Sent bring-online gate (JoinResponse + FactionList/Relations + SpawnerList({0}) + ToD seed={1} speed={2} sharedDay={3} UTC-s={4}) to {5} zoneId={6} realFactions={7}",
             persistent.Count,
-            seedHour,
-            TimeManager.DefaultGameHourSpeed,
+            seedHour is null ? "none" : seedHour.Value.ToString("F2"),
+            seedSpeed,
             sharedDay,
             (uint)DateTime.UtcNow.TimeOfDay.TotalSeconds,
             connection.Ip,

@@ -16,6 +16,32 @@ public class BuffStackRulesTests
     }
 
     [Test]
+    public async Task TakeApplications_LowersAnAccumulatedInstanceWithoutEndingIt()
+    {
+        // One summon spends one of eleven gathered souls; the other ten stay on the hub.
+        await Assert.That(BuffStackRules.TakeApplications(instanceStack: 11, applications: 1)).IsEqualTo((1, false));
+    }
+
+    [Test]
+    public async Task TakeApplications_EndsTheInstanceWhenItRunsOut()
+    {
+        await Assert.That(BuffStackRules.TakeApplications(instanceStack: 1, applications: 1)).IsEqualTo((1, true));
+        await Assert.That(BuffStackRules.TakeApplications(instanceStack: 3, applications: 10)).IsEqualTo((3, true));
+    }
+
+    [Test]
+    public async Task TakeApplications_ReadsStackZeroAsOneApplication()
+    {
+        await Assert.That(BuffStackRules.TakeApplications(instanceStack: 0, applications: 1)).IsEqualTo((1, true));
+    }
+
+    [Test]
+    public async Task TakeApplications_TakingNothingLeavesTheInstance()
+    {
+        await Assert.That(BuffStackRules.TakeApplications(instanceStack: 5, applications: 0)).IsEqualTo((0, false));
+    }
+
+    [Test]
     public async Task CanGrow_StopsAtTheCeiling()
     {
         await Assert.That(BuffStackRules.CanGrow(SailTrimMaxStack, SailTrimMaxStack)).IsFalse();
