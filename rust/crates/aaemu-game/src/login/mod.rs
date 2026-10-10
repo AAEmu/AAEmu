@@ -149,13 +149,20 @@ pub(crate) async fn handle(server: &Arc<GameServer>, payload: &[u8]) -> bool {
                         result,
                     });
                 }
-                // C#: `_accounts.Add` throws ArgumentException inside LGPlayerEnterPacket.Read.
-                // LoginProtocolHandler.OnReceive has no catch, so the exception escapes into the
-                // network client and no GLPlayerEnterPacket is ever sent. Here the packet is
-                // dropped the same way but the link stays up.
-                AddAccountResult::DuplicateConnectionId => tracing::error!(
-                    "LGPlayerEnter: connection id {connection_id} is already registered (account {account_id}); no reply sent"
-                ),
+                // C#: `_accounts.Add` throws ArgumentException inside LGPlayerEnterPacket.Read
+                // (no reply, the login link dies). Found by live testing: a client that takes
+                // its world cookie but never connects leaves the entry behind, and the login
+                // server hands the same (pooled) connection id to the next client.
+                AddAccountResult::ReplacedStale { stale_account } => {
+                    tracing::warn!(
+                        "LGPlayerEnter: connection id {connection_id} was still pending for account {stale_account} (never entered); replaced by account {account_id}"
+                    );
+                    server.login.send(&GLPlayerEnterPacket {
+                        connection_id,
+                        gs_id: server.config.id,
+                        result: 0,
+                    });
+                }
             }
         }
         LoginInPacket::PlayerReconnect { token } => {

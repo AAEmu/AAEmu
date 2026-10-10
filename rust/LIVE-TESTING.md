@@ -151,9 +151,10 @@ directories.
 | | Rust | C# |
 |---|---|---|
 | login: start to listening | 0.05 s | 1 s |
-| game: start to registered | 18-25 s (40 s cold) | 65-95 s (134 s cold) |
-| game: working set after start | ~430-580 MB | ~3.1 GB |
+| game: start to registered | 17-25 s (40 s cold) | 57-95 s (134 s cold) |
+| game: working set after start + a few sessions | ~580-590 MB | ~3.1-4.3 GB |
 | game: working set after 250 bot sessions | ~615 MB | ~5.7 GB |
+| login: working set | ~15 MB | ~80 MB |
 
 Both load 13382 NPC / 7124 doodad / 27036 item templates, 4775 quests, 42649 + 1196 doodads,
 69 transfers, 14 gimmicks, 5 slaves, 95 fish schools and the `arche_mall_world` system dungeon.
@@ -190,8 +191,14 @@ $TC load   --config testclient.local.json --login 127.0.0.1:21237 --bots 50 --pr
 ```
 
 Scenarios: `login` (login server only), `lobby` (+ game lobby, stream join, character
-creation, quit), `full` (everything above), `load` (login, create, select, spawn, move, chat,
-leave). `parity` exits with 2 when there are findings, `load` when a bot failed.
+creation, quit), `full` (everything above), `combat` (`full` + three melee hits on a Solzreed
+fox, which fights back; logout then takes the 5-minute in-combat timer), `load` (login,
+create, select, spawn, move, chat, leave). `parity` exits with 2 when there are findings,
+`load` when a bot failed.
+
+Run `login` last in a parity session: a world cookie that is never used leaves a pending entry
+on the game server, which makes the C# game server stop answering the login server (fixed in
+the Rust server, see `aaemu-game/PORTING.md`).
 
 ## 4. Parity with the C# servers
 
@@ -217,10 +224,26 @@ comparing it normalises what differs by construction (`parity.json`):
   posture, aggro, time of day, pongs); NPC / doodad appearance is compared over the whole run
   because region activation timing differs.
 
-Result on the reference run: `login`, `lobby` and `full` with a fresh character: 0 findings
-(~1000 S->C packets identical after normalisation). Round 2 (same account, character from the
-DB): differences only from the C#'s lossy position save (see `aaemu-game/PORTING.md`, "Live
-testing"), NPC wandering, and buff remaining times saved at logout.
+`combat` is diffed with `parity-combat.json`: damage, hit / miss and the 10 % back-attack
+slow proc are random, so the combat packets (`SCSkillFired`, `SCUnitDamaged`, the `DD04`
+`CompressedGamePackets` batches, aggro, unit points, buff create / remove) are compared by
+layout only (body lengths).
+
+Results of the final reference run (fresh databases, both servers started together):
+
+| scenario | S->C packets | identical after normalisation | findings |
+|---|---|---|---|
+| `lobby` | 27 | 27 | 0 |
+| `full`, round 1 (new character) | 1330 | 990 (rest: AI / timer driven, compared by count) | 0 |
+| `full`, round 2 (same character, new session) | 1499 | 1398 | 10, all explained below |
+| `combat` | 2247 | 1976 | 4, NPC identity only |
+| `login` | 4 | 4 | 0 |
+
+Explained differences: round 2 starts from the position the C# saved with reduced precision
+(PORTING.md "Live testing"), which shifts our own unit state / character list positions; the
+saved remaining time of the auction-license buff differs by the time the runs took; and wandering
+NPCs of the same template can swap their normalised identities (the 30 m grid key), which shows
+up as `SCUnitState` / `SCUnitPoints` bodies of the "wrong" fox being compared.
 
 Any other finding is a porting bug until explained: decode both bodies (the capture is JSON
 lines with hex bodies) and compare with the C# packet `Write`.

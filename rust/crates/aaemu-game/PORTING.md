@@ -394,8 +394,8 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 ## Known deviations from the C#
 
 * `LGPlayerEnter` for an already registered connection id: C# `Dictionary.Add` throws inside the
-  login handler, which has no catch (the exception escapes into the network client). Rust logs it,
-  sends nothing (same as C#) and keeps the link up.
+  login handler, which has no catch (the exception escapes into the network client, the world is
+  shown inactive afterwards). Rust replaces the stale entry and replies 0 (see "Live testing").
 * `Character.Load` for a character with InfamyPoint >= 3000: the Wanted / Contemptuous buffs are
   added and the faction becomes Pirate as in C#; `SetFaction`'s side effects (house factions,
   `ExpeditionManager.Kick(this.Connection, ...)` — which throws on the null lobby connection and
@@ -582,6 +582,11 @@ servers (see `rust/LIVE-TESTING.md`). Fixed porting bugs are in the git history 
   later session gets fresh buffs on select in both servers.
 * `UpdateGearBonuses` is ported for characters, NPCs, mates and slaves (the "Stats" bullet
   above predates it).
+* A client that takes its world cookie (`CAEnterWorld`) but never connects to the game server
+  leaves `EnterWorldManager._accounts[connectionId]` behind, and the login server leases the
+  same (lowest free) connection id to the next client. C# then throws in `AddAccount` and stops
+  answering the login server (every later enter-world is denied, the world shows as inactive).
+  Rust replaces the stale entry and answers.
 
 Parity status of the scripted scenarios: `login`, `lobby` and `full` (fresh character) produce
 the same S->C traffic as the C# servers after id / time normalisation (0 findings); a second
