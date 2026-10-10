@@ -1,49 +1,39 @@
-//! Phase-3 subsystem: skills / buffs / effects / plots.
+//! Phase-3 subsystem: skills / buffs / effects / plots / combat.
 //!
 //! C# scope: `Core/Managers/SkillManager` (effects, plots, tags, modifiers, combat buffs),
-//! `PlotManager`, `EffectTaskManager`, `ManaRegenManager`, `Models/Game/Skills/**`, the
-//! behaviour half of `Models/Game/Units/Buffs` (`BuffTemplate.Start/Dispel`, tick / dispel
-//! tasks, tolerance, triggers, `TriggerRemoveOn`), `Unit` combat (`ReduceCurrentHp`, `DoDie`,
-//! regen, `UseSkill`), cooldown / GCD handling and the skill packets.
+//! `PlotManager`, `EffectTaskManager`, `ManaRegenManager`, `AnimationManager`,
+//! `Models/Game/Skills/**`, the behaviour half of `Models/Game/Units/Buffs`
+//! (`BuffTemplate.Start/Dispel`, tick / dispel tasks, tolerance, triggers, `TriggerRemoveOn`),
+//! `Unit` combat (`ReduceCurrentHp`, `DoDie`, regen, aggro, `UseSkill`), cooldown / GCD handling
+//! and the skill packets.
 //!
-//! Foundation to build on: `models::unit` (`UnitBase`: hp/mp, `Bonuses`, `UnitCooldowns`,
-//! `SkillModifiers` / `BuffModifiers`, `CombatBuffs`), `models::buff` (`Buffs` bookkeeping +
-//! `BuffEvent`s), `systems::UnitHooks` (install yours in `System::start`) and
-//! `systems::dispatch_buff_events`.
-//!
-//! Module layout (see `CONTRIBUTING-PORT.md`): packets in `packets.rs` (C2G + G2C of this
-//! subsystem), tables in `data.rs`, managers in their own files; everything is wired through
-//! the five items below, which `systems/mod.rs` already calls.
+//! Layout:
+//! * [`data`] — every table (`server.game_data.systems.skills`);
+//! * [`types`] — wire types (`SkillCaster`, `SkillCastTarget`, `SkillObject`, `CastAction`, ...);
+//! * [`packets`] — the S->C and C->S packets of this subsystem.
+
+pub mod data;
+pub mod types;
 
 use std::sync::Arc;
 
 use crate::net::registry::PacketRegistry;
 use crate::server::GameServer;
-use crate::systems::{DataLoadCtx, SaveStage};
+use crate::systems::SaveStage;
 
-/// Game-data tables of this subsystem (`server.game_data.systems.skills`).
-#[derive(Debug, Default)]
-pub struct Data {}
+pub use data::Data;
 
-impl Data {
-    /// Loads this subsystem's tables from `ctx` (TODO(skills): port the C# loaders).
-    pub fn load(_ctx: &DataLoadCtx<'_>) -> Result<Self, crate::data::GameDataError> {
-        Ok(Self::default())
-    }
-}
-
-/// Managers of this subsystem (`server.systems.skills`); add one field per manager.
+/// Managers of this subsystem (`server.systems.skills`).
 #[derive(Debug, Default)]
 pub struct System {}
 
 impl System {
-    /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
+    /// Startup after the phase-1/2 managers: hook installation, timers.
     pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
         Ok(())
     }
 
-    /// This subsystem's part of `SaveManager.DoSave` (inside its transaction). Returns the
-    /// number of rows written.
+    /// This subsystem's part of `SaveManager.DoSave` (buffs are saved with the characters).
     pub async fn save(
         &self,
         _server: &GameServer,
@@ -54,5 +44,5 @@ impl System {
     }
 }
 
-/// Registers this subsystem's C->S packets (`reg.register::<P>(LEVEL_PLAIN, cs::P)`).
+/// Registers this subsystem's C->S packets.
 pub fn register(_reg: &mut PacketRegistry) {}
