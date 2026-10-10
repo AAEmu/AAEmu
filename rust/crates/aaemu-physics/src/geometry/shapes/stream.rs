@@ -210,6 +210,30 @@ pub enum AnyGeom {
     TriMesh(Box<TriMesh>),
 }
 
+impl AnyGeom {
+    /// Into a shared geometry (the mesh's caches are filled first, see
+    /// `TriMesh::warm_caches`).
+    #[must_use]
+    pub fn into_arc(self) -> Arc<dyn Geometry> {
+        match self {
+            AnyGeom::Primitive(g) => g.into_arc(),
+            AnyGeom::TriMesh(mut m) => {
+                m.warm_caches();
+                Arc::new(*m)
+            }
+        }
+    }
+
+    /// The geometry.
+    #[must_use]
+    pub fn as_geom(&self) -> &dyn Geometry {
+        match self {
+            AnyGeom::Primitive(g) => g.as_geom(),
+            AnyGeom::TriMesh(m) => &**m,
+        }
+    }
+}
+
 /// Why a blob was not loaded.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BlobError {
