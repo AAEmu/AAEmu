@@ -20,7 +20,7 @@
 use super::body::BodyId;
 use super::contact::flags as cf;
 use super::helpers::{fmax, fmin, mat_vec, normalize_or_z, quat_axis_angle, rotate, rotate_inv};
-use super::invoke::{bg_at, crec_at, iinv9, kinv_at, lcp_at, v3, Ctx};
+use super::invoke::{bg_at, iinv9, kinv_at, lcp_at, v3, Ctx};
 use super::thread::{bg, lcp, off};
 use crate::math::{Quat, Vec3};
 
@@ -995,6 +995,5 @@ impl Ctx<'_> {
             bm.fcoll = Vec3::from_array(f);
             bm.tcoll = Vec3::from_array(t);
         }
-        let _ = crec_at(0);
     }
 }

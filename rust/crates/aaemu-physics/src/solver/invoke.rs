@@ -26,6 +26,12 @@ pub struct SolveResult {
     pub n_contacts: i32,
     /// Which path finished the solve (diagnostics).
     pub path: SolvePath,
+    /// True when the solve hit a state in which the binary never returns: a stage-2 pass
+    /// whose only vector records are 2D bilaterals (`0x800`), so that the circular CG loops
+    /// (`v893`/`v926` wrap at the record count and never reach the group end) spin forever.
+    /// The port stops these loops after one round instead (the only intentional deviation);
+    /// the result of such a solve has no counterpart in the original.
+    pub endless: bool,
 }
 
 /// How [`SolverThread::invoke`] finished.
@@ -52,6 +58,8 @@ pub(crate) struct Ctx<'a> {
     pub multi: &'a mut Vec<MultiBodyEntry>,
     pub tid: usize,
     pub v: &'a PhysVars,
+    /// See [`SolveResult::endless`].
+    pub endless: bool,
 }
 
 impl Ctx<'_> {
@@ -154,6 +162,7 @@ impl SolverThread {
             multi: &mut self.multi_body,
             tid: self.tid,
             v: vars,
+            endless: false,
         };
         ctx.run(dt, e0, prev)
     }
@@ -166,6 +175,7 @@ impl Ctx<'_> {
                 ret: 0,
                 n_contacts: prev,
                 path: SolvePath::Empty,
+                endless: false,
             };
         }
         let inv_dt = 1.0 / dt;
@@ -195,6 +205,7 @@ impl Ctx<'_> {
                     ret: self.t.n_bodies(),
                     n_contacts,
                     path: SolvePath::PreCg,
+                    endless: false,
                 };
             }
             self.stage1_prep(nb);
@@ -220,6 +231,7 @@ impl Ctx<'_> {
             ret: self.t.n_bodies(),
             n_contacts,
             path,
+            endless: self.endless,
         }
     }
 

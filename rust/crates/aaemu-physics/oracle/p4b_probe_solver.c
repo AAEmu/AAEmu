@@ -11,7 +11,7 @@
  *     [<nrep>]
  *
  *   dt, e0       floats (bits)
- *   prev         *a5 on entry
+ *   prev         *a5 on entry of the last run (earlier runs pass 0)
  *   cg           0 calls DisableCG after the contacts are registered
  *   vars         world offsets (104..631) and words written into the world's vars block for
  *                this command (restored afterwards)
@@ -182,7 +182,7 @@ static void p4b_command(char *line) {
     init();
     for (int i = 0; i < nc; i++) reg(p4b_contacts + 176 * (size_t)i);
     if (!cg) nocg();
-    a5 = prev;
+    a5 = r == nrep - 1 ? prev : 0;
     ret = solve(bitsf(dtw), w + 104, bitsf(e0w), &a4, &a5, &a6);
   }
   for (int i = 0; i < nvars && i < 64; i++) *(uint32_t *)(w + voff[i]) = vsave[i];

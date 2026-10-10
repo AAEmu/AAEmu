@@ -16,11 +16,10 @@
 //!
 //! The scalar CG coefficients are double precision as in the binary.
 
-use super::body::BodyId;
-use super::contact::{flags as cf, ContactId};
+use super::contact::flags as cf;
 use super::helpers::{fmax, inv33, mat_vec};
 use super::invoke::{bg_at, brec_at, crec_at, iinv9, kinv_at, lcp_at, proj_at, v3, Ctx, SolvePath};
-use super::thread::{bg, brec, crec, lcp, off};
+use super::thread::{bg, brec, crec, lcp};
 use crate::math::Vec3;
 
 impl Ctx<'_> {
@@ -302,6 +301,7 @@ impl Ctx<'_> {
                     let alpha = alpha_d as f32;
                     let mut rz_new: f64 = 0.0;
                     let mut k = start;
+                    let mut steps = 0i32;
                     if span < e6 {
                         loop {
                             let r = lcp_at(k as usize);
@@ -326,7 +326,14 @@ impl Ctx<'_> {
                             x[2] += alpha * p[2];
                             self.t.sv3(r + lcp::X, x);
                             k = (k + 1) & ((k - e6 + 1) >> 31);
+                            steps += 1;
                             if k == e0 {
+                                break;
+                            }
+                            if steps >= e6 {
+                                // the binary never leaves this loop (see `endless`)
+                                self.endless = true;
+                                k = e0;
                                 break;
                             }
                         }
@@ -359,6 +366,7 @@ impl Ctx<'_> {
                     rz = rz_n;
                     let beta_d = rz_n / ((s2.abs() + s1) * 0.5);
                     let mut k = start;
+                    let mut steps = 0i32;
                     if span < e6 {
                         let beta = beta_d as f32;
                         loop {
@@ -372,7 +380,13 @@ impl Ctx<'_> {
                             let rr = self.t.v3(r + lcp::R);
                             let r2 = (rr[0] * rr[0] + rr[1] * rr[1]) + rr[2] * rr[2];
                             res_max = fmax(res_max, r2);
+                            steps += 1;
                             if k == e0 {
+                                break;
+                            }
+                            if steps >= e6 {
+                                self.endless = true;
+                                k = e0;
                                 break;
                             }
                         }
@@ -1009,9 +1023,4 @@ impl Ctx<'_> {
             self.pool.get_mut(cid).vn = (y * n.y + x * n.x) + z * n.z;
         }
     }
-}
-
-#[allow(dead_code)]
-fn _unused(_: BodyId, _: ContactId) -> usize {
-    off::N_ADJ
 }

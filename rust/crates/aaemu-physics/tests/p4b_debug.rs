@@ -2,7 +2,7 @@
 //! through the oracle and the port and prints both answers.
 
 use aaemu_physics::oracle::oracle_path;
-use aaemu_physics::solver::probe::{oracle_raw, word_diff, Case};
+use aaemu_physics::solver::probe::{canon_nan, oracle_raw, word_diff, Case};
 
 #[test]
 #[ignore = "debugging aid"]
@@ -24,7 +24,7 @@ fn p4b_debug_case() {
         if let Some(a) = &answers {
             println!("oracle: {}", a[i]);
             println!("port:   {port}");
-            println!("diff:  {}", word_diff(&a[i], &port));
+            println!("diff:  {}", word_diff(&canon_nan(&a[i]), &canon_nan(&port)));
         } else {
             println!("port:   {port}");
         }
