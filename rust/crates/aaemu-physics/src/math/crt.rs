@@ -186,10 +186,69 @@ pub fn atanf(x: f32) -> f32 {
     f64::from(x).atan() as f32
 }
 
-/// `asinf` — double evaluation, **not bit-exact** (6–7 % mismatch vs MSVCR100).
+/// MSVCR100 `asinf` (x64, at 0x797B2D6C in the shipped DLL), bit-exact port (added by P1a:
+/// the cylinder buoyancy calls it on its main path).
+///
+/// Single-precision fdlibm-style evaluation: `|x| < 2^-14` returns `x`; `|x| >= 1` returns
+/// `±π/2` for `±1` and NaN (0xFFC00000) otherwise; NaN input returns the quieted NaN. For
+/// `|x| < 0.5`: `z = x²`, `x + x·R(z)`; else `z = (1 − |x|)·0.5`, `s = sqrtss(z)`, and the
+/// split-`s` reconstruction around π/4. `R(z) = P(z)/Q(z)` with
+/// `P = (((−0.013381929 − 0.0039613745·z)·z − 0.056529868)·z + 0.1841616)·z`,
+/// `Q = 1.1049696 − 0.8364113·z` (all single precision, constants as raw bits).
 #[must_use]
 pub fn asinf(x: f32) -> f32 {
-    f64::from(x).asin() as f32
+    const PIO2: f32 = f32::from_bits(0x3FC9_0FDB);
+    const PIO4_HI: f32 = f32::from_bits(0x3F49_0FDA);
+    const PIO4_LO: f32 = f32::from_bits(0x33A2_2168);
+    const C0: f32 = f32::from_bits(0x3B81_CE6B);
+    const C1: f32 = f32::from_bits(0xBC5B_3FE1);
+    const C2: f32 = f32::from_bits(0x3D67_8BDD);
+    const C3: f32 = f32::from_bits(0x3E3C_94DC);
+    const Q0: f32 = f32::from_bits(0x3F8D_6FA5);
+    const Q1: f32 = f32::from_bits(0x3F56_1F0D);
+    let bits = x.to_bits();
+    let neg = bits & 0x8000_0000 != 0;
+    let e = ((bits >> 23) & 0xFF) as i32 - 127;
+    if bits & 0x7FFF_FFFF > 0x7F80_0000 {
+        return f32::from_bits(bits | 0x0040_0000);
+    }
+    if e < -14 {
+        return x;
+    }
+    if e >= 0 {
+        return if x == 1.0 {
+            PIO2
+        } else if x == -1.0 {
+            -PIO2
+        } else {
+            f32::from_bits(0xFFC0_0000)
+        };
+    }
+    let xa = x.abs();
+    let big = e >= -1;
+    let (z, s) = if big {
+        let z = (1.0 - xa) * 0.5;
+        (z, z.sqrt())
+    } else {
+        (xa * xa, 0.0)
+    };
+    let p = ((((C1 - z * C0) * z) - C2) * z + C3) * z;
+    let q = Q0 - z * Q1;
+    let r = p / q;
+    let res = if big {
+        let df = f32::from_bits(s.to_bits() & 0xFFFF_0000);
+        let c = (z - df * df) / (df + s);
+        let p2 = ((s * 2.0) * r) - (PIO4_LO - c * 2.0);
+        let q2 = PIO4_HI - df * 2.0;
+        PIO4_HI - (p2 - q2)
+    } else {
+        r * xa + xa
+    };
+    if neg {
+        -res
+    } else {
+        res
+    }
 }
 
 /// `acosf` — double evaluation, **not bit-exact** (2.0 % mismatch vs MSVCR100).

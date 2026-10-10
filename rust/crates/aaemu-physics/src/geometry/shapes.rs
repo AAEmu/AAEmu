@@ -18,6 +18,11 @@
 //!
 //! Every function names its binary address; every float operation follows the binary's
 //! precision and association (crate README, "Fidelity policy").
+//!
+//! Comparisons are written as the binary branches, including NaN behaviour (`comiss` + `jae`
+//! is `!(a < b)`, not `a >= b`), hence the negated comparisons allowed below.
+
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
 
 use crate::geometry::primitives::{BoxPrim, Plane};
 use crate::geometry::{GeomWorldData, Geometry};

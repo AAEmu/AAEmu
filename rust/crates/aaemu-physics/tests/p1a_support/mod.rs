@@ -96,8 +96,21 @@ pub fn push_box(out: &mut Vec<String>, b: &BoxPrim) {
 /// All `gp` cases of `tests/scenarios/<name>.scn` (golden, regenerated with the oracle).
 pub fn cases(name: &str) -> Vec<Case> {
     let t = scenario_trace(name).unwrap_or_else(|e| panic!("{name}: {e}"));
+    let v = parse_cases(&t.other);
+    assert!(!v.is_empty(), "{name}: no gp lines");
+    v
+}
+
+/// `gp` cases of an ad-hoc scenario run through the oracle (no golden); `None` without the
+/// oracle. Used for large fuzz runs that would make goldens too big.
+pub fn adhoc_cases(text: &str) -> Option<Vec<Case>> {
+    let t = aaemu_physics::oracle::run_scenario_text(text)?.unwrap_or_else(|e| panic!("{e}"));
+    Some(parse_cases(&t.other))
+}
+
+fn parse_cases(other: &[Vec<String>]) -> Vec<Case> {
     let mut v = Vec::new();
-    for (line, l) in t.other.iter().enumerate() {
+    for (line, l) in other.iter().enumerate() {
         if l[0] != "gp" {
             continue;
         }
@@ -116,7 +129,6 @@ pub fn cases(name: &str) -> Vec<Case> {
             out: l[o + 1..].to_vec(),
         });
     }
-    assert!(!v.is_empty(), "{name}: no gp lines");
     v
 }
 
@@ -218,6 +230,7 @@ pub fn check(c: &Case, got: &[String], fails: &mut Vec<String>) {
 
 /// Panic with the first few failures.
 pub fn finish(what: &str, total: usize, fails: &[String]) {
+    assert!(total > 0, "{what}: no cases");
     if !fails.is_empty() {
         let shown: Vec<&String> = fails.iter().take(5).collect();
         panic!(
