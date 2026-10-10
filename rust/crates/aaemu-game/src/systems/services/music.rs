@@ -428,6 +428,10 @@ impl ClientPacket for CSEndMusicPacket {
 }
 
 #[cfg(test)]
+#[path = "music_tests.rs"]
+mod music_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::net::packet::encode;

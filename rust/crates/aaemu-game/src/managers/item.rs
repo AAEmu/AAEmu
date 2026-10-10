@@ -239,6 +239,25 @@ impl ItemManager {
         loose.push(item);
     }
 
+    /// `AddItem(item)`: registers an item that is in no persistent container. `false` (and an
+    /// error log) when an item with that id is already known.
+    pub fn add_item(&self, item: Item) -> bool {
+        if self.item_by_id(item.id).is_some() {
+            tracing::error!(
+                "Failed to load item with ID {}, possible duplicate entries!",
+                item.id
+            );
+            return false;
+        }
+        lock(&self.loose).push(item);
+        true
+    }
+
+    /// Snapshot of `_removedItems` (rows queued for deletion by the next save).
+    pub fn removed_items(&self) -> Vec<u64> {
+        lock(&self.removed).clone()
+    }
+
     /// Takes a loose item back (it is about to be placed in a container).
     pub fn take_loose(&self, item_id: u64) -> Option<Item> {
         let mut loose = lock(&self.loose);
@@ -583,3 +602,7 @@ fn item_row(r: &MySqlRow) -> Result<ItemRow> {
 
 /// Shared handle (the item manager is used from the world, the stream server and the save task).
 pub type ItemManagerRef = Arc<ItemManager>;
+
+#[cfg(test)]
+#[path = "item_tests.rs"]
+mod item_tests;

@@ -1183,6 +1183,10 @@ impl ItemEnv<'_> {
 }
 
 #[cfg(test)]
+#[path = "container_tests.rs"]
+mod container_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::data::items::EquipTemplate;
