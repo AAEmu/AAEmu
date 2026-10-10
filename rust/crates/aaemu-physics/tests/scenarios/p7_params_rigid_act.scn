@@ -1,0 +1,85 @@
+# P7 entity interface, CRigidEntity GetStatus / Action (ids 2, 4, 6, 8, 10, 13 and status 1, 7, 8, 9,
+# 19, 26) replayed by tests/p7_params.rs (no TimeStep).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=cube type=box size=0.5,0.5,0.5
+geom name=ball type=sphere r=0.3
+entity name=rb type=rigid pos=32,32,5 q=0,0.19509032,0,0.98078528
+part ent=rb geom=cube mass=10
+part ent=rb geom=ball mass=2 pos=0.6,0,0.1 id=5
+entity name=empty type=rigid pos=20,20,5
+echo set_velocity
+action target=rb type=10 v12=1,2,3
+status target=rb type=8 dump=4,29
+action target=rb type=10 v24=0.5,0,1
+status target=rb type=8 dump=12,12
+action target=rb type=10 v24=0.5,0,1 i36=1
+status target=rb type=8 dump=12,12
+action target=rb type=10 v12=1,0,0 v24=0,2,0 i36=1
+status target=rb type=8 dump=12,12
+action target=rb type=10 v24=50,0,0
+status target=rb type=8 dump=12,12
+action target=rb type=10 v12=500,0,0
+status target=rb type=8 dump=12,12
+action target=rb type=10 v12=0,0,0 v24=0,0,0
+status target=rb type=8 dump=12,12
+status target=rb type=7
+echo awake
+action target=rb type=8 i4=0
+status target=rb type=7
+status target=rb type=7 i4=5
+status target=rb type=8 dump=12,12
+action target=rb type=8 i4=1 f8=0.5
+status target=rb type=7
+action target=rb type=10 v12=0,0,1
+status target=rb type=7
+echo impulse
+action target=rb type=10 v12=0,0,0 v24=0,0,0
+action target=rb type=2 v4=10,0,0
+status target=rb type=8 dump=12,12
+action target=rb type=2 v4=0,0,5 v52=32,32,6
+status target=rb type=8 dump=12,12
+action target=rb type=2 v4=0,0,0 v16=1,2,3 v28=0.5,0,0 v40=0,0,0.25
+status target=rb type=8 dump=12,12
+action target=rb type=2 v4=500,0,0 i76=1
+status target=rb type=8 dump=12,12
+action target=rb type=2 v4=3,0,0 i72=1
+status target=rb type=8 dump=12,12
+action target=rb type=2 v4=1,0,0 i68=1
+action target=rb type=2 v4=1,0,0 i64=77
+echo reset
+action target=rb type=4
+status target=rb type=8 dump=12,12
+action target=rb type=10 v12=1,1,1 v24=1,1,1
+params target=rb type=6 i8=0 i68=0x400000
+getparams target=rb type=6 i8=0 dump=68,1
+action target=rb type=4 i4=1
+status target=rb type=8 dump=12,12
+getparams target=rb type=6 i8=0 dump=68,1
+echo constraints
+action target=rb type=6 tmpl=none i4=U
+action target=rb type=6 tmpl=none i4=3
+action target=rb type=6 tmpl=none i4=3 i16=1
+params target=rb type=6 i8=1 i68=0x400000
+action target=rb type=6 tmpl=none i4=U i16=1 i12=-1
+getparams target=rb type=6 i8=1 dump=68,1
+echo status_misc
+status target=rb type=9
+status target=rb type=19 v4=32,32,5 v16=0,0,-9.8
+status target=rb type=26 tmpl=none i8=U
+status target=rb type=26 tmpl=none i4=1 i8=3
+status target=rb type=20 i4=4 dump=4,1
+status target=rb type=12
+echo reset_part_matrix
+action target=rb type=13 tmpl=none i4=1 i8=U
+status target=rb type=1 i4=-1 i8=-1 dump=4,20
+status target=rb type=1 i4=-1 i8=1 dump=4,20
+status target=rb type=8 dump=60,14
+echo empty_body
+action target=empty type=10 v12=1,0,0
+status target=empty type=7
+status target=empty type=8 dump=4,29
+action target=empty type=10 v12=0,0,0
+status target=empty type=7
+action target=empty type=2 v4=1,0,0
+status target=empty type=1 i4=-1 i8=-1 dump=4,20
+status target=empty type=12

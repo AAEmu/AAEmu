@@ -545,8 +545,9 @@ static void run_line(char *line) {
     if (!sz) { memset(b, 0, sizeof b); SETI(b, 0, type); }
     apply_fields(&t, b, 512);
     int r;
-    if (c[0] == 'p') r = ((fn_setp)VT(e)[E_SetParams])(e, b, 1);
-    else if (c[0] == 'a') r = ((fn_setp)VT(e)[E_Action])(e, b, 1);
+    int ts = atoi(get(&t, "ts", "1")); /* bThreadSafe of SetParams / Action (<= 0 may queue) */
+    if (c[0] == 'p') r = ((fn_setp)VT(e)[E_SetParams])(e, b, ts);
+    else if (c[0] == 'a') r = ((fn_setp)VT(e)[E_Action])(e, b, ts);
     else if (c[0] == 'g') r = ((fn_stat)VT(e)[E_GetParams])(e, b);
     else r = ((fn_stat)VT(e)[E_GetStatus])(e, b);
     printf("ret %s %s %d %d", c, need(&t, "target"), type, r);

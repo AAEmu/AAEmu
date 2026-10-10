@@ -192,7 +192,7 @@ fn rigid_post_params_pos(w: &mut World, e: EntIdx, p: &ParamsPos, old_com: Vec3,
     let v31 = (dq.y * dq.y + dq.x * dq.x) + dq.z * dq.z;
     let dp2 = ((old_com.y - b.pos.y) * (old_com.y - b.pos.y) + (old_com.x - b.pos.x) * (old_com.x - b.pos.x))
         + (old_com.z - b.pos.z) * (old_com.z - b.pos.z);
-    let v33 = 0.000_009_000_000_3_f32 - dp2;
+    let v33 = f32::from_bits(0x3716_FEB5) - dp2; // 9.0000003e-6
     let v30 = f32::from_bits(0x3B23_D70B) - v31; // 0.0025000002
     let v34 = ((v33 + v30) - (v33 - v30).abs()) * 0.5;
     let moved = v34 < 0.0;
@@ -200,7 +200,7 @@ fn rigid_post_params_pos(w: &mut World, e: EntIdx, p: &ParamsPos, old_com: Vec3,
         if w.vars.last_dt > 0.0 {
             let cols = w.ent(e).colliders.clone();
             for c in cols {
-                crate::entities::awake(w, c, 1, 1);
+                crate::entities::awake(w, c, 1, 0);
             }
         }
         crate::entities::rigid::contacts::drop_contacts(w, e);
@@ -234,7 +234,7 @@ fn rigid_post_params_pos(w: &mut World, e: EntIdx, p: &ParamsPos, old_com: Vec3,
                 let list = w.get_entities_in_box(bb[0], bb[1], 90, Some(e), caller);
                 for &o in list.iter().rev() {
                     if o != e {
-                        crate::entities::awake(w, o, 1, 1);
+                        crate::entities::awake(w, o, 1, 0);
                     }
                 }
             }
@@ -248,7 +248,7 @@ fn rigid_post_params_pos(w: &mut World, e: EntIdx, p: &ParamsPos, old_com: Vec3,
             let list = w.get_entities_in_box(lo, hi, 26, Some(e), caller);
             for &o in list.iter().rev() {
                 if o != e {
-                    crate::entities::awake(w, o, 1, 1);
+                    crate::entities::awake(w, o, 1, 0);
                 }
             }
         }

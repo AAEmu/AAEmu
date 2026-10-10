@@ -66,7 +66,8 @@ src/
     pairs/         P2a OVERLAP/INTERSECT tables (mod.rs P0) + 4 group files
     swept.rs       P2b UNPROJECT tables, RegisterIntersection, sweeps
   world/       P3  world core, grid, areas, queries, events
-  entities/    P4a base + rigid (+ buoyancy); P5 living, wheeled, particle
+  entities/    P4a base + rigid (+ buoyancy); P5 living, wheeled, particle;
+               interface/ = SetParams / GetParams / GetStatus / Action (slots 7–10) by type id
   solver/      P4b contact solver
   trace.rs     PT  oracle trace parser
   oracle.rs    PT  oracle runner / golden-file helper
@@ -131,7 +132,7 @@ accept decimals, `U` (the unused sentinel) or `h:XXXXXXXX` (raw bits); ints acce
 | `part` | `ent= geom= [mass=] [density=] [pos=] [q=] [scale=] [flags=0x1809F] [collider=0x1] [mincontact=] [id=]` |
 | `surface` | `idx= [bounce=0] [friction=h:3f99999a] [flags=0]` (SetSurfaceParameters, world slot 29) |
 | `area` | `name= kind=global` (AddGlobalArea) |
-| `params` / `action` / `status` / `getparams` | `target= type=N [tmpl=auto\|none] [fields] [dump=off,nwords]`; fields: `f<off>= i<off>= u<off>= b<off>= v<off>=x,y,z q<off>=x,y,z,w p<off>=null\|unused\|ent:NAME\|geom:NAME hex=<bytes>` |
+| `params` / `action` / `status` / `getparams` | `target= type=N [tmpl=auto\|none] [ts=1] [fields] [dump=off,nwords]` (`ts` = bThreadSafe of SetParams / Action; `<= 0` may defer the call to the next TimeStep); fields: `f<off>= i<off>= u<off>= b<off>= v<off>=x,y,z q<off>=x,y,z,w p<off>=null\|unused\|ent:NAME\|geom:NAME hex=<bytes>` |
 | `trace` | `ents=a,b,…` (entities printed after each step) |
 | `step` | `n= [dt=h:3d088889] [flags=0x9F] [every=1]` (TimeStep; `every=0` prints nothing) |
 | `print` | print the traced entities now |

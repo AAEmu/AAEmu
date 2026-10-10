@@ -12,6 +12,7 @@
 //! [`base::EntityKind`] (the vtable).
 
 pub mod base;
+pub mod interface;
 pub mod living;
 pub mod particle;
 pub mod rigid;

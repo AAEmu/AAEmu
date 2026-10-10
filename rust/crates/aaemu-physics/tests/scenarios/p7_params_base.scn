@@ -1,0 +1,140 @@
+# P7 entity interface, CPhysicalEntity (static): SetParams / GetParams / GetStatus / Action ids
+# replayed by tests/p7_params.rs (no TimeStep: entities stay in the creation queue).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=cube type=box size=0.5,0.5,0.5
+geom name=ball type=sphere r=0.3
+entity name=st type=static pos=10,12,1 q=0,0,0.38268343,0.92387953
+part ent=st geom=cube mass=0
+part ent=st geom=ball mass=0 pos=1,0,0.5 id=7
+echo status_pos
+status target=st type=1 i4=-1 i8=-1 dump=4,20
+status target=st type=1 i4=-1 i8=1 dump=4,20
+status target=st type=1 i4=7 i8=-1 dump=4,20
+status target=st type=1 i4=7 i8=-1 i12=1 dump=4,20
+status target=st type=1 i4=9 i8=-1 dump=4,20
+status target=st type=1 i4=0 i8=5 dump=4,20
+status target=st type=1 i4=0 i8=-3 dump=4,20
+echo nparts_awake
+status target=st type=12
+status target=st type=7
+echo status_id
+status target=st type=10 i4=0 dump=24,1
+status target=st type=10 i4=-1 i8=7 dump=24,1
+status target=st type=10 i4=-1 i8=99 dump=24,1
+status target=st type=10 i4=1 i12=1 dump=24,1
+status target=st type=10 i4=2 dump=24,1
+echo contains_point
+status target=st type=13 v4=10,12,1
+status target=st type=13 v4=10.7,12.7,1.5
+status target=st type=13 v4=10,12,3
+status target=st type=20 i4=5 dump=4,1
+echo timeout
+getparams target=st type=23 dump=4,2
+params target=st type=23 f4=1.5 f8=7
+getparams target=st type=23 dump=4,2
+params target=st type=23 f8=9
+getparams target=st type=23 dump=4,2
+echo byte_flag
+params target=st type=26 b4=5
+echo foreign_data
+getparams target=st type=11 dump=8,4
+params target=st type=11 tmpl=none p8=unused i16=42 i20=U i24=U i28=U
+getparams target=st type=11 dump=8,4
+params target=st type=11 tmpl=none p8=unused i16=U i20=0x55 i24=-1 i28=0x100
+getparams target=st type=11 dump=8,4
+params target=st type=11 tmpl=none p8=unused i16=-7 i20=0x3 i24=0x7 i28=0x30
+getparams target=st type=11 dump=8,4
+params target=st type=11 tmpl=none p8=null i16=U i20=U i24=-1 i28=0
+getparams target=st type=11 dump=8,4
+echo flags
+getparams target=st type=15 dump=4,1
+params target=st type=15 i8=0x1 i12=0xFFFF7FFF
+getparams target=st type=15 dump=4,1
+params target=st type=15 i12=0xFFFFFBFF
+getparams target=st type=15 dump=4,1
+params target=st type=15 i8=0x400
+getparams target=st type=15 dump=4,1
+params target=st type=15 i8=0x10
+getparams target=st type=15 dump=4,1
+params target=st type=15 i4=0x8640
+getparams target=st type=15 dump=4,1
+echo bbox
+getparams target=st type=14 dump=4,6
+params target=st type=14 v4=1,2,3
+getparams target=st type=14 dump=4,6
+params target=st type=14 v16=5,6,7
+getparams target=st type=14 dump=4,6
+echo ground_plane
+getparams target=st type=20 i4=0 dump=4,7
+params target=st type=20 tmpl=none i4=2 v8=1,2,3 v20=0,0,1
+getparams target=st type=20 i4=2 dump=4,7
+getparams target=st type=20 i4=0 dump=4,7
+getparams target=st type=20 i4=3 dump=4,7
+params target=st type=20 tmpl=none i4=0 f8=U v20=0,1,0
+getparams target=st type=20 i4=0 dump=4,7
+params target=st type=20 tmpl=none i4=-1 f8=U f20=U
+getparams target=st type=20 i4=0 dump=4,7
+echo structure
+params target=st type=21 tmpl=none i8=-1
+params target=st type=24 tmpl=none i4=U i8=U
+params target=st type=24 tmpl=none i4=7 i8=U
+params target=st type=25 tmpl=none i4=7
+params target=st type=9 tmpl=none
+getparams target=st type=9 dump=8,4
+getparams target=st type=21 tmpl=none i8=U
+getparams target=st type=24 i4=U i8=U
+params target=st type=18 tmpl=none
+echo part_params
+getparams target=st type=6 i8=1 dump=4,12
+getparams target=st type=6 i8=1 dump=64,8
+getparams target=st type=6 i8=1 dump=112,1
+getparams target=st type=6 i8=1 dump=128,1
+getparams target=st type=6 i8=1 dump=144,1
+getparams target=st type=6 i4=7 i8=-1 dump=4,2
+getparams target=st type=6 i4=8 i8=-1 dump=4,2
+getparams target=st type=6 i4=-1 i8=-1 dump=4,2
+getparams target=st type=6 i4=0 i8=2 dump=4,2
+params target=st type=6 i8=1 v16=0.5,0.25,0 q28=0,0,0.70710677,0.70710677 f84=3 i68=0x100 i72=0xFFFFFFFE
+getparams target=st type=6 i8=1 dump=4,12
+getparams target=st type=6 i8=1 dump=64,8
+status target=st type=1 i4=-1 i8=1 dump=4,20
+status target=st type=1 i4=-1 i8=-1 dump=4,20
+params target=st type=6 i4=7 f88=500 i112=3 i76=0x2 i80=0x3
+getparams target=st type=6 i4=7 i8=-1 dump=64,8
+getparams target=st type=6 i4=7 i8=-1 dump=112,1
+params target=st type=6 i4=99
+params target=st type=6 i8=2
+params target=st type=6 f84=2 i112=5 i68=0x4000 i64=0x100
+getparams target=st type=6 i8=0 dump=64,8
+getparams target=st type=6 i8=1 dump=64,8
+getparams target=st type=6 i8=1 dump=112,1
+params target=st type=6 i8=0 i4=11 f44=2 f92=0.05
+getparams target=st type=6 i8=0 dump=4,12
+getparams target=st type=6 i8=0 dump=84,3
+status target=st type=1 i4=-1 i8=-1 dump=4,20
+status target=st type=1 i4=-1 i8=0 dump=4,20
+params target=st type=6 i8=0 i12=0 v16=0,0,0.2
+status target=st type=1 i4=-1 i8=0 dump=4,20
+status target=st type=1 i4=-1 i8=-1 dump=4,20
+params target=st type=6 i8=0 i12=3 f44=1
+status target=st type=1 i4=-1 i8=-1 dump=4,20
+echo actions
+action target=st type=8
+action target=st type=8 i4=0
+action target=st type=2
+action target=st type=2 i68=5
+action target=st type=2 i64=7
+action target=st type=2 i64=99
+action target=st type=2 i68=1 v52=10,12,1
+action target=st type=4
+action target=st type=10 v12=1,2,3
+action target=st type=6 tmpl=none
+action target=st type=5 tmpl=none
+action target=st type=7 tmpl=none
+action target=st type=18 tmpl=none
+action target=st type=13 tmpl=none i4=1 i8=U
+status target=st type=1 i4=-1 i8=-1 dump=4,20
+status target=st type=1 i4=-1 i8=1 dump=4,20
+action target=st type=13 tmpl=none i4=U i8=11
+status target=st type=1 i4=-1 i8=-1 dump=4,20
+status target=st type=1 i4=-1 i8=0 dump=4,20
