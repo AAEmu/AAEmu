@@ -38,7 +38,9 @@
 
 use super::common::mat_mul;
 use super::UnprojTables;
-use crate::collision::contact::{ContactArea, GeomContact, IntersectionParams, UnprojParams, UnprojResult};
+use crate::collision::contact::{
+    ContactArea, GeomContact, IntersectionParams, UnprojParams, UnprojResult,
+};
 use crate::geometry::primitives::{BoxPrim, CylinderPrim, Primitive, RayPrim, SpherePrim};
 use crate::geometry::GeomWorldData;
 use crate::math::{Mat33, Vec3};
@@ -448,7 +450,16 @@ pub fn register_intersection(
     }
     if !fallback {
         p.tmax = p.vel * ip.time_interval;
-        let r = tables.unproject(mode, &mut p, prim_a, -1, prim_b, -1, &mut res, contact.area.as_mut());
+        let r = tables.unproject(
+            mode,
+            &mut p,
+            prim_a,
+            -1,
+            prim_b,
+            -1,
+            &mut res,
+            contact.area.as_mut(),
+        );
         if r == 0 {
             return false;
         }
@@ -461,7 +472,16 @@ pub fn register_intersection(
         normalize_in_place(&mut inters.n);
         p.dir = inters.n;
         p.vel = 0.0;
-        let r = tables.unproject(0, &mut p, prim_a, -1, prim_b, -1, &mut res, contact.area.as_mut());
+        let r = tables.unproject(
+            0,
+            &mut p,
+            prim_a,
+            -1,
+            prim_b,
+            -1,
+            &mut res,
+            contact.area.as_mut(),
+        );
         if r == 0 {
             return false;
         }

@@ -811,7 +811,11 @@ pub fn check_raw(
             let _ = std::fs::write(p, &dump);
         }
     }
-    assert!(bad == 0, "{name}: {bad} of {} cases differ\n{report}", recs.len());
+    assert!(
+        bad == 0,
+        "{name}: {bad} of {} cases differ\n{report}",
+        recs.len()
+    );
 }
 
 /// Parse hex words.

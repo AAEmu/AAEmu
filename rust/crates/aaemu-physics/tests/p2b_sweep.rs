@@ -196,7 +196,8 @@ fn pairs() -> Vec<(i32, i32)> {
     all.into_iter()
         .filter(|&(a, b)| {
             let f = t.get(0, probe_a(a).geom_type(), probe_a(b).geom_type());
-            f as usize != aaemu_physics::collision::swept::unproject_none as usize
+            f as *const () as usize
+                != aaemu_physics::collision::swept::unproject_none as *const () as usize
         })
         .collect()
 }
@@ -234,7 +235,11 @@ fn gen_sweep_with(rng: &mut Rng, pairs: &[(i32, i32)]) -> String {
         // thin wall facing the motion
         gb.r = Mat33::IDENTITY;
         ga.v = Vec3::new(0.0, 0.0, if rng.chance(0.5) { speed } else { -speed });
-        gb.offset = Vec3::new(ga.offset.x, ga.offset.y, ga.offset.z + ga.v.z * ti * rng.f(0.1, 0.9));
+        gb.offset = Vec3::new(
+            ga.offset.x,
+            ga.offset.y,
+            ga.offset.z + ga.v.z * ti * rng.f(0.1, 0.9),
+        );
     }
     let ip = IntersectionParams {
         time_interval: ti,
@@ -284,20 +289,20 @@ fn port_sweep(line: &str, oracle: &str) -> String {
         None
     } else {
         sweep_primitives(
-        &tables,
-        SweepGeom {
-            prim: &pa,
-            min_vtx_dist: f32::from_bits(mvd[0]),
-        },
-        &mut ga,
-        SweepGeom {
-            prim: &pb,
-            min_vtx_dist: f32::from_bits(mvd[1]),
-        },
-        &gb,
-        &bbox,
-        &ip,
-        area.as_mut(),
+            &tables,
+            SweepGeom {
+                prim: &pa,
+                min_vtx_dist: f32::from_bits(mvd[0]),
+            },
+            &mut ga,
+            SweepGeom {
+                prim: &pb,
+                min_vtx_dist: f32::from_bits(mvd[1]),
+            },
+            &gb,
+            &bbox,
+            &ip,
+            area.as_mut(),
         )
     };
     let mut s = format!(
@@ -373,4 +378,248 @@ fn sweep_matches_dll() {
         format!("p2b_sweep_{}pairs", ps.len())
     };
     check_raw(&name, 300, &|rng| gen_sweep_with(rng, &ps), &port_sweep);
+}
+
+// ------------------------------------------------------------------------------------ REG
+
+use aaemu_physics::collision::contact::{GeomContact, PrimInters};
+use aaemu_physics::collision::swept::sweep::{
+    register_intersection, GeomTestMotion, StaleUnprojSlots,
+};
+
+fn motion_words(m: &GeomTestMotion) -> Vec<u32> {
+    let mut w = Vec::new();
+    for v in [m.v, m.w, m.com, m.rot_center] {
+        w.extend_from_slice(&v.to_bits());
+    }
+    w.push(m.min_vtx_dist.to_bits());
+    w
+}
+
+fn motion_from(w: &[u32]) -> GeomTestMotion {
+    let v = |i: usize| Vec3::from_bits([w[i], w[i + 1], w[i + 2]]);
+    GeomTestMotion {
+        v: v(0),
+        w: v(3),
+        com: v(6),
+        rot_center: v(9),
+        min_vtx_dist: f32::from_bits(w[12]),
+    }
+}
+
+/// prim_inters as its 22 words (88 bytes; the border pointer words are 0).
+fn inters_words(pi: &PrimInters) -> Vec<u32> {
+    let mut w = Vec::new();
+    w.extend_from_slice(&pi.pt[0].to_bits());
+    w.extend_from_slice(&pi.pt[1].to_bits());
+    w.extend_from_slice(&pi.n.to_bits());
+    let f = pi.i_feature;
+    w.push(u32::from_le_bytes([f[0][0], f[0][1], f[1][0], f[1][1]]));
+    w.push(pi.tolerance.to_bits());
+    w.push(u32::from(pi.id[0] as u16) | (u32::from(pi.id[1] as u16) << 16));
+    w.push(pi.i_node[0] as u32);
+    w.push(pi.i_node[1] as u32);
+    w.extend_from_slice(&[0, 0, 0, 0]);
+    w.extend_from_slice(&pi.n_alt.to_bits());
+    w.push(pi.unk_84 as u32);
+    w
+}
+
+fn inters_from(w: &[u32]) -> PrimInters {
+    let v = |i: usize| Vec3::from_bits([w[i], w[i + 1], w[i + 2]]);
+    let fb = w[9].to_le_bytes();
+    PrimInters {
+        pt: [v(0), v(3)],
+        n: v(6),
+        i_feature: [[fb[0], fb[1]], [fb[2], fb[3]]],
+        tolerance: f32::from_bits(w[10]),
+        id: [w[11] as u16 as i16, (w[11] >> 16) as u16 as i16],
+        i_node: [w[12] as i32, w[13] as i32],
+        n_alt: v(18),
+        unk_84: w[21] as i32,
+        ..PrimInters::default()
+    }
+}
+
+fn is_ported(t: &UnprojTables, mode: usize, a: &Primitive, b: &Primitive) -> bool {
+    let f = t.get(mode, a.geom_type(), b.geom_type());
+    f as *const () as usize != aaemu_physics::collision::swept::unproject_none as *const () as usize
+}
+
+fn rand_world_prim(rng: &mut Rng, t: i32) -> Primitive {
+    if t == 3 {
+        let o = rng.vec(-1.0, 1.0);
+        let d = rng.vec(-2.0, 2.0);
+        return Primitive::Ray(aaemu_physics::geometry::primitives::RayPrim { origin: o, dir: d });
+    }
+    let mut p = rand_prim(rng, t, 1.0);
+    if let Primitive::Box(b) = &mut p {
+        b.oriented = 1;
+        if rng.chance(0.4) {
+            b.basis = Mat33::IDENTITY;
+        }
+    }
+    p
+}
+
+/// Type pairs whose mode-0 cells exist in this build.
+fn reg_pairs() -> Vec<(i32, i32)> {
+    let t = UnprojTables::build();
+    let types = [0i32, 3, 4, 5, 6];
+    let mut v = Vec::new();
+    for &a in &types {
+        for &b in &types {
+            let mut rng = Rng::new(7);
+            let pa = rand_world_prim(&mut rng, a);
+            let pb = rand_world_prim(&mut rng, b);
+            if is_ported(&t, 0, &pa, &pb) {
+                v.push((a, b));
+            }
+        }
+    }
+    v
+}
+
+fn rand_motion(rng: &mut Rng) -> GeomTestMotion {
+    let still = rng.chance(0.2);
+    GeomTestMotion {
+        v: if still {
+            Vec3::ZERO
+        } else {
+            rng.vec(-5.0, 5.0)
+        },
+        w: if still || rng.chance(0.3) {
+            Vec3::ZERO
+        } else {
+            rng.vec(-3.0, 3.0)
+        },
+        com: rng.vec(-1.0, 1.0),
+        rot_center: rng.vec(-2.0, 2.0),
+        min_vtx_dist: rng.f(0.0001, 0.01),
+    }
+}
+
+fn gen_reg_with(rng: &mut Rng, pairs: &[(i32, i32)]) -> String {
+    let (ta, tb) = rng.pick(pairs);
+    let pa = rand_world_prim(rng, ta);
+    let pb = rand_world_prim(rng, tb);
+    let n = if rng.chance(0.5) {
+        rng.unit()
+    } else {
+        rng.vec(-2.0, 2.0)
+    };
+    let pi = PrimInters {
+        pt: [rng.vec(-1.0, 1.0), rng.vec(-1.0, 1.0)],
+        n,
+        i_feature: [[0x40, 0x41], [0x20, 0x81]],
+        tolerance: 0.0,
+        id: [rng.below(200) as i16 - 100, -1],
+        i_node: [rng.below(10) as i32 - 1, rng.below(10) as i32 - 1],
+        ..PrimInters::default()
+    };
+    let rot = rng.chance(0.4) && is_ported(&UnprojTables::build(), 1, &pa, &pb);
+    let ip = IntersectionParams {
+        i_unprojection_mode: i32::from(rot),
+        time_interval: rng.pick(&[100.0f32, 1.0, 0.1, 0.03]),
+        vrel_min: rng.pick(&[1e-6f32, 1e10, 0.5, 2.0]),
+        ..IntersectionParams::default()
+    };
+    format!(
+        "REG {ta:x}{} {tb:x}{} SA{} SB{} PI{} IP{} AREA {}",
+        fmt_words(&prim_words(&pa)),
+        fmt_words(&prim_words(&pb)),
+        fmt_words(&motion_words(&rand_motion(rng))),
+        fmt_words(&motion_words(&rand_motion(rng))),
+        fmt_words(&inters_words(&pi)),
+        fmt_words(&ip_words(&ip)),
+        u32::from(rng.chance(0.5))
+    )
+}
+
+fn port_reg(line: &str, _oracle: &str) -> String {
+    let tables = UnprojTables::build();
+    let mut it = line.split_whitespace().skip(1);
+    let ta = i32::from_str_radix(it.next().unwrap(), 16).unwrap();
+    let pa = prim_from_words(ta, &hex_words(&mut it, prim_word_count(ta).unwrap()));
+    let tb = i32::from_str_radix(it.next().unwrap(), 16).unwrap();
+    let pb = prim_from_words(tb, &hex_words(&mut it, prim_word_count(tb).unwrap()));
+    assert_eq!(it.next(), Some("SA"));
+    let ma = motion_from(&hex_words(&mut it, 13));
+    assert_eq!(it.next(), Some("SB"));
+    let mb = motion_from(&hex_words(&mut it, 13));
+    assert_eq!(it.next(), Some("PI"));
+    let mut pi = inters_from(&hex_words(&mut it, 22));
+    assert_eq!(it.next(), Some("IP"));
+    let ip = ip_from(&hex_words(&mut it, 28));
+    assert_eq!(it.next(), Some("AREA"));
+    let use_area = it.next() == Some("1");
+    let s32 = f32::from_bits(0x1111_1111);
+    let s3 = Vec3::splat(s32);
+    let mut c = GeomContact {
+        t: f64::from_bits(0x1111_1111_1111_1111),
+        pt: s3,
+        n: s3,
+        dir: s3,
+        i_unproj_mode: 0x1111_1111,
+        vel: s32,
+        id: [0x1111_1111; 2],
+        i_prim: [0x1111_1111; 2],
+        i_feature: [0x1111_1111; 2],
+        i_node: [0x1111_1111; 2],
+        area: use_area.then(|| new_area(256)),
+        ..GeomContact::default()
+    };
+    let ok = register_intersection(
+        &tables,
+        &pa,
+        &ma,
+        &pb,
+        &mb,
+        &mut pi,
+        &ip,
+        &mut c,
+        StaleUnprojSlots::default(),
+    );
+    let t = c.t.to_bits();
+    let mut w = vec![t as u32, (t >> 32) as u32];
+    w.extend_from_slice(&c.pt.to_bits());
+    w.extend_from_slice(&c.n.to_bits());
+    w.extend_from_slice(&c.dir.to_bits());
+    w.push(c.i_unproj_mode as u32);
+    w.push(c.vel.to_bits());
+    w.extend(c.id.iter().map(|&x| x as u32));
+    w.extend(c.i_prim.iter().map(|&x| x as u32));
+    w.extend(c.i_feature.iter().map(|&x| x as u32));
+    w.extend(c.i_node.iter().map(|&x| x as u32));
+    w.push(0x1111_1111);
+    // one contact registered into a 4-slot buffer never raises the stop flag
+    let mut s = format!(
+        "reg {:08x} STOP 00000000 PI{} C{} NB 00000001 SELF 1",
+        u32::from(ok),
+        fmt_words(&pi.n.to_bits()),
+        fmt_words(&w)
+    );
+    match &c.area {
+        Some(a) => {
+            s.push_str(&format!(
+                " AREA {:08x} {:08x} {:08x}{}",
+                a.npt as u32,
+                a.nmaxpt as u32,
+                a.min_edge.to_bits(),
+                fmt_words(&a.n.to_bits())
+            ));
+            for i in 0..a.npt.max(0) as usize {
+                s.push_str(&fmt_words(&a.pt[i].to_bits()));
+            }
+        }
+        None => s.push_str(" NOAREA"),
+    }
+    s
+}
+
+#[test]
+fn register_intersection_matches_dll() {
+    let ps = reg_pairs();
+    let name = format!("p2b_sweep_reg_{}pairs", ps.len());
+    check_raw(&name, 300, &|rng| gen_reg_with(rng, &ps), &port_reg);
 }

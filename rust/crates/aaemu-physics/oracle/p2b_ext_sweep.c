@@ -89,8 +89,9 @@ static void p2b_gtest_side(char **cur, unsigned char *gt) {
 }
 static int p2b_ext_reg(char *line) {
   char *cur = line;
-  char *cmd = p2b_tok(&cur);
-  if (!cmd || strcmp(cmd, "REG")) return 0;
+  while (*cur == ' ' || *cur == '	') cur++;
+  if (strncmp(cur, "REG ", 4)) return 0; /* leave other lines untouched */
+  p2b_tok(&cur);
   p2b_world();
   __declspec(align(16)) uint32_t pa[16], pb[16], pi[32], ip[64];
   static __declspec(align(16)) unsigned char gta[512], gtb[512], contacts[136 * 4];
