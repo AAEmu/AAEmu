@@ -24,7 +24,7 @@
 
 #![allow(clippy::neg_cmp_op_on_partial_ord)]
 
-use crate::geometry::primitives::{BoxPrim, Plane};
+use crate::geometry::primitives::BoxPrim;
 use crate::geometry::{GeomWorldData, Geometry};
 use crate::math::{Mat33, Quat, Vec3};
 
@@ -208,13 +208,6 @@ pub fn quat_rotation_arc(from: Vec3, to: Vec3) -> Quat {
 #[must_use]
 pub fn gwd_point(gwd: &GeomWorldData, v: Vec3) -> Vec3 {
     gwd.r.mul_vec(v) * gwd.scale + gwd.offset
-}
-
-/// The plane argument of slots 13/14 as `(n, origin)`.
-#[inline]
-#[must_use]
-pub fn plane_parts(p: &Plane) -> (Vec3, Vec3) {
-    (p.n, p.origin)
 }
 
 /// Shared Geometry plumbing for the five classes: header access.
