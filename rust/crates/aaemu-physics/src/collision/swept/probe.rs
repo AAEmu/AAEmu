@@ -622,11 +622,24 @@ fn parse_golden(text: &str) -> Result<Vec<(Case, String)>, String> {
 /// equal).
 #[must_use]
 pub fn compare(name: &str, tables: &UnprojTables, recs: &[(Case, String)]) -> String {
+    compare_masked(name, tables, recs, &|a: &str| a.to_string())
+}
+
+/// [`compare`] after passing both answers through `mask` (used to blank words the original
+/// fills from uninitialised memory).
+#[must_use]
+pub fn compare_masked(
+    name: &str,
+    tables: &UnprojTables,
+    recs: &[(Case, String)],
+    mask: &dyn Fn(&str) -> String,
+) -> String {
     let mut bad = 0usize;
     let mut report = String::new();
     let mut dump = String::new();
     for (i, (c, want)) in recs.iter().enumerate() {
-        let got = c.run_port(tables);
+        let got = mask(&c.run_port(tables));
+        let want = &mask(want);
         if &got != want {
             bad += 1;
             let entry = format!(
@@ -670,12 +683,41 @@ pub fn word_diff(a: &str, b: &str) -> String {
 /// # Panics
 /// On any mismatch or oracle / golden error.
 pub fn check(name: &str, n: usize, gen: &dyn Fn(&mut Rng) -> Case) {
+    check_masked(name, n, gen, &|a: &str| a.to_string());
+}
+
+/// Blank the result's `cos` words (answer words 19 and 20): linear cells never compute it, and
+/// some compositions copy it from an uninitialised stack temporary.
+#[must_use]
+pub fn mask_cos(answer: &str) -> String {
+    answer
+        .split(' ')
+        .enumerate()
+        .map(|(i, w)| if i == 19 || i == 20 { "--------" } else { w })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// [`check`] comparing answers after `mask` (the golden stores the masked oracle answers).
+///
+/// # Panics
+/// On any mismatch or oracle / golden error.
+pub fn check_masked(
+    name: &str,
+    n: usize,
+    gen: &dyn Fn(&mut Rng) -> Case,
+    mask: &dyn Fn(&str) -> String,
+) {
     let tables = UnprojTables::build();
     let golden = golden_dir().join(format!("{name}.trace"));
     let recs = if let Some(exe) = oracle_path() {
         let mut rng = Rng::new(seed_of(name));
         let cases: Vec<Case> = (0..n).map(|_| gen(&mut rng)).collect();
-        let answers = oracle_cases(&exe, &cases).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let answers: Vec<String> = oracle_cases(&exe, &cases)
+            .unwrap_or_else(|e| panic!("{name}: {e}"))
+            .iter()
+            .map(|a| mask(a))
+            .collect();
         let fresh = golden_text(name, &cases, &answers);
         let stored = std::fs::read_to_string(&golden)
             .ok()
@@ -710,7 +752,7 @@ pub fn check(name: &str, n: usize, gen: &dyn Fn(&mut Rng) -> Case) {
             .replace("\r\n", "\n");
         parse_golden(&text).unwrap_or_else(|e| panic!("{}: {e}", golden.display()))
     };
-    let report = compare(name, &tables, &recs);
+    let report = compare_masked(name, &tables, &recs, mask);
     assert!(report.is_empty(), "{report}");
 }
 

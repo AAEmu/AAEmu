@@ -62,7 +62,11 @@ pub fn end_spheres(b: &CapsulePrim) -> [SpherePrim; 2] {
             r: b.r,
         },
         SpherePrim {
-            center: Vec3::new(a.x * h + b.center.x, a.y * h + b.center.y, a.z * h + b.center.z),
+            center: Vec3::new(
+                a.x * h + b.center.x,
+                a.y * h + b.center.y,
+                a.z * h + b.center.z,
+            ),
             r: b.r,
         },
     ]
@@ -120,10 +124,7 @@ pub fn compose_full(
             out.t = 0.0;
         }
         t0 = out.t;
-        let mut tmp = UnprojResult {
-            cos_t: 0.0,
-            ..*out
-        };
+        let mut tmp = UnprojResult { cos_t: 0.0, ..*out };
         let mut rs = [0i32; 2];
         for (k, s) in ends.iter().enumerate() {
             p.dir = Vec3::ZERO;
