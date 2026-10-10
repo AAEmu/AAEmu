@@ -755,6 +755,219 @@ fn gen_tri_box(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
         .collect()
 }
 
+fn gen_overlap_tri_sph(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
+    let mut rng = Rng(seed);
+    (0..n)
+        .map(|_| {
+            let t = base_tri(&mut rng);
+            let s = rand_sph(&mut rng, &t);
+            let mut w = Vec::new();
+            if swapped {
+                sph_words(&s, &mut w);
+                tri_words(&t, &mut w);
+            } else {
+                tri_words(&t, &mut w);
+                sph_words(&s, &mut w);
+            }
+            Case { words: w }
+        })
+        .collect()
+}
+
+fn gen_overlap_box_tri(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
+    let mut rng = Rng(seed);
+    (0..n)
+        .map(|_| {
+            let mut b = rand_box(&mut rng);
+            if rng.chance(15) {
+                // a rotated basis flagged as not oriented (the flag alone decides)
+                b.oriented = 0;
+            }
+            let t = box_tri(&mut rng, &b);
+            let mut w = Vec::new();
+            if swapped {
+                tri_words(&t, &mut w);
+                box_words(&b, &mut w);
+            } else {
+                box_words(&b, &mut w);
+                tri_words(&t, &mut w);
+            }
+            Case { words: w }
+        })
+        .collect()
+}
+
+// ------------------------------------------------------------------------- heightfields
+
+type Grid = (i32, i32, Vec<f32>);
+
+thread_local! {
+    static GRID: std::cell::RefCell<Grid> = const { std::cell::RefCell::new((0, 0, Vec::new())) };
+}
+
+/// The oracle's getHeight callback: the grid inside, `(ix·7 + iy·13)·0.25` outside.
+fn test_height(ix: i32, iy: i32) -> f32 {
+    GRID.with(|g| {
+        let g = g.borrow();
+        if ix >= 0 && iy >= 0 && ix < g.0 && iy < g.1 {
+            g.2[(iy * g.0 + ix) as usize]
+        } else {
+            (ix * 7 + iy * 13) as f32 * 0.25
+        }
+    })
+}
+
+fn test_surf(_: i32, _: i32) -> u16 {
+    0
+}
+
+/// Heightfield primitive words (30) followed by `gx gy heights…`.
+fn hf_words(h: &HeightfieldPrim, grid: &Grid, o: &mut Vec<u32>) {
+    o.extend(h.basis.to_bits());
+    o.push(h.oriented as u32);
+    vw(h.origin, o);
+    o.extend([fw(h.step[0]), fw(h.step[1]), fw(h.stepr[0]), fw(h.stepr[1])]);
+    o.extend([
+        h.size[0] as u32,
+        h.size[1] as u32,
+        h.stride[0] as u32,
+        h.stride[1] as u32,
+    ]);
+    o.push(fw(h.height_scale));
+    o.push(u32::from(h.type_mask) | u32::from(h.height_mask) << 16);
+    o.push(h.type_hole as u32);
+    o.push(h.type_power as u32);
+    o.extend([0; 5]); // padding + the two callback pointers (replaced by the oracle)
+    o.push(grid.0 as u32);
+    o.push(grid.1 as u32);
+    o.extend(grid.2.iter().map(|x| fw(*x)));
+}
+
+/// Parse heightfield words and install the grid for [`test_height`]; returns the primitive
+/// and the number of words consumed.
+fn words_hf(w: &[u32]) -> (HeightfieldPrim, usize) {
+    let h = HeightfieldPrim {
+        basis: Mat33::from_bits(w[0..9].try_into().unwrap()),
+        oriented: w[9] as i32,
+        origin: wv(&w[10..]),
+        step: [wf(w[13]), wf(w[14])],
+        stepr: [wf(w[15]), wf(w[16])],
+        size: [w[17] as i32, w[18] as i32],
+        stride: [w[19] as i32, w[20] as i32],
+        height_scale: wf(w[21]),
+        type_mask: w[22] as u16,
+        height_mask: (w[22] >> 16) as u16,
+        type_hole: w[23] as i32,
+        type_power: w[24] as i32,
+        get_height: Some(test_height),
+        get_surf_type: Some(test_surf),
+    };
+    let gx = w[30] as i32;
+    let gy = w[31] as i32;
+    let n = (gx * gy) as usize;
+    let heights: Vec<f32> = w[32..32 + n].iter().map(|x| wf(*x)).collect();
+    GRID.with(|g| *g.borrow_mut() = (gx, gy, heights));
+    (h, 32 + n)
+}
+
+fn rand_rot(rng: &mut Rng) -> Mat33 {
+    let mut q = [0.0f32; 4];
+    loop {
+        for c in &mut q {
+            *c = rng.f(-1.0, 1.0);
+        }
+        let l2 = q.iter().map(|c| c * c).sum::<f32>();
+        if l2 > 0.01 && l2 <= 1.0 {
+            let inv = 1.0 / l2.sqrt();
+            for c in &mut q {
+                *c *= inv;
+            }
+            return Mat33::from_quat(Quat::new(q[0], q[1], q[2], q[3]));
+        }
+    }
+}
+
+fn rand_hf(rng: &mut Rng) -> (HeightfieldPrim, Grid) {
+    let basis = if rng.chance(70) {
+        Mat33::IDENTITY
+    } else {
+        rand_rot(rng)
+    };
+    let steps = [0.5f32, 1.0, 2.0, 0.37];
+    let step = [steps[rng.i(4) as usize], steps[rng.i(4) as usize]];
+    let size = [(rng.i(7) + 1) as i32, (rng.i(7) + 1) as i32];
+    let (gx, gy) = if rng.chance(85) {
+        (size[0] + 1, size[1] + 1)
+    } else {
+        (size[0], size[1] - 1)
+    };
+    let amp = rng.f(0.0, 3.0);
+    let heights = (0..gx * gy)
+        .map(|_| if rng.chance(10) { 0.0 } else { rng.f(-amp, amp) })
+        .collect();
+    let scales = [1.0f32, 0.5, 0.01];
+    let h = HeightfieldPrim {
+        oriented: i32::from(!basis.is_identity()),
+        basis,
+        origin: if rng.chance(50) { Vec3::ZERO } else { rng.v(3.0) },
+        step,
+        stepr: [1.0 / step[0], 1.0 / step[1]],
+        size,
+        stride: [0, 0],
+        height_scale: scales[rng.i(3) as usize],
+        ..HeightfieldPrim::default()
+    };
+    (h, (gx, gy, heights))
+}
+
+/// A point over a heightfield (world space): inside the grid, near its border or outside.
+fn hf_point(rng: &mut Rng, h: &HeightfieldPrim) -> Vec3 {
+    let ex = h.size[0] as f32 * h.step[0];
+    let ey = h.size[1] as f32 * h.step[1];
+    let l = Vec3::new(rng.f(-0.3, 1.3) * ex, rng.f(-0.3, 1.3) * ey, rng.f(-3.0, 4.0));
+    h.basis.t_mul_vec(l) + h.origin
+}
+
+fn gen_overlap_hf_sph(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
+    let mut rng = Rng(seed);
+    (0..n)
+        .map(|_| {
+            let (h, g) = rand_hf(&mut rng);
+            let s = SpherePrim {
+                center: hf_point(&mut rng, &h),
+                r: rng.f(0.0, 2.5),
+            };
+            let mut w = Vec::new();
+            if swapped {
+                sph_words(&s, &mut w);
+                hf_words(&h, &g, &mut w);
+            } else {
+                hf_words(&h, &g, &mut w);
+                sph_words(&s, &mut w);
+            }
+            Case { words: w }
+        })
+        .collect()
+}
+
+fn check_hf_sph(probe: &str, rows: &[Row], swapped: bool) -> usize {
+    let mut hits = 0;
+    for (i, r) in rows.iter().enumerate() {
+        let got = if swapped {
+            let s = words_sph(&r.input);
+            let (h, _) = words_hf(&r.input[4..]);
+            tp::overlap_sph_hf(&s, &h)
+        } else {
+            let (h, k) = words_hf(&r.input);
+            let s = words_sph(&r.input[k..]);
+            tp::overlap_hf_sph(&h, &s)
+        };
+        hits += usize::from(r.ret != 0);
+        assert_eq!(i32::from(got), r.ret, "{probe} row {i}: input {:08x?}", r.input);
+    }
+    hits
+}
+
 // -------------------------------------------------------------------------------- tests
 
 #[test]
@@ -843,9 +1056,43 @@ fn fuzz_tri_box() {
     }
 }
 
-#[allow(dead_code)]
-fn _unused(_: HeightfieldPrim, _: fn(&[u32]) -> RayPrim, _: fn(&RayPrim, &mut Vec<u32>)) {}
-#[allow(dead_code)]
-fn _unused2() -> (fn(&BoxPrim, &mut Vec<u32>), fn(&[u32]) -> BoxPrim, fn(&SpherePrim, &mut Vec<u32>), fn(&[u32]) -> SpherePrim, fn(&RayPrim, &mut Vec<u32>), fn(&[u32]) -> RayPrim) {
-    (box_words, words_box, sph_words, words_sph, ray_words, words_ray)
+
+#[test]
+fn overlap_tri_sph_matches_sub_35197530() {
+    let rows = golden("p2a2_o_tri_sph", || gen_overlap_tri_sph(8, 1500, false));
+    let hits = check_overlap("o_tri_sph", &rows, 12, words_tri, words_sph, tp::overlap_tri_sph);
+    assert!(hits > 150 && hits < 1350, "unbalanced golden set: {hits}");
+    let rows = golden("p2a2_o_sph_tri", || gen_overlap_tri_sph(9, 300, true));
+    check_overlap("o_sph_tri", &rows, 4, words_sph, words_tri, tp::overlap_sph_tri);
+}
+
+#[test]
+fn overlap_box_tri_matches_sub_351968f0() {
+    let rows = golden("p2a2_o_box_tri", || gen_overlap_box_tri(10, 1500, false));
+    let hits = check_overlap("o_box_tri", &rows, 16, words_box, words_tri, tp::overlap_box_tri);
+    assert!(hits > 150 && hits < 1350, "unbalanced golden set: {hits}");
+    let rows = golden("p2a2_o_tri_box", || gen_overlap_box_tri(11, 300, true));
+    check_overlap("o_tri_box", &rows, 12, words_tri, words_box, tp::overlap_tri_box);
+}
+
+#[test]
+fn overlap_hf_sph_matches_sub_351975e0() {
+    let rows = golden("p2a2_o_hf_sph", || gen_overlap_hf_sph(12, 1000, false));
+    let hits = check_hf_sph("o_hf_sph", &rows, false);
+    assert!(hits > 100 && hits < 900, "unbalanced golden set: {hits}");
+    let rows = golden("p2a2_o_sph_hf", || gen_overlap_hf_sph(13, 300, true));
+    check_hf_sph("o_sph_hf", &rows, true);
+}
+
+#[test]
+fn fuzz_overlaps() {
+    if let Some(rows) = live("p2a2_o_tri_sph", gen_overlap_tri_sph(1008, 30000, false)) {
+        check_overlap("o_tri_sph", &rows, 12, words_tri, words_sph, tp::overlap_tri_sph);
+    }
+    if let Some(rows) = live("p2a2_o_box_tri", gen_overlap_box_tri(1009, 30000, false)) {
+        check_overlap("o_box_tri", &rows, 16, words_box, words_tri, tp::overlap_box_tri);
+    }
+    if let Some(rows) = live("p2a2_o_hf_sph", gen_overlap_hf_sph(1010, 20000, false)) {
+        check_hf_sph("o_hf_sph", &rows, false);
+    }
 }

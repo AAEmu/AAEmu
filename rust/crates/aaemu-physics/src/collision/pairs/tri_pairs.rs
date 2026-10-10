@@ -13,7 +13,9 @@
 
 use super::PairTables;
 use crate::collision::contact::PrimInters;
-use crate::geometry::primitives::{BoxPrim, Primitive, RayPrim, SpherePrim, Triangle};
+use crate::geometry::primitives::{
+    BoxPrim, HeightfieldPrim, Primitive, RayPrim, SpherePrim, Triangle,
+};
 use crate::math::{sgnnz, Vec3};
 
 /// Sign bit of `(float)x` (`cvtsd2ss` + `shr 31`).
@@ -826,6 +828,215 @@ pub fn intersect_box_tri(bx: &BoxPrim, tri: &Triangle, out: &mut PrimInters) -> 
     swap_features(out);
     negate_n(out);
     r
+}
+
+// ---------------------------------------------------------------------------------------------
+// OVERLAP: closest point 0x35196E70, tri–sph 0x35197530, sph–tri 0x35197590
+// ---------------------------------------------------------------------------------------------
+
+/// `sub_35196E70`: squared distance from `p` to the triangle as a quotient `(num, den)`
+/// (`dist² = num / den`), plus the flag the binary writes through its 4th argument (1 when the
+/// face plane distance was used).
+///
+/// Picks the nearest vertex `v0`; with `w = p − v0` and the two edges `e1`, `e2` leaving it,
+/// `s1 = n·(e1 × w)`, `s2 = n·(e2 × w)`:
+/// * not both negative: `(|e|²·|w|² − f·max(e·w, 0)², |e|²)` with `e = s1 < 0 ? e2 : e1` and
+///   `f = 1` if either is negative, else 0 (i.e. the vertex distance itself);
+/// * both negative and `e1·e2 < 0` and the point is outside the opposite edge: distance to the
+///   line of that edge;
+/// * otherwise the plane distance `((p − pt[0])·n)², 1` — exact only for a unit normal.
+#[must_use]
+pub fn tri_point_dist2(tri: &Triangle, p: Vec3) -> (f32, f32, i32) {
+    let v = tri.pt;
+    let n = tri.n;
+    let mut d = [0.0f32; 3];
+    for (k, dk) in d.iter_mut().enumerate() {
+        let q = v[k] - p;
+        *dk = (q.y * q.y + q.x * q.x) + q.z * q.z;
+    }
+    let c1 = (((d[1] - d[0]).to_bits()) >> 31) as usize;
+    let c2 = (((d[2] - d[c1]).to_bits()) >> 31) as usize;
+    let i0 = pick3(c1, c2);
+    let i1 = INC3[i0];
+    let i2 = DEC3[i0];
+    let w = p - v[i0];
+    let e = [v[i1] - v[i0], v[i2] - v[i0]];
+    let l = [
+        (e[0].x * e[0].x + e[0].y * e[0].y) + e[0].z * e[0].z,
+        (e[1].x * e[1].x + e[1].y * e[1].y) + e[1].z * e[1].z,
+    ];
+    let (e1, e2) = (e[0], e[1]);
+    let s1 = ((w.z * e1.x - e1.z * w.x) * n.y + (e1.z * w.y - e1.y * w.z) * n.x)
+        + (e1.y * w.x - w.y * e1.x) * n.z;
+    let r9 = (s1.to_bits() >> 31) as usize;
+    let s2 = ((e2.z * w.x - w.z * e2.x) * n.y + (e2.y * w.z - e2.z * w.y) * n.x)
+        + (w.y * e2.x - e2.y * w.x) * n.z;
+    let r8 = (s2.to_bits() >> 31) as usize;
+    let ee = e[r9];
+    let dot = (w.y * ee.y + ee.x * w.x) + w.z * ee.z;
+    let m = ((-dot).abs() + dot) * 0.5;
+    d[i0] = l[r9] * d[i0] - ((r8 | r9) as i32 as f32) * (m * m);
+    if r9 & r8 == 0 {
+        return (d[i0], l[r9], 0);
+    }
+    let dn = (e2.x * e1.x + e2.y * e1.y) + e2.z * e1.z;
+    if !(dn >= 0.0) {
+        let f = v[i2] - v[i1];
+        let g = p - v[i1];
+        let s3 = ((g.y * f.z - g.z * f.y) * n.x + (g.z * f.x - f.z * g.x) * n.y)
+            + (f.y * g.x - g.y * f.x) * n.z;
+        if s3 > 0.0 {
+            let gf = (g.x * f.x + g.y * f.y) + g.z * f.z;
+            let lf = (f.x * f.x + f.y * f.y) + f.z * f.z;
+            return (lf * d[i1] - gf * gf, lf, 0);
+        }
+    }
+    let q = p - v[0];
+    let s = (q.y * n.y + n.x * q.x) + q.z * n.z;
+    (s * s, 1.0, 1)
+}
+
+/// OVERLAP tri–sph (0x35197530): `num − r²·den < 0` (sign bit, so `−0` overlaps) with the
+/// quotient of [`tri_point_dist2`] for the sphere centre.
+#[must_use]
+pub fn overlap_tri_sph(tri: &Triangle, sph: &SpherePrim) -> bool {
+    let r2 = sph.r * sph.r;
+    let (num, den, _) = tri_point_dist2(tri, sph.center);
+    (num - r2 * den).to_bits() >> 31 != 0
+}
+
+/// OVERLAP sph–tri (0x35197590): [`overlap_tri_sph`] with swapped operands.
+#[must_use]
+pub fn overlap_sph_tri(sph: &SpherePrim, tri: &Triangle) -> bool {
+    overlap_tri_sph(tri, sph)
+}
+
+// ---------------------------------------------------------------------------------------------
+// OVERLAP box–tri 0x351968F0 (SSE4.1 path), tri–box 0x35196CC0
+// ---------------------------------------------------------------------------------------------
+
+/// OVERLAP box–tri (0x351968F0): separating-axis test over the box axes, the triangle normal
+/// and the three `edge × box axis` axes, in the box frame (all lanes single precision).
+///
+/// The binary checks a cached CPU-feature byte first (`sub_35199B20`, which always reports
+/// SSE4.1 on any machine that runs the game) and otherwise calls a scalar variant
+/// (`sub_351960B0`); only the SSE path is ported. Box axes: the triangle's centroid-weighted
+/// extent `|½·Σ(vᵢ+vⱼ)·|vᵢ−vⱼ||` against `(¼·Σ|vᵢ−vⱼ| + size)·Σ|vᵢ−vⱼ|` (a conservative
+/// interval test, not the exact projection). Edge axes compare `|½(e×v₀ + e×v₂)|` with
+/// `|½(e×v₀ − e×v₂)| + |s·e|` terms. Comparisons are `<` on lanes, so NaNs never separate.
+#[must_use]
+pub fn overlap_box_tri(bx: &BoxPrim, tri: &Triangle) -> bool {
+    let c = bx.center;
+    let mut v = [tri.pt[0] - c, tri.pt[1] - c, tri.pt[2] - c];
+    let mut n = tri.n;
+    if bx.oriented != 0 {
+        for p in &mut v {
+            *p = bx.basis.mul_vec(*p);
+        }
+        n = bx.basis.mul_vec(n);
+    }
+    let s = bx.size;
+    let a01 = (v[0] - v[1]).abs();
+    let a12 = (v[1] - v[2]).abs();
+    let a20 = (v[2] - v[0]).abs();
+    let ssum = (a12 + a01) + a20;
+    let mid = ((v[2] + v[1]).mul_comp(a12) + (v[1] + v[0]).mul_comp(a01))
+        + (v[2] + v[0]).mul_comp(a20);
+    let mid = (mid * 0.5).abs();
+    let rad = (ssum * 0.25 + s).mul_comp(ssum);
+    for k in 0..3 {
+        if rad[k] < mid[k] {
+            return false;
+        }
+    }
+    // dpps 0x7F: (x·x' + y·y') + (z·z' + 0).
+    let dp = |a: Vec3, b: Vec3| (a.x * b.x + a.y * b.y) + (a.z * b.z + 0.0);
+    if dp(n.abs(), s) < dp(n, v[0]).abs() {
+        return false;
+    }
+    let s_zxy = Vec3::new(s.z, s.x, s.y);
+    let s_yzx = Vec3::new(s.y, s.z, s.x);
+    for k in 0..3 {
+        let p0 = v[k];
+        let e = v[INC3[k]] - p0;
+        let w = v[DEC3[k]];
+        let e_yzx = Vec3::new(e.y, e.z, e.x);
+        let e_zxy = Vec3::new(e.z, e.x, e.y);
+        let c0 = Vec3::new(p0.z, p0.x, p0.y).mul_comp(e_yzx)
+            - Vec3::new(p0.y, p0.z, p0.x).mul_comp(e_zxy);
+        let c2 = Vec3::new(w.z, w.x, w.y).mul_comp(e_yzx) - Vec3::new(w.y, w.z, w.x).mul_comp(e_zxy);
+        let half_d = ((c0 - c2) * 0.5).abs();
+        let half_s = ((c2 + c0) * 0.5).abs();
+        let r = (half_d + s_zxy.mul_comp(e_yzx).abs()) + s_yzx.mul_comp(e_zxy).abs();
+        for l in 0..3 {
+            if r[l] < half_s[l] {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// OVERLAP tri–box (0x35196CC0): [`overlap_box_tri`] with swapped operands.
+#[must_use]
+pub fn overlap_tri_box(tri: &Triangle, bx: &BoxPrim) -> bool {
+    overlap_box_tri(bx, tri)
+}
+
+// ---------------------------------------------------------------------------------------------
+// OVERLAP hf–sph 0x351975E0, sph–hf 0x35197860
+// ---------------------------------------------------------------------------------------------
+
+/// The engine's grid index: `round(x)` via `+12582912` then clamped to `[0, n]`
+/// (`min(n, max(v, 0))` written with sign masks).
+#[inline]
+fn grid_clamp(x: f32, n: i32) -> i32 {
+    let v = ((x + 12_582_912.0f32).to_bits() as i32).wrapping_add(0xB4C0_0000u32 as i32);
+    let neg = v.wrapping_neg();
+    let lo = (neg >> 31) & neg; // min(-v, 0)
+    let hi = lo.wrapping_neg(); // max(v, 0)
+    let d = n.wrapping_sub(hi);
+    ((d >> 31) & d).wrapping_add(hi)
+}
+
+/// `getHeight(ix, iy)` of a heightfield primitive.
+#[inline]
+fn hf_height(hf: &HeightfieldPrim, ix: i32, iy: i32) -> f32 {
+    (hf.get_height.expect("heightfield primitive without a getHeight callback"))(ix, iy)
+}
+
+/// OVERLAP hf–sph (0x351975E0): the sphere's centre in the heightfield frame; every grid
+/// vertex in the (clamped) cell range under the sphere's square footprint is tested with
+/// `c.z − r < h·heightscale` (sign bit). The ranges are half-open (`ix0 ≤ ix < ix1`) after
+/// rounding `(x ∓ r)·stepr ∓ 0.5`.
+#[must_use]
+pub fn overlap_hf_sph(hf: &HeightfieldPrim, sph: &SpherePrim) -> bool {
+    let c = sph.center;
+    let r = sph.r;
+    let d = c - hf.origin;
+    let m = &hf.basis.m;
+    let lx = (d.y * m[0][1] + d.x * m[0][0]) + d.z * m[0][2];
+    let ly = (d.y * m[1][1] + d.x * m[1][0]) + d.z * m[1][2];
+    let lz = (d.y * m[2][1] + d.x * m[2][0]) + d.z * m[2][2];
+    let [nx, ny] = hf.size;
+    let ix0 = grid_clamp((lx - r) * hf.stepr[0] - 0.5, nx);
+    let iy0 = grid_clamp((ly - r) * hf.stepr[1] - 0.5, ny);
+    let ix1 = grid_clamp((r + lx) * hf.stepr[0] + 0.5, nx);
+    let iy1 = grid_clamp((r + ly) * hf.stepr[1] + 0.5, ny);
+    let mut hit = 0u32;
+    for ix in ix0..ix1 {
+        for iy in iy0..iy1 {
+            let h = hf_height(hf, ix, iy);
+            hit |= ((lz - r) - h * hf.height_scale).to_bits() >> 31;
+        }
+    }
+    hit != 0
+}
+
+/// OVERLAP sph–hf (0x35197860): [`overlap_hf_sph`] with swapped operands.
+#[must_use]
+pub fn overlap_sph_hf(sph: &SpherePrim, hf: &HeightfieldPrim) -> bool {
+    overlap_hf_sph(hf, sph)
 }
 
 // ---------------------------------------------------------------------------------------------
