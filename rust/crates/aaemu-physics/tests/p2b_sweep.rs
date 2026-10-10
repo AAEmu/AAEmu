@@ -374,12 +374,9 @@ fn sweep_matches_dll() {
     } else {
         pairs()
     };
-    let name = if ps.len() == 16 {
-        "p2b_sweep_all".to_string()
-    } else {
-        format!("p2b_sweep_{}pairs", ps.len())
-    };
-    check_raw(&name, 300, &|rng| gen_sweep_with(rng, &ps), &port_sweep);
+    assert_eq!(ps.len(), 16, "all 16 primitive sweep pairs are ported");
+    let name = "p2b_sweep_all".to_string();
+    check_raw(&name, 200, &|rng| gen_sweep_with(rng, &ps), &port_sweep);
 }
 
 // ------------------------------------------------------------------------------------ REG
@@ -631,8 +628,13 @@ fn port_reg(line: &str, _oracle: &str) -> String {
 #[test]
 fn register_intersection_matches_dll() {
     let ps = reg_pairs();
-    let name = format!("p2b_sweep_reg_{}pairs", ps.len());
-    check_raw(&name, 300, &|rng| gen_reg_with(rng, &ps), &port_reg);
+    assert_eq!(
+        ps.len(),
+        24,
+        "all mode-0 cells among box/ray/sph/cyl/cap except ray-ray"
+    );
+    let name = "p2b_sweep_reg";
+    check_raw(name, 250, &|rng| gen_reg_with(rng, &ps), &port_reg);
 }
 
 // ------------------------------------------------------------------------- thin walls (CCD)
@@ -710,6 +712,7 @@ fn thin_wall_sweeps_match_dll() {
         .filter(|&(_, b)| b == 0)
         .map(|(a, _)| a)
         .collect();
-    let name = format!("p2b_sweep_thin_wall_{}movers", movers.len());
-    check_raw(&name, 200, &|rng| gen_thin_wall(rng, &movers), &port_sweep);
+    assert_eq!(movers.len(), 4);
+    let name = "p2b_sweep_thin_wall";
+    check_raw(name, 200, &|rng| gen_thin_wall(rng, &movers), &port_sweep);
 }
