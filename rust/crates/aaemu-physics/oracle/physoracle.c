@@ -6,6 +6,7 @@
  *
  *   physoracle.exe [--rt DIR] SCENARIO.txt|-        run a scenario, trace on stdout
  *   physoracle.exe [--rt DIR] --math NAME COUNT SEED   probe an internal math routine
+ *   physoracle.exe [--rt DIR] --p2b                    P2b unprojection probe (p2b_probe.c)
  *
  * DIR defaults to %AAEMU_PHYS_RT% or D:\aa-re\cryphysics\harness\rt. It must hold
  * cryphysics_dedicate.dll, MSVCR100.dll, MSVCP100.dll, tbb.dll, xldiag.dll, xlcommon.dll (the
@@ -747,6 +748,9 @@ static void math_probe(const char *name, int count, uint64_t seed) {
   }
 }
 
+/* ------------------------------------------------------------------ P2b unprojection probe */
+#include "p2b_probe.c"
+
 /* ------------------------------------------------------------------ main */
 int main(int argc, char **argv) {
   _setmode(_fileno(stdout), _O_BINARY);
@@ -765,6 +769,10 @@ int main(int argc, char **argv) {
   SetDllDirectoryA(rt);
   g_phys = LoadLibraryA(dll);
   if (!g_phys) { printf("ERROR LoadLibrary %s failed (%lu)\n", dll, GetLastError()); return 1; }
+  if (!strcmp(argv[a], "--p2b")) { /* P2b: unprojection / helper probe, commands on stdin */
+    p2b_run();
+    return 0;
+  }
   if (!strcmp(argv[a], "--math")) {
     if (a + 3 >= argc) return 1;
     math_probe(argv[a + 1], atoi(argv[a + 2]), strtoull(argv[a + 3], 0, 0));
