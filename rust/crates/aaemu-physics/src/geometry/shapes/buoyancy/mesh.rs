@@ -8,6 +8,9 @@ use crate::geometry::primitives::Plane;
 use crate::geometry::GeomWorldData;
 use crate::math::{Mat33, Vec3};
 
+#[path = "mesh_pressure.rs"]
+mod mesh_pressure;
+
 /// The parts of a `CTriMesh` the buoyancy/pressure code reads: vertices (`+80`), 3 indices per
 /// triangle (`+56`), one normal per triangle (`+96`).
 #[derive(Clone, Copy, Debug)]
@@ -285,19 +288,20 @@ pub fn mesh_buoyancy(m: &TriMeshView, plane: &Plane, gwd: &GeomWorldData) -> (f3
     }
 }
 
-/// `CTriMesh` slot 12 (0x351CBE20) CalcVolumetricPressure over a triangle view.
+/// `CTriMesh` slot 12 (0x351CBE20) CalcVolumetricPressure over a triangle view; see
+/// [`mesh_pressure::volumetric_pressure`] for the algorithm and the quirks kept.
 #[allow(clippy::too_many_arguments)]
 pub fn mesh_volumetric_pressure(
-    _m: &TriMeshView,
-    _gwd: &GeomWorldData,
-    _epicenter: Vec3,
-    _k: f32,
-    _rmin: f32,
-    _com: Vec3,
-    _p: &mut Vec3,
-    _l: &mut Vec3,
+    m: &TriMeshView,
+    gwd: &GeomWorldData,
+    epicenter: Vec3,
+    k: f32,
+    rmin: f32,
+    com: Vec3,
+    p: &mut Vec3,
+    l: &mut Vec3,
 ) {
-    todo!("P1a: port 0x351CBE20")
+    mesh_pressure::volumetric_pressure(m, gwd, epicenter, k, rmin, com, p, l);
 }
 
 #[cfg(test)]
