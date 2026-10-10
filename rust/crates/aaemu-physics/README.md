@@ -160,6 +160,25 @@ acosf expf logf sqrtf atan2f powf sin cos exp log asin atan2`.
   gEnv byte 289 is set ("DrawRayOnGrid", ArcheAge-specific); a heightfield geometry on an
   ordinary entity never collides; entities join the simclass lists at the first step.
 
+## Dynamics port status (P3 world, P4a rigid, P4b solver)
+
+* `World::time_step` (0x3508BD10) runs the rigid section exactly as the binary does with one
+  physics thread: island building, per-island GetMaxTimeStep/Step/StepBack (pass 0), the
+  awake-list job, RegisterContacts → `InvokeContactSolver` → post-solve/Update (pass 1), the
+  cleanup. Living/independent entities (P5) and worker threads are not ported.
+* `CRigidEntity::Step` with CheckForNewContacts, CheckContactConflicts, RegisterContactPoint,
+  the contact-patch fit, CCD sweep + beam check, ray-mode (`0x100000`) parts with their spring
+  contacts, buoyancy and air resistance; Update's sleep logic.
+* Port-side scenario interpreter: `scenario::Scenario::run(text)` prints the oracle's text for a
+  scenario (`cargo run --example replay <file.scn>`); `tests/p7_dyn_goldens.rs` replays the
+  stepping goldens bit for bit. Debug aids: the oracle command `contacts target=E` (the entity's
+  contact records) with the same command in the interpreter, `peek` of rigid members
+  (`scenario::entity_word`), and `AAEMU_PHYS_DUMP_SOLVER=<file>` to dump every island solve as a
+  `physoracle --p4b` case (`cargo run --example solver_check <file> <physoracle.exe>`).
+* Convenience API for the server: `world::api` (`World::with_grid`, `geometry`, `add_static`,
+  `add_rigid`, `set_ocean`, `set_body_buoyancy`, `step`, `body_state`), plus the ported
+  `rwi`/`pwi`, `set_heightfield_data`, `add_event_client`/`pump_logged_events`.
+
 ## Parallel phase: ownership
 
 Each agent owns the files listed for its package and creates new files only inside its own
