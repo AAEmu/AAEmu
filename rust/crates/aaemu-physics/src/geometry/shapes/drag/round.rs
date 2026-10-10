@@ -224,7 +224,10 @@ pub(super) fn sphere_drag_prim(
     let sh = sigma * h;
     let q1 = (r2 - h * h).sqrt();
     let rho = max_idiom(q1, 0.001);
-    let d1c = max_idiom(r * f32::from_bits(0xBF7F_BE77), min_idiom(r * f32::from_bits(0x3F7F_BE77), d1));
+    let d1c = max_idiom(
+        r * f32::from_bits(0xBF7F_BE77),
+        min_idiom(r * f32::from_bits(0x3F7F_BE77), d1),
+    );
     let qa = (r2 - d1c * d1c).sqrt();
     let a1 = crt::asinf(clamp_unit(d1c / r));
     let area1 = (((f64::from(a1) + PIO2_F64) * f64::from(r2) + f64::from(qa * d1c)) * 0.5) as f32;

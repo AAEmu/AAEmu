@@ -26,3 +26,21 @@ fn medium_resistance_matches_the_oracle() {
     let fails = run(&cs);
     finish("CalculateMediumResistance", cs.len(), &fails);
 }
+
+/// Large fuzz runs straight from the oracle (only with `AAEMU_PHYS_ORACLE`; no goldens).
+#[test]
+fn medium_resistance_large_fuzz_with_oracle() {
+    let text = "gprobe probe=res type=box n=3000 seed=5101\n\
+                gprobe probe=res type=sphere n=4000 seed=5102\n\
+                gprobe probe=res type=cylinder n=6000 seed=5103\n\
+                gprobe probe=res type=capsule n=3000 seed=5104\n\
+                gprobe probe=res type=cylinder n=2000 seed=5105 mode=1\n\
+                gprobe probe=res type=cylinder n=1000 seed=5106 mode=2\n\
+                gprobe probe=res type=cylinder n=500 seed=5107 mode=3\n\
+                gprobe probe=res type=sphere n=1000 seed=5108 mode=1\n";
+    let Some(cs) = adhoc_cases(text) else {
+        return;
+    };
+    let fails = run(&cs);
+    finish("medium resistance fuzz", cs.len(), &fails);
+}

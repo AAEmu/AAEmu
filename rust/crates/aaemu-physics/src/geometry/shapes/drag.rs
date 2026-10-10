@@ -145,7 +145,7 @@ pub fn polygon_drag_integrate(
     let d1 = (pn.y * po.y + pn.x * po.x) + pn.z * po.z;
     let n1 = clip_polygon_by_plane(pts, pn, d1, &mut buf1);
     for p in buf1.iter_mut().take(n1) {
-        *p = *p - com;
+        *p -= com;
     }
     let thr = (nf.y * v.y + nf.x * v.x) + nf.z * v.z;
     let m = Vec3::new(
@@ -268,7 +268,7 @@ pub fn box_medium_resistance(
         let (inc, dec) = (INC_MOD3[i], DEC_MOD3[i]);
         let sj = (2 * (j as i32 & 1) - 1) as f32;
         let v40 = sj * hs[i];
-        let sd = ((2 * j as i32 & 2) - 1) as f32;
+        let sd = (((2 * j as i32) & 2) - 1) as f32;
         let nsd = ((!(2 * j as i32) & 2) - 1) as f32;
         let mk = |a: f32, b: f32| {
             let mut v = Vec3::ZERO;
@@ -277,6 +277,8 @@ pub fn box_medium_resistance(
             v[i] = v40;
             r.mul_vec(v) + c
         };
+        // `h·(−1.0)` as the binary multiplies (a NaN keeps its sign, unlike negation)
+        #[allow(clippy::neg_multiply)]
         let pts = [
             mk(hs[inc], sd * hs[dec]),
             mk(hs[inc] * -1.0, sd * hs[dec]),

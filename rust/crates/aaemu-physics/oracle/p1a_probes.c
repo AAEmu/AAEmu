@@ -127,9 +127,12 @@ static void p1a_rand_gwd(float *gwd, int mode) {
   if (mode == 1 || frand(0, 1) < 0.25f) p1a_identity(gwd + 3);
   else p1a_rand_rot(gwd + 3);
   gwd[12] = (mode == 1 || frand(0, 1) < 0.5f) ? 1.0f : frand(0.25f, 3);
+  /* modes 2/3 (w = 0, v = w = 0) keep the mode-0 draws above so they stay comparable */
   for (int i = 0; i < 3; i++) gwd[13 + i] = frand(-5, 5);
   for (int i = 0; i < 3; i++) gwd[16 + i] = frand(-3, 3);
   for (int i = 0; i < 3; i++) gwd[19 + i] = gwd[i] + frand(-2, 2);
+  if (mode == 2 || mode == 3) for (int i = 0; i < 3; i++) gwd[16 + i] = 0; /* no rotation */
+  if (mode == 3) for (int i = 0; i < 3; i++) gwd[13 + i] = 0;              /* at rest */
 }
 /* world position of the primitive's centre under gwd (single precision, only to aim the inputs) */
 static void p1a_world_center(int type, const float *p, const float *gwd, float *c) {
