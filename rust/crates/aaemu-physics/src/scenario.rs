@@ -269,13 +269,19 @@ impl Scenario {
                     _ => crate::params::PeKind::Params,
                 };
                 let tmpl = get("tmpl", "auto") == "auto" && (cmd == "params" || cmd == "action");
-                if !(tmpl && template(fam, ty, &mut b)) {
+                if !(tmpl && template(fam, ty, &mut b[..512])) {
                     b[..4].copy_from_slice(&ty.to_le_bytes());
                 }
-                apply_fields(&kv, &mut b)?;
-                let r = match cmd {
-                    "params" => set_params(&mut self.world, e, ty, &b)?,
-                    c => return Err(format!("{c} type {ty} not supported yet")),
+                apply_fields(&toks, &mut b)?;
+                let ts = get("ts", "1").parse::<i32>().unwrap_or(1);
+                let is_area = matches!(self.world.ent(e).kind, crate::entities::base::EntityKind::Area(_));
+                let r = match (cmd, is_area) {
+                    ("params", true) => area_set_params(&mut self.world, e, ty, &b)?,
+                    ("params", false) => crate::entities::interface::set::set_params(&mut self.world, e, &mut b, ts),
+                    ("action", false) => crate::entities::interface::action::action(&mut self.world, e, &mut b, ts),
+                    ("status", false) => crate::entities::interface::status::get_status(&mut self.world, e, &mut b),
+                    ("getparams", false) => crate::entities::interface::get::get_params(&mut self.world, e, &mut b),
+                    (c, _) => return Err(format!("{c} type {ty} on an area not supported")),
                 };
                 let mut s = format!("ret {cmd} {tn} {ty} {r}");
                 if let Some(d) = kv.get("dump") {
@@ -434,70 +440,131 @@ impl Scenario {
     }
 }
 
-/// The oracle's `apply_fields`: `fOFF=`, `iOFF=`, `vOFF=x,y,z`, `qOFF=`, `hex=` writes into the
-/// raw struct.
-fn apply_fields(kv: &HashMap<&str, &str>, b: &mut [u8]) -> Result<(), String> {
-    if let Some(h) = kv.get("hex") {
-        let bytes: Vec<u8> = (0..h.len() / 2)
-            .map(|i| u8::from_str_radix(&h[2 * i..2 * i + 2], 16).unwrap_or(0))
-            .collect();
-        b[..bytes.len()].copy_from_slice(&bytes);
-    }
-    let mut keys: Vec<(&&str, &&str)> = kv.iter().collect();
-    keys.sort();
-    for (k, v) in keys {
+/// The oracle's `apply_fields` in token order: `fOFF=`, `iOFF=`, `uOFF=`, `bOFF=`,
+/// `vOFF=x,y,z`, `qOFF=`, `pOFF=null|unused`, `hex=`.
+fn apply_fields(toks: &[&str], b: &mut [u8]) -> Result<(), String> {
+    for t in toks {
+        let Some((k, v)) = t.split_once('=') else { continue };
+        if k == "hex" {
+            let bytes: Vec<u8> = (0..v.len() / 2).map(|i| u8::from_str_radix(&v[2 * i..2 * i + 2], 16).unwrap_or(0)).collect();
+            b[..bytes.len()].copy_from_slice(&bytes);
+            continue;
+        }
         let (kind, off) = k.split_at(1);
         let Ok(off) = off.parse::<usize>() else {
             continue;
         };
         match kind {
-            "f" => b[off..off + 4].copy_from_slice(&pf(v).to_bits().to_le_bytes()),
-            "i" => b[off..off + 4].copy_from_slice(&pu(v).to_le_bytes()),
+            "f" => put(b, off, pf(v).to_bits()),
+            "i" | "u" => put(b, off, pu(v)),
+            "b" => b[off] = pu(v) as u8,
             "v" | "q" => {
                 for (i, x) in pv(v).into_iter().enumerate() {
-                    b[off + 4 * i..off + 4 * i + 4].copy_from_slice(&x.to_bits().to_le_bytes());
+                    put(b, off + 4 * i, x.to_bits());
                 }
             }
+            "p" => match v {
+                "null" => put_p(b, off, 0),
+                "unused" => put_p(b, off, u64::MAX),
+                _ => return Err(format!("pointer value {v} not supported")),
+            },
             _ => {}
         }
     }
     Ok(())
 }
 
-/// The oracle's `tmpl_params`/`tmpl_action`: the struct's constructor image.
+const UF: u32 = crate::sentinel::UNUSED_F32_BITS;
+const UI: u32 = crate::sentinel::UNUSED_I32 as u32;
+
+fn put(b: &mut [u8], o: usize, v: u32) {
+    b[o..o + 4].copy_from_slice(&v.to_le_bytes());
+}
+
+fn put_p(b: &mut [u8], o: usize, v: u64) {
+    b[o..o + 8].copy_from_slice(&v.to_le_bytes());
+}
+
+fn fill_unused(b: &mut [u8], from: usize, to: usize) {
+    let mut o = from;
+    while o + 4 <= to {
+        put(b, o, UF);
+        o += 4;
+    }
+}
+
+/// The oracle's `tmpl_params` / `tmpl_action` (constructor images of the structs).
 fn template(fam: crate::params::PeKind, ty: i32, b: &mut [u8]) -> bool {
-    use crate::params::{PeKind, PeStruct};
+    use crate::params::PeKind;
+    b.fill(0);
+    put(b, 0, ty as u32);
     match (fam, ty) {
-        (PeKind::Params, 0) => crate::params::ParamsPos::default().write(b),
-        (PeKind::Params, 10) => crate::params::ParamsSimulation::default().write(b),
-        (PeKind::Params, 12) => crate::params::ParamsBuoyancy::default().write(b),
+        (PeKind::Params, 0) => {
+            fill_unused(b, 4, 40);
+            put(b, 56, UI);
+            put(b, 60, 1);
+        }
+        (PeKind::Params, 6) => {
+            put(b, 4, UI);
+            put(b, 8, UI);
+            put(b, 12, 1);
+            fill_unused(b, 16, 48);
+            put(b, 64, UI);
+            put(b, 72, u32::MAX);
+            put(b, 80, u32::MAX);
+            fill_unused(b, 84, 96);
+            put_p(b, 96, u64::MAX);
+            put_p(b, 104, u64::MAX);
+            put(b, 112, UI);
+            put_p(b, 120, u64::MAX);
+            put(b, 128, UI);
+            put_p(b, 136, u64::MAX);
+            put(b, 156, UI);
+        }
+        (PeKind::Params, 10) => {
+            fill_unused(b, 4, 84);
+            put(b, 4, UI);
+            put(b, 60, UI);
+            put(b, 64, UI);
+        }
+        (PeKind::Params, 12) => {
+            fill_unused(b, 4, 80);
+            put(b, 72, UI);
+        }
+        (PeKind::Params, 14) => fill_unused(b, 4, 28),
+        (PeKind::Params, 15) => {
+            put(b, 4, UI);
+            put(b, 8, UI);
+            put(b, 12, UI);
+        }
+        (PeKind::Params, 23) => fill_unused(b, 4, 12),
+        (PeKind::Action, 2) => {
+            fill_unused(b, 4, 64);
+            put(b, 64, UI);
+            put(b, 68, UI);
+        }
+        (PeKind::Action, 4) => {}
+        (PeKind::Action, 8) => {
+            put(b, 4, 1);
+            fill_unused(b, 8, 12);
+        }
+        (PeKind::Action, 10) => {
+            put(b, 4, UI);
+            put(b, 8, UI);
+            fill_unused(b, 12, 36);
+        }
         _ => return false,
     }
     true
 }
 
-/// SetParams for the ids the interpreter needs (positions, buoyancy, area simulation).
-fn set_params(w: &mut World, e: EntIdx, ty: i32, b: &[u8]) -> Result<i32, String> {
+/// Area SetParams (ids 0, 10, 12, 18; 0x35045B50) for the interpreter.
+fn area_set_params(w: &mut World, e: EntIdx, ty: i32, b: &[u8]) -> Result<i32, String> {
     use crate::params::PeStruct;
-    let is_area = matches!(w.ent(e).kind, crate::entities::base::EntityKind::Area(_));
     Ok(match ty {
-        0 => {
-            let p = crate::params::ParamsPos::read(b);
-            if is_area {
-                w.area_set_params_pos(e, &p)
-            } else {
-                crate::entities::base::params::set_params_pos(w, e, &p, true)
-            }
-        }
-        12 => {
-            let p = crate::params::ParamsBuoyancy::read(b);
-            if is_area {
-                w.area_set_params_buoyancy(e, &p)
-            } else {
-                crate::entities::rigid::buoyancy::set_params_buoyancy(w, e, &p)
-            }
-        }
-        t => return Err(format!("params type {t} not supported yet")),
+        0 => w.area_set_params_pos(e, &crate::params::ParamsPos::read(b)),
+        12 => w.area_set_params_buoyancy(e, &crate::params::ParamsBuoyancy::read(b)),
+        t => return Err(format!("area params type {t} not supported by the interpreter")),
     })
 }
 
