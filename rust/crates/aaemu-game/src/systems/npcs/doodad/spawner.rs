@@ -660,8 +660,8 @@ impl DoodadSpawner {
             return;
         };
         backend::doodad_spawn(server, &world, &last);
-        // TODO(npcs): dungeon instances (`Last.ParentWorld.DungeonInstance` ->
-        // `Events.OnDoodadSpawn`) for worlds other than the default world template.
+        // Dungeon instances: `Last.ParentWorld.Events.OnDoodadSpawn` (systems::instances).
+        crate::systems::instances::events::on_doodad_spawned(server, &world, &last);
 
         let (template_id, reschedule) = {
             let mut st = self.st();

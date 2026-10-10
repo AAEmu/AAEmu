@@ -60,6 +60,9 @@ pub struct AppConfig {
     pub expedition: crate::systems::social::config::ExpeditionConfig,
     #[serde(rename = "justice")]
     pub justice: crate::systems::social::config::JusticeConfig,
+    /// `Dungeons` (`systems::instances::config`).
+    #[serde(rename = "dungeons")]
+    pub dungeons: crate::systems::instances::config::DungeonsConfig,
     /// `HeightMapsEnable` (C# default false; the shipped Config.json sets it to true).
     #[serde(rename = "heightmapsenable", deserialize_with = "lenient")]
     pub heightmaps_enable: bool,
@@ -90,6 +93,7 @@ impl Default for AppConfig {
             debug_info_level: 100,
             expedition: Default::default(),
             justice: Default::default(),
+            dungeons: Default::default(),
             heightmaps_enable: false,
             app_path: PathBuf::from("."),
         }
@@ -203,6 +207,9 @@ pub struct WorldConfig {
     /// `GrowthRate` (doodad growth time divisor).
     #[serde(rename = "growthrate", deserialize_with = "lenient")]
     pub growth_rate: f64,
+    /// `MaxInstances` (systems::instances).
+    #[serde(rename = "maxinstances", deserialize_with = "lenient")]
+    pub max_instances: u32,
 }
 
 impl Default for WorldConfig {
@@ -216,6 +223,7 @@ impl Default for WorldConfig {
             geo_data_mode: false,
             pre_load_terrain: false,
             growth_rate: 1.0,
+            max_instances: 32,
         }
     }
 }

@@ -682,6 +682,35 @@ impl WorldInstance {
         }
     }
 
+    /// The old-instance half of the C# region change to a region of another instance
+    /// (`currentRegion.FindDifferenceBetweenRegions(region)` is every old neighbour then):
+    /// every player around stops seeing the object (and a player stops seeing them), the object
+    /// leaves its region; children follow.
+    pub fn transfer_out(&self, obj: &WorldObject) {
+        let mut grid = self.grid.lock().expect("grid poisoned");
+        self.transfer_out_locked(&mut grid, obj, 0);
+    }
+
+    fn transfer_out_locked(&self, grid: &mut Grid, obj: &WorldObject, depth: usize) {
+        if depth > MAX_PARENT_DEPTH {
+            return;
+        }
+        let Some((inst, rx, ry)) = obj.region() else {
+            return;
+        };
+        if inst != self.id {
+            return;
+        }
+        for n in self.neighbors((rx, ry)) {
+            self.remove_from_characters(grid, n, obj);
+        }
+        Self::region_remove_object(grid, (rx, ry), obj.obj_id());
+        obj.core().set_region(None);
+        for child in obj.core().children() {
+            self.transfer_out_locked(grid, &child, depth + 1);
+        }
+    }
+
     /// `GameObject.Show()` (`IsVisible = true; AddVisibleObject`).
     pub fn show(&self, obj: impl Into<WorldObject>, ctx: &ViewCtx<'_>) -> Vec<ZoneChange> {
         let obj = obj.into();
@@ -810,6 +839,33 @@ impl WorldManager {
         let w = Arc::new(WorldInstance::new(id, template));
         self.worlds.insert(id, w.clone());
         w
+    }
+
+    /// Whether an instance with this id exists (`_worlds.ContainsKey`).
+    pub fn has_world(&self, id: u32) -> bool {
+        self.worlds.contains_key(&id)
+    }
+
+    /// `RemoveWorld(worldInstanceId)` (`false` = no such instance).
+    pub fn remove_world(&self, id: u32) -> bool {
+        self.worlds.remove(&id).is_some()
+    }
+
+    /// The cross-instance part of `AddVisibleObject`: an object whose transform names another
+    /// instance than the one its region belongs to (a player moved by `SCLoadInstancePacket`)
+    /// leaves the old instance's region grid first (see [`WorldInstance::transfer_out`]).
+    pub fn leave_other_instance(&self, obj: &WorldObject, new_instance: u32) {
+        let Some((old, _, _)) = obj.region() else {
+            return;
+        };
+        if old == new_instance {
+            return;
+        }
+        match self.worlds.get(&old).map(|w| w.clone()) {
+            Some(w) => w.transfer_out(obj),
+            // The old instance is gone (destroyed dungeon): only the region link remains.
+            None => obj.core().set_region(None),
+        }
     }
 
     /// `GetWorld(instanceId)`.

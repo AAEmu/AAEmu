@@ -1346,8 +1346,10 @@ fn spawn_npc(
         spawner.set_respawn_time(random_float(t.spawn_delay_min, t.spawn_delay_max) as i32);
     }
     spawn_into_world(server, &world, &npc);
-    // TODO(npcs): world.Events.OnUnitSpawn, `npc.Simulation = new Simulation(npc)` and
-    // `Ai.LoadAiPathPoints(FollowPath)` (AI / routes are a later phase).
+    // world.Events.OnUnitSpawn (dungeon events, systems::instances).
+    crate::systems::instances::events::on_unit_spawn(server, &world, &npc);
+    // TODO(npcs): `npc.Simulation = new Simulation(npc)` and `Ai.LoadAiPathPoints(FollowPath)`
+    // (AI / routes are a later phase).
     Ok(Some(vec![npc]))
 }
 

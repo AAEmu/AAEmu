@@ -459,10 +459,8 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     );
     {
         let c = j1.p.data();
-        assert_eq!(
-            c.main_world_position,
-            Some((TEST_ZONE, 102.0, 100.0, 100.0))
-        );
+        let m = c.main_world_position.expect("main world position");
+        assert_eq!((m.zone_id, m.x, m.y, m.z), (TEST_ZONE, 102.0, 100.0, 100.0));
         assert_eq!(
             (c.unit.transform.x, c.unit.transform.y, c.unit.transform.z),
             (400.0, 500.0, 20.0)

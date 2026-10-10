@@ -811,6 +811,16 @@ pub async fn save_character(
     let mut model = PacketStream::new();
     aaemu_commons::Marshal::write(&c.unit.model_params, &mut model);
     c.updated = now;
+    // Position saving rule: inside a non-default instance the instance return point
+    // (`MainWorldPosition`) is saved instead of the live transform (systems::instances).
+    let pos = match c.main_world_position {
+        Some(m)
+            if c.unit.transform.instance_id != crate::models::character::DEFAULT_INSTANCE_ID =>
+        {
+            m
+        }
+        _ => c.unit.transform,
+    };
     // Column order roll,pitch,yaw receives @yaw,@pitch,@roll: `roll` stores Rotation.Z and
     // `yaw` stores Rotation.X; Load reads them back crosswise, so the round trip is consistent.
     // Note (C#): @reported_as_bot_count is bound but not in the column list, so the column is
@@ -846,13 +856,13 @@ pub async fn save_character(
     .bind(c.ability2)
     .bind(c.ability3)
     .bind(c.server_id)
-    .bind(c.unit.transform.zone_id)
-    .bind(c.unit.transform.x)
-    .bind(c.unit.transform.y)
-    .bind(c.unit.transform.z)
-    .bind(c.unit.transform.rot_z) // `roll` <- @yaw
-    .bind(c.unit.transform.rot_y)
-    .bind(c.unit.transform.rot_x) // `yaw` <- @roll
+    .bind(pos.zone_id)
+    .bind(pos.x)
+    .bind(pos.y)
+    .bind(pos.z)
+    .bind(pos.rot_z) // `roll` <- @yaw
+    .bind(pos.rot_y)
+    .bind(pos.rot_x) // `yaw` <- @roll
     .bind(c.unit.faction_id)
     .bind(&c.faction_name)
     .bind(c.unit.expedition_id)

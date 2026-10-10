@@ -290,6 +290,11 @@ impl SpawnManagers {
             .clone()
     }
 
+    /// Drops an instance's manager (`WorldInstance` removed; systems::instances).
+    pub fn remove(&self, world_id: u32) -> Option<Arc<SpawnManager>> {
+        self.managers.remove(&world_id).map(|(_, m)| m)
+    }
+
     /// Every instance's manager.
     pub fn all(&self) -> Vec<Arc<SpawnManager>> {
         let mut v: Vec<_> = self.managers.iter().map(|m| m.clone()).collect();

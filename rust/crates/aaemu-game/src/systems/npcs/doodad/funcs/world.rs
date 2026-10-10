@@ -1,9 +1,8 @@
 //! World funcs: `DoodadFuncBinding` (recall point), `Attachment` (seats / beds / boarding),
 //! and the instance funcs (`EnterInstance`, `EnterSysInstance`, `ExitIndun`, `RemoveInstance`).
 //!
-//! `IndunManager` / `TrialManager` / `SlaveManager.BindSlave` and `Character.MainWorldPosition`
-//! are not ported by any subsystem yet: those parts log and stop (`TODO(indun)`,
-//! `TODO(slaves)`).
+//! The instance funcs call `systems::instances` (`IndunManager`) and `TrialManager`;
+//! `SlaveManager.BindSlave` is not ported by any subsystem yet (`TODO(slaves)`).
 
 use super::{error_message as err, send_debug_message, send_error, set_to_next_phase};
 use crate::models::doodad::BondDoodad;
@@ -147,44 +146,93 @@ fn quaternion_inverse(q: Quaternion) -> Quaternion {
     }
 }
 
+/// Saves the return point in the main world (`MainWorldPosition =
+/// Transform.CloneDetached(character)`).
+fn save_main_world_position(server: &crate::server::GameServer, player: &crate::world::PlayerRef) {
+    let t = crate::systems::instances::worlds::clone_detached(server, player);
+    player.data().main_world_position = Some(t);
+}
+
 /// `DoodadFuncEnterInstance.Use`.
-pub fn enter_instance(f: &DoodadFuncEnterInstance, caster: Option<&WorldObject>) {
+pub fn enter_instance(
+    f: &DoodadFuncEnterInstance,
+    ctx: &DoodadCtx<'_>,
+    caster: Option<&WorldObject>,
+) {
     tracing::info!(
         "DoodadFuncEnterInstance, ZoneId: {}, ItemId: {}",
         f.zone_id,
         f.item_id
     );
-    if DoodadCtx::as_player(caster).is_some() {
-        // TODO(indun): `TrialManager.IsPlayerInCourt`, `MainWorldPosition`,
-        // `IndunManager.RequestDungeonInstance(character, ZoneId, 0)`.
-        tracing::debug!("DoodadFuncEnterInstance: IndunManager is not ported");
+    let Some(player) = DoodadCtx::as_player(caster) else {
+        return;
+    };
+    let server = ctx.server;
+    if server
+        .systems
+        .social
+        .trials
+        .is_player_in_court(player.character_id)
+    {
+        return;
     }
+    let (has_mwp, instance) = {
+        let c = player.data();
+        (
+            c.main_world_position.is_some(),
+            c.unit.transform.instance_id,
+        )
+    };
+    if !has_mwp || instance == crate::models::character::DEFAULT_INSTANCE_ID {
+        save_main_world_position(server, player);
+    }
+    crate::systems::instances::indun::request_dungeon_instance(server, player, f.zone_id, 0);
 }
 
 /// `DoodadFuncEnterSysInstance.Use`.
-pub fn enter_sys_instance(f: &DoodadFuncEnterSysInstance, caster: Option<&WorldObject>) {
+pub fn enter_sys_instance(
+    f: &DoodadFuncEnterSysInstance,
+    ctx: &DoodadCtx<'_>,
+    caster: Option<&WorldObject>,
+) {
     tracing::info!(
         "DoodadFuncEnterSysInstance, ZoneId: {}, FactionId: {}",
         f.zone_id,
         f.faction_id
     );
-    if DoodadCtx::as_player(caster).is_none() {
+    let Some(player) = DoodadCtx::as_player(caster) else {
         return;
+    };
+    let server = ctx.server;
+    // Set main world when requesting to exit the main world or if it was never set before
+    let (has_mwp, instance) = {
+        let c = player.data();
+        (
+            c.main_world_position.is_some(),
+            c.unit.transform.instance_id,
+        )
+    };
+    if !has_mwp || instance == crate::models::character::DEFAULT_INSTANCE_ID {
+        save_main_world_position(server, player);
     }
-    // TODO(indun): `MainWorldPosition`, `IndunManager.RequestSystemInstance(character, ZoneId,
-    // 0, out _)` (channel 0 with or without channel support).
-    tracing::debug!("DoodadFuncEnterSysInstance: IndunManager is not ported");
+    // With or without channel support the C# enters channel 0 ("TODO: Deal with channel
+    // dialog").
+    let _ = crate::systems::instances::indun::instance_has_channels(server, f.zone_id);
+    let _ = crate::systems::instances::indun::request_system_instance(server, player, f.zone_id, 0);
 }
 
 /// `DoodadFuncExitIndun.Use`.
-pub fn exit_indun(f: &DoodadFuncExitIndun, caster: Option<&WorldObject>) {
+pub fn exit_indun(f: &DoodadFuncExitIndun, ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>) {
     tracing::info!("DoodadFuncExitIndun, ReturnPointId: {}", f.return_point_id);
     let Some(player) = DoodadCtx::as_player(caster) else {
         return;
     };
-    // `ReturnPointId == 0 && MainWorldPosition != null` -> `IndunManager.RequestLeaveInstance`.
-    // TODO(indun): `MainWorldPosition` is only set when entering an instance (not ported), so it
-    // is always null here and the C# takes the error branch.
+    let has_mwp = player.data().main_world_position.is_some();
+    if f.return_point_id == 0 && has_mwp {
+        crate::systems::instances::indun::request_leave_instance(ctx.server, player);
+        return;
+    }
+    // TODO (C#): in db not have a entries, but we can change this xD
     tracing::info!("DoodadFuncExitIndun, Not have return point!");
     send_error(player, err::INVALID_RETURN_POS_INSTANCE);
 }
@@ -192,13 +240,21 @@ pub fn exit_indun(f: &DoodadFuncExitIndun, caster: Option<&WorldObject>) {
 /// `DoodadFuncRemoveInstance.Use`.
 pub fn remove_instance(
     f: &DoodadFuncRemoveInstance,
-    _ctx: &DoodadCtx<'_>,
+    ctx: &DoodadCtx<'_>,
     caster: Option<&WorldObject>,
 ) {
     tracing::debug!("DoodadFuncRemoveInstance, ZoneId: {}", f.zone_id);
-    if DoodadCtx::as_player(caster).is_some() {
-        // TODO(indun): `ZoneManager.GetZoneById(ZoneId)` +
-        // `IndunManager.RequestDeletion(character, zone)`.
-        tracing::debug!("DoodadFuncRemoveInstance: IndunManager is not ported");
+    let zone = crate::systems::instances::indun::zone_by_id(ctx.server, f.zone_id);
+    let Some(player) = DoodadCtx::as_player(caster) else {
+        return;
+    };
+    let Some(zone) = zone else {
+        return;
+    };
+    if crate::systems::instances::indun::request_deletion(ctx.server, player, Some(&zone)) {
+        tracing::info!(
+            "DoodadFuncRemoveInstance, ZoneId: {} has been removed",
+            f.zone_id
+        );
     }
 }

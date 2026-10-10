@@ -174,6 +174,11 @@ pub fn post_update_current_hp(
     if hp > 0 {
         return;
     }
+    if attacker.is_some_and(WorldObject::is_unit) {
+        // `attackerUnit.Events.OnKill` + dungeon `OnUnitKilled` / `OnUnitCombatEnd` / `OnDeath`
+        // (systems::instances).
+        crate::systems::instances::events::on_kill_in_reduce_hp(server, target);
+    }
     do_die(server, target, attacker, kill_reason);
 }
 
@@ -220,6 +225,8 @@ pub fn do_die(
     set_in_battle(server, victim, false);
     // Events.OnDeath (buff triggers listening to the victim)
     buffs::fire_unit_event(server, victim.obj_id(), BuffEventTriggerKind::Death, 0);
+    // ParentWorld.Events.OnUnitKilled + killerUnit?.Events.OnKill (systems::instances).
+    crate::systems::instances::events::on_do_die(server, victim, killer);
     // Abusers that died leave the aggro tables they are in (OnAbuserDied).
     on_abuser_died(server, victim);
     buffs::remove_effects_on_death(server, victim);
