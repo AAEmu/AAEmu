@@ -164,6 +164,9 @@ pub struct ItemDetails {
     pub slave_type: u8,
     pub slave_db_id: u32,
     pub slave_is_destroyed: u8,
+    /// `SummonSlave.RepairStartTime` (0 = `MinValue`; never restored from the DB, see
+    /// `ReadDetails`).
+    pub slave_repair_start_time: UnixTime,
     // TreasureMap
     pub map_position_x: i64,
     pub map_position_y: i64,
@@ -509,7 +512,11 @@ impl Item {
                 s.write_u8(d.slave_type)
                     .write_bc(d.slave_db_id)
                     .write_u8(d.slave_is_destroyed);
-                s.write_i32(0); // RepairStartTime == MinValue
+                if d.slave_repair_start_time == 0 {
+                    s.write_i32(0); // RepairStartTime == MinValue
+                } else {
+                    s.write_i64(d.slave_repair_start_time);
+                }
                 for _ in 0..5 {
                     s.write_i32(0);
                 }

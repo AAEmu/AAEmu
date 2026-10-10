@@ -1422,9 +1422,6 @@ pub fn put_down_backpack(
 
 /// `RepairSlaveEffect.Apply` (repair kit on a destroyed vehicle's summon item).
 /// `item_target` = `SkillCastItemTarget` `(Id, ObjId)`; `effect_id` = the effect's `Id`.
-///
-/// Deviation: `SummonSlave.RepairStartTime` is not modelled by `models::item` yet, so the
-/// `ItemUpdate` details keep writing `RepairStartTime == MinValue`.
 pub fn repair_slave_item(server: &GameServer, effect_id: u32, item_target: Option<(u64, u32)>) {
     let Some((item_id, obj_id)) = item_target else {
         tracing::warn!("RepairSlaveEffect target is not a SkillCastItemTarget");
@@ -1470,6 +1467,7 @@ pub fn repair_slave_item(server: &GameServer, effect_id: u32, item_target: Optio
     }
     let Some(after) = with_any_item_mut(server, item_id, |i| {
         i.details.slave_is_destroyed = 0;
+        i.details.slave_repair_start_time = chrono::Utc::now().timestamp();
         i.dirty = true;
         i.clone()
     }) else {
