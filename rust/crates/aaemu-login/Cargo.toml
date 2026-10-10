@@ -1,0 +1,41 @@
+[package]
+name = "aaemu-login"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AAEmu login server (port of AAEmu.Login)"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "aaemu-login"
+path = "src/main.rs"
+
+[dependencies]
+aaemu-commons.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+bytes.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+futures.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rand.workspace = true
+aes.workspace = true
+cbc.workspace = true
+sha2.workspace = true
+hex.workspace = true
+sqlx.workspace = true
+chrono.workspace = true
+dashmap.workspace = true
+hmac.workspace = true
+pbkdf2.workspace = true
+sha1.workspace = true
+base64.workspace = true
+subtle.workspace = true
+regex.workspace = true
+roxmltree.workspace = true

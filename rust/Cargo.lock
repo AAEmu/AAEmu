@@ -21,14 +21,10 @@ name = "aaemu-game"
 version = "0.1.0"
 dependencies = [
  "aaemu-commons",
- "aes",
  "anyhow",
- "cbc",
  "chrono",
  "dashmap",
  "futures",
- "rand",
- "rsa",
  "rusqlite",
  "serde",
  "serde_json",
