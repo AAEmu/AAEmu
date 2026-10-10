@@ -139,7 +139,7 @@ systems::{skills, npcs, economy, social, quests}: Data (tables), System (manager
 | `Core/Managers/TimedRewardsManager` | – | todo | Daily login + offline labor on enter (called from AccountManager.Add). |
 | `Core/Managers/HousingManager`, `Models/Game/Housing` | – | todo | Needed for `Connection.Houses` / `SCLoginCharInfoHouse` / `SCMyHouse`. |
 | `Core/Managers/CrimeManager` | `db_character.rs` | partial | CheckWantedThreshold thresholds only. |
-| Other `Core/Managers/*` (AI, AccessLevel, Animation, Auction, CashShop, Command, Craft, Duel, EffectTask, ExpressText, Family, FishSchool, Gimmick, Indun, InstantGame, Mail, ManaRegen, Mate, Model, Music, Plot, PublicFarm, Quest, Radar, Shipyard, Slave, SubZone, Sus, Task/Tick, Taxations, Team, Trade, Trial; World: Spawn, AreaTrigger, Physics, Specialty, SphereQuest) | – | todo | |
+| Other `Core/Managers/*` (AI, AccessLevel, Animation, Command, Duel, EffectTask, ExpressText, Family, FishSchool, Gimmick, Indun, InstantGame, ManaRegen, Mate, Model, Music, Plot, PublicFarm, Quest, Radar, Shipyard, Slave, SubZone, Sus, Task/Tick, Team, Trial; World: Spawn, AreaTrigger, Physics, SphereQuest) | – | todo | |
 | `Models/Game/Units/UnitCustomModelParams` | `models/unit_model.rs` | done | |
 | `Models/Game/Units/Movements` (MoveType hierarchy) + `MathUtil` direction helpers | `models/movement.rs` | done | Default / Unit / Vehicle / Ship / ShipRequest / Transfer, byte-exact read/write (all actor-flag combinations tested). |
 | `Models/AccountPayment`, `Models/Account` | `net/connection.rs`, `db.rs` | done | |
