@@ -85,7 +85,7 @@ async fn queries_and_doodad_colliders() {
         flags: collision_flags(false, false, false),
     };
     let mut shapes = HashMap::new();
-    let (added, removed) = apply_doodads(&pw, &files, &models, &mut shapes, &[d.clone()]);
+    let (added, removed) = apply_doodads(&pw, &files, &models, &mut shapes, std::slice::from_ref(&d));
     assert_eq!((added, removed), (1, 0));
     let g = super::ground_height(&s, 0, 500.0, 500.0, 101.5).unwrap();
     assert!((g - 102.0).abs() < 1e-3, "{g}");
@@ -119,7 +119,10 @@ async fn queries_and_doodad_colliders() {
         apply_doodads(&pw, &files, &models, &mut shapes, &[d]),
         (0, 0)
     );
-    assert_eq!(apply_doodads(&pw, &files, &models, &mut shapes, &[]), (0, 1));
+    assert_eq!(
+        apply_doodads(&pw, &files, &models, &mut shapes, &[]),
+        (0, 1)
+    );
     pw.lock().collect_garbage();
     let g = super::ground_height(&s, 0, 500.0, 500.0, 101.5).unwrap();
     assert!((g - 100.0).abs() < 1e-3);
@@ -130,7 +133,12 @@ async fn zone_fall_gate_in_the_movement_path() {
     // ground above the synthetic world's ocean level (100): no swimming
     let s = server(300.0);
     let client = TestClient::new(&s, 1, 1);
-    let p = spawn_player(&s, &client, test_character(1, "Faller", 500.0, 500.0), 0x100);
+    let p = spawn_player(
+        &s,
+        &client,
+        test_character(1, "Faller", 500.0, 500.0),
+        0x100,
+    );
     let world = s.world.world(0).unwrap();
     let obj = WorldObject::from(&p);
     let mv = |z: f32, fall_vel: u16| UnitMove {

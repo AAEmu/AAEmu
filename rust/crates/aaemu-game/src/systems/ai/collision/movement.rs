@@ -27,10 +27,9 @@ pub fn on_unit_moved(
     let obj_id = unit.obj_id();
     let now = crate::world::now_ms();
     if cfg.movement_verify_enable {
-        let terrain_z = pw
-            .terrain
-            .as_ref()
-            .map_or(0.0, |t| super::terrain::terrain_elevation(t.as_ref(), u.x, u.y));
+        let terrain_z = pw.terrain.as_ref().map_or(0.0, |t| {
+            super::terrain::terrain_elevation(t.as_ref(), u.x, u.y)
+        });
         sys.move_verify.verify(
             obj_id,
             MoveSample {
@@ -50,12 +49,12 @@ pub fn on_unit_moved(
         return u.fall_vel;
     }
     let on_object = unit.core().sticky_parent() != 0
-        || u
-            .actor_flags
+        || u.actor_flags
             .contains(MoveTypeActorFlags::HANGING_FROM_OBJECT);
     if on_object || super::is_water(server, world.id, u.x, u.y, u.z) {
         sys.fall.reset(obj_id);
-        return if on_object { 0 } else { u.fall_vel };
+        // the tracker (path a) does not run there; path b forwards the client value
+        return u.fall_vel;
     }
     let start_z = sys.fall.start_z(obj_id).unwrap_or(u.z);
     let ground = super::ground_height(server, world.id, u.x, u.y, u.z);

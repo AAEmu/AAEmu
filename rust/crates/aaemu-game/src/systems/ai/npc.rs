@@ -358,8 +358,9 @@ pub fn move_towards(
     }
     let travel_dist = target_dist.min(distance);
     let new = add_distance_to_front_between(travel_dist, target_dist, pos, other);
-    let target_z = reference_height(
+    let target_z = reference_height_in(
         server,
+        obj.transform().instance_id,
         ai.map(|a| ReferenceHeightAi {
             can_fly,
             hold_or_idle: a.hold_or_idle,
@@ -428,6 +429,32 @@ pub fn reference_height(
             Some(a) => a.spawner_z.unwrap_or(a.world_z),
         },
     }
+}
+
+/// [`reference_height`] with the zone's ground: an NPC that walks (not flying, not holding /
+/// idling at its spawner) stands on the physics ground (static geometry + terrain, the
+/// collision service) under its position, like the zone's NPC living entities; the C#
+/// reference height without the service.
+#[allow(clippy::too_many_arguments)]
+pub fn reference_height_in(
+    server: &GameServer,
+    instance_id: u32,
+    ai: Option<ReferenceHeightAi>,
+    x: f32,
+    y: f32,
+    z: f32,
+    zone_id: u32,
+) -> f32 {
+    let walks = ai.is_some_and(|a| !a.can_fly && !a.hold_or_idle);
+    if walks {
+        if let Some(g) = crate::systems::ai::collision::ground_height(server, instance_id, x, y, z)
+        {
+            if g != 0.0 {
+                return g;
+            }
+        }
+    }
+    reference_height(server, ai, x, y, z, zone_id)
 }
 
 /// `Npc.LookTowards(other, flags)`.
