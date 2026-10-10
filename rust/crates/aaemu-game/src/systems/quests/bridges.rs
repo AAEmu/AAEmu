@@ -569,8 +569,13 @@ impl QuestHooks for GameQuestHooks {
     }
 
     fn daily_account_login(&self, server: &GameServer, account_id: u32) {
-        // `TimedRewardsManager` (services) is not ported.
-        economy(server).daily_account_login(server, account_id);
+        // TimedRewardsManager.DoDailyAccountLogin (systems::services; DB work as a task)
+        let (Some(srv), Ok(rt)) = (server.self_arc(), tokio::runtime::Handle::try_current()) else {
+            return;
+        };
+        rt.spawn(async move {
+            crate::systems::services::timed_rewards::do_daily_account_login(&srv, account_id).await;
+        });
     }
 }
 

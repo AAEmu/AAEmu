@@ -202,8 +202,12 @@ pub fn open_coffer_doodad(server: &GameServer, player: &PlayerRef, obj_id: u32) 
         (c.id, c.unit.name.clone())
     };
     let Some(doodad) = coffer_doodad(server, player, obj_id) else {
-        // SusManager.LogActivity(CategoryCheating, ...) is not ported.
-        tracing::warn!("{name} tried to open doodad {obj_id} as a Coffer");
+        crate::systems::social::crime::sus_log(
+            server,
+            crate::systems::services::sus::CATEGORY_CHEATING,
+            char_id,
+            &format!("{name} tried to open doodad {obj_id} as a Coffer"),
+        );
         return false;
     };
     let coffer = {
@@ -239,7 +243,12 @@ pub fn close_coffer_doodad(server: &GameServer, player: &PlayerRef, obj_id: u32)
         (c.id, c.unit.name.clone())
     };
     let Some(doodad) = coffer_doodad(server, player, obj_id) else {
-        tracing::warn!("{name} tried to close doodad {obj_id} as a Coffer");
+        crate::systems::social::crime::sus_log(
+            server,
+            crate::systems::services::sus::CATEGORY_CHEATING,
+            player.character_id,
+            &format!("{name} tried to close doodad {obj_id} as a Coffer"),
+        );
         return false;
     };
     let mut d = doodad.data();

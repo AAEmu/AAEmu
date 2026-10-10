@@ -139,12 +139,12 @@ systems::{skills, npcs, economy, social, quests}: Data (tables), System (manager
 | `Core/Managers/TimedRewardsManager` | `systems/services/timed_rewards.rs` | done | `TimedRewardsTask` every minute, daily login reward, offline labor. |
 | `Core/Managers/HousingManager`, `Models/Game/Housing` | `systems/housing/` | done | See "Phase 3 subsystems". |
 | `Core/Managers/CrimeManager` | `db_character.rs` | partial | CheckWantedThreshold thresholds only. |
-| Other `Core/Managers/*` | – | see the subsystems | AccessLevel, Command, ExpressText, Model, Music, Radar, Sus, Task/Tick, TimedRewards: `systems::services`; Animation, EffectTask, ManaRegen, Plot: `systems::skills`; FishSchool, Gimmick, PublicFarm, SubZone, Spawn, AreaTrigger, Specialty, SphereQuest: `systems::npcs`; Family, Duel, Team, Trial, Crime: `systems::social`; Quest: `systems::quests`. Still todo (other owners): AI / AiPaths / AiGeodata, Auction, CashShop, Craft, Mail, Trade, Taxations (economy); Housing; Mate, Slave, Shipyard, Transfer (vehicles); Indun, InstantGame (instances); World/Physics. |
+| Other `Core/Managers/*` | – | see the subsystems | AccessLevel, Command, ExpressText, Model, Music, Radar, Sus, Task/Tick, TimedRewards: `systems::services`; Animation, EffectTask, ManaRegen, Plot: `systems::skills`; FishSchool, Gimmick, PublicFarm, SubZone, Spawn, AreaTrigger, Specialty, SphereQuest, Portal: `systems::npcs`; Family, Duel, Team, Trial, Crime: `systems::social`; Quest: `systems::quests`; Auction, CashShop, Craft, Mail, Trade, Taxations: `systems::economy`; Housing: `systems::housing`; Mate, Slave, Shipyard, Transfer: `systems::vehicles`; Indun, InstantGame: `systems::instances`; AI / AiPaths / AiGeodata, World/Physics: `systems::ai`. |
 | `Models/Game/Units/UnitCustomModelParams` | `models/unit_model.rs` | done | |
 | `Models/Game/Units/Movements` (MoveType hierarchy) + `MathUtil` direction helpers | `models/movement.rs` | done | Default / Unit / Vehicle / Ship / ShipRequest / Transfer, byte-exact read/write (all actor-flag combinations tested). |
 | `Models/AccountPayment`, `Models/Account` | `net/connection.rs`, `db.rs` | done | |
 | `Models/AppConfiguration`, `Models/Game/Configurations` + `Program` config loading | `config.rs` | done | Every member (incl. WebApiNetwork, DiscordToken, Dungeons, AccessLevel, LaborOffline, Specialty, Scripts, full World), Config.json + Configurations/** + Config.Local.json + user secrets + environment (`Section__Key`) + command line, enums by name / value, `ConfigCell` (= `AppConfiguration.Instance`, replaceable at runtime). |
-| Other `Models/Game/*` (AI, Achievement, Auction, Crafts, Crime, DoodadObj, Mails, Mate, NPChar, Quests logic, Slaves, Team, ...) | – | todo | |
+| Other `Models/Game/*` (AI, Auction, Crafts, Crime, DoodadObj, Mails, Mate, NPChar, Quests logic, Slaves, Team, ...) | – | see the subsystems | Ported with their managers (phase 3 / 4 subsystems). `Achievement` has no 1.2 logic. |
 | `Scripts/Commands`, `Utils/Scripts` | `systems/services/commands/` | partial | Infrastructure done (`CommandManager`, `AccessLevelManager`, `ICommand`, `IMessageOutput` / `CharacterMessageOutput`, `SubCommandBase` + parameters, script loader hook, the `Utils/Scripts/SubCommands` World / Time / FishFinder / Feature / AStar sub commands); chat `/` messages go through `CommandManager.Handle`. The commands of `Scripts/Commands/**` (and the `SphereCommandUtil` / `QuestCommandUtil` bodies) are the scripts phase. |
 | `Services` (WebApi, DiscordBot) | `systems/services/webapi/`, `systems/services/discord.rs` | done | axum transport with the C# regex routing; mail / auction controllers call the economy through `WebApiEconomyHooks`. |
 | `GameService` startup / `ManagerOrchestrator`, `Program` | `main.rs`, `systems/services/game_service.rs` | done | `Program.Main` (initialization log, `compiler-check`, config command line, MySQL / SQLite checks) and `GameService.StartAsync` stages in order (DB updater, client files, holdables check, game data, user items, DB loads, time / task managers, subsystems, save manager, deleted characters, online tracking, networks, "Server started! Took ..."), then WebApi / Discord; shutdown in reverse (Discord, WebApi, final save, task / tick / time managers). `GameService.StartTime` / `TimeSinceStart`, `Program.UpTime`, `ManagerOrchestrator.BuildBatches` ported with their tests. |
@@ -172,23 +172,23 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 | Area (C#) | Rust | Status | Notes |
 |---|---|---|---|
 | `NpcManager.Load` (customs, body parts, templates, equip packs, postures, unit modifiers, initial buffs, merchants / goods) | `npc/data.rs` | done | 13 382 templates on the real DB. Creatures.xml names, `LoadAiParams` not ported. |
-| `NpcManager.Create`, `LoadCustom` (.NET `Random(123456789)` parity), `Npc` stats (Str..KillExp from the unit formulas + template bonuses), `InitializeSpawnBuffs`, `AnimActionId` | `npc/manager.rs`, `npc/stats.rs` | done | Every real template creates without error. AI: `has_ai` only (later phase). |
-| `Npc.DoDie` (non-AI part) | `npc/death.rs` | partial | `SCUnitDeathPacket`, `DeadTime`, loot / exp / kill hooks, spawner despawn. Aggro clearing (AI) and team tag XP (social) not done. |
+| `NpcManager.Create`, `LoadCustom` (.NET `Random(123456789)` parity), `Npc` stats (Str..KillExp from the unit formulas + template bonuses), `InitializeSpawnBuffs`, `AnimActionId` | `npc/manager.rs`, `npc/stats.rs` | done | Every real template creates without error. The AI is created through `server.systems.hooks.ai` (`systems::ai`). |
+| `Npc.DoDie` | `npc/death.rs` | done | Kill exp (team eligibility, `PlayerExpModifier`, mate exp, TagShare contributors), quest kill events, loot (`LootManager.GenerateLoot` through the economy), aggro / tagger clean-up, spawner despawn, `Ai.GoToDead()` (`systems::ai`). |
 | NPC interaction packets (CSStartInteraction, CSInteractNPC(End), CSSelectInteractionEx; SCNpcInteractionSkillList, SCAiAggro, SCNpcChatMessage, SCUnitModelPostureChanged, SCAggroTargetChanged) | `npc/packets.rs` | done | Byte-exact tests. Merchant / bank / auction UIs are economy's. |
 | `NpcGameData` (npc_spawners, npc_spawner_npcs, member index, generated spawners) | `npc/spawner_data.rs` | done | |
-| `NpcSpawner`, `NpcSpawnerNpc`, `DoodadSpawner`, `Spawner<T>` | `npc/spawner.rs`, `doodad/spawner.rs` | done | Schedules / time windows / population caches, respawn + despawn timing. Follow path / NPC (AI) TODO. |
-| `SpawnManager` (one per instance) + `WorldManager.ActiveRegionTick` spawner part | `spawn_manager.rs` | done | main_world: 25 118 NPC entries → 38 166 spawner clones, 42 649 doodads, 69 transfers, 14 gimmicks, 5 slaves, 0 parse errors. Persistent doodads from MySQL. Transfer / slave spawning and housing are TODO (not ported by any subsystem yet). |
+| `NpcSpawner`, `NpcSpawnerNpc`, `DoodadSpawner`, `Spawner<T>` | `npc/spawner.rs`, `doodad/spawner.rs` | done | Schedules / time windows / population caches, respawn + despawn timing. AI home position / follow path / simulation through `server.systems.hooks.ai` (`systems::ai`). |
+| `SpawnManager` (one per instance) + `WorldManager.ActiveRegionTick` spawner part | `spawn_manager.rs` | done | main_world: 25 118 NPC entries -> 38 166 spawner clones, 42 649 doodads, 69 transfers, 14 gimmicks, 5 slaves, 0 parse errors. Persistent doodads from MySQL. Transfers / slaves: `systems::vehicles`; houses and their doodads: `systems::housing`; trial court doodads / NPCs linked after the spawns (`TrialManager.Initialize*`). |
 | `DoodadManager.Load` (templates, func groups, funcs, phase funcs, all 121 func template tables) | `doodad/data.rs`, `doodad/templates.rs` | done | 7 124 templates, 13 974 funcs, 24 465 phase funcs (counts match the DB). |
 | `Doodad` phase machine (`Use`, `DoFunc`, `DoPhaseFuncs`, `DoChangePhase`, `InitDoodad`, `OnSkillHit`, `FuncGroupId` setter, ToD triggers), 42 phase funcs, func tasks, `DoodadManager` runtime (Create, CreatePlayerDoodad, ChangeDoodadData, coffers), persistence (`doodads` table) | `doodad/{phase,phase_funcs,tasks,manager,db}.rs` | done | Timers are tokio tasks cancelled through a generation counter (`DoodadPhaseState::func_task`). `Task.Run(InitDoodad)` in Create is a spawned task. |
-| 79 non-phase funcs, 41 world interactions (`execute_interaction` for the skills InteractionEffect), coffers, bond / seats | `doodad/funcs/`, `doodad/interactions.rs`, `doodad/coffer.rs` | done / partial | Items, loot, skills, housing, quests through `npcs::hooks` bridges. Instance / slave / sticky-parent funcs log + TODO. |
+| 79 non-phase funcs, 41 world interactions (`execute_interaction` for the skills InteractionEffect), coffers, bond / seats | `doodad/funcs/`, `doodad/interactions.rs`, `doodad/coffer.rs` | done | Items, loot, coffers through the economy `EconomyBridge`; skills, quests, housing through the bridges; instance funcs (`systems::instances`), `BindSlave` (`systems::vehicles`). Sticky parents are not modelled. |
 | SCDoodad* packets, doodad C->S packets (CSChangeDoodadData/Phase, CSCreateDoodad, CSSetLogicDoodad, CSSaveDoodadUccString, CSUnbondDoodad, CSCofferInteraction) | `doodad/packets.rs`, `doodad/coffer.rs` | done | Byte-exact tests. |
-| Heightmaps (`WorldCell` heightmap.dat, `GetHeight`, `GetReferenceHeight`), NPC reference height in `SCUnitStatePacket` | `heightmap.rs`, `world/unit_state.rs` | done | Lazy per cell (`PreLoadTerrain`), geodata path not ported. Median error 0.098 m vs 4 002 real spawn Z values. |
+| Heightmaps (`WorldCell` heightmap.dat, `GetHeight`, `GetReferenceHeight`), NPC reference height in `SCUnitStatePacket` | `heightmap.rs`, `world/unit_state.rs` | done | Lazy per cell (`PreLoadTerrain`); with `GeoDataMode` the navmesh height of `systems::ai::geodata` comes first. Median error 0.098 m vs 4 002 real spawn Z values. Used by the skill controllers / displacements, plots and NPC spawns. |
 | `GimmickManager`, `GimmickGameData`, `GimmickSpawner`, movement handlers | `gimmick/` | done | |
 | `AreaTriggerManager` (+ aoe_shapes, wi_group_wis), `SubZoneManager`, `SphereQuestManager` (world side) | `area_trigger.rs`, `subzone.rs`, `sphere_quest.rs` | done | Quest effects via `QuestsBridge`. Sub-zone index scan of the pak is slow in debug (~25 s). |
-| `PortalManager` (recall, district return, summoned portals, portal book, teleports) | `portal/` | done | Trial court check and slave/mate handling on instance change TODO. |
+| `PortalManager` (recall, district return, summoned portals, portal book, teleports) | `portal/` | done | Trial court check (`systems::social`), mates / slaves on instance change (`systems::vehicles`). |
 | `SpecialtyManager`, `PublicFarmManager`, `FishSchoolManager`, `GameScheduleManager` (+ NCrontab subset) | `specialty.rs`, `public_farm.rs`, `fish_school.rs`, `schedule.rs` | done | |
 | `TimeManager.OnTimeOfDayChange` (NPC postures, doodad ToD triggers) | `doodad/manager.rs` | done | 10 s poller started by the doodad part (TimeManager has no callback). |
-| Cross-subsystem behaviour | `hooks.rs` | – | `SkillsBridge`, `EconomyBridge`, `QuestsBridge` (`server.systems.npcs.hooks`), default "not ported" bodies. |
+| Cross-subsystem behaviour | `hooks.rs`, `bridges.rs` | done | `SkillsBridge` (skills), `EconomyBridge` (economy), `QuestsBridge` (quests) in `server.systems.npcs.hooks`; this subsystem implements `NpcSkillHooks`, `NpcEconomyHooks`, `LootNpcHooks`, `TreasureMapSource` (`bridges.rs`). See "Phase 3b wiring". |
 
 ### systems::economy
 
@@ -232,7 +232,7 @@ connected by `systems::economy::wiring`).
 | `DominionData`, `Models/Game/Achievement`, rename / chat bubble / NPC chat / spam packets | `systems/social/{dominion,achievement}.rs`, `packets/misc.rs` | done (data + packets) | No C# manager drives them in 1.2. |
 | `RadarManager` | – | not social | Telescope / fish school registration from buff templates: skills / npcs. |
 
-Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.initialize_doodads` / `initialize_npc` after spawning `justice.*` spawners and install `SocialHooks` (spawn_doodad, doodad_phase_changed, terrain_height, create_player_doodad, evidence_func, doodad_change_phase, judge_obj_id); skills/combat -> `crimes.generate_evidence_from_damage/kill`, `trials.arrest_criminal`, `teams.are_team_members` / `team_by_obj_id` / `is_obj_member`, `duels` queries, `report_bot*`, and hooks `check_buff_tag` / `remove_buffs_by_tag` / `post_update_current_hp`; economy -> `teams.next_loot_winner` / `next_eligible_looter`, hook `update_owned_housing_faction`; instance / portal entry -> `trials.is_player_in_court`; mates -> hook `force_dismount`; teleports -> `session::on_moved` (C# `Character.SetPosition` -> `TeamManager.UpdatePosition`; plain movement does not call it in C# either).
+Cross-subsystem calls: wired in phase 3b (see "Phase 3b wiring": trial court doodads / NPCs after the spawns, `SocialHooks` by social itself, crime evidence / arrests / team and duel queries from skills, loot rules from economy, court checks in portals and instances, `force_dismount` through vehicles). Still open: teleports -> `session::on_moved` (C# `Character.SetPosition` -> `TeamManager.UpdatePosition`; plain movement does not call it in C# either).
 
 ### systems::housing
 
@@ -245,7 +245,7 @@ Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.init
 | `SpawnManager.Load` / `SpawnPersistentDoodads` housing parts, `LoadAccount` / `CSListCharacter` / `CSSelectCharacter` / `Character.Load` / `DeleteCharacterAssets` housing parts | `npcs/spawn_manager.rs`, `packets/c2g.rs`, `world/session.rs`, `db_character.rs` (one call each) | done | `LoadPlayerHousing` + `SpawnAll` before the persistent doodads, house parenting + bound doodads, `ReconcileBoundDoodads` (`UsePersistentHouseDoodads`). |
 | Placement validation | – | n/a | The 1.2 C# `Build` validates nothing but the design item (TODOs); the client checks the housing areas. Land checks for doodads (`GetHouseAtLocation` + `AllowedToInteract`) are ported and used by `CSCreateDoodad` / `CreatePlayerDoodad`. |
 
-Hooks the economy subsystem must install (`server.systems.housing.hooks`): `inventory_item`, `item`, `inventory_item_count`, `bag_consume_item`, `subtract_money`, `move_item_to_system_container`, `destroy_item`, `take_coffer_items`, `send_mail`, `send_mail_with_new_items`, `delete_house_mails`, `house_mail_ids`, `update_tax_mail`. Housing API for others: `housing::{house_by_id, house_at_location, allowed_to_interact(_by_id), pay_weekly_tax (MailManager tax payment), act_ability_bonus_at (CharacterCraft), update_owned_housing_faction, demolish_by_player}`.
+Economy hooks (`server.systems.housing.hooks`): installed by `economy::bridges::EconomyForHousing`. Housing API for others: `housing::{house_by_id, house_at_location, allowed_to_interact(_by_id), pay_weekly_tax (MailManager tax payment), act_ability_bonus_at (CharacterCraft), update_owned_housing_faction, demolish_by_player}`.
 
 ### systems::quests
 
@@ -277,7 +277,8 @@ Hooks the economy subsystem must install (`server.systems.housing.hooks`): `inve
 | Doodad funcs `EnterInstance`, `EnterSysInstance`, `ExitIndun`, `RemoveInstance`; skills hooks `leave_instance` (`ExitArchemall`) / `main_world_position` (`Return`); portal `UsePortal` court check | `npcs/doodad/funcs/world.rs`, `skills/ext.rs` (default bodies), `npcs/portal/mod.rs` | done | |
 | Tower defense runtime, `towerdef` GM command, `TowerDefenseAttackerAiCharacter` | – | todo | The C# has no tower defense manager (only data + the GM command); commands and NPC AI are not ported. |
 
-Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMates` on dungeon entry (`dungeon::add_player`); slaves `GetActiveSlaveByOwnerObjId` in `PlayerCanEnter`; economy: the entry item goes through `npcs::portal::check_item_and_remove` (`EconomyBridge::consume_item`) and `SocialHooks::update_owned_housing_faction` on `SetFaction`. Instant games have no rewards in C#.
+Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` checks the summoned vehicle (`systems::vehicles`); the entry item goes through `npcs::portal::check_item_and_remove` (economy `EconomyBridge::consume_item`); `SetFaction` updates the owned houses (`SocialHooks::update_owned_housing_faction`, housing). Instant games have no rewards in C#.
+
 ### systems::vehicles
 
 | Area (C#) | Rust | Status | Notes |
@@ -290,7 +291,7 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
 | `ShipHarpoonRopeController`, `CSUnhangPacket` | `systems/vehicles/harpoon.rs` | done | Tow forces are physics (`ShipHarpoonTowPhysics`): the per-tick entry points are exposed for the physics port. |
 | `CSMoveUnitPacket` vehicle branches (ship request, vehicle, mate xp, riding, standing on objects) | `systems/vehicles/movement.rs`, `world/session.rs` | done | Sticky parents are not modelled. |
 | Mate / slave / transfer / shipyard C2G and G2C packets | `systems/vehicles/packets.rs` | done | 18 C->S, 16 S->C (byte-exact tests). `CSChangeSlaveTargetPacket` has no 1.2 opcode (0xfff). |
-| Hooks | `systems/vehicles/hooks.rs` | – | Installs wrappers over the skills `NpcSkillHooks` and the social `SocialHooks` (forwarding to the previously installed hooks); `VehiclePhysicsHooks` (AddShip / RemoveShip / water surface / IsWater) and `VehicleItemHooks` (mate equipment move, EndCraft) for the physics / economy owners. |
+| Hooks / physics | `systems/vehicles/{hooks,ship_physics}.rs` | done | `VehicleItemHooks` (`EndCraft`, economy). Ship physics and water call `systems::ai::physics` directly (`AddShip` / `RemoveShip`, helm request, driver seat, `GetWaterSurface` / `IsWater`); `ShipPhysicsHooks` (harpoon lines / tension / lifetime, `Throttle` / `Steering` after a move) and the radar ship lists are installed here. The npcs / social hooks call the mate / slave / dismount functions directly. |
 ### systems::services
 
 | Area (C#) | Rust | Status | Notes |
@@ -316,6 +317,7 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
 | `GameData/Framework` (`GameDataManager`, `IGameDataLoader`, `GameDataAttribute`) | `data/mod.rs`, `systems::SystemsData::load` | done (by design) | The reflection-driven loader list is the explicit `GameData::load` + per-subsystem `Data::load`; `Load` / `PostLoad` order is the call order there. |
 | `Models/Tasks/SaveTask/SaveTickStartTask` | `managers/save.rs` | done (by design) | The periodic save is a Tokio interval instead of a `TaskManager` task (not counted in `GetQueueCount`). |
 | `Utils/{MathUtil, NumericExtensions, Converters/*, DB/HoldablesSchemaCheck}` | `utils/` | done | `Utils/DB/SQLite*` = `data::sqlite`, `Utils/IdManager` = `managers::id`. `SphereCommandUtil` / `QuestCommandUtil`: scripts phase. |
+
 ### systems::ai
 
 | Area (C#) | Rust | Status | Notes |
@@ -327,10 +329,67 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
 | `AiPathsManager` (`Data/Path`), `AiPathHandler`, `Units/Route/Simulation` | `systems/ai/{path_handler,simulation}.rs` | done | Every `Data/Path/*.path` file loads (test). |
 | `AiGeoDataManager`, CryEngine `.bai` readers (net / hide / areas / verts missions), A* `PathNode`, `GetHeight`, `ReducePath` | `systems/ai/geodata/` | done | `GeoDataMode` only. 35 828 pak `.bai` files parse; the areas reader matches the C# reader on every dumped file (differential harness); routes found on all 16 worlds with zone geodata. |
 | `Gimmick.MoveTowards`, flytrap gimmick | `systems/ai/gimmick.rs` | done | |
-| Hooks for npcs / skills (create AI by `ai_file_id`, spawn / engage / death / delete / faction, NPC control effect, spyglass) | `systems/ai/hooks.rs` | done | `AiNpcSkillHooks` wraps the `NpcSkillHooks` installed before `ai` starts. |
+| Hooks for npcs / skills (create AI by `ai_file_id`, spawn / engage / death / delete / faction, NPC control effect, spyglass), AStar GM commands | `systems/ai/hooks.rs` | done | `AiHooks` in `server.systems.hooks.ai`; the npcs `NpcSkills` calls the AI parts of `NpcSkillHooks` directly (no decorator); `AiAStarHooks` installed into the services `ASTAR_HOOKS`. |
 | `Physics/**`, `PhysicsManager` (ship hulls: Jitter2 world, `ShipController`, shore / ship–ship / doodad / cliff / static barrier contacts, buoyancy, whirlpool, storm lamps, harpoon tow, replication), `ShipSiegeAoEHit` geometry | `systems/ai/physics/` | done | The Jitter2 subset is bit-exact against Jitter2 2.8.8 for the integration (embedded reference test). Slaves call `add_ship` / `remove_ship` / `set_ship_request` / `set_ship_driver` / `ship_state` and may install `ShipPhysicsHooks` (harpoon rope state). |
 | `WaterBodies`, `WaterBodyArea`, `Models/CryEngine/Objects` (`object.dat`) | `systems/ai/physics/{water,objects_file}.rs` | done | Water areas of all 1 294 client `object.dat` files equal the C# output bit for bit (differential harness, gated test `real_ai_object_dat_water_bodies`). Gimmick `FloatToSurface` uses them. |
 | `ShipTuningDebug`, `HarpoonMechanicsDebug` logging, `ShipHarpoonRopeController` | – | not ported / slaves | Debug code is hard-wired off in the C#; the rope controller belongs to the slaves subsystem. |
+
+## Phase 3b wiring (cross-subsystem hooks)
+
+Every subsystem installs its implementations of the other subsystems' hook traits from its
+`System::start` (`install_hooks` / `bind`; tests call the same functions). Where both sides are
+ported, the implementations call the owner directly (no wrapper chains); a hook slot only remains
+where the owner is a later / optional subsystem (`server.systems.hooks.ai`, the services
+statics) or the call crosses a lock boundary.
+
+| Hook (slot) | Implemented by | Notes |
+|---|---|---|
+| `skills::ext::NpcSkillHooks` (`skills.ext.npcs`) | `npcs::bridges::NpcSkills` | NPC stats, `Npc.DoDie` (before / after, respawn time), doodad hits / spawns, gimmicks, portals, mates / slaves (direct `systems::vehicles` calls), the npc effects (`Interaction`, `Spawn`, spawner (de)spawn, `KillNpcWithoutCorpse`, `NpcControl` -> `systems::ai`, `SpawnGimmick`, `OpenPortal`, `ScopedF`, `MoveToRezPoint`), the AI parts of `OnDamageReceived` / `OnNoAggroTarget` / `CheckIfEmptyAggroToReturn` / move state. `MainWorldPosition` / `LeaveInstance` use the trait defaults (`systems::instances`). |
+| `skills::ext::ItemSkillHooks` (`skills.ext.items`) | `economy::bridges::EconomyForSkills` | Gear stats / holdables / counts / consumes, `UpdateGearBonuses` buffs (equip effects, weapon wield, armor grade, item sets), the item `SpecialEffect`s through `economy::item_effects` (GainItem, emblem imprint, conversion, fishing loot, grade enchant, look convert, socketing, tempering), dyeing, skinize, sheet music (services `MusicManager`), the item effects (`GainLootPackItem`, `ImprintUcc`, `CleanupUcc`, `PutDownBackpack`, `RecoverExp`, `Conversion`, collect / craft `CraftEffect` -> `Craft.EndCraft` + `DoDoodadInteractionEvents`). |
+| `skills::ext::QuestSkillHooks`, `SocialSkillHooks` | `quests::bridges::QuestsForSkills`, `social::bridges::SocialForSkills` | Item use / aggro / engage quests, `AcceptQuest` / `Cinema` effects; teams, crime evidence, `ReportCrime`, bot reports, dominion, appellations. |
+| `systems::UnitHooks` (`hooks.unit`) | `skills::SkillUnitHooks` | Buff events, HP / combat side effects. |
+| `npcs::hooks::{SkillsBridge, EconomyBridge, QuestsBridge}` | `skills::bridges::SkillsForNpcs`, `economy::bridges::EconomyForNpcs`, `quests::bridges::QuestsForNpcs` | NPC loot = `LootManager.GenerateLoot`; doodad func items, coffers, fish trophies, loot packs, money / labor; family / guild lookups (social / expeditions). |
+| `quests::hooks::QuestHooks` (`quests.hooks`, `quests.economy_hooks`) | `quests::bridges::GameQuestHooks` -> `economy::bridges::EconomyForQuests` for the item / money / mail part | Locked hooks: the character lock is held; world work is deferred with `quests::events::after_unlock`. |
+| `social::hooks::SocialHooks` | `social::bridges::GameSocialHooks` | Doodads, heights, evidence funcs, PvP enemy HP, judge, buffs, dismount (vehicles), housing faction (default = housing). |
+| economy `QuestItemHooks`, `LootQuestHooks`, `CashShopQuestHooks` | `quests::bridges::QuestsForEconomy` | |
+| economy `GearHooks`, `ProgressionHooks` | `skills::bridges::SkillsForEconomy` | |
+| economy `NpcEconomyHooks`, `LootNpcHooks`, `TreasureMapSource` | `npcs::bridges::NpcsForEconomy` | |
+| economy `LootTeamHooks` | `social::bridges::SocialForEconomy` | |
+| economy `CraftHooks`, `ItemEffectHooks`, `MailHousingHooks` | `economy::bridges::EconomyComposite` | Skills cast / cancel, doodad func permission, housing zones / bonus / tax, quests `OnCraft`, public farm, house at location, backpack doodad spawn. |
+| economy `AuctionMailHooks`, `CashShopMailHooks`, `StoreHooks`, `SummonItemHooks` | `economy::wiring`, `economy::mate_equipment` | Economy-internal. |
+| housing `HousingEconomyHooks` | `economy::bridges::EconomyForHousing` | Items, money, coffers, housing mails, tax mail updates. |
+| vehicles `VehicleItemHooks` | `economy::bridges::EconomyForVehicles` | `EndCraft`. |
+| ai `ShipPhysicsHooks` (`hooks.ship_physics`), services `RadarShipHooks` | `vehicles::ship_physics::VehicleShipPhysics`, `vehicles::RadarShips` | Harpoon lines / tension / lifetime, physics throttle / steering; radar ship lists. |
+| ai `AiHooks` (`hooks.ai`), services `ASTAR_HOOKS` | `ai::hooks::{AiSubsystemHooks, AiAStarHooks}` | |
+| services `WebApiEconomyHooks`, `CHARACTER_ITEM_OPS`, `SheetMusicInventory`, `BUYBACK_WIPE` | `economy::bridges::{EconomyForServices, EconomySheetMusic}` | |
+
+Integration tests: `systems/integration_tests.rs` (skill kill -> hunt quest + exp, doodad
+interaction quest, force-attack crime evidence, party-tagged kill exp sharing, TagShare credit,
+quest item hooks under the character lock, skills item hooks on the inventory, death exp loss).
+
+Deviations of the wiring:
+
+* Quest "locked hooks" run under the character lock: their world parts (level-up broadcast,
+  item task packets, quest item events, quest reward mails) run once the lock is released
+  (`after_unlock`), after the rest of the quest step; a failed reward mail `Send()` is reported
+  then (`MailUnknownFailure`) instead of being counted by the quest step.
+* The item operations of the quest hooks use an `ItemTxn` without the economy operation lock
+  (taking it under a character lock could deadlock with an operation waiting for that
+  character).
+* `AcceptQuestEffect` approximates the C# `ImplId` lookup by the effect's quest id.
+* Item procs of equip item set bonuses are not registered: `UnitProcs.RollProcsForKind` skips
+  every proc whose cooldown has elapsed and `LastProc` starts at `DateTime.MinValue`, so no proc
+  ever fires in the C#.
+* `ItemSkillHooks::create_sheet_music` and `TimedRewardsManager.DoDailyAccountLogin` run their DB
+  work as tasks (the C# blocks).
+* AStar GM commands read the NPC's `PathNode` only when its AI is not in the middle of a step
+  (`manager::post`); otherwise they see the defaults.
+* The client time-of-day override in storms (`TimeOfDayObserver` + `StormShipLogic`) is not
+  applied: the time manager's observers are connections without a character.
+
+C# bugs mirrored by the wiring: a fall death generates crime evidence against the victim
+itself (the faller is its own "killer"); the killing blow's aggro / tagger is added to the dead
+NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`).
 
 ## Known deviations from the C#
 
@@ -402,7 +461,7 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
   mail, cash shop); a later cleanup can share one cache.
 
 * systems::quests: rewards, items, money, exp, skills, NPC faction, teams, mails go through
-  `quests::hooks::QuestHooks` (no-op defaults until the owning subsystems install theirs).
+  `quests::hooks::QuestHooks` (`GameQuestHooks`; the item / money / mail part is the economy's).
   World effects (component skills, NPC faction, team-shared events) run after the character
   lock is released instead of inline; item hooks that raise quest events are queued to the
   end of the running operation.
@@ -419,28 +478,28 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
   failed guild save keeps the removed-member ids for the next attempt. `ExpeditionConfig`
   defaults to the shipped `Expedition.json` (C# throws without the section). Player names /
   positions in team packets are snapshots taken when the packet is built. `DeleteCharacterAssets`
-  does not send the guild/family packets to the lobby character. Duel flag height uses the hook
-  (no height maps). Crime record packets prefetch offline victims (C# `Character.Load` inside
-  `Write`). `SCDoodadPhaseChangedPacket` is defined in `systems/social/packets/duel.rs` until the
-  npcs subsystem's version can be used.
+  does not send the guild/family packets to the lobby character. The duel flag height comes from
+  the npcs heightmaps (`SocialHooks::terrain_height`). Crime record packets prefetch offline
+  victims (C# `Character.Load` inside `Write`).
 * systems::skills: supersedes the phase-2 bullets above on stats (`CalculateWithBonuses`,
   `UpdateGearBonuses` are ported), buffs (expiry, `BuffRemoveOn.Move`, effects, buff packets) and
   `CSMoveUnit` fall damage.
 * systems::skills: `CompressedGamePackets` (DD04) are written with stored (uncompressed) deflate
   blocks; the client accepts any valid deflate stream.
-* systems::skills: no heightmaps — fall-back Z / line-of-sight checks are skipped, the radar
-  (`SkillTargetingUtil` radar scans) is not ported.
+* systems::skills: the radar scans of `SkillTargetingUtil` are not ported.
 * systems::skills: `SpecialEffect` repeats are scheduled tasks instead of `Thread.Sleep` loops.
 * systems::skills: labor is capped at 2000 (non-premium); premium accounts do not exist yet.
-* systems::skills: exp loss on death is 0 (the C# formula reads data that is not loaded).
-* systems::skills: skill controllers and NPC displacements (knock back, impulse, blink) do not
-  snap to the ground (no `GeoData.GetHeight`; the npcs branch has `systems/npcs/heightmap.rs` to
-  wire at merge); the wandering (fear) speed is the 7 m/s fallback (actor model stances not
-  loaded); `Npc.StopMovement` writes the C# default stance / alertness; `OnMovement` is not raised.
+* systems::skills: `Character.DoDie` exp / durability loss is ported; the escalating respawn
+  timer (`ComputeDeathWaitTime`) and the PvP honor / kill bookkeeping of the 1.2 C# branch are
+  not.
+* systems::skills: skill controllers and NPC displacements snap to the ground through the npcs
+  heightmaps (`geo_data_height`); the wandering (fear) speed is the 7 m/s fallback (actor model
+  stances not loaded); `Npc.StopMovement` writes the C# default stance / alertness; `OnMovement`
+  is not raised.
 * systems::skills: `BubbleEffect` does not sleep the effect thread for the bubble's read time;
   account updates of special effects run as async tasks.
 * systems::skills: `saveFactions` KeyNotFound (C# throws) is logged as an error.
-* `systems::npcs`: doodad func timers are tokio tasks (cancel = generation bump); `DoodadManager.Create`'s `Task.Run(InitDoodad)` is a spawned task; `TimeManager.OnTimeOfDayChange` runs from a 10 s poller. `GetNpcSpawner` template rewrites do not propagate to already loaded spawners; the "first" concurrent-dictionary entry is the lowest key; spawn files are processed in sorted name order (C# `Directory.GetFiles` order is unspecified). Portal book deletions are written at the next periodic save. Debug messages check only the character's access level. Coffer slot counting stops at 255 (C# loops forever). Where the C# would throw on a null / failed cast the Rust code returns quietly. Geodata (navmesh heights), physics, water, sticky parents, AI, transfers / slaves spawning and housing are not ported.
+* `systems::npcs`: doodad func timers are tokio tasks (cancel = generation bump); `DoodadManager.Create`'s `Task.Run(InitDoodad)` is a spawned task; `TimeManager.OnTimeOfDayChange` runs from a 10 s poller. `GetNpcSpawner` template rewrites do not propagate to already loaded spawners; the "first" concurrent-dictionary entry is the lowest key; spawn files are processed in sorted name order (C# `Directory.GetFiles` order is unspecified). Portal book deletions are written at the next periodic save. Debug messages check only the character's access level. Coffer slot counting stops at 255 (C# loops forever). Where the C# would throw on a null / failed cast the Rust code returns quietly. Sticky parents are not modelled.
 * systems::housing: dates are stored with second precision (unix seconds); `DateTime.MinValue`
   rows load as 0, so a manually inserted house with both dates at MinValue gets 1970-01-15 as
   protection end (C#: 0001-01-15; both are "expired"). `Connection.Houses` is not snapshotted:
@@ -464,9 +523,8 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
 * systems::vehicles: `Transform.Parent = null` keeps the world position (`detach_child`); the C#
   keeps the local values until the next position update.
 * systems::vehicles: `Thread.Sleep(50)` between `SCMateSpawnedPacket` and the mate spawn is not
-  reproduced. Mate / slave gear bonuses (`UpdateGearBonuses`) and slave weapon dps are 0
-  (economy). Ship physics, water bodies and the weather storm-ship skill block are hooks /
-  not ported.
+  reproduced. Mate / slave gear bonuses (`UpdateGearBonuses`) and slave weapon dps are 0.
+  Ship physics, water and the storm cannon block are `systems::ai` (`ship_physics`).
 * systems::vehicles: a stale (already deleted) mate left in the active list by the logout bug
   below is despawned again without releasing its obj / tl ids a second time.
 * systems::vehicles: DB failures of the saved-slave lookups behave like "no saved slave"; the
@@ -477,8 +535,8 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
 * systems::services: the WebApi 500 page shows the Rust error chain instead of a .NET stack
   trace, and System.Text.Json / NotSupportedException messages are close paraphrases. Character
   `CreatedAt` of characters created in the running session is written without the `Z` of a
-  `DateTimeKind.Utc` value. The mail / auction controllers answer "not found / not sent" until
-  the economy installs `WebApiEconomyHooks`.
+  `DateTimeKind.Utc` value. The auction controllers serialise the lot's `Item` with its stored fields only
+  (Id, TemplateId, Count, Grade, OwnerId, SlotType, Slot).
 * systems::services: `TaskManager.GetQueueCount` (WebApi `/status`) only counts the tasks of
   this queue; the other subsystems run their timers as Tokio tasks.
 * systems::services: `TimedRewardsManager.DoTick` skips connections without an account (C#
@@ -488,8 +546,7 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
   `ReloadConfiguration`) replace the `ConfigCell` snapshot; subsystems that copied values at
   start (skills config, doodad growth rate) are updated by the World set commands only.
 * systems::services: `SusManager` analysis runs only where callers pass positions (no
-  `FinalizeTransform`); `systems::social::crime::sus_log` and the npcs coffer check still only
-  log (switch them to `server.systems.services.sus.log_activity_player`).
+  `FinalizeTransform`); the social and coffer `LogActivity` calls insert their row as a task.
 * systems::services: `QuestCommandUtil` / `SphereCommandUtil` and every `Scripts/Commands`
   command are not ported (scripts phase); `scripts reload force` runs the installed loader.
 * systems::services: the Discord bot runs in the background (the C# `StartAsync` never returns

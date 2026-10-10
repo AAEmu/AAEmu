@@ -1486,7 +1486,8 @@ impl TrialManager {
         let Some(qi) = queues.iter().position(|q| q.0 == mother) else {
             send_error(player, error::TRIALS_JURY_FULL);
             sus_log(
-                "Cheating",
+                server,
+                crate::systems::services::sus::CATEGORY_CHEATING,
                 player.character_id,
                 "Player is trying to join as jury while not in an eligible faction",
             );
@@ -1495,7 +1496,8 @@ impl TrialManager {
         if !queues[qi].1.contains(&player.character_id) {
             send_error(player, error::TRIALS_JURY_FULL);
             sus_log(
-                "Cheating",
+                server,
+                crate::systems::services::sus::CATEGORY_CHEATING,
                 player.character_id,
                 "Player is trying to join as jury while not in an the jury queue",
             );
@@ -1741,7 +1743,8 @@ impl TrialManager {
             } else {
                 let name = p.data().unit.name.clone();
                 sus_log(
-                    "Cheating",
+                    server,
+                    crate::systems::services::sus::CATEGORY_CHEATING,
                     p.character_id,
                     &format!("Player {name} tried to cancel a trial they do not belong to"),
                 );
@@ -1972,7 +1975,12 @@ impl TrialManager {
         let name = player.data().unit.name.clone();
         let msg = format!("{name} tried to join courtroom audience while not being near a seat");
         tracing::warn!("{msg}");
-        sus_log("Cheating", player.character_id, &msg);
+        sus_log(
+            server,
+            crate::systems::services::sus::CATEGORY_CHEATING,
+            player.character_id,
+            &msg,
+        );
     }
 
     /// `LeaveTrialAudience(player)`.

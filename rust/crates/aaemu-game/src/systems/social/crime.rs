@@ -300,9 +300,22 @@ pub async fn add_offline_crime_points(server: &GameServer, player_id: u32, point
     }
 }
 
-/// `SusManager.LogActivity(category, ...)` (the suspicious-activity log is not ported: logged).
-pub(crate) fn sus_log(category: &str, character_id: u32, msg: &str) {
+/// `SusManager.LogActivity(category, character, description)` (`systems::services::sus`; the
+/// `audit_char_sus` insert runs as a task).
+pub(crate) fn sus_log(server: &GameServer, category: &str, character_id: u32, msg: &str) {
     tracing::warn!("[Sus:{category}] ({character_id}) {msg}");
+    let (Some(srv), Ok(rt)) = (server.self_arc(), tokio::runtime::Handle::try_current()) else {
+        return;
+    };
+    let player = server.world.character_by_id(character_id);
+    let (category, msg) = (category.to_string(), msg.to_string());
+    rt.spawn(async move {
+        srv.systems
+            .services
+            .sus
+            .log_activity_player(&srv, &category, player.as_ref(), &msg)
+            .await;
+    });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -637,7 +650,8 @@ impl CrimeManager {
                 fmt_vec3(pos)
             );
             sus_log(
-                "Cheating",
+                server,
+                crate::systems::services::sus::CATEGORY_CHEATING,
                 reporter.character_id,
                 &format!(
                     "Reported own crime at {} (type={template_id}",
@@ -900,7 +914,8 @@ impl CrimeManager {
         };
         let caster = Some((reporter.character_id, reporter_level));
         sus_log(
-            "BotReport",
+            server,
+            crate::systems::services::sus::CATEGORY_BOT_REPORT,
             bot.character_id,
             &format!(
                 "Possible bot {bot_name} ({}) got reported by {reporter_name} ({}), Msg: {message}",
@@ -938,7 +953,8 @@ impl CrimeManager {
             }
             if count == prime {
                 sus_log(
-                    "Bot",
+                    server,
+                    crate::systems::services::sus::CATEGORY_BOT,
                     bot.character_id,
                     &format!(
                         "Possible bot {bot_name} ({}) has reached the report threshold of {prime}",
@@ -966,7 +982,9 @@ impl CrimeManager {
             }
             // The C# interpolates the Character object itself (its `ToString()`).
             sus_log(
-                "Bot",
+
+                server,
+                crate::systems::services::sus::CATEGORY_BOT,
                 bot.character_id,
                 &format!(
                     "Possible bot {} ({}) has cleared their Prime Suspect status by talking to a judge.",
