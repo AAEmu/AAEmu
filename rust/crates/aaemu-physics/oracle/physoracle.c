@@ -38,7 +38,7 @@
 enum {
   W_GetGeomManager = 9, W_SetupEntityGrid = 11, W_GetPhysVars = 20, W_CreatePhysicalEntity = 21,
   W_DestroyPhysicalEntity = 24, W_TimeStep = 32, W_RayWorldIntersection = 42, W_AddGlobalArea = 80,
-  W_SetHeightfieldData = 17
+  W_SetHeightfieldData = 17, W_SetSurfaceParameters = 29
 };
 /* ---- IGeomManager slots ---- */
 enum { G_CreatePrimitive = 7, G_RegisterGeometry = 9 };
@@ -59,6 +59,7 @@ typedef int (*fn_stat)(void *, void *);
 typedef int (*fn_addg)(void *, void *, void *, int, int);
 typedef int (*fn_rwi)(void *, void *, const char *, int);
 typedef void (*fn_hfdata)(void *, void *, int *, int);
+typedef int (*fn_surf)(void *, int, float, float, unsigned);
 
 static HMODULE g_phys;
 static void *g_world, *g_gm;
@@ -133,7 +134,7 @@ static uint32_t parse_u(const char *s) {
 }
 
 /* ------------------------------------------------------------------ named objects */
-#define MAXN 128
+#define MAXN 1024
 typedef struct { char name[32]; void *p; int kind; /* 0 geom(phys_geometry*), 1 entity, 2 area */ } Named;
 static Named g_obj[MAXN];
 static int g_nobj;
@@ -287,6 +288,7 @@ static void apply_fields(const Toks *t, unsigned char *b, int cap) {
 
 /* P1a primitive-geometry probes (gprobe, gphysblob): owned by package P1a */
 #include "p1a_probes.c"
+#include "p3_queries.c" /* P3 query commands (additive) */
 
 /* ------------------------------------------------------------------ heightfield callbacks */
 static struct { int mode; float h0, kx, ky, amp; } g_hf;
@@ -451,6 +453,9 @@ static void cmd_rwi(const Toks *t) {
   }
 }
 
+/* P3 areas / P4a water probes (package P3-areas) */
+#include "p3_areas.c"
+
 static void run_line(char *line) {
   Toks t;
   char *hash = strchr(line, '#');
@@ -458,6 +463,7 @@ static void run_line(char *line) {
   tokenize(line, &t);
   if (!t.n) return;
   const char *c = t.k[0];
+  if (p3_command(c, &t)) return;
   if (!strcmp(c, "grid")) {
     float org[3] = {0, 0, -100}, st[2] = {4, 4};
     int n[2] = {64, 64};
@@ -521,6 +527,10 @@ static void run_line(char *line) {
     apply_fields(&t, gp, 512);
     int id = ((fn_addg)VT(e)[E_AddGeometry])(e, g, gp, atoi(get(&t, "id", "-1")), 1);
     printf("ret part %s %d\n", need(&t, "ent"), id);
+  } else if (!strcmp(c, "surface")) { /* SetSurfaceParameters(idx, bounciness, friction, flags) */
+    int r = ((fn_surf)VT(g_world)[W_SetSurfaceParameters])(g_world, atoi(need(&t, "idx")), parse_f(get(&t, "bounce", "0")),
+                                                        parse_f(get(&t, "friction", "h:3f99999a")), parse_u(get(&t, "flags", "0")));
+    printf("ret surface %d\n", r);
   } else if (!strcmp(c, "area")) {
     const char *kind = get(&t, "kind", "global");
     if (strcmp(kind, "global")) die("only kind=global areas are supported", kind);
@@ -608,11 +618,25 @@ static void run_line(char *line) {
       if (found) printf(" %d", offs[k]);
     }
     printf("\n");
+  } else if (!strcmp(c, "contacts")) { /* the rigid entity's contact list (E+536): non-pointer fields of each record */
+    void *e = find_target(need(&t, "target"));
+    char *head = (char *)e + 536;
+    int n = 0;
+    for (char *k = *(char **)head; k && k != head && n < 1000; k = *(char **)k, n++) {
+      printf("c %d", n);
+      for (int o = 24; o < 64; o += 4) printf(" %08x", *(uint32_t *)(k + o));
+      printf(" e %s %s", name_of(*(void **)(k + 64)), name_of(*(void **)(k + 72)));
+      for (int o = 80; o < 88; o += 4) printf(" %08x", *(uint32_t *)(k + o));
+      for (int o = 112; o < 168; o += 4) printf(" %08x", *(uint32_t *)(k + o));
+      printf("\n");
+    }
+    printf("contacts %s %d\n", need(&t, "target"), n);
   } else if (!strcmp(c, "echo")) {
     printf("echo");
     for (int i = 1; i < t.n; i++) printf(" %s", t.k[i]);
     printf("\n");
   } else if (p1a_command(c, &t)) {
+  } else if (p3q_command(c, &t)) {
   } else {
     die("unknown command", c);
   }
@@ -1028,7 +1052,9 @@ static void pairfn_probe(uint64_t va, int na, int nb, const char *path) {
 }
 
 /* ------------------------------------------------------------------ P2b unprojection probe */
+static int p4a_ext_intersect(char *line); /* P4a primitive Intersect probe */
 #include "p2b_probe.c"
+#include "p4a_probe_intersect.c"
 #include "p4b_probe_solver.c" /* P4b contact solver probe */
 
 /* ------------------------------------------------------------------ main */

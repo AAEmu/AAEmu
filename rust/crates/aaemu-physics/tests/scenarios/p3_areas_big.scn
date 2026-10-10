@@ -1,0 +1,47 @@
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+area name=glob kind=global
+# the temp lists GetEntitiesInBox needs exist after the first step with an ordinary entity
+geom name=pool_g type=box size=0.5,0.5,0.5
+entity name=pool_e type=static pos=250,250,-90
+part ent=pool_e geom=pool_g mass=0
+step n=1 every=0
+geom name=huge type=box size=300,300,50
+geom name=gs type=sphere r=8
+area name=h0 kind=geom geom=huge pos=100,100,0
+params target=h0 type=12 v40=0,0,1 v52=0,0,2 i72=0
+params target=h0 type=18 v4=0,0,-12
+area name=h1 kind=geom geom=huge pos=0,0,0 scale=0.5
+params target=h1 type=18 f40=0.3
+checkareas tag=p0 pt=17.3754,38.7446,-7.5352 vel=-2.4493,1.6328,2.2871 
+checkareas tag=p1 pt=83.6465,5.6774,-0.7721 vel=-2.6134,0.5806,-1.0812 
+checkareas tag=p2 pt=26.3025,79.2718,6.2365 vel=1.2064,1.2301,-2.2832 
+checkareas tag=p3 pt=21.2100,106.1946,7.8236 vel=0.3232,2.0457,-0.1025 
+checkareas tag=p4 pt=27.8730,80.0496,-4.6850 vel=-2.9482,1.0679,1.1722 
+checkareas tag=p5 pt=19.0282,102.5302,7.5746 vel=-1.5071,-1.0899,-0.8434 
+checkareas tag=p6 pt=105.9165,11.7806,4.0631 vel=-0.6885,-2.5694,-1.8682 
+checkareas tag=p7 pt=78.5307,19.7873,-7.2920 vel=-0.9766,-0.7821,-0.9388 
+checkareas tag=p8 pt=83.2968,46.1194,-2.8906 vel=-2.7097,1.1491,0.5875 
+checkareas tag=p9 pt=108.2329,63.2306,4.1715 vel=0.5353,-0.7511,-0.1726 
+checkareas tag=p10 pt=20.9315,14.8887,-0.5698 vel=2.5673,-2.1106,-2.2379 
+checkareas tag=p11 pt=9.5691,33.5417,-6.5457 vel=0.0005,0.0558,-0.4953 
+area name=sm kind=geom geom=gs pos=30,30,0
+params target=sm type=18 v4=0,0,5 f28=0.5 v16=8,8,8
+checkareas tag=p0 pt=28.1292,43.8071,3.4336 vel=2.2726,-2.8599,2.5971 
+checkareas tag=p1 pt=25.5466,21.3487,5.1723 vel=-2.2873,1.9842,-2.7498 
+checkareas tag=p2 pt=33.1965,15.3559,-0.0965 vel=2.7674,2.1773,0.0448 
+checkareas tag=p3 pt=20.2832,34.8848,3.2981 vel=-1.3416,-1.9652,-0.6127 
+checkareas tag=p4 pt=31.2142,34.8993,-3.6855 vel=-2.9794,2.7013,1.2242 
+checkareas tag=p5 pt=34.2248,21.4006,-0.6339 vel=1.1964,-2.3807,-0.8278 
+checkareas tag=p6 pt=24.6760,35.7818,-0.2500 vel=-0.8188,-2.5589,-1.0401 
+checkareas tag=p7 pt=31.7253,39.5624,0.9595 vel=-1.7503,-0.3569,-0.0081 
+checkareas tag=p8 pt=21.7815,37.8434,-0.8690 vel=0.7446,0.8262,0.8676 
+checkareas tag=p9 pt=24.6752,19.3483,5.0349 vel=-1.0247,-1.0958,-1.5965 
+checkareas tag=p10 pt=15.0284,23.6593,2.2337 vel=-2.8701,-2.7779,-2.6546 
+checkareas tag=p11 pt=38.8554,20.2285,-4.2629 vel=-0.1094,1.0315,2.0163 
+params target=h1 type=0 f32=0.01
+checkareas tag=p0 pt=24.7988,31.5079,0.2019 vel=1.3903,-2.7793,-0.6012 
+checkareas tag=p1 pt=31.5297,16.4395,0.9777 vel=-0.0688,1.0690,-1.2501 
+checkareas tag=p2 pt=19.7812,15.0708,-4.0983 vel=1.8644,-0.6071,-2.9327 
+checkareas tag=p3 pt=42.4438,37.7811,1.6018 vel=0.0206,0.5871,-1.3235 
+checkareas tag=p4 pt=18.8577,18.6581,5.2576 vel=0.2711,-1.2561,2.3881 
+checkareas tag=p5 pt=43.1633,40.5509,-1.1376 vel=0.2586,-2.0165,-0.5179 

@@ -1,0 +1,41 @@
+# P4a sub_350C4880 (area gathering, sleep timer, post-step event stamp) called directly.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+area name=glob kind=global
+params target=glob type=12 v40=0,0,1 v52=0,0,0 i72=0
+geom name=pool_g type=box size=0.5,0.5,0.5
+entity name=pool_e type=static pos=250,250,-90
+part ent=pool_e geom=pool_g mass=0
+step n=1 every=0
+geom name=gs type=sphere r=6
+area name=grav kind=geom geom=gs pos=20,20,0
+params target=grav type=18 v4=0,0,-4 v16=6,6,6 f28=0.2
+area name=damp kind=geom geom=gs pos=30,20,0
+params target=damp type=18 f40=0.6
+geom name=b1 type=box size=0.5,0.5,0.5
+entity name=a type=rigid pos=20,21,0.5
+part ent=a geom=b1 mass=20
+gather tag=g0 ent=a dt=0.02
+gather tag=g1 ent=a dt=0
+poke target=a off=92 i=0x80000
+gather tag=g2 ent=a dt=0.02
+poke target=a off=408 v=20.5,21,0.5
+gather tag=g3 ent=a dt=0.02
+poke target=a off=92 i=0x8000000
+poke target=a off=408 v=21,21,0.5
+gather tag=g4 ent=a dt=0.02
+gather tag=g5 ent=a dt=0.02
+poke target=a off=92 i=0x800000
+gather tag=g6 ent=a dt=0.02
+entity name=b type=rigid pos=30,20.5,0.2
+part ent=b geom=b1 mass=20
+gather tag=g7 ent=b dt=0.02
+poke target=b off=628 v=0,0,-4
+entity name=c type=rigid pos=20,22,1
+part ent=c geom=b1 mass=20
+poke target=c off=628 v=0,0,-4
+gather tag=g8 ent=c dt=0.02
+gather tag=g9 ent=c dt=0.02 nmax=1
+gather tag=g10 ent=c dt=0.02 nmax=0
+poke target=c off=92 i=0x20000
+gather tag=g11 ent=c dt=0.02
+checkareas tag=c11 pt=20,22,1 ent=c

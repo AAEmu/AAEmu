@@ -276,6 +276,23 @@ impl ContactPool {
         self.n_total += 64;
     }
 
+    /// Return a record to the free list (insert at the head): `c.prev = first.prev;
+    /// c.next = first; first.prev = c; sentinel.next = c` with `first = sentinel.next` (the
+    /// free-list pushes of `sub_350AA9A0` / `sub_350AADB0`).
+    pub fn free_push_front(&mut self, id: ContactId) {
+        let head = ContactId::FREE_HEAD;
+        let first = self.get(head).next;
+        let fp = self.get(first).prev;
+        {
+            let c = self.get_mut(id);
+            c.prev = fp;
+            c.next = first;
+        }
+        self.get_mut(first).prev = id;
+        self.get_mut(head).next = id;
+        self.n_free += 1;
+    }
+
     /// Unlink `id` from whatever list it is in (`prev.next = next; next.prev = prev`).
     pub fn unlink(&mut self, id: ContactId) {
         let (n, p) = (self.get(id).next, self.get(id).prev);

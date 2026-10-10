@@ -171,6 +171,10 @@ impl Geometry for RayGeom {
         )))
     }
 
+    fn ray_stored_ndir(&self) -> Option<Vec3> {
+        Some(self.ndir)
+    }
+
     /// Slot 52 (0x35038E60).
     fn size_of_object(&self) -> i32 {
         112
