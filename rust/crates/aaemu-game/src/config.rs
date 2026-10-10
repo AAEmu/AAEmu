@@ -60,6 +60,9 @@ pub struct AppConfig {
     pub expedition: crate::systems::social::config::ExpeditionConfig,
     #[serde(rename = "justice")]
     pub justice: crate::systems::social::config::JusticeConfig,
+    /// `Dungeons` (`systems::instances::config`).
+    #[serde(rename = "dungeons")]
+    pub dungeons: crate::systems::instances::config::DungeonsConfig,
     /// `HeightMapsEnable` (C# default false; the shipped Config.json sets it to true).
     #[serde(rename = "heightmapsenable", deserialize_with = "lenient")]
     pub heightmaps_enable: bool,
@@ -90,6 +93,7 @@ impl Default for AppConfig {
             debug_info_level: 100,
             expedition: Default::default(),
             justice: Default::default(),
+            dungeons: Default::default(),
             heightmaps_enable: false,
             app_path: PathBuf::from("."),
         }
@@ -224,6 +228,9 @@ pub struct WorldConfig {
     pub pve_durability_loss_rate: f32,
     #[serde(rename = "pvpdurabilitylossrate", deserialize_with = "lenient")]
     pub pvp_durability_loss_rate: f32,
+    /// `MaxInstances` (systems::instances).
+    #[serde(rename = "maxinstances", deserialize_with = "lenient")]
+    pub max_instances: u32,
 }
 
 impl Default for WorldConfig {
@@ -246,6 +253,7 @@ impl Default for WorldConfig {
             actability_rate: 1.0,
             pve_durability_loss_rate: 1.0,
             pvp_durability_loss_rate: 1.0,
+            max_instances: 32,
         }
     }
 }

@@ -718,8 +718,22 @@ fn summon_jury_member(
         };
         // Save the current position to return to after the trial (or on disconnect).
         let pr = world_pos_rot(server, &WorldObject::from(player));
-        let zone = player.data().unit.transform.zone_id;
-        player.data().main_world_position = Some((zone, pr.x, pr.y, pr.z));
+        {
+            let mut c = player.data();
+            let t = c.unit.transform;
+            c.main_world_position = Some(crate::models::transform::Transform {
+                instance_id: t.instance_id,
+                world_id: t.world_id,
+                zone_id: t.zone_id,
+                x: pr.x,
+                y: pr.y,
+                z: pr.z,
+                rot_x: pr.rot_x,
+                rot_y: pr.rot_y,
+                rot_z: pr.rot_z,
+                parent_obj_id: 0,
+            });
+        }
         let pos = (pr.x, pr.y, pr.z);
         util::send_message(
             player,
@@ -2015,7 +2029,7 @@ fn cleanup_jury_member(
             let c = m.data();
             (c.unit.name.clone(), c.main_world_position)
         };
-        let pos = main.map_or((cur.x, cur.y, cur.z), |(_, x, y, z)| (x, y, z));
+        let pos = main.map_or((cur.x, cur.y, cur.z), |m| (m.x, m.y, m.z));
         let cur3 = (cur.x, cur.y, cur.z);
         tracing::debug!(
             "Returning {name} to {} <- {}",

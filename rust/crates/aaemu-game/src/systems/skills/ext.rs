@@ -278,13 +278,19 @@ pub trait NpcSkillHooks: Send + Sync {
         None
     }
 
-    /// `character.MainWorldPosition` (`None` = null).
+    /// `character.MainWorldPosition` (`None` = null). Default: the character's field, maintained
+    /// by `systems::instances`.
     fn main_world_position(
         &self,
         _server: &GameServer,
-        _player: &PlayerRef,
+        player: &PlayerRef,
     ) -> Option<MainWorldPosition> {
-        None
+        let m = player.data().main_world_position?;
+        Some(MainWorldPosition {
+            instance_id: m.instance_id,
+            zone_id: m.zone_id,
+            pos: m.local(),
+        })
     }
 
     /// `character.Portals.AddPrivatePortal(x, y, z, zRot, zoneId, name)` (`SavePortal`).
@@ -314,9 +320,10 @@ pub trait NpcSkillHooks: Send + Sync {
         not_ported("Portals.ChangePrivatePortalName");
     }
 
-    /// `IndunManager.RequestLeaveInstance(character)` (`ExitArchemall`).
-    fn leave_instance(&self, _server: &GameServer, _player: &PlayerRef) {
-        not_ported("IndunManager.RequestLeaveInstance");
+    /// `IndunManager.RequestLeaveInstance(character)` (`ExitArchemall`). Default:
+    /// `systems::instances`.
+    fn leave_instance(&self, server: &GameServer, player: &PlayerRef) {
+        crate::systems::instances::indun::request_leave_instance(server, player);
     }
 
     /// A `SpecialEffect` action owned by the npc subsystem (`SpawnDoodad`, `RemoveDoodad`,

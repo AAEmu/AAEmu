@@ -17,7 +17,7 @@ use crate::server::GameServer;
 use crate::systems::skills::data::{EffectKind, EffectTemplate};
 use crate::systems::skills::effects::special::movement::{add_distance_to_front_deg, deg_to_rad};
 use crate::systems::skills::effects::EffectArgs;
-use crate::systems::skills::ext::{MainWorldPosition, NpcSkillHooks};
+use crate::systems::skills::ext::NpcSkillHooks;
 use crate::systems::skills::geometry::{around_radius, Target};
 use crate::systems::skills::stats::StatKind;
 use crate::systems::skills::types::{BuffRemoveOn, SkillObject};
@@ -333,19 +333,6 @@ impl NpcSkillHooks for NpcSkills {
         Some(super::portal::closest_return_portal(server, player))
     }
 
-    fn main_world_position(
-        &self,
-        _server: &GameServer,
-        player: &PlayerRef,
-    ) -> Option<MainWorldPosition> {
-        let (zone_id, x, y, z) = player.data().main_world_position?;
-        Some(MainWorldPosition {
-            instance_id: crate::models::character::DEFAULT_INSTANCE_ID,
-            zone_id,
-            pos: PositionAndRotation::new(x, y, z, 0.0, 0.0, 0.0),
-        })
-    }
-
     fn add_private_portal(
         &self,
         server: &GameServer,
@@ -364,7 +351,7 @@ impl NpcSkillHooks for NpcSkills {
         super::portal::change_private_portal_name(server, player, id, name);
     }
 
-    // leave_instance: the instances subsystem (`IndunManager`).
+    // main_world_position / leave_instance: the trait defaults are the instances subsystem's.
 }
 
 /// `InteractionEffect.Apply`.

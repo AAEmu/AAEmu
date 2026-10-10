@@ -179,6 +179,11 @@ pub fn post_update_current_hp(
     if let Some(ap) = attacker.and_then(WorldObject::as_player) {
         crate::systems::quests::events::on_kill(server, ap, attacker, None, None);
     }
+    if attacker.is_some_and(WorldObject::is_unit) {
+        // `attackerUnit.Events.OnKill` + dungeon `OnUnitKilled` / `OnUnitCombatEnd` / `OnDeath`
+        // (systems::instances).
+        crate::systems::instances::events::on_kill_in_reduce_hp(server, target);
+    }
     do_die(server, target, attacker, kill_reason);
 }
 
@@ -229,6 +234,8 @@ pub fn do_die(
     if let Some(kp) = killer.and_then(WorldObject::as_player) {
         crate::systems::quests::events::on_kill(server, kp, None, killer, Some(victim));
     }
+    // ParentWorld.Events.OnUnitKilled + killerUnit?.Events.OnKill (systems::instances).
+    crate::systems::instances::events::on_do_die(server, victim, killer);
     // Abusers that died leave the aggro tables they are in (OnAbuserDied).
     on_abuser_died(server, victim);
     buffs::remove_effects_on_death(server, victim);

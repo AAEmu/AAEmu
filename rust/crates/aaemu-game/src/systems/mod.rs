@@ -9,6 +9,7 @@
 //! | [`economy`] | item actions / tasks, crafting, loot, mail, auction, trade, cash shop |
 //! | [`social`] | team, expedition (guild management), family, friends, duel, crime / trial |
 //! | [`quests`] | QuestManager, quest templates / acts / components, quest UI |
+//! | [`instances`] | IndunManager (dungeons), InstantGameManager (battlefields), tower defs, world instances |
 //!
 //! Every subsystem module exposes the same five hooks (see `CONTRIBUTING-PORT.md`):
 //!
@@ -23,6 +24,7 @@
 //! This file is the only central list; adding a *new* subsystem adds one line per list below.
 
 pub mod economy;
+pub mod instances;
 pub mod npcs;
 pub mod quests;
 pub mod skills;
@@ -64,6 +66,7 @@ pub struct SystemsData {
     pub economy: economy::Data,
     pub social: social::Data,
     pub quests: quests::Data,
+    pub instances: instances::Data,
 }
 
 impl SystemsData {
@@ -75,6 +78,7 @@ impl SystemsData {
             economy: economy::Data::load(ctx)?,
             social: social::Data::load(ctx)?,
             quests: quests::Data::load(ctx)?,
+            instances: instances::Data::load(ctx)?,
         })
     }
 }
@@ -87,6 +91,7 @@ pub struct Systems {
     pub economy: economy::System,
     pub social: social::System,
     pub quests: quests::System,
+    pub instances: instances::System,
     /// Behaviour hooks shared code calls into (installed by the owning subsystem at start).
     pub hooks: Hooks,
 }
@@ -98,6 +103,7 @@ pub fn register_packets(reg: &mut PacketRegistry) {
     economy::register(reg);
     social::register(reg);
     quests::register(reg);
+    instances::register(reg);
 }
 
 /// Starts every subsystem after the phase-1/2 managers are up (`ManagerOrchestrator` order:
@@ -108,6 +114,7 @@ pub async fn start_all(server: &Arc<GameServer>) -> anyhow::Result<()> {
     economy::System::start(server).await?;
     social::System::start(server).await?;
     quests::System::start(server).await?;
+    instances::System::start(server).await?;
     Ok(())
 }
 
@@ -137,6 +144,7 @@ pub async fn save_stage(
     n += s.economy.save(server, tx, stage).await?;
     n += s.social.save(server, tx, stage).await?;
     n += s.quests.save(server, tx, stage).await?;
+    n += s.instances.save(server, tx, stage).await?;
     Ok(n)
 }
 

@@ -733,7 +733,11 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
                 move_type: mt.clone(),
             };
             broadcast(&world, &target, &packet, true);
-            // FinalizeTransform -> AddVisibleObject (region change) -> SetPosition.
+            // FinalizeTransform -> AddVisibleObject (region change) -> SetPosition. A player
+            // moved to another instance (SCLoadInstancePacket) leaves the old region grid first.
+            server
+                .world
+                .leave_other_instance(&crate::world::WorldObject::from(&target), world.id);
             let changes = world.add_visible_object(&target, &server.view_ctx());
             handle_zone_changes(server, changes);
             // Character.SetPosition (BuffRemoveOn.Move when moved) + DoFallDamage(FallVel).
@@ -1047,8 +1051,9 @@ pub async fn on_disconnect(server: &GameServer, conn: &mut GameConnection) {
     for sub in p.subscribers().drain(..) {
         server.time.unsubscribe(sub);
     }
-    // Events.OnDisconnect, mates / slaves / coffers: later phases. Note (C#): chat channels are
-    // not left on a hard disconnect.
+    // Events.OnDisconnect (dungeon subscriptions, systems::instances).
+    crate::systems::instances::events::fire_disconnect(server, &p);
+    // Mates / slaves: later phases. Note (C#): chat channels are not left on a hard disconnect.
     crate::systems::npcs::doodad::coffer::close_coffers_opened_by(server, &p);
     save_and_remove_from_world(server, Some(&p)).await;
 }

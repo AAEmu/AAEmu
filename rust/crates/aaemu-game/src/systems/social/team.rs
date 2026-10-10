@@ -740,7 +740,9 @@ impl TeamManager {
         }
         party_chat(server, team, inv.owner.character_id).join(&inv.owner);
         party_chat(server, team, inv.target.character_id).join(&inv.target);
-        // Events.OnTeamJoin: quest / event subsystems (not ported).
+        // Trigger events (systems::instances dungeons).
+        crate::systems::instances::events::on_team_join(server, &inv.owner, team);
+        crate::systems::instances::events::on_team_join(server, &inv.target, team);
         refresh_team_member_obj_ids(team, &inv.target, false);
     }
 
@@ -779,6 +781,8 @@ impl TeamManager {
             raid_chat(server, team).join(p);
         }
         party_chat(server, team, p.character_id).join(p);
+        // Trigger events (systems::instances dungeons).
+        crate::systems::instances::events::on_team_join(server, p, team);
     }
 
     /// `AskRiskyTeam(unit, teamId, targetId, riskyAction)`: leave, kick or dismiss.
@@ -855,7 +859,8 @@ impl TeamManager {
                     kicked: risky_action == risky_action::KICK,
                     dismissed: false,
                 });
-                // Events.OnTeamLeave: quest / event subsystems (not ported).
+                // Events.OnTeamLeave (systems::instances dungeons).
+                crate::systems::instances::events::on_team_leave(server, &target, team_id);
             }
             cleared.push(target_id);
         }
@@ -897,6 +902,8 @@ impl TeamManager {
                         dismissed: true,
                     });
                     set_in_party(server, &c, false);
+                    // trigger event (systems::instances dungeons)
+                    crate::systems::instances::events::on_team_leave(server, &c, team_id);
                 }
                 cleared.push(c.character_id);
             }

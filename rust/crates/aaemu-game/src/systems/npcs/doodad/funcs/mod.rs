@@ -94,8 +94,8 @@ pub fn use_func(
         F::Binding(f) => world::binding(f, ctx, caster),
         F::Attachment(f) => world::attachment(f, ctx, caster),
         F::EnterInstance(f) => world::enter_instance(f, ctx, caster),
-        F::EnterSysInstance(f) => world::enter_sys_instance(f, caster),
-        F::ExitIndun(f) => world::exit_indun(f, caster),
+        F::EnterSysInstance(f) => world::enter_sys_instance(f, ctx, caster),
+        F::ExitIndun(f) => world::exit_indun(f, ctx, caster),
         F::RemoveInstance(f) => world::remove_instance(f, ctx, caster),
         // --- `ToNextPhase = true` ---
         F::Cutdown(_) => {

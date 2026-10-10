@@ -793,7 +793,19 @@ pub fn use_portal(server: &GameServer, player: &PlayerRef, obj_id: u32) {
         ));
         return;
     }
-    // TODO(social): `TrialManager.IsPlayerInCourt` -> CannotUsePortalInTrial (no trials yet).
+    if server
+        .systems
+        .social
+        .trials
+        .is_player_in_court(player.character_id)
+    {
+        player.send(SCErrorMsgPacket::new(
+            crate::systems::instances::worlds::error_message::CANNOT_USE_PORTAL_IN_TRIAL,
+            0,
+            true,
+        ));
+        return;
+    }
     let current_instance = {
         let mut c = player.data();
         c.disabled_set_position = true;

@@ -221,9 +221,10 @@ pub struct Character {
     pub local_ping_position: (f32, f32, f32),
     /// `OriginFactionName` (`Unit.SetFaction`).
     pub origin_faction_name: String,
-    /// `MainWorldPosition` (where a summoned jury member returns to after the trial):
-    /// (zone id, x, y, z).
-    pub main_world_position: Option<(u32, f32, f32, f32)>,
+    /// `MainWorldPosition` (where a summoned jury member returns to after the trial, and where
+    /// a player returns to when leaving an instance): a detached world transform (instance id,
+    /// world template id, zone id, world position / rotation).
+    pub main_world_position: Option<crate::models::transform::Transform>,
     // ---- phase 3 / quests: add this subsystem's Character fields below ----
     /// The live quest objects (`Quests.ActiveQuests`, quest event subscriptions,
     /// `CurrentlyPlayingCinemaId`); `quests` holds their DB / wire rows.
