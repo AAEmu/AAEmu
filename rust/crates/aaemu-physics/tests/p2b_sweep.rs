@@ -634,3 +634,83 @@ fn register_intersection_matches_dll() {
     let name = format!("p2b_sweep_reg_{}pairs", ps.len());
     check_raw(&name, 300, &|rng| gen_reg_with(rng, &ps), &port_reg);
 }
+
+// ------------------------------------------------------------------------- thin walls (CCD)
+
+/// Fast bodies (50–2000 m/s over one 1/30 s step or a 1 s sweep) against thin boxes
+/// (half-thickness 0.0025–0.02) in the middle of the path: the tunnelling cases the CCD pass and
+/// movement sweeps exist for, including the back-up of step 6 when the end pose is past the wall.
+fn gen_thin_wall(rng: &mut Rng, movers: &[i32]) -> String {
+    let ta = rng.pick(movers);
+    let sa = rng.f(0.2, 1.0);
+    let pa = rand_prim(rng, ta, sa);
+    let ga = GeomWorldData {
+        offset: rng.vec(-20.0, 20.0),
+        r: if rng.chance(0.5) {
+            Mat33::IDENTITY
+        } else {
+            rng.rotation()
+        },
+        scale: 1.0,
+        v: Vec3::ZERO,
+        w: Vec3::ZERO,
+        center_of_mass: Vec3::ZERO,
+    };
+    let dir = rng.unit_or_axis(0.5);
+    let speed = rng.f(50.0, 2000.0);
+    let ti = rng.pick(&[1.0f32 / 30.0, 1.0 / 60.0, 1.0]);
+    let travel = speed * ti;
+    let at = rng.f(0.05, 0.95) * travel;
+    let mut ga = ga;
+    ga.v = dir * speed;
+    let wall = Primitive::Box(BoxPrim {
+        basis: Mat33::IDENTITY,
+        oriented: 0,
+        center: Vec3::ZERO,
+        size: Vec3::new(
+            rng.f(1.0, 5.0),
+            rng.f(1.0, 5.0),
+            rng.pick(&[0.0025f32, 0.005, 0.01, 0.02]),
+        ),
+    });
+    // wall plane facing the motion (its local z along dir, or tilted)
+    let gb = GeomWorldData {
+        offset: Vec3::new(
+            ga.offset.x + dir.x * at + rng.f(-0.5, 0.5),
+            ga.offset.y + dir.y * at + rng.f(-0.5, 0.5),
+            ga.offset.z + dir.z * at + rng.f(-0.5, 0.5),
+        ),
+        r: rng.rotation(),
+        scale: 1.0,
+        v: Vec3::ZERO,
+        w: Vec3::ZERO,
+        center_of_mass: Vec3::ZERO,
+    };
+    let ip = IntersectionParams {
+        time_interval: ti,
+        max_surface_gap_angle: 0.017_453_3,
+        sweep_test: true,
+        no_area_contacts: rng.chance(0.3),
+        ..IntersectionParams::default()
+    };
+    format!(
+        "SWEEP {ta:x}{} 0{} GA{} GB{} IP{}",
+        fmt_words(&prim_words(&pa)),
+        fmt_words(&prim_words(&wall)),
+        fmt_words(&gwd_words(&ga)),
+        fmt_words(&gwd_words(&gb)),
+        fmt_words(&ip_words(&ip))
+    )
+}
+
+#[test]
+fn thin_wall_sweeps_match_dll() {
+    let movers: Vec<i32> = pairs()
+        .into_iter()
+        .filter(|&(_, b)| b == 0)
+        .map(|(a, _)| a)
+        .collect();
+    let name = format!("p2b_sweep_thin_wall_{}movers", movers.len());
+    check_raw(&name, 200, &|rng| gen_thin_wall(rng, &movers), &port_sweep);
+}
+
