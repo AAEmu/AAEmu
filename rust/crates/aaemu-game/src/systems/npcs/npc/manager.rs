@@ -474,8 +474,12 @@ pub fn create(server: &GameServer, obj_id: u32, template_id: u32) -> Option<NpcR
         super::stats::refresh_cached_stats(gd, &mut n);
         n.unit.hp = n.unit.max_hp;
         n.unit.mp = n.unit.max_mp;
-        // AiUtils.GetAiByType / AiManager.AddAi / Ai.Start: AI phase.
+        // Without the AI subsystem: `has_ai` approximates `Ai != null`.
         n.has_ai = template.ai_file_id > 0;
+    }
+    // AiUtils.GetAiByType / AiManager.AddAi / Ai.Start (systems::ai)
+    if let Some(ai) = server.systems.hooks.ai.get() {
+        ai.npc_created(server, &npc_ref, template.ai_file_id);
     }
     debug_assert_eq!(npc_ref.data().equipment.len(), UNIT_EQUIPMENT_SLOTS);
     Some(npc_ref)

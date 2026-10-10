@@ -281,6 +281,10 @@ pub fn after_death(server: &GameServer, npc: &NpcRef, _killer: Option<&WorldObje
         n.current_aggro_target = 0;
     }
     super::super::spawn_manager::on_npc_died(server, npc);
+    // ClearAllAggroTargetsAndCheckCombatState() + Ai?.GoToDead() (systems::ai)
+    if let Some(ai) = server.systems.hooks.ai.get() {
+        ai.npc_died(server, npc);
+    }
 }
 
 /// `Npc.DoDie(killer, killReason)`: the whole death through the skills subsystem's

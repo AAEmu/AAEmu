@@ -538,8 +538,13 @@ pub fn gimmick_tick(
             g.vel = m.vel;
         }
         Some(MovementHandler::FloatToSurface) => {
-            // World.Water is not ported: nothing is ever water.
-            if let Some(dz) = movement::float_to_surface_tick(delta_time, |_| false) {
+            // World.Water.IsWater(World.Position + (0, 0, movement + 1)) (systems::ai water)
+            let p = world.world_pos_rot(&crate::world::WorldObject::from(active.gimmick.clone()));
+            let in_water = |h: f32| {
+                let check = crate::systems::skills::controllers::Vec3::new(p.x, p.y, p.z + h);
+                crate::systems::ai::physics::is_water(server, world.id, check).is_some()
+            };
+            if let Some(dz) = movement::float_to_surface_tick(delta_time, in_water) {
                 let mut g = active.gimmick.data();
                 let z = g.unit.transform.z;
                 g.unit.transform.set_height(z + dz);

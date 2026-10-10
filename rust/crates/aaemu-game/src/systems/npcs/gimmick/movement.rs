@@ -114,8 +114,8 @@ pub fn elevator_after_move(
 }
 
 /// `GimmickMovementFloatToSurface.Tick`: the Z translation to apply, when the point
-/// `movement + 1` m above the gimmick is still water. Water bodies are not ported
-/// (`World.Water` is null-equivalent): `is_water` decides, and the server passes `false`.
+/// `movement + 1` m above the gimmick is still water (`is_water`: the server asks
+/// `systems::ai::physics::is_water`).
 pub fn float_to_surface_tick(delta_time: f32, is_water: impl FnOnce(f32) -> bool) -> Option<f32> {
     let movement = FLOAT_TO_SURFACE_SPEED * delta_time;
     is_water(movement + 1.0).then_some(movement)

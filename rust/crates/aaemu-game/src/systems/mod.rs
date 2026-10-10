@@ -13,6 +13,7 @@
 //! | [`housing`] | HousingManager, HousingGameData, house packets, taxes, house persistence |
 //! | [`vehicles`] | MateManager, SlaveManager, ShipyardManager, TransferManager (mounts, vehicles, ships, carriages) |
 //! | [`services`] | WebApi, Discord bot, Tick / Task managers, timed rewards, accounts, music, radar, sus, commands infrastructure, misc managers |
+//! | [`ai`] | AIManager, NPC AI (behaviors, params, paths), geodata / navmesh, physics |
 //!
 //! Every subsystem module exposes the same five hooks (see `CONTRIBUTING-PORT.md`):
 //!
@@ -26,6 +27,7 @@
 //!
 //! This file is the only central list; adding a *new* subsystem adds one line per list below.
 
+pub mod ai;
 pub mod economy;
 pub mod housing;
 pub mod instances;
@@ -76,6 +78,7 @@ pub struct SystemsData {
     pub housing: housing::Data,
     pub vehicles: vehicles::Data,
     pub services: services::Data,
+    pub ai: ai::Data,
 }
 
 impl SystemsData {
@@ -91,6 +94,7 @@ impl SystemsData {
             housing: housing::Data::load(ctx)?,
             vehicles: vehicles::Data::load(ctx)?,
             services: services::Data::load(ctx)?,
+            ai: ai::Data::load(ctx)?,
         })
     }
 }
@@ -107,6 +111,7 @@ pub struct Systems {
     pub housing: housing::System,
     pub vehicles: vehicles::System,
     pub services: services::System,
+    pub ai: ai::System,
     /// Behaviour hooks shared code calls into (installed by the owning subsystem at start).
     pub hooks: Hooks,
 }
@@ -122,6 +127,7 @@ pub fn register_packets(reg: &mut PacketRegistry) {
     housing::register(reg);
     vehicles::register(reg);
     services::register(reg);
+    ai::register(reg);
 }
 
 /// Starts every subsystem after the phase-1/2 managers are up (`ManagerOrchestrator` order:
@@ -136,6 +142,7 @@ pub async fn start_all(server: &Arc<GameServer>) -> anyhow::Result<()> {
     housing::System::start(server).await?;
     vehicles::System::start(server).await?;
     services::System::start(server).await?;
+    ai::System::start(server).await?;
     Ok(())
 }
 
@@ -170,6 +177,7 @@ pub async fn save_stage(
     n += s.instances.save(server, tx, stage).await?;
     n += s.vehicles.save(server, tx, stage).await?;
     n += s.services.save(server, tx, stage).await?;
+    n += s.ai.save(server, tx, stage).await?;
     Ok(n)
 }
 
@@ -227,6 +235,10 @@ impl<T: ?Sized> HookSlot<T> {
 pub struct Hooks {
     /// Installed by the skills subsystem.
     pub unit: HookSlot<dyn UnitHooks>,
+    /// Installed by the ai subsystem (`npc.Ai` call sites of npcs / skills).
+    pub ai: HookSlot<dyn ai::hooks::AiHooks>,
+    /// Installed by the slaves subsystem (harpoon rope state for the ship physics).
+    pub ship_physics: HookSlot<dyn ai::physics::ShipPhysicsHooks>,
 }
 
 /// Drains `owner`'s buff events and hands them to [`UnitHooks::on_buff_event`]. Call it after
