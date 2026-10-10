@@ -1,0 +1,17 @@
+# P7: ray-mode ("suspension") parts — a 200 kg box hull carried by four small sphere parts with
+# part flag 0x100000 (ray contacts along gravity) dropped onto the ground.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=hull type=box size=1,0.6,0.25
+geom name=wheel type=sphere r=0.2
+entity name=cart type=rigid pos=32,32,1.2
+part ent=cart geom=hull mass=200
+part ent=cart geom=wheel mass=5 pos=0.8,0.5,-0.35 flags=0x11809F mincontact=0.3
+part ent=cart geom=wheel mass=5 pos=0.8,-0.5,-0.35 flags=0x11809F mincontact=0.3
+part ent=cart geom=wheel mass=5 pos=-0.8,0.5,-0.35 flags=0x11809F mincontact=0.3
+part ent=cart geom=wheel mass=5 pos=-0.8,-0.5,-0.35 flags=0x11809F mincontact=0.3
+trace ents=cart
+print
+step n=120

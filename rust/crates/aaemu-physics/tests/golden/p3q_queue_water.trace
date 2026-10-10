@@ -1,0 +1,78 @@
+physoracle 1
+ret surface 1
+ret part ground 0
+ret part crate 0
+ret part corner 0
+ret part outside 0
+ret part ball 0
+ret params water 12 1
+step 1
+ray w_down n 2
+h 0 d 41200000 e ground ip 0 pid 0 s -1 p 41a00000 41a00000 00000000 n 00000000 00000000 3f800000
+h 1 d 41000000 e water ip 0 pid -1 s -1 p 41a00000 41a00000 40000000 n 00000000 00000000 3f800000
+ray w_down_p n 1
+h 0 d 41000000 e water ip 0 pid -1 s -1 p 41a00000 41a00000 40000000 n 00000000 00000000 3f800000
+ray w_down_sort n 2
+h 0 d 41200000 e ground ip 0 pid 0 s -1 p 41a00000 41a00000 00000000 n 00000000 00000000 3f800000
+h 1 d 41000000 e water ip 0 pid -1 s -1 p 41a00000 41a00000 40000000 n 00000000 00000000 3f800000
+ray w_up n 1
+h 0 d 3e4ccccc e ground ip 0 pid 0 s -1 p 41a00000 41a00000 b2800000 n 00000000 00000000 3f800000
+ray w_below n 1
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 41a80000 41a00000 3f4ccccd n 00000000 00000000 00000000
+h 1 d 3a83126f e water ip 0 pid -1 s -1 p 41a00202 41a00000 3f7ff326 n 00000000 00000000 3f800000
+ray w_slant n 2
+h 0 d 410f815d e ground ip 0 pid 0 s -1 p 41755556 41600000 00000000 n 00000000 00000000 3f800000
+h 1 d 40bf5725 e water ip 0 pid -1 s -1 p 4158e38e 414aaaaa 40000001 n 00000000 00000000 3f800000
+ray w_mask_off n 1
+h 0 d 41200000 e ground ip 0 pid 0 s -1 p 41a00000 41a00000 00000000 n 00000000 00000000 3f800000
+ray w_max1 n 1
+h 0 d 41000000 e water ip 0 pid -1 s -1 p 41a00000 41a00000 40000000 n 00000000 00000000 3f800000
+ray w_areas n 1
+h 0 d 41200000 e ground ip 0 pid 0 s -1 p 41a00000 41a00000 00000000 n 00000000 00000000 3f800000
+ray hl_a n 1
+h 0 d 41040000 e corner ip 0 pid 0 s -1 p 3f800000 3f800000 3fe00000 n 00000000 00000000 3f800000
+hl k e corner ip 0 nd 0
+ray hl_b n 1
+h 0 d 41040000 e corner ip 0 pid 0 s -1 p 3f8ccccd 3f8ccccd 3fe00000 n 00000000 00000000 3f800000
+hl k e corner ip 0 nd 0
+ray hl_c n 0
+h 0 d bf800000 e - ip 0 pid 0 s -1 p 3f8cccd0 3f8cccd0 3fe00000 n 00000000 00000000 3f800000
+hl k e corner ip 0 nd 0
+ray hl_d n 0
+h 0 d bf800000 e - ip 0 pid 0 s -1 p 3f8cccd0 3f8cccd0 3fe00000 n 00000000 00000000 3f800000
+hl k e corner ip 0 nd 0
+ray out_cell n 1
+h 0 d 40400000 e outside ip 0 pid 0 s -1 p c0e00000 41200000 3f800000 n bf800000 80000000 80000000
+ray out_cell2 n 1
+h 0 d 40400000 e outside ip 0 pid 0 s -1 p c0e00000 41200000 3f800000 n bf800000 80000000 80000000
+ray long_ok n 1
+h 0 d 41f40000 e crate ip 0 pid 0 s -1 p 41f80000 42000000 3f99999a n befffffe 3f5db3d8 00000000
+ray long_limit n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 447a6000 42000000 3f99999a n 00000000 00000000 00000000
+ray long_limit_t n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 42000000 449a0000 c1200000 n 00000000 00000000 00000000
+ray lim50 n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 428c0000 42000000 3f99999a n 00000000 00000000 00000000
+ray lim50_b289 n 1
+h 0 d 41a80001 e crate ip 0 pid 0 s -1 p 41f80001 42000000 3f99999a n befffffe 3f5db3d8 00000000
+rayq q1 r 1
+rayq q2 r 1
+rayq q3 r 1
+pwiq pq1 queued 3f800000
+pwiq pq2 queued 3f800000
+process 5
+rwiq q1 n 1 max 2 pool 0
+h 0 d 41080000 e crate ip 0 pid 0 s -1 p 42000000 42000000 3fc00000 n 00000000 00000000 3f800000
+rwiq q2 n 1 max 3 pool 1
+h 0 d 4132c570 e crate ip 0 pid 0 s -1 p 41f962b8 42006666 3f000000 n befffffe 3f5db3d8 00000000
+rwiq q3 n 0 max 2 pool 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 42100000 41e00000 3f800000 n 00000000 00000000 00000000
+pwiq pq1 d 4122310a e crate p 41f71261 41ff76cf 3f800000 n 3f7efa13 bdb6eb75 80000000 id 0 pid 0
+pwiq pq2 d 00000000 e crate p 41f71261 41ff76cf 3f800000 n 3f7efa13 bdb6eb75 80000000 id 0 pid 0
+pump
+rayq q4 r 1
+process 1
+rwiq q4 n 0 max 2 pool 0
+h 0 d 00000000 e - ip 0 pid 0 s 0 p 00000000 00000000 00000000 n 00000000 00000000 00000000
+h 1 d 00000000 e - ip 0 pid 0 s 0 p 00000000 00000000 00000000 n 00000000 00000000 00000000
+pump

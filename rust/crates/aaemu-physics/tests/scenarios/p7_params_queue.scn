@@ -1,0 +1,43 @@
+# P7 entity interface: deferred SetParams / Action (lock-or-queue sub_35023200 / sub_35023650).
+# bThreadSafe < 0 queues; while an entity has queued commands (+64 >= 0x20000) bThreadSafe 0
+# queues too; TimeStep replays the queue. Replayed by tests/p7_params.rs.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=cube type=box size=0.5,0.5,0.5
+entity name=st type=static pos=10,12,1
+part ent=st geom=cube mass=0
+entity name=rb type=rigid pos=32,32,5
+part ent=rb geom=cube mass=10
+echo immediate
+params target=st type=23 f4=1 f8=2 ts=0
+getparams target=st type=23 dump=4,2
+action target=rb type=10 v12=1,0,0 ts=0
+status target=rb type=8 dump=12,3
+echo queued
+params target=st type=23 f4=3 f8=4 ts=-1
+getparams target=st type=23 dump=4,2
+params target=st type=23 f8=5 ts=0
+getparams target=st type=23 dump=4,2
+params target=st type=23 f4=6 ts=1
+getparams target=st type=23 dump=4,2
+action target=rb type=10 v12=0,2,0 ts=-1
+status target=rb type=8 dump=12,3
+action target=rb type=10 v12=0,0,3 ts=0
+status target=rb type=8 dump=12,3
+params target=rb type=10 f80=33 ts=0
+getparams target=rb type=10 dump=80,1
+params target=st type=0 v4=11,12,1 ts=-1
+status target=st type=1 i4=-1 i8=-1 dump=24,3
+echo replay
+step n=1 dt=0
+getparams target=st type=23 dump=4,2
+status target=rb type=8 dump=12,3
+getparams target=rb type=10 dump=80,1
+status target=st type=1 i4=-1 i8=-1 dump=24,3
+echo queued_unported
+action target=rb type=5 tmpl=none i4=U ts=-1
+action target=rb type=5 tmpl=none i4=U ts=-1
+action target=rb type=5 tmpl=none i4=9 ts=-1
+action target=st type=9 tmpl=none ts=-1
+getparams target=st type=6 i8=0 dump=68,1
+
+

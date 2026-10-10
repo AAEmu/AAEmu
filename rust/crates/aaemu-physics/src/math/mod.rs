@@ -5,6 +5,7 @@
 //! (`tests/math_oracle.rs`, goldens `tests/golden/math_*.trace`).
 
 pub mod crt;
+pub mod eigen;
 pub mod mat33;
 pub mod quat;
 pub mod quotient;

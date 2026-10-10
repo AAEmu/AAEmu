@@ -498,7 +498,7 @@ Structural joint (stride 0x80): +0 id, +4/+8 ipart[2], +12 pt, +24 n, +36 axisx,
 | 68 | uint | flags (bit 0x20000 = only replace the proxy geometry of an existing part id; the bit is stripped before storing) |
 | 72 | uint | flagsCollider |
 | 76 | float | minContactDist (unused → auto) |
-| 80 | int | idmatBreakable (unused: if flags&0xFFB then auto from geometry, else -1) |
+| 80 | int | idmatBreakable (unused: if flags&0xFFB then auto from the surface flags table via 0x35052cc0 — max((flags>>16)−1) over the mapped/primitive materials, reset to -1 for non-meshes, part flag 0x800000 when some flags have 0x400 — and part 0 is redone when the second part is added; else -1) |
 | 88 | ptr | pLattice (only for geometry type 1) |
 | 96 | int* | pMatMapping |
 | 104 | int | nMats |
@@ -731,7 +731,7 @@ Ids handled after the base returns 0:
   - +108 submerged fraction (+1136), +112 mass.
   - When asleep, v/w/a/wa are zero.
 - **9:** returns (contact list non-empty).
-- **19:** sub_350AF550 fits a contact-patch centre/normal (out +4 vec3, +16 vec3) (inferred).
+- **19:** sub_350AF550 fits a contact patch through all contacts (stop flags 0, iCaller 0, tolerance 0.1·((dy+dx)+dz) of the bbox). +4 and +16 are **inputs** (the centre of mass and the gravity of the inside test); the fitted normal goes to a stack temporary, so nothing is written; the result is the inside test (P7 port: `entities::interface::status`).
 
 Other ids return 0.
 
@@ -839,7 +839,7 @@ Then CapVelocities. Wakes the body if v or w is nonzero. A zero velocity with Mi
 | +60 | "angVel" |
 | +76 | "minPosDiff" |
 
-+74 byte flag selects smoothing (lerp 0.1). Re-issues SetParams(pos) via vt+56 and Action(10) via vt+80.
++74 byte flag set = take the values as given; clear = smoothing (positions blended by distance, velocities lerped by 0.1, slerp `sub_350CD980` for the rotation). Re-issues SetParams(pos) via vt+56 and Action(10) via vt+80.
 
 Every other id goes to the base Action. Base ids used: 9, 13, 15, 16 per the other agent.
 
@@ -1058,7 +1058,8 @@ Helpers:
 | 0x3509e180 (x86 0x350a5af0) | Step(dt), see §4 |
 | 0x35098fa0 | velocity at r |
 | 0x3509d230 | create from part |
-| 0x3509d460 | add part |
+| 0x3509d460 | add part: new part's inertia `R·diag((m/V)·I)·Rᵀ` in the old principal frame (`R` from `q_body*⊗q`), parallel-axis shift of both to the combined CoM, sum, Jacobi 0x3511eaa0 (threshold 0, eigenvectors = rows) → Ibody; `q ← q⊗q_rot*`, `qfb ← q_rot⊗qfb`, `offsfb += q_ent⁻¹·Δcom`; `m == 0`/NaN → no-op; `!(|M+m| ≥ M·1e-4)` → zero M/Minv/Ibody/Ibody_inv/P/L/w/v (port: `entities::base::geometry::body_add`) |
+| 0x3511eaa0 | `matrixT<float>::jacobi` cyclic-max Jacobi (port: `math::eigen::jacobi_sym`) |
 
 #### 3.3 Constraint storage (per slot i, 0..63, bit i of the collider masks at +528)
 

@@ -1,0 +1,87 @@
+# P7 stress: 36 mixed bodies (boxes, spheres, capsules, cylinders) dropped onto the ground and a static block. (the oracle traces at most 32 entities)
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=block type=box size=1.5,0.4,0.6
+entity name=blk type=static pos=32,32,0.6 q=0,0,0.2588190,0.9659258
+part ent=blk geom=block mass=0
+geom name=g0 type=box size=0.4,0.3,0.2
+geom name=g1 type=sphere r=0.3
+geom name=g2 type=capsule r=0.2 hh=0.4
+geom name=g3 type=cylinder r=0.25 hh=0.3
+entity name=m0 type=rigid pos=29.500,29.500,2.000 q=-0.0476904,-0.0945189,0.0408596,0.9935403
+part ent=m0 geom=g0 mass=5
+entity name=m1 type=rigid pos=29.500,30.500,2.700 q=0.0553728,-0.2072675,-0.6820916,0.6990887
+part ent=m1 geom=g1 mass=8
+entity name=m2 type=rigid pos=29.500,31.500,3.400 q=-0.1033669,-0.0148298,-0.0961347,0.9898755
+part ent=m2 geom=g2 mass=11
+entity name=m3 type=rigid pos=29.500,32.500,2.000 q=-0.0514179,0.2226534,-0.2562681,0.9392062
+part ent=m3 geom=g3 mass=14
+entity name=m4 type=rigid pos=29.500,33.500,2.700 q=0.1575386,0.5534777,0.0953181,0.8122552
+part ent=m4 geom=g0 mass=5
+entity name=m5 type=rigid pos=29.500,34.500,3.400 q=0.2792788,-0.2658866,0.2102080,0.8983987
+part ent=m5 geom=g1 mass=8
+entity name=m6 type=rigid pos=30.500,29.500,2.700 q=-0.6130288,-0.6586302,-0.3300290,0.2854519
+part ent=m6 geom=g2 mass=11
+entity name=m7 type=rigid pos=30.500,30.500,3.400 q=-0.4927406,0.1259350,0.2143876,0.8338975
+part ent=m7 geom=g3 mass=14
+entity name=m8 type=rigid pos=30.500,31.500,2.000 q=0.0243746,-0.2232057,-0.2248331,0.9481747
+part ent=m8 geom=g0 mass=5
+entity name=m9 type=rigid pos=30.500,32.500,2.700 q=0.5334049,-0.2140944,-0.5495278,0.6063514
+part ent=m9 geom=g1 mass=8
+entity name=m10 type=rigid pos=30.500,33.500,3.400 q=-0.1160371,-0.4962970,0.7296482,0.4558928
+part ent=m10 geom=g2 mass=11
+entity name=m11 type=rigid pos=30.500,34.500,2.000 q=-0.9374953,0.2726492,0.0923067,0.1955620
+part ent=m11 geom=g3 mass=14
+entity name=m12 type=rigid pos=31.500,29.500,3.400 q=0.0738167,-0.0682243,0.1544809,0.9828694
+part ent=m12 geom=g0 mass=5
+entity name=m13 type=rigid pos=31.500,30.500,2.000 q=-0.1291153,0.4054954,-0.5487990,0.7195293
+part ent=m13 geom=g1 mass=8
+entity name=m14 type=rigid pos=31.500,31.500,2.700 q=-0.6474565,0.2363589,0.3717466,0.6218835
+part ent=m14 geom=g2 mass=11
+entity name=m15 type=rigid pos=31.500,32.500,3.400 q=0.6524620,-0.3236481,0.3393617,0.5952973
+part ent=m15 geom=g3 mass=14
+entity name=m16 type=rigid pos=31.500,33.500,2.000 q=0.2261263,-0.1239514,0.9622061,0.0875348
+part ent=m16 geom=g0 mass=5
+entity name=m17 type=rigid pos=31.500,34.500,2.700 q=-0.0491781,0.3116673,-0.8341342,0.4523993
+part ent=m17 geom=g1 mass=8
+entity name=m18 type=rigid pos=32.500,29.500,2.000 q=0.1047375,0.3510233,0.2291706,0.9018279
+part ent=m18 geom=g2 mass=11
+entity name=m19 type=rigid pos=32.500,30.500,2.700 q=-0.1458839,0.2154279,-0.6098524,0.7485912
+part ent=m19 geom=g3 mass=14
+entity name=m20 type=rigid pos=32.500,31.500,3.400 q=-0.4616229,-0.5324793,-0.6133326,0.3566415
+part ent=m20 geom=g0 mass=5
+entity name=m21 type=rigid pos=32.500,32.500,2.000 q=-0.7867317,-0.5356918,-0.2314611,0.2012794
+part ent=m21 geom=g1 mass=8
+entity name=m22 type=rigid pos=32.500,33.500,2.700 q=-0.9693896,-0.1174416,0.1142690,0.1828492
+part ent=m22 geom=g2 mass=11
+entity name=m23 type=rigid pos=32.500,34.500,3.400 q=0.3638452,0.4147898,-0.2525071,0.7948624
+part ent=m23 geom=g3 mass=14
+entity name=m24 type=rigid pos=33.500,29.500,2.700 q=-0.0539873,0.1468647,0.1749760,0.9720594
+part ent=m24 geom=g0 mass=5
+entity name=m25 type=rigid pos=33.500,30.500,3.400 q=-0.4487602,-0.3715061,-0.3695945,0.7238767
+part ent=m25 geom=g1 mass=8
+entity name=m26 type=rigid pos=33.500,31.500,2.000 q=0.0978322,-0.2604365,-0.5443636,0.7913722
+part ent=m26 geom=g2 mass=11
+entity name=m27 type=rigid pos=33.500,32.500,2.700 q=-0.2426630,0.1231281,0.8409414,0.4677304
+part ent=m27 geom=g3 mass=14
+entity name=m28 type=rigid pos=33.500,33.500,3.400 q=0.0061752,0.0468747,0.0702367,0.9964093
+part ent=m28 geom=g0 mass=5
+entity name=m29 type=rigid pos=33.500,34.500,2.000 q=0.6170116,0.4323658,0.5783727,0.3127962
+part ent=m29 geom=g1 mass=8
+entity name=m30 type=rigid pos=34.500,29.500,3.400 q=-0.2134907,-0.2003983,-0.7864737,0.5438027
+part ent=m30 geom=g2 mass=11
+entity name=m31 type=rigid pos=34.500,30.500,2.000 q=-0.1620531,-0.1601652,-0.1078140,0.9677097
+part ent=m31 geom=g3 mass=14
+entity name=m32 type=rigid pos=34.500,31.500,2.700 q=-0.0545669,-0.1526423,-0.1704993,0.9719325
+part ent=m32 geom=g0 mass=5
+entity name=m33 type=rigid pos=34.500,32.500,3.400 q=-0.6158321,-0.2107550,-0.7332137,0.1968014
+part ent=m33 geom=g1 mass=8
+entity name=m34 type=rigid pos=34.500,33.500,2.000 q=0.1330170,-0.4098289,-0.2888948,0.8549190
+part ent=m34 geom=g2 mass=11
+entity name=m35 type=rigid pos=34.500,34.500,2.700 q=-0.2555710,-0.7096070,0.6565106,0.0116248
+part ent=m35 geom=g3 mass=14
+trace ents=m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27,m28,m29,m30,m31
+print
+step n=150 every=5

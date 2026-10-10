@@ -228,14 +228,9 @@ macro_rules! cylinder_common_slots {
             params: &mut IntersectionParams,
             contacts: &mut Vec<GeomContact>,
         ) -> usize {
-            // 0x35151F20 falls back to the generic `CGeometry::Intersect` when the other
-            // geometry is not a primitive (wired by P1c); primitive pairs are not ported yet.
-            if !other.is_a_primitive() {
-                return crate::geometry::trimesh::geometry_impl::geometry_intersect(
-                    self, None, other, gwd1, gwd2, params, contacts,
-                );
-            }
-            0
+            crate::collision::prim_intersect::geometry_intersect(
+                self, other, gwd1, gwd2, params, contacts,
+            )
         }
 
         /// Slot 12 (0x35142EE0, both classes), see [`super::buoyancy`].

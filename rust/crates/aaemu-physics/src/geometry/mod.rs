@@ -233,6 +233,13 @@ pub trait Geometry: Send + Sync + std::fmt::Debug {
         None
     }
 
+    /// `CRayGeom +72`: the stored normalised direction of a ray geometry (`None` for other
+    /// classes). It can differ from `dir`'s direction: RayWorldIntersection shortens a ray's
+    /// `dir` in place without recomputing it. (Added by P3 queries.)
+    fn ray_stored_ndir(&self) -> Option<Vec3> {
+        None
+    }
+
     /// Slot 52: object size in bytes (memory statistics). Base: 0.
     fn size_of_object(&self) -> i32 {
         0
@@ -261,6 +268,16 @@ pub trait Geometry: Send + Sync + std::fmt::Debug {
 
     /// The ray geometry, for the classes that special-case a ray partner (`GetType() == 3`).
     fn as_ray(&self) -> Option<&shapes::RayGeom> {
+        None
+    }
+
+    /// The `CTriMesh`, for the callers that need the mesh's own slot 10 (P1c).
+    fn as_trimesh(&self) -> Option<&trimesh::TriMesh> {
+        None
+    }
+
+    /// The `CHeightfield`, for the callers that need its own slot 10 (P1c).
+    fn as_heightfield(&self) -> Option<&heightfield::protocol::SharedHeightfield> {
         None
     }
 }

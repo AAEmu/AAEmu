@@ -284,6 +284,10 @@ impl Geometry for TriMesh {
     fn as_protocol(&self) -> Option<&dyn GeomProtocol> {
         Some(self)
     }
+
+    fn as_trimesh(&self) -> Option<&TriMesh> {
+        Some(self)
+    }
 }
 
 impl Geometry for SharedHeightfield {
@@ -416,6 +420,10 @@ impl Geometry for SharedHeightfield {
     fn as_protocol(&self) -> Option<&dyn GeomProtocol> {
         Some(self)
     }
+
+    fn as_heightfield(&self) -> Option<&SharedHeightfield> {
+        Some(self)
+    }
 }
 
 impl SharedHeightfield {
@@ -424,4 +432,178 @@ impl SharedHeightfield {
             .read()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
+}
+
+// ---------------------------------------------------------------------------------------
+// The world's per-thread arena (P3/P4 `ThreadScratch`)
+
+use super::protocol::BorderKind;
+use crate::collision::prim_intersect::scratch::{
+    a as ar_f, c as ct_f, ThreadScratch, AREA_FEAT0, AREA_FEAT1, AREA_PRIM0, AREA_PRIM1, AREA_PTS,
+    BORDER,
+};
+use crate::collision::prim_intersect::{IntersectOut, PrimIntersectEnv};
+
+/// Copies the shared counters and the border pool of the world's [`ThreadScratch`] into the
+/// mesh code's [`CallerArena`] (in the original they are one per-caller arena).
+fn sync_in(s: &ThreadScratch, ca: &mut CallerArena) {
+    ca.n_contacts = s.n_contacts();
+    ca.n_areas = s.n_areas();
+    ca.n_area_pts = s.n_area_pts();
+    let nb = s.n_border();
+    ca.w16ec8 = u64::from(nb as u32) | (u64::from(s.rd(0x16ECC)) << 32);
+    ca.w16ecc = s.rd(0x16ECC);
+    let nbu = nb.clamp(0, 2048) as usize;
+    if ca.border_pts.len() < nbu {
+        ca.border_pts.resize(nbu, Vec3::ZERO);
+    }
+    for k in 0..nbu {
+        ca.border_pts[k] = s.rd_v(i64::from(BORDER) + 12 * k as i64);
+    }
+}
+
+/// Writes one contact into record `i` of the scratch: the points of a pool border go to the
+/// border pool after the ones in use, an area to the next area record and its points after
+/// the area points in use (the counters advance). The record holds the pointers its consumers
+/// follow ([`ThreadScratch::contact`]); `idxborder` is not modelled by the scratch (null).
+fn store_contact(s: &mut ThreadScratch, i: i32, c: &GeomContact, kind: BorderKind) {
+    let o = ThreadScratch::contact_off(i);
+    let f = |k: u32| o + i64::from(k);
+    s.wr_d(o, c.t);
+    s.wr_v(f(ct_f::PT), c.pt);
+    s.wr_v(f(ct_f::N), c.n);
+    s.wr_v(f(ct_f::DIR), c.dir);
+    s.wr(f(ct_f::MODE), c.i_unproj_mode as u32);
+    s.wr_f(f(ct_f::VEL), c.vel);
+    for k in 0..2 {
+        let d = 4 * k as i64;
+        s.wr(f(ct_f::ID) + d, c.id[k] as u32);
+        s.wr(f(ct_f::IPRIM) + d, c.i_prim[k] as u32);
+        s.wr(f(ct_f::IFEATURE) + d, c.i_feature[k] as u32);
+        s.wr(f(ct_f::INODE) + d, c.i_node[k] as u32);
+    }
+    s.wr_v(f(ct_f::CENTER), c.center);
+    s.wr(f(ct_f::CONSECUTIVE), u32::from(c.border_consecutive));
+    s.wr(f(ct_f::NBORDER), c.border.len() as u32);
+    s.wr(o + 108, c.border_closed as u32);
+    let pb = match kind {
+        BorderKind::Pt => s.addr(f(ct_f::PT)),
+        BorderKind::Center => s.addr(f(ct_f::CENTER)),
+        BorderKind::Pool => {
+            let nb = s.n_border();
+            for (k, p) in c.border.iter().enumerate() {
+                s.wr_v(i64::from(BORDER) + 12 * (i64::from(nb) + k as i64), *p);
+            }
+            s.set_n_border(nb + c.border.len() as i32);
+            s.addr(i64::from(BORDER) + 12 * i64::from(nb))
+        }
+    };
+    s.wr_q(f(ct_f::PTBORDER), pb);
+    s.wr_q(f(ct_f::IDXBORDER), 0);
+    match &c.area {
+        None => s.wr_q(f(ct_f::AREA), 0),
+        Some(area) => {
+            let na = s.n_areas();
+            let ao = ThreadScratch::area_off(na);
+            let np = i64::from(s.n_area_pts());
+            for (field, pool, sz) in [
+                (ar_f::PT, AREA_PTS, 12),
+                (ar_f::PRIM0, AREA_PRIM0, 4),
+                (ar_f::PRIM1, AREA_PRIM1, 4),
+                (ar_f::FEAT0, AREA_FEAT0, 4),
+                (ar_f::FEAT1, AREA_FEAT1, 4),
+            ] {
+                let p = s.addr(i64::from(pool) + sz * np);
+                s.wr_q(ao + i64::from(field), p);
+            }
+            let n = area.npt.max(0) as usize;
+            let mut a2 = area.clone();
+            a2.pt.truncate(n);
+            for v in a2.prim.iter_mut().chain(a2.feature.iter_mut()) {
+                v.truncate(n);
+            }
+            s.store_area(ao, &crate::collision::contact::ContactArea::default(), &a2);
+            s.set_n_areas(na + 1);
+            s.set_n_area_pts(np as i32 + n as i32);
+            let pa = s.addr(ao);
+            s.wr_q(f(ct_f::AREA), pa);
+        }
+    }
+}
+
+/// [`crate::collision::prim_intersect::GenericIntersectFn`] of the port: slot 10 of a
+/// non-primitive `a` (the mesh's 0x351C9910, the heightfield's 0x35156E20, the generic
+/// 0x3514FD70 for a ray) and the primitive `Intersect`'s fallback for a non-primitive `b`, on
+/// the world's per-thread scratch. The counters the original shares between the primitive and
+/// the mesh code (contacts, areas, area points, border points) are carried over both ways; the
+/// new contacts become records `first..first + n` of the scratch.
+pub fn generic_intersect_fn(
+    s: &mut ThreadScratch,
+    _env: &PrimIntersectEnv,
+    a: &dyn Geometry,
+    b: &dyn Geometry,
+    gwd_a: &mut GeomWorldData,
+    gwd_b: &GeomWorldData,
+    ip: &mut IntersectionParams,
+) -> IntersectOut {
+    let (Some(pa), Some(pb)) = (a.as_protocol(), b.as_protocol()) else {
+        return IntersectOut::default();
+    };
+    let r = with_arena(|ca| {
+        sync_in(s, ca);
+        if let Some(m) = a.as_trimesh() {
+            m.intersect_slot10(
+                tables(),
+                ca,
+                pb,
+                Some(gwd_a),
+                Some(gwd_b),
+                Some(ip),
+                IntersectExtra::default(),
+            )
+        } else if let Some(h) = a.as_heightfield() {
+            let o = match b.as_ray() {
+                Some(r) => HfOther::Ray(r),
+                None => HfOther::Geom(pb),
+            };
+            h.intersect(
+                tables(),
+                ca,
+                o,
+                gwd_a,
+                Some(gwd_b),
+                Some(ip),
+                IntersectExtra::default(),
+                None,
+            )
+        } else {
+            intersect(
+                tables(),
+                ca,
+                pa,
+                pb,
+                Some(gwd_a),
+                Some(gwd_b),
+                Some(ip),
+                IntersectExtra::default(),
+            )
+        }
+    });
+    let n = r.contacts.len() as i32;
+    let first = with_arena(|ca| ca.n_contacts) - n;
+    for (k, c) in r.contacts.iter().enumerate() {
+        let kind = r.border_kinds.get(k).copied().unwrap_or_default();
+        store_contact(s, first + k as i32, c, kind);
+    }
+    s.set_n_contacts(first + n);
+    IntersectOut {
+        ret: n,
+        first: (n > 0).then_some(first),
+    }
+}
+
+/// Installs [`generic_intersect_fn`] as the primitive `Intersect`'s generic fallback (once per
+/// process; later calls are no-ops).
+pub fn install() {
+    let _ = crate::collision::prim_intersect::install_generic_intersect(generic_intersect_fn);
 }
