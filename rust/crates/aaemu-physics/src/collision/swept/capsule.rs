@@ -36,11 +36,16 @@
 //! set to 0 (the cylinder's patch no longer belongs to the final contact). Returns the OR of the
 //! three cell results (cyl–cap: in the zero-direction mode a sphere that succeeds but is not taken
 //! over counts as 0).
+//!
+//! **Uninitialised `cos` (deviation by necessity).** The temporary result of the zero-direction
+//! mode is copied whole into `out`, but only box–cap zeroes its `cos` slot first; sph–cap and
+//! cyl–cap copy whatever is on the stack (the sphere cells never write `cos`). The port writes 0;
+//! linear callers never read `cos`. Tests compare these cells with `cos` masked.
 
-use super::common::{as_cap, as_ray, as_sph, swap_linear, ucomiss_eq};
+use super::common::{as_cap, as_ray, as_sph, as_tri, swap_linear, ucomiss_eq};
 use super::{UnprojTables, MODE_LINEAR};
 use crate::collision::contact::{ContactArea, UnprojParams, UnprojResult};
-use crate::geometry::primitives::{CapsulePrim, Primitive, RayPrim, SpherePrim};
+use crate::geometry::primitives::{CapsulePrim, Primitive, RayPrim, SpherePrim, Triangle};
 use crate::ids::GeomType;
 use crate::math::Vec3;
 
@@ -263,6 +268,50 @@ pub fn unproject_ray_cap(
     )
 }
 
+/// tri–cap 0x351767C0: [`compose_simple`] with tri–cyl 0x351716D0 and tri–sph 0x35175490.
+pub fn unproject_tri_cap(
+    p: &mut UnprojParams,
+    a: &Triangle,
+    fa: i32,
+    b: &CapsulePrim,
+    _fb: i32,
+    out: &mut UnprojResult,
+) -> i32 {
+    compose_simple(
+        p,
+        b,
+        out,
+        |p, out| super::tri_cyl::unproject_tri_cyl(p, a, fa, b, CAPSULE_FEATURE, out),
+        |p, s, out| super::tri::unproject_tri_sph(p, a, fa, s, -1, out),
+    )
+}
+
+fn cell_tri_cap(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    _area: Option<&mut ContactArea>,
+) -> i32 {
+    unproject_tri_cap(p, as_tri(a), fa, as_cap(b), fb, out)
+}
+
+/// cap–tri 0x351769E0: 335-byte linear swap of [`unproject_tri_cap`].
+fn cell_cap_tri(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    _area: Option<&mut ContactArea>,
+) -> i32 {
+    let (cap, tri) = (as_cap(a), as_tri(b));
+    swap_linear(p, out, |p, out| unproject_tri_cap(p, tri, fb, cap, fa, out))
+}
+
 fn cell_sph_cap(
     p: &mut UnprojParams,
     a: &Primitive,
@@ -315,7 +364,9 @@ fn cell_cap_ray(
 
 /// Fill the capsule cells.
 pub fn fill(t: &mut UnprojTables) {
-    use GeomType::{Capsule, Ray, Sphere};
+    use GeomType::{Capsule, Ray, Sphere, TriMesh};
+    t.set(MODE_LINEAR, TriMesh, Capsule, cell_tri_cap);
+    t.set(MODE_LINEAR, Capsule, TriMesh, cell_cap_tri);
     t.set(MODE_LINEAR, Sphere, Capsule, cell_sph_cap);
     t.set(MODE_LINEAR, Capsule, Sphere, cell_cap_sph);
     t.set(MODE_LINEAR, Ray, Capsule, cell_ray_cap);

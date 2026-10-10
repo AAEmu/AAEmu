@@ -147,3 +147,13 @@ fn ray_cap_matches_dll() {
 fn cap_ray_matches_dll() {
     check("p2b_capsule_cap_ray", 200, &|r| gen_pair(r, CAP, RAY));
 }
+
+#[test]
+fn tri_cap_matches_dll() {
+    check("p2b_capsule_tri_cap", 250, &|r| gen_pair(r, TRI, CAP));
+}
+
+#[test]
+fn cap_tri_matches_dll() {
+    check("p2b_capsule_cap_tri", 200, &|r| gen_pair(r, CAP, TRI));
+}
