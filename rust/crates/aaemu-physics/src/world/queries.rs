@@ -69,6 +69,8 @@
 //!   (`+544`): only plane-only areas (the global water area) are tested.
 //! * The debug ray callback (`world+656`, vars `+228 & 0x40`) and the profiler.
 
+#![allow(clippy::neg_cmp_op_on_partial_ord)] // `!(a < b)` = the binary's NaN behaviour
+
 pub mod entity;
 pub mod pwi;
 pub mod queue;
@@ -150,8 +152,6 @@ pub struct QueryState {
     pub logged_results: Vec<queue::QueuedResult>,
     /// `world+1616` the terrain heightfield basis (SetHeightfieldData).
     pub hf_basis: crate::math::Mat33,
-    /// The intersection-params byte `+100` and ints `+104 … +120` are not modelled.
-    _private: (),
 }
 
 impl Default for QueryState {
@@ -163,7 +163,6 @@ impl Default for QueryState {
             pwi_queue: std::collections::VecDeque::new(),
             logged_results: Vec::new(),
             hf_basis: crate::math::Mat33::IDENTITY,
-            _private: (),
         }
     }
 }
@@ -209,7 +208,8 @@ pub(crate) fn idmat_org(id: i32, surface_bits: u32) -> i16 {
 #[must_use]
 pub fn aabb_overlap6(a: &[Vec3; 2], b: &[Vec3; 2]) -> bool {
     let d = |i: usize| {
-        ((((a[0][i] + a[1][i]) - b[0][i]) - b[1][i]).abs() - (a[1][i] - a[0][i])) - (b[1][i] - b[0][i])
+        ((((a[0][i] + a[1][i]) - b[0][i]) - b[1][i]).abs() - (a[1][i] - a[0][i]))
+            - (b[1][i] - b[0][i])
     };
     let v2 = d(1);
     let v3 = d(0);
@@ -219,6 +219,35 @@ pub fn aabb_overlap6(a: &[Vec3; 2], b: &[Vec3; 2]) -> bool {
 }
 
 impl World {
+    /// Geometry slot 10 as the queries call it, on the calling thread's intersection arena
+    /// (`World::tscratch[tls_thread]`): the primitive `Intersect` (0x35151F20, with its `gwd1`
+    /// write-back) when `a` is a primitive, else the geometry's own slot 10 (P1c meshes /
+    /// heightfields). Returns copies of the new contact records.
+    pub(crate) fn query_geom_intersect(
+        &mut self,
+        a: &dyn crate::geometry::Geometry,
+        b: &dyn crate::geometry::Geometry,
+        gwd1: &mut crate::geometry::GeomWorldData,
+        gwd2: &crate::geometry::GeomWorldData,
+        ip: &mut IntersectionParams,
+    ) -> Vec<GeomContact> {
+        if a.is_a_primitive() {
+            let env = crate::collision::prim_intersect::env_with_generic();
+            let tid = self.tls_thread.clamp(0, 4) as usize;
+            let s = &mut self.tscratch[tid];
+            let out = crate::collision::prim_intersect::intersect(&env, s, a, b, gwd1, gwd2, ip);
+            match (out.first, out.ret > 0) {
+                (Some(f), true) => s.contacts(f, out.ret),
+                _ => Vec::new(),
+            }
+        } else {
+            let mut v = Vec::new();
+            let n = a.intersect(b, gwd1, gwd2, ip, &mut v);
+            v.truncate(n);
+            v
+        }
+    }
+
     /// The engine's "temp entity pools exist" test (`world+792 != 0`), required by RWI.
     /// The pools are allocated by the pool growth of entity registration
     /// (`World::grow_pools`); the `TimeStep` path is what triggers it for entities created

@@ -96,7 +96,36 @@ static void p3_print_contact(unsigned char *c) {
   printf(" id %d %d pr %d %d\n", *(int *)(c + 52), *(int *)(c + 56), *(int *)(c + 60), *(int *)(c + 64));
 }
 
-static int p3_command(const char *c, const Toks *tp) {
+
+/* queued queries: event 9 / 10 callbacks (called by PumpLoggedEvents) */
+static int p3_rwiq_cb(void *ev) {
+  unsigned char *e = (unsigned char *)ev;
+  unsigned char *hits = *(unsigned char **)(e + 48);
+  int n = *(int *)(e + 56), nmax = *(int *)(e + 60);
+  printf("rwiq %s n %d max %d pool %d\n", *(const char **)(e + 24), n, nmax, *(int *)(e + 64));
+  for (int i = 0; i < nmax && hits; i++) {
+    unsigned char *h = hits + 80 * i;
+    if (*(float *)h < 0 && i > 0) continue;
+    p3_print_hit(i, h);
+  }
+  return 1;
+}
+static int p3_pwiq_cb(void *ev) {
+  unsigned char *e = (unsigned char *)ev;
+  printf("pwiq %s d %08x e %s p", *(const char **)(e + 24), fbits(*(float *)(e + 48)), name_of(*(void **)(e + 16)));
+  out_f((float *)(e + 52), 3);
+  printf(" n");
+  out_f((float *)(e + 64), 3);
+  printf(" id %d pid %d\n", *(int *)(e + 76), *(int *)(e + 80));
+  return 1;
+}
+static char *p3_strdup(const char *s) {
+  char *d = (char *)malloc(strlen(s) + 1);
+  strcpy(d, s);
+  return d;
+}
+
+static int p3q_command(const char *c, const Toks *tp) {
   const Toks *t = tp;
   if (!strcmp(c, "rayx")) {
     unsigned char p[96];
@@ -202,6 +231,63 @@ static int p3_command(const char *c, const Toks *tp) {
                                       (int)parse_u(get(t, "any", "0xFFFFFFFF")));
     printf("beam %s r %d\n", get(t, "name", "-"), r);
     if (r) p3_print_hit(0, h);
+    return 1;
+  }
+  if (!strcmp(c, "rayq")) {
+    unsigned char p[96];
+    void *skip[16];
+    memset(p, 0, sizeof p);
+    int nmax = atoi(get(t, "max", "1"));
+    if (nmax < 1) nmax = 1;
+    if (nmax > 16) nmax = 16;
+    int pool = atoi(get(t, "pool", "0"));
+    int nskip = p3_skip(get(t, "skip", 0), skip, 16);
+    SETP(p, 0, p3_strdup(get(t, "name", "-")));
+    SETP(p, 16, (void *)p3_rwiq_cb);
+    parse_fv(need(t, "org"), (float *)(p + 24), 3);
+    parse_fv(need(t, "dir"), (float *)(p + 36), 3);
+    SETI(p, 48, parse_u(get(t, "types", "0x13F")));
+    SETI(p, 52, parse_u(get(t, "flags", "0")) | 0x800);
+    SETP(p, 56, pool ? 0 : p3_buf(get(t, "name", "-")));
+    SETI(p, 64, nmax);
+    SETI(p, 80, nskip);
+    SETP(p, 88, nskip ? (void *)skip : 0);
+    int n = ((fn_rwi)VT(g_world)[W_RayWorldIntersection])(g_world, p, "physoracle", atoi(get(t, "caller", "4")));
+    printf("rayq %s r %d\n", get(t, "name", "-"), n);
+    return 1;
+  }
+  if (!strcmp(c, "pwiq")) {
+    unsigned char p[96], prim[256];
+    void *skip[16];
+    memset(p, 0, sizeof p);
+    int type = p3_prim(t, prim);
+    int nskip = p3_skip(get(t, "skip", 0), skip, 16);
+    SETP(p, 0, p3_strdup(get(t, "name", "-")));
+    SETP(p, 16, (void *)p3_pwiq_cb);
+    SETI(p, 24, type);
+    SETP(p, 32, prim);
+    parse_fv(get(t, "sweep", "0,0,0"), (float *)(p + 40), 3);
+    SETI(p, 52, parse_u(get(t, "types", "0x13F")) | 0x800);
+    SETI(p, 64, parse_u(get(t, "all", "0")));
+    SETI(p, 68, parse_u(get(t, "any", "0xFFFFFFFF")));
+    SETI(p, 80, nskip);
+    SETP(p, 88, nskip ? (void *)skip : 0);
+    float d = ((fn_pwi)VT(g_world)[65])(g_world, p, "physoracle");
+    printf("pwiq %s queued %08x\n", get(t, "name", "-"), fbits(d));
+    return 1;
+  }
+  if (!strcmp(c, "process")) {
+    int n = ((int (*)(void *, int))VT(g_world)[43])(g_world, atoi(get(t, "mode", "1")));
+    printf("process %d\n", n);
+    return 1;
+  }
+  if (!strcmp(c, "pump")) {
+    ((void (*)(void *))VT(g_world)[77])(g_world);
+    printf("pump\n");
+    return 1;
+  }
+  if (!strcmp(c, "watermat")) {
+    ((void (*)(void *, int))VT(g_world)[88])(g_world, atoi(need(t, "v")));
     return 1;
   }
   if (!strcmp(c, "surface")) {

@@ -798,7 +798,10 @@ fn register_ray(
     let so = |k: u32| o + i64::from(k);
     let (org, nd) = match b.primitive(0) {
         // `CRayGeom +72` as stored (RWI keeps the original direction after shortening `dir`)
-        Some(Primitive::Ray(r)) => (r.origin, b.ray_stored_ndir().unwrap_or_else(|| ray_ndir(r.dir))),
+        Some(Primitive::Ray(r)) => (
+            r.origin,
+            b.ray_stored_ndir().unwrap_or_else(|| ray_ndir(r.dir)),
+        ),
         _ => (Vec3::ZERO, Vec3::Z),
     };
     s.wr(so(c::NBORDER), 1);

@@ -8,7 +8,7 @@ use super::{aabb_overlap6, idmat_org, map_surface, QueryIntersectionParams};
 use crate::collision::contact::IntersectionParams;
 use crate::collision::pairs::box_pairs::overlap_box_ray;
 use crate::collision::prim_intersect::scratch::ThreadScratch;
-use crate::collision::prim_intersect::{env_with_generic, intersect, with_thread_scratch};
+use crate::collision::prim_intersect::{env_with_generic, intersect};
 use crate::geometry::primitives::{BoxPrim, Primitive, RayPrim, SpherePrim};
 use crate::geometry::shapes::RayGeom;
 use crate::geometry::{GeomWorldData, Geometry};
@@ -79,6 +79,7 @@ impl World {
     /// entity's own frame. Per part the last contact (scanning backwards) that is not farther
     /// than the current hit (and, with `ignore_back_faces`, faces the ray) becomes the hit.
     /// Areas use the area ray test. Returns 1 if `hit.dist < 1e9`.
+    #[allow(clippy::too_many_arguments)]
     pub fn ray_trace_entity(
         &mut self,
         e: EntIdx,
@@ -127,7 +128,8 @@ impl World {
                 continue;
             }
             let b = part.bbox;
-            let diag = (((b[1].x - b[0].x) * (b[1].x - b[0].x)) + ((b[1].y - b[0].y) * (b[1].y - b[0].y)))
+            let diag = (((b[1].x - b[0].x) * (b[1].x - b[0].x))
+                + ((b[1].y - b[0].y) * (b[1].y - b[0].y)))
                 + ((b[1].z - b[0].z) * (b[1].z - b[0].z));
             if diag != 0.0 {
                 let bx = BoxPrim {
@@ -157,13 +159,20 @@ impl World {
             };
             let geom = part.pgeom.geom.clone();
             let mut ip = IntersectionParams::default();
-            let mut contacts = Vec::new();
-            let n = geom.intersect(&ray, &gwd, &GeomWorldData::default(), &mut ip, &mut contacts);
-            let mut k = n.min(contacts.len());
+            let mut gwd = gwd;
+            let contacts = self.query_geom_intersect(
+                geom.as_ref(),
+                &ray,
+                &mut gwd,
+                &GeomWorldData::default(),
+                &mut ip,
+            );
+            let mut k = contacts.len();
             while k > 0 {
                 let c = &contacts[k - 1];
                 if f64::from(hit.dist) >= c.t
-                    && (!ignore_back_faces || ((dir.y * c.n.y) + (dir.x * c.n.x)) + (dir.z * c.n.z) <= 0.0)
+                    && (!ignore_back_faces
+                        || ((dir.y * c.n.y) + (dir.x * c.n.x)) + (dir.z * c.n.z) <= 0.0)
                 {
                     break;
                 }
@@ -231,12 +240,14 @@ impl World {
         };
         let qbox = query_box(geom.as_ref(), gwd1.offset, sweep_dir);
         let eb = self.ent(e).bbox;
-        let v68 = (((eb[1].y - eb[0].y) * (eb[1].y - eb[0].y)) + ((eb[1].x - eb[0].x) * (eb[1].x - eb[0].x)))
+        let v68 = (((eb[1].y - eb[0].y) * (eb[1].y - eb[0].y))
+            + ((eb[1].x - eb[0].x) * (eb[1].x - eb[0].x)))
             + ((eb[1].z - eb[0].z) * (eb[1].z - eb[0].z));
         if v68 < 0.0 {
             return i32::from(((hit.dist - 1.0e9).to_bits() >> 31) != 0);
         }
         let env = env_with_generic();
+        let tid = self.tls_thread.clamp(0, 4) as usize;
         let nparts = self.ent(e).parts.len();
         for i in 0..nparts {
             let (pf, pbb) = {
@@ -246,17 +257,27 @@ impl World {
             if geom_flags_any & pf == 0 {
                 continue;
             }
-            let diag = (((pbb[1].y - pbb[0].y) * (pbb[1].y - pbb[0].y)) + ((pbb[1].x - pbb[0].x) * (pbb[1].x - pbb[0].x)))
+            let diag = (((pbb[1].y - pbb[0].y) * (pbb[1].y - pbb[0].y))
+                + ((pbb[1].x - pbb[0].x) * (pbb[1].x - pbb[0].x)))
                 + ((pbb[1].z - pbb[0].z) * (pbb[1].z - pbb[0].z));
             if !(diag == 0.0 || aabb_overlap6(&pbb, &qbox)) {
                 continue;
             }
             let gwd2 = part_gwd(self, e, i);
             let pgeom = self.ent(e).parts[i].pgeom.geom.clone();
-            let c0 = with_thread_scratch(|s| {
-                let out = intersect(&env, s, geom.as_ref(), pgeom.as_ref(), &mut gwd1, &gwd2, ipr);
+            let c0 = {
+                let s = &mut self.tscratch[tid];
+                let out = intersect(
+                    &env,
+                    s,
+                    geom.as_ref(),
+                    pgeom.as_ref(),
+                    &mut gwd1,
+                    &gwd2,
+                    ipr,
+                );
                 (out.ret != 0).then(|| s.contact(out.first.unwrap_or(0)))
-            });
+            };
             if let Some(c) = c0 {
                 if c.t < f64::from(hit.dist) {
                     let parts = &self.ent(e).parts;
@@ -326,6 +347,7 @@ impl World {
         };
         hit.dist = f32::from_bits(0x5015_02F9);
         let env = env_with_generic();
+        let tid = self.tls_thread.clamp(0, 4) as usize;
         let nparts = self.ent(e).parts.len();
         for i in 0..nparts {
             if geom_flags_any & self.ent(e).parts[i].flags == 0 {
@@ -333,10 +355,19 @@ impl World {
             }
             let gwd2 = part_gwd(self, e, i);
             let pgeom = self.ent(e).parts[i].pgeom.geom.clone();
-            let c0 = with_thread_scratch(|s| {
-                let out = intersect(&env, s, geom.as_ref(), pgeom.as_ref(), &mut gwd1, &gwd2, &mut ip);
+            let c0 = {
+                let s = &mut self.tscratch[tid];
+                let out = intersect(
+                    &env,
+                    s,
+                    geom.as_ref(),
+                    pgeom.as_ref(),
+                    &mut gwd1,
+                    &gwd2,
+                    &mut ip,
+                );
                 (out.ret != 0).then(|| s.contact(out.first.unwrap_or(0)))
-            });
+            };
             if let Some(c) = c0 {
                 if c.t < f64::from(hit.dist) {
                     let parts = &self.ent(e).parts;

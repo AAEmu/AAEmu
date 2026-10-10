@@ -1,4 +1,6 @@
 physoracle 1
+ret surface 1
+ret surface 1
 ret part ground 0
 ret part crate 0
 ret part ball 0

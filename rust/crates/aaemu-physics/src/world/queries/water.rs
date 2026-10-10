@@ -48,18 +48,30 @@ impl World {
         }
         let v95 = v93 / v94;
         let dist = (((dir.y * dir.y) + (dir.x * dir.x)) + (dir.z * dir.z)).sqrt() * v95;
-        let pt = Vec3::new((dir.x * v95) + org.x, (dir.y * v95) + org.y, (dir.z * v95) + org.z);
+        let pt = Vec3::new(
+            (dir.x * v95) + org.x,
+            (dir.y * v95) + org.y,
+            (dir.z * v95) + org.z,
+        );
         Some(AreaHit { dist, pt, n })
     }
 
     /// `sub_351A9540(world, org, dir, ctx, flags, nMaxHits, hits)`: the water plane of the
     /// global area (and of the "big" areas with medium 0) against the ray.
     ///
-    /// Quirks kept: the hit's `ipart` is written into `hits[0]` whatever the slot;
-    /// `dist = |dir|·(hitDist/cosθ)` with the area hit distance (as the binary computes it);
-    /// a ray starting below the water with flag 0x10000 reports the surface at 0.001.
+    /// The hit fraction is `hitDist / (ndir·dir)`, `dist = |dir|·fraction`; accepted when
+    /// `|L − 2·hitDist| < |L|` (`L = ndir·dir`). Quirks kept: the hit's `ipart` is written into
+    /// `hits[0]` whatever the slot; a ray starting below the global water level with flag
+    /// 0x10000 reports the surface at distance 0.001.
     #[allow(clippy::too_many_lines)]
-    pub(crate) fn rwi_water(&mut self, org: Vec3, dir: Vec3, ctx: &mut RayCtx, flags: u32, hits: &mut [RayHit]) {
+    pub(crate) fn rwi_water(
+        &mut self,
+        org: Vec3,
+        dir: Vec3,
+        ctx: &mut RayCtx,
+        flags: u32,
+        hits: &mut [RayHit],
+    ) {
         let ga = self.global_area;
         if ga.is_none() {
             return;
@@ -68,10 +80,16 @@ impl World {
             let EntityKind::Area(ad) = &self.ent(ga).kind else {
                 return;
             };
-            (ad.buoyancy.water_plane_n, ad.buoyancy.water_plane_origin, ad.circle_radius)
+            (
+                ad.buoyancy.water_plane_n,
+                ad.buoyancy.water_plane_origin,
+                ad.circle_radius,
+            )
         };
+        // `ndir · dir` of the context ray (= |dir|; the decompile mislabels it as `ndir · n`)
         let nd = ctx.ray_ndir();
-        let v20 = ((nd.y * gn.y) + (nd.x * gn.x)) + (nd.z * gn.z);
+        let cd = ctx.ray_prim().dir;
+        let v20 = ((nd.y * cd.y) + (nd.x * cd.x)) + (nd.z * cd.z);
         let mut v11 = EntIdx::NONE;
         let mut v12 = 1.0f32;
         let mut v13 = 0.0f32;
@@ -170,7 +188,11 @@ impl World {
         hits[slot].partid = 0;
         hits[slot].idmat_org = 0;
         hits[slot].surface_idx = self.water_mat as i16;
-        hits[slot].pt = Vec3::new((dir.x * v36) + org.x, (dir.y * v36) + org.y, (dir.z * v36) + org.z);
+        hits[slot].pt = Vec3::new(
+            (dir.x * v36) + org.x,
+            (dir.y * v36) + org.y,
+            (dir.z * v36) + org.z,
+        );
         hits[slot].n = nrm;
         hits[slot].terrain = 0;
     }

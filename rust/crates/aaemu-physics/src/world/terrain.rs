@@ -37,9 +37,13 @@ impl World {
     /// World slot 17 `SetHeightfieldData(hf, matMapping, nMats)` (0x3508B860) with the
     /// geometry manager of the port (no heightfield before P1c: returns `NONE` and creates
     /// nothing when the factory fails).
-    pub fn set_heightfield_data(&mut self, hf: Option<&HeightfieldPrim>, mat_mapping: Option<&[i32]>) -> EntIdx {
+    pub fn set_heightfield_data(
+        &mut self,
+        hf: Option<&HeightfieldPrim>,
+        mat_mapping: Option<&[i32]>,
+    ) -> EntIdx {
         self.set_heightfield_data_with(hf, mat_mapping, |p| {
-            crate::world::geoman::create_primitive(&Primitive::Heightfield(p.clone()))
+            crate::world::geoman::create_primitive(&Primitive::Heightfield(*p))
         })
     }
 
@@ -199,12 +203,22 @@ impl World {
     /// `>= 0` or `flags & 0x20`: `dir` is cut to the hit point and `hit` gets `dist`, the
     /// terrain entity, `ipart = partid = 0`, the mapped surface, the raw id, `pt`, `n`,
     /// `bTerrain = 1`.
-    pub fn terrain_ray(&mut self, org: Vec3, dir: &mut Vec3, hit: &mut RayHit, flags: u32, caller: usize) {
+    pub fn terrain_ray(
+        &mut self,
+        org: Vec3,
+        dir: &mut Vec3,
+        hit: &mut RayHit,
+        flags: u32,
+        caller: usize,
+    ) {
         let t = self.terrain[caller];
         if t.is_none() || !self.ent_alive(t) {
             return;
         }
-        let ray = RayGeom::new(&RayPrim { origin: org, dir: *dir });
+        let ray = RayGeom::new(&RayPrim {
+            origin: org,
+            dir: *dir,
+        });
         let gwd = GeomWorldData {
             offset: self.terrain_origin,
             r: self.queries.hf_basis.transpose(),
@@ -213,9 +227,15 @@ impl World {
         };
         let geom = self.ent(t).parts[0].pgeom.geom.clone();
         let mut ip = IntersectionParams::default();
-        let mut contacts = Vec::new();
-        let n = geom.intersect(&ray, &gwd, &GeomWorldData::default(), &mut ip, &mut contacts);
-        if n == 0 || contacts.is_empty() {
+        let mut gwd = gwd;
+        let contacts = self.query_geom_intersect(
+            geom.as_ref(),
+            &ray,
+            &mut gwd,
+            &GeomWorldData::default(),
+            &mut ip,
+        );
+        if contacts.is_empty() {
             return;
         }
         let c = &contacts[0];

@@ -623,7 +623,7 @@ static void run_line(char *line) {
     for (int i = 1; i < t.n; i++) printf(" %s", t.k[i]);
     printf("\n");
   } else if (p1a_command(c, &t)) {
-  } else if (p3_command(c, &t)) {
+  } else if (p3q_command(c, &t)) {
   } else {
     die("unknown command", c);
   }

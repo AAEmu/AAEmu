@@ -209,8 +209,23 @@ impl World {
                 hits_from_pool: q.hits_from_pool,
                 hit_last: hl,
             };
-            self.queries.logged_results.push(QueuedResult::Rwi(r, q.callback));
+            self.queries
+                .logged_results
+                .push(QueuedResult::Rwi(r, q.callback));
         }
+        // the event-10 record is a local of the loop: the entity / point / normal / ids of a
+        // request without a contact are those of the previous one (kept; the first request's
+        // are the static dummy entity and stack garbage — zeros here)
+        let mut r = QueuedPwiResult {
+            ent: EntIdx::NONE,
+            foreign_data: 0,
+            i_foreign_data: 0,
+            dist: 0.0,
+            pt: Vec3::ZERO,
+            n: Vec3::ZERO,
+            idmat: 0,
+            partid: 0,
+        };
         while let Some(mut q) = self.queries.pwi_queue.pop_front() {
             count += 1;
             q.params.skip = q
@@ -218,17 +233,18 @@ impl World {
                 .iter()
                 .map(|&id| self.entity_by_id(id).unwrap_or(EntIdx::NONE))
                 .collect();
-            let mut r = QueuedPwiResult {
-                ent: EntIdx::NONE,
-                foreign_data: q.params.foreign_data,
-                i_foreign_data: q.params.i_foreign_data,
-                dist: 0.0,
-                pt: Vec3::ZERO,
-                n: Vec3::ZERO,
-                idmat: 0,
-                partid: 0,
-            };
-            if mode != 0 && matches!(q.params.prim, Primitive::Box(_) | Primitive::Sphere(_) | Primitive::Cylinder(_) | Primitive::Capsule(_)) {
+            r.foreign_data = q.params.foreign_data;
+            r.i_foreign_data = q.params.i_foreign_data;
+            r.dist = 0.0;
+            if mode != 0
+                && matches!(
+                    q.params.prim,
+                    Primitive::Box(_)
+                        | Primitive::Sphere(_)
+                        | Primitive::Cylinder(_)
+                        | Primitive::Capsule(_)
+                )
+            {
                 let res = self.pwi(&q.params);
                 r.dist = res.dist;
                 if res.dist != 0.0 {
@@ -241,7 +257,9 @@ impl World {
                     }
                 }
             }
-            self.queries.logged_results.push(QueuedResult::Pwi(r, q.callback));
+            self.queries
+                .logged_results
+                .push(QueuedResult::Pwi(r.clone(), q.callback));
         }
         count
     }
