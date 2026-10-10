@@ -228,6 +228,24 @@ static void p1c_mesh_dump(unsigned char *tm) {
   void *t = *(void **)(tm + 48);
   if (t) {
     int ty = ((int (*)(void *))VSLOT(t, 1))(t);
+    if (ty == 0 && *(int *)((unsigned char *)t + 24) > 1) {
+      /* COBBTree node 1 is never used: the builder writes only its iParent (+60) and nTris
+       * (+68); the rest is uninitialised heap. Zero it so dumps are reproducible (the port's
+       * node 1 is zero there). */
+      unsigned char *n1 = *(unsigned char **)((unsigned char *)t + 16) + 72;
+      int ip = *(int *)(n1 + 60), nt1 = *(int *)(n1 + 68);
+      memset(n1, 0, 72);
+      *(int *)(n1 + 60) = ip;
+      *(int *)(n1 + 68) = nt1;
+    }
+    if (ty == 1) {
+      /* CAABBTree: node 1 is never used (only its nTris byte +10 is written) and byte +11 of
+       * internal nodes is uninitialised heap; zero them for reproducible dumps. */
+      int nn = *(int *)((unsigned char *)t + 24);
+      unsigned char *nodes = *(unsigned char **)((unsigned char *)t + 16);
+      if (nn > 1) { unsigned char nt1 = nodes[12 + 10]; memset(nodes + 12, 0, 12); nodes[12 + 10] = nt1; }
+      for (int i = 0; i < nn; i++) if (nodes[12 * i + 10] == 0) nodes[12 * i + 11] = 0;
+    }
     P1cStream *s = p1c_stream_write(0);
     ((void (*)(void *, P1cStream *))VSLOT(t, 21))(t, s);
     printf("tree %d ", ty);
