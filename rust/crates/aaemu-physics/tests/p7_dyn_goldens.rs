@@ -54,3 +54,4 @@ golden!(p7_many_bodies, "p7_many_bodies");
 golden!(exp_buoyancy_same_step, "exp_buoyancy_same_step");
 golden!(p1a_float, "p1a_float");
 golden!(p7_ray_part, "p7_ray_part");
+golden!(p7_rays_dynamic, "p7_rays_dynamic");
