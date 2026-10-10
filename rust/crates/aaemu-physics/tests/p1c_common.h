@@ -238,6 +238,14 @@ static void p1c_mesh_dump(unsigned char *tm) {
       *(int *)(n1 + 60) = ip;
       *(int *)(n1 + 68) = nt1;
     }
+    if (ty == 1) {
+      /* CAABBTree: node 1 is never used (only its nTris byte +10 is written) and byte +11 of
+       * internal nodes is uninitialised heap; zero them for reproducible dumps. */
+      int nn = *(int *)((unsigned char *)t + 24);
+      unsigned char *nodes = *(unsigned char **)((unsigned char *)t + 16);
+      if (nn > 1) { unsigned char nt1 = nodes[12 + 10]; memset(nodes + 12, 0, 12); nodes[12 + 10] = nt1; }
+      for (int i = 0; i < nn; i++) if (nodes[12 * i + 10] == 0) nodes[12 * i + 11] = 0;
+    }
     P1cStream *s = p1c_stream_write(0);
     ((void (*)(void *, P1cStream *))VSLOT(t, 21))(t, s);
     printf("tree %d ", ty);
