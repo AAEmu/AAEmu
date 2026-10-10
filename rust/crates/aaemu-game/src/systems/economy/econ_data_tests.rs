@@ -1165,3 +1165,33 @@ fn real_compact_db_items_and_loot() {
     }
     assert_eq!(rolled, 3325);
 }
+
+#[test]
+fn item_proc_checks_mirror_the_csharp() {
+    let mut d = ItemData::default();
+    d.item_procs.insert(
+        4,
+        crate::data::items::ItemProcTemplate {
+            id: 4,
+            skill_id: 900,
+            chance_rate: 30,
+            cooldown_sec: 10,
+            ..Default::default()
+        },
+    );
+    let p = crate::models::item::ItemProc::new(4);
+    assert_eq!(p.apply(&d, 0, false, || 30), Some(900));
+    assert_eq!(p.apply(&d, 0, false, || 31), None);
+    // ignoreRoll never procs (C# condition is inverted)
+    assert_eq!(p.apply(&d, 0, true, || 0), None);
+    let cooling = crate::models::item::ItemProc {
+        last_proc_ms: 5_000,
+        ..p
+    };
+    assert_eq!(cooling.apply(&d, 14_999, false, || 0), None);
+    assert_eq!(cooling.apply(&d, 15_000, false, || 0), Some(900));
+    assert_eq!(
+        crate::models::item::ItemProc::new(5).apply(&d, 0, false, || 0),
+        None
+    );
+}

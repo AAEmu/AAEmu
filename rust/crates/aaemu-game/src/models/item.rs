@@ -27,7 +27,12 @@ pub mod detail_type {
     pub const UCC: u8 = 4;
     pub const TREASURE: u8 = 5;
     pub const BIG_FISH: u8 = 6;
+    pub const DECORATION: u8 = 7;
     pub const MUSIC_SHEET: u8 = 8;
+    pub const GLIDER: u8 = 9;
+    pub const SLAVE_EQUIPMENT: u8 = 10;
+    pub const LOCATION: u8 = 11;
+    pub const TYPE_MAX: u8 = 12;
 }
 
 /// `ItemFlag.SoulBound`.
@@ -865,6 +870,46 @@ impl Item {
     /// `Item.CompareTo` (by slot).
     pub fn cmp_slot(&self, other: &Item) -> std::cmp::Ordering {
         self.slot.cmp(&other.slot)
+    }
+}
+
+/// `ItemProc` (runtime proc of an equipped item; the skill cast itself is the skills
+/// subsystem's `new Skill(Template.SkillTemplate).Use(owner, unitCaster, doodadTarget)`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ItemProc {
+    pub template_id: u32,
+    /// `LastProc` (unix milliseconds, 0 = `DateTime.MinValue`; the C# never updates it).
+    pub last_proc_ms: i64,
+}
+
+impl ItemProc {
+    pub fn new(template_id: u32) -> Self {
+        Self {
+            template_id,
+            last_proc_ms: 0,
+        }
+    }
+
+    /// The checks of `ItemProc.Apply(owner, ignoreRoll)`: `Some(skill_id)` when the proc skill
+    /// must be used. `roll` = `Random.Shared.Next(0, 100)` (only drawn when `ignore_roll` is
+    /// false). C# quirks mirrored: `ignoreRoll == true` never procs, and `LastProc` is never set.
+    /// `None` too where the C# throws (unknown proc template).
+    pub fn apply(
+        &self,
+        data: &ItemData,
+        now_ms: i64,
+        ignore_roll: bool,
+        roll: impl FnOnce() -> i32,
+    ) -> Option<u32> {
+        let t = data.item_proc(self.template_id)?;
+        // DateTime.MinValue.AddSeconds(cooldown) is always in the past.
+        if self.last_proc_ms > 0 && now_ms < self.last_proc_ms + i64::from(t.cooldown_sec) * 1000 {
+            return None;
+        }
+        if ignore_roll || i64::from(roll()) > i64::from(t.chance_rate) {
+            return None;
+        }
+        Some(t.skill_id)
     }
 }
 
