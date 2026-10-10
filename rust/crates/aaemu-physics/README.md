@@ -5,9 +5,10 @@ A Rust port of **CryPhysics**, the physics engine inside the ArcheAge zone serve
 `cryphysics.dll` (see [`docs/physics/CRYPHYSICS-MAP.md`](../../docs/physics/CRYPHYSICS-MAP.md) §2).
 It will replace the Jitter2-subset ship physics in `aaemu-game/src/systems/ai/physics/`.
 
-Status: **P0 (math, primitives, parameter interface, world defaults) and PT (oracle tooling)
-are done.** Everything else is a stub with its owner, sources and addresses noted in the module
-docs.
+Status: **P0, PT, P1a (primitive geometries), P1b (BV trees), P1c (`CTriMesh`, `CHeightfield`,
+the generic `CGeometry::Intersect` with its tree traversals and the mesh side of collision),
+P2a and P2b are done.** The world, entities and solver (P3+) are stubs with their owner,
+sources and addresses noted in the module docs.
 
 ## Fidelity policy
 

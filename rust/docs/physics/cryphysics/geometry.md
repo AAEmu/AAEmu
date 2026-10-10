@@ -1145,3 +1145,29 @@ Arguments: `(wd, epicenter, k, rmin, …, P&[, L&])`. The caller was not found.
   culls cells by the max corner height; the DrawRayOnGrid limit applies to the local direction.
 - **BV slots 9/11** never write the record's type word; the static initialiser 0x35153F10 sets
   it to 2 once per caller.
+
+## Corrections from the P1c mesh / intersection port (bit-exact against the DLL)
+
+- **Who registers a contact (§3.4):** the traversal calls slot 54 on the geometry with the
+  **lower** `+20` priority (A on ties) and runs `INTERSECT[low][high]` in that order. Mesh vs
+  primitive: the mesh registers (`CTriMesh` 0x351D3950); ray vs anything: the ray (0x3519A380);
+  mesh vs mesh: A. `CGeometry::RegisterIntersection` 0x3514F3F0 is never reached from a mesh
+  or heightfield pair.
+- **After the traversal** `CGeometry::Intersect` mirrors every contact to A's point of view when
+  B registered (n, dir negated, `pt` moved back by `t`, area normal / id arrays swapped,
+  `id[0]` moved to `id[1]` as a *signed byte*), then selection-sorts the contacts by `t`,
+  **largest first** (sign of `(float)(t_i − t_j)`).
+- **Recentring:** before the traversal both gtests are translated so that B's offset is the
+  origin (sub_3514EFB0, double subtraction), and the offset is added back to points, centres,
+  borders and area points at the end (double addition).
+- **Start nodes:** the traversal starts from `gwd+88` of A/B only when their *sum* is non-zero,
+  and restarts from the roots when that gave no contact.
+- **Zero-velocity sweeps** are turned off by writing `v = (0,0,1)` into gwd A and
+  `vrel_min = 0` into the caller's params (through const pointers).
+- **Primitive slot 56 (box):** a thin box (min half-size·8 < max) is grown away from the other
+  side's outside pivot by its largest half-size (signed pivot tests).
+- **Mesh slot 56:** id −1 triangles are skipped; with an outside pivot only triangles facing
+  away from it are kept; `bLocal = −1` (sweep traversal) lists every triangle without tests.
+- **Probe dumps:** `CAABBTree` node 1 (except nTris), byte +11 of internal AABB nodes and
+  `COBBTree` node 1 (except iParent / nTris) are never written by the builders (heap garbage
+  in saved trees; the P1c probe zeroes them for reproducible dumps).
