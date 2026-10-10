@@ -12,6 +12,7 @@ pub mod doodad;
 pub mod gimmick;
 pub mod house;
 pub mod item;
+pub mod item_task;
 pub mod mate;
 pub mod movement;
 pub mod npc;

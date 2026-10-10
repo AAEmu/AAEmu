@@ -14,7 +14,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
-use aaemu_commons::{Marshal, PacketStream};
+use aaemu_commons::PacketStream;
 use futures::future::BoxFuture;
 use serde::Deserialize;
 
@@ -24,10 +24,7 @@ use crate::data::GameDataError;
 use crate::error::Result;
 use crate::models::container::equip_slot;
 use crate::net::connection::GameConnection;
-use crate::net::packet::LEVEL_PLAIN;
 use crate::net::registry::{ClientPacket, PacketRegistry};
-use crate::opcodes::{cs, sc};
-use crate::packets::packet_def;
 use crate::packets::world::SCErrorMsgPacket;
 use crate::server::GameServer;
 use crate::systems::DataLoadCtx;
@@ -914,54 +911,16 @@ impl CSSpecialtyRecordLoadPacket {
 }
 
 /// C->S packets (`GameNetwork` 1.2 registrations).
-pub fn register(reg: &mut PacketRegistry) {
-    reg.register::<CSSellBackpackGoodsPacket>(LEVEL_PLAIN, cs::CSSellBackpackGoodsPacket);
-    reg.register::<CSSpecialtyRatioPacket>(LEVEL_PLAIN, cs::CSSpecialtyRatioPacket);
-    reg.register::<CSListSpecialtyGoodsPacket>(LEVEL_PLAIN, cs::CSListSpecialtyGoodsPacket);
-    reg.register::<CSRequestSpecialtyCurrentPacket>(
-        LEVEL_PLAIN,
-        cs::CSRequestSpecialtyCurrentPacket,
-    );
-}
+/// The specialty C->S packets (`CSSellBackpackGoods`, `CSSpecialtyRatio`, `CSListSpecialtyGoods`,
+/// `CSRequestSpecialtyCurrent`) are registered by `systems::economy::specialty` (it owns the
+/// inventory / mail side of the sale); one handler per opcode.
+pub fn register(_reg: &mut PacketRegistry) {}
 
-/// `SCSpecialtyRatioPacket(ratio)`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SCSpecialtyRatioPacket {
-    pub ratio: i32,
-}
-packet_def!(
-    SCSpecialtyRatioPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCSpecialtyRatioPacket
-);
-impl Marshal for SCSpecialtyRatioPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_i32(self.ratio);
-    }
-}
+/// `SCSpecialtyRatioPacket`: one definition per opcode (`crate::systems::economy::specialty::SCSpecialtyRatioPacket`).
+pub use crate::systems::economy::specialty::SCSpecialtyRatioPacket;
 
-/// `SCSpecialtyCurrentPacket(fromZoneGroup, toZoneGroup, results)`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SCSpecialtyCurrentPacket {
-    pub from_zone_group: u16,
-    pub to_zone_group: u16,
-    pub results: Vec<(u32, u32)>,
-}
-packet_def!(
-    SCSpecialtyCurrentPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCSpecialtyCurrentPacket
-);
-impl Marshal for SCSpecialtyCurrentPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_i32(self.results.len() as i32)
-            .write_u16(self.from_zone_group)
-            .write_u16(self.to_zone_group);
-        for (item_id, rate) in &self.results {
-            s.write_u32(*item_id).write_u32(*rate);
-        }
-    }
-}
+/// `SCSpecialtyCurrentPacket`: one definition per opcode (`crate::systems::economy::specialty::SCSpecialtyCurrentPacket`).
+pub use crate::systems::economy::specialty::SCSpecialtyCurrentPacket;
 
 #[cfg(test)]
 mod tests;

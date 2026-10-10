@@ -111,8 +111,8 @@ systems::{skills, npcs, economy, social, quests}: Data (tables), System (manager
 | `Core/Managers/ExperienceManager` (+ `SqliteExperienceLevelTemplateLoader`) | `data/experience.rs` | partial | Loader validation, level caps, GetExpForLevel, GetLevelFromExp (both overloads), GetSkillPointsForLevel. Mate/exp-loss helpers todo. |
 | `Core/Managers/Id/*` (`IdManager`, `BitSet`, `PrimeFinder`) | `managers/id.rs` | done | Every C# id manager (incl. `distinct` for FamilyIdManager) with the C# allocation algorithm and DB seeding; `UccIdManager` in `stream/ucc.rs`. The static `SkillTlIdManager` is the skills subsystem's. |
 | `Core/Managers/NameManager` | `managers/name.rs` | done | Load, ValidateCharacterName (regex from `CharacterNameRegex`), Add/Remove, NormalizeName. |
-| `Core/Managers/ItemManager` (templates + user items) | `data/items.rs`, `managers/item.rs`, `models/item.rs`, `models/container.rs` | partial | Item templates of every class (durability / slot / bind / stack data), grades, item config; LoadUserItems (all containers and items in memory), GetItemContainerForCharacter, Create (subclass ctor incl. MaxDurability and the plain-Item fallback), ReleaseId, Save (dirty containers/items, deleted rows). Loot, enchanting, sets, procs, timers, item tasks todo. |
-| `Models/Game/Items/Containers` (ItemContainer, EquipmentContainer) | `models/container.rs` | partial | Slots, GetUnusedSlot, AddOrMoveExistingItem for new items (stacking, equipment slot rules, CanAccept), AcquireDefaultItem, ApplyBindRules, GetSlottedItemsList. Moving between containers, consuming, item task packets todo. |
+| `Core/Managers/ItemManager` (templates + user items) | `data/items.rs`, `managers/item.rs`, `models/item.rs`, `models/container.rs` | done | See `systems::economy`. |
+| `Models/Game/Items/Containers` (ItemContainer, EquipmentContainer, MateEquipmentContainer, CofferContainer, LootingContainer) | `models/container.rs`, `systems/economy/looting.rs` | done | See `systems::economy`. |
 | `Core/Managers/UnitManagers/CharacterManager` | `data/character_templates.rs`, `managers/character.rs`, `db_character.rs` | partial | Load (templates, body parts, buffs, supplies, equip packs, appellations, actabilities, expert limits, CharTemplates.json), Create, SetDeleteCharacter, SetRestoreCharacter, CheckForDeletedCharacters(+Deletion) with the delete task, IsCharacterPendingDeletion, LoadCharacters. Bag expands, beauty salon, rolls, online tracking todo. |
 | `Models/Game/Char` (Character, Inventory, Abilities, Actability, Skills, Appellations, Portals, Friends, Blocked, Quests (rows), VisualOptions, ActionSlot) | `models/character.rs`, `models/char_data.rs`, `db_character.rs` | partial | Character.Load (both variants' columns), Character.Load() sub-loads, Save / SaveDirectlyToDatabase (characters, options, abilities, actabilities, appellations, active buffs, portals, friends, blocked, skills, quests), Write, CheckWantedThreshold (buffs + pirate faction). Mates, craft, combat, events todo. |
 | `Models/Game/Units/Buffs`, `Models/Game/Skills/Buff` | `models/buff.rs`, `systems/mod.rs` | partial | Indices, stack rules, GetAllBuffs, CheckBuff(s), GetEffectByIndex / FromBuffId, GetBuffCountById, RemoveBuff / RemoveEffect (index, template+skill) / RemoveAllEffects, persistence (SaveActiveBuffs / LoadActiveBuffs), the NetBuff wire format and `BuffEvent`s (started / refreshed / removed) dispatched to `systems::UnitHooks`. Effects (`Start` / `Dispel`), tolerance, triggers, `TriggerRemoveOn`, tag checks, timers, buff packets: skills subsystem. |
@@ -139,7 +139,7 @@ systems::{skills, npcs, economy, social, quests}: Data (tables), System (manager
 | `Core/Managers/TimedRewardsManager` | – | todo | Daily login + offline labor on enter (called from AccountManager.Add). |
 | `Core/Managers/HousingManager`, `Models/Game/Housing` | – | todo | Needed for `Connection.Houses` / `SCLoginCharInfoHouse` / `SCMyHouse`. |
 | `Core/Managers/CrimeManager` | `db_character.rs` | partial | CheckWantedThreshold thresholds only. |
-| Other `Core/Managers/*` (AI, AccessLevel, Animation, Auction, CashShop, Command, Craft, Duel, EffectTask, ExpressText, Family, FishSchool, Gimmick, Indun, InstantGame, Mail, ManaRegen, Mate, Model, Music, Plot, PublicFarm, Quest, Radar, Shipyard, Slave, SubZone, Sus, Task/Tick, Taxations, Team, Trade, Trial; World: Spawn, AreaTrigger, Physics, Specialty, SphereQuest) | – | todo | |
+| Other `Core/Managers/*` (AI, AccessLevel, Animation, Command, Duel, EffectTask, ExpressText, Family, FishSchool, Gimmick, Indun, InstantGame, ManaRegen, Mate, Model, Music, Plot, PublicFarm, Quest, Radar, Shipyard, Slave, SubZone, Sus, Task/Tick, Team, Trial; World: Spawn, AreaTrigger, Physics, SphereQuest) | – | todo | |
 | `Models/Game/Units/UnitCustomModelParams` | `models/unit_model.rs` | done | |
 | `Models/Game/Units/Movements` (MoveType hierarchy) + `MathUtil` direction helpers | `models/movement.rs` | done | Default / Unit / Vehicle / Ship / ShipRequest / Transfer, byte-exact read/write (all actor-flag combinations tested). |
 | `Models/AccountPayment`, `Models/Account` | `net/connection.rs`, `db.rs` | done | |
@@ -192,9 +192,30 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 
 ### systems::economy
 
+Layering: `models::item_task` (`ItemTask`, `ItemTaskType`, recorded effects `ItemFx`) →
+`models::container` (container operations, pure, under the container locks) →
+`systems::economy::inventory` (`ItemTxn`: economy operation lock + effect flush in C# order,
+`Inv`, `Out` queue for character packets) → feature modules. Other subsystems plug in through
+hook slots (`server.systems.economy.hooks.{quests,gear,progression,npcs,summons}`,
+`loot.hooks`, `craft.hooks`, `mail.hooks.housing`, `cash_shop.{quests,db}`; internal slots are
+connected by `systems::economy::wiring`).
+
 | Area (C#) | Rust | Status | Notes |
 |---|---|---|---|
-| Item actions / tasks, craft, loot, mail, auction, trade, cash shop | `systems/economy/` | todo | |
+| `Models/Game/Items/Actions/*` (every `ItemTask`, `ItemAction`, `ItemTaskType`), `SCItemTaskSuccessPacket`, `SCSyncItemLifespanPacket`, `SCUnitEquipmentsChangedPacket`, `SCInvenExpandedPacket`, `SCGamePointChangedPacket`, `SCCharacterLaborPowerChangedPacket` | `models/item_task.rs`, `systems/economy/item_packets.rs` | done | Tasks snapshot the item when created (the C# encodes on `SendPacket`). |
+| `ItemContainer`, `EquipmentContainer`, `MateEquipmentContainer`, `CofferContainer` | `models/container.rs` | done | `AddOrMoveExistingItem` (new / moved / same container), `RemoveItem`, `ConsumeItem`, `AcquireDefaultItem(Ex)` (timers, charges, crafter), `SpaceLeftForItem`, `ApplyBindRules`, `Wipe`, `ReNumberSlots`, coffer `CanAccept`, `OnEnter/LeaveContainer` events. |
+| `Inventory` (SplitOrMoveItem(Ex), 2H weapon handling, backpacks, ExpandSlot, coffers, ConsumeItem, counts), `Character` money / game points / labor / `ItemUse` / `SendErrorMessage`, `ErrorMessageType` | `systems/economy/inventory.rs`, `error_message.rs` | done | `ChangeLabor`'s `AddExp` is a hook (`ProgressionHooks`). |
+| Core item C2G (`CSSwapItems`, `CSSplitBagItem`, `CSDestroyItem`, `CSExpandSlots`, `CSDeposit/WithdrawMoney`, `CSSplit/SwapCofferItem(s)`, `CSItem(Un)Secure`, `CSEquipments(Un)Secure`, `CSThisTimeUnpackItem`) | `systems/economy/item_handlers.rs` | done | |
+| `ItemManager` (all templates / tables, user items, `Create`, timers, `UnwrapItem`, auction search helpers, loot convert fish), `ItemGameData`, `ItemConversionGameData`, `FishDetailsGameData`, item model stats (durability, repair cost, attributes, DPS, armor), procs | `data/items.rs`, `managers/item.rs`, `models/item.rs`, `systems/economy/{items_data,item_timers}.rs` | done | `ItemManager` lists are leaf locks (snapshot before locking containers). |
+| `LootGameData`, `Models/Game/Items/Loots/**`, `LootingContainer`, loot packets | `systems/economy/{loot_data,loot,looting,loot_packets}.rs` | done | NPC death / despawn / team rules through `LootNpcHooks`, `LootTeamHooks`, `LootQuestHooks`. |
+| Repair (`Character.DoRepair`, `CSRepairSingleEquipment`, `CSRepairAllEquipments`), durability loss | `systems/economy/repair.rs` | done | Combat calls `on_damage_taken` / `on_death`. |
+| `CraftManager`, `Models/Game/Crafts`, `CharacterCraft`, `CraftTask`, `CSExecuteCraft`, `SCCraftFailed` | `systems/economy/{craft,craft_data}.rs` | done | Cast through `CraftHooks::start_craft_cast`; skills call `craft::end_craft`. |
+| Stores (`CSBuyItems`, `CSSellItems`, buy-back, `CSListSoldItem`, `CSBuyPriestBuff`, `CSBuyCoinItem`, `CSSellBackpackGoods`), `SpecialtyManager`, `TaxationsManager`, `ExpandExpert`, item look conversion | `systems/economy/{store,store_data,specialty}.rs` | done | Merchant packs / NPC flags through `NpcEconomyHooks`. |
+| `MailManager`, `Models/Game/Mails/**`, `CharacterMails`, mail packets | `systems/economy/{mail,mail_character,mail_kinds,mail_packets,mail_data}.rs` | done | Saved in `SaveStage::BeforeItems`; housing tax through `MailHousingHooks`. |
+| `AuctionManager`, `Models/Game/Auction/**`, auction packets | `systems/economy/{auction,auction_data,auction_packets}.rs` | done | Saved in `SaveStage::AfterItems`; results mailed through `wiring`. |
+| `TradeManager`, trade packets | `systems/economy/trade.rs` | done | |
+| `CashShopManager`, `Models/Game/CashShop/**`, ICS / premium packets | `systems/economy/cash_shop.rs` | done | Gifts by `CommercialMail` (`wiring`); account credits SQL behind `CashShopDb`. |
+| Item skill-effect bodies (grade enchant, socketing, conversion, cap scale, UCC imprint, ...), mate / slave equipment packets | `systems/economy/item_effects*.rs` | done | Called by the skills subsystem's effects. |
 
 ### systems::social
 
@@ -269,12 +290,32 @@ Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.init
   analysis and `LastPacketActivityTime` (inactivity kick) are later phases.
 * `LeaveAllChannels` iterates channels in key order (C# `ConcurrentDictionary` order is
   unspecified). Trial channels do not exist.
-* `ItemContainer.ApplyBindRules` / `OnEnterContainer` packets (`SCItemTaskSuccess`,
-  `SCUnitEquipmentsChanged`) are not sent; in this phase they only happen without a connection or
-  outside the world, where the C# sends nothing either.
 * The C# keeps `Connection.Characters[id]` and `ActiveChar` as the same object; Rust copies the
   active character back into the lobby list when `LeaveWorldTask` runs.
 * Combat / slave logout delays (x30, +10 min) are not applied (no combat state / slaves).
+* systems::economy: item operations are serialised by the economy operation lock (`ItemTxn`) and
+  their packets / quest events are flushed after the container locks are released, in the C#
+  order; character packets sent during an operation go through the same queue (`Out`).
+* systems::economy: `AddOrMoveExistingItem` with the item's own container as target relocates the
+  item (the C# inserts the same object a second time into `Items`). `SplitOrMoveItemEx` looks up
+  the source / target items in the two containers only (the C# `GetItemByItemId` searches every
+  item; an item in a third container is treated as a phantom item). Where the C# throws
+  (`KeyNotFoundException`, `NullReferenceException`, `AcquireDefaultItem` failure), the port logs
+  and aborts the operation; `Wipe` drops an item `CanDestroy` refuses instead of looping forever.
+* systems::economy: `GameStreamWorld.change_money` / `grant_ucc_item` (stream server) still change
+  the money / bag without item task packets (`GameStreamWorld` has no `GameServer`; wiring it needs
+  a `main.rs` change).
+* systems::economy: trade items are kept by id (an item no longer in the giver's containers or put
+  up twice is an error); a missing trade partner is ignored instead of half-applying the change.
+* systems::economy: auction lots are enumerated in id order (`ConcurrentDictionary` order in C#),
+  search / cheapest lot skip lots whose item or template is missing; mails are kept in a map that
+  reproduces the C# `Dictionary` enumeration order; mail dates are whole unix seconds.
+* systems::economy: `CSSetCraftingPayPacket`, `CSChangeItemLookPacket`, `CSSpecialtyRecordLoadPacket`,
+  `CSBuySpecialtyItemPacket`, `CSReturnMailPacket` have no 1.2 opcode (0xfff): decoders exist, the
+  1.2 client never sends them. The specialty / trade-pack mail delay use the C# defaults (no
+  `Specialty` config section yet).
+* systems::economy: the localized item names are loaded by four modules (items search, auction,
+  mail, cash shop); a later cleanup can share one cache.
 
 * systems::quests: rewards, items, money, exp, skills, NPC faction, teams, mails go through
   `quests::hooks::QuestHooks` (no-op defaults until the owning subsystems install theirs).
@@ -407,3 +448,31 @@ Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.init
 * `systems::npcs`: a generated (fake) spawner's first member never spawns; the "spawn all" schedule check is inverted; `DoRandomSpawn` leaks an obj id and spawns twice; a doodad despawn may release its obj id twice; gimmick spawn rotations are not converted from degrees; scheduled doodad spawns stack cron tasks; the player-in-radius check scans every player; NPCs are not despawned when players leave.
 * `systems::npcs`: dated game schedules compare `StartTime` / `EndTime` (usually 0) instead of the start / end hours (a one-day event counts as ended at 00:00); the cron builder tests the captured day of week instead of its parameter, and undated schedules produce day / month 0 (rejected by the cron parser); `VendorExist` reads the `id` column; deleting a portal sends no packet; `NotifySubZone` re-sends the portal book once per recall portal of the sub zone; the exit portal's yaw is the book rotation in degrees.
 * `systems::npcs`: `DoodadFuncLootItem` with coins (item 500) and `DoodadFuncBuyFish` add the money twice; a trade pack whose backpack take-off fails still counts as looted; `CheckGrowth` runs funcs with `nextPhase = 0`; some `doodad_func_*` loaders store templates in the phase dictionary (e.g. `DoodadFuncBuyFishItem`), mirrored; `DoodadPhaseFunc.PulseTriggered` is state shared by every doodad of the group.
+* systems::economy: `AddOrMoveExistingItem` merging an item from another container into a stack
+  removes it from the source without releasing it (the DB row stays); it is kept as a loose item.
+  The mail branch of the acquire / consume events reads `item.SlotType` after it was overwritten,
+  so moving an item into a mail container raises no quest event.
+* systems::economy: `SplitOrMoveItemEx` gives the split item owner 0, assigns the *source* owner to
+  the moved source item and passes `fromSlot` as the previous slot of the target item's leave
+  event; `CSWithdrawMoneyPacket` reports `ItemTaskType.DepositMoney`; `ExpandSlot` never sends its
+  `MoneyChange` task.
+* systems::economy: `BindType.HasFlag(...)` on the plain `ItemBindType` enum is a bit test
+  (`BindOnUnpack` matches 4..7, `BindOnEquip` matches 3 and 7); mirrored.
+* systems::economy: `CSBuyItems` refuses only when money, honor *and* vocation are all short;
+  `ExpandExpert` adds the vocation cost; craft / backpack / weapon booleans read as numbers are
+  false for `'t'` texts; `Specialty.VendorExist` reads the `id` column.
+* systems::economy: loot dice pick the lowest positive roll; looting allocates a new item id that
+  is never released; `ItemProc` `ignoreRoll` never procs; `HDps` uses the magic DPS grade value;
+  fish conversion only uses the first pack.
+* systems::economy: auction — anyone can cancel a lot without bids, cancel mails a new copy while
+  the listed item stays in the auction container, posting fees / bids do not check the balance,
+  the "ExpireDate" sort uses `PostDate`, a buyout sends no `SCAuctionBidPacket`.
+* systems::economy: mail — no ownership check on read / take / delete by id (only
+  `CSTakeAttachmentSequentially` checks), opening the mailbox re-sends a "got mail" per unread mail,
+  `ReturnMail` fails on mails with fewer than 10 attachments, `FinalizeForBidFail` uses
+  `AucOffFail`, receiver lookup is case-sensitive.
+* systems::economy: trade — `OkTrade` proceeds when only one side locked, the put-up amount is only
+  checked (the whole item changes hands), negative money put-ups are accepted, trade ids are never
+  released, the owner's `ItemRemove` in `SCTradeMade` names the receiver's slot.
+* systems::economy: cash shop — loyalty is charged at the undiscounted price, the max-level check
+  sends the low-level error, page 0 behaves like page 1.

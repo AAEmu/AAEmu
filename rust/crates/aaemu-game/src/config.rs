@@ -207,6 +207,23 @@ pub struct WorldConfig {
     /// party / raid members in range) of a killed NPC.
     #[serde(rename = "tagshareenabled", deserialize_with = "lenient")]
     pub tag_share_enabled: bool,
+    // ---- phase 3 / economy ----
+    #[serde(rename = "honorrate", deserialize_with = "lenient")]
+    pub honor_rate: f64,
+    #[serde(rename = "vocationrate", deserialize_with = "lenient")]
+    pub vocation_rate: f64,
+    #[serde(rename = "lootrate", deserialize_with = "lenient")]
+    pub loot_rate: f64,
+    #[serde(rename = "goldlootmultiplier", deserialize_with = "lenient")]
+    pub gold_loot_multiplier: f64,
+    #[serde(rename = "daysfortaxpayment", deserialize_with = "lenient")]
+    pub days_for_tax_payment: u32,
+    #[serde(rename = "actabilityrate", deserialize_with = "lenient")]
+    pub actability_rate: f64,
+    #[serde(rename = "pvedurabilitylossrate", deserialize_with = "lenient")]
+    pub pve_durability_loss_rate: f32,
+    #[serde(rename = "pvpdurabilitylossrate", deserialize_with = "lenient")]
+    pub pvp_durability_loss_rate: f32,
 }
 
 impl Default for WorldConfig {
@@ -221,6 +238,14 @@ impl Default for WorldConfig {
             pre_load_terrain: false,
             growth_rate: 1.0,
             tag_share_enabled: false,
+            honor_rate: 1.0,
+            vocation_rate: 1.0,
+            loot_rate: 1.0,
+            gold_loot_multiplier: 1.0,
+            days_for_tax_payment: 7,
+            actability_rate: 1.0,
+            pve_durability_loss_rate: 1.0,
+            pvp_durability_loss_rate: 1.0,
         }
     }
 }

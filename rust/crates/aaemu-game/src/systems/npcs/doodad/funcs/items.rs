@@ -1,18 +1,12 @@
 //! Item / loot funcs: `DoodadFuncLootItem`, `LootPack`, `RecoverItem`, `RemoveItem`,
 //! `Purchase`, `BuyFish`, `ConvertFish`, `ConsumeChanger`.
 
-use aaemu_commons::{Marshal, PacketStream};
-
 use super::{
     economy, error_message as err, is_player, item_task, random_next, send_error,
     set_to_next_phase, ITEM_COINS,
 };
 use crate::models::container::{equip_slot, slot_type};
 use crate::models::doodad::doodad_owner_type;
-use crate::models::item::Item;
-use crate::net::packet::LEVEL_PLAIN;
-use crate::opcodes::sc;
-use crate::packets::packet_def;
 use crate::systems::npcs::doodad::runtime::DoodadCtx;
 use crate::systems::npcs::doodad::templates::{
     DoodadFuncBuyFish, DoodadFuncConsumeChanger, DoodadFuncLootItem, DoodadFuncLootPack,
@@ -20,31 +14,8 @@ use crate::systems::npcs::doodad::templates::{
 };
 use crate::world::{PlayerRef, WorldObject};
 
-/// `SCUnitEquipmentsChangedPacket(objId, slot, item)` (one slot).
-#[derive(Debug, Clone, PartialEq)]
-pub struct SCUnitEquipmentsChangedPacket {
-    pub obj_id: u32,
-    pub items: Vec<(u8, Option<Item>)>,
-}
-packet_def!(
-    SCUnitEquipmentsChangedPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCUnitEquipmentsChangedPacket
-);
-impl Marshal for SCUnitEquipmentsChangedPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_bc(self.obj_id).write_u8(self.items.len() as u8);
-        for (slot, item) in &self.items {
-            s.write_u8(*slot);
-            match item {
-                Some(i) => i.write(s),
-                None => {
-                    s.write_i32(0);
-                }
-            }
-        }
-    }
-}
+/// `SCUnitEquipmentsChangedPacket`: one definition per opcode (`crate::systems::economy::item_packets::SCUnitEquipmentsChangedPacket`).
+pub use crate::systems::economy::item_packets::SCUnitEquipmentsChangedPacket;
 
 /// `Inventory.GetEquippedBySlot(Backpack)`: (item id, template id).
 fn equipped_backpack(player: &PlayerRef) -> Option<(u64, u32)> {

@@ -6,9 +6,14 @@
 //! subclass constructors) and `Item.Write`. Gameplay behaviour (stats, repair cost, expiration
 //! timers, ...) is a later phase.
 
+use std::collections::HashMap;
+
 use aaemu_commons::{Marshal, PacketStream};
 
-use crate::data::items::{bind_type, ItemData, ItemTemplate, TemplateKind};
+use crate::data::formulas::{Formula, FormulaManager, WearableFormulaType};
+use crate::data::items::{
+    bind_type, FullGradeTemplate, Holdable, ItemData, ItemTemplate, TemplateKind,
+};
 
 /// Unix seconds, already clamped like `Helpers.UnixTime(DateTime)` (anything before the epoch is 0).
 pub type UnixTime = i64;
@@ -22,7 +27,12 @@ pub mod detail_type {
     pub const UCC: u8 = 4;
     pub const TREASURE: u8 = 5;
     pub const BIG_FISH: u8 = 6;
+    pub const DECORATION: u8 = 7;
     pub const MUSIC_SHEET: u8 = 8;
+    pub const GLIDER: u8 = 9;
+    pub const SLAVE_EQUIPMENT: u8 = 10;
+    pub const LOCATION: u8 = 11;
+    pub const TYPE_MAX: u8 = 12;
 }
 
 /// `ItemFlag.SoulBound`.
@@ -154,9 +164,15 @@ pub struct ItemDetails {
     pub slave_type: u8,
     pub slave_db_id: u32,
     pub slave_is_destroyed: u8,
+    /// `SummonSlave.RepairStartTime` (0 = `MinValue`; never restored from the DB, see
+    /// `ReadDetails`).
+    pub slave_repair_start_time: UnixTime,
     // TreasureMap
     pub map_position_x: i64,
     pub map_position_y: i64,
+    // BigFish (in memory only: `ReadDetails` discards them)
+    pub fish_weight: f32,
+    pub fish_length: f32,
 }
 
 /// One row of the `items` table plus the template facts the wire format depends on.
@@ -227,13 +243,18 @@ impl Item {
     /// `item.Template.FixedGrade`, here the DB grade is kept and `BindType` is treated as not
     /// `BindOnUnpack` (documented later-phase gap).
     pub fn from_row(row: ItemRow, template: Option<&ItemTemplate>, world_id: u8) -> Self {
+        // `Type.GetType(itemType)`, falling back to the template's `ClassType` (an unknown type
+        // without a template is skipped by `LoadUserItems`; here it becomes a plain `Item`).
         let class = ItemClass::from_type_name(&row.type_name).unwrap_or_else(|| {
-            tracing::warn!(
-                "Item type {} not found for id {}! (template ClassType fallback is a later phase)",
+            let class = template.map_or(ItemClass::Item, ItemTemplate::class_type);
+            tracing::info!(
+                "Item {} defined as {} in the database is being restored using template {} with class {:?}",
+                row.id,
                 row.type_name,
-                row.id
+                row.template_id,
+                class
             );
-            ItemClass::Item
+            class
         });
         let mut item = Item {
             class,
@@ -287,6 +308,22 @@ impl Item {
         data: &ItemData,
         now: UnixTime,
     ) -> Self {
+        Self::create_ex(id, template, count, grade, world_id, data, now, None)
+    }
+
+    /// [`Item::create`] with the target `TreasureMap.GenerateTreasureMapData` picked (`None`: no
+    /// treasure chest spawners known, as with the npcs subsystem not installed).
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_ex(
+        id: u64,
+        template: &ItemTemplate,
+        count: i32,
+        grade: u8,
+        world_id: u8,
+        data: &ItemData,
+        now: UnixTime,
+        treasure: Option<TreasureMapTarget>,
+    ) -> Self {
         let mut class = template.class_type();
         let mut details = ItemDetails::default();
         if let Some(e) = template.equip() {
@@ -330,6 +367,9 @@ impl Item {
             charge_count: 0,
             dirty: true,
         };
+        if class == ItemClass::TreasureMap {
+            item.generate_treasure_map_data(treasure);
+        }
         // If item already has a default generated grade, then do not override it
         if item.grade == 0 {
             item.grade = grade;
@@ -340,7 +380,6 @@ impl Item {
         if template.fixed_grade >= 0 {
             item.grade = template.fixed_grade as u8;
         }
-        let _ = TemplateKind::Item;
         item
     }
 
@@ -430,6 +469,11 @@ impl Item {
         debug_assert!(r.is_ok());
     }
 
+    /// The subclass `WriteDetails` overrides (`ItemTask` pads these to 128 bytes).
+    pub fn write_details_to(&self, s: &mut PacketStream) {
+        self.write_details(s);
+    }
+
     /// The subclass `WriteDetails` overrides.
     fn write_details(&self, s: &mut PacketStream) {
         let d = &self.details;
@@ -454,7 +498,9 @@ impl Item {
                 s.write_u64(self.ucc_id).write_u8(0);
             }
             ItemClass::BigFish => {
-                s.write_f32(0.0).write_f32(0.0).write_i64(self.create_time);
+                s.write_f32(d.fish_weight)
+                    .write_f32(d.fish_length)
+                    .write_i64(self.create_time);
             }
             ItemClass::MusicSheetItem => {
                 s.write_u64(u64::from(d.song_id));
@@ -466,7 +512,11 @@ impl Item {
                 s.write_u8(d.slave_type)
                     .write_bc(d.slave_db_id)
                     .write_u8(d.slave_is_destroyed);
-                s.write_i32(0); // RepairStartTime == MinValue
+                if d.slave_repair_start_time == 0 {
+                    s.write_i32(0); // RepairStartTime == MinValue
+                } else {
+                    s.write_i64(d.slave_repair_start_time);
+                }
                 for _ in 0..5 {
                     s.write_i32(0);
                 }
@@ -479,6 +529,394 @@ impl Item {
             // Base Item.WriteDetails with DetailType Invalid writes nothing.
             _ => {}
         }
+    }
+}
+
+/// `ItemFlag.Secure`.
+pub const ITEM_FLAG_SECURE: u8 = 0x04;
+/// `ItemFlag.Skinized`.
+pub const ITEM_FLAG_SKINIZED: u8 = 0x08;
+/// `ItemFlag.Unpacked`.
+pub const ITEM_FLAG_UNPACKED: u8 = 0x10;
+/// `ItemFlag.AuctionWin`.
+pub const ITEM_FLAG_AUCTION_WIN: u8 = 0x20;
+
+/// The C# float literal `0.0099999998f`.
+#[allow(clippy::excessive_precision)]
+const F_001: f32 = 0.009_999_999_8f32;
+
+/// The treasure chest a new `TreasureMap` points at (`GenerateTreasureMapData`'s random pick of
+/// `SpawnManager.GetTreasureChestDoodadSpawners()`).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TreasureMapTarget {
+    /// `chest.Position.X / Y`.
+    pub x: f32,
+    pub y: f32,
+    /// `chestTemplate?.GroupId` (`None` when neither doodad template exists).
+    pub chest_group_id: Option<u32>,
+}
+
+/// Which `EquipItem` stat (`Str` / `Dex` / `Sta` / `Int` / `Spi`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EquipStat {
+    Str,
+    Dex,
+    Sta,
+    Int,
+    Spi,
+}
+
+impl Item {
+    /// `HasFlag(flag)`.
+    pub fn has_flag(&self, flag: u8) -> bool {
+        self.flags & flag == flag
+    }
+
+    /// `SetFlag(flag)` (marks the item dirty).
+    pub fn set_flag(&mut self, flag: u8) {
+        self.flags |= flag;
+        self.dirty = true;
+    }
+
+    /// `RemoveFlag(flag)` (marks the item dirty).
+    pub fn remove_flag(&mut self, flag: u8) {
+        self.flags &= !flag;
+        self.dirty = true;
+    }
+
+    /// `item is EquipItem`.
+    pub fn is_equip(&self) -> bool {
+        self.class.is_equip()
+    }
+
+    /// `TreasureMap.MapPositionX` (`_mapPositionX / 4096.0`).
+    pub fn map_position_x(&self) -> f64 {
+        self.details.map_position_x as f64 / 4096.0
+    }
+
+    /// `TreasureMap.MapPositionY`.
+    pub fn map_position_y(&self) -> f64 {
+        self.details.map_position_y as f64 / 4096.0
+    }
+
+    /// `TreasureMap.MapPositionX = value`.
+    pub fn set_map_position_x(&mut self, v: f64) {
+        self.details.map_position_x = (v * 4096.0).round_ties_even() as i64;
+    }
+
+    /// `TreasureMap.MapPositionY = value`.
+    pub fn set_map_position_y(&mut self, v: f64) {
+        self.details.map_position_y = (v * 4096.0).round_ties_even() as i64;
+    }
+
+    /// `TreasureMap.GenerateTreasureMapData()`.
+    pub fn generate_treasure_map_data(&mut self, target: Option<TreasureMapTarget>) {
+        let Some(chest) = target else {
+            // No valid location found: mark it Mythic (it will point at 0, 0).
+            self.grade = crate::data::items::item_grade::MYTHIC;
+            return;
+        };
+        self.set_map_position_x(f64::from(chest.x));
+        self.set_map_position_y(f64::from(chest.y));
+        self.grade = match chest.chest_group_id.unwrap_or(0) {
+            55 => 0,
+            56 => crate::data::items::item_grade::GRAND,
+            57 => crate::data::items::item_grade::RARE,
+            58 => crate::data::items::item_grade::ARCANE,
+            59 => crate::data::items::item_grade::HEROIC,
+            g => {
+                tracing::error!(
+                    "Generated treasure map data for chest did not have a valid category for chests ({g})"
+                );
+                crate::data::items::item_grade::LEGENDARY
+            }
+        };
+    }
+
+    /// The template if it matches this item's equipment class (the C# casts
+    /// `(ArmorTemplate)Template` etc. throw otherwise).
+    fn equip_template<'a>(&self, data: &'a ItemData) -> Option<&'a ItemTemplate> {
+        let t = data.template(self.template_id)?;
+        let ok = matches!(
+            (self.class, &t.kind),
+            (ItemClass::Armor, TemplateKind::Armor(_))
+                | (ItemClass::Weapon, TemplateKind::Weapon(_))
+                | (ItemClass::Accessory, TemplateKind::Accessory(_))
+        );
+        ok.then_some(t)
+    }
+
+    /// `EquipItem.MaxDurability` (`Armor` / `Weapon` / `Accessory` formula, 0 for any other
+    /// class). `None` where the C# throws (missing grade template, template of another class).
+    pub fn try_max_durability(&self, data: &ItemData) -> Option<u8> {
+        if !matches!(
+            self.class,
+            ItemClass::Armor | ItemClass::Weapon | ItemClass::Accessory
+        ) {
+            return Some(0);
+        }
+        let t = self.equip_template(data)?;
+        data.max_durability(t, i32::from(self.grade))
+    }
+
+    /// `EquipItem.MaxDurability` (0 where the C# would throw).
+    pub fn max_durability(&self, data: &ItemData) -> u8 {
+        self.try_max_durability(data).unwrap_or(0)
+    }
+
+    /// `EquipItem.IsNotDestroyed`.
+    pub fn is_not_destroyed(&self, data: &ItemData) -> bool {
+        self.max_durability(data) == 0 || self.details.durability > 0
+    }
+
+    /// `EquipItem.RepairCost`. `None` where the C# throws (not an equipment template, missing
+    /// grade).
+    pub fn repair_cost(&self, data: &ItemData) -> Option<i32> {
+        let template = data.template(self.template_id)?;
+        template.equip()?;
+        let grade = data.full_grade(i32::from(self.grade))?;
+        let max = self.try_max_durability(data)?;
+        // (1f - Durability * 1f / MaxDurability): float division (MaxDurability 0 -> inf / NaN)
+        let ratio = 1f32 - f32::from(self.details.durability) * 1f32 / f32::from(max);
+        let mut cost =
+            data.config.durability_repair_cost_factor * F_001 * ratio * template.price as f32;
+        cost = cost * grade.refund_multiplier as f32 * F_001;
+        cost = f64::from(cost).ceil() as f32;
+        if cost.is_nan() {
+            // Every comparison with NaN is false in C#, and (int)NaN is int.MinValue (x86).
+            return Some(i32::MIN);
+        }
+        if cost < 0.0 || cost < i32::MIN as f32 || cost > i32::MAX as f32 {
+            cost = 0.0;
+        }
+        Some(cost as i32)
+    }
+
+    /// `Armor/Weapon/Accessory.Str` etc. (0 for other classes and for `ModSetId == 0`). `None`
+    /// where the C# throws (missing modifiers / grade).
+    pub fn stat(&self, data: &ItemData, which: EquipStat) -> Option<i32> {
+        if !matches!(
+            self.class,
+            ItemClass::Armor | ItemClass::Weapon | ItemClass::Accessory
+        ) {
+            return Some(0);
+        }
+        let t = self.equip_template(data)?;
+        let e = t.equip()?;
+        if e.mod_set_id == 0 {
+            return Some(0);
+        }
+        let modifiers = data.attribute_modifiers(e.mod_set_id)?;
+        let grade = data.full_grade(i32::from(self.grade))?;
+        let c = &data.config;
+        let mut m = 1f32;
+        if modifiers.count() == 1 {
+            m = 3f32;
+        }
+        if modifiers.count() == 2 {
+            m = 1.5f32;
+        }
+        let exponent = 1f32 / (c.stat_value_const as f32 * F_001);
+        m = f64::from(m).powf(f64::from(exponent)) as f32;
+        let weight = match which {
+            EquipStat::Str => modifiers.str_weight,
+            EquipStat::Dex => modifiers.dex_weight,
+            EquipStat::Sta => modifiers.sta_weight,
+            EquipStat::Int => modifiers.int_weight,
+            EquipStat::Spi => modifiers.spi_weight,
+        };
+        let count = modifiers.count() as f32;
+        let all = modifiers.all_weight() as f32;
+        match &t.kind {
+            TemplateKind::Weapon(_) => {
+                let holdable = data.holdable_of(t)?;
+                let temp = c.item_stat_const as f32
+                    * F_001
+                    * t.level as f32
+                    * m
+                    * c.holdable_stat_const as f32
+                    * F_001;
+                let temp2 = count * temp * weight as f32 * 1f32 / all
+                    * grade.stat_multiplier as f32
+                    * F_001
+                    + 0.5f32;
+                let res =
+                    ((temp2 as i32).wrapping_mul(holdable.stat_multiplier)) as f32 * F_001 + 0.5f32;
+                Some(res as i32)
+            }
+            _ => {
+                let temp = c.item_stat_const as f32
+                    * F_001
+                    * t.level as f32
+                    * m
+                    * c.wearable_stat_const as f32
+                    * F_001
+                    * e.coverage as f32
+                    * 0.01f32;
+                let res = count * temp * weight as f32 * 1f32 / all
+                    * grade.stat_multiplier as f32
+                    * F_001
+                    + 0.5f32;
+                Some(res as i32)
+            }
+        }
+    }
+
+    /// `Armor.BaseArmor` (armor items only).
+    pub fn base_armor(&self, data: &ItemData, formulas: &FormulaManager) -> Option<i32> {
+        self.armor_value(data, formulas, true)
+    }
+
+    /// `Armor.BaseMagicResistance` (armor items only).
+    pub fn base_magic_resistance(&self, data: &ItemData, formulas: &FormulaManager) -> Option<i32> {
+        self.armor_value(data, formulas, false)
+    }
+
+    fn armor_value(&self, data: &ItemData, formulas: &FormulaManager, armor: bool) -> Option<i32> {
+        if self.class != ItemClass::Armor {
+            return None;
+        }
+        let t = self.equip_template(data)?;
+        let e = t.equip()?;
+        let grade = data.full_grade(i32::from(self.grade))?;
+        let kind = data.wearable_kind_of(t)?;
+        let (formula_type, grade_value, ratio, temper) = if armor {
+            (
+                WearableFormulaType::MaxBaseArmor,
+                grade.wearable_armor,
+                kind.armor_ratio,
+                self.details.temper_physical,
+            )
+        } else {
+            (
+                WearableFormulaType::MaxBaseMagicResistance,
+                grade.wearable_magic_resistance,
+                kind.magic_resistance_ratio,
+                self.details.temper_magical,
+            )
+        };
+        let formula = formulas.get_wearable_formula(formula_type)?;
+        let params = HashMap::from([
+            ("item_level", f64::from(t.level)),
+            ("item_grade", f64::from(grade_value)),
+        ]);
+        let mut res = formula.evaluate(&params);
+        res = res * f64::from(ratio) * f64::from(F_001);
+        if temper > 100 {
+            res *= f64::from(f32::from(temper) / 100.0f32);
+        }
+        Some((res * f64::from(e.coverage) * f64::from(F_001)) as i32)
+    }
+
+    fn weapon_formula(
+        &self,
+        data: &ItemData,
+        pick: impl Fn(&Holdable) -> &Formula,
+        grade_value: impl Fn(&FullGradeTemplate) -> f32,
+        temper: u16,
+    ) -> Option<f64> {
+        if self.class != ItemClass::Weapon {
+            return None;
+        }
+        let t = self.equip_template(data)?;
+        let grade = data.full_grade(i32::from(self.grade))?;
+        let holdable = data.holdable_of(t)?;
+        let params = HashMap::from([
+            ("item_level", f64::from(t.level)),
+            ("item_grade", f64::from(grade_value(grade))),
+        ]);
+        let mut res = pick(holdable).evaluate(&params);
+        if temper > 100 {
+            res *= f64::from(f32::from(temper) / 100.0f32);
+        }
+        Some(res)
+    }
+
+    /// `Weapon.Dps`.
+    pub fn dps(&self, data: &ItemData) -> Option<f32> {
+        self.weapon_formula(
+            data,
+            |h| &h.formula_dps,
+            |g| g.holdable_dps,
+            self.details.temper_physical,
+        )
+        .map(|v| v as f32)
+    }
+
+    /// `Weapon.MDps`.
+    pub fn mdps(&self, data: &ItemData) -> Option<f64> {
+        self.weapon_formula(
+            data,
+            |h| &h.formula_mdps,
+            |g| g.holdable_magic_dps,
+            self.details.temper_magical,
+        )
+    }
+
+    /// `Weapon.HDps` (uses `HoldableMagicDps` for the grade, as the C#).
+    pub fn hdps(&self, data: &ItemData) -> Option<f64> {
+        self.weapon_formula(
+            data,
+            |h| &h.formula_hdps,
+            |g| g.holdable_magic_dps,
+            self.details.temper_magical,
+        )
+    }
+
+    /// `Weapon.Armor`.
+    pub fn weapon_armor(&self, data: &ItemData) -> Option<i32> {
+        self.weapon_formula(
+            data,
+            |h| &h.formula_armor,
+            |g| g.holdable_armor,
+            self.details.temper_physical,
+        )
+        .map(|v| v as i32)
+    }
+
+    /// `Item.CompareTo` (by slot).
+    pub fn cmp_slot(&self, other: &Item) -> std::cmp::Ordering {
+        self.slot.cmp(&other.slot)
+    }
+}
+
+/// `ItemProc` (runtime proc of an equipped item; the skill cast itself is the skills
+/// subsystem's `new Skill(Template.SkillTemplate).Use(owner, unitCaster, doodadTarget)`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ItemProc {
+    pub template_id: u32,
+    /// `LastProc` (unix milliseconds, 0 = `DateTime.MinValue`; the C# never updates it).
+    pub last_proc_ms: i64,
+}
+
+impl ItemProc {
+    pub fn new(template_id: u32) -> Self {
+        Self {
+            template_id,
+            last_proc_ms: 0,
+        }
+    }
+
+    /// The checks of `ItemProc.Apply(owner, ignoreRoll)`: `Some(skill_id)` when the proc skill
+    /// must be used. `roll` = `Random.Shared.Next(0, 100)` (only drawn when `ignore_roll` is
+    /// false). C# quirks mirrored: `ignoreRoll == true` never procs, and `LastProc` is never set.
+    /// `None` too where the C# throws (unknown proc template).
+    pub fn apply(
+        &self,
+        data: &ItemData,
+        now_ms: i64,
+        ignore_roll: bool,
+        roll: impl FnOnce() -> i32,
+    ) -> Option<u32> {
+        let t = data.item_proc(self.template_id)?;
+        // DateTime.MinValue.AddSeconds(cooldown) is always in the past.
+        if self.last_proc_ms > 0 && now_ms < self.last_proc_ms + i64::from(t.cooldown_sec) * 1000 {
+            return None;
+        }
+        if ignore_roll || i64::from(roll()) > i64::from(t.chance_rate) {
+            return None;
+        }
+        Some(t.skill_id)
     }
 }
 

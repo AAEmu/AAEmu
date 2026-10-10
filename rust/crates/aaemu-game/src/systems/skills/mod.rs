@@ -248,5 +248,4 @@ pub fn register(reg: &mut PacketRegistry) {
     reg.register::<CSCreateSkillControllerPacket>(LEVEL_PLAIN, cs::CSCreateSkillControllerPacket);
     reg.register::<CSSetForceAttackPacket>(LEVEL_PLAIN, cs::CSSetForceAttackPacket);
     reg.register::<CSChangeTargetPacket>(LEVEL_PLAIN, cs::CSChangeTargetPacket);
-    reg.register::<CSBuyPriestBuffPacket>(LEVEL_PLAIN, cs::CSBuyPriestBuffPacket);
 }

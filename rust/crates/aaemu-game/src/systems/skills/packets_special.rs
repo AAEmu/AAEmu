@@ -26,37 +26,11 @@ impl Marshal for SCToggleBeautyshopResponsePacket {
     }
 }
 
-/// `SCBmPointPacket(bmPoint)`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SCBmPointPacket {
-    pub bm_point: i64,
-}
-packet_def!(
-    SCBmPointPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCBmPointPacket
-);
-impl Marshal for SCBmPointPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_i64(self.bm_point);
-    }
-}
+/// `SCBmPointPacket`: one definition per opcode (`crate::systems::economy::cash_shop::SCBmPointPacket`).
+pub use crate::systems::economy::cash_shop::SCBmPointPacket;
 
-/// `SCICSCashPointPacket(point)`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SCICSCashPointPacket {
-    pub point: i32,
-}
-packet_def!(
-    SCICSCashPointPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCICSCashPointPacket
-);
-impl Marshal for SCICSCashPointPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_i32(self.point);
-    }
-}
+/// `SCICSCashPointPacket`: one definition per opcode (`crate::systems::economy::cash_shop::SCICSCashPointPacket`).
+pub use crate::systems::economy::cash_shop::SCICSCashPointPacket;
 
 /// `SCNotifyResurrectionPacket(skillCaster)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
