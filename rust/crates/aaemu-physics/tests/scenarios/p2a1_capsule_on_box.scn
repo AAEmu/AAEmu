@@ -1,0 +1,24 @@
+# P2a-1 (box-capsule / capsule-box): a capsule dropped tilted onto a static block's edge, a
+# capsule lying across two blocks, and a box dropped onto a static capsule.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=block type=box size=0.5,1,0.3
+entity name=l type=static pos=29,32,0.3
+part ent=l geom=block mass=0
+entity name=r type=static pos=31,32,0.3 q=0,0,0.1305262,0.9914449
+part ent=r geom=block mass=0
+geom name=cap type=capsule r=0.25 hh=0.9
+entity name=across type=rigid pos=30,32,1.5 q=0,0.7071068,0,0.7071068
+part ent=across geom=cap mass=25
+entity name=tilted type=rigid pos=29.4,32.6,2.5 q=0.3,0.2,0,0.9327379
+part ent=tilted geom=cap mass=25
+entity name=lying type=static pos=35,32,0.25 q=0.7071068,0,0,0.7071068
+part ent=lying geom=cap mass=0
+geom name=cube type=box size=0.3,0.3,0.3
+entity name=oncap type=rigid pos=35.05,32.1,2 q=0,0,0.3826834,0.9238795
+part ent=oncap geom=cube mass=6
+trace ents=across,tilted,oncap
+print
+step n=300

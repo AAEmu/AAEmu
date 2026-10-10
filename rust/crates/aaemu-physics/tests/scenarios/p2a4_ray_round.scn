@@ -1,0 +1,37 @@
+# P2a-4: RayWorldIntersection against static sphere / cylinder / capsule entities (identity
+# orientation, so the world-space primitive is centre + pos). Exercises sph-ray 0x35160EA0,
+# cyl-ray 0x3515FE40 and cap-ray 0x35161EF0 through the world query.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ball type=sphere r=1.25
+entity name=ball type=static pos=20,20,2
+part ent=ball geom=ball mass=0 flags=0x1809F
+geom name=pole type=cylinder r=0.5 hh=1.5
+entity name=pole type=static pos=30,20,2
+part ent=pole geom=pole mass=0 flags=0x1809F
+geom name=tiltcyl type=cylinder r=0.75 hh=1 axis=0.6,0,0.8
+entity name=tiltcyl type=static pos=40,20,3
+part ent=tiltcyl geom=tiltcyl mass=0 flags=0x1809F
+geom name=pill type=capsule r=0.6 hh=1.2
+entity name=pill type=static pos=20,30,2
+part ent=pill geom=pill mass=0 flags=0x1809F
+geom name=lpill type=capsule r=0.4 hh=2 axis=0,0.8,0.6
+entity name=lpill type=static pos=30,30,3
+part ent=lpill geom=lpill mass=0 flags=0x1809F
+step n=1
+ray name=ball_down org=20.3,19.8,10 dir=0,0,-20
+ray name=ball_side org=10,20.5,2.4 dir=20,0,0
+ray name=ball_diag org=17,17,6 dir=6,6,-8
+ray name=ball_graze org=10,21.2,2 dir=20,0,0
+ray name=ball_short org=20,20,10 dir=0,0,-5
+ray name=pole_top org=30.1,20.2,10 dir=0,0,-20
+ray name=pole_side org=25,20.1,2.5 dir=10,0,0
+ray name=pole_slant org=27,18,6 dir=6,4,-6
+ray name=pole_up org=30.2,19.9,-5 dir=0,0,20
+ray name=tilt_down org=40.2,20.1,10 dir=0,0,-20
+ray name=tilt_side org=35,20.3,3.1 dir=10,0,0
+ray name=pill_top org=20.1,30.05,10 dir=0,0,-20
+ray name=pill_side org=15,30.2,2.3 dir=10,0,0
+ray name=pill_slant org=17,27,7 dir=5,5,-9
+ray name=lpill_down org=30.05,31.4,10 dir=0,0,-20
+ray name=lpill_side org=25,29.5,1.9 dir=10,0,0
+ray name=miss org=50,50,10 dir=0,0,-20
