@@ -45,6 +45,9 @@ pub enum Event {
     SimClassChange { ent: EntIdx, simclass_old: i32, simclass_new: i32 },
     /// Type 4: post step.
     PostStep { ent: EntIdx, dt: f32, pos: Vec3, q: crate::math::Quat, step: i32 },
+    /// Type 11: area callback (logged copy; immediate clients are the area hooks,
+    /// [`World::add_area_callback`]).
+    AreaCallback(Box<super::areas::AreaCallbackEvent>),
     /// Type 12: area added / changed / removed.
     AreaChange { area: EntIdx, bbox: [Vec3; 2] },
 }
@@ -59,6 +62,7 @@ impl Event {
             Event::StateChange { .. } => 2,
             Event::SimClassChange { .. } => 3,
             Event::PostStep { .. } => 4,
+            Event::AreaCallback(_) => 11,
             Event::AreaChange { .. } => 12,
         }
     }
@@ -221,6 +225,7 @@ impl World {
                 Event::Collision { ent, .. } | Event::BBoxOverlap { ent } => alive(self, ent[0]) && alive(self, ent[1]),
                 Event::StateChange { ent, .. } | Event::SimClassChange { ent, .. } | Event::PostStep { ent, .. } => alive(self, *ent),
                 Event::AreaChange { .. } => true,
+                Event::AreaCallback(e) => e.ent.is_none_or(|x| alive(self, x)),
             };
             if !ok {
                 continue;

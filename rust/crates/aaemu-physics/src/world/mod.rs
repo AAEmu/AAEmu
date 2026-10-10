@@ -199,6 +199,8 @@ pub struct World {
     pub queue: queue::CommandQueue,
     /// Events.
     pub events: events::EventState,
+    /// Immediate event-11 (area callback) clients (`+21408`), see [`areas::check`].
+    pub area_hooks: areas::check::AreaHooks,
     /// Per-thread contact table of CheckForNewContacts (`qword_35218710[tid]`).
     pub ccd_scratch: Vec<crate::entities::rigid::contacts::ContactScratch>,
     /// Per-thread intersection arenas (`0x35256F80 + 0x39FB8·tid`).
@@ -270,6 +272,7 @@ impl World {
             pod_thread: -1,
             queue: queue::CommandQueue::default(),
             events: events::EventState::default(),
+            area_hooks: areas::check::AreaHooks::default(),
             ccd_scratch: Vec::new(),
             tscratch: (0..MAX_CALLERS as i32)
                 .map(crate::collision::prim_intersect::scratch::ThreadScratch::new)
