@@ -63,6 +63,6 @@ mod tests {
     fn no_duplicate_registrations() {
         let r = super::build_registry();
         assert!(r.duplicates().is_empty(), "{:?}", r.duplicates());
-        assert_eq!(r.len(), 13 + 22);
+        assert_eq!(r.len(), 13 + 22 + 10 /* systems::quests */);
     }
 }

@@ -588,7 +588,7 @@ pub async fn load_character_details(server: &GameServer, c: &mut Character) -> R
             acceptor_type: 0,
             component_id: 0,
             acceptor_id: 0,
-            time: 0,
+            time_ms: ActiveQuest::DATETIME_MIN_MS,
         };
         let data: Vec<u8> = r.try_get("data")?;
         if let Err(e) = q.read_data(&data) {

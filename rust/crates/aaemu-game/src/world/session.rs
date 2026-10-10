@@ -344,6 +344,7 @@ pub fn select_loaded(
     let player = Player::new(c, conn.handle());
     conn.active_char = Some(player.clone());
     server.world.try_add_character(&player);
+    crate::systems::quests::on_character_selected(server, &player);
     // Slaves / simulation: later phase.
 
     let data = &server.game_data;
@@ -940,7 +941,8 @@ pub async fn leave_world_task(
         }
         set_online(server, p, false);
         p.data().leave_time = Utc::now().timestamp();
-        // Quest timers, mates, slaves, coffers, dismount: later phases.
+        crate::systems::quests::on_leave_world(server, p.character_id);
+        // Mates, slaves, coffers, dismount: later phases.
         server.chat.leave_all_channels(p);
         // Family logout: later phase.
         let (exp, id) = {
