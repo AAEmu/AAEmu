@@ -61,9 +61,48 @@ pub struct System {
     pub shipyards: shipyards::ShipyardManager,
     /// Hooks other owners install (physics, economy).
     pub hooks: hooks::VehicleHooks,
+    /// `SlaveGameData._attachPoints` after a `/scripts reloadslavepoints` (`None` = the loaded
+    /// game data).
+    reloaded_attach_points: std::sync::RwLock<Option<AttachPoints>>,
 }
 
+/// `SlaveGameData._attachPoints` (model id -> attach point -> location).
+type AttachPoints = std::collections::HashMap<u32, Vec<(u8, data::AttachPointLocation)>>;
+
 impl System {
+    /// `SlaveGameData.LoadSlaveAttachmentPointLocations()` at runtime (GM `scripts
+    /// reloadslavepoints`): re-reads `Data/slave_attach_points*.json`.
+    pub fn reload_slave_attachment_point_locations(&self, server: &GameServer) {
+        let mut d = data::VehiclesData::default();
+        d.load_slave_attachment_point_locations(&server.config.app_path.join("Data"));
+        *self
+            .reloaded_attach_points
+            .write()
+            .expect("attach points poisoned") = Some(d.attach_points);
+    }
+
+    /// `SlaveGameData.GetAttachPointsForSlave(modelId)` (the reloaded table when there is one).
+    pub fn attach_points_for_slave(
+        &self,
+        server: &GameServer,
+        model_id: u32,
+    ) -> Option<Vec<(u8, data::AttachPointLocation)>> {
+        if let Some(points) = self
+            .reloaded_attach_points
+            .read()
+            .expect("attach points poisoned")
+            .as_ref()
+        {
+            return points.get(&model_id).cloned();
+        }
+        server
+            .game_data
+            .systems
+            .vehicles
+            .attach_points_for_slave(model_id)
+            .map(<[_]>::to_vec)
+    }
+
     /// Startup: hook installation (skills `NpcSkillHooks`, social `SocialHooks`), the transfer
     /// tick (100 ms), `SendMySlaveTask` (5 s), `ShipyardTickTask` (1 min) and the mate / slave
     /// regen tick (`OnActiveRegionTick`, 1 s).
