@@ -2,7 +2,7 @@
 
 How to run the Rust login + game servers against a real MySQL, the real 1.2 game data and a
 headless client bot, how to compare their traffic with the C# servers (parity), how to load-test
-them, and how to point a real 1.2 client at them.
+them, and how to start the real 1.2 client against them (`aaemu-launcher`).
 
 Everything below uses the layout of the reference run (Windows, Git Bash). Paths are examples:
 
@@ -274,26 +274,55 @@ server's 10 s logout timer):
 With 200 concurrent logins the C# login server times out on its MySQL connection pool
 (`Timeout expired ... obtaining a connection from the pool`) and drops every attempt.
 
-## 6. Pointing the real 1.2 client at the Rust servers
+## 6. The real 1.2 client: `aaemu-launcher`
 
-* Client: 1.2 r208022 (see `Docs/wiki/Client.md`); the server reads its `game_pak` for data.
-* The 1.2 Trion client takes the login server from the command line: the client binaries know
-  the `+auth_ip`, `+auth_port` and `+auth_svc` CVars (`bin32/crysystem.dll`). The Trion
-  authentication ticket (`<authTicket><username>..</username><password>sha256-hex</password>`,
-  exactly what the bot sends) is produced by the launcher. Use the AAEmu Launcher
-  (`https://github.com/ZeromusXYZ/AAEmu-Launcher`, see `Docs/wiki/Installation-&-Setup.md`):
-  set *Path to Game* to `<client>\bin32\archeage.exe`, the server address to the login host
-  and the port to the Rust login port (21237 above, 1237 with the default `Config.json`), and
-  the user name / password (created on first login with `AutoAccount`). The launcher passes
-  the address on the command line, so no hosts-file redirect is involved. (The launcher was not
-  run as part of this verification; the bot exercises the same login packets.)
+* Client: 1.2 r208022 (see `Docs/wiki/Client.md`); the server reads its `game_pak` for data. The
+  client folder is only read; nothing in it has to be changed.
+* The client does not ask for credentials: a launcher hands it an authentication ticket.
+  `aaemu-launcher` (`rust/crates/aaemu-launcher`) does that exactly like the Trion 1.2 launcher
+  of the public AAEmu Launcher, so no third-party tool is needed:
+
+  ```sh
+  $T/aaemu-launcher.exe --client 'D:\AA1.2\bin32\archeage.exe' --login 127.0.0.1:21237 \
+      --user clienttest --password-file D:/aaemu-live/cfg/client-test-password.txt
+  ```
+
+  (`--password PW`, `$AAEMU_PASSWORD` or a prompt instead of `--password-file`; `--lang en_us`
+  is the default, `--nosplash`, `--arg X` for more client arguments, `--wait` to stay until the
+  client exits, `--dry-run` to only print the command line.) With `AutoAccount` the login server
+  creates the account on its first login.
+* Protocol (unit tested in `aaemu-launcher/src/lib.rs`):
+  * ticket XML `<?xml version="1.0" encoding="UTF - 8" standalone="yes"?><authTicket version =
+    "1.2"><storeToken>1</storeToken><username>U</username><password>H</password></authTicket>`
+    with `H` = lower-case hex SHA-256 of the password (the odd spacing is the public launcher's;
+    the login server parses it);
+  * plain text `TFIR` + `dGVzdA==` (signature, unchecked) + `\n` + XML, RC4-encrypted with a
+    random 8-byte key;
+  * an inheritable page-file mapping `archeage_auth_ticket_map` holding `key[8] | u32 LE length
+    | ciphertext`, and an inheritable manual-reset event `archeage_auth_ticket_event`;
+  * `archeage.exe -t +auth_ip HOST -auth_port PORT -handle MAP:EVENT -lang en_us +acpxmk`
+    (handles as 8 upper-case hex digits), started with `CreateProcessW(bInheritHandles=TRUE)`
+    in the `bin32` folder. The client reads the ticket, signals the event (the launcher reports
+    "client signalled the ticket event") and sends the XML in `CARequestAuthTrion`.
 * The login server hands the game server address from `GameServers[].Host`/`Port` to the client
   (`ACWorldCookie`); when the client connects from the login server's own machine its own
   address is used instead. For LAN / remote clients set `Host` to an address the client can
   reach and listen on it (`Network.Host` `*` or that address) for the login (21237), game
   (21239) and stream (21250) ports.
 * The game server drops clients that send no `PingPacket` for 30 s; the real client pings on its
-  own.
+  own (several times a second in the lobby).
+* `RUST_LOG=info,aaemu_game::net=debug,aaemu_login::network=debug` logs every game packet
+  (`GamePacket: C->S ...` / `S->C ...`) and the login connections, which is the server-side trace
+  of a client session.
+
+Verified with the real client (Windows 11, fullscreen 1920x1080, both servers release builds):
+launcher ticket accepted (`clienttest connected.`), server list (`LiveTest`, character count),
+`X2EnterWorld` + `FinishState` lobby burst, `CSListCharacter`, character creation through the UI
+(`CSCreateCharacter` -> `SCCreateCharacterResponse`), `CSSelectCharacter`, `CSSpawnCharacter`,
+`CSNotifyInGame(Completed)` in Solzreed, walking (`CSMoveUnit`), chat (`CSSendChatMessage` and
+its echo shown in the chat window and as a bubble), *Select Character* (`CSLeaveWorld`,
+`SCLeaveWorldGranted` after 10 s, back in the lobby with the saved character), *Exit Game*, and a
+second session entering the world again at the saved position. No server errors.
 
 ## 7. Stopping
 

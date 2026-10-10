@@ -1,0 +1,19 @@
+[package]
+name = "aaemu-launcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Starts the ArcheAge 1.2 (Trion) client with a launcher authentication ticket for an AAEmu login server"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "aaemu-launcher"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+sha2.workspace = true
+hex.workspace = true
+rand.workspace = true

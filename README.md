@@ -90,6 +90,22 @@ binaries from their folders.
 `Scripts/docker-install-local.sh` (or `.ps1`) and `docker compose up -d`. See the
 [Docker Installation Guide](https://github.com/AAEmu/AAEmu/wiki/Docker-Installation-Guide).
 
+### Starting the game client
+
+The 1.2 client is started by a launcher that hands it the login ticket; the repository has its
+own, so no third-party launcher is needed:
+
+```sh
+cd rust && cargo build --release -p aaemu-launcher
+aaemu-launcher --client "C:\ArcheAge\bin32\archeage.exe" --login 127.0.0.1:1237 --user myname
+```
+
+It asks for the password (or takes `--password`, `--password-file`, `$AAEMU_PASSWORD`); with
+`AutoAccount` enabled the login server creates the account on the first login. `--lang` selects
+the client locale (default `en_us`), `--help` lists the other options. The protocol (an RC4
+encrypted XML ticket in an inherited file mapping, `-handle` argument) is described in
+[`rust/LIVE-TESTING.md`](rust/LIVE-TESTING.md#6-the-real-12-client-aaemu-launcher).
+
 ### Live testing
 
 [`rust/LIVE-TESTING.md`](rust/LIVE-TESTING.md) describes running the servers against a real MySQL

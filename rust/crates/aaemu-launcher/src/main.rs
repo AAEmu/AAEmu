@@ -1,0 +1,234 @@
+//! `aaemu-launcher` — starts the ArcheAge 1.2 client against an AAEmu login server.
+//!
+//! ```text
+//! aaemu-launcher --client <dir>\bin32\archeage.exe --login 127.0.0.1:1237 --user NAME
+//!                [--password PW | --password-file F]   (else $AAEMU_PASSWORD, else prompt)
+//!                [--lang en_us] [--nosplash] [--arg X]... [--no-hshield-arg] [--cwd DIR]
+//!                [--ticket-timeout SECS] [--wait] [--dry-run]
+//! ```
+//!
+//! See the crate documentation (`src/lib.rs`) for the ticket protocol.
+
+use std::io::Write as _;
+use std::path::PathBuf;
+
+use aaemu_launcher::{
+    client_args, command_line, mapping_bytes, password_hash, ticket_plain, ticket_xml,
+    LaunchOptions,
+};
+use anyhow::{bail, Context};
+
+const USAGE: &str = "\
+aaemu-launcher: start the ArcheAge 1.2 (Trion) client with a launcher ticket
+
+  --client PATH          client executable (<client>\\bin32\\archeage.exe); default $AAEMU_CLIENT
+  --login HOST:PORT      login server (default 127.0.0.1:1237)
+  --user NAME            account name (AutoAccount on the login server creates it)
+  --password PW          password; else --password-file F, else $AAEMU_PASSWORD, else prompt
+  --password-file F      read the password from the first line of F
+  --lang LANG            client locale, e.g. en_us, de, fr, ru, ko, ja, zh_cn (default en_us;
+                         empty string = do not pass -lang)
+  --nosplash             pass -nosplash
+  --arg X                extra client argument (repeatable)
+  --no-hshield-arg       do not append +acpxmk
+  --cwd DIR              working directory of the client (default: the executable's folder)
+  --ticket-timeout SECS  how long to wait for the client to signal the ticket event (default 60)
+  --wait                 keep running until the client exits and report its exit code
+  --dry-run              print the command line and ticket XML (password hash masked), start nothing
+";
+
+struct Cli {
+    client: Option<PathBuf>,
+    login: String,
+    user: Option<String>,
+    password: Option<String>,
+    password_file: Option<PathBuf>,
+    lang: String,
+    extra: Vec<String>,
+    hshield_arg: bool,
+    cwd: Option<PathBuf>,
+    ticket_timeout: u32,
+    wait: bool,
+    dry_run: bool,
+}
+
+fn parse_cli() -> anyhow::Result<Cli> {
+    let mut cli = Cli {
+        client: std::env::var_os("AAEMU_CLIENT").map(PathBuf::from),
+        login: "127.0.0.1:1237".into(),
+        user: None,
+        password: None,
+        password_file: None,
+        lang: "en_us".into(),
+        extra: vec![],
+        hshield_arg: true,
+        cwd: None,
+        ticket_timeout: 60,
+        wait: false,
+        dry_run: false,
+    };
+    let mut it = std::env::args().skip(1);
+    while let Some(a) = it.next() {
+        let mut val = || it.next().with_context(|| format!("{a} needs a value"));
+        match a.as_str() {
+            "--client" => cli.client = Some(val()?.into()),
+            "--login" => cli.login = val()?,
+            "--user" => cli.user = Some(val()?),
+            "--password" => cli.password = Some(val()?),
+            "--password-file" => cli.password_file = Some(val()?.into()),
+            "--lang" => cli.lang = val()?,
+            "--nosplash" => cli.extra.push("-nosplash".into()),
+            "--arg" => cli.extra.push(val()?),
+            "--no-hshield-arg" => cli.hshield_arg = false,
+            "--cwd" => cli.cwd = Some(val()?.into()),
+            "--ticket-timeout" => cli.ticket_timeout = val()?.parse()?,
+            "--wait" => cli.wait = true,
+            "--dry-run" => cli.dry_run = true,
+            "-h" | "--help" => {
+                print!("{USAGE}");
+                std::process::exit(0);
+            }
+            _ => bail!("unknown argument '{a}'\n\n{USAGE}"),
+        }
+    }
+    Ok(cli)
+}
+
+fn read_password(cli: &Cli) -> anyhow::Result<String> {
+    if let Some(p) = &cli.password {
+        return Ok(p.clone());
+    }
+    if let Some(f) = &cli.password_file {
+        let s = std::fs::read_to_string(f).with_context(|| format!("reading {}", f.display()))?;
+        return Ok(s.lines().next().unwrap_or_default().to_string());
+    }
+    if let Ok(p) = std::env::var("AAEMU_PASSWORD") {
+        return Ok(p);
+    }
+    eprint!("password (input is visible): ");
+    std::io::stderr().flush()?;
+    let mut s = String::new();
+    std::io::stdin().read_line(&mut s)?;
+    Ok(s.trim_end_matches(['\r', '\n']).to_string())
+}
+
+fn split_login(login: &str) -> anyhow::Result<(String, u16)> {
+    match login.rsplit_once(':') {
+        Some((h, p)) => Ok((h.to_string(), p.parse().context("invalid login port")?)),
+        None => Ok((login.to_string(), 1237)),
+    }
+}
+
+fn main() -> anyhow::Result<()> {
+    let cli = parse_cli()?;
+    let client = cli
+        .client
+        .clone()
+        .context("--client (or AAEMU_CLIENT) is required")?;
+    let user = cli.user.clone().context("--user is required")?;
+    if user.trim().is_empty() {
+        bail!("--user must not be empty");
+    }
+    let (login_host, login_port) = split_login(&cli.login)?;
+    let opts = LaunchOptions {
+        login_host,
+        login_port,
+        lang: cli.lang.clone(),
+        extra_args: cli.extra.clone(),
+        hshield_arg: cli.hshield_arg,
+    };
+    let exe = client.to_string_lossy().to_string();
+
+    if cli.dry_run {
+        println!("{}", command_line(&exe, &client_args(&opts, 0, 0)));
+        println!(
+            "{}",
+            ticket_plain(&ticket_xml(&user, "<sha256-hex of the password>"))
+        );
+        return Ok(());
+    }
+
+    let password = read_password(&cli)?;
+    if password.is_empty() {
+        bail!("the password must not be empty");
+    }
+    let plain = ticket_plain(&ticket_xml(&user, &password_hash(&password)));
+    let key: [u8; 8] = rand::random();
+    run(
+        &cli,
+        &client,
+        &exe,
+        &opts,
+        &mapping_bytes(&key, plain.as_bytes()),
+    )
+}
+
+#[cfg(windows)]
+fn run(
+    cli: &Cli,
+    client: &std::path::Path,
+    exe: &str,
+    opts: &LaunchOptions,
+    mapping: &[u8],
+) -> anyhow::Result<()> {
+    use aaemu_launcher::win::{Process, Ticket};
+
+    let ticket = Ticket::create(mapping)?;
+    if ticket.already_existed {
+        eprintln!(
+            "warning: the ticket objects already existed (is another launcher or client running?)"
+        );
+    }
+    let cmd = command_line(
+        exe,
+        &client_args(opts, ticket.map.value(), ticket.event.value()),
+    );
+    let cwd = match &cli.cwd {
+        Some(d) => d.clone(),
+        None => client
+            .parent()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from(".")),
+    };
+    println!("starting: {cmd}");
+    let proc = Process::spawn(client, &cmd, &cwd)?;
+    println!("client started (pid {})", proc.pid);
+
+    // Keep the mapping alive until the client has taken the ticket (it signals the event), it
+    // exits, or the timeout runs out. The client holds its own inherited handles, so closing
+    // ours afterwards does not remove the ticket.
+    let deadline =
+        std::time::Instant::now() + std::time::Duration::from_secs(u64::from(cli.ticket_timeout));
+    loop {
+        if ticket.wait_signaled(250)? {
+            println!("client signalled the ticket event");
+            break;
+        }
+        if let Some(code) = proc.wait(Some(0))? {
+            bail!("client exited with code {code} before taking the ticket");
+        }
+        if std::time::Instant::now() >= deadline {
+            println!(
+                "no ticket event after {} s (the client may not signal it); leaving the client running",
+                cli.ticket_timeout
+            );
+            break;
+        }
+    }
+    if cli.wait {
+        let code = proc.wait(None)?.unwrap_or_default();
+        println!("client exited with code {code}");
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn run(
+    _cli: &Cli,
+    _client: &std::path::Path,
+    _exe: &str,
+    _opts: &LaunchOptions,
+    _mapping: &[u8],
+) -> anyhow::Result<()> {
+    bail!("starting the client needs Windows (use --dry-run to inspect the arguments)")
+}

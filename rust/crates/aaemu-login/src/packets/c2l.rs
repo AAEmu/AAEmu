@@ -421,6 +421,25 @@ mod tests {
     }
 
     #[test]
+    fn trion_ticket_of_the_launcher() {
+        // Byte-for-byte what the AAEmu launchers (public C# one and `aaemu-launcher`) put in
+        // the ticket, including the malformed `encoding="UTF - 8"` and `version = "1.2"`.
+        let ticket = "<?xml version=\"1.0\" encoding=\"UTF - 8\" standalone=\"yes\"?>\
+                      <authTicket version = \"1.2\"><storeToken>1</storeToken>\
+                      <username>bob</username><password>abc123</password></authTicket>";
+        let mut s = body(|s| {
+            s.write_u32(0)
+                .write_u32(0)
+                .write_bool(false)
+                .write_bytes_sized(&[0; 6]);
+            s.write_str(ticket).write_str("dGVzdA==").write_bool(true);
+        });
+        let p = CaRequestAuthTrion::read(&mut s).unwrap();
+        assert_eq!(p.username.as_deref(), Some("bob"));
+        assert_eq!(p.password.as_deref(), Some("abc123"));
+    }
+
+    #[test]
     fn trion_ticket() {
         let ticket = "<ticket><username>bob</username><password>ABCDEF</password></ticket>";
         let mut s = body(|s| {
