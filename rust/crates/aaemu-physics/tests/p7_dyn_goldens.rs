@@ -61,3 +61,7 @@ golden!(exp_buoyancy_same_step, "exp_buoyancy_same_step");
 golden!(p1a_float, "p1a_float");
 golden!(p7_ray_part, "p7_ray_part");
 golden!(p7_rays_dynamic, "p7_rays_dynamic");
+golden!(p7_ship_float, "p7_ship_float");
+golden!(p7_ccd_thin_wall, "p7_ccd_thin_wall");
+golden!(exp_quat_order, "exp_quat_order");
+golden!(p1a_entity, "p1a_entity");
