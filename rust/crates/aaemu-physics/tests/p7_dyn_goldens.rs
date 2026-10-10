@@ -5,10 +5,9 @@ use aaemu_physics::oracle::{check_scenario_golden, scenario_dir};
 use aaemu_physics::scenario::Scenario;
 
 fn replay(name: &str) -> Result<(), String> {
-    let scn = std::fs::read_to_string(scenario_dir().join(format!("{name}.scn"))).map_err(|e| e.to_string())?;
-    let golden = check_scenario_golden(name)?.replace("
-", "
-");
+    let scn = std::fs::read_to_string(scenario_dir().join(format!("{name}.scn")))
+        .map_err(|e| e.to_string())?;
+    let golden = check_scenario_golden(name)?.replace("\r\n", "\n");
     let port = Scenario::run(&scn)?;
     let mut step = String::new();
     for (i, (a, b)) in port.lines().zip(golden.lines()).enumerate() {
@@ -16,11 +15,18 @@ fn replay(name: &str) -> Result<(), String> {
             step = b.to_string();
         }
         if a != b {
-            return Err(format!("{name}: line {} ({step}) differs\n port:   {a}\n golden: {b}", i + 1));
+            return Err(format!(
+                "{name}: line {} ({step}) differs\n port:   {a}\n golden: {b}",
+                i + 1
+            ));
         }
     }
     if port.lines().count() != golden.lines().count() {
-        return Err(format!("{name}: {} lines vs golden {}", port.lines().count(), golden.lines().count()));
+        return Err(format!(
+            "{name}: {} lines vs golden {}",
+            port.lines().count(),
+            golden.lines().count()
+        ));
     }
     Ok(())
 }

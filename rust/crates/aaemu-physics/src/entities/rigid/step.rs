@@ -362,7 +362,11 @@ pub fn step(w: &mut World, e: EntIdx, dt: f32) -> bool {
         if n == 0 && v363 != 0 {
             let b = w.bodies.get_mut(body_id);
             let v116 = ((b.v.x * n_ccd.x + b.v.y * n_ccd.y) + b.v.z * n_ccd.z) * 1.1;
-            b.v = Vec3::new(b.v.x - v116 * n_ccd.x, b.v.y - v116 * n_ccd.y, b.v.z - v116 * n_ccd.z);
+            b.v = Vec3::new(
+                b.v.x - v116 * n_ccd.x,
+                b.v.y - v116 * n_ccd.y,
+                b.v.z - v116 * n_ccd.z,
+            );
             let m = b.m;
             b.p = Vec3::new(b.v.x * m, b.v.y * m, b.v.z * m);
         }
@@ -413,9 +417,17 @@ pub fn step(w: &mut World, e: EntIdx, dt: f32) -> bool {
                 let v140 = (ct - f64::from(v354)) as f32;
                 let m = |d: f32| d * v140;
                 let r = rm(w, e);
-                r.pos_new = Vec3::new(m(cdir.x) + r.pos_new.x, m(cdir.y) + r.pos_new.y, m(cdir.z) + r.pos_new.z);
+                r.pos_new = Vec3::new(
+                    m(cdir.x) + r.pos_new.x,
+                    m(cdir.y) + r.pos_new.y,
+                    m(cdir.z) + r.pos_new.z,
+                );
                 let b = w.bodies.get_mut(body_id);
-                b.pos = Vec3::new(m(cdir.x) + b.pos.x, m(cdir.y) + b.pos.y, m(cdir.z) + b.pos.z);
+                b.pos = Vec3::new(
+                    m(cdir.x) + b.pos.x,
+                    m(cdir.y) + b.pos.y,
+                    m(cdir.z) + b.pos.z,
+                );
             }
             compute_bbox_re(w, e);
             ip.vrel_min = 1e10;
@@ -436,7 +448,10 @@ pub fn step(w: &mut World, e: EntIdx, dt: f32) -> bool {
         // clear the temporary 0x1000000 of parts that also have 0x800000
         let cnt = w.ccd_scratch[tidu].count;
         for i in 0..cnt.max(0) as usize {
-            let (col, (_, cp)) = (w.ccd_scratch[tidu].collider[i], w.ccd_scratch[tidu].parts[i]);
+            let (col, (_, cp)) = (
+                w.ccd_scratch[tidu].collider[i],
+                w.ccd_scratch[tidu].parts[i],
+            );
             let p = &mut w.ent_mut(col).parts[cp as usize];
             if p.flags & 0x180_0000 == 0x180_0000 {
                 p.flags &= !0x100_0000;
@@ -458,7 +473,16 @@ fn finish_ret(w: &World, e: EntIdx) -> bool {
 
 /// Register the contact points of arena record `i` (the loop body of Step's LABEL_68).
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
-fn register_record(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32, v393: f32, v354: f32, deep: &mut u32) {
+fn register_record(
+    w: &mut World,
+    e: EntIdx,
+    i: i32,
+    dt: f32,
+    tid: i32,
+    v393: f32,
+    v354: f32,
+    deep: &mut u32,
+) {
     let tidu = tid as usize;
     let o = ThreadScratch::contact_off(i);
     let t = w.tscratch[tidu].rd_d(o);
@@ -504,7 +528,9 @@ fn register_record(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32, v393: f3
             (nn.y * an.x) - (nn.x * an.y),
         );
         let ppt = s.rd_q(ao + i64::from(ar::PT));
-        let pts: Vec<Vec3> = (0..npt).map(|k| s.rd_v_at(ppt.wrapping_add(12 * k as u64))).collect();
+        let pts: Vec<Vec3> = (0..npt)
+            .map(|k| s.rd_v_at(ppt.wrapping_add(12 * k as u64)))
+            .collect();
         let pprim0 = s.rd_q(ao + i64::from(ar::PRIM0));
         let pprim1 = s.rd_q(ao + i64::from(ar::PRIM1));
         let pfeat0 = s.rd_q(ao + i64::from(ar::FEAT0));
@@ -568,7 +594,20 @@ fn register_record(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32, v393: f3
         v161 = ((((atype ^ atype.wrapping_sub(1)) as u32) >> 31) & 1) * 0x100_0000;
     } else if v167 != 0 {
         let p2 = Vec3::new(pt.x - v162, pt.y - v154 * dir.y, pt.z - v154 * dir.z);
-        register_contact_point(w, e, i, p2, iprim0, ifeat0, iprim1, ifeat1, 0x80040, v154, tid, Vec3::ZERO);
+        register_contact_point(
+            w,
+            e,
+            i,
+            p2,
+            iprim0,
+            ifeat0,
+            iprim1,
+            ifeat1,
+            0x80040,
+            v154,
+            tid,
+            Vec3::ZERO,
+        );
     }
     if v167 == 0 {
         let s = &w.tscratch[tidu];
@@ -618,7 +657,16 @@ fn register_record(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32, v393: f3
 
 /// Step's tail (LABEL_112 onwards).
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
-fn finish_step(w: &mut World, e: EntIdx, v23: f32, v25: u32, v363: u32, deep: u32, tid: i32, v393: f32) {
+fn finish_step(
+    w: &mut World,
+    e: EntIdx,
+    v23: f32,
+    v25: u32,
+    v363: u32,
+    deep: u32,
+    tid: i32,
+    v393: f32,
+) {
     verify_contacts(w, e);
     // `+1184`: a net-sync state queued through slot 24 (`action_net_sync`) is applied here
     // by 0x350C9750 (SetParams pos + Action set_velocity, blended towards the target). The
@@ -628,7 +676,11 @@ fn finish_step(w: &mut World, e: EntIdx, v23: f32, v25: u32, v363: u32, deep: u3
     update_position(w, e, cells);
     let recs = super::buoyancy::gather_areas_n(w, e, v23, 4);
     let nb = recs.len();
-    let g = if w.ent(e).colliders.is_empty() { rd(w, e).gravity_freefall } else { rd(w, e).gravity };
+    let g = if w.ent(e).colliders.is_empty() {
+        rd(w, e).gravity_freefall
+    } else {
+        rd(w, e).gravity
+    };
     super::buoyancy::apply_buoyancy(w, e, v23, Vec3::new(0.0, 0.0, -9.810_000_4), &recs[..nb]);
     if w.ent(e).flags & 8 != 0 {
         super::buoyancy::apply_air_resistance(w, e, v23);
@@ -644,8 +696,16 @@ fn finish_step(w: &mut World, e: EntIdx, v23: f32, v25: u32, v363: u32, deep: u3
         b.l = Vec3::new(ld.x + b.l.x, ld.y + b.l.y, ld.z + b.l.z);
         let v286 = v23 * b.m;
         b.p = Vec3::new(v286 * g.x + b.p.x, v286 * g.y + b.p.y, v286 * g.z + b.p.z);
-        b.p = Vec3::new(fext.x * v23 + b.p.x, fext.y * v23 + b.p.y, fext.z * v23 + b.p.z);
-        b.l = Vec3::new(text.x * v23 + b.l.x, text.y * v23 + b.l.y, text.z * v23 + b.l.z);
+        b.p = Vec3::new(
+            fext.x * v23 + b.p.x,
+            fext.y * v23 + b.p.y,
+            fext.z * v23 + b.p.z,
+        );
+        b.l = Vec3::new(
+            text.x * v23 + b.l.x,
+            text.y * v23 + b.l.y,
+            text.z * v23 + b.l.z,
+        );
         let r = Mat33::from_quat(b.q).m;
         let r2 = Mat33::from_quat(b.q).m;
         let ib = b.ibody;
@@ -689,7 +749,8 @@ fn finish_step(w: &mut World, e: EntIdx, v23: f32, v25: u32, v363: u32, deep: u3
     let island_mass = w.island[tid as usize].dt;
     let mut v332 = (((island_mass * 0.001) - b.m).to_bits() >> 31) & deep;
     if v332 & (rd(w, e).flags2 >> 11) & 1 != 0 {
-        let lhs = ((((b.w.x * b.w.x + b.w.y * b.w.y) + b.w.z * b.w.z) * ((v393 * 0.5) * (v393 * 0.5)))
+        let lhs = ((((b.w.x * b.w.x + b.w.y * b.w.y) + b.w.z * b.w.z)
+            * ((v393 * 0.5) * (v393 * 0.5)))
             + ((b.v.x * b.v.x + b.v.y * b.v.y) + b.v.z * b.v.z))
             * (v23 * v23);
         if lhs >= (v393 * 0.1) * (v393 * 0.1) {
@@ -706,7 +767,8 @@ fn finish_step(w: &mut World, e: EntIdx, v23: f32, v25: u32, v363: u32, deep: u3
     let v333 = r.awake_bits;
     r.flags2 = (r.flags2 & 0xFFFF_E7FF) | ((v332 & 1) << 11);
     let v336 = (v333 & 0xFFFF_E000).wrapping_add(v363 << 13);
-    r.awake_bits = v333 ^ ((v333 ^ ((0u32.wrapping_sub(8192u32.wrapping_mul(v25))) & v336)) & 0x1E000);
+    r.awake_bits =
+        v333 ^ ((v333 ^ ((0u32.wrapping_sub(8192u32.wrapping_mul(v25))) & v336)) & 0x1E000);
 }
 
 #[allow(dead_code)]
@@ -735,7 +797,11 @@ fn special_contact(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32) {
     let (v97, v98, v99) = (bb.size.x, bb.size.y, bb.size.z);
     let v16 = p.scale;
     let rq = p.q.rotate(p.pgeom.origin);
-    let v94 = Vec3::new(rq.x * v16 + p.pos.x, rq.y * v16 + p.pos.y, rq.z * v16 + p.pos.z);
+    let v94 = Vec3::new(
+        rq.x * v16 + p.pos.x,
+        rq.y * v16 + p.pos.y,
+        rq.z * v16 + p.pos.z,
+    );
     let (pn, qn) = (rd(w, e).pos_new, rd(w, e).q_new);
     let body_id = rd(w, e).body;
     let b = *w.bodies.get(body_id);
@@ -806,7 +872,9 @@ fn special_contact(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32) {
                 s.wr_v(o + i64::from(c::N), Vec3::new(-d.x, -d.y, -d.z));
                 s.rd_v_at(pb.wrapping_add(12 * k as u64))
             };
-            if let Some(ci) = register_contact_point(w, e, i, pt, ip0, if0, ip1, if1, 64, 0.001, tid, Vec3::ZERO) {
+            if let Some(ci) =
+                register_contact_point(w, e, i, pt, ip0, if0, ip1, if1, 64, 0.001, tid, Vec3::ZERO)
+            {
                 w.contacts.get_mut(ci).nloc = Vec3::ZERO;
             }
             let r = rm(w, e);
@@ -830,7 +898,10 @@ fn special_contact(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32) {
         let s = &w.tscratch[tidu];
         let ctr = s.rd_v(o + i64::from(c::CENTER));
         let n = s.rd_v(o + i64::from(c::N));
-        let (id0, id1) = (s.rd_i(o + i64::from(c::ID)), s.rd_i(o + i64::from(c::ID) + 4));
+        let (id0, id1) = (
+            s.rd_i(o + i64::from(c::ID)),
+            s.rd_i(o + i64::from(c::ID) + 4),
+        );
         let d = Vec3::new(ctr.x - b.pos.x, ctr.y - b.pos.y, ctr.z - b.pos.z);
         let v0 = Vec3::new(
             ((d.z * b.w.y) - (d.y * b.w.z)) + b.v.x,

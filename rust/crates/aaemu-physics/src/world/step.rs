@@ -221,7 +221,10 @@ impl World {
         while !e.is_none() {
             let next = self.ent(e).list_next;
             let fl = self.ent(e).flags;
-            let skip = (u32::from(self.ent(e).group_mark) | (v61 & fl) | (self.flagged_step & (fl ^ 0x800))) != 0;
+            let skip = (u32::from(self.ent(e).group_mark)
+                | (v61 & fl)
+                | (self.flagged_step & (fl ^ 0x800)))
+                != 0;
             if !skip {
                 if crate::entities::mass_inv(self, e) > 0.0 {
                     let gi = ng;
@@ -250,7 +253,10 @@ impl World {
                         for &c in &cols {
                             if crate::entities::mass_inv(self, c) > 0.0 {
                                 let cf = self.ent(c).flags;
-                                if (u32::from(self.ent(c).group_mark) | (self.flagged_step & (cf ^ 0x800))) == 0 {
+                                if (u32::from(self.ent(c).group_mark)
+                                    | (self.flagged_step & (cf ^ 0x800)))
+                                    == 0
+                                {
                                     {
                                         let ce = self.ent_mut(c);
                                         ce.flags &= !v61;
@@ -315,7 +321,13 @@ impl World {
             self.group_840[i] = i as i32;
         }
         if ng > 0 {
-            sort_groups(&mut self.group_leader[..ng], &mut self.group_mass[..ng], &mut self.group_840[..ng], 0, ng as i32 - 1);
+            sort_groups(
+                &mut self.group_leader[..ng],
+                &mut self.group_mass[..ng],
+                &mut self.group_840[..ng],
+                0,
+                ng as i32 - 1,
+            );
         }
         for j in 0..ng {
             let k = self.group_840[j] as usize;
@@ -409,7 +421,9 @@ impl World {
             v16 &= self.ent(m).flags;
             let cols = self.ent(m).colliders.clone();
             for c in cols {
-                if (self.ent(c).id_bits & 0xFF00_0000) as i32 > 0x100_0000 && crate::entities::mass_inv(self, c) <= 0.0 {
+                if (self.ent(c).id_bits & 0xFF00_0000) as i32 > 0x100_0000
+                    && crate::entities::mass_inv(self, c) <= 0.0
+                {
                     if pass != 0 {
                         if self.ent(c).flags & 0x4_0000 != 0 {
                             rstep::get_max_time_step(self, c, dt);
@@ -422,10 +436,15 @@ impl World {
                         v12 = ((mf + v12) - (v12 - mf).abs()) * 0.5;
                         let b = crate::entities::rigid::colliders::body_of(self, c);
                         let ebb = self.ent(c).bbox;
-                        let v42 = ((ebb[1].x - ebb[0].x - (ebb[1].y - ebb[0].y)).abs() + ((ebb[1].x - ebb[0].x) + (ebb[1].y - ebb[0].y))) * 0.5;
+                        let v42 = ((ebb[1].x - ebb[0].x - (ebb[1].y - ebb[0].y)).abs()
+                            + ((ebb[1].x - ebb[0].x) + (ebb[1].y - ebb[0].y)))
+                            * 0.5;
                         let v41 = ebb[1].z - ebb[0].z;
-                        let h = (((v42 - v41).abs() + (v42 + v41)) * 0.5) * (((v42 - v41).abs() + (v42 + v41)) * 0.5);
-                        v15 += (((b.w.x * b.w.x + b.w.y * b.w.y) + b.w.z * b.w.z) * h + ((b.v.x * b.v.x + b.v.y * b.v.y) + b.v.z * b.v.z)) * self.group_dt;
+                        let h = (((v42 - v41).abs() + (v42 + v41)) * 0.5)
+                            * (((v42 - v41).abs() + (v42 + v41)) * 0.5);
+                        v15 += (((b.w.x * b.w.x + b.w.y * b.w.y) + b.w.z * b.w.z) * h
+                            + ((b.v.x * b.v.x + b.v.y * b.v.y) + b.v.z * b.v.z))
+                            * self.group_dt;
                     } else {
                         let mts = rstep::get_max_time_step(self, c, dt);
                         v21 = ((mts + v21) - (v21 - mts).abs()) * 0.5;
@@ -522,7 +541,8 @@ impl World {
             self.dump_solver_case(tid, v52, e0, &path);
         }
         let res = {
-            let sol = self.solver[tid].get_or_insert_with(|| Box::new(crate::solver::SolverThread::new(tid)));
+            let sol = self.solver[tid]
+                .get_or_insert_with(|| Box::new(crate::solver::SolverThread::new(tid)));
             sol.invoke(v52, &self.vars, e0, 0, &mut self.bodies, &mut self.contacts)
         };
         self.post_solve(gi, iter, v52, e0, n_ents, v14, done, &res, tid);
@@ -623,7 +643,11 @@ impl World {
             .iter()
             .map(|&e| {
                 let g = self.ent(e).unk232;
-                if g.is_none() { 0 } else { u64::from(g.0) + 1 }
+                if g.is_none() {
+                    0
+                } else {
+                    u64::from(g.0) + 1
+                }
             })
             .collect();
         let n = list.len() as i32;
@@ -653,7 +677,9 @@ impl World {
                 self.ent_mut(e).time_deleted += self.cur_dt;
             }
             let ent = self.ent(e);
-            if self.pump_counter >= ent.deleted && (ent.time_deleted > 30.0 || (ent.pod_refs <= 0 && ent.processed < 0x20000)) {
+            if self.pump_counter >= ent.deleted
+                && (ent.time_deleted > 30.0 || (ent.pod_refs <= 0 && ent.processed < 0x20000))
+            {
                 let (n, p) = (ent.list_next, ent.list_prev);
                 if !n.is_none() {
                     self.ent_mut(n).list_prev = p;
@@ -671,7 +697,8 @@ impl World {
             let mut e = self.list_head[k];
             while !e.is_none() && e != self.list_marker[k] {
                 let next = self.ent(e).list_next;
-                let special = self.ent(e).parts.iter().any(|p| p.flags & 0x8_0000 != 0) || self.ent(e).has_structure;
+                let special = self.ent(e).parts.iter().any(|p| p.flags & 0x8_0000 != 0)
+                    || self.ent(e).has_structure;
                 if special {
                     let ent = self.ent_mut(e);
                     ent.list_bits = (ent.list_bits & 0xF1FF_FFFF) | 0x100_0000;
@@ -790,7 +817,12 @@ impl World {
             if b == BodyId::STATIC {
                 b
             } else {
-                BodyId(bodies.iter().position(|&x| x == b).map_or(0, |i| i as u32 + 1))
+                BodyId(
+                    bodies
+                        .iter()
+                        .position(|&x| x == b)
+                        .map_or(0, |i| i as u32 + 1),
+                )
             }
         };
         let contacts: Vec<crate::solver::Contact> = cl
@@ -823,7 +855,11 @@ impl World {
             nrep: 1,
         };
         use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+        {
             let _ = writeln!(f, "{}", case.to_line());
         }
     }

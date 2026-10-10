@@ -85,7 +85,14 @@ impl World {
         self.register_primitive(prim)
     }
 
-    fn add_entity(&mut self, etype: i32, pos: Vec3, q: Quat, parts: &[PartDesc], id: i32) -> Option<EntIdx> {
+    fn add_entity(
+        &mut self,
+        etype: i32,
+        pos: Vec3,
+        q: Quat,
+        parts: &[PartDesc],
+        id: i32,
+    ) -> Option<EntIdx> {
         let pp = ParamsPos {
             pos,
             q,
@@ -109,7 +116,13 @@ impl World {
     }
 
     /// Add a static entity (type 1) with the given parts; `id` -1 = automatic.
-    pub fn add_static(&mut self, pos: Vec3, q: Quat, parts: &[PartDesc], id: i32) -> Option<EntIdx> {
+    pub fn add_static(
+        &mut self,
+        pos: Vec3,
+        q: Quat,
+        parts: &[PartDesc],
+        id: i32,
+    ) -> Option<EntIdx> {
         self.add_entity(1, pos, q, parts, id)
     }
 

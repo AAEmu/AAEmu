@@ -97,7 +97,10 @@ impl Scenario {
     }
 
     fn target(&self, n: &str) -> Result<EntIdx, String> {
-        self.ents.get(n).copied().ok_or_else(|| format!("unknown target {n}"))
+        self.ents
+            .get(n)
+            .copied()
+            .ok_or_else(|| format!("unknown target {n}"))
     }
 
     /// The oracle's `print_entity`.
@@ -150,7 +153,9 @@ impl Scenario {
         let kv: HashMap<&str, &str> = toks.iter().filter_map(|t| t.split_once('=')).collect();
         let get = |k: &str, d: &str| -> String { kv.get(k).copied().unwrap_or(d).to_string() };
         let need = |k: &str| -> Result<String, String> {
-            kv.get(k).map(|s| (*s).to_string()).ok_or_else(|| format!("{cmd}: missing {k}"))
+            kv.get(k)
+                .map(|s| (*s).to_string())
+                .ok_or_else(|| format!("{cmd}: missing {k}"))
         };
         let w = &mut self.world;
         match cmd {
@@ -158,13 +163,25 @@ impl Scenario {
                 let org = v3(&get("org", "0,0,-100"));
                 let n = pv(&get("n", "64,64"));
                 let st = pv(&get("step", "4,4"));
-                w.setup_entity_grid(pu(&get("axisz", "2")) as usize, org, n[0] as i32, n[1] as i32, st[0], st[1], 0);
+                w.setup_entity_grid(
+                    pu(&get("axisz", "2")) as usize,
+                    org,
+                    n[0] as i32,
+                    n[1] as i32,
+                    st[0],
+                    st[1],
+                    0,
+                );
             }
             "var" => {
                 let off = pu(&need("off")?) as usize;
                 let mut b = w.vars.to_bytes();
                 let o = off - crate::physvars::WORLD_OFFSET;
-                let word = if let Some(f) = kv.get("f") { pf(f).to_bits() } else { pu(&need("i")?) };
+                let word = if let Some(f) = kv.get("f") {
+                    pf(f).to_bits()
+                } else {
+                    pu(&need("i")?)
+                };
                 b[o..o + 4].copy_from_slice(&word.to_le_bytes());
                 w.vars = crate::physvars::PhysVars::from_bytes(&b);
             }
@@ -172,7 +189,11 @@ impl Scenario {
                 let center = v3(&get("center", "0,0,0"));
                 let prim = match need("type")?.as_str() {
                     "box" => {
-                        let mut b = BoxPrim { size: v3(&need("size")?), center, ..BoxPrim::default() };
+                        let mut b = BoxPrim {
+                            size: v3(&need("size")?),
+                            center,
+                            ..BoxPrim::default()
+                        };
                         if let Some(bs) = kv.get("basis") {
                             let m = pv(bs);
                             b.basis = Mat33::from_rows(
@@ -184,7 +205,10 @@ impl Scenario {
                         }
                         Primitive::Box(b)
                     }
-                    "sphere" => Primitive::Sphere(SpherePrim { center, r: pf(&need("r")?) }),
+                    "sphere" => Primitive::Sphere(SpherePrim {
+                        center,
+                        r: pf(&need("r")?),
+                    }),
                     t @ ("cylinder" | "capsule") => {
                         let c = CylinderPrim {
                             center,
@@ -215,7 +239,9 @@ impl Scenario {
                     ..ParamsPos::default()
                 };
                 let id = get("id", "-1").parse::<i32>().unwrap_or(-1);
-                let e = w.create_physical_entity(ty, 0.0, Some(&pp), 0, 0, id).ok_or("create failed")?;
+                let e = w
+                    .create_physical_entity(ty, 0.0, Some(&pp), 0, 0, id)
+                    .ok_or("create failed")?;
                 let n = need("name")?;
                 self.names.insert(e, n.clone());
                 self.ents.insert(n, e);
@@ -223,7 +249,11 @@ impl Scenario {
             "part" => {
                 let en = need("ent")?;
                 let e = self.target(&en)?;
-                let g = self.geoms.get(&need("geom")?).cloned().ok_or("unknown geom")?;
+                let g = self
+                    .geoms
+                    .get(&need("geom")?)
+                    .cloned()
+                    .ok_or("unknown geom")?;
                 let gp = GeomParams {
                     density: pf(&get("density", "0")),
                     mass: pf(&get("mass", "0")),
@@ -274,23 +304,41 @@ impl Scenario {
                 }
                 apply_fields(&toks, &mut b)?;
                 let ts = get("ts", "1").parse::<i32>().unwrap_or(1);
-                let is_area = matches!(self.world.ent(e).kind, crate::entities::base::EntityKind::Area(_));
+                let is_area = matches!(
+                    self.world.ent(e).kind,
+                    crate::entities::base::EntityKind::Area(_)
+                );
                 let r = match (cmd, is_area) {
                     ("params", true) => area_set_params(&mut self.world, e, ty, &b)?,
-                    ("params", false) => crate::entities::interface::set::set_params(&mut self.world, e, &mut b, ts),
-                    ("action", false) => crate::entities::interface::action::action(&mut self.world, e, &mut b, ts),
-                    ("status", false) => crate::entities::interface::status::get_status(&mut self.world, e, &mut b),
-                    ("getparams", false) => crate::entities::interface::get::get_params(&mut self.world, e, &mut b),
+                    ("params", false) => {
+                        crate::entities::interface::set::set_params(&mut self.world, e, &mut b, ts)
+                    }
+                    ("action", false) => {
+                        crate::entities::interface::action::action(&mut self.world, e, &mut b, ts)
+                    }
+                    ("status", false) => {
+                        crate::entities::interface::status::get_status(&mut self.world, e, &mut b)
+                    }
+                    ("getparams", false) => {
+                        crate::entities::interface::get::get_params(&mut self.world, e, &mut b)
+                    }
                     (c, _) => return Err(format!("{c} type {ty} on an area not supported")),
                 };
                 let mut s = format!("ret {cmd} {tn} {ty} {r}");
                 if let Some(d) = kv.get("dump") {
                     let (o, n) = d.split_once(',').ok_or("dump=OFF,N")?;
-                    let (o, n) = (o.parse::<usize>().unwrap_or(0), n.parse::<usize>().unwrap_or(0));
+                    let (o, n) = (
+                        o.parse::<usize>().unwrap_or(0),
+                        n.parse::<usize>().unwrap_or(0),
+                    );
                     for i in 0..n {
                         let k = o + 4 * i;
                         if k + 4 <= 512 {
-                            let _ = write!(s, " {:08x}", u32::from_le_bytes(b[k..k + 4].try_into().unwrap_or([0; 4])));
+                            let _ = write!(
+                                s,
+                                " {:08x}",
+                                u32::from_le_bytes(b[k..k + 4].try_into().unwrap_or([0; 4]))
+                            );
                         }
                     }
                 }
@@ -354,8 +402,17 @@ impl Scenario {
                     let _ = write!(s, " {:08x} {:08x}", c.ipart[0] as u32, c.ipart[1] as u32);
                     s += &(h(c.nloc.x) + &h(c.nloc.y) + &h(c.nloc.z) + &h(c.friction));
                     let _ = write!(s, " {:08x}", c.flags);
-                    s += &(h(c.vn) + &h(c.vreq.x) + &h(c.vreq.y) + &h(c.vreq.z) + &h(c.pn) + &h(c.penetration));
-                    let _ = writeln!(s, " {:08x} {:08x} {:08x}", c.id_bits, c.idx_bits, c.group_n as u32);
+                    s += &(h(c.vn)
+                        + &h(c.vreq.x)
+                        + &h(c.vreq.y)
+                        + &h(c.vreq.z)
+                        + &h(c.pn)
+                        + &h(c.penetration));
+                    let _ = writeln!(
+                        s,
+                        " {:08x} {:08x} {:08x}",
+                        c.id_bits, c.idx_bits, c.group_n as u32
+                    );
                     k = c.next;
                     n += 1;
                 }
@@ -369,7 +426,8 @@ impl Scenario {
             "ray" => self.cmd_ray(&kv)?,
             "env" => {
                 if let Some(v) = kv.get("raymax") {
-                    self.world.queries.ray_dir_limit = Some(v.parse().map_err(|e| format!("raymax: {e}"))?);
+                    self.world.queries.ray_dir_limit =
+                        Some(v.parse().map_err(|e| format!("raymax: {e}"))?);
                 }
                 if let Some(v) = kv.get("b289") {
                     self.world.queries.env_byte_289 = *v != "0";
@@ -403,7 +461,10 @@ impl Scenario {
     /// skipped).
     fn cmd_ray(&mut self, kv: &HashMap<&str, &str>) -> Result<(), String> {
         let get = |k: &str, d: &str| -> String { kv.get(k).copied().unwrap_or(d).to_string() };
-        let nmax = get("max", "1").parse::<i32>().map_err(|e| e.to_string())?.clamp(1, 16) as usize;
+        let nmax = get("max", "1")
+            .parse::<i32>()
+            .map_err(|e| e.to_string())?
+            .clamp(1, 16) as usize;
         let p = crate::world::queries::RwiParams {
             org: v3(&get("org", "0,0,0")),
             dir: v3(&get("dir", "0,0,0")),
@@ -412,7 +473,9 @@ impl Scenario {
             ..crate::world::queries::RwiParams::default()
         };
         let mut hits = vec![crate::world::queries::RayHit::default(); nmax];
-        let caller = get("caller", "4").parse::<i32>().map_err(|e| e.to_string())?;
+        let caller = get("caller", "4")
+            .parse::<i32>()
+            .map_err(|e| e.to_string())?;
         let n = self.world.rwi(&p, &mut hits, None, caller);
         let _ = writeln!(self.out, "ray {} n {}", get("name", "-"), n);
         for (i, h) in hits.iter().enumerate() {
@@ -444,9 +507,13 @@ impl Scenario {
 /// `vOFF=x,y,z`, `qOFF=`, `pOFF=null|unused`, `hex=`.
 fn apply_fields(toks: &[&str], b: &mut [u8]) -> Result<(), String> {
     for t in toks {
-        let Some((k, v)) = t.split_once('=') else { continue };
+        let Some((k, v)) = t.split_once('=') else {
+            continue;
+        };
         if k == "hex" {
-            let bytes: Vec<u8> = (0..v.len() / 2).map(|i| u8::from_str_radix(&v[2 * i..2 * i + 2], 16).unwrap_or(0)).collect();
+            let bytes: Vec<u8> = (0..v.len() / 2)
+                .map(|i| u8::from_str_radix(&v[2 * i..2 * i + 2], 16).unwrap_or(0))
+                .collect();
             b[..bytes.len()].copy_from_slice(&bytes);
             continue;
         }
@@ -564,7 +631,11 @@ fn area_set_params(w: &mut World, e: EntIdx, ty: i32, b: &[u8]) -> Result<i32, S
     Ok(match ty {
         0 => w.area_set_params_pos(e, &crate::params::ParamsPos::read(b)),
         12 => w.area_set_params_buoyancy(e, &crate::params::ParamsBuoyancy::read(b)),
-        t => return Err(format!("area params type {t} not supported by the interpreter")),
+        t => {
+            return Err(format!(
+                "area params type {t} not supported by the interpreter"
+            ))
+        }
     })
 }
 
@@ -579,7 +650,11 @@ fn status_dynamics(w: &World, e: EntIdx) -> Option<(Vec3, Vec3)> {
     // 0x350B1B80 id 8: zero velocities while asleep
     w.ent(e).rigid().map(|r| {
         let b = w.bodies.get(r.body);
-        if r.awake() { (b.v, b.w) } else { (Vec3::ZERO, Vec3::ZERO) }
+        if r.awake() {
+            (b.v, b.w)
+        } else {
+            (Vec3::ZERO, Vec3::ZERO)
+        }
     })
 }
 

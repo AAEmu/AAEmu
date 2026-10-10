@@ -60,7 +60,11 @@ pub fn max_friction(w: &World, e: EntIdx) -> f32 {
 #[must_use]
 pub fn get_damping(w: &World, e: EntIdx, dt: f32) -> f32 {
     let r = rd(w, e);
-    let v2 = if w.ent(e).colliders.is_empty() { r.damping_freefall } else { r.damping };
+    let v2 = if w.ent(e).colliders.is_empty() {
+        r.damping_freefall
+    } else {
+        r.damping
+    };
     let v3 = max_i(v2, r.water_damping_eff) * dt;
     max0(1.0 - v3)
 }
@@ -128,7 +132,9 @@ pub fn calc_energy(w: &World, e: EntIdx, dt: f32) -> f32 {
             v5 += c.n.x * k;
             v6 += c.n.y * k;
             v8 += c.n.z * k;
-            if w.bodies.get(c.pbody[1]).minv == 0.0 && (w.ent(c.pent[1]).id_bits & 0xFF00_0000) as i32 > 0x0100_0000 {
+            if w.bodies.get(c.pbody[1]).minv == 0.0
+                && (w.ent(c.pent[1]).id_bits & 0xFF00_0000) as i32 > 0x0100_0000
+            {
                 v9 = (v7 * 100.0) * 2.0;
             }
             i = c.next;
@@ -192,11 +198,25 @@ pub fn step_back(w: &mut World, e: EntIdx, dt: f32) {
         let used = (r.awake_bits >> 17) & 0x1F;
         let slots: Vec<usize> = r.coll_log.iter().copied().take(used as usize).collect();
         for idx in slots {
-            if let Some(crate::world::events::Event::Collision { ent, mass, .. }) = w.events.logged.get(idx).cloned().as_mut() {
+            if let Some(crate::world::events::Event::Collision { ent, mass, .. }) =
+                w.events.logged.get(idx).cloned().as_mut()
+            {
                 if w.ent(ent[1]).flags & 0x8000_0000 != 0 {
                     mass[1] = 0.01;
                     let ev = w.events.logged[idx].clone();
-                    if let crate::world::events::Event::Collision { ent, pt, n, v, mass: _, partid, idmat, penetration, normimpulse, radius } = ev {
+                    if let crate::world::events::Event::Collision {
+                        ent,
+                        pt,
+                        n,
+                        v,
+                        mass: _,
+                        partid,
+                        idmat,
+                        penetration,
+                        normimpulse,
+                        radius,
+                    } = ev
+                    {
                         w.events.logged[idx] = crate::world::events::Event::Collision {
                             ent,
                             pt,
@@ -278,7 +298,11 @@ pub fn get_max_time_step(w: &mut World, e: EntIdx, dt: f32) -> f32 {
     let p2 = (b[2][0] * lv.x + b[2][1] * lv.y) + b[2][2] * lv.z;
     let sc = part.scale;
     let sz = [sc * bb.size.x, bb.size.y * sc, bb.size.z * sc];
-    let f = [(p0.abs() * sz[1]) * sz[2], (p1.abs() * sz[0]) * sz[2], (p2.abs() * sz[0]) * sz[1]];
+    let f = [
+        (p0.abs() * sz[1]) * sz[2],
+        (p1.abs() * sz[0]) * sz[2],
+        (p2.abs() * sz[0]) * sz[1],
+    ];
     let a = ((f[0] - f[1]).to_bits() >> 31) as usize;
     let b2 = ((f[a] - f[2]).to_bits() >> 31) as usize;
     let k = (a | (b2 << 1)) & ((((a | (b2 << 1)) ^ 2) | 4) >> 1);
@@ -332,7 +356,11 @@ fn swept_box_clear(w: &mut World, e: EntIdx, v41: f32, v192: u32, tid: usize) ->
     let lo = Vec3::new(lo[0], lo[1], lo[2]);
     let hi = Vec3::new(hi[0], hi[1], hi[2]);
     let list = w.get_entities_in_box(lo, hi, 263, Some(e), tid);
-    let half = Vec3::new((bbox[1].x - bbox[0].x) * 0.5, (bbox[1].y - bbox[0].y) * 0.5, (bbox[1].z - bbox[0].z) * 0.5);
+    let half = Vec3::new(
+        (bbox[1].x - bbox[0].x) * 0.5,
+        (bbox[1].y - bbox[0].y) * 0.5,
+        (bbox[1].z - bbox[0].z) * 0.5,
+    );
     let bx = crate::geometry::shapes::BoxGeom::new(&crate::geometry::primitives::BoxPrim {
         basis: Mat33::IDENTITY,
         center: Vec3::ZERO,
@@ -456,7 +484,8 @@ pub fn register_contacts(w: &mut World, e: EntIdx, _dt: f32, n_max: i32) -> i32 
                 v19 = c.pbody[1];
                 v77 = k;
                 let d = v25.wrapping_sub(c.ipart[1]);
-                let v27 = (((v25 >> 31) + 1) ^ (((d ^ d.wrapping_sub(1)) >> 31).wrapping_neg())) != 0;
+                let v27 =
+                    (((v25 >> 31) + 1) ^ (((d ^ d.wrapping_sub(1)) >> 31).wrapping_neg())) != 0;
                 v25 = c.ipart[1];
                 v21 |= v27;
                 let cm = w.contacts.get_mut(k);
@@ -479,16 +508,28 @@ pub fn register_contacts(w: &mut World, e: EntIdx, _dt: f32, n_max: i32) -> i32 
             let col = w.ent(e).colliders[i];
             let cb = w.ent(col).bbox;
             let (c81, c82, c83) = (cb[0].x, cb[0].y, cb[0].z);
-            let v40 = (((cb[1].z - c83) + (cb[1].y - c82)) - ((cb[1].y - c82) - (cb[1].z - c83)).abs()) * 0.5;
+            let v40 = (((cb[1].z - c83) + (cb[1].y - c82))
+                - ((cb[1].y - c82) - (cb[1].z - c83)).abs())
+                * 0.5;
             let v87 = ((v40 + (cb[1].x - c81)) - ((cb[1].x - c81) - v40).abs()) * 0.5;
             let v41 = v87.abs();
-            let v42 = v87 - ((((v41.to_bits() ^ v41.to_bits().wrapping_sub(1)) >> 31) as f32) * v13);
+            let v42 =
+                v87 - ((((v41.to_bits() ^ v41.to_bits().wrapping_sub(1)) >> 31) as f32) * v13);
             let v43 = ((v42 + v13) - (v13 - v42).abs()) * 0.5;
             let (head, com, g) = {
                 let r = rd(w, e);
                 (r.contacts_head, w.bodies.get(body_id).pos, r.gravity)
             };
-            let fit = fit_contact_patch(&mut w.contacts, head, first, 0x80000, v43 * 0.150_000_01, n_max, com, g);
+            let fit = fit_contact_patch(
+                &mut w.contacts,
+                head,
+                first,
+                0x80000,
+                v43 * 0.150_000_01,
+                n_max,
+                com,
+                g,
+            );
             count = fit.count;
             if let Some(f) = fit.first {
                 v34 = f;
@@ -509,7 +550,10 @@ pub fn register_contacts(w: &mut World, e: EntIdx, _dt: f32, n_max: i32) -> i32 
                 let colb = w.contacts.get(v77).pbody[1];
                 let com_b = w.bodies.get(colb).pos;
                 let gap = w.vars.contact_gap;
-                let v53 = min_i(w.vars.max_unproject_vel, max0(v22 - gap) * w.vars.unproject_vel_gain);
+                let v53 = min_i(
+                    w.vars.max_unproject_vel,
+                    max0(v22 - gap) * w.vars.unproject_vel_gain,
+                );
                 let own_vol = ((bb[1].y - bb[0].y) * (bb[1].x - bb[0].x)) * (bb[1].z - bb[0].z);
                 let col_vol = ((cb[1].y - cb[0].y) * (cb[1].x - cb[0].x)) * (cb[1].z - cb[0].z);
                 {
@@ -557,7 +601,11 @@ pub fn register_contacts(w: &mut World, e: EntIdx, _dt: f32, n_max: i32) -> i32 
                 let c = w.contacts.get_mut(kk);
                 // `+168 = v10 + 164`: the last patch record of this call (a bogus pointer
                 // when none was made; only read for shared-impulse contacts)
-                c.owner = if v80.is_none() { ContactOwner::Null } else { ContactOwner::Count(v80) };
+                c.owner = if v80.is_none() {
+                    ContactOwner::Null
+                } else {
+                    ContactOwner::Count(v80)
+                };
                 c.flags |= shared;
             }
             let (sol, pool) = w.solver_and_pool(tid);
@@ -661,7 +709,10 @@ pub fn update(w: &mut World, e: EntIdx, dt: f32, damping: f32) -> u32 {
     let mut use_support = rd(w, e).flags2 & 0x600 == 0x400;
     if !use_support {
         let cols = w.ent(e).colliders.clone();
-        if let Some(i) = cols.iter().position(|&c| w.ent(c).id_bits & 0xFF00_0000 != 0) {
+        if let Some(i) = cols
+            .iter()
+            .position(|&c| w.ent(c).id_bits & 0xFF00_0000 != 0)
+        {
             v48 = rd(w, e).collider_contacts[i];
             use_support = true;
         }
@@ -672,7 +723,10 @@ pub fn update(w: &mut World, e: EntIdx, dt: f32, damping: f32) -> u32 {
         let ib = w.ent(other).id_bits as i32;
         if ib >= 0 && ib as u32 & 0xFF00_0000 != 0 {
             let (sv, sw) = super_vw(w, other);
-            if ((sw.y * sw.y + sw.x * sw.x) + sw.z * sw.z) + ((sv.y * sv.y + sv.x * sv.x) + sv.z * sv.z) != 0.0 {
+            if ((sw.y * sw.y + sw.x * sw.x) + sw.z * sw.z)
+                + ((sv.y * sv.y + sv.x * sv.x) + sv.z * sv.z)
+                != 0.0
+            {
                 let pb = *w.bodies.get(c.pbody[1]);
                 let b = w.bodies.get_mut(body_id);
                 b.w = Vec3::new(b.w.x - sw.x, b.w.y - sw.y, b.w.z - sw.z);
@@ -711,7 +765,8 @@ pub fn update(w: &mut World, e: EntIdx, dt: f32, damping: f32) -> u32 {
         } else {
             rd(w, e).awake_bits
         };
-        let v182 = ((v94 + v95).abs() * (v94 + v95)) + (((g.x * g.x + g.y * g.y) + g.z * g.z) * 0.5);
+        let v182 =
+            ((v94 + v95).abs() * (v94 + v95)) + (((g.x * g.x + g.y * g.y) + g.z * g.z) * 0.5);
         if v96 {
             v91 |= ((v182.to_bits() >> 31) & v97) as i32;
         }
@@ -720,7 +775,8 @@ pub fn update(w: &mut World, e: EntIdx, dt: f32, damping: f32) -> u32 {
     let v98 = ncoll;
     let v99 = b0.minv;
     let v100 = r.min_awake_time;
-    let few = (((r.n_contacts - 3) as u32) >> 31) as i32 & (((v98 - 1) ^ (v98 - 2)) >> 31).wrapping_neg();
+    let few =
+        (((r.n_contacts - 3) as u32) >> 31) as i32 & (((v98 - 1) ^ (v98 - 2)) >> 31).wrapping_neg();
     let v101 = v183 * (1.0 - ((v91 | few) as f32) * 0.899_999_98);
     v183 = v101;
     let v102 = max0(v100) - dt;
@@ -770,11 +826,21 @@ pub fn update(w: &mut World, e: EntIdx, dt: f32, damping: f32) -> u32 {
             }
             r.v_accum = Vec3::ZERO;
             r.w_accum = Vec3::ZERO;
-        } else if ((0.000_099_999_997f32 - v107).to_bits() >> 31 == 0) || (v112 - v107).to_bits() >> 31 != 0 {
+        } else if ((0.000_099_999_997f32 - v107).to_bits() >> 31 == 0)
+            || (v112 - v107).to_bits() >> 31 != 0
+        {
             let (wa, va) = {
                 let r = rm(w, e);
-                r.v_accum = Vec3::new(b.v.x + r.v_accum.x, b.v.y + r.v_accum.y, b.v.z + r.v_accum.z);
-                r.w_accum = Vec3::new(b.w.x + r.w_accum.x, b.w.y + r.w_accum.y, b.w.z + r.w_accum.z);
+                r.v_accum = Vec3::new(
+                    b.v.x + r.v_accum.x,
+                    b.v.y + r.v_accum.y,
+                    b.v.z + r.v_accum.z,
+                );
+                r.w_accum = Vec3::new(
+                    b.w.x + r.w_accum.x,
+                    b.w.y + r.w_accum.y,
+                    b.w.z + r.w_accum.z,
+                );
                 (r.w_accum, r.v_accum)
             };
             let r = rd(w, e);

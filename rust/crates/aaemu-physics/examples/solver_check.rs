@@ -2,7 +2,11 @@
 use aaemu_physics::solver::probe::{oracle_raw, word_diff, Case};
 fn main() {
     let a: Vec<String> = std::env::args().collect();
-    let lines: Vec<String> = std::fs::read_to_string(&a[1]).unwrap().lines().map(String::from).collect();
+    let lines: Vec<String> = std::fs::read_to_string(&a[1])
+        .unwrap()
+        .lines()
+        .map(String::from)
+        .collect();
     let exe = std::path::PathBuf::from(&a[2]);
     let ans = oracle_raw(&exe, &lines).unwrap();
     for (i, (l, o)) in lines.iter().zip(&ans).enumerate() {

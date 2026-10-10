@@ -122,9 +122,13 @@ pub fn register_contact_point(
         let mut it = first;
         while it != head {
             let k = w.contacts.get(it);
-            if (k.flags & cf::NEW != 0 || k.penetration == 0.0) && k.pent[1] == col && k.pbody[1] == pbody1 {
+            if (k.flags & cf::NEW != 0 || k.penetration == 0.0)
+                && k.pent[1] == col
+                && k.pbody[1] == pbody1
+            {
                 let d = k.pt[0];
-                let dist = (((d.x - pt.x) * (d.x - pt.x)) + ((d.y - pt.y) * (d.y - pt.y))) + ((d.z - pt.z) * (d.z - pt.z));
+                let dist = (((d.x - pt.x) * (d.x - pt.x)) + ((d.y - pt.y) * (d.y - pt.y)))
+                    + ((d.z - pt.z) * (d.z - pt.z));
                 if dist < v34 {
                     break;
                 }
@@ -156,7 +160,9 @@ pub fn register_contact_point(
             ci = rec;
         } else {
             let k = w.contacts.get(it);
-            if (k.penetration == 0.0 || k.flags & cf::NEW != 0) && (k.penetration >= depth || flags & 0x80 != 0) {
+            if (k.penetration == 0.0 || k.flags & cf::NEW != 0)
+                && (k.penetration >= depth || flags & 0x80 != 0)
+            {
                 return None;
             }
             ci = it;
@@ -213,7 +219,11 @@ pub fn register_contact_point(
         rel = ((v76 * v76) + (v77 * v77)) + (v75 * v75);
     }
     let gap5 = w.vars.contact_gap * 5.0;
-    let table = if rel > gap5 * gap5 { &w.surfaces.dyn_friction } else { &w.surfaces.friction };
+    let table = if rel > gap5 * gap5 {
+        &w.surfaces.dyn_friction
+    } else {
+        &w.surfaces.friction
+    };
     let v84 = table[(id1 & 0x1FF) as usize] + table[(id0 & 0x1FF) as usize];
     let v86 = (((-v84).abs() + v84) * 0.5) * 0.5;
     let x = cflags & 0x4000_0000;
@@ -233,7 +243,9 @@ pub fn register_contact_point(
         return None;
     }
     w.contacts.get_mut(ci).pn = 0.0;
-    let v155 = (w.surfaces.bounciness[(id1 & 0x1FF) as usize] + w.surfaces.bounciness[(id0 & 0x1FF) as usize]) * 0.5;
+    let v155 = (w.surfaces.bounciness[(id1 & 0x1FF) as usize]
+        + w.surfaces.bounciness[(id0 & 0x1FF) as usize])
+        * 0.5;
     if v155 > 0.0 && vn < -w.vars.min_bounce_speed {
         let cpart_rec = &w.ent(col).parts[cpart as usize];
         if b0.m < cpart_rec.mass || cpart_rec.flags & 0x40_0000 == 0 {
@@ -251,7 +263,9 @@ pub fn register_contact_point(
         k.vreq = Vec3::ZERO;
     } else {
         let bb = w.ent(e).bbox;
-        if depth > (((bb[1].y - bb[0].y) + (bb[1].x - bb[0].x)) + (bb[1].z - bb[0].z)) * 0.059_999_999 {
+        if depth
+            > (((bb[1].y - bb[0].y) + (bb[1].x - bb[0].x)) + (bb[1].z - bb[0].z)) * 0.059_999_999
+        {
             let dir = w.tscratch[tidu].rd_v(o + i64::from(c::DIR));
             w.contacts.get_mut(ci).n = dir;
         }
@@ -268,14 +282,30 @@ pub fn register_contact_point(
 }
 
 /// The restitution branch of RegisterContactPoint.
-fn bounce(w: &mut World, e: EntIdx, col: EntIdx, ci: ContactId, e_b: f32, own_part: i32, cpart: i32) {
+fn bounce(
+    w: &mut World,
+    e: EntIdx,
+    col: EntIdx,
+    ci: ContactId,
+    e_b: f32,
+    own_part: i32,
+    cpart: i32,
+) {
     let k = *w.contacts.get(ci);
     let b0 = *w.bodies.get(k.pbody[0]);
     let b1 = *w.bodies.get(k.pbody[1]);
     let mut km = [0.0f32; 9];
     let p = k.pt[0];
-    add_collision_matrix(&b0, Vec3::new(p.x - b0.pos.x, p.y - b0.pos.y, p.z - b0.pos.z), &mut km);
-    add_collision_matrix(&b1, Vec3::new(p.x - b1.pos.x, p.y - b1.pos.y, p.z - b1.pos.z), &mut km);
+    add_collision_matrix(
+        &b0,
+        Vec3::new(p.x - b0.pos.x, p.y - b0.pos.y, p.z - b0.pos.z),
+        &mut km,
+    );
+    add_collision_matrix(
+        &b1,
+        Vec3::new(p.x - b1.pos.x, p.y - b1.pos.y, p.z - b1.pos.z),
+        &mut km,
+    );
     let n = k.n;
     let v169 = (km[3] * n.y + km[0] * n.x) + km[6] * n.z;
     let v170 = (km[1] * n.x + km[4] * n.y) + km[7] * n.z;
@@ -352,7 +382,8 @@ fn aggregate_area(w: &mut World, e: EntIdx, ci: ContactId, i: i32, flags: u32, t
                     let pb = s.rd_q(o + i64::from(c::PTBORDER));
                     for k in 0..nb.max(0) {
                         let q = s.rd_v_at(pb.wrapping_add(12 * k as u64));
-                        let d = (((q.y - cy) * (q.y - cy)) + ((q.x - cx) * (q.x - cx))) + ((q.z - cz) * (q.z - cz));
+                        let d = (((q.y - cy) * (q.y - cy)) + ((q.x - cx) * (q.x - cx)))
+                            + ((q.z - cz) * (q.z - cz));
                         let l = d.sqrt();
                         radius = ((radius - l).abs() + (l + radius)) * 0.5;
                     }
@@ -374,7 +405,14 @@ fn aggregate_area(w: &mut World, e: EntIdx, ci: ContactId, i: i32, flags: u32, t
 /// (`+508` bits 17–21 used / 22–26 max, `+1088` slot pointers, `+1100` smallest distance):
 /// a new slot is taken while free, otherwise the slot with the smallest |v₀ − v₁|² is
 /// overwritten when this one is larger.
-pub fn collision_event(w: &mut World, e: EntIdx, ci: ContactId, impulse: f32, log: bool, radius: f32) {
+pub fn collision_event(
+    w: &mut World,
+    e: EntIdx,
+    ci: ContactId,
+    impulse: f32,
+    log: bool,
+    radius: f32,
+) {
     let ef = w.ent(e).flags;
     let k: Contact = *w.contacts.get(ci);
     if ef & 0x200_2000 == 0 || k.flags & 0x20_0000 != 0 {
@@ -470,7 +508,8 @@ pub fn collision_event(w: &mut World, e: EntIdx, ci: ContactId, impulse: f32, lo
         }
     } else {
         let r = w.ent_mut(e).rigid_mut().expect("rigid");
-        r.awake_bits ^= (r.awake_bits ^ ((r.awake_bits & 0xFFFE_0000).wrapping_add(0x20000))) & 0x3E_0000;
+        r.awake_bits ^=
+            (r.awake_bits ^ ((r.awake_bits & 0xFFFE_0000).wrapping_add(0x20000))) & 0x3E_0000;
         let idx = w.post_logged_event(ev);
         let r = w.ent_mut(e).rigid_mut().expect("rigid");
         if r.coll_log.len() <= used as usize {

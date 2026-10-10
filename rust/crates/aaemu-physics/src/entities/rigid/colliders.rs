@@ -176,7 +176,8 @@ pub fn get_potential_colliders(w: &mut World, e: EntIdx, _dt: f32) -> (Vec<EntId
                 let last_dt = w.ent(e).rigid().expect("rigid").last_dt;
                 queue_awake(w, c, last_dt);
                 let r = w.ent_mut(e).rigid_mut().expect("rigid");
-                r.flags2 ^= (r.flags2 ^ ((r.flags2 & 0xFFFC_0000).wrapping_add(0x40000))) & 0x3FC_0000;
+                r.flags2 ^=
+                    (r.flags2 ^ ((r.flags2 & 0xFFFC_0000).wrapping_add(0x40000))) & 0x3FC_0000;
             }
             continue;
         }
@@ -374,12 +375,20 @@ pub fn check_for_new_contacts(
                 let sz = cent.bbox[1].z + cent.bbox[0].z;
                 let r = w.ent(e).rigid().expect("rigid");
                 let b = w.bodies.get(r.body);
-                let dv = Vec3::new(b.pos.x - r.prev_pos.x, b.pos.y - r.prev_pos.y, b.pos.z - r.prev_pos.z);
+                let dv = Vec3::new(
+                    b.pos.x - r.prev_pos.x,
+                    b.pos.y - r.prev_pos.y,
+                    b.pos.z - r.prev_pos.z,
+                );
                 let dc = Vec3::new(sx * 0.5 - b.pos.x, sy * 0.5 - b.pos.y, sz * 0.5 - b.pos.z);
                 let mut process = false;
                 if (dv.x.abs() + dv.y.abs()) + dv.z.abs() > 0.000_300_000_01 {
                     let d = (dv.x * dc.x + dv.y * dc.y) + dv.z * dc.z;
-                    process = if f & 0x2000_0000 != 0 { d <= 0.0 } else { d >= 0.0 };
+                    process = if f & 0x2000_0000 != 0 {
+                        d <= 0.0
+                    } else {
+                        d >= 0.0
+                    };
                 }
                 if !process {
                     ci += 1;
@@ -388,7 +397,8 @@ pub fn check_for_new_contacts(
             }
             let cbox = w.ent(col).bbox;
             let d = |a: f32, b: f32| (a - b) * (a - b);
-            let v502 = (d(cbox[1].y, cbox[0].y) + d(cbox[1].x, cbox[0].x)) + d(cbox[1].z, cbox[0].z) > 0.0;
+            let v502 =
+                (d(cbox[1].y, cbox[0].y) + d(cbox[1].x, cbox[0].x)) + d(cbox[1].z, cbox[0].z) > 0.0;
             let n_cparts = if ray_mode && w.ent(col).sim_class() > 0 {
                 0
             } else {
@@ -420,7 +430,8 @@ pub fn check_for_new_contacts(
                     }
                 }
                 if cpart.flags & 0x4000_0000 != 0
-                    && crate::entities::mass_inv(w, col) * 5.0 > w.bodies.get(w.ent(e).rigid().expect("rigid").body).minv
+                    && crate::entities::mass_inv(w, col) * 5.0
+                        > w.bodies.get(w.ent(e).rigid().expect("rigid").body).minv
                 {
                     cp += 1;
                     continue;
@@ -451,7 +462,9 @@ pub fn check_for_new_contacts(
                     let first = out.first.unwrap_or(0);
                     let r = gwd.r.m;
                     let (nx, ny, nz) = (-d.x, -d.y, -d.z);
-                    let proj = (((rg.prim.dir.y * d.y) + (rg.prim.dir.x * d.x)) + (rg.prim.dir.z * d.z)) * gwd.scale;
+                    let proj = (((rg.prim.dir.y * d.y) + (rg.prim.dir.x * d.x))
+                        + (rg.prim.dir.z * d.z))
+                        * gwd.scale;
                     let mut j = 0;
                     while j < out.ret {
                         let o = ThreadScratch::contact_off(first + j);
@@ -474,9 +487,18 @@ pub fn check_for_new_contacts(
                         let t = s.rd_d(o);
                         let last = (((out.ret - j - 2) as u32) >> 31) as f64;
                         s.wr_d(o, (f64::from(proj) - t) * last);
-                        s.wr_f(o + i64::from(c::DIR), ((ny * r[0][1]) + (nx * r[0][0])) + (nz * r[0][2]));
-                        s.wr_f(o + i64::from(c::DIR) + 8, ((ny * r[2][1]) + (nx * r[2][0])) + (nz * r[2][2]));
-                        s.wr_f(o + i64::from(c::DIR) + 4, ((ny * r[1][1]) + (nx * r[1][0])) + (nz * r[1][2]));
+                        s.wr_f(
+                            o + i64::from(c::DIR),
+                            ((ny * r[0][1]) + (nx * r[0][0])) + (nz * r[0][2]),
+                        );
+                        s.wr_f(
+                            o + i64::from(c::DIR) + 8,
+                            ((ny * r[2][1]) + (nx * r[2][0])) + (nz * r[2][2]),
+                        );
+                        s.wr_f(
+                            o + i64::from(c::DIR) + 4,
+                            ((ny * r[1][1]) + (nx * r[1][0])) + (nz * r[1][2]),
+                        );
                         let old = v354;
                         v354 += 1;
                         if old == 127 {
@@ -494,7 +516,14 @@ pub fn check_for_new_contacts(
                 }
                 let ret = {
                     let s = &mut w.tscratch[tidu];
-                    geom_intersect(s, own.pgeom_proxy.geom.as_ref(), cpart.pgeom_proxy.geom.as_ref(), gwd, &gwd_b, ip)
+                    geom_intersect(
+                        s,
+                        own.pgeom_proxy.geom.as_ref(),
+                        cpart.pgeom_proxy.geom.as_ref(),
+                        gwd,
+                        &gwd_b,
+                        ip,
+                    )
                 };
                 let first = ret.first.unwrap_or(0);
                 let mut j = 0;
@@ -521,7 +550,10 @@ pub fn check_for_new_contacts(
                     if ((dir.y * nn.y) + dir.x * nn.x) + dir.z * nn.z > 0.2 {
                         s.wr_d(o, -1.0);
                     }
-                    if j == 0 && w.ent(e).flags & 0x200_0000 != 0 && ((own.flags | cpart.flags) & 0x180_0000) != 0 {
+                    if j == 0
+                        && w.ent(e).flags & 0x200_0000 != 0
+                        && ((own.flags | cpart.flags) & 0x180_0000) != 0
+                    {
                         breakable_collision_event(w, e, col, ipart, cp, o);
                     }
                     let s = &w.tscratch[tidu];
@@ -576,7 +608,11 @@ fn swept_part_box(pos: Vec3, q: Quat, r: &Mat33, p: &Part, sweep: Vec3) -> [Vec3
     let ey = ps * ((bp[0][1] * s.x + bp[1][1] * s.y) + bp[2][1] * s.z);
     let ez = ps * ((bp[0][2] * s.x + bp[1][2] * s.y) + bp[2][2] * s.z);
     let ctr = p.q.rotate(bb.center);
-    let p1 = Vec3::new(ctr.x * ps + p.pos.x, ctr.y * ps + p.pos.y, ctr.z * ps + p.pos.z);
+    let p1 = Vec3::new(
+        ctr.x * ps + p.pos.x,
+        ctr.y * ps + p.pos.y,
+        ctr.z * ps + p.pos.z,
+    );
     let p2 = q.rotate(p1);
     let cw = Vec3::new(p2.x + pos.x, p2.y + pos.y, p2.z + pos.z);
     let mut lo = [cw.x - ex, cw.y - ey, cw.z - ez];
@@ -588,7 +624,10 @@ fn swept_part_box(pos: Vec3, q: Quat, r: &Mat33, p: &Part, sweep: Vec3) -> [Vec3
             lo[k] += sv;
         }
     }
-    [Vec3::new(lo[0], lo[1], lo[2]), Vec3::new(hi[0], hi[1], hi[2])]
+    [
+        Vec3::new(lo[0], lo[1], lo[2]),
+        Vec3::new(hi[0], hi[1], hi[2]),
+    ]
 }
 
 fn is_static_kind(w: &World, e: EntIdx) -> bool {
@@ -601,7 +640,9 @@ pub fn body_of(w: &mut World, e: EntIdx) -> crate::solver::RigidBody {
     match w.ent(e).rigid() {
         Some(r) => *w.bodies.get(r.body),
         None => {
-            w.bodies.get_mut(crate::solver::BodyId::STATIC).reset_static_dummy();
+            w.bodies
+                .get_mut(crate::solver::BodyId::STATIC)
+                .reset_static_dummy();
             *w.bodies.get(crate::solver::BodyId::STATIC)
         }
     }
@@ -612,7 +653,9 @@ pub fn body_id_of(w: &mut World, e: EntIdx) -> crate::solver::BodyId {
     match w.ent(e).rigid() {
         Some(r) => r.body,
         None => {
-            w.bodies.get_mut(crate::solver::BodyId::STATIC).reset_static_dummy();
+            w.bodies
+                .get_mut(crate::solver::BodyId::STATIC)
+                .reset_static_dummy();
             crate::solver::BodyId::STATIC
         }
     }
@@ -648,12 +691,18 @@ fn fix_area_ids(s: &mut ThreadScratch, o: i64) {
         s.wr_at(prim0 + off, s.rd_at(prim0 + off) & !m);
         s.wr_at(prim0 + off, s.rd_at(prim0 + off) | (m & ip0));
         s.wr_at(feat0 + off, s.rd_at(feat0 + off) & !m);
-        s.wr_at(feat0 + off, s.rd_at(feat0 + off) | (m & (if0 | 0x8000_0000)));
+        s.wr_at(
+            feat0 + off,
+            s.rd_at(feat0 + off) | (m & (if0 | 0x8000_0000)),
+        );
         let m = ((s.rd_at(prim1 + off) as i32) >> 31) as u32;
         s.wr_at(prim1 + off, s.rd_at(prim1 + off) & !m);
         s.wr_at(prim1 + off, s.rd_at(prim1 + off) | (m & ip1));
         s.wr_at(feat1 + off, s.rd_at(feat1 + off) & !m);
-        s.wr_at(feat1 + off, s.rd_at(feat1 + off) | (m & (if1 | 0x8000_0000)));
+        s.wr_at(
+            feat1 + off,
+            s.rd_at(feat1 + off) | (m & (if1 | 0x8000_0000)),
+        );
         k += 1;
     }
 }
@@ -702,7 +751,11 @@ fn material_override(w: &mut World, _e: EntIdx, list: &[EntIdx], n: i32, o: i64)
                 (t2.z * pq.x) - (t2.x * pq.z),
                 (t2.x * pq.y) - (t2.y * pq.x),
             );
-            let lp = Vec3::new(u2.x + (u2.x + le.x), u2.y + (u2.y + le.y), u2.z + (u2.z + le.z));
+            let lp = Vec3::new(
+                u2.x + (u2.x + le.x),
+                u2.y + (u2.y + le.y),
+                u2.z + (u2.z + le.z),
+            );
             if p.pgeom.geom.point_inside_status(lp) != 0 {
                 hits.push((k, p.pgeom.surface_idx, pi as i32));
             }
@@ -731,8 +784,14 @@ fn breakable_collision_event(w: &mut World, e: EntIdx, col: EntIdx, ipart: i32, 
         n: Vec3::new(-n.x, -n.y, -n.z),
         v: [Vec3::ZERO; 2],
         mass: [0.0; 2],
-        partid: [w.ent(e).parts[ipart as usize].id, w.ent(col).parts[cp as usize].id],
-        idmat: [s.rd_i(o + i64::from(c::ID)), s.rd_i(o + i64::from(c::ID) + 4)],
+        partid: [
+            w.ent(e).parts[ipart as usize].id,
+            w.ent(col).parts[cp as usize].id,
+        ],
+        idmat: [
+            s.rd_i(o + i64::from(c::ID)),
+            s.rd_i(o + i64::from(c::ID) + 4),
+        ],
         penetration: 0.0,
         normimpulse: 0.0,
         radius: 0.0,
@@ -743,7 +802,8 @@ fn breakable_collision_event(w: &mut World, e: EntIdx, col: EntIdx, ipart: i32, 
             w.ent_mut(col).parts[cp as usize].flags |= 0x100_0000;
         }
     }
-    let f = (w.ent(e).parts[ipart as usize].flags | w.ent(col).parts[cp as usize].flags) & 0x100_0000;
+    let f =
+        (w.ent(e).parts[ipart as usize].flags | w.ent(col).parts[cp as usize].flags) & 0x100_0000;
     let vel = w.tscratch[tid].rd_f(o + i64::from(c::VEL));
     if (f as f32) * vel > 0.0 {
         w.tscratch[tid].wr_f(o + i64::from(c::VEL), 0.0);
@@ -780,7 +840,8 @@ fn breakable_collision_event(w: &mut World, e: EntIdx, col: EntIdx, ipart: i32, 
         let cy = vy * hz - hy * vz;
         let cz = hy * vx - vy * hx;
         let rad = ((cx * cx) + (cy * cy) + (cz * cz)).sqrt();
-        if w.ent(col).parts[cp as usize].flags & 0x100_0000 != 0 && v2 > (rad * 30.0) * (rad * 30.0) {
+        if w.ent(col).parts[cp as usize].flags & 0x100_0000 != 0 && v2 > (rad * 30.0) * (rad * 30.0)
+        {
             let flags = w.ent(e).flags;
             w.signal_event(flags & 0x200_2000, ev);
         }
@@ -831,7 +892,11 @@ pub fn check_contact_conflicts(w: &mut World, e: EntIdx, n: i32, tid: i32) {
             let nj = s.rd_v(oj + i64::from(c::N));
             let far = |k_near: i32, k_far: i32| {
                 let d = ((pi.y - com.y) * di.y + di.x * (pi.x - com.x)) + (pi.z - com.z) * di.z;
-                if d <= 0.0 { k_far } else { k_near }
+                if d <= 0.0 {
+                    k_far
+                } else {
+                    k_near
+                }
             };
             if w.ent(ci.0).id_bits & 0xFF00_0000 != 0 {
                 let k = far(i, j);
@@ -903,13 +968,23 @@ pub fn check_contact_conflicts(w: &mut World, e: EntIdx, n: i32, tid: i32) {
             let bi = border_points(s, oi);
             let bj = border_points(s, oj);
             // the original reads the first border point unconditionally
-            let bi = if bi.is_empty() { vec![s.rd_v_at(s.rd_q(oi + i64::from(c::PTBORDER)))] } else { bi };
-            let bj = if bj.is_empty() { vec![s.rd_v_at(s.rd_q(oj + i64::from(c::PTBORDER)))] } else { bj };
+            let bi = if bi.is_empty() {
+                vec![s.rd_v_at(s.rd_q(oi + i64::from(c::PTBORDER)))]
+            } else {
+                bi
+            };
+            let bj = if bj.is_empty() {
+                vec![s.rd_v_at(s.rd_q(oj + i64::from(c::PTBORDER)))]
+            } else {
+                bj
+            };
             let (ui, vi_) = proj(&bi);
             let (uj, vj_) = proj(&bj);
-            let g1 = (((ui[1] + ui[0]) * 0.5 - (uj[1] + uj[0]) * 0.5).abs() - (ui[1] - ui[0]) * 0.5)
+            let g1 = (((ui[1] + ui[0]) * 0.5 - (uj[1] + uj[0]) * 0.5).abs()
+                - (ui[1] - ui[0]) * 0.5)
                 - (uj[1] - uj[0]) * 0.5;
-            let g2 = (((vi_[1] + vi_[0]) * 0.5 - (vj_[1] + vj_[0]) * 0.5).abs() - (vi_[1] - vi_[0]) * 0.5)
+            let g2 = (((vi_[1] + vi_[0]) * 0.5 - (vj_[1] + vj_[0]) * 0.5).abs()
+                - (vi_[1] - vi_[0]) * 0.5)
                 - (vj_[1] - vj_[0]) * 0.5;
             if (((g1 - g2).abs() + (g1 + g2)) * 0.5) >= 0.0 {
                 continue;
@@ -928,7 +1003,9 @@ const DEC_MOD3: [usize; 3] = [2, 0, 1];
 fn border_points(s: &ThreadScratch, o: i64) -> Vec<Vec3> {
     let nb = s.rd_i(o + i64::from(c::NBORDER)).clamp(0, 4096) as usize;
     let pb = s.rd_q(o + i64::from(c::PTBORDER));
-    (0..nb).map(|k| s.rd_v_at(pb.wrapping_add(12 * k as u64))).collect()
+    (0..nb)
+        .map(|k| s.rd_v_at(pb.wrapping_add(12 * k as u64)))
+        .collect()
 }
 
 /// The ray of a ray-mode part (CheckForNewContacts, part flag `0x100000`): along the
@@ -937,7 +1014,12 @@ fn border_points(s: &ThreadScratch, o: i64) -> Vec<Vec3> {
 /// `min(mean size, size_k / max(0.001, |B'_k|))` on the box axis `k` with the smallest swept
 /// face. Returns the ray (its stored unit direction is the part-frame axis, as on the stack
 /// object of the original) and that direction.
-fn build_part_ray(w: &World, e: EntIdx, p: &Part, r: &Mat33) -> (crate::geometry::shapes::RayGeom, Vec3) {
+fn build_part_ray(
+    w: &World,
+    e: EntIdx,
+    p: &Part,
+    r: &Mat33,
+) -> (crate::geometry::shapes::RayGeom, Vec3) {
     let rd = w.ent(e).rigid().expect("rigid");
     let g = rd.gravity;
     let ga = [g.x.abs(), g.y.abs(), g.z.abs()];
