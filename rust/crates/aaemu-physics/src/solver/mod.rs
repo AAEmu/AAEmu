@@ -4,9 +4,23 @@
 //!
 //! * [`body`] — the 212-byte rigid body record and the world's body arena.
 //! * [`contact`] — the 176-byte entity contact record and the world's contact pool.
+//! * [`thread`] — the per-thread solver context ([`SolverThread`]): `InitSolver`,
+//!   `RegisterContact`, `DisableCG`, `AllocSolverTmpBuf`.
+//! * [`invoke`] — `InvokeContactSolver` ([`SolverThread::invoke`]).
+//! * `pgs` — stage 1 (`sub_3509AC90`); `lcp` — stages 2 and 3; [`helpers`] — small math
+//!   routines.
+//! * [`probe`] — test support: island cases for the oracle's `--p4b` probe.
 
 pub mod body;
 pub mod contact;
+pub mod helpers;
+pub mod invoke;
+mod lcp;
+mod pgs;
+pub mod probe;
+pub mod thread;
 
 pub use body::{BodyArena, BodyId, RigidBody};
 pub use contact::{Contact, ContactId, ContactOwner, ContactPool};
+pub use invoke::{SolvePath, SolveResult};
+pub use thread::{MultiBodyEntry, SolverThread};
