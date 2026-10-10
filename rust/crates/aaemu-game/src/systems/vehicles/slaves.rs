@@ -39,6 +39,7 @@ pub mod attach_reason {
     pub const NONE: u8 = 0;
     pub const SLAVE_BINDING: u8 = 5;
     pub const NEW_MASTER: u8 = 6;
+    pub const BOARD_TRANSFER: u8 = 7;
     pub const PREFAB_CHANGED: u8 = 10;
 }
 

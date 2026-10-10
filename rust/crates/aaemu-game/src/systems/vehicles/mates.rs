@@ -1288,6 +1288,93 @@ pub fn on_zone_change(server: &GameServer, mate: &MateRef, last_zone: u32, new_z
     }
 }
 
+/// `GetActiveMateByMateObjId(objId)?.OwnerObjId` over every instance (`Team.IsObjMember`).
+pub fn active_mate_owner_obj_id(server: &GameServer, mate_obj_id: u32) -> Option<u32> {
+    server
+        .systems
+        .vehicles
+        .mates
+        .all()
+        .into_iter()
+        .find_map(|m| m.get_active_mate_by_obj_id(mate_obj_id))
+        .map(|m| m.data().owner_obj_id)
+}
+
+/// `MateManager.GetActiveMates(character.Id).FirstOrDefault()`.
+pub fn first_active_mate(server: &GameServer, p: &PlayerRef) -> Option<MateRef> {
+    let id = p.data().id;
+    manager_of(server, p)
+        .get_active_mates(id)
+        .into_iter()
+        .next()
+}
+
+/// The mate part of `Npc.DoDie` experience: every active mate of the player gets `exp`
+/// (`mate.AddExp`) and the player a "Pet gained" message.
+pub fn reward_kill_exp(server: &GameServer, p: &PlayerRef, exp: i32) {
+    let id = p.data().id;
+    for mate in manager_of(server, p).get_active_mates(id) {
+        add_exp(server, &mate, exp);
+        // TODO (C#): Proper message?
+        crate::world::session::send_message(
+            p,
+            crate::managers::chat::chat_type::SYSTEM,
+            &format!("Pet gained {exp} XP"),
+        );
+    }
+}
+
+/// `Unit.DespawnMate(character)` of `Unit.DoDie`: a dead character's mates are despawned (for
+/// a mate victim, its owner's; nothing happens while the character is alive).
+pub fn despawn_mate_on_death(server: &GameServer, victim: &WorldObject) {
+    let character = match victim {
+        WorldObject::Player(p) => Some(p.clone()),
+        WorldObject::Mate(m) => {
+            let owner = m.data().owner_obj_id;
+            server.world.character_by_obj_id(owner)
+        }
+        _ => None,
+    };
+    let Some(character) = character else {
+        tracing::error!("DespawnMate: no character (NullReferenceException)");
+        return;
+    };
+    if character.data().unit.hp > 0 {
+        return;
+    }
+    let id = character.data().id;
+    for mate in manager_of(server, &character).get_active_mates(id) {
+        let tl = u32::from(mate.data().unit.tl_id);
+        despawn_mate(server, &character, tl);
+    }
+}
+
+/// `Buffs.AddBuff` (stun / sleep / root, `driver_only = false`: every active mate's driver
+/// seat) and `Skill.Use` (`Template.Unmount`, `driver_only = true`: only where the character is
+/// the driver) for a riding character.
+pub fn unmount_riding_character(server: &GameServer, p: &PlayerRef, driver_only: bool) {
+    let (riding, id) = {
+        let c = p.data();
+        (c.is_riding, c.id)
+    };
+    if !riding {
+        return;
+    }
+    for mate in manager_of(server, p).get_active_mates(id) {
+        let (tl, driver) = {
+            let d = mate.data();
+            (
+                u32::from(d.unit.tl_id),
+                d.passenger(attach_point::DRIVER).map_or(0, |i| i.obj_id),
+            )
+        };
+        if driver_only && driver != p.obj_id {
+            continue;
+        }
+        unmount_mate(server, p, tl, attach_point::DRIVER, attach_reason::NONE);
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Persistence (`CharacterMates.Load` / `Save`)
 // ---------------------------------------------------------------------------------------------

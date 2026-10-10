@@ -441,6 +441,35 @@ pub fn force_dismount_and_despawn(
     res
 }
 
+/// `Character.ForceDismountAndDespawn(slave, timeToDespawn)` (Mirage test vehicles): dismount
+/// now, `RemoveAndDespawnTestSlave` (`Delete(owner, slave.ObjId, false)`) later.
+pub fn force_dismount_and_despawn_test_slave(
+    server: &GameServer,
+    player: &PlayerRef,
+    slave: Option<&crate::world::SlaveRef>,
+    time_to_despawn_ms: u64,
+) -> bool {
+    let res = force_dismount(server, player, slaves::attach_reason::PREFAB_CHANGED);
+    let Some(slave) = slave else {
+        return res;
+    };
+    let gen = LEAVE_TASK_GEN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    slave.data().leave_task = gen;
+    let (Some(server), Ok(rt)) = (server.self_arc(), tokio::runtime::Handle::try_current()) else {
+        return res;
+    };
+    let (player, slave) = (player.clone(), slave.clone());
+    rt.spawn(async move {
+        tokio::time::sleep(Duration::from_millis(time_to_despawn_ms)).await;
+        if slave.data().leave_task != gen {
+            return;
+        }
+        let instance = slave.data().unit.transform.instance_id;
+        slaves::delete(&server, Some(&player), instance, slave.obj_id, false);
+    });
+    res
+}
+
 /// `PortalManager.UsePortal` part when changing instance: refuse when the active vehicle holds
 /// an item (`SlaveEquipmentLoadedItem`, `false`), else despawn the owned mates and slaves.
 pub fn on_instance_change(server: &GameServer, player: &PlayerRef) -> bool {

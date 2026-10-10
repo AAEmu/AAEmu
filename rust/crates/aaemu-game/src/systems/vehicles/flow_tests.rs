@@ -899,6 +899,310 @@ async fn shipyard_build_steps_progress() {
     assert!(server.world.world(0).unwrap().shipyard(sy.obj_id).is_none());
 }
 
+fn effect_args<'a>(
+    caster: &WorldObject,
+    target: crate::systems::skills::geometry::Target,
+    target_caster: crate::systems::skills::types::SkillCastTarget,
+    so: &'a crate::systems::skills::types::SkillObject,
+) -> crate::systems::skills::effects::EffectArgs<'a> {
+    crate::systems::skills::effects::EffectArgs {
+        caster: Some(caster.clone()),
+        caster_caster: crate::systems::skills::types::SkillCaster::Unit(caster.obj_id()),
+        target,
+        target_caster,
+        cast: crate::systems::skills::types::CastAction::Skill {
+            skill_id: 1,
+            tl_id: 0,
+        },
+        source: crate::systems::skills::effects::EffectSource::default(),
+        skill_object: so,
+    }
+}
+
+#[tokio::test]
+async fn repair_slave_effect_and_repair_cooldown() {
+    use crate::systems::skills::data::{EffectKind, EffectTemplate};
+    use crate::systems::skills::types::SkillCastTarget;
+    let mut d = slave_data();
+    d.systems
+        .vehicles
+        .repairable_slaves
+        .insert(SLAVE_TEMPLATE, 77);
+    let server = server_with(d);
+    let mut a = TestClient::new(&server, 1, 1);
+    let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), SLAVE_ITEM);
+    let world = server.world.world(0).unwrap();
+    server.systems.npcs.spawns.get_or_create(&world);
+    a.drain();
+    let me = WorldObject::from(&pa);
+    let so = Default::default();
+    let target = SkillCastTarget::Item {
+        obj_id: PA,
+        id: item_id,
+        type1: 0,
+        type2: 0,
+    };
+    // Wrong repair effect: ItemFailedRepair (23).
+    let args = effect_args(
+        &me,
+        crate::systems::skills::geometry::Target::Obj(me.clone()),
+        target,
+        &so,
+    );
+    let wrong = EffectTemplate::RepairSlave {
+        id: 78,
+        health: 0,
+        mana: 0,
+    };
+    assert!(super::effects::apply_effect(
+        &server,
+        EffectKind::RepairSlaveEffect,
+        &wrong,
+        &args
+    ));
+    let f = a.drain();
+    assert_eq!(&body(&f, sc::SCErrorMsgPacket)[..2], &23i16.to_le_bytes());
+    // The right one: IsDestroyed = 0, RepairStartTime = now, ItemTaskType.RepairSlaves (74).
+    let right = EffectTemplate::RepairSlave {
+        id: 77,
+        health: 0,
+        mana: 0,
+    };
+    assert!(super::effects::apply_effect(
+        &server,
+        EffectKind::RepairSlaveEffect,
+        &right,
+        &args
+    ));
+    let f = a.drain();
+    let task = body(&f, sc::SCItemTaskSuccessPacket);
+    assert_eq!(task[0], 74);
+    let item = mates::owned_item(&server, &pa, item_id).unwrap();
+    assert!(item.details.slave_repair_start_time > 0);
+    // The detail block now carries the repair time (8 bytes instead of 4).
+    assert_eq!(item.detail_type_and_details().len(), 1 + 33);
+    // Summoning during the 10 minute repair: SlaveSpawnErrorNeedRepairTime (540) with the
+    // seconds left in the error's type field.
+    assert!(slaves::create_core(
+        &server,
+        &world,
+        Some(&pa),
+        None,
+        SLAVE_TEMPLATE,
+        Some(item),
+        false,
+        None,
+        None,
+    )
+    .is_none());
+    let f = a.drain();
+    let e = body(&f, sc::SCErrorMsgPacket);
+    assert_eq!(&e[..2], &540i16.to_le_bytes());
+    let left = u32::from_le_bytes(e[4..8].try_into().unwrap());
+    assert!((598..=600).contains(&left), "{left}");
+}
+
+#[tokio::test]
+async fn spawn_effect_creates_an_ownerless_test_slave() {
+    use crate::systems::skills::data::effects::SpawnEffect;
+    use crate::systems::skills::data::{EffectKind, EffectTemplate};
+    let server = server_with(slave_data());
+    let mut a = TestClient::new(&server, 1, 1);
+    let pa = spawn_player(&server, &a, test_character(1, "P1", 100.0, 100.0), PA);
+    let world = server.world.world(0).unwrap();
+    server.systems.npcs.spawns.get_or_create(&world);
+    a.drain();
+    let me = WorldObject::from(&pa);
+    let so = Default::default();
+    let args = effect_args(
+        &me,
+        crate::systems::skills::geometry::Target::Obj(me.clone()),
+        crate::systems::skills::types::SkillCastTarget::Unit(PA),
+        &so,
+    );
+    let spawn = SpawnEffect {
+        id: 1,
+        owner_type_id: 2,
+        sub_type: SLAVE_TEMPLATE,
+        pos_dir_id: 0,
+        pos_angle: 0.0,
+        pos_distance: 0.0,
+        ori_dir_id: 0,
+        ori_angle: 90.0,
+        use_summoner_faction: false,
+        life_time: 0.0,
+        despawn_on_creator_death: false,
+        use_summoner_aggro_target: false,
+        mate_state_id: 0,
+    };
+    let t = EffectTemplate::Spawn(spawn.clone());
+    assert!(super::effects::apply_effect(
+        &server,
+        EffectKind::SpawnEffect,
+        &t,
+        &args
+    ));
+    let slave = slaves::all_slaves(&world).pop().expect("test slave");
+    {
+        let d = slave.data();
+        assert_eq!(d.summoner_obj_id, 0, "owner-less");
+        assert_eq!(d.id, 0, "not persistent");
+        assert_eq!((d.unit.transform.x, d.unit.transform.y), (100.0, 102.0));
+        assert!((d.unit.transform.rot_z - std::f32::consts::FRAC_PI_2).abs() < 1e-5);
+        assert_ne!(d.leave_task, 0, "despawn task scheduled");
+    }
+    let o = ops(&a.drain());
+    assert!(o.contains(&sc::SCUnitStatePacket));
+    assert!(!o.contains(&sc::SCSlaveCreatedPacket));
+    // An NPC spawn effect is not ours.
+    let npc = EffectTemplate::Spawn(SpawnEffect {
+        owner_type_id: 1,
+        ..spawn
+    });
+    assert!(!super::effects::apply_effect(
+        &server,
+        EffectKind::SpawnEffect,
+        &npc,
+        &args
+    ));
+}
+
+#[tokio::test]
+async fn kill_exp_death_despawn_and_force_dismount() {
+    let server = server_with(data());
+    let mut a = TestClient::new(&server, 1, 1);
+    let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), MATE_ITEM);
+    mates::spawn_mount(&server, &pa, item_id);
+    let mate = mates::first_active_mate(&server, &pa).unwrap();
+    let tl = u32::from(mate.data().unit.tl_id);
+    a.drain();
+    // Npc kill exp: every active mate + a message.
+    mates::reward_kill_exp(&server, &pa, 100);
+    let f = a.drain();
+    assert!(ops(&f).contains(&sc::SCExpChangedPacket));
+    assert!(ops(&f).contains(&sc::SCChatMessagePacket));
+    assert_eq!(mate.data().experience, 100);
+    // Team.IsObjMember helper.
+    assert_eq!(
+        mates::active_mate_owner_obj_id(&server, mate.obj_id),
+        Some(PA)
+    );
+
+    // Stun / root while riding: thrown off; Template.Unmount only where we drive.
+    mates::mount_mate(&server, &pa, tl, attach_point::DRIVER, 0);
+    mates::unmount_riding_character(&server, &pa, true);
+    assert!(!pa.data().is_riding);
+    mates::mount_mate(&server, &pa, tl, attach_point::PASSENGER0, 0);
+    mates::unmount_riding_character(&server, &pa, true);
+    assert!(pa.data().is_riding, "not the driver");
+    // ForceDismount: off any seat.
+    assert!(super::force_dismount(
+        &server,
+        &pa,
+        slaves::attach_reason::PREFAB_CHANGED
+    ));
+    assert!(!pa.data().is_riding);
+    let f = a.drain();
+    let mut det = bc(PA);
+    det.push(slaves::attach_reason::PREFAB_CHANGED);
+    assert!(f
+        .iter()
+        .any(|x| x.0 == sc::SCUnitDetachedPacket && x.1 == det));
+
+    // DespawnMate on death: nothing while the character lives, the mate goes when it dies.
+    pa.data().unit.hp = 100;
+    mates::despawn_mate_on_death(&server, &WorldObject::from(&pa));
+    assert!(mates::first_active_mate(&server, &pa).is_some());
+    pa.data().unit.hp = 0;
+    mates::despawn_mate_on_death(&server, &WorldObject::from(&pa));
+    assert!(mates::first_active_mate(&server, &pa).is_none());
+}
+
+#[tokio::test]
+async fn logout_despawns_mates_and_vehicles() {
+    let server = server_with(slave_data());
+    let mut a = TestClient::new(&server, 1, 1);
+    let mut b = TestClient::new(&server, 2, 2);
+    let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), MATE_ITEM);
+    spawn_player(&server, &b, test_character(2, "B", 110.0, 110.0), PB);
+    let world = server.world.world(0).unwrap();
+    server.systems.npcs.spawns.get_or_create(&world);
+    mates::spawn_mount(&server, &pa, item_id);
+    let slave = slaves::create_core(
+        &server,
+        &world,
+        Some(&pa),
+        None,
+        SLAVE_TEMPLATE,
+        None,
+        false,
+        None,
+        None,
+    )
+    .unwrap();
+    a.drain();
+    b.drain();
+    // +10 minutes of logout delay with an active vehicle.
+    assert_eq!(super::leave_extra_logout_ms(&server, &pa), 600_000);
+    super::on_leave_world(&server, &pa);
+    // (C# bug) the deleted mate stays listed.
+    assert!(mates::first_active_mate(&server, &pa).is_some_and(|m| m.data().deleted));
+    assert!(world.slave(slave.obj_id).is_none());
+    let o = ops(&b.drain());
+    assert!(o.contains(&sc::SCUnitsRemovedPacket));
+    assert!(o.contains(&sc::SCSlaveDespawnPacket));
+    assert_eq!(super::leave_extra_logout_ms(&server, &pa), 0);
+}
+
+#[tokio::test]
+async fn hook_wrappers_forward_and_implement() {
+    let server = server_with(data());
+    super::install_hooks(&server);
+    let mut a = TestClient::new(&server, 1, 1);
+    let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), MATE_ITEM);
+    a.drain();
+    let caster = crate::systems::skills::types::SkillCaster::Item {
+        obj_id: PA,
+        item_id,
+        item_template_id: MATE_ITEM,
+        type1: 0,
+        type2: 0,
+    };
+    server
+        .systems
+        .skills
+        .ext
+        .npcs()
+        .spawn_mount(&server, &pa, &caster);
+    let mate = mates::first_active_mate(&server, &pa).expect("summoned through the hook");
+    assert!(!server
+        .systems
+        .skills
+        .ext
+        .npcs()
+        .mate_is_max_level(&server, &mate));
+    // social ForceDismount through the social hook slot
+    let tl = u32::from(mate.data().unit.tl_id);
+    mates::mount_mate(&server, &pa, tl, attach_point::DRIVER, 0);
+    server
+        .systems
+        .social
+        .hooks
+        .get()
+        .force_dismount(&server, &pa);
+    assert!(!pa.data().is_riding);
+    // Forwarded defaults stay the defaults.
+    assert_eq!(
+        server
+            .systems
+            .skills
+            .ext
+            .npcs()
+            .npc_engage_combat_quest(&server, &crate::models::npc::Npc::new(1)),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------------------------------
 // Real data (gated)
 // ---------------------------------------------------------------------------------------------

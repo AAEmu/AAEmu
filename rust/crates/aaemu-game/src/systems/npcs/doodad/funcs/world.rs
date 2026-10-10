@@ -1,9 +1,9 @@
 //! World funcs: `DoodadFuncBinding` (recall point), `Attachment` (seats / beds / boarding),
 //! and the instance funcs (`EnterInstance`, `EnterSysInstance`, `ExitIndun`, `RemoveInstance`).
 //!
-//! `IndunManager` / `TrialManager` / `SlaveManager.BindSlave` and `Character.MainWorldPosition`
-//! are not ported by any subsystem yet: those parts log and stop (`TODO(indun)`,
-//! `TODO(slaves)`).
+//! `IndunManager` / `TrialManager` and `Character.MainWorldPosition` are not ported by any
+//! subsystem yet: those parts log and stop (`TODO(indun)`). `SlaveManager.BindSlave` is the
+//! vehicles subsystem's.
 
 use super::{error_message as err, send_debug_message, send_error, set_to_next_phase};
 use crate::models::doodad::BondDoodad;
@@ -110,12 +110,15 @@ pub fn attachment(f: &DoodadFuncAttachment, ctx: &DoodadCtx<'_>, caster: Option<
         attach_keeping_world(&ctx.world, &ctx.obj(), &me);
     } else {
         // Ships. TODO (C#): check how to sit on the ship.
-        // TODO(slaves): `character.ParentWorld.SlaveManager.BindSlave(character,
-        // owner.ParentObjId, AttachPointId, AttachUnitReason.BoardTransfer)`.
-        tracing::debug!(
-            "DoodadFuncAttachment: BindSlave(parent {}, attach point {}) is not ported",
-            ctx.doodad.data().parent_obj_id,
-            f.attach_point_id
+        // `SlaveManager.BindSlave(character, owner.ParentObjId, AttachPointId,
+        // AttachUnitReason.BoardTransfer)` (vehicles subsystem).
+        let parent = ctx.doodad.data().parent_obj_id;
+        crate::systems::vehicles::slaves::bind_slave(
+            ctx.server,
+            player,
+            parent,
+            f.attach_point_id,
+            crate::systems::vehicles::slaves::attach_reason::BOARD_TRANSFER,
         );
     }
 }

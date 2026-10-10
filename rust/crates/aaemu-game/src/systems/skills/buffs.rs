@@ -502,6 +502,12 @@ fn on_started(server: &GameServer, owner: &WorldObject, b: &Buff) {
             u.buff_modifiers.add_modifiers(&buff_mods);
             u.combat_buffs.add_combat_buffs(&combat);
         });
+        // A riding character is thrown off its mount (vehicles subsystem).
+        if template.stun || template.sleep || template.root {
+            if let Some(p) = owner.as_player() {
+                crate::systems::vehicles::mates::unmount_riding_character(server, p, false);
+            }
+        }
         if template.stun || template.silence || template.sleep {
             super::skill::interrupt_skills(server, owner);
         }

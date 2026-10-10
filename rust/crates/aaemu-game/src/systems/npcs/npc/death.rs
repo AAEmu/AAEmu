@@ -92,6 +92,8 @@ pub fn do_die(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>, k
                 q.on_npc_killed(server, ck, npc);
                 q.add_exp(server, ck, kill_exp, npc.obj_id);
             }
+            // The killer's active mates (vehicles subsystem).
+            crate::systems::vehicles::mates::reward_kill_exp(server, ck, kill_exp);
         }
     } else {
         for pl in &eligible {
@@ -100,6 +102,8 @@ pub fn do_die(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>, k
                 if let Some(q) = &quests {
                     q.add_exp(server, pl, exp, npc.obj_id);
                 }
+                // mateKillXp (mateMod == plMod in every resolved branch)
+                crate::systems::vehicles::mates::reward_kill_exp(server, pl, exp);
             }
             if let Some(q) = &quests {
                 q.on_npc_killed(server, pl, npc);

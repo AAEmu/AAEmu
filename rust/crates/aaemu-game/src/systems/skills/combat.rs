@@ -275,7 +275,8 @@ pub fn do_die(
         true,
     );
     if killer.same(victim) {
-        // DespawnMate (mates subsystem)
+        // DespawnMate(owner of the mate / the character) (vehicles subsystem)
+        crate::systems::vehicles::mates::despawn_mate_on_death(server, victim);
         if let Some(n) = victim.as_npc() {
             npc_hooks.npc_after_death(server, n, Some(killer));
         }
@@ -327,6 +328,7 @@ pub fn do_die(
             stop_auto_skill(p);
             set_in_battle(server, victim, false);
             p.data().dead_time = chrono::Utc::now().timestamp();
+            crate::systems::vehicles::mates::despawn_mate_on_death(server, victim);
         }
         if let Some(kp) = killer.as_player() {
             let kt = kp.data().unit.current_target;

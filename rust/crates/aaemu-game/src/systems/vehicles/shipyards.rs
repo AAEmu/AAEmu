@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use crate::models::container::slot_type;
 use crate::models::shipyard::{Shipyard, ShipyardData};
 use crate::server::GameServer;
-use crate::systems::skills::types::{KillReason, SkillCaster};
+use crate::systems::skills::types::KillReason;
 use crate::world::{Entity, PlayerRef, ShipyardRef, WorldObject};
 
 use super::slaves::buff;
@@ -75,6 +75,12 @@ pub fn create(
             c.id,
         )
     };
+    // `owner.Transform.CloneAsSpawnPosition()`: the owner's world roll / pitch are kept.
+    let owner_rot = server
+        .world
+        .world(instance)
+        .map(|w| w.world_pos_rot(&WorldObject::from(owner)))
+        .unwrap_or_default();
     let obj_id = server.ids.object.get_next_id().ok()?;
     let ship_id = server.ids.shipyard.get_next_id().ok()?;
     let Some(step_tpl) = template.step(step).copied() else {
@@ -102,7 +108,9 @@ pub fn create(
     let mut sy = Shipyard::new(data);
     sy.unit.transform.instance_id = instance;
     sy.unit.transform.zone_id = zone;
-    sy.unit.transform.set_position(x, y, z, 0.0, 0.0, z_rot);
+    sy.unit
+        .transform
+        .set_position(x, y, z, owner_rot.rot_x, owner_rot.rot_y, z_rot);
     sy.unit.faction_id = owner_faction;
     sy.unit.level = 30;
     sy.unit.name = owner_name;
@@ -424,30 +432,18 @@ pub async fn shipyard_completed(server: &GameServer, shipyard: &ShipyardRef) {
             .get(&template_id)
             .and_then(|t| first_bag_item(&character, t.item_id));
         if let Some(item_id) = item_id {
-            let caster = SkillCaster::Item {
-                obj_id: 0,
-                item_id,
-                item_template_id: 0,
-                type1: 0,
-                type2: 0,
-            };
-            if let SkillCaster::Item {
+            // `(SkillItem)SkillCaster.GetByType(Item)` with only `ItemId` set.
+            let item_template_id = 0;
+            let pos = shipyard.data().unit.transform;
+            super::slaves::create_for_owner(
+                server,
+                &character,
                 item_id,
                 item_template_id,
-                ..
-            } = caster
-            {
-                let pos = shipyard.data().unit.transform;
-                super::slaves::create_for_owner(
-                    server,
-                    &character,
-                    item_id,
-                    item_template_id,
-                    true,
-                    Some(pos),
-                )
-                .await;
-            }
+                true,
+                Some(pos),
+            )
+            .await;
         }
     } else {
         tracing::error!("ShipyardCompleted: owner {owner_name} offline (NullReferenceException)");
