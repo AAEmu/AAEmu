@@ -8,7 +8,7 @@ fn replay(name: &str) -> Result<(), String> {
     let scn = std::fs::read_to_string(scenario_dir().join(format!("{name}.scn")))
         .map_err(|e| e.to_string())?;
     let golden = check_scenario_golden(name)?.replace("\r\n", "\n");
-    let port = Scenario::run(&scn)?;
+    let port = Scenario::run_in(&scn, Some(&scenario_dir()))?;
     let mut step = String::new();
     for (i, (a, b)) in port.lines().zip(golden.lines()).enumerate() {
         if b.starts_with("step ") {
@@ -52,3 +52,4 @@ golden!(flight, "p5_particle_flight");
 golden!(collide, "p5_particle_collide");
 golden!(params, "p5_particle_params");
 golden!(spawn, "p5_particle_spawn");
+golden!(terrain, "p5_particle_terrain");
