@@ -130,6 +130,20 @@ pub fn scenario_trace(name: &str) -> Result<Trace, String> {
     Trace::parse(&check_golden(&golden, fresh)?)
 }
 
+/// Raw golden text of `tests/scenarios/<name>.scn` (regenerated and verified when the oracle
+/// is set), for scenarios whose lines the trace parser does not interpret.
+pub fn check_scenario_golden(name: &str) -> Result<String, String> {
+    let golden = golden_dir().join(format!("{name}.trace"));
+    let fresh = match oracle_path() {
+        Some(exe) => Some(run_scenario(
+            &exe,
+            &scenario_dir().join(format!("{name}.scn")),
+        )?),
+        None => None,
+    };
+    check_golden(&golden, fresh)
+}
+
 /// Golden math probe `tests/golden/math_<name>.trace` (regenerated and verified when the
 /// oracle is set).
 pub fn math_trace(name: &str, count: usize, seed: u64) -> Result<MathTrace, String> {
