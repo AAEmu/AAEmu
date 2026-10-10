@@ -1,13 +1,38 @@
-//! Phase-3 subsystem: team / expedition / family / friend / duel / crime / trial.
+//! Phase-3 subsystem: team / expedition / family / friend / duel / crime / trial, chat
+//! channels and faction relations.
 //!
-//! C# scope: `TeamManager`, `ExpeditionManager` (guild management on top of
-//! `managers::expedition`), `FamilyManager`, `FriendMananger` add/remove (on top of
-//! `managers::friend`), `DuelManager`, `CrimeManager`, `TrialManager` and their packets
-//! (party / raid chat goes through `managers::chat`).
+//! C# scope: `TeamManager` (+ `Models/Game/Team`), `ExpeditionManager` (+ `Models/Game/
+//! Expeditions`), `FamilyManager` (+ `Models/Game/Family`), `FriendMananger` (+ the character
+//! friend / blocked lists), `DuelManager` (+ `Models/Game/Duels`, duel tasks), `CrimeManager` /
+//! `TrialManager` (+ `Models/Game/Crime`, trial tasks), `ChatManager` (+ `Models/Game/Chat`),
+//! the relation part of `FactionManager` and `Unit/Character.SetFaction`, and their packets.
 //!
-//! Module layout (see `CONTRIBUTING-PORT.md`): packets in `packets.rs` (C2G + G2C of this
-//! subsystem), tables in `data.rs`, managers in their own files; everything is wired through
-//! the five items below, which `systems/mod.rs` already calls.
+//! Module layout (see `CONTRIBUTING-PORT.md`): managers in their own files, packets under
+//! `packets/` (one file per area), configuration in `config.rs`, cross-subsystem services in
+//! `hooks.rs`, the session call sites in `session.rs`. `managers::{chat, expedition, friend}`
+//! re-export the moved phase-2 managers (`server.chat`, `server.expeditions`, `server.friends`).
+
+pub mod achievement;
+pub mod chat;
+pub mod config;
+pub mod crime;
+pub mod dominion;
+pub mod duel;
+pub mod expedition;
+pub mod faction;
+pub mod family;
+pub mod friend;
+pub mod hooks;
+pub mod packets;
+pub mod session;
+pub mod team;
+pub mod trial;
+pub mod util;
+
+#[cfg(test)]
+mod flow_tests;
+#[cfg(test)]
+mod trial_flow_tests;
 
 use std::sync::Arc;
 
@@ -17,22 +42,48 @@ use crate::systems::{DataLoadCtx, SaveStage};
 
 /// Game-data tables of this subsystem (`server.game_data.systems.social`).
 #[derive(Debug, Default)]
-pub struct Data {}
+pub struct Data {
+    /// `SystemFaction.Relations` (`FactionManager.Load`, relation part).
+    pub relations: faction::FactionRelations,
+}
 
 impl Data {
-    /// Loads this subsystem's tables from `ctx` (TODO(social): port the C# loaders).
-    pub fn load(_ctx: &DataLoadCtx<'_>) -> Result<Self, crate::data::GameDataError> {
-        Ok(Self::default())
+    /// Loads this subsystem's tables from `ctx`.
+    pub fn load(ctx: &DataLoadCtx<'_>) -> Result<Self, crate::data::GameDataError> {
+        Ok(Self {
+            relations: faction::FactionRelations::load(ctx)?,
+        })
     }
 }
 
-/// Managers of this subsystem (`server.systems.social`); add one field per manager.
+/// Managers of this subsystem (`server.systems.social`).
 #[derive(Debug, Default)]
-pub struct System {}
+pub struct System {
+    pub teams: team::TeamManager,
+    pub families: family::FamilyManager,
+    pub duels: duel::DuelManager,
+    pub crimes: crime::CrimeManager,
+    pub trials: trial::TrialManager,
+    /// Services other subsystems provide (`hooks::SocialHooks`).
+    pub hooks: hooks::SocialHookSlot,
+}
 
 impl System {
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
-    pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
+    pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        use anyhow::Context;
+        server
+            .systems
+            .social
+            .families
+            .load(&server.db)
+            .await
+            .context("FamilyManager")?;
+        team::TeamManager::start_tick(server);
+        // CrimeManager.Load, TrialManager.Load (court rooms + the 5 s TrialUpdateTask).
+        server.systems.social.crimes.load(server).await?;
+        server.systems.social.trials.load(server);
+        trial::TrialManager::start_tick(server);
         Ok(())
     }
 
@@ -41,12 +92,19 @@ impl System {
     pub async fn save(
         &self,
         _server: &GameServer,
-        _tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
-        _stage: SaveStage,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        stage: SaveStage,
     ) -> crate::Result<usize> {
+        if matches!(stage, SaveStage::AfterItems) {
+            // SaveManager.DoSave: `CrimeManager.Instance.Save(connection, transaction)`.
+            let (updated, deleted) = self.crimes.save(tx).await?;
+            return Ok(updated + deleted);
+        }
         Ok(0)
     }
 }
 
-/// Registers this subsystem's C->S packets (`reg.register::<P>(LEVEL_PLAIN, cs::P)`).
-pub fn register(_reg: &mut PacketRegistry) {}
+/// Registers this subsystem's C->S packets.
+pub fn register(reg: &mut PacketRegistry) {
+    packets::register(reg);
+}

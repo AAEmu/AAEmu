@@ -213,7 +213,15 @@ pub struct Character {
     // ---- phase 3 / economy: add this subsystem's Character fields below ----
 
     // ---- phase 3 / social: add this subsystem's Character fields below ----
-
+    /// `InParty` (set through `systems::social::team::set_in_party`, which notifies friends).
+    pub in_party: bool,
+    /// `LocalPingPosition` (`WorldSpawnPosition` x / y / z).
+    pub local_ping_position: (f32, f32, f32),
+    /// `OriginFactionName` (`Unit.SetFaction`).
+    pub origin_faction_name: String,
+    /// `MainWorldPosition` (where a summoned jury member returns to after the trial):
+    /// (zone id, x, y, z).
+    pub main_world_position: Option<(u32, f32, f32, f32)>,
     // ---- phase 3 / quests: add this subsystem's Character fields below ----
     /// The live quest objects (`Quests.ActiveQuests`, quest event subscriptions,
     /// `CurrentlyPlayingCinemaId`); `quests` holds their DB / wire rows.
@@ -325,7 +333,10 @@ impl Character {
             // ---- phase 3 / economy ----
 
             // ---- phase 3 / social ----
-
+            in_party: false,
+            local_ping_position: (0.0, 0.0, 0.0),
+            origin_faction_name: String::new(),
+            main_world_position: None,
             // ---- phase 3 / quests ----
             quest_state: Default::default(),
         }
