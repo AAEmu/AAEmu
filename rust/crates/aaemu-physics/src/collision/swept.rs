@@ -37,6 +37,29 @@
 //! | [`sweep`] | `RegisterIntersection` (CGeometry slot 54) and the sweep paths of Intersect |
 //!
 //! Test support for all groups (oracle probe, case encoding, goldens): [`probe`].
+//!
+//! # Status and fidelity
+//!
+//! All 46 non-empty cells of the binary's table are ported (21 unique linear routines,
+//! 6 unique rotational routines, the capsule compositions and the 335/215/447/449-byte swap
+//! wrappers), plus the polynomial solvers, `PreparePrimitive` (slot 48) for the primitive
+//! geometries, the sweep path of the primitive `Intersect` and `RegisterIntersection`. Each
+//! cell is checked bit for bit — every word of params, result and contact area, also on failure
+//! — against the DLL through `physoracle --p2b` (goldens in `tests/golden/p2b_*.trace`, plus
+//! ≥ 50 000–1 000 000 live cases per cell during development).
+//!
+//! Known, documented deviations (all outside what engine callers produce or read):
+//! * `cos` of the result for sph–cap, cyl–cap, cap–cap and their wrappers: copied by the original
+//!   from an uninitialised stack temporary; the port writes 0 (linear callers never read it).
+//! * `RegisterIntersection` reads two uninitialised `unproj_params` slots (`tmax` on the
+//!   penetration fallback, `minPtDist` always); the caller supplies them
+//!   ([`sweep::StaleUnprojSlots`]).
+//! * Area writers that ignore `nmaxpt` (box–box, box–cyl, cyl–cyl) grow the caller's buffers
+//!   instead of overrunning them; entries below `nmaxpt` are identical.
+//! * NaN *inputs* in tri–cyl: SSE returns the first NaN operand of a commutative op, LLVM may
+//!   swap operands, so NaN sign bits can differ (≈0.4 % of all-NaN-input cases).
+//! * The double CRT routines the cubic solver calls are ported in `poly/crt.rs` except the
+//!   `|x| ≥ 500000` reduction of `sin`/`cos`, which the solver never reaches.
 
 pub mod box_box;
 pub mod box_cyl;
@@ -165,5 +188,41 @@ pub fn new_area(nmaxpt: usize) -> ContactArea {
         npt: 0,
         nmaxpt: nmaxpt as i32,
         n: crate::math::Vec3::ZERO,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The set of non-`ret0` cells matches the binary's table (`geometry.md` §4.6): every pair
+    /// of {box, tri, ray, sph, cyl, cap} except ray–ray in mode 0; ray against everything plus
+    /// tri–tri in mode 1.
+    #[test]
+    fn table_cells_match_the_binary() {
+        let t = UnprojTables::build();
+        let prims = [0usize, 1, 3, 4, 5, 6];
+        let mut n = 0;
+        for mode in 0..2 {
+            for a in 0..GeomType::COUNT {
+                for b in 0..GeomType::COUNT {
+                    let want = match mode {
+                        0 => prims.contains(&a) && prims.contains(&b) && !(a == 3 && b == 3),
+                        _ => {
+                            (a == 1 && b == 1)
+                                || (a == 3 && prims.contains(&b) && b != 3)
+                                || (b == 3 && prims.contains(&a) && a != 3)
+                        }
+                    };
+                    let have = !std::ptr::eq(
+                        t.t[mode][a][b] as *const (),
+                        unproject_none as *const (),
+                    );
+                    assert_eq!(have, want, "cell [{mode}][{a}][{b}]");
+                    n += usize::from(have);
+                }
+            }
+        }
+        assert_eq!(n, 46);
     }
 }
