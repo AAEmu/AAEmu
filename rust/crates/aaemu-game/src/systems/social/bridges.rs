@@ -30,6 +30,7 @@ const FARM_GROUP_INVALID: u8 = 0;
 
 /// Installs this subsystem's hook implementations.
 pub fn install(server: &GameServer) {
+    install_economy(server);
     server
         .systems
         .skills
@@ -457,6 +458,83 @@ impl SocialHooks for GameSocialHooks {
             },
             count,
             tag,
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Economy hooks (team loot rules)
+// ---------------------------------------------------------------------------------------------
+
+/// The social subsystem's `LootTeamHooks` (`TeamManager.GetActiveTeam`,
+/// `Team.GetNextLootWinner`, `TeamManager.ChangeLootingRule`).
+pub struct SocialForEconomy;
+
+/// Installs the social subsystem's implementations of the economy hooks.
+pub fn install_economy(server: &GameServer) {
+    server
+        .systems
+        .economy
+        .loot
+        .hooks
+        .teams
+        .install(Arc::new(SocialForEconomy));
+}
+
+fn economy_rule(
+    r: &super::team::LootingRule,
+) -> crate::systems::economy::loot_packets::LootingRule {
+    crate::systems::economy::loot_packets::LootingRule {
+        loot_method: r.loot_method,
+        minimum_grade: r.minimum_grade,
+        loot_master: r.loot_master,
+        roll_for_bind_on_pickup: r.roll_for_bind_on_pickup,
+    }
+}
+
+impl crate::systems::economy::looting::LootTeamHooks for SocialForEconomy {
+    fn active_team(
+        &self,
+        server: &GameServer,
+        team_id: u32,
+    ) -> Option<crate::systems::economy::looting::TeamLootInfo> {
+        let team = server.systems.social.teams.active_team(team_id)?;
+        Some(crate::systems::economy::looting::TeamLootInfo {
+            team_id: team.id,
+            members: team.online_members(),
+            looting_rule: economy_rule(&team.looting_rule),
+        })
+    }
+
+    fn next_loot_winner(
+        &self,
+        server: &GameServer,
+        team_id: u32,
+        eligible: &[PlayerRef],
+        _loot_owner_obj_id: u32,
+    ) -> Option<PlayerRef> {
+        let ids: Vec<u32> = eligible.iter().map(|p| p.character_id).collect();
+        server.systems.social.teams.next_loot_winner(team_id, &ids)
+    }
+
+    fn change_looting_rule(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        team_id: u32,
+        change_flags: u8,
+        rule: crate::systems::economy::loot_packets::LootingRule,
+    ) {
+        server.systems.social.teams.change_looting_rule(
+            player,
+            team_id,
+            change_flags,
+            super::team::LootingRule {
+                loot_method: rule.loot_method,
+                minimum_grade: rule.minimum_grade,
+                loot_master: rule.loot_master,
+                roll_for_bind_on_pickup: rule.roll_for_bind_on_pickup,
+            },
         );
     }
 }

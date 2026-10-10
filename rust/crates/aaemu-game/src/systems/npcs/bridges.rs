@@ -34,6 +34,7 @@ const FACTION_MONSTROSITY: u32 = 115;
 
 /// Installs this subsystem's hook implementations into the other subsystems.
 pub fn install(server: &GameServer) {
+    install_economy(server);
     server.systems.skills.ext.npcs.install(Arc::new(NpcSkills));
 }
 
@@ -761,5 +762,227 @@ fn scoped_f_effect(server: &GameServer, range: i32, doodad_id: u32, args: &Effec
             doodads::use_doodad(server, &world, d, Some(caster), skill_id, 0);
         }
         break;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Economy hooks (shops, loot, treasure maps)
+// ---------------------------------------------------------------------------------------------
+
+/// The NPC subsystem's implementations of the economy hooks: `NpcEconomyHooks` (shop flags,
+/// merchant goods, specialty coin, coin item funcs), `LootNpcHooks` (tagging, despawn times,
+/// func-driven loot doodads) and `TreasureMapSource` (treasure chest spawners).
+pub struct NpcsForEconomy {
+    server: std::sync::Weak<GameServer>,
+}
+
+/// Installs the NPC subsystem's implementations of the economy hooks.
+pub fn install_economy(server: &GameServer) {
+    let me = Arc::new(NpcsForEconomy {
+        server: server
+            .self_arc()
+            .map_or_else(std::sync::Weak::new, |s| Arc::downgrade(&s)),
+    });
+    let e = &server.systems.economy;
+    e.hooks.npcs.install(me.clone());
+    e.loot.hooks.npcs.install(me.clone());
+    server.items.treasure_maps.install(me);
+}
+
+impl crate::systems::economy::hooks::NpcEconomyHooks for NpcsForEconomy {
+    fn shop_info(
+        &self,
+        server: &GameServer,
+        npc: &NpcRef,
+    ) -> Option<crate::systems::economy::hooks::NpcShopInfo> {
+        let template_id = npc.data().unit.template_id;
+        let t = server.game_data.systems.npcs.npc.template(template_id)?;
+        Some(crate::systems::economy::hooks::NpcShopInfo {
+            merchant: t.merchant,
+            merchant_pack_id: t.merchant_pack_id,
+            blacksmith: t.blacksmith,
+            auctioneer: t.auctioneer,
+            banker: t.banker,
+            specialty: t.specialty,
+            stabler: t.stabler,
+            priest: t.priest,
+        })
+    }
+
+    fn merchant_sells(&self, server: &GameServer, pack_id: u32, item_id: u32) -> bool {
+        server
+            .game_data
+            .systems
+            .npcs
+            .npc
+            .goods
+            .get(&pack_id)
+            .is_some_and(|g| g.sells_item(item_id))
+    }
+
+    fn specialty_coin_id(&self, server: &GameServer, npc: &NpcRef) -> u32 {
+        let template_id = npc.data().unit.template_id;
+        server
+            .game_data
+            .systems
+            .npcs
+            .npc
+            .template(template_id)
+            .map_or(0, |t| t.specialty_coin_id)
+    }
+
+    fn buy_coin_item(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        doodad: &crate::world::DoodadRef,
+        id: u32,
+    ) {
+        // DoodadManager.GetFunc(id) + GetFuncTemplate(func.FuncId, func.FuncType) +
+        // funcTemplate.Use(character, doodad, 0)
+        let data = &server.game_data.systems.npcs.doodad;
+        let template = data
+            .func(id)
+            .and_then(|f| data.func_template(f.func_id, &f.func_type));
+        let (Some(template), Some(ctx)) = (
+            template,
+            super::doodad::runtime::DoodadCtx::of(server, doodad),
+        ) else {
+            tracing::warn!(
+                "BuyCoinItem, no doodadFunc for objId: {}, id: {id}",
+                doodad.obj_id
+            );
+            return;
+        };
+        let caster = WorldObject::from(player);
+        super::doodad::funcs::use_func(template, &ctx, Some(&caster), 0, 0);
+    }
+}
+
+impl crate::systems::economy::looting::LootNpcHooks for NpcsForEconomy {
+    fn tagging(
+        &self,
+        server: &GameServer,
+        npc: &NpcRef,
+    ) -> crate::systems::economy::looting::NpcTagging {
+        let (team, tagger) = {
+            let n = npc.data();
+            let t = &n.unit.skill_state.tagging;
+            (
+                if t.tag_team != 0 {
+                    t.tag_team
+                } else {
+                    n.tag_team
+                },
+                if t.tagger != 0 {
+                    t.tagger
+                } else {
+                    n.tagger_obj_id
+                },
+            )
+        };
+        crate::systems::economy::looting::NpcTagging {
+            tag_team: team,
+            tagger: (tagger != 0)
+                .then(|| server.world.character_by_obj_id(tagger))
+                .flatten(),
+        }
+    }
+
+    fn spawner_despawn_time(&self, server: &GameServer, npc: &NpcRef) -> Option<f64> {
+        server
+            .systems
+            .npcs
+            .spawns
+            .npc_spawner_of(npc.obj_id)
+            .map(|s| f64::from(s.despawn_time))
+    }
+
+    fn set_despawn(&self, server: &GameServer, npc: &NpcRef, at_ms: i64) {
+        let delta = (at_ms - chrono::Utc::now().timestamp_millis()) as f64 / 1000.0;
+        let at = super::spawn_manager::add_secs(super::spawn_manager::now(), delta);
+        server.systems.npcs.spawns.set_despawn_field(npc.obj_id, at);
+    }
+
+    fn try_handle_func_driven_loot(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        doodad: &WorldObject,
+    ) -> bool {
+        /// `CSLootOpenBagPacket.GenericRecoverItemSkillId`.
+        const GENERIC_RECOVER_ITEM_SKILL_ID: u32 = 11361;
+        let Some(d) = doodad.as_doodad() else {
+            return false;
+        };
+        if !d.data().has_loot_item() {
+            return false;
+        }
+        let Some(world) = server.world.world_of(doodad) else {
+            return false;
+        };
+        let group = d.data().func_group_id;
+        let recover = server
+            .game_data
+            .systems
+            .npcs
+            .doodad
+            .doodad_funcs(group)
+            .iter()
+            .any(|f| {
+                f.func_type == "DoodadFuncRecoverItem"
+                    && f.skill_id == GENERIC_RECOVER_ITEM_SKILL_ID
+            });
+        if recover {
+            // new RecoverItem().Execute(character, null, doodad, null, skillId, 0, null)
+            super::doodad::interactions::execute_interaction(
+                server,
+                super::doodad::interactions::world_interaction_type::RECOVER_ITEM,
+                &WorldObject::from(player),
+                Some(doodad),
+                GENERIC_RECOVER_ITEM_SKILL_ID,
+                0,
+                None,
+            );
+            return true;
+        }
+        doodads::loot_open_bag_doodad(server, &world, player, d);
+        true
+    }
+
+    fn distance_to(&self, server: &GameServer, a: &WorldObject, b: &WorldObject) -> Option<f32> {
+        Some(crate::systems::skills::geometry::distance_to(
+            server,
+            &Target::Obj(a.clone()),
+            &Target::Obj(b.clone()),
+            false,
+        ))
+    }
+}
+
+impl crate::managers::item::TreasureMapSource for NpcsForEconomy {
+    fn pick_treasure_chest(&self) -> Option<crate::models::item::TreasureMapTarget> {
+        use rand::Rng;
+        let server = self.server.upgrade()?;
+        let spawns = server
+            .systems
+            .npcs
+            .spawns
+            .get(crate::models::character::DEFAULT_INSTANCE_ID)?;
+        let chests = spawns.get_treasure_chest_doodad_spawners(&server);
+        if chests.is_empty() {
+            return None;
+        }
+        let chest = &chests[rand::thread_rng().gen_range(0..chests.len())];
+        let data = &server.game_data.systems.npcs.doodad;
+        let group = data
+            .template(chest.unit_id)
+            .or_else(|| data.template(chest.respawn_doodad_template_id()))
+            .map(|t| t.group_id);
+        Some(crate::models::item::TreasureMapTarget {
+            x: chest.position.x,
+            y: chest.position.y,
+            chest_group_id: group,
+        })
     }
 }

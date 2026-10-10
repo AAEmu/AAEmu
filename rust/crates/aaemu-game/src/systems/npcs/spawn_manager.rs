@@ -337,6 +337,11 @@ impl SpawnManagers {
         self.despawn_fields.get(&obj_id).map(|t| *t)
     }
 
+    /// `obj.Despawn = at` (the field only; an already scheduled despawn reads it).
+    pub fn set_despawn_field(&self, obj_id: u32, at: Instant) {
+        self.despawn_fields.insert(obj_id, at);
+    }
+
     /// Drops the spawner links and `Respawn` / `Despawn` fields of a released object id.
     pub fn forget_object(&self, obj_id: u32) {
         self.npc_spawner_of.remove(&obj_id);

@@ -28,6 +28,7 @@ const ITEM_TASK_LOOT: u8 = 9;
 
 /// Installs this subsystem's hook implementations into the other subsystems.
 pub fn install(server: &GameServer) {
+    install_economy(server);
     server
         .systems
         .npcs
@@ -391,5 +392,53 @@ impl SkillsBridge for SkillsForNpcs {
             .skills
             .skill(skill_id)
             .map_or(0, |t| t.consume_labor_power)
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Economy hooks (gear bonuses, progression)
+// ---------------------------------------------------------------------------------------------
+
+/// The skills subsystem's implementations of the economy hooks: `GearHooks`
+/// (`Unit.UpdateGearBonuses` after an equipment change) and `ProgressionHooks`
+/// (`Character.AddExp` from `ChangeLabor`).
+pub struct SkillsForEconomy;
+
+/// Installs the skills subsystem's implementations of the economy hooks.
+pub fn install_economy(server: &GameServer) {
+    let e = &server.systems.economy;
+    let me = Arc::new(SkillsForEconomy);
+    e.hooks.gear.install(me.clone());
+    e.hooks.progression.install(me);
+}
+
+impl crate::systems::economy::hooks::GearHooks for SkillsForEconomy {
+    fn update_gear_bonuses(
+        &self,
+        server: &GameServer,
+        unit: &WorldObject,
+        equipped: Option<&crate::models::item::Item>,
+        unequipped: Option<&crate::models::item::Item>,
+    ) {
+        match unit {
+            WorldObject::Player(p) => {
+                super::stats::update_gear_bonuses(server, p, equipped, unequipped)
+            }
+            WorldObject::Npc(n) => super::stats::update_npc_gear_bonuses(server, n),
+            // Mates: their gear stats are the vehicles subsystem's (`vehicles::stats`).
+            _ => super::stats::refresh_cached_stats(server, unit),
+        }
+    }
+}
+
+impl crate::systems::economy::hooks::ProgressionHooks for SkillsForEconomy {
+    fn add_exp(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        exp: i32,
+        should_add_ability_exp: bool,
+    ) {
+        super::progress::add_exp(server, player, exp, should_add_ability_exp);
     }
 }

@@ -36,6 +36,7 @@ use super::spheres::SphereQuest;
 /// Installs this subsystem's hook implementations (keeps an already installed economy
 /// forwarder).
 pub fn install(server: &GameServer) {
+    install_economy(server);
     server
         .systems
         .skills
@@ -570,5 +571,76 @@ impl QuestHooks for GameQuestHooks {
     fn daily_account_login(&self, server: &GameServer, account_id: u32) {
         // `TimedRewardsManager` (services) is not ported.
         economy(server).daily_account_login(server, account_id);
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Economy hooks (item quest events, loot / cash shop quest checks)
+// ---------------------------------------------------------------------------------------------
+
+/// The quest subsystem's implementations of the economy hooks: `QuestItemHooks`
+/// (`Inventory.OnAcquiredItem` / `OnConsumedItem` / `OnItemManuallyDestroyed`,
+/// `Character.ItemUse`), `LootQuestHooks` and `CashShopQuestHooks`.
+pub struct QuestsForEconomy;
+
+/// Installs the quest subsystem's implementations of the economy hooks.
+pub fn install_economy(server: &GameServer) {
+    let e = &server.systems.economy;
+    let me = Arc::new(QuestsForEconomy);
+    e.hooks.quests.install(me.clone());
+    e.loot.hooks.quests.install(me.clone());
+    e.cash_shop.quests.install(me);
+}
+
+impl crate::systems::economy::hooks::QuestItemHooks for QuestsForEconomy {
+    fn on_items_acquired(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        template_id: u32,
+        count: i32,
+    ) {
+        super::events::on_items_acquired(server, player, template_id, count);
+    }
+
+    fn on_items_consumed(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        template_id: u32,
+        count: i32,
+    ) {
+        super::events::on_items_consumed(server, player, template_id, count);
+    }
+
+    fn on_quest_item_manually_destroyed(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        item: &Item,
+        loot_quest_id: u32,
+    ) {
+        super::events::on_quest_item_manually_destroyed(
+            server,
+            player,
+            item.template_id,
+            loot_quest_id,
+        );
+    }
+
+    fn on_item_use(&self, server: &GameServer, player: &PlayerRef, template_id: u32) {
+        super::events::on_item_use(server, player, template_id);
+    }
+}
+
+impl crate::systems::economy::looting::LootQuestHooks for QuestsForEconomy {
+    fn has_quest(&self, _server: &GameServer, player: &PlayerRef, quest_id: u32) -> bool {
+        super::events::has_quest(player, quest_id)
+    }
+}
+
+impl crate::systems::economy::cash_shop::CashShopQuestHooks for QuestsForEconomy {
+    fn has_quest_completed(&self, _server: &GameServer, player: &PlayerRef, quest_id: u32) -> bool {
+        super::events::has_quest_completed_in(&player.data(), quest_id)
     }
 }
