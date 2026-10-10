@@ -22,6 +22,10 @@ pub struct Expand {
 pub struct Data {
     /// `CharacterManager._expands` (by step, rows in table order).
     pub expands: BTreeMap<i32, Vec<Expand>>,
+    /// `ItemGameData`, `ItemConversionGameData`, `FishDetailsGameData`, localized item names.
+    pub items: super::items_data::ItemsData,
+    /// `LootGameData`.
+    pub loot: super::loot_data::LootData,
 }
 
 impl Data {
@@ -40,6 +44,8 @@ impl Data {
             data.expands.entry(e.step).or_default().push(e);
             Ok(())
         })?;
+        data.items = super::items_data::ItemsData::load(ctx.conn, ctx.language)?;
+        data.loot = super::loot_data::LootData::load(ctx.conn)?;
         Ok(data)
     }
 

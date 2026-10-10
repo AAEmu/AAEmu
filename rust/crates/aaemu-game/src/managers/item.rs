@@ -12,7 +12,8 @@ use crate::db::{dt, from_unix, int, unix};
 use crate::error::Result;
 use crate::managers::id::IdManager;
 use crate::models::container::{slot_type, ContainerKind, ContainerRef, ItemContainer};
-use crate::models::item::{Item, ItemClass, ItemRow};
+use crate::models::item::{Item, ItemClass, ItemRow, TreasureMapTarget};
+use crate::systems::HookSlot;
 
 /// `ItemManager` (user items).
 ///
@@ -29,6 +30,16 @@ pub struct ItemManager {
     removed: Mutex<Vec<u64>>,
     /// Serialises `GetItemContainerForCharacter`'s find-or-create.
     create_lock: Mutex<()>,
+    /// `TreasureMap.GenerateTreasureMapData`'s chest pick (installed by the npcs subsystem,
+    /// which owns the spawners and doodad templates).
+    pub treasure_maps: HookSlot<dyn TreasureMapSource>,
+}
+
+/// Picks the treasure chest a new treasure map points at
+/// (`SpawnManager.GetTreasureChestDoodadSpawners()` of the default instance + a random pick +
+/// `DoodadManager.GetTemplate(...).GroupId`). `None` = no chest spawners.
+pub trait TreasureMapSource: Send + Sync {
+    fn pick_treasure_chest(&self) -> Option<TreasureMapTarget>;
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -171,8 +182,38 @@ impl ItemManager {
     ) -> Option<Item> {
         let template = data.template(template_id)?;
         let id = self.new_id(item_ids)?;
-        Some(Item::create(
-            id, template, count, grade, world_id, data, now,
+        let treasure = if template.class_type() == ItemClass::TreasureMap {
+            self.treasure_maps
+                .get()
+                .and_then(|h| h.pick_treasure_chest())
+        } else {
+            None
+        };
+        Some(Item::create_ex(
+            id, template, count, grade, world_id, data, now, treasure,
+        ))
+    }
+
+    /// `ItemManager.Create(templateId, count, grade, generateId: false)`: id 0, not tracked.
+    pub fn create_detached(
+        &self,
+        template_id: u32,
+        count: i32,
+        grade: u8,
+        world_id: u8,
+        data: &ItemData,
+        now: i64,
+    ) -> Option<Item> {
+        let template = data.template(template_id)?;
+        let treasure = if template.class_type() == ItemClass::TreasureMap {
+            self.treasure_maps
+                .get()
+                .and_then(|h| h.pick_treasure_chest())
+        } else {
+            None
+        };
+        Some(Item::create_ex(
+            0, template, count, grade, world_id, data, now, treasure,
         ))
     }
 
@@ -281,12 +322,8 @@ impl ItemManager {
                     continue;
                 }
             }
+            // Unknown types fall back to the template's ClassType inside `from_row`.
             let mut item = Item::from_row(row, template, world_id);
-            if ItemClass::from_type_name(&item_type_name_of(&r)).is_none() {
-                if let Some(t) = template {
-                    item.class = t.class_type();
-                }
-            }
             let container = if container_id > 0 {
                 self.container_by_id(container_id)
             } else {
@@ -367,7 +404,8 @@ impl ItemManager {
                 }
             }
         }
-        // Later phase: ItemTimerTask (expiration timers).
+        // "Starting Timed Items Task ...": `systems::economy::item_timers::start` (from
+        // `systems::economy::System::start`).
         Ok(())
     }
 
@@ -497,10 +535,6 @@ const ITEM_SELECT: &str = "SELECT `type`, CAST(id AS UNSIGNED) AS id, CAST(templ
      CAST(flags AS SIGNED) AS flags, CAST(ucc AS SIGNED) AS ucc, details, CAST(grade AS SIGNED) AS grade, charge_time, \
      expire_time, CAST(expire_online_minutes AS DOUBLE) AS expire_online_minutes, CAST(charge_count AS SIGNED) AS charge_count \
      FROM items";
-
-fn item_type_name_of(r: &MySqlRow) -> String {
-    r.try_get("type").unwrap_or_default()
-}
 
 fn item_row(r: &MySqlRow) -> Result<ItemRow> {
     Ok(ItemRow {

@@ -15,12 +15,21 @@
 //!   flags, slaves / mates); installed into `server.systems.economy.hooks` by their owners.
 
 pub mod data;
+#[cfg(test)]
+mod econ_data_tests;
 pub mod error_message;
 pub mod fx;
 pub mod hooks;
 pub mod inventory;
 pub mod item_handlers;
 pub mod item_packets;
+pub mod item_timers;
+pub mod items_data;
+pub mod loot;
+pub mod loot_data;
+pub mod loot_packets;
+pub mod looting;
+pub mod repair;
 #[cfg(test)]
 pub(crate) mod tests;
 
@@ -42,6 +51,10 @@ pub struct System {
     ops: Mutex<()>,
     /// `Inventory.PreviousBackPackItemId` by character id (glider re-equip after a trade pack).
     previous_backpack: Mutex<HashMap<u32, u64>>,
+    /// Looting containers + loot hooks (`LootingContainer`).
+    pub loot: looting::LootManager,
+    /// `ItemManager.UpdateItemTimers` state.
+    pub item_timers: item_timers::ItemTimers,
 }
 
 impl System {
@@ -70,7 +83,8 @@ impl System {
     }
 
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
-    pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
+    pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        item_timers::start(server);
         Ok(())
     }
 
@@ -89,4 +103,6 @@ impl System {
 /// Registers this subsystem's C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
     item_handlers::register(reg);
+    looting::register(reg);
+    repair::register(reg);
 }
