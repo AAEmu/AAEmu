@@ -162,6 +162,33 @@ pub struct Storm {
 /// `StormShipLogic.StormBuffId`.
 pub const STORM_BUFF_ID: u32 = 1917;
 
+/// `StormShipLogic.ResolveClientTimeOfDayHours(character)` on its inputs: the forced hours when
+/// `SeaWeatherModel == Realistic` and the character has the storm buff, else `None`.
+pub fn resolve_client_time_of_day_hours(
+    realistic_sea_weather: bool,
+    has_storm_buff: bool,
+) -> Option<f32> {
+    if !realistic_sea_weather || !has_storm_buff {
+        return None;
+    }
+    Some(STORM_CLIENT_TIME_OF_DAY_HOURS)
+}
+
+/// `StormShipLogic.ResolveClientTimeOfDayHours(character)` (reads the current configuration and
+/// the character's buffs).
+pub fn resolve_client_time_of_day_for(
+    server: &crate::server::GameServer,
+    player: &crate::world::PlayerRef,
+) -> Option<f32> {
+    let realistic =
+        server.config.world.sea_weather_model == crate::config::SeaWeatherModelType::Realistic;
+    if !realistic {
+        return None;
+    }
+    let has_buff = player.data().unit.buffs.check_buff(STORM_BUFF_ID);
+    resolve_client_time_of_day_hours(realistic, has_buff)
+}
+
 impl Storm {
     /// `PreStep`: returns the ships whose lamps must be ignited now. `still_in_storm` = the obj ids
     /// of the world's slaves that have the storm buff (the cleanup pass).
@@ -189,6 +216,14 @@ mod tests {
     use super::super::ship::{PhysShip, ShipGameView};
     use super::super::tests::FakeEnv;
     use super::*;
+
+    #[test]
+    fn storm_time_of_day_override() {
+        assert_eq!(resolve_client_time_of_day_hours(true, true), Some(2.0));
+        assert_eq!(resolve_client_time_of_day_hours(true, false), None);
+        assert_eq!(resolve_client_time_of_day_hours(false, true), None);
+        assert_eq!(resolve_client_time_of_day_hours(false, false), None);
+    }
 
     #[test]
     fn buoyancy_pushes_a_submerged_hull_up() {

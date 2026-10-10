@@ -607,6 +607,15 @@ impl Item {
         self.details.map_position_y as f64 / 4096.0
     }
 
+    /// `TreasureMap.GetMapPosition(z)`: `new Vector3((float)MapPositionX, (float)MapPositionY, z)`.
+    pub fn map_position(&self, z: f32) -> (f32, f32, f32) {
+        (
+            self.map_position_x() as f32,
+            self.map_position_y() as f32,
+            z,
+        )
+    }
+
     /// `TreasureMap.MapPositionX = value`.
     pub fn set_map_position_x(&mut self, v: f64) {
         self.details.map_position_x = (v * 4096.0).round_ties_even() as i64;
