@@ -29,6 +29,7 @@ pub mod grid;
 pub mod grid_query;
 pub mod queries;
 pub mod queue;
+pub mod terrain;
 
 use crate::entities::base::Entity;
 use crate::math::Vec3;
@@ -201,6 +202,8 @@ pub struct World {
     pub events: events::EventState,
     /// Per-thread contact table of CheckForNewContacts (`qword_35218710[tid]`).
     pub ccd_scratch: Vec<crate::entities::rigid::contacts::ContactScratch>,
+    /// Query state: ray-limit settings, query queues, terrain basis ([`queries::QueryState`]).
+    pub queries: queries::QueryState,
 }
 
 impl World {
@@ -267,6 +270,7 @@ impl World {
             queue: queue::CommandQueue::default(),
             events: events::EventState::default(),
             ccd_scratch: Vec::new(),
+            queries: queries::QueryState::default(),
         };
         w.ccd_scratch
             .resize_with(MAX_CALLERS, crate::entities::rigid::contacts::ContactScratch::default);
