@@ -1,0 +1,8 @@
+# P1a: slots 58/59 feature polygons (box faces / edges, cylinder caps / axis segment); the
+# frame normal is zero in a third of the cases (frame derived from the feature).
+gproto probe=poly58 type=box n=60 seed=5801
+gproto probe=poly59 type=box n=60 seed=5901
+gproto probe=poly58 type=cylinder n=25 seed=5802
+gproto probe=poly58 type=capsule n=10 seed=5803
+gproto probe=poly59 type=cylinder n=30 seed=5902
+gproto probe=poly59 type=capsule n=15 seed=5903
