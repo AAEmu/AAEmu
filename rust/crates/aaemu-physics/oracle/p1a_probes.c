@@ -368,9 +368,18 @@ static void cmd_gphysblob(const Toks *t) {
   }
 }
 
+/* per-module probe files (one owner each) */
+#include "p1a_probes_closest.c"
+#include "p1a_probes_drag.c"
+#include "p1a_probes_buoyancy.c"
+#include "p1a_probes_protocol.c"
+#include "p1a_probes_misc.c"
+
 static int p1a_command(const char *c, const Toks *t) {
   if (!strcmp(c, "gprobe")) cmd_gprobe(t);
   else if (!strcmp(c, "gphysblob")) cmd_gphysblob(t);
-  else return 0;
+  else if (p1a_cmd_closest(c, t) || p1a_cmd_drag(c, t) || p1a_cmd_buoyancy(c, t) || p1a_cmd_protocol(c, t) ||
+           p1a_cmd_misc(c, t)) {
+  } else return 0;
   return 1;
 }
