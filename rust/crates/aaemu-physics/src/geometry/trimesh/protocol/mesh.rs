@@ -244,7 +244,12 @@ impl GeomProtocol for TriMesh {
         inters: &mut PrimInters,
     ) -> i32 {
         crate::geometry::trimesh::register::mesh_register_intersection(
-            self, ctx, side, other, i_this, i_other, inters,
+            self, self, ctx, side, other, i_this, i_other, inters,
         )
+    }
+
+    fn proto_with_mesh(&self, f: &mut dyn FnMut(&TriMesh)) -> bool {
+        f(self);
+        true
     }
 }

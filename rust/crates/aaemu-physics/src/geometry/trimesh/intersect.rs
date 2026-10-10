@@ -70,6 +70,9 @@ pub struct IntersectResult {
     pub border_kinds: Vec<BorderKind>,
     /// `ip+112` as the call left it.
     pub ip_convex: i32,
+    /// `ip+16` as the call left it: `CTriMesh::RegisterIntersection` writes a derived
+    /// rotation axis there (written back to the caller's `ip`). (Added by P1c-register.)
+    pub ip_axis: Vec3,
 }
 
 /// The `intersection_params` the original builds on its stack when the caller passes none.
@@ -90,6 +93,9 @@ pub fn default_local_ip() -> IntersectionParams {
         keep_prev_contacts: false,
         no_area_contacts: false,
         no_intersection: false,
+        unproj_plane_normal: Vec3::ZERO,
+        no_border_walk: false,
+        border_by_tri_pairs: 0,
     }
 }
 
@@ -397,6 +403,7 @@ fn sort_contacts(ctx: &mut IntersectCtx<'_>) {
         if m != i {
             ctx.contacts.swap(i, m);
             ctx.border_kind.swap(i, m);
+            ctx.border_pool_at.swap(i, m);
         }
     }
 }
@@ -428,6 +435,28 @@ fn add_offset(ctx: &mut IntersectCtx<'_>, off: [f64; 3]) {
         } else if let Some(ar) = c.area.as_mut() {
             for p in ar.pt.iter_mut().take(ar.npt.max(0) as usize) {
                 *p = add(*p);
+            }
+        }
+    }
+}
+
+/// Pool borders are edited in place in the original (mirroring swaps `idxborder`, step 8 adds
+/// the offset to the points); the port edits the contacts' copies, so they are written back to
+/// the arena pool for later calls (stale-entry reads, `keep_prev_contacts` dedup).
+fn write_back_border_pool(ctx: &mut IntersectCtx<'_>) {
+    for (k, at) in ctx.border_pool_at.iter().enumerate() {
+        let Some(at) = *at else { continue };
+        let c = &ctx.contacts[k];
+        if ctx.border_kind[k] == BorderKind::Pool {
+            for (i, p) in c.border.iter().enumerate() {
+                if let Some(e) = ctx.arena.border_pts.get_mut(at + i) {
+                    *e = *p;
+                }
+            }
+        }
+        for (i, e) in c.idx_border.iter().enumerate() {
+            if let Some(d) = ctx.arena.border_idx.get_mut(at + i) {
+                *d = *e;
             }
         }
     }
@@ -506,6 +535,7 @@ pub fn intersect(
         s,
         contacts: Vec::new(),
         border_kind: Vec::new(),
+        border_pool_at: Vec::new(),
         next_area: first_area,
         bboxes: [a.proto_bbox(), b.proto_bbox()],
     };
@@ -537,7 +567,9 @@ pub fn intersect(
         mirror_contacts(&mut ctx);
     }
     sort_contacts(&mut ctx);
-    finish(ctx, geoms, off)
+    let r = finish(ctx, geoms, off);
+    ip.axis_of_rotation = r.ip_axis;
+    r
 }
 
 /// Steps 8–9.
@@ -547,6 +579,7 @@ fn finish(
     off: [f64; 3],
 ) -> IntersectResult {
     add_offset(&mut ctx, off);
+    write_back_border_pool(&mut ctx);
     geoms[0].proto_cleanup(&mut ctx, 0);
     geoms[1].proto_cleanup(&mut ctx, 1);
     ctx.arena.n_contacts += ctx.contacts.len() as i32;
@@ -554,6 +587,7 @@ fn finish(
         contacts: ctx.contacts,
         border_kinds: ctx.border_kind,
         ip_convex: ctx.ip_convex,
+        ip_axis: ctx.ip.axis_of_rotation,
     }
 }
 

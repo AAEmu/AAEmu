@@ -14,6 +14,13 @@
  *                                           offset, R(9), scale, v, w, com, iStartNode; a GWD
  *                                           of a single "-" is a null pointer. IP words are the
  *                                           first 36 dwords of intersection_params ("-" = null).
+ *   meshmat FILE FLAGS MINTRIS MAXTRIS M0..  as mesh, with per-triangle material ids (P1c-register)
+ *   verbose N                               N=1: after each contact an "x <+108>" line, after
+ *                                           each res an "ipx" line (ip axis +16, ip+112) (P1c-register)
+ *   poly CLOSED N0 X Y.. N1 X Y..           sub_35110F50 on two 2D polygons (N points + the
+ *                                           closing copy each, hex words); prints
+ *                                           "poly R SRC" (SRC 0/1 = an input, 2 = own buffer)
+ *                                           then R "pp X Y ID" lines (P1c-register)
  * Output per isect: "res N convex C" then one "c ..." line per contact (see print_contact) and
  * its border / area lines. The per-caller arena (iCaller 4 without TLS) contact and area pools
  * are zeroed before every call so that fields the DLL does not write read as 0. */
@@ -25,7 +32,10 @@ static int g_nmesh, g_nprim;
 
 static unsigned char *arena4(void) { return (unsigned char *)VA(0x35256F80ULL) + 4 * 0x39FB8; }
 
-static void load_mesh(const char *path, unsigned flags, int minT, int maxT) {
+static int g_verbose;
+static void load_mesh_m(const char *path, unsigned flags, int minT, int maxT, signed char *mats);
+static void load_mesh(const char *path, unsigned flags, int minT, int maxT) { load_mesh_m(path, flags, minT, maxT, NULL); }
+static void load_mesh_m(const char *path, unsigned flags, int minT, int maxT, signed char *mats) {
   long len;
   unsigned char *b = p1c_read_file(path, &len);
   int nv = *(int *)b, nt = *(int *)(b + 4);
@@ -33,7 +43,7 @@ static void load_mesh(const char *path, unsigned flags, int minT, int maxT) {
   int *idx = (int *)malloc(12 * (size_t)nt + 12);
   memcpy(v, b + 8, 12 * (size_t)nv);
   memcpy(idx, b + 8 + 12 * (size_t)nv, 12 * (size_t)nt);
-  unsigned char *tm = p1c_mesh_new(v, idx, 4, NULL, NULL, nt, (int)(flags | 0x20000 | 2), minT, maxT, 1.0f);
+  unsigned char *tm = p1c_mesh_new(v, idx, 4, mats, NULL, nt, (int)(flags | 0x20000 | 2), minT, maxT, 1.0f);
   g_mesh[g_nmesh++] = tm;
   p1c_mesh_dump(tm);
 }
@@ -91,6 +101,24 @@ static void print_contact(unsigned char *c) {
       printf("ap %08x %08x %08x %d %d %d %d\n", fb(pt[3 * i]), fb(pt[3 * i + 1]), fb(pt[3 * i + 2]), p0[i], f0[i],
              p1[i], f1[i]);
   }
+  if (g_verbose) printf("x %d\n", *(int *)(c + 108));
+}
+
+typedef int (*fn_poly)(long long, float *, int, float *, int, int, float **, int **);
+static void run_poly(char **tok, int nt) {
+  static float a[2][2 * 1100];
+  int k = 1, n[2];
+  int closed = atoi(tok[k++]);
+  for (int p = 0; p < 2; p++) {
+    n[p] = atoi(tok[k++]);
+    for (int i = 0; i < 2 * (n[p] + 1) && k < nt; i++) ((uint32_t *)a[p])[i] = (uint32_t)strtoul(tok[k++], 0, 16);
+  }
+  float *outp = NULL;
+  int *ids = NULL;
+  int r = ((fn_poly)VA(0x35110F50ULL))(1, a[0], n[0], a[1], n[1], closed, &outp, &ids);
+  int src = outp == a[0] ? 0 : outp == a[1] ? 1 : 2;
+  printf("poly %d %d\n", r, src);
+  for (int i = 0; i < r; i++) printf("pp %08x %08x %d\n", fb(outp[2 * i]), fb(outp[2 * i + 1]), ids[i]);
 }
 
 typedef int (*fn_isect)(void *a, void *b, void *gwda, void *gwdb, void *ip, unsigned char **contacts);
@@ -106,13 +134,21 @@ int main(int argc, char **argv) {
   if (argc < 2) { fprintf(stderr, "usage: p1c_isect_probe [--rt DIR] CASEFILE\n"); return 1; }
   FILE *f = fopen(argv[1], "r");
   if (!f) { printf("ERROR open %s\n", argv[1]); return 1; }
-  static char line[1 << 16];
-  char *tok[512];
+  static char line[1 << 22];
+  static char *tok[1 << 17];
   while (fgets(line, sizeof line, f)) {
     int nt = 0;
-    for (char *p = strtok(line, " \t\r\n"); p && nt < 512; p = strtok(NULL, " \t\r\n")) tok[nt++] = p;
+    for (char *p = strtok(line, " \t\r\n"); p && nt < (1 << 17); p = strtok(NULL, " \t\r\n")) tok[nt++] = p;
     if (!nt || tok[0][0] == '#') continue;
-    if (!strcmp(tok[0], "mesh")) {
+    if (!strcmp(tok[0], "meshmat")) {
+      static signed char mats[1 << 16];
+      for (int i = 5; i < nt; i++) mats[i - 5] = (signed char)atoi(tok[i]);
+      load_mesh_m(tok[1], (unsigned)strtoul(tok[2], 0, 0), atoi(tok[3]), atoi(tok[4]), mats);
+    } else if (!strcmp(tok[0], "verbose")) {
+      g_verbose = atoi(tok[1]);
+    } else if (!strcmp(tok[0], "poly")) {
+      run_poly(tok, nt);
+    } else if (!strcmp(tok[0], "mesh")) {
       load_mesh(tok[1], (unsigned)strtoul(tok[2], 0, 0), atoi(tok[3]), atoi(tok[4]));
     } else if (!strcmp(tok[0], "prim")) {
       uint32_t w[32] = {0};
@@ -134,6 +170,10 @@ int main(int argc, char **argv) {
       int n = fn(a, b, ha ? gwda : NULL, hb ? gwdb : NULL, hi ? ip : NULL, &contacts);
       printf("res %d convex %d gwdav %08x %08x %08x ipv %08x sweep %d\n", n, hi ? (int)ip[28] : -1, gwda[13], gwda[14],
              gwda[15], ip[8], hi ? (int)(ip[24] & 0xFF) : -1);
+      if (g_verbose) {
+        if (hi) printf("ipx %08x %08x %08x %d\n", ip[4], ip[5], ip[6], (int)ip[28]);
+        else printf("ipx -\n");
+      }
       for (int i = 0; i < n; i++) print_contact(contacts + 136 * i);
     } else {
       printf("ERROR unknown command %s\n", tok[0]);

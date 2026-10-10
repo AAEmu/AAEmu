@@ -574,6 +574,7 @@ fn replay(trace: &str, what: &str) -> Stats {
                     keep_prev_contacts: false,
                     no_area_contacts: noarea,
                     no_intersection: false,
+                    ..IntersectionParams::default()
                 };
                 let ray = RayGeom::new(&rp);
                 let shf = SharedHeightfield::new(hf.take().unwrap());

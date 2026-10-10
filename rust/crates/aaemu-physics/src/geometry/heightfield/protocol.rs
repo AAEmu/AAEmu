@@ -391,7 +391,7 @@ impl GeomProtocol for SharedHeightfield {
     ) -> i32 {
         let hf = self.rd();
         crate::geometry::trimesh::register::mesh_register_intersection(
-            &hf.mesh, ctx, side, other, i_this, i_other, inters,
+            &hf.mesh, self, ctx, side, other, i_this, i_other, inters,
         )
     }
 }

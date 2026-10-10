@@ -27,12 +27,18 @@
 pub mod mesh;
 pub mod shapes;
 
-use crate::collision::contact::{ContactArea, GeomContact, IntersectionParams, PrimInters};
+use crate::collision::contact::{
+    ContactArea, GeomContact, IntersectionParams, PrimInters, UnprojResult,
+};
 use crate::collision::pairs::PairTables;
 use crate::collision::swept::UnprojTables;
 use crate::geometry::bvtree::{BvArena, BvRecord, BvTestState, BvTree};
 use crate::geometry::primitives::BoxPrim;
+use crate::geometry::primitives::RayPrim;
+use crate::geometry::shapes::protocol::{ContactFrame, FeaturePolygon};
 use crate::geometry::shapes::protocol::{GeomUnderTest, IntersectionProtocol, UsedNodeMap};
+use crate::geometry::trimesh::register::{CandidateList, CurPrim};
+use crate::geometry::trimesh::TriMesh;
 use crate::ids::GeomType;
 use crate::math::Vec3;
 
@@ -108,6 +114,20 @@ pub struct CallerArena {
     pub w16ecc: u32,
     /// +0x39F68: OVERLAP scratch, −1 at the start of every `Intersect`.
     pub overlap_scratch: i32,
+    /// +0x10EC8: the contact-border point pool (2048 entries; `+0x16EC8` = [`w16ec8`] is the
+    /// number in use, `+0x16ECC` = [`w16ecc`] the first one of the current call). Written by
+    /// `CTriMesh` slot 54 ([`crate::geometry::trimesh::register`]); entries persist across
+    /// calls like the arena's. (Added by P1c-register.)
+    ///
+    /// [`w16ec8`]: CallerArena::w16ec8
+    /// [`w16ecc`]: CallerArena::w16ecc
+    pub border_pts: Vec<Vec3>,
+    /// +0x16ED0: the `idxborder` pool parallel to [`CallerArena::border_pts`]
+    /// (`iPrim | iFeature << 23` per side). (Added by P1c-register.)
+    pub border_idx: Vec<[i32; 2]>,
+    /// The globals of the contact-area polygon clipper sub_35110F50 that outlive a call (its
+    /// output ids; process-wide in the binary). (Added by P1c-register.)
+    pub poly: crate::geometry::trimesh::register::polyclip::PolyScratch,
 }
 
 /// Entries of the contact pool.
@@ -166,6 +186,10 @@ pub struct IntersectCtx<'a> {
     pub contacts: Vec<GeomContact>,
     /// Border kind of each contact.
     pub border_kind: Vec<BorderKind>,
+    /// For contacts whose border (and `idxborder`) live in the arena's border pool: the
+    /// first pool entry, so that `Intersect`'s in-place edits (mirroring, recentring) reach
+    /// the pool as in the original. Parallel to `contacts`. (Added by P1c-register.)
+    pub border_pool_at: Vec<Option<usize>>,
     /// Area attached to the next contact slot.
     pub next_area: Option<ContactArea>,
     /// Slot 6 `GetBBox` of A and B (taken before slot 53; `CHeightfield` slot 53 reads the
@@ -193,6 +217,14 @@ impl IntersectCtx<'_> {
     pub fn push_contact(&mut self, c: GeomContact, kind: BorderKind) {
         self.contacts.push(c);
         self.border_kind.push(kind);
+        self.border_pool_at.push(None);
+    }
+
+    /// Appends a contact whose border / `idxborder` start at pool entry `at`.
+    pub fn push_contact_pool(&mut self, c: GeomContact, kind: BorderKind, at: usize) {
+        self.contacts.push(c);
+        self.border_kind.push(kind);
+        self.border_pool_at.push(Some(at));
     }
 }
 
@@ -272,6 +304,125 @@ pub trait GeomProtocol: IntersectionProtocol + std::fmt::Debug {
         collider: &BvRecord,
         b_local: i32,
     ) -> i32;
+
+    /// The triangle mesh behind this geometry (`CTriMesh` itself, the heightfield's region
+    /// mesh), handed to `f`; `false` when there is none. Slot 54's border walk and the
+    /// mesh paths of slots 57/58/59 below read mesh arrays through it. (Added by P1c-register.)
+    fn proto_with_mesh(&self, _f: &mut dyn FnMut(&TriMesh)) -> bool {
+        false
+    }
+
+    /// The ray primitive of a `CRayGeom` (`+48`), for slot 54's `GetType() == 3` branch.
+    /// (Added by P1c-register.)
+    fn proto_ray(&self) -> Option<RayPrim> {
+        None
+    }
+
+    /// Slot 57 `GetUnprojectionCandidates` as slot 54 drives it: `cur` is what the caller's
+    /// primitive pointer points at. Meshes (through [`GeomProtocol::proto_with_mesh`]) run
+    /// [`TriMesh::unprojection_candidates_mesh`] on the side record; other classes P1a's
+    /// slot (one candidate, feature −1). (Added by P1c-register.)
+    fn proto_unproj_candidates(
+        &self,
+        ctx: &mut IntersectCtx<'_>,
+        side: usize,
+        i_side: i32,
+        res: &UnprojResult,
+        cur: &CurPrim,
+    ) -> CandidateList {
+        let mut out = None;
+        {
+            let sd = &mut ctx.s[side];
+            self.proto_with_mesh(&mut |m: &TriMesh| {
+                out = Some(m.unprojection_candidates_mesh(i_side, res, cur.idx, sd));
+            });
+        }
+        if let Some(o) = out {
+            return o;
+        }
+        let mut p = cur.prim;
+        let n = self.get_unprojection_candidates(i_side, res, &mut p, 0, &mut ctx.s[side].gt);
+        let base = CurPrim {
+            prim: p,
+            idx: cur.idx,
+        };
+        let m = n.max(0) as usize;
+        let id0 = ctx.s[side].gt.ids.first().copied().unwrap_or(-1);
+        CandidateList {
+            n,
+            base,
+            prims: vec![base; m],
+            feats: vec![-1; m],
+            ids: vec![id0; m],
+        }
+    }
+
+    /// Slot 58 (face polygon) as slot 54 drives it; meshes mark the patch's triangles used in
+    /// this geometry's BV tree. (Added by P1c-register.)
+    fn proto_face_polygon(
+        &self,
+        ctx: &mut IntersectCtx<'_>,
+        side: usize,
+        frame: &mut ContactFrame,
+        i_prim: i32,
+        i_feature: i32,
+        out: &mut FeaturePolygon,
+    ) -> i32 {
+        let mut r = None;
+        {
+            let tref = self.proto_bv_tree();
+            let gt = ctx.s[side].gt.clone();
+            let state = &mut ctx.s[side].bvs;
+            let arena = &mut ctx.arena.bv;
+            let mut fr = *frame;
+            let mut o = FeaturePolygon::default();
+            self.proto_with_mesh(&mut |m: &TriMesh| {
+                let mk = crate::geometry::trimesh::register::patch::Marker {
+                    tree: tref.tree(),
+                    state: &mut *state,
+                    arena: &mut *arena,
+                };
+                r = Some(m.face_polygon_mesh(&mut fr, i_prim, &gt, Some(mk), &mut o));
+            });
+            if r.is_some() {
+                *frame = fr;
+                *out = o;
+            }
+        }
+        if let Some(n) = r {
+            return n;
+        }
+        self.face_polygon(frame, i_prim, i_feature, &ctx.s[side].gt, out)
+    }
+
+    /// Slot 59 (edge segment) as slot 54 drives it. (Added by P1c-register.)
+    fn proto_edge_segment(
+        &self,
+        ctx: &mut IntersectCtx<'_>,
+        side: usize,
+        frame: &mut ContactFrame,
+        i_prim: i32,
+        i_feature: i32,
+        out: &mut FeaturePolygon,
+    ) -> i32 {
+        let mut r = None;
+        {
+            let gt = &ctx.s[side].gt;
+            let mut fr = *frame;
+            let mut o = FeaturePolygon::default();
+            self.proto_with_mesh(&mut |m: &TriMesh| {
+                r = Some(m.edge_segment_mesh(&mut fr, i_prim, i_feature, gt, &mut o));
+            });
+            if r.is_some() {
+                *frame = fr;
+                *out = o;
+            }
+        }
+        if let Some(n) = r {
+            return n;
+        }
+        self.edge_segment(frame, i_prim, i_feature, &ctx.s[side].gt, out)
+    }
 
     /// Slot 54 `RegisterIntersection(primThis, primOther, gtestThis, gtestOther, inters)`: the
     /// primitives are entries `i_this` / `i_other` of the two sides' `+288` buffers. Returns
