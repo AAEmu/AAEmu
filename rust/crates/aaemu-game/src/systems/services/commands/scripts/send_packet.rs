@@ -139,6 +139,7 @@ mod tests {
                 "Hex-data must be even in length and greater than 2 bytes"
             )]
         );
+        gm.chat();
         harness::run(&server, &gm.p, "packet zz").await;
         assert_eq!(gm.chat(), ["[Packet] /packet <hex/file path>"]);
         // One byte: the C# reads raw[1] and throws.

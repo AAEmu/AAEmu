@@ -72,7 +72,7 @@ pub mod reset_skill_cooldowns;
 pub mod revive;
 pub mod rotate;
 pub mod run;
-pub mod scripts;
+pub mod scripts_cmd;
 pub mod send_packet;
 pub mod set_faction;
 pub mod set_trade_pack_mail_delay;
@@ -358,7 +358,7 @@ pub fn all_commands(env: &ScriptEnv) -> Vec<(&'static [&'static str], Arc<dyn Co
         // Run.cs
         (&["run"], Arc::new(run::Run::new(env))),
         // Scripts.cs
-        (&["scripts"], Arc::new(scripts::Scripts::new(env))),
+        (&["scripts"], Arc::new(scripts_cmd::Scripts::new(env))),
         // SendPacket.cs
         (&["packet"], Arc::new(send_packet::SendPacket::new(env))),
         // SetFaction.cs
