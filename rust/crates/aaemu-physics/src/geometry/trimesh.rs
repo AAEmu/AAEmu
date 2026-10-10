@@ -5,7 +5,13 @@
 //! original keeps as raw pointers are `Vec`s / `Option<Vec>`s, and the element counts the
 //! original keeps separately (`+120` nTris, `+124` nVertices) are kept as explicit fields
 //! because several routines change them independently of the arrays (Load trims vertices,
-//! a degenerate loaded mesh sets nTris to 0, …).
+//! a degenerate loaded mesh sets nTris to 0, …). Invariant kept by the ported code: the arrays
+//! hold at least `n_tris` / `n_verts` entries (only the first ones are meaningful).
+//!
+//! Exactness evidence (P1c-core, against the DLL): `tests/p1c_core.rs` (constructor, topology,
+//! islands, IsConvex, Save, Load on 24 golden + 400 random synthetic meshes, all 1,717 corpus
+//! blobs loaded/saved and all 1,596 non-shared corpus meshes rebuilt), `tests/p1c_core_props.rs`,
+//! `tests/p1c_core_inside.rs`.
 //!
 //! Submodules (each ports a group of slots / helpers):
 //!
@@ -13,15 +19,15 @@
 //! |---|---|
 //! | [`build`] | constructor from data 0x351CF1B0: vertex welding, degenerate-triangle removal, vertex map, tree choice, normals |
 //! | [`topology`] | neighbour topology 0x351BFA60, islands 0x351C0D80, `IsConvex` (slot 21) |
-//! | [`stream`] | `Save` (slot 25, 0x351CECB0), `Load` (slot 26, 0x351D83B0) |
-//! | [`props`] | `GetBBox`, `CalcPhysicalProperties`, volume, centre, extent, feature and per-triangle accessors |
-//! | [`inside`] | `PointInsideStatus` (slots 8 / 61) |
+//! | [`stream`] | `Save` (slot 25, 0x351CECB0), `Load` (slots 26 / 27, 0x351D83B0 / 0x351033E0); the blob wrapper is `shapes::stream::{load_phys_geometry_any, save_phys_geometry_mesh}` |
+//! | [`props`] | `GetBBox`, `CalcPhysicalProperties`, volume, centre, extent, feature and per-triangle accessors, slots 40 / 41 / 43 / 45 / 50 |
+//! | [`inside`] | `PointInsideStatus` (slots 8 / 61) and the ray grid (slot 22 `PrepareForRayTest`, sub_351C8B10) |
 //! | [`fluid`] | slots 12 / 13 / 14 (pressure, buoyancy, medium resistance) |
 //! | [`closest`] | slot 11 `FindClosestPoint` |
 //! | [`protocol`] | the `geometry_under_test` protocol: slots 48, 53, 55, 56, 57 (mesh and primitives) |
 //! | [`register`] | slot 54 `RegisterIntersection` and the feature-polygon helpers (slots 58 / 59) |
 //! | [`intersect`] | the generic `CGeometry::Intersect` (0x3514FD70) with its tree traversals and the mesh's slot 10 |
-//! | [`raytest`] | slot 22 `PrepareForRayTest` (ray grid) and the mesh ray path |
+//! | [`raytest`] | the mesh ray path (uses the grid of [`inside`]) |
 //! | [`unproject_sphere`] | slot 49 `UnprojectSphere` |
 
 pub mod build;

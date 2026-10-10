@@ -596,7 +596,12 @@ fn check_ctor(c: &Case, dll: &str) {
         };
         let loaded = TriMesh::load(&mut r, &ra).unwrap_or_else(|e| panic!("{}: {e}", what("load")));
         assert_eq!(r.pos, dll_read, "{}", what("load length"));
-        assert_same_text(&what("load"), &dump_mesh(&loaded), &dll_loaded);
+        // p1c_mesh_dump zeroes the never-written node bytes even of loaded trees: mask both.
+        assert_same_text(
+            &what("load"),
+            &mask_dump(&dump_mesh(&loaded)),
+            &mask_dump(&dll_loaded),
+        );
         // The DLL writes fresh stack garbage as the pad; the port re-writes the loaded pad.
         let (tl, tt) = tree_len_type(&loaded);
         let resaved = loaded.save_to_vec();
@@ -953,7 +958,11 @@ fn p1c_core_corpus_load_save_match_dll() {
             let AnyGeom::TriMesh(m) = &pg.geom else {
                 panic!("{}: not a mesh", b.name)
             };
-            assert_same_text(&what("load"), &dump_mesh(m), &dll_dump);
+            assert_same_text(
+                &what("load"),
+                &mask_dump(&dump_mesh(m)),
+                &mask_dump(&dll_dump),
+            );
             if m.n_tris > 0 || dll_read == pg.len {
                 assert_eq!(pg.len, dll_read, "{}", what("bytes read"));
             }
