@@ -37,6 +37,8 @@
 //! (materials / foreign ids with 0x4 / 0x8, indices with 0x2), the caller's array is left
 //! untouched. The arrays the original allocates for the original triangle count are truncated
 //! to the final count (the removed triangles' entries are never read).
+// NaN semantics of the original compares (`comiss` + jcc) are spelled out on purpose.
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::double_comparisons)]
 
 use super::TriMesh;
 use crate::geometry::bvtree::select::{build_mesh_tree, MeshTree};

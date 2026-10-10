@@ -26,6 +26,8 @@
 //! multi-island mesh is not convex (without storing the tolerance). Otherwise every edge must
 //! have a neighbour, and wherever the two normals differ by more than `tol` (`|n_t×n_i|² >
 //! tol²`), the edge direction must not point against `n_t×n_i` (a NaN makes it non-convex).
+// NaN semantics of the original compares (`comiss` + jcc) are spelled out on purpose.
+#![allow(clippy::neg_cmp_op_on_partial_ord, clippy::needless_range_loop)]
 
 use super::build::{intersect_sorted, ueq};
 use super::{MeshIsland, TriMesh};
@@ -295,10 +297,8 @@ impl TriMesh {
         if ueq(tol, self.convex_tol[k]) {
             self.convex_tol[k] = self.convex_tol[0];
             self.convex_tol[0] = tol;
-            let r = self.convex_cache[k];
-            self.convex_cache[k] = self.convex_cache[0];
-            self.convex_cache[0] = r;
-            return r;
+            self.convex_cache.swap(0, k);
+            return self.convex_cache[0];
         }
         if self.multi_island != 0 {
             self.convex_cache[k] = 0;

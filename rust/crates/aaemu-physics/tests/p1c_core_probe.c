@@ -68,17 +68,35 @@ static int cmd_ctor(int argc, char **argv) {
     fid = (int *)calloc(nt + 1, 4);
     for (int t = 0; t < nt; t++) fid[t] = nt - 1 - t;
   }
+  signed char *mats0 = NULL; /* the constructor may permute a shared (flag 4) array in place */
+  if (mats) { mats0 = (signed char *)malloc(nt + 1); memcpy(mats0, mats, nt); }
+  /* With flag 2 the constructor permutes and remaps the caller's 32-bit indices in place:
+   * keep a copy as the "render mesh" for Load. */
+  void *ip0 = malloc(3 * (size_t)stride * nt + 16);
+  memcpy(ip0, ip, 3 * (size_t)stride * nt);
   unsigned char *tm = p1c_mesh_new(v, ip, stride, mats, fid, nt, (int)flags, mn, mx, obb);
   p1c_mesh_dump(tm);
   typedef int (*fn_topo)(void *, void *, int);
   int bad = ((fn_topo)VA(0x351BFA60ULL))(tm, *(void **)(tm + 56), 1);
   printf("badedges %d\n", bad);
+  if (!*(void **)(tm + 48)) { /* Save dereferences the tree */
+    printf("save -\nloaded -\nresave -\n");
+    dump_convex_seq(tm);
+    return 0;
+  }
   P1cStream *w;
   save_mesh(tm, "save", &w);
+  if (flags & 1) {
+    /* With shared vertices and no vertex map, Load ends by copying the global vertex-map
+     * buffer (qword_3537B258) into a new map: null here (crash), stale data in the game. */
+    printf("loaded -\nresave -\n");
+    dump_convex_seq(tm);
+    return 0;
+  }
   /* Load the saved bytes into a fresh mesh (vertices/indices from the stream). */
   P1cStream *r = p1c_stream_read(w->buf, w->pos);
-  P1cStrided pv = {v, 12}, pi = {ip, stride};
-  unsigned char *tm2 = p1c_mesh_load(r, &pv, &pi, mats);
+  P1cStrided pv = {v, 12}, pi = {ip0, stride};
+  unsigned char *tm2 = p1c_mesh_load(r, &pv, &pi, mats0);
   printf("loaded %d\n", r->pos);
   p1c_mesh_dump(tm2);
   save_mesh(tm2, "resave", NULL);
