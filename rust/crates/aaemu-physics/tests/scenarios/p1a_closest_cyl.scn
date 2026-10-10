@@ -1,0 +1,53 @@
+# P1a slot 11 FindClosestPoint, cylinder and capsule: random cases from every distribution of
+# oracle/p1a_probes_closest.c (dist 0..8 x mode 0/1), the original gprobe sampler, and single
+# cases picked (by seed) to reach rare branches. Tests: tests/p1a_closest.rs.
+
+gprobe probe=closest type=cylinder n=40 seed=7205
+cprobe type=cylinder n=18 seed=7105000 dist=0 mode=0
+cprobe type=cylinder n=18 seed=7105001 dist=0 mode=1
+cprobe type=cylinder n=18 seed=7105010 dist=1 mode=0
+cprobe type=cylinder n=18 seed=7105011 dist=1 mode=1
+cprobe type=cylinder n=18 seed=7105020 dist=2 mode=0
+cprobe type=cylinder n=18 seed=7105021 dist=2 mode=1
+cprobe type=cylinder n=18 seed=7105030 dist=3 mode=0
+cprobe type=cylinder n=18 seed=7105031 dist=3 mode=1
+cprobe type=cylinder n=18 seed=7105040 dist=4 mode=0
+cprobe type=cylinder n=18 seed=7105041 dist=4 mode=1
+cprobe type=cylinder n=18 seed=7105050 dist=5 mode=0
+cprobe type=cylinder n=18 seed=7105051 dist=5 mode=1
+cprobe type=cylinder n=18 seed=7105060 dist=6 mode=0
+cprobe type=cylinder n=18 seed=7105061 dist=6 mode=1
+cprobe type=cylinder n=18 seed=7105070 dist=7 mode=0
+cprobe type=cylinder n=18 seed=7105071 dist=7 mode=1
+cprobe type=cylinder n=18 seed=7105080 dist=8 mode=0
+cprobe type=cylinder n=18 seed=7105081 dist=8 mode=1
+# rare branches of the rim quartic / findroots:
+# linear root (degree trimmed to 1, sign bug)
+cprobe type=cylinder n=1 seed=1403590 dist=3 mode=1
+# quartic with no root in the Ferrari branches
+cprobe type=cylinder n=1 seed=1404069 dist=4 mode=0
+# degenerate quartic (|R^2| < 1e-9)
+cprobe type=cylinder n=1 seed=1405009 dist=5 mode=0
+# resolvent cubic without roots; quadratic without roots
+cprobe type=cylinder n=1 seed=1403013 dist=3 mode=0
+# quadratic branch; R^2 <= -1e-9
+cprobe type=cylinder n=1 seed=1403007 dist=3 mode=0
+gprobe probe=closest type=capsule n=40 seed=7206
+cprobe type=capsule n=18 seed=7106000 dist=0 mode=0
+cprobe type=capsule n=18 seed=7106001 dist=0 mode=1
+cprobe type=capsule n=18 seed=7106010 dist=1 mode=0
+cprobe type=capsule n=18 seed=7106011 dist=1 mode=1
+cprobe type=capsule n=18 seed=7106020 dist=2 mode=0
+cprobe type=capsule n=18 seed=7106021 dist=2 mode=1
+cprobe type=capsule n=18 seed=7106030 dist=3 mode=0
+cprobe type=capsule n=18 seed=7106031 dist=3 mode=1
+cprobe type=capsule n=18 seed=7106040 dist=4 mode=0
+cprobe type=capsule n=18 seed=7106041 dist=4 mode=1
+cprobe type=capsule n=18 seed=7106050 dist=5 mode=0
+cprobe type=capsule n=18 seed=7106051 dist=5 mode=1
+cprobe type=capsule n=18 seed=7106060 dist=6 mode=0
+cprobe type=capsule n=18 seed=7106061 dist=6 mode=1
+cprobe type=capsule n=18 seed=7106070 dist=7 mode=0
+cprobe type=capsule n=18 seed=7106071 dist=7 mode=1
+cprobe type=capsule n=18 seed=7106080 dist=8 mode=0
+cprobe type=capsule n=18 seed=7106081 dist=8 mode=1

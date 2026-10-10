@@ -1,0 +1,16 @@
+# P1a: CalculateMediumResistance (slot 14) of every solid primitive; dP/dL enter non-zero in two
+# thirds of the cases (accumulate vs assign). mode=1: identity rotation, unit scale.
+gprobe probe=res type=box n=300 seed=501
+gprobe probe=res type=box n=100 seed=502 mode=1
+gprobe probe=res type=sphere n=400 seed=503
+gprobe probe=res type=sphere n=100 seed=504 mode=1
+gprobe probe=res type=capsule n=300 seed=505
+gprobe probe=res type=capsule n=100 seed=506 mode=1
+gprobe probe=res type=cylinder n=500 seed=507
+gprobe probe=res type=cylinder n=150 seed=508 mode=1
+# w = 0 (degenerate facing line) and v = w = 0
+gprobe probe=res type=cylinder n=100 seed=509 mode=2
+gprobe probe=res type=cylinder n=50 seed=510 mode=3
+gprobe probe=res type=box n=50 seed=511 mode=2
+gprobe probe=res type=sphere n=50 seed=512 mode=3
+gprobe probe=res type=capsule n=50 seed=513 mode=2

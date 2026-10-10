@@ -1,0 +1,18 @@
+# P1a: CTriMesh slot 12 CalcVolumetricPressure (0x351CBE20) through the box's slot 12
+# (temporary 12-triangle mesh). `pressprobe` modes: 0 near, 1 far, 2 inside, 3 large rmin,
+# 4 degenerate boxes, 5 extreme scales, 6 axis-aligned integer grid (exact ties), 7 on a
+# face/edge/corner, 8 very close to a face with rmin ~ 0 (depth limit, 300-pop cap), 9 negative
+# sizes, 10 mirrored basis (9/10 flip the winding: the only way a box reaches the projection split).
+gprobe probe=press type=box n=120 seed=501
+gprobe probe=press type=box n=40 seed=502 mode=1
+pressprobe mode=0 n=80 seed=510
+pressprobe mode=1 n=60 seed=511
+pressprobe mode=2 n=60 seed=512
+pressprobe mode=3 n=60 seed=513
+pressprobe mode=4 n=80 seed=514
+pressprobe mode=5 n=60 seed=515
+pressprobe mode=6 n=120 seed=516
+pressprobe mode=7 n=80 seed=517
+pressprobe mode=8 n=160 seed=518
+pressprobe mode=9 n=120 seed=519
+pressprobe mode=10 n=120 seed=520
