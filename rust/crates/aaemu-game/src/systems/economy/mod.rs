@@ -14,6 +14,11 @@
 //! * [`hooks`] — what the economy needs from other subsystems (quests, gear bonuses, NPC shop
 //!   flags, slaves / mates); installed into `server.systems.economy.hooks` by their owners.
 
+pub mod auction;
+pub mod auction_data;
+pub mod auction_packets;
+#[cfg(test)]
+mod auction_tests;
 pub mod data;
 pub mod error_message;
 pub mod fx;
@@ -42,6 +47,8 @@ pub struct System {
     ops: Mutex<()>,
     /// `Inventory.PreviousBackPackItemId` by character id (glider re-equip after a trade pack).
     previous_backpack: Mutex<HashMap<u32, u64>>,
+    /// `AuctionManager`.
+    pub auction: auction::AuctionManager,
 }
 
 impl System {
@@ -70,7 +77,10 @@ impl System {
     }
 
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
-    pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
+    pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        if server.systems.economy.auction.load(server).await {
+            auction::AuctionManager::start_timer(server);
+        }
         Ok(())
     }
 
@@ -78,15 +88,24 @@ impl System {
     /// number of rows written.
     pub async fn save(
         &self,
-        _server: &GameServer,
-        _tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
-        _stage: SaveStage,
+        server: &GameServer,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        stage: SaveStage,
     ) -> crate::Result<usize> {
-        Ok(0)
+        let mut n = 0;
+        if stage == SaveStage::AfterItems {
+            let (updated, deleted) = self.auction.save(server, tx).await?;
+            if updated + deleted > 0 {
+                tracing::debug!("Updated {updated} and deleted {deleted} auction items ...");
+            }
+            n += updated + deleted;
+        }
+        Ok(n)
     }
 }
 
 /// Registers this subsystem's C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
     item_handlers::register(reg);
+    auction_packets::register(reg);
 }
