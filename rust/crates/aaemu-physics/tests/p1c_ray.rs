@@ -402,7 +402,6 @@ impl Job {
                     while pos < lines.len() && !lines[pos].starts_with("res ") {
                         pos += 1;
                     }
-                    let b0 = pos;
                     pos += 1;
                     while pos < lines.len()
                         && (lines[pos].starts_with("c ") || lines[pos].starts_with("b "))
@@ -414,39 +413,18 @@ impl Job {
                     let mut ga = *ga;
                     let mut ip = *ip;
                     let mesh = &meshes[*m];
-                    let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        mesh.intersect_slot10(
-                            tables,
-                            &mut arena,
-                            &rg,
-                            ga.as_mut(),
-                            gb.as_ref(),
-                            ip.as_mut(),
-                            IntersectExtra {
-                                start_node: [if *start == -2 { last_hit } else { *start }, 0],
-                                first_only: *first_only,
-                            },
-                        )
-                    }));
-                    let Ok(r) = r else {
-                        // A ray with priority 1 that falls back to the generic Intersect needs
-                        // CTriMesh slot 54 (not ported yet): copy the DLL block, resync the arena.
-                        self.skipped.set(self.skipped.get() + 1);
-                        for l in &lines[b0..pos] {
-                            out.push_str(l);
-                            out.push('\n');
-                        }
-                        let k = lines[b0].rsplit(' ').next().unwrap().parse().unwrap();
-                        arena = CallerArena::new();
-                        arena.n_contacts = k;
-                        last_hit = lines
-                            .get(b0 + 1)
-                            .filter(|l| l.starts_with("c "))
-                            .map_or(0, |l| {
-                                l.split(' ').nth(15).unwrap().parse::<i32>().unwrap() + 1
-                            });
-                        continue;
-                    };
+                    let r = mesh.intersect_slot10(
+                        tables,
+                        &mut arena,
+                        &rg,
+                        ga.as_mut(),
+                        gb.as_ref(),
+                        ip.as_mut(),
+                        IntersectExtra {
+                            start_node: [if *start == -2 { last_hit } else { *start }, 0],
+                            first_only: *first_only,
+                        },
+                    );
                     last_hit = r.contacts.first().map_or(0, |c| c.i_prim[0] + 1);
                     let _ = writeln!(out, "res {} arena {}", r.contacts.len(), arena.n_contacts);
                     for (k, cc) in r.contacts.iter().enumerate() {

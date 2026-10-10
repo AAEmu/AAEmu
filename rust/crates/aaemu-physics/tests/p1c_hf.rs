@@ -21,12 +21,14 @@ use aaemu_physics::geometry::bvtree::{BvArena, BvTestState, BvTree};
 use aaemu_physics::geometry::heightfield::protocol::SharedHeightfield;
 use aaemu_physics::geometry::heightfield::region::{HfFrame, OtherSweep, RegionOutcome};
 use aaemu_physics::geometry::heightfield::{Heightfield, RayIntersectInput};
-use aaemu_physics::geometry::primitives::{BoxPrim, HeightfieldPrim, RayPrim};
+use aaemu_physics::geometry::primitives::{
+    BoxPrim, CylinderPrim, HeightfieldPrim, RayPrim, SpherePrim,
+};
 use aaemu_physics::geometry::shapes::misc::cubemap::Cubemap;
-use aaemu_physics::geometry::shapes::RayGeom;
+use aaemu_physics::geometry::shapes::{BoxGeom, CapsuleGeom, CylinderGeom, RayGeom, SphereGeom};
 use aaemu_physics::geometry::trimesh::intersect::{intersect, IntersectExtra, Tables as ITables};
-use aaemu_physics::geometry::trimesh::protocol::BorderKind;
 use aaemu_physics::geometry::trimesh::protocol::CallerArena;
+use aaemu_physics::geometry::trimesh::protocol::{BorderKind, GeomProtocol};
 use aaemu_physics::geometry::GeomWorldData;
 use aaemu_physics::math::{Mat33, Vec3};
 
@@ -293,6 +295,7 @@ fn replay(trace: &str, what: &str) -> Stats {
     let mut st = Stats::default();
     let mut hf: Option<Heightfield> = None;
     let mut arena = BvArena::new();
+    let mut parena = CallerArena::new();
     let mut gt = BvTestState::default();
     let lines: Vec<&str> = trace.lines().collect();
     let mut li = 0;
@@ -620,6 +623,97 @@ fn replay(trace: &str, what: &str) -> Stats {
                 st.ray_hits += usize::from(!res.contacts.is_empty());
                 "generic Intersect (hf vs ray)"
             }
+            "isectp" => {
+                // P1c-register: heightfield vs a solid primitive (the heightfield registers
+                // the contacts through CTriMesh slot 54)
+                let order = t.i();
+                let mut gh = t.gwd22();
+                let mut gr = t.gwd22();
+                let ty = t.i();
+                let nw = t.i();
+                let w: Vec<f32> = (0..nw).map(|_| t.f()).collect();
+                let has_ip = t.i() != 0;
+                let ti = t.f();
+                let vmin = t.f();
+                let gap = t.f();
+                let noarea = t.i() != 0;
+                let v3 = |k: usize| Vec3::new(w[k], w[k + 1], w[k + 2]);
+                let geom: Box<dyn GeomProtocol> = match ty {
+                    0 => Box::new(BoxGeom::new(&BoxPrim {
+                        basis: Mat33::from_array(std::array::from_fn(|k| w[k])),
+                        oriented: w[9].to_bits() as i32,
+                        center: v3(10),
+                        size: v3(13),
+                    })),
+                    4 => Box::new(SphereGeom::new(&SpherePrim {
+                        center: v3(0),
+                        r: w[3],
+                    })),
+                    5 => Box::new(CylinderGeom::new(&CylinderPrim {
+                        center: v3(0),
+                        axis: v3(3),
+                        r: w[6],
+                        hh: w[7],
+                    })),
+                    _ => Box::new(CapsuleGeom::new(&CylinderPrim {
+                        center: v3(0),
+                        axis: v3(3),
+                        r: w[6],
+                        hh: w[7],
+                    })),
+                };
+                let mut ip = IntersectionParams {
+                    time_interval: ti,
+                    vrel_min: vmin,
+                    max_surface_gap_angle: gap,
+                    unproj_dir: Vec3::new(0.0, 0.0, 1.0),
+                    max_unproj: 1e10,
+                    pt_outside_pivot: [Vec3::splat(1e11); 2],
+                    no_area_contacts: noarea,
+                    ..IntersectionParams::default()
+                };
+                let shf = SharedHeightfield::new(hf.take().unwrap());
+                let tb = ITables {
+                    pairs: &pairs,
+                    unproj: &tables,
+                };
+                let ipo = has_ip.then_some(&mut ip);
+                let res = if order != 0 {
+                    intersect(
+                        tb,
+                        &mut parena,
+                        geom.as_ref(),
+                        &shf,
+                        Some(&mut gr),
+                        Some(&gh),
+                        ipo,
+                        IntersectExtra::default(),
+                    )
+                } else {
+                    intersect(
+                        tb,
+                        &mut parena,
+                        &shf,
+                        geom.as_ref(),
+                        Some(&mut gh),
+                        Some(&gr),
+                        ipo,
+                        IntersectExtra::default(),
+                    )
+                };
+                hf = Some(shf.0.into_inner().unwrap());
+                dec(&mut out, res.contacts.len() as i64);
+                for (c, k) in res.contacts.iter().zip(&res.border_kinds) {
+                    let kind = match k {
+                        BorderKind::Pt => "pt",
+                        BorderKind::Center => "center",
+                        BorderKind::Pool => "pool",
+                    };
+                    contact_line(&mut out, c, kind);
+                }
+                st.ray_hits += usize::from(!res.contacts.is_empty());
+                "generic Intersect (hf vs primitive, P1c-register)"
+            }
             "cube" => {
                 let h = hf.as_ref().unwrap();
                 let g = t.gwd();
@@ -713,6 +807,13 @@ fn isect_seed5() {
     run_seed_args(5, 3, Some("isect"));
 }
 
+/// The generic `Intersect` with the heightfield against a box / sphere / cylinder / capsule:
+/// the heightfield registers through `CTriMesh` slot 54 (P1c-register).
+#[test]
+fn isectp_seed7() {
+    run_seed_args(7, 3, Some("isectp"));
+}
+
 /// Slot 51 (`DrawToOcclusionCubemap` leaf worker) on random viewpoints near the terrain.
 #[test]
 fn cube_seed6() {
@@ -733,7 +834,7 @@ fn stress() {
     };
     let mut total = Stats::default();
     for seed in 100..100 + n {
-        let mode = if seed % 2 == 0 { "isect" } else { "cube" };
+        let mode = ["isect", "cube", "isectp"][(seed % 3) as usize];
         let trace = p1c_common::run_probe(&exe, &["run", &seed.to_string(), "8", mode]).unwrap();
         let st = replay(&trace, &format!("stress seed {seed}"));
         total.lines += st.lines;

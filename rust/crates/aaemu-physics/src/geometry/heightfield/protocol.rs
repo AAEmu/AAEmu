@@ -233,6 +233,13 @@ fn primitive_list_at(
 }
 
 impl GeomProtocol for SharedHeightfield {
+    /// The region mesh (`CTriMesh` slots 57/58/59 read the object's mesh fields, which are
+    /// the region mesh's). (Added by P1c-register.)
+    fn proto_with_mesh(&self, f: &mut dyn FnMut(&TriMesh)) -> bool {
+        f(&self.rd().mesh);
+        true
+    }
+
     fn proto_type(&self) -> GeomType {
         GeomType::Heightfield
     }

@@ -559,6 +559,107 @@ static void isect_cases(unsigned char *hf, int n) {
   }
 }
 
+/* ---- P1c-register: the generic Intersect with a heightfield and a solid primitive (the
+ * heightfield registers through CTriMesh slot 54 0x351D3950) ---- */
+static void isectp_cases(unsigned char *hf, int n) {
+  float sx = *(float *)(hf + 660), sy = *(float *)(hf + 664);
+  float st = sx < sy ? sx : sy;
+  unsigned char *ar = ARENA(4, 0);
+  for (int i = 0; i < n; i++) {
+    float gh[24], gr[24];
+    memset(gh, 0, sizeof gh);
+    memset(gr, 0, sizeof gr);
+    rand_gwd((Gwd *)gh, rnd() % 3 == 0);
+    Gwd *g1 = (Gwd *)gh, *g2 = (Gwd *)gr;
+    float id[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+    memcpy(g2->R, id, 36);
+    g2->s = 1.0f;
+    for (int k = 0; k < 3; k++) {
+      g2->v[k] = rnd() % 2 ? frand(-2, 2) : 0;
+      g2->w[k] = rnd() % 3 == 0 ? frand(-1, 1) : 0;
+      g1->w[k] = rnd() % 4 == 0 ? frand(-1, 1) : 0;
+      g1->com[k] = frand(-2, 2);
+    }
+    float lo[3] = {frand(-0.5f, g_nx + 0.5f) * sx, frand(-0.5f, g_ny + 0.5f) * sy, frand(g_hmin - 0.3f, g_hmax + 0.3f)};
+    float c[3];
+    for (int r = 0; r < 3; r++) {
+      c[r] = (g1->R[3 * r] * lo[0] + g1->R[3 * r + 1] * lo[1] + g1->R[3 * r + 2] * lo[2]) * g1->s + g1->off[r];
+      g2->com[r] = c[r] + frand(-1, 1);
+    }
+    int type = (int[]){0, 4, 5, 6}[rnd() % 4];
+    float w[16];
+    memset(w, 0, sizeof w);
+    int nw = 0;
+    float sz = st * g1->s;
+    if (type == 0) {
+      float q[9];
+      rand_rot(q);
+      memcpy(w, q, 36);
+      w[9] = (q[0] == 1 && q[4] == 1 && q[8] == 1) ? 0.0f : bf(1);
+      w[10] = c[0]; w[11] = c[1]; w[12] = c[2];
+      for (int k = 0; k < 3; k++) w[13 + k] = frand(0.1f, 1.2f) * sz;
+      nw = 16;
+    } else if (type == 4) {
+      w[0] = c[0]; w[1] = c[1]; w[2] = c[2]; w[3] = frand(0.1f, 1.2f) * sz;
+      nw = 4;
+    } else {
+      float a[3], l = 0;
+      for (int k = 0; k < 3; k++) { a[k] = frand(-1, 1); l += a[k] * a[k]; }
+      l = sqrtf(l) + 1e-6f;
+      w[0] = c[0]; w[1] = c[1]; w[2] = c[2];
+      for (int k = 0; k < 3; k++) w[3 + k] = a[k] / l;
+      w[6] = frand(0.1f, 0.8f) * sz;
+      w[7] = frand(0.1f, 0.8f) * sz;
+      nw = 8;
+    }
+    void *g = NULL;
+    switch (type) {
+    case 0: g = calloc(1, 0xC8); ((void *(*)(void *))VA(0x35075190ULL))(g); ((void *(*)(void *, void *))VA(0x3513A590ULL))(g, w); break;
+    case 4: g = calloc(1, 0x98); ((void *(*)(void *))VA(0x35038C20ULL))(g); ((void *(*)(void *, void *))VA(0x351AE9E0ULL))(g, w); break;
+    case 5: g = calloc(1, 0xB0); ((void *(*)(void *))VA(0x35038960ULL))(g); ((void *(*)(void *, void *))VA(0x35144DB0ULL))(g, w); break;
+    default: g = calloc(1, 0xB0); ((void *(*)(void *))VA(0x35038AB0ULL))(g); ((void *(*)(void *, void *))VA(0x35141920ULL))(g, w); break;
+    }
+    int order = rnd() % 2, hasip = rnd() % 3 != 0;
+    uint32_t ip[64];
+    memset(ip, 0, sizeof ip);
+    float ti = frand(0.01f, 2), vmin = rnd() % 2 ? 1e10f : frand(0, 0.5f);
+    int noarea = rnd() % 3 == 0;
+    float gap = rnd() % 2 ? 0.0174533f : frand(0, 0.3f);
+    if (hasip) {
+      float *f = (float *)ip;
+      f[7] = ti;
+      f[8] = vmin;
+      f[9] = gap;
+      f[14] = 0; f[15] = 0; f[16] = 1;
+      f[17] = 1e10f;
+      for (int k = 18; k < 24; k++) f[k] = 1e11f;
+      ((unsigned char *)ip)[99] = (unsigned char)noarea;
+    }
+    printf("isectp %d", order);
+    pwi(gh, 22);
+    pwi(gr, 22);
+    printf(" %d %d", type, nw);
+    pw(w, nw);
+    printf(" %d", hasip);
+    pw(&ti, 1);
+    pw(&vmin, 1);
+    pw(&gap, 1);
+    printf(" %d", noarea);
+    memset(ar + 0xC7B8, 0, 64 * 136);
+    memset(ar + 0xE9C0, 0, 32 * 72);
+    unsigned char *contacts = NULL;
+    int oldcap = *(int *)(hf + 796);
+    typedef int (*fn_isect)(void *, void *, void *, void *, void *, unsigned char **);
+    int r = order ? ((fn_isect)VA(0x3514FD70ULL))(g, hf, gr, gh, hasip ? ip : NULL, &contacts)
+                  : ((fn_isect)VA(0x3514FD70ULL))(hf, g, gh, gr, hasip ? ip : NULL, &contacts);
+    int cap = *(int *)(hf + 796);
+    if (cap != oldcap) memset(*(void **)(hf + 776), 0, 4 * ((cap >> 5) + 1));
+    printf(" | %d", r);
+    for (int k = 0; k < r; k++) contact1(contacts + 136 * k);
+    printf("\n");
+  }
+}
+
 /* ---- slot 51 (occlusion cubemap) ---- */
 static uint32_t fnv(const uint32_t *w, int n, uint32_t h) {
   for (int i = 0; i < n; i++) { h ^= w[i]; h *= 16777619u; }
@@ -606,6 +707,7 @@ int main(int argc, char **argv) {
   int ng = atoi(argv[3]);
   int isect = argc > 4 && !strcmp(argv[4], "isect");
   int cube = argc > 4 && !strcmp(argv[4], "cube");
+  int isectp = argc > 4 && !strcmp(argv[4], "isectp"); /* P1c-register */
   g_fake_vt[6] = (void *)fake_bbox;
   /* the per-caller hf records start as the static initialiser leaves them (type 2) */
   for (int g = 0; g < ng; g++) {
@@ -618,6 +720,7 @@ int main(int argc, char **argv) {
     ray_cases(hf, 80);
     if (isect) isect_cases(hf, 60);
     if (cube) cube_cases(hf, 25);
+    if (isectp) isectp_cases(hf, 80);
     printf("end\n");
   }
   return 0;

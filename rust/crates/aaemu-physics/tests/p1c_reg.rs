@@ -266,7 +266,13 @@ struct Case {
 
 /// Runs a scenario through the probe (golden) and the port; panics on the first differing
 /// line.
-fn run(name: &str, meshes: &[MeshSpec], prims: &[Prim], cases: &[Case], live_only: bool) {
+fn run(
+    name: &str,
+    meshes: &[MeshSpec],
+    prims: &[Prim],
+    cases: &[Case],
+    live_only: bool,
+) -> [usize; 3] {
     let mut file = String::from("verbose 1\n");
     for (k, m) in meshes.iter().enumerate() {
         let p = p1c_common::write_mesh_file(&format!("{name}_{k}"), &m.v, &m.idx);
@@ -307,13 +313,13 @@ fn run(name: &str, meshes: &[MeshSpec], prims: &[Prim], cases: &[Case], live_onl
     let dll = if live_only {
         let Some(exe) = p1c_common::probe("p1c_isect_probe") else {
             eprintln!("p1c_reg: {name} needs the probe — skipped");
-            return;
+            return [0; 3];
         };
         p1c_common::run_probe(&exe, &[&cf.to_string_lossy()]).unwrap_or_else(|e| panic!("{e}"))
     } else {
         let Some(g) = p1c_common::golden(name, "p1c_isect_probe", &[&cf.to_string_lossy()]) else {
             eprintln!("p1c_reg: no golden {name} and no probe — skipped");
-            return;
+            return [0; 3];
         };
         g
     };
@@ -391,6 +397,8 @@ fn run(name: &str, meshes: &[MeshSpec], prims: &[Prim], cases: &[Case], live_onl
         }
     }
     p1c_common::assert_same_text(name, &out, &dll);
+    let count = |p: &str| dll.lines().filter(|l| l.starts_with(p)).count();
+    [count("c "), count("a "), count("ap ")]
 }
 
 // ------------------------------------------------------------------------------------------
@@ -1133,4 +1141,136 @@ fn resting_contacts() {
         resting_cases(20000 + k, 400, "p1c_reg_resting_live", true);
         resting_mesh_cases(30000 + k, 150, "p1c_reg_resting_mesh_live", true);
     }
+}
+
+// ------------------------------------------------------------------------------------------
+// corpus meshes (live only)
+
+#[path = "p1b_common/mod.rs"]
+mod p1b_common;
+
+#[test]
+fn corpus_meshes() {
+    if p1c_common::probe("p1c_isect_probe").is_none() {
+        eprintln!("p1c_reg corpus: needs AAEMU_PHYS_P1C_PROBE_DIR — skipped");
+        return;
+    }
+    let all = p1b_common::all_meshes();
+    let mut rng = Rng(0x5EED);
+    let mut used = 0;
+    let mut n_cases = 0;
+    let mut tot = [0usize; 3];
+    for (k, (name, _blob, mb)) in all.iter().enumerate() {
+        let (Some(v), Some(idx)) = (mb.verts.as_ref(), mb.idx.as_ref()) else {
+            continue;
+        };
+        if idx.is_empty() || v.len() > 65536 || idx.iter().any(|&i| i as usize >= v.len()) {
+            continue;
+        }
+        used += 1;
+        let (mut lo, mut hi) = (v[0], v[0]);
+        for p in v {
+            lo = Vec3::new(lo.x.min(p.x), lo.y.min(p.y), lo.z.min(p.z));
+            hi = Vec3::new(hi.x.max(p.x), hi.y.max(p.y), hi.z.max(p.z));
+        }
+        let ext = ((hi.x - lo.x).max(hi.y - lo.y)).max(hi.z - lo.z).max(0.1);
+        let ms = vec![MeshSpec {
+            v: v.clone(),
+            idx: idx.clone(),
+            flags: [0x40, 0x80, 0x20][k % 3],
+            mats: None,
+        }];
+        let nt = idx.len() / 3;
+        let mut prims = Vec::new();
+        let mut cases = Vec::new();
+        for j in 0..600 {
+            let t = rng.i(nt as u32) as usize;
+            let p = v[idx[3 * t] as usize];
+            let s = ext * rng.r(0.02, 0.3);
+            let near = p + rng.v(-s, s);
+            let pr = match rand_prim(&mut rng, Vec3::ZERO) {
+                Prim::Box(mut b) => {
+                    b.center = near;
+                    b.size = rng.v(0.2 * s, s);
+                    Prim::Box(b)
+                }
+                Prim::Sphere(mut sp) => {
+                    sp.center = near;
+                    sp.r = rng.r(0.2 * s, s);
+                    Prim::Sphere(sp)
+                }
+                Prim::Cyl(mut c) => {
+                    c.center = near;
+                    c.r = rng.r(0.2 * s, s);
+                    c.hh = rng.r(0.2 * s, s);
+                    Prim::Cyl(c)
+                }
+                Prim::Cap(mut c) => {
+                    c.center = near;
+                    c.r = rng.r(0.2 * s, s);
+                    c.hh = rng.r(0.2 * s, s);
+                    Prim::Cap(c)
+                }
+            };
+            prims.push(pr);
+            let mesh_mesh = j % 5 == 4;
+            let ga = GeomWorldData {
+                offset: Vec3::ZERO,
+                r: Mat33::IDENTITY,
+                scale: 1.0,
+                v: rng.v(-1.0, 1.0),
+                w: if rng.chance(0.5) {
+                    Vec3::ZERO
+                } else {
+                    rng.v(-0.5, 0.5)
+                },
+                center_of_mass: (lo + hi) * 0.5,
+            };
+            let gb = GeomWorldData {
+                offset: if mesh_mesh {
+                    rng.v(-0.3 * ext, 0.3 * ext)
+                } else {
+                    Vec3::ZERO
+                },
+                r: if mesh_mesh && rng.chance(0.5) {
+                    rng.rot()
+                } else {
+                    Mat33::IDENTITY
+                },
+                scale: 1.0,
+                v: rng.v(-1.0, 1.0),
+                w: Vec3::ZERO,
+                center_of_mass: near,
+            };
+            let ip = rand_ip(&mut rng);
+            let (a, b) = if mesh_mesh {
+                ("m0".to_string(), "m0".to_string())
+            } else if rng.chance(0.5) {
+                ("m0".to_string(), format!("p{j}"))
+            } else {
+                (format!("p{j}"), "m0".to_string())
+            };
+            cases.push(Case {
+                a,
+                b,
+                ga: Some(ga),
+                gb: Some(gb),
+                ip,
+                first: false,
+            });
+        }
+        n_cases += cases.len();
+        let r = run(&format!("p1c_reg_corpus_{k}"), &ms, &prims, &cases, true);
+        for q in 0..3 {
+            tot[q] += r[q];
+        }
+        let _ = name;
+    }
+    eprintln!(
+        "p1c_reg corpus: {used} meshes of {}, {n_cases} cases, {} contacts, {} areas ({} points): all match",
+        all.len(),
+        tot[0],
+        tot[1],
+        tot[2]
+    );
 }
