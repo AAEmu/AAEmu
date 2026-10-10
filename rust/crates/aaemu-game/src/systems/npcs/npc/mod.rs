@@ -1,11 +1,14 @@
 //! NPCs: `NpcManager` (templates, `Create`, stats), `NpcGameData` (spawner templates),
-//! `NpcSpawner` / `NpcSpawnerNpc`, NPC interaction packets.
+//! `NpcSpawner` / `NpcSpawnerNpc`, NPC interaction packets, `Npc` attribute getters ([`stats`])
+//! and `Npc.DoDie` ([`death`]).
 
 pub mod data;
+pub mod death;
 pub mod manager;
 pub mod packets;
 pub mod spawner;
 pub mod spawner_data;
+pub mod stats;
 
 use std::sync::Arc;
 

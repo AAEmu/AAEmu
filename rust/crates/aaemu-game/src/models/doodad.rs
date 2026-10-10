@@ -211,3 +211,31 @@ impl BaseUnitData for Doodad {
         &mut self.buffs
     }
 }
+
+/// The `Doodad` members the phase machine (`Use` / `DoFunc` / `DoPhaseFuncs`) and the func
+/// timers work with (`systems::npcs::doodad`).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DoodadPhaseState {
+    /// `ToNextPhase`.
+    pub to_next_phase: bool,
+    /// `OverridePhase`.
+    pub override_phase: i32,
+    /// `PhaseRatio` (0..10000, rolled per phase func).
+    pub phase_ratio: i32,
+    /// `CumulativePhaseRatio`.
+    pub cumulative_phase_ratio: i32,
+    /// `OverridePhaseTime` (unix ms, 0 = MinValue).
+    pub override_phase_time_ms: i64,
+    /// `ListGroupId` (recursion guard of `DoPhaseFuncs`).
+    pub list_group_id: Vec<u32>,
+    /// `CurrentToDTriggers` (tod hours, next phase) in insertion order.
+    pub tod_triggers: Vec<(f32, i32)>,
+    /// `FuncTask`: generation of the pending func timer (0 = none). A timer task only fires
+    /// when the generation it was created with is still current (`FuncTask.Cancel` bumps it).
+    pub func_task: u64,
+    /// `_deleted`.
+    pub deleted: bool,
+    /// `Despawn` (unix ms, 0 = MinValue) / `Respawn` (GameObject members).
+    pub despawn_ms: i64,
+    pub respawn_ms: i64,
+}

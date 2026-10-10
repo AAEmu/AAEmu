@@ -5,6 +5,10 @@
 pub mod data;
 pub mod manager;
 pub mod spawner;
+pub mod funcs;
+pub mod phase_funcs;
+pub mod runtime;
+pub mod templates;
 
 use std::sync::Arc;
 
