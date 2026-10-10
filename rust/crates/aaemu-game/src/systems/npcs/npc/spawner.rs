@@ -290,6 +290,17 @@ impl NpcSpawner {
     }
 
     /// `SpawnedNpcs.Clear()`.
+    /// `SpawnedNpcs.TryAdd(key, list)`: `false` (unchanged) when `key` is already present.
+    pub fn try_add_spawned(&self, key: u32, npcs: Vec<NpcRef>) -> bool {
+        match self.spawned_map().entry(key) {
+            std::collections::btree_map::Entry::Occupied(_) => false,
+            std::collections::btree_map::Entry::Vacant(v) => {
+                v.insert(npcs);
+                true
+            }
+        }
+    }
+
     pub fn clear_spawned_npcs(&self) {
         self.spawned_map().clear();
     }

@@ -272,8 +272,11 @@ impl NpcSkillHooks for NpcSkills {
                 tracing::trace!("MoveToRezPointEffect");
                 true
             }
-            // SpawnFish (fishing), PhysicalExplosion (physics) and PutDownBackpack (items +
-            // housing) are not handled here.
+            T::SpawnFish { .. } => {
+                spawn_fish_effect(server, args);
+                true
+            }
+            // PutDownBackpack (items + housing) is not handled here.
             _ => false,
         }
     }
@@ -563,6 +566,186 @@ fn spawn_effect(
     };
     spawner.do_spawn_effect(server, spawner.id, &params, Some(caster), Some(&target));
 }
+
+/// `SpawnFishEffect.Apply`: a fish from the fish school near the fishing character is spawned
+/// at the bobber (the target) through a temporary spawner, then it and the character target
+/// each other.
+fn spawn_fish_effect(server: &GameServer, args: &EffectArgs<'_>) {
+    let Some(caster) = &args.caster else {
+        return;
+    };
+    let Some(player) = caster.as_player() else {
+        return;
+    };
+    let fish_spawner_id = get_fish_spawner_id(server, caster);
+    if fish_spawner_id == 0 {
+        let name = player.data().unit.name.clone();
+        tracing::debug!("Fish Spawner ID not found for player {name}.");
+        return;
+    }
+    let template = server
+        .game_data
+        .systems
+        .npcs
+        .npc_spawners
+        .get_npc_spawner_template(fish_spawner_id);
+    let Some(template) = template.filter(|t| !t.npcs.is_empty()) else {
+        tracing::warn!("No NPC templates available for fish spawner {fish_spawner_id}.");
+        return;
+    };
+    // Weighted random fish selection
+    let entry = if template.npcs.len() == 1 {
+        &template.npcs[0]
+    } else {
+        select_weighted_fish(&template.npcs, rand::random::<f64>())
+    };
+    tracing::debug!(
+        "Selected fish template {} from spawner {fish_spawner_id}",
+        entry.member_id
+    );
+    let Some(world) = server.world.world_of(caster) else {
+        return;
+    };
+    // Temporary spawner at the bobber (`target.Transform.Clone().CloneAsSpawnPosition()`).
+    let position = match &args.target {
+        Target::Obj(o) => {
+            let t = o.transform();
+            let pr = world.world_pos_rot(o);
+            crate::data::world_templates::WorldSpawnPosition {
+                world_id: t.world_id,
+                zone_id: t.zone_id,
+                x: pr.x,
+                y: pr.y,
+                z: pr.z,
+                roll: pr.rot_x,
+                pitch: pr.rot_y,
+                yaw: pr.rot_z,
+            }
+        }
+        // A position unit is a detached clone of the caster's transform.
+        Target::Pos(p) => crate::data::world_templates::WorldSpawnPosition {
+            world_id: caster.transform().world_id,
+            zone_id: p.zone_id,
+            x: p.pos.x,
+            y: p.pos.y,
+            z: p.pos.z,
+            roll: p.pos.rot_x,
+            pitch: p.pos.rot_y,
+            yaw: p.pos.rot_z,
+        },
+    };
+    let temp_spawner = Arc::new(super::npc::spawner::NpcSpawner::new(
+        super::npc::spawner::NpcSpawnerInit {
+            id: 0,
+            spawner_id: fish_spawner_id,
+            unit_id: entry.member_id,
+            follow_path: String::new(),
+            follow_npc: 0,
+            respawn_time: 15,
+            despawn_time: 20,
+            special_link: String::new(),
+            count: 1,
+            npc_spawner_ids: Vec::new(),
+            parent_world: Some(world.id),
+            template: Some(template.clone()),
+            spawnable_npcs: Vec::new(),
+        },
+        super::npc::spawner::NpcSpawnerShared::new(position),
+    ));
+    let (player_id, player_name) = {
+        let c = player.data();
+        (c.id, c.unit.name.clone())
+    };
+    let spawned = match super::npc::spawner::spawn_member(server, entry, &temp_spawner, player_id) {
+        Ok(Some(v)) if !v.is_empty() => v,
+        Ok(_) => {
+            tracing::warn!(
+                "npcTemplate.Spawn returned no fish for template {}",
+                entry.member_id
+            );
+            return;
+        }
+        Err(e) => {
+            tracing::error!("Error spawning fish from template {}: {e}", entry.member_id);
+            return;
+        }
+    };
+    // Register so that Despawn() -> RemoveNpcFromSpawnedList doesn't log a false warning
+    temp_spawner.try_add_spawned(fish_spawner_id, spawned.clone());
+    let fish = WorldObject::from(&spawned[0]);
+    // Aggro & targeting
+    spawned[0].data().unit.current_target = player.obj_id;
+    crate::systems::skills::combat::add_unit_aggro(
+        server,
+        &fish,
+        crate::systems::skills::state::AggroKind::Damage,
+        caster,
+        10_000,
+    );
+    player.data().unit.current_target = fish.obj_id();
+    crate::systems::skills::broadcast(
+        server,
+        caster,
+        &crate::packets::world_objects::SCTargetChangedPacket {
+            obj_id: player.obj_id,
+            target_obj_id: fish.obj_id(),
+        },
+        true,
+    );
+    tracing::debug!(
+        "Successfully spawned fish {} (owner {player_id}) at bobber for {player_name}",
+        entry.member_id
+    );
+}
+
+/// `SpawnFishEffect.SelectWeightedRandom(npcs)` with `roll01 = Random.Shared.NextDouble()`.
+fn select_weighted_fish(
+    npcs: &[super::npc::spawner_data::NpcSpawnerNpc],
+    roll01: f64,
+) -> &super::npc::spawner_data::NpcSpawnerNpc {
+    let total_weight: f32 = npcs.iter().map(|n| n.weight).sum();
+    if total_weight <= 0.0 {
+        return &npcs[0];
+    }
+    let roll = roll01 * f64::from(total_weight);
+    let mut current = 0.0f64;
+    for entry in npcs {
+        current += f64::from(entry.weight);
+        if roll < current {
+            return entry;
+        }
+    }
+    &npcs[0]
+}
+
+/// `SpawnFishEffect.GetFishSpawnerId(player)`: the `DoodadFuncFishSchool.NpcSpawnerId` of the
+/// first current phase func of a fish school doodad (group 65) within 100 m (0 = none).
+fn get_fish_spawner_id(server: &GameServer, player: &WorldObject) -> u32 {
+    let data = &server.game_data.systems.npcs.doodad;
+    for o in around_radius(server, &Target::Obj(player.clone()), 100.0, false) {
+        let Some(doodad) = o.as_doodad() else {
+            continue;
+        };
+        let (template_id, func_group_id) = {
+            let d = doodad.data();
+            (d.template_id, d.func_group_id)
+        };
+        if data.template(template_id).map(|t| t.group_id) != Some(FISH_SCHOOL_DOODAD_GROUP) {
+            continue;
+        }
+        for func in data.phase_funcs(func_group_id) {
+            if let Some(super::doodad::templates::FuncTemplate::FishSchool(f)) =
+                data.phase_func_template(func.func_id, &func.func_type)
+            {
+                return f.npc_spawner_id;
+            }
+        }
+    }
+    0
+}
+
+/// The `DoodadGroups` id of fish school doodads (`GetFishSpawnerId`).
+const FISH_SCHOOL_DOODAD_GROUP: u32 = 65;
 
 /// `NpcSpawnerSpawnEffect.Apply`.
 fn npc_spawner_spawn_effect(
@@ -1000,5 +1183,35 @@ impl crate::managers::item::TreasureMapSource for NpcsForEconomy {
             y: chest.position.y,
             chest_group_id: group,
         })
+    }
+}
+
+#[cfg(test)]
+mod spawn_fish_tests {
+    use super::super::npc::spawner_data::NpcSpawnerNpc;
+    use super::select_weighted_fish;
+
+    fn npc(member_id: u32, weight: f32) -> NpcSpawnerNpc {
+        NpcSpawnerNpc {
+            id: member_id,
+            npc_spawner_template_id: 1,
+            member_id,
+            member_type: "Npc".into(),
+            weight,
+            unit_id: 0,
+        }
+    }
+
+    #[test]
+    fn weighted_fish_selection_follows_the_roll() {
+        let npcs = [npc(10, 1.0), npc(20, 3.0), npc(30, 0.0)];
+        // total 4: [0, 1) -> 10, [1, 4) -> 20
+        assert_eq!(select_weighted_fish(&npcs, 0.0).member_id, 10);
+        assert_eq!(select_weighted_fish(&npcs, 0.2499).member_id, 10);
+        assert_eq!(select_weighted_fish(&npcs, 0.25).member_id, 20);
+        assert_eq!(select_weighted_fish(&npcs, 0.9999).member_id, 20);
+        // no weight: the first entry
+        let zero = [npc(1, 0.0), npc(2, 0.0)];
+        assert_eq!(select_weighted_fish(&zero, 0.7).member_id, 1);
     }
 }

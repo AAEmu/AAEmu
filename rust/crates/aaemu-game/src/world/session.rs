@@ -585,9 +585,28 @@ pub fn spawn_character(server: &GameServer, conn: &mut GameConnection, visual: V
         unit_state::unit_state(&mut c, &server.game_data, now_ms())
     };
     conn.send(&state);
-    let sub = server.time.subscribe(&player.conn);
+    let sub = server.time.subscribe_with(
+        &player.conn,
+        Some(storm_time_of_day_resolver(server, &player)),
+    );
     player.subscribers().push(sub);
     tracing::info!("CSSpawnCharacterPacket");
+}
+
+/// `new TimeOfDayObserver(character)`: each push asks
+/// `StormShipLogic.ResolveClientTimeOfDayHours(owner)` (weak handles: the subscription does not
+/// keep the server or the character alive).
+pub fn storm_time_of_day_resolver(
+    server: &GameServer,
+    player: &PlayerRef,
+) -> crate::managers::time::TimeOfDayResolver {
+    let server = server.self_arc().map(|s| Arc::downgrade(&s));
+    let player = Arc::downgrade(player);
+    Arc::new(move || {
+        let server = server.as_ref()?.upgrade()?;
+        let player = player.upgrade()?;
+        crate::systems::ai::physics::forces::resolve_client_time_of_day_for(&server, &player)
+    })
 }
 
 /// The world instance a player is in (`ParentWorld`).

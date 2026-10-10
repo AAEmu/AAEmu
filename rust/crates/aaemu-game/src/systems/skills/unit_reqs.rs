@@ -1,8 +1,11 @@
 //! `UnitReqs.Validate` and `UnitRequirementsGameData.CanUseSkill`, plus
 //! `SkillResultHelper.SkillResultErrorKeyToId` (1.2 / r208022 numbering).
 
+use crate::data::items::ITEM_TREASURE_MAP_WITH_COORDINATES;
+use crate::models::container::slot_type;
+use crate::models::item::{Item, ItemClass};
 use crate::server::GameServer;
-use crate::world::WorldObject;
+use crate::world::{PlayerRef, WorldObject};
 
 use super::data::{SkillTemplate, UnitReq};
 use super::types::SkillCaster;
@@ -537,6 +540,15 @@ pub fn can_use_skill(
     owner: &WorldObject,
     _skill_caster: &SkillCaster,
 ) -> ReqResult {
+    // Buried Treasure check (no table carries this requirement).
+    if template.id == super::skill::DIG_UP_TREASURE_SKILL
+        && treasure_map_nearby(server, owner.as_player(), TREASURE_MAP_DIG_RANGE).is_none()
+    {
+        return ReqResult {
+            key: "skill_urk_own_item",
+            value: ITEM_TREASURE_MAP_WITH_COORDINATES,
+        };
+    }
     let reqs: Vec<UnitReq> = server
         .game_data
         .systems
@@ -581,5 +593,144 @@ pub fn can_use_skill(
         ReqResult::OK
     } else {
         last_failed
+    }
+}
+
+/// The `maxRange` both C# call sites pass to `GetTreasureMapWithCoordinatesNearbyItem`.
+pub const TREASURE_MAP_DIG_RANGE: f64 = 5.0;
+
+/// `UnitRequirementsGameData.GetTreasureMapWithCoordinatesNearbyItem(character, maxRange)`:
+/// the id of the first `TreasureMapWithCoordinates` item in the player's bag whose map position
+/// (at the player's height) is within `max_range` of the player.
+pub fn treasure_map_nearby(
+    server: &GameServer,
+    player: Option<&PlayerRef>,
+    max_range: f64,
+) -> Option<u64> {
+    let player = player?;
+    let bag = player.data().inventory.get(slot_type::INVENTORY)?.clone();
+    let maps: Vec<Item> = bag
+        .lock()
+        .expect("container poisoned")
+        .items
+        .iter()
+        .filter(|i| i.template_id == ITEM_TREASURE_MAP_WITH_COORDINATES)
+        .cloned()
+        .collect();
+    if maps.is_empty() {
+        return None;
+    }
+    let obj = WorldObject::from(player);
+    let pos = match server.world.world_of(&obj) {
+        Some(w) => w.world_pos_rot(&obj),
+        None => obj.transform().local(),
+    };
+    first_treasure_map_in_range(&maps, (pos.x, pos.y, pos.z), max_range)
+}
+
+/// The loop of `GetTreasureMapWithCoordinatesNearbyItem`: first `TreasureMap` whose
+/// `(position - GetMapPosition(position.Z)).Length() <= maxRange` (float math as the C#).
+pub fn first_treasure_map_in_range(
+    maps: &[Item],
+    pos: (f32, f32, f32),
+    max_range: f64,
+) -> Option<u64> {
+    maps.iter()
+        .filter(|m| m.class == ItemClass::TreasureMap)
+        .find(|m| {
+            let (mx, my, mz) = m.map_position(pos.2);
+            let (dx, dy, dz) = (pos.0 - mx, pos.1 - my, pos.2 - mz);
+            f64::from((dx * dx + dy * dy + dz * dz).sqrt()) <= max_range
+        })
+        .map(|m| m.id)
+}
+
+#[cfg(test)]
+mod treasure_tests {
+    use super::*;
+    use crate::data::items::{ItemData, ItemTemplate, TemplateKind};
+
+    fn map(id: u64, x: f64, y: f64) -> Item {
+        let t = ItemTemplate::new(
+            ITEM_TREASURE_MAP_WITH_COORDINATES,
+            TemplateKind::TreasureMap,
+        );
+        let mut i = Item::create(id, &t, 1, 0, 1, &ItemData::default(), 0);
+        i.set_map_position_x(x);
+        i.set_map_position_y(y);
+        i
+    }
+
+    #[test]
+    fn picks_first_map_within_five_meters() {
+        let maps = [map(1, 100.0, 100.0), map(2, 10.0, 13.0), map(3, 10.0, 10.0)];
+        // map 2 is 5.0 away (inclusive), map 3 is closer but comes later.
+        assert_eq!(
+            first_treasure_map_in_range(&maps, (10.0, 8.0, 55.0), TREASURE_MAP_DIG_RANGE),
+            Some(2)
+        );
+        assert_eq!(
+            first_treasure_map_in_range(&maps, (10.0, 7.9, 55.0), TREASURE_MAP_DIG_RANGE),
+            Some(3)
+        );
+        assert_eq!(
+            first_treasure_map_in_range(&maps, (50.0, 50.0, 0.0), TREASURE_MAP_DIG_RANGE),
+            None
+        );
+    }
+
+    #[test]
+    fn map_position_uses_the_given_height() {
+        let m = map(1, 1.5, 2.25);
+        assert_eq!(m.map_position(7.0), (1.5, 2.25, 7.0));
+    }
+
+    #[tokio::test]
+    async fn dig_up_treasure_needs_a_nearby_map() {
+        use crate::test_support::*;
+        let server = test_server();
+        let client = TestClient::new(&server, 1, 1);
+        let p = spawn_player(
+            &server,
+            &client,
+            test_character(1, "Digger", 10.0, 10.0),
+            0x100,
+        );
+        let owner = WorldObject::from(&p);
+        let t = SkillTemplate {
+            id: super::super::skill::DIG_UP_TREASURE_SKILL,
+            ..SkillTemplate::default()
+        };
+        let caster = SkillCaster::Unit(p.obj_id);
+        let fail = ReqResult {
+            key: "skill_urk_own_item",
+            value: ITEM_TREASURE_MAP_WITH_COORDINATES,
+        };
+        assert_eq!(can_use_skill(&server, &t, &owner, &caster), fail);
+        let bag = p
+            .data()
+            .inventory
+            .get(slot_type::INVENTORY)
+            .unwrap()
+            .clone();
+        // too far (6 m), then within range (3 m)
+        bag.lock().unwrap().items.push(map(7, 16.0, 10.0));
+        assert_eq!(can_use_skill(&server, &t, &owner, &caster), fail);
+        bag.lock().unwrap().items.push(map(8, 13.0, 10.0));
+        assert_eq!(can_use_skill(&server, &t, &owner, &caster), ReqResult::OK);
+        assert_eq!(
+            treasure_map_nearby(&server, Some(&p), TREASURE_MAP_DIG_RANGE),
+            Some(8)
+        );
+        // Other skills are not gated.
+        let other = SkillTemplate {
+            id: 1,
+            ..SkillTemplate::default()
+        };
+        bag.lock().unwrap().items.clear();
+        assert_eq!(
+            can_use_skill(&server, &other, &owner, &caster),
+            ReqResult::OK
+        );
     }
 }

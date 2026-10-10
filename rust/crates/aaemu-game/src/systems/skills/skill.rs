@@ -33,7 +33,7 @@ use super::types::{
 use super::{broadcast, unit_reqs};
 
 /// `SkillsEnum.DigUpTreasureChestMarkedOnMap`.
-pub const DIG_UP_TREASURE_SKILL: u32 = 20_445;
+pub const DIG_UP_TREASURE_SKILL: u32 = 18_349;
 
 /// The arguments a cast carries through its tasks.
 #[derive(Debug, Clone)]
@@ -1462,8 +1462,20 @@ pub fn apply_effects(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
     if !packets.is_empty() {
         broadcast(server, caster, &packets, true);
     }
-    if player.is_some() && t.id == DIG_UP_TREASURE_SKILL {
-        tracing::error!("Treasure map consumption is part of the item subsystem");
+    // Hack to consume TreasureMap items (as the C#).
+    if let Some(p) = player.as_ref().filter(|_| t.id == DIG_UP_TREASURE_SKILL) {
+        match unit_reqs::treasure_map_nearby(server, Some(p), unit_reqs::TREASURE_MAP_DIG_RANGE) {
+            Some(map_id) => consumed_items.push((map_id, 1)),
+            None => {
+                let (name, id) = {
+                    let c = p.data();
+                    (c.unit.name.clone(), c.id)
+                };
+                tracing::error!(
+                    "Unable to find a treasure map to take from user {name} ({id}) when digging up treasure"
+                );
+            }
+        }
     }
     if !skill.cancelled() {
         if let Some(p) = &player {
