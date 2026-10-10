@@ -80,6 +80,102 @@ pub struct Doodad {
     pub puzzle_group: i32,
     /// `Spawner?.Id` (0 = none).
     pub spawner_id: u32,
+    // ---- phase 3 / npcs (doodad behaviour) ----
+    /// The phase-machine members (`ToNextPhase`, `OverridePhase`, `PhaseRatio`, `FuncTask`, ...).
+    pub phase: DoodadPhaseState,
+    /// The `DoodadCoffer` members (`Some` = the C# object is a `DoodadCoffer`).
+    pub coffer: Option<DoodadCofferState>,
+    /// `Seat` (`new VehicleSeat(this)`).
+    pub seat: VehicleSeat,
+}
+
+/// The members of `DoodadCoffer` (a `Doodad` subclass created for `DoodadCofferTemplate`s).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DoodadCofferState {
+    /// `Capacity`.
+    pub capacity: i32,
+    /// `ItemContainer?.ContainerId` (0 = no container, `GetItemContainerId`).
+    pub container_id: u64,
+    /// `OpenedBy?.Id` (character id of the player that has the coffer open).
+    pub opened_by: Option<u32>,
+}
+
+/// `BondDoodad` (`Character.Bonding`): the doodad (obj id) a character sits / lies on.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct BondDoodad {
+    /// `_owner.ObjId` (0 = `SetOwner(null)`).
+    pub owner_obj_id: u32,
+    /// `_attachPoint` (`(byte)AttachPointKind`).
+    pub attach_point: u8,
+    /// `_kind` (`(byte)BondKind`).
+    pub kind: u8,
+    pub space: i32,
+    pub spot: i32,
+}
+
+impl BondDoodad {
+    /// `BondDoodad.Write`.
+    pub fn write(&self, s: &mut PacketStream) {
+        s.write_u8(self.attach_point)
+            .write_bc(self.owner_obj_id)
+            .write_u8(self.kind)
+            .write_i32(self.space)
+            .write_i32(self.spot);
+    }
+}
+
+/// `VehicleSeat` of a doodad (chairs, benches, beds): `_seats` (seat obj id -> character id per
+/// spot, 0 = free). The transform side effects of `AddSeat` / `UnLoadPassenger` are applied by
+/// the caller (`systems::npcs::doodad::funcs`).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct VehicleSeat {
+    pub seats: std::collections::HashMap<u32, Vec<u32>>,
+}
+
+impl VehicleSeat {
+    /// `GetFreeSeat(seatObjId)`.
+    fn free_seat(&self, seat_obj_id: u32) -> i32 {
+        let Some(value) = self.seats.get(&seat_obj_id) else {
+            return -1;
+        };
+        value.iter().position(|&c| c == 0).map_or(-1, |i| i as i32)
+    }
+
+    /// `LoadPassenger(character, seatObjId, space)`: the spot taken by `character_id` (`-1` when
+    /// no place is free).
+    pub fn load_passenger(&mut self, character_id: u32, seat_obj_id: u32, space: i32) -> i32 {
+        self.seats
+            .entry(seat_obj_id)
+            .or_insert_with(|| vec![0; space.max(0) as usize]);
+        let mut spot = self.free_seat(seat_obj_id);
+        if spot == -1 {
+            return spot;
+        }
+        if spot < space {
+            // AddSeat
+            if let Some(s) = self.seats.get_mut(&seat_obj_id) {
+                s[spot as usize] = character_id;
+            }
+        } else {
+            spot = -1;
+        }
+        spot
+    }
+
+    /// `UnLoadPassenger(character, seatObjId)`: frees every spot of `character_id`; returns the
+    /// number of spots freed. Panics like the C# indexer (`KeyNotFoundException`) are avoided:
+    /// an unknown seat frees nothing.
+    pub fn unload_passenger(&mut self, character_id: u32, seat_obj_id: u32) -> usize {
+        let Some(s) = self.seats.get_mut(&seat_obj_id) else {
+            return 0;
+        };
+        let mut n = 0;
+        for c in s.iter_mut().filter(|c| **c == character_id) {
+            *c = 0;
+            n += 1;
+        }
+        n
+    }
 }
 
 impl Doodad {
@@ -115,6 +211,9 @@ impl Doodad {
             quest_glow: 0,
             puzzle_group: -1,
             spawner_id: 0,
+            phase: DoodadPhaseState::default(),
+            coffer: None,
+            seat: VehicleSeat::default(),
         }
     }
 
@@ -238,4 +337,18 @@ pub struct DoodadPhaseState {
     /// `Despawn` (unix ms, 0 = MinValue) / `Respawn` (GameObject members).
     pub despawn_ms: i64,
     pub respawn_ms: i64,
+    /// `DoodadFuncFinal.After` of the first `Final { After > 0 }` phase func of the current
+    /// phase (`TimeLeft` cache: `final_phase_end_ms = PhaseTime + After`).
+    pub final_after_ms: Option<i32>,
+}
+
+impl Doodad {
+    /// Recomputes `final_phase_end_ms` from `PhaseTime` and the cached `Final.After` (call
+    /// after changing `phase_time_ms` or the phase).
+    pub fn update_final_phase_end(&mut self) {
+        self.final_phase_end_ms = self
+            .phase
+            .final_after_ms
+            .map(|after| self.phase_time_ms + i64::from(after));
+    }
 }

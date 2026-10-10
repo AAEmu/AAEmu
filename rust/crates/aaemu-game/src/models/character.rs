@@ -209,6 +209,8 @@ pub struct Character {
     // ---- phase 3 / skills: add this subsystem's Character fields below ----
 
     // ---- phase 3 / npcs: add this subsystem's Character fields below ----
+    /// `Bonding` (`BondDoodad`: the doodad seat / bed the character is attached to).
+    pub bonding: Option<crate::models::doodad::BondDoodad>,
 
     // ---- phase 3 / economy: add this subsystem's Character fields below ----
 
@@ -318,6 +320,7 @@ impl Character {
             // ---- phase 3 / skills ----
 
             // ---- phase 3 / npcs ----
+            bonding: None,
 
             // ---- phase 3 / economy ----
 
