@@ -136,6 +136,8 @@ pub struct RigidData {
     pub water_level_offset: f32,
     /// `+1088` per-step logged collision slots (indices into the world's logged queue).
     pub coll_log: Vec<usize>,
+    /// **P5**: the `CWheeledVehicleEntity` members (`E+1200 …`), `Some` for type 3.
+    pub wheeled: Option<Box<super::wheeled::WheeledData>>,
 }
 
 impl RigidData {
@@ -211,6 +213,7 @@ impl RigidData {
             queued_impulse: None,
             water_level_offset: 0.0,
             coll_log: Vec::new(),
+            wheeled: None,
         }
     }
 

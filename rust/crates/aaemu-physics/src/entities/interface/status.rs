@@ -37,7 +37,29 @@ fn addr<T: ?Sized>(p: *const T) -> u64 {
 }
 
 /// Raw `GetStatus(status)`: `buf` starts with the status type id and receives the answer.
+/// Dispatches on the entity class.
 pub fn get_status(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
+    if buf.len() < 4 || !is_entity(w, e) {
+        return 0;
+    }
+    match &w.ent(e).kind {
+        crate::entities::base::EntityKind::Living(_) => {
+            return crate::entities::living::get_status(w, e, buf)
+        }
+        crate::entities::base::EntityKind::Particle(_) => {
+            return crate::entities::particle::get_status(w, e, buf)
+        }
+        crate::entities::base::EntityKind::Rigid(r) if r.wheeled.is_some() => {
+            return crate::entities::wheeled::get_status(w, e, buf)
+        }
+        _ => {}
+    }
+    class_get_status(w, e, buf)
+}
+
+/// `CRigidEntity::GetStatus` 0x350B1B80 for rigid entities, `CPhysicalEntity::GetStatus`
+/// 0x350724C0 otherwise (what the derived classes call first).
+pub fn class_get_status(w: &mut World, e: EntIdx, buf: &mut [u8]) -> i32 {
     if buf.len() < 4 || !is_entity(w, e) {
         return 0;
     }

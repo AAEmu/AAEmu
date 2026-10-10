@@ -90,6 +90,10 @@ pub enum EntityKind {
     Rigid(Box<super::rigid::RigidData>),
     /// `CPhysArea` (GetType 9; not a `CPhysicalEntity`, only the placeholder header is used).
     Area(Box<crate::world::areas::AreaData>),
+    /// `CLivingEntity` (type 4, **P5**).
+    Living(Box<super::living::LivingData>),
+    /// `CParticleEntity` (type 5, **P5**).
+    Particle(Box<super::particle::ParticleData>),
 }
 
 /// An entity object: the placeholder header the world reads (`+8 … +136`), the
@@ -299,5 +303,56 @@ impl Entity {
             EntityKind::Rigid(r) => Some(r),
             _ => None,
         }
+    }
+
+    /// Living payload.
+    #[inline]
+    #[must_use]
+    pub fn living(&self) -> Option<&super::living::LivingData> {
+        match &self.kind {
+            EntityKind::Living(l) => Some(l),
+            _ => None,
+        }
+    }
+
+    /// Living payload (mutable).
+    #[inline]
+    pub fn living_mut(&mut self) -> Option<&mut super::living::LivingData> {
+        match &mut self.kind {
+            EntityKind::Living(l) => Some(l),
+            _ => None,
+        }
+    }
+
+    /// Particle payload.
+    #[inline]
+    #[must_use]
+    pub fn particle(&self) -> Option<&super::particle::ParticleData> {
+        match &self.kind {
+            EntityKind::Particle(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Particle payload (mutable).
+    #[inline]
+    pub fn particle_mut(&mut self) -> Option<&mut super::particle::ParticleData> {
+        match &mut self.kind {
+            EntityKind::Particle(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Wheeled-vehicle payload (a rigid entity with [`super::rigid::RigidData::wheeled`]).
+    #[inline]
+    #[must_use]
+    pub fn wheeled(&self) -> Option<&super::wheeled::WheeledData> {
+        self.rigid().and_then(|r| r.wheeled.as_deref())
+    }
+
+    /// Wheeled-vehicle payload (mutable).
+    #[inline]
+    pub fn wheeled_mut(&mut self) -> Option<&mut super::wheeled::WheeledData> {
+        self.rigid_mut().and_then(|r| r.wheeled.as_deref_mut())
     }
 }

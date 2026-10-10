@@ -28,10 +28,33 @@ pub fn add_geometry(
     gp: &GeomParams,
     id: i32,
 ) -> i32 {
-    match w.ent(e).kind {
+    match &w.ent(e).kind {
+        EntityKind::Rigid(r) if r.wheeled.is_some() => {
+            let mut b = vec![0u8; 512];
+            crate::params::PeStruct::write(gp, &mut b);
+            crate::entities::wheeled::add_geometry(w, e, pgeom, &b, id)
+        }
         EntityKind::Rigid(_) => rigid_add_geometry(w, e, pgeom, gp, id),
+        EntityKind::Living(_) => crate::entities::living::add_geometry(w, e, pgeom, gp, id),
         _ => base_add_geometry(w, e, pgeom, gp, id),
     }
+}
+
+/// Entity slot 11 with a raw `pe_geomparams` byte image (`+0` = the geomparams type: 0 plain,
+/// 1 car, 2 articulated), as the oracle passes it. Wheeled vehicles read the car layout;
+/// every other class reads the plain block.
+pub fn add_geometry_raw(
+    w: &mut World,
+    e: EntIdx,
+    pgeom: &Arc<PhysGeometry>,
+    buf: &[u8],
+    id: i32,
+) -> i32 {
+    if w.ent(e).wheeled().is_some() {
+        return crate::entities::wheeled::add_geometry(w, e, pgeom, buf, id);
+    }
+    let gp = <GeomParams as crate::params::PeStruct>::read(buf);
+    add_geometry(w, e, pgeom, &gp, id)
 }
 
 /// `CPhysicalEntity::AddGeometry` 0x35055FF0 (immediate path; the command-queue path is taken

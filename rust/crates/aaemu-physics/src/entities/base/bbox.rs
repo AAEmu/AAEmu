@@ -7,7 +7,25 @@ use crate::world::{EntIdx, World};
 /// The "infinite" clamp constant `9.9999999e14` (bits 0x58635FA9).
 const BIG: f32 = crate::math::BIG_F32;
 
-/// Slot 75 `ComputeBBox(BBox* out, flags, ipart)`: the world bbox of the entity at its new
+/// Slot 75 `ComputeBBox` through the vtable: living (0x35026BC0) and particle (0x35040F10)
+/// entities override it; everything else uses [`base_compute_bbox`].
+pub fn compute_bbox(
+    w: &mut World,
+    e: EntIdx,
+    flags: u32,
+    ipart: i32,
+    coords: Option<Coords>,
+) -> [Vec3; 2] {
+    match w.ent(e).kind {
+        EntityKind::Living(_) => crate::entities::living::compute_bbox(w, e, flags, ipart, coords),
+        EntityKind::Particle(_) => {
+            crate::entities::particle::compute_bbox(w, e, flags, ipart, coords)
+        }
+        _ => base_compute_bbox(w, e, flags, ipart, coords),
+    }
+}
+
+/// `CPhysicalEntity::ComputeBBox` (slot 75, 0x35054080): the world bbox of the entity at its new
 /// coords (`*(entity+200)`), or of part `ipart` only (`-1` = all parts).
 ///
 /// * `flags & 1`: an entity without parts still runs the part loop once (reads part 0 of the
@@ -19,7 +37,7 @@ const BIG: f32 = crate::math::BIG_F32;
 /// its geometry's `GetBBox` (and of the proxy geometry if different); living entities with
 /// ≥ 10 parts use bounding spheres. `coords` overrides the entity's new-coords frame (the
 /// binary points `entity+200` at a stack frame for that).
-pub fn compute_bbox(
+pub fn base_compute_bbox(
     w: &mut World,
     e: EntIdx,
     flags: u32,

@@ -3,15 +3,14 @@
 //! oracle prints, so the two traces can be compared line by line.
 //!
 //! Supported commands: `grid`, `var`, `geom` (box, sphere, cylinder, capsule), `entity`
-//! (static, rigid), `part`, `surface`, `area kind=global`, `params` (ids handled by
+//! (static, rigid, wheeled, living, particle), `part` (field setters on the geomparams image), `surface`, `area kind=global`, `params` (ids handled by
 //! [`crate::entities::set_params`]), `action` (ids handled by [`crate::entities::action`]),
 //! `trace`, `print`, `step`, `echo`. Unsupported commands return an error naming them.
 
-use crate::entities::base::add_geometry;
 use crate::geometry::primitives::{BoxPrim, CylinderPrim, Primitive, SpherePrim};
 use crate::geometry::PhysGeometry;
 use crate::math::{Mat33, Quat, Vec3};
-use crate::params::{GeomParams, ParamsPos};
+use crate::params::ParamsPos;
 use crate::sentinel::UNUSED_I32;
 use crate::world::{EntIdx, World};
 use std::collections::HashMap;
@@ -105,6 +104,14 @@ impl Scenario {
 
     /// The oracle's `print_entity`.
     fn print_entity(&mut self, e: EntIdx) {
+        if matches!(
+            self.world.ent(e).kind,
+            crate::entities::base::EntityKind::Living(_)
+                | crate::entities::base::EntityKind::Particle(_)
+        ) {
+            self.print_entity_status(e);
+            return;
+        }
         let w = &self.world;
         let ent = w.ent(e);
         let name = self.names.get(&e).cloned().unwrap_or_else(|| "?".into());
@@ -130,6 +137,46 @@ impl Scenario {
         }
         let aw = crate::entities::is_awake(w, e);
         let _ = writeln!(s, " sc {} aw {aw}", ent.sim_class());
+        self.out += &s;
+    }
+
+    /// `print_entity` through the class's GetStatus (ids 1, 8 and 7, as the oracle calls them).
+    fn print_entity_status(&mut self, e: EntIdx) {
+        use crate::entities::interface::status::get_status;
+        let rd = |b: &[u8], o: usize| u32::from_le_bytes(b[o..o + 4].try_into().unwrap_or([0; 4]));
+        let mut sp = vec![0u8; 256];
+        put(&mut sp, 0, 1);
+        put(&mut sp, 4, u32::MAX);
+        put(&mut sp, 8, u32::MAX);
+        get_status(&mut self.world, e, &mut sp);
+        let mut sd = vec![0u8; 256];
+        put(&mut sd, 0, 8);
+        put(&mut sd, 4, u32::MAX);
+        put(&mut sd, 8, u32::MAX);
+        let dynamics = get_status(&mut self.world, e, &mut sd);
+        let mut sa = vec![0u8; 16];
+        put(&mut sa, 0, 7);
+        let aw = get_status(&mut self.world, e, &mut sa);
+        let name = self.names.get(&e).cloned().unwrap_or_else(|| "?".into());
+        let mut s = format!("e {name} p");
+        for o in [24, 28, 32] {
+            let _ = write!(s, " {:08x}", rd(&sp, o));
+        }
+        s += " q";
+        for o in [60, 64, 68, 72] {
+            let _ = write!(s, " {:08x}", rd(&sp, o));
+        }
+        if dynamics != 0 {
+            s += " v";
+            for o in [12, 16, 20] {
+                let _ = write!(s, " {:08x}", rd(&sd, o));
+            }
+            s += " w";
+            for o in [24, 28, 32] {
+                let _ = write!(s, " {:08x}", rd(&sd, o));
+            }
+        }
+        let _ = writeln!(s, " sc {} aw {aw}", rd(&sp, 80) as i32);
         self.out += &s;
     }
 
@@ -231,13 +278,21 @@ impl Scenario {
                 let ty = match need("type")?.as_str() {
                     "static" => 1,
                     "rigid" => 2,
-                    t => return Err(format!("entity type {t} not supported")),
+                    "wheeled" => 3,
+                    "living" => 4,
+                    "particle" => 5,
+                    t => t.parse::<i32>().map_err(|_| format!("entity type {t} not supported"))?,
                 };
-                let pp = ParamsPos {
-                    pos: v3(&get("pos", "0,0,0")),
-                    q: q4(&get("q", "0,0,0,1")),
-                    ..ParamsPos::default()
-                };
+                // the oracle's pe_params_pos image: template, pos, q, then the field setters
+                let mut b = vec![0u8; 512];
+                template(crate::params::PeKind::Params, 0, &mut b);
+                let p = v3(&get("pos", "0,0,0"));
+                let q = q4(&get("q", "0,0,0,1"));
+                for (i, x) in [p.x, p.y, p.z, q.x, q.y, q.z, q.w].into_iter().enumerate() {
+                    put(&mut b, 4 + 4 * i, x.to_bits());
+                }
+                apply_fields(&toks, &mut b)?;
+                let pp = <ParamsPos as crate::params::PeStruct>::read(&b);
                 let id = get("id", "-1").parse::<i32>().unwrap_or(-1);
                 let e = w
                     .create_physical_entity(ty, 0.0, Some(&pp), 0, 0, id)
@@ -254,19 +309,31 @@ impl Scenario {
                     .get(&need("geom")?)
                     .cloned()
                     .ok_or("unknown geom")?;
-                let gp = GeomParams {
-                    density: pf(&get("density", "0")),
-                    mass: pf(&get("mass", "0")),
-                    pos: v3(&get("pos", "0,0,0")),
-                    q: q4(&get("q", "0,0,0,1")),
-                    scale: pf(&get("scale", "1")),
-                    flags: pu(&get("flags", "0x1809F")),
-                    flags_collider: pu(&get("collider", "0x1")),
-                    min_contact_dist: pf(&get("mincontact", "U")),
-                    ..GeomParams::default()
-                };
+                // the oracle's pe_geomparams image (type 0 unless `i0=` says otherwise)
+                let mut b = vec![0u8; 512];
+                let p = v3(&get("pos", "0,0,0"));
+                let q = q4(&get("q", "0,0,0,1"));
+                put(&mut b, 4, pf(&get("density", "0")).to_bits());
+                put(&mut b, 8, pf(&get("mass", "0")).to_bits());
+                for (i, x) in [p.x, p.y, p.z, q.x, q.y, q.z, q.w].into_iter().enumerate() {
+                    put(&mut b, 12 + 4 * i, x.to_bits());
+                }
+                put(&mut b, 40, pf(&get("scale", "1")).to_bits());
+                put(&mut b, 64, UI);
+                put(&mut b, 68, pu(&get("flags", "0x1809F")));
+                put(&mut b, 72, pu(&get("collider", "0x1")));
+                put(&mut b, 76, pf(&get("mincontact", "U")).to_bits());
+                put(&mut b, 80, u32::MAX);
+                put(&mut b, 108, 1);
+                apply_fields(&toks, &mut b)?;
                 let id = get("id", "-1").parse::<i32>().unwrap_or(-1);
-                let r = add_geometry(&mut self.world, e, &g, &gp, id);
+                let r = crate::entities::base::geometry::add_geometry_raw(
+                    &mut self.world,
+                    e,
+                    &g,
+                    &b,
+                    id,
+                );
                 let _ = writeln!(self.out, "ret part {en} {r}");
             }
             "surface" => {
