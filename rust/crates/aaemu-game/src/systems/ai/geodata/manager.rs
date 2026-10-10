@@ -1,9 +1,12 @@
 //! `Core/Managers/AiGeodataManager` (`AiGeoDataManager`, one per world template) and the
 //! navmesh part of `WorldTemplate` / `WorldCell` (`LoadZoneBaiFiles`, `WorldCell.LoadBaiFiles`,
 //! `GetBaiByPos`).
+//!
+//! Every folder that loads is also merged into the template's [`NavGraph`] (engine-style
+//! cross-sector graph, see [`super::graph`]); A* and `GetHeight` use it.
 
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock, RwLockReadGuard};
 
 use crate::data::world_templates::{WorldTemplate, CELL_SIZE, SECTORS_PER_CELL};
 use crate::systems::skills::controllers::{calculate_distance, Vec3};
@@ -11,6 +14,10 @@ use crate::systems::skills::controllers::{calculate_distance, Vec3};
 use super::bai::{
     length, sub, BaiFiles, BaiWorld, BaseBaiLoader, LinkDescriptor, NodeRef, UsedAreaNames,
 };
+use super::graph::NavGraph;
+
+/// navType of a triangle node.
+pub const NAV_TRIANGULAR: u16 = 2;
 
 /// `Vector3.ToCellIndex()`.
 pub fn to_cell_index(p: Vec3) -> (i32, i32) {
@@ -76,6 +83,8 @@ pub struct AiGeoData {
     /// `PathBaiLoader`.
     path_bai: Mutex<HashMap<(u32, u32), BaiRef>>,
     terrain: Option<Arc<dyn TerrainHeights>>,
+    /// Every loaded folder merged into one graph (never take a loading call while holding it).
+    graph: RwLock<NavGraph>,
 }
 
 impl std::fmt::Debug for AiGeoData {
@@ -128,6 +137,7 @@ impl AiGeoData {
             cells: (0..count).map(|_| OnceLock::new()).collect(),
             path_bai: Mutex::new(HashMap::new()),
             terrain,
+            graph: RwLock::new(NavGraph::default()),
         }
     }
 
@@ -159,8 +169,18 @@ impl AiGeoData {
                 );
                 out.push((zone_key, Arc::new(loader)));
             }
+            let mut graph = self.graph.write().expect("graph poisoned");
+            for (_, l) in &out {
+                graph.merge(l);
+            }
             out
         })
+    }
+
+    /// The merged navigation graph (read lock: do not call the loading functions —
+    /// `zone_bai`, `cell_bai`, `bai_by_pos`, `get_height`, ... — while holding it).
+    pub fn graph(&self) -> RwLockReadGuard<'_, NavGraph> {
+        self.graph.read().expect("graph poisoned")
     }
 
     /// `WorldCell.LoadBaiFiles()` for one cell (once).
@@ -201,6 +221,7 @@ impl AiGeoData {
                     let folder = format!("{path_x:03}_{path_y:03}");
                     let loader =
                         Arc::new(BaseBaiLoader::load_from_folder(&self.bai_world(), &*self.files, &folder));
+                    self.graph.write().expect("graph poisoned").merge(&loader);
                     grid[x as usize][y as usize] = Some(loader.clone());
                     let mut paths = self.path_bai.lock().expect("bai poisoned");
                     match paths.entry((path_x, path_y)) {
@@ -318,25 +339,91 @@ impl AiGeoData {
         best
     }
 
-    /// `GetHeight(pos)`: the Z of the nearest navmesh node / obstacle vertex of the position's
-    /// bai, else the raw heightmap height at the rounded position (0 on an exception).
+    /// Loads the cells a graph node's triangle touches (+0.5 m), so the copies of a border
+    /// triangle in the neighbouring sectors are merged before its links are followed.
+    pub fn ensure_node_cells(&self, node: u32) {
+        if !self.enabled || !self.zone_bai().is_empty() {
+            return;
+        }
+        let Some(((x0, y0), (x1, y1))) = self.graph().node_bounds(node) else {
+            return;
+        };
+        let cell = |v: f64| (v / f64::from(CELL_SIZE)).floor() as i32;
+        let (cx0, cy0) = (cell(x0 - 0.5), cell(y0 - 0.5));
+        let (cx1, cy1) = (cell(x1 + 0.5).min(cx0 + 2), cell(y1 + 0.5).min(cy0 + 2));
+        for cx in cx0..=cx1 {
+            for cy in cy0..=cy1 {
+                self.cell_bai(cx, cy);
+            }
+        }
+    }
+
+    /// The graph node a path search starts / ends at: the triangle enclosing the point
+    /// (engine `GetEnclosing`), else the C# `FindClosestToTheCurrent` node. Returns the graph
+    /// node and its position.
+    ///
+    /// The enclosing triangle is not used when the C# nearest node is not a triangle node: the
+    /// zone instances navigate indoors on human waypoints (navType 4) under a handful of huge
+    /// placeholder triangles, where the waypoint graph is the right one (the engine selects it
+    /// through the indoor navigation modifiers, which are not modelled).
+    pub fn resolve_nav_node(&self, zone_key: u32, pos: Vec3) -> Option<(u32, Vec3)> {
+        // loads the cell like the C#
+        let closest = self.find_closest_to_the_current(zone_key, pos);
+        let graph = self.graph();
+        let waypoints = closest
+            .as_ref()
+            .is_some_and(|(bai, r)| bai.node(*r).nav_type() != NAV_TRIANGULAR);
+        if !waypoints {
+            if let Some((n, _)) = graph.enclosing(pos) {
+                return Some((n, graph.nodes[n as usize].pos));
+            }
+        }
+        let (bai, r) = closest?;
+        let n = graph.node_for(&bai.folder, r)?;
+        Some((n, graph.nodes[n as usize].pos))
+    }
+
+    /// The navmesh height at a point: the plane of the enclosing triangle (`GetEnclosing`).
+    /// Only looks at loaded data.
+    pub fn enclosing_height(&self, pos: Vec3) -> Option<f32> {
+        self.graph().enclosing(pos).map(|(_, z)| z)
+    }
+
+    /// `GetHeight(pos)`: the height of the navmesh triangle enclosing the point (interpolated
+    /// on its plane, engine `GetEnclosing`) unless the nearest node of the position's bai is a
+    /// waypoint (see [`Self::resolve_nav_node`]); otherwise the Z of
+    /// the nearest navmesh node / obstacle vertex of the position's bai (the C#), else the raw
+    /// heightmap height at the rounded position (0 on an exception).
     pub fn get_height(&self, pos: Vec3) -> f32 {
         let mut closest_point = Vec3::default();
         let mut closest_distance = f32::MAX;
         match self.bai_by_pos(pos) {
             Err(GeoError) => return 0.0,
             Ok(Some(bai)) => {
-                for net in &bai.net_mission_readers {
+                let mut closest_nav_type = 0u16;
+                let mut exact = false;
+                'nodes: for net in &bai.net_mission_readers {
                     for n in &net.nodes {
                         let d = length(sub(n.pos, pos));
                         if d < closest_distance {
                             closest_distance = d;
                             closest_point = n.pos;
+                            closest_nav_type = n.nav_type();
                             if closest_distance < 0.01 {
-                                return closest_point.z;
+                                exact = true;
+                                break 'nodes;
                             }
                         }
                     }
+                }
+                // no node in this sector (a neighbour's triangle may cover it) or a triangle
+                if closest_distance == f32::MAX || closest_nav_type == NAV_TRIANGULAR {
+                    if let Some(z) = self.enclosing_height(pos) {
+                        return z;
+                    }
+                }
+                if exact {
+                    return closest_point.z;
                 }
                 for v in &bai.vertex_mission_readers {
                     for o in &v.obstacles {

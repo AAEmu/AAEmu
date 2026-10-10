@@ -328,12 +328,77 @@ Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` check
 | `AIManager` (100 ms tick, `AddAi`, region activity) | `systems/ai/manager.rs` | done | Per-AI mutex + queued calls (see deviations). |
 | AI members of `Npc` / `Unit` (`MoveTowards`, `LookTowards`, `StopMovement`, `SetTarget`, `CurrentAggroTarget`, `CurrentGameStance`, `BaseMoveSpeed`, `OnDamageReceived`, `CheckIfEmptyAggroToReturn`, `ClearAllAggro`, `FindPath`), `NpcEvents` | `systems/ai/{npc,combat,skills,npc_events}.rs` | done | `SCOneUnitMovementPacket` movement, aggro tables through the skills API. |
 | `AiPathsManager` (`Data/Path`), `AiPathHandler`, `Units/Route/Simulation` | `systems/ai/{path_handler,simulation}.rs` | done | Every `Data/Path/*.path` file loads (test). |
-| `AiGeoDataManager`, CryEngine `.bai` readers (net / hide / areas / verts missions), A* `PathNode`, `GetHeight`, `ReducePath` | `systems/ai/geodata/` | done | `GeoDataMode` only. 35 828 pak `.bai` files parse; the areas reader matches the C# reader on every dumped file (differential harness); routes found on all 16 worlds with zone geodata. |
+| `AiGeoDataManager`, CryEngine `.bai` readers (net / areas / verts missions), A* `PathNode`, `GetHeight`, `ReducePath` | `systems/ai/geodata/` | done | `GeoDataMode` only. Engine-faithful readers and a merged cross-sector graph (see "geodata deviations" below). 1.2 pak: 9 447 net + 9 447 verts + 3 265 areas files parse; 2 299 stale sectors (net v54 + verts v1) and 279 path areas files below v21 are rejected by version like the engine, the 7 399 `hidemission` files are not read. The areas reader matched the C# reader on every dumped file (differential harness; path areas < v21 now excluded on purpose). Gated tests: `real_ai_*`, `real_nav_*` (`AAEMU_GAME_PAK`, `AAEMU_BAI_SAMPLES=D:\aa-re\zone\agent_geom\data`). |
 | `Gimmick.MoveTowards`, flytrap gimmick | `systems/ai/gimmick.rs` | done | |
 | Hooks for npcs / skills (create AI by `ai_file_id`, spawn / engage / death / delete / faction, NPC control effect, spyglass), AStar GM commands | `systems/ai/hooks.rs` | done | `AiHooks` in `server.systems.hooks.ai`; the npcs `NpcSkills` calls the AI parts of `NpcSkillHooks` directly (no decorator); `AiAStarHooks` installed into the services `ASTAR_HOOKS`. |
 | `Physics/**`, `PhysicsManager` (ship hulls: Jitter2 world, `ShipController`, shore / ship–ship / doodad / cliff / static barrier contacts, buoyancy, whirlpool, storm lamps, harpoon tow, replication), `ShipSiegeAoEHit` geometry | `systems/ai/physics/` | done | The Jitter2 subset is bit-exact against Jitter2 2.8.8 for the integration (embedded reference test). Slaves call `add_ship` / `remove_ship` / `set_ship_request` / `set_ship_driver` / `ship_state` and may install `ShipPhysicsHooks` (harpoon rope state). |
 | `WaterBodies`, `WaterBodyArea`, `Models/CryEngine/Objects` (`object.dat`) | `systems/ai/physics/{water,objects_file}.rs` | done | Water areas of all 1 294 client `object.dat` files equal the C# output bit for bit (differential harness, gated test `real_ai_object_dat_water_bodies`). Gimmick `FloatToSurface` uses them. |
 | `ShipTuningDebug`, `HarpoonMechanicsDebug` logging, `ShipHarpoonRopeController` | – | not ported / slaves | Debug code is hard-wired off in the C#; the rope controller belongs to the slaves subsystem. |
+
+#### systems::ai geodata deviations (engine behaviour instead of the C#)
+
+Reference: the 10.0.2.13 `cryaisystem_dedicate.dll` (image base 0x31000000), notes in
+`D:\aa-re\zone\agent_geom\sub_navmesh.md` (§2 formats, §5 gaps) and
+`rust/docs/physics/ZONE-PHYSICS-USAGE.md` §2.5. The C# (`AiGeoDataManager`, `*MissionReader`,
+`PathNode`) is no longer mirrored on these points:
+
+* **Areas version** (sector reader 0x31149764, whole-level reader 0x3107AB58): path sector
+  files must be v21 (1.2) or v22 (10.x; same layout). The C# rejected `> 21`, so every 10.x
+  areas file failed (no forbidden areas / boundaries / nav modifiers). Path files below v21 are
+  rejected like the engine's sector reader (279 files of the 1.2 pak, all in stale sectors); zone
+  folder files stay accepted up to v22 (the whole-level reader still has the old-version
+  branches).
+* **Net / verts versions**: net must equal 55 (`CGraph::ReadNodes`, 0x311030A8), verts must equal
+  2 (0x311A2AC4); the C# accepted anything `<=`. In the 1.2 pak this drops 2 299 stale sectors
+  whose net is v54 and verts v1 (the C# loaded them).
+* **`hidemission*.bai` is not loaded** (no engine reader references it; stale v54 graphs). The
+  C# read them into `HideMissionReaders` and never used them.
+* **Nav-modifier header** (0x31149764): `u64 type; u64 waypointConnections; u8 altered` (17
+  bytes), not `i32, i32, u8, f32, f32`; `altered` was always true (it read the low byte of the
+  second u64 = 2). The `ver <= 16` (extra u32) / `ver >= 18` (light level byte) branches now
+  use the file's version instead of the constant 21.
+* **Links** (0x310FB7E8): byte +42 bit 0 is the engine link flag 0x800000
+  (`LinkDescriptor.is_pure_triangular_link`); the C# tested `== 1`, false for every 10.x link
+  (9 / 8 / 10 / 165). Byte +43 (`simple_passability_check` in the C#) is not read by the engine
+  and is kept raw as `unused_43`; the floats at +28..+36 (C# length / maxWaterDepth /
+  minWaterDepth) are not read by the engine and are kept as `unread_28`.
+* **Merged cross-sector graph** (`geodata/graph.rs`): every folder that loads is merged into
+  one `NavGraph` per world template like the engine's `CGraph`: vertices de-duplicated by XY
+  (< 1e-4 m, 0x311A1D14), nodes by XY (< 1e-4 m) + equal navType (0x31101C68), links
+  re-attached (0x310FB7E8; a repeated link overwrites the earlier one's attributes, radius
+  stored as i16 centimetres like `SetRadius` 0x31083160, self links skipped, links to unknown
+  ids dropped). Positions are compared in exact f64 world coordinates (the engine uses f32
+  origin-relative ones). The engine streams a 3x3-sector window around one focus; Rust keeps
+  its lazy per-cell loading (the 4x4 sectors of a cell on first use, never unloaded) and merges
+  incrementally. A* runs on the graph, so routes cross sector and cell borders (a whole 1.2 cell
+  merges 151 border nodes / 193 vertices); before expanding a node the cells its triangle
+  touches (+0.5 m) are loaded so the neighbour cell's copy of a border triangle is merged.
+* **Pass radius**: links with `maxPassRadius` below the agent radius, and blocked links
+  (negative radius; -1 on ~17 % of the links), are not traversed. `PathNode::find_path` (all NPC
+  callers) uses `graph::DEFAULT_AGENT_RADIUS` = 0.25 m, the X2 walkability probe radius
+  (`ai_DefaultWalkability` 1, constants at 0x311FF070); `find_path_with_radius` takes the
+  caller's.
+* **Start / goal node and `GetHeight`** (`GetEnclosing`): the triangle node whose XY triangle
+  (its 3 corners in the verts file) contains the point; the height is interpolated on the
+  triangle's plane. The C# nearest-node behaviour is kept when no triangle encloses the point,
+  and when the C# nearest node of the position's bai is not a triangle node: the zone instances
+  navigate indoors on human waypoints (navType 4) under a few huge placeholder triangles (the
+  engine picks the waypoint graph through the indoor nav modifiers, which are not modelled).
+  With several enclosing triangles the one whose plane height is closest to the query z wins.
+  Data caveat: the node positions of the real files lie inside their triangles but ~0.2 m above
+  the plane (median; p90 ~1 m, up to ~20 m on large triangles over uneven ground, and the huge
+  sparse coastal triangles can be off by 100+ m), so plane heights differ from the old
+  nearest-node heights by that much.
+* **Zone-geodata routes**: on the 1.2 instances only 5 of 16 synthetic test routes (dummy node 1
+  at the origin to the middle node) succeed; the others' goals are not linked to the start or
+  only through blocked links
+  (raw-file BFS agrees); the old "routes" were presumably the C# position-based neighbour lookup jumping
+  between unconnected nodes and the iteration cut-off.
+* Kept on purpose: the A* step cost `G` is the distance from the link's source to the goal
+  (C# quirk, `sub_navmesh.md` §5.11), the linear open-set scan and the iteration limit;
+  `FindClosestToTheCurrent`, `ReducePath`, `CheckImpossibleWalk` are unchanged. Not done: link
+  exposure costs, node flags, nav modifiers in the search, physics walkability
+  (`CheckWalkability` 0x3100B214), the engine's 3x3 streaming window.
 
 ## Phase 3b wiring (cross-subsystem hooks)
 

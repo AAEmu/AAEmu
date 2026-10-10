@@ -2,7 +2,9 @@
 //! `AAEMU_GAME_PAK=<game_pak> cargo test -p aaemu-game real_ai -- --ignored`.
 //!
 //! * every `.bai` file of every world in the pak parses with the readers (the version / format
-//!   errors the C# logs and skips are counted and must match the known bad files);
+//!   errors the C# logs and skips are counted and must match the known bad files; the stale
+//!   sectors the engine rejects by version — net v54, verts v1, path areas < v21 — are counted
+//!   apart, and `hidemission*.bai` is not read, see `PORTING.md` "geodata deviations");
 //! * zone geodata (instances with `zone/<key>/*.bai`) and main_world path blocks load through
 //!   `AiGeoData` like `LoadZoneBaiFiles` / `WorldCell.LoadBaiFiles`, A* finds routes on them and
 //!   `GetHeight` answers from the navmesh;
@@ -51,6 +53,7 @@ fn real_ai_every_bai_file_parses() {
     let used = UsedAreaNames::default();
     let mut by_kind: BTreeMap<&str, (usize, usize)> = BTreeMap::new();
     let mut failures = Vec::new();
+    let mut stale: BTreeMap<&str, usize> = BTreeMap::new();
     let (mut nodes, mut links, mut areas, mut obstacles) = (0usize, 0usize, 0usize, 0usize);
     for n in &names {
         let lower = n.to_lowercase();
@@ -59,31 +62,33 @@ fn real_ai_every_bai_file_parses() {
         let (zone_key, px, py) = zone_and_offsets_by_name(&folder);
         let off = Vec3::new(px as f32 * 256.0, py as f32 * 256.0, 0.0);
         let data = files.read_file(n).expect("read");
-        let (kind, res): (&str, Result<(), String>) =
-            if file.starts_with("netmission") || file.starts_with("hidemission") {
-                let r = NetMission::read(&data, zone_key, off).map(|m| {
-                    nodes += m.nodes.len();
-                    links += m.links.len();
-                });
-                ("net", r.map_err(|e| e.0))
-            } else if file.starts_with("areasmission") {
-                if data.len() <= 20 {
-                    ("areas-skipped", Ok(()))
-                } else {
-                    let r = AreasMission::read(&data, zone_key, off, &used).map(|m| {
-                        areas += m.forbidden_areas.len()
-                            + m.forbidden_boundaries.len()
-                            + m.designer_forbidden_areas.len();
-                    });
-                    ("areas", r.map_err(|e| e.0))
-                }
-            } else if file.starts_with("vertsmission") {
-                let r = VertexMission::read(&data, zone_key, off)
-                    .map(|m| obstacles += m.obstacles.len());
-                ("verts", r.map_err(|e| e.0))
+        let (kind, res): (&str, Result<(), String>) = if file.starts_with("hidemission") {
+            // never loaded by the engine (stale v54 graphs)
+            ("hide-skipped", Ok(()))
+        } else if file.starts_with("netmission") {
+            let r = NetMission::read(&data, zone_key, off).map(|m| {
+                nodes += m.nodes.len();
+                links += m.links.len();
+            });
+            ("net", r.map_err(|e| e.0))
+        } else if file.starts_with("areasmission") {
+            if data.len() <= 20 {
+                ("areas-skipped", Ok(()))
             } else {
-                ("other", Ok(()))
-            };
+                let r = AreasMission::read(&data, zone_key, off, &used).map(|m| {
+                    areas += m.forbidden_areas.len()
+                        + m.forbidden_boundaries.len()
+                        + m.designer_forbidden_areas.len();
+                });
+                ("areas", r.map_err(|e| e.0))
+            }
+        } else if file.starts_with("vertsmission") {
+            let r =
+                VertexMission::read(&data, zone_key, off).map(|m| obstacles += m.obstacles.len());
+            ("verts", r.map_err(|e| e.0))
+        } else {
+            ("other", Ok(()))
+        };
         let e = by_kind.entry(kind).or_default();
         e.0 += 1;
         if let Ok(dump) = std::env::var("AAEMU_BAI_DUMP") {
@@ -94,10 +99,16 @@ fn real_ai_every_bai_file_parses() {
             }
         }
         if let Err(msg) = res {
+            if msg.starts_with("Wrong") {
+                // the engine's version checks (stale sectors of the pak)
+                *stale.entry(kind).or_default() += 1;
+                continue;
+            }
             e.1 += 1;
             failures.push(format!("{n}: {msg}"));
         }
     }
+    println!("rejected by version (stale sectors): {stale:?}");
     println!(
         "{} bai files: {by_kind:?}; {nodes} nodes, {links} links, {areas} forbidden shapes, {obstacles} obstacles",
         names.len()
@@ -257,6 +268,12 @@ fn real_ai_areas_missions_match_csharp() {
         let folder = parent_folder_name(&name);
         let (zone, px, py) = zone_and_offsets_by_name(&folder);
         let data = std::fs::read(&p).unwrap();
+        // deliberate deviation: path sector areas below v21 are rejected like the engine's
+        // sector reader (0x31149764); the C# accepted them
+        let version = i32::from_le_bytes(data[..4].try_into().unwrap());
+        if zone == 0 && version < 21 {
+            continue;
+        }
         let got = match AreasMission::read(
             &data,
             zone,

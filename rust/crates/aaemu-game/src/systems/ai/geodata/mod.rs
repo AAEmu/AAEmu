@@ -8,7 +8,10 @@
 
 pub mod astar;
 pub mod bai;
+pub mod graph;
 pub mod manager;
+#[cfg(test)]
+mod real_data;
 
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
