@@ -34,6 +34,13 @@ pub mod item_packets;
 pub mod specialty;
 pub mod store;
 pub mod store_data;
+pub mod mail;
+pub mod mail_character;
+pub mod mail_data;
+pub mod mail_kinds;
+pub mod mail_packets;
+#[cfg(test)]
+mod mail_tests;
 #[cfg(test)]
 pub(crate) mod tests;
 pub mod trade;
@@ -70,6 +77,8 @@ pub struct System {
     pub store: store::StoreManager,
     /// `SpecialtyManager` (trade pack ratios).
     pub specialty: specialty::SpecialtyManager,
+    /// `MailManager`.
+    pub mail: mail::MailManager,
 }
 
 impl System {
@@ -104,6 +113,8 @@ impl System {
         }
         cash_shop::load(server).await?;
         specialty::initialize(server);
+        server.systems.economy.mail.load(server).await?;
+        mail::start_delivery_task(server);
         Ok(())
     }
 
@@ -112,6 +123,7 @@ impl System {
     pub async fn save(
         &self,
         server: &GameServer,
+        _server: &GameServer,
         tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
         stage: SaveStage,
     ) -> crate::Result<usize> {
@@ -120,6 +132,9 @@ impl System {
             let (updated, deleted) = self.auction.save(server, tx).await?;
             if updated + deleted > 0 {
                 tracing::debug!("Updated {updated} and deleted {deleted} auction items ...");
+        if stage == SaveStage::BeforeItems {
+            let (updated, deleted) = self.mail.save(tx).await?;
+                tracing::debug!("Updated {updated} and deleted {deleted} mails ...");
             }
             n += updated + deleted;
         }
@@ -136,4 +151,5 @@ pub fn register(reg: &mut PacketRegistry) {
     craft::register(reg);
     store::register(reg);
     specialty::register(reg);
+    mail_packets::register(reg);
 }

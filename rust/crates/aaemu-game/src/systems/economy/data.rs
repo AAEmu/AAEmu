@@ -30,6 +30,8 @@ pub struct Data {
     pub craft: super::craft_data::CraftData,
     /// Store / specialty / taxation / expert / item-look tables.
     pub store: super::store_data::StoreData,
+    /// Mail localization lookups.
+    pub mail: super::mail_data::MailData,
 }
 
 impl Data {
@@ -54,6 +56,7 @@ impl Data {
         })?;
         data.craft = super::craft_data::CraftData::load(ctx)?;
         data.store = super::store_data::StoreData::load(ctx)?;
+        data.mail = super::mail_data::MailData::load(ctx)?;
         Ok(data)
     }
 
