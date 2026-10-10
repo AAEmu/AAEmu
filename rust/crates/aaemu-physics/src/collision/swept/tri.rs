@@ -16,7 +16,7 @@
 //!   does in the binary.
 //! * The best `t` is kept as a rational `num/den` in double precision and candidates are merged
 //!   with branch-free blends `(1−s)·old + s·new` (`s ∈ {0, 1}` converted to double) after a sign
-//!   test on a float-rounded cross difference; see [`sel`] and [`sel_feat`].
+//!   test on a float-rounded cross difference; see `sel` and `sel_feat`.
 //! * `INC_MOD3` (0x3520A3A0) gives the next vertex of an edge.
 //! * None of the four functions reads the input feature ids, the contact-area pointer or
 //!   `tmax`; only tri–sph reads `tmin` (as the start value when the face test fails). They call
