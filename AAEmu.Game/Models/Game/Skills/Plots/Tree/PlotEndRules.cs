@@ -39,4 +39,17 @@ public static class PlotEndRules
     /// </remarks>
     public static bool OwnsSkillEnd(bool plotOnly, bool forcePlotGraphOnly, bool playerAuthoredPlot = false) =>
         plotOnly || forcePlotGraphOnly || playerAuthoredPlot;
+
+    /// <summary>
+    /// Whether the zone has to be told that a plot is over.
+    /// </summary>
+    /// <remarks>
+    /// The zone plays every relayed plot event itself, and an event carrying a cast or channel time marks the
+    /// caster as casting that plot. The skill end clears the skill's own mark, not that one; only the plot
+    /// end does. A skill whose graph outlives its cast (the ordinary non-<c>plot_only</c> shape: the cast
+    /// ends as soon as it fires while the graph keeps running) otherwise leaves a zone NPC marked as casting,
+    /// and its AI picks no further skill until combat clears.
+    /// </remarks>
+    public static bool RelaysPlotEndToZone(bool zoneEventsRelayed, ushort castTlId) =>
+        zoneEventsRelayed && castTlId != 0;
 }

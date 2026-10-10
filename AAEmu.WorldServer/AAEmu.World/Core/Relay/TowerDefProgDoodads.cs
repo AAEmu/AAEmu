@@ -30,7 +30,7 @@ public static class TowerDefProgDoodads
         public bool DespawnOnNextStep;
     }
 
-    private static readonly ConcurrentDictionary<uint, List<LiveDoodad>> ByTower = new();
+    private static readonly ConcurrentDictionary<(uint TowerDefId, uint InstanceId), List<LiveDoodad>> ByTower = new();
 
     private static bool Disabled =>
         Environment.GetEnvironmentVariable("AAEMU_DISABLE_TOWER_PROG_DOODADS") == "1";
@@ -39,14 +39,14 @@ public static class TowerDefProgDoodads
     /// After WaveStart: despawn prior-step doodads marked <c>despawn_on_next_step</c>, then spawn
     /// this step's DoodadAlmighty templates at level-pack world placements (once per world).
     /// </summary>
-    public static void ApplyStep(TowerDef towerDef, int step, IReadOnlyList<uint> hostZoneIds)
+    public static void ApplyStep(TowerDef towerDef, int step, IReadOnlyList<uint> hostZoneIds, uint instanceId = 0)
     {
         if (Disabled || towerDef?.Progs == null || hostZoneIds == null || hostZoneIds.Count == 0)
             return;
         if (step < 0 || step >= towerDef.Progs.Count)
             return;
 
-        DespawnMarkedForNextStep(towerDef.Id);
+        DespawnMarkedForNextStep(towerDef.Id, instanceId);
 
         var prog = towerDef.Progs[step];
         if (prog.SpawnTargets is not { Count: > 0 })
@@ -65,7 +65,7 @@ public static class TowerDefProgDoodads
         if (doodadTargets.Count == 0)
             return;
 
-        var worlds = DistinctWorldsForHosts(hostZoneIds);
+        var worlds = DistinctWorldsForHosts(hostZoneIds, instanceId);
         if (worlds.Count == 0)
         {
             Logger.Warn(
@@ -74,7 +74,7 @@ public static class TowerDefProgDoodads
             return;
         }
 
-        var live = ByTower.GetOrAdd(towerDef.Id, _ => []);
+        var live = ByTower.GetOrAdd((towerDef.Id, instanceId), _ => []);
         var spawned = 0;
         var despawnByTemplate = doodadTargets
             .GroupBy(t => t.SpawnTargetId)
@@ -150,8 +150,8 @@ public static class TowerDefProgDoodads
         if (spawned > 0)
         {
             Logger.Info(
-                "TowerDefProgDoodads tower={0} step={1} spawned={2} worlds={3}",
-                towerDef.Id, step, spawned, worlds.Count);
+                "TowerDefProgDoodads tower={0} step={1} copy={2} spawned={3} worlds={4}",
+                towerDef.Id, step, instanceId, spawned, worlds.Count);
         }
         else
         {
@@ -163,9 +163,11 @@ public static class TowerDefProgDoodads
 
     /// <summary>
     /// One entry per distinct <see cref="WorldInstance"/> among host zones (first zone is fallback).
+    /// A non-zero <paramref name="instanceId"/> selects that dungeon copy — with several copies of the
+    /// same zone key loaded, the copy's own world is the only one its doodads may land in.
     /// </summary>
     public static IReadOnlyList<(WorldInstance World, uint FallbackZoneId)> DistinctWorldsForHosts(
-        IReadOnlyList<uint> hostZoneIds)
+        IReadOnlyList<uint> hostZoneIds, uint instanceId = 0)
     {
         if (hostZoneIds == null || hostZoneIds.Count == 0)
             return [];
@@ -175,7 +177,7 @@ public static class TowerDefProgDoodads
         {
             if (zoneId == 0)
                 continue;
-            var world = WorldIntegration.ResolveWorldForZone(zoneId);
+            var world = WorldIntegration.ResolveWorldForZone(zoneId, instanceId);
             if (world == null)
             {
                 Logger.Warn("TowerDefProgDoodads zoneId={0}: no world instance", zoneId);
@@ -305,10 +307,11 @@ public static class TowerDefProgDoodads
         return list;
     }
 
-    /// <summary>Remove every World-authored prog doodad for this tower (End / restart).</summary>
-    public static int DespawnAll(uint towerDefId)
+    /// <summary>Remove every World-authored prog doodad for this tower run (End / restart).</summary>
+    /// <param name="instanceId">The copy this run belongs to; zero for a world event.</param>
+    public static int DespawnAll(uint towerDefId, uint instanceId = 0)
     {
-        if (towerDefId == 0 || !ByTower.TryRemove(towerDefId, out var live) || live == null)
+        if (towerDefId == 0 || !ByTower.TryRemove((towerDefId, instanceId), out var live) || live == null)
             return 0;
 
         List<LiveDoodad> snapshot;
@@ -318,9 +321,9 @@ public static class TowerDefProgDoodads
         return DeleteMany(snapshot);
     }
 
-    private static void DespawnMarkedForNextStep(uint towerDefId)
+    private static void DespawnMarkedForNextStep(uint towerDefId, uint instanceId)
     {
-        if (!ByTower.TryGetValue(towerDefId, out var live) || live == null)
+        if (!ByTower.TryGetValue((towerDefId, instanceId), out var live) || live == null)
             return;
 
         List<LiveDoodad> doomed;

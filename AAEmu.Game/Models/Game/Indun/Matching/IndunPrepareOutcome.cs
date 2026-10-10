@@ -7,8 +7,6 @@ public enum IndunPrepareOutcome
     KeepWaiting,
     /// <summary>Raise the enter dialog for the copy.</summary>
     Offer,
-    /// <summary>Move the players in without asking (invitation type Direct).</summary>
-    Enter,
     /// <summary>The copy never became ready; release the match.</summary>
     GiveUp
 }

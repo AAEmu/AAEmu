@@ -21,7 +21,9 @@ namespace AAEmu.Game.Models.Game.World.Transform;
 public class Transform : IDisposable
 {
     private GameObject _owningObject;
-    private uint _instanceId = uint.MaxValue;
+    /// <summary>The instance id of a transform that has not been placed in a world instance yet.</summary>
+    public const uint NoInstanceId = uint.MaxValue;
+    private uint _instanceId = NoInstanceId;
     private uint _zoneId;
     private PositionAndRotation _localPosRot;
     private Transform _parentTransform;
@@ -477,6 +479,22 @@ public class Transform : IDisposable
         Local.Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
         Local.Rotation = new Vector3(wsp.Roll, wsp.Pitch, wsp.Yaw);
         ZoneId = wsp.ZoneId;
+    }
+
+    /// <summary>
+    /// Places the object at an instance spawn. A dungeon world's template spawn carries no zone of its
+    /// own - the zone is named by the world, not by the point - so <see cref="ApplyWorldSpawnPosition"/>
+    /// left <see cref="ZoneId"/> at 0. The zone-authority World routes an entering character by that
+    /// zone, found none, and returned them to character select. The zone and the copy are therefore
+    /// taken from the instance that is being entered, not from the spawn.
+    /// </summary>
+    /// <param name="wsp">The instance spawn point (its own ZoneId is ignored).</param>
+    /// <param name="zoneId">The zone the instance copy lives in.</param>
+    /// <param name="instanceId">The instance copy id.</param>
+    public void ApplyInstanceSpawnPosition(WorldSpawnPosition wsp, uint zoneId, uint instanceId)
+    {
+        ApplyWorldSpawnPosition(wsp, instanceId);
+        ZoneId = zoneId;
     }
 
     /// <summary>

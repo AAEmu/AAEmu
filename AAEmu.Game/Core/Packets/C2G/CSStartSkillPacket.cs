@@ -380,6 +380,16 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             return;
         }
 
+        // The client's talk action (대화하기) is a client-side skill with no effects of its own: the press is
+        // the talk. Advance the quest's talk objective here. The cast still runs below, so the client gets its
+        // normal acknowledgement and the press closes.
+        if (NpcTalkRules.IsTalkSkill(skillId))
+        {
+            var talkedTo = character.ParentWorld?.GetNpc(skillCastTarget?.ObjId ?? 0);
+            if (talkedTo != null)
+                QuestManager.Instance.DoTalkMadeEvents(character, character, talkedTo.ObjId, 0, 0, 0);
+        }
+
         // Client spam of basic attack while auto-attack task owns pacing — ACK only (local path does this).
         if (skillId is 2 or 3 or 4 &&
             character.IsAutoAttack &&

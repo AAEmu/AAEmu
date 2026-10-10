@@ -48,6 +48,11 @@ public class PlotState(
     public DateTime LastIgnoredStopRefreshUtc { get; set; }
 
     /// <summary>
+    /// Whether any event of this plot was relayed to a zone, which then has to be told the plot ended.
+    /// </summary>
+    public bool ZoneEventsRelayed { get; set; }
+
+    /// <summary>
     /// Timeline id of the cast that owns this plot, captured on the thread that launched it.
     /// </summary>
     /// <remarks>

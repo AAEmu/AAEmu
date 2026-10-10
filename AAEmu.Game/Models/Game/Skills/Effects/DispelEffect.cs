@@ -27,6 +27,13 @@ public class DispelEffect : EffectTemplate
 
         var count = DispelRules.StackCount(Stack, DispelCount, CureCount);
 
+        if (BuffTagId > 0 && DispelRules.TakesApplications(Stack))
+        {
+            target.Buffs.RemoveTaggedApplications(BuffTagId, Stack);
+            SailFoldBuffs.OnFoldStateDispelled(caster, BuffTagId);
+            return;
+        }
+
         if (BuffTagId > 0)
         {
             // Tag remove is split by the same Good/Bad rule the untagged path uses rather than removing

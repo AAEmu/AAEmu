@@ -13,6 +13,21 @@ public class WorldEvents
     public EventHandler<OnDoodadSpawnArgs> OnDoodadSpawn = delegate { };         // IndunEventDoodadSpawned
     public EventHandler<OnDoodadPhaseChangedArgs> OnDoodadPhaseChanged = delegate { }; // IndunEventDoodadPhaseChanged
     public EventHandler<OnIndunDifficultChangedArgs> OnIndunDifficultChanged = delegate { }; // IndunEventDifficultChanged
+    /// <summary>
+    /// A unit's buff appeared, refreshed or expired. Raised for a copy's units so the indun HUD readouts
+    /// (<c>indun_event_npc_info_broadcastings</c>) can report a buff's stack count or remaining time.
+    /// </summary>
+    public EventHandler<OnUnitBuffChangedArgs> OnUnitBuffChanged = delegate { };
+}
+
+/// <summary>One buff edge of a unit: which buff, and whether it is now on the unit.</summary>
+public class OnUnitBuffChangedArgs : EventArgs
+{
+    public Unit Unit { get; set; }
+    public uint BuffId { get; set; }
+
+    /// <summary>True when the buff is present after the change (applied/refreshed), false when it left.</summary>
+    public bool Present { get; set; }
 }
 
 public class OnUnitKilledArgs : EventArgs

@@ -333,6 +333,9 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
     public SphereBuffs GetSphereBuff(uint sphereBuffId) =>
         _sphereBuffs.GetValueOrDefault(sphereBuffId);
 
+    public SphereSkills GetSphereSkill(uint sphereSkillId) =>
+        _sphereSkills.GetValueOrDefault(sphereSkillId);
+
     public SphereQuests GetSphereQuestDetail(uint sphereDetailId) =>
         _sphereQuests.GetValueOrDefault(sphereDetailId);
 

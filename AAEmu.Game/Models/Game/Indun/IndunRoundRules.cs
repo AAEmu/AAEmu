@@ -14,6 +14,26 @@ public static class IndunRoundRules
     public const byte AlarmKindStart = 1;
     public const byte AlarmKindEnd = 2;
 
+    /// <summary>
+    /// The round-timer fields of SCIndunUpdateRoundInfoPacket (0x2DA).
+    /// </summary>
+    /// <remarks>
+    /// A round whose <c>indun_rounds.timer</c> row is non-zero (120 s on the zone group 125 rows 1/5/10/
+    /// 15/20/25/30, for instance) reports that many seconds as its limit, and the seconds elapsed since
+    /// the round's start alarm as the play time. A round without one reports no time limit at all, so the
+    /// client draws no countdown for it.
+    /// </remarks>
+    public static (uint LimitSeconds, uint PlaySeconds, bool IsTimeLimitRound) RoundTimerWire(
+        DateTime? roundStartedUtc, int timerSeconds, DateTime nowUtc)
+    {
+        if (roundStartedUtc is null || timerSeconds <= 0)
+            return (0u, 0u, false);
+
+        var elapsed = (nowUtc - roundStartedUtc.Value).TotalSeconds;
+        var play = (uint)Math.Clamp(elapsed, 0d, timerSeconds);
+        return ((uint)timerSeconds, play, true);
+    }
+
     /// <summary><c>enum_indun_doodad_check_statuses</c>: 1 always, 2 timer, 3 no_timer.</summary>
     public const uint CheckStatusAlways = 1;
     public const uint CheckStatusTimer = 2;
@@ -33,6 +53,14 @@ public static class IndunRoundRules
 
         return Math.Clamp(current + roundAdd, 0, total);
     }
+
+    /// <summary>
+    /// Whether a round alarm is the start of the copy's first round. <c>indun_rounds.round</c> rows are
+    /// numbered from 1 while the counter starts at 0 ("not started"); the copy's own authored chain moves
+    /// it to 1 and then sounds the start alarm.
+    /// </summary>
+    public static bool OpensFirstRound(byte roundAlarmKindId, int round) =>
+        roundAlarmKindId == AlarmKindStart && round == 1;
 
     /// <summary>
     /// The copy is complete when a NextRound fires while the counter already sits on the last round, or on
@@ -94,4 +122,31 @@ public static class IndunRoundRules
     /// </summary>
     public static uint ResolveSpawnerId(uint effectSpawnerId, uint currentRoundSpawnerId) =>
         effectSpawnerId != 0 ? effectSpawnerId : currentRoundSpawnerId;
+
+    /// <summary><c>indun_event_zone_score_level_changeds.change_way</c>: 0 any, 1 rising, 2 falling.</summary>
+    public const int ZoneScoreChangeWayAny = 0;
+    public const int ZoneScoreChangeWayRising = 1;
+    public const int ZoneScoreChangeWayFalling = 2;
+
+    /// <summary>
+    /// Whether a <c>indun_event_zone_score_level_changeds</c> row fires for one zone-score level move. The
+    /// row watches the <c>level</c> it names and the direction its <c>change_way</c> authored: 0 on any
+    /// change, 1 only when the level rose, 2 only when it fell (zone group 130's rows read
+    /// "1레벨로 변경 시 (레벨 하락 시에만)" way 2, "2레벨로 변경 시 (변경 방식 무관)" way 0 and
+    /// "3레벨로 변경 시 (레벨 상승 시에만)" way 1). A move that lands on a different level fires nothing,
+    /// and an unknown way fires nothing rather than every direction.
+    /// </summary>
+    public static bool ZoneScoreLevelChangeMatches(int rowChangeWay, int rowLevel, int previousLevel, int level)
+    {
+        if (level != rowLevel || level == previousLevel)
+            return false;
+
+        return rowChangeWay switch
+        {
+            ZoneScoreChangeWayAny => true,
+            ZoneScoreChangeWayRising => level > previousLevel,
+            ZoneScoreChangeWayFalling => level < previousLevel,
+            _ => false,
+        };
+    }
 }

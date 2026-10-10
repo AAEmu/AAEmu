@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.TowerDefs;
 using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
@@ -42,6 +43,16 @@ public static class TowerDefScheduler
         public DateTime NextWaveAt;
         public uint AnnounceZoneId;
         public ushort AnnounceZoneGroupId;
+        /// <summary>
+        /// Non-zero for a run that belongs to one instance copy: the copy's world-instance id, which is
+        /// what distinguishes two simultaneous copies of the same zone key on the wire.
+        /// </summary>
+        public uint InstanceId;
+        /// <summary>
+        /// False for an instance copy's run. Its countdown and map are the instance's own HUD
+        /// (<c>SCIndun*</c>), so the world-event banners and world-map marks stay off.
+        /// </summary>
+        public bool BroadcastClientEvents = true;
         /// <summary>Zone keys that accepted Start (playable spots &gt; 0).</summary>
         public List<uint> HostZoneIds = [];
         /// <summary>Spot index chosen per host zone id for this run.</summary>
@@ -60,10 +71,23 @@ public static class TowerDefScheduler
     }
 
     private static readonly Dictionary<uint, RunState> Running = [];
+    /// <summary>
+    /// Runs that belong to one instance copy, keyed by (<c>tower_defs.id</c>, copy instance id). A copy
+    /// is not a world event: several copies of the same zone key can run the same tower at once, and
+    /// none of them is announced on the world map.
+    /// </summary>
+    private static readonly Dictionary<(uint TowerDefId, uint InstanceId), RunState> RunningInstances = [];
     /// <summary>Playable spot counts reported by zones: towerDefId → (zoneId → count).</summary>
     private static readonly Dictionary<uint, Dictionary<uint, uint>> Playability = [];
     private static bool _primed;
     private static ulong _nextRunGeneration = 1;
+
+    /// <summary>
+    /// How often instance copies' runs are stepped. The world-event schedule ticks every few seconds,
+    /// which is too coarse for a copy whose steps announce "N seconds until" and open on the second.
+    /// </summary>
+    private static readonly TimeSpan InstanceStepCadence = TimeSpan.FromSeconds(1);
+    private static Timer? _instanceClock;
 
     private static ulong NextRunGeneration() => Interlocked.Increment(ref _nextRunGeneration);
 
@@ -106,6 +130,7 @@ public static class TowerDefScheduler
             }
 
             AdvanceTimedWaves(now);
+            AdvanceInstanceRuns(now);
             AdvancePendingFollowOns(now);
 
             foreach (var (id, state) in Running.ToList())
@@ -117,6 +142,16 @@ public static class TowerDefScheduler
                     End(towerDef, "force_end_time reached");
                 else
                     Running.Remove(id);
+            }
+
+            foreach (var ((id, instanceId), state) in RunningInstances.ToList())
+            {
+                if (now < state.Deadline)
+                    continue;
+                RunningInstances.Remove((id, instanceId));
+                var towerDef = TowerDefGameData.Instance.GetTowerDef(id);
+                if (towerDef != null)
+                    FinishRun(towerDef, state, "instance force_end_time reached");
             }
         }
     }
@@ -170,17 +205,45 @@ public static class TowerDefScheduler
         }
     }
 
-    /// <summary>Drop playability cache rows for a disconnected zone.</summary>
-    public static void OnZoneDisconnected(uint zoneId)
+    /// <summary>Drop playability cache rows for a disconnected zone, and finish the instance run of that copy.</summary>
+    public static void OnZoneDisconnected(uint zoneId, uint instanceId = 0)
     {
         if (zoneId == 0)
             return;
+
+        var finished = new List<(TowerDef Tower, RunState State)>();
         lock (Sync)
         {
             foreach (var byZone in Playability.Values)
                 byZone.Remove(zoneId);
+
+            // An instance copy's run cannot outlive the host holding it. Sibling copies share the
+            // zone key, so only the run whose copy id matches this host is finished — removing
+            // without FinishRun left stage doodads and World-spawned units behind.
+            foreach (var key in RunningInstances.Keys.ToList())
+            {
+                if (!TowerDefCopyOwnershipRules.InstanceRunOwnedByHost(key.InstanceId, instanceId))
+                    continue;
+                if (!RunningInstances.Remove(key, out var state))
+                    continue;
+
+                var towerDef = TowerDefGameData.Instance.GetTowerDef(key.TowerDefId);
+                if (towerDef != null)
+                    finished.Add((towerDef, state));
+
+                Logger.Info(
+                    "Instance tower run finishing: zoneId={0} towerDef={1} instance={2} (host disconnected)",
+                    zoneId, key.TowerDefId, key.InstanceId);
+            }
         }
+
+        foreach (var (towerDef, state) in finished)
+            FinishRun(towerDef, state, "host disconnected");
     }
+
+    /// <summary>True when <see cref="RunningInstances"/> still holds this copy's tower_def run.</summary>
+    public static bool IsInstanceTowerDefRunning(uint instanceId, uint towerDefId) =>
+        instanceId != 0 && RunningInstances.ContainsKey((towerDefId, instanceId));
 
     /// <summary>
     /// After a dedicate reaches ZoneLoaded, refresh playability for scheduled tower defs.
@@ -233,15 +296,25 @@ public static class TowerDefScheduler
                 if (state.KillRemaining.TryGetValue(templateId, out var left) && left > 0)
                     return true;
             }
+
+            foreach (var state in RunningInstances.Values)
+            {
+                if (state.KillWaitStep < 0 || state.KillRemaining == null)
+                    continue;
+                if (state.KillRemaining.TryGetValue(templateId, out var left) && left > 0)
+                    return true;
+            }
         }
 
         return false;
     }
 
     /// <summary>
-    /// Zone (or World combat) killed an NPC — advance kill-gated tower steps.
+    /// Zone (or World combat) killed an NPC — advance kill-gated tower steps on the run that owns
+    /// that copy. A world event (instance id 0) is charged only by an overworld kill; a copy is
+    /// charged only by a kill inside that copy.
     /// </summary>
-    public static void OnNpcKilled(uint templateId)
+    public static void OnNpcKilled(uint templateId, uint zoneId = 0, uint instanceId = 0)
     {
         if (templateId == 0)
             return;
@@ -251,34 +324,64 @@ public static class TowerDefScheduler
             var now = DateTime.UtcNow;
             foreach (var (id, state) in Running.ToList())
             {
-                if (state.KillWaitStep < 0 || state.KillRemaining == null || state.KillRemaining.Count == 0)
-                    continue;
-                if (!state.KillRemaining.TryGetValue(templateId, out var left) || left <= 0)
+                if (!TowerDefCopyOwnershipRules.SameCopy(state.InstanceId, instanceId))
                     continue;
 
-                left--;
-                if (left <= 0)
-                    state.KillRemaining.Remove(templateId);
-                else
-                    state.KillRemaining[templateId] = left;
-
-                if (state.KillRemaining.Count > 0)
-                {
-                    Running[id] = state;
+                var met = ChargeKill(state, templateId);
+                if (met < 0)
                     continue;
-                }
 
                 Logger.Info(
-                    "TowerDef {0} step {1} kill quotas met — scheduling next wave",
-                    id, state.KillWaitStep);
-                state.KillWaitStep = -1;
-                state.KillRemaining = null;
+                    "TowerDef {0} step {1} kill quotas met (zone={2} copy={3}) — scheduling next wave",
+                    id, met, zoneId, instanceId);
                 state.NextWaveAt = now;
-                Running[id] = state;
+            }
+
+            // Instance copies are not in Running; they charge only the copy the kill happened in.
+            foreach (var (key, state) in RunningInstances.ToList())
+            {
+                if (!TowerDefCopyOwnershipRules.SameCopy(key.InstanceId, instanceId))
+                    continue;
+
+                var met = ChargeKill(state, templateId);
+                if (met < 0)
+                    continue;
+
+                Logger.Info(
+                    "TowerDef {0} instance copy {1} step {2} kill quotas met (zone={3}) — scheduling next wave",
+                    key.TowerDefId, key.InstanceId, met, zoneId);
+                state.NextWaveAt = now;
             }
 
             AdvanceTimedWaves(now);
+            AdvanceInstanceRuns(now);
         }
+    }
+
+    /// <summary>
+    /// Charges one kill against a run that is waiting on kill quotas. Returns the step whose quotas are
+    /// now met (and clears the wait), or -1 when the run was not waiting on this NPC.
+    /// </summary>
+    private static int ChargeKill(RunState state, uint templateId)
+    {
+        if (state.KillWaitStep < 0 || state.KillRemaining == null || state.KillRemaining.Count == 0)
+            return -1;
+        if (!state.KillRemaining.TryGetValue(templateId, out var left) || left <= 0)
+            return -1;
+
+        left--;
+        if (left <= 0)
+            state.KillRemaining.Remove(templateId);
+        else
+            state.KillRemaining[templateId] = left;
+
+        if (state.KillRemaining.Count > 0)
+            return -1;
+
+        var metStep = state.KillWaitStep;
+        state.KillWaitStep = -1;
+        state.KillRemaining = null;
+        return metStep;
     }
 
     /// <summary>Fires an event immediately, ignoring its schedule. Used by the GM trigger.</summary>
@@ -501,33 +604,74 @@ public static class TowerDefScheduler
 
     private static void AdvanceTimedWaves(DateTime now)
     {
-        const int MaxStepsPerTick = 4;
-
         foreach (var (id, state) in Running.ToList())
         {
-            if (state.KillWaitStep >= 0)
-                continue; // wait for OnNpcKilled
-
             var towerDef = TowerDefGameData.Instance.GetTowerDef(id);
-            if (towerDef?.Progs == null || towerDef.Progs.Count == 0)
+            OpenDueSteps(towerDef, state, now, "schedule");
+            Running[id] = state;
+        }
+    }
+
+    /// <summary>
+    /// Opens any steps the instance copies' runs are due. A copy keeps its own clock — it is not driven by
+    /// the world-event schedule — so it is advanced here, by the same step rule a world event uses.
+    /// </summary>
+    private static void StepInstanceRuns()
+    {
+        try
+        {
+            lock (Sync)
+            {
+                if (RunningInstances.Count > 0)
+                    AdvanceInstanceRuns(DateTime.UtcNow);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Instance tower step tick failed");
+        }
+    }
+
+    private static void AdvanceInstanceRuns(DateTime now)
+    {
+        foreach (var (key, state) in RunningInstances.ToList())
+        {
+            var towerDef = TowerDefGameData.Instance.GetTowerDef(key.TowerDefId);
+            if (towerDef == null)
                 continue;
 
-            var stepsThisTick = 0;
-            while (state.NextStep < towerDef.Progs.Count &&
-                   now >= state.NextWaveAt &&
-                   stepsThisTick < MaxStepsPerTick)
-            {
-                var step = state.NextStep;
-                OpenStep(towerDef, state, step, "schedule");
-                stepsThisTick++;
-                state.NextStep = step + 1;
-                ArmPostStep(towerDef, state, step, now);
+            OpenDueSteps(towerDef, state, now, "instance");
+            RunningInstances[key] = state;
+        }
+    }
 
-                if (state.KillWaitStep >= 0 || now < state.NextWaveAt)
-                    break;
-            }
+    /// <summary>
+    /// Opens the progression steps a run is due, up to a per-tick cap so a long stall does not fire the
+    /// whole ladder at once. A run waiting on kill quotas is left to <see cref="OnNpcKilled"/>.
+    /// </summary>
+    private static void OpenDueSteps(TowerDef towerDef, RunState state, DateTime now, string reason)
+    {
+        const int MaxStepsPerTick = 4;
 
-            Running[id] = state;
+        if (state.KillWaitStep >= 0)
+            return; // wait for OnNpcKilled
+
+        if (towerDef?.Progs == null || towerDef.Progs.Count == 0)
+            return;
+
+        var stepsThisTick = 0;
+        while (state.NextStep < towerDef.Progs.Count &&
+               now >= state.NextWaveAt &&
+               stepsThisTick < MaxStepsPerTick)
+        {
+            var step = state.NextStep;
+            OpenStep(towerDef, state, step, reason);
+            stepsThisTick++;
+            state.NextStep = step + 1;
+            ArmPostStep(towerDef, state, step, now);
+
+            if (state.KillWaitStep >= 0 || now < state.NextWaveAt)
+                break;
         }
     }
 
@@ -587,12 +731,22 @@ public static class TowerDefScheduler
         state.NextWaveAt = now + TimeSpan.FromSeconds(hold);
     }
 
+    /// <summary>
+    /// The zone connection a run's host is on. A world event resolves by zone key alone (one host of
+    /// that key); an instance copy resolves by (zone key, instance id) so two simultaneous copies of
+    /// the same key each get their own connection.
+    /// </summary>
+    private static ZoneConnection ResolveHostZone(RunState state, uint zoneId) =>
+        state.InstanceId != 0
+            ? ZoneSession.Instance.GetByZoneInstance(zoneId, state.InstanceId)
+            : ZoneSession.Instance.GetByZoneId(zoneId);
+
     private static void OpenStep(TowerDef towerDef, RunState state, int step, string reason)
     {
         var zones = 0;
         foreach (var zoneId in state.HostZoneIds)
         {
-            var zone = ZoneSession.Instance.GetByZoneId(zoneId);
+            var zone = ResolveHostZone(state, zoneId);
             if (zone == null || zone.State < ZoneConnectionState.ZoneLoaded)
                 continue;
             if (!state.SpotByZone.TryGetValue(zoneId, out var spotIdx))
@@ -606,8 +760,15 @@ public static class TowerDefScheduler
         if (zones > 0)
         {
             state.CurrentStep = step;
-            BroadcastScWave(towerDef, state, (uint)step);
-            BroadcastClientMapState();
+            if (state.BroadcastClientEvents)
+            {
+                BroadcastScWave(towerDef, state, (uint)step);
+                BroadcastClientMapState();
+            }
+            else if (state.InstanceId != 0)
+            {
+                AnnounceInstanceWave(towerDef, state, (uint)step);
+            }
         }
 
         // Retail ChangeStep can log success with zero emit; re-fire tower OnEvent on g placements.
@@ -616,7 +777,7 @@ public static class TowerDefScheduler
 
         // Zone ChangeStep ignores DoodadAlmighty spawn targets — World authors them.
         if (zones > 0)
-            TowerDefProgDoodads.ApplyStep(towerDef, step, state.HostZoneIds);
+            TowerDefProgDoodads.ApplyStep(towerDef, step, state.HostZoneIds, state.InstanceId);
 
         Logger.Info(
             "WZTowerDefWaveStart → {0} host zones: towerDef={1} step={2} ({3}) — {4}",
@@ -874,14 +1035,208 @@ public static class TowerDefScheduler
 
         Running.Remove(towerDef.Id);
 
-        // Drop a pending follow-on so /towerdef end mid-hold does not still arm reward crystals.
-        // (Follow-on already Running is left alone.)
+        FinishRun(towerDef, state, reason);
+    }
 
+    /// <summary>
+    /// Starts the <c>tower_defs</c> run that scripts one instance copy, on that copy's own zone host.
+    /// </summary>
+    /// <remarks>
+    /// Called by the copy once its content is loaded and it has left its ready ("wait time") window — the
+    /// copy's <c>indun_zones.option.tower_def</c>. The run is Manual (no schedule), has exactly the copy's
+    /// host as its host list, and announces nothing: a copy's HUD is the instance's own, so no
+    /// <c>SCTowerDef*</c> banner or world-map mark is sent. Starting the run is what arms the tower's
+    /// <c>target_npc_spawner_id</c> inside the copy (the acquisition's start NPC), whose spawn skill drives
+    /// the rest of the instance script.
+    /// </remarks>
+    public static bool StartInstanceTowerDef(uint zoneId, uint instanceId, uint towerDefId, ushort zoneGroupId)
+    {
+        if (zoneId == 0 || instanceId == 0 || towerDefId == 0)
+            return false;
+
+        lock (Sync)
+        {
+            var towerDef = TowerDefGameData.Instance.GetTowerDef(towerDefId);
+            if (towerDef == null)
+            {
+                Logger.Warn(
+                    "Instance tower start refused: towerDef={0} not in loaded tower_defs (zone copy {1}/{2})",
+                    towerDefId, zoneId, instanceId);
+                return false;
+            }
+
+            var host = ZoneSession.Instance.GetByZoneInstance(zoneId, instanceId);
+            if (host == null || host.State < ZoneConnectionState.ZoneLoaded)
+            {
+                Logger.Warn(
+                    "Instance tower start refused: no ZoneLoaded host for copy {0}/{1} (towerDef={2})",
+                    zoneId, instanceId, towerDefId);
+                return false;
+            }
+
+            // Restart path: a copy that reloads must not stack a second run on the same spawner.
+            if (RunningInstances.Remove((towerDefId, instanceId), out var previous))
+            {
+                Logger.Info(
+                    "Instance tower start towerDef={0} copy={1}/{2}: ending the live run first",
+                    towerDefId, zoneId, instanceId);
+                FinishRun(towerDef, previous, "instance restart");
+            }
+
+            var now = DateTime.UtcNow;
+            var firstWaveDelay = towerDef.FirstWaveAfter > 0f
+                ? TimeSpan.FromSeconds(towerDef.FirstWaveAfter)
+                : TimeSpan.Zero;
+
+            var state = new RunState
+            {
+                Deadline = now + towerDef.Duration,
+                Manual = true,
+                FromGameTime = false,
+                NextStep = 0,
+                NextWaveAt = now + firstWaveDelay,
+                AnnounceZoneId = zoneId,
+                AnnounceZoneGroupId = zoneGroupId,
+                KillWaitStep = -1,
+                InstanceId = instanceId,
+                BroadcastClientEvents = false,
+                Generation = NextRunGeneration()
+            };
+            state.HostZoneIds.Add(zoneId);
+            state.SpotByZone[zoneId] = 0u;
+
+            host.SendPacket(new WZTowerDefStartPacket((int)towerDef.Id, (short)zoneGroupId, 0u));
+            RunningInstances[(towerDefId, instanceId)] = state;
+            _instanceClock ??= new Timer(_ => StepInstanceRuns(), null, InstanceStepCadence, InstanceStepCadence);
+
+            Logger.Info(
+                "WZTowerDefStart (instance) → zoneId={0} copy={1} group={2} towerDef={3} spawner={4} for {5}",
+                zoneId, instanceId, zoneGroupId, towerDef.Id, towerDef.TargetNpcSpawnId, towerDef.Duration);
+
+            // The copy's own start banner — the tower's start_msg is the announcement the client shows from
+            // its own tower_defs row, so an instance copy still has to be told its event started.
+            AnnounceInstanceStart(towerDef, zoneGroupId, zoneId, instanceId);
+
+            // The zone raises the start event itself on WZ Start, so this is only the optional re-arm.
+            TowerDefWaveForce.ArmPortalTargets(towerDef, state.HostZoneIds);
+
+            if (firstWaveDelay <= TimeSpan.Zero)
+                OpenDueSteps(towerDef, state, now, "instance");
+
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Sends an instance copy the <c>tower_defs</c> start banner, to that copy's players only.
+    /// </summary>
+    /// <remarks>
+    /// The banner carries the tower's key, not its text: the client resolves <c>tower_defs.start_msg</c>
+    /// from its own row (zone group 130 / 127's is that the Hereafter has started and the lost souls must
+    /// be protected), which is why an instance copy still has to be told its event started. An instance
+    /// event is not a world event — it is not broadcast to the whole seamless world — so this goes to the
+    /// characters standing in the copy and never through the world broadcast.
+    /// </remarks>
+    private static void AnnounceInstanceStart(TowerDef towerDef, ushort zoneGroupId, uint zoneId, uint instanceId)
+    {
+        var characters = CopyCharacters(towerDef, zoneId, instanceId, "start banner");
+        if (characters == null)
+            return;
+
+        var key = new TowerDefKey { TowerDefId = towerDef.Id, ZoneGroupId = zoneGroupId };
+        var sent = 0;
+        foreach (var character in characters)
+        {
+            character.SendPacket(new SCTowerDefStartPacket(key, zoneId));
+            // Start alone does not place the event's map entry — the client draws it from the active-info
+            // list — so this copy's own run follows (not every sibling copy's).
+            character.SendPacket(new SCTowerDefActiveInfoListPacket(
+                BuildActiveInfoList(includeInstances: true, onlyInstanceId: instanceId)));
+            character.SendPacket(new SCTowerDefListPacket(
+                BuildPositionedList(includeInstances: true, onlyInstanceId: instanceId)));
+            sent++;
+        }
+
+        Logger.Info(
+            "SCTowerDefStart (instance) → copy {0}/{1} players={2} towerDef={3} announce=\"{4}\"",
+            zoneId, instanceId, sent, towerDef.Id, towerDef.StartMsg);
+    }
+
+    /// <summary>
+    /// Tells an instance copy's players that a step opened. Like the start banner it carries the key, not
+    /// the text: the client prints the step's own <c>tower_def_progs.msg</c> (127's first step is the
+    /// warning that the outpost's back gate opens in 40 seconds). Copy players only, never the world.
+    /// </summary>
+    private static void AnnounceInstanceWave(TowerDef towerDef, RunState state, uint step)
+    {
+        var characters = CopyCharacters(towerDef, state.AnnounceZoneId, state.InstanceId, "wave banner");
+        if (characters == null)
+            return;
+
+        var key = MakeKey(towerDef, state);
+        var sent = 0;
+        foreach (var character in characters)
+        {
+            character.SendPacket(new SCTowerDefWaveStartPacket(key, state.AnnounceZoneId, step, isSyncStep: true));
+            sent++;
+        }
+
+        Logger.Info(
+            "SCTowerDefWaveStart (instance) → copy {0}/{1} players={2} towerDef={3} step={4}",
+            state.AnnounceZoneId, state.InstanceId, sent, towerDef.Id, step);
+    }
+
+    /// <summary>The connected characters standing in one instance copy, or null when the copy has no world.</summary>
+    private static List<Character> CopyCharacters(
+        TowerDef towerDef, uint zoneId, uint instanceId, string what)
+    {
+        var world = WorldIntegration.ResolveWorldForZone(zoneId, instanceId);
+        if (world == null)
+        {
+            Logger.Warn(
+                "Instance tower {0} {1} skipped: no world for copy {2}/{3}",
+                towerDef.Id, what, zoneId, instanceId);
+            return null;
+        }
+
+        return world.GetAllCharacters().Where(c => c?.Connection != null).ToList();
+    }
+
+    /// <summary>
+    /// Ends the run of one instance copy. The copy's host is told to stop and the run's World-authored
+    /// units are dropped; nothing is announced (a copy is not a world event).
+    /// </summary>
+    public static bool EndInstanceTowerDef(uint zoneId, uint instanceId, uint towerDefId)
+    {
+        if (zoneId == 0 || instanceId == 0 || towerDefId == 0)
+            return false;
+
+        lock (Sync)
+        {
+            if (!RunningInstances.Remove((towerDefId, instanceId), out var state))
+                return false;
+
+            var towerDef = TowerDefGameData.Instance.GetTowerDef(towerDefId);
+            if (towerDef == null)
+                return false;
+
+            FinishRun(towerDef, state, "instance copy destroyed");
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Shared end-of-run tail: despawn this run's World-authored doodads, tell its hosts to stop, and drop
+    /// its leftover World-owned units. A run that never broadcast client events (an instance copy) ends
+    /// silently — its own HUD is driven by the copy, not by the world-event banners.
+    /// </summary>
+    private static void FinishRun(TowerDef towerDef, RunState state, string reason)
+    {
         try
         {
-            var doodads = TowerDefProgDoodads.DespawnAll(towerDef.Id);
+            var doodads = TowerDefProgDoodads.DespawnAll(towerDef.Id, state.InstanceId);
             if (doodads > 0)
-                Logger.Info("TowerDef {0} End despawned prog doodads={1}", towerDef.Id, doodads);
+                Logger.Info("TowerDef {0} End despawned prog doodads={1} copy={2}", towerDef.Id, doodads, state.InstanceId);
         }
         catch (Exception ex)
         {
@@ -889,13 +1244,15 @@ public static class TowerDefScheduler
         }
 
         var zones = 0;
-        var zoneList = state.HostZoneIds.Count > 0
+        // A copy's run ends only on the hosts it started on. Scanning every loaded zone would send
+        // its End to unrelated copies of the same zone key.
+        var zoneList = state.HostZoneIds.Count > 0 || state.InstanceId != 0
             ? state.HostZoneIds
             : LoadedZones().Select(z => z.ZoneId).ToList();
 
         foreach (var zoneId in zoneList)
         {
-            var zone = ZoneSession.Instance.GetByZoneId(zoneId);
+            var zone = ResolveHostZone(state, zoneId);
             if (zone == null || zone.State < ZoneConnectionState.ZoneLoaded)
                 continue;
             if (!state.SpotByZone.TryGetValue(zoneId, out var spotIdx))
@@ -905,11 +1262,14 @@ public static class TowerDefScheduler
             zones++;
         }
 
-        if (state.HostZoneIds.Count > 0 || zones > 0)
-            BroadcastScEnd(towerDef, state);
+        if (state.BroadcastClientEvents)
+        {
+            if (state.HostZoneIds.Count > 0 || zones > 0)
+                BroadcastScEnd(towerDef, state);
 
-        // Map / list packets always carry the post-remove snapshot (empty or remaining events).
-        BroadcastClientMapState();
+            // Map / list packets always carry the post-remove snapshot (empty or remaining events).
+            BroadcastClientMapState();
+        }
 
         // WZ End removes dedic-created units eventually; World-authored plot army (8826/8834…) and
         // lagging stage mirrors need an explicit cleanup or they stick after /towerdef end.
@@ -918,18 +1278,19 @@ public static class TowerDefScheduler
             ? (IReadOnlyList<uint>)state.HostZoneIds.ToList()
             : Array.Empty<uint>();
         var towerId = towerDef.Id;
+        var copyId = state.InstanceId;
         _ = Task.Run(async () =>
         {
             try
             {
-                var n = WorldIntegration.DespawnTowerDefEventUnits(towerId, hostZones);
+                var n = WorldIntegration.DespawnTowerDefEventUnits(towerId, hostZones, copyId);
                 if (n > 0)
-                    Logger.Info("TowerDef {0} End cleanup pass-1 despawned={1}", towerId, n);
+                    Logger.Info("TowerDef {0} End cleanup pass-1 despawned={1} copy={2}", towerId, n, copyId);
                 // Late plot tickets keep SpawnEffect after stage Interrupt — second sweep.
                 await Task.Delay(2500).ConfigureAwait(false);
-                var n2 = WorldIntegration.DespawnTowerDefEventUnits(towerId, hostZones);
+                var n2 = WorldIntegration.DespawnTowerDefEventUnits(towerId, hostZones, copyId);
                 if (n2 > 0)
-                    Logger.Info("TowerDef {0} End cleanup pass-2 despawned={1}", towerId, n2);
+                    Logger.Info("TowerDef {0} End cleanup pass-2 despawned={1} copy={2}", towerId, n2, copyId);
             }
             catch (Exception ex)
             {
@@ -1083,11 +1444,34 @@ public static class TowerDefScheduler
             BroadcastClientMapState();
     }
 
-    private static List<TowerDefActiveInfo> BuildActiveInfoList()
+    /// <summary>
+    /// Every live run: the world events, and — when asked for — the instance copies' runs too.
+    /// </summary>
+    /// <remarks>
+    /// A copy's run lives in <see cref="RunningInstances"/> and is deliberately absent from the world
+    /// broadcast, so anything that has to describe a copy (its own start banner's map state) asks for it
+    /// explicitly rather than the world event list leaking it onto the continent.
+    /// </remarks>
+    private static IEnumerable<(uint TowerDefId, RunState State)> AllRuns(bool includeInstances)
+    {
+        foreach (var run in Running)
+            yield return (run.Key, run.Value);
+
+        if (!includeInstances)
+            yield break;
+
+        foreach (var (key, state) in RunningInstances)
+            yield return (key.TowerDefId, state);
+    }
+
+    private static List<TowerDefActiveInfo> BuildActiveInfoList(bool includeInstances = false, uint? onlyInstanceId = null)
     {
         var result = new List<TowerDefActiveInfo>();
-        foreach (var (id, state) in Running)
+        foreach (var (id, state) in AllRuns(includeInstances))
         {
+            if (onlyInstanceId is uint want && state.InstanceId != want)
+                continue;
+
             var def = TowerDefGameData.Instance.GetTowerDef(id);
             if (def == null)
                 continue;
@@ -1102,7 +1486,7 @@ public static class TowerDefScheduler
                 if (zoneId == 0)
                     continue;
                 var group = state.AnnounceZoneGroupId;
-                var zone = ZoneSession.Instance.GetByZoneId(zoneId);
+                var zone = ResolveHostZone(state, zoneId);
                 if (zone != null)
                     group = (ushort)ZoneGroupOf(zone);
 
@@ -1119,11 +1503,14 @@ public static class TowerDefScheduler
         return result;
     }
 
-    private static List<TowerDefInfo> BuildPositionedList()
+    private static List<TowerDefInfo> BuildPositionedList(bool includeInstances = false, uint? onlyInstanceId = null)
     {
         var result = new List<TowerDefInfo>();
-        foreach (var (id, state) in Running)
+        foreach (var (id, state) in AllRuns(includeInstances))
         {
+            if (onlyInstanceId is uint want && state.InstanceId != want)
+                continue;
+
             var def = TowerDefGameData.Instance.GetTowerDef(id);
             if (def == null)
                 continue;
@@ -1139,12 +1526,12 @@ public static class TowerDefScheduler
                     continue;
 
                 var group = state.AnnounceZoneGroupId;
-                var zone = ZoneSession.Instance.GetByZoneId(zoneId);
+                var zone = ResolveHostZone(state, zoneId);
                 if (zone != null)
                     group = (ushort)ZoneGroupOf(zone);
 
                 state.SpotByZone.TryGetValue(zoneId, out var spotIdx);
-                TryFindPortal(def, zoneId, out var portalObjId, out var x, out var y, out var z);
+                TryFindPortal(def, zoneId, state.InstanceId, out var portalObjId, out var x, out var y, out var z);
 
                 result.Add(new TowerDefInfo
                 {
@@ -1161,7 +1548,8 @@ public static class TowerDefScheduler
         return result;
     }
 
-    private static void TryFindPortal(TowerDef def, uint zoneId, out uint objId, out float x, out float y, out float z)
+    private static void TryFindPortal(TowerDef def, uint zoneId, uint instanceId,
+        out uint objId, out float x, out float y, out float z)
     {
         objId = 0;
         x = y = z = 0f;
@@ -1172,7 +1560,7 @@ public static class TowerDefScheduler
         if (members.Count == 0)
             return;
 
-        var world = WorldIntegration.ResolveWorldForZone(zoneId);
+        var world = WorldIntegration.ResolveWorldForZone(zoneId, instanceId);
         if (world == null)
             return;
 
@@ -1216,6 +1604,11 @@ public static class TowerDefScheduler
 
         foreach (var zone in LoadedZones())
         {
+            // Instance copies start their own runs; world schedules must not arm them (e.g. tower 103
+            // daily at 21:00 would stack a world-event WZTowerDefStart onto a carcass copy).
+            if (zone.InstanceId != 0)
+                continue;
+
             var group = (ushort)ZoneGroupOf(zone);
             if (byZone != null && byZone.TryGetValue(zone.ZoneId, out var spots))
             {
@@ -1245,6 +1638,10 @@ public static class TowerDefScheduler
 
     private static void QueryPlayabilityForZone(ZoneConnection zone)
     {
+        // Copy hosts are not world-event hosts — skip their playability queries too.
+        if (zone.InstanceId != 0)
+            return;
+
         foreach (var towerDef in TowerDefGameData.Instance.GetGameTimeScheduledTowerDefs())
             QueryPlayability(zone, towerDef.Id);
         foreach (var towerDef in TowerDefGameData.Instance.GetScheduledTowerDefs())

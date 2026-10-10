@@ -37,9 +37,20 @@ public class BubbleEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        // var sampleText = LocalizationManager.Instance.Get("bubble_effects", "speech", Id, "");
-        Logger.Trace($"BubbleEffect, Id {Id}, KindId {KindId}, ObjId {targetObj.ObjId}"); //, Text {sampleText}");
+        if (target == null)
+            return;
+
+        var speakerId = SpeakerObjId(target, targetObj);
+        Logger.Trace($"BubbleEffect, Id {Id}, KindId {KindId}, ObjId {speakerId}");
         // TODO: Verify if this can be a normal Broadcast, or if it should only go towards the caster and/or target
-        target?.BroadcastPacket(new SCChatBubblePacket(targetObj.ObjId, (byte)KindId, 2, Id, ""), true);
+        target.BroadcastPacket(new SCChatBubblePacket(speakerId, (byte)KindId, 2, Id, ""), true);
     }
+
+    /// <summary>
+    /// The unit that says the line: the one this effect resolved to. <paramref name="targetObj"/> is the
+    /// skill's cast target for the whole plot, so a plot that searches out an NPC and has it speak would
+    /// otherwise put the line in the caster's mouth.
+    /// </summary>
+    public static uint SpeakerObjId(BaseUnit target, SkillCastTarget targetObj) =>
+        target?.ObjId ?? targetObj?.ObjId ?? 0;
 }

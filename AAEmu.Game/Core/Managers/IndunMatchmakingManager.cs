@@ -412,12 +412,8 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         {
             var captured = session;
             switch (IndunMatchReadyRules.NextAfterPreparing(session.Prepared?.IsReady == true,
-                        session.InvitationType, session.PreparingSince, now))
+                        session.PreparingSince, now))
             {
-                case IndunPrepareOutcome.Enter:
-                    session.Phase = IndunMatchPhase.Entering;
-                    deferred.Add(() => EnterDungeon(captured));
-                    break;
                 case IndunPrepareOutcome.Offer:
                     session.Phase = IndunMatchPhase.Inviting;
                     session.InviteOpenedAt = now;
@@ -617,7 +613,11 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
 
     private void SendInvites(IndunMatchSession session)
     {
-        var zi = new ZoneInstanceId(session.ZoneKey, 0);
+        // The client keeps the invite's zone instance and later accepts the copy's joined / ready / start only
+        // for that same instance, so the invite names the copy that was prepared for this match.
+        var zi = session.Prepared is Dungeon prepared
+            ? prepared.ZoneInstance
+            : new ZoneInstanceId(session.ZoneKey, 0);
         var accept = (uint)IndunMatchReadyRules.AcceptedCount(session.Members);
         var invitationTime = session.CleanupTermMs;
         foreach (var member in session.Members.Where(m => !m.Declined))
@@ -681,8 +681,10 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
             return;
         }
 
+        // Every match is offered through the enter dialog, so only members who answered it enter;
+        // an invitation type never admits someone the player did not confirm.
         var characters = session.Members
-            .Where(m => !m.Declined && (session.InvitationType == MatchingInvitationType.Direct || m.Accepted))
+            .Where(m => !m.Declined && m.Accepted)
             .Select(m => WorldManager.Instance.GetCharacterById(m.CharacterId))
             .Where(c => c != null)
             .ToList();
@@ -702,12 +704,9 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         }
 
         var preparedDungeon = preparedHandle as Dungeon;
-        var worldInstanceId = preparedDungeon?.World?.Id ?? 0u;
-        var zi = new ZoneInstanceId(session.ZoneKey, worldInstanceId);
-        var now = Helpers.UnixTimeNowInMilli();
 
         // Prefer the copy matchmaking already built; fall back to a fresh request if prepare failed.
-        // Dry-check first so a known daily lock never reaches Reentry. Then queue / request, and
+        // Dry-check first so a known daily lock never reaches the load. Then queue / request, and
         // only publish playing-state after that call succeeds — level, gear, party, capacity, and
         // restore-cooldown can still refuse on the fallback path after the daily check.
         var rejected = new List<Character>();
@@ -730,8 +729,10 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
                 continue;
             }
 
-            ch.SendPacket(new SCInstantGameReentryPacket(zi, session.CatalogId,
-                InstantGameWireContract.NoBattleFieldType, now));
+            // Nothing instant-game is sent before the load: the client drops the UI events it raises behind
+            // the loading screen. The copy hands itself over once the load is done; a member of the prepared
+            // copy accepted its invite, so that hand-over opens with joined rather than a running copy.
+            preparedDungeon?.ExpectMatchedEntry(ch);
             SquadManager.Instance.NotifyGameEnter(ch);
             entered.Add(ch);
         }
@@ -750,7 +751,7 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
 
         Logger.Info(
             "IndunMatchmaking enter catalog={0} matchingKey={1} players={2} rejected={5} zoneId={3} worldInstance={4}",
-            session.CatalogId, session.MatchingKey, entered.Count, zone.Id, worldInstanceId, rejected.Count);
+            session.CatalogId, session.MatchingKey, entered.Count, zone.Id, preparedDungeon?.World?.Id ?? 0u, rejected.Count);
 
         CleanupSession(session);
     }

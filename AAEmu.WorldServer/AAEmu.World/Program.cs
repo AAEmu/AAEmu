@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Network;
@@ -79,6 +79,7 @@ public static class Program
         var zoneHost = new ZoneHostSupervisor(appConfig.ZoneHost);
         WorldIntegration.ZoneHostSpawnEnabled = appConfig.ZoneHost.Enabled;
         WorldIntegration.TryStartInstanceZoneHost = zoneHost.TryStart;
+        WorldIntegration.PlantInstanceLevelDoodads = QuestTalkDoodads.EnsureInstanceCopy;
         WorldIntegration.StopInstanceZoneHost = worldId =>
         {
             var world = WorldManager.Instance.GetWorld(worldId);
@@ -122,17 +123,38 @@ public static class Program
             }
         };
         // Type-2 ZW ToD: clients in that zone only — never rebases shared TimeManager.
-        WorldIntegration.OnZoneTimeOfDay = (zoneId, time, speed, start, end, detailed) =>
+        WorldIntegration.OnZoneTimeOfDay = (zoneId, instanceId, time, speed, start, end, detailed) =>
         {
             if (TimeManager.ZoneUsesSharedGameDay(zoneId))
                 return;
             WorldIntegration.ForEachReadyConnection((connection, character) =>
             {
-                if (character.Transform.ZoneId != zoneId)
+                // Several copies of one zone run at once and each keeps its own clock, so the
+                // copy has to match too: delivering every copy's report made the client's clock
+                // jump between them and re-apply its environment once per copy.
+                if (character.Transform.ZoneId != zoneId || character.Transform.InstanceId != instanceId)
                     return;
+                // An instance's dedicate runs the instance's own clock (it starts from the level's authored
+                // time), so this report is the right hour for the instance and has to reach its clients —
+                // suppressing it left the client on the open-world hour it logged in with. Only the
+                // open-world clock is kept out of an instance (see the instance-load and spawn binds).
                 _ = (speed, start, end, detailed);
                 connection.SendPacket(TimeOfDayClientPackets.FromZoneReport(time));
             });
+        };
+        // A level load force-applies lighting from the first hour it is handed, so an instance must be
+        // handed its own authored hour before that load opens — a report after the load only eases,
+        // which left the instance lit by the open-world clock. The level's own zone file is asked for
+        // first (see the ZWJoin seed); an unreadable/absent file is already reported there.
+        WorldIntegration.BindInstanceTimeOfDayBeforeLoad = (character, worldName, zoneId) =>
+        {
+            if (character == null)
+                return;
+            var authored = ZoneTimeOfDayCatalog.TryGetZone(worldName, zoneId)
+                           ?? ZoneTimeOfDayCatalog.TryGet(worldName);
+            if (authored is null)
+                return;
+            TimeOfDayClientPackets.BindBeforeWorldLoad(character.SendPacket, authored.Value.StartHour);
         };
         // Shared World hour crosses drive Game-Time tower arms (seamless has no ZW ToD).
         WorldIntegration.OnGameTimeAdvanced = TowerDefScheduler.OnGameTimeAdvanced;
@@ -176,7 +198,8 @@ public static class Program
             // call TowerDefScheduler here or Zone deaths decrement twice.
             WorldIntegration.ResolveKillCreditThenForget(bcId);
         };
-        WorldIntegration.OnWorldNpcKilled = tpl => TowerDefScheduler.OnNpcKilled(tpl);
+        WorldIntegration.OnWorldNpcKilled = (tpl, zoneId, instanceId) =>
+            TowerDefScheduler.OnNpcKilled(tpl, zoneId, instanceId);
         WorldIntegration.AllowsPlotSelfDamageBypass = unit =>
             unit is Npc npc && TowerDefScheduler.IsActiveKillQuotaTemplate(npc.TemplateId);
         WorldIntegration.OnWorldInstanceRemoved = ZoneNpcSpawnerCatalog.RemoveInstance;
@@ -197,6 +220,11 @@ public static class Program
         WorldIntegration.SyncTowerDefsToCharacter = TowerDefScheduler.SyncToCharacter;
         WorldIntegration.GetTowerDefCurrentStep = TowerDefScheduler.CurrentStepOf;
         WorldIntegration.OnTowerDefEventNpcMirrored = TowerDefScheduler.OnEventNpcMirrored;
+        // An instance copy carries its script in indun_zones.option.tower_def: the copy starts it once it
+        // has left its ready window, and stops it as the copy is destroyed.
+        WorldIntegration.StartInstanceTowerDef = TowerDefScheduler.StartInstanceTowerDef;
+        WorldIntegration.EndInstanceTowerDef = TowerDefScheduler.EndInstanceTowerDef;
+        WorldIntegration.IsInstanceTowerDefRunning = TowerDefScheduler.IsInstanceTowerDefRunning;
         WorldIntegration.OnMainWorldReady = () =>
         {
             // Arm the schedule gate before remirroring, so the pass that re-accepts already
@@ -533,7 +561,13 @@ public static class Program
         };
         WorldIntegration.RelayNpcSpawnToZone = request =>
         {
-            var zone = PlayerEnterService.ForZoneId(request.ZoneId);
+            // Several dungeon copies of the same zone key have no unique host
+            // (ForZoneId is null). Name the copy or the Create never leaves World.
+            // A copy whose host is not loaded must not fall back to ForZoneId — that can return a
+            // sibling copy of the same zone key and Create into the wrong one.
+            var zone = request.InstanceId != 0
+                ? PlayerEnterService.ForZoneInstance(request.ZoneId, request.InstanceId)
+                : PlayerEnterService.ForZoneId(request.ZoneId);
             if (zone == null || request.Body is not { Length: > 0 })
                 return false;
 
@@ -644,6 +678,20 @@ public static class Program
 
             zone.SendPacket(new WZPlotEventPacket(tl, eventId, skillId, caster, target, itemId, objId, castTimeMs, channelingMs, conditionOk, last, targetUnitIds));
             Logger.Debug("WZPlotEvent → zone tl={0} event={1} skill={2}", tl, eventId, skillId);
+        };
+        WorldIntegration.RelayPlotEndedToZone = (tl, casterObjId) =>
+        {
+            if (Environment.GetEnvironmentVariable("AAEMU_DISABLE_ZONE_COMBAT_RELAY") == "1")
+                return;
+            if (Environment.GetEnvironmentVariable("AAEMU_DISABLE_WZ_PLOT_EVENT") == "1")
+                return;
+
+            var zone = PlayerEnterService.ForUnit(casterObjId);
+            if (zone == null)
+                return;
+
+            zone.SendPacket(new WZPlotEndedPacket((short)tl));
+            Logger.Debug("WZPlotEnded → zone tl={0} caster={1}", tl, casterObjId);
         };
 
         WorldIntegration.RelayCreateDoodadToZone = doodadObj =>
@@ -1518,11 +1566,13 @@ public static class Program
             WorldIntegration.IsZoneLoaded = null;
             WorldIntegration.IsZoneInstanceLoaded = null;
             WorldIntegration.TryStartInstanceZoneHost = null;
+            WorldIntegration.PlantInstanceLevelDoodads = null;
             WorldIntegration.StopInstanceZoneHost = null;
             WorldIntegration.ZoneHostSpawnEnabled = false;
             WorldIntegration.GetZoneConnectionStatus = null;
             WorldIntegration.RelayTimeOfDayToZones = null;
             WorldIntegration.OnZoneTimeOfDay = null;
+            WorldIntegration.BindInstanceTimeOfDayBeforeLoad = null;
             WorldIntegration.OnGameTimeAdvanced = null;
             WorldIntegration.RelayUnitStateToZone = null;
             WorldIntegration.OnPlayerLeave = null;
@@ -1568,6 +1618,7 @@ public static class Program
             WorldIntegration.RelayUnitRemovedToZone = null;
             WorldIntegration.RelayUnitRemovedToZoneId = null;
             WorldIntegration.RelayPlotEventToZone = null;
+            WorldIntegration.RelayPlotEndedToZone = null;
             WorldIntegration.RelayGmCommandToZone = null;
             WorldIntegration.RelayCreateDoodadToZone = null;
             WorldIntegration.RelayCreateDoodadToZoneId = null;

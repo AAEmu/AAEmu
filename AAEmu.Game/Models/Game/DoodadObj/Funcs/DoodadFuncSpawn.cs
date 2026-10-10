@@ -1,7 +1,10 @@
-using AAEmu.Game.Core.Managers.UnitManagers;
+﻿using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Effects.Enums;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils;
@@ -87,6 +90,14 @@ public class DoodadFuncSpawn : DoodadFuncTemplate
         {
             WorldIntegration.DeleteNpcMirror(npc, false);
             return;
+        }
+
+        if (SummonCompanionRules.ShouldFollowSummoner(
+                caster is Character, (MateState)MateStateId, UseSummonerFaction)
+            && caster is Character followOwner)
+        {
+            WorldIntegration.RelayQuestNpcAiToZone?.Invoke(
+                (int)NpcControlCategory.FollowUnit, npc.ObjId, followOwner.ObjId, null, 0, 0);
         }
 
         owner.ToNextPhase = true;

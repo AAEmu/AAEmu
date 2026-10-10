@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// One landing for every teleport. Open-world hops (same live world, including a 133↔183 city
 /// split) move the character and restream the neighbourhood. Crossing into a dungeon / system
 /// instance goes through that copy so its own units stream. The client answers a real instance
-/// load with CSInstanceLoaded — the only packet that clears DisabledSetPosition.
+/// load with CSInstanceLoaded (overworld) or the dungeon re-entry check (a copy).
 /// </summary>
 public static class SkillTeleportLanding
 {

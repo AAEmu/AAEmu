@@ -33,7 +33,10 @@ public interface ISquadManager : IInitializable
     /// <summary>Matchmaking could not seat this member. Clears their queue and un-readies them.</summary>
     void NotifyMatchRejected(Character character);
     void SetPresence(Character character, bool online);
-    /// <summary>After login, deliver a missed disband and clear queue UI when there is no current squad.</summary>
+    /// <summary>
+    /// After a load, deliver a missed disband and clear the queue UI when there is no current squad.
+    /// The queue clear is skipped inside an instance, where the client is already playing its enter.
+    /// </summary>
     void SyncClientSquadAfterLogin(Character character);
 }
 
@@ -258,6 +261,7 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
     /// <summary>
     /// After character load, replay a real disband missed while unavailable, then clear queue UI.
     /// A missing squad alone is not a disband event: SCDisbandSquad also emits "team disbanded".
+    /// The queue clear is skipped inside an instance, where the load is not a login.
     /// </summary>
     public void SyncClientSquadAfterLogin(Character character)
     {
@@ -274,7 +278,17 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
             // Serialize with Join/Create/Disband so a new squad cannot be cleared between checks and send.
             if (missedDisband)
                 character.SendPacket(new SCDisbandSquadPacket());
-            character.SendPacket(SCCancelInstantGamePacket.ClearQueue());
+
+            // A queue-clear cancel resets the client's instant-game manager. Entering an instance
+            // already handed it SCInstantGameReentry (playing state), and this runs on the instance
+            // load too (CSNotifyInGameCompleted), so clearing here dropped it back to standby for the
+            // whole run. Only the open world has a queue to clear: the default world instance, or a
+            // transform that was never placed in one at all.
+            var instanceId = character.Transform?.InstanceId;
+            if (instanceId is null ||
+                instanceId == WorldManager.DefaultInstanceId ||
+                instanceId == AAEmu.Game.Models.Game.World.Transform.Transform.NoInstanceId)
+                character.SendPacket(SCCancelInstantGamePacket.ClearQueue());
         }
     }
 

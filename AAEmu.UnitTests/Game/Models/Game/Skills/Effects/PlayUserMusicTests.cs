@@ -375,6 +375,7 @@ public class PlayUserMusicTests : IDisposable
         public void RemoveAllEffects() => _active.Clear();
         public void RemoveBuffs(BuffKind kind, int count, uint buffTagId = 0) => throw new NotSupportedException();
         public void RemoveBuffs(uint buffTagId, int count) => throw new NotSupportedException();
+        public void RemoveTaggedApplications(uint buffTagId, int applications) => throw new NotSupportedException();
         public void RemoveEffect(Buff buff) => throw new NotSupportedException();
         public void RemoveEffect(uint index, bool notifyZone = true) => throw new NotSupportedException();
         public void RemoveEffect(uint templateId, uint skillId) => throw new NotSupportedException();

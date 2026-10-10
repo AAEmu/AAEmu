@@ -31,6 +31,25 @@ public static class BuffStackRules
         maxStack > 1 && currentStack < maxStack;
 
     /// <summary>
+    /// What a removal of <paramref name="applications"/> does to one instance carrying
+    /// <paramref name="instanceStack"/>: how many it takes, and whether the instance ends with it.
+    /// </summary>
+    /// <remarks>
+    /// An accumulating family is one instance with a count, so "take one application" must lower the count
+    /// rather than end the instance — 저승의 밤 spends one 영혼의 힘 (24243) per summon, and ending the
+    /// instance threw away every stack the hub had gathered. Stack 0 is read as one application.
+    /// </remarks>
+    public static (int Taken, bool Ends) TakeApplications(int instanceStack, int applications)
+    {
+        if (applications <= 0)
+            return (0, false);
+
+        var have = Math.Max(1, instanceStack);
+        var taken = Math.Min(have, applications);
+        return (taken, taken >= have);
+    }
+
+    /// <summary>
     /// A family with <paramref name="transformBuffId"/> replaces itself once the live count
     /// reaches the ceiling (tension 5793 → line-broken 5794 at 20).
     /// </summary>
