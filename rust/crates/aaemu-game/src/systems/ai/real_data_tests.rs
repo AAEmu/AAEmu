@@ -88,7 +88,7 @@ fn real_ai_every_bai_file_parses() {
         e.0 += 1;
         if let Ok(dump) = std::env::var("AAEMU_BAI_DUMP") {
             // keep the area files (failing and parsing ones) for the C# differential harness
-            if kind == "areas" && (e.0 % 50 == 0 || res.is_err()) {
+            if kind == "areas" && (e.0.is_multiple_of(50) || res.is_err()) {
                 let out = PathBuf::from(dump).join(n.replace('/', "__"));
                 let _ = std::fs::write(out, &data);
             }
