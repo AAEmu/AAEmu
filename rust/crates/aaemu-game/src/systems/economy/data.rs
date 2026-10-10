@@ -22,6 +22,10 @@ pub struct Expand {
 pub struct Data {
     /// `CharacterManager._expands` (by step, rows in table order).
     pub expands: BTreeMap<i32, Vec<Expand>>,
+    /// Crafting tables.
+    pub craft: super::craft_data::CraftData,
+    /// Store / specialty / taxation / expert / item-look tables.
+    pub store: super::store_data::StoreData,
 }
 
 impl Data {
@@ -40,6 +44,8 @@ impl Data {
             data.expands.entry(e.step).or_default().push(e);
             Ok(())
         })?;
+        data.craft = super::craft_data::CraftData::load(ctx)?;
+        data.store = super::store_data::StoreData::load(ctx)?;
         Ok(data)
     }
 

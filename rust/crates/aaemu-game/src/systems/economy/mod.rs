@@ -14,6 +14,10 @@
 //! * [`hooks`] — what the economy needs from other subsystems (quests, gear bonuses, NPC shop
 //!   flags, slaves / mates); installed into `server.systems.economy.hooks` by their owners.
 
+pub mod craft;
+pub mod craft_data;
+#[cfg(test)]
+mod craft_store_tests;
 pub mod data;
 pub mod error_message;
 pub mod fx;
@@ -21,6 +25,9 @@ pub mod hooks;
 pub mod inventory;
 pub mod item_handlers;
 pub mod item_packets;
+pub mod specialty;
+pub mod store;
+pub mod store_data;
 #[cfg(test)]
 pub(crate) mod tests;
 
@@ -42,6 +49,12 @@ pub struct System {
     ops: Mutex<()>,
     /// `Inventory.PreviousBackPackItemId` by character id (glider re-equip after a trade pack).
     previous_backpack: Mutex<HashMap<u32, u64>>,
+    /// `CharacterCraft` of every character.
+    pub craft: craft::CraftManager,
+    /// Store state (`Character.BuyBackItems`) and its hooks.
+    pub store: store::StoreManager,
+    /// `SpecialtyManager` (trade pack ratios).
+    pub specialty: specialty::SpecialtyManager,
 }
 
 impl System {
@@ -70,7 +83,8 @@ impl System {
     }
 
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
-    pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
+    pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        specialty::initialize(server);
         Ok(())
     }
 
@@ -89,4 +103,7 @@ impl System {
 /// Registers this subsystem's C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
     item_handlers::register(reg);
+    craft::register(reg);
+    store::register(reg);
+    specialty::register(reg);
 }
