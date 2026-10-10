@@ -63,6 +63,8 @@ mod tests {
     fn no_duplicate_registrations() {
         let r = super::build_registry();
         assert!(r.duplicates().is_empty(), "{:?}", r.duplicates());
-        assert_eq!(r.len(), 13 + 22);
+        let mut systems = crate::net::registry::PacketRegistry::new();
+        crate::systems::register_packets(&mut systems);
+        assert_eq!(r.len(), 13 + 22 + systems.len());
     }
 }

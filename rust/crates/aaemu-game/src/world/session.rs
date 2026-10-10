@@ -557,6 +557,7 @@ pub fn select_loaded(
         live.restore_saved_hp_mp(&data.formulas);
         live.breath = 60_000; // LungCapacity
     }
+    crate::systems::skills::on_character_loaded(server, &player); // buffs, gear bonuses, exact MaxHp/MaxMp
     let zone = player.data().unit.transform.zone_id;
     on_zone_change(server, &player, 0, zone);
     Ok(())

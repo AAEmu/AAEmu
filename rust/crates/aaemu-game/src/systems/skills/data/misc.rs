@@ -329,7 +329,8 @@ mod tests {
     fn g_file_parsing() {
         let text = "\"nuian_male\"\r\n    attack_1\r\n        total_time 1200\r\n        combat_sync_time 400\r\n\"elf_female\"\r\n    attack_1\r\n        total_time 1\r\n";
         let s = parse_g_file(text).unwrap();
-        assert_eq!(s.len(), 2);
+        // the trailing CRLF opens an empty section, as in the C#
+        assert_eq!(s.len(), 3);
         assert_eq!(s[0].0, "nuian_male");
         assert_eq!(s[0].1, vec![("attack_1".to_string(), 1200, 400)]);
         assert!(parse_g_file("\"a\"\r\n  bad").is_none());
