@@ -2,17 +2,17 @@
 //!
 //! [`unproject_cyl_cyl`] moves cylinder A along `dir` (or, with `|dir|² < 0.5`, along the
 //! least-penetration direction it chooses and writes back) until it stops overlapping cylinder B.
-//! It is a separating-axis style search over five families of feature pairs; every candidate
+//! It is a separating-axis style search over four families of feature pairs; every candidate
 //! gives a depth as a ratio `num / den` (`t_num` / `t_den`, initially `tmax / 1` in
 //! least-penetration mode, `0 / 1` with a direction) and the best candidate is kept branch-free
 //! (`x·(1−sel) + y·sel`). The winning family is encoded in `best` (initially −1):
 //!
 //! | phase | candidates | `best` | result (`switch (best & 0xC0)`) |
 //! |---|---|---|---|
-//! | 1 | cap face of cylinder *k* vs the other's rim (needs both features ≠ 0x43) | `k` | 0: pt on the rim of *k*, n = ±axis of the other, features `0x20|·` / `0x40|·` |
-//! | 2 | cap rim of *i* (j = ±1) vs the side of the other; a 1024-step quarter-wave table bisection (and in directed mode a cubic discriminant bisection) finds the rim point | `2i | 0x40 | (j+1)/2` | 0x40 |
+//! | 1 | cap face of cylinder *k* vs the other's rim (needs both features ≠ 0x43) | `k` | 0: pt on the rim of *k*, n = ±axis of the other, features `0x20 + ·` / `0x40 + ·` |
+//! | 2 | cap rim of *i* (j = ±1) vs the side of the other; a 1024-step quarter-wave table bisection (and in directed mode a cubic discriminant bisection) finds the rim point | `2i + 0x40 + (j+1)/2` | 0x40: pt on the rim, n from the other's axis line |
 //! | 3 | side vs side along the axis cross product `n0` (two passes, the second shifted by `2(rA+rB)`) | `0xC0` | 0xC0: pt on B's axis line, n = ±n0, features 0x40/0x40 |
-//! | 4 | rim vs rim: a quartic in t (built from inline polynomial products) solved with the `poly` group's root finders 0x3514A2E0 / 0x35149170 | `0x80 | (jA+1) | (jB+1)/2` | 0x80 |
+//! | 4 | rim vs rim: a quartic in t (built from inline polynomial products) solved with the `poly` group's root finders 0x3514A2E0 / 0x35149170 | `0x80 + (jA+1) + (jB+1)/2` | 0x80: pt on both rims, n = cross of the rim tangents |
 //!
 //! Failure (`ret 0`): no candidate (`best == −1`), or in least-penetration mode the "deep" flag
 //! is set and `t > 0.1·min(rA, rB)`. On success the result `t` is `t_num / t_den` (0 if
@@ -33,8 +33,8 @@
 //! Original oddities mirrored (`Bug kept` at the sites): phase 1 always uses B's radius; in
 //! directed mode the phase-2 outputs `v917/v918` are cleared by every later (i, j) iteration that
 //! is not selected; the lp phase-2 table search keeps the last probed index, the directed one the
-//! low bound; the directed phase-4 branch accepts the largest root without the geometric checks;
-//! case 0x40 rounds several double products to float.
+//! low bound; the directed phase-4 branch accepts the largest root without the geometric checks.
+//! Feature 0x43 on either side disables phases 1 and 4 (and that side's rims in phase 2).
 
 use super::common::{
     as_cyl, le_or_nan_d, lt_or_nan, lt_or_nan_d, normalized, ucomisd_eq, DEC_MOD3, INC_MOD3,
@@ -99,15 +99,24 @@ fn area_slot(a: &mut ContactArea, i: usize) {
     }
 }
 
-/// Root finders of the `poly` group (sub_3514A2E0 / sub_35149170) on the 6-double polynomial
-/// `[denominator, c0, c1, c2, c3, c4]`.
+/// Root finders of the `poly` group on the polynomial `[denominator, c0, c1, c2, c3, c4]` as the
+/// binary builds it on the stack.
 mod solver {
-    // TEMPORARY until the poly group's solvers are merged.
-    pub fn has_roots(_p: &[f64; 6], _lo: f64, _hi: f64) -> i32 {
-        panic!("cyl_cyl: poly solver not merged yet")
+    use super::super::poly::{count_roots, find_roots, Poly4};
+
+    fn poly(p: &[f64; 6]) -> Poly4 {
+        Poly4 {
+            denom: p[0],
+            data: [p[1], p[2], p[3], p[4], p[5]],
+        }
     }
-    pub fn find_roots(_p: &[f64; 6], _lo: f64, _hi: f64, _roots: &mut [f64; 4]) -> i32 {
-        panic!("cyl_cyl: poly solver not merged yet")
+    /// sub_3514A2E0 (Sturm count in `[lo, hi]`).
+    pub fn has_roots(p: &[f64; 6], lo: f64, hi: f64) -> i32 {
+        count_roots(&poly(p), lo, hi)
+    }
+    /// sub_35149170 `(p, lo, hi, roots, 20, 4, false)`.
+    pub fn find_roots4(p: &[f64; 6], lo: f64, hi: f64, roots: &mut [f64; 4]) -> i32 {
+        find_roots(&poly(p), lo, hi, roots, 20)
     }
 }
 
@@ -148,10 +157,10 @@ struct St<'a> {
 
 #[derive(Clone, Copy, Default)]
 struct P4 {
-    u: [f64; 3],   // v899 (v358), v911 (v361), v913 (v360)
-    w: [f64; 3],   // v909 (v364), v895, v883 (v365)
-    bs: [f64; 3],  // v916, v914, v900
-    ar: f64,       // v896 = A.r
+    u: [f64; 3],  // v899 (v358), v911 (v361), v913 (v360)
+    w: [f64; 3],  // v909 (v364), v895, v883 (v365)
+    bs: [f64; 3], // v916, v914, v900
+    ar: f64,      // v896 = A.r
 }
 
 impl St<'_> {
@@ -183,7 +192,7 @@ pub fn unproject_cyl_cyl(
 ) -> i32 {
     let dl2 = (p.dir.x * p.dir.x + p.dir.y * p.dir.y) + p.dir.z * p.dir.z;
     let feat_ok = [feature_ok(fa), feature_ok(fb)];
-    let lp = !(dl2 >= 0.5);
+    let lp = lt_or_nan(dl2, 0.5); // comiss/jae: NaN also selects least penetration
     let ax = a.axis;
     let bx = b.axis;
     let cos_ab = d((ax.x * bx.x + ax.y * bx.y) + ax.z * bx.z);
@@ -200,8 +209,8 @@ pub fn unproject_cyl_cyl(
         n0 = [cx * inv, cy * inv, cz * inv];
     } else {
         // a vector perpendicular to A's axis (drop the component picked by the 0.81 test)
-        let t = ((ax.y * ax.y + ax.x * ax.x) + ax.z * ax.z) * f32::from_bits(0x3F4F_5C28)
-            - ax.x * ax.x;
+        let t =
+            ((ax.y * ax.y + ax.x * ax.x) + ax.z * ax.z) * f32::from_bits(0x3F4F_5C28) - ax.x * ax.x;
         let idx = (t.to_bits() >> 31) as usize;
         let i1 = INC_MOD3[idx] as usize;
         let i2 = DEC_MOD3[idx] as usize;
@@ -302,11 +311,13 @@ fn phase_caps(s: &mut St, p: &UnprojParams) {
         let w_y = dv[1] * fk; // v879
         let w_x = dv[0] * fk; // v883
         let w_z = dv[2] * fk; // v881
-        let mut h = d(((u[0] as f32) * c.axis.x + (u[1] as f32) * c.axis.y)
-            + (u[2] as f32) * c.axis.z);
+        let mut h =
+            d(((u[0] as f32) * c.axis.x + (u[1] as f32) * c.axis.y) + (u[2] as f32) * c.axis.z);
         if lt_or_nan_d(h.abs(), d(0.001)) {
-            h = d(((c.center.x - o.center.x) * c.axis.x + (c.center.y - o.center.y) * c.axis.y)
-                + (c.center.z - o.center.z) * c.axis.z);
+            h = d(
+                ((c.center.x - o.center.x) * c.axis.x + (c.center.y - o.center.y) * c.axis.y)
+                    + (c.center.z - o.center.z) * c.axis.z,
+            );
         }
         let sc = (-sgnnz(h as f32)) as f32;
         let cn = [d(c.axis.x * sc), d(c.axis.y * sc), d(c.axis.z * sc)]; // v940..
@@ -435,7 +446,8 @@ fn phase_rims(s: &mut St, p: &UnprojParams) {
                     let p2 = d(c.axis.y * jh2);
                     let p3 = d(c.axis.z * jh2);
                     let lhs = (dy * dy + dx * dx) + dz * dz;
-                    let rhs = ((p2 + dy) * (p2 + dy) + (p1 + dx) * (p1 + dx)) + (p3 + dz) * (p3 + dz);
+                    let rhs =
+                        ((p2 + dy) * (p2 + dy) + (p1 + dx) * (p1 + dx)) + (p3 + dz) * (p3 + dz);
                     if lhs > rhs {
                         continue;
                     }
@@ -518,7 +530,11 @@ fn phase_rims(s: &mut St, p: &UnprojParams) {
 
 /// Phase 2, directed mode: find the travel at which the rim point (circle offset found by
 /// bisections) leaves the other's side, for one rim (`code`).
-#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+#[allow(
+    clippy::too_many_arguments,
+    clippy::too_many_lines,
+    clippy::needless_range_loop
+)]
 fn rim_directed(
     s: &mut St,
     p: &UnprojParams,
@@ -540,7 +556,7 @@ fn rim_directed(
     let [dx, dy, dz] = dxyz;
     let tm = d(p.tmax);
     let mut found = false; // v196
-    // Bug kept: cleared on every (i, j) of the directed search, also after a selection.
+                           // Bug kept: cleared on every (i, j) of the directed search, also after a selection.
     s.v917 = 0.0;
     s.v918 = 0.0;
     let v198 = (dd[1] * n0[1] + dd[0] * n0[0]) + dd[2] * n0[2];
@@ -558,7 +574,7 @@ fn rim_directed(
     } else {
         let mut x = [0.0f64; 8]; // v956..v963
         let k0;
-        if !(acos > d(0.003)) {
+        if le_or_nan_d(acos, d(0.003)) {
             x[5] = 0.0;
             x[7] = 0.0;
             k0 = 1;
@@ -648,12 +664,11 @@ fn rim_directed(
             lim[k] = v225;
         }
     }
-    let mid_t;
-    if !(acos > d(0.003)) {
+    let mid_t = if le_or_nan_d(acos, d(0.003)) {
         if !found {
             return;
         }
-        mid_t = (lim[1] + lim[1]) * 0.5;
+        (lim[1] + lim[1]) * 0.5
     } else {
         let cos2 = s.cos_ab * s.cos_ab;
         let v249 = cos2 + 1.0;
@@ -683,8 +698,8 @@ fn rim_directed(
             let m = (lim[1] + lim[0]) * 0.5;
             lim[isneg(f(m) as f32) as usize] = m;
         }
-        mid_t = (lim[1] + lim[0]) * 0.5;
-    }
+        (lim[1] + lim[0]) * 0.5
+    };
     // L83: the rim angle at mid_t by table bisection
     let v276 = v147 + v199 * mid_t;
     let v277 = v146 + v198 * mid_t;
@@ -714,9 +729,12 @@ fn rim_directed(
     let v956 = d(s282 as f32 * tab[(1024 - lo) as usize]) * cr;
     let v957 = d(s281 as f32 * tab[lo as usize]) * cr;
     let v292 = (f64::from(sgnnz(s.cos_ab as f32)) * v957) as f32;
-    let px = ((dx + dd[0] * mid_t) - n0[0] * v956) - d((nf[2] * c.axis.y - nf[1] * c.axis.z) * v292);
-    let py = ((dd[1] * mid_t + dy) - n0[1] * v956) - d((c.axis.z * nf[0] - nf[2] * c.axis.x) * v292);
-    let pz = ((dd[2] * mid_t + dz) - n0[2] * v956) - d((nf[1] * c.axis.x - c.axis.y * nf[0]) * v292);
+    let px =
+        ((dx + dd[0] * mid_t) - n0[0] * v956) - d((nf[2] * c.axis.y - nf[1] * c.axis.z) * v292);
+    let py =
+        ((dd[1] * mid_t + dy) - n0[1] * v956) - d((c.axis.z * nf[0] - nf[2] * c.axis.x) * v292);
+    let pz =
+        ((dd[2] * mid_t + dz) - n0[2] * v956) - d((nf[1] * c.axis.x - c.axis.y * nf[0]) * v292);
     let v293 = (((d(o.axis.y) * py + d(o.axis.x) * px) + d(o.axis.z) * pz).abs() - d(o.hh)) as f32;
     let v294 = (s.t_num - s.t_den * mid_t) as f32;
     let sel = isneg(v293) & isneg(v294);
@@ -892,7 +910,7 @@ fn phase_rim_rim(s: &mut St, p: &UnprojParams) {
                 continue;
             }
             let mut roots = [0.0f64; 4];
-            let n = solver::find_roots(&coef, 0.0, tm, &mut roots);
+            let n = solver::find_roots4(&coef, 0.0, tm, &mut roots);
             if n == 0 {
                 continue;
             }
@@ -946,8 +964,8 @@ fn result_cap(s: &St, p: &UnprojParams, t: f64, out: &mut UnprojResult) {
     let k = s.best as usize;
     let c = s.c[k];
     let o = s.c[k ^ 1];
-    let sg = (1 - 2 * s.best)
-        * sgnnz((p.dir.y * o.axis.y + p.dir.x * o.axis.x) + p.dir.z * o.axis.z);
+    let sg =
+        (1 - 2 * s.best) * sgnnz((p.dir.y * o.axis.y + p.dir.x * o.axis.x) + p.dir.z * o.axis.z);
     let sf = sg as f32;
     let u = [o.axis.x * sf, o.axis.y * sf, o.axis.z * sf]; // v943..
     let mut h = (u[1] * c.axis.y + c.axis.x * u[0]) + u[2] * c.axis.z;
@@ -1039,7 +1057,8 @@ fn result_rim_rim(s: &St, p: &UnprojParams, t: f64, out: &mut UnprojResult) {
         d(b.axis.z * bh + b.center.z),
     ];
     let p4 = s.p4;
-    let v489 = ((pa[1] - qb[1]) * p4.bs[1] + (pa[0] - qb[0]) * p4.bs[0]) + (pa[2] - qb[2]) * p4.bs[2];
+    let v489 =
+        ((pa[1] - qb[1]) * p4.bs[1] + (pa[0] - qb[0]) * p4.bs[0]) + (pa[2] - qb[2]) * p4.bs[2];
     let mut pt = Vec3::new(
         (p4.u[0] * v489 + pa[0]) as f32,
         (p4.u[1] * v489 + pa[1]) as f32,
@@ -1102,7 +1121,11 @@ fn result_side_side(s: &St, p: &UnprojParams, t: f64, out: &mut UnprojResult) {
     let h = (n0[1] * d(b.center.y - a.center.y) + d(b.center.x - a.center.x) * n0[0])
         + n0[2] * d(b.center.z - a.center.z);
     let sg = f64::from(sgnnz(h as f32));
-    let n = Vec3::new((sg * n0[0]) as f32, (sg * n0[1]) as f32, (sg * n0[2]) as f32);
+    let n = Vec3::new(
+        (sg * n0[0]) as f32,
+        (sg * n0[1]) as f32,
+        (sg * n0[2]) as f32,
+    );
     let r = b.r;
     pt.x -= n.x * r;
     pt.y -= n.y * r;
@@ -1129,7 +1152,7 @@ fn contact_area(s: &St, p: &UnprojParams, out: &mut UnprojResult, ar: &mut Conta
         // parallel caps
         let hd = (((d(a.axis.x) * dv[0] + d(a.axis.y) * dv[1]) + d(a.axis.z) * dv[2]).abs()
             - d(b.hh + a.hh))
-            .abs();
+        .abs();
         let thr = d((min_idiom(a.hh, b.hh) * 0.05) * s.both_ok as f32);
         if lt_or_nan_d(hd, thr) {
             if area_caps(s, p, out, ar, dv) {
@@ -1378,13 +1401,7 @@ fn area_caps(
 }
 
 /// Parallel sides: the cap-edge points of each cylinder that lie within the other's height.
-fn area_sides(
-    s: &St,
-    p: &UnprojParams,
-    out: &UnprojResult,
-    ar: &mut ContactArea,
-    dv: [f64; 3],
-) {
+fn area_sides(s: &St, p: &UnprojParams, out: &UnprojResult, ar: &mut ContactArea, dv: [f64; 3]) {
     let a = s.c[0];
     let hf = ((dv[0] * d(a.axis.x) + d(a.axis.y) * dv[1]) + d(a.axis.z) * dv[2]) as f32;
     let x = (d(a.axis.x * hf) - dv[0]) as f32;
@@ -1493,7 +1510,12 @@ fn cell_cyl_cyl(
 
 /// Fill the cells this group owns: `[0][cyl][cyl]`.
 pub fn fill(t: &mut UnprojTables) {
-    t.set(MODE_LINEAR, GeomType::Cylinder, GeomType::Cylinder, cell_cyl_cyl);
+    t.set(
+        MODE_LINEAR,
+        GeomType::Cylinder,
+        GeomType::Cylinder,
+        cell_cyl_cyl,
+    );
 }
 
 #[cfg(test)]
@@ -1510,6 +1532,34 @@ mod tests {
         assert_eq!(sign0(-0.0), 0);
         assert_eq!(sign0(2.0), 1);
         assert_eq!(sign0(-2.0), -1);
+    }
+
+    #[test]
+    fn crossing_sides_least_penetration() {
+        // A along z, B along x one unit above it on y: the sides overlap by 0.5 along y
+        let a = CylinderPrim {
+            center: Vec3::ZERO,
+            axis: Vec3::Z,
+            r: 1.0,
+            hh: 2.0,
+        };
+        let b = CylinderPrim {
+            center: Vec3::new(0.0, 1.5, 0.0),
+            axis: Vec3::X,
+            r: 1.0,
+            hh: 2.0,
+        };
+        let mut p = UnprojParams {
+            tmax: 1e10,
+            ..UnprojParams::default()
+        };
+        let mut out = UnprojResult::default();
+        assert_eq!(unproject_cyl_cyl(&mut p, &a, -1, &b, -1, &mut out, None), 1);
+        assert_eq!(out.t, 0.5);
+        assert_eq!(p.dir, Vec3::new(0.0, -1.0, 0.0));
+        assert_eq!(out.pt, Vec3::new(0.0, 0.5, 0.0));
+        assert_eq!(out.n, Vec3::new(0.0, 1.0, 0.0));
+        assert_eq!(out.i_feature, [0x40, 0x40]);
     }
 
     #[test]

@@ -13,14 +13,22 @@ fn add(a: Vec3, b: Vec3, s: f32) -> Vec3 {
 }
 
 fn quantv(rng: &mut Rng, lo: f32, hi: f32, step: f32) -> Vec3 {
-    Vec3::new(rng.quant(lo, hi, step), rng.quant(lo, hi, step), rng.quant(lo, hi, step))
+    Vec3::new(
+        rng.quant(lo, hi, step),
+        rng.quant(lo, hi, step),
+        rng.quant(lo, hi, step),
+    )
 }
 
 /// A unit vector perpendicular to `a` (float-normalised).
 fn perp(rng: &mut Rng, a: Vec3) -> Vec3 {
     loop {
         let v = rng.unit_or_axis(0.4);
-        let c = Vec3::new(a.y * v.z - a.z * v.y, a.z * v.x - a.x * v.z, a.x * v.y - a.y * v.x);
+        let c = Vec3::new(
+            a.y * v.z - a.z * v.y,
+            a.z * v.x - a.x * v.z,
+            a.x * v.y - a.y * v.x,
+        );
         let l2 = c.x * c.x + c.y * c.y + c.z * c.z;
         if l2 > 0.01 {
             let inv = 1.0 / l2.sqrt();
@@ -51,7 +59,11 @@ fn gen_case(rng: &mut Rng, parallel: u32) -> Case {
     let ra = radius(rng);
     let rb = if rng.chance(0.15) { ra } else { radius(rng) };
     let ha = half_height(rng);
-    let hb = if rng.chance(0.15) { ha } else { half_height(rng) };
+    let hb = if rng.chance(0.15) {
+        ha
+    } else {
+        half_height(rng)
+    };
     let quant = rng.chance(0.3);
     let ca = if quant {
         quantv(rng, -10.0, 10.0, 0.5)
@@ -89,7 +101,12 @@ fn gen_case(rng: &mut Rng, parallel: u32) -> Case {
         },
     };
     // relative placement
-    let reach = (ra + rb + ha + hb) * if rng.chance(0.7) { rng.f(0.0, 0.8) } else { rng.f(0.0, 1.3) };
+    let reach = (ra + rb + ha + hb)
+        * if rng.chance(0.7) {
+            rng.f(0.0, 0.8)
+        } else {
+            rng.f(0.0, 1.3)
+        };
     let off = match rng.below(6) {
         0 => add(Vec3::ZERO, axa, rng.f(-1.2, 1.2) * (ha + hb)), // coaxial / cap to cap
         1 => {
@@ -185,6 +202,76 @@ fn gen_lin(rng: &mut Rng) -> Case {
     gen_case(rng, par)
 }
 
+fn axis(rng: &mut Rng) -> Vec3 {
+    let s = if rng.chance(0.5) { 1.0 } else { -1.0 };
+    match rng.below(3) {
+        0 => Vec3::new(s, 0.0, 0.0),
+        1 => Vec3::new(0.0, s, 0.0),
+        _ => Vec3::new(0.0, 0.0, s),
+    }
+}
+
+/// Axis-aligned, quantised and degenerate configurations (exact zeros in the dot / cross
+/// products, coincident centres, zero sizes or axes).
+fn gen_degen(rng: &mut Rng) -> Case {
+    let prim = |rng: &mut Rng, c: Vec3| {
+        let ax = match rng.below(12) {
+            0 => Vec3::ZERO,
+            1 => rng.unit(),
+            _ => axis(rng),
+        };
+        let r = match rng.below(10) {
+            0 => 0.0,
+            _ => rng.quant(0.25, 2.0, 0.25),
+        };
+        let hh = match rng.below(10) {
+            0 => 0.0,
+            _ => rng.quant(0.25, 3.0, 0.25),
+        };
+        CylinderPrim {
+            center: c,
+            axis: ax,
+            r,
+            hh,
+        }
+    };
+    let ca = quantv(rng, -2.0, 2.0, 0.25);
+    let cb = if rng.chance(0.2) {
+        ca
+    } else {
+        add(ca, quantv(rng, -3.0, 3.0, 0.25), 1.0)
+    };
+    let a = prim(rng, ca);
+    let b = prim(rng, cb);
+    let mut p = UnprojParams::default();
+    match rng.below(4) {
+        0 | 1 => {}
+        2 => p.dir = axis(rng),
+        _ => {
+            let v = quantv(rng, -1.0, 1.0, 0.5);
+            p.dir = Vec3::new(v.x * 2.0, v.y * 2.0, v.z * 2.0);
+        }
+    }
+    p.tmax = if rng.chance(0.5) {
+        1e10
+    } else {
+        rng.quant(0.0, 8.0, 0.5)
+    };
+    p.min_pt_dist = 0.01;
+    p.max_cos = if rng.chance(0.5) { 0.1 } else { 0.9998 };
+    let c = Case::new(0, &Primitive::Cylinder(a), &Primitive::Cylinder(b), &p);
+    let c = match rng.below(10) {
+        0 => c.with_features(0x43, -1),
+        1 => c.with_features(-1, 0x43),
+        _ => c,
+    };
+    match rng.below(3) {
+        0 => c.with_area(256, 0.01),
+        1 => c.with_area(1 + rng.below(4), 0.01),
+        _ => c,
+    }
+}
+
 #[test]
 fn cyl_cyl_nopoly_matches_dll() {
     check("p2b_cyl_cyl_nopoly", 300, &gen_nopoly);
@@ -193,6 +280,29 @@ fn cyl_cyl_nopoly_matches_dll() {
 #[test]
 fn cyl_cyl_linear_matches_dll() {
     check("p2b_cyl_cyl_lin", 300, &gen_lin);
+}
+
+#[test]
+fn cyl_cyl_degenerate_matches_dll() {
+    check("p2b_cyl_cyl_degen", 300, &gen_degen);
+}
+
+/// The quarter-wave table `dword_3537B450` (built at DLL load by sub_351E5900) against the port.
+#[test]
+fn sin_table_matches_dll() {
+    use aaemu_physics::collision::swept::cyl_cyl::sin_table;
+    use aaemu_physics::collision::swept::probe::oracle_raw;
+    let Some(exe) = std::env::var_os("AAEMU_PHYS_ORACLE") else {
+        return;
+    };
+    let ans = oracle_raw(std::path::Path::new(&exe), &["CCSIN".to_string()]).unwrap();
+    let words: Vec<u32> = ans[0]
+        .split_whitespace()
+        .skip(1)
+        .map(|w| u32::from_str_radix(w, 16).unwrap())
+        .collect();
+    let port: Vec<u32> = sin_table().iter().map(|v| v.to_bits()).collect();
+    assert_eq!(words, port);
 }
 
 /// Distribution of results over `AAEMU_PHYS_P2B_LIVE` (default 2000) oracle cases per generator
@@ -212,6 +322,7 @@ fn cyl_cyl_stats() {
     for (name, gen) in [
         ("nopoly", gen_nopoly as fn(&mut Rng) -> Case),
         ("lin", gen_lin),
+        ("degen", gen_degen),
     ] {
         let mut rng = Rng::new(seed_of(name) ^ 0x1234);
         let cases: Vec<Case> = (0..n).map(|_| gen(&mut rng)).collect();
