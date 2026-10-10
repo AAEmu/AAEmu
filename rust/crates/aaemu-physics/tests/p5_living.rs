@@ -54,3 +54,4 @@ golden!(living_terrain, "p5_living_terrain");
 golden!(living_bumps, "p5_living_bumps");
 golden!(living_mesh, "p5_living_mesh");
 golden!(living_pair, "p5_living_pair");
+golden!(living_net, "p5_living_net");
