@@ -145,6 +145,7 @@ pub fn blink(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     if let Some(p) = caster.as_player() {
         let mut new_pos = world_pos(server, &Target::Obj(caster.clone()));
         add_distance_to_front(&mut new_pos, v[0] as f32);
+        blink_end(server, caster, &mut new_pos);
         server
             .systems
             .skills
@@ -162,6 +163,7 @@ pub fn blink(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     } else if let Some(npc) = caster.as_npc() {
         let mut new_pos = world_pos(server, &Target::Obj(caster.clone()));
         add_distance_to_front(&mut new_pos, v[0] as f32);
+        blink_end(server, caster, &mut new_pos);
         move_npc(
             server,
             npc,
@@ -169,6 +171,34 @@ pub fn blink(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
             Some((v[0] as f32, v[1] as f32)),
             false,
         );
+    }
+}
+
+/// `WZBlinkUnit` (x2game 0x39369B10 → `GetBlinkPosition` 0x3925E670): the zone sweeps the
+/// unit's collider from its position towards the blink target against the terrain
+/// (`entTypes 256`), stopping 0.1 m before a contact and stepping down 30° slopes. Without the
+/// collision service the target is kept (C#).
+fn blink_end(server: &GameServer, unit: &WorldObject, target: &mut PositionAndRotation) {
+    let from = world_pos(server, &Target::Obj(unit.clone()));
+    let dir = [target.x - from.x, target.y - from.y, target.z - from.z];
+    let dist = (dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]).sqrt();
+    if dist <= 0.0 {
+        return;
+    }
+    let instance_id = unit.transform().instance_id;
+    if let Some(p) = crate::systems::ai::collision::displacement::blink_position(
+        server,
+        instance_id,
+        [from.x, from.y, from.z],
+        dir,
+        dist,
+        false,
+        crate::systems::ai::collision::displacement::ENT_TYPES_BLINK_UNIT,
+        false,
+    ) {
+        target.x = p[0];
+        target.y = p[1];
+        target.z = p[2];
     }
 }
 
@@ -202,6 +232,15 @@ pub fn teleport_to_unit(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4])
     let Some(caster) = &args.caster else {
         return;
     };
+    // the ground at the end point (collision service; else the target's z as in C#)
+    let end_z = crate::systems::ai::collision::ground_height_or(
+        server,
+        caster.transform().instance_id,
+        end_x,
+        end_y,
+        target_position.z,
+        || target_position.z,
+    );
     if let Some(p) = caster.as_player() {
         p.send(SCBlinkUnitPacket {
             obj_id: caster.obj_id(),
@@ -209,16 +248,10 @@ pub fn teleport_to_unit(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4])
             degree: 0.0,
             x: end_x,
             y: end_y,
-            z: target_position.z,
+            z: end_z,
         });
     } else if let Some(npc) = caster.as_npc() {
-        move_npc(
-            server,
-            npc,
-            (end_x, end_y, target_position.z),
-            Some((0.0, 0.0)),
-            false,
-        );
+        move_npc(server, npc, (end_x, end_y, end_z), Some((0.0, 0.0)), false);
     }
 }
 
@@ -280,13 +313,23 @@ pub fn knock_back(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     }
     let len = (dir.0 * dir.0 + dir.1 * dir.1).sqrt();
     let dir = (dir.0 / len, dir.1 / len);
-    let end = (
+    let mut end = (
         target_pos.x + dir.0 * knock_dist,
         target_pos.y + dir.1 * knock_dist,
         target_pos.z + v[2] as f32 / 1000.0,
     );
     if target.as_player().is_some() {
         return;
+    }
+    // the zone pushes the unit's physics (WZKnockBackUnit 0x39258BB0): it stops at walls and
+    // lands on the ground — `GetBlinkPosition` along the push (collision service)
+    if let Some(p) = crate::systems::ai::collision::displacement::clip_move(
+        server,
+        target.transform().instance_id,
+        [target_pos.x, target_pos.y, target_pos.z],
+        [end.0, end.1, target_pos.z],
+    ) {
+        end = (p[0], p[1], p[2]);
     }
     if let Some(npc) = target.as_npc() {
         move_npc(server, npc, end, None, true);

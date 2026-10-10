@@ -426,7 +426,14 @@ fn use_respawn(ctx: &DoodadCtx<'_>, player: &crate::world::PlayerRef) {
     pos.x += -pos.rot_z.sin();
     pos.y += pos.rot_z.cos();
     // C#: GeoData.GetHeight (exception when outside the map; the old height is kept here)
-    if let Ok(h) = crate::systems::npcs::heightmap::world_height(server, &ctx.world, pos.x, pos.y) {
+    // (collision service: the ground under the point, static + terrain)
+    if let Some(h) =
+        crate::systems::ai::collision::ground_height(server, ctx.world.id, pos.x, pos.y, pos.z)
+    {
+        pos.z = h;
+    } else if let Ok(h) =
+        crate::systems::npcs::heightmap::world_height(server, &ctx.world, pos.x, pos.y)
+    {
         pos.z = h;
     }
     let (template_id, obj_id) = (ctx.doodad.data().template_id, ctx.doodad.obj_id);

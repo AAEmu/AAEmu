@@ -26,6 +26,7 @@ pub mod cells;
 pub mod cgf;
 pub mod config;
 pub mod data;
+pub mod displacement;
 pub mod fall;
 pub mod models;
 pub mod move_verify;
@@ -388,6 +389,29 @@ pub fn ground_height(server: &GameServer, instance_id: u32, x: f32, y: f32, z: f
         Some(h) => Some(h),
         None => terrain_height(server, instance_id, x, y),
     }
+}
+
+/// [`ground_height`], or `fallback()` without the service (the previous heightmap answer).
+pub fn ground_height_or(
+    server: &GameServer,
+    instance_id: u32,
+    x: f32,
+    y: f32,
+    z: f32,
+    fallback: impl FnOnce() -> f32,
+) -> f32 {
+    ground_height(server, instance_id, x, y, z).unwrap_or_else(fallback)
+}
+
+/// [`terrain_height`] (`GetTerrainElevation`), or `fallback()` without the service.
+pub fn terrain_height_or(
+    server: &GameServer,
+    instance_id: u32,
+    x: f32,
+    y: f32,
+    fallback: impl FnOnce() -> f32,
+) -> f32 {
+    terrain_height(server, instance_id, x, y).unwrap_or_else(fallback)
 }
 
 /// How far above a unit's z the ground probe starts.

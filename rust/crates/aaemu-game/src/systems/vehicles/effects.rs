@@ -330,8 +330,11 @@ pub fn drop_carried_backpack(
             pos.x + rng.gen::<f32>() * 2.0 - 1.0,
             pos.y + rng.gen::<f32>() * 2.0 - 1.0,
         );
+        // the ground under the drop point (collision service: static + terrain)
         let floor =
-            crate::systems::npcs::heightmap::world_height(server, world, x, y).unwrap_or(0.0);
+            crate::systems::ai::collision::ground_height_or(server, world.id, x, y, pos.z, || {
+                crate::systems::npcs::heightmap::world_height(server, world, x, y).unwrap_or(0.0)
+            });
         let surface = super::ship_physics::water_surface(server, world, [x, y, pos.z]);
         let depth = surface - floor;
         let z = if depth < 30.0 {

@@ -273,11 +273,7 @@ pub fn blob_shares_render_mesh(blob: &[u8]) -> bool {
 /// A data stream: element count, element size, bytes.
 type Stream<'a> = (u32, u32, &'a [u8]);
 
-fn stream<'a>(
-    f: &CgfFile<'a>,
-    mesh: &[u8],
-    ty: usize,
-) -> Result<Option<Stream<'a>>, CgfError> {
+fn stream<'a>(f: &CgfFile<'a>, mesh: &[u8], ty: usize) -> Result<Option<Stream<'a>>, CgfError> {
     let id = i32_at(mesh, 28 + 4 * ty)?;
     if id <= 0 {
         return Ok(None);
