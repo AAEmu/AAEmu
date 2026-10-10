@@ -214,10 +214,10 @@ fn remove_required_items(
     // SubtractMoney(SlotType.Inventory, moneyOwed, ItemTaskType.Shipyard)
     character.data().money -= i64::from(money_owed);
     character.send(
-        crate::systems::social::packets::expedition::SCItemTaskSuccessMoneyPacket {
-            action: item_task::SHIPYARD,
-            money_change: -(money_owed as i32),
-        },
+        crate::systems::social::packets::expedition::item_task_money_packet(
+            item_task::SHIPYARD,
+            -(money_owed as i32),
+        ),
     );
     true
 }

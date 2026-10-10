@@ -19,6 +19,8 @@ struct State {
     /// Observers by subscription id (`IObserver<float>` of a character).
     observers: HashMap<u64, ConnectionHandle>,
     next_id: u64,
+    /// `!_work`.
+    stopped: bool,
 }
 
 /// `TimeManager`.
@@ -34,6 +36,7 @@ impl Default for TimeManager {
                 time: 12.0 * 3600.0,
                 observers: HashMap::new(),
                 next_id: 1,
+                stopped: false,
             })),
         }
     }
@@ -43,6 +46,16 @@ impl TimeManager {
     /// `GetTime` (hours).
     pub fn get_time(&self) -> f32 {
         self.state.lock().expect("time poisoned").time / 3600.0
+    }
+
+    /// `Get()`: the game time in seconds.
+    pub fn get(&self) -> f32 {
+        self.state.lock().expect("time poisoned").time
+    }
+
+    /// `Set(hours)`.
+    pub fn set(&self, hours: f32) {
+        self.state.lock().expect("time poisoned").time = hours * 3600.0;
     }
 
     /// `Subscribe(connection, observer)`: sends `SCDetailedTimeOfDayPacket` and registers the
@@ -88,13 +101,22 @@ impl TimeManager {
     /// `Start()`: the 10 s tick thread.
     pub fn start(&self) {
         let me = self.clone();
+        me.state.lock().expect("time poisoned").stopped = false;
         tokio::spawn(async move {
-            // C# loop: advance + push, then sleep 10 s.
+            // C# loop: advance + push, then sleep 10 s (`while (_work)`).
             let mut iv = tokio::time::interval(Duration::from_secs(10));
             loop {
                 iv.tick().await;
+                if me.state.lock().expect("time poisoned").stopped {
+                    break;
+                }
                 me.tick();
             }
         });
+    }
+
+    /// `Stop()`: ends the tick loop.
+    pub fn stop(&self) {
+        self.state.lock().expect("time poisoned").stopped = true;
     }
 }

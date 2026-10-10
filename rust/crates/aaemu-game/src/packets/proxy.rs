@@ -151,7 +151,7 @@ impl ClientPacket for FinishStatePacket {
                         immersive: 1,
                     });
                     conn.send(&SCInitialConfigPacket {
-                        fsets: server.game_data.features.clone(),
+                        fsets: server.systems.services.features(server),
                     });
                     conn.send(&SCTrionConfigPacket {
                         activate: true,
@@ -221,7 +221,7 @@ impl ClientPacket for PingPacket {
         conn: &'a mut GameConnection,
     ) -> BoxFuture<'a, Result<()>> {
         Box::pin(async move {
-            conn.last_ping = Instant::now();
+            conn.touch_ping();
             conn.send(&PongPacket {
                 tm: self.tm,
                 when: self.when,

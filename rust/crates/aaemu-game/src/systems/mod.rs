@@ -12,6 +12,7 @@
 //! | [`instances`] | IndunManager (dungeons), InstantGameManager (battlefields), tower defs, world instances |
 //! | [`housing`] | HousingManager, HousingGameData, house packets, taxes, house persistence |
 //! | [`vehicles`] | MateManager, SlaveManager, ShipyardManager, TransferManager (mounts, vehicles, ships, carriages) |
+//! | [`services`] | WebApi, Discord bot, Tick / Task managers, timed rewards, accounts, music, radar, sus, commands infrastructure, misc managers |
 //!
 //! Every subsystem module exposes the same five hooks (see `CONTRIBUTING-PORT.md`):
 //!
@@ -30,6 +31,7 @@ pub mod housing;
 pub mod instances;
 pub mod npcs;
 pub mod quests;
+pub mod services;
 pub mod skills;
 pub mod social;
 pub mod vehicles;
@@ -73,6 +75,7 @@ pub struct SystemsData {
     pub instances: instances::Data,
     pub housing: housing::Data,
     pub vehicles: vehicles::Data,
+    pub services: services::Data,
 }
 
 impl SystemsData {
@@ -87,6 +90,7 @@ impl SystemsData {
             instances: instances::Data::load(ctx)?,
             housing: housing::Data::load(ctx)?,
             vehicles: vehicles::Data::load(ctx)?,
+            services: services::Data::load(ctx)?,
         })
     }
 }
@@ -102,6 +106,7 @@ pub struct Systems {
     pub instances: instances::System,
     pub housing: housing::System,
     pub vehicles: vehicles::System,
+    pub services: services::System,
     /// Behaviour hooks shared code calls into (installed by the owning subsystem at start).
     pub hooks: Hooks,
 }
@@ -116,6 +121,7 @@ pub fn register_packets(reg: &mut PacketRegistry) {
     instances::register(reg);
     housing::register(reg);
     vehicles::register(reg);
+    services::register(reg);
 }
 
 /// Starts every subsystem after the phase-1/2 managers are up (`ManagerOrchestrator` order:
@@ -129,6 +135,7 @@ pub async fn start_all(server: &Arc<GameServer>) -> anyhow::Result<()> {
     instances::System::start(server).await?;
     housing::System::start(server).await?;
     vehicles::System::start(server).await?;
+    services::System::start(server).await?;
     Ok(())
 }
 
@@ -162,6 +169,7 @@ pub async fn save_stage(
     n += s.quests.save(server, tx, stage).await?;
     n += s.instances.save(server, tx, stage).await?;
     n += s.vehicles.save(server, tx, stage).await?;
+    n += s.services.save(server, tx, stage).await?;
     Ok(n)
 }
 

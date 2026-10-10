@@ -33,4 +33,8 @@ aes.workspace = true
 cbc.workspace = true
 roxmltree.workspace = true
 rand.workspace = true
+axum.workspace = true
+twilight-gateway.workspace = true
+twilight-http.workspace = true
+twilight-model.workspace = true
 

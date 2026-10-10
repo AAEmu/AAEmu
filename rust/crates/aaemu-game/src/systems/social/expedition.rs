@@ -649,10 +649,10 @@ pub async fn create_expedition(server: &GameServer, owner: &PlayerRef, name: &st
         }
         c.money -= cost;
     }
-    owner.send(SCItemTaskSuccessMoneyPacket {
-        action: ITEM_TASK_EXPEDITION_CREATION,
-        money_change: -cfg.create.cost,
-    });
+    owner.send(item_task_money_packet(
+        ITEM_TASK_EXPEDITION_CREATION,
+        -cfg.create.cost,
+    ));
     // -----------------
     let id = match server.ids.expedition.get_next_id() {
         Ok(id) => id,

@@ -178,35 +178,12 @@ sc_packet!(
     }
 );
 
-sc_packet!(
-    /// `SCTransferTelescopeToggledPacket(on, range)`.
-    SCTransferTelescopeToggledPacket { on: bool, range: f32 } |self, s| {
-        s.write_bool(self.on).write_f32(self.range);
-    }
-);
-
-/// One `Transfer.WriteTelescopeUnit` entry.
-#[derive(Debug, Clone, PartialEq)]
-pub struct TelescopeUnit {
-    pub obj_id: u32,
-    pub template_id: u32,
-    /// `Transform.World.Position`.
-    pub pos: (f32, f32, f32),
-    pub name: String,
-}
-
-sc_packet!(
-    /// `SCTransferTelescopeUnitsPacket(last, transfers)`.
-    SCTransferTelescopeUnitsPacket { last: bool, transfers: Vec<TelescopeUnit> } |self, s| {
-        s.write_bool(self.last).write_u8(self.transfers.len() as u8);
-        for t in &self.transfers {
-            s.write_bc(t.obj_id)
-                .write_u32(t.template_id)
-                .write_position(t.pos.0, t.pos.1, t.pos.2)
-                .write_str(&t.name);
-        }
-    }
-);
+/// `SCTransferTelescopeToggledPacket` / `SCTransferTelescopeUnitsPacket`: the services
+/// subsystem's definitions (radar; one per opcode).
+pub use crate::systems::services::radar::{
+    SCTransferTelescopeToggledPacket, SCTransferTelescopeUnitsPacket,
+    TransferTelescopeUnit as TelescopeUnit,
+};
 
 sc_packet!(
     /// `SCUnhungPacket(unitObjId, targetObjId, reason)`.

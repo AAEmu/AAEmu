@@ -18,6 +18,7 @@ pub mod server;
 pub mod stream;
 pub mod stream_world;
 pub mod systems;
+pub mod utils;
 pub mod world;
 
 pub use error::{GameError, Result};

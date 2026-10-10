@@ -189,8 +189,10 @@ fn game_data() -> GameData {
 
 /// A server with every subsystem's hooks installed (what `systems::start_all` installs).
 fn server_with(tag_share: bool) -> Arc<GameServer> {
-    let mut server = test_server_with(game_data());
-    server.config.world.tag_share_enabled = tag_share;
+    let server = test_server_with(game_data());
+    server
+        .config
+        .update(|c| c.world.tag_share_enabled = tag_share);
     let server = Arc::new(server);
     server.set_self();
     crate::systems::skills::bind(&server);

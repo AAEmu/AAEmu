@@ -1,5 +1,6 @@
 //! Expedition (guild) packets.
 
+#[cfg(test)]
 use aaemu_commons::PacketStream;
 
 use super::{active_char, cs_packet, sc_packet};
@@ -12,9 +13,6 @@ use crate::systems::social::expedition::{self, ExpeditionRolePolicy};
 
 /// `ItemTaskType.ExpeditionCreation`.
 pub const ITEM_TASK_EXPEDITION_CREATION: u8 = 73;
-/// `ItemAction.ChangeMoneyAmount`.
-const ITEM_ACTION_CHANGE_MONEY_AMOUNT: u8 = 1;
-
 sc_packet!(
     /// `SCExpeditionDismissedPacket(id, success)`.
     SCExpeditionDismissedPacket { id: u32, success: bool } |self, s| {
@@ -109,26 +107,18 @@ sc_packet!(
     }
 );
 
-/// `SCItemTaskSuccessPacket(action, [new MoneyChange(amount)], [])` — the money-only form
-/// `CreateExpedition` sends (the generic item-task packet belongs to the economy subsystem).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SCItemTaskSuccessMoneyPacket {
-    pub action: u8,
-    pub money_change: i32,
-}
-crate::packets::packet_def!(
-    SCItemTaskSuccessMoneyPacket,
-    level = LEVEL_PLAIN,
-    opcode = crate::opcodes::sc::SCItemTaskSuccessPacket
-);
-impl aaemu_commons::Marshal for SCItemTaskSuccessMoneyPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_u8(self.action)
-            .write_u8(1) // tasks
-            .write_u8(ITEM_ACTION_CHANGE_MONEY_AMOUNT)
-            .write_i32(self.money_change)
-            .write_u8(0) // forceRemove
-            .write_u32(0); // type(id)
+/// `SCItemTaskSuccessPacket(action, [new MoneyChange(amount)], [])`: the money-only form
+/// `CreateExpedition` sends, built on the economy subsystem's definition (one per opcode).
+pub fn item_task_money_packet(
+    action: u8,
+    money_change: i32,
+) -> crate::systems::economy::item_packets::SCItemTaskSuccessPacket {
+    crate::systems::economy::item_packets::SCItemTaskSuccessPacket {
+        action,
+        tasks: vec![crate::models::item_task::ItemTask::MoneyChange(
+            money_change,
+        )],
+        force_remove: Vec::new(),
     }
 }
 
@@ -301,10 +291,10 @@ mod tests {
             s.into_bytes()
         );
         assert_eq!(
-            body(&SCItemTaskSuccessMoneyPacket {
-                action: ITEM_TASK_EXPEDITION_CREATION,
-                money_change: -10000
-            }),
+            body(&item_task_money_packet(
+                ITEM_TASK_EXPEDITION_CREATION,
+                -10000
+            )),
             vec![73, 1, 1, 0xF0, 0xD8, 0xFF, 0xFF, 0, 0, 0, 0, 0]
         );
         let f = SystemFaction {

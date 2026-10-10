@@ -97,6 +97,26 @@ impl FeatureSet {
         true
     }
 
+    /// `Check((Feature)bit)` for any bit index (also the unnamed `flag_x_y` members).
+    pub fn check_bit(&self, bit: u8) -> bool {
+        self.fset
+            .get(usize::from(bit / 8))
+            .is_some_and(|b| b & (1 << (bit % 8)) != 0)
+    }
+
+    /// `Set((Feature)bit, enabled)` for any bit index; `false` when out of range.
+    pub fn set_bit(&mut self, bit: u8, enabled: bool) -> bool {
+        let Some(b) = self.fset.get_mut(usize::from(bit / 8)) else {
+            return false;
+        };
+        if enabled {
+            *b |= 1 << (bit % 8);
+        } else {
+            *b &= !(1 << (bit % 8));
+        }
+        true
+    }
+
     pub fn player_level_limit(&self) -> u8 {
         self.fset[PLAYER_LEVEL_LIMIT_INDEX]
     }
