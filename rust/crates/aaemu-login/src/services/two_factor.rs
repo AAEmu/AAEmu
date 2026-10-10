@@ -1,6 +1,7 @@
 //! Two-factor authentication services (`AAEmu.Login.Core.Services.TwoFactor`): repository,
 //! requirements, TOTP (Otp.NET compatible), PC-cert PIN and ARS sessions.
 
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use dashmap::DashMap;
@@ -267,6 +268,17 @@ impl PcCertService {
 
     pub async fn validate(&self, account_id: AccountId, pin: &str) -> sqlx::Result<bool> {
         let config = self.repository.get_config(account_id).await?;
+        Ok(self.validate_config(config, account_id, pin).await)
+    }
+
+    /// Validates `pin` against an already loaded 2FA configuration (the part of
+    /// [`Self::validate`] after the `ITwoFactorRepository.GetConfigAsync` lookup).
+    pub async fn validate_config(
+        &self,
+        config: Option<TwoFactorConfig>,
+        account_id: AccountId,
+        pin: &str,
+    ) -> bool {
         let Some(hash) = config
             .and_then(|c| c.cert_pin_hash)
             .filter(|s| !s.is_empty())
@@ -275,7 +287,7 @@ impl PcCertService {
                 "PcCert validation attempted for account {} with no PIN configured",
                 account_id
             );
-            return Ok(false);
+            return false;
         };
         // Reuse the password service for PIN verification - same hashing approach
         let passwords = self.passwords.clone();
@@ -287,7 +299,7 @@ impl PcCertService {
         if !valid {
             tracing::debug!("PcCert PIN validation failed for account {}", account_id);
         }
-        Ok(valid)
+        valid
     }
 }
 
@@ -299,19 +311,44 @@ pub struct ArsSession {
     pub expires_at: SystemTime,
 }
 
+/// A source of the current time (the C# `TimeProvider`).
+pub type Clock = Arc<dyn Fn() -> SystemTime + Send + Sync>;
+
 /// `ArsService`: ARS (Automatic Response System) phone callback verification. The phone call
 /// itself is a stub (no `IArsPhoneProvider` implementation exists).
-#[derive(Debug, Default)]
 pub struct ArsService {
     active_sessions: DashMap<AccountId, ArsSession>,
+    clock: Clock,
+}
+
+impl Default for ArsService {
+    fn default() -> Self {
+        Self::with_clock(Arc::new(SystemTime::now))
+    }
+}
+
+impl std::fmt::Debug for ArsService {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ArsService")
+            .field("active_sessions", &self.active_sessions)
+            .finish_non_exhaustive()
+    }
 }
 
 impl ArsService {
+    /// An ARS service reading the time from `clock` (`new ArsService(timeProvider, ...)`).
+    pub fn with_clock(clock: Clock) -> Self {
+        Self {
+            active_sessions: DashMap::new(),
+            clock,
+        }
+    }
+
     /// Creates (or replaces) the ARS session for an account.
     pub fn create_session(&self, account_id: AccountId, timeout_seconds: i32) -> ArsSession {
         // Generate a random 4-digit code
         let code = format!("{:04}", rand::rngs::OsRng.gen_range(0..10_000));
-        let expires_at = SystemTime::now() + Duration::from_secs(timeout_seconds.max(0) as u64);
+        let expires_at = (self.clock)() + Duration::from_secs(timeout_seconds.max(0) as u64);
         let session = ArsSession {
             session_code: code,
             expires_at,
@@ -335,7 +372,7 @@ impl ArsService {
             );
             return false;
         };
-        if SystemTime::now() > session.expires_at {
+        if (self.clock)() > session.expires_at {
             self.active_sessions.remove(&account_id);
             tracing::debug!("ARS session for account {} has expired", account_id);
             return false;
@@ -414,5 +451,242 @@ mod tests {
         let s = ars.create_session(AccountId(2), 0);
         std::thread::sleep(Duration::from_millis(5));
         assert!(!ars.complete_session(AccountId(2), &s.session_code));
+    }
+
+    // ---- Port of AAEmu.UnitTests/Login/Core/Services/TwoFactor/ArsServiceTests.cs ------------
+
+    /// `FakeTimeProvider`: a manually advanced clock.
+    struct FakeTime(Arc<std::sync::Mutex<SystemTime>>);
+
+    impl FakeTime {
+        fn new() -> Self {
+            // FakeTimeProvider starts at 2000-01-01T00:00:00Z.
+            Self(Arc::new(std::sync::Mutex::new(
+                UNIX_EPOCH + Duration::from_secs(946_684_800),
+            )))
+        }
+
+        fn now(&self) -> SystemTime {
+            *self.0.lock().unwrap()
+        }
+
+        fn advance(&self, d: Duration) {
+            *self.0.lock().unwrap() += d;
+        }
+
+        fn clock(&self) -> Clock {
+            let t = self.0.clone();
+            Arc::new(move || *t.lock().unwrap())
+        }
+    }
+
+    const ARS_ACCOUNT: AccountId = AccountId(7);
+    const ARS_OTHER_ACCOUNT: AccountId = AccountId(99);
+
+    #[test]
+    fn ars_create_session_returns_session_with_four_digit_code() {
+        let time = FakeTime::new();
+        let session = ArsService::with_clock(time.clock()).create_session(ARS_ACCOUNT, 60);
+
+        assert_eq!(session.session_code.len(), 4);
+        let code: i32 = session.session_code.parse().expect("numeric code");
+        assert!((0..=9999).contains(&code));
+    }
+
+    #[test]
+    fn ars_create_session_sets_correct_expiry() {
+        let time = FakeTime::new();
+        let expected_expiry = time.now() + Duration::from_secs(120);
+
+        let session = ArsService::with_clock(time.clock()).create_session(ARS_ACCOUNT, 120);
+
+        assert_eq!(session.expires_at, expected_expiry);
+    }
+
+    #[test]
+    fn ars_create_session_replaces_existing_session() {
+        let time = FakeTime::new();
+        let sut = ArsService::with_clock(time.clock());
+        sut.create_session(ARS_ACCOUNT, 60);
+        let second = sut.create_session(ARS_ACCOUNT, 60);
+
+        // Only the second session should be active
+        assert!(sut.complete_session(ARS_ACCOUNT, &second.session_code));
+    }
+
+    #[test]
+    fn ars_complete_session_no_active_session_returns_false() {
+        let time = FakeTime::new();
+        assert!(!ArsService::with_clock(time.clock()).complete_session(ARS_ACCOUNT, "1234"));
+    }
+
+    #[test]
+    fn ars_complete_session_expired_session_returns_false() {
+        let time = FakeTime::new();
+        let sut = ArsService::with_clock(time.clock());
+        let session = sut.create_session(ARS_ACCOUNT, 60);
+        time.advance(Duration::from_secs(61));
+
+        assert!(!sut.complete_session(ARS_ACCOUNT, &session.session_code));
+    }
+
+    #[test]
+    fn ars_complete_session_wrong_code_returns_false() {
+        let time = FakeTime::new();
+        let sut = ArsService::with_clock(time.clock());
+        let session = sut.create_session(ARS_ACCOUNT, 60);
+        let wrong_code = if session.session_code == "1234" {
+            "5678"
+        } else {
+            "1234"
+        };
+
+        assert!(!sut.complete_session(ARS_ACCOUNT, wrong_code));
+    }
+
+    #[test]
+    fn ars_complete_session_correct_code_returns_true() {
+        let time = FakeTime::new();
+        let sut = ArsService::with_clock(time.clock());
+        let session = sut.create_session(ARS_ACCOUNT, 60);
+
+        assert!(sut.complete_session(ARS_ACCOUNT, &session.session_code));
+    }
+
+    #[test]
+    fn ars_complete_session_after_success_session_consumed() {
+        let time = FakeTime::new();
+        let sut = ArsService::with_clock(time.clock());
+        let session = sut.create_session(ARS_ACCOUNT, 60);
+        sut.complete_session(ARS_ACCOUNT, &session.session_code);
+
+        assert!(!sut.complete_session(ARS_ACCOUNT, &session.session_code));
+    }
+
+    #[test]
+    fn ars_complete_session_different_account_returns_false() {
+        let time = FakeTime::new();
+        let sut = ArsService::with_clock(time.clock());
+        let session = sut.create_session(ARS_ACCOUNT, 60);
+
+        assert!(!sut.complete_session(ARS_OTHER_ACCOUNT, &session.session_code));
+    }
+
+    #[test]
+    fn ars_complete_session_at_exact_expiry_returns_false() {
+        let time = FakeTime::new();
+        let sut = ArsService::with_clock(time.clock());
+        let session = sut.create_session(ARS_ACCOUNT, 60);
+        time.advance(Duration::from_secs(60));
+        // At exactly ExpiresAt the session is still valid (now > expiresAt); one more tick
+        // (100 ns) pushes past the boundary.
+        assert_eq!(time.now(), session.expires_at);
+        time.advance(Duration::from_nanos(100));
+
+        assert!(!sut.complete_session(ARS_ACCOUNT, &session.session_code));
+    }
+
+    // ---- Port of AAEmu.UnitTests/Login/Core/Services/TwoFactor/PcCertServiceTests.cs ---------
+    // The mocked `ITwoFactorRepository.GetConfigAsync` result is passed to
+    // `validate_config`; the mocked `IPasswordService.VerifyPassword` results are produced by a
+    // real `PasswordService` with real stored hashes (Success = current PBKDF2 hash,
+    // SuccessRehashNeeded = legacy Base64(SHA-256) hash, Failed = wrong PIN).
+
+    const PC_ACCOUNT: AccountId = AccountId(42);
+    const TEST_PIN: &str = "12345678";
+
+    fn pc_cert_sut() -> (PcCertService, PasswordService) {
+        let passwords = PasswordService { iterations: 1000 };
+        let repo = TwoFactorRepository::new(
+            sqlx::mysql::MySqlPoolOptions::new()
+                .connect_lazy_with(sqlx::mysql::MySqlConnectOptions::new()),
+        );
+        (PcCertService::new(repo, passwords.clone()), passwords)
+    }
+
+    fn make_config(cert_pin_hash: Option<&str>) -> TwoFactorConfig {
+        TwoFactorConfig {
+            user_id: PC_ACCOUNT,
+            enabled_methods: TwoFactorMethod::PC_CERT,
+            otp_secret: None,
+            otp_verified: false,
+            cert_pin_hash: cert_pin_hash.map(str::to_string),
+            ars_phone_number: None,
+            ars_phone_verified: false,
+            created_at: 0,
+            updated_at: 0,
+        }
+    }
+
+    #[tokio::test]
+    async fn pc_cert_validate_no_config_returns_false() {
+        let (sut, _) = pc_cert_sut();
+        assert!(!sut.validate_config(None, PC_ACCOUNT, TEST_PIN).await);
+    }
+
+    #[tokio::test]
+    async fn pc_cert_validate_config_with_null_hash_returns_false() {
+        let (sut, _) = pc_cert_sut();
+        assert!(
+            !sut.validate_config(Some(make_config(None)), PC_ACCOUNT, TEST_PIN)
+                .await
+        );
+    }
+
+    #[tokio::test]
+    async fn pc_cert_validate_config_with_empty_hash_returns_false() {
+        let (sut, _) = pc_cert_sut();
+        assert!(
+            !sut.validate_config(Some(make_config(Some(""))), PC_ACCOUNT, TEST_PIN)
+                .await
+        );
+    }
+
+    #[tokio::test]
+    async fn pc_cert_validate_correct_pin_returns_true() {
+        let (sut, passwords) = pc_cert_sut();
+        let hash = passwords
+            .hash_for_storage(&Password::from_plaintext(TEST_PIN))
+            .unwrap();
+        assert_eq!(
+            passwords.verify_password(&hash, &Password::from_plaintext(TEST_PIN)),
+            PasswordVerificationResult::Success
+        );
+
+        assert!(
+            sut.validate_config(Some(make_config(Some(&hash))), PC_ACCOUNT, TEST_PIN)
+                .await
+        );
+    }
+
+    #[tokio::test]
+    async fn pc_cert_validate_correct_pin_legacy_format_returns_true() {
+        use base64::Engine;
+        use sha2::Digest;
+        let (sut, passwords) = pc_cert_sut();
+        let hash = base64::engine::general_purpose::STANDARD
+            .encode(sha2::Sha256::digest(TEST_PIN.as_bytes()));
+        assert_eq!(
+            passwords.verify_password(&hash, &Password::from_plaintext(TEST_PIN)),
+            PasswordVerificationResult::SuccessRehashNeeded
+        );
+
+        assert!(
+            sut.validate_config(Some(make_config(Some(&hash))), PC_ACCOUNT, TEST_PIN)
+                .await
+        );
+    }
+
+    #[tokio::test]
+    async fn pc_cert_validate_wrong_pin_returns_false() {
+        let (sut, passwords) = pc_cert_sut();
+        let hash = passwords
+            .hash_for_storage(&Password::from_plaintext("87654321"))
+            .unwrap();
+
+        assert!(
+            !sut.validate_config(Some(make_config(Some(&hash))), PC_ACCOUNT, TEST_PIN)
+                .await
+        );
     }
 }

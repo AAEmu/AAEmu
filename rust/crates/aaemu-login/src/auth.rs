@@ -107,7 +107,7 @@ impl AuthFlow {
                     }
                     return Ok(AuthFlowResult::Denied(LoginDeniedReason::BAD_ACCOUNT));
                 };
-                let r = server.logins.login(username, password, f.client_ip).await?;
+                let r = server.auth.login(username, password, f.client_ip).await?;
                 Ok(if r.success {
                     AuthFlowResult::Success {
                         account_id: r.account_id,
@@ -229,7 +229,7 @@ impl KoreaAuthFlow {
         }
         // Look up the account's Korea challenge material.
         // No ban check here — doing so before authentication would leak whether an account exists.
-        let Some(info) = server.logins.get_korea_auth_info(&self.username).await? else {
+        let Some(info) = server.auth.get_korea_auth_info(&self.username).await? else {
             // Account doesn't exist, or has no korea_challenge_hash yet. The user must log in via
             // EU auth first (with KoreaAuth:Enabled=true) to seed the hash.
             return Ok(AuthFlowResult::Denied(LoginDeniedReason::BAD_ACCOUNT));
@@ -294,7 +294,10 @@ impl KoreaAuthFlow {
         self.v2_hc.clear();
 
         // Query 2FA requirements from the database
-        let requirements = server.two_factor.get_requirements(self.account_id).await?;
+        let requirements = server
+            .auth
+            .get_two_factor_requirements(self.account_id)
+            .await?;
         self.requires_otp = requirements.requires_otp;
         self.requires_cert = requirements.requires_pc_cert;
         self.requires_ars = requirements.requires_ars;
@@ -311,7 +314,7 @@ impl KoreaAuthFlow {
             return Ok(AuthFlowResult::Denied(LoginDeniedReason::BAD_RESPONSE));
         }
         self.otp_attempts += 1;
-        if !server.otp.validate(self.account_id, code).await? {
+        if !server.auth.validate_otp(self.account_id, code).await? {
             let max = server.config.korea_auth.max_otp_attempts;
             if self.otp_attempts >= max {
                 return Ok(AuthFlowResult::Denied(LoginDeniedReason::BAD_RESPONSE));
@@ -333,7 +336,7 @@ impl KoreaAuthFlow {
             return Ok(AuthFlowResult::Denied(LoginDeniedReason::BAD_RESPONSE));
         }
         self.cert_attempts += 1;
-        if !server.pc_cert.validate(self.account_id, pin).await? {
+        if !server.auth.validate_pc_cert(self.account_id, pin).await? {
             let max = server.config.korea_auth.max_cert_attempts;
             if self.cert_attempts >= max {
                 return Ok(AuthFlowResult::Denied(LoginDeniedReason::BAD_RESPONSE));
@@ -379,14 +382,14 @@ impl KoreaAuthFlow {
             self.state = KoreaState::AwaitingArs;
             let timeout = server.config.korea_auth.ars_timeout;
             let session = server
-                .ars
-                .create_session(self.account_id, timeout.as_secs() as i32);
+                .auth
+                .create_ars_session(self.account_id, timeout.as_secs() as i32);
             client.send_ars_prompt(&session.session_code, timeout)?;
             return Ok(AuthFlowResult::Pending);
         }
         // All steps complete. Check ban status before issuing success
         self.state = KoreaState::Completed;
-        let (banned, reason) = server.logins.check_ban_status(self.account_id).await?;
+        let (banned, reason) = server.auth.check_ban_status(self.account_id).await?;
         if banned {
             return Ok(AuthFlowResult::Denied(reason));
         }
@@ -396,3 +399,6 @@ impl KoreaAuthFlow {
         })
     }
 }
+
+#[cfg(test)]
+mod tests;

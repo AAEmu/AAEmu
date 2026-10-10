@@ -255,4 +255,109 @@ mod tests {
         }
         assert_eq!(m.rent().unwrap(), 3);
     }
+
+    // ---- Port of AAEmu.UnitTests/Login/Utils/SimpleIdManagerTests.cs -------------------------
+    // The C# manager is generic over an entity built from the id; the Rust one hands out the
+    // raw ids (`ConnectionIdLease` wraps them), so `entity.Id` is the id itself.
+
+    #[test]
+    fn simple_rent_first_call_returns_id_one() {
+        let manager = SimpleIdManager::new();
+        assert_eq!(manager.rent().unwrap(), 1);
+    }
+
+    #[test]
+    fn simple_rent_multiple_calls_returns_incrementing_ids() {
+        let manager = SimpleIdManager::new();
+        assert_eq!(manager.rent().unwrap(), 1);
+        assert_eq!(manager.rent().unwrap(), 2);
+        assert_eq!(manager.rent().unwrap(), 3);
+    }
+
+    #[test]
+    fn simple_return_then_rent_reuses_returned_id() {
+        let manager = SimpleIdManager::new();
+        let entity1 = manager.rent().unwrap(); // ID 1
+        let _ = manager.rent().unwrap(); // ID 2
+
+        manager.give_back(entity1).unwrap();
+
+        // should reuse ID 1, not allocate ID 3
+        assert_eq!(manager.rent().unwrap(), 1);
+    }
+
+    #[test]
+    fn simple_return_multiple_returns_reuses_in_lifo_order() {
+        let manager = SimpleIdManager::new();
+        let e1 = manager.rent().unwrap();
+        let e2 = manager.rent().unwrap();
+        let e3 = manager.rent().unwrap();
+
+        manager.give_back(e1).unwrap();
+        manager.give_back(e2).unwrap();
+        manager.give_back(e3).unwrap();
+
+        // LIFO order: 3, 2, 1
+        assert_eq!(manager.rent().unwrap(), 3);
+        assert_eq!(manager.rent().unwrap(), 2);
+        assert_eq!(manager.rent().unwrap(), 1);
+    }
+
+    #[test]
+    fn simple_return_zero_id_throws_argument_out_of_range_exception() {
+        let manager = SimpleIdManager::new();
+        assert_eq!(manager.give_back(0), Err(IdError::Zero));
+    }
+
+    #[test]
+    fn simple_rent_after_return_and_new_allocations_continues_from_next_id() {
+        let manager = SimpleIdManager::new();
+        let e1 = manager.rent().unwrap();
+        manager.give_back(e1).unwrap();
+        let reused = manager.rent().unwrap();
+
+        let e2 = manager.rent().unwrap();
+
+        assert_eq!(reused, 1);
+        assert_eq!(e2, 2);
+    }
+
+    #[test]
+    fn simple_rent_thread_safety_all_ids_are_unique() {
+        const COUNT: usize = 1000;
+        let manager = Arc::new(SimpleIdManager::new());
+
+        let handles: Vec<_> = (0..COUNT)
+            .map(|_| {
+                let m = manager.clone();
+                std::thread::spawn(move || m.rent().unwrap())
+            })
+            .collect();
+        let ids: std::collections::HashSet<u32> =
+            handles.into_iter().map(|h| h.join().unwrap()).collect();
+
+        assert_eq!(ids.len(), COUNT);
+    }
+
+    #[test]
+    fn simple_return_thread_safety_all_returns_succeed() {
+        const COUNT: usize = 1000;
+        let manager = Arc::new(SimpleIdManager::new());
+        let entities: Vec<u32> = (0..COUNT).map(|_| manager.rent().unwrap()).collect();
+
+        let handles: Vec<_> = entities
+            .iter()
+            .map(|&id| {
+                let m = manager.clone();
+                std::thread::spawn(move || m.give_back(id).unwrap())
+            })
+            .collect();
+        for h in handles {
+            h.join().unwrap();
+        }
+
+        // renting again should reuse returned IDs (no new allocations)
+        let reused: Vec<u32> = (0..COUNT).map(|_| manager.rent().unwrap()).collect();
+        assert_eq!(reused.iter().max(), entities.iter().max());
+    }
 }

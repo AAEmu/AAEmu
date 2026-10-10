@@ -390,4 +390,202 @@ mod tests {
             .hash_for_storage(&Password::from_sha256_hex("zz"))
             .is_err());
     }
+
+    // ---- Port of AAEmu.UnitTests/Login/Core/Services/PasswordServiceTests.cs ----------------
+    // `new PasswordService(new PasswordHasher<string>(new PasswordHasherOptions()))`: the default
+    // ASP.NET Core Identity options (V3, 100,000 iterations).
+
+    fn sut() -> PasswordService {
+        PasswordService {
+            iterations: 100_000,
+        }
+    }
+
+    /// `Convert.ToHexString` (upper-case).
+    fn to_hex(bytes: &[u8]) -> String {
+        hex::encode_upper(bytes)
+    }
+
+    fn bytes_0_to_31() -> Vec<u8> {
+        (0..32u8).collect()
+    }
+
+    #[test]
+    fn is_legacy_format_base64_encoded_32_bytes_returns_true() {
+        let legacy_hash = B64.encode([0u8; 32]);
+        assert!(sut().is_legacy_format(&legacy_hash));
+    }
+
+    #[test]
+    fn is_legacy_format_base64_encoded_32_bytes_with_content_returns_true() {
+        let legacy_hash = B64.encode(bytes_0_to_31());
+        assert!(sut().is_legacy_format(&legacy_hash));
+        assert_eq!(legacy_hash.len(), 44);
+    }
+
+    #[test]
+    fn is_legacy_format_new_format_hash_returns_false() {
+        // new format hash from PasswordHasher
+        let new_hash = identity::hash_password("test", 100_000);
+        assert!(!sut().is_legacy_format(&new_hash));
+        assert!(new_hash.len() >= 84);
+    }
+
+    #[test]
+    fn is_legacy_format_wrong_length_returns_false() {
+        assert!(!sut().is_legacy_format("shortstring"));
+    }
+
+    #[test]
+    fn is_legacy_format_invalid_base64_returns_false() {
+        // 44 characters but not valid Base64 that decodes to 32 bytes
+        assert!(!sut().is_legacy_format(&"!".repeat(44)));
+    }
+
+    #[test]
+    fn hash_for_storage_plaintext_returns_new_format_hash() {
+        let svc = sut();
+        let hash = svc
+            .hash_for_storage(&Password::from_plaintext("mypassword123"))
+            .unwrap();
+        assert!(!svc.is_legacy_format(&hash));
+        assert!(hash.len() >= 84);
+    }
+
+    #[test]
+    fn hash_for_storage_sha256_hex_returns_legacy_base64_format() {
+        let svc = sut();
+        let bytes = bytes_0_to_31();
+        let expected_base64 = B64.encode(&bytes);
+
+        let hash = svc
+            .hash_for_storage(&Password::from_sha256_hex(to_hex(&bytes)))
+            .unwrap();
+
+        // must be the legacy Base64 format, NOT a PBKDF2 hash
+        assert_eq!(hash, expected_base64);
+        assert!(svc.is_legacy_format(&hash));
+    }
+
+    #[test]
+    fn hash_for_storage_sha256_hex_verifiable_by_plaintext_via_legacy() {
+        // Regression test for the double-hash bug: an account created from a SHA256-hex password
+        // is stored in the legacy Base64 format so a subsequent login can verify it.
+        let svc = sut();
+        let hex = to_hex(&bytes_0_to_31());
+        let stored_hash = svc
+            .hash_for_storage(&Password::from_sha256_hex(&hex))
+            .unwrap();
+
+        let result = svc.verify_password(&stored_hash, &Password::from_sha256_hex(&hex));
+        assert_eq!(result, PasswordVerificationResult::SuccessRehashNeeded);
+    }
+
+    #[test]
+    fn verify_password_legacy_format_correct_password_returns_success_rehash_needed() {
+        let bytes = bytes_0_to_31();
+        let legacy_hash = B64.encode(&bytes);
+
+        let result =
+            sut().verify_password(&legacy_hash, &Password::from_sha256_hex(to_hex(&bytes)));
+
+        assert_eq!(result, PasswordVerificationResult::SuccessRehashNeeded);
+    }
+
+    #[test]
+    fn verify_password_legacy_format_wrong_password_returns_failed() {
+        let legacy_hash = B64.encode(bytes_0_to_31());
+        let wrong: Vec<u8> = (1..=32u8).collect();
+
+        let result =
+            sut().verify_password(&legacy_hash, &Password::from_sha256_hex(to_hex(&wrong)));
+
+        assert_eq!(result, PasswordVerificationResult::Failed);
+    }
+
+    const PASSWORD_HEX: &str = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F";
+
+    #[test]
+    fn verify_password_new_format_correct_password_returns_success() {
+        let svc = sut();
+        let new_hash = svc
+            .hash_for_storage(&Password::from_plaintext(PASSWORD_HEX))
+            .unwrap();
+
+        let result = svc.verify_password(&new_hash, &Password::from_plaintext(PASSWORD_HEX));
+
+        assert_eq!(result, PasswordVerificationResult::Success);
+    }
+
+    #[test]
+    fn verify_password_new_format_wrong_password_returns_failed() {
+        let svc = sut();
+        let new_hash = svc
+            .hash_for_storage(&Password::from_plaintext(PASSWORD_HEX))
+            .unwrap();
+        let wrong = "0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20";
+
+        let result = svc.verify_password(&new_hash, &Password::from_plaintext(wrong));
+
+        assert_eq!(result, PasswordVerificationResult::Failed);
+    }
+
+    #[test]
+    fn verify_password_migration_scenario_pre_hashed_works() {
+        let svc = sut();
+        let bytes = bytes_0_to_31();
+        let legacy_hash = B64.encode(&bytes);
+        let password_hex = to_hex(&bytes);
+
+        // first login with legacy format (pre-hashed, returns SuccessRehashNeeded)
+        let first = svc.verify_password(&legacy_hash, &Password::from_sha256_hex(&password_hex));
+        // Simulate rehashing with plaintext equivalent
+        let new_hash = svc
+            .hash_for_storage(&Password::from_plaintext(&password_hex))
+            .unwrap();
+        // Second login with new format
+        let second = svc.verify_password(&new_hash, &Password::from_plaintext(&password_hex));
+
+        assert_eq!(first, PasswordVerificationResult::SuccessRehashNeeded);
+        assert_eq!(second, PasswordVerificationResult::Success);
+    }
+
+    fn legacy_of_plaintext(plaintext: &str) -> String {
+        B64.encode(Sha256::digest(plaintext.as_bytes()))
+    }
+
+    #[test]
+    fn verify_password_legacy_format_plaintext_correct_password_returns_success_rehash_needed() {
+        let legacy_hash = legacy_of_plaintext("mypassword123");
+
+        let result =
+            sut().verify_password(&legacy_hash, &Password::from_plaintext("mypassword123"));
+
+        assert_eq!(result, PasswordVerificationResult::SuccessRehashNeeded);
+    }
+
+    #[test]
+    fn verify_password_legacy_format_plaintext_wrong_password_returns_failed() {
+        let legacy_hash = legacy_of_plaintext("mypassword123");
+
+        let result =
+            sut().verify_password(&legacy_hash, &Password::from_plaintext("wrongpassword"));
+
+        assert_eq!(result, PasswordVerificationResult::Failed);
+    }
+
+    #[test]
+    fn verify_password_migration_scenario_plaintext_works() {
+        let svc = sut();
+        let legacy_hash = legacy_of_plaintext("mypassword123");
+
+        let first = svc.verify_password(&legacy_hash, &Password::from_plaintext("mypassword123"));
+        let new_hash = svc
+            .hash_for_storage(&Password::from_plaintext("mypassword123"))
+            .unwrap();
+        let second = svc.verify_password(&new_hash, &Password::from_plaintext("mypassword123"));
+
+        assert_eq!(first, PasswordVerificationResult::SuccessRehashNeeded);
+        assert_eq!(second, PasswordVerificationResult::Success);
+    }
 }

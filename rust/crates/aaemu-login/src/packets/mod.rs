@@ -75,3 +75,109 @@ pub fn dump_unread(s: &PacketStream) -> String {
 pub(crate) fn hex_bytes(s: &str) -> Vec<u8> {
     hex::decode(s).expect("valid hex")
 }
+
+#[cfg(test)]
+mod protocol_tests {
+    //! Port of `AAEmu.UnitTests/Login/Core/Network/Login/LoginProtocolHandlerTests.cs`.
+    //! `LoginProtocolHandler.TryParsePacket` is `FrameCodec::decode` (length prefix) followed by
+    //! [`split_opcode`] (packet type + payload).
+
+    use aaemu_commons::net::FrameCodec;
+    use bytes::BytesMut;
+    use tokio_util::codec::Decoder;
+
+    use super::*;
+
+    /// `TryParsePacket(ref buffer, out type, out packet)`: `None` when the buffer holds no
+    /// complete packet; the buffer then is left untouched.
+    fn try_parse_packet(buffer: &mut BytesMut) -> Option<(u16, Vec<u8>)> {
+        let frame = FrameCodec.decode(buffer).unwrap()?;
+        let (opcode, s) = split_opcode(frame).unwrap();
+        Some((opcode, s.unread().to_vec()))
+    }
+
+    #[test]
+    fn try_parse_packet_valid_data_returns_true() {
+        let mut buffer = BytesMut::from(
+            &[
+                0x06, 0x00, // Packet length (6 bytes)
+                0x2A, 0x00, // Packet type (42)
+                0x01, 0x02, 0x03, 0x04, // Packet payload
+            ][..],
+        );
+
+        let (parsed_type, packet) = try_parse_packet(&mut buffer).expect("parsed");
+
+        assert_eq!(parsed_type, 42);
+        assert_eq!(packet, vec![1, 2, 3, 4]);
+        // The whole buffer (8 bytes) was consumed.
+        assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn try_parse_packet_valid_data_followed_by_partial_data_mutates_buffer() {
+        let mut buffer = BytesMut::from(
+            &[
+                0x06, 0x00, // Packet length (6 bytes)
+                0x2A, 0x00, // Packet type (42)
+                0x01, 0x02, 0x03, 0x04, // Packet payload
+                0x08, 0x00, // Partial data for the next packet (only length)
+            ][..],
+        );
+
+        let (parsed_type, packet) = try_parse_packet(&mut buffer).expect("parsed");
+
+        assert_eq!(parsed_type, 42);
+        assert_eq!(packet.len(), 4);
+        // Start advanced to 8; the 2 bytes of the next packet remain.
+        assert_eq!(&buffer[..], &[0x08, 0x00]);
+    }
+
+    #[test]
+    fn try_parse_packet_insufficient_data_returns_false() {
+        // only 2 bytes: a length, but no packet
+        let mut buffer = BytesMut::from(&[0x02, 0x00][..]);
+        assert!(try_parse_packet(&mut buffer).is_none());
+    }
+
+    #[test]
+    fn try_parse_packet_insufficient_data_does_not_mutate_buffer() {
+        let original = [0x02u8, 0x00];
+        let mut buffer = BytesMut::from(&original[..]);
+
+        let _ = try_parse_packet(&mut buffer);
+
+        assert_eq!(&buffer[..], &original[..]);
+    }
+
+    #[test]
+    fn try_parse_packet_empty_buffer_returns_false() {
+        let mut buffer = BytesMut::new();
+        assert!(try_parse_packet(&mut buffer).is_none());
+    }
+
+    #[test]
+    fn try_parse_packet_empty_buffer_does_not_mutate_buffer() {
+        let mut buffer = BytesMut::new();
+
+        let _ = try_parse_packet(&mut buffer);
+
+        assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn try_parse_packet_large_packet_size_returns_true() {
+        // length 65535: 2 bytes of type + 65533 bytes of payload
+        let mut data = vec![0u8; 65537];
+        data[0] = 0xFF;
+        data[1] = 0xFF;
+        data[2] = 0x2A;
+        data[3] = 0x00;
+        let mut buffer = BytesMut::from(&data[..]);
+
+        let (parsed_type, packet) = try_parse_packet(&mut buffer).expect("parsed");
+
+        assert_eq!(parsed_type, 42);
+        assert_eq!(packet.len(), 65533);
+    }
+}

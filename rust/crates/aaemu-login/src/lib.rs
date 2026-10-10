@@ -8,6 +8,7 @@
 //! * MySQL (`aaemu_login` schema) via sqlx runtime queries.
 
 pub mod auth;
+pub mod backend;
 pub mod config;
 pub mod controllers;
 pub mod db;
@@ -20,3 +21,5 @@ pub mod network;
 pub mod packets;
 pub mod server;
 pub mod services;
+#[cfg(test)]
+pub(crate) mod test_support;

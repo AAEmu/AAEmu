@@ -17,7 +17,7 @@ use tokio_util::sync::CancellationToken;
 use crate::auth::{AuthFlow, AuthFlowResult, KoreaStep, LoginClient};
 use crate::controllers::game::{GameController, GameServer};
 use crate::handlers;
-use crate::id_manager::ConnectionIdLease;
+use crate::id_manager::{ConnectionIdLease, IdError, SimpleIdManager};
 use crate::models::{AccountId, ConnectionId, GameServerId, LoginCharacterInfo, LoginDeniedReason};
 use crate::packets::c2l::C2lPacket;
 use crate::packets::l2c::{
@@ -111,6 +111,20 @@ impl LoginConnection {
                 background: None,
             }),
         }
+    }
+
+    /// `LoginConnectionFactory.Create`: rents a connection id and creates the connection for a
+    /// client that connected from `remote_ip` to the local address `local_ip` (if known). The
+    /// connection is local when both addresses are equal.
+    pub fn create(
+        ids: &Arc<SimpleIdManager>,
+        local_ip: Option<IpAddr>,
+        remote_ip: IpAddr,
+        tx: mpsc::UnboundedSender<Vec<u8>>,
+    ) -> Result<Self, IdError> {
+        let lease = ConnectionIdLease::rent(ids)?;
+        let is_local = local_ip == Some(remote_ip);
+        Ok(Self::new(lease, remote_ip, is_local, tx))
     }
 
     pub fn id(&self) -> ConnectionId {
@@ -440,6 +454,13 @@ impl LoginConnection {
         }
     }
 
+    /// Takes the handle of the background task started by [`Self::initiate_enter_world`]
+    /// (`LoginSession.EnterWorldBackgroundTask` in C#), for tests to await it.
+    #[cfg(test)]
+    pub(crate) fn take_enter_world_task(&self) -> Option<JoinHandle<()>> {
+        self.session.lock().unwrap().background.take()
+    }
+
     /// Marks the session as disconnected and cancels any pending operations.
     pub async fn disconnect(&self) {
         let background = {
@@ -655,12 +676,10 @@ async fn handle_connection(
 ) {
     let _ = stream.set_nodelay(true);
     // checks if a connection is from the same machine
-    let is_local = stream
-        .local_addr()
-        .map(|l| l.ip() == addr.ip())
-        .unwrap_or(false);
-    let lease = match ConnectionIdLease::rent(&server.connection_ids) {
-        Ok(l) => l,
+    let local_ip = stream.local_addr().ok().map(|l| l.ip());
+    let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
+    let conn = match LoginConnection::create(&server.connection_ids, local_ip, addr.ip(), tx) {
+        Ok(c) => Arc::new(c),
         Err(e) => {
             tracing::error!("Error on connection from {}: {}", addr, e);
             return;
@@ -669,14 +688,12 @@ async fn handle_connection(
     tracing::debug!(
         "Connection from {} established, connection ID: {}",
         addr,
-        lease.id()
+        conn.id()
     );
 
     let (read_half, write_half) = stream.into_split();
     let mut reader = FramedRead::new(read_half, FrameCodec);
     let mut writer = FramedWrite::new(write_half, FrameCodec);
-    let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
-    let conn = Arc::new(LoginConnection::new(lease, addr.ip(), is_local, tx));
 
     let closed = conn.closed.clone();
     let writer_task = tokio::spawn({
@@ -780,3 +797,6 @@ async fn dispatch_messages(
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

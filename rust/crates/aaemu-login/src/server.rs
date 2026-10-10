@@ -5,6 +5,7 @@ use std::sync::Arc;
 use sqlx::MySqlPool;
 use tokio_util::sync::CancellationToken;
 
+use crate::backend::{AuthBackend, DbAuthBackend};
 use crate::config::AppConfig;
 use crate::controllers::game::GameController;
 use crate::controllers::login::LoginController;
@@ -28,31 +29,63 @@ pub struct LoginServer {
     pub internal_connections: InternalConnectionTable,
     pub connection_ids: Arc<SimpleIdManager>,
     pub games: GameController,
-    pub logins: LoginController,
+    pub logins: Arc<LoginController>,
     pub two_factor: TwoFactorService,
     pub otp: OtpService,
     pub pc_cert: PcCertService,
-    pub ars: ArsService,
+    pub ars: Arc<ArsService>,
+    /// The account/2FA operations used by the authentication flows ([`DbAuthBackend`] in
+    /// production).
+    pub auth: Arc<dyn AuthBackend>,
 }
 
 impl LoginServer {
     pub fn new(config: AppConfig, pool: MySqlPool) -> Arc<Self> {
+        Self::build(config, pool, None)
+    }
+
+    /// Like [`Self::new`], but the authentication flows use `auth` instead of the database-backed
+    /// [`DbAuthBackend`] (the C# tests inject mocked controllers/services the same way).
+    pub fn with_auth_backend(
+        config: AppConfig,
+        pool: MySqlPool,
+        auth: Arc<dyn AuthBackend>,
+    ) -> Arc<Self> {
+        Self::build(config, pool, Some(auth))
+    }
+
+    fn build(config: AppConfig, pool: MySqlPool, auth: Option<Arc<dyn AuthBackend>>) -> Arc<Self> {
         let passwords = PasswordService::default();
         let requests = Arc::new(RequestController::new());
         let connections = Arc::new(LoginConnectionTable::default());
         let repo = TwoFactorRepository::new(pool.clone());
+        let logins = Arc::new(LoginController::new(
+            pool.clone(),
+            passwords.clone(),
+            config.auto_account,
+            config.korea_auth.clone(),
+        ));
+        let two_factor = TwoFactorService::new(repo.clone());
+        let otp = OtpService::new(repo.clone());
+        let pc_cert = PcCertService::new(repo, passwords.clone());
+        let ars = Arc::new(ArsService::default());
+        let auth = auth.unwrap_or_else(|| {
+            Arc::new(DbAuthBackend {
+                logins: logins.clone(),
+                two_factor: two_factor.clone(),
+                otp: otp.clone(),
+                pc_cert: pc_cert.clone(),
+                ars: ars.clone(),
+            })
+        });
         Arc::new(Self {
             games: GameController::new(requests.clone(), connections.clone()),
-            logins: LoginController::new(
-                pool.clone(),
-                passwords.clone(),
-                config.auto_account,
-                config.korea_auth.clone(),
-            ),
-            two_factor: TwoFactorService::new(repo.clone()),
-            otp: OtpService::new(repo.clone()),
-            pc_cert: PcCertService::new(repo, passwords.clone()),
-            ars: ArsService::default(),
+            logins,
+            two_factor,
+            otp,
+            pc_cert,
+            ars,
+            auth,
             internal_connections: InternalConnectionTable::default(),
             connection_ids: Arc::new(SimpleIdManager::new()),
             config,

@@ -349,3 +349,6 @@ pub(crate) fn send_with_delay<P: OutgoingPacket + Send + 'static>(
         connection.send_packet(&packet);
     });
 }
+
+#[cfg(test)]
+mod tests;

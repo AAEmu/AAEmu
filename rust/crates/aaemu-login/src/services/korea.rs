@@ -177,4 +177,35 @@ mod tests {
         let (_, _, parsed_raw) = sha256_crypt::parse(&stored).unwrap();
         assert_eq!(parsed_raw, raw);
     }
+
+    /// Port of `AAEmu.UnitTests/Login/Core/Services/KoreaSeedDataGeneratorTests.cs`. Not a
+    /// correctness test — run manually (`cargo test -p aaemu-login -- --ignored
+    /// generate_korea_test_account --nocapture`) to print SQL seed rows for Korea auth testing.
+    #[test]
+    #[ignore = "manual seed-data generator, not a correctness test"]
+    fn generate_korea_test_account() {
+        use crate::services::password::{Password, PasswordService};
+
+        const USERNAME: &str = "KrTest";
+        const TEST_PASSWORD: &str = "KrTesting";
+        const ROUNDS: i32 = 100_000;
+
+        // `new PasswordService(new PasswordHasher<string>(new PasswordHasherOptions()))`
+        let passwords = PasswordService {
+            iterations: 100_000,
+        };
+        let pbkdf2_hash = passwords
+            .hash_for_storage(&Password::from_plaintext(TEST_PASSWORD))
+            .unwrap();
+        let korea_hash = compute(TEST_PASSWORD, ROUNDS);
+
+        println!("-- Korea test account: username={USERNAME}, password={TEST_PASSWORD}");
+        println!("-- PBKDF2:             {pbkdf2_hash}");
+        println!("-- korea_challenge_hash: {korea_hash}");
+        println!();
+        println!(
+            "INSERT INTO `users` (username, password, korea_challenge_hash, email, last_ip, last_login, created_at, updated_at) VALUES ('{USERNAME}', '{pbkdf2_hash}', '{korea_hash}', '', '127.0.0.1', 0, 0, 0);"
+        );
+        assert!(verify(&korea_hash, TEST_PASSWORD).unwrap());
+    }
 }
