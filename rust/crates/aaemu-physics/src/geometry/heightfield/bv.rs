@@ -18,6 +18,7 @@
 //! 0, the rest are no-ops), which is what the [`BvTree`] defaults do.
 
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 
 use crate::geometry::bvtree::{BvArena, BvHandle, BvTestState, BvTree, NodeContents};
 use crate::geometry::primitives::{BoxPrim, HeightfieldPrim, Triangle};
@@ -46,10 +47,14 @@ pub struct HeightfieldBv {
     pub hmax: f32,
     /// `+48` used-triangle bitmask (slot 25 sets bits, slot 23 skips set triangles, the
     /// geometry's slot 53 clears the words covering nTris). Atomic words because slot 25 is a
-    /// `&self` method of [`BvTree`] (the original writes through the BV's pointer).
-    pub used_tris: Vec<AtomicU32>,
+    /// `&self` method of [`BvTree`] (the original writes through the BV's pointer), shared
+    /// between clones so that a snapshot of the BV handed to the traversal marks the
+    /// geometry's own mask.
+    pub used_tris: Arc<Vec<AtomicU32>>,
 }
 
+/// A **shallow** clone: the used-triangle mask is shared (see [`HeightfieldBv::used_tris`]);
+/// [`HeightfieldBv::deep_clone`] copies it.
 impl Clone for HeightfieldBv {
     fn clone(&self) -> Self {
         Self {
@@ -61,11 +66,7 @@ impl Clone for HeightfieldBv {
             h: self.h,
             hmin: self.hmin,
             hmax: self.hmax,
-            used_tris: self
-                .used_tris
-                .iter()
-                .map(|a| AtomicU32::new(a.load(Ordering::Relaxed)))
-                .collect(),
+            used_tris: Arc::clone(&self.used_tris),
         }
     }
 }
@@ -82,6 +83,19 @@ pub struct Slot56Call {
 }
 
 impl HeightfieldBv {
+    /// A clone with its own copy of the used-triangle mask.
+    #[must_use]
+    pub fn deep_clone(&self) -> Self {
+        let mut c = self.clone();
+        c.used_tris = Arc::new(
+            self.used_tris
+                .iter()
+                .map(|a| AtomicU32::new(a.load(Ordering::Relaxed)))
+                .collect(),
+        );
+        c
+    }
+
     /// The words of the used-triangle mask.
     #[must_use]
     pub fn used_mask(&self) -> Vec<u32> {
@@ -93,7 +107,7 @@ impl HeightfieldBv {
 
     /// Replaces the mask with `n` zeroed words (a fresh allocation).
     pub(crate) fn set_used_mask_words(&mut self, n: usize) {
-        self.used_tris = (0..n).map(|_| AtomicU32::new(0)).collect();
+        self.used_tris = Arc::new((0..n).map(|_| AtomicU32::new(0)).collect());
     }
 
     /// Word `i` of the mask (0 past the allocation; the original reads past it).
@@ -149,8 +163,9 @@ impl HeightfieldBv {
     /// * Collider not a box (`kind ≠ 0`): the whole region, `start = (0, 0)`,
     ///   `end = (w, h)`.
     /// * Box: sub_35154220 ([`collider_cells`]) on the box with this BV's primitive — in the
-    ///   region frame when `b_collider_local ≠ 0`, else through `gtest` (the collider is then in
-    ///   the other side's frame) — gives `(cx, cy, cw, ch)`; `start = (max(cx, 0), max(cy, 0))`,
+    ///   region frame when `(u32)(b_collider_local − 1) >> 31 == 0` (i.e. `b_collider_local ≥ 1`;
+    ///   the sweep traversal's −1 and 0 go through `gtest`, the collider then being in the
+    ///   other side's frame) — gives `(cx, cy, cw, ch)`; `start = (max(cx, 0), max(cy, 0))`,
     ///   `end = (min(cx + cw, w), min(cy + ch, h))`.
     ///
     /// Rows `start.y .. start.y + end.y` (**not** `end.y − start.y` rows — kept bug), each one
@@ -170,7 +185,7 @@ impl HeightfieldBv {
         collider_kind: i32,
         collider_box: &BoxPrim,
         b_collider_used: bool,
-        b_collider_local: bool,
+        b_collider_local: i32,
         gtest: &HfFrame,
     ) -> Vec<Slot56Call> {
         let mut out = Vec::new();
@@ -181,7 +196,8 @@ impl HeightfieldBv {
             ex = self.w;
             ey = self.h;
         } else {
-            let frame = if b_collider_local { None } else { Some(gtest) };
+            let through_gtest = ((b_collider_local.wrapping_sub(1)) as u32 >> 31) != 0;
+            let frame = through_gtest.then_some(gtest);
             let c = collider_cells(collider_box, &self.prim, frame);
             let w = self.w;
             let hh = self.h;

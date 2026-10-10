@@ -15,12 +15,17 @@
 use std::cell::RefCell;
 
 use aaemu_physics::collision::contact::{GeomContact, IntersectionParams};
+use aaemu_physics::collision::pairs::PairTables;
 use aaemu_physics::collision::swept::UnprojTables;
 use aaemu_physics::geometry::bvtree::{BvArena, BvTestState, BvTree};
+use aaemu_physics::geometry::heightfield::protocol::SharedHeightfield;
 use aaemu_physics::geometry::heightfield::region::{HfFrame, OtherSweep, RegionOutcome};
 use aaemu_physics::geometry::heightfield::{Heightfield, RayIntersectInput};
 use aaemu_physics::geometry::primitives::{BoxPrim, HeightfieldPrim, RayPrim};
 use aaemu_physics::geometry::shapes::RayGeom;
+use aaemu_physics::geometry::trimesh::intersect::{intersect, IntersectExtra, Tables as ITables};
+use aaemu_physics::geometry::trimesh::protocol::BorderKind;
+use aaemu_physics::geometry::trimesh::protocol::CallerArena;
 use aaemu_physics::geometry::GeomWorldData;
 use aaemu_physics::math::{Mat33, Vec3};
 
@@ -114,6 +119,17 @@ impl<'a> Tok<'a> {
             scale_rel_r: self.f(),
         }
     }
+    /// A full `geom_world_data` (22 words; the probe zeroes the start-node word +88).
+    fn gwd22(&mut self) -> GeomWorldData {
+        GeomWorldData {
+            offset: self.v(),
+            r: self.m(),
+            scale: self.f(),
+            v: self.v(),
+            w: self.v(),
+            center_of_mass: self.v(),
+        }
+    }
     fn gwd(&mut self) -> GeomWorldData {
         GeomWorldData {
             offset: self.v(),
@@ -173,6 +189,83 @@ fn box_words(out: &mut String, b: &BoxPrim) {
     hv(out, b.size);
 }
 
+/// `print_contact` of `tests/p1c_isect_probe.c` on one line (segments joined by " ; ").
+fn contact_line(s: &mut String, c: &GeomContact, kind: &str) {
+    use std::fmt::Write as _;
+    let w = |f: f32| format!("{:08x}", f.to_bits());
+    let _ = write!(s, " ; c {:016x}", c.t.to_bits());
+    for v in [c.pt, c.n, c.dir] {
+        for x in [v.x, v.y, v.z] {
+            let _ = write!(s, " {}", w(x));
+        }
+    }
+    let _ = write!(
+        s,
+        " {} {} {} {} {} {} {} {} {} {}",
+        c.i_unproj_mode,
+        w(c.vel),
+        c.id[0],
+        c.id[1],
+        c.i_prim[0],
+        c.i_prim[1],
+        c.i_feature[0],
+        c.i_feature[1],
+        c.i_node[0],
+        c.i_node[1]
+    );
+    let nb = c.border.len();
+    let _ = write!(
+        s,
+        " center {} {} {} cons {} nb {} {}",
+        w(c.center.x),
+        w(c.center.y),
+        w(c.center.z),
+        u8::from(c.border_consecutive),
+        nb,
+        kind
+    );
+    if nb > 1 || kind != "pt" {
+        s.push_str(" ; b");
+        for p in &c.border {
+            for x in [p.x, p.y, p.z] {
+                let _ = write!(s, " {}", w(x));
+            }
+        }
+        if !c.idx_border.is_empty() {
+            s.push_str(" ; bi");
+            for e in &c.idx_border {
+                let _ = write!(s, " {} {}", e[0], e[1]);
+            }
+        }
+    }
+    if let Some(a) = &c.area {
+        let _ = write!(
+            s,
+            " ; a {} {} {} {} n {} {} {}",
+            a.i_type,
+            a.npt,
+            a.nmaxpt,
+            w(a.min_edge),
+            w(a.n.x),
+            w(a.n.y),
+            w(a.n.z)
+        );
+        for i in 0..a.npt.max(0) as usize {
+            let _ = write!(
+                s,
+                " ; ap {} {} {} {} {} {} {}",
+                w(a.pt[i].x),
+                w(a.pt[i].y),
+                w(a.pt[i].z),
+                a.prim[0][i],
+                a.feature[0][i],
+                a.prim[1][i],
+                a.feature[1][i]
+            );
+        }
+    }
+}
+
 #[derive(Default)]
 struct Stats {
     lines: usize,
@@ -183,6 +276,7 @@ struct Stats {
 /// Replays one probe trace; panics at the first differing output.
 fn replay(trace: &str, what: &str) -> Stats {
     let tables = UnprojTables::build();
+    let pairs = PairTables::build();
     let mut st = Stats::default();
     let mut hf: Option<Heightfield> = None;
     let mut arena = BvArena::new();
@@ -365,7 +459,7 @@ fn replay(trace: &str, what: &str) -> Stats {
                 let ck = t.i();
                 let b = t.bx();
                 let used = t.i() != 0;
-                let local = t.i() != 0;
+                let local = t.i();
                 let fr = t.frame();
                 let calls = h.bv.node_contents(h.tri_cap, ck, &b, used, local, &fr);
                 let ret: i32 = calls.iter().map(|c| c.n_prims & 3).sum();
@@ -404,7 +498,8 @@ fn replay(trace: &str, what: &str) -> Stats {
                 };
                 h.mesh.priority = if swap { 0 } else { 1 };
                 let ray = RayGeom::new(&rp);
-                let mut pool = vec![GeomContact::default(); before];
+                let mut ca = CallerArena::new();
+                ca.n_contacts = before as i32;
                 let input = RayIntersectInput {
                     ray: &ray,
                     gwd_hf: &g1,
@@ -412,14 +507,13 @@ fn replay(trace: &str, what: &str) -> Stats {
                     ip: has_ip.then_some(&ip),
                     draw_ray_limit: Some(1000),
                 };
-                let r = h.intersect_ray(&input, &tables, &mut pool);
+                let r = h.intersect_ray(&input, &tables, &mut ca);
                 h.mesh.priority = 1;
-                dec(&mut out, r.into());
-                dec(&mut out, pool.len() as i64);
-                if r != 0 {
+                dec(&mut out, i64::from(r.is_some()));
+                dec(&mut out, ca.n_contacts.into());
+                if let Some(c) = &r {
                     st.ray_hits += 1;
-                    let c = pool.last().unwrap();
-                    dec(&mut out, pool.len() as i64 - 1);
+                    dec(&mut out, i64::from(ca.n_contacts) - 1);
                     let tb = c.t.to_bits();
                     hx(&mut out, tb as u32);
                     hx(&mut out, (tb >> 32) as u32);
@@ -440,6 +534,78 @@ fn replay(trace: &str, what: &str) -> Stats {
                 }
                 "ray Intersect"
             }
+            "isect" => {
+                let order = t.i();
+                let mut gh = t.gwd22();
+                let mut gr = t.gwd22();
+                let rp = RayPrim {
+                    origin: t.v(),
+                    dir: t.v(),
+                };
+                let has_ip = t.i() != 0;
+                let ti = t.f();
+                let vmin = t.f();
+                let noarea = t.i() != 0;
+                let mut ip = IntersectionParams {
+                    i_unprojection_mode: 0,
+                    center_of_rotation: Vec3::ZERO,
+                    axis_of_rotation: Vec3::ZERO,
+                    time_interval: ti,
+                    vrel_min: vmin,
+                    max_surface_gap_angle: 0.017_453_3,
+                    min_axis_dist: 0.0,
+                    unproj_dir: Vec3::new(0.0, 0.0, 1.0),
+                    max_unproj: 1e10,
+                    pt_outside_pivot: [Vec3::splat(1e11); 2],
+                    sweep_test: false,
+                    keep_prev_contacts: false,
+                    no_area_contacts: noarea,
+                    no_intersection: false,
+                };
+                let ray = RayGeom::new(&rp);
+                let shf = SharedHeightfield::new(hf.take().unwrap());
+                let mut ca = CallerArena::new();
+                let tb = ITables {
+                    pairs: &pairs,
+                    unproj: &tables,
+                };
+                let ipo = has_ip.then_some(&mut ip);
+                let res = if order != 0 {
+                    intersect(
+                        tb,
+                        &mut ca,
+                        &ray,
+                        &shf,
+                        Some(&mut gr),
+                        Some(&gh),
+                        ipo,
+                        IntersectExtra::default(),
+                    )
+                } else {
+                    intersect(
+                        tb,
+                        &mut ca,
+                        &shf,
+                        &ray,
+                        Some(&mut gh),
+                        Some(&gr),
+                        ipo,
+                        IntersectExtra::default(),
+                    )
+                };
+                hf = Some(shf.0.into_inner().unwrap());
+                dec(&mut out, res.contacts.len() as i64);
+                for (c, k) in res.contacts.iter().zip(&res.border_kinds) {
+                    let kind = match k {
+                        BorderKind::Pt => "pt",
+                        BorderKind::Center => "center",
+                        BorderKind::Pool => "pool",
+                    };
+                    contact_line(&mut out, c, kind);
+                }
+                st.ray_hits += usize::from(!res.contacts.is_empty());
+                "generic Intersect (hf vs ray)"
+            }
             other => panic!("{what}: unknown line tag {other}"),
         };
         let want = want.unwrap_or_else(|| panic!("{what}: line {li} has no outputs"));
@@ -454,9 +620,21 @@ fn replay(trace: &str, what: &str) -> Stats {
 }
 
 fn run_seed(seed: u32, grids: u32) {
-    let name = format!("p1c_hf_seed{seed}");
+    run_seed_args(seed, grids, false);
+}
+
+fn run_seed_args(seed: u32, grids: u32, isect: bool) {
+    let name = if isect {
+        format!("p1c_hf_isect_seed{seed}")
+    } else {
+        format!("p1c_hf_seed{seed}")
+    };
     let (s, g) = (seed.to_string(), grids.to_string());
-    let Some(trace) = p1c_common::golden(&name, "p1c_hf_probe", &["run", &s, &g]) else {
+    let mut args = vec!["run", &s, &g];
+    if isect {
+        args.push("isect");
+    }
+    let Some(trace) = p1c_common::golden(&name, "p1c_hf_probe", &args) else {
         eprintln!("{name}: no golden and no probe; skipped");
         return;
     };
@@ -488,6 +666,13 @@ fn seed4() {
     run_seed(4, 4);
 }
 
+/// The generic `CGeometry::Intersect` (0x3514FD70) with the heightfield as A or B against a
+/// ray (the ray registers the contacts), on top of the usual cases.
+#[test]
+fn isect_seed5() {
+    run_seed_args(5, 3, true);
+}
+
 /// Extra seeds straight from the DLL (no goldens): `AAEMU_PHYS_P1C_HF_STRESS=<n>`.
 #[test]
 fn stress() {
@@ -502,7 +687,7 @@ fn stress() {
     };
     let mut total = Stats::default();
     for seed in 100..100 + n {
-        let trace = p1c_common::run_probe(&exe, &["run", &seed.to_string(), "8"]).unwrap();
+        let trace = p1c_common::run_probe(&exe, &["run", &seed.to_string(), "8", "isect"]).unwrap();
         let st = replay(&trace, &format!("stress seed {seed}"));
         total.lines += st.lines;
         total.ray_hits += st.ray_hits;

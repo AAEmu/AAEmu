@@ -451,11 +451,120 @@ static void ray_cases(unsigned char *hf, int n) {
   }
 }
 
+/* ---- the generic CGeometry::Intersect (0x3514FD70) with a heightfield and a ray ---- */
+static void contact1(unsigned char *c) { /* tests/p1c_isect_probe.c's print_contact on one line */
+  printf(" ; c %016llx", (unsigned long long)*(uint64_t *)c);
+  for (int i = 8; i < 44; i += 4) printf(" %08x", *(uint32_t *)(c + i));
+  printf(" %d %08x %d %d %d %d %d %d %d %d", *(int *)(c + 44), *(uint32_t *)(c + 48), *(int *)(c + 52),
+         *(int *)(c + 56), *(int *)(c + 60), *(int *)(c + 64), *(int *)(c + 68), *(int *)(c + 72),
+         *(int *)(c + 76), *(int *)(c + 80));
+  int nb = *(int *)(c + 104);
+  float *bp = *(float **)(c + 88);
+  const char *kind = (unsigned char *)bp == c + 8 ? "pt" : (unsigned char *)bp == c + 112 ? "center" : "pool";
+  printf(" center %08x %08x %08x cons %d nb %d %s", *(uint32_t *)(c + 112), *(uint32_t *)(c + 116),
+         *(uint32_t *)(c + 120), c[124], nb, kind);
+  if (nb > 1 || bp != (float *)(c + 8)) {
+    printf(" ; b");
+    for (int i = 0; i < 3 * nb; i++) printf(" %08x", fb(bp[i]));
+    int *ib = *(int **)(c + 96);
+    if (ib) {
+      printf(" ; bi");
+      for (int i = 0; i < 2 * nb; i++) printf(" %d", ib[i]);
+    }
+  }
+  unsigned char *a = *(unsigned char **)(c + 128);
+  if (a) {
+    int npt = *(int *)(a + 4);
+    printf(" ; a %d %d %d %08x n %08x %08x %08x", *(int *)a, npt, *(int *)(a + 8), *(uint32_t *)(a + 12),
+           *(uint32_t *)(a + 56), *(uint32_t *)(a + 60), *(uint32_t *)(a + 64));
+    float *pt = *(float **)(a + 48);
+    int *p0 = *(int **)(a + 16), *p1 = *(int **)(a + 24), *f0 = *(int **)(a + 32), *f1 = *(int **)(a + 40);
+    for (int i = 0; i < npt; i++)
+      printf(" ; ap %08x %08x %08x %d %d %d %d", fb(pt[3 * i]), fb(pt[3 * i + 1]), fb(pt[3 * i + 2]), p0[i], f0[i],
+             p1[i], f1[i]);
+  }
+}
+
+static void isect_cases(unsigned char *hf, int n) {
+  float sx = *(float *)(hf + 660), sy = *(float *)(hf + 664);
+  unsigned char *ar = ARENA(4, 0);
+  for (int i = 0; i < n; i++) {
+    float gh[24], gr[24];
+    memset(gh, 0, sizeof gh);
+    memset(gr, 0, sizeof gr);
+    rand_gwd((Gwd *)gh, rnd() % 3 == 0);
+    rand_gwd((Gwd *)gr, rnd() % 2);
+    Gwd *g1 = (Gwd *)gh;
+    float lo[3], ld[3];
+    lo[0] = frand(-1, g_nx + 1) * sx;
+    lo[1] = frand(-1, g_ny + 1) * sy;
+    lo[2] = frand(g_hmax + 0.1f, g_hmax + 3);
+    float tx = lo[0] + frand(-2, 2) * sx, ty = lo[1] + frand(-2, 2) * sy;
+    float tz = rnd() % 3 ? frand(g_hmin - 3, g_hmin - 0.1f) : frand(g_hmin, g_hmax);
+    if (rnd() % 4 == 0) { tx = lo[0]; ty = lo[1]; }
+    ld[0] = tx - lo[0];
+    ld[1] = ty - lo[1];
+    ld[2] = tz - lo[2];
+    float wo[3], wd[3], ro[3], rd[3];
+    for (int r = 0; r < 3; r++) {
+      wo[r] = (g1->R[3 * r] * lo[0] + g1->R[3 * r + 1] * lo[1] + g1->R[3 * r + 2] * lo[2]) * g1->s + g1->off[r];
+      wd[r] = (g1->R[3 * r] * ld[0] + g1->R[3 * r + 1] * ld[1] + g1->R[3 * r + 2] * ld[2]) * g1->s;
+    }
+    Gwd *g2 = (Gwd *)gr;
+    for (int c = 0; c < 3; c++) {
+      float a = 0, b = 0;
+      for (int r = 0; r < 3; r++) { a += g2->R[3 * r + c] * (wo[r] - g2->off[r]); b += g2->R[3 * r + c] * wd[r]; }
+      ro[c] = a / g2->s;
+      rd[c] = b / g2->s;
+    }
+    unsigned char *ray = (unsigned char *)calloc(1, 0x70);
+    float rp[6] = {ro[0], ro[1], ro[2], rd[0], rd[1], rd[2]};
+    ((void *(*)(void *, void *))VA(0x3514D950ULL))(ray, rp);
+    int order = rnd() % 2, hasip = rnd() % 2;
+    uint32_t ip[64];
+    memset(ip, 0, sizeof ip);
+    float ti = frand(0.01f, 2), vmin = rnd() % 2 ? 1e10f : frand(0, 2);
+    int noarea = rnd() % 2;
+    if (hasip) {
+      float *f = (float *)ip;
+      f[7] = ti;
+      f[8] = vmin;
+      f[9] = 0.0174533f;
+      f[14] = 0; f[15] = 0; f[16] = 1;
+      f[17] = 1e10f;
+      for (int k = 18; k < 24; k++) f[k] = 1e11f;
+      ((unsigned char *)ip)[99] = (unsigned char)noarea;
+    }
+    printf("isect %d", order);
+    pwi(gh, 22);
+    pwi(gr, 22);
+    pw(rp, 6);
+    printf(" %d", hasip);
+    pw(&ti, 1);
+    pw(&vmin, 1);
+    printf(" %d", noarea);
+    memset(ar + 0xC7B8, 0, 64 * 136);
+    memset(ar + 0xE9C0, 0, 32 * 72);
+    unsigned char *contacts = NULL;
+    int oldcap = *(int *)(hf + 796);
+    typedef int (*fn_isect)(void *, void *, void *, void *, void *, unsigned char **);
+    int r = order ? ((fn_isect)VA(0x3514FD70ULL))(ray, hf, gr, gh, hasip ? ip : NULL, &contacts)
+                  : ((fn_isect)VA(0x3514FD70ULL))(hf, ray, gh, gr, hasip ? ip : NULL, &contacts);
+    int cap = *(int *)(hf + 796);
+    if (cap != oldcap) memset(*(void **)(hf + 776), 0, 4 * ((cap >> 5) + 1));
+    printf(" | %d", r);
+    for (int k = 0; k < r; k++) contact1(contacts + 136 * k);
+    printf("\n");
+    free(ray);
+  }
+}
+
 int main(int argc, char **argv) {
   p1c_init(&argc, &argv);
   if (argc < 4 || strcmp(argv[1], "run")) { printf("usage: run seed ngrids\n"); return 1; }
   g_rng = 0x9E3779B97F4A7C15ULL ^ (uint64_t)atoi(argv[2]) * 0x2545F4914F6CDD1DULL;
   int ng = atoi(argv[3]);
+  int isect = argc > 4 && !strcmp(argv[4], "isect");
   g_fake_vt[6] = (void *)fake_bbox;
   /* the per-caller hf records start as the static initialiser leaves them (type 2) */
   for (int g = 0; g < ng; g++) {
@@ -466,6 +575,7 @@ int main(int argc, char **argv) {
     pis_cases(hf, 150);
     region_cases(hf, 30);
     ray_cases(hf, 80);
+    if (isect) isect_cases(hf, 60);
     printf("end\n");
   }
   return 0;

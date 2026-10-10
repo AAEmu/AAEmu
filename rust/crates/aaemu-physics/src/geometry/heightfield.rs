@@ -69,6 +69,7 @@
 //!   distance-along-ray contact with `iUnprojMode = −1`.
 
 pub mod bv;
+pub mod protocol;
 pub mod ray;
 pub mod region;
 
@@ -89,7 +90,7 @@ pub enum HeightfieldError {
 }
 
 /// `CHeightfield` (0x320 bytes).
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Heightfield {
     /// `+0..+608` the `CTriMesh` base. Its arrays hold the region mesh built by slot 53; their
     /// `Vec` lengths are the allocation capacities (`+792` / `+796`), the counts are
@@ -106,6 +107,19 @@ pub struct Heightfield {
     pub vtx_cap: i32,
     /// `+796` triangle capacity (64 after `SetData`).
     pub tri_cap: i32,
+}
+
+impl Clone for Heightfield {
+    /// A full copy (the BV's used-triangle mask included).
+    fn clone(&self) -> Self {
+        Self {
+            mesh: self.mesh.clone(),
+            bv: self.bv.deep_clone(),
+            z_limits: self.z_limits,
+            vtx_cap: self.vtx_cap,
+            tri_cap: self.tri_cap,
+        }
+    }
 }
 
 impl Default for Heightfield {

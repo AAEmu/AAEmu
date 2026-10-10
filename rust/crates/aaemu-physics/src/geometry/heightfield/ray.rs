@@ -19,6 +19,7 @@ use crate::collision::pairs::tri_pairs::intersect_ray_tri;
 use crate::collision::swept::UnprojTables;
 use crate::geometry::primitives::{HeightfieldPrim, Primitive, RayPrim, Triangle};
 use crate::geometry::shapes::RayGeom;
+use crate::geometry::trimesh::protocol::CallerArena;
 use crate::geometry::GeomWorldData;
 use crate::math::{Mat33, Vec3};
 
@@ -373,12 +374,13 @@ fn normalize(v: Vec3) -> Vec3 {
 
 impl Heightfield {
     /// Slot 10 (0x35156E20) when the other geometry is a ray (`GetType() == 3`). Returns the
-    /// number of contacts (0 or 1); the contact is appended to `pool` (the per-caller contact
-    /// pool, arena `+0xC7B8`, 64 × 136 bytes, count at `+0xE9B8`).
+    /// contact (the original returns 1 and points `*ppContacts` at it), written into entry
+    /// `arena.n_contacts` of the per-caller pool (arena `+0xC7B8`, 64 × 136 bytes), whose count
+    /// (`+0xE9B8`) grows by one — **without** the 64-entry bound check (kept; the port only
+    /// counts). With `ip`, `ip+128` is pointed at the pool.
     ///
-    /// * `ip == None` or `!ip.keep_prev_contacts`: the pool counters are reset first — the
-    ///   contact count (`pool.clear()` here) and the area / area-point / border-point counters
-    ///   (`+0xF2C0`, `+0x10EC4`, `+0x16EC8`), which the **caller** must reset as well.
+    /// * `ip == None` or `!ip.keep_prev_contacts`: the pool counters are reset first: contacts,
+    ///   areas (`+0xF2C0`), area points (`+0x10EC4`) and border points (`+0x16EC8`).
     /// * The ray in world space (the ray geometry's slot 53 / sub_3519A190 under `gwd_ray`) is
     ///   brought into the heightfield frame (`Rᵀ·(p − off)/s`), `ctx` is prepared and
     ///   [`march_grid`] runs on a copy. No hit → 0.
@@ -401,8 +403,8 @@ impl Heightfield {
         &self,
         input: &RayIntersectInput<'_>,
         tables: &UnprojTables,
-        pool: &mut Vec<GeomContact>,
-    ) -> i32 {
+        arena: &mut CallerArena,
+    ) -> Option<GeomContact> {
         let ray = input.ray;
         let ip = input.ip;
         let keep = ip.is_some_and(|ip| ip.keep_prev_contacts);
@@ -426,7 +428,10 @@ impl Heightfield {
         };
         let ndw = rot(&r2, ray.ndir);
         if !keep {
-            pool.clear();
+            arena.n_areas = 0;
+            arena.n_area_pts = 0;
+            arena.n_contacts = 0;
+            arena.w16ec8 = 0;
         }
         let g1 = input.gwd_hf;
         let p = &self.bv.prim;
@@ -459,7 +464,7 @@ impl Heightfield {
         if march_grid(p, &mut mo, &mut md, &mut ctx, input.draw_ray_limit) == RayMarchResult::Miss
             || ctx.result == -2
         {
-            return 0;
+            return None;
         }
         let hit = ctx.inters.pt[0];
         let center = xf(&g1.r, hit, g1.scale, g1.offset);
@@ -594,8 +599,8 @@ impl Heightfield {
         }
         c.vel = 0.0;
         c.id = [ctx.result, -1];
-        pool.push(c);
-        1
+        arena.n_contacts += 1;
+        Some(c)
     }
 }
 
