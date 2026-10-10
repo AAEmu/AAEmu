@@ -19,6 +19,7 @@ mod lcp;
 mod pgs;
 pub mod probe;
 pub mod thread;
+mod unproj;
 
 pub use body::{BodyArena, BodyId, RigidBody};
 pub use contact::{Contact, ContactId, ContactOwner, ContactPool};

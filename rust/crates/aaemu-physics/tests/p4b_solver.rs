@@ -372,6 +372,32 @@ fn p4b_random_stage1() {
 }
 
 #[test]
+fn p4b_stack_lcp() {
+    check("p4b_stack_lcp", 80, &|rng| {
+        let n = rng.range(2, 10) as usize;
+        let vars = random_vars(rng, true);
+        stack(rng, n, vars, false)
+    });
+}
+
+#[test]
+fn p4b_heavy_light() {
+    check("p4b_heavy_light", 80, &|rng| {
+        let n = rng.range(3, 8) as usize;
+        let vars = random_vars(rng, true);
+        stack(rng, n, vars, true)
+    });
+}
+
+#[test]
+fn p4b_random_lcp() {
+    check("p4b_random_lcp", 150, &|rng| {
+        let vars = random_vars(rng, true);
+        random_island(rng, 6, 24, vars)
+    });
+}
+
+#[test]
 #[ignore = "diagnostics: path histogram of the generators"]
 fn p4b_path_stats() {
     use aaemu_physics::solver::probe::path_stats;
@@ -382,6 +408,20 @@ fn p4b_path_stats() {
     }));
     println!("{}", path_stats("random", 300, &|rng| {
         let vars = random_vars(rng, false);
+        random_island(rng, 6, 24, vars)
+    }));
+    println!("{}", path_stats("stack_lcp", 300, &|rng| {
+        let n = rng.range(2, 10) as usize;
+        let vars = random_vars(rng, true);
+        stack(rng, n, vars, false)
+    }));
+    println!("{}", path_stats("heavy_light", 300, &|rng| {
+        let n = rng.range(3, 8) as usize;
+        let vars = random_vars(rng, true);
+        stack(rng, n, vars, true)
+    }));
+    println!("{}", path_stats("random_lcp", 300, &|rng| {
+        let vars = random_vars(rng, true);
         random_island(rng, 6, 24, vars)
     }));
 }

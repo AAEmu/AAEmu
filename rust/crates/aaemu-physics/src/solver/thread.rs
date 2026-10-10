@@ -35,7 +35,7 @@
 //! | 6275112 | 1 | "CG allowed" byte |
 
 use super::body::BodyId;
-use super::contact::{flags, Contact, ContactId, ContactOwner, ContactPool};
+use super::contact::{flags, ContactId, ContactOwner, ContactPool};
 
 /// Size of the block in bytes.
 pub const SIZE: usize = 0x5F_C030;
@@ -316,10 +316,7 @@ pub struct SolverThread {
     pub tid: usize,
     /// The block (see the module docs).
     pub mem: Mem,
-    /// Contact records handed out by [`SolverThread::alloc_tmp_contacts`] (allocated once in
-    /// the contact pool and reused for every island, like the binary's temp buffer).
-    tmp_recs: Vec<ContactId>,
-    /// Records of `tmp_recs` used since the last [`SolverThread::init`].
+    /// Temp records handed out since the last [`SolverThread::init`].
     tmp_used: usize,
     /// Multi-body constraint entries (flag `0x400000`): [`ContactOwner::Temp`]`(k)` designates
     /// the run starting at `multi_body[k]` (`group_n` entries). In the binary these are 56-byte
@@ -352,7 +349,6 @@ impl SolverThread {
         Self {
             tid,
             mem: Mem::new(),
-            tmp_recs: Vec::new(),
             tmp_used: 0,
             multi_body: Vec::new(),
         }
@@ -402,26 +398,19 @@ impl SolverThread {
         self.mem.u(off::CG_ALLOWED) & 0xFF != 0
     }
 
-    /// `AllocSolverTmpBuf` 0x3509A9C0 for contact records: `n` zeroed contact records
-    /// (`n·176` bytes) valid until the next [`SolverThread::init`].
+    /// `AllocSolverTmpBuf` 0x3509A9C0 for contact records: `n` contiguous zeroed contact
+    /// records (`n·176` bytes) valid until the next [`SolverThread::init`]; returns the first
+    /// ([`ContactId::temp`]`(k)`, then `k + 1`, …).
     ///
     /// The binary carves them out of the block's 0x80000-byte temp buffer and, past that, out
     /// of a growing heap buffer whose growth relocates the contact pointers already pushed
-    /// (and logs "AllocSolverTmpBuf(%d)"). The port keeps the records in the contact pool
-    /// (stable ids), so no relocation is needed; the records are reset to the zeroed state
-    /// ([`Contact::zeroed`]) each time they are handed out, like the `memset`.
-    pub fn alloc_tmp_contacts(&mut self, pool: &mut ContactPool, n: usize) -> Vec<ContactId> {
-        while self.tmp_recs.len() < self.tmp_used + n {
-            let id = ContactId(pool.recs.len() as u32);
-            pool.recs.push(Contact::zeroed());
-            self.tmp_recs.push(id);
-        }
-        let ids = self.tmp_recs[self.tmp_used..self.tmp_used + n].to_vec();
-        for &id in &ids {
-            *pool.get_mut(id) = Contact::zeroed();
-        }
+    /// (and logs "AllocSolverTmpBuf(%d)"). The port keeps them in the pool's temp arena
+    /// ([`ContactPool::temp`], stable ids), so no relocation is needed; the arena is truncated
+    /// to the records handed out since the last `init` (the binary reuses its buffer).
+    pub fn alloc_tmp_contacts(&mut self, pool: &mut ContactPool, n: usize) -> ContactId {
+        pool.temp.truncate(self.tmp_used);
+        let id = pool.alloc_temp(n);
         self.tmp_used += n;
-        // byte accounting of the binary (inline buffer first, then the overflow buffer)
         let bytes = (n * 176) as i32;
         let used = self.mem.i(off::TMP_USED);
         if ((used + bytes) as u32) < 0x8_0000 {
@@ -434,7 +423,7 @@ impl SolverThread {
             }
             self.mem.si(off::OVF_USED, o + bytes);
         }
-        ids
+        id
     }
 
     /// Contacts registered for the island (`T+8`, the list `InvokeContactSolver` hands to the

@@ -590,6 +590,23 @@ pub fn oracle_raw(exe: &Path, lines: &[String]) -> Result<Vec<String>, String> {
     Ok(answers)
 }
 
+/// The answer with every NaN word replaced by `7fc00000`.
+///
+/// NaNs only arise from degenerate islands (e.g. a contact between two infinite-mass bodies,
+/// `K = 0`). Their sign/payload depends on which operand of a commutative operation carries
+/// the NaN, and LLVM may swap the operands of `fadd`/`fmul` in optimised builds, so NaN
+/// *bits* are not reproducible in Rust; everything else (including where NaNs appear) is.
+#[must_use]
+pub fn canon_nan(a: &str) -> String {
+    a.split(' ')
+        .map(|w| match u32::from_str_radix(w, 16) {
+            Ok(v) if w.len() == 8 && f32::from_bits(v).is_nan() => "7fc00000",
+            _ => w,
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// Word-level diff of two answers (first differences, labelled by section).
 #[must_use]
 pub fn word_diff(a: &str, b: &str) -> String {
@@ -691,7 +708,8 @@ pub fn check(name: &str, n: usize, gen: &dyn Fn(&mut Rng) -> Case) {
     let mut dump = String::new();
     for (i, (c, want)) in recs.iter().enumerate() {
         let case = Case::parse(c).unwrap_or_else(|e| panic!("{name} #{i}: {e}"));
-        let got = case.run_port();
+        let got = canon_nan(&case.run_port());
+        let want = &canon_nan(want);
         if &got != want {
             bad += 1;
             let entry = format!("#{i}\n  case:   {c}\n  diff:  {}\n", word_diff(want, &got));

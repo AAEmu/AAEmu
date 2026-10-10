@@ -518,7 +518,7 @@ impl Ctx<'_> {
     }
 
     /// Relative velocity of a contact from the bodies (PreCG / stage-2 form).
-    fn rel_vel(&self, cid: ContactId) -> [f32; 3] {
+    pub(crate) fn rel_vel(&self, cid: ContactId) -> [f32; 3] {
         let c = self.pool.get(cid);
         let b0 = self.b(c.pbody[0]);
         let b1 = self.b(c.pbody[1]);
