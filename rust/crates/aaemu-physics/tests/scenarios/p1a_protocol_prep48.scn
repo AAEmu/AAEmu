@@ -1,0 +1,8 @@
+# P1a: slot 48 PreparePrimitive of every primitive under random geom_world_data (mode=1:
+# identity rotation, unit scale).
+gprobe probe=prep type=box n=40 seed=4801
+gprobe probe=prep type=box n=10 seed=4802 mode=1
+gprobe probe=prep type=sphere n=30 seed=4803
+gprobe probe=prep type=cylinder n=30 seed=4804
+gprobe probe=prep type=capsule n=30 seed=4805
+gprobe probe=prep type=ray n=30 seed=4806
