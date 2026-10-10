@@ -34,6 +34,7 @@ name = "aaemu-game"
 version = "0.1.0"
 dependencies = [
  "aaemu-commons",
+ "aaemu-physics",
  "aes",
  "anyhow",
  "axum",

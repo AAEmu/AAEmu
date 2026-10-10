@@ -25,8 +25,10 @@
 //! | [`manager`] | `AIManager` (registry, 100 ms tick, posting calls to an AI) |
 //! | [`hooks`] | the AI entry points for npcs / skills |
 //! | [`physics`] | `Physics/**`, `PhysicsManager`, `WaterBodies` (ship physics, water) |
+//! | [`collision`] | the zone's collision world on the CryPhysics port + the query service (Rust only) |
 
 pub mod behaviors;
+pub mod collision;
 pub mod combat;
 pub mod data;
 pub mod framework;
@@ -63,6 +65,8 @@ use crate::systems::{DataLoadCtx, SaveStage};
 #[derive(Debug, Default)]
 pub struct Data {
     pub ai: data::AiData,
+    /// The DB columns of the collision world (`collision::data`).
+    pub collision: collision::data::CollisionData,
 }
 
 impl Data {
@@ -70,6 +74,7 @@ impl Data {
     pub fn load(ctx: &DataLoadCtx<'_>) -> Result<Self, crate::data::GameDataError> {
         Ok(Self {
             ai: data::AiData::load(ctx)?,
+            collision: collision::data::CollisionData::load(ctx.conn).unwrap_or_default(),
         })
     }
 }
@@ -89,6 +94,8 @@ pub struct System {
     pub gimmick_moves: gimmick::GimmickMoves,
     /// `WorldInstance.Physics` / `WorldInstance.Water`.
     pub physics: physics::PhysicsSystem,
+    /// The collision world and query service (CryPhysics port).
+    pub collision: collision::CollisionSystem,
     /// `Data/Path` (set at start).
     paths_folder: Mutex<Option<PathBuf>>,
 }
@@ -107,6 +114,7 @@ impl System {
         .await?;
         hooks::install(server);
         manager::start_tick(server);
+        collision::residency::start(server);
         Ok(())
     }
 

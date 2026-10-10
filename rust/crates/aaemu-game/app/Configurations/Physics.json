@@ -1,0 +1,15 @@
+{
+    "Physics": {
+        "Enable": true,
+        "Geometry": "Full",
+        "LoadRadiusCells": 1,
+        "LoadOnQuery": true,
+        "UnloadAfterSeconds": 600,
+        "SyncPeriodMs": 1000,
+        "DoodadColliders": true,
+        "PreloadAllCells": false,
+        "MovementVerifyEnable": false,
+        "FallDamageZoneCap": true,
+        "CryPhysicsShips": true
+    }
+}
