@@ -69,6 +69,7 @@
 //!   distance-along-ray contact with `iUnprojMode = −1`.
 
 pub mod bv;
+pub mod cubemap;
 pub mod protocol;
 pub mod ray;
 pub mod region;

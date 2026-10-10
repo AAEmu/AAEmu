@@ -559,12 +559,53 @@ static void isect_cases(unsigned char *hf, int n) {
   }
 }
 
+/* ---- slot 51 (occlusion cubemap) ---- */
+static uint32_t fnv(const uint32_t *w, int n, uint32_t h) {
+  for (int i = 0; i < n; i++) { h ^= w[i]; h *= 16777619u; }
+  return h;
+}
+static void cube_cases(unsigned char *hf, int n) {
+  float sx = *(float *)(hf + 660), sy = *(float *)(hf + 664);
+  for (int i = 0; i < n; i++) {
+    Gwd g;
+    rand_gwd(&g, rnd() % 3 == 0);
+    float q[3] = {frand(-1, g_nx + 1) * sx, frand(-1, g_ny + 1) * sy, frand(g_hmin - 1, g_hmax + 4)};
+    for (int r = 0; r < 3; r++)
+      g.off[r] = -(g.R[3 * r] * q[0] + g.R[3 * r + 1] * q[1] + g.R[3 * r + 2] * q[2]) * g.s;
+    int res = rnd() % 2 ? 8 : 16;
+    unsigned pass = rnd() % 2;
+    float rmax = frand(0.5f, 6) * (sx > sy ? sx : sy), rmin = frand(0, rmax);
+    float zs = 65535.0f / rmax;
+    uint32_t *faces[6], fs0 = rnd(), fs = fs0;
+    for (int f = 0; f < 6; f++) {
+      faces[f] = (uint32_t *)malloc(4 * res * res);
+      for (int k = 0; k < res * res; k++) { fs = fs * 1664525u + 1013904223u; faces[f][k] = (fs >> 8) % 4 ? 0x7FFFFFFF : (fs & 0x8000FFFF); }
+    }
+    printf("cube");
+    print_gwd(&g);
+    printf(" %d %u", res, pass);
+    pw(&rmin, 1);
+    pw(&rmax, 1);
+    pw(&zs, 1);
+    uint32_t h0 = 2166136261u;
+    for (int f = 0; f < 6; f++) h0 = fnv(faces[f], res * res, h0);
+    printf(" %08x %u", h0, fs0);
+    int r = ((int (*)(void *, void *, int, int, unsigned, uint32_t **, int, float, float, float))VSLOT(hf, 51))(
+        hf, &g, 0, 0, pass, faces, res, rmin, rmax, zs);
+    uint32_t h = 2166136261u;
+    for (int f = 0; f < 6; f++) h = fnv(faces[f], res * res, h);
+    printf(" | %d %08x\n", r, h);
+    for (int f = 0; f < 6; f++) free(faces[f]);
+  }
+}
+
 int main(int argc, char **argv) {
   p1c_init(&argc, &argv);
   if (argc < 4 || strcmp(argv[1], "run")) { printf("usage: run seed ngrids\n"); return 1; }
   g_rng = 0x9E3779B97F4A7C15ULL ^ (uint64_t)atoi(argv[2]) * 0x2545F4914F6CDD1DULL;
   int ng = atoi(argv[3]);
   int isect = argc > 4 && !strcmp(argv[4], "isect");
+  int cube = argc > 4 && !strcmp(argv[4], "cube");
   g_fake_vt[6] = (void *)fake_bbox;
   /* the per-caller hf records start as the static initialiser leaves them (type 2) */
   for (int g = 0; g < ng; g++) {
@@ -576,6 +617,7 @@ int main(int argc, char **argv) {
     region_cases(hf, 30);
     ray_cases(hf, 80);
     if (isect) isect_cases(hf, 60);
+    if (cube) cube_cases(hf, 25);
     printf("end\n");
   }
   return 0;

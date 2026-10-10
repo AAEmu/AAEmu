@@ -22,6 +22,7 @@ use aaemu_physics::geometry::heightfield::protocol::SharedHeightfield;
 use aaemu_physics::geometry::heightfield::region::{HfFrame, OtherSweep, RegionOutcome};
 use aaemu_physics::geometry::heightfield::{Heightfield, RayIntersectInput};
 use aaemu_physics::geometry::primitives::{BoxPrim, HeightfieldPrim, RayPrim};
+use aaemu_physics::geometry::shapes::misc::cubemap::Cubemap;
 use aaemu_physics::geometry::shapes::RayGeom;
 use aaemu_physics::geometry::trimesh::intersect::{intersect, IntersectExtra, Tables as ITables};
 use aaemu_physics::geometry::trimesh::protocol::BorderKind;
@@ -264,6 +265,18 @@ fn contact_line(s: &mut String, c: &GeomContact, kind: &str) {
             );
         }
     }
+}
+
+/// FNV-1a over the six faces' words (the probe's `fnv`).
+fn fnv(c: &Cubemap) -> u32 {
+    let mut h = 2_166_136_261u32;
+    for f in &c.faces {
+        for w in f {
+            h ^= *w;
+            h = h.wrapping_mul(16_777_619);
+        }
+    }
+    h
 }
 
 #[derive(Default)]
@@ -606,6 +619,33 @@ fn replay(trace: &str, what: &str) -> Stats {
                 st.ray_hits += usize::from(!res.contacts.is_empty());
                 "generic Intersect (hf vs ray)"
             }
+            "cube" => {
+                let h = hf.as_ref().unwrap();
+                let g = t.gwd();
+                let res = t.i();
+                let pass = t.i() as u32;
+                let rmin = t.f();
+                let rmax = t.f();
+                let zs = t.f();
+                let h0 = t.w();
+                let mut fs: u32 = t.s().parse().unwrap();
+                let mut cube = Cubemap::new(res, 0x7FFF_FFFF);
+                for f in &mut cube.faces {
+                    for px in f.iter_mut() {
+                        fs = fs.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                        *px = if !(fs >> 8).is_multiple_of(4) {
+                            0x7FFF_FFFF
+                        } else {
+                            fs & 0x8000_FFFF
+                        };
+                    }
+                }
+                assert_eq!(fnv(&cube), h0, "{what}: initial cubemap");
+                let r = h.draw_to_cubemap(&g, pass, &mut cube, rmin, rmax, zs);
+                dec(&mut out, r.into());
+                hx(&mut out, fnv(&cube));
+                "occlusion cubemap (slot 51)"
+            }
             other => panic!("{what}: unknown line tag {other}"),
         };
         let want = want.unwrap_or_else(|| panic!("{what}: line {li} has no outputs"));
@@ -620,19 +660,18 @@ fn replay(trace: &str, what: &str) -> Stats {
 }
 
 fn run_seed(seed: u32, grids: u32) {
-    run_seed_args(seed, grids, false);
+    run_seed_args(seed, grids, None);
 }
 
-fn run_seed_args(seed: u32, grids: u32, isect: bool) {
-    let name = if isect {
-        format!("p1c_hf_isect_seed{seed}")
-    } else {
-        format!("p1c_hf_seed{seed}")
+fn run_seed_args(seed: u32, grids: u32, extra: Option<&str>) {
+    let name = match extra {
+        Some(x) => format!("p1c_hf_{x}_seed{seed}"),
+        None => format!("p1c_hf_seed{seed}"),
     };
     let (s, g) = (seed.to_string(), grids.to_string());
     let mut args = vec!["run", &s, &g];
-    if isect {
-        args.push("isect");
+    if let Some(x) = extra {
+        args.push(x);
     }
     let Some(trace) = p1c_common::golden(&name, "p1c_hf_probe", &args) else {
         eprintln!("{name}: no golden and no probe; skipped");
@@ -670,7 +709,13 @@ fn seed4() {
 /// ray (the ray registers the contacts), on top of the usual cases.
 #[test]
 fn isect_seed5() {
-    run_seed_args(5, 3, true);
+    run_seed_args(5, 3, Some("isect"));
+}
+
+/// Slot 51 (`DrawToOcclusionCubemap` leaf worker) on random viewpoints near the terrain.
+#[test]
+fn cube_seed6() {
+    run_seed_args(6, 3, Some("cube"));
 }
 
 /// Extra seeds straight from the DLL (no goldens): `AAEMU_PHYS_P1C_HF_STRESS=<n>`.
@@ -687,7 +732,8 @@ fn stress() {
     };
     let mut total = Stats::default();
     for seed in 100..100 + n {
-        let trace = p1c_common::run_probe(&exe, &["run", &seed.to_string(), "8", "isect"]).unwrap();
+        let mode = if seed % 2 == 0 { "isect" } else { "cube" };
+        let trace = p1c_common::run_probe(&exe, &["run", &seed.to_string(), "8", mode]).unwrap();
         let st = replay(&trace, &format!("stress seed {seed}"));
         total.lines += st.lines;
         total.ray_hits += st.ray_hits;
