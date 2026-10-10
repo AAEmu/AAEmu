@@ -1,0 +1,55 @@
+# P3 queries: water plane (global area, medium 0, water material with pierceability), the
+# hit-last cell-(0,0) quirk, DrawRayOnGrid limit, out-of-grid cell, queued RWI / PWI
+# (world slot 43 + PumpLoggedEvents callbacks).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+var off=236 i=1
+surface idx=7 flags=0x3
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0 flags=0x1809F
+geom name=crate type=box size=1,0.5,0.75
+entity name=crate type=static pos=32,32,0.75 q=0,0,0.258819,0.9659258
+part ent=crate geom=crate mass=0 flags=0x1809F
+entity name=corner type=static pos=1,1,1
+part ent=corner geom=crate mass=0 flags=0x1809F
+entity name=outside type=static pos=-6,10,1
+part ent=outside geom=crate mass=0 flags=0x1809F
+geom name=ball type=sphere r=0.75
+entity name=ball type=static pos=36,32,1
+part ent=ball geom=ball mass=0 flags=0x1809F
+area name=water kind=global
+params target=water type=12 v40=0,0,1 v52=0,0,2 i72=0
+watermat v=7
+step n=1
+rayx name=w_down org=20,20,10 dir=0,0,-20 types=0x301 max=3
+rayx name=w_down_p org=20,20,10 dir=0,0,-20 types=0x301 max=3 flags=0x5
+rayx name=w_down_sort org=20,20,10 dir=0,0,-20 types=0x301 max=3 flags=0x200
+rayx name=w_up org=20,20,-0.2 dir=0,0,5 types=0x301 max=3
+rayx name=w_below org=20,20,1 dir=1,0,-0.2 types=0x301 max=3 flags=0x10000
+rayx name=w_slant org=10,10,6 dir=8,6,-9 types=0x301 max=3
+rayx name=w_mask_off org=20,20,10 dir=0,0,-20 types=0x101 max=3
+rayx name=w_max1 org=20,20,10 dir=0,0,-20 types=0x301 max=1 flags=0x5
+rayx name=w_areas org=20,20,10 dir=0,0,-20 types=0x21 max=3
+rayx name=hl_a org=1,1,10 dir=0,0,-20 hitlast=k flags=0x4000 keep=k
+rayx name=hl_b org=1.1,1.1,10 dir=0,0,-20 hitlast=k flags=0x4000 keep=k
+rayx name=hl_c org=32,32,10 dir=0,0,-20 hitlast=k flags=0x4000 keep=k
+rayx name=hl_d org=32,32,10 dir=0,0,-20 hitlast=k flags=0x4000 keep=k max=2
+rayx name=out_cell org=-10,10,1 dir=30,0,0 max=2
+rayx name=out_cell2 org=-10,10,1 dir=8,0,0 max=2
+rayx name=long_ok org=0.5,32,1.2 dir=999,0,0 max=2 types=0x101
+rayx name=long_limit org=0.5,32,1.2 dir=1001,0,0 max=2 types=0x101
+rayx name=long_limit_t org=32,32,10 dir=0,1200,-20 max=2
+env raymax=50
+rayx name=lim50 org=10,32,1.2 dir=60,0,0 max=2 types=0x101
+env b289=1
+rayx name=lim50_b289 org=10,32,1.2 dir=60,0,0 max=2 types=0x101
+rayq name=q1 org=32,32,10 dir=0,0,-20 max=2
+rayq name=q2 org=20,32.1,0.5 dir=30,0,0 max=3 pool=1
+rayq name=q3 org=36,40,1 dir=0,-12,0 max=2 skip=ball
+pwiq name=pq1 geom=ball at=20,32,1 sweep=20,0,0
+pwiq name=pq2 geom=ball at=20,20,8 sweep=0,0,2
+process mode=1
+pump
+rayq name=q4 org=32,32,10 dir=0,0,-20 max=2
+process mode=0
+pump

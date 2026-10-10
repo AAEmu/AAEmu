@@ -1,0 +1,32 @@
+# P4a ApplyBuoyancy called directly (oracle/p3_areas.c abuoy): global water plane z=0.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+area name=glob kind=global
+params target=glob type=12 v40=0,0,1 v52=0,0,0 i72=0
+geom name=b1 type=box size=1,0.5,0.75
+geom name=s1 type=sphere r=0.8
+geom name=c1 type=cylinder r=0.5 hh=1
+geom name=k1 type=capsule r=0.4 hh=0.7
+# multi-part box + sphere + cylinder (accumulator carry-over between parts)
+entity name=multi type=rigid pos=50,10,0
+part ent=multi geom=b1 mass=100 pos=-1,0,0
+part ent=multi geom=s1 mass=100 pos=1,0,0
+part ent=multi geom=c1 mass=100 pos=0,1,0
+params target=multi type=12 f4=1000
+poke target=multi off=448 v=50,10,0
+poke target=multi off=476 v=48,9,-1
+poke target=multi off=488 v=52,12,1
+poke target=multi off=808 v=0.5,0,-1
+poke target=multi off=796 v=0,0,0.4
+gather tag=g5 ent=multi dt=0.0333
+abuoy tag=b5 ent=multi dt=0.0333
+estate tag=e5 ent=multi
+entity name=bb type=rigid pos=60,10,0
+part ent=bb geom=b1 mass=100 pos=-1,0,0
+part ent=bb geom=b1 mass=100 pos=1,0,0 flags=0x809F
+params target=bb type=12 f4=1000
+poke target=bb off=448 v=60,10,0
+poke target=bb off=476 v=58,9,-1
+poke target=bb off=488 v=62,11,1
+poke target=bb off=808 v=0.5,0,-1
+gather tag=g6 ent=bb dt=0.0333
+abuoy tag=b6 ent=bb dt=0.0333

@@ -1,0 +1,73 @@
+# P3 queries: RWI options (skip, hit-last, pierceable hits, sorting, foreign-data skip, flags),
+# PWI (static and swept box/sphere/capsule/cylinder), RayTraceEntity, CollideEntityWithPrimitive,
+# CollideEntityWithBeam on a small static world.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+surface idx=3 flags=0x5
+surface idx=4 flags=0x205
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0 flags=0x1809F
+geom name=crate type=box size=1,0.5,0.75
+entity name=crate type=static pos=32,32,0.75 q=0,0,0.258819,0.9659258
+part ent=crate geom=crate mass=0 flags=0x1809F
+geom name=ball type=sphere r=0.75
+entity name=ball type=static pos=36,32,1
+part ent=ball geom=ball mass=0 flags=0x1809F
+geom name=glass type=box size=0.05,2,2
+entity name=glass type=static pos=28,32,1.5
+part ent=glass geom=glass mass=0 flags=0x1809F i64=3
+entity name=glass2 type=static pos=26,32,1.5
+part ent=glass2 geom=glass mass=0 flags=0x1809F i64=4
+geom name=pole type=cylinder r=0.3 hh=2
+geom name=pill type=capsule r=0.4 hh=1
+entity name=multi type=static pos=40,36,2 q=0.2,0.1,0,0.9746794
+part ent=multi geom=pole mass=0 flags=0x1809F
+part ent=multi geom=pill mass=0 pos=1.5,0,0 flags=0x1809F
+part ent=multi geom=crate mass=0 pos=-1.5,0,0 flags=0x1809F
+fdata target=ball v=0x1234 i=7
+fdata target=multi v=0x1234 i=7
+step n=1
+rayx name=thru org=20,32,1.5 dir=24,0,0 max=4
+rayx name=thru_pierce org=20,32,1.5 dir=24,0,0 max=4 flags=0x1
+rayx name=thru_sorted org=20,32,1.5 dir=24,0,0 max=4 flags=0x201
+rayx name=thru_sorted2 org=20,32,1.5 dir=24,0,0 max=6 flags=0x200
+rayx name=back org=44,32,1.5 dir=-24,0,0 max=4
+rayx name=back_max2 org=44,32,1.5 dir=-24,0,0 max=2
+rayx name=skip_crate org=20,32,0.9 dir=24,0,0 max=3 skip=crate
+rayx name=skip_null org=20,32,0.9 dir=24,0,0 max=3 skip=-,crate
+rayx name=skip_fdata org=36,40,1 dir=0,-12,0 max=3 skip=ball
+rayx name=multi_down org=40.2,36.1,10 dir=0,0,-20 max=3
+rayx name=multi_side org=34,36,2 dir=14,0.3,0 max=3
+rayx name=backface org=28,32,1.5 dir=-6,0,0 max=3 flags=0x80
+rayx name=solidback org=33,32,0.75 dir=-6,0,0 max=3 flags=0x100
+rayx name=colltype org=32,32,10 dir=0,0,-20 max=2 flags=0x400
+rayx name=colltype40 org=32,32,10 dir=0,0,-20 max=2 flags=0x40
+rayx name=nonrigid org=32,32,10 dir=0,0,-20 max=2 types=0x4
+rayx name=hl1 org=32,32,10 dir=0,0,-20 max=2 hitlast=c flags=0x4000 keep=b1
+rayx name=hl2 org=32.1,32.1,10 dir=0,0,-20 max=2 hitlast=c flags=0x4000 keep=b1
+rayx name=hl3 org=36,32,10 dir=0,0,-20 max=2 hitlast=c flags=0x4000 keep=b1
+rayx name=hl_miss org=50,50,10 dir=0,0,-5 max=2 hitlast=c keep=b1
+rayx name=caller0 org=32,32,10 dir=0,0,-20 max=2 caller=0
+pwi name=box_static geom=crate at=32.5,32,0.75
+pwi name=box_air geom=crate at=32,32,5
+pwi name=sph_sweep geom=ball at=20,32,1 sweep=20,0,0
+pwi name=sph_sweep_down geom=ball at=36,32,8 sweep=0,0,-10
+pwi name=cap_sweep geom=pill at=40,30,2 sweep=0,10,0
+pwi name=cyl_sweep geom=pole at=30,28,2 sweep=4,6,0
+pwi name=box_sweep geom=crate at=24,32,3 sweep=16,0,-2
+pwi name=sweep_skip geom=ball at=20,32,1 sweep=20,0,0 skip=glass,glass2
+pwi name=sweep_only geom=ball at=20,32,1 sweep=20,0,0 only=ball,crate
+pwi name=count geom=crate at=32,32,0.5 stop=0
+pwi name=stop1 geom=crate at=32,32,0.5 stop=1
+pwi name=flags_all geom=crate at=32,32,0.5 all=0x10000
+rte name=rte_crate ent=crate org=32,32,10 dir=0,0,-20
+rte name=rte_multi ent=multi org=34,36,2 dir=14,0.3,0
+rte name=rte_back ent=crate org=32,32,0.75 dir=0,0,5 backfaces=1
+rte name=rte_miss ent=ball org=0,0,0 dir=1,0,0
+cewp name=cewp_sph ent=crate geom=ball at=33,32,0.75
+cewp name=cewp_inside ent=crate geom=ball at=32,32,0.75 inside=1
+cewp name=cewp_sweep ent=multi geom=ball at=30,36,2 sweep=12,0,0
+cewp name=cewp_miss ent=ball geom=ball at=0,0,0
+beam name=beam1 ent=multi org=34,36,2 dir=14,0,0 r=0.3
+beam name=beam2 ent=crate org=32,32,10 dir=0,0,-20 r=0.2
+beam name=beam_miss ent=crate org=0,0,10 dir=0,0,-20 r=0.2

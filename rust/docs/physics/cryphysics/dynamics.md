@@ -696,7 +696,7 @@ Fields a fresh setup must have set, or resting contact breaks:
   In particular W+260 (10) and W+264 (2.5) drive the only depenetration in the default path; W+240 (0.01) is the allowed gap.
 - **Per-island values** written by the island driver 0x3507f9b0:
   - `W[80·tid+21936]` = min maxFriction (μ cap; 0 means frictionless).
-  - `W[80·tid+21932]` = island dt.
+  - `W[80·tid+21932]` = island **mass** (Σ member mass, +1.01·max for islands touching statics; P7 correction — not dt).
   - `W[80·tid+21928]` = island flag.
   If entities are stepped directly rather than through world TimeStep, these stay 0.
 - **Per-frame StartStep.** StartStep (vf26) must run every frame (`E+596 = dt`, `E+600 = 0`). Otherwise Step returns
@@ -704,3 +704,27 @@ Fields a fresh setup must have set, or resting contact breaks:
 - **Order of a substep.** Step (gravity added after contact registration) → RegisterContacts → solver → Update. If
   the solver does not run after Step, gravity accumulates with no contact response.
 - **Restitution.** The bounce impulse is applied immediately inside RegisterContactPoint when `vn < −6 m/s` and e > 0.
+
+
+## P7 port corrections (verified against the oracle)
+
+Found while porting `TimeStep` / `CRigidEntity::Step` and replaying the goldens bit for bit:
+
+- **IDA addresses of `.data` constants are 0x400 off.** The decompile shows e.g. `0x35209BA0` / `0x35209BB0`
+  for the inc/dec mod-3 tables actually read at `0x352097A0` (`{1,2,0}`) / `0x352097B0` (`{2,0,1}`). Check the
+  rip-relative operand in the disassembly before trusting a decompiled table address.
+- **Step contact depths are single precision.** Where the decompile shows `(float)(t − dot) + m` with the double
+  `t` of the `geom_contact`, the code converts `t` first (`cvtsd2ss`) and does the rest in float; the same holds
+  for the CCD back-up distance `(float)(gap/2 + t)` and the deepest-contact unprojection `(float)(t − gap/2)`.
+- **Post-solve energy clamp** (0x3507F210, hidden in the decompile): after the group damping
+  `min(GetDamping)` the island is damped to `sqrt(E0/E)` when `E = Σ CalcEnergy(0) > E0·(1 + 0.1·[nSolverBodies < 15])`,
+  and the 7th argument (the island step's `v14`) overrides the damping when it is `> −0.5`. This is what puts a
+  box landing on the ground to sleep in the impact step.
+- **CheckContactConflicts** (0x350B9880) works on the unprojection directions (`+32`), the contact centres (`+112`),
+  the velocities (`+48`) and the border points, not on `n`/`pt`/`t` (only the thin-axis test uses `n`).
+- **GetStatus(pe_status_dynamics)** of a sleeping rigid body reports zero `v`, `w`, `a`, `wa` (0x350B1B80).
+- **Slot 24** of CRigidEntity queues an `action_net_sync`-like state (applied by 0x350C9750 at the end of Step:
+  SetParams pos + Action set_velocity blended towards the target), not an impulse.
+- **RegisterContacts** sets `+584 = nColliders` (and clears the awake history `+580` when it changed).
+- **CheckForNewContacts** keeps the per-thread table count in `qword_35218710[tid][256].hi` and the current
+  area-run start in `.lo`; GetPotentialColliders compacts the GetEntitiesInBox cache array in place.

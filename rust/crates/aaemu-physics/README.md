@@ -66,7 +66,8 @@ src/
     pairs/         P2a OVERLAP/INTERSECT tables (mod.rs P0) + 4 group files
     swept.rs       P2b UNPROJECT tables, RegisterIntersection, sweeps
   world/       P3  world core, grid, areas, queries, events
-  entities/    P4a base + rigid (+ buoyancy); P5 living, wheeled, particle
+  entities/    P4a base + rigid (+ buoyancy); P5 living, wheeled, particle;
+               interface/ = SetParams / GetParams / GetStatus / Action (slots 7–10) by type id
   solver/      P4b contact solver
   trace.rs     PT  oracle trace parser
   oracle.rs    PT  oracle runner / golden-file helper
@@ -129,8 +130,9 @@ accept decimals, `U` (the unused sentinel) or `h:XXXXXXXX` (raw bits); ints acce
 | `geom` | `name= type=box size=hx,hy,hz [center=] [basis=9 floats]` · `type=sphere r=` · `type=cylinder\|capsule r= hh= [axis=]` · `type=ray org= dir=` · `type=heightfield n=nx,ny step=sx,sy hscale= fn=flat\|slope\|bumps h0= kx= ky= amp= [worldhf=1]` |
 | `entity` | `name= type=static\|rigid\|wheeled\|living\|particle\|N pos= [q=x,y,z,w] [id=]` + field setters on pe_params_pos |
 | `part` | `ent= geom= [mass=] [density=] [pos=] [q=] [scale=] [flags=0x1809F] [collider=0x1] [mincontact=] [id=]` |
+| `surface` | `idx= [bounce=0] [friction=h:3f99999a] [flags=0]` (SetSurfaceParameters, world slot 29) |
 | `area` | `name= kind=global` (AddGlobalArea) |
-| `params` / `action` / `status` / `getparams` | `target= type=N [tmpl=auto\|none] [fields] [dump=off,nwords]`; fields: `f<off>= i<off>= u<off>= b<off>= v<off>=x,y,z q<off>=x,y,z,w p<off>=null\|unused\|ent:NAME\|geom:NAME hex=<bytes>` |
+| `params` / `action` / `status` / `getparams` | `target= type=N [tmpl=auto\|none] [ts=1] [fields] [dump=off,nwords]` (`ts` = bThreadSafe of SetParams / Action; `<= 0` may defer the call to the next TimeStep); fields: `f<off>= i<off>= u<off>= b<off>= v<off>=x,y,z q<off>=x,y,z,w p<off>=null\|unused\|ent:NAME\|geom:NAME hex=<bytes>` |
 | `trace` | `ents=a,b,…` (entities printed after each step) |
 | `step` | `n= [dt=h:3d088889] [flags=0x9F] [every=1]` (TimeStep; `every=0` prints nothing) |
 | `print` | print the traced entities now |
@@ -158,6 +160,25 @@ acosf expf logf sqrtf atan2f powf sin cos exp log asin atan2`.
   flag 0x8000; RWI rejects rays whose |dir.x| or |dir.y| exceeds a gEnv config integer unless
   gEnv byte 289 is set ("DrawRayOnGrid", ArcheAge-specific); a heightfield geometry on an
   ordinary entity never collides; entities join the simclass lists at the first step.
+
+## Dynamics port status (P3 world, P4a rigid, P4b solver)
+
+* `World::time_step` (0x3508BD10) runs the rigid section exactly as the binary does with one
+  physics thread: island building, per-island GetMaxTimeStep/Step/StepBack (pass 0), the
+  awake-list job, RegisterContacts → `InvokeContactSolver` → post-solve/Update (pass 1), the
+  cleanup. Living/independent entities (P5) and worker threads are not ported.
+* `CRigidEntity::Step` with CheckForNewContacts, CheckContactConflicts, RegisterContactPoint,
+  the contact-patch fit, CCD sweep + beam check, ray-mode (`0x100000`) parts with their spring
+  contacts, buoyancy and air resistance; Update's sleep logic.
+* Port-side scenario interpreter: `scenario::Scenario::run(text)` prints the oracle's text for a
+  scenario (`cargo run --example replay <file.scn>`); `tests/p7_dyn_goldens.rs` replays the
+  stepping goldens bit for bit. Debug aids: the oracle command `contacts target=E` (the entity's
+  contact records) with the same command in the interpreter, `peek` of rigid members
+  (`scenario::entity_word`), and `AAEMU_PHYS_DUMP_SOLVER=<file>` to dump every island solve as a
+  `physoracle --p4b` case (`cargo run --example solver_check <file> <physoracle.exe>`).
+* Convenience API for the server: `world::api` (`World::with_grid`, `geometry`, `add_static`,
+  `add_rigid`, `set_ocean`, `set_body_buoyancy`, `step`, `body_state`), plus the ported
+  `rwi`/`pwi`, `set_heightfield_data`, `add_event_client`/`pump_logged_events`.
 
 ## Parallel phase: ownership
 
