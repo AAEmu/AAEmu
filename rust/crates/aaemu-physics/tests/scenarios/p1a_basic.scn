@@ -1,0 +1,9 @@
+# P1a: construction (CreatePrimitive = ctor + SetData) and the simple slots of every primitive:
+# GetType, GetBBox, CalcPhysicalProperties, GetVolume, GetCenter, GetPrimitive, header
+# (+16 minVtxDist, +20 priority, +24), GetPrimitiveCount, IsConvex, IsAPrimitive, sizeof,
+# GetExtent(0..3), ray ndir, cylinder/capsule +80. Random primitives, see oracle/p1a_probes.c.
+gprobe probe=basic type=box n=120 seed=101
+gprobe probe=basic type=sphere n=60 seed=102
+gprobe probe=basic type=cylinder n=120 seed=103
+gprobe probe=basic type=capsule n=120 seed=104
+gprobe probe=basic type=ray n=60 seed=105
