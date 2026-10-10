@@ -146,6 +146,16 @@ impl SkillData {
         self.passive_buffs.get(&id)
     }
 
+    /// `IsDefaultSkill(id)`.
+    pub fn is_default_skill(&self, id: u32) -> bool {
+        self.default_skills.iter().any(|d| d.skill_id == id)
+    }
+
+    /// `IsCommonSkill(id)`.
+    pub fn is_common_skill(&self, id: u32) -> bool {
+        self.common_skills.contains(&id)
+    }
+
     /// `GetStartAbilitySkills` (C# indexer: missing ability -> `KeyNotFoundException`).
     pub fn start_ability_skills(&self, ability: u8) -> Option<&[u32]> {
         self.start_ability_skills.get(&ability).map(Vec::as_slice)

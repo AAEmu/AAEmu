@@ -99,12 +99,8 @@ pub fn start_skill(server: &GameServer, conn: &mut GameConnection, p: CSStartSki
     let result;
     let mut value = 0u32;
     let data = &server.game_data;
-    let is_default = data
-        .skills
-        .default_skills
-        .iter()
-        .any(|d| d.skill_id == skill_id);
-    let is_common = data.skills.common_skills.contains(&skill_id);
+    let is_default = data.skills.is_default_skill(skill_id);
+    let is_common = data.skills.is_common_skill(skill_id);
     let auto = player.data().unit.skill_state.auto_attack.clone();
     let is_auto = player.data().unit.is_auto_attack;
     if let SkillCaster::Mount { obj_id, .. } = p.caster {

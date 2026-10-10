@@ -23,3 +23,10 @@ pub mod transfer;
 pub mod transform;
 pub mod unit;
 pub mod unit_model;
+
+#[cfg(test)]
+mod check_buffs_excluding_tags_tests;
+#[cfg(test)]
+mod unit_cooldowns_tests;
+#[cfg(test)]
+mod unit_tests;

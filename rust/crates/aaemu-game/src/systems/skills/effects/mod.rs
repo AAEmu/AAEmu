@@ -7,6 +7,11 @@ pub mod combat;
 pub mod special;
 pub mod unit_fx;
 
+#[cfg(test)]
+mod impulse_effect_tests;
+#[cfg(test)]
+mod physical_explosion_effect_tests;
+
 use std::sync::Arc;
 
 use rand::Rng;
@@ -113,6 +118,7 @@ pub fn apply(
         T::SkillController(t) => combat::skill_controller(server, t, args),
         T::Bubble { id, kind_id } => unit_fx::bubble(server, *id, *kind_id, args),
         T::Impulse(t) => unit_fx::impulse(server, t, args),
+        T::PhysicalExplosion(t) => unit_fx::physical_explosion(server, t, args),
         T::MoveToRezPoint { .. }
         | T::OpenPortal { .. }
         | T::AccountAttribute(_)
@@ -128,7 +134,6 @@ pub fn apply(
         | T::NpcControl(_)
         | T::NpcSpawnerSpawn(_)
         | T::NpcSpawnerDespawn { .. }
-        | T::PhysicalExplosion(_)
         | T::PutDownBackpack { .. }
         | T::RecoverExp(_)
         | T::RepairSlave { .. }

@@ -1,11 +1,11 @@
-//! `BubbleEffect` (`SCChatBubblePacket`) and `ImpulseEffect` (`SCUnitImpulsePacket` + the
-//! server-side NPC displacement).
+//! `BubbleEffect` (`SCChatBubblePacket`), `ImpulseEffect` (`SCUnitImpulsePacket` + the
+//! server-side NPC displacement) and `PhysicalExplosionEffect` (NPC knock-back).
 
 use crate::server::GameServer;
 use crate::world::WorldObject;
 
 use super::super::broadcast;
-use super::super::data::effects::ImpulseEffect;
+use super::super::data::effects::{ImpulseEffect, PhysicalExplosionEffect};
 use super::super::geometry::{world_pos, Target};
 use super::super::packets_special::{SCChatBubblePacket, SCUnitImpulsePacket};
 use super::special::movement::{has_knockback_immunity, move_npc, npc_non_pushable};
@@ -84,6 +84,82 @@ pub fn local_impulse_to_world_displacement(
         right.1 * d[0] + dir.1 * d[1],
         d[2],
     ]
+}
+
+/// `PhysicalExplosionEffect.ComputeKnockDisplacement`: the knock displacement of a target hit
+/// by an explosion at the caster (horizontal, pushing away from the caster, linear falloff to
+/// the radius). `None` outside the radius, inside the dead-zone hole, or when the knock would
+/// be under 0.5 m.
+pub fn compute_knock_displacement(
+    caster_pos: [f32; 3],
+    target_pos: [f32; 3],
+    radius: f32,
+    hole_size: f32,
+    pressure: f32,
+) -> Option<[f32; 3]> {
+    let mut dir = (target_pos[0] - caster_pos[0], target_pos[1] - caster_pos[1]);
+    let dist = (dir.0 * dir.0 + dir.1 * dir.1).sqrt();
+    if dist > radius || dist < hole_size {
+        return None;
+    }
+    if dir.0 * dir.0 + dir.1 * dir.1 < 0.01 {
+        dir = (1.0, 0.0);
+    }
+    let len = (dir.0 * dir.0 + dir.1 * dir.1).sqrt();
+    let dir = (dir.0 / len, dir.1 / len);
+    let falloff = if radius > 0.0 {
+        1.0 - dist / radius
+    } else {
+        0.0
+    };
+    let knock = (pressure / 1000.0) * falloff;
+    if knock < 0.5 {
+        return None;
+    }
+    Some([dir.0 * knock, dir.1 * knock, 0.0])
+}
+
+/// `PhysicalExplosionEffect.Apply`: an NPC target within the explosion is knocked away from
+/// the caster (`DisplacedUntil`, ground snap, stopping `SCOneUnitMovementPacket`); other targets
+/// are left to the client.
+pub fn physical_explosion(server: &GameServer, e: &PhysicalExplosionEffect, args: &EffectArgs<'_>) {
+    tracing::debug!(
+        "PhysicalExplosionEffect: caster={:?}, target={}, radius={}, pressure={}",
+        args.caster.as_ref().map(WorldObject::obj_id),
+        args.target.obj_id(),
+        e.radius,
+        e.pressure
+    );
+    let (Some(caster), Some(target)) = (args.caster.as_ref(), args.target.as_obj()) else {
+        return;
+    };
+    if has_knockback_immunity(server, target) || npc_non_pushable(server, target) {
+        return;
+    }
+    let caster_pos = world_pos(server, &Target::Obj(caster.clone()));
+    let target_pos = world_pos(server, &args.target);
+    let Some(d) = compute_knock_displacement(
+        [caster_pos.x, caster_pos.y, caster_pos.z],
+        [target_pos.x, target_pos.y, target_pos.z],
+        e.radius,
+        e.hole_size,
+        e.pressure,
+    ) else {
+        return;
+    };
+    if let Some(npc) = target.as_npc() {
+        move_npc(
+            server,
+            npc,
+            (
+                target_pos.x + d[0],
+                target_pos.y + d[1],
+                target_pos.z + d[2],
+            ),
+            None,
+            true,
+        );
+    }
 }
 
 /// `ImpulseEffect.Apply`.

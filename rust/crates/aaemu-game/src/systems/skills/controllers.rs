@@ -960,21 +960,12 @@ impl SkillController {
     /// `Buffs.CheckBuffsExcludingTags(GetBuffsByTagId(Shackle), [DecreaseMoveSpeed])`.
     fn shackled(&self, server: &GameServer) -> bool {
         let data = &server.game_data.systems.skills;
-        let Some(ids) = data
-            .buffs_by_tag(skill_constants::SHACKLE)
-            .filter(|l| !l.is_empty())
-        else {
-            return false;
-        };
-        let effects: Vec<u32> = self
-            .owner
-            .with_base_unit(|b| b.buffs().effects.iter().map(|e| e.template.id).collect());
-        effects.into_iter().any(|id| {
-            id != 0
-                && ids.contains(&id)
-                && !data
-                    .buff_tags(id)
-                    .contains(&skill_constants::DECREASE_MOVE_SPEED)
+        self.owner.with_base_unit(|b| {
+            b.buffs().check_buffs_excluding_tags(
+                data.buffs_by_tag(skill_constants::SHACKLE),
+                &[skill_constants::DECREASE_MOVE_SPEED],
+                |id| data.buff_tags(id),
+            )
         })
     }
 
