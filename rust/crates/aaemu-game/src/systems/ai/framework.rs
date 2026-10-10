@@ -247,6 +247,8 @@ pub struct NpcAi {
     pub events_registered: bool,
     /// The NPC has been in a region at least once (used to detect `Npc.Delete`).
     pub was_in_world: bool,
+    /// `_behaviors` insertion order (`Dictionary` enumeration order).
+    behavior_order: Vec<BehaviorKind>,
 }
 
 /// The context every AI method runs with.
@@ -290,6 +292,7 @@ impl NpcAi {
             has_simulation: false,
             events_registered: false,
             was_in_world: false,
+            behavior_order: Vec::new(),
         };
         ai.build();
         ai.check_valid();
@@ -297,7 +300,13 @@ impl NpcAi {
     }
 
     fn add_behavior(&mut self, kind: BehaviorKind) {
-        self.behaviors.insert(kind, BehaviorSlot::default());
+        if self
+            .behaviors
+            .insert(kind, BehaviorSlot::default())
+            .is_none()
+        {
+            self.behavior_order.push(kind);
+        }
     }
 
     fn add_transition(&mut self, from: BehaviorKind, on: TransitionEvent, to: BehaviorKind) {
@@ -390,6 +399,11 @@ impl NpcAi {
     /// `GetAiBehaviorList()` keys.
     pub fn behavior_kinds(&self) -> Vec<BehaviorKind> {
         self.behaviors.keys().copied().collect()
+    }
+
+    /// `GetAiBehaviorList()` keys in the C# `Dictionary` enumeration order (`AddBehavior` order).
+    pub fn behavior_list(&self) -> Vec<BehaviorKind> {
+        self.behavior_order.clone()
     }
 
     /// `_defaultBehavior`.

@@ -477,7 +477,7 @@ pub fn select_loaded(
     }
     // Houses (SCMyHousePacket)
     crate::systems::housing::send_my_houses(server, conn, snapshot.id);
-    for conflict in &data.zones.conflicts {
+    for conflict in &server.world.zone_conflicts.snapshot(server) {
         conn.send(&SCConflictZoneStatePacket {
             zone_group_id: conflict.zone_group_id,
             state: conflict.current_state,

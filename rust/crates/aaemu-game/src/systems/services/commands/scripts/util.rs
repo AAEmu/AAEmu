@@ -412,6 +412,109 @@ pub fn name_of(p: &PlayerRef) -> String {
     p.data().unit.name.clone()
 }
 
+// ---- nav helpers ----
+
+/// The message of a .NET `NullReferenceException`.
+pub const NULL_REFERENCE: &str = "Object reference not set to an instance of an object.";
+
+/// `obj.Transform.World` (the local transform composed with its parents).
+pub fn world_pos(server: &GameServer, obj: &WorldObject) -> PositionAndRotation {
+    match server.world.world_of(obj) {
+        Some(w) => w.world_pos_rot(obj),
+        None => obj.transform().local(),
+    }
+}
+
+/// `Enum.TryParse<T>(text, out v)` (case-sensitive) for an enum whose members are `names[i] =
+/// i`, with the underlying type range `min..=max`: a number (any value in range, defined or
+/// not), or one or more comma-separated member names (OR-ed together).
+pub fn enum_try_parse(text: &str, names: &[&str], min: i64, max: i64) -> Option<i64> {
+    let t = text.trim();
+    if t.is_empty() {
+        return None;
+    }
+    let first = t.as_bytes()[0];
+    if first.is_ascii_digit() || first == b'-' || first == b'+' {
+        let v = try_parse::<i64>(t)?;
+        return (min..=max).contains(&v).then_some(v);
+    }
+    let mut result = 0i64;
+    for part in t.split(',') {
+        let part = part.trim();
+        let i = names.iter().position(|n| *n == part)?;
+        result |= i as i64;
+    }
+    Some(result)
+}
+
+/// `Enum.ToString()` for an enum whose members are `names[i] = i` (an undefined value prints
+/// as its number).
+pub fn enum_name(value: i64, names: &[&str]) -> String {
+    usize::try_from(value)
+        .ok()
+        .and_then(|i| names.get(i))
+        .map_or_else(|| value.to_string(), |n| (*n).to_string())
+}
+
+/// `WorldSpawnPosition.ToString()`: the rotation members are printed as stored (radians).
+pub fn world_spawn_position_string(p: &crate::data::world_templates::WorldSpawnPosition) -> String {
+    let g = |v: f32| group_1(f64::from(v));
+    format!(
+        "X:{} Y:{} Z:{}  r:{}° p:{}° y:{}°",
+        g(p.x),
+        g(p.y),
+        g(p.z),
+        g(p.roll),
+        g(p.pitch),
+        g(p.yaw)
+    )
+}
+
+/// `obj.GetType().FullName` (`object.ToString()` of the game object classes).
+pub fn dotnet_type_name(obj: &WorldObject) -> &'static str {
+    match obj {
+        WorldObject::Player(_) => "AAEmu.Game.Models.Game.Char.Character",
+        WorldObject::Npc(n) => {
+            if n.data().portal.is_some() {
+                "AAEmu.Game.Models.Game.Units.Portal"
+            } else {
+                "AAEmu.Game.Models.Game.NPChar.Npc"
+            }
+        }
+        WorldObject::Doodad(_) => "AAEmu.Game.Models.Game.DoodadObj.Doodad",
+        WorldObject::Slave(_) => "AAEmu.Game.Models.Game.Units.Slave",
+        WorldObject::Mate(_) => "AAEmu.Game.Models.Game.Units.Mate",
+        WorldObject::House(_) => "AAEmu.Game.Models.Game.Housing.House",
+        WorldObject::Transfer(_) => "AAEmu.Game.Models.Game.Units.Transfer",
+        WorldObject::Shipyard(_) => "AAEmu.Game.Models.Game.Shipyard.Shipyard",
+        WorldObject::Gimmick(_) => "AAEmu.Game.Models.Game.Gimmicks.Gimmick",
+    }
+}
+
+/// `target.DisabledSetPosition = true; target.SendPacket(new SCTeleportUnitPacket(reason, 0, x,
+/// y, z, z2))`.
+pub fn teleport_player(target: &PlayerRef, reason: u8, x: f32, y: f32, z: f32, z2: f32) {
+    target.data().disabled_set_position = true;
+    target.send(
+        crate::systems::skills::packets_special::SCTeleportUnitPacket {
+            reason,
+            error_message: 0,
+            x,
+            y,
+            z,
+            z2,
+        },
+    );
+}
+
+/// The `InvalidCastException` of `(Npc)obj`.
+pub fn invalid_cast_to_npc(obj: &WorldObject) -> anyhow::Error {
+    anyhow::anyhow!(
+        "Unable to cast object of type '{}' to type 'AAEmu.Game.Models.Game.NPChar.Npc'.",
+        dotnet_type_name(obj)
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

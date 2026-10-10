@@ -12,6 +12,7 @@ pub mod unit_state;
 #[cfg(test)]
 mod unit_state_tests;
 pub mod visibility;
+pub mod zone_conflicts;
 
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
@@ -824,6 +825,8 @@ pub struct WorldManager {
     used_character_obj_ids: Mutex<HashMap<u32, u32>>,
     /// `IsSnowing`.
     pub is_snowing: AtomicBool,
+    /// `ZoneManager._conflicts` runtime state (`ZoneConflict.CurrentZoneState`, timers).
+    pub zone_conflicts: zone_conflicts::ZoneConflicts,
 }
 
 impl WorldManager {
