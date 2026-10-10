@@ -17,6 +17,8 @@
 //! | [`bv`] | `CHeightfieldBV` slots 1–4, 9, 11, 23, 25 (+ [`BvTree`](crate::geometry::bvtree::BvTree)), the collider cell range sub_35154220 |
 //! | [`region`] | the region mesh build of slot 53 (0x35155180) up to the `CTriMesh` slot-53 tail call |
 //! | [`ray`] | the ray branch of slot 10 (0x35156E20): grid march sub_35158BA0, cell test sub_35158080, contact |
+//! | [`protocol`] | [`SharedHeightfield`](protocol::SharedHeightfield): `GeomProtocol` for the generic `Intersect` (slot 53 incl. the `CTriMesh` tail, BV 23 → slot 56, slot 54 → the mesh's), slot 10 dispatch |
+//! | [`cubemap`] | slot 51 (0x35156430), the occlusion-cubemap leaf worker |
 //!
 //! ## Object layout (x64)
 //!
@@ -32,21 +34,38 @@
 //! they belong to the trimesh modules. `+48` (the mesh's tree pointer) points at the embedded BV;
 //! [`TriMesh::tree`] stays `None` here and the BV is [`Heightfield::bv`].
 //!
-//! ## What the lead wires
+//! ## Wiring
 //!
-//! * `impl Geometry for Heightfield`: slot 1 → [`GeomType::Heightfield`], 6 → [`Heightfield::bbox`],
-//!   8 → [`Heightfield::point_inside_status`], 17 → [`Heightfield::get_primitive`], 21 → 0,
-//!   22 → 0, 28 → [`Heightfield::primitive_count`], 29 → [`Heightfield::prim`], 32 →
-//!   [`Heightfield::center`], 46 → [`Heightfield::bv`], 52 → 0, `+16` → `mesh.min_vtx_dist`,
-//!   `+20` → `mesh.priority` (1).
-//! * Slot 10: other type 3 (ray) → [`Heightfield::intersect_ray`]; every other type → the
-//!   **mesh** slot 10 (`CTriMesh::Intersect` 0x351C9910, which itself falls back to the generic
-//!   `CGeometry::Intersect`) with this heightfield as the mesh.
-//! * Slot 53 = [`Heightfield::prepare_region`] followed, when it returns
-//!   [`RegionOutcome::CallMeshSlot53`], by the `CTriMesh` slot 53 (0x351D3620) on the region mesh.
-//! * BV slot 23 = [`HeightfieldBv::node_contents`] (a list of mesh slot-56 calls; the
-//!   [`BvTree::get_node_contents`](crate::geometry::bvtree::BvTree::get_node_contents) form cannot
-//!   express it), slot 25 = [`BvTree::mark_used_triangle`](crate::geometry::bvtree::BvTree::mark_used_triangle).
+//! * The intersection code uses [`protocol::SharedHeightfield`] (a `RwLock<Heightfield>`, since
+//!   slot 53 rebuilds the region mesh through `&self`): `GeomProtocol` + `IntersectionProtocol`
+//!   (slots 49/57/58/59 forwarded to the region [`TriMesh`]), and
+//!   [`protocol::SharedHeightfield::intersect`] = slot 10 (ray → [`Heightfield::intersect_ray`],
+//!   anything else → `trimesh::intersect::intersect` with the heightfield as A).
+//! * `impl Geometry` (not written here): slot 1 → [`GeomType::Heightfield`], 6 →
+//!   [`Heightfield::bbox`], 7/13/14/31 → the `CTriMesh` versions on the region mesh, 8 →
+//!   [`Heightfield::point_inside_status`], 11/12 → the fluid agent's, 17 →
+//!   [`Heightfield::get_primitive`], 21 → 0, 22 → 0, 28 → [`Heightfield::primitive_count`], 29 →
+//!   [`Heightfield::prim`], 32 → [`Heightfield::center`], 46 → [`Heightfield::bv`], 51 →
+//!   [`Heightfield::draw_to_cubemap`], 52 → 0, `+16` → `mesh.min_vtx_dist`, `+20` →
+//!   `mesh.priority` (1).
+//! * Slot 54 is `CTriMesh::RegisterIntersection` on the region mesh; it marks used triangles
+//!   through BV slot 25, which for a heightfield is the BV's own mask
+//!   ([`BvTree::mark_used_triangle`](crate::geometry::bvtree::BvTree::mark_used_triangle) on
+//!   [`HeightfieldBv`]), not `TriMesh::tree` (which stays `None`).
+//!
+//! ## World slot 17 `SetHeightfieldData` (0x3508B860), geometry side (for P3)
+//!
+//! With a primitive: for each of the 5 caller slots `world+1568+8·i`, `CreatePrimitive(2, prim)`
+//! ([`Heightfield::create`]; every call rewrites `prim.stepr`), the old terrain entity's
+//! geometry is released (or a static entity of 0x1C0 bytes is created with one part: flags
+//! 0xFDFF at part `+80`, scale 1 (`+28`), part `+92 = prim.step.x` (sic), `+96 |= 0xFFFC00`,
+//! `+72 = +76 = +112 = 0`, entity `+68 |= 0x7FFFFF`,
+//! `+288 = 1`, `+292 = 1`), the material mapping (`matMapping`, `nMats`) is copied to part
+//! `+104` / count into the low 31 bits of `+100`, the world keeps basis and origin of the
+//! primitive at `world+1616..+1660` (9 floats of the basis, then the origin), and the part gets
+//! position = `prim.origin` and orientation = `−xyz` of `mat2quat(prim.basis)` (sub_35023EB0;
+//! `w` kept; then `+32..+52 = 0`), i.e. the placement the geometry itself ignores. With a null primitive the five
+//! entities and their geometries are destroyed. Locks: world `+22468` and `+22532` (writer).
 //!
 //! ## Original bugs and quirks kept (documented at their sites)
 //!
@@ -66,7 +85,12 @@
 //!   when the collider box is already local.
 //! * The ray branch's unprojection path only runs when the ray's priority is ≥ the
 //!   heightfield's (never with the engine's priorities 0 and 1); the normal path writes a
-//!   distance-along-ray contact with `iUnprojMode = −1`.
+//!   distance-along-ray contact with `iUnprojMode = −1`. The unprojection path reads
+//!   `gwd_ray->v` without a null check (mode 0; the port uses zero), and the contact pool count
+//!   grows without the 64-entry bound check.
+//! * Neither BV slot 9 nor 11 writes the record's type / node words: the DLL's static
+//!   initialiser 0x35153F10 sets type 2 once. [`crate::geometry::bvtree::BvArena::new`] does not,
+//!   so the port's slots write 2 / 0.
 
 pub mod bv;
 pub mod cubemap;
