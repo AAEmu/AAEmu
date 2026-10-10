@@ -561,6 +561,14 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   when a token is set, blocking the host start).
 * systems::ai: calls into an NPC's AI from outside its tick (skills, aggro, npcs hooks) are queued and run right after the current AI step instead of re-entering it (`manager::post`); the AI tick runs on a blocking thread every ~100 ms; behaviour instances are kept per AI and accessed by kind. `UpdateAggroHelp` reaching a helper NPC without an AI logs and continues (the C# throws a `NullReferenceException` that cuts the whole behaviour tick short). `Npc.OnDamageReceived` on an AI-less NPC does nothing (C# NRE).
 * systems::ai physics: Jitter's narrow phase (`MprEpa`) and contact solver are replaced by a box-vs-heightmap-triangle SAT with one contact per triangle and sequential impulses (Jitter's default friction / bias); the integration itself is exact. One physics world per instance is created with the first ship (C# starts a thread per instance at boot). Add / remove / helm / driver changes go through the pending queue (next tick); hull damage, movement packets and transform writes are applied after the tick; readers use per-tick snapshots. Water is kept per world template and a cell's `object.dat` is ingested when the physics or a water query sees the cell loaded. A height lookup error counts as height 0 (the C# exception skips the rest of that ship's tick). A ship whose game object is gone is skipped. Ship–ship harpoon tow resolves an explicit hook basis among the ships simulated this tick.
+* `WorldManager.Initialize` (`ActiveRegionTick`, 1 s, `useAsync`) and `IndunManager.Initialize`
+  (`IndunInfoTick`, 30 s, `useAsync`) do not subscribe to `TickManager.OnTick`: they run as 1 s
+  Tokio interval tasks started once per server (`npcs::spawn_manager::start_active_region_tick`,
+  `instances::start_ticks`), which never overlap themselves (the async subscriber's busy skip).
+  The C# `WorldManager` query API is split by data owner: template / zone-key lookups are on
+  `game_data.worlds` (`WorldTemplates`), `GetAreaShapeById` / `GetWorldInteractionGroup` on
+  `game_data.systems.npcs.area_trigger`, the rest on `world::WorldManager` (`GetTargetOrSelf` is
+  `target_or_self`, `None` = the C# `null` name). Unit tests: `world/world_manager_tests.rs`.
 
 ## C# bugs noticed (mirrored, not fixed)
 

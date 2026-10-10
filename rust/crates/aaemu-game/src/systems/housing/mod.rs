@@ -27,6 +27,8 @@ pub mod ops;
 pub mod packets;
 
 #[cfg(test)]
+mod manager_tests;
+#[cfg(test)]
 mod tests;
 
 use std::sync::Arc;
