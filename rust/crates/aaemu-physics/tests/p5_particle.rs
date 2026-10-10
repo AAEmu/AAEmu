@@ -47,3 +47,7 @@ golden!(slide, "p5_particle_slide");
 golden!(rigid, "p5_particle_rigid");
 golden!(carry, "p5_particle_carry");
 golden!(water, "p5_particle_water");
+golden!(flags, "p5_particle_flags");
+golden!(flight, "p5_particle_flight");
+golden!(collide, "p5_particle_collide");
+golden!(params, "p5_particle_params");

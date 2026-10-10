@@ -1,0 +1,34 @@
+# P5: traceable particles (flag 0x400, in the entity grid) hit by rays and by each other
+# (the particle RayTrace, slot 57: the particle's box against the ray), flag 0x100 on both
+# (no particle-particle hits while one of them is stepping), a collider to ignore (pointer
+# field +144: the particle flies through that box), and the RWI hits reported for rays.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+geom name=wall type=box size=0.2,2,2
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=wall type=static pos=40,20,1
+part ent=wall geom=wall mass=0
+entity name=a type=particle pos=28,30,1
+entity name=b type=particle pos=32,30,1
+entity name=c type=particle pos=28,34,1
+entity name=d type=particle pos=32,34,1
+entity name=f type=particle pos=37,20,1
+entity name=g type=particle pos=37,21,1
+params target=a type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x400 f8=0.5 f12=0.4 f16=0.1 v20=1,0,0 f32=6 v92=1,0,0
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x400 f8=1 f12=0.4 f16=0.4 v20=-1,0,0 f32=2
+params target=c type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x500 f8=0.5 f12=0.4 v20=1,0,0 f32=6
+params target=d type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x500 f8=1 f12=0.4 v20=-1,0,0 f32=2
+params target=f type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.2 v20=1,0,0 f32=10 p144=ent:wall
+params target=g type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U f8=0.5 f12=0.2 v20=1,0,0 f32=10
+trace ents=a,b,c,d,f,g
+print
+step n=1
+ray name=r1 org=32,28,1 dir=0,4,0 types=0x10 max=4
+ray name=r2 org=29,30,3 dir=0,0,-4 types=0x11 max=4 flags=0x1000
+ray name=r3 org=32,34.1,3 dir=0,0,-3 types=0x13F max=4
+step n=60
+ray name=r4 org=20,30,0.5 dir=20,0,0 types=0x10 max=8
+status target=a type=9
+status target=b type=9
+status target=c type=9

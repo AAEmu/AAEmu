@@ -385,6 +385,7 @@ pub fn blank_params() -> Vec<u8> {
 /// (`|v|⁴` in `[0, 1e30)` and `||v|² − 1| < 0.01`), `q0` (same with the quaternion). Only
 /// fields that are set are checked. The log lines are not reproduced.
 #[must_use]
+#[allow(clippy::neg_cmp_op_on_partial_ord)] // the binary's NaN behaviour
 pub fn validate_params(b: &[u8]) -> bool {
     let mut ok = true;
     let lim = f32::from_bits(0x7149_F2CA); // 1e30
@@ -781,7 +782,7 @@ pub fn action(w: &mut World, e: EntIdx, buf: &mut [u8], ts: i32) -> i32 {
             if v16 > 0.0 {
                 let v17 = (imp.y * (1.0 / v16)) + p.vel.y;
                 let v18 = (imp.z * (1.0 / v16)) + p.vel.z;
-                p.vel.x = (imp.x * (1.0 / v16)) + p.vel.x;
+                p.vel.x += imp.x * (1.0 / v16);
                 p.vel.y = v17;
                 p.vel.z = v18;
             }
@@ -790,7 +791,7 @@ pub fn action(w: &mut World, e: EntIdx, buf: &mut [u8], ts: i32) -> i32 {
                 let v20 = 1.0 / ((v19 * f32::from_bits(0x3ECC_CCCD)) * p.size);
                 let v21 = (v6 * v20) + p.w.z;
                 let v22 = (v20 * v7) + p.w.x;
-                p.w.y = (v8 * v20) + p.w.y;
+                p.w.y += v8 * v20;
                 p.w.z = v21;
                 p.w.x = v22;
             }

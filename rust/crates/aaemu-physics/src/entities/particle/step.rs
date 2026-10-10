@@ -173,7 +173,7 @@ pub(super) fn do_step(w: &mut World, e: EntIdx, dt_in: f32, caller: i32) -> i32 
     }
     *w.ent_mut(e).particle_mut().expect("particle") = p.clone();
     if crate::entities::is_awake(w, e) == 0 {
-        p.time_asleep = dt + p.time_asleep;
+        p.time_asleep += dt;
         *w.ent_mut(e).particle_mut().expect("particle") = p;
         return 1;
     }
@@ -1024,9 +1024,9 @@ pub(super) fn do_step(w: &mut World, e: EntIdx, dt_in: f32, caller: i32) -> i32 
                     let m = b.i_medium;
                     if (0..2).contains(&m) {
                         let a = &mut acc[m as usize];
-                        a.x = b.water_flow.x + a.x;
-                        a.y = b.water_flow.y + a.y;
-                        a.z = b.water_flow.z + a.z;
+                        a.x += b.water_flow.x;
+                        a.y += b.water_flow.y;
+                        a.z += b.water_flow.z;
                     }
                     if m == 0 {
                         let o = b.water_plane_origin;
