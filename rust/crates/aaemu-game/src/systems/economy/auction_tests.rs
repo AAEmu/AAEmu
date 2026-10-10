@@ -912,3 +912,64 @@ fn listing_fee_matches_csharp_double_math() {
     let after = f64::from(sold) * 0.9;
     assert_eq!((after as i32, (f64::from(sold) - after) as i32), (299, 33));
 }
+
+// ---------------------------------------------------------------------------------------------
+// Integration with the mail port (systems::economy::wiring)
+// ---------------------------------------------------------------------------------------------
+
+fn mails_to(server: &GameServer, receiver: u32) -> Vec<crate::systems::economy::mail::BaseMail> {
+    server
+        .systems
+        .economy
+        .mail
+        .state()
+        .all
+        .iter()
+        .filter(|(_, m)| m.header.receiver_id == receiver)
+        .map(|(_, m)| m.clone())
+        .collect()
+}
+
+#[tokio::test]
+async fn buyout_delivers_item_and_payment_by_mail() {
+    let (mut w, _log) = auction_world();
+    crate::systems::economy::wiring::install(&w.server);
+    let (item_id, lot) = post(&mut w, SWORD, 0, 1000, 1);
+    run::<CSBidAuctionPacket>(&mut w, 1, &bid_body(lot.id, 1000));
+    assert_eq!(money(&w.pb), 100_000 - 1000);
+    assert!(w.server.systems.economy.auction.lot(lot.id).is_none());
+
+    // Bob: the won item as attachment.
+    let bob = mails_to(&w.server, 2);
+    assert_eq!(bob.len(), 1);
+    assert_eq!(bob[0].body.attachments, vec![item_id]);
+    w.b.drain();
+    run::<crate::systems::economy::mail_packets::CSTakeAllAttachmentItemPacket>(
+        &mut w,
+        1,
+        &bob[0].id.to_le_bytes(),
+    );
+    let bag_item = Inv::of(&w.pb)
+        .bag()
+        .lock()
+        .unwrap()
+        .get_item_by_id(item_id)
+        .cloned();
+    assert_eq!(
+        bag_item.map(|i| (i.owner_id, i.slot_type)),
+        Some((2, slot_type::INVENTORY))
+    );
+
+    // Alice: 90 % of the price (taking auction money costs 1 labor).
+    w.pa.data().labor_power = 10;
+    let alice = mails_to(&w.server, 1);
+    assert_eq!(alice.len(), 1);
+    assert_eq!(alice[0].body.copper_coins, 900);
+    let before = money(&w.pa);
+    run::<crate::systems::economy::mail_packets::CSTakeAttachmentMoneyPacket>(
+        &mut w,
+        0,
+        &alice[0].id.to_le_bytes(),
+    );
+    assert_eq!(money(&w.pa), before + 900);
+}

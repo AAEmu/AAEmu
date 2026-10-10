@@ -341,6 +341,8 @@ pub fn select_loaded(
         }
     };
     c.obj_id = obj_id;
+    // Character.Load: Mails.GetCurrentMailList (runs before the character is in the world).
+    crate::systems::economy::mail::get_current_mail_list_for(server, c.id);
     let player = Player::new(c, conn.handle());
     conn.active_char = Some(player.clone());
     server.world.try_add_character(&player);
@@ -967,7 +969,8 @@ pub async fn leave_world_task(
             }
         }
         delete(server, p);
-        // BuyBackItems.Wipe: later phase.
+        // BuyBackItems.Wipe (+ the economy's per-character state)
+        crate::systems::economy::on_leave_world(server, p);
         for sub in p.subscribers().drain(..) {
             server.time.unsubscribe(sub);
         }

@@ -103,6 +103,26 @@ pub trait NpcEconomyHooks: Send + Sync {
     fn merchant_sells(&self, _server: &GameServer, _pack_id: u32, _item_id: u32) -> bool {
         false
     }
+
+    /// `npc.Template.SpecialtyCoinId` (trade pack payout currency; 0 = gold).
+    fn specialty_coin_id(&self, _server: &GameServer, _npc: &NpcRef) -> u32 {
+        0
+    }
+
+    /// The rest of `CSBuyCoinItemPacket` after the doodad lookup: `DoodadManager.GetFunc(id)`,
+    /// `GetFuncTemplate(func.FuncId, func.FuncType)`, `funcTemplate.Use(character, doodad, 0)`.
+    fn buy_coin_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        doodad: &crate::world::DoodadRef,
+        id: u32,
+    ) {
+        tracing::warn!(
+            "BuyCoinItem, no doodadFunc for objId: {}, id: {id}",
+            doodad.obj_id
+        );
+    }
 }
 
 /// Slave / mate items (`SlaveManager` / `MateManager`, owned by whoever ports them).

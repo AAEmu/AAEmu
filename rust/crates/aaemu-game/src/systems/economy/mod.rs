@@ -20,9 +20,11 @@ pub mod auction_packets;
 #[cfg(test)]
 mod auction_tests;
 pub mod cash_shop;
+#[cfg(test)]
 mod cash_shop_tests;
 pub mod craft;
 pub mod craft_data;
+#[cfg(test)]
 mod craft_store_tests;
 pub mod data;
 pub mod error_message;
@@ -31,9 +33,6 @@ pub mod hooks;
 pub mod inventory;
 pub mod item_handlers;
 pub mod item_packets;
-pub mod specialty;
-pub mod store;
-pub mod store_data;
 pub mod mail;
 pub mod mail_character;
 pub mod mail_data;
@@ -41,11 +40,15 @@ pub mod mail_kinds;
 pub mod mail_packets;
 #[cfg(test)]
 mod mail_tests;
+pub mod specialty;
+pub mod store;
+pub mod store_data;
 #[cfg(test)]
 pub(crate) mod tests;
 pub mod trade;
 #[cfg(test)]
 mod trade_tests;
+pub mod wiring;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -108,6 +111,7 @@ impl System {
 
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        wiring::install(server);
         if server.systems.economy.auction.load(server).await {
             auction::AuctionManager::start_timer(server);
         }
@@ -123,23 +127,40 @@ impl System {
     pub async fn save(
         &self,
         server: &GameServer,
-        _server: &GameServer,
         tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
         stage: SaveStage,
     ) -> crate::Result<usize> {
         let mut n = 0;
+        if stage == SaveStage::BeforeItems {
+            let (updated, deleted) = self.mail.save(tx).await?;
+            if updated + deleted > 0 {
+                tracing::debug!("Updated {updated} and deleted {deleted} mails ...");
+            }
+            n += updated + deleted;
+        }
         if stage == SaveStage::AfterItems {
             let (updated, deleted) = self.auction.save(server, tx).await?;
             if updated + deleted > 0 {
                 tracing::debug!("Updated {updated} and deleted {deleted} auction items ...");
-        if stage == SaveStage::BeforeItems {
-            let (updated, deleted) = self.mail.save(tx).await?;
-                tracing::debug!("Updated {updated} and deleted {deleted} mails ...");
             }
             n += updated + deleted;
         }
         Ok(n)
     }
+}
+
+/// `LeaveWorldTask`: `BuyBackItems.Wipe()` and the economy's per-character state
+/// (`CharacterCraft`, `PreviousBackPackItemId`). Trades are not cancelled (the C# does not
+/// either).
+pub fn on_leave_world(server: &GameServer, player: &crate::world::PlayerRef) {
+    let e = &server.systems.economy;
+    let id = player.character_id;
+    e.store.wipe_buyback(server, id);
+    e.craft.forget(id);
+    e.previous_backpack
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .remove(&id);
 }
 
 /// Registers this subsystem's C->S packets.
