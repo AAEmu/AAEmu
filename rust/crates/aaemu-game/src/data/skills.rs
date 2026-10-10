@@ -76,6 +76,7 @@ pub mod save_rule {
 pub mod stack_rule {
     pub const REFRESH: u32 = 1;
     pub const CHARGE_REFRESH: u32 = 2;
+    pub const EXTEND: u32 = 5;
 }
 
 /// `BuffTemplate` (subset).

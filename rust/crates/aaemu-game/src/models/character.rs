@@ -207,7 +207,8 @@ pub struct Character {
     pub disabled_set_position: bool,
     pub breath: u32,
     // ---- phase 3 / skills: add this subsystem's Character fields below ----
-
+    /// Character skill / combat state (`SkillCancelled`, `LastCast`, `IsInAggroListOf`, ...).
+    pub skill_char: crate::systems::skills::state::CharacterSkillState,
     // ---- phase 3 / npcs: add this subsystem's Character fields below ----
 
     // ---- phase 3 / economy: add this subsystem's Character fields below ----
@@ -327,7 +328,7 @@ impl Character {
             disabled_set_position: false,
             breath: 60_000,
             // ---- phase 3 / skills ----
-
+            skill_char: Default::default(),
             // ---- phase 3 / npcs ----
 
             // ---- phase 3 / economy ----

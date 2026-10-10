@@ -539,6 +539,7 @@ pub fn select_loaded(
         live.restore_saved_hp_mp(&data.formulas);
         live.breath = 60_000; // LungCapacity
     }
+    crate::systems::skills::on_character_loaded(server, &player); // buffs, gear bonuses, exact MaxHp/MaxMp
     let zone = player.data().unit.transform.zone_id;
     on_zone_change(server, &player, 0, zone);
     Ok(())
@@ -696,6 +697,12 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
                 send_message(&me, chat_type::SYSTEM, &server.config.world.motd);
             }
             // Standing on / sticky parents (slaves, transfers): later phase.
+            // RemoveEffects (BuffRemoveOn.Move on a moving velocity): skills subsystem.
+            crate::systems::skills::on_move_request(server, &target, u.vel_x, u.vel_y, u.vel_z);
+            let old_pos = {
+                let t = target.data().unit.transform;
+                (t.x, t.y, t.z)
+            };
             {
                 let mut c = target.data();
                 c.unit.transform.set_position(
@@ -715,7 +722,8 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
             // FinalizeTransform -> AddVisibleObject (region change) -> SetPosition.
             let changes = world.add_visible_object(&target, &server.view_ctx());
             handle_zone_changes(server, changes);
-            // DoFallDamage(FallVel): later phase (HP / death).
+            // Character.SetPosition (BuffRemoveOn.Move when moved) + DoFallDamage(FallVel).
+            crate::systems::skills::on_moved(server, &target, old_pos, u.fall_vel);
         }
         _ => {
             tracing::warn!(

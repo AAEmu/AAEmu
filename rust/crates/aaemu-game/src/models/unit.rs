@@ -680,7 +680,8 @@ pub struct UnitBase {
     /// `IncrementTriggerCount` / `GetTriggerCount` (buff id -> count).
     pub trigger_counts: HashMap<u32, i32>,
     // ---- phase 3 / skills: add this subsystem's per-unit fields below ----
-
+    /// Skill / combat runtime state (`SkillTask`, `ActivePlotState`, `AggroTable`, ...).
+    pub skill_state: crate::systems::skills::state::UnitSkillState,
     // ---- phase 3 / npcs: add this subsystem's per-unit fields below ----
 
     // ---- phase 3 / economy: add this subsystem's per-unit fields below ----
@@ -741,7 +742,7 @@ impl Default for UnitBase {
             hp_trigger_points_percent: Vec::new(),
             trigger_counts: HashMap::new(),
             // ---- phase 3 / skills ----
-
+            skill_state: Default::default(),
             // ---- phase 3 / npcs ----
 
             // ---- phase 3 / economy ----

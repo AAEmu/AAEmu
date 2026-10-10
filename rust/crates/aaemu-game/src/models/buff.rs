@@ -49,6 +49,29 @@ pub struct Buff {
     pub in_use: bool,
     /// `Skill?.Template.Id` (0 = not from a skill).
     pub skill_id: u32,
+    // ---- runtime state of the skills subsystem (`systems::skills::buffs`) ----
+    /// `State` (`EffectState`: 0 Created, 1 Acting, 2 Finishing, 3 Finished).
+    pub state: u8,
+    /// `_count` (remaining ticks, -1 = endless).
+    pub count: i32,
+    /// `Caster?.ObjId` (0 = no caster unit).
+    pub caster_obj_id: u32,
+    /// `Skill?.Level` (1 when not from a skill).
+    pub skill_level: u8,
+    /// `SkillCaster.Write` bytes when they differ from `(type, objId)` (item / mount casters).
+    pub skill_caster_bytes: Vec<u8>,
+    /// Timer generation: a scheduled dispel task only acts while it matches.
+    pub task_gen: u64,
+    /// `replace` argument of the pending `Exit` (passed on to `Dispel`).
+    pub exit_replace: bool,
+}
+
+/// `EffectState`.
+pub mod effect_state {
+    pub const CREATED: u8 = 0;
+    pub const ACTING: u8 = 1;
+    pub const FINISHING: u8 = 2;
+    pub const FINISHED: u8 = 3;
 }
 
 impl Buff {
@@ -72,6 +95,13 @@ impl Buff {
             ab_level: 1,
             in_use: false,
             skill_id: 0,
+            state: effect_state::CREATED,
+            count: 0,
+            caster_obj_id: skill_caster.obj_id,
+            skill_level: 1,
+            skill_caster_bytes: Vec::new(),
+            task_gen: 0,
+            exit_replace: false,
         }
     }
 
@@ -227,6 +257,11 @@ impl Buffs {
         self.effects.iter().find(|e| e.index == index)
     }
 
+    /// `GetEffectByIndex(index)` for mutation (runtime state of the skills subsystem).
+    pub fn effect_by_index_mut(&mut self, index: u32) -> Option<&mut Buff> {
+        self.effects.iter_mut().find(|e| e.index == index)
+    }
+
     /// `GetEffectFromBuffId(id)`.
     pub fn effect_from_buff_id(&self, id: u32) -> Option<&Buff> {
         self.effects.iter().find(|e| e.template.id == id)
@@ -248,18 +283,30 @@ impl Buffs {
 
     /// `AddBuff(Buff buff, index, forcedDuration)` (bookkeeping part).
     pub fn add_buff(&mut self, mut buff: Buff, index: u32, forced_duration: i32, now_ms: i64) {
-        if index == 0 {
-            buff.index = self.next_index;
-            self.next_index = self.next_index.wrapping_add(1);
-            if self.next_index == u32::MAX {
-                self.next_index = FIRST_BUFF_INDEX;
-            }
-        } else {
-            buff.index = index;
-        }
         buff.duration = buff.template.get_duration(buff.ab_level);
         if forced_duration != 0 {
             buff.duration = forced_duration;
+        }
+        self.add_buff_with_duration(buff, index, now_ms);
+    }
+
+    /// Allocates the next buff index (`_nextIndex++`, wrapping past `GearBonusesIndex`).
+    pub fn allocate_index(&mut self) -> u32 {
+        let i = self.next_index;
+        self.next_index = self.next_index.wrapping_add(1);
+        if self.next_index == u32::MAX {
+            self.next_index = FIRST_BUFF_INDEX;
+        }
+        i
+    }
+
+    /// The stack-rule part of `AddBuff` for a buff whose `index` (0 = allocate) and `duration`
+    /// were already decided by the caller (duration modifiers, tolerance, forced duration).
+    pub fn add_buff_with_duration(&mut self, mut buff: Buff, index: u32, now_ms: i64) {
+        if index == 0 {
+            buff.index = self.allocate_index();
+        } else {
+            buff.index = index;
         }
         // `StartTime == MinValue` never holds for buffs created with a time.
         let mut last: Option<usize> = None;
@@ -300,11 +347,25 @@ impl Buffs {
             }
         }
         match last {
-            // `last.OverwriteWith(buff)` (keeps the old index).
+            // `last.OverwriteWith(buff)`: charge, ab level, caster and skill caster are taken
+            // over, the timer restarts (Extend adds the remaining time), everything else (index,
+            // skill, template, passive flag) stays.
             Some(i) => {
-                let idx = self.effects[i].index;
-                self.effects[i] = Buff { index: idx, ..buff };
-                self.effects[i].in_use = true;
+                let e = &mut self.effects[i];
+                let remaining = e.time_left(now_ms);
+                e.charge = buff.charge;
+                e.ab_level = buff.ab_level;
+                e.caster = buff.caster;
+                e.caster_obj_id = buff.caster_obj_id;
+                e.skill_caster = buff.skill_caster;
+                e.skill_caster_bytes = buff.skill_caster_bytes;
+                e.start_time_ms = now_ms;
+                e.duration = if e.template.stack_rule == stack_rule::EXTEND {
+                    buff.duration.wrapping_add(remaining as i32)
+                } else {
+                    buff.duration
+                };
+                e.in_use = true;
                 self.events
                     .push(BuffEvent::Refreshed(self.effects[i].clone()));
             }

@@ -157,7 +157,15 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 
 | Area (C#) | Rust | Status | Notes |
 |---|---|---|---|
-| SkillManager, effects, plots, buff behaviour, combat, cooldowns | `systems/skills/` | todo | Foundation: `models::unit`, `models::buff` (`BuffEvent`), `systems::UnitHooks`. |
+| `SkillManager` (+ `Sqlite*` effect / buff / plot loaders), `PlotManager`, `FormulaManager` remainder, `AnimationManager`, `AreaTriggers` shapes, `ModelManager` radii, `UnitRequirementsManager`, `TagsManager` (skills / buffs) | `systems/skills/data/` | done | Every skill / buff / effect / plot / tag / modifier / trigger / reagent / product / linear func / tolerance / anim / aoe shape table, incl. all 30+ effect types. Gated real-DB test `skills_real_compact_db` checks row counts. |
+| `Models/Game/Skills/{Skill,SkillCaster,SkillCastTarget,SkillObject,CastAction,SkillController*}`, `Core/Packets/{C2G,G2C}` skill / buff packets | `systems/skills/{types,packets,skill,handlers}.rs` | done | Byte-exact wire types (tested), `Skill.Use` / `Cast` / `Channeling` / `Apply` / `EndSkill` / `Stop`, GCD + cooldowns, mana, labor / vocation, reagents via `ItemSkillHooks`, auto attack loop, `CompressedGamePackets`. |
+| `Models/Game/Skills/Plots/*` | `systems/skills/plots.rs` | done | Plot tree execution (async), conditions 1..17, target info updates (area / random unit / random area), channeling finish, `SCPlotEvent` / `SCPlotEnded`. |
+| `Models/Game/Units/Buffs` behaviour, `Skills/Buff`, `Skills/Effects/{Buff,Damage,Heal,Dispel,RestoreMana,ManaBurn,Aggro,FlyingStateChange,SkillController,...}`, `CombatBuffs`, `BuffTriggers` | `systems/skills/{buffs,effects/*}.rs` | done | Start / dispel / tick tasks, tolerance, stack rules, charges, `TriggerRemoveOn`, tag removal, absorption, triggers, area ticks. Special effects routed through `ExtHooks::route_special` where they belong to another subsystem. |
+| `Units/Unit` combat (`ReduceCurrentHp`, `DoDie`, aggro / tagging, `SetInBattle`, criminal / force attack, invisibility, `DoFallDamage`), `BaseUnit.CanAttack` / relations, regen, `UpdateGearBonuses`, all `Character` stat getters | `systems/skills/{combat,relation,stats,regen}.rs` | done | MaxHp / MaxMp etc. with buffs, passives and gear (`GearStats` hook). NPC death side effects through `NpcSkillHooks`. |
+| Learning / progression (`LearnSkill`, `LearnBuff`, `ResetSkills`, `SwapAbility`, `AddExp`, labor, game points) | `systems/skills/progress.rs` | done | |
+| `Skills/Effects/SpecialEffects/*` (all 141 `SpecialType` actions), `BubbleEffect`, `ImpulseEffect` | `systems/skills/effects/{special/*,unit_fx}.rs`, `packets_special.rs` | done | Actions owned by other subsystems (doodads, mates, slaves, items, portals, quests, teams) call the `ext` hooks. 13 extra S->C packets, byte-exact tests. |
+| `Skills/SkillControllers/{Floating,Wandering,Leap,Dash}` | `systems/skills/controllers.rs` | done | `ShipHarpoonRopeController` is the slaves owner's. |
+| Movement hooks (`CSMoveUnit.RemoveEffects`, `Character.SetPosition` Move removal, fall damage) | `systems/skills/mod.rs` (`on_move_request`, `on_moved`) | done | Called from `world::session::move_unit`. |
 
 ### systems::npcs
 
@@ -273,6 +281,23 @@ Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.init
   (no height maps). Crime record packets prefetch offline victims (C# `Character.Load` inside
   `Write`). `SCDoodadPhaseChangedPacket` is defined in `systems/social/packets/duel.rs` until the
   npcs subsystem's version can be used.
+* systems::skills: supersedes the phase-2 bullets above on stats (`CalculateWithBonuses`,
+  `UpdateGearBonuses` are ported), buffs (expiry, `BuffRemoveOn.Move`, effects, buff packets) and
+  `CSMoveUnit` fall damage.
+* systems::skills: `CompressedGamePackets` (DD04) are written with stored (uncompressed) deflate
+  blocks; the client accepts any valid deflate stream.
+* systems::skills: no heightmaps — fall-back Z / line-of-sight checks are skipped, the radar
+  (`SkillTargetingUtil` radar scans) is not ported.
+* systems::skills: `SpecialEffect` repeats are scheduled tasks instead of `Thread.Sleep` loops.
+* systems::skills: labor is capped at 2000 (non-premium); premium accounts do not exist yet.
+* systems::skills: exp loss on death is 0 (the C# formula reads data that is not loaded).
+* systems::skills: skill controllers and NPC displacements (knock back, impulse, blink) do not
+  snap to the ground (no `GeoData.GetHeight`; the npcs branch has `systems/npcs/heightmap.rs` to
+  wire at merge); the wandering (fear) speed is the 7 m/s fallback (actor model stances not
+  loaded); `Npc.StopMovement` writes the C# default stance / alertness; `OnMovement` is not raised.
+* systems::skills: `BubbleEffect` does not sleep the effect thread for the bubble's read time;
+  account updates of special effects run as async tasks.
+* systems::skills: `saveFactions` KeyNotFound (C# throws) is logged as an error.
 
 ## C# bugs noticed (mirrored, not fixed)
 
@@ -343,3 +368,21 @@ Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.init
   quest time above 59 s (`LeftTime` then saturates to `int.MaxValue`).
 * systems::quests: `SphereGameData` reads `spheres.enter_or_leave` / `or_unit_reqs` with
   `GetBoolean(name)` (int conversion of 't'): always false.
+* systems::skills: `Buffs.RemoveBuff` path sends `SCBuffRemoved` twice (Exit + Dispel).
+* systems::skills: a target-charged buff uses the caster template's `ChargedBuffId`.
+* systems::skills: `UnitRequirements` with `OrUnitReqs` pass as soon as the first requirement is
+  evaluated (the C# loop returns early).
+* systems::skills: `GetDistanceTo` radius precedence (`a - b + c` instead of `a - (b + c)`).
+* systems::skills: buff triggers subscribe to the caster's events, not the owner's.
+* systems::skills: `knockback_immune` is read with `GetBoolean` on a `'t'/'f'` column (always false).
+* systems::skills: special `Charge` creates the buff with the target as owner but adds it to the
+  caster, and its final charge only reaches a newly added buff (a refresh keeps the first value).
+* systems::skills: special `SpawnDoodad` moves along `target yaw + 90°` and passes degrees to
+  `SetPosition` (which takes radians).
+* systems::skills: special `Escape` in an instance sends the spawn position's roll as the yaw.
+* systems::skills: special `Return` sends `SCLoadInstance` for instance 1 while the transform uses
+  instance 0, converts an already-radian `MainWorldPosition` rotation with `DegToRad` again, and
+  only sends `SCTeleportUnit` when a return point was found.
+* systems::skills: special `RemoveDoodad` broadcasts `SCDoodadRemoved` after deleting the doodad
+  (it reaches nobody).
+* systems::skills: special `AddBreath` adds `uint + int` as `long` and truncates back to `uint`.
