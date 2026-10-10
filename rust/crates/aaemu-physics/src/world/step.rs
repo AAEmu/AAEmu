@@ -513,6 +513,9 @@ impl World {
         }
         let v69 = self.group_mass[gi] * 0.000_025;
         let e0 = ((v69 - v15).abs() + (v69 + v15)) * 0.5;
+        if let Some(path) = std::env::var_os("AAEMU_PHYS_DUMP_SOLVER") {
+            self.dump_solver_case(tid, v52, e0, &path);
+        }
         let res = {
             let sol = self.solver[tid].get_or_insert_with(|| Box::new(crate::solver::SolverThread::new(tid)));
             sol.invoke(v52, &self.vars, e0, 0, &mut self.bodies, &mut self.contacts)
@@ -540,16 +543,27 @@ impl World {
         let leader = self.group_leader[gi];
         let v32_flag = ((self.vars.group_damping_min_ents - n_ents - 1) as u32 >> 31) as f32;
         let mut damping = 1.0 - v32_flag * (dt * self.vars.group_damping);
+        let mut e_sum = 0.0f32;
         let mut m = leader;
         while !m.is_none() {
-            let _ = rstep::calc_energy(self, m, 0.0);
+            e_sum += rstep::calc_energy(self, m, 0.0);
             if self.ent(m).flags & 0x4_0000 != 0 {
-                let _ = rstep::get_damping(self, m, dt);
+                damping = rstep::get_damping(self, m, dt);
                 break;
             }
             let d = rstep::get_damping(self, m, dt);
             damping = min_idiom(d, damping);
             m = self.ent(m).group_next;
+        }
+        // energy clamp: islands that gained energy in the solve are damped to sqrt(E0/E)
+        // (10 % more headroom for small islands, < 15 solver bodies)
+        let k = ((((res.ret - 15) as u32) >> 31) as f32) * 0.1 + 1.0;
+        if e_sum > _e0 * k {
+            let r = (_e0 / e_sum).sqrt();
+            damping = ((r + damping) - (damping - r).abs()) * 0.5;
+        }
+        if _v14 > -0.5 {
+            damping = _v14;
         }
         let mut v15 = 1;
         let mut m = leader;
@@ -745,5 +759,67 @@ fn sort_by_group(list: &mut [EntIdx], keys: &mut [u64], lo: i32, hi: i32) {
             break;
         }
         v3 = v7;
+    }
+}
+
+impl World {
+    /// Debug aid: append the island's solver input as a `physoracle --p4b` case line
+    /// ([`crate::solver::probe::Case`]) to `path` (env `AAEMU_PHYS_DUMP_SOLVER`).
+    fn dump_solver_case(&mut self, tid: usize, dt: f32, e0: f32, path: &std::ffi::OsStr) {
+        use crate::solver::{BodyId, ContactId, ContactOwner};
+        let Some(sol) = self.solver[tid].as_ref() else {
+            return;
+        };
+        let cl = sol.contacts();
+        let cg = sol.cg_allowed();
+        let mut bodies: Vec<BodyId> = Vec::new();
+        for &c in &cl {
+            for b in self.contacts.get(c).pbody {
+                if b != BodyId::STATIC && !bodies.contains(&b) {
+                    bodies.push(b);
+                }
+            }
+        }
+        bodies.sort_by_key(|b| self.bodies.sort_key[b.0 as usize]);
+        let map_b = |b: BodyId| -> BodyId {
+            if b == BodyId::STATIC {
+                b
+            } else {
+                BodyId(bodies.iter().position(|&x| x == b).map_or(0, |i| i as u32 + 1))
+            }
+        };
+        let contacts: Vec<crate::solver::Contact> = cl
+            .iter()
+            .map(|&c| {
+                let mut k = *self.contacts.get(c);
+                k.pbody = [map_b(k.pbody[0]), map_b(k.pbody[1])];
+                k.owner = match k.owner {
+                    ContactOwner::Count(o) => match cl.iter().position(|&x| x == o) {
+                        Some(i) => ContactOwner::Count(ContactId(i as u32 + 1)),
+                        None => ContactOwner::Null,
+                    },
+                    x => x,
+                };
+                k.next = ContactId::NONE;
+                k.prev = ContactId::NONE;
+                k
+            })
+            .collect();
+        let case = crate::solver::probe::Case {
+            dt,
+            e0,
+            prev: 0,
+            cg,
+            vars: Vec::new(),
+            bodies: bodies.iter().map(|&b| *self.bodies.get(b)).collect(),
+            dummy: *self.bodies.get(BodyId::STATIC),
+            contacts,
+            multi: Vec::new(),
+            nrep: 1,
+        };
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+            let _ = writeln!(f, "{}", case.to_line());
+        }
     }
 }

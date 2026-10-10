@@ -29,6 +29,7 @@ pub mod math;
 pub mod oracle;
 pub mod params;
 pub mod physvars;
+pub mod scenario;
 pub mod sentinel;
 pub mod solver;
 pub mod trace;

@@ -617,6 +617,19 @@ static void run_line(char *line) {
       if (found) printf(" %d", offs[k]);
     }
     printf("\n");
+  } else if (!strcmp(c, "contacts")) { /* the rigid entity's contact list (E+536): non-pointer fields of each record */
+    void *e = find_target(need(&t, "target"));
+    char *head = (char *)e + 536;
+    int n = 0;
+    for (char *k = *(char **)head; k && k != head && n < 1000; k = *(char **)k, n++) {
+      printf("c %d", n);
+      for (int o = 24; o < 64; o += 4) printf(" %08x", *(uint32_t *)(k + o));
+      printf(" e %s %s", name_of(*(void **)(k + 64)), name_of(*(void **)(k + 72)));
+      for (int o = 80; o < 88; o += 4) printf(" %08x", *(uint32_t *)(k + o));
+      for (int o = 112; o < 168; o += 4) printf(" %08x", *(uint32_t *)(k + o));
+      printf("\n");
+    }
+    printf("contacts %s %d\n", need(&t, "target"), n);
   } else if (!strcmp(c, "echo")) {
     printf("echo");
     for (int i = 1; i < t.n; i++) printf(" %s", t.k[i]);
