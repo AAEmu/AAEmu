@@ -22,6 +22,8 @@ pub struct Expand {
 pub struct Data {
     /// `CharacterManager._expands` (by step, rows in table order).
     pub expands: BTreeMap<i32, Vec<Expand>>,
+    /// Mail localization lookups.
+    pub mail: super::mail_data::MailData,
 }
 
 impl Data {
@@ -40,6 +42,7 @@ impl Data {
             data.expands.entry(e.step).or_default().push(e);
             Ok(())
         })?;
+        data.mail = super::mail_data::MailData::load(ctx)?;
         Ok(data)
     }
 

@@ -21,6 +21,13 @@ pub mod hooks;
 pub mod inventory;
 pub mod item_handlers;
 pub mod item_packets;
+pub mod mail;
+pub mod mail_character;
+pub mod mail_data;
+pub mod mail_kinds;
+pub mod mail_packets;
+#[cfg(test)]
+mod mail_tests;
 #[cfg(test)]
 pub(crate) mod tests;
 
@@ -42,6 +49,8 @@ pub struct System {
     ops: Mutex<()>,
     /// `Inventory.PreviousBackPackItemId` by character id (glider re-equip after a trade pack).
     previous_backpack: Mutex<HashMap<u32, u64>>,
+    /// `MailManager`.
+    pub mail: mail::MailManager,
 }
 
 impl System {
@@ -70,7 +79,9 @@ impl System {
     }
 
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
-    pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
+    pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        server.systems.economy.mail.load(server).await?;
+        mail::start_delivery_task(server);
         Ok(())
     }
 
@@ -79,14 +90,23 @@ impl System {
     pub async fn save(
         &self,
         _server: &GameServer,
-        _tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
-        _stage: SaveStage,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        stage: SaveStage,
     ) -> crate::Result<usize> {
-        Ok(0)
+        let mut n = 0;
+        if stage == SaveStage::BeforeItems {
+            let (updated, deleted) = self.mail.save(tx).await?;
+            if updated + deleted > 0 {
+                tracing::debug!("Updated {updated} and deleted {deleted} mails ...");
+            }
+            n += updated + deleted;
+        }
+        Ok(n)
     }
 }
 
 /// Registers this subsystem's C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
     item_handlers::register(reg);
+    mail_packets::register(reg);
 }
