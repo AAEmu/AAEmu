@@ -467,7 +467,7 @@ fn register_record(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32, v393: f3
     }
     let own_part = w.ccd_scratch[tidu].parts[i as usize].0;
     if w.ent(e).parts[own_part as usize].flags & 0x10_0000 != 0 {
-        // special contacts of ray-mode parts (sub_350BADE0): those parts produce no records
+        special_contact(w, e, i, dt, tid);
         return;
     }
     let _ = dt;
@@ -711,3 +711,145 @@ fn finish_step(w: &mut World, e: EntIdx, v23: f32, v25: u32, v363: u32, deep: u3
 
 #[allow(dead_code)]
 fn _unused(_: Quat) {}
+
+/// `sub_350BADE0(ent, contacts, i, dt, tid)`: the contact of a ray-mode part (`0x100000`):
+/// a spring along the ray. With `+1040 ≤ 3` (driving on the ray) the compression
+/// `t` gives an external force `dir·k·t` (`k = |g|·minContactDist/(K⁻¹·(sx+sy+sz)·scale)`,
+/// `K⁻¹` the effective mass at the contact) and the critically damped impulse
+/// `−2·sqrt(k/K)·v·dt` plus an angular damping `−3.5·dt·L` go to the deferred momenta;
+/// otherwise (`+1040 > 3`, resting) the border points become ordinary resting contacts
+/// (depth 0.001, `nloc` cleared) and the external force/torque are cleared. `+1040` follows
+/// the sign of `t − 0.02·Σsize` (clamped to `[0, 5·[colliders]]`); `+1044` bit 0 is set. A
+/// logged collision event is posted for logging entities or parts with `0x200000`.
+#[allow(clippy::too_many_lines)]
+fn special_contact(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32) {
+    let tidu = tid as usize;
+    let (col, (own_part, cpart)) = {
+        let cs = &w.ccd_scratch[tidu];
+        (cs.collider[i as usize], cs.parts[i as usize])
+    };
+    let g = w.gravity();
+    let v13 = (g.x * g.x + g.y * g.y) + g.z * g.z;
+    let p = w.ent(e).parts[own_part as usize].clone();
+    let bb = p.pgeom.geom.bbox();
+    let (v97, v98, v99) = (bb.size.x, bb.size.y, bb.size.z);
+    let v16 = p.scale;
+    let rq = p.q.rotate(p.pgeom.origin);
+    let v94 = Vec3::new(rq.x * v16 + p.pos.x, rq.y * v16 + p.pos.y, rq.z * v16 + p.pos.z);
+    let (pn, qn) = (rd(w, e).pos_new, rd(w, e).q_new);
+    let body_id = rd(w, e).body;
+    let b = *w.bodies.get(body_id);
+    let v19 = qn.rotate(v94);
+    let rx = (v19.x + pn.x) - b.pos.x;
+    let ry = (v19.y + pn.y) - b.pos.y;
+    let rz = (v19.z + pn.z) - b.pos.z;
+    let o = ThreadScratch::contact_off(i);
+    let (t, dir) = {
+        let s = &w.tscratch[tidu];
+        (s.rd_d(o), s.rd_v(o + i64::from(c::DIR)))
+    };
+    let v25 = (ry * dir.z) - (rz * dir.y);
+    let v26 = (rz * dir.x) - (rx * dir.z);
+    let v29 = (rx * dir.y) - (ry * dir.x);
+    let ii = b.iinv.m;
+    let v30 = ((v26 * ii[0][1]) + (v25 * ii[0][0])) + (v29 * ii[0][2]);
+    let v31 = ((v26 * ii[1][1]) + (v25 * ii[1][0])) + (v29 * ii[1][2]);
+    let v32 = ((v26 * ii[2][1]) + (v25 * ii[2][0])) + (v29 * ii[2][2]);
+    let v102 = 1.0
+        / ((((((v32 * rx) - (rz * v30)) * dir.y) + (((v31 * rz) - (v32 * ry)) * dir.x))
+            + (((ry * v30) - (v31 * rx)) * dir.z))
+            + b.minv);
+    let v33 = (v13.sqrt() * (v102 * p.min_contact_dist)) / (((v98 + v97) + v99) * p.scale);
+    let v34 = (f64::from(v33) * t) as f32;
+    let (v35, v36, v37) = (dir.x * v34, dir.y * v34, dir.z * v34);
+    {
+        let r = rm(w, e);
+        r.f_ext.y += v36;
+        r.f_ext.x += v35;
+        r.f_ext.z += v37;
+        r.t_ext.y += (rz * v35) - (v37 * rx);
+        r.t_ext.z += (v36 * rx) - (ry * v35);
+        r.t_ext.x += (v37 * ry) - (v36 * rz);
+    }
+    let (wx, wy, wz) = (b.w.x, b.w.y, b.w.z);
+    let v45 = ((rz * wy) - (ry * wz)) + b.v.x;
+    let v46 = ((wz * rx) - (rz * wx)) + b.v.y;
+    if rd(w, e).unk1040 <= 3.0 {
+        let v51 = ((v33 * v102).sqrt() * -2.0) * dt;
+        let v52 = v46 * v51;
+        let v53 = (((ry * wx) - (rx * wy)) + b.v.z) * v51;
+        let dx = v51 * v45;
+        let r = rm(w, e);
+        r.p_deferred.y += v52;
+        r.p_deferred.x += dx;
+        r.p_deferred.z += v53;
+        let k = dt * 3.5;
+        r.l_deferred.x += ((v53 * ry) - (v52 * rz)) - (b.l.x * k);
+        r.l_deferred.z += ((v52 * rx) - (ry * dx)) - (b.l.z * k);
+        r.l_deferred.y += ((rz * dx) - (v53 * rx)) - (b.l.y * k);
+    } else {
+        let (nb, pb, ip0, if0, ip1, if1) = {
+            let s = &w.tscratch[tidu];
+            (
+                s.rd_i(o + i64::from(c::NBORDER)),
+                s.rd_q(o + i64::from(c::PTBORDER)),
+                s.rd_i(o + i64::from(c::IPRIM)),
+                s.rd_i(o + i64::from(c::IFEATURE)),
+                s.rd_i(o + i64::from(c::IPRIM) + 4),
+                s.rd_i(o + i64::from(c::IFEATURE) + 4),
+            )
+        };
+        for k in 0..nb.max(0) {
+            let pt = {
+                let s = &mut w.tscratch[tidu];
+                let d = s.rd_v(o + i64::from(c::DIR));
+                s.wr_v(o + i64::from(c::N), Vec3::new(-d.x, -d.y, -d.z));
+                s.rd_v_at(pb.wrapping_add(12 * k as u64))
+            };
+            if let Some(ci) = register_contact_point(w, e, i, pt, ip0, if0, ip1, if1, 64, 0.001, tid, Vec3::ZERO) {
+                w.contacts.get_mut(ci).nloc = Vec3::ZERO;
+            }
+            let r = rm(w, e);
+            r.f_ext = Vec3::ZERO;
+            r.t_ext = Vec3::ZERO;
+        }
+    }
+    let v57 = ((t - f64::from(((v98 + v97) + v99) * 0.02)) as f32).to_bits() as i32;
+    let v58 = (((v57.wrapping_sub(1)) >> 31) + (v57 >> 31) + 1) as f32;
+    let x = v58 * dt + rd(w, e).unk1040;
+    let v59 = ((-x).abs() + x) * 0.5;
+    let v60 = f32::from(u8::from(!w.ent(e).colliders.is_empty()));
+    {
+        let r = rm(w, e);
+        r.unk1044 |= 1;
+        r.unk1040 = (((v60 * 5.0) + v59) - ((v60 * 5.0) - v59).abs()) * 0.5;
+    }
+    let log = (w.ent(e).flags & 0x200_0000 != 0 && rd(w, e).awake_bits & 0x7C0_0000 != 0)
+        || p.flags & 0x20_0000 != 0;
+    if log {
+        let s = &w.tscratch[tidu];
+        let ctr = s.rd_v(o + i64::from(c::CENTER));
+        let n = s.rd_v(o + i64::from(c::N));
+        let (id0, id1) = (s.rd_i(o + i64::from(c::ID)), s.rd_i(o + i64::from(c::ID) + 4));
+        let d = Vec3::new(ctr.x - b.pos.x, ctr.y - b.pos.y, ctr.z - b.pos.z);
+        let v0 = Vec3::new(
+            ((d.z * b.w.y) - (d.y * b.w.z)) + b.v.x,
+            ((b.w.z * d.x) - (d.z * b.w.x)) + b.v.y,
+            ((d.y * b.w.x) - (b.w.y * d.x)) + b.v.z,
+        );
+        let ev = crate::world::events::Event::Collision {
+            ent: [e, col],
+            pt: ctr,
+            n,
+            v: [v0, Vec3::ZERO],
+            // slot 66 GetMass of the collider part
+            mass: [b.m, w.ent(col).parts[cpart as usize].mass],
+            partid: [p.id, w.ent(col).parts[cpart as usize].id],
+            idmat: [id0 & 0xFFFF, id1 & 0xFFFF],
+            penetration: t as f32,
+            normimpulse: 0.0,
+            radius: 0.0,
+        };
+        w.post_logged_event(ev);
+    }
+}

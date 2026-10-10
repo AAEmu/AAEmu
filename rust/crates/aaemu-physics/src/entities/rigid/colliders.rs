@@ -345,12 +345,22 @@ pub fn check_for_new_contacts(
         gwd.r = Mat33::from_quat(q);
         gwd.scale = sc;
         let swept = swept_part_box(nc.pos, nc.q, &gwd.r, &own, sweep);
-        if own.flags & 0x10_0000 != 0 {
-            // ray-cast contact mode (not ported, see the docs)
-            ipart += 1;
-            continue;
+        // part flag 0x100000: ray-cast ("suspension") contact mode — a ray along gravity
+        // through the part, intersected by the static colliders' geometries
+        let ray_mode = own.flags & 0x10_0000 != 0;
+        let mut ray: Option<(crate::geometry::shapes::RayGeom, Vec3)> = None;
+        if ray_mode {
+            if ip.sweep_test {
+                ipart += 1;
+                continue;
+            }
+            ip.vrel_min = 1e10;
+            if w.ent(e).rigid().expect("rigid").unk1040 < 3.0 {
+                ray = Some(build_part_ray(w, e, &own, &gwd.r));
+            }
+        } else {
+            ip.vrel_min = saved_vrel;
         }
-        ip.vrel_min = saved_vrel;
         let mut ci = 0usize;
         while ci < n_coll as usize && !stop {
             let col = list[ci];
@@ -379,7 +389,11 @@ pub fn check_for_new_contacts(
             let cbox = w.ent(col).bbox;
             let d = |a: f32, b: f32| (a - b) * (a - b);
             let v502 = (d(cbox[1].y, cbox[0].y) + d(cbox[1].x, cbox[0].x)) + d(cbox[1].z, cbox[0].z) > 0.0;
-            let n_cparts = w.ent(col).parts.len() as i32;
+            let n_cparts = if ray_mode && w.ent(col).sim_class() > 0 {
+                0
+            } else {
+                w.ent(col).parts.len() as i32
+            };
             let mut cp = 0;
             while cp < n_cparts && !stop {
                 let cpart = w.ent(col).parts[cp as usize].clone();
@@ -427,6 +441,57 @@ pub fn check_for_new_contacts(
                 } else {
                     saved_pivot
                 };
+                if let Some((rg, d)) = &ray {
+                    // the collider's geometry intersects the ray (gwd1 = collider, gwd2 = own)
+                    let mut gb = gwd_b;
+                    let out = {
+                        let s = &mut w.tscratch[tidu];
+                        geom_intersect(s, cpart.pgeom_proxy.geom.as_ref(), rg, &mut gb, gwd, ip)
+                    };
+                    let first = out.first.unwrap_or(0);
+                    let r = gwd.r.m;
+                    let (nx, ny, nz) = (-d.x, -d.y, -d.z);
+                    let proj = (((rg.prim.dir.y * d.y) + (rg.prim.dir.x * d.x)) + (rg.prim.dir.z * d.z)) * gwd.scale;
+                    let mut j = 0;
+                    while j < out.ret {
+                        let o = ThreadScratch::contact_off(first + j);
+                        let id0 = w.tscratch[tidu].rd_i(o + i64::from(c::ID));
+                        let id1 = w.tscratch[tidu].rd_i(o + i64::from(c::ID) + 4);
+                        let m_col = map_material(w, col, id0, cp);
+                        let m_own = map_material(w, e, id1, ipart);
+                        {
+                            let s = &mut w.tscratch[tidu];
+                            s.wr(o + i64::from(c::ID), m_own as u32);
+                            s.wr(o + i64::from(c::ID) + 4, m_col as u32);
+                        }
+                        {
+                            let cs: &mut ContactScratch = &mut w.ccd_scratch[tidu];
+                            cs.parts[v354 as usize] = (ipart, cp);
+                            cs.collider[v354 as usize] = col;
+                        }
+                        total += 1;
+                        let s = &mut w.tscratch[tidu];
+                        let t = s.rd_d(o);
+                        let last = (((out.ret - j - 2) as u32) >> 31) as f64;
+                        s.wr_d(o, (f64::from(proj) - t) * last);
+                        s.wr_f(o + i64::from(c::DIR), ((ny * r[0][1]) + (nx * r[0][0])) + (nz * r[0][2]));
+                        s.wr_f(o + i64::from(c::DIR) + 8, ((ny * r[2][1]) + (nx * r[2][0])) + (nz * r[2][2]));
+                        s.wr_f(o + i64::from(c::DIR) + 4, ((ny * r[1][1]) + (nx * r[1][0])) + (nz * r[1][2]));
+                        let old = v354;
+                        v354 += 1;
+                        if old == 127 {
+                            stop = true;
+                            break;
+                        }
+                        j += 1;
+                    }
+                    if stop {
+                        break;
+                    }
+                    ip.keep_prev_contacts = ip.keep_prev_contacts || out.ret > 0;
+                    cp += 1;
+                    continue;
+                }
                 let ret = {
                     let s = &mut w.tscratch[tidu];
                     geom_intersect(s, own.pgeom_proxy.geom.as_ref(), cpart.pgeom_proxy.geom.as_ref(), gwd, &gwd_b, ip)
@@ -864,4 +929,58 @@ fn border_points(s: &ThreadScratch, o: i64) -> Vec<Vec3> {
     let nb = s.rd_i(o + i64::from(c::NBORDER)).clamp(0, 4096) as usize;
     let pb = s.rd_q(o + i64::from(c::PTBORDER));
     (0..nb).map(|k| s.rd_v_at(pb.wrapping_add(12 * k as u64))).collect()
+}
+
+/// The ray of a ray-mode part (CheckForNewContacts, part flag `0x100000`): along the
+/// dominant axis of the gravity (sign of its component) brought into the part frame
+/// (`q_part⁻¹·q_new⁻¹·axis`), through the part's geometry origin, half-length
+/// `min(mean size, size_k / max(0.001, |B'_k|))` on the box axis `k` with the smallest swept
+/// face. Returns the ray (its stored unit direction is the part-frame axis, as on the stack
+/// object of the original) and that direction.
+fn build_part_ray(w: &World, e: EntIdx, p: &Part, r: &Mat33) -> (crate::geometry::shapes::RayGeom, Vec3) {
+    let rd = w.ent(e).rigid().expect("rigid");
+    let g = rd.gravity;
+    let ga = [g.x.abs(), g.y.abs(), g.z.abs()];
+    let i1 = ((ga[0] - ga[1]).to_bits() >> 31) as usize;
+    let i2 = ((ga[i1] - ga[2]).to_bits() >> 31) as usize;
+    let k = (i1 | (i2 << 1)) & ((((i1 | (i2 << 1)) ^ 2) | 4) >> 1);
+    let gb = [g.x, g.y, g.z][k].to_bits() as i32;
+    let mut axis = [0.0f32; 3];
+    axis[k] = (((gb.wrapping_sub(1)) >> 31) + (gb >> 31) + 1) as f32;
+    let a = Vec3::new(axis[0], axis[1], axis[2]);
+    let v92 = crate::entities::base::geometry::rotate_inv(rd.q_new, a);
+    let d = crate::entities::base::geometry::rotate_inv(p.q, v92);
+    // |Basis·Rᵀ| as in swept_part_box
+    let bb = p.pgeom_proxy.geom.bbox();
+    let b = bb.basis.m;
+    let rm = r.m;
+    let mut bp = [[0.0f32; 3]; 3];
+    for i in 0..3 {
+        for j in 0..3 {
+            bp[i][j] = ((b[i][1] * rm[j][1] + b[i][0] * rm[j][0]) + b[i][2] * rm[j][2]).abs();
+        }
+    }
+    let v96 = bp[0][k];
+    let v95 = bp[1][k];
+    let v94 = bp[2][k];
+    let s = bb.size;
+    let f = [(s.x * v95) * v94, (s.y * v96) * v94, (v96 * s.z) * v95];
+    let j1 = ((f[1] - f[0]).to_bits() >> 31) as usize;
+    let j2 = ((f[2] - f[j1]).to_bits() >> 31) as usize;
+    let m = (j1 | (j2 << 1)) & ((((j1 | (j2 << 1)) ^ 2) | 4) >> 1);
+    let e3 = [v96, v95, v94][m];
+    let v102 = (0.001 - e3).abs() + (e3 + 0.001);
+    let v103 = [s.x, s.y, s.z][m];
+    let mean = ((s.x + s.y) + s.z) * 0.333_333_34;
+    let lim = v103 / (v102 * 0.5);
+    let v105 = ((mean + lim) - (mean - lim).abs()) * 0.5;
+    let o = p.pgeom.origin;
+    let (dx, dy, dz) = (v105 * d.x, v105 * d.y, v105 * d.z);
+    let prim = crate::geometry::primitives::RayPrim {
+        origin: Vec3::new(o.x - dx, o.y - dy, o.z - dz),
+        dir: Vec3::new(dx * 2.0, dy * 2.0, dz * 2.0),
+    };
+    let mut rg = crate::geometry::shapes::RayGeom::new(&prim);
+    rg.ndir = d;
+    (rg, d)
 }
