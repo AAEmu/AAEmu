@@ -67,6 +67,9 @@ static NEXT_GENERATION: AtomicU64 = AtomicU64::new(1);
 #[derive(Debug, Default)]
 pub struct TaskScheduler {
     manual: Mutex<Option<ManualQueue>>,
+    /// The pending `FuncTask` objects by generation (what `doodad.FuncTask` references; used by
+    /// [`execute_func_task_now`]).
+    func_tasks: Mutex<std::collections::HashMap<u64, DoodadTask>>,
 }
 
 #[derive(Debug, Default)]
@@ -226,19 +229,64 @@ pub fn start_func_task_for(
     delay: Duration,
 ) -> u64 {
     let generation = NEXT_GENERATION.fetch_add(1, Ordering::Relaxed);
-    holder.data().phase.func_task = generation;
-    schedule(
-        server,
-        DoodadTask {
-            doodad: owner.clone(),
-            holder: holder.clone(),
-            caster: caster.cloned(),
-            generation,
-            kind,
-        },
-        delay,
-    );
+    let old = std::mem::replace(&mut holder.data().phase.func_task, generation);
+    let task = DoodadTask {
+        doodad: owner.clone(),
+        holder: holder.clone(),
+        caster: caster.cloned(),
+        generation,
+        kind,
+    };
+    {
+        let mut current = server
+            .systems
+            .npcs
+            .doodads
+            .tasks
+            .func_tasks
+            .lock()
+            .expect("tasks poisoned");
+        current.remove(&old);
+        current.insert(generation, task.clone());
+    }
+    schedule(server, task, delay);
     generation
+}
+
+/// `doodad.FuncTask.Cancel(); Task.Run(doodad.FuncTask.ExecuteAsync)` (`/tickdoodad`): runs the
+/// doodad's pending func task now (on the task runtime, as `Task.Run`) and cancels the scheduled
+/// run. `false` when the doodad has no `FuncTask`.
+pub fn execute_func_task_now(server: &GameServer, doodad: &DoodadRef) -> bool {
+    let generation = doodad.data().phase.func_task;
+    if generation == 0 {
+        return false;
+    }
+    let tasks = &server.systems.npcs.doodads.tasks;
+    let Some(mut task) = tasks
+        .func_tasks
+        .lock()
+        .expect("tasks poisoned")
+        .remove(&generation)
+    else {
+        return false;
+    };
+    // Cancel(): the scheduled run no longer matches the doodad's FuncTask generation; the task
+    // object itself (still `FuncTask`) runs under a fresh generation.
+    let fresh = NEXT_GENERATION.fetch_add(1, Ordering::Relaxed);
+    {
+        let mut d = task.holder.data();
+        if d.phase.func_task == generation {
+            d.phase.func_task = fresh;
+        }
+    }
+    task.generation = fresh;
+    tasks
+        .func_tasks
+        .lock()
+        .expect("tasks poisoned")
+        .insert(fresh, task.clone());
+    schedule(server, task, Duration::ZERO);
+    true
 }
 
 /// `FuncTask.Cancel(); FuncTask = null`. Returns whether a task was set.
@@ -266,6 +314,17 @@ pub fn schedule_delete(server: &GameServer, doodad: &DoodadRef) {
 
 /// `Task.Execute()` of a doodad task (skipped when its `FuncTask` was cancelled / replaced).
 pub fn execute(server: &GameServer, task: DoodadTask) {
+    if task.generation != 0 {
+        server
+            .systems
+            .npcs
+            .doodads
+            .tasks
+            .func_tasks
+            .lock()
+            .expect("tasks poisoned")
+            .remove(&task.generation);
+    }
     if task.generation != 0 && task.holder.data().phase.func_task != task.generation {
         return; // cancelled
     }
