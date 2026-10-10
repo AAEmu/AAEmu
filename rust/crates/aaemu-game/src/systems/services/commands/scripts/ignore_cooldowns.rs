@@ -23,18 +23,46 @@ impl Command for IgnoreCooldowns {
 
     fn execute(
         &self,
-        _ctx: &CommandContext<'_>,
-        _args: &[String],
-        _out: &mut dyn MessageOutput,
+        ctx: &CommandContext<'_>,
+        args: &[String],
+        out: &mut dyn MessageOutput,
     ) -> anyhow::Result<()> {
-        anyhow::bail!("PORT-TODO: IgnoreCooldowns")
+        if args.is_empty() {
+            CommandManager::send_default_help_text(self, out);
+            return Ok(());
+        }
+        match parse_bool(&args[0]) {
+            Some(ignore_cooldowns) => {
+                ctx.player()?.data().skill_char.ignore_skill_cooldowns = ignore_cooldowns;
+            }
+            None => CommandManager::send_error_text(self, out, "Bool parse error!"),
+        }
+        Ok(())
     }
 
     fn get_command_line_help(&self) -> String {
-        String::new() // PORT-TODO
+        "<true||false>".into()
     }
 
     fn get_command_help_text(&self) -> String {
-        String::new() // PORT-TODO
+        "Enables or disables skill cooldowns.".into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::harness;
+
+    #[tokio::test]
+    async fn ignorecd_sets_the_character_flag() {
+        let server = harness::server();
+        let gm = harness::pc(&server, 1, "Gm", 100.0, 100.0);
+        let (_, out) = harness::run(&server, &gm.p, "ignorecd true").await;
+        assert!(out.is_empty());
+        assert!(gm.p.data().skill_char.ignore_skill_cooldowns);
+        harness::run(&server, &gm.p, "disablecooldowns FALSE").await;
+        assert!(!gm.p.data().skill_char.ignore_skill_cooldowns);
+        let (_, out) = harness::run(&server, &gm.p, "ignoreskillcds 1").await;
+        assert_eq!(out, [harness::error("ignoreskillcds", "Bool parse error!")]);
     }
 }

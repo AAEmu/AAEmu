@@ -275,7 +275,7 @@ fn json_spawn_position(v: &Value) -> Result<Option<WorldSpawnPosition>, ()> {
 
 /// Removes `//` and `/* */` comments and trailing commas, which Newtonsoft.Json accepts
 /// (the shipped `world_spawns.json` contains `//` comments).
-fn strip_json_extensions(src: &str) -> String {
+pub(crate) fn strip_json_extensions(src: &str) -> String {
     let chars: Vec<char> = src.chars().collect();
     let mut out = String::with_capacity(src.len());
     let mut i = 0;
