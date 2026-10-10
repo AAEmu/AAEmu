@@ -372,6 +372,11 @@ pub fn select_loaded(
         snapshot.num_inventory_slots,
         bag,
     );
+    crate::systems::economy::item_timers::send_initial_item_expiration_timers(
+        &player,
+        slot_type::INVENTORY,
+        now_ms(),
+    );
     let bank = snapshot
         .inventory
         .warehouse()
@@ -379,7 +384,14 @@ pub fn select_loaded(
         .expect("bank")
         .slotted_items();
     send_fragmented_inventory(conn, slot_type::BANK, snapshot.num_bank_slots as u8, bank);
-    // SetInitialItemExpirationTimers: later phase (item timers).
+    // SetInitialItemExpirationTimers (bank, then equipment; the bag's ran after its contents)
+    for st in [slot_type::BANK, slot_type::EQUIPMENT] {
+        crate::systems::economy::item_timers::send_initial_item_expiration_timers(
+            &player,
+            st,
+            now_ms(),
+        );
+    }
     conn.send(&SCActionSlotsPacket {
         slots: snapshot.slots.clone(),
     });

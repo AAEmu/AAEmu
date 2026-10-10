@@ -1083,7 +1083,8 @@ pub fn set_item_online_expiration_time(
     new_minutes: f64,
     now: UnixTime,
 ) -> Option<ItemFx> {
-    if (item.expiration_online_minutes_left - new_minutes).abs() > f64::EPSILON {
+    // `double.Epsilon` is the smallest subnormal, not machine epsilon.
+    if (item.expiration_online_minutes_left - new_minutes).abs() > f64::from_bits(1) {
         let new_time = now + (new_minutes * 60.0) as i64;
         item.expiration_online_minutes_left = new_minutes;
         item.dirty = true;

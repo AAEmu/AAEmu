@@ -32,7 +32,7 @@ use super::item_packets::{
 
 /// `EquipmentItemSlotType` values the two-handed checks use.
 mod gear_slot_type {
-    pub const TWO_HANDED: u32 = 17;
+    pub const TWO_HANDED: u32 = 16;
 }
 
 /// `GamePointKind`.
