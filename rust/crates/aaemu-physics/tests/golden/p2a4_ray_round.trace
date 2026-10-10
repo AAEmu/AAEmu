@@ -1,0 +1,41 @@
+physoracle 1
+ret part ball 0
+ret part pole 0
+ret part tiltcyl 0
+ret part pill 0
+ret part lpill 0
+step 1
+ray ball_down n 1
+h 0 d 40d9b33a e ball ip 0 pid 0 s -1 p 41a26666 419e6666 404c998c n 3e75c25d be23d72d 3f751e83
+ray ball_side n 1
+h 0 d 410ed2c4 e ball ip 0 pid 0 s -1 p 41976962 41a40000 4019999a n bf5bdcad 3eccccdf 3ea3d71b
+ray ball_diag n 1
+h 0 d 40929728 e ball ip 0 pid 0 s -1 p 419adae4 419adae4 4036e12a n bf03b5ff bf03b5ff 3f2f9d53
+ray ball_graze n 1
+h 0 d 411a666a e ball ip 0 pid 0 s -1 p 419d3335 41a9999a 40000000 n be8f5bce 3f75c29c 00000000
+ray ball_short n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 41a00000 41a00000 40a00000 n 00000000 00000000 00000000
+ray pole_top n 1
+h 0 d 40d00000 e pole ip 0 pid 0 s -1 p 41f0cccd 41a1999a 40600000 n 00000000 00000000 3f800000
+ray pole_side n 1
+h 0 d 409052c0 e pole ip 0 pid 0 s -1 p 41ec14b0 41a0cccd 40200000 n bf7ad3e7 3e4ccceb 00000000
+ray pole_slant n 1
+h 0 d 40814774 e pole ip 0 pid 0 s -1 p 41ecabfb 419dc7fd 405aa028 n bf55014a bf0e00c7 00000000
+ray pole_up n 1
+h 0 d 40b00000 e pole ip 0 pid 0 s -1 p 41f1999a 419f3333 3f000000 n 80000000 80000000 bf800000
+ray tilt_down n 1
+h 0 d 40bcccce e tiltcyl ip 0 pid 0 s -1 p 4220cccd 41a0cccd 40833332 n 3f19999a 00000000 3f4ccccd
+ray tilt_side n 1
+h 0 d 4086e790 e tiltcyl ip 0 pid 0 s -1 p 421cdcf2 41a26666 40466666 n bf3bb3cf 3eccccb0 3f0cc6dc
+ray pill_top n 1
+h 0 d 40c6bc80 e pill ip 0 pid 0 s -1 p 41a0cccd 41f06666 40728700 n 3e2aaaf3 3daaaa1d 3f7b842a
+ray pill_side n 1
+h 0 d 408de5e8 e pill ip 0 pid 0 s -1 p 419b797a 41f1999a 40133333 n bf715be8 3eaaaad3 00000000
+ray pill_slant n 1
+h 0 d 40bcad18 e pill ip 0 pid 0 s -1 p 419c9b1c 41ec9b1c 40174674 n bf3504f4 bf3504f4 00000000
+ray lpill_down n 1
+h 0 d 40aea18e e lpill ip 0 pid 0 s -1 p 41f06666 41fb3333 40915e72 n 3dffff85 bf000053 3f5b6158
+ray lpill_side n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 420c0000 41ec0000 3ff33333 n 00000000 00000000 00000000
+ray miss n 0
+h 0 d bf800000 e - ip 0 pid 0 s 0 p 42480000 42480000 c1200000 n 00000000 00000000 00000000

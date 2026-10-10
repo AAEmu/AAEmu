@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <io.h>
 #include <fcntl.h>
+#include <math.h>
 
 #define IMAGE_BASE 0x35000000ULL
 #define VA(h, va) ((void *)((char *)(h) + ((va) - IMAGE_BASE)))
@@ -639,12 +640,154 @@ typedef float (*fn_f2)(float, float);
 typedef double (*fn_d1)(double);
 typedef double (*fn_d2)(double, double);
 
+/* ------------------------------------------------------------------ P2a-4 pair probes
+ * (round + ray pairs). `--math p2a4_<pair> COUNT SEED` calls one INTERSECT / OVERLAP cell of the
+ * DLL directly on generated primitives. Row: "in <A words> <B words> out <ret> <prim_inters
+ * words 0..13> <nborderpt> <border points>"; the output struct is pre-filled with 0xCD bytes and
+ * nborderpt with 0xCDCDCDCD, so untouched fields are visible. Overlap rows: "out <ret>". */
+typedef int (*fn_pair3)(void *, void *, void *);
+static const struct { const char *name; uint64_t va; int ta, tb, ovl; } g_p2a4[] = {
+  {"p2a4_sph_sph", 0x35160CB0ULL, 4, 4, 0}, {"p2a4_sph_ray", 0x35160EA0ULL, 4, 3, 0},
+  {"p2a4_ray_sph", 0x35161180ULL, 3, 4, 0}, {"p2a4_cyl_sph", 0x3515FA20ULL, 5, 4, 0},
+  {"p2a4_sph_cyl", 0x3515FDF0ULL, 4, 5, 0}, {"p2a4_cyl_ray", 0x3515FE40ULL, 5, 3, 0},
+  {"p2a4_ray_cyl", 0x35160970ULL, 3, 5, 0}, {"p2a4_cyl_cyl", 0x3516B7F0ULL, 5, 5, 0},
+  {"p2a4_cyl_cap", 0x3516D2E0ULL, 5, 6, 0}, {"p2a4_cap_cyl", 0x3516E320ULL, 6, 5, 0},
+  {"p2a4_cap_sph", 0x35161C80ULL, 6, 4, 0}, {"p2a4_sph_cap", 0x35161EA0ULL, 4, 6, 0},
+  {"p2a4_cap_ray", 0x35161EF0ULL, 6, 3, 0}, {"p2a4_ray_cap", 0x35162A50ULL, 3, 6, 0},
+  {"p2a4_cap_cap", 0x35161550ULL, 6, 6, 0}, {"p2a4_ovl_sph_sph", 0x35196030ULL, 4, 4, 1},
+  {"p2a4_ovl_hf_sph", 0x351975E0ULL, 2, 4, 1}, {"p2a4_ovl_sph_hf", 0x35197860ULL, 4, 2, 1},
+};
+static float g_p2a4_axis[3] = {0, 0, 1};
+static void p2a4_unit(float *v) {
+  float n2;
+  do {
+    for (int k = 0; k < 3; k++) v[k] = frand(-1, 1);
+    n2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+  } while (n2 < 0.01f || n2 > 1.0f);
+  float inv = 1.0f / sqrtf(n2);
+  for (int k = 0; k < 3; k++) v[k] *= inv;
+}
+/* A primitive of `type` near `c` (spread `sc`); `first` marks the first solid of the row. */
+static int p2a4_gen(int type, float *p, const float *c, float sc, int i, int first) {
+  switch (type) {
+  case 4:
+    for (int k = 0; k < 3; k++) p[k] = c[k] + frand(-sc, sc);
+    p[3] = frand(0.05f, 1.5f);
+    return 4;
+  case 5: case 6: {
+    for (int k = 0; k < 3; k++) p[k] = c[k] + frand(-sc, sc);
+    int m = (i / 2) % 8;
+    if (m == 0) { p[3] = 0; p[4] = 0; p[5] = 1; }
+    else if (m == 1) { p[3] = 1; p[4] = 0; p[5] = 0; }
+    else if (!first && m == 2) memcpy(p + 3, g_p2a4_axis, 12);                         /* parallel */
+    else if (!first && m == 3) for (int k = 0; k < 3; k++) p[3 + k] = -g_p2a4_axis[k]; /* antiparallel */
+    else if (!first && m == 4) {                                                       /* nearly parallel */
+      float n2 = 0;
+      for (int k = 0; k < 3; k++) { p[3 + k] = g_p2a4_axis[k] + frand(-0.004f, 0.004f); n2 += p[3 + k] * p[3 + k]; }
+      float inv = 1.0f / sqrtf(n2);
+      for (int k = 0; k < 3; k++) p[3 + k] *= inv;
+    } else p2a4_unit(p + 3);
+    if (first) memcpy(g_p2a4_axis, p + 3, 12);
+    p[6] = frand(0.05f, 1.2f);
+    p[7] = frand(0.05f, 1.5f);
+    return 8;
+  }
+  case 3: {
+    float u[3], tg[3];
+    p2a4_unit(u);
+    float dist = frand(0.3f, 4.0f);
+    for (int k = 0; k < 3; k++) p[k] = c[k] + u[k] * dist;
+    if (i % 13 == 5) for (int k = 0; k < 3; k++) p[k] = c[k] + frand(-0.2f, 0.2f); /* starts inside */
+    for (int k = 0; k < 3; k++) tg[k] = c[k] + frand(-sc, sc);
+    float len = frand(0.3f, 2.5f);
+    for (int k = 0; k < 3; k++) p[3 + k] = (tg[k] - p[k]) * len;
+    if (i % 9 == 4) { /* axis-aligned direction */
+      int big = 0;
+      for (int k = 1; k < 3; k++) if (fabsf(p[3 + k]) > fabsf(p[3 + big])) big = k;
+      for (int k = 0; k < 3; k++) if (k != big) p[3 + k] = 0;
+    }
+    if (i % 31 == 7) for (int k = 0; k < 3; k++) p[3 + k] = 0; /* zero-length ray */
+    return 6;
+  }
+  }
+  return 0;
+}
+static void p2a4_probe(const char *name, int count) {
+  int idx = -1;
+  for (int j = 0; j < (int)(sizeof g_p2a4 / sizeof g_p2a4[0]); j++)
+    if (!strcmp(g_p2a4[j].name, name)) idx = j;
+  if (idx < 0) die("unknown p2a4 probe", name);
+  int ta = g_p2a4[idx].ta, tb = g_p2a4[idx].tb;
+  void *fn = VA(g_phys, g_p2a4[idx].va);
+  static const float zero[3] = {0, 0, 0};
+  for (int i = 0; i < count; i++) {
+    __declspec(align(16)) float pa[32], pb[32];
+    __declspec(align(16)) unsigned char hfp[128];
+    memset(pa, 0, sizeof pa);
+    memset(pb, 0, sizeof pb);
+    if (ta == 2 || tb == 2) { /* heightfield vs sphere: random grid, the "bumps" height function */
+      float *f = (float *)hfp;
+      memset(hfp, 0, sizeof hfp);
+      f[0] = f[4] = f[8] = 1;
+      if (i % 3 == 1) { float a = frand(-3.1f, 3.1f), cs = cosf(a), sn = sinf(a); f[0] = cs; f[1] = -sn; f[3] = sn; f[4] = cs; }
+      for (int k = 0; k < 3; k++) f[10 + k] = frand(-5, 5);
+      f[13] = frand(0.5f, 2.0f); f[14] = frand(0.5f, 2.0f);
+      f[15] = 1.0f / f[13]; f[16] = 1.0f / f[14];
+      int nx = 4 + (int)(splitmix() % 12), ny = 4 + (int)(splitmix() % 12);
+      SETI(hfp, 68, nx); SETI(hfp, 72, ny); SETI(hfp, 76, 1); SETI(hfp, 80, nx);
+      f[21] = frand(0.5f, 2.0f);
+      *(uint16_t *)(hfp + 88) = 0x8000; *(uint16_t *)(hfp + 90) = 0xFFFF; SETI(hfp, 92, 1); SETI(hfp, 96, 15);
+      g_hf.mode = 2; g_hf.h0 = frand(-1, 1); g_hf.amp = frand(0, 1);
+      SETP(hfp, 104, (void *)hf_height); SETP(hfp, 112, (void *)hf_surf);
+      pb[0] = f[10] + frand(-2, (float)nx * f[13] + 2);
+      pb[1] = f[11] + frand(-2, (float)ny * f[14] + 2);
+      pb[2] = f[12] + frand(-2, 4);
+      pb[3] = frand(0.1f, 2.0f);
+      int r = (ta == 2) ? ((fn_pair3)fn)(hfp, pb, 0) : ((fn_pair3)fn)(pb, hfp, 0);
+      printf("in");
+      out_f(f, 9); out_f(f + 10, 3); out_f(f + 13, 4);
+      printf(" %08x %08x", nx, ny);
+      out_f(f + 21, 1); out_f(&g_hf.h0, 1); out_f(&g_hf.amp, 1); out_f(pb, 4);
+      printf(" out %08x\n", r);
+      continue;
+    }
+    /* the solid (non-ray) operand first, the other one around it */
+    int ray_first = (ta == 3);
+    int t1 = ray_first ? tb : ta, t2 = ray_first ? ta : tb;
+    float *p1 = ray_first ? pb : pa, *p2 = ray_first ? pa : pb;
+    int n1 = p2a4_gen(t1, p1, zero, 0.3f, i, 1);
+    float spread = (i % 4 == 0) ? 0.6f : 2.0f;
+    int n2 = p2a4_gen(t2, p2, p1, spread, i, 0);
+    int na = ray_first ? n2 : n1, nb = ray_first ? n1 : n2;
+    printf("in");
+    out_f(pa, na); out_f(pb, nb);
+    if (g_p2a4[idx].ovl) {
+      int r = ((fn_pair3)fn)(pa, pb, 0);
+      printf(" out %08x\n", r);
+      continue;
+    }
+    __declspec(align(16)) unsigned char pi[256];
+    __declspec(align(16)) float border[3 * 64];
+    memset(pi, 0xCD, sizeof pi);
+    memset(border, 0xCD, sizeof border);
+    SETP(pi, 56, border);
+    SETI(pi, 68, 64);
+    int r = ((fn_pair3)fn)(pa, pb, pi);
+    printf(" out %08x", r);
+    for (int k = 0; k < 14; k++) printf(" %08x", *(uint32_t *)(pi + 4 * k));
+    int nbp = *(int *)(pi + 64);
+    printf(" %08x", (uint32_t)nbp);
+    if (nbp > 0 && nbp <= 64) out_f(border, 3 * nbp);
+    printf("\n");
+  }
+}
 #include "probe_p2a1.c" /* P2a-1 box pair probes (additive) */
 
 static void math_probe(const char *name, int count, uint64_t seed) {
   g_rng = seed;
   HMODULE crt = GetModuleHandleA("MSVCR100.dll");
   printf("physoracle-math 1 %s %d %llu\n", name, count, (unsigned long long)seed);
+  if (!strncmp(name, "p2a4_", 5)) { p2a4_probe(name, count); return; }
   if (!strncmp(name, "p2a1_", 5)) { p2a1_probe(name, count); return; }
   if (!strcmp(name, "quat2mat")) {
     /* sub_350247B0: Matrix33 (row-major) from quaternion (x,y,z,w) */
