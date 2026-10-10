@@ -193,6 +193,23 @@ pub mod ingest {
 }
 
 impl BarrierZones {
+    /// `ShipBarrierBaiIngestedCells.Count`.
+    pub fn ingested_cell_count(&self) -> usize {
+        self.ingested_cells.len()
+    }
+
+    /// `ClearShipStaticBarriersAndBaiIngest`: barriers, spatial grid, ingested cells and the
+    /// name serial. Returns the barrier and ingested-cell counts before the reset.
+    pub fn clear_all(&mut self) -> (usize, usize) {
+        let before = (self.barriers.len(), self.ingested_cells.len());
+        self.barriers.clear();
+        self.grid_built_for = None;
+        self.grid = SpatialGrid::default();
+        self.ingested_cells.clear();
+        self.name_serial = 0;
+        before
+    }
+
     /// `ShipStaticBarrierBaiIngestor.EnsureCell(world, cellX, cellY)`: `grid` is the cell's 4x4
     /// `BaiLoader` (`[px][py]`), `None` when the cell does not exist.
     pub fn ensure_cell(

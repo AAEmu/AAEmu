@@ -67,6 +67,10 @@ impl Client {
             match cmd {
                 ConnCommand::Send(p) => self.conn.send(p.as_ref()),
                 ConnCommand::Close => self.conn.shutdown(),
+                ConnCommand::DetachAndClose => {
+                    self.conn.active_char = None;
+                    self.conn.shutdown();
+                }
                 ConnCommand::LeaveWorld(_) => {}
             }
         }

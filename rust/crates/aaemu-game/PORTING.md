@@ -145,7 +145,7 @@ systems::{skills, npcs, economy, social, quests}: Data (tables), System (manager
 | `Models/AccountPayment`, `Models/Account` | `net/connection.rs`, `db.rs` | done | |
 | `Models/AppConfiguration`, `Models/Game/Configurations` + `Program` config loading | `config.rs` | done | Every member (incl. WebApiNetwork, DiscordToken, Dungeons, AccessLevel, LaborOffline, Specialty, Scripts, full World), Config.json + Configurations/** + Config.Local.json + user secrets + environment (`Section__Key`) + command line, enums by name / value, `ConfigCell` (= `AppConfiguration.Instance`, replaceable at runtime). |
 | Other `Models/Game/*` (AI, Auction, Crafts, Crime, DoodadObj, Mails, Mate, NPChar, Quests logic, Slaves, Team, ...) | – | see the subsystems | Ported with their managers (phase 3 / 4 subsystems). `Achievement` has no 1.2 logic. |
-| `Scripts/Commands`, `Utils/Scripts` | `systems/services/commands/` | partial | Infrastructure done (`CommandManager`, `AccessLevelManager`, `ICommand`, `IMessageOutput` / `CharacterMessageOutput`, `SubCommandBase` + parameters, script loader hook, the `Utils/Scripts/SubCommands` World / Time / FishFinder / Feature / AStar sub commands); chat `/` messages go through `CommandManager.Handle`. The commands of `Scripts/Commands/**` (and the `SphereCommandUtil` / `QuestCommandUtil` bodies) are the scripts phase. |
+| `Scripts/Commands/**`, `Scripts/SubCommands/**`, `Utils/Scripts`, `Utils/{Quest,Sphere}CommandUtil` | `systems/services/commands/` (+ `scripts/`) | done | Infrastructure (`CommandManager` with async command execution, `AccessLevelManager`, `ICommand`, `IMessageOutput`, `SubCommandBase` + parameters) and every GM command: one module per `Scripts/Commands/*.cs` file in `scripts/`, the `SubCommandBase` roots in `scripts/roots.rs` / `scripts/sub/*` (Crimes, Doodads, Gimmick, Gold, Items, Npcs, Slaves sub commands). `scripts::load` registers them in the C# type order (`ScriptReflector`), so `GoldCmd` owns `gold` (and `AddGold`'s aliases) and `CrimeCmd` registers `crime` with `/doodad` as call prefix. Tests: a harness test per command (`scripts/harness.rs`), the registered set vs the C# sources (`scripts/tests.rs`). |
 | `Services` (WebApi, DiscordBot) | `systems/services/webapi/`, `systems/services/discord.rs` | done | axum transport with the C# regex routing; mail / auction controllers call the economy through `WebApiEconomyHooks`. |
 | `GameService` startup / `ManagerOrchestrator`, `Program` | `main.rs`, `systems/services/game_service.rs` | done | `Program.Main` (initialization log, `compiler-check`, config command line, MySQL / SQLite checks) and `GameService.StartAsync` stages in order (DB updater, client files, holdables check, game data, user items, DB loads, time / task managers, subsystems, save manager, deleted characters, online tracking, networks, "Server started! Took ..."), then WebApi / Discord; shutdown in reverse (Discord, WebApi, final save, task / tick / time managers). `GameService.StartTime` / `TimeSinceStart`, `Program.UpTime`, `ManagerOrchestrator.BuildBatches` ported with their tests. |
 
@@ -260,7 +260,7 @@ Economy hooks (`server.systems.housing.hooks`): installed by `economy::bridges::
 | `UnitRequirementsGameData` (`CanComponentRun`, `CanTriggerSphere`) + `UnitReqs.Validate` | `unit_reqs.rs` | done | `ReqSubject` / `ReqEnv` traits (owner = locked character, target = snapshot). `CanUseSkill` is the skills subsystem's (can reuse `validate`). |
 | `SphereQuestManager`, `SphereQuest*`, `SphereGameData` (spheres, sphere_quests, `IsInsideAreaSphere`, `GetSphereIdFromQuest`) | `spheres.rs`, `data.rs` | done | `quest_sign_sphere.g` of `main_world`; one manager per server (500 ms tick). Other `sphere_*` tables not loaded (unused by quests). |
 | Quest packets (CS: StartQuestContext, CompleteQuestContext, DropQuestContext, QuestTalkMade, QuestStartWith, TryQuestCompleteAsLetItDone, RestartMainQuest, SaveTutorial, StartedCinema, CompletedCinema; SC: QuestContextStarted/Updated/Completed/Reset, QuestRewardedByMail, DoodadQuestAccept, TutorialSaved, AppellationGained) | `packets.rs` | done | Byte-exact tests. `SCQuestsPacket` now writes `Quest.Id` as `long`. |
-| `QuestCommandUtil` / `QuestCmd` (GM) | – | todo | `Ctx::gm_set_step` is the `SetStep` helper. |
+| `QuestCommandUtil` / `QuestCmd` (GM) | `systems/services/commands/scripts/quest_cmd.rs` | done | `quests::events::send_quests` / `send_completed_quests` added. |
 
 ### systems::instances
 
@@ -276,7 +276,7 @@ Economy hooks (`server.systems.housing.hooks`): installed by `economy::bridges::
 | `InstantGameManager`, `InstantGame` (+ `InstantGameEvents`, team members / results) | `instant_game.rs` | done | Queue / matchmaking / invite / join / enter / start / kills / scores / end / leave; `Character.SetFaction` override (housing hook, guild kick, party kick); `ResetAllSkillCooldowns`. |
 | Packets: `CSInstanceLoaded`, `CSUnknownInstance`, `CSApplyToInstantGame`, `CSCancelInstantGame`, `CSJoinInstantGame`, `CSEnteredInstantGameWorld`, `CSLeaveInstantGame`; `SCProcessingInstance`, `SCAppliedToInstantGame`, `SCInviteToInstantGame`, `SCInstantGameJoined/Start/End/AddPoint/Kill/Killstreak`, `SCInstantGameRemainTime` (`SCInstantGameUnkPacket` opcode), `SCTowerDefList/Start/End/WaveStart`, `SCSkillCooldownReset` | `packets.rs` | done | Byte-exact tests. `SCLoadInstancePacket` is the npcs portal one. |
 | Doodad funcs `EnterInstance`, `EnterSysInstance`, `ExitIndun`, `RemoveInstance`; skills hooks `leave_instance` (`ExitArchemall`) / `main_world_position` (`Return`); portal `UsePortal` court check | `npcs/doodad/funcs/world.rs`, `skills/ext.rs` (default bodies), `npcs/portal/mod.rs` | done | |
-| Tower defense runtime, `towerdef` GM command, `TowerDefenseAttackerAiCharacter` | – | todo | The C# has no tower defense manager (only data + the GM command); commands and NPC AI are not ported. |
+| Tower defense runtime, `TowerDefenseAttackerAiCharacter` | – | todo | The C# has no tower defense manager (only data + the GM command, ported in `scripts/tower_def.rs`). |
 
 Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` checks the summoned vehicle (`systems::vehicles`); the entry item goes through `npcs::portal::check_item_and_remove` (economy `EconomyBridge::consume_item`); `SetFaction` updates the owned houses (`SocialHooks::update_owned_housing_faction`, housing). Instant games have no rewards in C#.
 
@@ -317,7 +317,7 @@ Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` check
 | `SusManager` | `systems/services/sus.rs` | done | `audit_char_sus` log + speed analysis; the 5 s `FinalizeTransform` caller and the social / npcs log calls are not wired yet (see deviations). |
 | `GameData/Framework` (`GameDataManager`, `IGameDataLoader`, `GameDataAttribute`) | `data/mod.rs`, `systems::SystemsData::load` | done (by design) | The reflection-driven loader list is the explicit `GameData::load` + per-subsystem `Data::load`; `Load` / `PostLoad` order is the call order there. |
 | `Models/Tasks/SaveTask/SaveTickStartTask` | `managers/save.rs` | done (by design) | The periodic save is a Tokio interval instead of a `TaskManager` task (not counted in `GetQueueCount`). |
-| `Utils/{MathUtil, NumericExtensions, Converters/*, DB/HoldablesSchemaCheck}` | `utils/` | done | `Utils/DB/SQLite*` = `data::sqlite`, `Utils/IdManager` = `managers::id`. `SphereCommandUtil` / `QuestCommandUtil`: scripts phase. |
+| `Utils/{MathUtil, NumericExtensions, Converters/*, DB/HoldablesSchemaCheck}` | `utils/` | done | `Utils/DB/SQLite*` = `data::sqlite`, `Utils/IdManager` = `managers::id`. `SphereCommandUtil` / `QuestCommandUtil`: `services::commands::scripts::{sphere, quest_cmd}`. |
 
 ### systems::ai
 
@@ -555,8 +555,19 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   start (skills config, doodad growth rate) are updated by the World set commands only.
 * systems::services: `SusManager` analysis runs only where callers pass positions (no
   `FinalizeTransform`); the social and coffer `LogActivity` calls insert their row as a task.
-* systems::services: `QuestCommandUtil` / `SphereCommandUtil` and every `Scripts/Commands`
-  command are not ported (scripts phase); `scripts reload force` runs the installed loader.
+* systems::services (commands): a command whose C# body is synchronous but calls an async Rust API
+  (saves, reloads, DB, mails) runs through `execute_async`; `ReloadConfigs` replaces the whole
+  configuration (C# `Bind` keeps runtime values of keys absent from the files) and refreshes the
+  copies the subsystems keep; `Announce` only knows the web color names (no system colors);
+  `DisconnectMe` uses `ConnCommand::DetachAndClose`; `scripts reloadslavepoints` keeps the
+  reloaded table in `vehicles::System` (game data is immutable); `ChangeLevel` help shows the
+  level caps until the experience table is reachable; the `Fly` cache is per command instance;
+  `Kit` sorts kit names case-insensitively (culture sort approximation); `ShowInventory`
+  "Container Error" compares with the listed container; `CrimeFakeTrial` awaits `ReportCrime`;
+  `QuestCmd` truncates acceptor type / status to bytes; the sphere list uses the global sphere
+  manager; `Help` sorts ordinally (same order as the culture sort for lower-case names and `_`).
+  The harness gives players fixed obj ids (`0x100 + id`) that can collide with ids from
+  `server.ids.object` in tests that spawn many objects.
 * systems::services: the Discord bot runs in the background (the C# `StartAsync` never returns
   when a token is set, blocking the host start).
 * systems::ai: calls into an NPC's AI from outside its tick (skills, aggro, npcs hooks) are queued and run right after the current AI step instead of re-entering it (`manager::post`); the AI tick runs on a blocking thread every ~100 ms; behaviour instances are kept per AI and accessed by kind. `UpdateAggroHelp` reaching a helper NPC without an AI logs and continues (the C# throws a `NullReferenceException` that cuts the whole behaviour tick short). `Npc.OnDamageReceived` on an AI-less NPC does nothing (C# NRE).
@@ -801,3 +812,13 @@ the C# `GameNetwork`. Deviations of the audit ports:
 * `ZoneStateChangeTask` is a tokio task holding a weak server reference.
 * `SusManager.finalize_check` keeps the `_skipCheckTime` / `_lastFinalizeTime` of an object by obj
   id; the analysis itself (database log) runs on a task.
+* systems::services (commands): `CrimeCmd` keeps `CommandNames = ["doodad"]` (help / call prefix
+  `/doodad`); `GoldCmd` hides `AddGold` and `gold set` adds like `add`; `SetFaction` changes the
+  caller's faction; `AddPortals` uses the caller's position and roll; `Heal` without a target does
+  nothing; the `Fly` cache toggles off when set to true twice; `TestChatChannel list` never
+  resets its name buffer; `ItemUnwrap` passes the Secure flag twice; `TowerDef` / `QuestCmd
+  objective|progress` index missing arguments (IndexOutOfRange); `QuestCmd template` /
+  `SphereCommandUtil.GetQuestSphere` read the never-set `DetailType`; `GetSphereList` filters on
+  the quest object id; `CrimeCreate` stores degrees as radians and throws without `source=`;
+  `TestHouse setforsale` does not normalise the buyer name; `Kick` throws on a non-byte reason;
+  `SendPacket` throws on a one-byte payload; `Scripts shutdown now` prints `-0` minutes.

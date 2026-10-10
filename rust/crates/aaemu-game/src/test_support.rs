@@ -88,6 +88,15 @@ impl TestClient {
         v
     }
 
+    /// The `ConnCommand`s queued for this connection since the last call.
+    pub fn commands(&mut self) -> Vec<ConnCommand> {
+        let mut v = Vec::new();
+        while let Ok(c) = self._cmd.try_recv() {
+            v.push(c);
+        }
+        v
+    }
+
     /// Opcodes of the drained frames.
     pub fn drain_ops(&mut self) -> Vec<u16> {
         self.drain().into_iter().map(|f| f.0).collect()

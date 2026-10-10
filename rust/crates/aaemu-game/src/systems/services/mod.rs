@@ -125,6 +125,12 @@ impl System {
         s.commands.access_levels.load(&server.config.access_level);
         s.music.load(server).await?;
         // Scripts (`ScriptReflector.Reflect` / `ScriptCompiler.Compile`).
+        commands::scripts::install(
+            &s.commands,
+            commands::scripts::ScriptEnv {
+                app_path: server.config.app_path.clone(),
+            },
+        );
         s.commands.reload();
         s.tasks.start(&s.tick.on_tick);
         // Stage 4: `IInitializable.Initialize()`.

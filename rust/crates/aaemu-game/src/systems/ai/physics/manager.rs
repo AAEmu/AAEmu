@@ -389,6 +389,12 @@ impl WorldPhysics {
                 .any(|p| matches!(p, Pending::Add(s) if s.spec.obj_id == obj_id))
     }
 
+    /// Runs `f` on the simulation state under its lock (GM barrier commands; must not be called
+    /// from a hook).
+    pub fn with_state<R>(&self, f: impl FnOnce(&mut PhysState) -> R) -> R {
+        f(&mut lock(&self.state))
+    }
+
     /// Reads the simulation state (tests / diagnostics; must not be called from a hook).
     pub fn inspect<R>(&self, f: impl FnOnce(&PhysState) -> R) -> R {
         f(&lock(&self.state))

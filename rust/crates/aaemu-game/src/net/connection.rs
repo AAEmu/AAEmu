@@ -70,6 +70,9 @@ pub enum ConnCommand {
     /// The logout timer of `EnterWorldManager.Leave` expired: run `LeaveWorldTask` with this
     /// `LeaveWorldTargetType` on the connection task.
     LeaveWorld(u8),
+    /// `Connection.ActiveChar = null; Shutdown()` (GM `disconnectme`): the connection closes
+    /// without saving / removing its character.
+    DetachAndClose,
 }
 
 /// Cloneable handle stored in the [`ConnectionTable`].
@@ -128,6 +131,11 @@ impl ConnectionHandle {
 
     pub fn close(&self) {
         let _ = self.tx.send(ConnCommand::Close);
+    }
+
+    /// `ActiveChar = null` then `Shutdown()` on the connection task.
+    pub fn detach_and_close(&self) {
+        let _ = self.tx.send(ConnCommand::DetachAndClose);
     }
 }
 

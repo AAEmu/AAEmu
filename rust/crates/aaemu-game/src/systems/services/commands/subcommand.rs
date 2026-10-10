@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use futures::future::BoxFuture;
+
 use super::output::{Color, MessageOutput};
 use super::params::{ParameterResult, ParameterValue, Parameters, SubCommandParameter};
 use super::CommandContext;
@@ -326,6 +328,28 @@ pub trait SubCommand: Send + Sync {
         Ok(())
     }
 
+    /// [`SubCommand::execute_args`] for sub commands whose body awaits an async Rust API.
+    fn execute_args_async<'a>(
+        &'a self,
+        ctx: &'a CommandContext<'a>,
+        trigger: &'a str,
+        args: &'a [String],
+        out: &'a mut dyn MessageOutput,
+    ) -> BoxFuture<'a, anyhow::Result<()>> {
+        Box::pin(async move { self.execute_args(ctx, trigger, args, out) })
+    }
+
+    /// [`SubCommand::execute`] for sub commands whose body awaits an async Rust API.
+    fn execute_async<'a>(
+        &'a self,
+        ctx: &'a CommandContext<'a>,
+        trigger: &'a str,
+        parameters: &'a Parameters,
+        out: &'a mut dyn MessageOutput,
+    ) -> BoxFuture<'a, anyhow::Result<()>> {
+        Box::pin(async move { self.execute(ctx, trigger, parameters, out) })
+    }
+
     /// `SendHelpMessage(messageOutput)` (virtual).
     fn send_help_message(&self, out: &mut dyn MessageOutput) {
         self.base().send_help_message(out);
@@ -376,4 +400,44 @@ pub fn pre_execute(
         base.send_color_message(out, Color::RED, &format!("Unexpected error: {e}"));
         tracing::error!("{e:?}");
     }
+}
+
+/// [`pre_execute`] running the async forms of the sub command bodies (what
+/// `CommandManager.Handle` uses).
+pub fn pre_execute_async<'a>(
+    cmd: &'a dyn SubCommand,
+    ctx: &'a CommandContext<'a>,
+    trigger: &'a str,
+    args: &'a [String],
+    out: &'a mut dyn MessageOutput,
+) -> BoxFuture<'a, ()> {
+    Box::pin(async move {
+        let base = cmd.base();
+        let result: anyhow::Result<()> = async {
+            let Some(first) = args.first() else {
+                return cmd.execute_args_async(ctx, trigger, args, out).await;
+            };
+            if first.eq_ignore_ascii_case("help") {
+                cmd.send_help_message(out);
+            } else if let Some(sub) = base.sub_command(first) {
+                pre_execute_async(sub.as_ref(), ctx, first, &args[1..], out).await;
+            } else if base.has_parameters() {
+                let results = base.load_parameters_values(args)?;
+                if base.pre_validate(out, results.iter().map(|(_, r)| r)) {
+                    let parameters =
+                        Parameters(results.into_iter().map(|(k, r)| (k, r.value)).collect());
+                    cmd.execute_async(ctx, trigger, &parameters, out).await?;
+                }
+            } else {
+                // Backwards compatibility with non parameter subcommands.
+                cmd.execute_args_async(ctx, trigger, args, out).await?;
+            }
+            Ok(())
+        }
+        .await;
+        if let Err(e) = result {
+            base.send_color_message(out, Color::RED, &format!("Unexpected error: {e}"));
+            tracing::error!("{e:?}");
+        }
+    })
 }

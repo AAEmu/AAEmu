@@ -50,6 +50,8 @@ pub struct ObjectCore {
     /// is bound to (ladders, vehicle seats, transfer carriages). Set through
     /// `WorldInstance::set_sticky_parent`; not copied by transform clones (`CloneDetached`).
     sticky_parent: AtomicU32,
+    /// `Transform._debugTrackers` (character ids; `ToggleDebugTracker`).
+    debug_trackers: Mutex<Vec<u32>>,
 }
 
 impl ObjectCore {
@@ -101,6 +103,22 @@ impl ObjectCore {
 
     pub(crate) fn take_children(&self) -> Vec<WorldObject> {
         std::mem::take(&mut *self.children.lock().expect("children poisoned"))
+    }
+
+    /// `Transform.ToggleDebugTracker(player)`: `true` when `character_id` now tracks this
+    /// object, `false` when it was removed.
+    pub fn toggle_debug_tracker(&self, character_id: u32) -> bool {
+        let mut t = self.debug_trackers.lock().expect("debug trackers poisoned");
+        match t.iter().position(|id| *id == character_id) {
+            Some(i) => {
+                t.remove(i);
+                false
+            }
+            None => {
+                t.push(character_id);
+                true
+            }
+        }
     }
 }
 

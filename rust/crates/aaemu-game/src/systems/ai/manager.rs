@@ -152,6 +152,35 @@ pub fn post(server: &GameServer, obj_id: u32, f: impl FnOnce(&mut AiCtx<'_>) + S
     h.try_drain(server);
 }
 
+/// Runs `f` on the NPC's AI right away (waiting for its current step to finish) and returns
+/// the result: a synchronous `npc.Ai.X()` call from outside the AI (GM commands). `None` for an
+/// NPC without an AI (`npc.Ai == null`). Calls queued meanwhile run afterwards.
+pub fn run_now<R>(
+    server: &GameServer,
+    obj_id: u32,
+    f: impl FnOnce(&mut AiCtx<'_>) -> R,
+) -> Option<R> {
+    let h = server.systems.ai.ais.get(obj_id)?;
+    let res = {
+        let mut st = lock(&h.state);
+        let npc = st.owner()?;
+        let obj = WorldObject::from(&npc);
+        let r = {
+            let mut ctx = AiCtx {
+                server,
+                npc,
+                obj,
+                ai: &mut st,
+            };
+            f(&mut ctx)
+        };
+        h.drain_locked(server, &mut st);
+        r
+    };
+    h.try_drain(server);
+    Some(res)
+}
+
 /// The regions with player activity (`Region.HasPlayerActivity()`: a player in the region's
 /// neighbourhood) of every instance.
 fn active_regions(server: &GameServer) -> HashSet<(u32, i32, i32)> {

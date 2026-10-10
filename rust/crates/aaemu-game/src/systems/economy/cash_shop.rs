@@ -616,6 +616,15 @@ fn manager(server: &GameServer) -> &CashShopManager {
 
 /// `CashShopManager.Load()` (MySQL) + `GameService`'s `EnabledShop()` right after.
 pub async fn load(server: &GameServer) -> Result<()> {
+    load_only(server).await?;
+    // GameService: CashShopManager.Instance.EnabledShop() after the load stage.
+    enable_shop(server);
+    Ok(())
+}
+
+/// `CashShopManager.Load()` alone (the GM `ics reload`: the enabled flag is kept unless
+/// something failed to load).
+pub async fn load_only(server: &GameServer) -> Result<()> {
     let mut st = CashShopState::default();
     let pool = &server.db;
 
@@ -726,6 +735,8 @@ pub async fn load(server: &GameServer) -> Result<()> {
         });
     }
     let empty = st.menu_items.is_empty() || st.shop_items.is_empty() || st.skus.is_empty();
+    // `Load` does not touch `Enabled`.
+    st.enabled = manager(server).enabled();
     manager(server).set_state(st);
     // If something didn't load, force close the shop
     if empty {
@@ -737,8 +748,6 @@ pub async fn load(server: &GameServer) -> Result<()> {
         (st.shop_items.len(), st.menu_items.len())
     };
     tracing::info!("Loaded {items} cash shop items in {menus} menu entries");
-    // GameService: CashShopManager.Instance.EnabledShop() after the load stage.
-    enable_shop(server);
     Ok(())
 }
 

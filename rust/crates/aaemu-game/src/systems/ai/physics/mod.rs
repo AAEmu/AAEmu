@@ -37,6 +37,7 @@ pub mod replication;
 pub mod ship;
 pub mod shore;
 pub mod water;
+pub mod water_debug;
 
 #[cfg(test)]
 pub(crate) mod tests;
@@ -150,6 +151,14 @@ impl PhysicsSystem {
             .store(v, std::sync::atomic::Ordering::SeqCst);
     }
 
+    /// The physics of a world instance, created (without a thread) when missing.
+    pub fn world_or_create(&self, instance_id: u32) -> Arc<WorldPhysics> {
+        self.worlds
+            .entry(instance_id)
+            .or_insert_with(|| Arc::new(WorldPhysics::new(instance_id)))
+            .clone()
+    }
+
     fn world_of_ship(&self, obj_id: u32) -> Option<Arc<WorldPhysics>> {
         self.worlds
             .iter()
@@ -184,6 +193,127 @@ fn synced_water(server: &GameServer, world: &WorldInstance) -> Arc<WaterBodies> 
         }
     }
     w
+}
+
+/// `WorldInstance.ReloadWaterFromLoadedCells()`: clears the ingested water areas and rebuilds
+/// them from the cells loaded so far.
+pub fn reload_water_from_loaded_cells(server: &GameServer, world: &WorldInstance) {
+    let w = water_of(server, world.template.id, world.template.ocean_level);
+    w.clear_ingested_areas();
+    synced_water(server, world);
+}
+
+/// `WorldInstance.Water` (synced with the loaded cells).
+pub fn world_water(server: &GameServer, world: &WorldInstance) -> Arc<WaterBodies> {
+    synced_water(server, world)
+}
+
+/// `Template.Cells[cellX, cellY]`: `Loaded` and its `LoadedObjectDat` (read again from the
+/// client files: only cells whose heightmap loaded read their `object.dat`).
+pub fn cell_object_dat(
+    server: &GameServer,
+    world: &WorldInstance,
+    cell_x: i32,
+    cell_y: i32,
+) -> (bool, Option<objects_file::ObjectsFile>) {
+    let Some(hm) = server.systems.npcs.heightmaps.get() else {
+        return (false, None);
+    };
+    let Some(t) = hm.template(world.template.id) else {
+        return (false, None);
+    };
+    let loaded = t.is_cell_loaded(cell_x, cell_y);
+    if !t.cell_has_height_map(cell_x, cell_y) {
+        return (loaded, None);
+    }
+    let file = format!(
+        "game/worlds/{}/cells/{cell_x:03}_{cell_y:03}/client/object.dat",
+        world.template.name
+    );
+    if !hm.files().file_exists(&file) {
+        return (loaded, None);
+    }
+    let objects = hm
+        .files()
+        .read_file(&file)
+        .map(|bytes| objects_file::ObjectsFile::read(&bytes));
+    (loaded, objects)
+}
+
+/// `WorldInstance.ShipStaticBarriers != null` (`InitShipStaticBarriers`: `GeoDataMode`).
+pub fn ship_static_barriers_enabled(server: &GameServer) -> bool {
+    server.config.world.geo_data_mode
+}
+
+/// `WorldInstance.ClearShipStaticBarriersAndBaiIngest(out barriers, out cells)`.
+pub fn clear_ship_static_barriers_and_bai_ingest(
+    server: &GameServer,
+    instance_id: u32,
+) -> (usize, usize) {
+    let wp = server.systems.ai.physics.world_or_create(instance_id);
+    if !ship_static_barriers_enabled(server) {
+        return wp.with_state(|st| (0, st.barriers.ingested_cell_count()));
+    }
+    wp.with_state(|st| st.barriers.clear_all())
+}
+
+/// `WorldInstance.GetShipStaticBarrierDebugCounts(out barriers, out cells)`.
+pub fn ship_static_barrier_debug_counts(server: &GameServer, instance_id: u32) -> (usize, usize) {
+    let enabled = ship_static_barriers_enabled(server);
+    server
+        .systems
+        .ai
+        .physics
+        .world_or_create(instance_id)
+        .with_state(|st| {
+            (
+                if enabled {
+                    st.barriers.barriers.len()
+                } else {
+                    0
+                },
+                st.barriers.ingested_cell_count(),
+            )
+        })
+}
+
+/// `WorldInstance.GetShipStaticBarrierCountLocked()`.
+pub fn ship_static_barrier_count(server: &GameServer, instance_id: u32) -> usize {
+    ship_static_barrier_debug_counts(server, instance_id).0
+}
+
+/// `WorldInstance.EnsureShipStaticBarrierBaiCell(cellX, cellY)`
+/// (`ShipStaticBarrierBaiIngestor.EnsureCell`).
+pub fn ensure_ship_static_barrier_bai_cell(
+    server: &GameServer,
+    world: &Arc<WorldInstance>,
+    cell_x: i32,
+    cell_y: i32,
+) {
+    let heightmaps = server.systems.npcs.heightmaps.get();
+    let water = synced_water(server, world);
+    let terrain = heightmaps
+        .as_ref()
+        .and_then(|h| h.template(world.template.id))
+        .map(|hm| HeightmapTerrain { hm });
+    let tw = ServerTickWorld {
+        server,
+        world: world.clone(),
+        heightmaps: heightmaps.clone(),
+        water,
+        hooks: server.systems.hooks.ship_physics.get(),
+        terrain,
+    };
+    let grid = manager::TickWorld::bai_cell(&tw, cell_x, cell_y);
+    server
+        .systems
+        .ai
+        .physics
+        .world_or_create(world.id)
+        .with_state(|st| {
+            st.barriers
+                .ensure_cell(&tw, (cell_x, cell_y), grid.as_ref())
+        });
 }
 
 /// `WorldInstance.IsWater(point, out flow)`.

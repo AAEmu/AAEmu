@@ -959,10 +959,9 @@ fn apply_attach_point_location(
 ) {
     let model_id = slave.data().unit.model_id;
     match server
-        .game_data
         .systems
         .vehicles
-        .attach_points_for_slave(model_id)
+        .attach_points_for_slave(server, model_id)
     {
         Some(points) => match points.iter().find(|(p, _)| *p == point) {
             Some((_, v)) => {

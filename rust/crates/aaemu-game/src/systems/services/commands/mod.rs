@@ -13,11 +13,14 @@
 pub mod doodads;
 pub mod output;
 pub mod params;
+pub mod scripts;
 pub mod sub;
 pub mod subcommand;
 
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+
+use futures::future::BoxFuture;
 
 use self::output::{CharacterMessageOutput, Color, ICharacter, MessageOutput, PlayerCharacter};
 use self::subcommand::SubCommand;
@@ -67,6 +70,16 @@ pub trait Command: Send + Sync {
     /// `command is ICommandV2 subcommand`.
     fn as_sub_command(&self) -> Option<&dyn SubCommand> {
         None
+    }
+    /// `Execute` for commands whose C# body calls into an async Rust API (database, saves,
+    /// reloads). Default: the synchronous [`Command::execute`].
+    fn execute_async<'a>(
+        &'a self,
+        ctx: &'a CommandContext<'a>,
+        args: &'a [String],
+        out: &'a mut dyn MessageOutput,
+    ) -> BoxFuture<'a, anyhow::Result<()>> {
+        Box::pin(async move { self.execute(ctx, args, out) })
     }
 }
 
@@ -279,20 +292,32 @@ impl CommandManager {
             server: Some(server),
             character: PlayerCharacter::arc(player),
         };
-        self.handle_with_level(&ctx, level, text)
+        self.handle_with_level_async(&ctx, level, text).await
     }
 
-    /// `Handle` with the character's effective access level already known.
+    /// `Handle` with the character's effective access level already known (synchronous
+    /// commands only: an async command body is polled once).
     pub fn handle_with_level(
         &self,
         ctx: &CommandContext<'_>,
         character_access_level: i32,
         text: &str,
     ) -> (bool, CharacterMessageOutput) {
-        let mut out = CharacterMessageOutput::new(ctx.character.clone());
-        // Un-escape the string, as the client sends it escaped.
-        let text = text.replace("@@", "@").replace("||", "|");
-        let words = split_command_string(&text);
+        use futures::FutureExt;
+        self.handle_with_level_async(ctx, character_access_level, text)
+            .now_or_never()
+            .expect("handle_with_level only runs synchronous commands")
+    }
+
+    /// The command lookup of `Handle`: `Err` = the result to return without running a
+    /// command, `Ok` = the command (and its resolved name) to run.
+    fn resolve(
+        &self,
+        ctx: &CommandContext<'_>,
+        character_access_level: i32,
+        words: &[String],
+        out: &mut CharacterMessageOutput,
+    ) -> Result<(Arc<dyn Command>, String), bool> {
         let mut this_command = words.first().map(|w| w.to_lowercase()).unwrap_or_default();
         let no_commands = self.commands.read().map(|c| c.is_empty()).unwrap_or(true);
 
@@ -304,7 +329,7 @@ impl CommandManager {
             && character_access_level >= 100
         {
             self.force_scripts_reload(ctx.character.as_ref());
-            return (true, out);
+            return Err(true);
         }
 
         if no_commands {
@@ -315,7 +340,7 @@ impl CommandManager {
             } else {
                 out.send_message("[Error] No commands available.");
             }
-            return (false, out);
+            return Err(false);
         }
 
         let mut command = self.get(&this_command);
@@ -331,21 +356,40 @@ impl CommandManager {
             }
         }
         let Some(command) = command else {
-            return (false, out);
+            return Err(false);
         };
 
         if self.access_levels.get_level(&this_command) > character_access_level {
             out.send_message("|cFFFF0000Insufficient privileges.|r");
-            return (true, out);
+            return Err(true);
         }
+        Ok((command, this_command))
+    }
+
+    /// `Handle` (the async form every caller uses).
+    pub async fn handle_with_level_async(
+        &self,
+        ctx: &CommandContext<'_>,
+        character_access_level: i32,
+        text: &str,
+    ) -> (bool, CharacterMessageOutput) {
+        let mut out = CharacterMessageOutput::new(ctx.character.clone());
+        // Un-escape the string, as the client sends it escaped.
+        let text = text.replace("@@", "@").replace("||", "|");
+        let words = split_command_string(&text);
+        let (command, this_command) =
+            match self.resolve(ctx, character_access_level, &words, &mut out) {
+                Ok(c) => c,
+                Err(handled) => return (handled, out),
+            };
 
         let args: Vec<String> = words.iter().skip(1).cloned().collect();
         let result = match command.as_sub_command() {
             Some(sub) => {
-                subcommand::pre_execute(sub, ctx, &this_command, &args, &mut out);
+                subcommand::pre_execute_async(sub, ctx, &this_command, &args, &mut out).await;
                 Ok(())
             }
-            None => command.execute(ctx, &args, &mut out),
+            None => command.execute_async(ctx, &args, &mut out).await,
         };
         if let Err(e) = result {
             ctx.character
