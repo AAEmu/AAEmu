@@ -29,6 +29,8 @@ pub mod util;
 
 #[cfg(test)]
 mod flow_tests;
+#[cfg(test)]
+mod trial_flow_tests;
 
 use std::sync::Arc;
 
@@ -68,6 +70,10 @@ impl System {
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
         team::TeamManager::start_tick(server);
+        // CrimeManager.Load, TrialManager.Load (court rooms + the 5 s TrialUpdateTask).
+        server.systems.social.crimes.load(server).await?;
+        server.systems.social.trials.load(server);
+        trial::TrialManager::start_tick(server);
         Ok(())
     }
 
@@ -76,9 +82,14 @@ impl System {
     pub async fn save(
         &self,
         _server: &GameServer,
-        _tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
-        _stage: SaveStage,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        stage: SaveStage,
     ) -> crate::Result<usize> {
+        if matches!(stage, SaveStage::AfterItems) {
+            // SaveManager.DoSave: `CrimeManager.Instance.Save(connection, transaction)`.
+            let (updated, deleted) = self.crimes.save(tx).await?;
+            return Ok(updated + deleted);
+        }
         Ok(0)
     }
 }
