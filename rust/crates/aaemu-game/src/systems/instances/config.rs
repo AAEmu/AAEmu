@@ -31,6 +31,15 @@ pub struct DungeonsConfig {
     /// `AutoCreate`: dungeon instances created at startup.
     #[serde(rename = "autocreate")]
     pub auto_create: Vec<DungeonLoadConfig>,
+    /// `KickOnBattlefieldFactionChange` (Rust-only switch, default `true` = C# behaviour):
+    /// entering a battlefield sets the corps faction, and `Character.SetFaction` then kicks a
+    /// guild member whose guild's mother faction differs out of the guild and the party.
+    /// `false` keeps guild and party membership through battlefield faction changes.
+    #[serde(
+        rename = "kickonbattlefieldfactionchange",
+        deserialize_with = "lenient"
+    )]
+    pub kick_on_battlefield_faction_change: bool,
 }
 
 impl Default for DungeonsConfig {
@@ -39,6 +48,7 @@ impl Default for DungeonsConfig {
             auto_cleanup_after_kick: true,
             auto_team_disband_kick_time: 30,
             auto_create: Vec::new(),
+            kick_on_battlefield_faction_change: true,
         }
     }
 }
@@ -53,6 +63,7 @@ mod tests {
             "Dungeons": {
                 "AutoCleanupAfterKick": false,
                 "AutoTeamDisbandKickTime": 15,
+                "KickOnBattlefieldFactionChange": false,
                 "AutoCreate": [ { "Id": 1, "Name": "arche_mall_world", "Channel": 0 } ]
             },
             "World": { "MaxInstances": 7 }
@@ -60,6 +71,12 @@ mod tests {
         let c = AppConfig::from_value(v).unwrap();
         assert!(!c.dungeons.auto_cleanup_after_kick);
         assert_eq!(c.dungeons.auto_team_disband_kick_time, 15);
+        assert!(!c.dungeons.kick_on_battlefield_faction_change);
+        assert!(
+            AppConfig::default()
+                .dungeons
+                .kick_on_battlefield_faction_change
+        );
         assert_eq!(c.dungeons.auto_create.len(), 1);
         assert_eq!(c.dungeons.auto_create[0].name, "arche_mall_world");
         assert_eq!(c.dungeons.auto_create[0].id, 1);

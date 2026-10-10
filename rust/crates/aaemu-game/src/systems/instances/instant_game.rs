@@ -676,11 +676,13 @@ pub fn leave_instant_game(server: &GameServer, game: &Arc<InstantGame>, p: &Play
 ///
 /// Note (C#): entering a battlefield sets the corps faction, so a guild member whose guild's
 /// mother faction differs is kicked from the guild (`ExpeditionManager.Kick(connection, id)`,
-/// subject to their role's expel right) and from their party; mirrored.
+/// subject to their role's expel right) and from their party; mirrored by default. The
+/// `Dungeons.KickOnBattlefieldFactionChange` switch (`false`) keeps both memberships.
 pub fn set_character_faction(server: &GameServer, p: &PlayerRef, faction_id: u32) {
     if p.data().unit.faction_id == faction_id {
         return;
     }
+    let kick = server.config.dungeons.kick_on_battlefield_faction_change;
     let obj = WorldObject::from(p);
     crate::systems::skills::combat::set_faction(server, &obj, faction_id);
     crate::systems::dispatch_buff_events(server, &obj);
@@ -694,7 +696,7 @@ pub fn set_character_faction(server: &GameServer, p: &PlayerRef, faction_id: u32
         .hooks
         .get()
         .update_owned_housing_faction(server, id, faction);
-    if expedition != 0 {
+    if kick && expedition != 0 {
         let mother = server
             .expeditions
             .get(expedition)
@@ -708,7 +710,7 @@ pub fn set_character_faction(server: &GameServer, p: &PlayerRef, faction_id: u32
             }
         }
     }
-    if in_party {
+    if kick && in_party {
         server.systems.social.teams.member_remove_from_team(
             server,
             p,

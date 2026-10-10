@@ -2,6 +2,7 @@
     "Dungeons": {
         "AutoCleanupAfterKick": true,
 		"AutoTeamDisbandKickTime": 15,
+        "KickOnBattlefieldFactionChange": true,
         "AutoCreate": [
             {
                 "Id": 1,
