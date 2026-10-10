@@ -217,6 +217,9 @@ pub struct World {
     pub solver: Vec<Option<Box<crate::solver::SolverThread>>>,
     /// Query state: ray-limit settings, query queues, terrain basis ([`queries::QueryState`]).
     pub queries: queries::QueryState,
+    /// **P5**: per-caller part-record flags of the living step (`world+21912 + 80·tid`, the
+    /// records persist between steps and one is read past the end).
+    pub living_part_flags: Vec<Vec<u32>>,
 }
 
 impl World {
@@ -291,6 +294,7 @@ impl World {
             agg_contact_id: crate::solver::ContactId::NONE,
             solver: (0..MAX_CALLERS).map(|_| None).collect(),
             queries: queries::QueryState::default(),
+            living_part_flags: Vec::new(),
         };
         w.ccd_scratch
             .resize_with(MAX_CALLERS, crate::entities::rigid::contacts::ContactScratch::default);
