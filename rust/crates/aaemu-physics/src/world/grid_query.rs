@@ -52,7 +52,9 @@ impl World {
         petitioner: Option<EntIdx>,
         caller: usize,
     ) -> Vec<EntIdx> {
-        if self.grid.pages.is_none() {
+        // `world+976` (grid) and `world+792` (the per-caller temp lists, allocated with the
+        // entity pools at the first TimeStep that adds an ordinary entity): no result before.
+        if self.grid.pages.is_none() || self.pool_size == 0 {
             return Vec::new();
         }
         let _ = petitioner;

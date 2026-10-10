@@ -60,7 +60,11 @@ struct Toks<'a> {
 }
 impl<'a> Toks<'a> {
     fn get(&self, k: &str) -> Option<&'a str> {
-        self.kv.iter().skip(1).find(|(kk, _)| *kk == k).and_then(|(_, v)| *v)
+        self.kv
+            .iter()
+            .skip(1)
+            .find(|(kk, _)| *kk == k)
+            .and_then(|(_, v)| *v)
     }
     fn need(&self, k: &str) -> &'a str {
         self.get(k).unwrap_or_else(|| panic!("missing {k}"))
@@ -78,6 +82,7 @@ pub struct Replay {
     rnames: HashMap<EntIdx, String>,
     buf: Vec<ParamsBuoyancy>,
     nbuoy: i32,
+    cb_handle: Option<u64>,
     pub out: Arc<Mutex<String>>,
 }
 
@@ -140,6 +145,7 @@ impl Replay {
             rnames: HashMap::new(),
             buf: Vec::new(),
             nbuoy: 0,
+            cb_handle: None,
             out: Arc::new(Mutex::new(String::from("physoracle 1\n"))),
         };
         r.buf = vec![fill_rec(); BUF_RECS];
@@ -158,8 +164,11 @@ impl Replay {
         self.rnames.entry(e).or_insert_with(|| n.to_string());
     }
 
-    fn target(&self, n: &str) -> EntIdx {
-        *self.names.get(n).unwrap_or_else(|| panic!("unknown target {n}"))
+    pub fn target(&self, n: &str) -> EntIdx {
+        *self
+            .names
+            .get(n)
+            .unwrap_or_else(|| panic!("unknown target {n}"))
     }
 
     fn line(&self, s: String) {
@@ -181,7 +190,7 @@ impl Replay {
             " {} {} {:08x} {} {} {} {} {:08x}",
             hx(r.water_damping_eff),
             hx(r.submerged_fraction),
-            r.flags2,
+            r.flags2 & 0x1FFF_FFFF,
             hx(r.min_awake_time),
             hx(ent.time_idle),
             ent.sim_class(),
@@ -196,7 +205,11 @@ impl Replay {
         for b in self.buf.iter().take(n) {
             let img = b.to_bytes();
             for k in (0..80).step_by(4) {
-                let _ = write!(o, " {:08x}", u32::from_le_bytes(img[k..k + 4].try_into().unwrap()));
+                let _ = write!(
+                    o,
+                    " {:08x}",
+                    u32::from_le_bytes(img[k..k + 4].try_into().unwrap())
+                );
             }
         }
         o
@@ -260,7 +273,11 @@ impl Replay {
         match c {
             "grid" => {
                 let org = v3(t.or("org", "0,0,-100"));
-                let n: Vec<i32> = t.or("n", "64,64").split(',').map(|s| s.parse().unwrap()).collect();
+                let n: Vec<i32> = t
+                    .or("n", "64,64")
+                    .split(',')
+                    .map(|s| s.parse().unwrap())
+                    .collect();
                 let st = parse_fv(t.or("step", "4,4"));
                 self.w.setup_entity_grid(
                     t.or("axisz", "2").parse().unwrap(),
@@ -325,7 +342,14 @@ impl Replay {
                 };
                 let e = self
                     .w
-                    .create_physical_entity(ty, 0.0, Some(&p), 0, 0, t.or("id", "-1").parse().unwrap())
+                    .create_physical_entity(
+                        ty,
+                        0.0,
+                        Some(&p),
+                        0,
+                        0,
+                        t.or("id", "-1").parse().unwrap(),
+                    )
                     .unwrap();
                 self.add(t.need("name"), e);
             }
@@ -424,8 +448,12 @@ impl Replay {
                 let is_area = self.w.is_area(e);
                 let r = match (ty, is_area) {
                     (0, true) => self.w.area_set_params_pos(e, &ParamsPos::read(&b)),
-                    (10, true) => self.w.area_set_params_simulation(e, rd_f(&b, 16), rd_v(&b, 20)),
-                    (12, true) => self.w.area_set_params_buoyancy(e, &ParamsBuoyancy::read(&b)),
+                    (10, true) => self
+                        .w
+                        .area_set_params_simulation(e, rd_f(&b, 16), rd_v(&b, 20)),
+                    (12, true) => self
+                        .w
+                        .area_set_params_buoyancy(e, &ParamsBuoyancy::read(&b)),
                     (18, true) => {
                         let geom = t.get("p48").map(|g| {
                             if g == "null" {
@@ -436,7 +464,9 @@ impl Replay {
                         });
                         self.w.area_set_params_area(e, &ParamsArea::read(&b), geom)
                     }
-                    (12, false) => buoyancy::set_params_buoyancy(&mut self.w, e, &ParamsBuoyancy::read(&b)),
+                    (12, false) => {
+                        buoyancy::set_params_buoyancy(&mut self.w, e, &ParamsBuoyancy::read(&b))
+                    }
                     (0, false) => aaemu_physics::entities::base::params::set_params_pos(
                         &mut self.w,
                         e,
@@ -482,9 +512,19 @@ impl Replay {
                 let e = self.target(t.need("ent"));
                 let nmax = t.or("nmax", "4").parse::<usize>().unwrap().min(BUF_RECS);
                 self.buf = vec![fill_rec(); BUF_RECS];
-                let r = buoyancy::gather_areas_raw(&mut self.w, e, parse_f(t.need("dt")), &mut self.buf[..nmax]);
+                let r = buoyancy::gather_areas_raw(
+                    &mut self.w,
+                    e,
+                    parse_f(t.need("dt")),
+                    &mut self.buf[..nmax],
+                );
                 self.nbuoy = r;
-                let o = format!("ga {} {r}{}{}", t.or("tag", "-"), self.buf_words(nmax), self.state(e));
+                let o = format!(
+                    "ga {} {r}{}{}",
+                    t.or("tag", "-"),
+                    self.buf_words(nmax),
+                    self.state(e)
+                );
                 self.line(o);
             }
             "abuoy" => {
@@ -526,7 +566,12 @@ impl Replay {
                 let mode: i32 = t.or("mode", "0").parse().unwrap();
                 let out = self.out.clone();
                 let rn = self.rnames.clone();
-                self.w.add_area_callback(
+                // the oracle registers the same C function every time and AddEventClient first
+                // removes an existing registration of that function: one client, latest mode
+                if let Some(h) = self.cb_handle.take() {
+                    self.w.remove_area_callback(h);
+                }
+                let h = self.w.add_area_callback(
                     parse_f(t.or("prio", "0")),
                     Box::new(move |ev| {
                         if mode == 1 {
@@ -543,7 +588,9 @@ impl Replay {
                         out_v(&mut o, ev.closest);
                         o.push_str(" d");
                         out_v(&mut o, ev.dir);
-                        let en = ev.ent.map_or("-".to_string(), |e| rn.get(&e).cloned().unwrap_or("?".into()));
+                        let en = ev.ent.map_or("-".to_string(), |e| {
+                            rn.get(&e).cloned().unwrap_or("?".into())
+                        });
                         let _ = write!(o, " e {en}");
                         let mut s = out.lock().unwrap();
                         s.push_str(&o);
@@ -551,6 +598,7 @@ impl Replay {
                         1
                     }),
                 );
+                self.cb_handle = Some(h);
             }
             "areanext" => {
                 let a = t.get("after").map(|n| self.target(n));
@@ -560,7 +608,70 @@ impl Replay {
             "areavalid" => {
                 let n = t.need("target");
                 let a = self.target(n);
-                self.line(format!("areavalid {n} {}", i32::from(self.w.is_area_valid(a))));
+                self.line(format!(
+                    "areavalid {n} {}",
+                    i32::from(self.w.is_area_valid(a))
+                ));
+            }
+            "getparams" => {
+                let name = t.need("target");
+                let a = self.target(name);
+                let ty: i32 = t.need("type").parse().unwrap();
+                let mut b = vec![0u8; 512];
+                b[0..4].copy_from_slice(&(ty as u32).to_le_bytes());
+                let put =
+                    |b: &mut [u8], o: usize, x: u32| b[o..o + 4].copy_from_slice(&x.to_le_bytes());
+                let putv = |b: &mut [u8], o: usize, v: Vec3| {
+                    for (k, f) in [v.x, v.y, v.z].iter().enumerate() {
+                        b[o + 4 * k..o + 4 * k + 4].copy_from_slice(&f.to_bits().to_le_bytes());
+                    }
+                };
+                match ty {
+                    10 => {
+                        let (d, g) = self.w.area_get_params_simulation(a);
+                        put(&mut b, 16, d.to_bits());
+                        putv(&mut b, 20, g);
+                    }
+                    12 => {
+                        let r = self.w.area_get_params_buoyancy(a).to_bytes();
+                        b[..80].copy_from_slice(&r);
+                    }
+                    18 => {
+                        let (p, _) = self.w.area_get_params_area(a);
+                        putv(&mut b, 4, p.gravity);
+                        putv(&mut b, 16, p.size);
+                        put(&mut b, 28, p.falloff0.to_bits());
+                        put(&mut b, 32, p.uniform as u32);
+                        put(&mut b, 36, p.use_callback as u32);
+                        put(&mut b, 40, p.damping.to_bits());
+                        putv(&mut b, 56, p.center);
+                        put(&mut b, 68, p.radius.to_bits());
+                    }
+                    _ => panic!("getparams {ty}"),
+                }
+                let mut o = format!("ret getparams {name} {ty} 1");
+                if let Some(d) = t.get("dump") {
+                    let (off, n) = d.split_once(',').unwrap();
+                    let (off, n): (usize, usize) = (off.parse().unwrap(), n.parse().unwrap());
+                    for i in 0..n {
+                        let k = off + 4 * i;
+                        let _ = write!(
+                            o,
+                            " {:08x}",
+                            u32::from_le_bytes(b[k..k + 4].try_into().unwrap())
+                        );
+                    }
+                }
+                self.line(o);
+            }
+            "step" => {
+                let n: i32 = t.or("n", "1").parse().unwrap();
+                let dt = parse_f(t.or("dt", "h:3d088889"));
+                let flags = parse_u(t.or("flags", "0x9F")) as i32;
+                assert_eq!(t.or("every", "1"), "0", "replay: step only with every=0");
+                for _ in 0..n {
+                    self.w.time_step(dt, flags);
+                }
             }
             "echo" => {
                 let mut o = String::from("echo");
@@ -595,7 +706,11 @@ pub fn check_scenario(name: &str) -> (usize, Vec<String>) {
     let g: Vec<&Vec<String>> = golden.rets.iter().chain(golden.other.iter()).collect();
     let p: Vec<&Vec<String>> = port.rets.iter().chain(port.other.iter()).collect();
     if g.len() != p.len() {
-        fails.push(format!("{name}: {} golden lines vs {} port lines", g.len(), p.len()));
+        fails.push(format!(
+            "{name}: {} golden lines vs {} port lines",
+            g.len(),
+            p.len()
+        ));
     }
     for (a, b) in g.iter().zip(p.iter()) {
         if a != b {
@@ -607,7 +722,12 @@ pub fn check_scenario(name: &str) -> (usize, Vec<String>) {
                 .take(8)
                 .map(|(i, (x, y))| format!("[{i}] {x}/{y}"))
                 .collect();
-            fails.push(format!("{name}: {} {}: {}", a[0], a.get(1).cloned().unwrap_or_default(), diff.join(" ")));
+            fails.push(format!(
+                "{name}: {} {}: {}",
+                a[0],
+                a.get(1).cloned().unwrap_or_default(),
+                diff.join(" ")
+            ));
         }
     }
     (g.len(), fails)

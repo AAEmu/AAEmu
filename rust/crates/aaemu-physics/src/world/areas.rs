@@ -33,6 +33,13 @@
 //! (`sub_35023200`: deferral while the world is locked by another thread) does not exist in
 //! the single-threaded port: area SetParams always applies immediately.
 
+// Bit-exact port: operand order and NaN-aware negated comparisons follow the binary.
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::needless_range_loop
+)]
+
 pub mod check;
 pub mod spline;
 
@@ -205,10 +212,10 @@ impl World {
     #[must_use]
     pub fn is_area(&self, a: EntIdx) -> bool {
         !a.is_none()
-            && self
-                .ents
-                .get(a.0 as usize)
-                .is_some_and(|o| o.as_ref().is_some_and(|e| matches!(e.kind, EntityKind::Area(_))))
+            && self.ents.get(a.0 as usize).is_some_and(|o| {
+                o.as_ref()
+                    .is_some_and(|e| matches!(e.kind, EntityKind::Area(_)))
+            })
     }
 
     /// Next area in the all-areas list (`+88`).
@@ -258,7 +265,14 @@ impl World {
     ///
     /// The area is a spline flow tube only after `SetParams(pe_params_area{bUniform = 0})`
     /// (the ctor sets the uniform mode 1).
-    pub fn add_area_spline(&mut self, pts: &[Vec3], r: f32, pos: Vec3, q: Quat, scale: f32) -> Option<EntIdx> {
+    pub fn add_area_spline(
+        &mut self,
+        pts: &[Vec3],
+        r: f32,
+        pos: Vec3,
+        q: Quat,
+        scale: f32,
+    ) -> Option<EntIdx> {
         if pts.is_empty() {
             return None;
         }
@@ -276,7 +290,11 @@ impl World {
         let mut ent = new_area_entity(d);
         let t = |p: Vec3| {
             let v = q.rotate(p);
-            Vec3::new(v.x * scale + pos.x, v.y * scale + pos.y, v.z * scale + pos.z)
+            Vec3::new(
+                v.x * scale + pos.x,
+                v.y * scale + pos.y,
+                v.z * scale + pos.z,
+            )
         };
         let p0 = t(pts[0]);
         let (mut lo, mut hi) = (p0, p0);
@@ -310,7 +328,13 @@ impl World {
     /// bbox is the geometry's box (slot 6) rotated by `R(q)` (`Basis·Rᵀ`, absolute values)
     /// and centred at `R(q)·center·scale + pos` (quaternion rotation here, the matrix in
     /// SetParams type 0).
-    pub fn add_area_geometry(&mut self, geom: Arc<dyn Geometry>, pos: Vec3, q: Quat, scale: f32) -> EntIdx {
+    pub fn add_area_geometry(
+        &mut self,
+        geom: Arc<dyn Geometry>,
+        pos: Vec3,
+        q: Quat,
+        scale: f32,
+    ) -> EntIdx {
         self.ensure_global_area();
         let mut d = AreaData::new();
         d.pos = pos;
@@ -549,7 +573,11 @@ impl World {
         {
             let d = self.area_mut(a);
             if !unused(p.pos.x) {
-                d.pos = Vec3::new(p.pos.x + d.offset0.x, d.offset0.y + p.pos.y, d.offset0.z + p.pos.z);
+                d.pos = Vec3::new(
+                    p.pos.x + d.offset0.x,
+                    d.offset0.y + p.pos.y,
+                    d.offset0.z + p.pos.z,
+                );
             }
             if !unused(p.q.w) {
                 let m = Mat33::from_quat(p.q);
@@ -598,7 +626,10 @@ impl World {
                 hi.z = ((hi.z - w.z).abs() + (hi.z + w.z)) * 0.5;
             }
             let r = d.radius;
-            bbox = [Vec3::new(lo.x - r, lo.y - r, lo.z - r), Vec3::new(r + hi.x, r + hi.y, r + hi.z)];
+            bbox = [
+                Vec3::new(lo.x - r, lo.y - r, lo.z - r),
+                Vec3::new(r + hi.x, r + hi.y, r + hi.z),
+            ];
         }
         self.ent_mut(a).bbox = bbox;
         self.area_register_grid(a);
@@ -669,7 +700,11 @@ impl World {
         }
         if !unused(p.falloff0) {
             d.falloff0 = p.falloff0;
-            d.inv_falloff = if p.falloff0 >= 1.0 { 0.0 } else { 1.0 / (1.0 - p.falloff0) };
+            d.inv_falloff = if p.falloff0 >= 1.0 {
+                0.0
+            } else {
+                1.0 / (1.0 - p.falloff0)
+            };
         }
         if !unused(p.damping) {
             d.damping = p.damping;
@@ -696,7 +731,8 @@ impl World {
                     let c = crate::math::crt::cosf(ang);
                     ang += f32::from_bits(0x3F06_0A92); // 0.52359879
                     let y = c * d.circle_radius + d.center.y;
-                    d.circle.push(Vec3::new(x, y, d.buoyancy.water_plane_origin.z));
+                    d.circle
+                        .push(Vec3::new(x, y, d.buoyancy.water_plane_origin.z));
                 }
             }
         }
@@ -758,7 +794,11 @@ impl World {
         }
         if a == self.global_area {
             let plane = !unused(self.area(a).buoyancy.water_plane_origin.x);
-            self.water_objtype = if self.water_mat >= 0 && plane { 0x200 } else { 0 };
+            self.water_objtype = if self.water_mat >= 0 && plane {
+                0x200
+            } else {
+                0
+            };
         }
         self.n_gravity_areas += i32::from(self.area_counts_21080(a));
         self.area_signal_change(a);
@@ -836,7 +876,11 @@ fn mat_mul_22380(a: &Mat33, b: &Mat33) -> Mat33 {
 /// The world-frame half extents of a geometry box under the area rotation (slot 82 /
 /// SetParams type 0): `B' = Basis·Rᵀ` (`sub_35020320`), `ext_j = Σ_i size_i·|B'[i][j]|·scale`
 /// with the binary's summation order `(size.y·|B'[1][j]| + size.x·|B'[0][j]|) + size.z·|B'[2][j]|`.
-fn rotated_box_extent(bb: &crate::geometry::primitives::BoxPrim, r: &Mat33, scale: f32) -> (Vec3, Mat33) {
+fn rotated_box_extent(
+    bb: &crate::geometry::primitives::BoxPrim,
+    r: &Mat33,
+    scale: f32,
+) -> (Vec3, Mat33) {
     let rt = r.transpose();
     let a = &bb.basis.m;
     let b = &rt.m;

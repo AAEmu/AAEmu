@@ -1,0 +1,38 @@
+# P4a ApplyAirResistance (0x350C2790) called directly: air areas are medium 1.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+area name=glob kind=global
+params target=glob type=12 v40=0,0,1 v52=0,0,0 i72=0
+geom name=big type=box size=40,40,40
+geom name=b1 type=box size=1,0.5,0.75
+geom name=s1 type=sphere r=0.8
+geom name=c1 type=cylinder r=0.5 hh=1
+area name=air kind=geom geom=big pos=32,32,20
+params target=air type=12 v40=0,0,1 v52=0,0,100 v24=2,1,0 f4=1.2 f16=1 i72=1
+area name=air2 kind=geom geom=big pos=32,32,20 q=0,0,0.3826834,0.9238795
+params target=air2 type=12 v40=0,0.6,0.8 v52=0,0,60 i72=1
+entity name=box type=rigid pos=20,20,5
+part ent=box geom=b1 mass=30
+poke target=box off=448 v=20,20,5
+poke target=box off=460 q=0.1,0,0.2,0.9747
+poke target=box off=476 v=19,19,4
+poke target=box off=488 v=21,21,6
+poke target=box off=808 v=3,-1,-6
+poke target=box off=796 v=0.5,0.2,0
+aair tag=a1 ent=box dt=0.0333
+aair tag=a2 ent=box dt=0.02
+entity name=sph type=rigid pos=24,20,5
+part ent=sph geom=s1 mass=10
+params target=sph type=12 f68=0.2
+poke target=sph off=448 v=24,20,5
+poke target=sph off=476 v=23.2,19.2,4.2
+poke target=sph off=488 v=24.8,20.8,5.8
+poke target=sph off=808 v=-2,0,-4
+aair tag=a3 ent=sph dt=0.0333
+entity name=cyl type=rigid pos=28,20,5
+part ent=cyl geom=c1 mass=10
+poke target=cyl off=448 v=28,20,5
+poke target=cyl off=460 q=0.3,0,0,0.9539
+poke target=cyl off=476 v=27,19,4
+poke target=cyl off=488 v=29,21,6
+poke target=cyl off=808 v=0,2,-4
+aair tag=a4 ent=cyl dt=0.0333
