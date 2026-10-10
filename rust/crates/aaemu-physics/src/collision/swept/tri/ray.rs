@@ -66,8 +66,8 @@ pub fn unproject_tri_ray(
             let ax = (qx - d(ptd[i][0])) as f32;
             let ay = (qy - d(ptd[i][1])) as f32;
             let az = (qz - d(ptd[i][2])) as f32;
-            let v = (n.y * (ez * ax - az * ex) + n.x * (az * ey - ay * ez))
-                + n.z * (ay * ex - ey * ax);
+            let v =
+                (n.y * (ez * ax - az * ex) + n.x * (az * ey - ay * ez)) + n.z * (ay * ex - ey * ax);
             v.to_bits()
         };
         let c0 = side(0, 1);
@@ -77,6 +77,7 @@ pub fn unproject_tri_ray(
         feat = sel_feat(h, feat, k);
         den = sel(h, den, dn_d);
         num = sel(h, num, sd);
+        // The second endpoint is `o + D` accumulated in double (never rounded to float).
         ox += d(dv.x);
         oy += d(dv.y);
         oz += d(dv.z);
@@ -110,7 +111,8 @@ pub fn unproject_tri_ray(
         let proj1 =
             ((ddz * uy - ddy * uz) * cx + (uz * ddx - ddz * ux) * cy) + (ddy * ux - uy * ddx) * cz;
         let in1 = sgn((((proj1 * 2.0) - c2d).abs() - c2d) as f32);
-        let proj2 = ((uy * ez - uz * ey) * cx + (uz * ex - ez * ux) * cy) + (ey * ux - uy * ex) * cz;
+        let proj2 =
+            ((uy * ez - uz * ey) * cx + (uz * ex - ez * ux) * cy) + (ey * ux - uy * ex) * cz;
         let in2 = sgn((((proj2 * 2.0) - c2d).abs() - c2d) as f32);
         let x = sgn((num * dn - den * sd) as f32) & in2 & in1;
         feat = sel_feat(x, feat, i as i32 | 0x80);
@@ -145,6 +147,7 @@ pub fn unproject_tri_ray(
     let ux = d((o.x - p0.x) * denf - dir.x * numf);
     let uy = d((o.y - p0.y) * denf - dir.y * numf);
     let uz = d((o.z - p0.z) * denf - dir.z * numf);
+    // No zero check on den (the binary divides unconditionally here, unlike the endpoint case).
     let inv = 1.0 / (c2 * den);
     let pr = ((uz * ddx - ddz * ux) * cy + (ddz * uy - ddy * uz) * cx) + (ddy * ux - uy * ddx) * cz;
     let t = (inv * num) * c2;

@@ -4,7 +4,8 @@
 
 use aaemu_physics::collision::contact::UnprojParams;
 use aaemu_physics::collision::swept::probe::{check, Case, Rng};
-use aaemu_physics::geometry::primitives::{Primitive, RayPrim, SpherePrim, Triangle};
+use aaemu_physics::geometry::primitives::{BoxPrim, Primitive, RayPrim, SpherePrim, Triangle};
+use aaemu_physics::math::Mat33;
 use aaemu_physics::math::Vec3;
 
 fn add(a: Vec3, b: Vec3) -> Vec3 {
@@ -50,7 +51,11 @@ fn tri_shape(rng: &mut Rng, s: f32) -> [Vec3; 3] {
             let q = rng.pick(&[0.25f32, 0.125, 0.5]);
             let a = rng.quant(0.25, s, q).max(q);
             let b = rng.quant(0.25, s, q).max(q);
-            let o = Vec3::new(rng.quant(-s, s, q), rng.quant(-s, s, q), rng.quant(-s, s, q));
+            let o = Vec3::new(
+                rng.quant(-s, s, q),
+                rng.quant(-s, s, q),
+                rng.quant(-s, s, q),
+            );
             let (u, v) = match rng.below(3) {
                 0 => (Vec3::new(a, 0.0, 0.0), Vec3::new(0.0, b, 0.0)),
                 1 => (Vec3::new(0.0, a, 0.0), Vec3::new(0.0, 0.0, b)),
@@ -139,7 +144,10 @@ fn on_tri(rng: &mut Rng, t: &Triangle) -> Vec3 {
             }
             add(
                 t.pt[0],
-                add(scale(sub(t.pt[1], t.pt[0]), u), scale(sub(t.pt[2], t.pt[0]), v)),
+                add(
+                    scale(sub(t.pt[1], t.pt[0]), u),
+                    scale(sub(t.pt[2], t.pt[0]), v),
+                ),
             )
         }
     }
@@ -293,7 +301,11 @@ fn gen_tri_tri(rng: &mut Rng) -> Case {
         let off = add(sh, up);
         b = Triangle {
             pt: [add(a.pt[0], off), add(a.pt[2], off), add(a.pt[1], off)],
-            n: if rng.chance(0.5) { scale(a.n, -1.0) } else { a.n },
+            n: if rng.chance(0.5) {
+                scale(a.n, -1.0)
+            } else {
+                a.n
+            },
         };
     } else {
         // move B so that one of its points sits near a point of A
@@ -314,4 +326,194 @@ fn gen_tri_tri(rng: &mut Rng) -> Case {
 #[test]
 fn tri_tri_linear_matches_dll() {
     check("p2b_tri_tri", 300, &gen_tri_tri);
+}
+
+fn a_box(rng: &mut Rng) -> BoxPrim {
+    let size = if rng.chance(0.3) {
+        Vec3::new(
+            rng.quant(0.25, 3.0, 0.25),
+            rng.quant(0.25, 3.0, 0.25),
+            rng.quant(0.25, 3.0, 0.25),
+        )
+    } else {
+        Vec3::new(rng.f(0.05, 3.0), rng.f(0.05, 3.0), rng.f(0.05, 3.0))
+    };
+    let center = rng.vec(-10.0, 10.0);
+    if rng.chance(0.35) {
+        BoxPrim {
+            basis: Mat33::IDENTITY,
+            oriented: 0,
+            center,
+            size,
+        }
+    } else {
+        BoxPrim {
+            basis: rng.rotation(),
+            oriented: 1,
+            center,
+            size,
+        }
+    }
+}
+
+/// A world point near the box: a corner, on an edge, on a face or inside.
+fn near_box(rng: &mut Rng, b: &BoxPrim) -> Vec3 {
+    let s = [b.size.x, b.size.y, b.size.z];
+    let mut l = [0.0f32; 3];
+    let kind = rng.below(4);
+    for (k, lk) in l.iter_mut().enumerate() {
+        let sg = if rng.chance(0.5) { 1.0 } else { -1.0 };
+        *lk = match kind {
+            0 => sg * s[k],
+            1 => {
+                if k == 0 {
+                    rng.f(-s[k], s[k])
+                } else {
+                    sg * s[k]
+                }
+            }
+            2 => {
+                if k == 2 {
+                    sg * s[k]
+                } else {
+                    rng.f(-s[k], s[k])
+                }
+            }
+            _ => rng.f(-s[k], s[k]),
+        };
+    }
+    let m = &b.basis.m;
+    // world = c + Rᵀ·l (rows of R are the box axes)
+    Vec3::new(
+        b.center.x + m[0][0] * l[0] + m[1][0] * l[1] + m[2][0] * l[2],
+        b.center.y + m[0][1] * l[0] + m[1][1] * l[1] + m[2][1] * l[2],
+        b.center.z + m[0][2] * l[0] + m[1][2] * l[1] + m[2][2] * l[2],
+    )
+}
+
+fn tri_box_parts(rng: &mut Rng) -> (Triangle, BoxPrim, UnprojParams) {
+    let b = a_box(rng);
+    let sz = rng.f(0.3, 4.0);
+    let mut t = triangle(rng, sz);
+    if rng.chance(0.15) && b.oriented == 0 {
+        // axis-aligned triangle in a box face plane
+        let o = b.center;
+        let h = b.size;
+        let z = o.z + rng.pick(&[h.z, -h.z, h.z * 0.5]);
+        let q = 0.25;
+        t.pt = [
+            Vec3::new(
+                o.x + rng.quant(-3.0, 3.0, q),
+                o.y + rng.quant(-3.0, 3.0, q),
+                z,
+            ),
+            Vec3::new(
+                o.x + rng.quant(-3.0, 3.0, q),
+                o.y + rng.quant(-3.0, 3.0, q),
+                z,
+            ),
+            Vec3::new(
+                o.x + rng.quant(-3.0, 3.0, q),
+                o.y + rng.quant(-3.0, 3.0, q),
+                z,
+            ),
+        ];
+        t.n = tri_normal(rng, &t.pt);
+    } else if rng.chance(0.25) {
+        // a large triangle cutting slightly into a box corner region (face – box vertex)
+        let big = rng.f(4.0, 10.0);
+        t = triangle(rng, big);
+        let corner = {
+            let mut c = b;
+            c.size = Vec3::new(
+                b.size.x * rng.f(0.9, 1.0),
+                b.size.y * rng.f(0.9, 1.0),
+                b.size.z * rng.f(0.9, 1.0),
+            );
+            let mut q = near_box(rng, &c);
+            q = add(q, scale(t.n, rng.f(-0.05, 0.05)));
+            q
+        };
+        let centroid = scale(add(add(t.pt[0], t.pt[1]), t.pt[2]), 1.0 / 3.0);
+        let off = sub(corner, centroid);
+        for q in &mut t.pt {
+            *q = add(*q, off);
+        }
+    } else {
+        let target = near_box(rng, &b);
+        let pt = on_tri(rng, &t);
+        let off = add(sub(target, pt), scale(rng.unit(), rng.f(0.0, 0.5)));
+        for q in &mut t.pt {
+            *q = add(*q, off);
+        }
+    }
+    let p = lin_params(rng, t.n);
+    (t, b, p)
+}
+
+fn gen_tri_box(rng: &mut Rng) -> Case {
+    let (t, b, p) = tri_box_parts(rng);
+    let c = Case::new(0, &Primitive::Triangle(t), &Primitive::Box(b), &p);
+    let c = maybe_feat(rng, c);
+    maybe_area(rng, c)
+}
+
+fn gen_box_tri(rng: &mut Rng) -> Case {
+    let (t, b, mut p) = tri_box_parts(rng);
+    p.dir = scale(p.dir, -1.0);
+    let c = Case::new(0, &Primitive::Box(b), &Primitive::Triangle(t), &p);
+    let c = maybe_feat(rng, c);
+    maybe_area(rng, c)
+}
+
+#[test]
+fn tri_box_linear_matches_dll() {
+    check("p2b_tri_box", 300, &gen_tri_box);
+}
+
+#[test]
+fn box_tri_linear_matches_dll() {
+    check("p2b_tri_box_tri", 200, &gen_box_tri);
+}
+
+type Gen = dyn Fn(&mut Rng) -> Case;
+
+/// Distribution of `ret` and output feature ids per generator (port only; the port is
+/// bit-identical to the DLL on these generators). `cargo test --test p2b_tri -- --ignored
+/// --nocapture`.
+#[test]
+#[ignore = "statistics only"]
+fn tri_distributions() {
+    use aaemu_physics::collision::swept::UnprojTables;
+    use std::collections::BTreeMap;
+    let tables = UnprojTables::build();
+    let gens: [(&str, &Gen); 7] = [
+        ("tri_box", &gen_tri_box),
+        ("box_tri", &gen_box_tri),
+        ("tri_tri", &gen_tri_tri),
+        ("tri_ray", &gen_tri_ray),
+        ("ray_tri", &gen_ray_tri),
+        ("tri_sph", &gen_tri_sph),
+        ("sph_tri", &gen_sph_tri),
+    ];
+    for (name, g) in gens {
+        let mut rng = Rng::new(0x1234_5678);
+        let mut hist: BTreeMap<String, usize> = BTreeMap::new();
+        let n = 200_000;
+        for _ in 0..n {
+            let c = g(&mut rng);
+            let ans = c.run_port(&tables);
+            let w: Vec<&str> = ans.split_whitespace().collect();
+            let key = if w[1] == "00000000" {
+                "ret 0".to_string()
+            } else {
+                format!("ret 1 feat {} {}", &w[27][6..], &w[28][6..])
+            };
+            *hist.entry(key).or_default() += 1;
+        }
+        println!("{name}: {n} cases");
+        for (k, v) in hist {
+            println!("  {v:7} {k}");
+        }
+    }
 }

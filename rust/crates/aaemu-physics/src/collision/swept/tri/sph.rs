@@ -138,6 +138,7 @@ pub fn unproject_tri_sph(
         let ins = inside_edge(t1);
         let x = sgn((aa * num - den * t1) as f32) & ins;
         feat = sel_feat(x, feat, fid);
+        // The second root is formed as r1 + 2·√disc (not √disc − b as in the vertex loop).
         let t2 = t1 + sq * 2.0;
         den = sel(x, den, aa);
         num = sel(x, num, t1);
@@ -169,6 +170,7 @@ pub fn unproject_tri_sph(
                 dir.y * tf + pt[v].y,
                 dir.z * tf + pt[v].z,
             );
+            // Oddity kept: n = c − pt is not normalised (length = r).
             out.n = Vec3::new(c.x - out.pt.x, c.y - out.pt.y, c.z - out.pt.z);
             out.i_feature = [v as i32 | 0x80, 0x40];
         }
@@ -187,6 +189,7 @@ pub fn unproject_tri_sph(
             let proj = (exf * ux + eyf * uy) + ezf * uz;
             let (ex, ey, ez) = (d(exf), d(eyf), d(ezf));
             let l2 = (ex * ex + ey * ey) + ez * ez;
+            // No zero check on den (the face/vertex cases check, the edge case does not).
             let inv = 1.0 / (l2 * den);
             let t = (inv * num) * l2;
             out.t = t;

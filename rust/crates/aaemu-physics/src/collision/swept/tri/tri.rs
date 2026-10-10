@@ -67,8 +67,8 @@ pub fn unproject_tri_tri(
         let m = ((sgn(diff as f32) & (c ^ 1)) | (c << 1)) as usize;
         let om = op[m];
         let s0f = s0 as f32;
-        let sd0 = ((n.y * (cp[0].y - om.y) + n.x * (cp[0].x - om.x)) + n.z * (cp[0].z - om.z))
-            * s0f;
+        let sd0 =
+            ((n.y * (cp[0].y - om.y) + n.x * (cp[0].x - om.x)) + n.z * (cp[0].z - om.z)) * s0f;
         let dn = (dir.x * n.x + dir.y * n.y) + dir.z * n.z;
         let s2 = f64::from(sign_pm1(dn));
         let sd = d(sd0) * s2;
@@ -147,10 +147,10 @@ pub fn unproject_tri_tri(
             let ux = wx * dn - d(dir.x * sdf);
             let uy = dn * wy - d(dir.y * sdf);
             let uz = dn * wz - d(dir.z * sdf);
-            let p1 =
-                ((ebx * uz - ux * ebz) * cy + (uy * ebz - uz * eby) * cx) + (ux * eby - ebx * uy) * cz;
-            let p2 =
-                ((eax * uz - ux * eaz) * cy + (uy * eaz - uz * eay) * cx) + (ux * eay - eax * uy) * cz;
+            let p1 = ((ebx * uz - ux * ebz) * cy + (uy * ebz - uz * eby) * cx)
+                + (ux * eby - ebx * uy) * cz;
+            let p2 = ((eax * uz - ux * eaz) * cy + (uy * eaz - uz * eay) * cx)
+                + (ux * eay - eax * uy) * cz;
             let in1 = sgn(((p1 * 2.0 - c2d).abs() - c2d) as f32);
             let in2 = sgn(((p2 * 2.0 - c2d).abs() - c2d) as f32);
             let x = sgn((num * dn - den * sd) as f32) & in2 & in1;
@@ -202,6 +202,7 @@ pub fn unproject_tri_tri(
     let uz = den * wz - d(dir.z * numf);
     let pr = ((uy * ebz - uz * eby) * cx + (ebx * uz - ux * ebz) * cy) + (ux * eby - ebx * uy) * cz;
     let c2 = (cx * cx + cy * cy) + cz * cz;
+    // Unlike the other cells, `num` enters u as a float but `den` stays double here.
     let inv = 1.0 / (c2 * den);
     let k = inv * pr;
     let t = (inv * num) * c2;
