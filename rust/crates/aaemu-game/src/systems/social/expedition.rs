@@ -1177,3 +1177,35 @@ pub async fn save_expedition(pool: &MySqlPool, e: &Expedition) -> Result<()> {
     tx.commit().await?;
     Ok(())
 }
+
+/// `ExpeditionManager.Leave(character)` for a character that is not in the world (character
+/// deletion, `CharacterManager.DeleteCharacterAssets`): the member is removed, the guild gets
+/// `SCUnitExpeditionChangedPacket` and the guild is saved. Note: the C# also sends the packet
+/// to the (lobby) character itself through `BroadcastPacket(.., true)`; there is no world
+/// object to do that from here.
+pub async fn leave_offline(server: &GameServer, character_id: u32, name: &str, expedition_id: u32) {
+    let Some(e) = server.expeditions.get(expedition_id) else {
+        return;
+    };
+    if e.member(character_id).is_none() {
+        tracing::error!("Leave: {character_id} is not a member of expedition {expedition_id}");
+        return;
+    }
+    remove_member(server, expedition_id, character_id);
+    let packet = SCUnitExpeditionChangedPacket {
+        obj_id: 0,
+        character_id,
+        kicker: String::new(),
+        unit_name: name.to_string(),
+        id: expedition_id,
+        expedition_id: 0,
+        expel: false,
+    };
+    let members = server
+        .expeditions
+        .get(expedition_id)
+        .map(|e| e.member_ids())
+        .unwrap_or_default();
+    send_to_members(server, &members, &packet);
+    save(server, expedition_id).await;
+}

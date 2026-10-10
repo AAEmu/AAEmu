@@ -702,3 +702,36 @@ pub fn change_owner(server: &GameServer, previous: &PlayerRef, member_id: u32) {
     );
     f.send_packet(&SCFamilyDescPacket { family: f.info() }, 0);
 }
+
+/// `FamilyManager.LeaveFamily(character)` for a character that is not in the world (character
+/// deletion). The C# also sends `SCFamilyRemovedPacket` to the (lobby) character.
+pub async fn leave_family_offline(server: &GameServer, character_id: u32, family_id: u32) {
+    let disband = {
+        let mut st = server.systems.social.families.lock();
+        let Some(f) = st.families.get_mut(&family_id) else {
+            tracing::error!("LeaveFamily: no family {family_id}");
+            return;
+        };
+        if f.member(character_id).is_none() {
+            tracing::error!("LeaveFamily: {character_id} is not in family {family_id}");
+            return;
+        }
+        f.remove_member(character_id);
+        st.family_members.remove(&character_id);
+        let f = &st.families[&family_id];
+        f.send_packet(
+            &SCFamilyMemberRemovedPacket {
+                family_id,
+                kicked: false,
+                member_id: character_id,
+            },
+            0,
+        );
+        let disband = f.members.len() < 2;
+        if disband {
+            disband_family(server, &mut st, family_id);
+        }
+        disband
+    };
+    save_or_finish_disband(server, family_id, disband).await;
+}

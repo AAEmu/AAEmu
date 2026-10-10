@@ -127,3 +127,20 @@ pub fn route_chat(
         _ => false,
     }
 }
+
+/// The guild and family part of `CharacterManager.DeleteCharacterAssets(character, ..)`
+/// (`ExpeditionManager.Leave`, `FamilyManager.LeaveFamily`) for a deleted lobby character.
+pub async fn delete_character_assets(server: &GameServer, c: &crate::models::character::Character) {
+    if c.unit.expedition_id != 0 && server.expeditions.exists(c.unit.expedition_id) {
+        crate::systems::social::expedition::leave_offline(
+            server,
+            c.id,
+            &c.unit.name,
+            c.unit.expedition_id,
+        )
+        .await;
+    }
+    if c.family > 0 {
+        crate::systems::social::family::leave_family_offline(server, c.id, c.family).await;
+    }
+}
