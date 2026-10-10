@@ -6,6 +6,7 @@
  *
  *   physoracle.exe [--rt DIR] SCENARIO.txt|-        run a scenario, trace on stdout
  *   physoracle.exe [--rt DIR] --math NAME COUNT SEED   probe an internal math routine
+ *   physoracle.exe [--rt DIR] --p2b                    P2b unprojection probe (p2b_probe.c)
  *   physoracle.exe [--rt DIR] --pairfn VA NA NB FILE   call an INTERSECT pair function per line
  *
  * DIR defaults to %AAEMU_PHYS_RT% or D:\aa-re\cryphysics\harness\rt. It must hold
@@ -1021,6 +1022,9 @@ static void pairfn_probe(uint64_t va, int na, int nb, const char *path) {
   fclose(in);
 }
 
+/* ------------------------------------------------------------------ P2b unprojection probe */
+#include "p2b_probe.c"
+
 /* ------------------------------------------------------------------ main */
 int main(int argc, char **argv) {
   _setmode(_fileno(stdout), _O_BINARY);
@@ -1039,6 +1043,10 @@ int main(int argc, char **argv) {
   SetDllDirectoryA(rt);
   g_phys = LoadLibraryA(dll);
   if (!g_phys) { printf("ERROR LoadLibrary %s failed (%lu)\n", dll, GetLastError()); return 1; }
+  if (!strcmp(argv[a], "--p2b")) { /* P2b: unprojection / helper probe, commands on stdin */
+    p2b_run();
+    return 0;
+  }
   if (!strcmp(argv[a], "--p2a2")) { /* P2a-2 pair probes, see p2a2_probe */
     p2a2_probe();
     fflush(stdout);

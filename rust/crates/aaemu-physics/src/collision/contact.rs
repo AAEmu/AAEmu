@@ -47,12 +47,25 @@ pub struct PrimInters {
 }
 
 /// `geom_contact_area` (72 bytes, inferred): a polygonal contact patch.
+///
+/// x64 layout (P2b, from the unprojection writers 0x3517CD60 / 0x3516E850): `+0` int `i_type`,
+/// `+4` npt, `+8` nmaxpt, `+12` minedge, `+16`/`+24` piPrim\[0/1\], `+32`/`+40` piFeature\[0/1\],
+/// `+48` pt, `+56` Vec3 n. The arrays are caller-owned buffers of `nmaxpt` entries; `npt` is
+/// the number of valid ones (the `Vec`s are those buffers, so their length is the capacity).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ContactArea {
     pub min_edge: f32,
     pub prim: [Vec<i32>; 2],
     pub feature: [Vec<i32>; 2],
     pub pt: Vec<Vec3>,
+    /// `+0` (P2b addition; not decoded).
+    pub i_type: i32,
+    /// `+4` number of valid points (P2b addition).
+    pub npt: i32,
+    /// `+8` buffer capacity (P2b addition).
+    pub nmaxpt: i32,
+    /// `+56` area normal (P2b addition).
+    pub n: Vec3,
 }
 
 /// `geom_contact` (136 bytes, written by `RegisterIntersection`).
