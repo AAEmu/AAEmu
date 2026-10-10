@@ -26,6 +26,8 @@ pub enum Kind {
     Full,
     /// The load-test loop: login, (create), select, move, chat, leave.
     Load,
+    /// `full` plus a fight with a hostile NPC (random outcome: diff with `parity-combat.json`).
+    Combat,
 }
 
 impl std::str::FromStr for Kind {
@@ -36,7 +38,8 @@ impl std::str::FromStr for Kind {
             "lobby" => Self::Lobby,
             "full" => Self::Full,
             "load" => Self::Load,
-            _ => bail!("unknown scenario '{s}' (login, lobby, full, load)"),
+            "combat" => Self::Combat,
+            _ => bail!("unknown scenario '{s}' (login, lobby, full, combat, load)"),
         })
     }
 }
@@ -61,6 +64,10 @@ pub struct BotConfig {
     /// Template of the NPC that gives `quest_id` (must be near the start position).
     #[serde(default = "default_quest_npc")]
     pub quest_npc_template: u32,
+    /// Hostile NPC attacked in the combat step (3492: Solzreed fox near the Nuian spawn); 0
+    /// skips the step.
+    #[serde(default = "default_combat_npc")]
+    pub combat_npc_template: u32,
     /// Wait for `SCLeaveWorldGrantedPacket` (10 s logout timer) before disconnecting.
     #[serde(default = "default_true")]
     pub wait_leave_granted: bool,
@@ -77,6 +84,9 @@ fn default_quest() -> u32 {
 }
 fn default_quest_npc() -> u32 {
     3597
+}
+fn default_combat_npc() -> u32 {
+    3492
 }
 fn default_true() -> bool {
     true
@@ -331,7 +341,7 @@ async fn run_inner(kind: Kind, cfg: &BotConfig, r: &mut Runner<'_>) -> anyhow::R
     game.wait_sc(sc::SCChatMessagePacket).await?;
     r.end(s, "say echoed");
 
-    if kind == Kind::Full {
+    if matches!(kind, Kind::Full | Kind::Combat) {
         let s = r.begin("game.skill");
         // NPCs of newly active regions appear within a few seconds.
         if game.stable_unit(1, 40.0).is_none() {
@@ -352,7 +362,9 @@ async fn run_inner(kind: Kind, cfg: &BotConfig, r: &mut Runner<'_>) -> anyhow::R
                     .await?;
                 game.start_skill(cfg.skill_id, npc.obj_id).await?;
                 game.wait_for("skill response", |p| {
-                    p.is_sc(sc::SCSkillStartedPacket) || p.is_sc(sc::SCErrorMsgPacket)
+                    p.is_sc(sc::SCSkillStartedPacket)
+                        || p.is_sc(sc::SCSkillFiredPacket)
+                        || p.is_sc(sc::SCErrorMsgPacket)
                 })
                 .await?;
                 game.drain(QUIET, Duration::from_secs(5)).await?;
@@ -414,13 +426,21 @@ async fn run_inner(kind: Kind, cfg: &BotConfig, r: &mut Runner<'_>) -> anyhow::R
         r.end(s, note);
     }
 
+    if kind == Kind::Combat && cfg.combat_npc_template != 0 {
+        let s = r.begin("game.combat");
+        let note = combat(&mut game, cfg).await?;
+        r.end(s, note);
+    }
+
     // Back to where we spawned: the position saved on logout (and seen by the next session)
     // then does not depend on where the NPCs wandered.
-    game.move_to(p0, 9000).await?;
+    game.move_to(p0, 19000).await?;
     let s = r.begin("game.leave");
     game.leave_world(0).await?;
-    game.wait_sc(sc::SCPrepareLeaveWorldPacket).await?;
-    if cfg.wait_leave_granted {
+    let prep = game.wait_sc(sc::SCPrepareLeaveWorldPacket).await?;
+    let logout_ms = prep.stream().read_i32().unwrap_or(0);
+    // In combat the logout timer is 5 minutes: just drop the connection then.
+    if cfg.wait_leave_granted && logout_ms <= 10_000 {
         game.wait_sc(sc::SCLeaveWorldGrantedPacket).await?;
     }
     game.drain(Duration::from_millis(300), Duration::from_secs(2))
@@ -429,4 +449,61 @@ async fn run_inner(kind: Kind, cfg: &BotConfig, r: &mut Runner<'_>) -> anyhow::R
     r.end(s, "left");
     drop(stream);
     Ok(())
+}
+
+/// Walks up to the closest `combat_npc_template` NPC (following its movement) and hits it with
+/// `skill_id` up to three times.
+async fn combat(game: &mut GameClient, cfg: &BotConfig) -> anyhow::Result<String> {
+    let pick = |game: &GameClient| {
+        let me = game.state.self_pos;
+        game.state
+            .units
+            .values()
+            .filter(|u| u.unit_type == 1 && u.id == cfg.combat_npc_template)
+            .min_by(|a, b| {
+                let d =
+                    |u: &crate::game::UnitInfo| (u.pos.0 - me.0).powi(2) + (u.pos.1 - me.1).powi(2);
+                d(a).total_cmp(&d(b))
+            })
+            .cloned()
+    };
+    let Some(target) = pick(game) else {
+        return Ok(format!("no npc {} in sight", cfg.combat_npc_template));
+    };
+    let mut started = 0;
+    let mut results = Vec::new();
+    for attempt in 0..3u32 {
+        let pos = game
+            .state
+            .units
+            .get(&target.obj_id)
+            .map_or(target.pos, |u| u.pos);
+        game.move_to((pos.0 + 0.8, pos.1, pos.2), 10000 + attempt * 1000)
+            .await?;
+        game.drain(Duration::from_millis(300), Duration::from_secs(1))
+            .await?;
+        game.start_skill(cfg.skill_id, target.obj_id).await?;
+        // Instant skills answer with SCSkillFired, cast-time skills and failures with
+        // SCSkillStarted (a failure carries the SkillResult as its last byte).
+        let p = game
+            .wait_for("skill response", |p| {
+                p.is_sc(sc::SCSkillStartedPacket)
+                    || p.is_sc(sc::SCSkillFiredPacket)
+                    || p.is_sc(sc::SCErrorMsgPacket)
+            })
+            .await?;
+        let result = if p.is_sc(sc::SCSkillFiredPacket) {
+            0
+        } else {
+            p.body.last().copied().unwrap_or(0)
+        };
+        results.push(result);
+        started += 1;
+        game.drain(Duration::from_millis(800), Duration::from_secs(3))
+            .await?;
+    }
+    Ok(format!(
+        "{started} casts of skill {} on npc {} ({}), last bytes {results:?}",
+        cfg.skill_id, target.obj_id, target.id
+    ))
 }

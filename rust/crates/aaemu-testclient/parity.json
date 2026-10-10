@@ -66,5 +66,17 @@
       }
     ]
   },
-  "ignore_steps": []
+  "ignore_steps": [],
+  "raw_ids": [
+    "SCFactionListPacket",
+    "SCFactionRelationListPacket",
+    "SCActabilityPacket",
+    "SCActionSlotsPacket",
+    "SCCompletedQuestsPacket",
+    "SCConflictZoneStatePacket",
+    "SCInitialConfigPacket",
+    "SCLevelRestrictionConfigPacket",
+    "SCTrionConfigPacket",
+    "SCAccountAttributeConfigPacket"
+  ]
 }

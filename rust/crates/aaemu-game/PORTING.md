@@ -554,6 +554,40 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 * systems::ai: calls into an NPC's AI from outside its tick (skills, aggro, npcs hooks) are queued and run right after the current AI step instead of re-entering it (`manager::post`); the AI tick runs on a blocking thread every ~100 ms; behaviour instances are kept per AI and accessed by kind. `UpdateAggroHelp` reaching a helper NPC without an AI logs and continues (the C# throws a `NullReferenceException` that cuts the whole behaviour tick short). `Npc.OnDamageReceived` on an AI-less NPC does nothing (C# NRE).
 * systems::ai physics: Jitter's narrow phase (`MprEpa`) and contact solver are replaced by a box-vs-heightmap-triangle SAT with one contact per triangle and sequential impulses (Jitter's default friction / bias); the integration itself is exact. One physics world per instance is created with the first ship (C# starts a thread per instance at boot). Add / remove / helm / driver changes go through the pending queue (next tick); hull damage, movement packets and transform writes are applied after the tick; readers use per-tick snapshots. Water is kept per world template and a cell's `object.dat` is ingested when the physics or a water query sees the cell loaded. A height lookup error counts as height 0 (the C# exception skips the rest of that ship's tick). A ship whose game object is gone is skipped. Ship–ship harpoon tow resolves an explicit hook basis among the ships simulated this tick.
 
+## Live testing (phase 5): fixes and deliberate deviations
+
+Found by running the servers against MySQL, the real `compact.sqlite3` / `game_pak` and the
+`aaemu-testclient` bot, and by diffing the S->C traffic of the same scenarios against the C#
+servers (see `rust/LIVE-TESTING.md`). Fixed porting bugs are in the git history (commit
+"live-test porting fixes"); these are the remaining, deliberate differences:
+
+* Game DB sessions run at `READ COMMITTED` (`after_connect`). Under the server default
+  (`REPEATABLE READ`) concurrent character saves (`DELETE FROM character_active_buffs WHERE
+  character_id = ?` + `INSERT`) deadlock on next-key gap locks (seen with 50 bots logging out at
+  once; the C# has the same pattern but rarely overlaps since its saves are slower).
+* Periodic world ticks (active-region spawning, regen, area triggers, gimmicks, quest spheres,
+  instances, vehicles) run on the blocking pool (`systems::run_blocking`), one run at a time per
+  ticker, instead of on the async workers.
+* The heightmap cell of an NPC is loaded before `WorldInstance::spawn` takes the grid lock
+  (the C# loads it lazily while writing `SCUnitStatePacket`); same result, no multi-second
+  stall of the whole world grid on the first visit to an area.
+* Positions are saved with full `f32` precision. The C# (MySql.Data float parameters) stores
+  them with ~6 significant digits (`15578.041` -> `15578.0`), so a re-login spawns a few cm away
+  from where the C# would put it.
+* `X2EnterWorldResponsePacket.token` (= game session id) is a counter (see above), so stream
+  `CTJoin` tokens are small integers rather than `RemoteEndPoint.GetHashCode()` values.
+* A character created in this session keeps its in-memory state until it is selected (as C#
+  keeps the `Character` object in `Connection.Characters`): its gear buffs (indices 2..8) exist
+  before the first select and are not announced again. A character loaded from the DB on a
+  later session gets fresh buffs on select in both servers.
+* `UpdateGearBonuses` is ported for characters, NPCs, mates and slaves (the "Stats" bullet
+  above predates it).
+
+Parity status of the scripted scenarios: `login`, `lobby` and `full` (fresh character) produce
+the same S->C traffic as the C# servers after id / time normalisation (0 findings); a second
+`full` round with the existing character only differs in the saved position precision above
+and in NPC wandering / buff remaining times.
+
 ## C# bugs noticed (mirrored, not fixed)
 
 * systems::social: `AskRiskyTeam` makes the acting unit (the kicker) leave its chat channels;

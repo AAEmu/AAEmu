@@ -946,9 +946,13 @@ pub fn leave(server: &GameServer, conn: &mut GameConnection, target: u8) {
             send_message(p, chat_type::SYSTEM, &server.config.world.logout_message);
         }
     }
-    // Combat (x30): later phase. Active slave: +10 minutes.
-    let mut logout_time = 10_000;
+    let mut logout_time = 10_000; // in ms
     if let Some(p) = &conn.active_char {
+        // Make it 5 minutes if you're still in combat
+        if p.data().unit.is_in_battle {
+            logout_time *= 30;
+        }
+        // Add 10 minutes if you have a Slave Active
         logout_time += crate::systems::vehicles::leave_extra_logout_ms(server, p);
     }
     conn.send(&SCPrepareLeaveWorldPacket {

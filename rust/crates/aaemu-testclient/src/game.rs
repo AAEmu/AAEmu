@@ -21,6 +21,8 @@ use crate::record::{Channel, Dir, Recorder};
 
 pub const LEVEL_GAME: u8 = 1;
 pub const LEVEL_PROXY: u8 = 2;
+/// `CompressedGamePackets` (`DD04`).
+pub const LEVEL_COMPRESSED: u8 = 4;
 
 /// A received G2C / proxy packet.
 #[derive(Debug)]
@@ -193,6 +195,29 @@ impl GameClient {
             bail!("short game frame ({} bytes)", frame.len());
         }
         let level = frame[1];
+        if level == LEVEL_COMPRESSED {
+            // `CompressedGamePackets`: [dd][04][u16 count][raw deflate of
+            // ([u16 0][u16 typeId][body])*]. The inner packets carry no lengths; the capture
+            // keeps the inflated batch (C# and Rust compress differently, the content is what
+            // must match).
+            let count = u16::from_le_bytes([frame[2], frame[3]]);
+            let body = miniz_oxide::inflate::decompress_to_vec(&frame[4..])
+                .map_err(|e| anyhow!("DD04 inflate failed: {e:?}"))?;
+            let p = Packet {
+                level,
+                opcode: count,
+                body,
+            };
+            self.rec.push(
+                Channel::Game,
+                Dir::S2C,
+                level,
+                count,
+                "CompressedGamePackets",
+                &p.body,
+            );
+            return Ok(p);
+        }
         let (opcode, body) = if level == LEVEL_GAME {
             if frame.len() < 6 {
                 bail!("short level-1 frame");

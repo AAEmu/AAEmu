@@ -39,6 +39,10 @@ pub struct DiffConfig {
     /// Packets compared by name and count only.
     #[serde(default)]
     pub count_only: Vec<String>,
+    /// Packets whose content and number are random (combat): only their layouts are compared,
+    /// i.e. when both sides sent some, the sets of body lengths must be equal.
+    #[serde(default)]
+    pub len_only: Vec<String>,
     /// Packets that may be missing on either side (best-effort broadcasts), never reported.
     #[serde(default)]
     pub optional: Vec<String>,
@@ -52,6 +56,10 @@ pub struct DiffConfig {
     /// on region-activation timing: NPC / doodad spawns and despawns).
     #[serde(default)]
     pub whole_run: Vec<String>,
+    /// Packets that carry no object ids: compared without object-id canonicalisation (their
+    /// data could coincide with an object id of one run).
+    #[serde(default)]
+    pub raw_ids: Vec<String>,
     /// Blank every 4-byte value that looks like a current unix time (seconds, +-30 days).
     #[serde(default)]
     pub mask_unix_times: bool,
@@ -124,7 +132,9 @@ pub fn normalise(
     cfg: &DiffConfig,
 ) -> Vec<u8> {
     let mut b = body.to_vec();
-    if name == "SCDoodadsCreatedPacket" {
+    if cfg.raw_ids.iter().any(|n| n == name) {
+        // no object ids in this packet
+    } else if name == "SCDoodadsCreatedPacket" {
         // Fixed 91-byte records: only the id slots (objId, ownerObjId, parentObjId), so that
         // positions / rotations that happen to equal an object id stay untouched.
         replace_doodad_record_ids(&mut b, objs);
@@ -492,6 +502,21 @@ pub fn diff(
             let vb = pb.get(name).map_or(&[][..], |v| v.as_slice());
             report.compared_packets += va.len().max(vb.len());
             let optional = cfg.optional.contains(name);
+            if cfg.len_only.contains(name) {
+                let la: std::collections::BTreeSet<usize> = va.iter().map(|x| x.0.len()).collect();
+                let lb: std::collections::BTreeSet<usize> = vb.iter().map(|x| x.0.len()).collect();
+                // A random event may simply not have happened on one side.
+                if !la.is_empty() && !lb.is_empty() && la != lb {
+                    report.findings.push(Finding {
+                        step: step.clone(),
+                        packet: name.clone(),
+                        detail: format!("body lengths {la:?} vs {lb:?}"),
+                    });
+                } else {
+                    report.matched_packets += va.len().min(vb.len());
+                }
+                continue;
+            }
             if va.len() != vb.len() && !optional {
                 report.findings.push(Finding {
                     step: step.clone(),
