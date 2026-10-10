@@ -279,3 +279,39 @@ fn tri_ray_linear_matches_dll() {
 fn ray_tri_linear_matches_dll() {
     check("p2b_tri_ray_tri", 200, &gen_ray_tri);
 }
+
+fn gen_tri_tri(rng: &mut Rng) -> Case {
+    let sa = rng.f(0.5, 4.0);
+    let a = triangle(rng, sa);
+    let sb = rng.f(0.3, 4.0);
+    let mut b = triangle(rng, sb);
+    let mode = rng.below(4);
+    if mode == 3 {
+        // coplanar / parallel copy of A, shifted in-plane and along n
+        let sh = scale(rng.unit(), rng.f(0.0, sa));
+        let up = scale(a.n, rng.pick(&[0.0, 0.0, 0.01, -0.05]));
+        let off = add(sh, up);
+        b = Triangle {
+            pt: [add(a.pt[0], off), add(a.pt[2], off), add(a.pt[1], off)],
+            n: if rng.chance(0.5) { scale(a.n, -1.0) } else { a.n },
+        };
+    } else {
+        // move B so that one of its points sits near a point of A
+        let pa = on_tri(rng, &a);
+        let pb = on_tri(rng, &b);
+        let k = rng.f(-0.5, 0.5) * sb;
+        let off = add(sub(pa, pb), scale(a.n, k));
+        for q in &mut b.pt {
+            *q = add(*q, off);
+        }
+    }
+    let p = lin_params(rng, a.n);
+    let c = Case::new(0, &Primitive::Triangle(a), &Primitive::Triangle(b), &p);
+    let c = maybe_feat(rng, c);
+    maybe_area(rng, c)
+}
+
+#[test]
+fn tri_tri_linear_matches_dll() {
+    check("p2b_tri_tri", 300, &gen_tri_tri);
+}

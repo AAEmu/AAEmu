@@ -4,6 +4,7 @@
 //! |---|---|---|---|
 //! | `[0][tri][sph]` | 0x35175490 (4544 B) | 0x3517DB70 | [`unproject_tri_sph`] |
 //! | `[0][sph][tri]` | 0x35176660 (335 B wrapper) | 0x3517ED40 | `swap_linear` → tri–sph |
+//! | `[0][tri][tri]` | 0x3516EAE0 (4804 B) | 0x35176460 | [`unproject_tri_tri`] |
 //! | `[0][tri][ray]` | 0x35176B40 (4075 B) | 0x3517F190 | [`unproject_tri_ray`] |
 //! | `[0][ray][tri]` | 0x35177B40 (335 B wrapper) | 0x351802D0 | `swap_linear` → tri–ray |
 //!
@@ -18,9 +19,12 @@
 
 mod ray;
 mod sph;
+#[allow(clippy::module_inception)]
+mod tri;
 
 pub use ray::unproject_tri_ray;
 pub use sph::unproject_tri_sph;
+pub use tri::unproject_tri_tri;
 
 use super::common::{as_ray, as_sph, as_tri, swap_linear};
 use super::{UnprojTables, MODE_LINEAR};
@@ -38,6 +42,12 @@ fn d(x: f32) -> f64 {
 #[inline]
 fn sgn(x: f32) -> u32 {
     x.to_bits() >> 31
+}
+
+/// `((bits >> 30 (arithmetic)) & ~1) + 1`: +1 or −1 from the sign bit of a float.
+#[inline]
+fn sign_pm1(x: f32) -> i32 {
+    ((x.to_bits() as i32 >> 30) & !1) + 1
 }
 
 /// The binary's blend `(double)(s ^ 1)·old + (double)s·new` (`s` = 0 or 1).
@@ -79,6 +89,18 @@ fn cell_sph_tri(
     })
 }
 
+fn cell_tri_tri(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    _area: Option<&mut ContactArea>,
+) -> i32 {
+    unproject_tri_tri(p, as_tri(a), fa, as_tri(b), fb, out)
+}
+
 fn cell_tri_ray(
     p: &mut UnprojParams,
     a: &Primitive,
@@ -110,6 +132,7 @@ fn cell_ray_tri(
 pub fn fill(t: &mut UnprojTables) {
     t.set(MODE_LINEAR, GeomType::TriMesh, GeomType::Sphere, cell_tri_sph);
     t.set(MODE_LINEAR, GeomType::Sphere, GeomType::TriMesh, cell_sph_tri);
+    t.set(MODE_LINEAR, GeomType::TriMesh, GeomType::TriMesh, cell_tri_tri);
     t.set(MODE_LINEAR, GeomType::TriMesh, GeomType::Ray, cell_tri_ray);
     t.set(MODE_LINEAR, GeomType::Ray, GeomType::TriMesh, cell_ray_tri);
 }
