@@ -412,6 +412,46 @@ pub fn name_of(p: &PlayerRef) -> String {
     p.data().unit.name.clone()
 }
 
+// ---- social helpers ----
+
+/// `DateTime.ToString()` with the invariant culture (`MM/dd/yyyy HH:mm:ss`) of a UTC unix time
+/// in seconds.
+pub fn dotnet_datetime(unix_secs: i64) -> String {
+    match chrono::DateTime::from_timestamp(unix_secs, 0) {
+        Some(d) => d.format("%m/%d/%Y %H:%M:%S").to_string(),
+        None => String::new(),
+    }
+}
+
+/// `Enum.TryParse<T>(text, out v)` (case-sensitive) for an `int` enum whose members are
+/// `names[i] = i`: a number (any `int`, defined or not), or a comma-separated list of member
+/// names (OR-ed together, as .NET does even without `[Flags]`).
+pub fn enum_try_parse(text: &str, names: &[&str]) -> Option<i64> {
+    let t = text.trim();
+    if t.is_empty() {
+        return None;
+    }
+    if t.starts_with(|c: char| c.is_ascii_digit() || c == '-' || c == '+') {
+        return try_parse::<i32>(t).map(i64::from);
+    }
+    let mut value = 0i64;
+    for part in t.split(',') {
+        let part = part.trim();
+        let i = names.iter().position(|n| *n == part)?;
+        value |= i as i64;
+    }
+    Some(value)
+}
+
+/// `enumValue.ToString()` for an enum whose members are `names[i] = i` (the number when the
+/// value is not a member).
+pub fn enum_name(value: i64, names: &[&str]) -> String {
+    usize::try_from(value)
+        .ok()
+        .and_then(|i| names.get(i))
+        .map_or_else(|| value.to_string(), |n| (*n).to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

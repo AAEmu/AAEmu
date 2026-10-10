@@ -1076,3 +1076,39 @@ pub fn active_components_with_use_item(
     }
     out
 }
+
+/// `Quests.Send()`: the active quests, 20 per `SCQuestsPacket` (GM commands; the login sends
+/// them through the character snapshot). Uses the rows re-derived by the last operation.
+pub fn send_quests(player: &PlayerRef) {
+    const MAX_ENTRIES_PER_PACKET: usize = 20;
+    let quests = player.data().quests.active.clone();
+    let now = chrono::Utc::now().timestamp_millis();
+    if quests.len() <= MAX_ENTRIES_PER_PACKET {
+        player.send(crate::packets::world::SCQuestsPacket {
+            quests,
+            now_ms: now,
+        });
+        return;
+    }
+    for chunk in quests.chunks(MAX_ENTRIES_PER_PACKET) {
+        player.send(crate::packets::world::SCQuestsPacket {
+            quests: chunk.to_vec(),
+            now_ms: now,
+        });
+    }
+}
+
+/// `Quests.SendCompleted()`: the completed quest blocks, 200 per `SCCompletedQuestsPacket`.
+pub fn send_completed_quests(player: &PlayerRef) {
+    const MAX_ENTRIES_PER_PACKET: usize = 200;
+    let completed = player.data().quests.completed.clone();
+    if completed.len() <= MAX_ENTRIES_PER_PACKET {
+        player.send(crate::packets::world::SCCompletedQuestsPacket { quests: completed });
+        return;
+    }
+    for chunk in completed.chunks(MAX_ENTRIES_PER_PACKET) {
+        player.send(crate::packets::world::SCCompletedQuestsPacket {
+            quests: chunk.to_vec(),
+        });
+    }
+}
