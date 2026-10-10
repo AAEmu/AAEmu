@@ -12,9 +12,11 @@
 //! `hooks.rs`, the session call sites in `session.rs`. `managers::{chat, expedition, friend}`
 //! re-export the moved phase-2 managers (`server.chat`, `server.expeditions`, `server.friends`).
 
+pub mod achievement;
 pub mod chat;
 pub mod config;
 pub mod crime;
+pub mod dominion;
 pub mod duel;
 pub mod expedition;
 pub mod faction;
