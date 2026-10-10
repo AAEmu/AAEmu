@@ -109,6 +109,7 @@ fn gen_pair(rng: &mut Rng, ta: i32, tb: i32) -> Case {
     };
     p.min_pt_dist = rng.pick(&[0.0f32, 0.001, 0.01]);
     p.max_cos = rng.pick(&[0.1f32, 0.99985]);
+    p.flag = rng.pick(&[0i32, 1]);
     let c = Case::new(0, &a, &b, &p);
     match rng.below(4) {
         0 => c.with_area(256, 0.0),
@@ -156,4 +157,14 @@ fn tri_cap_matches_dll() {
 #[test]
 fn cap_tri_matches_dll() {
     check("p2b_capsule_cap_tri", 200, &|r| gen_pair(r, CAP, TRI));
+}
+
+#[test]
+fn box_cap_matches_dll() {
+    check("p2b_capsule_box_cap", 250, &|r| gen_pair(r, BOX, CAP));
+}
+
+#[test]
+fn cap_box_matches_dll() {
+    check("p2b_capsule_cap_box", 200, &|r| gen_pair(r, CAP, BOX));
 }

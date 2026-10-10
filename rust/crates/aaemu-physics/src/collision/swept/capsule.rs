@@ -42,10 +42,12 @@
 //! cyl–cap copy whatever is on the stack (the sphere cells never write `cos`). The port writes 0;
 //! linear callers never read `cos`. Tests compare these cells with `cos` masked.
 
-use super::common::{as_cap, as_ray, as_sph, as_tri, swap_linear, ucomiss_eq};
+use super::common::{
+    as_box, as_cap, as_ray, as_sph, as_tri, swap_linear, swap_linear_area, ucomiss_eq,
+};
 use super::{UnprojTables, MODE_LINEAR};
 use crate::collision::contact::{ContactArea, UnprojParams, UnprojResult};
-use crate::geometry::primitives::{CapsulePrim, Primitive, RayPrim, SpherePrim, Triangle};
+use crate::geometry::primitives::{BoxPrim, CapsulePrim, Primitive, RayPrim, SpherePrim, Triangle};
 use crate::ids::GeomType;
 use crate::math::Vec3;
 
@@ -268,6 +270,59 @@ pub fn unproject_ray_cap(
     )
 }
 
+/// box–cap 0x351870D0: [`compose_full`] with box–cyl 0x351801A0 (area) and box–sph 0x35185B80;
+/// `out.t = 0` when box–cyl fails in least-penetration mode.
+pub fn unproject_box_cap(
+    p: &mut UnprojParams,
+    a: &BoxPrim,
+    fa: i32,
+    b: &CapsulePrim,
+    _fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    compose_full(
+        p,
+        b,
+        out,
+        area,
+        ComposeFlags {
+            zero_t_on_cyl_fail: true,
+            ret_only_taken: false,
+        },
+        |p, out, ar| super::box_cyl::unproject_box_cyl(p, a, fa, b, CAPSULE_FEATURE, out, ar),
+        |p, s, out, _| super::box_round::unproject_box_sph(p, a, fa, s, -1, out),
+    )
+}
+
+fn cell_box_cap(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    unproject_box_cap(p, as_box(a), fa, as_cap(b), fb, out, area)
+}
+
+/// cap–box 0x351876A0: 215-byte area swap of [`unproject_box_cap`].
+fn cell_cap_box(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    area: Option<&mut ContactArea>,
+) -> i32 {
+    let (cap, bx) = (as_cap(a), as_box(b));
+    swap_linear_area(p, out, area, |p, out, ar| {
+        unproject_box_cap(p, bx, fb, cap, fa, out, ar)
+    })
+}
+
 /// tri–cap 0x351767C0: [`compose_simple`] with tri–cyl 0x351716D0 and tri–sph 0x35175490.
 pub fn unproject_tri_cap(
     p: &mut UnprojParams,
@@ -364,7 +419,9 @@ fn cell_cap_ray(
 
 /// Fill the capsule cells.
 pub fn fill(t: &mut UnprojTables) {
-    use GeomType::{Capsule, Ray, Sphere, TriMesh};
+    use GeomType::{Box, Capsule, Ray, Sphere, TriMesh};
+    t.set(MODE_LINEAR, Box, Capsule, cell_box_cap);
+    t.set(MODE_LINEAR, Capsule, Box, cell_cap_box);
     t.set(MODE_LINEAR, TriMesh, Capsule, cell_tri_cap);
     t.set(MODE_LINEAR, Capsule, TriMesh, cell_cap_tri);
     t.set(MODE_LINEAR, Sphere, Capsule, cell_sph_cap);
