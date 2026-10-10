@@ -268,6 +268,9 @@ fn port_sweep(line: &str, oracle: &str) -> String {
     let ip = ip_from(&hex_words(&mut it, 28));
     // engine data from the answer: B's bbox and the minVtxDists
     let mut o = oracle.split_whitespace();
+    // the OVERLAP pre-check (BV / pair phases) as the engine evaluated it
+    while o.next() != Some("OV") {}
+    let overlap = o.next() == Some("1");
     while o.next() != Some("BB") {}
     let bbw = hex_words(&mut o, 16);
     let bbox = match prim_from_words(0, &bbw) {
@@ -277,7 +280,10 @@ fn port_sweep(line: &str, oracle: &str) -> String {
     assert_eq!(o.next(), Some("MVD"));
     let mvd = hex_words(&mut o, 2);
     let mut area = (!ip.no_area_contacts).then(|| new_area(256));
-    let hit = sweep_primitives(
+    let hit = if !overlap {
+        None
+    } else {
+        sweep_primitives(
         &tables,
         SweepGeom {
             prim: &pa,
@@ -292,10 +298,12 @@ fn port_sweep(line: &str, oracle: &str) -> String {
         &bbox,
         &ip,
         area.as_mut(),
-    );
+        )
+    };
     let mut s = format!(
-        "sweep {:08x} GA{} BB{} MVD{}",
+        "sweep {:08x} OV {} GA{} BB{} MVD{}",
         u32::from(hit.is_some()),
+        u32::from(overlap),
         fmt_words(&gwd_words(&ga)),
         fmt_words(&bbw),
         fmt_words(&mvd)

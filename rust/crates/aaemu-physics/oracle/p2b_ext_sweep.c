@@ -5,7 +5,7 @@
  *   PREP <type> <prim words> G <22 gwd words>
  *     -> prep <ret type> <prim words of the returned type> BB <16 bbox words> MVD <minVtxDist>
  *   SWEEP <tA> <primA words> <tB> <primB words> GA <22 words> GB <22 words> IP <28 words>
- *     -> sweep <ret> GA <22 words after> BB <16 words: bbox of B> MVD <A +16> <B +16>
+ *     -> sweep <ret> OV <overlap pre-check passed 0|1> GA <22 words after> BB <16 words: bbox of B> MVD <A +16> <B +16>
  *        [C <contact words> B <nborder> <border pts> CEN <3> F <byte +124> AREA <npt> <nmax> <minedge> <n3> <pts>|NOAREA]
  *
  * gwd: offset xyz, R (9, row-major), scale, v xyz, w xyz, centerOfMass xyz (88 bytes).
@@ -40,6 +40,35 @@ static void *p2b_geom(int type, const uint32_t *prim) {
   void *g = ((p2b_create_prim_fn)VT(g_gm)[G_CreatePrimitive])(g_gm, type, buf);
   if (!g) die("p2b: CreatePrimitive failed", "");
   return g;
+}
+
+
+/* The OVERLAP pre-check of the sweep path of 0x35151F20, replicated (A's swept BV: slot 46 then
+   BV slot 8; B's BV: slot 46 then BV slot 9; OVERLAP[tA][tB] with the per-thread scratch). Run
+   after Intersect so its per-thread pools are not disturbed. */
+typedef void *(*p2b_bvtree_fn)(void *geom);
+typedef void (*p2b_bv_swept_fn)(void *bv, float *R, float *off, float scale, void **out, float *dir, float len, int z, int tid);
+typedef void (*p2b_bv_fn)(void *bv, float *R, float *off, float scale, void **out, int z, int tid);
+typedef int (*p2b_overlap_fn)(void *a, void *b, void *scratch);
+static int p2b_sweep_overlap(void *a, void *b, float *ga, float *gb, const uint32_t *ip) {
+  DWORD tls = *(DWORD *)VA(g_phys, 0x3520F3A4ULL);
+  void *tv = TlsGetValue(tls);
+  int tid = tv ? *(int *)tv : 4;
+  float vx = ga[13], vy = ga[14], vz = ga[15];
+  float len = sqrtf((vx * vx + vy * vy) + vz * vz);
+  float inv = 1.0f / len;
+  float ti;
+  memcpy(&ti, &ip[7], 4);
+  float L = len * ti;
+  float dir[3] = {vx * inv, inv * vy, inv * vz};
+  void *bva = ((p2b_bvtree_fn)VT(a)[46])(a);
+  void *oa = 0, *ob = 0;
+  ((p2b_bv_swept_fn)VT(bva)[8])(bva, ga + 3, ga, ga[12], &oa, dir, L, 0, tid);
+  void *bvb = ((p2b_bvtree_fn)VT(b)[46])(b);
+  ((p2b_bv_fn)VT(bvb)[9])(bvb, gb + 3, gb, gb[12], &ob, 0, tid);
+  int ta = *(int *)oa, tb = *(int *)ob;
+  p2b_overlap_fn f = *(p2b_overlap_fn *)VA(g_phys, 0x3520A3E0ULL + 8ULL * (ta * 8 + tb));
+  return f((char *)oa + 8, (char *)ob + 8, VA(g_phys, 0x35290EE8ULL + 237496ULL * (uint64_t)tid));
 }
 
 static int p2b_ext_sweep(char *line) {
@@ -88,8 +117,11 @@ static int p2b_ext_sweep(char *line) {
     p2b_words(&cur, ip, 28);
     void *a = p2b_geom(ta, pa), *b = p2b_geom(tb, pb);
     void *pc = 0;
+    __declspec(align(16)) uint32_t ga0[24];
+    memcpy(ga0, ga, sizeof ga0);
     int ret = ((p2b_isect_fn)VT(a)[10])(a, b, (float *)ga, (float *)gb, ip, &pc);
-    printf("sweep %08x GA", (uint32_t)ret);
+    int ov = p2b_sweep_overlap(a, b, (float *)ga0, (float *)gb, ip);
+    printf("sweep %08x OV %x GA", (uint32_t)ret, ov ? 1 : 0);
     p2b_print_words(ga, 22);
     printf(" BB");
     p2b_print_bbox(b);
