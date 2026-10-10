@@ -231,7 +231,7 @@ impl Runner {
                         pos: v3(&get("pos", "0,0,0")),
                         q: Quat::new(q[0], q[1], q[2], q[3]),
                         scale: pf(&get("scale", "1")),
-                        surface_idx: kv.get("surface").map_or(UNUSED_I32, |s| pu(s) as i32),
+                        surface_idx: kv.get("i64").map_or(UNUSED_I32, |s| pu(s) as i32),
                         flags: pu(&get("flags", "0x1809F")),
                         flags_collider: pu(&get("collider", "0x1")),
                         min_contact_dist: pf(&get("mincontact", "U")),
@@ -249,7 +249,12 @@ impl Runner {
                     self.w.flush_command_queue();
                     self.w.tls_thread = 0;
                 }
-                "ray" => self.cmd_ray(&kv),
+                "ray" | "rayx" => self.cmd_ray(&kv),
+                "fdata" => {
+                    let e = self.ent(&get("target", ""));
+                    self.w.ent_mut(e).foreign_data = u64::from(pu(&get("v", "0")));
+                    self.w.ent_mut(e).i_foreign_data = get("i", "0").parse().unwrap();
+                }
                 "pwi" => self.cmd_pwi(&kv),
                 "rte" => self.cmd_rte(&kv),
                 "cewp" => self.cmd_cewp(&kv),
@@ -286,7 +291,13 @@ impl Runner {
             .unwrap_or_else(|| vec![RayHit::default(); nmax]);
         hits.resize(nmax, RayHit::default());
         let hl_name = kv.get("hitlast").map(|s| (*s).to_string());
-        let mut hl = hl_name.as_ref().and_then(|n| self.hit_last.get(n).copied());
+        let mut hl = hl_name.as_ref().map(|n| {
+            self.hit_last.get(n).copied().unwrap_or(HitLast {
+                ent: EntIdx::NONE,
+                ipart: 0,
+                inode: 0,
+            })
+        });
         let caller: i32 = get("caller", "4").parse().unwrap();
         let n = self.w.rwi(&p, &mut hits, hl.as_mut(), caller);
         let _ = writeln!(self.out, "ray {} n {}", get("name", "-"), n);
@@ -360,9 +371,11 @@ impl Runner {
             p
         };
         let r = self.w.pwi(&p);
-        let _ = writeln!(self.out, "pwi {} d {:08x} nc {}", get("name", "-"), r.dist.to_bits(), r.contacts.len());
-        if let Some(c) = r.contacts.first() {
-            self.print_contact_line(&c.clone());
+        let _ = writeln!(self.out, "pwi {} d {:08x}", get("name", "-"), r.dist.to_bits());
+        if r.dist != 0.0 {
+            if let Some(c) = r.contacts.first() {
+                self.print_contact_line(&c.clone());
+            }
         }
     }
 
@@ -475,13 +488,17 @@ pub(crate) fn check_scenario(name: &str) -> (usize, usize) {
     for (i, (a, b)) in want.iter().zip(got.iter()).enumerate() {
         if a != b {
             bad += 1;
+            if std::env::var_os("P3_DIFF").is_some() {
+                eprintln!("DIFF {i}
+  o: {a}
+  p: {b}");
+            }
             if first.is_none() {
                 first = Some(format!("line {i}:\n  oracle: {a}\n  port:   {b}"));
             }
         }
     }
-    assert_eq!(want.len(), got.len(), "{name}: line count differs\n{}", r.out);
-    assert!(bad == 0, "{name}: {bad} of {} lines differ; first {}", want.len(), first.unwrap_or_default());
+    assert!(bad == 0 && want.len() == got.len(), "{name}: {bad} of {} lines differ ({} port lines); first {}", want.len(), got.len(), first.unwrap_or_default());
     (want.len(), bad)
 }
 
@@ -498,4 +515,9 @@ fn golden_p2a1_rwi_box() {
 #[test]
 fn golden_p2a4_ray_round() {
     check_scenario("p2a4_ray_round");
+}
+
+#[test]
+fn golden_p3q_basic() {
+    check_scenario("p3q_basic");
 }
