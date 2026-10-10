@@ -3,10 +3,10 @@ name: aaemu-setup
 description: >
   Guide anyone (player or contributor) through getting AAEmu running and
   playable: asset inventory, Human-in-the-Loop downloads, config, then either
-  Docker/Podman + Aspire or non-Docker host MySQL + standalone Login/Game.
+  Docker + `cargo xtask dev` or non-Docker host MySQL + standalone Login/Game.
   Use when the user wants to set up AAEmu, install/run the server, play on a
   local server, get the client/launcher working, choose Docker vs non-Docker,
-  or mentions game_pak, compact.sqlite3, Aspire, Config.Local, or Maintenance.
+  or mentions game_pak, compact.sqlite3, cargo xtask dev, Config.Local, or Maintenance.
 ---
 
 # AAEmu setup (players and contributors)
@@ -20,7 +20,7 @@ language; use technical detail only when needed for the chosen path.
 
 | Environment | Path | Database | Login / Game |
 | --- | --- | --- | --- |
-| Docker Desktop **or** Podman available | **A – Aspire** | MySQL **container** (AppHost) | Started by Aspire as host projects |
+| Docker Desktop (or Docker Engine with `docker compose`) available | **A – `cargo xtask dev`** | MySQL **container** (Compose `db` service) | Started by xtask as host processes |
 | **No** container runtime | **B – Standalone** | **Host MySQL 8 only** | Host processes; Login then Game |
 
 Non-Docker means **zero** containers, including MySQL. Never invent “Docker only for the database” for Path B.
@@ -31,7 +31,7 @@ Non-Docker means **zero** containers, including MySQL. Never invent “Docker on
    what is missing.
 
 3. Official human docs: `Docs/wiki/Installation-&-Setup.md`,
-   `Dependencies-and-Downloads.md`, `Client.md`, `Aspire-Development-Guide.md`.
+   `Dependencies-and-Downloads.md`, `Client.md`, `Local-Development-Guide.md`.
 
 ## Workflow (always in this order)
 
@@ -40,9 +40,9 @@ Non-Docker means **zero** containers, including MySQL. Never invent “Docker on
 Ask if unclear:
 
 - Goal: **play** on a local server, **contribute/code**, or both?
-- Is **Docker Desktop or Podman** installed and usable?
+- Is **Docker** (Desktop or Engine with `docker compose`) installed and usable?
 
-Default: Path A if OCI works; Path B if user has or wants no Docker.
+Default: Path A if Docker works; Path B if user has or wants no Docker.
 
 ### Step 1 — Inventory assets (never blind-download)
 
@@ -83,7 +83,7 @@ Canonical local layout (gitignored `.client_files/`):
   ArcheAge 1.2 (r208022) for AAEmu/     # game_pak + bin32/archeage.exe
   launcher/AAEmu.Launcher/              # AAEmu.Launcher.exe
   *.7z / *.zip                          # optional kept archives
-AAEmu.Game/Data/compact.sqlite3
+rust/crates/aaemu-game/app/Data/compact.sqlite3   # or .server_files/AAEmu.Game/Data/ (Docker)
 ```
 
 **MEGA / Drive (client, compact.sqlite3):** open the wiki links for the human
@@ -103,8 +103,9 @@ Details and URLs: [REFERENCE.md](REFERENCE.md#downloads-and-hitl).
 
 ### Step 2 — Machine prerequisites
 
-- **Both paths:** .NET **10** SDK (`dotnet --version`).
-- **Path A:** Docker Desktop or Podman **running**.
+- **Both paths:** stable **Rust** via [rustup](https://rustup.rs/) (`cargo --version`).
+  On Windows rustup also needs the MSVC build tools (it offers to install them).
+- **Path A:** Docker Desktop (or Docker Engine) **running**.
 - **Path B:** MySQL **8** installed and running **on the host** (service),
   schemas imported once (`SQL/aaemu_login.sql`, `SQL/aaemu_game.sql`).
 
@@ -115,31 +116,41 @@ waiting for services to actually start.
 
 Write/update (templates in [REFERENCE.md](REFERENCE.md#configlocal-templates)):
 
-- `AAEmu.Game/Config.Local.json` — at least `ClientData.Sources` (+ DB/LoginNetwork on Path B)
-- `AAEmu.Login/Config.Local.json` — Path B: DB + `GameServers` (+ `InternalNetwork` if port remap)
+- `rust/crates/aaemu-game/app/Config.Local.json` — at least `ClientData.Sources` (+ DB/LoginNetwork on Path B)
+- `rust/crates/aaemu-login/app/Config.Local.json` — Path B: DB + `GameServers` (+ `InternalNetwork` if port remap)
 
 Use absolute paths under this repo for `game_pak`. Match `SecretKey` on both
-servers. Rebuild after creating `Config.Local.json` so it copies to output.
+servers. `Config.Local.json` is read directly from the application directory
+at startup; no rebuild is needed. Path A injects the DB settings and
+`GameServers` through environment variables, so only `ClientData` is required.
 
 ### Step 4 — Start servers
 
-**Path A** (same `dotnet` commands on PowerShell or bash):
+**Path A** (same commands on PowerShell or bash):
 
 ```bash
-dotnet run --project AAEmu.Aspire.AppHost --launch-profile http
+cd rust
+cargo xtask dev --release
 ```
 
-Share the dashboard login URL/token from the console. Only MySQL is a container;
-Login/Game are normal processes.
+It creates `.env` from `.env.example` if missing, starts MySQL with
+`docker compose up -d --wait db`, builds, starts Login, waits for port 1234,
+then starts Game. Ctrl+C stops both. Only MySQL is a container; Login/Game are
+normal processes. The first build takes several minutes.
 
 **Path B:**
 
 ```bash
-dotnet build
-dotnet run --project AAEmu.Login
-# then
-dotnet run --project AAEmu.Game
+cd rust
+cargo build --release
+cargo run --release -p aaemu-login
+# then, in a second console
+cargo run --release -p aaemu-game
 ```
+
+(`Scripts/start_login.sh` / `Scripts/start_game.sh`, or
+`Scripts/start AAEmu.Login.bat` / `Scripts/start AAEmu.Game.bat` on Windows,
+do the same.)
 
 Prefer visible consoles + tee to `.server_files/logs/` when helping a human
 watch progress. Detach Windows GUIs so agent shells do not kill them.
@@ -154,11 +165,12 @@ watch progress. Detach Windows GUIs so agent shells do not kill them.
 
 - [ ] Login port **1237** listening  
 - [ ] Game ports **1239** and **1250** listening  
-- [ ] Path B: login log contains `Registered GameServer`  
+- [ ] Login log contains `Registered GameServer`  
 - [ ] Client server list is **not** stuck on Maintenance  
 
 If Maintenance: almost always game failed to register (often **port 1234**
-taken). Remap internal Login+Game ports together — see REFERENCE.
+taken). Remap internal Login+Game ports together — see REFERENCE (Path A
+expects 1234, so free the port or use Path B).
 
 ## Agent behavior
 

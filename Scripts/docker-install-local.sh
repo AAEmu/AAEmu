@@ -2,7 +2,7 @@
 
 # Switch to the root folder and clean everything old
 echo -e "Switching folder to root folder (AAEmu/)"
-cd ..
+cd "$(dirname "$0")/.." || exit 1
 echo -e "Done"; sleep 0
 
 # Asking the user if he is sure to continue a fresh installation
@@ -20,9 +20,7 @@ while true; do
     elif [[ "$answer" == "N" ]]; then
         echo "You chose not to proceed with a fresh installation. Aborting..."
         exit
-        break
     else
-        break
         echo "Invalid input. Please enter Y or N."
     fi
 done
@@ -55,20 +53,20 @@ echo -e "Copying file AAEmu/.env.example to Copying file AAEmu/.env if not alrea
 cp -n .env.example .env
 echo -e "Done"
 
-echo -e "Copying file AAEmu/AAEmu.Login/Config.json to AAEmu/.server_files/AAEmu.Login/Config.json if not already present."
-cp -n AAEmu.Login/Config.json .server_files/AAEmu.Login/Config.json
+echo -e "Copying file AAEmu/rust/crates/aaemu-login/app/Config.json to AAEmu/.server_files/AAEmu.Login/Config.json if not already present."
+cp -n rust/crates/aaemu-login/app/Config.json .server_files/AAEmu.Login/Config.json
 echo -e "Done"
 
-echo -e "Copying file AAEmu/AAEmu.Game/Config.json to AAEmu/.server_files/AAEmu.Game/Config.json if not already present."
-cp -n AAEmu.Game/Config.json .server_files/AAEmu.Game/Config.json
+echo -e "Copying file AAEmu/rust/crates/aaemu-game/app/Config.json to AAEmu/.server_files/AAEmu.Game/Config.json if not already present."
+cp -n rust/crates/aaemu-game/app/Config.json .server_files/AAEmu.Game/Config.json
 echo -e "Done"
 
-echo -e "Copying folder AAEmu/AAEmu.Game/Configurations to AAEmu/.server_files/AAEmu.Game/Configurations if not already present."
-cp -n -r AAEmu.Game/Configurations .server_files/AAEmu.Game/
+echo -e "Copying folder AAEmu/rust/crates/aaemu-game/app/Configurations to AAEmu/.server_files/AAEmu.Game/Configurations if not already present."
+cp -n -r rust/crates/aaemu-game/app/Configurations .server_files/AAEmu.Game/
 echo -e "Done"
 
-echo -e "Copying folder AAEmu/AAEmu.Game/Data to AAEmu/.server_files/AAEmu.Game/Data if not already present."
-cp -n -r AAEmu.Game/Data .server_files/AAEmu.Game/
+echo -e "Copying folder AAEmu/rust/crates/aaemu-game/app/Data to AAEmu/.server_files/AAEmu.Game/Data if not already present."
+cp -n -r rust/crates/aaemu-game/app/Data .server_files/AAEmu.Game/
 echo -e "Done"
 
 # Now configuring files in place

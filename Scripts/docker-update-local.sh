@@ -1,6 +1,7 @@
+#!/bin/bash
 # Switch to the root folder
-echo -e "Switching folder to root folder (AAEmu\)"
-cd ..
+echo -e "Switching folder to root folder (AAEmu/)"
+cd "$(dirname "$0")/.." || exit 1
 echo -e "Done"
 
 echo -e "Shutting all containers and Updating AAEmu..."

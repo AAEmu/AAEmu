@@ -208,7 +208,7 @@ Shared files are edited **additively** and **only where marked**:
   `net::packet::encode(&packet)` / the body. Examples: `packets/world_objects.rs`,
   `world/unit_state_tests.rs`, `models/house.rs`. C->S packets: decode a literal body.
 * **Real compact DB tests** are `#[ignore]`d and gated by the env var `AAEMU_COMPACT_DB`
-  (path to `compact.sqlite3`; the repo copy is `AAEmu.Game/Data/compact.sqlite3`):
+  (path to `compact.sqlite3`; the repo copy is `rust/crates/aaemu-game/app/Data/compact.sqlite3`):
   `AAEMU_COMPACT_DB=... cargo test -p aaemu-game real_compact_db -- --ignored`. The test in
   `data/mod.rs` already runs every `systems::*::Data::load`; add assertions for your tables
   there or in a gated test of your own (`if std::env::var("AAEMU_COMPACT_DB").is_err() { return; }`).

@@ -1,0 +1,61 @@
+name: Release
+
+# Publishes the server folders (cargo xtask publish) for Windows and Linux. A pushed `v*` tag
+# creates a GitHub release with the archives; a manual run only uploads them as artifacts.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    name: publish (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      # compact.sqlite3 and game_pak are client data and never part of a release.
+      - name: Publish
+        working-directory: rust
+        shell: bash
+        run: cargo xtask publish --target ${{ matrix.target }} --no-compact-db --archive --out ../publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aaemu-${{ matrix.target }}
+          path: |
+            publish/*.zip
+            publish/*.tar.gz
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

@@ -1,0 +1,6 @@
+# Repository-wide cargo settings (the workspace lives in rust/; machine-local settings such as
+# target-dir belong in rust/.cargo/config.toml, which is gitignored).
+[alias]
+# `cargo xtask <command>`: publish layout, local dev orchestration, CI checks
+# (see rust/crates/xtask). Run from rust/ or below.
+xtask = "run --quiet --package xtask --"

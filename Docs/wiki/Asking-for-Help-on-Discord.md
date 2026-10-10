@@ -21,15 +21,16 @@ Post one message that includes:
 1. What happened instead (full error text).
 1. Your environment:
    - OS and version
-   - run mode (Aspire, manual, or Docker)
-   - branch and commit if relevant
+   - run mode (`cargo xtask dev`, manual, published build, or Docker)
+   - branch and commit if relevant (and `rustc --version` if you build from
+     source)
 1. Steps you already tried.
 
 ## Suggested message template
 
 ```text
 Goal: ...
-Workflow: Aspire / Manual / Docker
+Workflow: cargo xtask dev / Manual / Release build / Docker
 Environment: OS ..., branch ..., commit ...
 Steps: 1) ... 2) ... 3) ...
 Expected: ...

@@ -1,6 +1,6 @@
 # Switch to the root folder
 Write-Host "Switching folder to root folder (AAEmu\)"
-Set-Location ..
+Set-Location (Join-Path $PSScriptRoot "..")
 Write-Host "Done"
 
 Write-Host "Shutting all containers and Updating AAEmu..."

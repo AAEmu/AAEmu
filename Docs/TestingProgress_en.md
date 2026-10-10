@@ -6,6 +6,14 @@
 
 <!-- markdownlint-disable-file MD012 MD013 MD022 MD032 MD058 MD060 -->
 
+> **Note (Rust port):** this document was written for the former C# (.NET)
+> code base (`AAEmu.Game`, `AAEmu.UnitTests`, xUnit/Moq) and is kept as a
+> record. The servers are now the Rust crates in `rust/crates/`; tests live next
+> to the code (`#[cfg(test)]` modules, `*_tests.rs`) and in each crate's
+> `tests/` folder. Run them with `cd rust && cargo test --workspace` (or
+> `cargo xtask ci` for fmt + clippy + tests). Game configuration now lives in
+> `rust/crates/aaemu-game/app/` (`Config.json`, `Configurations/`).
+
 **Report Date:** March 6, 2026
 
 ## Current Statistics
@@ -389,7 +397,7 @@ ______________________________________________________________________
 **Recommended review date:** April 6, 2026
 
 **Review checklist:**
-- [ ] Run `dotnet test` and verify statistics
+- [ ] Run `cargo test --workspace` and verify statistics
 - [ ] Update test count and coverage metrics
 - [ ] Verify GitHub Actions CI/CD coverage configuration
 - [ ] Check progress on pending components (Inventory, Character, Npc, FriendManager)

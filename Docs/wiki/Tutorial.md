@@ -8,12 +8,12 @@ Tutorial content is planned but not yet written.
 
 ## Planned topics
 
-- First local startup with Aspire
+- First local startup with `cargo xtask dev`
 - Manual fallback setup
 - Debugging basics for login and game services
 
 ## Related
 
 - [Home](Home)
-- [Aspire Development Guide](Aspire-Development-Guide)
+- [Local Development Guide](Local-Development-Guide)
 - [Installation & Setup](Installation-&-Setup)

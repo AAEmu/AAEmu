@@ -4,7 +4,9 @@ Guidance for coding agents working in this repository.
 
 ## What this repo is
 
-Open-source **ArcheAge** server emulator in **.NET** (`AAEmu.Login`, `AAEmu.Game`, shared `AAEmu.Commons`). Preferred local orchestration is **.NET Aspire** (`AAEmu.Aspire.AppHost`). Branch of record for active work: **`develop`**.
+Open-source **ArcheAge** server emulator written in **Rust** (Cargo workspace in `rust/`: `aaemu-login`, `aaemu-game`, shared `aaemu-commons`, tools, a headless test client and `xtask`). Local orchestration is **`cargo xtask dev`** (MySQL in Docker + login + game). Branch of record for active work: **`develop`**.
+
+The servers were ported from C# (.NET). The old C# projects (`AAEmu.*`, `Tools/`) may still be on disk during the transition; they are **not** built or used any more. Do not edit them or add code there.
 
 Target client: **ArcheAge 1.2** (`r208022`).
 
@@ -22,14 +24,14 @@ Use the in-repo skill — **not developer-only**:
 
 | Path | When | MySQL | Apps |
 | --- | --- | --- | --- |
-| **A – Aspire** | Docker Desktop or Podman available | Container via AppHost | Login/Game as host projects |
-| **B – Standalone** | No container runtime | **Host MySQL 8 only** | Host `dotnet` Login then Game |
+| **A – `cargo xtask dev`** | Docker Desktop available | Compose `db` service, started by xtask | Login/Game as host processes (`cargo run`) |
+| **B – Standalone** | No container runtime | **Host MySQL 8 only** | Host `cargo run -p aaemu-login` then `-p aaemu-game` |
 
-**No hybrids** for non-Docker: if there is no Docker/Podman, do not introduce containers for MySQL either.
+**No hybrids** for non-Docker: if there is no Docker, do not introduce containers for MySQL either (`cargo xtask dev --no-db` against a host MySQL is fine).
 
 **Assets:** always run the inventory script before downloading. Multi‑GB MEGA/Drive packages are **Human-in-the-Loop**; do not re-fetch when the script reports **OK**.
 
-Wiki mirrors: `Docs/wiki/Installation-&-Setup.md`, `Aspire-Development-Guide.md`, `Dependencies-and-Downloads.md`, `Client.md`.
+Wiki mirrors: `Docs/wiki/Installation-&-Setup.md`, `Local-Development-Guide.md`, `Dependencies-and-Downloads.md`, `Client.md`.
 
 ---
 
@@ -37,26 +39,27 @@ Wiki mirrors: `Docs/wiki/Installation-&-Setup.md`, `Aspire-Development-Guide.md`
 
 ```text
                     ┌─────────────────┐
-  Client 1.2 ──────►│  AAEmu.Login    │◄── MySQL aaemu_login (accounts)
+  Client 1.2 ──────►│  aaemu-login    │◄── MySQL aaemu_login (accounts)
   (launcher)        │  :1237 public   │
                     │  :1234 internal │
                     └────────┬────────┘
                              │ GameServer register + enter-world
                     ┌────────▼────────┐
-                    │  AAEmu.Game     │◄── MySQL aaemu_game (mutable state)
+                    │  aaemu-game     │◄── MySQL aaemu_game (mutable state)
                     │  :1239 game     │◄── compact.sqlite3 (read-only reference)
                     │  :1250 stream   │◄── game_pak / client files
+                    │  :1280 web API  │
                     └─────────────────┘
                              ▲
-              optional: Aspire AppHost (MySQL container + env injection)
+              optional: cargo xtask dev (MySQL container + env injection)
 ```
 
 | Component | Role |
 | --- | --- |
-| **Login** | Auth, world list, enter-world handoff. Public client TCP via **ASP.NET Core Kestrel**. Internal TCP for Game registration. |
-| **Game** | World simulation: packets, managers, entities, combat, quests, housing, etc. Generic host + `GameService`. |
-| **Stream** | Side channel on Game (`:1250`) for UCC/emblems and related transfers. |
-| **Aspire AppHost** | Local orchestration only; does **not** replace Login/Game. |
+| **Login** (`aaemu-login`) | Auth, world list, enter-world handoff. Public client TCP (tokio) on 1237, internal TCP for Game registration on 1234. |
+| **Game** (`aaemu-game`) | World simulation: packets, managers, entities, combat, quests, housing, etc. tokio runtime; startup in `main.rs`. |
+| **Stream** | Side channel on Game (`:1250`) for UCC/emblems and related transfers (`aaemu-game/src/stream/`). |
+| **`cargo xtask dev`** | Local orchestration only; does **not** replace Login/Game. |
 | **SQLite `compact.sqlite3`** | **Read-only** static game data (items, NPCs, skills, quests templates, …). |
 | **MySQL** | **Read/write** state: `aaemu_login` (accounts) + `aaemu_game` (characters, items, world). |
 
@@ -66,76 +69,83 @@ Authoritative component diagram: [`Docs/wiki/Components.md`](Docs/wiki/Component
 
 ---
 
-## Solution and project map
+## Workspace and crate map
 
 | Path | Role |
 | --- | --- |
-| `AAEmu.slnx` | Solution entry (SDK from `global.json`: **.NET 10**) |
-| `Directory.Packages.props` | Central package versions (CPM) — bump deps here |
-| `Directory.Build.props` | Shared MSBuild props |
-| `AAEmu.Commons/` | Shared network primitives (`PacketStream`, `PacketBase`), MySQL helpers, `Singleton<T>`, AAPak, utilities |
-| `AAEmu.Login/` | Login server |
-| `AAEmu.Game/` | Game server (largest codebase) |
-| `AAEmu.Aspire.AppHost/` | .NET Aspire orchestrator |
-| `AAEmu.UnitTests/` | xUnit unit tests (mirror source layout) |
-| `AAEmu.IntegrationTests/` | Game-focused integration tests |
-| `AAEmu.Login.IntegrationTests/` | Login + Testcontainers MySQL |
+| `rust/Cargo.toml` | Workspace root: members and shared `[workspace.dependencies]` — bump deps here |
+| `rust/Cargo.lock` | Locked dependency versions (committed) |
+| `.cargo/config.toml` | `cargo xtask` alias (machine-local settings go in `rust/.cargo/config.toml`, gitignored) |
+| `rust/crates/aaemu-commons/` | Shared network primitives (`packet_stream.rs`, `net.rs`), MySQL helpers + SQL updater (`mysql.rs`), AAPak (`aapak/`), client files, utilities |
+| `rust/crates/aaemu-login/` | Login server (`src/`, runtime files in `app/`) |
+| `rust/crates/aaemu-game/` | Game server (largest crate; runtime files in `app/`) |
+| `rust/crates/aaemu-testclient/` | Headless 1.2 client bot: live smoke tests, parity diffs, load tests ([`rust/LIVE-TESTING.md`](rust/LIVE-TESTING.md)) |
+| `rust/crates/aaemu-tool-worldconverter/` | Offline world / heightmap converter |
+| `rust/crates/aaemu-tool-updatesfortransform/` | Offline spawn-data update tool |
+| `rust/crates/xtask/` | `cargo xtask ci` / `dev` / `publish` |
+| `rust/PORT-AUDIT.md` | C# → Rust coverage audit (regenerate with `python rust/tools/port_audit/gen.py rust/PORT-AUDIT.md`) |
 | `SQL/` | Base schema + incremental updates |
 | `Docs/wiki/` | Human-facing setup and architecture docs |
-| `Scripts/` | Build/start helpers (bat/ps1/sh) |
-| `Tools/` | Offline utilities (e.g. WorldConverter) |
+| `Scripts/` | Build/start/publish/watch helpers (bat/ps1/sh) |
+| `docker/Dockerfile`, `docker-compose.yaml` | Container images (`login`, `game` targets) and the Compose stack |
 | `.client_files/` | **Local only** (gitignored): extracted 1.2 client + launcher |
-| `.server_files/` | **Local only** (gitignored): Compose/runtime data, optional logs |
+| `.server_files/` | **Local only** (gitignored): Compose/runtime data |
 | `**/Config.Local.json` | **Local only** (gitignored): machine overrides |
 
 Do not commit client packs, launcher binaries, `compact.sqlite3`, or secrets.
 
-### Game project layout (high signal)
+### Game crate layout (high signal)
 
-| Path under `AAEmu.Game/` | Role |
+Read [`rust/crates/aaemu-game/CONTRIBUTING-PORT.md`](rust/crates/aaemu-game/CONTRIBUTING-PORT.md) before changing game code; [`PORTING.md`](rust/crates/aaemu-game/PORTING.md) records status, deviations and mirrored C# bugs.
+
+| Path under `rust/crates/aaemu-game/` | Role |
 | --- | --- |
-| `Program.cs` | Host builder, **DI registration** for managers/services |
-| `GameService.cs` | Startup/shutdown lifecycle (`IHostedService`) |
-| `Core/Managers/` | Runtime managers (`*Manager` / `I*Manager`); subfolders `Id/`, `UnitManagers/`, `World/`, `Stream/` |
-| `Core/Network/` | `Game/`, `Login/`, `Stream/` networks + protocol handlers + connections |
-| `Core/Packets/` | Wire packets by direction (see [Packet map](#packet-map-and-conventions)) |
-| `GameData/` | Static loaders from SQLite (`IGameDataLoader`); `Framework/GameDataManager` |
-| `Models/Game/` | Domain models (entities, skills, quests, world, items, …) |
-| `Models/Tasks/` | Scheduled/async game tasks |
-| `Physics/` | Ship/vehicle physics (Jitter2) |
-| `Scripts/Commands/` | In-game GM/admin commands (`ICommand`) |
-| `Scripts/SubCommands/` | Nested command implementations |
-| `Services/` | WebApi, Discord bot |
-| `IO/` | Client file / `game_pak` access |
-| `Data/` | Runtime data files (`compact.sqlite3`, worlds JSON, paths) |
-| `Configurations/` | Split JSON config fragments |
+| `src/main.rs` | Startup order (DB updates, client files, game data, id/name/item loads, `systems::start_all`, networks) |
+| `src/server.rs` | `GameServer`: config, db pool, game data, packet registry, managers, `systems` |
+| `src/config.rs` | Configuration model + loading (JSON files, env, command line) |
+| `src/opcodes.rs` | Complete 1.2 opcode tables (`cs`, `sc`) — never edit |
+| `src/managers/` | Core runtime managers (account, character, chat, expedition, friend, id, item, name, save, stream, time) |
+| `src/net/` | Game TCP listener, connection, packet encode/decode, `PacketRegistry` |
+| `src/packets/` | Core packets: `c2g*.rs` (client → game), `g2c*.rs` / `world*.rs` (game → client), `proxy.rs` |
+| `src/login/` | Game ↔ Login internal link and its packets |
+| `src/stream/` | Stream server (`:1250`): `c2s.rs`, `s2c.rs`, UCC |
+| `src/data/` | Static data loaders (compact.sqlite3, `Data/*.json`, client files) → `GameData` |
+| `src/models/` | Domain types (unit, character, npc, doodad, slave, mate, house, buff, item, transform, …) |
+| `src/world/` | World instances, object handles (`object.rs`), visibility, unit state, player session |
+| `src/systems/` | Subsystems, one directory each: `ai`, `economy`, `housing`, `instances`, `npcs`, `quests`, `services`, `skills`, `social`, `vehicles`; `systems/mod.rs` holds the only central lists |
+| `src/systems/services/commands/` | In-game GM/admin commands |
+| `src/systems/services/webapi/`, `discord.rs` | Web API (`:1280`), Discord bot |
+| `src/systems/vehicles/` | Slaves, mates, transfers, shipyards, ship physics |
+| `src/test_support.rs`, `*_tests.rs`, `tests/` | Test helpers, flow tests, fixtures |
+| `app/` | Application directory: `Config.json`, `Configurations/`, `Data/`, `ClientData/`, `Scripts/Commands/kits.json` |
 
-### Login project layout
+### Login crate layout
 
-| Path under `AAEmu.Login/` | Role |
+| Path under `rust/crates/aaemu-login/` | Role |
 | --- | --- |
-| `Program.cs` | Kestrel + DI; options validation |
-| `LoginService.cs` | Hosted service lifecycle |
-| `Core/Network/Login/` | Public client TCP (Kestrel connection handler) |
-| `Core/Network/Internal/` | Game ↔ Login internal protocol |
-| `Core/Packets/{C2L,L2C,G2L,L2G}/` | Packet DTOs + offset constants |
-| `Core/PacketHandlers/` | Handlers separate from packet types (DI-registered) |
-| `Core/Controllers/` | Login / Game / Request controllers |
-| `Core/Authentication/` | Auth flows (password, Korea challenge, OTP/2FA, reconnect) |
-| `Core/Services/` | Password, 2FA, etc. |
-| `Docs/networking.md` | Login networking deep-dive |
+| `src/main.rs`, `src/server.rs` | Startup, listeners, DB updates |
+| `src/config.rs` | Configuration model + loading |
+| `src/network/` | Public client listener (`login.rs`) and Game ↔ Login internal protocol (`internal.rs`) |
+| `src/packets/{c2l,l2c,g2l,l2g}.rs` | Packet types |
+| `src/handlers.rs` | Packet handlers (separate from packet types) |
+| `src/controllers/` | Login / Game / Request controllers |
+| `src/auth.rs`, `src/services/` | Auth flows (password, Korea challenge, OTP/2FA, reconnect), password hashing, 2FA |
+| `src/db.rs`, `src/backend.rs` | MySQL access |
+| `tests/` | Network and MySQL-gated integration tests |
+| `app/` | Application directory: `Config.json`, `ExampleConfig.Local.json` |
 
 ---
 
 ## Configuration rules
 
-- Game config load order: `Config.json` → `Configurations/*.json` → **`Config.Local.json` (wins)**.
-- Login: `Config.json` → `Config.Local.json` → env vars / command line (Aspire injects env).
+- Application directory: `AAEMU_APP_PATH`, else the executable's directory or the current directory when it holds a `Config.json`, else the crate's `app/` folder (game: the first CLI argument wins over all of these).
+- Game config load order: `Config.json` → `Configurations/**/*.json` → **`Config.Local.json`** → legacy user-secrets file (if present) → env vars (`Section__Key`) → command line (`--Section:Key=value`).
+- Login: `Config.json` → `Config.Local.json` → env vars → command line (`cargo xtask dev` injects env).
 - Login listings: **`GameServers` in config**, not MySQL `game_servers` inserts.
 - `SecretKey` must match between Login and Game.
 - `ClientData.Sources` should include the 1.2 `game_pak` (absolute path under `.client_files/` is fine).
-- `compact.sqlite3` → `AAEmu.Game/Data/` (required for game data).
-- `Config.Local.json` is copied to output on build when present in the project directory.
+- `compact.sqlite3` → `rust/crates/aaemu-game/app/Data/` (or `Data/` of the published / Docker game folder; required for game data).
+- Logging: `RUST_LOG` (default `info`), output on stdout; `NO_COLOR=1` disables colors.
 
 Details: [`Docs/wiki/Working-with-the-Config.json-files-and-server-listings.md`](Docs/wiki/Working-with-the-Config.json-files-and-server-listings.md).
 
@@ -145,10 +155,10 @@ Details: [`Docs/wiki/Working-with-the-Config.json-files-and-server-listings.md`]
 
 | Store | Location / schema | Mutability | Used for |
 | --- | --- | --- | --- |
-| **compact.sqlite3** | `AAEmu.Game/Data/compact.sqlite3` | Read-only at runtime | Templates: items, NPCs, skills, quests, doodads, … via `GameData/*` |
+| **compact.sqlite3** | `rust/crates/aaemu-game/app/Data/compact.sqlite3` | Read-only at runtime | Templates: items, NPCs, skills, quests, doodads, … via `src/data/` and `systems/*/data.rs` |
 | **MySQL aaemu_login** | `SQL/aaemu_login.sql` + `SQL/updates/*login*` | Read/write | Accounts, 2FA, bans |
 | **MySQL aaemu_game** | `SQL/aaemu_game.sql` + `SQL/updates/*game*` | Read/write | Characters, inventories, housing, mails, auction, … |
-| **Client files** | `game_pak` / extracted client | Read-only | Models, geodata, assets via `ClientFileManager` |
+| **Client files** | `game_pak` / extracted client | Read-only | Models, geodata, assets via the client file manager |
 | **JSON configs** | `Config*.json`, `Configurations/`, `Data/**/*.json` | Config-time | Server params, worlds, spawns-related data |
 
 ### SQL change workflow
@@ -157,7 +167,7 @@ When code needs a schema change:
 
 1. Add `SQL/updates/YYYY-MM-DD_aaemu_{login|game}_*.sql` (date orders application).
 2. **Also** patch the base file `SQL/aaemu_login.sql` or `SQL/aaemu_game.sql`.
-3. Servers apply relevant updates once at startup (`MySqlDatabaseUpdater`); applied scripts are recorded in an updates table.
+3. Servers apply relevant updates once at startup when `Connections:AutoApplyUpdates` is true (`aaemu_commons::mysql`); applied scripts are recorded in an updates table.
 
 See `SQL/updates/readme.txt`. Prefer `SQL/patches/compact/` only for intentional compact.sqlite3 fixups (not normal gameplay state).
 
@@ -165,67 +175,59 @@ See `SQL/updates/readme.txt`. Prefer `SQL/patches/compact/` only for intentional
 
 ## Game startup lifecycle
 
-Entry: `AAEmu.Game/Program.cs` → host → `GameService.StartAsync`.
+Entry: `rust/crates/aaemu-game/src/main.rs` (`#[tokio::main]`).
 
-Approximate stages in `GameService.cs`:
+Approximate stages:
 
-1. **DB migrate** — MySQL updates for `aaemu_game`.
-2. **Client files** — `ClientFileManager.Initialize()` (fatal if no sources).
-3. **Early managers** — some loads still run before orchestration (e.g. Formula/Item user data paths may be hybrid during migration).
-4. **`ManagerOrchestrator.RunLoadAsync()`** — all `ILoadable` managers in **dependency-ordered parallel batches** (topo sort from constructor deps).
-5. **GameData post-load** — `GameDataManager.PostLoadGameData()`.
-6. **Scripts** — compile or reflect `Scripts/Commands` (prefer reflection when debugging).
-7. **`RunInitializeAsync()`** — all `IInitializable` managers, same batching rules.
-8. **World + networks** — static instances, then `GameNetwork` / `StreamNetwork` / `LoginNetwork` start.
+1. **Config + logging** — resolve the application directory, load config, init `tracing` from `RUST_LOG`.
+2. **DB migrate** — MySQL updates for `aaemu_game`.
+3. **Client files** — client file sources from `ClientData.Sources` (fatal if none).
+4. **Game data** — `GameData::load` (compact.sqlite3, JSON, client files; includes every `systems::*::Data::load`). A failing loader is fatal.
+5. **`GameServer::new`** — managers, packet registry, static world instances.
+6. **DB loads** — id managers, user items, names, expeditions, friends, UCCs.
+7. **`systems::start_all`** — subsystem DB loads, timers and hook installation; then `SaveManager::start`.
+8. **Networks** — game, stream, login link and web API listeners.
 
-Shutdown stops networks, AI, world, ticks, and clears client sources.
+Shutdown (Ctrl+C) saves and stops networks and ticks.
 
-`ManagerOrchestrator` (`Core/Managers/ManagerOrchestrator.cs`):
-
-- Builds batches from DI singleton types implementing `ILoadable` / `IInitializable`.
-- Edges come from constructor parameters; **`Lazy<T>` is ignored** (cycle break pattern).
-- Cycles throw; fix by reordering deps or introducing `Lazy<T>`.
+Ordering is explicit code in `main.rs` and `systems::start_all`, not a DI container. Cross-subsystem calls go through the hook traits in `systems/mod.rs` (`systems::Hooks`, `UnitHooks`), which subsystems install in their `System::start`.
 
 ---
 
 ## Packet map and conventions
 
-### Direction folders (Game)
+### Packet locations (Game)
 
-| Folder | Prefix | Direction | Notes |
+| Location | Prefix | Direction | Notes |
 | --- | --- | --- | --- |
-| `Core/Packets/C2G/` | `CS*` | Client → Game | Handled on game TCP; offsets in `CSOffsets.cs` |
-| `Core/Packets/G2C/` | `SC*` | Game → Client | Server responses/events |
-| `Core/Packets/C2S/` | `CT*` | Client → Stream | Stream server |
-| `Core/Packets/S2C/` | `TC*` / stream | Stream → Client | Stream responses |
-| `Core/Packets/G2L/` | `GL*` | Game → Login | Internal |
-| `Core/Packets/L2G/` | `LG*` | Login → Game | Internal |
-| `Core/Packets/Proxy/` | Proxy | Login/proxy-related | Legacy/proxy protocol helpers |
+| `src/packets/c2g*.rs`, `systems/*/packets.rs` | `CS*` | Client → Game | Implement `ClientPacket`; registered in `systems::X::register` or the core registry |
+| `src/packets/g2c*.rs`, `world*.rs`, `systems/*/packets.rs` | `SC*` | Game → Client | `packet_def!` + `impl Marshal` |
+| `src/stream/c2s.rs` | `CT*` | Client → Stream | Stream server |
+| `src/stream/s2c.rs` | `TC*` | Stream → Client | Stream responses |
+| `src/login/packets.rs` | `GL*` / `LG*` | Game ↔ Login | Internal |
+| `src/packets/proxy.rs` | Proxy | Level-2 / proxy packets | Legacy/proxy protocol helpers |
 
-### Direction folders (Login)
+### Packet locations (Login)
 
-| Folder | Prefix | Direction |
+| File | Prefix | Direction |
 | --- | --- | --- |
-| `Core/Packets/C2L/` | `CA*` | Client → Login |
-| `Core/Packets/L2C/` | `AC*` | Login → Client |
-| `Core/Packets/G2L/` / `L2G/` | `GL*` / `LG*` | Game ↔ Login |
+| `src/packets/c2l.rs` | `CA*` | Client → Login |
+| `src/packets/l2c.rs` | `AC*` | Login → Client |
+| `src/packets/g2l.rs` / `l2g.rs` | `GL*` / `LG*` | Game ↔ Login |
 
 ### Patterns
 
-**Game packets** (typical):
+**Game packets** (see `CONTRIBUTING-PORT.md` § "Registering packets"):
 
-- One class per opcode; constructor passes offset + level: `GamePacket(CSOffsets.CSBuyItemsPacket, 1)`.
-- Override `Read(PacketStream)` for inbound; outbound packets implement `Write`.
-- Inbound: `Read` often contains behavior (legacy style). Prefer following neighbors; `Execute()` exists to separate decode vs behavior when used.
-- Register new C2G/G2C types in `GameNetwork` (`RegisterPacket`). Stream/Login side networks have their own `RegisterPacket` lists.
-- Access player via `Connection.ActiveChar`; world lookups via `ParentWorld`.
+- One struct per opcode; inbound packets implement `ClientPacket` (`read(&mut PacketStream)` + `handle(server, conn)`), registered with `reg.register::<CSFooPacket>(LEVEL_PLAIN, cs::CSFooPacket)`.
+- Outbound packets: struct + `packet_def!(Name, level = ..., opcode = sc::Name)` + `impl Marshal`; packets built from a live object are encoded while holding its lock and sent as `raw_body_packet!`.
+- `packets::tests::no_duplicate_registrations` fails if two modules register the same opcode.
+- Wire formats must match the 1.2 protocol byte for byte; add byte-exact tests for every S → C packet.
+- Access the player through the connection's active character; world lookups through `server.world`.
 
-**Login packets**:
+**Login packets**: packet types in `src/packets/`, handlers in `src/handlers.rs` / `controllers/`.
 
-- Packet type (DTO) + **separate** `*PacketHandler` under `Core/PacketHandlers/` (cleaner DI style).
-- Handlers registered via `ServiceCollectionExtensions` in PacketHandlers/Network.
-
-Do not invent opcodes; match client 1.2 tables already in `*Offsets.cs`.
+Do not invent opcodes; use the 1.2 tables in `opcodes.rs` (game) and the login packet modules.
 
 ---
 
@@ -248,72 +250,80 @@ Use **code/wiki terms**, not modern player slang, in identifiers and discussions
 | **Dominion** | Castle siege content (not GvG shorthand) |
 | **Indun** | Instance dungeon |
 | **Gimmick** | Moving unit-like object (e.g. elevator) |
-| **Skills** under `Models/Game/Skills` | **Game combat mechanics**, not agent skills |
+| **Skills** under `systems/skills/` | **Game combat mechanics**, not agent skills |
 
-### Object hierarchy (simplified)
+### Object model (simplified)
 
 ```text
-GameObject          Models/Game/World/GameObject.cs
-  └─ BaseUnit       factions, buffs
-       ├─ Unit      stats, combat, skill controllers
-       │    ├─ Character, Npc (+ Portal), Mate, Slave
-       │    ├─ House, Shipyard, Gimmick, Transfer
-       └─ Doodad (+ DoodadCoffer)
+WorldObject (enum, world/object.rs)
+  ├─ units: embed UnitBase (models/unit.rs)
+  │    ├─ Character (PlayerRef), Npc (+ Portal), Mate, Slave
+  │    └─ House, Shipyard, Gimmick, Transfer
+  └─ Doodad (BaseUnit only)
 ```
+
+Each handle (`NpcRef`, `DoodadRef`, `SlaveRef`, …) is an `Entity<D>` (immutable obj id + `ObjectCore`) with the data behind one `Mutex`. Follow the locking rules in `CONTRIBUTING-PORT.md` (hold at most one object data lock; never call into the world while holding it).
 
 Full glossary: [`Docs/wiki/Code-Terminology.md`](Docs/wiki/Code-Terminology.md).
 
-### Managers vs GameData vs Models
+### Models vs data vs managers
 
 | Layer | Responsibility | Example |
 | --- | --- | --- |
-| **Models** | Entity state and domain behavior | `Character`, `Skill`, `Quest`, `Doodad` |
-| **GameData** | Load/cache **static** templates from SQLite | `ItemGameData`, `NpcGameData`, `BuffGameData` |
-| **Managers** | Runtime orchestration, spawns, persistence, systems | `ItemManager`, `WorldManager`, `QuestManager` |
-| **Packets** | Wire protocol edge | `CSStartSkillPacket` → manager/model |
+| **Models** (`src/models/`) | Entity state and domain behavior | `Character`, `Npc`, `Doodad`, `UnitBase` |
+| **Data** (`src/data/`, `systems/*/data.rs`) | Load/cache **static** templates from SQLite/JSON | item, skill, NPC template tables in `GameData` |
+| **Managers / systems** (`src/managers/`, `systems/*`) | Runtime orchestration, spawns, persistence | `ItemManager`, `WorldManager`, quest engine |
+| **Packets** | Wire protocol edge | `CSStartSkillPacket` → system/model |
 
 Static reference data → `GameData` + `compact.sqlite3`.  
-Per-character / world mutable state → managers + MySQL.
+Per-character / world mutable state → managers/systems + MySQL.
 
 ---
 
 ## Where to change X (task routing)
 
+Paths below are relative to `rust/crates/aaemu-game/src/` unless stated otherwise.
+
 | Task | Start here |
 | --- | --- |
-| Client packet handling (gameplay action) | `Core/Packets/C2G/CS*.cs` → related `*Manager` / model |
-| Server→client notify | `Core/Packets/G2C/SC*.cs` |
-| Login auth / world list | `AAEmu.Login/Core/PacketHandlers/`, `Authentication/`, `Controllers/` |
-| New manager | Class + `I*` in `Core/Managers/`; implement `ILoadable`/`IInitializable` if needed; **register both concrete and interface in `Program.cs`** |
-| Static template data | `GameData/*` + SQLite schema; optional `SQL/patches/compact/` |
-| Character behavior | `Models/Game/Char/Character*.cs` + `UnitManagers/CharacterManager` |
-| NPC / AI | `Models/Game/NPChar/`, `Models/Game/AI/v2/`, `AIManager` |
-| Skills / buffs / effects | `Models/Game/Skills/` (large `Effects/` tree), `SkillManager`, `BuffGameData` |
-| Quests | `Models/Game/Quests/`, `QuestManager` |
-| Housing / doodads | `Models/Game/Housing/`, `DoodadObj/`, `HousingManager`, `DoodadManager` |
-| World / zones / spawns | `Core/Managers/World/`, `Models/Game/World/`, `Data/Worlds/` |
-| Ships / vehicle physics | `Physics/`, `Models/Game/Units/Slave.cs`, `SlaveManager` |
-| GM commands | `Scripts/Commands/`, `Scripts/SubCommands/`, `CommandManager` |
+| Client packet handling (gameplay action) | `systems/<area>/packets.rs` or `packets/c2g*.rs` → related system/model |
+| Server→client notify | `systems/<area>/packets.rs` or `packets/g2c*.rs` / `world_objects.rs` |
+| Login auth / world list | `rust/crates/aaemu-login/src/handlers.rs`, `auth.rs`, `controllers/`, `services/` |
+| New runtime state / manager | Field of `systems::X::System` in `systems/X/`; startup in `System::start` |
+| Static template data | `systems/X/data.rs` (`Data::load`) or `data/`; optional `SQL/patches/compact/` |
+| Character behavior | `models/character.rs`, `managers/character.rs`, `systems/services/character.rs` |
+| NPC / AI | `systems/npcs/`, `systems/ai/` |
+| Skills / buffs / effects | `systems/skills/` (`effects/`, `buffs.rs`), `models/buff.rs` |
+| Quests | `systems/quests/` |
+| Housing / doodads | `systems/housing/`, `systems/npcs/doodad/`, `models/{house,doodad}.rs` |
+| World / zones / spawns | `world/`, `systems/npcs/spawn_manager.rs`, `app/Data/Worlds/` |
+| Ships / vehicle physics | `systems/vehicles/` (`ship_physics.rs`, `slaves.rs`) |
+| GM commands | `systems/services/commands/` |
 | Schema migration | `SQL/updates/` + base `SQL/aaemu_*.sql` |
-| Web API / Discord | `Services/WebApi/`, `Services/DiscordBotService.cs` |
-| Shared serialization / MySQL util | `AAEmu.Commons/` |
-| Package version bump | `Directory.Packages.props` |
+| Web API / Discord | `systems/services/webapi/`, `systems/services/discord.rs` |
+| Shared serialization / MySQL util | `rust/crates/aaemu-commons/` |
+| Dependency version bump | `[workspace.dependencies]` in `rust/Cargo.toml` |
 
 ---
 
 ## Build and test
 
-```powershell
-dotnet build
-dotnet test
+Run from `rust/`:
+
+```sh
+cargo build --workspace --all-targets
+cargo test --workspace
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo xtask ci            # fmt --check + clippy -D warnings + test, exactly as CI
 ```
 
-- SDK: .NET **10** (`global.json`).
-- Solution: `AAEmu.slnx`.
-- Filter example: `dotnet test --filter "FullyQualifiedName~GameNetworkTests"`.
-- Test projects: `AAEmu.UnitTests` (primary), `AAEmu.IntegrationTests`, `AAEmu.Login.IntegrationTests`.
-- Unit test bases: `TestBase`, `SqliteTestBase`, `IntegrationTestBase`; mocks under `Utils/Mocks/`.
-- Naming: `MethodName_Scenario_ExpectedResult` (see `AAEmu.UnitTests/README.md`).
+- Toolchain: stable Rust via rustup.
+- Filter example: `cargo test -p aaemu-game unit_state` (substring of the test path).
+- Unit tests live in `#[cfg(test)]` modules / `*_tests.rs` next to the code; integration tests in each crate's `tests/`.
+- Game flow tests run whole packet flows without MySQL (`test_support::test_server()`, `TestClient`); see `object_flow_tests.rs`, `world_flow_tests.rs`.
+- Tests needing real data are `#[ignore]`d and gated by env vars: `AAEMU_COMPACT_DB=rust/crates/aaemu-game/app/Data/compact.sqlite3 cargo test -p aaemu-game -- --ignored`; MySQL tests by `AAEMU_TEST_MYSQL`. CI does not run them — run them locally when touching that code.
+- Live end-to-end tests against running servers: `aaemu-testclient`, see [`rust/LIVE-TESTING.md`](rust/LIVE-TESTING.md).
 - Subsystem test priorities: [`Docs/TestingPlan_en.md`](Docs/TestingPlan_en.md).
 
 ---
@@ -324,56 +334,53 @@ When asked to modify, fix, or improve code, **do not invent conventions**. Inspe
 
 ### Authoritative sources (in order)
 
-1. **Neighboring code** in the same folder, namespace, and subsystem — this is the primary style guide.
-2. **[`.editorconfig`](.editorconfig)** — formatting, naming, analyzer severities (IDE/CA rules). Run `dotnet build` to surface violations.
-3. **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — branch from `develop`, present-tense commits, tests with changes, follow project code style.
-4. **`Docs/wiki/`** — domain language and architecture context:
+1. **Neighboring code** in the same module and subsystem — this is the primary style guide.
+2. **[`rust/crates/aaemu-game/CONTRIBUTING-PORT.md`](rust/crates/aaemu-game/CONTRIBUTING-PORT.md)** — module layout, shared-file rules, object model, locking rules, testing conventions.
+3. **`rustfmt` + `clippy`** — `cargo fmt --all` and `cargo clippy --workspace --all-targets -- -D warnings` (0 warnings).
+4. **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — branch from `develop`, Conventional Commits, tests with changes.
+5. **`Docs/wiki/`** — domain language and architecture context:
    - [`Code-Terminology.md`](Docs/wiki/Code-Terminology.md) — game-object hierarchy, in-game terms.
-   - [`Components.md`](Docs/wiki/Components.md) — Login/Game/Aspire roles and data stores.
-   - [`Developer-Notes.md`](Docs/wiki/Developer-Notes.md) — manager DI and parallel loading.
+   - [`Components.md`](Docs/wiki/Components.md) — Login/Game roles and data stores.
+   - [`Developer-Notes.md`](Docs/wiki/Developer-Notes.md) — startup order and subsystem wiring.
    - [`Documentation-Maintenance.md`](Docs/wiki/Documentation-Maintenance.md) — when and how to update wiki pages.
    - [`Home.md`](Docs/wiki/Home.md) — documentation map.
-5. **[`Docs/TestingPlan_en.md`](Docs/TestingPlan_en.md)** — subsystem map and testing priorities.
-6. **Login networking** — [`AAEmu.Login/Docs/networking.md`](AAEmu.Login/Docs/networking.md).
+6. **[`Docs/TestingPlan_en.md`](Docs/TestingPlan_en.md)** — subsystem map and testing priorities.
+7. **[`rust/PORT-AUDIT.md`](rust/PORT-AUDIT.md)** — what was ported from the C# code and what is still missing.
 
-### C# style highlights (from `.editorconfig`)
+### Rust style highlights
 
-- 4-space indent, CRLF, UTF-8 BOM, file-scoped namespaces matching folder paths.
-- `#nullable enable` at file top where the area already uses it.
-- `var` preferred; block bodies for methods; expression bodies for properties/accessors.
-- Naming: `_camelCase` instance fields, `s_camelCase` static fields, `PascalCase` types/members/locals-functions.
-- Avoid `this.` qualification; sort `using` with `System.*` first; NLog `Logger` via `LogManager.GetCurrentClassLogger()`.
+- `rustfmt` defaults; edition 2021 and shared settings from the workspace `Cargo.toml`.
+- Errors: `anyhow::Result` with `.context(..)` at startup, typed errors (`error.rs`) in library code; no `unwrap()` on network or DB input.
+- Logging via `tracing` (`tracing::info!`, `warn!`, `error!`); no `println!` in the servers.
+- Async on tokio; never hold a `std::sync::Mutex` guard across `.await`.
+- Keep identifiers in wiki terminology; packet structs keep their 1.2 names (`CSFooPacket`, `SCFooPacket`).
 
 ### Project patterns to follow
 
 | Area | Location | Pattern |
 | --- | --- | --- |
-| **Managers** | `AAEmu.Game/Core/Managers/` | `*Manager` + `I*Manager`; many still extend `Singleton<T>` **and** are registered in DI. Newer code: constructor injection, `ILoadable` / `IInitializable`. Orchestrator runs Load/Initialize — **register new managers in `Program.cs`** (concrete + interface). |
-| **Packets (Game)** | `Core/Packets/{C2G,G2C,...}/` | One class per packet; prefix = direction; offsets in `*Offsets.cs`; inherit `GamePacket` / stream variants; register in `*Network`. |
-| **Packets (Login)** | `Packets/` + `PacketHandlers/` | Split DTO vs handler; handlers in DI. |
-| **Game data** | `GameData/` | `IGameDataLoader` (`Load(SqliteConnection)`, `PostLoad`); discovered/orchestrated by `GameDataManager`. |
-| **Models** | `Models/Game/` | Domain types separate from managers/packets; use wiki terminology. |
-| **Network** | `Core/Network/` | Protocol handlers route to packet classes; connections in `Connections/`. |
-| **ID allocation** | `Core/Managers/Id/` | Typed `*IdManager` per object kind. |
-| **Commands** | `Scripts/Commands/` | `ICommand` implementations loaded by script reflector/compiler. |
-| **Shared** | `AAEmu.Commons/` | Network primitives and utilities for Login + Game. |
-| **Tests** | `AAEmu.UnitTests/` | xUnit; mirror source layout; reuse fixtures/mocks. |
-
-Legacy `Singleton<T>.Instance` and static access still exist — **do not mass-migrate** unless the task explicitly calls for it. For new dependencies, follow the constructor-injection style used in recently touched managers. `SingletonContainer.ServiceProvider` bridges some legacy paths.
-
-Circular manager deps: inject `Lazy<T>` so the orchestrator does not treat them as hard edges.
+| **Subsystems** | `aaemu-game/src/systems/X/` | Everything of subsystem `X` lives here: `packets.rs`, `data.rs` (`Data::load`), runtime state on `System`, `System::start`, `System::save`. |
+| **Shared files** | `server.rs`, `main.rs`, `opcodes.rs`, `systems/mod.rs`, `models/{character,unit}.rs` | Edit additively and only where marked (see `CONTRIBUTING-PORT.md` § 3). |
+| **Packets (Game)** | `src/packets/`, `systems/*/packets.rs` | `ClientPacket` / `packet_def!` + `Marshal`; byte-exact tests. |
+| **Packets (Login)** | `src/packets/` + `src/handlers.rs` | Packet types separate from handlers. |
+| **Game data** | `src/data/`, `systems/*/data.rs` | Loaded once into `GameData`; read-only afterwards. |
+| **Models** | `src/models/` | Domain types separate from managers/packets; use wiki terminology. |
+| **ID allocation** | `src/managers/id.rs` | `server.ids.object`, `.doodad`, `.housing`, … (every id manager exists already). |
+| **Commands** | `systems/services/commands/` | Compiled into the server. |
+| **Shared** | `rust/crates/aaemu-commons/` | Network primitives and utilities for Login + Game. |
+| **Tests** | next to the code / `tests/` | Reuse `test_support` helpers and existing fixtures. |
 
 ### Workflow for modifications and improvements
 
-1. **Scope** — identify the subsystem (packet, manager, GameData, model, config) and read 2–3 representative files plus any `I*` interface and tests for that type.
+1. **Scope** — identify the subsystem (packet, system, data, model, config) and read 2–3 representative files plus their tests.
 2. **Implement** — smallest change that solves the task; match naming, file placement, logging, and error-handling patterns of the surrounding code.
-3. **Wire-up** — new manager/service: register in `Program.cs` like peers; new game packet: offsets + `RegisterPacket` in the correct `*Network`; new login handler: packet + handler + DI extension.
+3. **Wire-up** — new game packet: struct + `register` in the subsystem; new state/startup work: `systems::X::System` / `start`; new login handler: packet + handler.
 4. **SQL** — if schema changes, add `SQL/updates/…` **and** update base `SQL/aaemu_*.sql`.
-5. **Test** — add or extend tests in `AAEmu.UnitTests` when changing behavior; reuse existing patterns.
-6. **Verify** — `dotnet build` and `dotnet test` must pass before claiming done.
-7. **Document** — update `Docs/wiki/` only when user-facing setup, config, or behavior changes; follow `Documentation-Maintenance.md`. Do not add unsolicited markdown elsewhere.
+5. **Test** — add or extend tests when changing behavior; reuse existing patterns.
+6. **Verify** — `cargo xtask ci` (or fmt + clippy + test) must pass before claiming done.
+7. **Document** — update `Docs/wiki/` only when user-facing setup, config, or behavior changes; follow `Documentation-Maintenance.md`. Record deviations from the C# behavior in `PORTING.md`. Do not add unsolicited markdown elsewhere.
 
-**Avoid:** drive-by refactors, new frameworks, reformatting unrelated files, renaming domain terms away from wiki vocabulary, and broad style “cleanup” outside the requested change.
+**Avoid:** drive-by refactors, new frameworks or crates without need, reformatting unrelated files, renaming domain terms away from wiki vocabulary, and broad style “cleanup” outside the requested change.
 
 ---
 
@@ -381,7 +388,7 @@ Circular manager deps: inject `Lazy<T>` so the orchestrator does not treat them 
 
 - Detach long-lived GUIs (launcher, server consoles) from the agent shell Job Object or they die when the command ends.
 - Port **1234** often conflicted (e.g. ManyCam): remap Login `InternalNetwork` + Game `LoginNetwork` together or the client shows **Maintenance**.
-- Aspire dashboard token is printed by AppHost at startup (`/login?t=...`).
+- A running `aaemu-game.exe` / `aaemu-login.exe` locks its binary; stop it before `cargo build` rebuilds it.
 
 ---
 
@@ -391,7 +398,7 @@ Circular manager deps: inject `Lazy<T>` so the orchestrator does not treat them 
 - Silent multi‑GB MEGA re-downloads without inventory + HitL
 - Changing default production Docker Compose passwords casually
 - Full protocol reverse-engineering writeups without a concrete task
-- Mass migration off `Singleton<T>` without an explicit request
+- Editing the legacy C# projects (they are being removed)
 
 ---
 
@@ -400,5 +407,5 @@ Circular manager deps: inject `Lazy<T>` so the orchestrator does not treat them 
 1. Inventory script: client + compact + launcher **OK**
 2. Login listens on **1237**
 3. Game listens on **1239** / **1250**
-4. Standalone: login log shows **Registered GameServer**
+4. Login log shows **Registered GameServer**
 5. Launcher points at `.client_files/.../bin32/archeage.exe`, server `127.0.0.1`

@@ -18,6 +18,13 @@ assignees: ''
 
 `develop`
 
+**Environment**
+<!-- Fill in what applies. `git rev-parse --short HEAD` prints the commit, `rustc --version` the Rust version. -->
+- Commit (or release version):
+- Rust version (`rustc --version`, when building from source):
+- OS (server):
+- How the server is run (`cargo run`, published release, Docker, `cargo xtask dev`):
+
 **Bug description**
 
 <!-- A more detail description of the bug -->

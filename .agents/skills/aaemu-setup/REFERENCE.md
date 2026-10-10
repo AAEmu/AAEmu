@@ -10,7 +10,7 @@ Wiki sources of truth:
 | Asset | Approx size | Source | Automation |
 | --- | --- | --- | --- |
 | Client 1.2 `r208022` | multi‑GB (archive ~8GB+) | MEGA / Google Drive (wiki) | **HitL only** — inventory + user download |
-| Compact / `compact.sqlite3` | tens of MB archive | MEGA (wiki) | **HitL only** — then copy into `AAEmu.Game/Data/` |
+| Compact / `compact.sqlite3` | tens of MB archive | MEGA (wiki) | **HitL only** — then copy into `rust/crates/aaemu-game/app/Data/` |
 | AAEmu Launcher | ~few MB | GitHub releases | Optional script fetch if missing |
 
 ### Inventory scripts (PowerShell + Bash)
@@ -44,7 +44,7 @@ Optional: `chmod +x .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh` the
 **Skip rules (do not re-download):**
 
 - Extracted client: `game_pak` exists and size is large (script default ≥ 1 GB) **and** `bin32/archeage.exe` exists  
-- Compact: `AAEmu.Game/Data/compact.sqlite3` exists and size ≥ 1 MB  
+- Compact: `rust/crates/aaemu-game/app/Data/compact.sqlite3` (or `.server_files/AAEmu.Game/Data/compact.sqlite3` for Docker) exists and size ≥ 1 MB  
 - Launcher: `AAEmu.Launcher.exe` under `.client_files/launcher/`  
 - Archives under `.client_files/*.7z` count as “archive present” but still need extract if runtime files are missing  
 
@@ -56,7 +56,7 @@ Optional: `chmod +x .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh` the
 .client_files/ArcheAge 1.2 (r208022) for AAEmu/game_pak
 .client_files/ArcheAge 1.2 (r208022) for AAEmu/bin32/archeage.exe
 .client_files/launcher/AAEmu.Launcher/AAEmu.Launcher.exe
-AAEmu.Game/Data/compact.sqlite3
+rust/crates/aaemu-game/app/Data/compact.sqlite3
 ```
 
 Nested extract folders: move contents up so the paths above resolve.
@@ -77,14 +77,14 @@ Nested extract folders: move contents up so the paths above resolve.
 | 1239 | Game public |
 | 1250 | Game stream |
 | 1280 | Game Web API (optional) |
-| 3306 | Host MySQL (Path B) |
-| 15133 | Aspire dashboard (Path A, http profile) |
+| 3306 | MySQL (host service on Path B; Compose `db` container on Path A, `DB_PORT` in `.env`) |
+| 8080 | Adminer (optional, `docker compose up -d adminer`) |
 
 Server list for the client comes from login **`GameServers` config**, not MySQL `game_servers` rows.
 
 ## Config.Local templates
 
-### Login (`AAEmu.Login/Config.Local.json`) — Path B (+ optional port remap)
+### Login (`rust/crates/aaemu-login/app/Config.Local.json`) — Path B (+ optional port remap)
 
 ```json
 {
@@ -115,7 +115,7 @@ Server list for the client comes from login **`GameServers` config**, not MySQL 
 }
 ```
 
-### Game (`AAEmu.Game/Config.Local.json`)
+### Game (`rust/crates/aaemu-game/app/Config.Local.json`)
 
 Path A often only needs `ClientData`. Path B needs DB + LoginNetwork + ClientData.
 
@@ -146,16 +146,17 @@ Path A often only needs `ClientData`. Path B needs DB + LoginNetwork + ClientDat
 
 Replace `REPO_ROOT` with the absolute repo path. Keep `SecretKey` identical on both sides.
 
-Game load order: `Config.json` → `Configurations/*.json` → **`Config.Local.json`**.
+Game load order: `Config.json` → `Configurations/*.json` → **`Config.Local.json`** → environment variables (`Section__Key`) → command line (`--Section:Key=value`).
 
-`Config.Local.json` is copied to `bin` on build when present in the project folder.
+`Config.Local.json` is read from the application directory at startup (by default the crate `app/` folder; `AAEMU_APP_PATH` overrides it). No rebuild is needed after editing it.
 
-## Path A — Aspire
+## Path A — `cargo xtask dev`
 
-- `dotnet run --project AAEmu.Aspire.AppHost --launch-profile http`
-- MySQL container + volume managed by Aspire (password in user secrets)
-- Login/Game are **not** Docker app containers
-- Dashboard token is printed at startup
+- `cd rust && cargo xtask dev --release`
+- MySQL container from `docker-compose.yaml` (service `db`); user/password/port from `.env` (`DB_USER`, `DB_PASSWORD`, `DB_PORT`); data in `.server_files/AAEmu.Database/mysql`
+- Login/Game are **not** Docker app containers; xtask passes DB settings, `GameServers` and `LoginNetwork` as environment variables
+- Expects the login internal port **1234**; options: `--no-db`, `--db-host`, `--db-port`
+- Adminer: `docker compose up -d adminer` → http://localhost:8080
 
 ## Path B — Host MySQL
 
@@ -180,7 +181,8 @@ mysql -u root -p aaemu_game  < SQL/aaemu_game.sql
 **Windows (PowerShell agents):**
 
 - Detach launcher/server windows (`Win32_Process.Create`) so agent Job Objects do not kill them.
-- Tee logs: `dotnet app.dll 2>&1 | Tee-Object -FilePath .server_files/logs/login.log`
+- Tee logs: `cargo run --release -p aaemu-login 2>&1 | Tee-Object -FilePath .server_files/logs/login.log`
+  (logs go to stdout; set `$env:RUST_LOG = "debug"` for more detail, `$env:NO_COLOR = "1"` for plain text files)
 
 **Linux / macOS (bash agents):**
 
@@ -188,8 +190,9 @@ mysql -u root -p aaemu_game  < SQL/aaemu_game.sql
 
 ```bash
 mkdir -p .server_files/logs
-dotnet run --project AAEmu.Login 2>&1 | tee .server_files/logs/login.log
-dotnet run --project AAEmu.Game  2>&1 | tee .server_files/logs/game.log
+cd rust
+NO_COLOR=1 cargo run --release -p aaemu-login 2>&1 | tee ../.server_files/logs/login.log
+NO_COLOR=1 cargo run --release -p aaemu-game  2>&1 | tee ../.server_files/logs/game.log
 ```
 
 - Launcher/client play remains a Windows-side step if the human has no Windows client host.
@@ -199,8 +202,9 @@ dotnet run --project AAEmu.Game  2>&1 | tee .server_files/logs/game.log
 | Symptom | Likely cause |
 | --- | --- |
 | **Maintenance** on server list | Game not registered (port 1234 conflict, bad LoginNetwork, SecretKey) |
-| Aspire dies at start | Docker/Podman not running |
-| Missing data / sqlite errors | No `compact.sqlite3` |
+| `cargo xtask dev` fails at start | Docker not running (or use `--no-db` with a host MySQL) |
+| Missing data / sqlite errors | No `compact.sqlite3` in the game `Data/` folder |
+| `cargo` not found | Rust not installed or shell not restarted after rustup |
 | Bad client data | Wrong `ClientData.Sources` |
 | Lost characters after path switch | Path A and Path B databases are separate |
 | Multi‑GB download again | Agent skipped inventory — always run `Test-AaemuAssets.ps1` or `test-aaemu-assets.sh` first |
@@ -214,5 +218,5 @@ Registered GameServer ... (AAEmu.Game) from ...
 ## Not supported as “the” path
 
 - Docker MySQL + host apps labeled as non-Docker setup  
-- Aspire without an OCI runtime  
+- `cargo xtask dev` without Docker (except `--no-db` against a host MySQL)  
 - Committing client/launcher/sqlite into git  

@@ -3,7 +3,8 @@
   Inventory AAEmu local assets; skip re-download when present.
 
 .DESCRIPTION
-  Checks .client_files client/launcher layout and AAEmu.Game/Data/compact.sqlite3.
+  Checks .client_files client/launcher layout and the game server's compact.sqlite3
+  (rust/crates/aaemu-game/app/Data/ or .server_files/AAEmu.Game/Data/).
   Never downloads MEGA/Drive multi-GB content. Optionally fetches the small
   GitHub launcher release when missing, or opens wiki download pages for HitL.
 
@@ -134,9 +135,15 @@ else {
     }
 }
 
-# compact.sqlite3
-$compact = Join-Path $RepoRoot "AAEmu.Game\Data\compact.sqlite3"
-if (Test-Path -LiteralPath $compact) {
+# compact.sqlite3: game application directory (source checkout) or the Docker server files
+$compactTarget = Join-Path $RepoRoot "rust\crates\aaemu-game\app\Data\compact.sqlite3"
+$compactCandidates = @(
+    $compactTarget,
+    (Join-Path $RepoRoot ".server_files\AAEmu.Game\Data\compact.sqlite3")
+)
+$compactLegacy = Join-Path $RepoRoot "AAEmu.Game\Data\compact.sqlite3"
+$compact = $compactCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+if ($compact) {
     $c = Get-Item -LiteralPath $compact
     $sizeText = Format-Size $c.Length
     if ($c.Length -ge $MinCompactBytes) {
@@ -146,13 +153,16 @@ if (Test-Path -LiteralPath $compact) {
         Add-Result "compact.sqlite3" "PARTIAL" "file too small ($sizeText)" $compact
     }
 }
+elseif (Test-Path -LiteralPath $compactLegacy) {
+    Add-Result "compact.sqlite3" "PARTIAL" "found at the old C# location; copy it to rust\crates\aaemu-game\app\Data\compact.sqlite3 (no re-download)" $compactLegacy
+}
 else {
     $compactArchive = @(Get-ClientArchives | Where-Object { $_ -match 'compact|Compact|Server_Compact' })
     if ($compactArchive.Count -gt 0) {
-        Add-Result "compact.sqlite3" "PARTIAL" ("archive present; extract and copy to AAEmu.Game\Data\compact.sqlite3: " + $compactArchive[0]) $compactArchive[0]
+        Add-Result "compact.sqlite3" "PARTIAL" ("archive present; extract and copy to rust\crates\aaemu-game\app\Data\compact.sqlite3: " + $compactArchive[0]) $compactArchive[0]
     }
     else {
-        Add-Result "compact.sqlite3" "MISSING" "Need compact.sqlite3 - HitL MEGA download, then place under AAEmu.Game\Data\" ""
+        Add-Result "compact.sqlite3" "MISSING" "Need compact.sqlite3 - HitL MEGA download, then place under rust\crates\aaemu-game\app\Data\" ""
     }
 }
 
@@ -250,7 +260,7 @@ if ($missing.Name -contains "client" -or $partial.Name -contains "client") {
 }
 if ($missing.Name -contains "compact.sqlite3" -or $partial.Name -contains "compact.sqlite3") {
     Write-Host "  - compact.sqlite3: $UrlCompactMega"
-    Write-Host "    Copy final file to AAEmu.Game\Data\compact.sqlite3"
+    Write-Host "    Copy final file to rust\crates\aaemu-game\app\Data\compact.sqlite3"
 }
 if ($missing.Name -contains "launcher") {
     Write-Host "  - Launcher: $UrlLauncherReleases  (or re-run with -FetchLauncherIfMissing)"

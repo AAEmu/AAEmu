@@ -1,3 +1,7 @@
 * text=auto
 
 *.cs text eol=lf
+
+# Shell scripts must keep LF endings (Docker / Linux / Git Bash), batch files CRLF
+*.sh text eol=lf
+*.bat text eol=crlf

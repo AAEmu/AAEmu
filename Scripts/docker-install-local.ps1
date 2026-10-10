@@ -1,6 +1,6 @@
 # Switch to the root folder
 Write-Host "Switching folder to root folder (AAEmu\)"
-Set-Location ..
+Set-Location (Join-Path $PSScriptRoot "..")
 Write-Host "Done"
 
 
@@ -51,20 +51,20 @@ if ((Test-Path -Path ".env" -PathType leaf) -eq $False) {
 }
 Write-Host "Done"
 
-Write-Host "Copying file AAEmu\AAEmu.Login\Config.json to AAEmu\.server_files\AAEmu.Login\Config.json if not already present."
-Copy-Item -Path "AAEmu.Login\Config.json" -Destination ".server_files\AAEmu.Login\Config.json" -Force -PassThru
+Write-Host "Copying file AAEmu\rust\crates\aaemu-login\app\Config.json to AAEmu\.server_files\AAEmu.Login\Config.json if not already present."
+Copy-Item -Path "rust\crates\aaemu-login\app\Config.json" -Destination ".server_files\AAEmu.Login\Config.json" -Force -PassThru
 Write-Host "Done"
 
-Write-Host "Copying file AAEmu\AAEmu.Game\Config.json to AAEmu\.server_files\AAEmu.Game\Config.json if not already present."
-Copy-Item -Path "AAEmu.Game\Config.json" -Destination ".server_files\AAEmu.Game\Config.json" -Force -PassThru
+Write-Host "Copying file AAEmu\rust\crates\aaemu-game\app\Config.json to AAEmu\.server_files\AAEmu.Game\Config.json if not already present."
+Copy-Item -Path "rust\crates\aaemu-game\app\Config.json" -Destination ".server_files\AAEmu.Game\Config.json" -Force -PassThru
 Write-Host "Done"
 
-Write-Host "Copying folder AAEmu\AAEmu.Game\Configurations to AAEmu\.server_files\AAEmu.Game\ if not already present."
-Copy-Item -Path "AAEmu.Game\Configurations" -Destination ".server_files\AAEmu.Game\" -Recurse -Force -PassThru
+Write-Host "Copying folder AAEmu\rust\crates\aaemu-game\app\Configurations to AAEmu\.server_files\AAEmu.Game\ if not already present."
+Copy-Item -Path "rust\crates\aaemu-game\app\Configurations" -Destination ".server_files\AAEmu.Game\" -Recurse -Force -PassThru
 Write-Host "Done"
 
-Write-Host "Copying folder AAEmu\AAEmu.Game\Data to AAEmu\.server_files\AAEmu.Game\ if not already present."
-Copy-Item -Path "AAEmu.Game\Data" -Destination ".server_files\AAEmu.Game\" -Recurse -Force -PassThru
+Write-Host "Copying folder AAEmu\rust\crates\aaemu-game\app\Data to AAEmu\.server_files\AAEmu.Game\ if not already present."
+Copy-Item -Path "rust\crates\aaemu-game\app\Data" -Destination ".server_files\AAEmu.Game\" -Recurse -Force -PassThru
 Write-Host "Done"
 
 # Now configuring files in place

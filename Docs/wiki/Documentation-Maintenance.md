@@ -36,4 +36,4 @@ Keep the wiki aligned with merged behavior in `develop`.
 
 - [Home](Home)
 - [Developer Notes](Developer-Notes)
-- [Aspire Development Guide](Aspire-Development-Guide)
+- [Local Development Guide](Local-Development-Guide)

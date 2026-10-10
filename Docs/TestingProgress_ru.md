@@ -3,6 +3,11 @@
 - Audience: Контрибьюторы и мейнтейнеры
 - Last verified against: `develop` on March 6, 2026
 
+> **Примечание (порт на Rust):** этот отчёт относится к прежней кодовой базе
+> на C# (.NET) (`AAEmu.UnitTests`, xUnit/Moq) и сохранён как история. Тесты
+> серверов на Rust находятся в `rust/crates/` и запускаются командой
+> `cd rust && cargo test --workspace` (или `cargo xtask ci`).
+
 **Дата отчёта:** 6 марта 2026 г.
 
 ## Текущая статистика

@@ -6,6 +6,14 @@
 
 <!-- markdownlint-disable-file MD012 MD013 MD022 MD032 MD058 MD060 -->
 
+> **Note (Rust port):** this document was written for the former C# (.NET)
+> code base (`AAEmu.Game`, `AAEmu.UnitTests`, xUnit/Moq) and is kept as a
+> record. The servers are now the Rust crates in `rust/crates/`; tests live next
+> to the code (`#[cfg(test)]` modules, `*_tests.rs`) and in each crate's
+> `tests/` folder. Run them with `cd rust && cargo test --workspace` (or
+> `cargo xtask ci` for fmt + clippy + tests). Game configuration now lives in
+> `rust/crates/aaemu-game/app/` (`Config.json`, `Configurations/`).
+
 ## Key Subsystems
 
 1. **Game Service** – `AAEmu.Game/GameService.cs` – responsible for initialization, startup and shutdown of server components, manages server lifecycle.
@@ -16,7 +24,7 @@
    - `*ProtocolHandler.cs` – packet parsing and routing.
 1. **Packet System** – files in `AAEmu.Game/Core/Packets/*` (C2G, C2S, G2C, S2C, Proxy, L2G, G2L). Contains business logic for validation and handling of game actions (e.g., `CSBuyItemsPacket.cs`, `SCCharacterListPacket.cs`).
 1. **Game Data** – `AAEmu.Game/GameData/*.cs`. Stores static and dynamic information about items, NPCs, locations, quests, etc. This is the core of business logic (e.g., `ItemGameData.cs`, `NpcGameData.cs`).
-1. **Configuration** – `AAEmu.Game/Config.json` and files in `AAEmu.Game/Configurations/`. Contains server parameters, character settings, balance, etc.
+1. **Configuration** – `Config.json` and files in `Configurations/` of the game application directory (now `rust/crates/aaemu-game/app/`). Contains server parameters, character settings, balance, etc.
 1. **Utilities and Common Libraries** – `AAEmu.Commons/*`. Provides helper functions (XML serialization, logging, etc.).
 
 ## Critical Business Logic

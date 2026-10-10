@@ -194,8 +194,14 @@ else
 fi
 
 # --- compact.sqlite3 ---
-COMPACT="${REPO_ROOT}/AAEmu.Game/Data/compact.sqlite3"
-if [[ -f "$COMPACT" ]]; then
+# Game application directory (source checkout) or the Docker server files.
+COMPACT_TARGET="${REPO_ROOT}/rust/crates/aaemu-game/app/Data/compact.sqlite3"
+COMPACT_LEGACY="${REPO_ROOT}/AAEmu.Game/Data/compact.sqlite3"
+COMPACT=""
+for c in "$COMPACT_TARGET" "${REPO_ROOT}/.server_files/AAEmu.Game/Data/compact.sqlite3"; do
+  if [[ -f "$c" ]]; then COMPACT="$c"; break; fi
+done
+if [[ -n "$COMPACT" ]]; then
   C_SIZE="$(file_size "$COMPACT")"
   SIZE_TXT="$(format_size "$C_SIZE")"
   if (( C_SIZE >= MIN_COMPACT )); then
@@ -203,13 +209,15 @@ if [[ -f "$COMPACT" ]]; then
   else
     add_result "compact.sqlite3" "PARTIAL" "file too small (${SIZE_TXT})" "$COMPACT"
   fi
+elif [[ -f "$COMPACT_LEGACY" ]]; then
+  add_result "compact.sqlite3" "PARTIAL" "found at the old C# location; copy it to rust/crates/aaemu-game/app/Data/compact.sqlite3 (no re-download)" "$COMPACT_LEGACY"
 else
   C_ARCH="$(list_archives | grep -Ei 'compact|Server_Compact' || true)"
   if [[ -n "$C_ARCH" ]]; then
     FIRST="$(echo "$C_ARCH" | head -n1)"
-    add_result "compact.sqlite3" "PARTIAL" "archive present; extract and copy to AAEmu.Game/Data/compact.sqlite3: ${FIRST}" "$FIRST"
+    add_result "compact.sqlite3" "PARTIAL" "archive present; extract and copy to rust/crates/aaemu-game/app/Data/compact.sqlite3: ${FIRST}" "$FIRST"
   else
-    add_result "compact.sqlite3" "MISSING" "Need compact.sqlite3 - HitL MEGA download, then place under AAEmu.Game/Data/" ""
+    add_result "compact.sqlite3" "MISSING" "Need compact.sqlite3 - HitL MEGA download, then place under rust/crates/aaemu-game/app/Data/" ""
   fi
 fi
 
@@ -329,7 +337,7 @@ if [[ "$HAS_CLIENT_ISSUE" -eq 1 ]]; then
 fi
 if [[ "$HAS_COMPACT_ISSUE" -eq 1 ]]; then
   echo "  - compact.sqlite3: ${URL_COMPACT_MEGA}"
-  echo "    Copy final file to AAEmu.Game/Data/compact.sqlite3"
+  echo "    Copy final file to rust/crates/aaemu-game/app/Data/compact.sqlite3"
 fi
 if [[ "$HAS_LAUNCHER_ISSUE" -eq 1 ]]; then
   echo "  - Launcher: ${URL_LAUNCHER}  (or re-run with --fetch-launcher)"

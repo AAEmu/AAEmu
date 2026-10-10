@@ -4,7 +4,7 @@
 # Usage (from anywhere; repo root is inferred):
 #   bash Scripts/find-tick-starvation.sh
 #   bash Scripts/find-tick-starvation.sh --watch
-#   bash Scripts/find-tick-starvation.sh path/to/Server.log
+#   bash Scripts/find-tick-starvation.sh path/to/game.log
 #   bash Scripts/find-tick-starvation.sh --watch path/to/game.log
 #
 #   bash Scripts/find-tick-starvation.sh --tail 2000
@@ -29,7 +29,7 @@ Find #1491 evidence: ActiveRegionTick + Tick WARN pairs with the same duration.
   bash Scripts/find-tick-starvation.sh --watch
   bash Scripts/find-tick-starvation.sh --tail 2000          # last N lines only (after Game restart)
   bash Scripts/find-tick-starvation.sh --since 21:34:00     # lines at/after HH:MM:SS today
-  bash Scripts/find-tick-starvation.sh path/to/Server.log
+  bash Scripts/find-tick-starvation.sh path/to/game.log
 
 Exit: 0 = starvation pairs found (bug), 1 = no pairs (fix OK or no heavy pass yet), 2 = error
 EOF
@@ -72,19 +72,13 @@ done
 
 discover_logs() {
   local f
-  shopt -s globstar nullglob
-  # Prefer canonical Server.log; game.log tee often duplicates the same lines.
-  for f in \
-    "${REPO_ROOT}/AAEmu.Game/bin/"**/Logs/Server.log \
-    "${REPO_ROOT}/AAEmu.Game/Logs/Server.log" \
-    "${REPO_ROOT}/.server_files/"**/Logs/Server.log
-  do
-    [[ -f "$f" ]] && echo "$f" && return
-  done
+  shopt -s nullglob
+  # The Rust game server logs to stdout (RUST_LOG); capture it into one of these, e.g.
+  #   (cd rust && NO_COLOR=1 cargo run --release -p aaemu-game 2>&1 | tee ../.server_files/logs/game.log)
   for f in "${REPO_ROOT}/.server_files/logs/game.log" "${REPO_ROOT}/.server_files/logs/"*game*.log; do
     [[ -f "$f" ]] && echo "$f"
   done
-  shopt -u globstar nullglob
+  shopt -u nullglob
 }
 
 if [[ ${#FILES[@]} -eq 0 ]]; then
@@ -94,9 +88,10 @@ fi
 if [[ ${#FILES[@]} -eq 0 ]]; then
   echo "No Game logs found."
   echo "Start Game first, walk in main_world, then re-run."
-  echo "Typical path:"
-  echo "  ${REPO_ROOT}/AAEmu.Game/bin/Debug/net10.0/Logs/Server.log"
-  echo "Or pass a file:  bash Scripts/find-tick-starvation.sh /path/to/Server.log"
+  echo "The game server logs to stdout; capture it, e.g.:"
+  echo "  mkdir -p .server_files/logs"
+  echo "  (cd rust && NO_COLOR=1 cargo run --release -p aaemu-game 2>&1 | tee ../.server_files/logs/game.log)"
+  echo "Or pass a file:  bash Scripts/find-tick-starvation.sh /path/to/game.log"
   exit 2
 fi
 

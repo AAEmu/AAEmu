@@ -24,7 +24,7 @@ This is ideal for setup edge cases, architecture questions, and workflows.
 Use a descriptive title with key context.
 
 Example:
-`Aspire startup fails on Ubuntu 24.04 with missing MySQL connection`
+`cargo xtask dev fails on Ubuntu 24.04 with missing MySQL connection`
 
 ### Body
 
@@ -44,7 +44,7 @@ Include these sections:
 
 ## Environment
 - OS:
-- Workflow: Aspire / Manual / Docker
+- Workflow: cargo xtask dev / Manual / Release build / Docker
 - Branch/commit:
 
 ## Reproduction steps

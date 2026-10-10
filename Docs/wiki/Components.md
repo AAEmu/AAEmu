@@ -1,7 +1,7 @@
 # Understanding AAEmu Components
 
 - Audience: Contributors, players, and testers
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on October 10, 2026
 - Prerequisites: None
 
 Understanding the project components makes setup and debugging much easier.
@@ -23,24 +23,27 @@ It uses two schemas:
 
 ## Application components
 
-### Aspire AppHost (optional orchestration)
+### `cargo xtask dev` (optional orchestration)
 
-Aspire AppHost is the preferred contributor workflow for local development.
-It orchestrates MySQL, login server, and game server, and injects runtime
-configuration through environment variables.
+`cargo xtask dev` is the preferred contributor workflow for local development
+(it replaces the former .NET Aspire AppHost). It starts MySQL in Docker, then
+the login server and the game server, and injects runtime configuration
+through environment variables.
 
 It does not replace login/game components. It orchestrates them.
 
 ### Login server
 
-Handles authentication and server listing for clients.
+Handles authentication and server listing for clients (`aaemu-login`, Rust).
 
-Public login networking is ASP.NET Core Kestrel-based.
+Listens on port `1237` for clients and `1234` for game server registration.
 
 ### Game server
 
-Main world simulation process.
+Main world simulation process (`aaemu-game`, Rust).
 Uses reference data (SQLite) and mutable state (MySQL).
+
+Listens on port `1239` (game), `1250` (stream) and `1280` (web API).
 
 ### Game launcher
 
@@ -78,6 +81,6 @@ sequenceDiagram
 ## Related
 
 - [Home](Home)
-- [Aspire Development Guide](Aspire-Development-Guide)
+- [Local Development Guide](Local-Development-Guide)
 - [Installation & Setup](Installation-&-Setup)
 - [Working with the Config.json files and server listings](Working-with-the-Config.json-files-and-server-listings)

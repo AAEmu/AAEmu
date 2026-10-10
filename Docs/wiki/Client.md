@@ -33,7 +33,7 @@ configuration.
 
 - [Home](Home)
 - [Installation & Setup](Installation-&-Setup)
-- [Aspire Development Guide](Aspire-Development-Guide)
+- [Local Development Guide](Local-Development-Guide)
 
 [client-download-google]: https://drive.google.com/drive/folders/1_pIBVHIm1YFal-nteGaVuXjTv3Yrsv4Q
 [client-download-mega-patched]: https://mega.nz/folder/C3Q0WQjT#vRUethZLPiYSo2B4nE_etg/file/qyAVQY4I

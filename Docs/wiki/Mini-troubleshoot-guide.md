@@ -1,7 +1,7 @@
 # Mini Troubleshoot Guide
 
 - Audience: Contributors, players, and testers
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on October 10, 2026
 - Prerequisites: None
 
 Use this page for common startup and connection problems.
@@ -11,12 +11,15 @@ Use this page for common startup and connection problems.
 ### Missing tables or SQL errors on startup
 
 Confirm you imported `SQL/aaemu_login.sql` and `SQL/aaemu_game.sql` (manual
-path), or let Aspire initialize DB (Aspire path).
+path), or let `cargo xtask dev` / Docker Compose initialize the DB (MySQL
+container path). Later changes in `SQL/updates` are only applied when
+`Connections:AutoApplyUpdates` is `true`.
 
-### `DataAnnotation validation failed ... GameServers`
+### `No game servers have been defined!`
 
 Login configuration is missing `GameServers`.
-Add it in `AAEmu.Login/Config.Local.json` or environment variables.
+Add it in `rust/crates/aaemu-login/app/Config.Local.json` (or the
+`Config.Local.json` of your login folder) or environment variables.
 
 ### Server list is empty in client
 
@@ -27,15 +30,25 @@ client.
 
 Usually this means wrong game host or port in login `GameServers` config.
 
-### Aspire does not start services
+### `cargo xtask dev` does not start services
 
-Ensure Docker or Podman is installed and running, then relaunch
-`AAEmu.Aspire.AppHost`.
+Ensure Docker is installed and running, then rerun `cargo xtask dev`. To use
+your own MySQL instead, run `cargo xtask dev --no-db`.
+
+### `cargo` is not found
+
+Install Rust with [rustup](https://rustup.rs/) and open a new terminal.
 
 ### Game cannot load world assets
 
-Verify `compact.sqlite3` is in `AAEmu.Game/Data` and `game_pak` path is
-correct.
+Verify `compact.sqlite3` is in the `Data/` folder of the game application
+directory (`rust/crates/aaemu-game/app/Data/` in a source checkout) and the
+`game_pak` path is correct.
+
+### Need more detail in the logs
+
+Set `RUST_LOG=debug` (or `RUST_LOG=aaemu_game=debug,info`) before starting the
+server.
 
 ### Linux file descriptor errors
 

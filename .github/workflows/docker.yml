@@ -1,0 +1,33 @@
+name: Docker Images
+
+# Builds the login and game images of docker/Dockerfile (no push) so Dockerfile / compose
+# regressions show up in pull requests.
+on:
+  push:
+    branches: [master, develop]
+    paths: ["docker/**", "docker-compose.yaml", "rust/**", "SQL/**", ".dockerignore"]
+  pull_request:
+    paths: ["docker/**", "docker-compose.yaml", "rust/**", "SQL/**", ".dockerignore"]
+
+jobs:
+  build:
+    name: image (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [login, game]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - name: Validate compose file
+        run: docker compose --env-file .env.example config -q
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: ${{ matrix.target }}
+          push: false
+          tags: aaemu-${{ matrix.target }}:ci
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}

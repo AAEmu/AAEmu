@@ -1,13 +1,13 @@
 # ![AAEmu](https://i.imgur.com/NFDY376.png)
 
-Open source server software for ArcheAge written in `.NET`.
+Open source server software for ArcheAge written in Rust (ported from C#/.NET).
 
 ## Start Here
 
 - Audience: Contributors, players, and testers
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on October 10, 2026
 - Prerequisites: None
-- Preferred local development: [Aspire Development Guide](Aspire-Development-Guide)
+- Preferred local development: [Local Development Guide](Local-Development-Guide)
 - Manual setup fallback: [Installation & Setup](Installation-&-Setup)
 - Docker setup alternative: [Docker Installation Guide](Docker-Installation-Guide)
 - Troubleshooting first stop: [Mini troubleshoot guide](Mini-troubleshoot-guide)
@@ -18,7 +18,7 @@ Open source server software for ArcheAge written in `.NET`.
 ### Getting Started
 
 - [Dependencies and Downloads](Dependencies-and-Downloads)
-- [Aspire Development Guide](Aspire-Development-Guide)
+- [Local Development Guide](Local-Development-Guide)
 - [Installation & Setup](Installation-&-Setup)
 - [Docker Installation Guide](Docker-Installation-Guide)
 
@@ -58,8 +58,13 @@ Open source server software for ArcheAge written in `.NET`.
 
 ## Recent Platform Changes
 
-- `.NET Aspire` AppHost is available and is now the preferred contributor workflow.
-- Login server public network uses ASP.NET Core Kestrel.
+- The servers have been ported from C# (.NET) to Rust. The Cargo workspace is
+  in `rust/`; build with `cargo build --release`.
+- `cargo xtask dev` (MySQL in Docker + login + game) replaces the .NET Aspire
+  AppHost as the preferred contributor workflow.
+- Runtime configuration and data live in the crates' application directories:
+  `rust/crates/aaemu-login/app/` and `rust/crates/aaemu-game/app/`.
+- Logging goes to stdout and is controlled with `RUST_LOG`.
 - Login server game server listings are configured via `GameServers`
   configuration (not MySQL `game_servers`).
 - `Config.Local.json` is loaded last and overrides all other game server
@@ -67,7 +72,7 @@ Open source server software for ArcheAge written in `.NET`.
 
 ## Related
 
-- [Aspire Development Guide](Aspire-Development-Guide)
+- [Local Development Guide](Local-Development-Guide)
 - [Dependencies and Downloads](Dependencies-and-Downloads)
 - [Installation & Setup](Installation-&-Setup)
 - [FAQ](FAQ)

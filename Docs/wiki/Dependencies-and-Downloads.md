@@ -1,7 +1,7 @@
 # Dependencies and Downloads
 
 - Audience: Contributors, players, and testers
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on October 10, 2026
 - Prerequisites: None
 
 Use this page as the single source of truth for required downloads before setup.
@@ -13,17 +13,20 @@ Use this page as the single source of truth for required downloads before setup.
 - Repository: [AAEmu](https://github.com/AAEmu/AAEmu)
 - Recommended branch: `develop`
 
-### .NET SDK
+### Rust toolchain (building from source)
 
-- Required version: `.NET 10 SDK`
-- Download: [dotnet.microsoft.com/download/dotnet/10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+- Required version: current stable Rust
+- Install: [rustup.rs](https://rustup.rs/) (provides `cargo` and `rustc`; on
+  Windows rustup also installs or asks for the MSVC build tools)
+- Not needed when you run a published release build.
+- AAEmu no longer uses .NET; no .NET SDK is required.
 
 ## Workflow-specific dependencies
 
-### Aspire workflow
+### `cargo xtask dev` and Docker workflows
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Podman](https://podman.io/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/), or Docker
+  Engine with the Compose plugin on Linux
 
 ### Manual workflow
 
@@ -59,16 +62,19 @@ Directory with many client versions:
 
 ## Where files go after download
 
-1. Place `compact.sqlite3` in `AAEmu.Game/Data`.
+1. Place `compact.sqlite3` in `rust/crates/aaemu-game/app/Data/` (source
+   checkout), `AAEmu.Game/Data/` (published build) or
+   `.server_files/AAEmu.Game/Data/` (Docker).
 1. Configure `game_pak` path in game config using
-   `AAEmu.Game/Config.Local.json` (preferred) or
-   `AAEmu.Game/Configurations/ClientData.json`.
+   `rust/crates/aaemu-game/app/Config.Local.json` (preferred) or
+   `rust/crates/aaemu-game/app/Configurations/ClientData.json`, or put
+   `game_pak` in `rust/crates/aaemu-game/app/ClientData/`.
 1. Keep launcher extracted in any folder, then set `Path to Game` to
    `archeage.exe` (usually in client `bin32`).
 
 ## Related
 
 - [Installation & Setup](Installation-&-Setup)
-- [Aspire Development Guide](Aspire-Development-Guide)
+- [Local Development Guide](Local-Development-Guide)
 - [Client](Client)
 - [FAQ](FAQ)

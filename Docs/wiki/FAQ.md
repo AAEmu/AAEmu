@@ -34,7 +34,13 @@ See [Getting Help](Getting-Help) and [Help Us Help You](Help-Us-Help-You).
 
 ### Preferred way to run locally
 
-Use [Aspire Development Guide](Aspire-Development-Guide).
+Use [Local Development Guide](Local-Development-Guide) (`cargo xtask dev`).
+
+### Is AAEmu still written in C#
+
+No. The servers and tools were ported to Rust; the code is in the `rust/`
+Cargo workspace. You need Rust (via [rustup](https://rustup.rs/)) to build from
+source, not the .NET SDK.
 
 ### Can I still use manual setup or Docker
 
@@ -50,8 +56,16 @@ JSON and/or environment variables.
 
 ### Config precedence after the recent PR wave
 
-For game server config, `Config.Local.json` is loaded last and overrides all
-other game config files.
+For game server config, `Config.Local.json` is loaded after `Config.json` and
+`Configurations/*.json` and overrides them. Environment variables
+(`Section__Key`) and command-line arguments (`--Section:Key=value`) override
+the JSON files.
+
+### Where are the config files
+
+In a source checkout: `rust/crates/aaemu-login/app/` and
+`rust/crates/aaemu-game/app/`. In a published build: next to each binary. See
+[Working with the Config.json files and server listings](Working-with-the-Config.json-files-and-server-listings).
 
 ## Client and launcher
 
@@ -88,11 +102,11 @@ For LAN or external players, set a reachable address.
 
 ## Troubleshooting
 
-### `DataAnnotation validation failed ... GameServers` on login startup
+### `No game servers have been defined!` on login startup
 
 Your login config is missing `GameServers`.
-Add at least one entry in `AAEmu.Login/Config.Local.json` or environment
-variables.
+Add at least one entry in `rust/crates/aaemu-login/app/Config.Local.json` (or
+the `Config.Local.json` of your login folder) or environment variables.
 
 ### Client crashes or cannot enter world
 

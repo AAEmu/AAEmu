@@ -1,28 +1,19 @@
-VERSION_PREFIX=0.0.2.0
-VERSION_SUFFIX=alpha
+#!/bin/bash
+# Release build + distributable server folders, one per target, each packed into an archive:
+#   publish/aaemu-<version>-<target>/{AAEmu.Login,AAEmu.Game,Tools,SQL}
+#   publish/aaemu-<version>-<target>.tar.gz   (.zip on Windows)
+#
+# Usage: Scripts/publish.sh [target-triple ...]
+#   no argument: the host target. Cross targets need their toolchain, e.g.
+#   rustup target add x86_64-unknown-linux-musl && Scripts/publish.sh x86_64-unknown-linux-musl
+# Extra xtask options can be given through PUBLISH_ARGS, e.g. PUBLISH_ARGS="--no-compact-db".
+set -e
+cd "$(dirname "$0")/../rust"
 
-FRAMEWORK=net10.0
-
-CONFIGURATION=Debug
-#CONFIGURATION=Release
-cd ..
-mkdir -p publish;
-mkdir -p publish/$CONFIGURATION;
-
-for runtime in "win7-x64" "win7-x86" "win8-x64" "win8-x86" "win81-x64" "win81-x86" "win10-x64" "win10-x86" "centos.7-x64" "debian.9-x64" "ubuntu.18.04-x64" "sles-x64" "sles.12-x64" "sles.12.1-x64" "sles.12.2-x64" "sles.12.3-x64" "alpine-x64" "alpine.3.7-x64"; do
-	dotnet publish -c $CONFIGURATION -r $runtime --self-contained true;
-	
-	mkdir -p publish/$CONFIGURATION/$runtime;
-	
-	for project in "AAEmu.Login" "AAEmu.Game"; do
-		mkdir -p publish/$CONFIGURATION/$runtime/$project;
-		mv $project/bin/$CONFIGURATION/$FRAMEWORK/$runtime/publish/* publish/$CONFIGURATION/$runtime/$project;
-		rm -R $project/bin/$CONFIGURATION/$FRAMEWORK/$runtime;
-	done;
-	
-	cd publish/$CONFIGURATION/$runtime;
-	zip -r ../../../publish/$CONFIGURATION/AAEmu.$VERSION_PREFIX-$VERSION_SUFFIX+$runtime.zip *;
-	cd ../../../;
-	
-	rm -R publish/$CONFIGURATION/$runtime;
-done;
+if [ $# -eq 0 ]; then
+	cargo xtask publish --archive $PUBLISH_ARGS
+else
+	for target in "$@"; do
+		cargo xtask publish --archive --target "$target" $PUBLISH_ARGS
+	done
+fi

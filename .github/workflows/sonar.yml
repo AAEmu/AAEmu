@@ -5,43 +5,35 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '21'
-          java-package: jdk
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          path: ~\sonar\cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-      - name: Cache SonarCloud scanner
-        id: cache-sonar-scanner
-        uses: actions/cache@v4
+          components: clippy, llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: .\.sonar\scanner
-          key: ${{ runner.os }}-sonar-scanner
-          restore-keys: ${{ runner.os }}-sonar-scanner
-      - name: Install SonarCloud scanner
-        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
-        shell: powershell
-        run: |
-          New-Item -Path .\.sonar\scanner -ItemType Directory
-          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
-      - name: Build and analyze
+          workspaces: rust
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      # Clippy findings (JSON) and LCOV coverage are imported by the scanner.
+      - name: Clippy report
+        working-directory: rust
+        run: cargo clippy --workspace --all-targets --locked --message-format=json > clippy-report.json || true
+      - name: Coverage
+        working-directory: rust
+        run: cargo llvm-cov --workspace --locked --lcov --output-path lcov.info
+      - name: SonarQube Cloud scan
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: powershell
-        run: |
-          dotnet restore
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"aaemulator_aaemu" /o:"aaemulator" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
-          dotnet build --configuration Release --no-restore
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        with:
+          args: >
+            -Dsonar.projectKey=aaemulator_aaemu
+            -Dsonar.organization=aaemulator
+            -Dsonar.sources=rust/crates
+            -Dsonar.exclusions=**/target/**,rust/crates/aaemu-game/app/**
+            -Dsonar.rust.clippy.reportPaths=rust/clippy-report.json
+            -Dsonar.rust.lcov.reportPaths=rust/lcov.info

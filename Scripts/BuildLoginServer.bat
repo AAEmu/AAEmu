@@ -1,6 +1,5 @@
 @echo off
-cd ..
-pushd AAEmu.Login
-    dotnet build -f net10.0 AAEmu.Login.csproj
-	pause
-popd
+rem Builds the login server (release) - binary in the cargo target dir (see rust/.cargo/config.toml)
+cd /d "%~dp0..\rust"
+cargo build --release -p aaemu-login
+pause

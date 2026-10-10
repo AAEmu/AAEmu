@@ -10,9 +10,10 @@ This page lists the minimum information needed for effective support.
 
 Share these details when asking for help:
 
-1. Workflow: Aspire, manual, or Docker.
+1. Workflow: `cargo xtask dev`, manual, published build, or Docker.
 1. OS and version.
-1. Branch name and commit hash (if you built from source).
+1. Branch name and commit hash, plus `rustc --version` (if you built from
+   source).
 1. Exact command or action you ran.
 1. Full error output (copy-paste text).
 1. What you expected vs what actually happened.
@@ -20,7 +21,8 @@ Share these details when asking for help:
 
 ## Logs and artifacts
 
-- Prefer text logs over screenshots.
+- Prefer text logs over screenshots. Run with `RUST_LOG=debug` (and
+  `NO_COLOR=1` when saving to a file) for more detail.
 - Include only relevant excerpts if logs are large.
 - Redact secrets like passwords, tokens, and private hostnames.
 

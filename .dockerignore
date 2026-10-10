@@ -1,2 +1,15 @@
 **/game_pak
 **/compact.sqlite3
+**/Config.Local.json
+**/*.local.json
+.git
+.server_files
+.client_files
+publish
+rust/target
+rust/.cargo
+rust/crates/aaemu-game/app/ClientData/*
+!rust/crates/aaemu-game/app/ClientData/readme.txt
+# C# projects (not used by the Rust images)
+AAEmu.*
+Tools

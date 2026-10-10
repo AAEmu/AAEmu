@@ -23,6 +23,35 @@ Look for a project's contribution instructions. If there are any, follow them.
 - Once the pull request is approved and merged you can pull the changes from `upstream` to your local repo and delete
 your extra branch(es).
 
+### Development workflow
+
+AAEmu is written in Rust (it was ported from C#; the old .NET projects are being removed). All code
+lives in the Cargo workspace in `rust/`. You need stable Rust installed via [rustup](https://rustup.rs/).
+
+Before opening a pull request, run the same checks as CI from the `rust/` directory:
+
+```sh
+cargo fmt --all                                          # format (CI runs it with --check)
+cargo clippy --workspace --all-targets -- -D warnings   # lint, warnings are errors
+cargo test --workspace                                   # tests
+cargo xtask ci                                           # all three, exactly as CI runs them
+```
+
+- Follow `rustfmt` formatting and keep `clippy` clean; do not add `#[allow(...)]` without a reason.
+- Add or adapt tests next to the code you change (`#[cfg(test)]` modules or the crate's `tests/`).
+- Tests that need a live MySQL server or a `compact.sqlite3` are `#[ignore]`d and gated by the
+  `AAEMU_TEST_MYSQL` / `AAEMU_COMPACT_DB` environment variables; CI does not run them, so run them
+  locally when your change touches that code, for example
+  `AAEMU_COMPACT_DB=rust/crates/aaemu-game/app/Data/compact.sqlite3 cargo test -p aaemu-game -- --ignored`.
+- `cargo xtask dev` starts MySQL (Docker), the login server and the game server for manual testing,
+  see the [Local Development Guide](Docs/wiki/Local-Development-Guide.md).
+- [`rust/LIVE-TESTING.md`](rust/LIVE-TESTING.md) explains how to test against a running server with
+  the headless `aaemu-testclient` bot (scripted scenarios, parity diffs, load tests).
+- Porting or extending game logic: read
+  [`rust/crates/aaemu-game/CONTRIBUTING-PORT.md`](rust/crates/aaemu-game/CONTRIBUTING-PORT.md)
+  (conventions and how to port a feature) and [`rust/PORT-AUDIT.md`](rust/PORT-AUDIT.md)
+  (what has been ported from the former C# code).
+
 ### Commit messages
 
 All commit messages must follow the [Conventional Commits 1.0.0 specification](https://www.conventionalcommits.org/en/v1.0.0/):

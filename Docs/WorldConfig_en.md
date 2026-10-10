@@ -1,10 +1,16 @@
-# `World.json` settings (AAEmu.Game)
+# `World.json` settings (aaemu-game)
 
-This document describes the settings in `AAEmu.Game/Configurations/World.json`.
+This document describes the settings in `Configurations/World.json` of the game
+server's application directory (`rust/crates/aaemu-game/app/` in a source
+checkout, `AAEmu.Game/` in a published build, `.server_files/AAEmu.Game/` with
+Docker).
 
 ## Where to configure
 
-- **File**: `AAEmu.Game/Configurations/World.json`
+- **File**: `rust/crates/aaemu-game/app/Configurations/World.json`
+- **Local override**: put a `World` section in `Config.Local.json` next to
+  `Config.json` (it is loaded after `Configurations/*.json`), or use environment
+  variables such as `World__ExpRate=2`
 - **Section**: `World`
 
 Example:
