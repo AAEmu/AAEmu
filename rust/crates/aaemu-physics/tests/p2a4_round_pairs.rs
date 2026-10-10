@@ -82,6 +82,7 @@ fn sentinel_out() -> PrimInters {
         // A marker element: functions that use the border clear it first (the binary zeroes
         // nborderpt), the others leave it alone (nborderpt stays 0xCDCDCDCD).
         border: vec![v],
+        border_max: 64, // the probe sets nbordersz = 64
         n_alt: v,
         unk_84: FILL as i32,
     }

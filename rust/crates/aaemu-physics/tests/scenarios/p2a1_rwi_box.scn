@@ -1,0 +1,21 @@
+# P2a-1 (box-ray): RayWorldIntersection against rotated static boxes: face hits from outside,
+# grazing rays, rays starting inside a box, axis-parallel and diagonal rays.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0 flags=0x1809F
+geom name=crate type=box size=1,0.5,0.75
+entity name=crate type=static pos=32,32,0.75 q=0.1,0.2,0.3,0.9273618
+part ent=crate geom=crate mass=0 flags=0x1809F
+geom name=plate type=box size=2,2,0.05
+entity name=plate type=static pos=36,36,1 q=0.3826834,0,0,0.9238795
+part ent=plate geom=plate mass=0 flags=0x1809F
+step n=1
+ray name=down org=32,32,10 dir=0,0,-20 types=0x13F max=4
+ray name=inside org=32,32,0.75 dir=3,0,0 types=0x13F max=4
+ray name=diag org=29,29,4 dir=6,6,-6 types=0x13F max=4
+ray name=graze org=30,32.5,0.75 dir=4,0,0 types=0x13F max=4
+ray name=plate_x org=33,36,1 dir=6,0,0 types=0x13F max=4
+ray name=plate_dn org=36.5,36.5,5 dir=0,0,-6 types=0x13F max=4
+ray name=plate_up org=36.5,35.5,0.2 dir=0,0.3,3 types=0x13F max=4
+ray name=edge_on org=36,30,1 dir=0,12,0 types=0x13F max=4

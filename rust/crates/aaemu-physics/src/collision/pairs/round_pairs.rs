@@ -38,6 +38,9 @@
 //! cyl–sph); untouched fields keep their previous values. The border polyline
 //! (`+56`/`+64`) is [`PrimInters::border`]: functions that emit border points clear it first
 //! (the binary zeroes `nborderpt`) and push.
+//! **`border_max` is not honoured — as in the binary:** cap–cap, cyl–cap and cyl–cyl never read
+//! `prim_inters +68` ([`PrimInters::border_max`]) and append without a capacity check (at most
+//! 5, 8 resp. 16 points per call).
 //!
 //! **Constants.** `1e-20` normalisation threshold (bits 0x1E3CE508), the `0.003` parallel-axis
 //! threshold (0x3B449BA6), the sine table of 1025 entries over `[0, π/2]` that the cylinder pairs
