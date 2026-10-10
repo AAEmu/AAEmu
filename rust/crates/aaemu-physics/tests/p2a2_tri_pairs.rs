@@ -12,7 +12,9 @@
 
 use aaemu_physics::collision::contact::PrimInters;
 use aaemu_physics::collision::pairs::tri_pairs as tp;
-use aaemu_physics::geometry::primitives::{BoxPrim, HeightfieldPrim, RayPrim, SpherePrim, Triangle};
+use aaemu_physics::geometry::primitives::{
+    BoxPrim, HeightfieldPrim, RayPrim, SpherePrim, Triangle,
+};
 use aaemu_physics::math::{Mat33, Quat, Vec3};
 use std::io::Write as _;
 use std::path::PathBuf;
@@ -160,7 +162,12 @@ fn inters_words(p: &PrimInters, init: &[u32]) -> Vec<u32> {
     o.push(p.i_node[0] as u32);
     o.push(p.i_node[1] as u32);
     if has_border(init) {
-        o.extend([BORDER_MARK, BORDER_MARK, p.border.len() as u32, p.border_max as u32]);
+        o.extend([
+            BORDER_MARK,
+            BORDER_MARK,
+            p.border.len() as u32,
+            p.border_max as u32,
+        ]);
     } else {
         // ptborder / nborderpt / nbordersz without a buffer: untouched.
         assert!(p.border.is_empty());
@@ -290,7 +297,10 @@ fn golden(probe: &str, cases: impl FnOnce() -> Vec<Case>) -> Vec<Row> {
             }
         }
         None => stored.unwrap_or_else(|| {
-            panic!("golden {} missing and AAEMU_PHYS_ORACLE not set", path.display())
+            panic!(
+                "golden {} missing and AAEMU_PHYS_ORACLE not set",
+                path.display()
+            )
         }),
     };
     parse(probe, &text)
@@ -356,7 +366,12 @@ fn check_overlap<A, B>(
         let b = pb(&r.input[na..]);
         let ret = f(&a, &b);
         hits += usize::from(r.ret != 0);
-        assert_eq!(i32::from(ret), r.ret, "{probe} row {i}: input {:08x?}", r.input);
+        assert_eq!(
+            i32::from(ret),
+            r.ret,
+            "{probe} row {i}: input {:08x?}",
+            r.input
+        );
     }
     hits
 }
@@ -401,7 +416,11 @@ fn rand_tri(rng: &mut Rng, center: Vec3, r: f32) -> Triangle {
             // degenerate: collinear or repeated vertex
             let a = center + rng.v(r);
             let b = center + rng.v(r);
-            let t = if rng.chance(50) { 0.0 } else { rng.f(-1.0, 2.0) };
+            let t = if rng.chance(50) {
+                0.0
+            } else {
+                rng.f(-1.0, 2.0)
+            };
             [a, b, a + (b - a) * t]
         }
         _ => [center + rng.v(r), center + rng.v(r), center + rng.v(r)],
@@ -464,7 +483,11 @@ fn base_tri(rng: &mut Rng) -> Triangle {
         1 => 0.01,
         _ => 1.0,
     };
-    let off = if rng.chance(20) { rng.v(2000.0) } else { Vec3::ZERO };
+    let off = if rng.chance(20) {
+        rng.v(2000.0)
+    } else {
+        Vec3::ZERO
+    };
     rand_tri(rng, off, scale)
 }
 
@@ -552,12 +575,22 @@ fn gen_ray_tri(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
 fn rand_sph(rng: &mut Rng, t: &Triangle) -> SpherePrim {
     let [p0, p1, p2] = t.pt;
     let size = ((p1 - p0).len() + (p2 - p0).len()).max(1e-3);
-    let nn = if t.n.len2() > 0.0 { t.n.normalized() } else { Vec3::Z };
+    let nn = if t.n.len2() > 0.0 {
+        t.n.normalized()
+    } else {
+        Vec3::Z
+    };
     let (center, r) = match rng.i(8) {
-        0 => (t.pt[rng.i(3) as usize] + rng.v(0.3 * size), rng.f(0.0, 0.6) * size),
+        0 => (
+            t.pt[rng.i(3) as usize] + rng.v(0.3 * size),
+            rng.f(0.0, 0.6) * size,
+        ),
         1 => {
             let u = rng.f(0.0, 1.0);
-            (p0 + (p1 - p0) * u + rng.v(0.2 * size), rng.f(0.0, 0.5) * size)
+            (
+                p0 + (p1 - p0) * u + rng.v(0.2 * size),
+                rng.f(0.0, 0.5) * size,
+            )
         }
         2 => {
             let c = (p0 + p1 + p2) * (1.0 / 3.0);
@@ -648,7 +681,11 @@ fn rand_box(rng: &mut Rng) -> BoxPrim {
     } else {
         Vec3::new(rng.f(0.05, 2.0), rng.f(0.05, 2.0), rng.f(0.05, 2.0))
     };
-    let center = if rng.chance(20) { rng.v(500.0) } else { rng.v(2.0) };
+    let center = if rng.chance(20) {
+        rng.v(500.0)
+    } else {
+        rng.v(2.0)
+    };
     BoxPrim {
         oriented: i32::from(!basis.is_identity()),
         basis,
@@ -670,11 +707,7 @@ fn box_tri(rng: &mut Rng, b: &BoxPrim) -> Triangle {
         )
     };
     let around = |rng: &mut Rng, k: f32| {
-        Vec3::new(
-            rng.f(-k, k) * s.x,
-            rng.f(-k, k) * s.y,
-            rng.f(-k, k) * s.z,
-        )
+        Vec3::new(rng.f(-k, k) * s.x, rng.f(-k, k) * s.y, rng.f(-k, k) * s.z)
     };
     let l = match rng.i(9) {
         0 => [in_box(rng), around(rng, 3.0), around(rng, 3.0)],
@@ -903,13 +936,23 @@ fn rand_hf(rng: &mut Rng) -> (HeightfieldPrim, Grid) {
     };
     let amp = rng.f(0.0, 3.0);
     let heights = (0..gx * gy)
-        .map(|_| if rng.chance(10) { 0.0 } else { rng.f(-amp, amp) })
+        .map(|_| {
+            if rng.chance(10) {
+                0.0
+            } else {
+                rng.f(-amp, amp)
+            }
+        })
         .collect();
     let scales = [1.0f32, 0.5, 0.01];
     let h = HeightfieldPrim {
         oriented: i32::from(!basis.is_identity()),
         basis,
-        origin: if rng.chance(50) { Vec3::ZERO } else { rng.v(3.0) },
+        origin: if rng.chance(50) {
+            Vec3::ZERO
+        } else {
+            rng.v(3.0)
+        },
         step,
         stepr: [1.0 / step[0], 1.0 / step[1]],
         size,
@@ -924,7 +967,11 @@ fn rand_hf(rng: &mut Rng) -> (HeightfieldPrim, Grid) {
 fn hf_point(rng: &mut Rng, h: &HeightfieldPrim) -> Vec3 {
     let ex = h.size[0] as f32 * h.step[0];
     let ey = h.size[1] as f32 * h.step[1];
-    let l = Vec3::new(rng.f(-0.3, 1.3) * ex, rng.f(-0.3, 1.3) * ey, rng.f(-3.0, 4.0));
+    let l = Vec3::new(
+        rng.f(-0.3, 1.3) * ex,
+        rng.f(-0.3, 1.3) * ey,
+        rng.f(-3.0, 4.0),
+    );
     h.basis.t_mul_vec(l) + h.origin
 }
 
@@ -963,7 +1010,62 @@ fn check_hf_sph(probe: &str, rows: &[Row], swapped: bool) -> usize {
             tp::overlap_hf_sph(&h, &s)
         };
         hits += usize::from(r.ret != 0);
-        assert_eq!(i32::from(got), r.ret, "{probe} row {i}: input {:08x?}", r.input);
+        assert_eq!(
+            i32::from(got),
+            r.ret,
+            "{probe} row {i}: input {:08x?}",
+            r.input
+        );
+    }
+    hits
+}
+
+fn gen_overlap_box_hf(seed: u64, n: usize, swapped: bool) -> Vec<Case> {
+    let mut rng = Rng(seed);
+    (0..n)
+        .map(|_| {
+            let (h, g) = rand_hf(&mut rng);
+            let mut b = rand_box(&mut rng);
+            b.center = hf_point(&mut rng, &h);
+            if rng.chance(30) {
+                // small boxes: few cells, triangle path
+                b.size *= 0.3;
+            }
+            if rng.chance(10) {
+                b.oriented = 0;
+            }
+            let mut w = Vec::new();
+            if swapped {
+                hf_words(&h, &g, &mut w);
+                box_words(&b, &mut w);
+            } else {
+                box_words(&b, &mut w);
+                hf_words(&h, &g, &mut w);
+            }
+            Case { words: w }
+        })
+        .collect()
+}
+
+fn check_box_hf(probe: &str, rows: &[Row], swapped: bool) -> usize {
+    let mut hits = 0;
+    for (i, r) in rows.iter().enumerate() {
+        let got = if swapped {
+            let (h, k) = words_hf(&r.input);
+            let b = words_box(&r.input[k..]);
+            tp::overlap_hf_box(&h, &b)
+        } else {
+            let b = words_box(&r.input);
+            let (h, _) = words_hf(&r.input[16..]);
+            tp::overlap_box_hf(&b, &h)
+        };
+        hits += usize::from(r.ret != 0);
+        assert_eq!(
+            i32::from(got),
+            r.ret,
+            "{probe} row {i}: input {:08x?}",
+            r.input
+        );
     }
     hits
 }
@@ -973,106 +1075,245 @@ fn check_hf_sph(probe: &str, rows: &[Row], swapped: bool) -> usize {
 #[test]
 fn tri_tri_matches_sub_35159410() {
     let rows = golden("p2a2_i_tri_tri", || gen_tri_tri(1, 600));
-    let hits = check_inters("tri_tri", &rows, 12, 12, words_tri, words_tri, tp::intersect_tri_tri);
+    let hits = check_inters(
+        "tri_tri",
+        &rows,
+        12,
+        12,
+        words_tri,
+        words_tri,
+        tp::intersect_tri_tri,
+    );
     assert!(hits > 60, "too few contacts in the golden set: {hits}");
 }
 
 #[test]
 fn fuzz_tri_tri() {
     if let Some(rows) = live("p2a2_i_tri_tri", gen_tri_tri(1001, 20000)) {
-        check_inters("tri_tri", &rows, 12, 12, words_tri, words_tri, tp::intersect_tri_tri);
+        check_inters(
+            "tri_tri",
+            &rows,
+            12,
+            12,
+            words_tri,
+            words_tri,
+            tp::intersect_tri_tri,
+        );
     }
 }
 
 #[test]
 fn ray_tri_matches_sub_3515ab20() {
     let rows = golden("p2a2_i_ray_tri", || gen_ray_tri(2, 600, false));
-    let hits = check_inters("ray_tri", &rows, 6, 12, words_ray, words_tri, tp::intersect_ray_tri);
+    let hits = check_inters(
+        "ray_tri",
+        &rows,
+        6,
+        12,
+        words_ray,
+        words_tri,
+        tp::intersect_ray_tri,
+    );
     assert!(hits > 60, "too few contacts in the golden set: {hits}");
 }
 
 #[test]
 fn tri_ray_matches_sub_3515b1d0() {
     let rows = golden("p2a2_i_tri_ray", || gen_ray_tri(3, 300, true));
-    let hits = check_inters("tri_ray", &rows, 12, 6, words_tri, words_ray, tp::intersect_tri_ray);
+    let hits = check_inters(
+        "tri_ray",
+        &rows,
+        12,
+        6,
+        words_tri,
+        words_ray,
+        tp::intersect_tri_ray,
+    );
     assert!(hits > 30, "too few contacts in the golden set: {hits}");
 }
 
 #[test]
 fn fuzz_ray_tri() {
     if let Some(rows) = live("p2a2_i_ray_tri", gen_ray_tri(1002, 20000, false)) {
-        check_inters("ray_tri", &rows, 6, 12, words_ray, words_tri, tp::intersect_ray_tri);
+        check_inters(
+            "ray_tri",
+            &rows,
+            6,
+            12,
+            words_ray,
+            words_tri,
+            tp::intersect_ray_tri,
+        );
     }
     if let Some(rows) = live("p2a2_i_tri_ray", gen_ray_tri(1003, 5000, true)) {
-        check_inters("tri_ray", &rows, 12, 6, words_tri, words_ray, tp::intersect_tri_ray);
+        check_inters(
+            "tri_ray",
+            &rows,
+            12,
+            6,
+            words_tri,
+            words_ray,
+            tp::intersect_tri_ray,
+        );
     }
 }
 
 #[test]
 fn tri_sph_matches_sub_35159de0() {
     let rows = golden("p2a2_i_tri_sph", || gen_tri_sph(4, 600, false));
-    let hits = check_inters("tri_sph", &rows, 12, 4, words_tri, words_sph, tp::intersect_tri_sph);
+    let hits = check_inters(
+        "tri_sph",
+        &rows,
+        12,
+        4,
+        words_tri,
+        words_sph,
+        tp::intersect_tri_sph,
+    );
     assert!(hits > 60, "too few contacts in the golden set: {hits}");
 }
 
 #[test]
 fn sph_tri_matches_sub_3515aaa0() {
     let rows = golden("p2a2_i_sph_tri", || gen_tri_sph(5, 300, true));
-    let hits = check_inters("sph_tri", &rows, 4, 12, words_sph, words_tri, tp::intersect_sph_tri);
+    let hits = check_inters(
+        "sph_tri",
+        &rows,
+        4,
+        12,
+        words_sph,
+        words_tri,
+        tp::intersect_sph_tri,
+    );
     assert!(hits > 30, "too few contacts in the golden set: {hits}");
 }
 
 #[test]
 fn fuzz_tri_sph() {
     if let Some(rows) = live("p2a2_i_tri_sph", gen_tri_sph(1004, 20000, false)) {
-        check_inters("tri_sph", &rows, 12, 4, words_tri, words_sph, tp::intersect_tri_sph);
+        check_inters(
+            "tri_sph",
+            &rows,
+            12,
+            4,
+            words_tri,
+            words_sph,
+            tp::intersect_tri_sph,
+        );
     }
     if let Some(rows) = live("p2a2_i_sph_tri", gen_tri_sph(1005, 5000, true)) {
-        check_inters("sph_tri", &rows, 4, 12, words_sph, words_tri, tp::intersect_sph_tri);
+        check_inters(
+            "sph_tri",
+            &rows,
+            4,
+            12,
+            words_sph,
+            words_tri,
+            tp::intersect_sph_tri,
+        );
     }
 }
 
 #[test]
 fn tri_box_matches_sub_35162aa0() {
     let rows = golden("p2a2_i_tri_box", || gen_tri_box(6, 800, false));
-    let hits = check_inters("tri_box", &rows, 12, 16, words_tri, words_box, tp::intersect_tri_box);
+    let hits = check_inters(
+        "tri_box",
+        &rows,
+        12,
+        16,
+        words_tri,
+        words_box,
+        tp::intersect_tri_box,
+    );
     assert!(hits > 80, "too few contacts in the golden set: {hits}");
 }
 
 #[test]
 fn box_tri_matches_sub_35164780() {
     let rows = golden("p2a2_i_box_tri", || gen_tri_box(7, 300, true));
-    let hits = check_inters("box_tri", &rows, 16, 12, words_box, words_tri, tp::intersect_box_tri);
+    let hits = check_inters(
+        "box_tri",
+        &rows,
+        16,
+        12,
+        words_box,
+        words_tri,
+        tp::intersect_box_tri,
+    );
     assert!(hits > 30, "too few contacts in the golden set: {hits}");
 }
 
 #[test]
 fn fuzz_tri_box() {
     if let Some(rows) = live("p2a2_i_tri_box", gen_tri_box(1006, 30000, false)) {
-        check_inters("tri_box", &rows, 12, 16, words_tri, words_box, tp::intersect_tri_box);
+        check_inters(
+            "tri_box",
+            &rows,
+            12,
+            16,
+            words_tri,
+            words_box,
+            tp::intersect_tri_box,
+        );
     }
     if let Some(rows) = live("p2a2_i_box_tri", gen_tri_box(1007, 5000, true)) {
-        check_inters("box_tri", &rows, 16, 12, words_box, words_tri, tp::intersect_box_tri);
+        check_inters(
+            "box_tri",
+            &rows,
+            16,
+            12,
+            words_box,
+            words_tri,
+            tp::intersect_box_tri,
+        );
     }
 }
-
 
 #[test]
 fn overlap_tri_sph_matches_sub_35197530() {
     let rows = golden("p2a2_o_tri_sph", || gen_overlap_tri_sph(8, 1500, false));
-    let hits = check_overlap("o_tri_sph", &rows, 12, words_tri, words_sph, tp::overlap_tri_sph);
+    let hits = check_overlap(
+        "o_tri_sph",
+        &rows,
+        12,
+        words_tri,
+        words_sph,
+        tp::overlap_tri_sph,
+    );
     assert!(hits > 150 && hits < 1350, "unbalanced golden set: {hits}");
     let rows = golden("p2a2_o_sph_tri", || gen_overlap_tri_sph(9, 300, true));
-    check_overlap("o_sph_tri", &rows, 4, words_sph, words_tri, tp::overlap_sph_tri);
+    check_overlap(
+        "o_sph_tri",
+        &rows,
+        4,
+        words_sph,
+        words_tri,
+        tp::overlap_sph_tri,
+    );
 }
 
 #[test]
 fn overlap_box_tri_matches_sub_351968f0() {
     let rows = golden("p2a2_o_box_tri", || gen_overlap_box_tri(10, 1500, false));
-    let hits = check_overlap("o_box_tri", &rows, 16, words_box, words_tri, tp::overlap_box_tri);
+    let hits = check_overlap(
+        "o_box_tri",
+        &rows,
+        16,
+        words_box,
+        words_tri,
+        tp::overlap_box_tri,
+    );
     assert!(hits > 150 && hits < 1350, "unbalanced golden set: {hits}");
     let rows = golden("p2a2_o_tri_box", || gen_overlap_box_tri(11, 300, true));
-    check_overlap("o_tri_box", &rows, 12, words_tri, words_box, tp::overlap_tri_box);
+    check_overlap(
+        "o_tri_box",
+        &rows,
+        12,
+        words_tri,
+        words_box,
+        tp::overlap_tri_box,
+    );
 }
 
 #[test]
@@ -1087,12 +1328,88 @@ fn overlap_hf_sph_matches_sub_351975e0() {
 #[test]
 fn fuzz_overlaps() {
     if let Some(rows) = live("p2a2_o_tri_sph", gen_overlap_tri_sph(1008, 30000, false)) {
-        check_overlap("o_tri_sph", &rows, 12, words_tri, words_sph, tp::overlap_tri_sph);
+        check_overlap(
+            "o_tri_sph",
+            &rows,
+            12,
+            words_tri,
+            words_sph,
+            tp::overlap_tri_sph,
+        );
     }
     if let Some(rows) = live("p2a2_o_box_tri", gen_overlap_box_tri(1009, 30000, false)) {
-        check_overlap("o_box_tri", &rows, 16, words_box, words_tri, tp::overlap_box_tri);
+        check_overlap(
+            "o_box_tri",
+            &rows,
+            16,
+            words_box,
+            words_tri,
+            tp::overlap_box_tri,
+        );
     }
     if let Some(rows) = live("p2a2_o_hf_sph", gen_overlap_hf_sph(1010, 20000, false)) {
         check_hf_sph("o_hf_sph", &rows, false);
     }
+}
+
+#[test]
+fn overlap_box_hf_matches_sub_351986e0() {
+    let rows = golden("p2a2_o_box_hf", || gen_overlap_box_hf(14, 1000, false));
+    let hits = check_box_hf("o_box_hf", &rows, false);
+    assert!(hits > 100 && hits < 900, "unbalanced golden set: {hits}");
+    let rows = golden("p2a2_o_hf_box", || gen_overlap_box_hf(15, 300, true));
+    check_box_hf("o_hf_box", &rows, true);
+}
+
+#[test]
+fn fuzz_overlap_box_hf() {
+    if let Some(rows) = live("p2a2_o_box_hf", gen_overlap_box_hf(1011, 20000, false)) {
+        check_box_hf("o_box_hf", &rows, false);
+    }
+}
+
+#[test]
+fn table_cells_dispatch_to_the_ported_functions() {
+    use aaemu_physics::collision::pairs::PairTables;
+    use aaemu_physics::geometry::primitives::Primitive;
+    use aaemu_physics::ids::GeomType as G;
+    let t = PairTables::build();
+    let tri = Triangle {
+        pt: [
+            Vec3::ZERO,
+            Vec3::new(2.0, 0.0, 0.0),
+            Vec3::new(0.0, 2.0, 0.0),
+        ],
+        n: Vec3::Z,
+    };
+    let sph = SpherePrim {
+        center: Vec3::new(0.5, 0.5, 0.2),
+        r: 0.5,
+    };
+    let bx = BoxPrim::aligned(Vec3::new(0.5, 0.5, 0.0), Vec3::splat(0.3));
+    let (pt, ps, pb) = (
+        Primitive::Triangle(tri),
+        Primitive::Sphere(sph),
+        Primitive::Box(bx),
+    );
+    let mut a = PrimInters::default();
+    let mut b = PrimInters::default();
+    assert_eq!(
+        t.intersect_fn(G::TriMesh, G::Sphere)(&pt, &ps, &mut a),
+        tp::intersect_tri_sph(&tri, &sph, &mut b)
+    );
+    assert_eq!(a, b);
+    let (mut a, mut b) = (PrimInters::default(), PrimInters::default());
+    assert!(t.intersect_fn(G::Box, G::TriMesh)(&pb, &pt, &mut a));
+    assert!(tp::intersect_box_tri(&bx, &tri, &mut b));
+    assert_eq!(a, b);
+    assert!(t.overlap_fn(G::TriMesh, G::Sphere)(&pt, &ps));
+    assert!(t.overlap_fn(G::Box, G::TriMesh)(&pb, &pt));
+    assert!(t.overlap_fn(G::TriMesh, G::Box)(&pt, &pb));
+    // Heightfield rows/columns of INTERSECT stay empty.
+    let mut c = PrimInters::default();
+    let hf = Primitive::Heightfield(HeightfieldPrim::default());
+    assert!(!t.intersect_fn(G::Heightfield, G::TriMesh)(
+        &hf, &pt, &mut c
+    ));
 }

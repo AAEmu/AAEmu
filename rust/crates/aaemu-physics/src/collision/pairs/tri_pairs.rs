@@ -6,17 +6,37 @@
 //! |---|---|---|
 //! | INTERSECT tri–tri | 0x35159410 | [`intersect_tri_tri`] |
 //! | INTERSECT ray–tri | 0x3515AB20 | [`intersect_ray_tri`] |
-//! | INTERSECT tri–ray | 0x3515B1D0 | [`intersect_tri_ray`] (wrapper) |
+//! | INTERSECT tri–ray | 0x3515B1D0 | [`intersect_tri_ray`] (wrapper: feat + n) |
+//! | INTERSECT tri–sph | 0x35159DE0 | [`intersect_tri_sph`] |
+//! | INTERSECT sph–tri | 0x3515AAA0 | [`intersect_sph_tri`] (wrapper: pts + feat) |
+//! | INTERSECT tri–box | 0x35162AA0 | [`intersect_tri_box`] |
+//! | INTERSECT box–tri | 0x35164780 | [`intersect_box_tri`] (wrapper: pts + feat + n) |
+//! | OVERLAP tri–sph / sph–tri | 0x35197530 / 0x35197590 | [`overlap_tri_sph`], [`overlap_sph_tri`] |
+//! | (closest-point quotient) | 0x35196E70 | [`tri_point_dist2`] |
+//! | OVERLAP box–tri / tri–box | 0x351968F0 / 0x35196CC0 | [`overlap_box_tri`], [`overlap_tri_box`] |
+//! | OVERLAP hf–sph / sph–hf | 0x351975E0 / 0x35197860 | [`overlap_hf_sph`], [`overlap_sph_hf`] |
+//! | OVERLAP box–hf / hf–box | 0x351986E0 / 0x35199120 | [`overlap_box_hf`], [`overlap_hf_box`] |
+//! | (matrix product) | 0x35022380 | `Mat33::mul_mat` (same association) |
 //!
 //! Wrapper cells call the mirrored kernel with swapped operands and then fix up the output
-//! **whether or not the kernel found a contact** (the binary does the swaps unconditionally).
+//! **whether or not the kernel found a contact** (the binary does the swaps unconditionally;
+//! the feature swap is bytes 36↔39 and 37↔38).
+//!
+//! Verified against the DLL itself through `physoracle --p2a2` (goldens
+//! `tests/golden/p2a2_*.trace`, live fuzzing with `AAEMU_PHYS_ORACLE`); the comparison covers
+//! the return value and every word of `prim_inters` including the unwritten ones and the
+//! border buffer.
+
+// `!(a > b)` and friends mirror `comiss`/`comisd` + jcc exactly, including the NaN (unordered)
+// outcome; rewriting them with `partial_cmp` would hide that.
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
 
 use super::PairTables;
 use crate::collision::contact::PrimInters;
 use crate::geometry::primitives::{
     BoxPrim, HeightfieldPrim, Primitive, RayPrim, SpherePrim, Triangle,
 };
-use crate::math::{sgnnz, Vec3};
+use crate::math::{sgnnz, Mat33, Vec3};
 
 /// Sign bit of `(float)x` (`cvtsd2ss` + `shr 31`).
 #[inline]
@@ -780,8 +800,8 @@ pub fn intersect_tri_box(tri: &Triangle, bx: &BoxPrim, out: &mut PrimInters) -> 
             f64::from(ci[1] as f32 * size[1]),
             f64::from(ci[2] as f32 * size[2]),
         ];
-        let num = (nl[0] * (l[0][0] - cor[0]) + (l[0][1] - cor[1]) * nl[1])
-            + (l[0][2] - cor[2]) * nl[2];
+        let num =
+            (nl[0] * (l[0][0] - cor[0]) + (l[0][1] - cor[1]) * nl[1]) + (l[0][2] - cor[2]) * nl[2];
         let dd = (f64::from(size[a]) * nl[a]) * 2.0;
         if signbit32(((dd - num * 2.0).abs() - (-dd).abs()) as f32) == 0 {
             continue;
@@ -802,10 +822,7 @@ pub fn intersect_tri_box(tri: &Triangle, bx: &BoxPrim, out: &mut PrimInters) -> 
             out.border.push(w);
         }
     }
-    if an[sel] > TRI_BOX_FACE_COS
-        && (out.border.len() as i32) > n0 + 1
-        && out.unk_84 < 6
-    {
+    if an[sel] > TRI_BOX_FACE_COS && (out.border.len() as i32) > n0 + 1 && out.unk_84 < 6 {
         let mut cc = [0.0f64; 3];
         cc[sel] = f64::from(sgnnz(l[0][sel] as f32) as f32 * size[sel]);
         let s1 = side_d(e1, sub3(cc, l[0]), nl) as f32;
@@ -940,8 +957,8 @@ pub fn overlap_box_tri(bx: &BoxPrim, tri: &Triangle) -> bool {
     let a12 = (v[1] - v[2]).abs();
     let a20 = (v[2] - v[0]).abs();
     let ssum = (a12 + a01) + a20;
-    let mid = ((v[2] + v[1]).mul_comp(a12) + (v[1] + v[0]).mul_comp(a01))
-        + (v[2] + v[0]).mul_comp(a20);
+    let mid =
+        ((v[2] + v[1]).mul_comp(a12) + (v[1] + v[0]).mul_comp(a01)) + (v[2] + v[0]).mul_comp(a20);
     let mid = (mid * 0.5).abs();
     let rad = (ssum * 0.25 + s).mul_comp(ssum);
     for k in 0..3 {
@@ -964,7 +981,8 @@ pub fn overlap_box_tri(bx: &BoxPrim, tri: &Triangle) -> bool {
         let e_zxy = Vec3::new(e.z, e.x, e.y);
         let c0 = Vec3::new(p0.z, p0.x, p0.y).mul_comp(e_yzx)
             - Vec3::new(p0.y, p0.z, p0.x).mul_comp(e_zxy);
-        let c2 = Vec3::new(w.z, w.x, w.y).mul_comp(e_yzx) - Vec3::new(w.y, w.z, w.x).mul_comp(e_zxy);
+        let c2 =
+            Vec3::new(w.z, w.x, w.y).mul_comp(e_yzx) - Vec3::new(w.y, w.z, w.x).mul_comp(e_zxy);
         let half_d = ((c0 - c2) * 0.5).abs();
         let half_s = ((c2 + c0) * 0.5).abs();
         let r = (half_d + s_zxy.mul_comp(e_yzx).abs()) + s_yzx.mul_comp(e_zxy).abs();
@@ -1002,7 +1020,8 @@ fn grid_clamp(x: f32, n: i32) -> i32 {
 /// `getHeight(ix, iy)` of a heightfield primitive.
 #[inline]
 fn hf_height(hf: &HeightfieldPrim, ix: i32, iy: i32) -> f32 {
-    (hf.get_height.expect("heightfield primitive without a getHeight callback"))(ix, iy)
+    (hf.get_height
+        .expect("heightfield primitive without a getHeight callback"))(ix, iy)
 }
 
 /// OVERLAP hf–sph (0x351975E0): the sphere's centre in the heightfield frame; every grid
@@ -1040,6 +1059,161 @@ pub fn overlap_sph_hf(sph: &SpherePrim, hf: &HeightfieldPrim) -> bool {
 }
 
 // ---------------------------------------------------------------------------------------------
+// OVERLAP box–hf 0x351986E0, hf–box 0x35199120
+// ---------------------------------------------------------------------------------------------
+
+/// `max(a, b)` as `(|a − b| + (b + a)) · 0.5`.
+#[inline]
+fn max_ab(a: f32, b: f32) -> f32 {
+    ((a - b).abs() + (b + a)) * 0.5
+}
+
+/// OVERLAP box–hf (0x351986E0).
+///
+/// The box is brought into the heightfield frame (`R = Basis_box · Basis_hfᵀ` when both are
+/// oriented, `Basis_hfᵀ` when only the heightfield is, the raw box basis when the heightfield
+/// is not; centre `Basis_hf·(c − origin)`), its rows sign-flipped so that every row's `z` is
+/// non-positive. Its footprint gives a clamped cell range (`ix0 = max(·, 0)`, `ix1 = min(·, n)`
+/// — each bound clamped on one side only) and the box bottom `zmin`.
+/// * More than 6 cells (`(ix1−ix0)·(iy1−iy0) > 6`, wrapping): any grid vertex in the
+///   inclusive range with `h·hscale > zmin` overlaps.
+/// * Otherwise: if the maximum of `0` and all those heights is below `zmin` (or `ix0 ≥ ix1`),
+///   no overlap; else each cell of the half-open range is split into the triangles
+///   `(00, 10, 01)` and `(01, 10, 11)` and tested with [`overlap_box_tri`] against the
+///   transformed box.
+///
+/// Binary quirks kept: the "max height" starts at 0 (heights below 0 never lower it); the
+/// footprint uses the `max`-idiom half extents of the flipped rows, not the exact AABB.
+#[must_use]
+pub fn overlap_box_hf(bx: &BoxPrim, hf: &HeightfieldPrim) -> bool {
+    let h = &hf.basis;
+    let (r, l) = if hf.oriented != 0 {
+        let r = if bx.oriented != 0 {
+            bx.basis.mul_mat(&h.transpose())
+        } else {
+            h.transpose()
+        };
+        (r.m, h.mul_vec(bx.center - hf.origin))
+    } else {
+        (bx.basis.m, bx.center - hf.origin)
+    };
+    let (sx, sy, sz) = (bx.size.x, bx.size.y, bx.size.z);
+    let flip = |row: [f32; 3]| {
+        let s = (-sgnnz(row[2])) as f32;
+        [row[0] * s, row[1] * s, row[2] * s]
+    };
+    let r0 = flip(r[0]);
+    let r1 = flip(r[1]);
+    let r2 = flip(r[2]);
+    let z = (r1[2] * sy + r0[2] * sx) + r2[2] * sz;
+    let a = (sy * r1[0] + sx * (-r0[0])) + sz * r2[0];
+    let b = (sy * r1[1] + sx * (-r0[1])) + sz * r2[1];
+    let c = (sy * (-r1[0]) + sx * r0[0]) + sz * r2[0];
+    let d = (sy * (-r1[1]) + r0[1] * sx) + sz * r2[1];
+    let e = (r1[0] * sy + sx * r0[0]) + (-r2[0]) * sz;
+    let f = (r1[1] * sy + r0[1] * sx) + (-r2[1]) * sz;
+    let ma = (a.abs().abs() + a.abs()) * 0.5;
+    let mb = (b.abs().abs() + b.abs()) * 0.5;
+    let ex = max_ab(max_ab(ma, c.abs()), e.abs());
+    let ey = max_ab(max_ab(mb, d.abs()), f.abs());
+    let zmin = z + l.z;
+    let k = 12_582_912.0f32;
+    let ib = |x: f32| ((x + k).to_bits() as i32).wrapping_add(0xB4C0_0000u32 as i32);
+    let lo = |v: i32| v & !(v >> 31);
+    let hi = |v: i32, n: i32| {
+        let d = v.wrapping_sub(n);
+        ((d >> 31) & d).wrapping_add(n)
+    };
+    let ix0 = lo(ib((l.x - ex) * hf.stepr[0] - 0.5));
+    let iy0 = lo(ib((l.y - ey) * hf.stepr[1] - 0.5));
+    let ix1 = hi(ib((l.x + ex) * hf.stepr[0] + 0.5), hf.size[0]);
+    let iy1 = hi(ib((l.y + ey) * hf.stepr[1] + 0.5), hf.size[1]);
+    let hs = hf.height_scale;
+
+    if ix1.wrapping_sub(ix0).wrapping_mul(iy1.wrapping_sub(iy0)) > 6 {
+        for ix in ix0..=ix1 {
+            for iy in iy0..=iy1 {
+                // `comiss` + `ja`: NaN does not overlap.
+                if hf_height(hf, ix, iy) * hs > zmin {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    let mut hmax = 0.0f32;
+    for ix in ix0..=ix1 {
+        for iy in iy0..=iy1 {
+            let hh = hf_height(hf, ix, iy) * hs;
+            hmax = ((hmax - hh).abs() + (hh + hmax)) * 0.5;
+        }
+    }
+    // `comiss` + `jb`: NaN does not overlap.
+    if !(hmax >= zmin) || ix0 >= ix1 {
+        return false;
+    }
+    let tbox = BoxPrim {
+        basis: Mat33::from_rows(
+            Vec3::from_array(r0),
+            Vec3::from_array(r1),
+            Vec3::from_array(r2),
+        ),
+        oriented: 1,
+        center: l,
+        size: bx.size,
+    };
+    let [stx, sty] = hf.step;
+    for ix in ix0..ix1 {
+        let fx = ix as f32;
+        for iy in iy0..iy1 {
+            let x0 = fx * stx;
+            let y0 = iy as f32 * sty;
+            let x1 = stx + x0;
+            let y1 = sty + y0;
+            let h00 = hf_height(hf, ix, iy) * hs;
+            let h10 = hf_height(hf, ix + 1, iy) * hs;
+            let h01 = hf_height(hf, ix, iy + 1) * hs;
+            let (dx, dy) = (x1 - x0, y1 - y0);
+            let (u, v) = (h10 - h00, h01 - h00);
+            let t1 = Triangle {
+                pt: [
+                    Vec3::new(x0, y0, h00),
+                    Vec3::new(x1, y0, h10),
+                    Vec3::new(x0, y1, h01),
+                ],
+                n: Vec3::new(0.0 * v - u * dy, u * 0.0 - v * dx, dy * dx - 0.0 * 0.0),
+            };
+            if overlap_box_tri(&tbox, &t1) {
+                return true;
+            }
+            let x1b = x0 + stx;
+            let h11 = hf_height(hf, ix + 1, iy + 1) * hs;
+            let (p, q) = (h10 - h01, h11 - h01);
+            let (g, w) = (y0 - y1, x1 - x0);
+            let wb = x1b - x0;
+            let t2 = Triangle {
+                pt: [
+                    Vec3::new(x0, y1, h01),
+                    Vec3::new(x1, y0, h10),
+                    Vec3::new(x1b, y1, h11),
+                ],
+                n: Vec3::new(g * q - p * 0.0, p * wb - q * w, 0.0 * w - g * wb),
+            };
+            if overlap_box_tri(&tbox, &t2) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// OVERLAP hf–box (0x35199120): [`overlap_box_hf`] with swapped operands.
+#[must_use]
+pub fn overlap_hf_box(hf: &HeightfieldPrim, bx: &BoxPrim) -> bool {
+    overlap_box_hf(bx, hf)
+}
+
+// ---------------------------------------------------------------------------------------------
 // table adapters
 // ---------------------------------------------------------------------------------------------
 
@@ -1067,12 +1241,88 @@ fn cell_tri_ray(a: &Primitive, b: &Primitive, out: &mut PrimInters) -> bool {
     intersect_tri_ray(as_tri(a), as_ray(b), out)
 }
 
-/// Write this group's INTERSECT / OVERLAP cells.
+fn as_box(p: &Primitive) -> &BoxPrim {
+    match p {
+        Primitive::Box(b) => b,
+        _ => panic!("tri_pairs: expected a box, got {:?}", p.geom_type()),
+    }
+}
+
+fn as_sph(p: &Primitive) -> &SpherePrim {
+    match p {
+        Primitive::Sphere(s) => s,
+        _ => panic!("tri_pairs: expected a sphere, got {:?}", p.geom_type()),
+    }
+}
+
+fn as_hf(p: &Primitive) -> &HeightfieldPrim {
+    match p {
+        Primitive::Heightfield(h) => h,
+        _ => panic!("tri_pairs: expected a heightfield, got {:?}", p.geom_type()),
+    }
+}
+
+fn cell_tri_sph(a: &Primitive, b: &Primitive, out: &mut PrimInters) -> bool {
+    intersect_tri_sph(as_tri(a), as_sph(b), out)
+}
+fn cell_sph_tri(a: &Primitive, b: &Primitive, out: &mut PrimInters) -> bool {
+    intersect_sph_tri(as_sph(a), as_tri(b), out)
+}
+fn cell_tri_box(a: &Primitive, b: &Primitive, out: &mut PrimInters) -> bool {
+    intersect_tri_box(as_tri(a), as_box(b), out)
+}
+fn cell_box_tri(a: &Primitive, b: &Primitive, out: &mut PrimInters) -> bool {
+    intersect_box_tri(as_box(a), as_tri(b), out)
+}
+fn ocell_box_tri(a: &Primitive, b: &Primitive) -> bool {
+    overlap_box_tri(as_box(a), as_tri(b))
+}
+fn ocell_tri_box(a: &Primitive, b: &Primitive) -> bool {
+    overlap_tri_box(as_tri(a), as_box(b))
+}
+fn ocell_tri_sph(a: &Primitive, b: &Primitive) -> bool {
+    overlap_tri_sph(as_tri(a), as_sph(b))
+}
+fn ocell_sph_tri(a: &Primitive, b: &Primitive) -> bool {
+    overlap_sph_tri(as_sph(a), as_tri(b))
+}
+fn ocell_box_hf(a: &Primitive, b: &Primitive) -> bool {
+    overlap_box_hf(as_box(a), as_hf(b))
+}
+fn ocell_hf_box(a: &Primitive, b: &Primitive) -> bool {
+    overlap_hf_box(as_hf(a), as_box(b))
+}
+fn ocell_hf_sph(a: &Primitive, b: &Primitive) -> bool {
+    overlap_hf_sph(as_hf(a), as_sph(b))
+}
+fn ocell_sph_hf(a: &Primitive, b: &Primitive) -> bool {
+    overlap_sph_hf(as_sph(a), as_hf(b))
+}
+
+/// Write this group's INTERSECT / OVERLAP cells: every INTERSECT cell with a triangle operand
+/// except tri x cyl/cap (P2a-3), and the OVERLAP tri and hf rows. The OVERLAP cells box–tri,
+/// box–hf, sph–tri and sph–hf (box / sph rows) are filled here as well because their kernels
+/// live in this file; the box and round groups reuse them.
 pub fn fill(t: &mut PairTables) {
     use crate::ids::GeomType as G;
+    let bx = G::Box.id() as usize;
     let tri = G::TriMesh.id() as usize;
+    let hf = G::Heightfield.id() as usize;
     let ray = G::Ray.id() as usize;
+    let sph = G::Sphere.id() as usize;
     t.intersect[tri][tri] = cell_tri_tri;
     t.intersect[ray][tri] = cell_ray_tri;
     t.intersect[tri][ray] = cell_tri_ray;
+    t.intersect[tri][sph] = cell_tri_sph;
+    t.intersect[sph][tri] = cell_sph_tri;
+    t.intersect[tri][bx] = cell_tri_box;
+    t.intersect[bx][tri] = cell_box_tri;
+    t.overlap[bx][tri] = ocell_box_tri;
+    t.overlap[tri][bx] = ocell_tri_box;
+    t.overlap[tri][sph] = ocell_tri_sph;
+    t.overlap[sph][tri] = ocell_sph_tri;
+    t.overlap[bx][hf] = ocell_box_hf;
+    t.overlap[hf][bx] = ocell_hf_box;
+    t.overlap[hf][sph] = ocell_hf_sph;
+    t.overlap[sph][hf] = ocell_sph_hf;
 }
