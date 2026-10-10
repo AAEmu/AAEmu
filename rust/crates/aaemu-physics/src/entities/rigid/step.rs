@@ -327,7 +327,8 @@ pub fn step(w: &mut World, e: EntIdx, dt: f32) -> bool {
                     let pos = w.ent(e).pos;
                     let org = rd(w, e).prev_pos;
                     let dir = Vec3::new(pn.x - pos.x, pn.y - pos.y, pn.z - pos.z);
-                    if w.collide_entity_with_beam(col, org, dir, 0.0) {
+                    let mut hit = crate::world::queries::RayHit::default();
+                    if w.ray_trace_entity(col, org, dir, &mut hit, None, 3, true) != 0 {
                         let b = w.bodies.get_mut(body_id);
                         b.v = Vec3::new(b.v.x * 0.5, b.v.y * 0.5, b.v.z * 0.5);
                         b.w = Vec3::new(b.w.x * 0.5, b.w.y * 0.5, b.w.z * 0.5);
@@ -613,9 +614,9 @@ fn register_record(w: &mut World, e: EntIdx, i: i32, dt: f32, tid: i32, v393: f3
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn finish_step(w: &mut World, e: EntIdx, v23: f32, v25: u32, v363: u32, deep: u32, tid: i32, v393: f32) {
     verify_contacts(w, e);
-    if rd(w, e).queued_impulse.is_some() {
-        super::action::apply_queued(w, e);
-    }
+    // `+1184`: a net-sync state queued through slot 24 (`action_net_sync`) is applied here
+    // by 0x350C9750 (SetParams pos + Action set_velocity, blended towards the target). The
+    // port exposes no slot-24 API, so nothing is ever queued.
     let bbn = rd(w, e).bbox_new;
     let cells = w.reposition_entity(e, 1, Some(bbn));
     update_position(w, e, cells);
