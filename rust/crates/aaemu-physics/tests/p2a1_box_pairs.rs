@@ -155,6 +155,7 @@ fn sentinel_inters() -> PrimInters {
         id: [(SENT & 0xFFFF) as u16 as i16, (SENT >> 16) as u16 as i16],
         i_node: [SENT as i32, SENT as i32],
         border: vec![sv],
+        border_max: SENT as i32,
         n_alt: sv,
         unk_84: SENT as i32,
     }
@@ -184,7 +185,7 @@ fn fmt_out(ret: bool, o: &PrimInters) -> String {
         o.border.len() as u32
     };
     w(count);
-    w(SENT);
+    w(o.border_max as u32);
     for b in o.n_alt.to_bits() {
         w(b);
     }

@@ -33,6 +33,12 @@
 //! writes and leave every other field untouched (callers reuse one record). The border polyline
 //! (`+56` pointer / `+64` count) is [`PrimInters::border`]: "count := 0" is `clear()`, an append
 //! is `push`.
+//!
+//! **`border_max` is not honoured — as in the binary.** None of the five box functions reads
+//! `prim_inters +68` (`nbordersz`, [`PrimInters::border_max`]); they append unconditionally
+//! (box–box up to 48 points, box–cylinder / box–capsule more). With the 15-point buffer the
+//! primitive caller 0x3514DFD0 provides, the original can overrun it; the port's `Vec` simply
+//! grows. Callers that need the cap must truncate themselves.
 
 // `!(x >= 0.0)` and friends are deliberate: they reproduce the binary's unordered-compare
 // outcome (`comisd` + `jae`/`jbe`) for NaN operands.
