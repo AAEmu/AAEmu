@@ -178,6 +178,10 @@ pub fn do_die(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>, k
         n.current_aggro_target = 0;
     }
     super::super::spawn_manager::on_npc_died(server, npc);
+    // ClearAllAggroTargetsAndCheckCombatState() + Ai?.GoToDead() (systems::ai)
+    if let Some(ai) = server.systems.hooks.ai.get() {
+        ai.npc_died(server, npc);
+    }
 }
 
 #[cfg(test)]

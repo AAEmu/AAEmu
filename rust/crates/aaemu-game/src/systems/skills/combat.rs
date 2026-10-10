@@ -735,6 +735,10 @@ pub fn set_faction(server: &GameServer, unit: &WorldObject, faction_id: u32) {
             buffs::remove_buff(server, unit, buff_constants::CONTEMPTUOUS);
         }
     }
+    // Npc attacks the characters around it (quest 2486): systems::ai
+    if let (Some(n), Some(ai)) = (unit.as_npc(), server.systems.hooks.ai.get()) {
+        ai.npc_faction_set(server, n);
+    }
 }
 
 /// `Unit.OnZoneChange(lastZoneKey, newZoneKey)`: zone group buffs.

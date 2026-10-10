@@ -199,6 +199,8 @@ impl<T: ?Sized> HookSlot<T> {
 pub struct Hooks {
     /// Installed by the skills subsystem.
     pub unit: HookSlot<dyn UnitHooks>,
+    /// Installed by the ai subsystem (`npc.Ai` call sites of npcs / skills).
+    pub ai: HookSlot<dyn ai::hooks::AiHooks>,
 }
 
 /// Drains `owner`'s buff events and hands them to [`UnitHooks::on_buff_event`]. Call it after

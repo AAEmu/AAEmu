@@ -4,6 +4,7 @@
 
 use crate::impl_unit_data;
 use crate::models::item::Item;
+use crate::models::movement::{GameStanceType, MoveTypeAlertness};
 use crate::models::transform::Transform;
 use crate::models::unit::{unit_type_flag, BaseUnitType, ModelPostureType, UnitBase};
 
@@ -49,6 +50,17 @@ pub struct Npc {
     pub tag_team: u32,
     /// `CharacterTagging.Tagger?.ObjId ?? 0` (the player holding tagging rights).
     pub tagger_obj_id: u32,
+    // ---- phase 4 / ai ----
+    /// `CurrentGameStance` (the C# field default is `Combat`; set through the AI's
+    /// `CurrentGameStance` setter, which applies the fly / swim overrides).
+    pub current_game_stance: GameStanceType,
+    /// `CurrentAlertness`.
+    pub current_alertness: MoveTypeAlertness,
+    /// `Ai.GetCurrentBehavior() is HoldPositionBehavior or IdleBehavior` (kept by the AI for
+    /// `WorldManager.GetReferenceHeight`).
+    pub ai_hold_or_idle: bool,
+    /// `Spawner?.Position.Z` (`None` without a spawner), kept for `GetReferenceHeight`.
+    pub spawner_z: Option<f32>,
 }
 
 impl Npc {
@@ -72,6 +84,10 @@ impl Npc {
             ai_should_tick: false,
             tag_team: 0,
             tagger_obj_id: 0,
+            current_game_stance: GameStanceType::COMBAT,
+            current_alertness: MoveTypeAlertness::IDLE,
+            ai_hold_or_idle: false,
+            spawner_z: None,
         }
     }
 

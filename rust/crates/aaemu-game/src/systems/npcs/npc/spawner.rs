@@ -1158,8 +1158,15 @@ impl NpcSpawner {
                 }
             }
             if effect.use_summoner_aggro_target && !effect.use_summoner_faction {
-                // TODO(npcs/AI): npc.Ai.Owner.AddUnitAggro(Damage, target-or-caster, 1) +
-                // Ai.OnAggroTargetChanged() (the NPC AI is a later phase).
+                // npc.Ai.Owner.AddUnitAggro(Damage, target-or-caster, 1) +
+                // Ai.OnAggroTargetChanged() (systems::ai)
+                let unit = match target {
+                    Some(t) if t.as_npc().is_some() => Some(t),
+                    _ => caster,
+                };
+                if let (Some(ai), Some(unit)) = (server.systems.hooks.ai.get(), unit) {
+                    ai.npc_engage(server, npc, unit);
+                }
             }
             if effect.life_time > 0.0 {
                 schedule_npc_do_despawn(server, npc, effect.life_time);
@@ -1336,18 +1343,24 @@ fn spawn_npc(
         nsn.npc_spawner_template_id,
         pos
     );
-    // TODO(npcs/AI): Ai.HomePosition / IdlePosition = world position, Ai.GoToSpawn().
     server
         .systems
         .npcs
         .spawns
         .set_npc_spawner(npc.obj_id, spawner.clone());
+    // Ai.HomePosition / IdlePosition = world position, Ai.GoToSpawn() (systems::ai)
+    if let Some(ai) = server.systems.hooks.ai.get() {
+        ai.npc_spawn_positioned(server, &npc);
+    }
     if let Some(t) = spawner.template() {
         spawner.set_respawn_time(random_float(t.spawn_delay_min, t.spawn_delay_max) as i32);
     }
     spawn_into_world(server, &world, &npc);
-    // TODO(npcs): world.Events.OnUnitSpawn, `npc.Simulation = new Simulation(npc)` and
-    // `Ai.LoadAiPathPoints(FollowPath)` (AI / routes are a later phase).
+    // TODO(npcs): world.Events.OnUnitSpawn. RegisterNpcEvents, `npc.Simulation = new
+    // Simulation(npc)` and `Ai.LoadAiPathPoints(FollowPath)` are the AI subsystem's.
+    if let Some(ai) = server.systems.hooks.ai.get() {
+        ai.npc_spawned(server, &npc, &spawner.follow_path);
+    }
     Ok(Some(vec![npc]))
 }
 

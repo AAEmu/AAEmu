@@ -9,8 +9,9 @@
 //!
 //! Cells are loaded on demand (`WorldCell.VerifyCellLoaded`) from the client sources
 //! (`ClientData.Sources`, read through [`ClientFileManager`]: the 24 GB game_pak is never
-//! scanned unless `World.PreLoadTerrain` is set). Geodata / navmesh (`GeoDataMode`), BAI files,
-//! `object.dat`, physics and water are not ported: the `GeoDataMode = false` path is used.
+//! scanned unless `World.PreLoadTerrain` is set). With `GeoDataMode` the navmesh height of the
+//! AI subsystem (`systems::ai::geodata`, installed with [`HeightmapWorlds::install_geo_data`])
+//! is asked first, like `WorldTemplate.GeoData.GetHeight`. `object.dat` is not read here.
 //!
 //! C# exceptions inside the height lookups (`IndexOutOfRangeException` for the `cellX > CellX`
 //! bound check, negative indices, a failing cell load) are [`HeightError`]s; the callers that
@@ -722,7 +723,7 @@ fn csharp_f32_to_i32(v: f32) -> i32 {
 pub struct HeightmapConfig {
     /// `HeightMapsEnable`.
     pub heightmaps_enable: bool,
-    /// `World.GeoDataMode` (geodata is not ported: no navmesh height is ever found).
+    /// `World.GeoDataMode` (navmesh heights first, see [`HeightmapWorlds::install_geo_data`]).
     pub geo_data_mode: bool,
     /// `World.PreLoadTerrain`.
     pub pre_load_terrain: bool,
@@ -741,8 +742,11 @@ pub struct ReferenceHeightAi {
     pub world_z: f32,
 }
 
+/// `WorldTemplate.GeoData.GetHeight(position)` (navmesh height, `GeoDataMode` only), installed
+/// by the AI subsystem: (template id, x, y, z) -> height.
+pub type GeoDataHeight = dyn Fn(u32, f32, f32, f32) -> f32 + Send + Sync;
+
 /// Every world template's heightmap plus the client files they load from.
-#[derive(Debug)]
 pub struct HeightmapWorlds {
     pub config: HeightmapConfig,
     files: Arc<ClientFileManager>,
@@ -750,6 +754,17 @@ pub struct HeightmapWorlds {
     templates: HashMap<u32, WorldHeightmap>,
     /// `GetWorldTemplateByZoneKey(zoneKey).Id`.
     zone_worlds: HashMap<u32, u32>,
+    /// The navmesh height lookup (`None` until the AI subsystem installs it).
+    geo_data: RwLock<Option<Arc<GeoDataHeight>>>,
+}
+
+impl std::fmt::Debug for HeightmapWorlds {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HeightmapWorlds")
+            .field("config", &self.config)
+            .field("templates", &self.templates.len())
+            .finish()
+    }
 }
 
 impl HeightmapWorlds {
@@ -774,6 +789,29 @@ impl HeightmapWorlds {
             files,
             templates,
             zone_worlds,
+            geo_data: RwLock::new(None),
+        }
+    }
+
+    /// Installs the navmesh height lookup used with `GeoDataMode` (AI subsystem).
+    pub fn install_geo_data(&self, f: Arc<GeoDataHeight>) {
+        *self.geo_data.write().unwrap_or_else(|e| e.into_inner()) = Some(f);
+    }
+
+    /// `world.GeoData.GetHeight(position)` when `GeoDataMode` is on and the navmesh is
+    /// installed (0 otherwise, as without navmesh data).
+    fn geo_data_height(&self, template_id: u32, x: f32, y: f32, z: f32) -> f32 {
+        if !self.config.geo_data_mode {
+            return 0.0;
+        }
+        match self
+            .geo_data
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_ref()
+        {
+            Some(f) => f(template_id, x, y, z),
+            None => 0.0,
         }
     }
 
@@ -789,6 +827,7 @@ impl HeightmapWorlds {
             files,
             templates: templates.into_iter().map(|t| (t.template_id, t)).collect(),
             zone_worlds,
+            geo_data: RwLock::new(None),
         }
     }
 
@@ -822,10 +861,13 @@ impl HeightmapWorlds {
     }
 
     /// `WorldManager.GetHeight(zoneKey, x, y, z)`: floor height, 0 when unknown / disabled.
-    pub fn get_height(&self, zone_key: u32, x: f32, y: f32, _z: f32) -> f32 {
-        let height = 0f32;
+    pub fn get_height(&self, zone_key: u32, x: f32, y: f32, z: f32) -> f32 {
+        let mut height = 0f32;
         let world = self.template_by_zone_key(zone_key);
-        // GeoDataMode: `world?.GeoData.GetHeight(position)` — not ported (no navmesh height).
+        // GeoDataMode: `world?.GeoData.GetHeight(position)` (systems::ai)
+        if let Some(w) = world {
+            height = self.geo_data_height(w.template_id, x, y, z);
+        }
         if height != 0.0 || !self.config.heightmaps_enable {
             return height;
         }
@@ -841,7 +883,11 @@ impl HeightmapWorlds {
         let Some(template_id) = template_id else {
             return 0.0;
         };
-        // GeoDataMode: `world.Template.GeoData?.GetHeight(...)` — not ported.
+        // GeoDataMode: `world.Template.GeoData?.GetHeight(...)` (systems::ai)
+        let height = self.geo_data_height(template_id, x, y, z);
+        if height != 0.0 {
+            return height;
+        }
         if self.config.heightmaps_enable {
             self.world_height(template_id, x, y).unwrap_or(z)
         } else {
@@ -945,10 +991,9 @@ static ACTIVE: RwLock<Option<Arc<HeightmapWorlds>>> = RwLock::new(None);
 /// `SCUnitStatePacket.Write` for an NPC: `Transform.Local.SetHeight(WorldManager
 /// .GetReferenceHeight(npc.Ai, Local.X, Local.Y, Local.Z, Transform.ZoneId))`.
 ///
-/// The AI is not ported yet: an NPC with `has_ai` is treated as an AI in a behaviour other than
-/// Idle / HoldPosition (the state after `Spawning`), and its spawner Z is approximated by the
-/// current Z. Without installed heightmaps (`HeightMapsEnable = false`, tests) nothing is
-/// changed — the C# would write 0 for an AI-less NPC then.
+/// The AI keeps `ai_hold_or_idle` (current behavior) and `spawner_z` on the NPC. Without
+/// installed heightmaps (`HeightMapsEnable = false`, tests) nothing is changed — the C# would
+/// write 0 for an AI-less NPC then.
 pub fn adjust_npc_reference_height(npc: &mut Npc) {
     let Some(h) = ACTIVE.read().unwrap_or_else(|e| e.into_inner()).clone() else {
         return;
@@ -956,8 +1001,8 @@ pub fn adjust_npc_reference_height(npc: &mut Npc) {
     let t = npc.unit.transform;
     let ai = npc.has_ai.then_some(ReferenceHeightAi {
         can_fly: npc.can_fly,
-        hold_or_idle: false,
-        spawner_z: None,
+        hold_or_idle: npc.ai_hold_or_idle,
+        spawner_z: npc.spawner_z,
         world_z: t.z,
     });
     let height = h.get_reference_height(ai.as_ref(), t.x, t.y, t.z, t.zone_id);

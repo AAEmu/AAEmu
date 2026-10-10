@@ -15,8 +15,8 @@
 //!   fallback (`_startZ`, the height the lift started from);
 //! * actor model stances (`ModelManager.GetActorModel(..).Stances`) are not loaded: the fear speed
 //!   of the wandering controller is its 7 m/s fallback;
-//! * `Npc.StopMovement` writes `CurrentGameStance` / `CurrentAlertness`, which belong to the npc
-//!   subsystem and are not tracked yet: their C# defaults (`Combat`, `Idle`) are written;
+//! * `Npc.StopMovement` writes the NPC's `CurrentGameStance` / `CurrentAlertness` (kept by the AI;
+//!   their C# defaults `Combat` / `Idle` until an AI sets them);
 //! * `Unit.CheckMovedPosition` raises `Events.OnMovement` (no Rust subscribers) and calls
 //!   `WorldManager.AddVisibleObject`, which is ported (`add_visible_object` + zone changes).
 //!
@@ -1245,19 +1245,24 @@ fn check_moved_position(server: &GameServer, owner: &WorldObject) {
     }
 }
 
-/// `Npc.StopMovement()`. `CurrentGameStance` / `CurrentAlertness` are npc-subsystem state that is
-/// not tracked yet: their C# defaults (`Combat`, `Idle`) are written.
+/// `Npc.StopMovement()`.
 pub fn npc_stop_movement(server: &GameServer, npc: &WorldObject) {
     let tr = npc.transform();
     let in_battle = npc.with_unit(|u| u.unit().is_in_battle).unwrap_or(false);
+    let (stance, alertness) =
+        npc.as_npc()
+            .map_or((GameStanceType::COMBAT, MoveTypeAlertness::IDLE), |n| {
+                let d = n.data();
+                (d.current_game_stance, d.current_alertness)
+            });
     let (_, _, rz) = roll_pitch_yaw_sbytes_movement(tr.rot_x, tr.rot_y, tr.rot_z);
     let um = UnitMove {
         x: tr.x,
         y: tr.y,
         z: tr.z,
         rotation_z: rz,
-        stance: GameStanceType::COMBAT,
-        alertness: MoveTypeAlertness::IDLE,
+        stance,
+        alertness,
         ..UnitMove::default()
     };
     let mut mt = MoveType::new(MoveKind::Unit(um));
