@@ -121,7 +121,7 @@ pub struct TriMesh {
     pub max_vertex_valency: i32,
     /// `+476` ray-grid build count (slot 22).
     pub ray_grid_ready: i32,
-    /// `+176..+312` the ray grid built by slot 22 (`PrepareForRayTest`, 0x351D7C40) and read by
+    /// `+176..+392` the ray grid (up to two layers) built by slot 22 (`PrepareForRayTest`, 0x351D7C40) and read by
     /// `PointInsideStatus` (slot 61) and the mesh ray path; `None` until built.
     pub ray_grid: Option<inside::RayGrid>,
     /// `+32` foreign data pointer (slots 35 / 37; opaque to the engine).
