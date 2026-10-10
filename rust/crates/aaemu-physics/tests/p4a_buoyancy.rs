@@ -26,7 +26,7 @@ fn buoyancy_variants() {
 /// Multi-part entities: blocked by the rigid AddGeometry body composition (second part's
 /// CoM/inertia not merged in the port yet; P4a lead).
 #[test]
-#[ignore]
+
 fn buoyancy_multipart() {
     run("p4a_buoy_multipart");
 }
