@@ -391,3 +391,38 @@ fn real_ai_object_dat_water_bodies() {
         );
     }
 }
+
+/// `ShipStaticBarrierBaiIngestor.EnsureCell` on real main_world path blocks (`GeoDataMode`):
+/// coastal forbidden-area polygons become ship barrier polylines.
+#[test]
+#[ignore = "needs AAEMU_GAME_PAK"]
+fn real_ai_ship_barriers_from_bai() {
+    use super::physics::barriers::BarrierZones;
+    use super::physics::tests::FakeEnv;
+    let Some(files) = pak_files() else { return };
+    let worlds = WorldTemplates::load(&files, &app_path()).expect("world templates");
+    let main = worlds
+        .get_world_template_by_name("main_world")
+        .expect("main_world");
+    let bai: Arc<dyn BaiFiles + Send + Sync> = Arc::new(ClientBaiFiles(files.clone()));
+    let g = AiGeoData::new(main, true, bai, Arc::new(UsedAreaNames::default()), None);
+    // flat sea floor 10 m under the template ocean: every low polygon is "coastal"
+    let env = FakeEnv::flat(main.ocean_level, main.ocean_level - 10.0);
+    let mut zones = BarrierZones::default();
+    for cx in 10..main.cell_x.min(20) {
+        for cy in 10..main.cell_y.min(20) {
+            zones.ensure_cell(&env, (cx, cy), g.cell_bai(cx, cy));
+        }
+    }
+    let segments: usize = zones.barriers.iter().map(|b| b.segments.len()).sum();
+    println!("{} barriers, {segments} segments", zones.barriers.len());
+    assert!(!zones.barriers.is_empty());
+    assert!(zones
+        .barriers
+        .iter()
+        .all(|b| b.segments.len() >= 2 && b.z_max >= b.z_min));
+    // a cell is ingested once
+    let n = zones.barriers.len();
+    zones.ensure_cell(&env, (10, 10), g.cell_bai(10, 10));
+    assert_eq!(zones.barriers.len(), n);
+}
