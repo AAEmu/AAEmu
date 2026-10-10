@@ -1103,3 +1103,10 @@ Arguments: `(wd, epicenter, k, rmin, …, P&[, L&])`. The caller was not found.
 5. **Inferred fields:** the entity, body and medium-element field offsets are inferred from usage only.
 6. **Transcribed in outline only:** the sphere slot 14 partial case and the cylinder wedge/cap polynomials. Re-read 0x351afcb0 and 0x35146f40 for exact arithmetic before porting.
 7. **Not inspected:** box→trimesh conversion winding (sub_3513AC00).
+
+## Corrections from the P1b port (bit-exact against the DLL)
+
+- **AABB build split:** the AABB builder only considers the *larger* of the two allowed split axes,
+  not both (the description above suggested both are tried).
+- **OBB slot 13 bug:** `COBBTree` slot 13 writes the second child's orientation flag into the first
+  child's record (mirrored in the port).
