@@ -1,0 +1,12 @@
+# P1a: CalculateBuoyancy (slot 13) of every solid primitive under random placements and water
+# planes (horizontal, tilted, arbitrary), and CalcVolumetricPressure (slot 12) of the round
+# primitives. mode=1: identity rotation and unit scale.
+gprobe probe=buoy type=box n=400 seed=401
+gprobe probe=buoy type=box n=100 seed=402 mode=1
+gprobe probe=buoy type=sphere n=300 seed=403
+gprobe probe=buoy type=cylinder n=500 seed=404
+gprobe probe=buoy type=cylinder n=100 seed=405 mode=1
+gprobe probe=buoy type=capsule n=500 seed=406
+gprobe probe=press type=sphere n=200 seed=407
+gprobe probe=press type=cylinder n=200 seed=408
+gprobe probe=press type=capsule n=200 seed=409

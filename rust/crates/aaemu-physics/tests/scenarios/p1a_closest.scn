@@ -1,0 +1,47 @@
+# P1a slot 11 FindClosestPoint, box and sphere: random cases from every distribution of
+# oracle/p1a_probes_closest.c (dist 0..8 x mode 0/1), the original gprobe sampler, and single
+# cases picked (by seed) to reach rare branches. Tests: tests/p1a_closest.rs.
+
+gprobe probe=closest type=box n=60 seed=7200
+cprobe type=box n=20 seed=7100000 dist=0 mode=0
+cprobe type=box n=20 seed=7100001 dist=0 mode=1
+cprobe type=box n=20 seed=7100010 dist=1 mode=0
+cprobe type=box n=20 seed=7100011 dist=1 mode=1
+cprobe type=box n=20 seed=7100020 dist=2 mode=0
+cprobe type=box n=20 seed=7100021 dist=2 mode=1
+cprobe type=box n=20 seed=7100030 dist=3 mode=0
+cprobe type=box n=20 seed=7100031 dist=3 mode=1
+cprobe type=box n=20 seed=7100040 dist=4 mode=0
+cprobe type=box n=20 seed=7100041 dist=4 mode=1
+cprobe type=box n=20 seed=7100050 dist=5 mode=0
+cprobe type=box n=20 seed=7100051 dist=5 mode=1
+cprobe type=box n=20 seed=7100060 dist=6 mode=0
+cprobe type=box n=20 seed=7100061 dist=6 mode=1
+cprobe type=box n=20 seed=7100070 dist=7 mode=0
+cprobe type=box n=20 seed=7100071 dist=7 mode=1
+cprobe type=box n=20 seed=7100080 dist=8 mode=0
+cprobe type=box n=20 seed=7100081 dist=8 mode=1
+# rare: vertex accepted beyond the (+,+,+) corner
+cprobe type=box n=1 seed=900029 dist=0 mode=0
+gprobe probe=closest type=sphere n=30 seed=7204
+cprobe type=sphere n=10 seed=7104000 dist=0 mode=0
+cprobe type=sphere n=10 seed=7104001 dist=0 mode=1
+cprobe type=sphere n=10 seed=7104010 dist=1 mode=0
+cprobe type=sphere n=10 seed=7104011 dist=1 mode=1
+cprobe type=sphere n=10 seed=7104020 dist=2 mode=0
+cprobe type=sphere n=10 seed=7104021 dist=2 mode=1
+cprobe type=sphere n=10 seed=7104030 dist=3 mode=0
+cprobe type=sphere n=10 seed=7104031 dist=3 mode=1
+cprobe type=sphere n=10 seed=7104040 dist=4 mode=0
+cprobe type=sphere n=10 seed=7104041 dist=4 mode=1
+cprobe type=sphere n=10 seed=7104050 dist=5 mode=0
+cprobe type=sphere n=10 seed=7104051 dist=5 mode=1
+cprobe type=sphere n=10 seed=7104060 dist=6 mode=0
+cprobe type=sphere n=10 seed=7104061 dist=6 mode=1
+cprobe type=sphere n=10 seed=7104070 dist=7 mode=0
+cprobe type=sphere n=10 seed=7104071 dist=7 mode=1
+cprobe type=sphere n=10 seed=7104080 dist=8 mode=0
+cprobe type=sphere n=10 seed=7104081 dist=8 mode=1
+# rare: zero-length segment; direction fallback (0,0,1)
+cprobe type=sphere n=1 seed=1302004 dist=2 mode=0
+cprobe type=sphere n=1 seed=1308001 dist=8 mode=0

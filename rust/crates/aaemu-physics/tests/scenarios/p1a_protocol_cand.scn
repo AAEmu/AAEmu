@@ -1,0 +1,8 @@
+# P1a: slot 57 GetUnprojectionCandidates: contact points on / near faces, edges, vertices and
+# rims; features of every class; +160 set in two thirds of the cases (re-transform).
+gproto probe=cand57 type=box n=100 seed=5701
+gproto probe=cand57 type=box n=30 seed=5702 mode=1
+gproto probe=cand57 type=cylinder n=70 seed=5703
+gproto probe=cand57 type=capsule n=70 seed=5704
+gproto probe=cand57 type=sphere n=15 seed=5705
+gproto probe=cand57 type=ray n=15 seed=5706
