@@ -1,15 +1,16 @@
-//! Port of `AAEmu.Game.Models.Game.Char.Character` (data members, `Write`, inventory wiring) plus
-//! the `Transform` / `PositionAndRotation` members a character uses (no parent / sticky
-//! transforms: local == world).
+//! Port of `AAEmu.Game.Models.Game.Char.Character` (data members, `Write`, inventory wiring).
+//! The `GameObject` / `BaseUnit` / `Unit` members (name, level, hp/mp, transform, faction,
+//! buffs, model, ...) live in [`Character::unit`] ([`UnitBase`]), shared with every unit kind.
 
 use std::collections::BTreeMap;
 
 use aaemu_commons::{Marshal, PacketStream};
 
-use super::buff::Buffs;
 use super::char_data::*;
 use super::container::{slot_type, ContainerKind, ContainerRef, ItemContainer};
 use super::item::{Item, UnixTime};
+pub use super::transform::{convert_long, Transform};
+use super::unit::{unit_type_flag, BaseUnitType, UnitBase};
 use super::unit_model::UnitCustomModelParams;
 use crate::managers::id::IdManager;
 use crate::managers::item::ItemManager;
@@ -20,44 +21,6 @@ pub const EQUIPMENT_CONTAINER_SIZE: usize = 28;
 
 /// `WorldManager.DefaultInstanceId`.
 pub const DEFAULT_INSTANCE_ID: u32 = 0;
-
-/// `Helpers.ConvertLongX` / `ConvertLongY` (float -> fixed-point long).
-pub fn convert_long(v: f32) -> i64 {
-    ((v * 4096.0) as i64) << 32
-}
-
-/// `Transform` (+ `PositionAndRotation Local`). Rotation is (roll, pitch, yaw) in radians.
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
-pub struct Transform {
-    pub instance_id: u32,
-    pub world_id: u32,
-    pub zone_id: u32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub rot_x: f32,
-    pub rot_y: f32,
-    pub rot_z: f32,
-}
-
-impl Transform {
-    /// `PositionAndRotation.ToRollPitchYawSBytes()` (`MathF.Round` = ties to even).
-    pub fn roll_pitch_yaw_sbytes(&self) -> (i8, i8, i8) {
-        const TWO_PI: f32 = std::f32::consts::PI * 2.0;
-        const DIV: f32 = 1.0 / 127.0;
-        let f = |v: f32| -> i8 { (v / TWO_PI / DIV).round_ties_even() as i8 };
-        (f(self.rot_x), f(self.rot_y), f(self.rot_z))
-    }
-
-    pub fn set_position(&mut self, x: f32, y: f32, z: f32, rx: f32, ry: f32, rz: f32) {
-        self.x = x;
-        self.y = y;
-        self.z = z;
-        self.rot_x = rx;
-        self.rot_y = ry;
-        self.rot_z = rz;
-    }
-}
 
 /// `Inventory`: the character's containers (shared with the [`ItemManager`]).
 #[derive(Debug, Clone)]
@@ -148,17 +111,15 @@ impl Inventory {
 /// `Character`.
 #[derive(Debug, Clone)]
 pub struct Character {
+    /// The `GameObject` / `BaseUnit` / `Unit` members.
+    pub unit: UnitBase,
     pub id: u32,
     pub account_id: u32,
-    pub name: String,
     pub access_level: i32,
     pub race: u8,
     pub gender: u8,
-    pub level: u8,
     pub experience: i32,
     pub recoverable_exp: i32,
-    pub hp: i32,
-    pub mp: i32,
     /// `_savedHp` / `_savedMp` (restored after the gear bonuses are known).
     pub saved_hp: i32,
     pub saved_mp: i32,
@@ -168,12 +129,7 @@ pub struct Character {
     pub ability3: u8,
     /// `ServerId` (`world_id` column).
     pub server_id: u32,
-    pub transform: Transform,
-    /// `Faction.Id`.
-    pub faction_id: u32,
     pub faction_name: String,
-    /// `Expedition?.Id ?? 0`.
-    pub expedition_id: u32,
     pub family: u32,
     pub dead_count: i16,
     pub dead_time: UnixTime,
@@ -225,8 +181,6 @@ pub struct Character {
     /// `InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated)`.
     pub labor_power: i16,
     pub labor_power_modified: UnixTime,
-    pub model_params: UnitCustomModelParams,
-    pub model_id: u32,
     pub slots: Vec<ActionSlot>,
     /// `_options` (UI data).
     pub options: BTreeMap<u16, String>,
@@ -243,7 +197,6 @@ pub struct Character {
     pub removed_blocked: Vec<u32>,
     pub quests: CharacterQuests,
     pub unread_mail: CountUnreadMail,
-    pub buffs: Buffs,
     pub visual_options: Option<VisualOptions>,
     /// `GameObject.Guid` (`Guid.NewGuid()` when the object is created).
     pub guid: [u8; 16],
@@ -267,17 +220,17 @@ impl Character {
     /// `new Character(modelParams)` with an empty, unregistered inventory.
     pub fn new(id: u32, account_id: u32, model_params: UnitCustomModelParams) -> Self {
         Self {
+            unit: UnitBase {
+                model_params,
+                ..UnitBase::default()
+            },
             id,
             account_id,
-            name: String::new(),
             access_level: 0,
             race: 0,
             gender: 0,
-            level: 0,
             experience: 0,
             recoverable_exp: 0,
-            hp: 0,
-            mp: 0,
             saved_hp: 99_999_999,
             saved_mp: 99_999_999,
             consumed_labor_power: 0,
@@ -285,10 +238,7 @@ impl Character {
             ability2: 0,
             ability3: 0,
             server_id: 0,
-            transform: Transform::default(),
-            faction_id: 0,
             faction_name: String::new(),
-            expedition_id: 0,
             family: 0,
             dead_count: 0,
             dead_time: 0,
@@ -335,8 +285,6 @@ impl Character {
             offline_guilty_region: 0,
             labor_power: 0,
             labor_power_modified: 0,
-            model_params,
-            model_id: 0,
             slots: vec![ActionSlot::default(); MAX_ACTION_SLOTS],
             options: BTreeMap::new(),
             inventory: Inventory::standalone(id, 0, 0),
@@ -351,7 +299,6 @@ impl Character {
             removed_blocked: Vec::new(),
             quests: CharacterQuests::default(),
             unread_mail: CountUnreadMail::default(),
-            buffs: Buffs::default(),
             visual_options: None,
             guid: new_guid(),
             obj_id: 0,
@@ -399,21 +346,32 @@ impl Character {
     }
 }
 
+crate::impl_unit_data!(
+    Character,
+    BaseUnitType::Character,
+    unit_type_flag::CHARACTER,
+    {
+        fn race_gender(&self) -> u8 {
+            Character::race_gender(self)
+        }
+    }
+);
+
 impl Marshal for Character {
     /// `Character.Write` (character list, `SCCreateCharacterResponsePacket`,
     /// `SCCharacterStatePacket`).
     fn write(&self, s: &mut PacketStream) {
         s.write_u32(self.id)
-            .write_str(&self.name)
+            .write_str(&self.unit.name)
             .write_u8(self.race)
             .write_u8(self.gender)
-            .write_u8(self.level)
-            .write_i32(self.hp)
-            .write_i32(self.mp)
-            .write_u32(self.transform.zone_id)
-            .write_u32(self.faction_id)
+            .write_u8(self.unit.level)
+            .write_i32(self.unit.hp)
+            .write_i32(self.unit.mp)
+            .write_u32(self.unit.transform.zone_id)
+            .write_u32(self.unit.faction_id)
             .write_str(&self.faction_name)
-            .write_u32(self.expedition_id)
+            .write_u32(self.unit.expedition_id)
             .write_u32(self.family);
 
         for item in self.inventory.equipment_slots() {
@@ -429,11 +387,11 @@ impl Marshal for Character {
             .write_u8(self.ability2)
             .write_u8(self.ability3);
 
-        s.write_i64(convert_long(self.transform.x))
-            .write_i64(convert_long(self.transform.y))
-            .write_f32(self.transform.z);
+        s.write_i64(convert_long(self.unit.transform.x))
+            .write_i64(convert_long(self.unit.transform.y))
+            .write_f32(self.unit.transform.z);
 
-        self.model_params.write(s);
+        self.unit.model_params.write(s);
         s.write_i16(self.labor_power)
             .write_i64(self.labor_power_modified)
             .write_i16(self.dead_count)
@@ -468,23 +426,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn convert_long_matches_csharp() {
-        assert_eq!(convert_long(1.0), 4096i64 << 32);
-        assert_eq!(convert_long(-0.5), -2048i64 << 32);
-        assert_eq!(
-            convert_long(12345.678),
-            ((12345.678f32 * 4096.0) as i64) << 32
-        );
-    }
-
-    #[test]
     fn empty_equipment_layout() {
         let mut c = Character::new(1, 1, UnitCustomModelParams::default());
-        c.name = "Ab".into();
+        c.unit.name = "Ab".into();
         let mut s = PacketStream::new();
         c.write(&mut s);
         let mut model = PacketStream::new();
-        c.model_params.write(&mut model);
+        c.unit.model_params.write(&mut model);
         let head = 4 + 2 + 2 + 3 + 8 + 4 + 4 + 2 + 4 + 4;
         let equip = 4 * EQUIPMENT_CONTAINER_SIZE;
         let tail = 3
@@ -513,14 +461,5 @@ mod tests {
             + 8
             + 1;
         assert_eq!(s.len(), head + equip + tail);
-    }
-
-    #[test]
-    fn rotation_sbytes() {
-        let t = Transform {
-            rot_z: std::f32::consts::PI,
-            ..Transform::default()
-        };
-        assert_eq!(t.roll_pitch_yaw_sbytes(), (0, 0, 64));
     }
 }

@@ -68,7 +68,7 @@ impl Character {
     /// guild and party are not ported — see PORTING.md).
     pub fn check_wanted_threshold(&mut self, server: &GameServer, now_ms: i64) {
         let add = |c: &mut Character, id: u32| {
-            if c.buffs.check_buff(id) {
+            if c.unit.buffs.check_buff(id) {
                 return;
             }
             match server.game_data.skills.buff(id) {
@@ -77,8 +77,8 @@ impl Character {
                         kind: 0,
                         obj_id: c.obj_id,
                     };
-                    let b = Buff::new(t.clone(), caster, Some((c.id, c.level)), now_ms);
-                    c.buffs.add_buff(b, 0, 0, now_ms);
+                    let b = Buff::new(t.clone(), caster, Some((c.id, c.unit.level)), now_ms);
+                    c.unit.buffs.add_buff(b, 0, 0, now_ms);
                 }
                 None => tracing::error!("CheckWantedThreshold: no buff template {id}"),
             }
@@ -86,22 +86,22 @@ impl Character {
         if self.infamy_point >= PIRATE_CRIME_POINT_THRESHOLD {
             add(self, BUFF_WANTED);
             add(self, BUFF_CONTEMPTUOUS);
-            if self.faction_id != FACTION_PIRATE {
+            if self.unit.faction_id != FACTION_PIRATE {
                 tracing::warn!(
                     "Character {} ({}) has {} infamy: SetFaction(Pirate)",
                     self.id,
-                    self.name,
+                    self.unit.name,
                     self.infamy_point
                 );
-                self.faction_id = FACTION_PIRATE;
+                self.unit.faction_id = FACTION_PIRATE;
             }
         } else {
             if self.crime_point >= WANTED_CRIME_POINT_THRESHOLD {
                 add(self, BUFF_WANTED);
             } else {
-                self.buffs.remove_buff(BUFF_WANTED);
+                self.unit.buffs.remove_buff(BUFF_WANTED);
             }
-            self.buffs.remove_buff(BUFF_CONTEMPTUOUS);
+            self.unit.buffs.remove_buff(BUFF_CONTEMPTUOUS);
         }
     }
 }
@@ -128,17 +128,17 @@ pub async fn load_character(
     let model_params: UnitCustomModelParams = PacketStream::from_bytes(blob).read()?;
     let id = int(&row, "id")? as u32;
     let mut c = Character::new(id, account_id, model_params);
-    c.name = row.try_get("name")?;
+    c.unit.name = row.try_get("name")?;
     c.access_level = int(&row, "access_level")? as i32;
     c.race = int(&row, "race")? as u8;
     c.gender = int(&row, "gender")? as u8;
-    c.level = int(&row, "level")? as u8;
+    c.unit.level = int(&row, "level")? as u8;
     c.experience = int(&row, "experience")? as i32;
     c.recoverable_exp = int(&row, "recoverable_exp")? as i32;
-    c.hp = int(&row, "hp")? as i32;
-    c.mp = int(&row, "mp")? as i32;
-    c.saved_hp = c.hp;
-    c.saved_mp = c.mp;
+    c.unit.hp = int(&row, "hp")? as i32;
+    c.unit.mp = int(&row, "mp")? as i32;
+    c.saved_hp = c.unit.hp;
+    c.saved_mp = c.unit.mp;
     c.labor_power = account.labor;
     c.labor_power_modified = unix(account.last_updated);
     c.consumed_labor_power = int(&row, "consumed_lp")? as i32;
@@ -148,7 +148,7 @@ pub async fn load_character(
     c.server_id = int(&row, "world_id")? as u32;
     // new Transform(character, null, zone_id, DefaultInstanceId, x, y, z, yaw, pitch, roll):
     // the constructor's (roll, pitch, yaw) parameters receive the yaw / pitch / roll columns.
-    c.transform = Transform {
+    c.unit.transform = Transform {
         instance_id: DEFAULT_INSTANCE_ID,
         world_id: server.game_data.worlds.default_world_template_id(),
         zone_id: int(&row, "zone_id")? as u32,
@@ -158,12 +158,13 @@ pub async fn load_character(
         rot_x: row.try_get("yaw")?,
         rot_y: row.try_get("pitch")?,
         rot_z: row.try_get("roll")?,
+        parent_obj_id: 0,
     };
     // Later phase: FactionManager.GetFaction returns null for unknown ids (Write would throw).
-    c.faction_id = int(&row, "faction_id")? as u32;
+    c.unit.faction_id = int(&row, "faction_id")? as u32;
     c.faction_name = row.try_get("faction_name")?;
     let expedition_id = int(&row, "expedition_id")? as u32;
-    c.expedition_id = if server.expeditions.exists(expedition_id) {
+    c.unit.expedition_id = if server.expeditions.exists(expedition_id) {
         expedition_id
     } else {
         0
@@ -243,9 +244,9 @@ pub async fn load_character(
     let (level, experience) = server
         .game_data
         .experience
-        .validate_and_fix(c.level, c.experience)
+        .validate_and_fix(c.unit.level, c.experience)
         .map_err(|e| GameError::Protocol(format!("Character.Load({id}): {e}")))?;
-    c.level = level;
+    c.unit.level = level;
     c.experience = experience;
     // PostUpdateCurrentHp(character, 0, Hp, Unknown): no HP triggers on characters.
 
@@ -308,11 +309,11 @@ pub async fn check_for_deleted_characters_deletion(
             "CheckForDeletedCharactersDeletion - Deleting Account:{} Id:{} Name:{}",
             character.account_id,
             character.id,
-            character.name
+            character.unit.name
         );
-        let mut deleted_name = character.name.clone();
+        let mut deleted_name = character.unit.name.clone();
         if server.config.account.delete_release_name {
-            deleted_name = format!("!{}", character.name);
+            deleted_name = format!("!{}", character.unit.name);
             server.names.remove_character_id(character.id);
             server
                 .names
@@ -334,7 +335,7 @@ pub async fn check_for_deleted_characters_deletion(
             if let Some(p) = packets {
                 p.push(Box::new(crate::packets::world::SCCharacterDeletedPacket {
                     character_id: character.id,
-                    name: character.name.clone(),
+                    name: character.unit.name.clone(),
                 }));
                 p.push(Box::new(
                     crate::packets::world::SCDeleteCharacterResponsePacket {
@@ -352,7 +353,7 @@ pub async fn check_for_deleted_characters_deletion(
             "CheckForDeletedCharactersDeletion - Delete request for Account:{} Id:{} Name:{}, but character is no longer marked for deletion (possibly cancelled delete)",
             character.account_id,
             character.id,
-            character.name
+            character.unit.name
         );
     }
     Ok(false)
@@ -413,7 +414,7 @@ pub async fn load_character_details(server: &GameServer, c: &mut Character) -> R
     let id = c.id;
     let now_ms = Utc::now().timestamp_millis();
     if let Some(t) = data.characters.template(c.race, c.gender) {
-        c.model_id = t.model_id;
+        c.unit.model_id = t.model_id;
     } else {
         return Err(GameError::Protocol(format!(
             "no character template for race {} gender {}",
@@ -591,7 +592,7 @@ pub async fn load_character_details(server: &GameServer, c: &mut Character) -> R
         };
         let data: Vec<u8> = r.try_get("data")?;
         if let Err(e) = q.read_data(&data) {
-            tracing::error!("Quest {} data of {}: {e}", q.template_id, c.name);
+            tracing::error!("Quest {} data of {}: {e}", q.template_id, c.unit.name);
         }
         c.quests.active.push(q);
     }
@@ -628,7 +629,10 @@ pub fn learn_skill(server: &GameServer, c: &mut Character, skill_id: u32) {
     {
         return;
     }
-    let mut points = server.game_data.experience.skill_points_for_level(c.level);
+    let mut points = server
+        .game_data
+        .experience
+        .skill_points_for_level(c.unit.level);
     points -= c.skills.used_skill_points(data, 0);
     if t.skill_points > points {
         return;
@@ -643,7 +647,7 @@ pub fn learn_skill(server: &GameServer, c: &mut Character, skill_id: u32) {
 /// `GetAbLevel(type)`: `General` = `Level`, otherwise the level for the ability's exp.
 pub fn ab_level(server: &GameServer, c: &Character, ability_id: u8) -> i32 {
     if ability_id == 0 {
-        return i32::from(c.level);
+        return i32::from(c.unit.level);
     }
     let exp = c
         .abilities
@@ -673,11 +677,11 @@ pub fn apply_passive_buff(server: &GameServer, c: &mut Character, passive_id: u3
     let mut b = Buff::new(
         t.clone(),
         SkillCaster::default(),
-        Some((c.id, c.level)),
+        Some((c.id, c.unit.level)),
         now_ms,
     );
     b.passive = true;
-    c.buffs.add_buff(b, 0, 0, now_ms);
+    c.unit.buffs.add_buff(b, 0, 0, now_ms);
 }
 
 /// `Buffs.AddBuff(uint buffId, BaseUnit caster)` with the character as caster.
@@ -690,8 +694,8 @@ pub fn add_buff_by_id(server: &GameServer, c: &mut Character, buff_id: u32, now_
         kind: 0,
         obj_id: c.obj_id,
     };
-    let b = Buff::new(t.clone(), caster, Some((c.id, c.level)), now_ms);
-    c.buffs.add_buff(b, 0, 0, now_ms);
+    let b = Buff::new(t.clone(), caster, Some((c.id, c.unit.level)), now_ms);
+    c.unit.buffs.add_buff(b, 0, 0, now_ms);
 }
 
 /// A `character_active_buffs` row.
@@ -769,7 +773,7 @@ pub fn apply_active_buffs(
         if remaining <= 0 {
             continue;
         }
-        if c.buffs.check_buff(row.buff_id) {
+        if c.unit.buffs.check_buff(row.buff_id) {
             tracing::debug!(
                 "LoadActiveBuffs: Buff {} already active, skipping",
                 row.buff_id
@@ -780,7 +784,7 @@ pub fn apply_active_buffs(
             kind: 0,
             obj_id: c.obj_id,
         };
-        let mut b = Buff::new(t.clone(), caster, Some((c.id, c.level)), now_ms);
+        let mut b = Buff::new(t.clone(), caster, Some((c.id, c.unit.level)), now_ms);
         b.ab_level = row.ab_level;
         b.duration = remaining;
         b.charge = if row.charge > 0 {
@@ -788,7 +792,7 @@ pub fn apply_active_buffs(
         } else {
             t.init_min_charge
         };
-        c.buffs.add_buff(b, 0, remaining, now_ms);
+        c.unit.buffs.add_buff(b, 0, remaining, now_ms);
         restored += 1;
     }
     if restored > 0 {
@@ -804,7 +808,7 @@ pub async fn save_character(
     now: i64,
 ) -> Result<()> {
     let mut model = PacketStream::new();
-    aaemu_commons::Marshal::write(&c.model_params, &mut model);
+    aaemu_commons::Marshal::write(&c.unit.model_params, &mut model);
     c.updated = now;
     // Column order roll,pitch,yaw receives @yaw,@pitch,@roll: `roll` stores Rotation.Z and
     // `yaw` stores Rotation.X; Load reads them back crosswise, so the round trip is consistent.
@@ -826,31 +830,31 @@ pub async fn save_character(
     )
     .bind(c.id)
     .bind(c.account_id)
-    .bind(&c.name)
+    .bind(&c.unit.name)
     .bind(c.access_level)
     .bind(c.race)
     .bind(c.gender)
     .bind(model.into_bytes())
-    .bind(c.level)
+    .bind(c.unit.level)
     .bind(c.experience)
     .bind(c.recoverable_exp)
-    .bind(c.hp)
-    .bind(c.mp)
+    .bind(c.unit.hp)
+    .bind(c.unit.mp)
     .bind(c.consumed_labor_power)
     .bind(c.ability1)
     .bind(c.ability2)
     .bind(c.ability3)
     .bind(c.server_id)
-    .bind(c.transform.zone_id)
-    .bind(c.transform.x)
-    .bind(c.transform.y)
-    .bind(c.transform.z)
-    .bind(c.transform.rot_z) // `roll` <- @yaw
-    .bind(c.transform.rot_y)
-    .bind(c.transform.rot_x) // `yaw` <- @roll
-    .bind(c.faction_id)
+    .bind(c.unit.transform.zone_id)
+    .bind(c.unit.transform.x)
+    .bind(c.unit.transform.y)
+    .bind(c.unit.transform.z)
+    .bind(c.unit.transform.rot_z) // `roll` <- @yaw
+    .bind(c.unit.transform.rot_y)
+    .bind(c.unit.transform.rot_x) // `yaw` <- @roll
+    .bind(c.unit.faction_id)
     .bind(&c.faction_name)
-    .bind(c.expedition_id)
+    .bind(c.unit.expedition_id)
     .bind(c.family)
     .bind(c.dead_count)
     .bind(from_unix(c.dead_time))
@@ -1073,7 +1077,7 @@ async fn save_active_buffs(tx: &mut Transaction<'_, MySql>, c: &Character) {
         let now = Utc::now();
         let now_ms = now.timestamp_millis();
         let mut saved = 0;
-        for b in &c.buffs.effects {
+        for b in &c.unit.buffs.effects {
             if !b.should_persist(now_ms) {
                 continue;
             }
@@ -1136,7 +1140,7 @@ pub async fn save_directly_to_database(pool: &MySqlPool, c: &mut Character) -> b
     match res {
         Ok(()) => true,
         Err(e) => {
-            tracing::error!("Character save failed for {} - {}: {e}", c.id, c.name);
+            tracing::error!("Character save failed for {} - {}: {e}", c.id, c.unit.name);
             false
         }
     }

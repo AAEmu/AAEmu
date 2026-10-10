@@ -1,6 +1,10 @@
-//! Body builders for the packets whose C# `Write` reads a live `Character`:
-//! `SCCharacterStatePacket`, `SCUnitStatePacket` (character branch) and
+//! Body builders for the packets whose C# `Write` reads a live unit:
+//! `SCCharacterStatePacket`, `SCUnitStatePacket` (every `BaseUnitType`) and
 //! `SCCreateCharacterResponsePacket`.
+//!
+//! The character branch of `SCUnitStatePacket` is [`unit_state`]; the other kinds go through
+//! [`write_net_unit`] with a [`NetUnitSpec`] describing their kind-specific fields (built by
+//! [`npc_unit_state`], [`slave_unit_state`], ...).
 
 use aaemu_commons::{Marshal, PacketStream};
 
@@ -8,6 +12,15 @@ use crate::data::skills::BuffKind;
 use crate::data::GameData;
 use crate::models::buff::{Buff, SkillCaster};
 use crate::models::character::Character;
+use crate::models::house::House;
+use crate::models::item::Item;
+use crate::models::mate::Mate;
+use crate::models::npc::Npc;
+use crate::models::shipyard::Shipyard;
+use crate::models::slave::Slave;
+use crate::models::transfer::Transfer;
+use crate::models::unit::{attach_point, BaseUnitType, ModelPostureType, UnitBase, UnitData};
+use crate::models::unit_model::UnitCustomModelType;
 use crate::packets::world::{
     SCCharacterStatePacket, SCCreateCharacterResponsePacket, SCUnitStatePacket,
 };
@@ -25,14 +38,14 @@ pub const UNIT_STATE_FORCED_BUFFS: [u32; 2] = [8_000_011, 8_000_012];
 /// `SCCharacterStatePacket(character)`.
 pub fn character_state(c: &Character) -> SCCharacterStatePacket {
     let mut s = PacketStream::new();
-    s.write_u32(c.transform.instance_id) // instanceId
+    s.write_u32(c.unit.transform.instance_id) // instanceId
         .write_u16(16) // Guid: Write(byte[], appendSize: true)
         .write_raw(&c.guid)
         .write_i32(0); // rwd
     c.write(&mut s);
-    s.write_f32(c.transform.rot_x)
-        .write_f32(c.transform.rot_y)
-        .write_f32(c.transform.rot_z)
+    s.write_f32(c.unit.transform.rot_x)
+        .write_f32(c.unit.transform.rot_y)
+        .write_f32(c.unit.transform.rot_z)
         .write_i32(c.experience)
         .write_i32(c.recoverable_exp)
         .write_u32(0) // penaltiedExp
@@ -90,15 +103,15 @@ pub fn unit_state(c: &mut Character, data: &GameData, now_ms: i64) -> SCUnitStat
 
 fn write_unit_state(c: &mut Character, data: &GameData, now_ms: i64, s: &mut PacketStream) {
     s.write_bc(c.obj_id)
-        .write_str(&c.name)
+        .write_str(&c.unit.name)
         .write_u8(BASE_UNIT_TYPE_CHARACTER)
         .write_u32(c.id) // type(id)
         .write_i64(0) // v?
         .write_str(""); // OwnerId == 0 -> no master name
-    s.write_position(c.transform.x, c.transform.y, c.transform.z)
+    s.write_position(c.unit.transform.x, c.unit.transform.y, c.unit.transform.z)
         .write_f32(1.0) // Scale
-        .write_u8(c.level)
-        .write_u32(c.model_id);
+        .write_u8(c.unit.level)
+        .write_u32(c.unit.model_id);
 
     // Inventory_Equip (Character)
     let slots = c.inventory.equipment_slots();
@@ -119,10 +132,10 @@ fn write_unit_state(c: &mut Character, data: &GameData, now_ms: i64, s: &mut Pac
         s.write_i32(0);
     }
 
-    c.model_params.write(s);
+    c.unit.model_params.write(s);
     s.write_bc(0)
-        .write_i32(c.hp.wrapping_mul(100)) // preciseHealth
-        .write_i32(c.mp.wrapping_mul(100)) // preciseMana
+        .write_i32(c.unit.hp.wrapping_mul(100)) // preciseHealth
+        .write_i32(c.unit.mp.wrapping_mul(100)) // preciseMana
         .write_u8(ATTACH_POINT_SYSTEM) // AttachPoint1
         .write_i8(-1); // AttachPoint2: no Bonding
                        // Unit.ModelPosture
@@ -138,11 +151,16 @@ fn write_unit_state(c: &mut Character, data: &GameData, now_ms: i64, s: &mut Pac
         s.write_u32(*b);
     }
 
-    let (roll, pitch, yaw) = c.transform.roll_pitch_yaw_sbytes();
+    let (roll, pitch, yaw) = c.unit.transform.roll_pitch_yaw_sbytes();
     s.write_i8(roll).write_i8(pitch).write_i8(yaw);
     s.write_u8(c.race_gender());
     s.write_pisc(&[0, 0, i64::from(c.appellations.active), 0]);
-    s.write_pisc(&[i64::from(c.faction_id), i64::from(c.expedition_id), 0, 0]);
+    s.write_pisc(&[
+        i64::from(c.unit.faction_id),
+        i64::from(c.unit.expedition_id),
+        0,
+        0,
+    ]);
     s.write_pisc(&[
         i64::from(c.honor_gained_in_combat),
         i64::from(c.hostile_faction_kills),
@@ -171,7 +189,7 @@ fn write_unit_state(c: &mut Character, data: &GameData, now_ms: i64, s: &mut Pac
 
     // NetBuff
     for id in UNIT_STATE_FORCED_BUFFS {
-        if c.buffs.check_buff(id) {
+        if c.unit.buffs.check_buff(id) {
             continue;
         }
         let Some(t) = data.skills.buff(id) else {
@@ -181,10 +199,10 @@ fn write_unit_state(c: &mut Character, data: &GameData, now_ms: i64, s: &mut Pac
             return;
         };
         let caster = SkillCaster::default(); // SkillCaster.GetByType(Unit)
-        let b = Buff::new(t.clone(), caster, Some((c.id, c.level)), now_ms);
-        c.buffs.add_buff(b, 0, 0, now_ms);
+        let b = Buff::new(t.clone(), caster, Some((c.id, c.unit.level)), now_ms);
+        c.unit.buffs.add_buff(b, 0, 0, now_ms);
     }
-    let (good, bad, hidden) = match c.buffs.all_buffs(false) {
+    let (good, bad, hidden) = match c.unit.buffs.all_buffs(false) {
         Ok(v) => v,
         Err(kind) => {
             tracing::error!(
@@ -202,6 +220,476 @@ fn write_unit_state(c: &mut Character, data: &GameData, now_ms: i64, s: &mut Pac
     }
 }
 
+/// The `BaseUnitType`-specific header of `NetUnit` (after the type byte).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum NetUnitHeader {
+    Npc {
+        template_id: u32,
+        owner_id: u32,
+    },
+    Slave {
+        id: u32,
+        tl_id: u16,
+        template_id: u32,
+        summoner_id: u32,
+    },
+    Housing {
+        tl_id: u16,
+        template_id: u32,
+        build_step: i16,
+    },
+    Transfer {
+        tl_id: u16,
+        template_id: u32,
+    },
+    Mate {
+        tl_id: u16,
+        template_id: u32,
+        owner_id: u32,
+    },
+    Shipyard {
+        id: u64,
+        template_id: u32,
+    },
+}
+
+impl NetUnitHeader {
+    fn base_unit_type(&self) -> BaseUnitType {
+        match self {
+            NetUnitHeader::Npc { .. } => BaseUnitType::Npc,
+            NetUnitHeader::Slave { .. } => BaseUnitType::Slave,
+            NetUnitHeader::Housing { .. } => BaseUnitType::Housing,
+            NetUnitHeader::Transfer { .. } => BaseUnitType::Transfer,
+            NetUnitHeader::Mate { .. } => BaseUnitType::Mate,
+            NetUnitHeader::Shipyard { .. } => BaseUnitType::Shipyard,
+        }
+    }
+}
+
+/// How `Inventory_Equip` writes the non-body-part slots for a `BaseUnitType`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EquipMode {
+    /// Character / Housing / Mate / Slave: `stream.Write(item)` or `0`.
+    Full,
+    /// Npc: `templateId, id, grade` or `0`.
+    Npc,
+    /// Transfer / Shipyard: only the 7 body-part slots (19..=25).
+    BodyOnly,
+}
+
+/// `AttachPoint1` of `SCUnitStatePacket`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AttachPoint1 {
+    /// `(byte)AttachPointKind.System`.
+    System,
+    /// Slave: `AttachPointId` (sbyte) + `OwnerObjId` (bc) when attached.
+    Slave { point: i8, owner_obj_id: u32 },
+    /// Transfer: `AttachPointId` + `BondingObjId` (bc) unless `System`.
+    Transfer { point: u8, bonding_obj_id: u32 },
+}
+
+/// Everything `SCUnitStatePacket.Write` reads from a non-character unit besides [`UnitBase`].
+#[derive(Debug, Clone)]
+pub struct NetUnitSpec<'a> {
+    pub header: NetUnitHeader,
+    pub equipment: &'a [Option<Item>],
+    pub equip_mode: EquipMode,
+    pub attach1: AttachPoint1,
+    /// Slave `BondingObjId` (written as bc when > 0, else `-1`); 0 for the other kinds.
+    pub bonding_obj_id: u32,
+    pub posture: ModelPostureType,
+    /// `Npc.AnimActionId` (`Unit.ModelPosture` animation override).
+    pub anim_action_id: u32,
+    pub race_gender: u8,
+}
+
+/// `Inventory_Equip(stream, unit, baseUnitType)`.
+fn write_inventory_equip(
+    s: &mut PacketStream,
+    unit: &mut UnitBase,
+    equipment: &[Option<Item>],
+    mode: EquipMode,
+) {
+    let any = equipment.iter().take(32).any(Option::is_some);
+    if !any && mode == EquipMode::Npc {
+        // ModelParams.SetType(Skin): "the NPC has no body and no face".
+        unit.model_params.kind = UnitCustomModelType::SKIN;
+    }
+    for index in 0..28usize {
+        let item = equipment.get(index).and_then(Option::as_ref);
+        if !(19..=25).contains(&index) {
+            if index != 27 {
+                match (mode, item) {
+                    (EquipMode::BodyOnly, _) => {}
+                    (EquipMode::Full, Some(item)) => item.write(s),
+                    (EquipMode::Npc, Some(item)) => {
+                        s.write_u32(item.template_id)
+                            .write_u64(item.id)
+                            .write_u8(item.grade);
+                    }
+                    (_, None) => {
+                        s.write_i32(0);
+                    }
+                }
+            } else {
+                if mode == EquipMode::BodyOnly {
+                    return;
+                }
+                match item {
+                    Some(item) => item.write(s), // Cosplay [27]
+                    None => {
+                        s.write_i32(0);
+                    }
+                }
+            }
+        } else {
+            s.write_u32(item.map_or(0, |i| i.template_id));
+        }
+    }
+}
+
+/// `Unit.ModelPosture(stream, unit, animActionId, activateAnimation: true)`.
+pub fn write_model_posture(
+    s: &mut PacketStream,
+    posture: ModelPostureType,
+    has_loot_left: bool,
+    anim_action_id: u32,
+) {
+    s.write_u8(posture as u8).write_bool(has_loot_left);
+    match posture {
+        ModelPostureType::HouseState => {
+            for _ in 0..2 {
+                s.write_bool(true); // door
+            }
+            for _ in 0..6 {
+                s.write_bool(true); // window
+            }
+        }
+        ModelPostureType::ActorModelState => {
+            s.write_u32(anim_action_id).write_bool(true);
+        }
+        ModelPostureType::FarmfieldState => {
+            s.write_u32(0)
+                .write_f32(0.0)
+                .write_i32(0)
+                .write_bool(false)
+                .write_bool(false);
+        }
+        ModelPostureType::TurretState => {
+            s.write_f32(0.0).write_f32(0.0); // pitch, yaw
+        }
+        ModelPostureType::None => {}
+    }
+}
+
+/// `SCUnitStatePacket(unit).Write` for every `BaseUnitType` but `Character`.
+/// `owner_name` = `NameManager.GetCharacterName(OwnerId) ?? ""` (only read when
+/// `OwnerId > 0`). A buff of an unknown kind truncates the packet like the C# exception.
+pub fn write_net_unit(
+    s: &mut PacketStream,
+    obj_id: u32,
+    unit: &mut UnitBase,
+    spec: &NetUnitSpec<'_>,
+    owner_name: &str,
+    now_ms: i64,
+) {
+    s.write_bc(obj_id)
+        .write_str(&unit.name)
+        .write_u8(spec.header.base_unit_type() as u8);
+    match spec.header {
+        NetUnitHeader::Npc {
+            template_id,
+            owner_id,
+        } => {
+            s.write_bc(obj_id)
+                .write_u32(template_id)
+                .write_u32(owner_id)
+                .write_u8(0); // clientDriven
+        }
+        NetUnitHeader::Slave {
+            id,
+            tl_id,
+            template_id,
+            summoner_id,
+        } => {
+            s.write_u32(id)
+                .write_u16(tl_id)
+                .write_u32(template_id)
+                .write_u32(summoner_id);
+        }
+        NetUnitHeader::Housing {
+            tl_id,
+            template_id,
+            build_step,
+        } => {
+            s.write_u16(tl_id)
+                .write_u32(template_id)
+                .write_i16(build_step);
+        }
+        NetUnitHeader::Transfer { tl_id, template_id } => {
+            s.write_u16(tl_id).write_u32(template_id);
+        }
+        NetUnitHeader::Mate {
+            tl_id,
+            template_id,
+            owner_id,
+        } => {
+            s.write_u16(tl_id)
+                .write_u32(template_id)
+                .write_u32(owner_id);
+        }
+        NetUnitHeader::Shipyard { id, template_id } => {
+            s.write_u64(id).write_u32(template_id);
+        }
+    }
+    s.write_str(if unit.owner_id > 0 { owner_name } else { "" });
+    // TODO(npcs): Npc -> `Transform.Local.SetHeight(WorldManager.GetReferenceHeight(..))`
+    // (needs heightmaps / AI).
+    let t = unit.transform;
+    s.write_position(t.x, t.y, t.z)
+        .write_f32(unit.scale)
+        .write_u8(unit.level)
+        .write_u32(unit.model_id);
+    write_inventory_equip(s, unit, spec.equipment, spec.equip_mode);
+    unit.model_params.write(s);
+    s.write_bc(0)
+        .write_i32(unit.hp.wrapping_mul(100))
+        .write_i32(unit.mp.wrapping_mul(100));
+    match spec.attach1 {
+        AttachPoint1::System => {
+            s.write_u8(attach_point::SYSTEM);
+        }
+        AttachPoint1::Slave {
+            point,
+            owner_obj_id,
+        } => {
+            s.write_i8(point);
+            if point > -1 {
+                s.write_bc(owner_obj_id);
+            }
+        }
+        AttachPoint1::Transfer {
+            point,
+            bonding_obj_id,
+        } => {
+            s.write_u8(point);
+            if point != attach_point::SYSTEM {
+                s.write_bc(bonding_obj_id);
+            }
+        }
+    }
+    if spec.bonding_obj_id > 0 {
+        s.write_bc(spec.bonding_obj_id);
+    } else {
+        s.write_i8(-1);
+    }
+    write_model_posture(s, spec.posture, unit.has_loot_left, spec.anim_action_id);
+    s.write_u8(unit.active_weapon);
+    s.write_u8(0).write_i32(0); // learnedSkillCount, learnedBuffCount
+    let (roll, pitch, yaw) = t.roll_pitch_yaw_sbytes();
+    s.write_i8(roll).write_i8(pitch).write_i8(yaw);
+    s.write_u8(spec.race_gender);
+    s.write_pisc(&[0, 0, 0, 0]);
+    s.write_pisc(&[
+        i64::from(unit.faction_id),
+        i64::from(unit.expedition_id),
+        0,
+        0,
+    ]);
+    s.write_pisc(&[0, 0]);
+    s.write_u16(0x2000); // flags
+    let (good, bad, hidden) = match unit.buffs.all_buffs(false) {
+        Ok(v) => v,
+        Err(kind) => {
+            tracing::error!(
+                "Error writing PacketMarshaler: SCUnitStatePacket (buff kind {kind}, {:?})",
+                BuffKind::Other(kind)
+            );
+            return;
+        }
+    };
+    for list in [good, bad, hidden] {
+        s.write_u8(list.len() as u8);
+        for b in list {
+            b.write_net(s, now_ms);
+        }
+    }
+}
+
+fn net_unit_packet(
+    obj_id: u32,
+    unit: &mut UnitBase,
+    spec: &NetUnitSpec<'_>,
+    owner_name: &str,
+    now_ms: i64,
+) -> SCUnitStatePacket {
+    let mut s = PacketStream::new();
+    write_net_unit(&mut s, obj_id, unit, spec, owner_name, now_ms);
+    SCUnitStatePacket {
+        body: s.into_bytes(),
+    }
+}
+
+/// `SCUnitStatePacket(npc)`.
+pub fn npc_unit_state(
+    obj_id: u32,
+    npc: &mut Npc,
+    owner_name: &str,
+    now_ms: i64,
+) -> SCUnitStatePacket {
+    let equipment = std::mem::take(&mut npc.equipment);
+    let spec = NetUnitSpec {
+        header: NetUnitHeader::Npc {
+            template_id: npc.unit.template_id,
+            owner_id: npc.unit.owner_id,
+        },
+        equipment: &equipment,
+        equip_mode: EquipMode::Npc,
+        attach1: AttachPoint1::System,
+        bonding_obj_id: 0,
+        posture: npc.model_posture_type(),
+        anim_action_id: npc.anim_action_id,
+        race_gender: npc.race_gender(),
+    };
+    let p = net_unit_packet(obj_id, &mut npc.unit, &spec, owner_name, now_ms);
+    npc.equipment = equipment;
+    p
+}
+
+/// `SCUnitStatePacket(slave)`.
+pub fn slave_unit_state(
+    obj_id: u32,
+    slave: &mut Slave,
+    owner_name: &str,
+    now_ms: i64,
+) -> SCUnitStatePacket {
+    let equipment = std::mem::take(&mut slave.equipment);
+    let spec = NetUnitSpec {
+        header: NetUnitHeader::Slave {
+            id: slave.id,
+            tl_id: slave.unit.tl_id,
+            template_id: slave.unit.template_id,
+            summoner_id: slave.summoner_id,
+        },
+        equipment: &equipment,
+        equip_mode: EquipMode::Full,
+        attach1: AttachPoint1::Slave {
+            point: slave.attach_point_id,
+            owner_obj_id: slave.owner_obj_id,
+        },
+        bonding_obj_id: slave.bonding_obj_id,
+        posture: slave.model_posture_type(),
+        anim_action_id: 0,
+        race_gender: slave.race_gender(),
+    };
+    let p = net_unit_packet(obj_id, &mut slave.unit, &spec, owner_name, now_ms);
+    slave.equipment = equipment;
+    p
+}
+
+/// `SCUnitStatePacket(house)`.
+pub fn house_unit_state(
+    obj_id: u32,
+    house: &mut House,
+    owner_name: &str,
+    now_ms: i64,
+) -> SCUnitStatePacket {
+    let equipment = std::mem::take(&mut house.equipment);
+    let spec = NetUnitSpec {
+        header: NetUnitHeader::Housing {
+            tl_id: house.unit.tl_id,
+            template_id: house.unit.template_id,
+            build_step: house.net_build_step(),
+        },
+        equipment: &equipment,
+        equip_mode: EquipMode::Full,
+        attach1: AttachPoint1::System,
+        bonding_obj_id: 0,
+        posture: house.model_posture_type(),
+        anim_action_id: 0,
+        race_gender: house.race_gender(),
+    };
+    let p = net_unit_packet(obj_id, &mut house.unit, &spec, owner_name, now_ms);
+    house.equipment = equipment;
+    p
+}
+
+/// `SCUnitStatePacket(transfer)` (only the 7 body-part slots are written).
+pub fn transfer_unit_state(
+    obj_id: u32,
+    transfer: &mut Transfer,
+    owner_name: &str,
+    now_ms: i64,
+) -> SCUnitStatePacket {
+    let spec = NetUnitSpec {
+        header: NetUnitHeader::Transfer {
+            tl_id: transfer.unit.tl_id,
+            template_id: transfer.unit.template_id,
+        },
+        equipment: &[],
+        equip_mode: EquipMode::BodyOnly,
+        attach1: AttachPoint1::Transfer {
+            point: transfer.attach_point_id,
+            bonding_obj_id: transfer.bonding_obj_id,
+        },
+        bonding_obj_id: 0,
+        posture: transfer.model_posture_type(),
+        anim_action_id: 0,
+        race_gender: transfer.race_gender(),
+    };
+    net_unit_packet(obj_id, &mut transfer.unit, &spec, owner_name, now_ms)
+}
+
+/// `SCUnitStatePacket(mate)`.
+pub fn mate_unit_state(
+    obj_id: u32,
+    mate: &mut Mate,
+    owner_name: &str,
+    now_ms: i64,
+) -> SCUnitStatePacket {
+    let equipment = std::mem::take(&mut mate.equipment);
+    let spec = NetUnitSpec {
+        header: NetUnitHeader::Mate {
+            tl_id: mate.unit.tl_id,
+            template_id: mate.unit.template_id,
+            owner_id: mate.unit.owner_id,
+        },
+        equipment: &equipment,
+        equip_mode: EquipMode::Full,
+        attach1: AttachPoint1::System,
+        bonding_obj_id: 0,
+        posture: mate.model_posture_type(),
+        anim_action_id: 0,
+        race_gender: mate.race_gender(),
+    };
+    let p = net_unit_packet(obj_id, &mut mate.unit, &spec, owner_name, now_ms);
+    mate.equipment = equipment;
+    p
+}
+
+/// `SCUnitStatePacket(shipyard)` (only the 7 body-part slots are written).
+pub fn shipyard_unit_state(
+    obj_id: u32,
+    shipyard: &mut Shipyard,
+    owner_name: &str,
+    now_ms: i64,
+) -> SCUnitStatePacket {
+    let spec = NetUnitSpec {
+        header: NetUnitHeader::Shipyard {
+            id: shipyard.data.id,
+            template_id: shipyard.data.template_id,
+        },
+        equipment: &[],
+        equip_mode: EquipMode::BodyOnly,
+        attach1: AttachPoint1::System,
+        bonding_obj_id: 0,
+        posture: shipyard.model_posture_type(),
+        anim_action_id: 0,
+        race_gender: shipyard.race_gender(),
+    };
+    net_unit_packet(obj_id, &mut shipyard.unit, &spec, owner_name, now_ms)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,13 +700,13 @@ mod tests {
     fn state_layout_and_truncation() {
         let data = GameData::empty();
         let mut c = Character::new(5, 1, UnitCustomModelParams::default());
-        c.name = "Ab".into();
+        c.unit.name = "Ab".into();
         c.obj_id = 0x100;
         (c.ability1, c.ability2, c.ability3) = (11, 11, 11);
         // No visual options: truncated right after the abilities' bc(0).
         let p = unit_state(&mut c, &data, 0);
         let mut model = PacketStream::new();
-        c.model_params.write(&mut model);
+        c.unit.model_params.write(&mut model);
         let head = 3 + 4 + 1 + 4 + 8 + 2 + 9 + 4 + 1 + 4 + 28 * 4;
         let mid = model.len() + 25;
         let piscs = 5 + 5 + 3 + 2;

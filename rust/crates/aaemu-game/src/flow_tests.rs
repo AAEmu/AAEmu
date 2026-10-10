@@ -333,20 +333,20 @@ fn sample_character(id: u32) -> Character {
         1,
     );
     let mut c = Character::new(id, 1000, Default::default());
-    c.name = format!("Char{id}");
+    c.unit.name = format!("Char{id}");
     c.race = 1;
     c.gender = 2;
-    c.level = 50;
-    c.hp = 1000;
-    c.mp = 500;
-    c.transform.zone_id = 179;
-    c.faction_id = 101;
+    c.unit.level = 50;
+    c.unit.hp = 1000;
+    c.unit.mp = 500;
+    c.unit.transform.zone_id = 179;
+    c.unit.faction_id = 101;
     c.ability1 = 1;
     c.ability2 = 2;
     c.ability3 = 11;
-    c.transform.x = 12345.5;
-    c.transform.y = 6789.25;
-    c.transform.z = 100.0;
+    c.unit.transform.x = 12345.5;
+    c.unit.transform.y = 6789.25;
+    c.unit.transform.z = 100.0;
     c.labor_power = 5000;
     c.labor_power_modified = 1_700_000_000;
     c.money = 123_456;
@@ -363,12 +363,13 @@ fn sample_character(id: u32) -> Character {
 fn expected_character_bytes(c: &Character) -> Vec<u8> {
     bytes(|s| {
         s.write_u32(c.id);
-        s.write_str(&c.name);
-        s.write_u8(c.race).write_u8(c.gender).write_u8(c.level);
-        s.write_i32(c.hp).write_i32(c.mp);
-        s.write_u32(c.transform.zone_id).write_u32(c.faction_id);
+        s.write_str(&c.unit.name);
+        s.write_u8(c.race).write_u8(c.gender).write_u8(c.unit.level);
+        s.write_i32(c.unit.hp).write_i32(c.unit.mp);
+        s.write_u32(c.unit.transform.zone_id)
+            .write_u32(c.unit.faction_id);
         s.write_str(&c.faction_name);
-        s.write_u32(c.expedition_id).write_u32(c.family);
+        s.write_u32(c.unit.expedition_id).write_u32(c.family);
         for slot in &c.inventory.equipment_slots() {
             match slot {
                 None => {
@@ -400,10 +401,10 @@ fn expected_character_bytes(c: &Character) -> Vec<u8> {
         s.write_u8(c.ability1)
             .write_u8(c.ability2)
             .write_u8(c.ability3);
-        s.write_i64(((c.transform.x * 4096.0) as i64) << 32)
-            .write_i64(((c.transform.y * 4096.0) as i64) << 32)
-            .write_f32(c.transform.z);
-        c.model_params.write(s);
+        s.write_i64(((c.unit.transform.x * 4096.0) as i64) << 32)
+            .write_i64(((c.unit.transform.y * 4096.0) as i64) << 32)
+            .write_f32(c.unit.transform.z);
+        c.unit.model_params.write(s);
         s.write_i16(c.labor_power)
             .write_i64(c.labor_power_modified)
             .write_i16(c.dead_count)

@@ -7,7 +7,7 @@
 
 use aaemu_commons::{Marshal, PacketStream};
 
-use super::packet_def;
+use super::{packet_def, raw_body_packet};
 use crate::data::world_data::{FactionRelation, SystemFaction};
 use crate::managers::expedition::{ExpeditionMember, ExpeditionRolePolicy};
 use crate::models::char_data::{
@@ -18,22 +18,6 @@ use crate::models::item::{Item, UnixTime};
 use crate::models::movement::{write_sc_one_unit_movement, MoveType};
 use crate::net::packet::LEVEL_PLAIN;
 use crate::opcodes::sc;
-
-/// A packet whose body was encoded up front.
-macro_rules! raw_body_packet {
-    ($ty:ident, $op:expr) => {
-        #[derive(Debug, Clone, PartialEq, Eq)]
-        pub struct $ty {
-            pub body: Vec<u8>,
-        }
-        packet_def!($ty, level = LEVEL_PLAIN, opcode = $op);
-        impl Marshal for $ty {
-            fn write(&self, s: &mut PacketStream) {
-                s.write_raw(&self.body);
-            }
-        }
-    };
-}
 
 raw_body_packet!(SCCharacterStatePacket, sc::SCCharacterStatePacket);
 raw_body_packet!(SCUnitStatePacket, sc::SCUnitStatePacket);

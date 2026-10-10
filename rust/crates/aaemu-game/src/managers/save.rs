@@ -48,7 +48,7 @@ impl SaveManager {
                         tracing::error!(
                             "Failed to get save data for character {} - {}",
                             c.id,
-                            c.name
+                            c.unit.name
                         );
                     }
                 }

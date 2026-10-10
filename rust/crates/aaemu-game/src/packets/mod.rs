@@ -7,6 +7,7 @@ pub mod c2g_world;
 pub mod g2c;
 pub mod proxy;
 pub mod world;
+pub mod world_objects;
 
 /// Implements [`crate::net::packet::PacketDef`] for a packet struct.
 macro_rules! packet_def {
@@ -19,6 +20,24 @@ macro_rules! packet_def {
     };
 }
 pub(crate) use packet_def;
+
+/// A level-1 packet whose body was encoded up front (packets whose C# `Write` reads live game
+/// objects are built by the object's owner while it holds the object's lock).
+macro_rules! raw_body_packet {
+    ($ty:ident, $op:expr) => {
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub struct $ty {
+            pub body: Vec<u8>,
+        }
+        $crate::packets::packet_def!($ty, level = $crate::net::packet::LEVEL_PLAIN, opcode = $op);
+        impl aaemu_commons::Marshal for $ty {
+            fn write(&self, s: &mut aaemu_commons::PacketStream) {
+                s.write_raw(&self.body);
+            }
+        }
+    };
+}
+pub(crate) use raw_body_packet;
 
 use crate::net::packet::{LEVEL_PLAIN, LEVEL_PROXY};
 use crate::net::registry::PacketRegistry;

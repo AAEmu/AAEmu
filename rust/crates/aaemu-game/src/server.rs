@@ -97,6 +97,15 @@ impl GameServer {
         self.self_ref.get().and_then(std::sync::Weak::upgrade)
     }
 
+    /// The context the visibility packets are built with (`world::ViewCtx`).
+    pub fn view_ctx(&self) -> crate::world::ViewCtx<'_> {
+        crate::world::ViewCtx {
+            data: &self.game_data,
+            names: &self.names,
+            now_ms: crate::world::now_ms(),
+        }
+    }
+
     /// Session ids. C# uses `RemoteEndPoint.GetHashCode()`; any unique u32 serves the same purpose.
     pub fn next_connection_id(&self) -> u32 {
         self.next_connection_id.fetch_add(1, Ordering::Relaxed)

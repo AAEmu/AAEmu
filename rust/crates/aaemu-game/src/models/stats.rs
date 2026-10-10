@@ -76,24 +76,24 @@ impl CharacterStats {
 impl Character {
     /// `MaxHp` / `MaxMp` and the base attributes.
     pub fn stats(&self, f: &FormulaManager) -> CharacterStats {
-        CharacterStats::compute(f, self.level)
+        CharacterStats::compute(f, self.unit.level)
     }
 
     /// `RestoreSavedHpMp`: `Hp = Min(_savedHp, MaxHp)`, `Mp = Min(_savedMp, MaxMp)`.
     pub fn restore_saved_hp_mp(&mut self, f: &FormulaManager) {
         let s = self.stats(f);
-        self.hp = self.saved_hp.min(s.max_hp);
-        self.mp = self.saved_mp.min(s.max_mp);
+        self.unit.hp = self.saved_hp.min(s.max_hp);
+        self.unit.mp = self.saved_mp.min(s.max_mp);
     }
 
     /// The `Character.Load` clamp: `if (Hp > MaxHp) Hp = MaxHp` (same for Mp).
     pub fn clamp_hp_mp(&mut self, f: &FormulaManager) {
         let s = self.stats(f);
-        if self.hp > s.max_hp {
-            self.hp = s.max_hp;
+        if self.unit.hp > s.max_hp {
+            self.unit.hp = s.max_hp;
         }
-        if self.mp > s.max_mp {
-            self.mp = s.max_mp;
+        if self.unit.mp > s.max_mp {
+            self.unit.mp = s.max_mp;
         }
     }
 }

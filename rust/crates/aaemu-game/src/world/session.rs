@@ -45,11 +45,11 @@ fn now_ms() -> i64 {
 /// The `Character` fields `SCChatMessagePacket` uses.
 pub fn chat_sender(c: &Character, obj_id: u32) -> ChatSender {
     ChatSender {
-        faction_id: c.faction_id,
+        faction_id: c.unit.faction_id,
         obj_id,
         id: c.id,
         race: c.race,
-        name: c.name.clone(),
+        name: c.unit.name.clone(),
         gm: false,
     }
 }
@@ -121,11 +121,11 @@ fn send_to_expedition(
 fn member_refresh(c: &Character) -> MemberRefresh {
     MemberRefresh {
         character_id: c.id,
-        name: c.name.clone(),
-        level: c.level,
-        zone_id: c.transform.zone_id,
+        name: c.unit.name.clone(),
+        level: c.unit.level,
+        zone_id: c.unit.transform.zone_id,
         abilities: [c.ability1, c.ability2, c.ability3],
-        position: (c.transform.x, c.transform.y, c.transform.z),
+        position: (c.unit.transform.x, c.unit.transform.y, c.unit.transform.z),
     }
 }
 
@@ -133,7 +133,7 @@ fn member_refresh(c: &Character) -> MemberRefresh {
 fn expedition_refresh(server: &GameServer, p: &PlayerRef) {
     let (exp_id, refresh) = {
         let c = p.data();
-        (c.expedition_id, member_refresh(&c))
+        (c.unit.expedition_id, member_refresh(&c))
     };
     if exp_id == 0 {
         return;
@@ -148,6 +148,17 @@ fn expedition_refresh(server: &GameServer, p: &PlayerRef) {
             &members,
             &SCExpeditionMemberStatusChangedPacket { member, flag: 0 },
         );
+    }
+}
+
+/// Dispatches the `OnZoneChange` calls collected by a visibility update (after the grid lock is
+/// released): `Character.OnZoneChange` for players; other units' `Unit.OnZoneChange` (zone
+/// group buffs) is TODO(skills).
+pub fn handle_zone_changes(server: &GameServer, changes: Vec<crate::world::ZoneChange>) {
+    for z in changes {
+        if let Some(p) = z.object.as_player() {
+            on_zone_change(server, p, z.old_zone, z.new_zone);
+        }
     }
 }
 
@@ -185,10 +196,10 @@ pub fn on_zone_change(server: &GameServer, p: &PlayerRef, last_zone: u32, new_zo
             // Later phase: the forced transport out of closed zones for access level < 100
             // (5 x SCErrorMsg(ClosedZone) every 2 s, then SCCharacterResurrected at the closest
             // return portal).
-            tracing::warn!("{} entered closed zone {}", p.data().name, z.zone_key);
+            tracing::warn!("{} entered closed zone {}", p.data().unit.name, z.zone_key);
         }
         None => {
-            tracing::warn!("{} entered unknown zone {new_zone}", p.data().name);
+            tracing::warn!("{} entered unknown zone {new_zone}", p.data().unit.name);
         }
     }
 }
@@ -278,7 +289,7 @@ pub async fn select_character(
     };
     let mut c = conn.characters[idx].clone();
     // Force player into main_world when coming from character select
-    c.transform.instance_id = DEFAULT_INSTANCE_ID;
+    c.unit.transform.instance_id = DEFAULT_INSTANCE_ID;
     load_character_details(server, &mut c).await?;
     let offline_friend_ids: Vec<u32> = c
         .friends
@@ -423,7 +434,7 @@ pub fn select_loaded(
                 .collect(),
             return_district_id: data
                 .portals
-                .district_return_point(snapshot.return_district_id, snapshot.faction_id),
+                .district_return_point(snapshot.return_district_id, snapshot.unit.faction_id),
         });
     }
     // Friends.Send / Blocked.Send (online infos first, then the DB rows)
@@ -444,7 +455,7 @@ pub fn select_loaded(
                 let c = o.data();
                 infos.push(BlockedInfo {
                     character_id: c.id,
-                    name: c.name.clone(),
+                    name: c.unit.name.clone(),
                 });
             }
         }
@@ -485,8 +496,8 @@ pub fn select_loaded(
     conn.send(&SCExpeditionRolePolicyListPacket {
         policies: Vec::new(),
     });
-    if snapshot.expedition_id != 0 {
-        if let Some(e) = server.expeditions.get(snapshot.expedition_id) {
+    if snapshot.unit.expedition_id != 0 {
+        if let Some(e) = server.expeditions.get(snapshot.unit.expedition_id) {
             conn.send(&SCExpeditionRolePolicyListPacket {
                 policies: e.policies.clone(),
             });
@@ -520,9 +531,9 @@ pub fn select_loaded(
                             kind: 0,
                             obj_id: c.obj_id,
                         };
-                        let mut b = Buff::new(bt.clone(), caster, Some((c.id, c.level)), now);
+                        let mut b = Buff::new(bt.clone(), caster, Some((c.id, c.unit.level)), now);
                         b.passive = true;
-                        c.buffs.add_buff(b, 0, 0, now);
+                        c.unit.buffs.add_buff(b, 0, 0, now);
                     }
                     None => tracing::error!("Template buff {buff} has no template"),
                 }
@@ -537,7 +548,7 @@ pub fn select_loaded(
         live.restore_saved_hp_mp(&data.formulas);
         live.breath = 60_000; // LungCapacity
     }
-    let zone = player.data().transform.zone_id;
+    let zone = player.data().unit.transform.zone_id;
     on_zone_change(server, &player, 0, zone);
     Ok(())
 }
@@ -566,7 +577,7 @@ pub fn spawn_character(server: &GameServer, conn: &mut GameConnection, visual: V
 
 /// The world instance a player is in (`ParentWorld`).
 fn parent_world(server: &GameServer, p: &PlayerRef) -> Option<Arc<WorldInstance>> {
-    let inst = p.data().transform.instance_id;
+    let inst = p.data().unit.transform.instance_id;
     server.world.world(inst)
 }
 
@@ -578,9 +589,8 @@ pub fn spawn(server: &GameServer, p: &PlayerRef) {
     };
     world.add_object(p);
     server.world.try_add_character(p);
-    if let Some(z) = world.show(p, &server.game_data, now_ms()) {
-        on_zone_change(server, &z.player, z.old_zone, z.new_zone);
-    }
+    let changes = world.show(p, &server.view_ctx());
+    handle_zone_changes(server, changes);
 }
 
 /// `CSNotifyInGamePacket.Execute`.
@@ -594,11 +604,11 @@ pub fn notify_in_game(server: &GameServer, conn: &mut GameConnection) {
     let (zone, race, faction, expedition, name, id) = {
         let c = p.data();
         (
-            c.transform.zone_id,
+            c.unit.transform.zone_id,
             c.race,
-            c.faction_id,
-            c.expedition_id,
-            c.name.clone(),
+            c.unit.faction_id,
+            c.unit.expedition_id,
+            c.unit.name.clone(),
             c.id,
         )
     };
@@ -636,7 +646,11 @@ pub fn notify_in_game_completed(server: &GameServer, conn: &mut GameConnection) 
     });
     // Family login: later phase.
     let c = p.data();
-    tracing::info!("NotifyInGameCompleted SubZoneId 0, {} ({})", c.name, c.id);
+    tracing::info!(
+        "NotifyInGameCompleted SubZoneId 0, {} ({})",
+        c.unit.name,
+        c.id
+    );
 }
 
 /// `MathUtil.ConvertDirectionToRadian(sbyte)`.
@@ -665,10 +679,10 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
         server
             .world
             .character_by_obj_id(obj_id)
-            .filter(|p| p.data().transform.instance_id == world.id)
+            .filter(|p| p.data().unit.transform.instance_id == world.id)
     };
     let Some(target) = target else {
-        tracing::warn!("Invalid target {obj_id} from {}", me.data().name);
+        tracing::warn!("Invalid target {obj_id} from {}", me.data().unit.name);
         return;
     };
     match &mt.kind {
@@ -690,7 +704,7 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
             // Standing on / sticky parents (slaves, transfers): later phase.
             {
                 let mut c = target.data();
-                c.transform.set_position(
+                c.unit.transform.set_position(
                     u.x,
                     u.y,
                     u.z,
@@ -705,17 +719,16 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
             };
             broadcast(&world, &target, &packet, true);
             // FinalizeTransform -> AddVisibleObject (region change) -> SetPosition.
-            if let Some(z) = world.add_visible_object(&target, &server.game_data, now_ms()) {
-                on_zone_change(server, &z.player, z.old_zone, z.new_zone);
-            }
+            let changes = world.add_visible_object(&target, &server.view_ctx());
+            handle_zone_changes(server, changes);
             // DoFallDamage(FallVel): later phase (HP / death).
         }
         _ => {
             tracing::warn!(
                 "Unknown MoveType: {:?} by {} for {}",
                 mt.move_type(),
-                me.data().name,
-                target.data().name
+                me.data().unit.name,
+                target.data().unit.name
             );
         }
     }
@@ -774,7 +787,7 @@ pub async fn send_chat_message(
             match target {
                 Some(t) if t.data().is_online => {
                     let (tf, mf) = (
-                        mother_id(server, t.data().faction_id),
+                        mother_id(server, t.data().unit.faction_id),
                         mother_id(server, sender.faction_id),
                     );
                     if tf != mf {
@@ -796,11 +809,11 @@ pub async fn send_chat_message(
         chat_type::RAID_LEADER | chat_type::RAID => error(error_message::CHAT_NOT_IN_RAID),
         chat_type::PARTY => error(error_message::CHAT_NOT_IN_PARTY),
         chat_type::TRADE | chat_type::GROUP_FIND | chat_type::SHOUT => {
-            let zone = me.data().transform.zone_id;
+            let zone = me.data().unit.transform.zone_id;
             zone_chat(server, zone).send_packet(&msg(chat, &sender));
         }
         chat_type::CLAN => {
-            let exp = me.data().expedition_id;
+            let exp = me.data().unit.expedition_id;
             match server.expeditions.get(exp).filter(|_| exp != 0) {
                 Some(e) => {
                     server
@@ -923,7 +936,7 @@ pub async fn leave_world_task(
         // Family logout: later phase.
         let (exp, id) = {
             let c = p.data();
-            (c.expedition_id, c.id)
+            (c.unit.expedition_id, c.id)
         };
         if exp != 0 {
             if let Some((member, members)) =

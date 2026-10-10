@@ -1,30 +1,58 @@
-//! The world: `WorldManager` (instances, the server-wide character list, visibility),
-//! `WorldInstance` (object lists, region grid) and `Region` (per-sector object lists, neighbour
-//! visibility), restricted to player characters — NPCs, doodads, gimmicks, slaves, mates and
-//! transfers are later phases.
+//! The world: `WorldManager` (instances, the server-wide character list), `WorldInstance`
+//! (object tables, region grid, visibility) and `Region` (per-sector object lists, neighbour
+//! visibility) for every object kind (`world::object::WorldObject`).
 //!
 //! Locking: each instance has one grid mutex that serialises its visibility updates; while it is
-//! held, the players' `data` mutexes may be locked (one at a time) to build packets. Code that
-//! holds a player's `data` lock must never call into the grid.
+//! held, object data mutexes may be locked (one at a time) to build packets. Code that holds an
+//! object's data lock must never call into the grid. Full rules: [`object`].
 
+pub mod object;
 pub mod session;
 pub mod unit_state;
+pub mod visibility;
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use dashmap::DashMap;
 
 use crate::data::world_templates::{WorldTemplate, REGION_SIZE};
 use crate::data::GameData;
+use crate::managers::name::NameManager;
 use crate::models::character::Character;
+use crate::models::transform::PositionAndRotation;
 use crate::net::connection::ConnectionHandle;
 use crate::net::packet::ServerPacket;
-use crate::packets::world::{SCUnitPointsPacket, SCUnitsRemovedPacket};
+use crate::packets::world::SCUnitsRemovedPacket;
+use crate::packets::world_objects::{
+    SCDoodadsCreatedPacket, SCDoodadsRemovedPacket, SCGimmickJointsBrokenPacket,
+    SCGimmicksCreatedPacket, SCGimmicksRemovedPacket, SCTargetChangedPacket,
+};
+
+pub use object::{
+    DoodadRef, Entity, GimmickRef, HouseRef, MateRef, NpcRef, ObjectCore, ObjectKind, RegionKey,
+    ShipyardRef, SlaveRef, TransferRef, WorldObject,
+};
 
 /// `WorldManager.REGION_NEIGHBORHOOD_SIZE`.
 const REGION_NEIGHBORHOOD_SIZE: i32 = 2;
+/// Parent chains longer than this are treated as broken (cycle guard).
+const MAX_PARENT_DEPTH: usize = 16;
+
+/// Current time in unix milliseconds (`DateTime.UtcNow`).
+pub fn now_ms() -> i64 {
+    chrono::Utc::now().timestamp_millis()
+}
+
+/// What the visibility packets need besides the objects: game data (buff templates),
+/// `NameManager` (owner names) and the current time.
+#[derive(Clone, Copy)]
+pub struct ViewCtx<'a> {
+    pub data: &'a GameData,
+    pub names: &'a NameManager,
+    pub now_ms: i64,
+}
 
 /// A player character in the world (`Connection.ActiveChar`).
 #[derive(Debug)]
@@ -34,10 +62,8 @@ pub struct Player {
     /// The owning game connection (`Character.Connection`).
     pub conn: ConnectionHandle,
     pub data: Mutex<Character>,
-    /// `GameObject.Region` (instance id, sector x, sector y).
-    region: Mutex<Option<(u32, i32, i32)>>,
-    /// `IsVisible`.
-    visible: AtomicBool,
+    /// Region, `IsVisible`, transform children.
+    pub(crate) core: ObjectCore,
     /// `Character.Subscribers` (time-of-day subscriptions).
     subscriptions: Mutex<Vec<u64>>,
 }
@@ -51,8 +77,7 @@ impl Player {
             character_id: character.id,
             conn,
             data: Mutex::new(character),
-            region: Mutex::new(None),
-            visible: AtomicBool::new(false),
+            core: ObjectCore::default(),
             subscriptions: Mutex::new(Vec::new()),
         })
     }
@@ -70,84 +95,25 @@ impl Player {
         self.conn.send_dyn(packet);
     }
 
-    pub fn region(&self) -> Option<(u32, i32, i32)> {
-        *self.region.lock().expect("region poisoned")
+    pub fn region(&self) -> Option<RegionKey> {
+        self.core.region()
     }
 
     pub fn is_visible(&self) -> bool {
-        self.visible.load(Ordering::Relaxed)
-    }
-}
-
-/// A `GameObject` in a region. Only players exist in this phase.
-#[derive(Debug, Clone)]
-pub enum WorldObject {
-    Player(PlayerRef),
-}
-
-impl WorldObject {
-    pub fn obj_id(&self) -> u32 {
-        match self {
-            WorldObject::Player(p) => p.obj_id,
-        }
+        self.core.is_visible()
     }
 
-    pub fn as_player(&self) -> Option<&PlayerRef> {
-        match self {
-            WorldObject::Player(p) => Some(p),
-        }
-    }
-
-    /// `obj is Unit`.
-    pub fn is_unit(&self) -> bool {
-        true
-    }
-}
-
-/// `Character.AddVisibleObject(character)`: `target` learns about `obj`.
-fn add_visible_object(obj: &WorldObject, target: &PlayerRef, data: &GameData, now_ms: i64) {
-    match obj {
-        WorldObject::Player(p) => {
-            let (state, points) = {
-                let mut c = p.data();
-                let state =
-                    (!Arc::ptr_eq(p, target)).then(|| unit_state::unit_state(&mut c, data, now_ms));
-                (
-                    state,
-                    SCUnitPointsPacket {
-                        obj_id: p.obj_id,
-                        hp: c.hp,
-                        mp: c.mp,
-                    },
-                )
-            };
-            if let Some(state) = state {
-                target.send(state);
-            }
-            target.send(points);
-        }
-    }
-}
-
-/// `Character.RemoveVisibleObject(character)`: `target` forgets `obj`.
-fn remove_visible_object(obj: &WorldObject, target: &PlayerRef) {
-    match obj {
-        WorldObject::Player(p) => {
-            // base: CurrentTarget reset (targets are a later phase), children (none).
-            if !Arc::ptr_eq(p, target) {
-                target.send(SCUnitsRemovedPacket {
-                    ids: vec![p.obj_id],
-                });
-            }
-        }
+    pub fn core(&self) -> &ObjectCore {
+        &self.core
     }
 }
 
 /// A zone change produced by `Region.AddObject` (`Transform.ZoneId` setter ->
-/// `OnZoneChange(old, new)`).
+/// `OnZoneChange(old, new)`), for the caller to dispatch after the grid is released
+/// (`session::handle_zone_changes`).
 #[derive(Debug, Clone)]
 pub struct ZoneChange {
-    pub player: PlayerRef,
+    pub object: WorldObject,
     pub old_zone: u32,
     pub new_zone: u32,
 }
@@ -170,6 +136,9 @@ pub struct WorldInstance {
     pub id: u32,
     pub template: Arc<WorldTemplate>,
     grid: Mutex<Grid>,
+    /// `_objects` (every object of the instance by obj id; the typed C# dictionaries are
+    /// filtered views of it).
+    objects: DashMap<u32, WorldObject>,
     /// `_characters` (instance players by obj id).
     characters: DashMap<u32, PlayerRef>,
 }
@@ -180,6 +149,7 @@ impl WorldInstance {
             id,
             template,
             grid: Mutex::new(Grid::default()),
+            objects: DashMap::new(),
             characters: DashMap::new(),
         }
     }
@@ -204,19 +174,213 @@ impl WorldInstance {
         out
     }
 
-    /// `WorldInstance.AddObject`.
-    pub fn add_object(&self, p: &PlayerRef) {
-        self.characters.insert(p.obj_id, p.clone());
+    // ----- object tables (`AddObject` / `RemoveObject` / `Get*`) -----
+
+    /// `WorldInstance.AddObject` (`TryAdd`: an existing entry is kept).
+    pub fn add_object(&self, obj: impl Into<WorldObject>) {
+        let obj = obj.into();
+        if let WorldObject::Player(p) = &obj {
+            self.characters.entry(p.obj_id).or_insert_with(|| p.clone());
+        }
+        self.objects.entry(obj.obj_id()).or_insert(obj);
     }
 
     /// `WorldInstance.RemoveObject`.
     pub fn remove_object(&self, obj_id: u32) -> bool {
-        self.characters.remove(&obj_id).is_some()
+        let a = self.objects.remove(&obj_id).is_some();
+        let b = self.characters.remove(&obj_id).is_some();
+        a | b
+    }
+
+    /// `GetGameObject(objId)`.
+    pub fn object(&self, obj_id: u32) -> Option<WorldObject> {
+        self.objects.get(&obj_id).map(|o| o.clone())
+    }
+
+    /// `GetUnit(objId)` (any unit kind).
+    pub fn unit(&self, obj_id: u32) -> Option<WorldObject> {
+        self.object(obj_id).filter(WorldObject::is_unit)
+    }
+
+    /// `GetNpc(objId)`.
+    pub fn npc(&self, obj_id: u32) -> Option<NpcRef> {
+        self.object(obj_id).and_then(|o| o.as_npc().cloned())
+    }
+
+    /// `GetDoodad(objId)`.
+    pub fn doodad(&self, obj_id: u32) -> Option<DoodadRef> {
+        self.object(obj_id).and_then(|o| o.as_doodad().cloned())
+    }
+
+    /// `GetSlaveByObjId(objId)`.
+    pub fn slave(&self, obj_id: u32) -> Option<SlaveRef> {
+        self.object(obj_id).and_then(|o| o.as_slave().cloned())
+    }
+
+    pub fn mate(&self, obj_id: u32) -> Option<MateRef> {
+        self.object(obj_id).and_then(|o| o.as_mate().cloned())
+    }
+
+    pub fn house(&self, obj_id: u32) -> Option<HouseRef> {
+        self.object(obj_id).and_then(|o| o.as_house().cloned())
+    }
+
+    pub fn transfer(&self, obj_id: u32) -> Option<TransferRef> {
+        self.object(obj_id).and_then(|o| o.as_transfer().cloned())
+    }
+
+    pub fn shipyard(&self, obj_id: u32) -> Option<ShipyardRef> {
+        self.object(obj_id).and_then(|o| o.as_shipyard().cloned())
+    }
+
+    pub fn gimmick(&self, obj_id: u32) -> Option<GimmickRef> {
+        self.object(obj_id).and_then(|o| o.as_gimmick().cloned())
+    }
+
+    /// `GetCharacterByObjId(objId)`.
+    pub fn character_by_obj_id(&self, obj_id: u32) -> Option<PlayerRef> {
+        self.characters.get(&obj_id).map(|p| p.clone())
+    }
+
+    /// `GetAllCharacters`.
+    pub fn all_characters(&self) -> Vec<PlayerRef> {
+        self.characters.iter().map(|p| p.clone()).collect()
+    }
+
+    /// Every object of one kind (`GetAllNpcs`, `GetAllDoodads`, `GetAllSlaves`, ...).
+    pub fn all_of_kind(&self, kind: ObjectKind) -> Vec<WorldObject> {
+        self.objects
+            .iter()
+            .filter(|o| o.kind() == kind)
+            .map(|o| o.clone())
+            .collect()
+    }
+
+    /// `GetAllNpcs`.
+    pub fn all_npcs(&self) -> Vec<NpcRef> {
+        self.objects
+            .iter()
+            .filter_map(|o| o.as_npc().cloned())
+            .collect()
+    }
+
+    /// `GetAllDoodads`.
+    pub fn all_doodads(&self) -> Vec<DoodadRef> {
+        self.objects
+            .iter()
+            .filter_map(|o| o.as_doodad().cloned())
+            .collect()
+    }
+
+    /// `GetNpcByTemplateId(templateId)` (first match; C# order is unspecified too).
+    pub fn npc_by_template_id(&self, template_id: u32) -> Option<NpcRef> {
+        self.all_npcs()
+            .into_iter()
+            .find(|n| n.data().unit.template_id == template_id)
+    }
+
+    /// `GetDoodadByDbId(dbId)`.
+    pub fn doodad_by_db_id(&self, db_id: u32) -> Option<DoodadRef> {
+        self.all_doodads()
+            .into_iter()
+            .find(|d| d.data().db_id == db_id)
+    }
+
+    /// `GetDoodadByHouseDbId(houseDbId)`.
+    pub fn doodads_by_house_db_id(&self, house_db_id: u32) -> Vec<DoodadRef> {
+        self.all_doodads()
+            .into_iter()
+            .filter(|d| d.data().owner_db_id == house_db_id)
+            .collect()
+    }
+
+    /// Number of objects in the instance (all kinds).
+    pub fn object_count(&self) -> usize {
+        self.objects.len()
     }
 
     pub fn player_count(&self) -> usize {
         self.characters.len()
     }
+
+    // ----- transforms -----
+
+    /// `Transform.World` of `obj`: its local transform composed with its parents'
+    /// (`Transform.GetWorldPosition`). A parent that is not in this instance ends the chain.
+    pub fn world_pos_rot(&self, obj: &WorldObject) -> PositionAndRotation {
+        let mut chain = vec![obj.transform()];
+        let mut scales = Vec::new();
+        let mut parent_id = chain[0].parent_obj_id;
+        while parent_id != 0 && chain.len() <= MAX_PARENT_DEPTH {
+            let Some(parent) = self.object(parent_id) else {
+                break;
+            };
+            let t = parent.transform();
+            scales.push(parent.scale());
+            parent_id = t.parent_obj_id;
+            chain.push(t);
+        }
+        // chain = [obj, parent, grandparent, ...]; compose from the root down.
+        let mut world = chain.last().expect("non-empty").local();
+        for i in (0..chain.len() - 1).rev() {
+            world = PositionAndRotation::compose(&world, scales[i], &chain[i].local());
+        }
+        world
+    }
+
+    /// `WorldManager.GetRootObj(obj)`.
+    pub fn root_object(&self, obj: &WorldObject) -> WorldObject {
+        let mut cur = obj.clone();
+        for _ in 0..MAX_PARENT_DEPTH {
+            let parent_id = cur.transform().parent_obj_id;
+            match (parent_id != 0).then(|| self.object(parent_id)).flatten() {
+                Some(p) => cur = p,
+                None => break,
+            }
+        }
+        cur
+    }
+
+    /// `WorldManager.GetRegion(obj)`: the sector of the root object's world position.
+    pub fn region_of(&self, obj: &WorldObject) -> Option<(i32, i32)> {
+        let root = self.root_object(obj);
+        let p = self.world_pos_rot(&root);
+        self.region_by_pos(p.x, p.y)
+    }
+
+    /// Attaches `child` to `parent` (`Transform.Parent = parent.Transform`): the child's
+    /// transform becomes relative to the parent (`local` is kept as given) and it follows the
+    /// parent's visibility (`Transform.Children`).
+    pub fn attach_child(&self, parent: &WorldObject, child: &WorldObject) {
+        child.with_transform(|t| t.parent_obj_id = parent.obj_id());
+        parent.core().add_child(child.clone());
+    }
+
+    /// Detaches `child` from its parent (`Transform.Parent = null`), keeping its current world
+    /// position as the new local one.
+    pub fn detach_child(&self, child: &WorldObject) {
+        let parent_id = child.transform().parent_obj_id;
+        if parent_id == 0 {
+            return;
+        }
+        let world = self.world_pos_rot(child);
+        child.with_transform(|t| {
+            t.parent_obj_id = 0;
+            t.set_position(
+                world.x,
+                world.y,
+                world.z,
+                world.rot_x,
+                world.rot_y,
+                world.rot_z,
+            );
+        });
+        if let Some(parent) = self.object(parent_id) {
+            parent.core().remove_child(child.obj_id());
+        }
+    }
+
+    // ----- visibility (`WorldManager.AddVisibleObject` / `RemoveVisibleObject`, `Region`) -----
 
     /// `Region.AddToCharacters(obj)`.
     fn add_to_characters(
@@ -224,21 +388,55 @@ impl WorldInstance {
         grid: &Grid,
         region: (i32, i32),
         obj: &WorldObject,
-        data: &GameData,
-        now_ms: i64,
+        ctx: &ViewCtx<'_>,
     ) {
         let objects = grid.objects(region);
         if objects.is_empty() {
             return;
         }
-        let WorldObject::Player(me) = obj;
-        for go in objects.iter().filter(|o| o.obj_id() != me.obj_id) {
-            add_visible_object(go, me, data, now_ms);
+        let id = obj.obj_id();
+        if let WorldObject::Player(me) = obj {
+            let others = objects.iter().filter(|o| o.obj_id() != id);
+            for go in others.clone() {
+                match go {
+                    // Doodads and gimmicks have their own batch packets below.
+                    WorldObject::Doodad(_) | WorldObject::Gimmick(_) => continue,
+                    WorldObject::Npc(n) => {
+                        let mut d = n.data();
+                        if d.has_ai {
+                            d.ai_should_tick = true; // "turn on the motion of the visible NPC"
+                        }
+                    }
+                    _ => {}
+                }
+                visibility::add_visible_object(self, go, me, ctx);
+            }
+            let doodads: Vec<Vec<u8>> = others
+                .clone()
+                .filter_map(WorldObject::as_doodad)
+                .map(|d| visibility::doodad_body(self, d, ctx.now_ms))
+                .collect();
+            for chunk in doodads.chunks(SCDoodadsCreatedPacket::MAX_COUNT_PER_PACKET) {
+                me.send(SCDoodadsCreatedPacket {
+                    bodies: chunk.to_vec(),
+                });
+            }
+            let gimmicks: Vec<Vec<u8>> = others
+                .filter_map(WorldObject::as_gimmick)
+                .map(|g| visibility::gimmick_body(self, g))
+                .collect();
+            for chunk in gimmicks.chunks(SCGimmicksCreatedPacket::MAX_COUNT_PER_PACKET) {
+                me.send(SCGimmicksCreatedPacket {
+                    bodies: chunk.to_vec(),
+                });
+            }
+            if !gimmicks.is_empty() {
+                me.send(SCGimmickJointsBrokenPacket::default());
+            }
         }
-        // Doodads / gimmicks of the region: later phase.
-        for other in objects.iter().filter(|o| o.obj_id() != obj.obj_id()) {
+        for other in objects.iter().filter(|o| o.obj_id() != id) {
             if let Some(p) = other.as_player() {
-                add_visible_object(obj, p, data, now_ms);
+                visibility::add_visible_object(self, obj, p, ctx);
             }
         }
     }
@@ -249,79 +447,162 @@ impl WorldInstance {
         if objects.is_empty() {
             return;
         }
+        let id = obj.obj_id();
         match obj {
             WorldObject::Player(me) => {
-                let unit_ids: Vec<u32> = objects
+                let others: Vec<&WorldObject> =
+                    objects.iter().filter(|o| o.obj_id() != id).collect();
+                let unit_ids: Vec<u32> = others
                     .iter()
-                    .filter(|o| o.is_unit() && o.obj_id() != me.obj_id)
-                    .map(WorldObject::obj_id)
+                    .filter(|o| o.is_unit())
+                    .map(|o| o.obj_id())
                     .collect();
+                for o in &others {
+                    if let WorldObject::Npc(n) = o {
+                        let mut d = n.data();
+                        if d.has_ai {
+                            d.ai_should_tick = false;
+                        }
+                    }
+                }
                 for chunk in unit_ids.chunks(SCUnitsRemovedPacket::MAX_COUNT_PER_PACKET) {
                     me.send(SCUnitsRemovedPacket {
                         ids: chunk.to_vec(),
                     });
                 }
-                // Doodad / gimmick removal packets and the current-target reset: later phase.
-                for other in objects.iter().filter(|o| o.obj_id() != me.obj_id) {
-                    if let Some(p) = other.as_player() {
-                        remove_visible_object(obj, p);
+                let doodad_ids: Vec<u32> = others
+                    .iter()
+                    .filter(|o| o.kind() == ObjectKind::Doodad)
+                    .map(|o| o.obj_id())
+                    .collect();
+                let max = SCDoodadsRemovedPacket::MAX_COUNT_PER_PACKET;
+                for (i, chunk) in doodad_ids.chunks(max).enumerate() {
+                    me.send(SCDoodadsRemovedPacket {
+                        last: doodad_ids.len() - i * max <= max,
+                        ids: chunk.to_vec(),
+                    });
+                }
+                // Note (C#): gimmicks are units too, so they are in both packets.
+                let gimmick_ids: Vec<u32> = others
+                    .iter()
+                    .filter(|o| o.kind() == ObjectKind::Gimmick)
+                    .map(|o| o.obj_id())
+                    .collect();
+                for chunk in gimmick_ids.chunks(SCGimmicksRemovedPacket::MAX_COUNT_PER_PACKET) {
+                    me.send(SCGimmicksRemovedPacket {
+                        ids: chunk.to_vec(),
+                    });
+                }
+                let reset = {
+                    let mut c = me.data();
+                    let t = c.unit.current_target;
+                    if t != 0 && unit_ids.contains(&t) {
+                        c.unit.current_target = 0;
+                        true
+                    } else {
+                        false
                     }
+                };
+                if reset {
+                    me.send(SCTargetChangedPacket {
+                        obj_id: me.obj_id,
+                        target_obj_id: 0,
+                    });
+                }
+                for other in others {
+                    if let Some(p) = other.as_player() {
+                        visibility::remove_visible_object(self, obj, p);
+                    }
+                }
+            }
+            _ => {
+                // Only players outside the object's (new) neighbourhood lose it.
+                let obj_region = obj.is_visible().then(|| self.region_of(obj)).flatten();
+                let obj_neighbors = obj_region.map(|r| self.neighbors(r)).unwrap_or_default();
+                for other in objects.iter().filter(|o| o.obj_id() != id) {
+                    let Some(p) = other.as_player() else {
+                        continue;
+                    };
+                    if obj_region.is_some() {
+                        if let Some(cr) = self.region_of(other) {
+                            if Some(cr) == obj_region || obj_neighbors.contains(&cr) {
+                                continue;
+                            }
+                        }
+                    }
+                    visibility::remove_visible_object(self, obj, p);
                 }
             }
         }
     }
 
     /// `WorldManager.AddVisibleObject(obj)`: place the object in its region (first spawn) or move
-    /// it between regions, updating who sees it. Returns the zone change caused by
-    /// `Region.AddObject`, if any.
+    /// it between regions, updating who sees it; children follow. Returns the zone changes
+    /// caused by `Region.AddObject`.
     pub fn add_visible_object(
         &self,
-        player: &PlayerRef,
-        data: &GameData,
-        now_ms: i64,
-    ) -> Option<ZoneChange> {
+        obj: impl Into<WorldObject>,
+        ctx: &ViewCtx<'_>,
+    ) -> Vec<ZoneChange> {
+        let obj = obj.into();
+        let mut out = Vec::new();
         let mut grid = self.grid.lock().expect("grid poisoned");
-        let (x, y) = {
-            let c = player.data();
-            (c.transform.x, c.transform.y)
+        self.add_visible_locked(&mut grid, &obj, ctx, &mut out, 0);
+        out
+    }
+
+    fn add_visible_locked(
+        &self,
+        grid: &mut Grid,
+        obj: &WorldObject,
+        ctx: &ViewCtx<'_>,
+        out: &mut Vec<ZoneChange>,
+        depth: usize,
+    ) {
+        if depth > MAX_PARENT_DEPTH {
+            return;
+        }
+        let Some(region) = self.region_of(obj) else {
+            return;
         };
-        let region = self.region_by_pos(x, y)?;
-        let current = player
+        let current = obj
             .region()
             .filter(|(inst, _, _)| *inst == self.id)
             .map(|(_, x, y)| (x, y));
         if current == Some(region) {
-            return None;
+            return;
         }
-        let obj = WorldObject::Player(player.clone());
-        let zone_change;
         match current {
             None => {
-                zone_change = self.region_add_object(&mut grid, region, &obj);
-                *player.region.lock().expect("region poisoned") =
-                    Some((self.id, region.0, region.1));
+                self.region_add_object(grid, region, obj, out);
+                obj.core().set_region(Some((self.id, region.0, region.1)));
                 for n in self.neighbors(region) {
-                    self.add_to_characters(&grid, n, &obj, data, now_ms);
+                    self.add_to_characters(grid, n, obj, ctx);
                 }
             }
             Some(cur) => {
                 let old_n = self.neighbors(cur);
                 let new_n = self.neighbors(region);
                 for d in old_n.iter().filter(|r| !new_n.contains(r)) {
-                    self.remove_from_characters(&grid, *d, &obj);
+                    self.remove_from_characters(grid, *d, obj);
                 }
                 for d in new_n.iter().filter(|r| !old_n.contains(r)) {
-                    if player.is_visible() {
-                        self.add_to_characters(&grid, *d, &obj, data, now_ms);
+                    if obj.is_visible() {
+                        self.add_to_characters(grid, *d, obj, ctx);
                     }
                 }
-                zone_change = self.region_add_object(&mut grid, region, &obj);
-                *player.region.lock().expect("region poisoned") =
-                    Some((self.id, region.0, region.1));
-                Self::region_remove_object(&mut grid, cur, obj.obj_id());
+                self.region_add_object(grid, region, obj, out);
+                obj.core().set_region(Some((self.id, region.0, region.1)));
+                Self::region_remove_object(grid, cur, obj.obj_id());
+                for child in obj.core().children() {
+                    self.add_visible_locked(grid, &child, ctx, out, depth + 1);
+                }
             }
         }
-        zone_change
+        // "Ensure children are added on initial spawn" (runs after a move too, as in C#).
+        for child in obj.core().children() {
+            self.add_visible_locked(grid, &child, ctx, out, depth + 1);
+        }
     }
 
     /// `Region.AddObject`: appends the object and updates `Transform.InstanceId` / `ZoneId`.
@@ -330,22 +611,29 @@ impl WorldInstance {
         grid: &mut Grid,
         region: (i32, i32),
         obj: &WorldObject,
-    ) -> Option<ZoneChange> {
+        out: &mut Vec<ZoneChange>,
+    ) {
         grid.regions.entry(region).or_default().push(obj.clone());
-        let WorldObject::Player(p) = obj;
-        let mut c = p.data();
-        c.transform.instance_id = self.id;
-        let zone = self.template.zone_id_at(c.transform.x, c.transform.y);
-        if zone > 0 && zone != c.transform.zone_id {
-            let old = c.transform.zone_id;
-            c.transform.zone_id = zone;
-            return Some(ZoneChange {
-                player: p.clone(),
-                old_zone: old,
+        let world = self.world_pos_rot(obj);
+        let zone = self.template.zone_id_at(world.x, world.y);
+        let id = self.id;
+        let changed = obj.with_transform(|t| {
+            t.instance_id = id;
+            if zone > 0 && zone != t.zone_id {
+                let old = t.zone_id;
+                t.zone_id = zone;
+                Some(old)
+            } else {
+                None
+            }
+        });
+        if let Some(old_zone) = changed {
+            out.push(ZoneChange {
+                object: obj.clone(),
+                old_zone,
                 new_zone: zone,
             });
         }
-        None
     }
 
     /// `Region.RemoveObject` (swap with the last entry, like the C# array).
@@ -360,55 +648,99 @@ impl WorldInstance {
         }
     }
 
-    /// `WorldManager.RemoveVisibleObject(obj)`. Note (C#): the object's own region is notified
-    /// twice — once directly and once as part of `GetNeighbors()`, which includes the region
-    /// itself — so players in the same sector receive `SCUnitsRemovedPacket` twice. Mirrored.
-    pub fn remove_visible_object(&self, player: &PlayerRef) {
+    /// `WorldManager.RemoveVisibleObject(obj)` (children follow). Note (C#): the object's own
+    /// region is notified twice — once directly and once as part of `GetNeighbors()`, which
+    /// includes the region itself — so players in the same sector receive the removal packets
+    /// twice. Mirrored.
+    pub fn remove_visible_object(&self, obj: impl Into<WorldObject>) {
+        let obj = obj.into();
         let mut grid = self.grid.lock().expect("grid poisoned");
-        let Some((inst, rx, ry)) = player.region() else {
+        self.remove_visible_locked(&mut grid, &obj, 0);
+    }
+
+    fn remove_visible_locked(&self, grid: &mut Grid, obj: &WorldObject, depth: usize) {
+        if depth > MAX_PARENT_DEPTH {
+            return;
+        }
+        let Some((inst, rx, ry)) = obj.region() else {
             return;
         };
         if inst != self.id {
             return;
         }
         let region = (rx, ry);
-        let obj = WorldObject::Player(player.clone());
-        Self::region_remove_object(&mut grid, region, player.obj_id);
-        self.remove_from_characters(&grid, region, &obj);
+        Self::region_remove_object(grid, region, obj.obj_id());
+        self.remove_from_characters(grid, region, obj);
         for n in self.neighbors(region) {
-            self.remove_from_characters(&grid, n, &obj);
+            self.remove_from_characters(grid, n, obj);
         }
-        *player.region.lock().expect("region poisoned") = None;
+        obj.core().set_region(None);
+        for child in obj.core().children() {
+            self.remove_visible_locked(grid, &child, depth + 1);
+        }
     }
 
     /// `GameObject.Show()` (`IsVisible = true; AddVisibleObject`).
-    pub fn show(&self, player: &PlayerRef, data: &GameData, now_ms: i64) -> Option<ZoneChange> {
-        player.visible.store(true, Ordering::Relaxed);
-        self.add_visible_object(player, data, now_ms)
+    pub fn show(&self, obj: impl Into<WorldObject>, ctx: &ViewCtx<'_>) -> Vec<ZoneChange> {
+        let obj = obj.into();
+        obj.core().set_visible(true);
+        self.add_visible_object(obj, ctx)
     }
 
     /// `GameObject.Hide()` (`IsVisible = false; RemoveVisibleObject`).
-    pub fn hide(&self, player: &PlayerRef) {
-        player.visible.store(false, Ordering::Relaxed);
-        self.remove_visible_object(player);
+    pub fn hide(&self, obj: impl Into<WorldObject>) {
+        let obj = obj.into();
+        obj.core().set_visible(false);
+        self.remove_visible_object(obj);
     }
 
-    /// `WorldManager.GetAround<Character>(obj)`: players in the neighbouring regions (own
+    /// `GameObject.Spawn()` (`ParentWorld.AddObject(this); Show()`).
+    pub fn spawn(&self, obj: impl Into<WorldObject>, ctx: &ViewCtx<'_>) -> Vec<ZoneChange> {
+        let obj = obj.into();
+        self.add_object(&obj);
+        self.show(obj, ctx)
+    }
+
+    /// `GameObject.Delete()` (`Hide(); Transform.DetachAll(); ParentWorld.RemoveObject(this)`).
+    /// Kind-specific cleanup (spawners, DB rows, AI) is the owning subsystem's job.
+    pub fn delete(&self, obj: impl Into<WorldObject>) {
+        let obj = obj.into();
+        self.hide(&obj);
+        self.detach_child(&obj);
+        for child in obj.core().take_children() {
+            child.with_transform(|t| t.parent_obj_id = 0);
+        }
+        self.remove_object(obj.obj_id());
+    }
+
+    // ----- neighbourhood queries (`GetAround<T>`) -----
+
+    /// `WorldManager.GetAround<GameObject>(obj)`: the objects in the neighbouring regions (own
     /// region included), excluding `obj` itself.
-    pub fn players_around(&self, player: &PlayerRef) -> Vec<PlayerRef> {
+    pub fn objects_around(&self, obj: &WorldObject) -> Vec<WorldObject> {
+        self.around(obj, |o| Some(o.clone()))
+    }
+
+    /// `GetAround<T>(obj)` with a kind filter, e.g. `world.around(&obj, |o| o.as_npc().cloned())`.
+    pub fn around<T>(
+        &self,
+        obj: &WorldObject,
+        mut f: impl FnMut(&WorldObject) -> Option<T>,
+    ) -> Vec<T> {
         let grid = self.grid.lock().expect("grid poisoned");
-        let Some((inst, rx, ry)) = player.region() else {
+        let Some((inst, rx, ry)) = obj.region() else {
             return Vec::new();
         };
         if inst != self.id {
             return Vec::new();
         }
+        let id = obj.obj_id();
         let mut out = Vec::new();
         for n in self.neighbors((rx, ry)) {
             for o in grid.objects(n) {
-                if o.obj_id() != player.obj_id {
-                    if let Some(p) = o.as_player() {
-                        out.push(p.clone());
+                if o.obj_id() != id {
+                    if let Some(v) = f(o) {
+                        out.push(v);
                     }
                 }
             }
@@ -416,7 +748,18 @@ impl WorldInstance {
         out
     }
 
-    /// The objects of one sector, in list order (tests / debugging).
+    /// `WorldManager.GetAround<Character>(obj)`.
+    pub fn players_around(&self, obj: impl Into<WorldObject>) -> Vec<PlayerRef> {
+        self.around(&obj.into(), |o| o.as_player().cloned())
+    }
+
+    /// The objects of one sector, in list order.
+    pub fn objects_in_region(&self, region: (i32, i32)) -> Vec<WorldObject> {
+        let grid = self.grid.lock().expect("grid poisoned");
+        grid.objects(region).to_vec()
+    }
+
+    /// The obj ids of one sector, in list order (tests / debugging).
     pub fn region_object_ids(&self, region: (i32, i32)) -> Vec<u32> {
         let grid = self.grid.lock().expect("grid poisoned");
         grid.objects(region)
@@ -464,6 +807,20 @@ impl WorldManager {
 
     pub fn worlds(&self) -> Vec<Arc<WorldInstance>> {
         self.worlds.iter().map(|w| w.clone()).collect()
+    }
+
+    /// The instance an object is registered in (`obj.ParentWorld`, by its region or transform).
+    pub fn world_of(&self, obj: &WorldObject) -> Option<Arc<WorldInstance>> {
+        let inst = obj
+            .region()
+            .map(|(i, _, _)| i)
+            .unwrap_or_else(|| obj.transform().instance_id);
+        self.worlds.get(&inst).map(|w| w.clone())
+    }
+
+    /// `GetGameObject(objId)` across all instances.
+    pub fn object(&self, obj_id: u32) -> Option<WorldObject> {
+        self.worlds.iter().find_map(|w| w.object(obj_id))
     }
 
     /// `Character.UsedCharacterObjIds.TryGetValue`.
@@ -518,7 +875,7 @@ impl WorldManager {
         let name = name.to_lowercase();
         self.characters
             .iter()
-            .find(|p| p.data().name.to_lowercase() == name)
+            .find(|p| p.data().unit.name.to_lowercase() == name)
             .map(|p| p.clone())
     }
 
@@ -543,17 +900,21 @@ impl WorldManager {
     }
 }
 
-/// `GameObject.BroadcastPacket(packet, self)`.
+/// `GameObject.BroadcastPacket(packet, self)`: every player around `obj`, plus `obj` itself
+/// when `include_self` and it is a player (`Doodad.BroadcastPacket` never includes self).
 pub fn broadcast(
     world: &WorldInstance,
-    player: &PlayerRef,
+    obj: impl Into<WorldObject>,
     packet: &dyn ServerPacket,
     include_self: bool,
 ) {
-    for p in world.players_around(player) {
+    let obj = obj.into();
+    for p in world.players_around(&obj) {
         p.send_dyn(packet);
     }
     if include_self {
-        player.send_dyn(packet);
+        if let Some(p) = obj.as_player() {
+            p.send_dyn(packet);
+        }
     }
 }

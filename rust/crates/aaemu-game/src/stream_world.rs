@@ -48,7 +48,7 @@ impl StreamWorld for GameStreamWorld {
                 let c = p.data();
                 ActiveCharacter {
                     id: c.id,
-                    name: c.name.clone(),
+                    name: c.unit.name.clone(),
                 }
             })
     }

@@ -96,21 +96,21 @@ fn ops(frames: &[(u16, Vec<u8>)]) -> Vec<u16> {
 
 fn character(id: u32, name: &str, x: f32, y: f32) -> Character {
     let mut c = Character::new(id, 1000 + id, Default::default());
-    c.name = name.into();
+    c.unit.name = name.into();
     c.race = 1;
     c.gender = 1;
-    c.level = 10;
-    c.faction_id = 101;
+    c.unit.level = 10;
+    c.unit.faction_id = 101;
     c.ability1 = 1;
     c.ability2 = 11;
     c.ability3 = 11;
     c.num_inventory_slots = 50;
     c.num_bank_slots = 50;
     c.inventory = Inventory::standalone(id, 50, 50);
-    c.transform.x = x;
-    c.transform.y = y;
-    c.transform.z = 100.0;
-    c.transform.zone_id = 100;
+    c.unit.transform.x = x;
+    c.unit.transform.y = y;
+    c.unit.transform.z = 100.0;
+    c.unit.transform.zone_id = 100;
     c
 }
 
@@ -248,6 +248,7 @@ async fn two_players_see_each_other_move_talk_and_leave() {
     assert_eq!(burst[21].1, vec![1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]);
     assert!(!pa
         .data()
+        .unit
         .buffs
         .check_buff(crate::models::buff::BUFF_LOGGED_ON)); // no template
 
@@ -326,9 +327,9 @@ async fn two_players_see_each_other_move_talk_and_leave() {
     assert_eq!(fa.len(), 2);
     assert_eq!(fa[0].0, sc::SCChatMessagePacket); // MOTD
     assert_eq!(fa[1], one);
-    assert!((pa.data().transform.x - 110.0).abs() < 0.01);
+    assert!((pa.data().unit.transform.x - 110.0).abs() < 0.01);
     assert_eq!(
-        pa.data().transform.rot_z,
+        pa.data().unit.transform.rot_z,
         crate::models::movement::convert_direction_to_radian(64) as f32
     );
 

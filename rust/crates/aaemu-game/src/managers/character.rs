@@ -287,11 +287,11 @@ pub async fn create(
         })?;
 
     let mut c = Character::new(id, conn.account_id(), req.model_params.clone());
-    c.name = name.clone();
+    c.unit.name = name.clone();
     c.race = req.race;
     c.gender = req.gender;
     let sp = template.spawn_position;
-    c.transform = Transform {
+    c.unit.transform = Transform {
         instance_id: crate::models::character::DEFAULT_INSTANCE_ID,
         world_id: data.worlds.default_world_template_id(),
         zone_id: sp.zone_id,
@@ -301,9 +301,10 @@ pub async fn create(
         rot_x: sp.roll,
         rot_y: sp.pitch,
         rot_z: sp.yaw,
+        parent_obj_id: 0,
     };
-    c.level = req.level;
-    c.faction_id = template.faction_id;
+    c.unit.level = req.level;
+    c.unit.faction_id = template.faction_id;
     c.faction_name = String::new();
     c.access_level = access_level;
     c.labor_power = account.labor;
@@ -404,8 +405,8 @@ pub async fn create(
     let _ = learn_skill;
 
     let stats = c.stats(&data.formulas);
-    c.hp = stats.max_hp;
-    c.mp = stats.max_mp;
+    c.unit.hp = stats.max_hp;
+    c.unit.mp = stats.max_mp;
     c.restore_saved_hp_mp(&data.formulas);
 
     if save_directly_to_database(&server.db, &mut c).await {
@@ -436,7 +437,7 @@ pub async fn set_delete_character(
 ) -> Result<()> {
     if let Some(i) = conn.characters.iter().position(|c| c.id == character_id) {
         let now = Utc::now().timestamp();
-        let level = conn.characters[i].level;
+        let level = conn.characters[i].unit.level;
         let mut delay = 0;
         for t in &server.config.account.delete_timings {
             if level >= t.level {
