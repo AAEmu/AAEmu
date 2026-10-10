@@ -56,6 +56,12 @@ pub struct Simulation {
     delete_task_pending: bool,
     /// `./Data/Path/` (relative to the server's working directory).
     folder: Option<PathBuf>,
+    /// `RecordPath` (the route being recorded, one `|x|y|z|` line per checkpoint).
+    pub record_path: Vec<String>,
+    /// `PointsCount`.
+    pub points_count: i32,
+    /// `SavePathEnabled`.
+    pub save_path_enabled: bool,
 }
 
 /// The shared handle the move tasks keep.
@@ -151,6 +157,104 @@ impl Simulation {
     fn get_paths(&self, name: &str) -> Vec<Vec3> {
         self.paths.get(name).cloned().unwrap_or_default()
     }
+}
+
+/// `character.Simulation` (`CSSelectCharacterPacket`: `new Simulation(character)`): the
+/// player's own simulation (the `/moveto` route recorder and the NPC it drives), created on first
+/// use and kept with the player's obj id.
+pub fn character_simulation(server: &GameServer, player: &crate::world::PlayerRef) -> SimRef {
+    server
+        .systems
+        .ai
+        .simulations
+        .entry(player.obj_id)
+        .or_insert_with(|| {
+            Arc::new(Mutex::new(Simulation::new(
+                server.systems.ai.paths_folder(),
+            )))
+        })
+        .clone()
+}
+
+/// `Simulation.StartRecord(sim, ch)`: records the character's position every second until
+/// [`stop_record`].
+pub fn start_record(server: &GameServer, sim: &SimRef, ch: &crate::world::PlayerRef) {
+    {
+        let mut s = sim.lock().expect("simulation poisoned");
+        if s.save_path_enabled {
+            return;
+        }
+        if s.move_to_path_enabled {
+            // while following the route, recording is not possible.
+            return;
+        }
+        s.record_path.clear();
+        s.points_count = 0;
+        s.save_path_enabled = true;
+    }
+    repeat_to(server, sim, ch, 1000);
+}
+
+/// `RepeatTo(ch, time, sim)`: a `Record` task in `time` ms while recording.
+fn repeat_to(server: &GameServer, sim: &SimRef, ch: &crate::world::PlayerRef, time_ms: u64) {
+    if !sim.lock().expect("simulation poisoned").save_path_enabled {
+        return;
+    }
+    let sim = sim.clone();
+    let ch = ch.clone();
+    schedule(server, Duration::from_millis(time_ms), move |server| {
+        record(server, &sim, &ch);
+    });
+}
+
+/// `Simulation.Record(sim, ch)`: one checkpoint (`|X|Y|Z|` of the character's world position).
+fn record(server: &GameServer, sim: &SimRef, ch: &crate::world::PlayerRef) {
+    use crate::systems::services::webapi::json::dotnet_single_string as f;
+    let obj = WorldObject::from(ch);
+    let p = match server.world.world_of(&obj) {
+        Some(w) => w.world_pos_rot(&obj),
+        None => obj.transform().local(),
+    };
+    let line = format!("|{}|{}|{}|", f(p.x), f(p.y), f(p.z)).replace(',', ".");
+    {
+        let mut s = sim.lock().expect("simulation poisoned");
+        s.record_path.push(line);
+        s.points_count += 1;
+    }
+    repeat_to(server, sim, ch, 1000);
+}
+
+/// `Simulation.StopRecord(sim)`: writes `RecordPath` to `Data/Path/{MoveFileName}.path` and stops
+/// recording. `Err` = the exception message of the `StreamWriter` (recording stays on then,
+/// like the C#).
+pub fn stop_record(sim: &SimRef) -> Result<(), String> {
+    let (file, lines) = {
+        let s = sim.lock().expect("simulation poisoned");
+        let folder = s
+            .folder
+            .clone()
+            .unwrap_or_else(|| PathBuf::from("./Data/Path/"));
+        (
+            folder.join(format!("{}.path", s.move_file_name)),
+            s.record_path.clone(),
+        )
+    };
+    // StreamWriter.WriteLine (Environment.NewLine)
+    let newline = if cfg!(windows) { "\r\n" } else { "\n" };
+    let mut text = String::new();
+    for l in &lines {
+        text.push_str(l);
+        text.push_str(newline);
+    }
+    std::fs::write(&file, text).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => {
+            let full = std::path::absolute(&file).unwrap_or(file.clone());
+            format!("Could not find a part of the path '{}'.", full.display())
+        }
+        _ => e.to_string(),
+    })?;
+    sim.lock().expect("simulation poisoned").save_path_enabled = false;
+    Ok(())
 }
 
 /// `Simulation.StopMove(npc)`.

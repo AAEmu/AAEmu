@@ -478,6 +478,14 @@ impl WaterBodies {
         inner.areas.push(area);
     }
 
+    /// `ClearIngestedAreas()` (+ the cells ingested so far, so the next sync re-reads them).
+    pub fn clear_ingested_areas(&self) {
+        let mut inner = self.lock();
+        inner.areas.clear();
+        inner.index.clear();
+        inner.ingested_cells.clear();
+    }
+
     /// Adds an area (tests / tools; `Areas.Add` + `RebuildSpatialIndex`).
     pub fn add(&self, area: WaterBodyArea) {
         Self::add_area(&mut self.lock(), area);
