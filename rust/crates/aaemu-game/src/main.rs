@@ -35,18 +35,72 @@ async fn main() -> anyhow::Result<()> {
 
     // Program.cs: "Failed to load compact.sqlite3 database check if it exists!" is fatal, and so
     // is any failing loader (the 1.2 ManagerOrchestrator / GameDataManager are not tolerant).
-    let game_data = GameData::load(&config.app_path)
-        .context("Failed to load compact.sqlite3 database check if it exists!")?;
+    let game_data = GameData::load(
+        &config.app_path,
+        &config.client_data.sources,
+        &config.default_language,
+    )
+    .context("Failed to load compact.sqlite3 database check if it exists!")?;
 
     let server = Arc::new(GameServer::new(config, db, game_data));
+    server.set_self();
     tracing::info!("{} packet handlers registered", server.registry.len());
+
+    // ManagerOrchestrator (the DB-backed managers of this phase).
+    server.ids.initialize(&server.db).await;
+    server.names.load(&server.db).await.context("NameManager")?;
+    server
+        .expeditions
+        .load(&server.db)
+        .await
+        .context("ExpeditionManager")?;
+    server
+        .friends
+        .load(&server.db)
+        .await
+        .context("FriendManager")?;
+    server
+        .items
+        .load_user_items(
+            &server.db,
+            &server.game_data.items,
+            server.config.id,
+            &server.ids.container,
+        )
+        .await
+        .context("ItemManager.LoadUserItems")?;
+    server
+        .streams
+        .set_world(Arc::new(aaemu_game::stream_world::GameStreamWorld {
+            world: server.world.clone(),
+            names: server.names.clone(),
+            items: server.items.clone(),
+            ids: server.ids.clone(),
+            game_data: server.game_data.clone(),
+            server_id: server.config.id,
+        }));
+    server.time.start();
+    aaemu_game::managers::save::SaveManager::start(server.clone());
+    aaemu_game::managers::character::schedule_deleted_characters_check(server.clone()).await;
+
+    // UccManager.Load (+ UccIdManager) from the `uccs` table.
+    server
+        .streams
+        .ucc
+        .load(&server.db)
+        .await
+        .context("loading UCCs")?;
 
     tokio::spawn(login::run(server.clone()));
     let network = tokio::spawn(net::listener::run(server.clone()));
+    let stream_network = tokio::spawn(aaemu_game::stream::listener::run(server.clone()));
 
     tokio::select! {
         res = network => { res.context("network task panicked")?.context("game network")?; }
+        res = stream_network => { res.context("stream network task panicked")?.context("stream network")?; }
         _ = tokio::signal::ctrl_c() => tracing::info!("Stopping daemon ..."),
     }
+    // SaveManager.StopAsync: one final save.
+    server.save.stop(&server).await;
     Ok(())
 }

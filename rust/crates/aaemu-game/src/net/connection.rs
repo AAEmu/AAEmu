@@ -60,6 +60,9 @@ impl Default for AccountPayment {
 pub enum ConnCommand {
     Send(Box<dyn ServerPacket>),
     Close,
+    /// The logout timer of `EnterWorldManager.Leave` expired: run `LeaveWorldTask` with this
+    /// `LeaveWorldTargetType` on the connection task.
+    LeaveWorld(u8),
 }
 
 /// Cloneable handle stored in the [`ConnectionTable`].
@@ -69,6 +72,7 @@ pub struct ConnectionHandle {
     pub ip: SocketAddr,
     account_id: Arc<AtomicU32>,
     tx: mpsc::UnboundedSender<ConnCommand>,
+    writer: mpsc::UnboundedSender<Vec<u8>>,
 }
 
 impl ConnectionHandle {
@@ -76,14 +80,41 @@ impl ConnectionHandle {
         self.account_id.load(Ordering::Relaxed)
     }
 
-    /// Queues a packet; it is encoded and sent by the connection task, in queue order.
+    /// `GameConnection.SendPacket` from any task: the packet is encoded right away and queued
+    /// on the connection's writer, so packets sent through handles and through the owning
+    /// [`GameConnection`] keep the global call order (C# writes to the socket synchronously).
     pub fn send(&self, packet: impl ServerPacket + 'static) {
-        let _ = self.tx.send(ConnCommand::Send(Box::new(packet)));
+        self.send_dyn(&packet);
+    }
+
+    /// [`ConnectionHandle::send`] for a borrowed / type-erased packet.
+    pub fn send_dyn(&self, packet: &dyn ServerPacket) {
+        if let Some(bytes) = encode_for_send(packet) {
+            let _ = self.writer.send(bytes);
+        }
     }
 
     pub fn close(&self) {
         let _ = self.tx.send(ConnCommand::Close);
     }
+}
+
+/// `GameConnection.SendPacket(GamePacket)`: packets with the placeholder opcode `0xFFF` (no
+/// 1.2 opcode) are dropped (`None`); everything else is encoded (`GamePacket.Encode`).
+pub fn encode_for_send(packet: &dyn ServerPacket) -> Option<Vec<u8>> {
+    if packet.opcode() == INVALID_OPCODE {
+        tracing::error!("Dropping invalid game packet with opcode 0xFFF.");
+        return None;
+    }
+    let bytes = encode(packet);
+    tracing::debug!(
+        "GamePacket: S->C type {:03X} {} ({} bytes)",
+        packet.opcode(),
+        packet.name(),
+        bytes.len()
+    );
+    tracing::trace!("{:?}", packet);
+    Some(bytes)
 }
 
 /// `GameConnectionTable`: connections keyed by session id.
@@ -131,6 +162,10 @@ pub struct GameConnection {
     pub payment: AccountPayment,
     /// `Characters.Values` in insertion (load) order.
     pub characters: Vec<Character>,
+    /// `ActiveChar`.
+    pub active_char: Option<crate::world::PlayerRef>,
+    /// `LeaveTask` (+ its `CancelTokenSource`): the pending logout timer.
+    pub leave_task: Option<tokio::task::JoinHandle<()>>,
     pub last_ping: Instant,
     writer: mpsc::UnboundedSender<Vec<u8>>,
     commands: mpsc::UnboundedSender<ConnCommand>,
@@ -164,6 +199,7 @@ impl GameConnection {
             ip,
             account_id: account_id.clone(),
             tx: commands.clone(),
+            writer: writer.clone(),
         };
         let conn = Self {
             id,
@@ -172,6 +208,8 @@ impl GameConnection {
             state: GameState::Lobby,
             payment: AccountPayment::default(),
             characters: Vec::new(),
+            active_char: None,
+            leave_task: None,
             last_ping: Instant::now(),
             writer,
             commands,
@@ -191,21 +229,28 @@ impl GameConnection {
     /// `GameConnection.SendPacket(GamePacket)`: packets with the placeholder opcode `0xFFF` (no
     /// 1.2 opcode) are dropped; everything else is encoded and queued for the writer task.
     pub fn send(&mut self, packet: &dyn ServerPacket) {
-        if packet.opcode() == INVALID_OPCODE {
-            tracing::error!("Dropping invalid game packet with opcode 0xFFF.");
+        let Some(bytes) = encode_for_send(packet) else {
             return;
-        }
-        let bytes = encode(packet);
-        tracing::debug!(
-            "GamePacket: S->C type {:03X} {} ({} bytes)",
-            packet.opcode(),
-            packet.name(),
-            bytes.len()
-        );
-        tracing::trace!("{:?}", packet);
+        };
         if self.writer.send(bytes).is_err() {
             self.closing = true;
         }
+    }
+
+    /// A [`ConnectionHandle`] for this connection (same channels as the table entry).
+    pub fn handle(&self) -> ConnectionHandle {
+        ConnectionHandle {
+            id: self.id,
+            ip: self.ip,
+            account_id: self.account_id.clone(),
+            tx: self.commands.clone(),
+            writer: self.writer.clone(),
+        }
+    }
+
+    /// Queues a command for this connection's own task (e.g. the logout timer).
+    pub fn command_sender(&self) -> mpsc::UnboundedSender<ConnCommand> {
+        self.commands.clone()
     }
 
     /// `Shutdown()`: the connection task stops after the current packet.

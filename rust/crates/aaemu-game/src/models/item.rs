@@ -2,13 +2,13 @@
 //! subclasses (`EquipItem`/`Armor`/`Weapon`/`Accessory`, `BodyPart`, `UccItem`, `BigFish`,
 //! `MusicSheetItem`, `SummonMate`, `SummonSlave`, `TreasureMap`, `Backpack`, `Rune`).
 //!
-//! Only what `Character.Write` (character list) needs: loading a row of the `items` table
-//! (`ItemManager.LoadUserItems`) and `Item.Write`. Gameplay behaviour (stats, durability,
-//! repair cost, expiration, ...) is a later phase.
+//! Persistence (`ItemManager.LoadUserItems` / `Save`), creation (`ItemManager.Create` with the
+//! subclass constructors) and `Item.Write`. Gameplay behaviour (stats, repair cost, expiration
+//! timers, ...) is a later phase.
 
 use aaemu_commons::{Marshal, PacketStream};
 
-use crate::data::ItemTemplateInfo;
+use crate::data::items::{bind_type, ItemData, ItemTemplate, TemplateKind};
 
 /// Unix seconds, already clamped like `Helpers.UnixTime(DateTime)` (anything before the epoch is 0).
 pub type UnixTime = i64;
@@ -25,6 +25,8 @@ pub mod detail_type {
     pub const MUSIC_SHEET: u8 = 8;
 }
 
+/// `ItemFlag.SoulBound`.
+pub const ITEM_FLAG_SOUL_BOUND: u8 = 0x01;
 /// `ItemFlag.HasUCC`.
 pub const ITEM_FLAG_HAS_UCC: u8 = 0x02;
 
@@ -75,7 +77,27 @@ impl ItemClass {
         })
     }
 
-    fn is_equip(self) -> bool {
+    /// `item.GetType().ToString()` (the `items.type` column).
+    pub fn type_name(self) -> &'static str {
+        match self {
+            Self::Item => "AAEmu.Game.Models.Game.Items.Item",
+            Self::EquipItem => "AAEmu.Game.Models.Game.Items.EquipItem",
+            Self::Armor => "AAEmu.Game.Models.Game.Items.Armor",
+            Self::Weapon => "AAEmu.Game.Models.Game.Items.Weapon",
+            Self::Accessory => "AAEmu.Game.Models.Game.Items.Accessory",
+            Self::Backpack => "AAEmu.Game.Models.Game.Items.Backpack",
+            Self::BodyPart => "AAEmu.Game.Models.Game.Items.BodyPart",
+            Self::Rune => "AAEmu.Game.Models.Game.Items.Rune",
+            Self::UccItem => "AAEmu.Game.Models.Game.Items.UccItem",
+            Self::BigFish => "AAEmu.Game.Models.Game.Items.BigFish",
+            Self::MusicSheetItem => "AAEmu.Game.Models.Game.Items.MusicSheetItem",
+            Self::SummonMate => "AAEmu.Game.Models.Game.Items.SummonMate",
+            Self::SummonSlave => "AAEmu.Game.Models.Game.Items.SummonSlave",
+            Self::TreasureMap => "AAEmu.Game.Models.Game.Items.TreasureMap",
+        }
+    }
+
+    pub fn is_equip(self) -> bool {
         matches!(
             self,
             Self::EquipItem | Self::Armor | Self::Weapon | Self::Accessory
@@ -160,6 +182,16 @@ pub struct Item {
     /// `Template.BindType == BindOnUnpack` (selects `UnpackTime` vs `ChargeStartTime` in
     /// `EquipItem.WriteDetails`).
     pub bind_on_unpack: bool,
+    /// `OwnerId` (character id).
+    pub owner_id: u64,
+    /// `SlotType`.
+    pub slot_type: u8,
+    /// `ExpirationTime` (unix seconds, 0 = MinValue).
+    pub expiration_time: UnixTime,
+    pub expiration_online_minutes_left: f64,
+    pub charge_count: i32,
+    /// `IsDirty` (needs to be written by the next `ItemManager.Save`).
+    pub dirty: bool,
 }
 
 /// Raw `items` columns, as read by `ItemManager.LoadUserItems`.
@@ -180,6 +212,12 @@ pub struct ItemRow {
     pub details: Vec<u8>,
     pub grade: u8,
     pub charge_time: UnixTime,
+    pub owner: u64,
+    pub container_id: u64,
+    pub slot_type: u8,
+    pub expire_time: UnixTime,
+    pub expire_online_minutes: f64,
+    pub charge_count: i32,
 }
 
 impl Item {
@@ -188,7 +226,7 @@ impl Item {
     /// `template` is `None` when the client game data is unavailable; C# would throw on
     /// `item.Template.FixedGrade`, here the DB grade is kept and `BindType` is treated as not
     /// `BindOnUnpack` (documented later-phase gap).
-    pub fn from_row(row: ItemRow, template: Option<&ItemTemplateInfo>, world_id: u8) -> Self {
+    pub fn from_row(row: ItemRow, template: Option<&ItemTemplate>, world_id: u8) -> Self {
         let class = ItemClass::from_type_name(&row.type_name).unwrap_or_else(|| {
             tracing::warn!(
                 "Item type {} not found for id {}! (template ClassType fallback is a later phase)",
@@ -215,6 +253,12 @@ impl Item {
             ucc_id: 0,
             details: ItemDetails::default(),
             bind_on_unpack: template.is_some_and(|t| t.bind_type == BIND_ON_UNPACK),
+            owner_id: row.owner,
+            slot_type: row.slot_type,
+            expiration_time: row.expire_time,
+            expiration_online_minutes_left: row.expire_online_minutes,
+            charge_count: row.charge_count,
+            dirty: false,
         };
         // `item.UccId = ucc` (setter toggles HasUCC) happens before ReadDetails.
         item.set_ucc_id(u64::from(row.ucc));
@@ -228,6 +272,89 @@ impl Item {
         // ChargeStartTime from the DB column overrides the one read from the details blob.
         item.charge_start_time = row.charge_time;
         item
+    }
+
+    /// `ItemManager.Create(templateId, count, grade)` for an already allocated `id`: runs the
+    /// subclass constructor (`EquipItem` default dye, `Armor/Weapon/Accessory` durability), then
+    /// the grade / bind / fixed-grade rules. As in C#, a constructor that throws (missing grade
+    /// template for the durability formula) falls back to a plain `Item`.
+    pub fn create(
+        id: u64,
+        template: &ItemTemplate,
+        count: i32,
+        grade: u8,
+        world_id: u8,
+        data: &ItemData,
+        now: UnixTime,
+    ) -> Self {
+        let mut class = template.class_type();
+        let mut details = ItemDetails::default();
+        if let Some(e) = template.equip() {
+            // `Durability = MaxDurability` runs while Grade is still 0.
+            match data.max_durability(template, 0) {
+                Some(d) => {
+                    details.durability = d;
+                    details.dye_item_id = e.default_dye_item_id;
+                }
+                None => {
+                    tracing::error!(
+                        "Item {id}: {:?} constructor failed (no grade template), creating a plain Item",
+                        class
+                    );
+                    class = ItemClass::Item;
+                }
+            }
+        }
+        let mut item = Item {
+            class,
+            id,
+            template_id: template.id,
+            slot: -1,
+            grade: 0,
+            flags: 0,
+            count,
+            lifespan_mins: 0,
+            made_unit_id: 0,
+            world_id,
+            create_time: now,
+            unsecure_time: 0,
+            unpack_time: 0,
+            charge_start_time: 0,
+            ucc_id: 0,
+            details,
+            bind_on_unpack: template.bind_type == BIND_ON_UNPACK,
+            owner_id: 0,
+            slot_type: 0,
+            expiration_time: 0,
+            expiration_online_minutes_left: 0.0,
+            charge_count: 0,
+            dirty: true,
+        };
+        // If item already has a default generated grade, then do not override it
+        if item.grade == 0 {
+            item.grade = grade;
+        }
+        if template.bind_type == bind_type::BIND_ON_PICKUP {
+            item.flags |= ITEM_FLAG_SOUL_BOUND;
+        }
+        if template.fixed_grade >= 0 {
+            item.grade = template.fixed_grade as u8;
+        }
+        let _ = TemplateKind::Item;
+        item
+    }
+
+    /// `UccId` setter.
+    pub fn set_ucc(&mut self, v: u64) {
+        self.set_ucc_id(v);
+        self.dirty = true;
+    }
+
+    /// `WriteDetails` into a fresh stream (the `items.details` column).
+    pub fn details_blob(&self) -> Vec<u8> {
+        let mut s = PacketStream::new();
+        self.write_details(&mut s);
+        s.into_bytes()
     }
 
     fn set_ucc_id(&mut self, v: u64) {
@@ -412,10 +539,11 @@ mod tests {
             created_at: 700,
             ..ItemRow::default()
         };
-        let t = ItemTemplateInfo {
+        let t = ItemTemplate {
             bind_type: 1,
             fixed_grade: -1,
             gradable: true,
+            ..ItemTemplate::plain(0x1000, 1)
         };
         let item = Item::from_row(row, Some(&t), 1);
         let mut s = PacketStream::new();
@@ -456,10 +584,11 @@ mod tests {
         };
         let item = Item::from_row(
             row,
-            Some(&ItemTemplateInfo {
+            Some(&ItemTemplate {
                 bind_type: 1,
                 fixed_grade: 1,
                 gradable: true,
+                ..ItemTemplate::plain(99, 1)
             }),
             1,
         );

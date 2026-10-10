@@ -432,10 +432,7 @@ mod tests {
     #[test]
     fn character_list_chunking() {
         let chars: Vec<Character> = (1..=5)
-            .map(|id| Character {
-                id,
-                ..Character::default()
-            })
+            .map(|id| Character::new(id, 1, Default::default()))
             .collect();
         let shape = |v: Vec<SCCharacterListPacket>| -> Vec<(bool, usize)> {
             v.iter().map(|c| (c.last, c.characters.len())).collect()

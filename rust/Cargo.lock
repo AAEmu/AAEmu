@@ -6,10 +6,15 @@ version = 4
 name = "aaemu-commons"
 version = "0.1.0"
 dependencies = [
+ "aes",
  "bytes",
  "chrono",
+ "md-5",
  "rand",
+ "roxmltree",
  "serde",
+ "serde_json",
+ "sqlx",
  "thiserror 1.0.69",
  "tokio",
  "tokio-util",
@@ -21,10 +26,15 @@ name = "aaemu-game"
 version = "0.1.0"
 dependencies = [
  "aaemu-commons",
+ "aes",
  "anyhow",
+ "cbc",
  "chrono",
  "dashmap",
  "futures",
+ "rand",
+ "regex",
+ "roxmltree",
  "rusqlite",
  "serde",
  "serde_json",
@@ -66,6 +76,27 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "aaemu-tool-updatesfortransform"
+version = "0.1.0"
+dependencies = [
+ "aaemu-commons",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "aaemu-tool-worldconverter"
+version = "0.1.0"
+dependencies = [
+ "aaemu-commons",
+ "roxmltree",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
 ]
 
 [[package]]

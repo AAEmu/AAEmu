@@ -28,4 +28,9 @@ sqlx.workspace = true
 chrono.workspace = true
 dashmap.workspace = true
 rusqlite.workspace = true
+regex.workspace = true
+aes.workspace = true
+cbc.workspace = true
+roxmltree.workspace = true
+rand.workspace = true
 

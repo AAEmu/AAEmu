@@ -1,0 +1,16 @@
+[package]
+name = "aaemu-tool-updatesfortransform"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Converts old sbyte-rotation spawn JSON files to Roll/Pitch/Yaw (port of Tools/UpdatesForTransform)"
+
+[[bin]]
+name = "aaemu-updatesfortransform"
+path = "src/main.rs"
+
+[dependencies]
+aaemu-commons.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

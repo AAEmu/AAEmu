@@ -3,8 +3,10 @@
 //! Internal login-server packets live in [`crate::login`].
 
 pub mod c2g;
+pub mod c2g_world;
 pub mod g2c;
 pub mod proxy;
+pub mod world;
 
 /// Implements [`crate::net::packet::PacketDef`] for a packet struct.
 macro_rules! packet_def {
@@ -26,13 +28,24 @@ use crate::opcodes::{cs, pp};
 /// logged as "not ported yet" by the dispatcher (see `opcodes::cs::NAMES`).
 pub fn build_registry() -> PacketRegistry {
     use c2g::*;
+    use c2g_world::*;
     use proxy::*;
 
     let mut r = PacketRegistry::new();
     // World / lobby
     r.register::<X2EnterWorldPacket>(LEVEL_PLAIN, cs::X2EnterWorldPacket)
         .register::<CSLeaveWorldPacket>(LEVEL_PLAIN, cs::CSLeaveWorldPacket)
-        .register::<CSListCharacterPacket>(LEVEL_PLAIN, cs::CSListCharacterPacket);
+        .register::<CSListCharacterPacket>(LEVEL_PLAIN, cs::CSListCharacterPacket)
+        .register::<CSCancelLeaveWorldPacket>(LEVEL_PLAIN, cs::CSCancelLeaveWorldPacket)
+        .register::<CSCreateCharacterPacket>(LEVEL_PLAIN, cs::CSCreateCharacterPacket)
+        .register::<CSDeleteCharacterPacket>(LEVEL_PLAIN, cs::CSDeleteCharacterPacket)
+        .register::<CSCancelCharacterDeletePacket>(LEVEL_PLAIN, cs::CSCancelCharacterDeletePacket)
+        .register::<CSSelectCharacterPacket>(LEVEL_PLAIN, cs::CSSelectCharacterPacket)
+        .register::<CSSpawnCharacterPacket>(LEVEL_PLAIN, cs::CSSpawnCharacterPacket)
+        .register::<CSNotifyInGamePacket>(LEVEL_PLAIN, cs::CSNotifyInGamePacket)
+        .register::<CSNotifyInGameCompletedPacket>(LEVEL_PLAIN, cs::CSNotifyInGameCompletedPacket)
+        .register::<CSMoveUnitPacket>(LEVEL_PLAIN, cs::CSMoveUnitPacket)
+        .register::<CSSendChatMessagePacket>(LEVEL_PLAIN, cs::CSSendChatMessagePacket);
 
     // Proxy
     r.register::<ChangeStateClientPacket>(LEVEL_PROXY, pp::ChangeStatePacket)

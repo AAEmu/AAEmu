@@ -99,6 +99,25 @@ impl ExperienceTable {
         if current_level == 0 {
             return Err(ExperienceError::ZeroLevel);
         }
+        self.level_from_exp_min(exp, mate, current_level)
+    }
+
+    /// `GetLevelFromExp(exp, out overflow, mate)` (no minimum level).
+    pub fn level_from_exp_any(&self, exp: i32, mate: bool) -> Result<(u8, i32), ExperienceError> {
+        self.level_from_exp_min(exp, mate, 0)
+    }
+
+    /// `GetSkillPointsForLevel`.
+    pub fn skill_points_for_level(&self, level: u8) -> i32 {
+        self.template(level).map_or(0, |t| t.skill_points)
+    }
+
+    fn level_from_exp_min(
+        &self,
+        exp: i32,
+        mate: bool,
+        min_level: u8,
+    ) -> Result<(u8, i32), ExperienceError> {
         if exp < 0 {
             return Err(ExperienceError::NegativeExp(exp));
         }
@@ -107,7 +126,6 @@ impl ExperienceTable {
         } else {
             self.max_player_level
         };
-        let min_level = current_level;
         if min_level >= max_level {
             let overflow = 0.max(exp - self.exp_for_level(max_level, mate));
             return Ok((max_level, overflow));

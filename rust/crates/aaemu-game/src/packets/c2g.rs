@@ -138,13 +138,13 @@ fn send_account_info(conn: &mut GameConnection) {
 /// `Connection.LoadAccount()`: characters of the account (houses are a later phase).
 async fn load_account(server: &GameServer, conn: &mut GameConnection) -> Result<()> {
     // TODO (C#): Load payment and account tier information
-    conn.characters = db::load_account_characters(
-        &server.db,
-        &server.config,
-        &server.game_data,
-        conn.account_id(),
-    )
-    .await?;
+    conn.characters.clear();
+    let (characters, packets) =
+        crate::db_character::load_account_characters(server, conn.account_id()).await?;
+    for p in &packets {
+        conn.send(p.as_ref());
+    }
+    conn.characters = characters;
     // Later phase: Houses.Clear(); HousingManager.GetByAccountId(Houses, AccountId).
     Ok(())
 }
@@ -235,14 +235,11 @@ impl ClientPacket for CSLeaveWorldPacket {
     ) -> BoxFuture<'a, Result<()>> {
         Box::pin(async move {
             match self.target {
-                LeaveWorldTargetType::QuitGame | LeaveWorldTargetType::CharacterSelect => {
-                    if conn.state == GameState::World {
-                        // Later phase: logout timer, SCPrepareLeaveWorld, LeaveWorldTask.
-                        tracing::warn!(
-                            "[Leave] {:?} from the world is not ported yet",
-                            self.target
-                        );
-                    }
+                LeaveWorldTargetType::QuitGame => {
+                    crate::world::session::leave(server, conn, 0);
+                }
+                LeaveWorldTargetType::CharacterSelect => {
+                    crate::world::session::leave(server, conn, 1);
                 }
                 LeaveWorldTargetType::ServerSelect => {
                     if conn.state == GameState::Lobby {

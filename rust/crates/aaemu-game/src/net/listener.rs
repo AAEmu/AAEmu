@@ -73,22 +73,26 @@ pub async fn serve(server: Arc<GameServer>, socket: TcpStream, peer: SocketAddr)
             },
             cmd = cmd_rx.recv() => match cmd {
                 Some(ConnCommand::Send(packet)) => conn.send(packet.as_ref()),
+                Some(ConnCommand::LeaveWorld(target)) => {
+                    let active = conn.active_char.clone();
+                    crate::world::session::leave_world_task(&server, Some(&mut conn), target, active).await;
+                }
                 Some(ConnCommand::Close) | None => break,
             },
         }
     }
 
-    on_disconnect(&server, &conn);
+    on_disconnect(&server, &mut conn).await;
     drop(conn); // closes the writer channel; queued frames are flushed first
     let _ = tokio::time::timeout(Duration::from_secs(5), writer).await;
     tracing::info!("Client from {} disconnected", peer.ip());
 }
 
-/// `GameProtocolHandler.OnDisconnect` + `GameConnection.OnDisconnect` (lobby part; the
-/// ActiveChar / world cleanup is a later phase).
-fn on_disconnect(server: &Arc<GameServer>, conn: &GameConnection) {
+/// `GameProtocolHandler.OnDisconnect` + `GameConnection.OnDisconnect`.
+pub async fn on_disconnect(server: &Arc<GameServer>, conn: &mut GameConnection) {
     let account_id = conn.account_id();
     server.accounts.remove(account_id);
+    crate::world::session::on_disconnect(server, conn).await;
     server.streams.remove_token(conn.id);
     server.connections.remove(conn.id);
     // AccountManager.UpdateLoginTime(AccountId, UtcNow), fire and forget. Deviation: C# also runs

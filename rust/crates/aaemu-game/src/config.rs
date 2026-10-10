@@ -42,6 +42,19 @@ pub struct AppConfig {
     pub credits: CurrencyValuesConfig,
     #[serde(rename = "loyalty")]
     pub loyalty: CurrencyValuesConfig,
+    #[serde(rename = "world")]
+    pub world: WorldConfig,
+    #[serde(rename = "clientdata")]
+    pub client_data: ClientDataConfig,
+    /// `CharacterNameRegex` (`None` = NameManager's default pattern).
+    #[serde(rename = "characternameregex")]
+    pub character_name_regex: Option<String>,
+    #[serde(rename = "defaultlanguage")]
+    pub default_language: String,
+    #[serde(rename = "debuginfo", deserialize_with = "lenient")]
+    pub debug_info: bool,
+    #[serde(rename = "debuginfolevel", deserialize_with = "lenient")]
+    pub debug_info_level: u32,
     /// `FileManager.AppPath`: the directory holding `Config.json` and `Data/compact.sqlite3`.
     #[serde(skip)]
     pub app_path: PathBuf,
@@ -61,6 +74,12 @@ impl Default for AppConfig {
             labor: CurrencyValuesConfig::default(),
             credits: CurrencyValuesConfig::default(),
             loyalty: CurrencyValuesConfig::default(),
+            world: WorldConfig::default(),
+            client_data: ClientDataConfig::default(),
+            character_name_regex: None,
+            default_language: "en_us".into(),
+            debug_info: true,
+            debug_info_level: 100,
             app_path: PathBuf::from("."),
         }
     }
@@ -114,19 +133,76 @@ impl MySqlConnectionSettings {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct AccountConfig {
+    #[serde(rename = "accessleveldefault", deserialize_with = "lenient")]
+    pub access_level_default: i32,
     #[serde(rename = "accesslevelfirstaccount", deserialize_with = "lenient")]
     pub access_level_first_account: i32,
+    #[serde(rename = "accesslevelfirstcharacter", deserialize_with = "lenient")]
+    pub access_level_first_character: i32,
     #[serde(rename = "deletereleasename", deserialize_with = "lenient")]
     pub delete_release_name: bool,
+    #[serde(rename = "deletetimings")]
+    pub delete_timings: Vec<AccountDeleteDelayTiming>,
 }
 
 impl Default for AccountConfig {
     fn default() -> Self {
         Self {
+            access_level_default: 0,
             access_level_first_account: 100,
+            access_level_first_character: 100,
             delete_release_name: false,
+            delete_timings: Vec::new(),
         }
     }
+}
+
+/// `AccountDeleteDelayTiming`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct AccountDeleteDelayTiming {
+    #[serde(rename = "level", deserialize_with = "lenient")]
+    pub level: u8,
+    /// Minutes.
+    #[serde(rename = "delay", deserialize_with = "lenient")]
+    pub delay: i32,
+}
+
+/// `WorldConfig` (the members used so far).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct WorldConfig {
+    #[serde(rename = "motd")]
+    pub motd: String,
+    #[serde(rename = "logoutmessage")]
+    pub logout_message: String,
+    /// Minutes.
+    #[serde(rename = "autosaveinterval", deserialize_with = "lenient")]
+    pub auto_save_interval: f64,
+    #[serde(rename = "exprate", deserialize_with = "lenient")]
+    pub exp_rate: f64,
+    #[serde(rename = "ignorefalldamageaccesslevel", deserialize_with = "lenient")]
+    pub ignore_fall_damage_access_level: i32,
+}
+
+impl Default for WorldConfig {
+    fn default() -> Self {
+        Self {
+            motd: String::new(),
+            logout_message: String::new(),
+            auto_save_interval: 5.0,
+            exp_rate: 1.0,
+            ignore_fall_damage_access_level: 100,
+        }
+    }
+}
+
+/// `ClientDataConfig`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct ClientDataConfig {
+    #[serde(rename = "sources")]
+    pub sources: Vec<String>,
 }
 
 /// `CurrencyValuesConfig` (Labor / Credits / Loyalty).

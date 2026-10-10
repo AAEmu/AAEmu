@@ -13,7 +13,7 @@ use tokio::sync::mpsc;
 
 use crate::config::AppConfig;
 use crate::data::{FeatureSet, GameData};
-use crate::models::character::{Character, EQUIPMENT_CONTAINER_SIZE};
+use crate::models::character::Character;
 use crate::models::item::{Item, ItemRow};
 use crate::net::connection::{ConnCommand, GameConnection};
 use crate::net::packet::{PacketDef, LEVEL_PLAIN};
@@ -67,6 +67,7 @@ impl Client {
             match cmd {
                 ConnCommand::Send(p) => self.conn.send(p.as_ref()),
                 ConnCommand::Close => self.conn.shutdown(),
+                ConnCommand::LeaveWorld(_) => {}
             }
         }
     }
@@ -309,7 +310,6 @@ async fn lobby_flow_end_to_end() {
 
 /// A character with one equipped armor piece in slot 3 (chest).
 fn sample_character(id: u32) -> Character {
-    let mut equipment = vec![None; EQUIPMENT_CONTAINER_SIZE];
     let details = bytes(|s| {
         s.write_u32(0).write_u8(100).write_i16(0).write_u32(0);
         s.write_i64(0).write_u32(0);
@@ -318,7 +318,7 @@ fn sample_character(id: u32) -> Character {
         }
         s.write_u16(0).write_u16(0);
     });
-    equipment[3] = Some(Item::from_row(
+    let item = Item::from_row(
         ItemRow {
             type_name: "AAEmu.Game.Models.Game.Items.Armor".into(),
             id: 0x1000 + u64::from(id),
@@ -331,37 +331,31 @@ fn sample_character(id: u32) -> Character {
         },
         None,
         1,
-    ));
-    Character {
-        id,
-        account_id: 1000,
-        name: format!("Char{id}"),
-        race: 1,
-        gender: 2,
-        level: 50,
-        hp: 1000,
-        mp: 500,
-        zone_id: 179,
-        faction_id: 101,
-        faction_name: String::new(),
-        expedition_id: 0,
-        family: 0,
-        equipment,
-        ability1: 1,
-        ability2: 2,
-        ability3: 11,
-        x: 12345.5,
-        y: 6789.25,
-        z: 100.0,
-        labor_power: 5000,
-        labor_power_modified: 1_700_000_000,
-        money: 123_456,
-        crime_point: 7,
-        infamy_point: 42,
-        bm_point: 99,
-        updated: 1_700_000_001,
-        ..Character::default()
-    }
+    );
+    let mut c = Character::new(id, 1000, Default::default());
+    c.name = format!("Char{id}");
+    c.race = 1;
+    c.gender = 2;
+    c.level = 50;
+    c.hp = 1000;
+    c.mp = 500;
+    c.transform.zone_id = 179;
+    c.faction_id = 101;
+    c.ability1 = 1;
+    c.ability2 = 2;
+    c.ability3 = 11;
+    c.transform.x = 12345.5;
+    c.transform.y = 6789.25;
+    c.transform.z = 100.0;
+    c.labor_power = 5000;
+    c.labor_power_modified = 1_700_000_000;
+    c.money = 123_456;
+    c.crime_point = 7;
+    c.infamy_point = 42;
+    c.bm_point = 99;
+    c.updated = 1_700_000_001;
+    c.inventory.equipment().lock().unwrap().items.push(item);
+    c
 }
 
 /// `Character.Write` spelled out field by field from the 1.2 C# (independent of
@@ -372,10 +366,10 @@ fn expected_character_bytes(c: &Character) -> Vec<u8> {
         s.write_str(&c.name);
         s.write_u8(c.race).write_u8(c.gender).write_u8(c.level);
         s.write_i32(c.hp).write_i32(c.mp);
-        s.write_u32(c.zone_id).write_u32(c.faction_id);
+        s.write_u32(c.transform.zone_id).write_u32(c.faction_id);
         s.write_str(&c.faction_name);
         s.write_u32(c.expedition_id).write_u32(c.family);
-        for slot in &c.equipment {
+        for slot in &c.inventory.equipment_slots() {
             match slot {
                 None => {
                     s.write_i32(0);
@@ -406,9 +400,9 @@ fn expected_character_bytes(c: &Character) -> Vec<u8> {
         s.write_u8(c.ability1)
             .write_u8(c.ability2)
             .write_u8(c.ability3);
-        s.write_i64(((c.x * 4096.0) as i64) << 32)
-            .write_i64(((c.y * 4096.0) as i64) << 32)
-            .write_f32(c.z);
+        s.write_i64(((c.transform.x * 4096.0) as i64) << 32)
+            .write_i64(((c.transform.y * 4096.0) as i64) << 32)
+            .write_f32(c.transform.z);
         c.model_params.write(s);
         s.write_i16(c.labor_power)
             .write_i64(c.labor_power_modified)
@@ -482,10 +476,7 @@ async fn dispatch_edge_cases() {
 
     // Unknown-but-named opcode: logged, connection stays up.
     server
-        .handle_frame(
-            &mut c.conn,
-            &c2s_l1(cs::CSCreateCharacterPacket, &[1, 2, 3]),
-        )
+        .handle_frame(&mut c.conn, &c2s_l1(cs::CSEditCharacterPacket, &[1, 2, 3]))
         .await
         .unwrap();
     assert!(!c.conn.is_closing());

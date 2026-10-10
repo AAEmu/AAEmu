@@ -2,6 +2,7 @@
 //! (`GameProtocolHandler.OnReceive` after reassembly).
 
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 
 use sqlx::mysql::MySqlPool;
 
@@ -9,39 +10,91 @@ use crate::config::AppConfig;
 use crate::data::GameData;
 use crate::error::{GameError, Result};
 use crate::login::LoginLink;
+use crate::managers::chat::ChatManager;
+use crate::managers::expedition::ExpeditionManager;
+use crate::managers::friend::FriendManager;
+use crate::managers::id::IdManagers;
+use crate::managers::item::ItemManager;
+use crate::managers::name::NameManager;
+use crate::managers::save::SaveManager;
+use crate::managers::time::TimeManager;
 use crate::managers::{AccountManager, EnterWorldManager, StreamManager};
 use crate::net::connection::{ConnectionTable, GameConnection};
 use crate::net::packet::{decode_frame, LEVEL_PLAIN, LEVEL_PROXY};
 use crate::net::registry::PacketRegistry;
 use crate::opcodes;
+use crate::world::WorldManager;
 
 pub struct GameServer {
     pub config: AppConfig,
     pub db: MySqlPool,
-    pub game_data: GameData,
+    pub game_data: Arc<GameData>,
     pub registry: PacketRegistry,
     pub connections: ConnectionTable,
     pub enter_world: EnterWorldManager,
     pub accounts: AccountManager,
     pub streams: StreamManager,
     pub login: LoginLink,
+    /// The `Core/Managers/Id` singletons.
+    pub ids: Arc<IdManagers>,
+    pub names: Arc<NameManager>,
+    /// `ItemManager` (user items / containers).
+    pub items: Arc<ItemManager>,
+    pub world: Arc<WorldManager>,
+    pub chat: ChatManager,
+    pub time: TimeManager,
+    pub expeditions: ExpeditionManager,
+    pub friends: FriendManager,
+    pub save: SaveManager,
+    /// A weak self reference for the timers that outlive a packet handler.
+    self_ref: std::sync::OnceLock<std::sync::Weak<GameServer>>,
     next_connection_id: AtomicU32,
 }
 
 impl GameServer {
     pub fn new(config: AppConfig, db: MySqlPool, game_data: GameData) -> Self {
+        let ids = Arc::new(IdManagers::default());
+        let world = Arc::new(WorldManager::default());
+        // WorldManager.CreateStaticInstances: main_world as instance 0 (dungeon instances from
+        // the configuration are a later phase).
+        if let Some(t) = game_data.worlds.get_world_template_by_name("main_world") {
+            world.create_world_instance(
+                Arc::new(t.clone()),
+                crate::models::character::DEFAULT_INSTANCE_ID,
+            );
+        }
         Self {
+            names: Arc::new(NameManager::new(config.character_name_regex.as_deref())),
+            chat: ChatManager::new(&ids.chat),
+            ids,
+            items: Arc::new(ItemManager::default()),
+            world,
+            time: TimeManager::default(),
+            expeditions: ExpeditionManager::default(),
+            friends: FriendManager::default(),
+            save: SaveManager::default(),
             config,
             db,
-            game_data,
+            game_data: Arc::new(game_data),
             registry: crate::packets::build_registry(),
             connections: ConnectionTable::default(),
             enter_world: EnterWorldManager::default(),
             accounts: AccountManager::default(),
             streams: StreamManager::default(),
             login: LoginLink::default(),
+            self_ref: std::sync::OnceLock::new(),
             next_connection_id: AtomicU32::new(1),
         }
+    }
+
+    /// Registers the shared handle (call once after wrapping the server in an `Arc`).
+    pub fn set_self(self: &Arc<Self>) {
+        let _ = self.self_ref.set(Arc::downgrade(self));
+    }
+
+    /// The shared handle registered with [`GameServer::set_self`].
+    pub fn self_arc(&self) -> Option<Arc<GameServer>> {
+        self.self_ref.get().and_then(std::sync::Weak::upgrade)
     }
 
     /// Session ids. C# uses `RemoteEndPoint.GetHashCode()`; any unique u32 serves the same purpose.

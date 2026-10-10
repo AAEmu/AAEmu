@@ -1,46 +1,180 @@
-//! The subset of `AAEmu.Game.Models.Game.Char.Character` needed for the character list:
-//! the fields loaded by `Character.Load(connection, characterId, accountId)` that
-//! `Character.Write` serialises.
+//! Port of `AAEmu.Game.Models.Game.Char.Character` (data members, `Write`, inventory wiring) plus
+//! the `Transform` / `PositionAndRotation` members a character uses (no parent / sticky
+//! transforms: local == world).
+
+use std::collections::BTreeMap;
 
 use aaemu_commons::{Marshal, PacketStream};
 
+use super::buff::Buffs;
+use super::char_data::*;
+use super::container::{slot_type, ContainerKind, ContainerRef, ItemContainer};
 use super::item::{Item, UnixTime};
 use super::unit_model::UnitCustomModelParams;
+use crate::managers::id::IdManager;
+use crate::managers::item::ItemManager;
 
 /// `EquipmentContainer` default size: `(int)Enum.GetValues<EquipmentItemSlot>().Max() + 1`
 /// (`Cosplay = 27`).
 pub const EQUIPMENT_CONTAINER_SIZE: usize = 28;
 
-#[derive(Debug, Clone, Default, PartialEq)]
+/// `WorldManager.DefaultInstanceId`.
+pub const DEFAULT_INSTANCE_ID: u32 = 0;
+
+/// `Helpers.ConvertLongX` / `ConvertLongY` (float -> fixed-point long).
+pub fn convert_long(v: f32) -> i64 {
+    ((v * 4096.0) as i64) << 32
+}
+
+/// `Transform` (+ `PositionAndRotation Local`). Rotation is (roll, pitch, yaw) in radians.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Transform {
+    pub instance_id: u32,
+    pub world_id: u32,
+    pub zone_id: u32,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub rot_x: f32,
+    pub rot_y: f32,
+    pub rot_z: f32,
+}
+
+impl Transform {
+    /// `PositionAndRotation.ToRollPitchYawSBytes()` (`MathF.Round` = ties to even).
+    pub fn roll_pitch_yaw_sbytes(&self) -> (i8, i8, i8) {
+        const TWO_PI: f32 = std::f32::consts::PI * 2.0;
+        const DIV: f32 = 1.0 / 127.0;
+        let f = |v: f32| -> i8 { (v / TWO_PI / DIV).round_ties_even() as i8 };
+        (f(self.rot_x), f(self.rot_y), f(self.rot_z))
+    }
+
+    pub fn set_position(&mut self, x: f32, y: f32, z: f32, rx: f32, ry: f32, rz: f32) {
+        self.x = x;
+        self.y = y;
+        self.z = z;
+        self.rot_x = rx;
+        self.rot_y = ry;
+        self.rot_z = rz;
+    }
+}
+
+/// `Inventory`: the character's containers (shared with the [`ItemManager`]).
+#[derive(Debug, Clone)]
+pub struct Inventory {
+    /// `_itemContainers` in `Enum.GetValues<SlotType>()` order (minus `EquipmentMate`).
+    pub containers: Vec<(u8, ContainerRef)>,
+}
+
+impl Inventory {
+    /// `new Inventory(character)`: grabs (or creates) the persistent containers and applies the
+    /// bag / bank sizes.
+    pub fn new(
+        owner_id: u32,
+        num_inventory_slots: u8,
+        num_bank_slots: i16,
+        items: &ItemManager,
+        container_ids: &IdManager,
+    ) -> Self {
+        let mut containers = Vec::new();
+        for st in slot_type::ALL {
+            if st == slot_type::EQUIPMENT_MATE {
+                continue;
+            }
+            let c = items.container_for_character(owner_id, st, 0, container_ids);
+            Self::attach(&c, st, num_inventory_slots, num_bank_slots);
+            containers.push((st, c));
+        }
+        Self { containers }
+    }
+
+    /// An inventory whose containers are not registered anywhere (tests, lobby-only data).
+    pub fn standalone(owner_id: u32, num_inventory_slots: u8, num_bank_slots: i16) -> Self {
+        let mut containers = Vec::new();
+        for st in slot_type::ALL {
+            if st == slot_type::EQUIPMENT_MATE {
+                continue;
+            }
+            let kind = if st == slot_type::EQUIPMENT {
+                ContainerKind::Equipment
+            } else {
+                ContainerKind::Item
+            };
+            let c = ItemContainer::new(kind, owner_id, st, 0).into_ref();
+            Self::attach(&c, st, num_inventory_slots, num_bank_slots);
+            containers.push((st, c));
+        }
+        Self { containers }
+    }
+
+    fn attach(c: &ContainerRef, st: u8, inv: u8, bank: i16) {
+        let mut g = c.lock().expect("container poisoned");
+        g.has_owner = true;
+        match st {
+            slot_type::INVENTORY => g.set_container_size(i32::from(inv)),
+            slot_type::BANK => g.set_container_size(i32::from(bank)),
+            _ => {}
+        }
+    }
+
+    pub fn get(&self, st: u8) -> Option<&ContainerRef> {
+        self.containers
+            .iter()
+            .find(|(t, _)| *t == st)
+            .map(|(_, c)| c)
+    }
+
+    pub fn equipment(&self) -> &ContainerRef {
+        self.get(slot_type::EQUIPMENT).expect("equipment container")
+    }
+
+    pub fn bag(&self) -> &ContainerRef {
+        self.get(slot_type::INVENTORY).expect("bag container")
+    }
+
+    pub fn warehouse(&self) -> &ContainerRef {
+        self.get(slot_type::BANK).expect("bank container")
+    }
+
+    /// `Equipment.GetSlottedItemsList()`.
+    pub fn equipment_slots(&self) -> Vec<Option<Item>> {
+        self.equipment()
+            .lock()
+            .expect("container poisoned")
+            .slotted_items()
+    }
+}
+
+/// `Character`.
+#[derive(Debug, Clone)]
 pub struct Character {
     pub id: u32,
     pub account_id: u32,
     pub name: String,
+    pub access_level: i32,
     pub race: u8,
     pub gender: u8,
     pub level: u8,
+    pub experience: i32,
+    pub recoverable_exp: i32,
     pub hp: i32,
     pub mp: i32,
-    pub zone_id: u32,
-    /// `Faction.Id`. C# resolves `faction_id` through `FactionManager` (game data) and would throw
-    /// on an unknown faction; the id written is the same value (later phase: faction templates).
-    pub faction_id: u32,
-    pub faction_name: String,
-    /// `Expedition?.Id ?? 0`: `expedition_id` if that guild exists, else 0.
-    pub expedition_id: u32,
-    pub family: u32,
-    /// `Inventory.Equipment.GetSlottedItemsList()`: one entry per container slot.
-    pub equipment: Vec<Option<Item>>,
+    /// `_savedHp` / `_savedMp` (restored after the gear bonuses are known).
+    pub saved_hp: i32,
+    pub saved_mp: i32,
+    pub consumed_labor_power: i32,
     pub ability1: u8,
     pub ability2: u8,
     pub ability3: u8,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub model_params: UnitCustomModelParams,
-    /// `InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated)`.
-    pub labor_power: i16,
-    pub labor_power_modified: UnixTime,
+    /// `ServerId` (`world_id` column).
+    pub server_id: u32,
+    pub transform: Transform,
+    /// `Faction.Id`.
+    pub faction_id: u32,
+    pub faction_name: String,
+    /// `Expedition?.Id ?? 0`.
+    pub expedition_id: u32,
+    pub family: u32,
     pub dead_count: i16,
     pub dead_time: UnixTime,
     pub rez_wait_duration: i32,
@@ -48,31 +182,226 @@ pub struct Character {
     pub rez_penalty_duration: i32,
     pub leave_time: UnixTime,
     pub money: i64,
+    pub money2: i64,
+    pub honor_point: i32,
+    pub vocation_point: i32,
     /// Current crime points (clamped to >= 0 by the C# setter).
     pub crime_point: i16,
     /// `InfamyPoint` (column `crime_record`).
     pub infamy_point: i32,
+    pub jury_point: i32,
+    pub hostile_faction_kills: u32,
+    pub honor_gained_in_combat: u32,
+    pub died_in_pvp: bool,
+    pub died_in_pvp_war_zone: bool,
     pub delete_request_time: UnixTime,
     pub transfer_request_time: UnixTime,
     pub delete_time: UnixTime,
-    pub consumed_labor_power: i32,
-    /// `AccountDetails.Loyalty` (written as `long`).
+    /// `BmPoint`: `AccountDetails.Loyalty`.
     pub bm_point: i64,
-    pub money2: i64,
     pub auto_use_aa_point: bool,
     pub prev_point: i32,
     pub point: i32,
     pub gift: i32,
+    pub num_inventory_slots: u8,
+    pub num_bank_slots: i16,
+    pub expanded_expert: u8,
+    pub created: UnixTime,
     pub updated: UnixTime,
+    pub return_district_id: u32,
+    pub resurrection_district_id: u32,
+    /// `OnlineTime` in seconds.
+    pub online_time: u32,
+    pub arrest_count: i32,
+    pub accept_guilty_count: i32,
+    pub accept_trial_count: i32,
+    pub not_guilty_count: i32,
+    pub guilty_count: i32,
+    pub evidence_reported_count: i32,
+    pub bot_reported_count: i32,
+    pub reported_as_bot_count: i32,
+    pub offline_guilty_time: i32,
+    pub offline_guilty_region: i32,
+    /// `InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated)`.
+    pub labor_power: i16,
+    pub labor_power_modified: UnixTime,
+    pub model_params: UnitCustomModelParams,
+    pub model_id: u32,
+    pub slots: Vec<ActionSlot>,
+    /// `_options` (UI data).
+    pub options: BTreeMap<u16, String>,
+    pub inventory: Inventory,
+    pub abilities: CharacterAbilities,
+    pub actability: CharacterActability,
+    pub skills: CharacterSkills,
+    pub appellations: CharacterAppellations,
+    pub portals: CharacterPortals,
+    pub friends: Vec<FriendEntry>,
+    pub removed_friends: Vec<u32>,
+    /// `BlockedList` (owner, blocked id).
+    pub blocked: Vec<(u32, u32)>,
+    pub removed_blocked: Vec<u32>,
+    pub quests: CharacterQuests,
+    pub unread_mail: CountUnreadMail,
+    pub buffs: Buffs,
+    pub visual_options: Option<VisualOptions>,
+    /// `GameObject.Guid` (`Guid.NewGuid()` when the object is created).
+    pub guid: [u8; 16],
+    pub obj_id: u32,
+    pub is_online: bool,
+    /// `FinishedLoading` (`SetPlayerMoved`).
+    pub finished_loading: bool,
+    pub disabled_set_position: bool,
+    pub breath: u32,
 }
 
-/// `Helpers.ConvertLongX` / `ConvertLongY` (float -> fixed-point long).
-pub fn convert_long(v: f32) -> i64 {
-    ((v * 4096.0) as i64) << 32
+/// `Guid.NewGuid().ToByteArray()` (random, version 4 / variant 1).
+pub fn new_guid() -> [u8; 16] {
+    let mut b: [u8; 16] = rand::random();
+    b[7] = (b[7] & 0x0F) | 0x40;
+    b[8] = (b[8] & 0x3F) | 0x80;
+    b
+}
+
+impl Character {
+    /// `new Character(modelParams)` with an empty, unregistered inventory.
+    pub fn new(id: u32, account_id: u32, model_params: UnitCustomModelParams) -> Self {
+        Self {
+            id,
+            account_id,
+            name: String::new(),
+            access_level: 0,
+            race: 0,
+            gender: 0,
+            level: 0,
+            experience: 0,
+            recoverable_exp: 0,
+            hp: 0,
+            mp: 0,
+            saved_hp: 99_999_999,
+            saved_mp: 99_999_999,
+            consumed_labor_power: 0,
+            ability1: 0,
+            ability2: 0,
+            ability3: 0,
+            server_id: 0,
+            transform: Transform::default(),
+            faction_id: 0,
+            faction_name: String::new(),
+            expedition_id: 0,
+            family: 0,
+            dead_count: 0,
+            dead_time: 0,
+            rez_wait_duration: 0,
+            rez_time: 0,
+            rez_penalty_duration: 0,
+            leave_time: 0,
+            money: 0,
+            money2: 0,
+            honor_point: 0,
+            vocation_point: 0,
+            crime_point: 0,
+            infamy_point: 0,
+            jury_point: 0,
+            hostile_faction_kills: 0,
+            honor_gained_in_combat: 0,
+            died_in_pvp: false,
+            died_in_pvp_war_zone: false,
+            delete_request_time: 0,
+            transfer_request_time: 0,
+            delete_time: 0,
+            bm_point: 0,
+            auto_use_aa_point: false,
+            prev_point: 0,
+            point: 0,
+            gift: 0,
+            num_inventory_slots: 0,
+            num_bank_slots: 0,
+            expanded_expert: 0,
+            created: 0,
+            updated: 0,
+            return_district_id: 0,
+            resurrection_district_id: 0,
+            online_time: 0,
+            arrest_count: 0,
+            accept_guilty_count: 0,
+            accept_trial_count: 0,
+            not_guilty_count: 0,
+            guilty_count: 0,
+            evidence_reported_count: 0,
+            bot_reported_count: 0,
+            reported_as_bot_count: 0,
+            offline_guilty_time: 0,
+            offline_guilty_region: 0,
+            labor_power: 0,
+            labor_power_modified: 0,
+            model_params,
+            model_id: 0,
+            slots: vec![ActionSlot::default(); MAX_ACTION_SLOTS],
+            options: BTreeMap::new(),
+            inventory: Inventory::standalone(id, 0, 0),
+            abilities: CharacterAbilities::default(),
+            actability: CharacterActability::default(),
+            skills: CharacterSkills::default(),
+            appellations: CharacterAppellations::default(),
+            portals: CharacterPortals::default(),
+            friends: Vec::new(),
+            removed_friends: Vec::new(),
+            blocked: Vec::new(),
+            removed_blocked: Vec::new(),
+            quests: CharacterQuests::default(),
+            unread_mail: CountUnreadMail::default(),
+            buffs: Buffs::default(),
+            visual_options: None,
+            guid: new_guid(),
+            obj_id: 0,
+            is_online: false,
+            finished_loading: false,
+            disabled_set_position: false,
+            breath: 60_000,
+        }
+    }
+
+    /// `RaceGender` (`16 * Gender + Race`).
+    pub fn race_gender(&self) -> u8 {
+        16u8.wrapping_mul(self.gender).wrapping_add(self.race)
+    }
+
+    /// `SetAction(slot, type, id)` (C# indexes the array: out of range throws).
+    pub fn set_action(&mut self, slot: usize, kind: ActionSlotType, id: u64) {
+        match self.slots.get_mut(slot) {
+            Some(s) => {
+                s.kind = kind;
+                s.action_id = id;
+            }
+            None => tracing::error!("SetAction: slot {slot} out of range"),
+        }
+    }
+
+    /// `GetOption(key)`.
+    pub fn get_option(&self, key: u16) -> String {
+        self.options.get(&key).cloned().unwrap_or_default()
+    }
+
+    /// `CharacterAbilities.GetActiveAbilities`.
+    pub fn active_abilities(&self) -> Vec<u8> {
+        [self.ability1, self.ability2, self.ability3]
+            .into_iter()
+            .filter(|&a| a != ability::NONE)
+            .collect()
+    }
+
+    /// `GetActionSlotsAsBlob`.
+    pub fn action_slots_blob(&self) -> Vec<u8> {
+        let mut s = PacketStream::new();
+        write_action_slots(&self.slots, &mut s, false);
+        s.into_bytes()
+    }
 }
 
 impl Marshal for Character {
-    /// `Character.Write` (used by `SCCharacterListPacket`).
+    /// `Character.Write` (character list, `SCCreateCharacterResponsePacket`,
+    /// `SCCharacterStatePacket`).
     fn write(&self, s: &mut PacketStream) {
         s.write_u32(self.id)
             .write_str(&self.name)
@@ -81,13 +410,13 @@ impl Marshal for Character {
             .write_u8(self.level)
             .write_i32(self.hp)
             .write_i32(self.mp)
-            .write_u32(self.zone_id)
+            .write_u32(self.transform.zone_id)
             .write_u32(self.faction_id)
             .write_str(&self.faction_name)
             .write_u32(self.expedition_id)
             .write_u32(self.family);
 
-        for item in &self.equipment {
+        for item in self.inventory.equipment_slots() {
             match item {
                 None => {
                     s.write_i32(0);
@@ -100,9 +429,9 @@ impl Marshal for Character {
             .write_u8(self.ability2)
             .write_u8(self.ability3);
 
-        s.write_i64(convert_long(self.x))
-            .write_i64(convert_long(self.y))
-            .write_f32(self.z);
+        s.write_i64(convert_long(self.transform.x))
+            .write_i64(convert_long(self.transform.y))
+            .write_f32(self.transform.z);
 
         self.model_params.write(s);
         s.write_i16(self.labor_power)
@@ -149,48 +478,49 @@ mod tests {
     }
 
     #[test]
-    fn empty_equipment_and_fixed_tail_size() {
-        let c = Character {
-            name: "Ab".into(),
-            faction_name: "".into(),
-            equipment: vec![None; EQUIPMENT_CONTAINER_SIZE],
-            ..Character::default()
-        };
+    fn empty_equipment_layout() {
+        let mut c = Character::new(1, 1, UnitCustomModelParams::default());
+        c.name = "Ab".into();
         let mut s = PacketStream::new();
         c.write(&mut s);
+        let mut model = PacketStream::new();
+        c.model_params.write(&mut model);
         let head = 4 + 2 + 2 + 3 + 8 + 4 + 4 + 2 + 4 + 4;
         let equip = 4 * EQUIPMENT_CONTAINER_SIZE;
         let tail = 3
             + 8
             + 8
             + 4
+            + model.len()
+            + 2
+            + 8
+            + 2
+            + 8
+            + 4
+            + 8
+            + 4
+            + 8
+            + 8
+            + 8
+            + 2
+            + 4
+            + 2
+            + 8 * 3
+            + 4
+            + 8 * 3
             + 1
-            + 2
-            + 8
-            + 2
-            + 8
-            + 4
-            + 8
-            + 4
-            + 8
-            + 8
-            + 8
-            + 2
-            + 4
-            + 2
-            + 8
-            + 8
-            + 8
-            + 4
-            + 8
-            + 8
-            + 8
-            + 1
-            + 4
-            + 4
-            + 4
+            + 4 * 3
             + 8
             + 1;
         assert_eq!(s.len(), head + equip + tail);
+    }
+
+    #[test]
+    fn rotation_sbytes() {
+        let t = Transform {
+            rot_z: std::f32::consts::PI,
+            ..Transform::default()
+        };
+        assert_eq!(t.roll_pitch_yaw_sbytes(), (0, 0, 64));
     }
 }
