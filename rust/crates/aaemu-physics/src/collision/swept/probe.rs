@@ -714,6 +714,124 @@ pub fn check(name: &str, n: usize, gen: &dyn Fn(&mut Rng) -> Case) {
     assert!(report.is_empty(), "{report}");
 }
 
+/// Like [`check`] for raw probe commands (extension hooks): `gen` makes a command line, `port`
+/// computes the expected answer from the command line and the oracle's answer (some answers
+/// carry engine data the port takes as input, e.g. a bounding box another phase computes) and
+/// must reproduce the oracle's answer exactly. Golden records are `<command>` / `= <answer>`.
+///
+/// # Panics
+/// On any mismatch or oracle / golden error.
+pub fn check_raw(
+    name: &str,
+    n: usize,
+    gen: &dyn Fn(&mut Rng) -> String,
+    port: &dyn Fn(&str, &str) -> String,
+) {
+    let golden = golden_dir().join(format!("{name}.trace"));
+    let recs: Vec<(String, String)> = if let Some(exe) = oracle_path() {
+        let mut rng = Rng::new(seed_of(name));
+        let lines: Vec<String> = (0..n).map(|_| gen(&mut rng)).collect();
+        let answers = oracle_raw(&exe, &lines).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let mut fresh = format!("p2b-golden 1 {name}\n");
+        for (c, a) in lines.iter().zip(&answers) {
+            fresh.push_str(c);
+            fresh.push_str("\n= ");
+            fresh.push_str(a);
+            fresh.push('\n');
+        }
+        let stored = std::fs::read_to_string(&golden)
+            .ok()
+            .map(|s| s.replace("\r\n", "\n"));
+        let bless = std::env::var_os(BLESS_ENV).is_some_and(|v| v != "0");
+        if stored.as_deref() != Some(fresh.as_str()) {
+            if bless || stored.is_none() {
+                std::fs::write(&golden, &fresh)
+                    .unwrap_or_else(|e| panic!("cannot write {}: {e}", golden.display()));
+            } else {
+                panic!(
+                    "{} differs from the oracle; set {BLESS_ENV}=1 to rewrite",
+                    golden.display()
+                );
+            }
+        }
+        let mut recs: Vec<(String, String)> = lines.into_iter().zip(answers).collect();
+        let live: usize = std::env::var(LIVE_ENV)
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
+        if live > 0 {
+            let mut rng = Rng::new(seed_of(name) ^ 0x5DEE_CE66_D1CE_4E5B);
+            let lines: Vec<String> = (0..live).map(|_| gen(&mut rng)).collect();
+            let answers = oracle_raw(&exe, &lines).unwrap_or_else(|e| panic!("{name}: {e}"));
+            recs.extend(lines.into_iter().zip(answers));
+        }
+        recs
+    } else {
+        let text = std::fs::read_to_string(&golden)
+            .unwrap_or_else(|e| panic!("golden {} missing: {e}", golden.display()))
+            .replace("\r\n", "\n");
+        let mut it = text.lines();
+        assert!(
+            it.next().is_some_and(|h| h.starts_with("p2b-golden 1")),
+            "{}: not a p2b golden",
+            golden.display()
+        );
+        let mut recs = Vec::new();
+        while let Some(c) = it.next() {
+            if c.is_empty() {
+                continue;
+            }
+            let a = it
+                .next()
+                .and_then(|a| a.strip_prefix("= "))
+                .unwrap_or_else(|| panic!("{}: bad golden", golden.display()));
+            recs.push((c.to_string(), a.to_string()));
+        }
+        recs
+    };
+    let mut bad = 0usize;
+    let mut report = String::new();
+    let mut dump = String::new();
+    for (i, (c, want)) in recs.iter().enumerate() {
+        let got = port(c, want);
+        if &got != want {
+            bad += 1;
+            let entry = format!(
+                "#{i}\n  case:   {c}\n  oracle: {want}\n  port:   {got}\n  diff:   {}\n",
+                word_diff(want, &got)
+            );
+            if bad <= 3 {
+                report.push_str(&entry);
+            }
+            dump.push_str(&entry);
+        }
+    }
+    if bad > 0 {
+        if let Some(p) = std::env::var_os(DUMP_ENV) {
+            let _ = std::fs::write(p, &dump);
+        }
+    }
+    assert!(bad == 0, "{name}: {bad} of {} cases differ\n{report}", recs.len());
+}
+
+/// Parse hex words.
+#[must_use]
+pub fn hex_words<'a>(it: &mut impl Iterator<Item = &'a str>, n: usize) -> Vec<u32> {
+    (0..n)
+        .map(|_| u32::from_str_radix(it.next().unwrap_or("x"), 16).expect("hex word"))
+        .collect()
+}
+
+/// Format hex words (` %08x` each).
+#[must_use]
+pub fn fmt_words(w: &[u32]) -> String {
+    let mut s = String::new();
+    for x in w {
+        let _ = write!(s, " {x:08x}");
+    }
+    s
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
