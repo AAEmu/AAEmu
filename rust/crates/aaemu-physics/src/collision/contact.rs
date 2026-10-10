@@ -34,6 +34,12 @@ pub struct PrimInters {
     pub i_node: [i32; 2],
     /// `+56`/`+64`/`+68` intersection border polyline (e.g. box–box).
     pub border: Vec<Vec3>,
+    /// `+68` `nbordersz`: capacity of the border buffer. Pair functions append to [`border`]
+    /// only while `border.len() < border_max` (`+64` `nborderpt` is `border.len()`). The
+    /// primitive-vs-primitive caller 0x3514DFD0 sets it to 15. (Added by P2a-3.)
+    ///
+    /// [`border`]: PrimInters::border
+    pub border_max: i32,
     /// `+72` alternative normal (triangle pairs).
     pub n_alt: Vec3,
     /// `+84` (set to 1000 by tri–sph).
