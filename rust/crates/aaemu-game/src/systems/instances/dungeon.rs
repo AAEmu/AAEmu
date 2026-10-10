@@ -341,6 +341,8 @@ pub fn add_player(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef) {
         tracing::error!("[Dungeon] AddPlayer on a destroyed dungeon");
         return;
     };
+    // `character.ParentWorld` (the world the character comes from)
+    let old_instance = p.data().unit.transform.instance_id;
     if !worlds::has_character(&world, p.character_id) {
         world.add_object(p);
     } else {
@@ -351,8 +353,12 @@ pub fn add_player(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef) {
             zid.zone_id
         );
     }
-    // TODO(mates): `character.ParentWorld?.MateManager?.RemoveAndDespawnAllActiveOwnedMates`
-    // (no mate manager is ported yet).
+    // Force despawn all mates of the player in the old world
+    crate::systems::vehicles::mates::remove_and_despawn_all_active_owned_mates(
+        server,
+        old_instance,
+        p.character_id,
+    );
     move_character(server, dungeon, &world, p);
 }
 

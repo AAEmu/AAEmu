@@ -28,6 +28,7 @@ pub fn ship_request(
         d.throttle_request = r.throttle;
         d.steering_request = r.steering;
     }
+    super::ship_physics::set_request(server, ship, r.throttle, r.steering);
     // Make sure driver is attached to the ship
     attach_if_needed(server, character, target);
 }

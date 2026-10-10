@@ -1267,7 +1267,11 @@ pub fn player_can_enter(server: &GameServer, p: &PlayerRef) -> bool {
     if c.unit.buffs.check_buff(2385) {
         return false; // Rebirth trauma is active
     }
-    // TODO(slaves): `SlaveManager.GetActiveSlaveByOwnerObjId` (vehicle or boat summoned).
-    let _ = server;
-    true
+    let instance = c.unit.transform.instance_id;
+    drop(c);
+    // Vehicle or boat is summoned
+    let summoned = server.world.world(instance).is_some_and(|w| {
+        crate::systems::vehicles::slaves::get_active_slave_by_owner_obj_id(&w, p.obj_id).is_some()
+    });
+    !summoned
 }

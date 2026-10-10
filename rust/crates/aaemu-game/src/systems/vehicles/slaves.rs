@@ -353,6 +353,9 @@ pub fn unbind_slave(server: &GameServer, character: &PlayerRef, tl_id: u32, reas
             .data()
             .attached_characters
             .retain(|(p, _)| *p != point);
+        if point == attach_point::DRIVER {
+            super::ship_physics::set_driver(server, &slave, false);
+        }
         clear_slave_attachment_state(server, character);
         harpoon::on_operator_left_slave(server, &slave);
     }
@@ -427,6 +430,9 @@ pub fn bind_slave(
         .data()
         .attached_characters
         .push((point, character.obj_id));
+    if point == attach_point::DRIVER {
+        super::ship_physics::set_driver(server, &slave, true);
+    }
     world.attach_child(&WorldObject::from(&slave), &me);
     // TODO (C#): move to attach point's position
     character
@@ -547,12 +553,7 @@ pub fn delete(
             sp.add_despawn(server, WorldObject::from(&s), Some(despawn_delayed));
         }
     }
-    server
-        .systems
-        .vehicles
-        .hooks
-        .physics()
-        .remove_ship(server, &slave);
+    super::ship_physics::remove_ship(server, &slave);
     if let Some(o) = owner {
         let me = WorldObject::from(o);
         broadcast(server, &me, &SCSlaveDespawnPacket { obj_id }, true);
@@ -1048,7 +1049,6 @@ pub(crate) fn create_spawn(
         .clone();
     let tl_id = server.ids.tl.get_next_id().ok()?;
     let obj_id = server.ids.object.get_next_id().ok()?;
-    let physics = server.systems.vehicles.hooks.physics();
 
     let mut spawn_pos = position_override.unwrap_or_default();
     spawn_pos.instance_id = world.id;
@@ -1095,8 +1095,11 @@ pub(crate) fn create_spawn(
             add_distance_to_front(&mut spawn_pos, template.spawn_y_offset.clamp(5.0, 50.0));
         }
         if template.is_a_boat() {
-            let water =
-                physics.water_surface(server, world, [spawn_pos.x, spawn_pos.y, spawn_pos.z]);
+            let water = super::ship_physics::water_surface(
+                server,
+                world,
+                [spawn_pos.x, spawn_pos.y, spawn_pos.z],
+            );
             spawn_pos.set_height(water);
             let Some(ship) = data.ship_model(template.model_id).copied() else {
                 tracing::error!(
@@ -1121,7 +1124,11 @@ pub(crate) fn create_spawn(
                     crate::systems::npcs::heightmap::world_height(server, world, check.x, check.y)
                         .unwrap_or(0.0);
                 if floor > 0.0 {
-                    let surface = physics.water_surface(server, world, [check.x, check.y, check.z]);
+                    let surface = super::ship_physics::water_surface(
+                        server,
+                        world,
+                        [check.x, check.y, check.z],
+                    );
                     if surface - floor > min_depth {
                         spawn_pos.set_position(
                             check.x,
@@ -1290,7 +1297,8 @@ pub(crate) fn create_spawn(
     }
     if template.is_a_boat() && template.portal_time > 0.0 {
         let pos = world.world_pos_rot(&slave_obj);
-        let water_at_final = physics.water_surface(server, world, [pos.x, pos.y, pos.z]);
+        let water_at_final =
+            super::ship_physics::water_surface(server, world, [pos.x, pos.y, pos.z]);
         if water_at_final > 0.0 {
             let mul = SHIP_WATER_DENSITY_MUL;
             if mul > 0.0 {
@@ -1517,12 +1525,7 @@ fn finish_create(
             );
             return None;
         }
-        server
-            .systems
-            .vehicles
-            .hooks
-            .physics()
-            .add_ship(server, slave);
+        super::ship_physics::add_ship(server, slave);
     }
 
     if let Some(o) = owner {
@@ -1817,12 +1820,7 @@ pub fn do_die(
         .slave_template(template_id)
         .is_some_and(SlaveTemplate::is_a_boat)
     {
-        server
-            .systems
-            .vehicles
-            .hooks
-            .physics()
-            .remove_ship(server, slave);
+        super::ship_physics::remove_ship(server, slave);
     }
     if let Some(s) = world.and_then(|w| spawn_manager_of(server, w.id)) {
         s.add_despawn(
@@ -1881,7 +1879,6 @@ fn distribute_slave_drop_doodads(server: &GameServer, slave: &SlaveRef) {
         return;
     };
     let center = world.world_pos_rot(&obj);
-    let physics = server.systems.vehicles.hooks.physics();
     let mut rng = rand::thread_rng();
     for drop in &template.slave_drop_doodads {
         for _ in 0..drop.count {
@@ -1909,7 +1906,7 @@ fn distribute_slave_drop_doodads(server: &GameServer, slave: &SlaveRef) {
             let h = if !drop.on_water {
                 crate::systems::npcs::heightmap::world_height(server, &world, x, y).unwrap_or(0.0)
             } else {
-                physics.water_surface(server, &world, [x, y, z])
+                super::ship_physics::water_surface(server, &world, [x, y, z])
             };
             let rot = (rng.gen::<f64>() * std::f64::consts::PI * 2.0) as f32;
             {

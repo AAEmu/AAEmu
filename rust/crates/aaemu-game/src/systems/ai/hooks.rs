@@ -3,25 +3,17 @@
 //! * [`AiHooks`] (`server.systems.hooks.ai`): the `npc.Ai` call sites of the NPC subsystem
 //!   (`NpcManager.Create`, `NpcSpawnerNpc.Spawn`, `Npc.DoDie`, `NpcSpawner.DoSpawnEffect`) and
 //!   of the skills subsystem (`Unit.SetFaction`'s NPC tail);
-//! * [`AiNpcSkillHooks`]: a decorator around whatever `NpcSkillHooks` is installed when the AI
-//!   starts, adding the AI parts of `Npc.OnDamageReceived`, `npc.Ai?.OnNoAggroTarget()`,
+//! * the AI parts of the npcs `NpcSkillHooks` (called directly by
+//!   `systems::npcs::bridges::NpcSkills`): `Npc.OnDamageReceived`, `npc.Ai?.OnNoAggroTarget()`,
 //!   `Npc.CheckIfEmptyAggroToReturn`, `Npc.DoDie` (aggro clean-up + `Ai.GoToDead()`),
-//!   `CurrentGameStance` / `CurrentAlertness`, and the `NpcControlEffect`.
+//!   `CurrentGameStance` / `CurrentAlertness`, and the `NpcControlEffect`;
+//! * [`AiAStarHooks`]: the AStar GM sub commands (`services` `ASTAR_HOOKS`).
 
 use std::sync::{Arc, Mutex};
 
-use crate::data::world_data::Portal;
-use crate::models::movement::{GameStanceType, MoveTypeAlertness};
-use crate::models::npc::Npc;
-use crate::models::transform::PositionAndRotation;
 use crate::server::GameServer;
-use crate::systems::skills::data::{EffectKind, EffectTemplate};
-use crate::systems::skills::effects::EffectArgs;
-use crate::systems::skills::ext::{MainWorldPosition, NpcSkillHooks};
 use crate::systems::skills::state::AggroKind;
-use crate::systems::skills::stats::StatKind;
-use crate::systems::skills::types::{SkillCastTarget, SkillCaster};
-use crate::world::{MateRef, NpcRef, PlayerRef, WorldObject};
+use crate::world::{NpcRef, PlayerRef, WorldObject};
 
 use super::framework::AiKind;
 use super::manager::post;
@@ -185,7 +177,7 @@ pub fn faction_set(server: &GameServer, npc: &NpcRef) {
 }
 
 /// `CheckIfEmptyAggroToReturn(unit)` on the removed abuser (when it is an NPC).
-fn check_abuser_empty_aggro(server: &GameServer, abuser_id: u32) {
+pub fn check_abuser_empty_aggro(server: &GameServer, abuser_id: u32) {
     let Some(abuser) = server.world.object(abuser_id) else {
         return;
     };
@@ -244,7 +236,7 @@ pub fn spawn_spyglass(
 }
 
 /// `NpcControlEffect.Apply` (target is an NPC).
-fn npc_control_effect(
+pub fn npc_control_effect(
     server: &GameServer,
     e: &crate::systems::skills::data::effects::NpcControlEffect,
     target: &NpcRef,
@@ -347,242 +339,149 @@ fn npc_control_effect(
     }
 }
 
-/// The NPC hooks of the skills subsystem with the AI parts added.
-pub struct AiNpcSkillHooks {
-    inner: Arc<dyn NpcSkillHooks>,
+/// `Npc.OnDamageReceived`: `Ai.OnAggroTargetChanged()` (the damage effect adds the aggro).
+pub fn on_damage_received(server: &GameServer, npc: &NpcRef) {
+    post(server, npc.obj_id, |c| c.on_aggro_target_changed());
 }
 
-struct NoNpcHooks;
-impl NpcSkillHooks for NoNpcHooks {}
-
-impl AiNpcSkillHooks {
-    /// Wraps `inner` (`None` = the defaults).
-    pub fn new(inner: Option<Arc<dyn NpcSkillHooks>>) -> Self {
-        Self {
-            inner: inner.unwrap_or_else(|| Arc::new(NoNpcHooks)),
-        }
-    }
+/// `npc.Ai?.OnNoAggroTarget()`.
+pub fn on_no_aggro_target(server: &GameServer, npc: &NpcRef) {
+    post(server, npc.obj_id, |c| c.on_no_aggro_target());
 }
 
-impl NpcSkillHooks for AiNpcSkillHooks {
-    fn npc_attribute(&self, server: &GameServer, npc: &Npc, attr: StatKind) -> Option<f64> {
-        self.inner.npc_attribute(server, npc, attr)
-    }
-
-    fn npc_before_death(&self, server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>) {
-        self.inner.npc_before_death(server, npc, killer);
-    }
-
-    fn npc_after_death(&self, server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>) {
-        self.inner.npc_after_death(server, npc, killer);
-        on_npc_died(server, npc);
-    }
-
-    fn npc_respawn_time(&self, server: &GameServer, npc: &NpcRef) -> i32 {
-        self.inner.npc_respawn_time(server, npc)
-    }
-
-    fn npc_damage_received(
-        &self,
-        server: &GameServer,
-        npc: &NpcRef,
-        attacker: &WorldObject,
-        amount: i32,
-    ) {
-        self.inner
-            .npc_damage_received(server, npc, attacker, amount);
-        // Npc.OnDamageReceived: AddUnitAggro is done by the damage effect; Ai.OnAggroTargetChanged
-        post(server, npc.obj_id, |c| c.on_aggro_target_changed());
-    }
-
-    fn npc_no_aggro_target(&self, server: &GameServer, npc: &NpcRef) {
-        self.inner.npc_no_aggro_target(server, npc);
-        post(server, npc.obj_id, |c| c.on_no_aggro_target());
-    }
-
-    fn npc_aggro_removed(&self, server: &GameServer, npc: &NpcRef, abuser: u32) {
-        self.inner.npc_aggro_removed(server, npc, abuser);
-        // `(this as Npc)?.CheckIfEmptyAggroToReturn(unit)` checks the *abuser*
-        check_abuser_empty_aggro(server, abuser);
-    }
-
-    fn npc_engage_combat_quest(&self, server: &GameServer, npc: &Npc) -> u32 {
-        self.inner.npc_engage_combat_quest(server, npc)
-    }
-
-    fn doodad_skill_hit(
-        &self,
-        server: &GameServer,
-        doodad: &WorldObject,
-        caster: &WorldObject,
-        skill_id: u32,
-    ) {
-        self.inner
-            .doodad_skill_hit(server, doodad, caster, skill_id);
-    }
-
-    fn spawn_channel_doodad(
-        &self,
-        server: &GameServer,
-        caster: &WorldObject,
-        template_id: u32,
-    ) -> Option<u32> {
-        self.inner.spawn_channel_doodad(server, caster, template_id)
-    }
-
-    fn delete_doodad(&self, server: &GameServer, obj_id: u32) {
-        self.inner.delete_doodad(server, obj_id);
-    }
-
-    fn apply_effect(
-        &self,
-        server: &GameServer,
-        kind: EffectKind,
-        template: &EffectTemplate,
-        args: &EffectArgs<'_>,
-    ) -> bool {
-        if let EffectTemplate::NpcControl(e) = template {
-            if let Some(n) = args.target.as_obj().and_then(WorldObject::as_npc) {
-                npc_control_effect(server, e, n);
-            }
-            return true;
-        }
-        self.inner.apply_effect(server, kind, template, args)
-    }
-
-    fn spawn_doodad(
-        &self,
-        server: &GameServer,
-        caster: &WorldObject,
-        template_id: u32,
-        zone_id: u32,
-        pos: PositionAndRotation,
-        delay_ms: i32,
-    ) {
-        self.inner
-            .spawn_doodad(server, caster, template_id, zone_id, pos, delay_ms);
-    }
-
-    fn npc_pet_item_id(&self, server: &GameServer, npc: &NpcRef) -> u32 {
-        self.inner.npc_pet_item_id(server, npc)
-    }
-
-    fn despawn_npc(&self, server: &GameServer, npc: &NpcRef) {
-        self.inner.despawn_npc(server, npc);
-    }
-
-    fn npc_non_pushable_by_actor(&self, server: &GameServer, npc: &NpcRef) -> bool {
-        self.inner.npc_non_pushable_by_actor(server, npc)
-    }
-
-    fn npc_move_state(
-        &self,
-        _server: &GameServer,
-        npc: &NpcRef,
-    ) -> (GameStanceType, MoveTypeAlertness) {
-        let n = npc.data();
-        (n.current_game_stance, n.current_alertness)
-    }
-
-    fn unmount_active_mates(&self, server: &GameServer, player: &PlayerRef) {
-        self.inner.unmount_active_mates(server, player);
-    }
-
-    fn spawn_mount(&self, server: &GameServer, player: &PlayerRef, skill_item: &SkillCaster) {
-        self.inner.spawn_mount(server, player, skill_item);
-    }
-
-    fn mate_is_max_level(&self, server: &GameServer, mate: &MateRef) -> bool {
-        self.inner.mate_is_max_level(server, mate)
-    }
-
-    fn mate_add_exp(&self, server: &GameServer, mate: &MateRef, exp: i32) {
-        self.inner.mate_add_exp(server, mate, exp);
-    }
-
-    fn bind_slave(
-        &self,
-        server: &GameServer,
-        player: &PlayerRef,
-        slave_obj_id: u32,
-        attach_point: i32,
-    ) {
-        self.inner
-            .bind_slave(server, player, slave_obj_id, attach_point);
-    }
-
-    fn spawn_slave(&self, server: &GameServer, player: &PlayerRef, skill_item: &SkillCaster) {
-        self.inner.spawn_slave(server, player, skill_item);
-    }
-
-    fn riders_escape(&self, server: &GameServer, player: &PlayerRef, target: &SkillCastTarget) {
-        self.inner.riders_escape(server, player, target);
-    }
-
-    fn character_slave(&self, server: &GameServer, player: &PlayerRef) -> Option<WorldObject> {
-        self.inner.character_slave(server, player)
-    }
-
-    fn world_gate(&self, server: &GameServer, id: u32) -> Option<Portal> {
-        self.inner.world_gate(server, id)
-    }
-
-    fn closest_return_portal(&self, server: &GameServer, player: &PlayerRef) -> Option<Portal> {
-        self.inner.closest_return_portal(server, player)
-    }
-
-    fn main_world_position(
-        &self,
-        server: &GameServer,
-        player: &PlayerRef,
-    ) -> Option<MainWorldPosition> {
-        self.inner.main_world_position(server, player)
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn add_private_portal(
-        &self,
-        server: &GameServer,
-        player: &PlayerRef,
-        x: f32,
-        y: f32,
-        z: f32,
-        z_rot: f32,
-        zone_id: u32,
-        name: &str,
-    ) {
-        self.inner
-            .add_private_portal(server, player, x, y, z, z_rot, zone_id, name);
-    }
-
-    fn rename_private_portal(&self, server: &GameServer, player: &PlayerRef, id: u32, name: &str) {
-        self.inner.rename_private_portal(server, player, id, name);
-    }
-
-    fn leave_instance(&self, server: &GameServer, player: &PlayerRef) {
-        self.inner.leave_instance(server, player);
-    }
-
-    fn apply_special_effect(
-        &self,
-        server: &GameServer,
-        special_type: i32,
-        args: &EffectArgs<'_>,
-        values: [i32; 4],
-    ) -> bool {
-        self.inner
-            .apply_special_effect(server, special_type, args, values)
-    }
-}
-
-/// Installs the AI hooks (`System.start`, after the NPC subsystem installed its own).
+/// Installs the AI hooks (`System.start`).
 pub fn install(server: &GameServer) {
     server.systems.hooks.ai.install(Arc::new(AiSubsystemHooks));
-    let inner = server.systems.skills.ext.npcs.get();
-    server
-        .systems
-        .skills
-        .ext
-        .npcs
-        .install(Arc::new(AiNpcSkillHooks::new(inner)));
+    crate::systems::services::commands::sub::ASTAR_HOOKS.install(Arc::new(AiAStarHooks));
+}
+
+/// The AStar GM sub commands' view of an NPC's `Ai.PathNode` (`services::commands::sub`
+/// `ASTAR_HOOKS`). The path node lives in the NPC's AI: the calls run through
+/// [`post`] and read the result back when the AI was free to run them right away (an AI in the
+/// middle of its step on the AI thread answers with the defaults).
+pub struct AiAStarHooks;
+
+/// Runs `f` on the AI of `npc` and returns its result when it ran synchronously.
+fn with_ai_now<T: Send + 'static>(
+    server: &GameServer,
+    npc: &NpcRef,
+    f: impl FnOnce(&mut super::framework::AiCtx<'_>) -> T + Send + 'static,
+) -> Option<T> {
+    let out = Arc::new(Mutex::new(None));
+    let slot = out.clone();
+    post(server, npc.obj_id, move |c| {
+        *slot.lock().expect("astar poisoned") = Some(f(c));
+    });
+    let r = out.lock().expect("astar poisoned").take();
+    r
+}
+
+fn v3(p: [f32; 3]) -> crate::systems::skills::controllers::Vec3 {
+    crate::systems::skills::controllers::Vec3::new(p[0], p[1], p[2])
+}
+
+fn arr(v: crate::systems::skills::controllers::Vec3) -> [f32; 3] {
+    [v.x, v.y, v.z]
+}
+
+impl crate::systems::services::commands::sub::AStarHooks for AiAStarHooks {
+    fn set_start(&self, server: &GameServer, npc: &NpcRef, pos: [f32; 3]) {
+        post(server, npc.obj_id, move |c| {
+            c.ai.path_node.start_point_pos = v3(pos)
+        });
+    }
+
+    fn set_end(&self, server: &GameServer, npc: &NpcRef, pos: [f32; 3]) {
+        post(server, npc.obj_id, move |c| {
+            c.ai.path_node.end_point_pos = v3(pos)
+        });
+    }
+
+    fn start_end(&self, server: &GameServer, npc: &NpcRef) -> ([f32; 3], [f32; 3]) {
+        with_ai_now(server, npc, |c| {
+            (
+                arr(c.ai.path_node.start_point_pos),
+                arr(c.ai.path_node.end_point_pos),
+            )
+        })
+        .unwrap_or_default()
+    }
+
+    fn find_path(&self, server: &GameServer, npc: &NpcRef, zone_key: u32) -> Vec<[f32; 3]> {
+        let obj = WorldObject::from(npc);
+        let Some(geo) = crate::systems::skills::geometry::world_of(server, &obj)
+            .and_then(|w| server.systems.ai.geodata.get(w.template.id))
+        else {
+            return Vec::new();
+        };
+        with_ai_now(server, npc, move |c| {
+            c.ai.path_node.zone_key = zone_key;
+            let (start, end) = (c.ai.path_node.start_point_pos, c.ai.path_node.end_point_pos);
+            let mut res = match c.ai.path_node.find_path(&geo, start, end) {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!("AStar FindPath for npc {}: {}", c.npc.obj_id, e.0);
+                    return Vec::new();
+                }
+            };
+            // Skip the first node in this list if not on it
+            if !res.is_empty() && start != res[0] {
+                res.remove(0);
+            }
+            match geo.reduce_path(&res, 10) {
+                Ok(reduced) => c.ai.path_node.found_path = reduced,
+                Err(_) => tracing::error!(
+                    "AStar ReducePath for npc {}: NullReferenceException",
+                    c.npc.obj_id
+                ),
+            }
+            res.into_iter().map(arr).collect()
+        })
+        .unwrap_or_default()
+    }
+
+    fn found_path(&self, server: &GameServer, npc: &NpcRef) -> Vec<[f32; 3]> {
+        with_ai_now(server, npc, |c| {
+            c.ai.path_node.found_path.iter().copied().map(arr).collect()
+        })
+        .unwrap_or_default()
+    }
+
+    fn spawn_marker(
+        &self,
+        server: &GameServer,
+        owner: &PlayerRef,
+        template_id: u32,
+        pos: [f32; 3],
+    ) {
+        use crate::data::world_templates::WorldSpawnPosition;
+        use crate::systems::npcs::doodad::spawner::{DoodadSpawner, DoodadSpawnerDef, SpawnerBase};
+        let t = WorldObject::from(owner).transform();
+        let def = DoodadSpawnerDef {
+            base: SpawnerBase {
+                id: 0,
+                unit_id: template_id,
+                position: WorldSpawnPosition {
+                    world_id: t.world_id,
+                    zone_id: t.zone_id,
+                    x: pos[0],
+                    y: pos[1],
+                    z: pos[2],
+                    yaw: 0.0,
+                    pitch: 0.0,
+                    roll: 0.0,
+                },
+                ..SpawnerBase::default()
+            },
+            scale: 1.0,
+            count: 1,
+            related_ids: None,
+            respawn_doodad_template_id: 0,
+        };
+        let spawner = Arc::new(DoodadSpawner::new(def, Some(t.instance_id)));
+        // Spawn(0, 0, ownerObjId)
+        if let Some(d) = spawner.spawn(server, 0) {
+            d.data().owner_obj_id = owner.obj_id;
+        }
+    }
 }

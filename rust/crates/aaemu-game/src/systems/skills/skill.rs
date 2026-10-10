@@ -1036,6 +1036,62 @@ fn level_rule_hit(skill: &SkillRun) -> SkillHitType {
     }
 }
 
+/// `ShipSiegeAoEHit.AppendHostileShipsHitBySiegeHullAoE`: a siege AoE cast on a position also
+/// hits the boats (with ship physics) whose mass box the siege circle touches, although their
+/// pivot is outside the circle (`systems::ai::physics::siege_point_hits_ship`).
+fn append_hostile_ships_hit_by_siege_hull_aoe(
+    server: &GameServer,
+    t: &super::data::SkillTemplate,
+    caster: &Target,
+    target_self: &Target,
+    ctx: &CastCtx,
+    possible: &mut Vec<Target>,
+) {
+    use crate::systems::ai::physics::{siege_point_hits_ship, SIEGE_PIVOT_QUERY_SLACK_METERS};
+    if t.target_area_radius <= 0 {
+        return;
+    }
+    if DamageType::from_raw(i64::from(t.damage_type_id)) != Some(DamageType::Siege) {
+        return;
+    }
+    if !matches!(
+        ctx.target_caster,
+        SkillCastTarget::Position { .. } | SkillCastTarget::Position2 { .. }
+    ) {
+        return;
+    }
+    let radius = t.target_area_radius as f32;
+    let p = super::geometry::world_pos(server, target_self);
+    let relation = SkillTargetRelation::from_raw(i64::from(t.target_relation))
+        .unwrap_or(SkillTargetRelation::Any);
+    let nearby = super::geometry::around_radius(
+        server,
+        target_self,
+        radius + SIEGE_PIVOT_QUERY_SLACK_METERS,
+        false,
+    );
+    for o in nearby {
+        let Some(ship) = o.as_slave() else {
+            continue;
+        };
+        if possible
+            .iter()
+            .any(|x| x.as_obj().is_some_and(|y| y.same(&o)))
+        {
+            continue;
+        }
+        let target = Target::Obj(o.clone());
+        if !super::relation::is_relation_valid(server, relation, caster, &target) {
+            continue;
+        }
+        // IsABoat() + RigidBody / ShipModel + the mass-box test (physics snapshot).
+        if !siege_point_hits_ship(server, ship.obj_id, p.x, p.y, radius) {
+            continue;
+        }
+        possible.push(target);
+    }
+}
+
 /// `Skill.ApplyEffects(caster, casterCaster, targetSelf, targetCaster, skillObject)`.
 pub fn apply_effects(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
     let caster = &ctx.caster;
@@ -1072,6 +1128,14 @@ pub fn apply_effects(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
     } else {
         possible.push(target_self.clone());
     }
+    append_hostile_ships_hit_by_siege_hull_aoe(
+        server,
+        &t,
+        &caster_t,
+        target_self,
+        ctx,
+        &mut possible,
+    );
     // Distinct
     let mut distinct: Vec<Target> = Vec::new();
     for p in possible {

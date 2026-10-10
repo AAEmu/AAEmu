@@ -27,11 +27,6 @@ use super::doodad::manager as doodads;
 
 /// `BaseUnitType.Npc`.
 const BASE_UNIT_TYPE_NPC: u32 = 1;
-/// `NpcControlCategory.AttackUnit`.
-const NPC_CONTROL_ATTACK_UNIT: u32 = 3;
-/// `FactionsEnum.Monstrosity`.
-const FACTION_MONSTROSITY: u32 = 115;
-
 /// Installs this subsystem's hook implementations into the other subsystems.
 pub fn install(server: &GameServer) {
     install_economy(server);
@@ -126,6 +121,39 @@ impl NpcSkillHooks for NpcSkills {
 
     fn npc_after_death(&self, server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>) {
         super::npc::death::after_death(server, npc, killer);
+    }
+
+    fn npc_damage_received(
+        &self,
+        server: &GameServer,
+        npc: &NpcRef,
+        _attacker: &WorldObject,
+        _amount: i32,
+    ) {
+        // Npc.OnDamageReceived: AddUnitAggro is done by the damage effect;
+        // Ai.OnAggroTargetChanged (systems::ai)
+        crate::systems::ai::hooks::on_damage_received(server, npc);
+    }
+
+    fn npc_no_aggro_target(&self, server: &GameServer, npc: &NpcRef) {
+        crate::systems::ai::hooks::on_no_aggro_target(server, npc);
+    }
+
+    fn npc_aggro_removed(&self, server: &GameServer, _npc: &NpcRef, abuser: u32) {
+        // `(this as Npc)?.CheckIfEmptyAggroToReturn(unit)` checks the *abuser*
+        crate::systems::ai::hooks::check_abuser_empty_aggro(server, abuser);
+    }
+
+    fn npc_move_state(
+        &self,
+        _server: &GameServer,
+        npc: &NpcRef,
+    ) -> (
+        crate::models::movement::GameStanceType,
+        crate::models::movement::MoveTypeAlertness,
+    ) {
+        let n = npc.data();
+        (n.current_game_stance, n.current_alertness)
     }
 
     fn npc_respawn_time(&self, server: &GameServer, npc: &NpcRef) -> i32 {
@@ -649,27 +677,15 @@ fn remove_effects_and_delete(server: &GameServer, unit: &WorldObject) {
     }
 }
 
-/// `NpcControlEffect.Apply`: `AttackUnit` turns the target NPC hostile (`Monstrosity`); the
-/// signal / follow / path / command-set categories drive the NPC AI (later phase).
+/// `NpcControlEffect.Apply` on an NPC target (`systems::ai`: follow path, command sets,
+/// `AttackUnit` -> `SetFaction(Monstrosity)`).
 fn npc_control(
     server: &GameServer,
     e: &crate::systems::skills::data::effects::NpcControlEffect,
     args: &EffectArgs<'_>,
 ) {
-    tracing::info!(
-        "NpcControllEffect: CategoryId={}, ParamString={}, ParamInt={}",
-        e.category_id,
-        e.param_string,
-        e.param_int
-    );
-    let Target::Obj(target) = &args.target else {
-        return;
-    };
-    if target.as_npc().is_none() {
-        return;
-    }
-    if e.category_id == NPC_CONTROL_ATTACK_UNIT {
-        crate::systems::skills::combat::set_faction(server, target, FACTION_MONSTROSITY);
+    if let Some(n) = args.target.as_obj().and_then(WorldObject::as_npc) {
+        crate::systems::ai::hooks::npc_control_effect(server, e, n);
     }
 }
 

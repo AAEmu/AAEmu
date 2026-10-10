@@ -242,6 +242,9 @@ fn server() -> Arc<GameServer> {
     let server = Arc::new(test_server_with(data()));
     server.set_self();
     crate::systems::skills::bind(&server);
+    // The AI parts of the npcs NpcSkillHooks (`npcs::bridges::NpcSkills` at startup; its npc
+    // stat overrides need npc data the bare test NPCs do not have).
+    server.systems.skills.ext.npcs.install(Arc::new(AiParts));
     super::hooks::install(&server);
     server
 }
@@ -718,4 +721,70 @@ async fn npc_death_goes_to_dead_and_clears_aggro() {
     assert!(npc.data().unit.skill_state.aggro_table.is_empty());
     assert!(player.data().skill_char.is_in_aggro_list_of.is_empty());
     assert!(!player.data().unit.is_in_battle);
+}
+
+/// The AI calls of `systems::npcs::bridges::NpcSkills` (`Npc.OnDamageReceived`,
+/// `OnNoAggroTarget`, `CheckIfEmptyAggroToReturn`, `Npc.DoDie` -> `GoToDead`, the
+/// `NpcControlEffect`, the move state).
+struct AiParts;
+
+impl crate::systems::skills::ext::NpcSkillHooks for AiParts {
+    fn npc_after_death(
+        &self,
+        server: &GameServer,
+        npc: &NpcRef,
+        _killer: Option<&crate::world::WorldObject>,
+    ) {
+        super::hooks::on_npc_died(server, npc);
+    }
+
+    fn npc_damage_received(
+        &self,
+        server: &GameServer,
+        npc: &NpcRef,
+        _attacker: &crate::world::WorldObject,
+        _amount: i32,
+    ) {
+        super::hooks::on_damage_received(server, npc);
+    }
+
+    fn npc_no_aggro_target(&self, server: &GameServer, npc: &NpcRef) {
+        super::hooks::on_no_aggro_target(server, npc);
+    }
+
+    fn npc_aggro_removed(&self, server: &GameServer, _npc: &NpcRef, abuser: u32) {
+        super::hooks::check_abuser_empty_aggro(server, abuser);
+    }
+
+    fn npc_move_state(
+        &self,
+        _server: &GameServer,
+        npc: &NpcRef,
+    ) -> (
+        crate::models::movement::GameStanceType,
+        crate::models::movement::MoveTypeAlertness,
+    ) {
+        let n = npc.data();
+        (n.current_game_stance, n.current_alertness)
+    }
+
+    fn apply_effect(
+        &self,
+        server: &GameServer,
+        _kind: crate::systems::skills::data::EffectKind,
+        template: &crate::systems::skills::data::EffectTemplate,
+        args: &crate::systems::skills::effects::EffectArgs<'_>,
+    ) -> bool {
+        if let crate::systems::skills::data::EffectTemplate::NpcControl(e) = template {
+            if let Some(n) = args
+                .target
+                .as_obj()
+                .and_then(crate::world::WorldObject::as_npc)
+            {
+                super::hooks::npc_control_effect(server, e, n);
+            }
+            return true;
+        }
+        false
+    }
 }

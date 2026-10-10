@@ -28,6 +28,7 @@ pub mod hooks;
 pub mod mates;
 pub mod movement;
 pub mod packets;
+pub mod ship_physics;
 pub mod shipyards;
 pub mod slaves;
 pub mod stats;
@@ -114,10 +115,15 @@ impl System {
     }
 }
 
-/// Hook installation of this subsystem: the services radar ship lists
-/// ([`RadarShips`]). The npcs `NpcSkillHooks` and social `SocialHooks` call
+/// Hook installation of this subsystem: the ship physics hooks
+/// ([`ship_physics::VehicleShipPhysics`]) and the services radar ship lists ([`RadarShips`]). The npcs `NpcSkillHooks` and social `SocialHooks` call
 /// `systems::vehicles` directly for the mate / slave / dismount parts.
 pub fn install_hooks(server: &GameServer) {
+    server
+        .systems
+        .hooks
+        .ship_physics
+        .install(Arc::new(ship_physics::VehicleShipPhysics));
     server
         .systems
         .services

@@ -116,6 +116,25 @@ pub fn start_skill(server: &GameServer, conn: &mut GameConnection, p: CSStartSki
         else {
             return;
         };
+        // StormShipLogic.TryBlockMountOrSlaveSkill (vehicles + ai storm buff)
+        if let Some(slave) = caster.as_slave() {
+            if crate::systems::vehicles::ship_physics::storm_blocks_slave_skill(
+                server, slave, skill_id,
+            ) {
+                // Otherwise the skill press can feel like "nothing happens" client-side.
+                player.send(crate::packets::world::SCErrorMsgPacket::new(
+                    crate::systems::economy::error_message::NOT_READY,
+                    0,
+                    true,
+                ));
+                let mut pkt =
+                    SCSkillStartedPacket::new(skill_id, 0, p.caster, target, p.skill_object);
+                pkt.set_skill_result(skill_result::NO_PERM)
+                    .set_result_uint(0);
+                player.send(pkt);
+                return;
+            }
+        }
         let (r, _v) = skill::use_skill(
             server,
             &skill,

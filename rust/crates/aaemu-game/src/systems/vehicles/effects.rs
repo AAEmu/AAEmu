@@ -301,7 +301,6 @@ pub fn drop_carried_backpack(
         tracing::error!("Backpack skill {use_skill_id} missing (NullReferenceException)");
         return;
     };
-    let physics = server.systems.vehicles.hooks.physics();
     for e in &skill.effects {
         let Some((kind, id)) = e.template else {
             continue;
@@ -333,7 +332,7 @@ pub fn drop_carried_backpack(
         );
         let floor =
             crate::systems::npcs::heightmap::world_height(server, world, x, y).unwrap_or(0.0);
-        let surface = physics.water_surface(server, world, [x, y, pos.z]);
+        let surface = super::ship_physics::water_surface(server, world, [x, y, pos.z]);
         let depth = surface - floor;
         let z = if depth < 30.0 {
             floor

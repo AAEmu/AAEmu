@@ -184,13 +184,8 @@ pub fn on_launch_succeeded(
                 .slave_template(tpl)
                 .is_some_and(super::data::SlaveTemplate::is_a_boat)
         });
-    let terrain = !server
-        .systems
-        .vehicles
-        .hooks
-        .physics()
-        .is_water(server, &world, hook_world)
-        && !basis_is_other_boat;
+    let terrain =
+        !super::ship_physics::is_water(server, &world, hook_world) && !basis_is_other_boat;
     let expire = resolve_rope_controller_expire(server);
     {
         let mut d = slave.data();
@@ -343,6 +338,36 @@ fn descendants(world: &WorldInstance, root: &SlaveRef, out: &mut Vec<SlaveRef>) 
             descendants(world, &s, out);
         }
     }
+}
+
+/// The harpoon lines of `hull` for the tow physics: every slave below the hull (depth-first
+/// over `AttachedSlaves`), its cannon position and hook position (`GetHookWorldPosition`).
+pub fn harpoon_lines(
+    world: &WorldInstance,
+    hull: &SlaveRef,
+) -> Vec<crate::systems::ai::physics::harpoon::HarpoonLine> {
+    use crate::systems::skills::controllers::Vec3;
+    let direct = hull.data().attached_slaves.clone();
+    let mut children = Vec::new();
+    descendants(world, hull, &mut children);
+    children
+        .iter()
+        .map(|child| {
+            let st = child.data().harpoon_rope;
+            let c = world_position(world, &WorldObject::from(child));
+            let h = get_hook_world_position(world, &st);
+            crate::systems::ai::physics::harpoon::HarpoonLine {
+                child_obj_id: child.obj_id,
+                direct: direct.contains(&child.obj_id),
+                cannon_pos: Vec3::new(c[0], c[1], c[2]),
+                hook_pos: Vec3::new(h[0], h[1], h[2]),
+                engaged: st.is_engaged,
+                hook_basis_obj_id: st.hook_basis_obj_id,
+                rope_length: st.rope_length,
+                hook_attached_to_terrain: st.hook_attached_to_terrain,
+            }
+        })
+        .collect()
 }
 
 /// `TickHarpoonRopeControllerLifetime(hull)`: breaks ropes whose skill controller expired.
