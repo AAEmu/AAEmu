@@ -71,7 +71,83 @@ static int p2b_sweep_overlap(void *a, void *b, float *ga, float *gb, const uint3
   return f((char *)oa + 8, (char *)ob + 8, VA(g_phys, 0x35290EE8ULL + 237496ULL * (uint64_t)tid));
 }
 
+
+/* REG <tA> <primA> <tB> <primB> SA <13: v w com rc mvd> SB <13> PI <22 words prim_inters>
+       IP <28> AREA <0|1>
+   -> reg <ncontacts> STOP <flag> PI <n xyz after> C <22 contact words> NB <+104> SELF <+88 == &pt>
+      [AREA <npt> <nmax> <minedge> <n3> <pts…>|NOAREA]
+   Calls CGeometry::RegisterIntersection (slot 54, 0x3514F3F0) with hand-built
+   geometry_under_test records (+40 stop, +164 v, +176 w, +188 com, +200 rot centre, +216 ip,
+   +280 type, +360 minVtxDist, +368 contacts, +376 &count, +384 nMax, +388 thread). The first
+   contact slot is pre-filled with 0x11111111 words. */
+typedef int (*p2b_reg_fn)(void *self, void *pa, void *pb, void *gta, void *gtb, void *inters);
+static void p2b_gtest_side(char **cur, unsigned char *gt) {
+  uint32_t w[13];
+  p2b_words(cur, w, 13);
+  memcpy(gt + 164, w, 48);
+  memcpy(gt + 360, &w[12], 4);
+}
+static int p2b_ext_reg(char *line) {
+  char *cur = line;
+  char *cmd = p2b_tok(&cur);
+  if (!cmd || strcmp(cmd, "REG")) return 0;
+  p2b_world();
+  __declspec(align(16)) uint32_t pa[16], pb[16], pi[32], ip[64];
+  static __declspec(align(16)) unsigned char gta[512], gtb[512], contacts[136 * 4];
+  static __declspec(align(16)) float apts[256 * 3];
+  static int ap0[256], ap1[256], af0[256], af1[256];
+  static __declspec(align(16)) unsigned char area[80];
+  memset(gta, 0, sizeof gta); memset(gtb, 0, sizeof gtb); memset(ip, 0, sizeof ip);
+  memset(pi, 0, sizeof pi);
+  int ta = (int)p2b_word(&cur);
+  p2b_words(&cur, pa, p2b_prim_words(ta));
+  int tb = (int)p2b_word(&cur);
+  p2b_words(&cur, pb, p2b_prim_words(tb));
+  p2b_expect(&cur, "SA"); p2b_gtest_side(&cur, gta);
+  p2b_expect(&cur, "SB"); p2b_gtest_side(&cur, gtb);
+  p2b_expect(&cur, "PI"); p2b_words(&cur, pi, 22);
+  p2b_expect(&cur, "IP"); p2b_words(&cur, ip, 28);
+  p2b_expect(&cur, "AREA");
+  int use_area = (int)p2b_word(&cur);
+  memset(contacts, 0x11, sizeof contacts);
+  int count = 0;
+  for (int i = 0; i < 4; i++) *(void **)(contacts + 136 * i + 128) = 0;
+  if (use_area) {
+    memset(area, 0, sizeof area);
+    *(int *)(area + 8) = 256;
+    *(float *)(area + 12) = 0.0f;
+    *(int **)(area + 16) = ap0; *(int **)(area + 24) = ap1;
+    *(int **)(area + 32) = af0; *(int **)(area + 40) = af1;
+    *(float **)(area + 48) = apts;
+    *(void **)(contacts + 128) = area;
+  }
+  void *ipp = ip;
+  *(int *)(gta + 280) = ta; *(int *)(gtb + 280) = tb;
+  memcpy(gta + 216, &ipp, 8); memcpy(gtb + 216, &ipp, 8);
+  void *cp = contacts, *cnt = &count;
+  memcpy(gta + 368, &cp, 8); memcpy(gta + 376, &cnt, 8);
+  *(int *)(gta + 384) = 4; *(int *)(gta + 388) = 4;
+  ((p2b_reg_fn)VA(g_phys, 0x3514F3F0ULL))(0, pa, pb, gta, gtb, pi);
+  printf("reg %08x STOP %08x PI", (uint32_t)count, *(uint32_t *)(gta + 40));
+  p2b_print_words(pi + 6, 3);
+  printf(" C");
+  p2b_print_words((uint32_t *)contacts, 22);
+  printf(" NB %08x SELF %d", *(uint32_t *)(contacts + 104), *(void **)(contacts + 88) == (void *)(contacts + 8));
+  unsigned char *ar = *(unsigned char **)(contacts + 128);
+  if (ar) {
+    int npt = *(int *)(ar + 4);
+    printf(" AREA %08x %08x %08x", (uint32_t)npt, *(uint32_t *)(ar + 8), *(uint32_t *)(ar + 12));
+    p2b_print_words((uint32_t *)(ar + 56), 3);
+    for (int i = 0; i < npt && i < 256; i++) p2b_print_words((uint32_t *)(apts + 3 * i), 3);
+  } else {
+    printf(" NOAREA");
+  }
+  printf("\n");
+  return 1;
+}
+
 static int p2b_ext_sweep(char *line) {
+  if (p2b_ext_reg(line)) return 1;
   char *cur = line;
   char *cmd = p2b_tok(&cur);
   if (!cmd) return 0;

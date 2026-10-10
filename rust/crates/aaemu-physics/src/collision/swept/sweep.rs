@@ -318,3 +318,172 @@ pub fn sweep_primitives(
     c.border_consecutive = false;
     Some(SweepHit { contact: c })
 }
+
+// ------------------------------------------------------------------------------------------
+// RegisterIntersection (CGeometry slot 54)
+
+/// The fields of one `geometry_under_test` record that `RegisterIntersection` reads (offsets of
+/// the x64 record): motion of the geometry at the contact and its `minVtxDist` copy.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct GeomTestMotion {
+    /// `+164` linear velocity.
+    pub v: Vec3,
+    /// `+176` angular velocity.
+    pub w: Vec3,
+    /// `+188` centre of mass.
+    pub com: Vec3,
+    /// `+200` rotation centre candidate (mode 1 takes the longer of the two sides').
+    pub rot_center: Vec3,
+    /// `+360` `minVtxDist` of the geometry (only used for the next contact's area).
+    pub min_vtx_dist: f32,
+}
+
+/// Values the engine reads from **uninitialised stack slots** of `RegisterIntersection`'s
+/// `unproj_params` (kept bug): `minPtDist` (+40) is never written, and `tmax` (+32) is only
+/// written on the velocity / rotation path, so the penetration fallback after a too-slow relative
+/// velocity uses whatever is on the stack. The cells that read them see these values instead.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StaleUnprojSlots {
+    pub tmax: f32,
+    pub min_pt_dist: f32,
+}
+
+impl Default for StaleUnprojSlots {
+    /// The port's choice: no `tmax` bound, no minimum point distance.
+    fn default() -> Self {
+        Self {
+            tmax: 1e10,
+            min_pt_dist: 0.0,
+        }
+    }
+}
+
+/// `CGeometry::RegisterIntersection` (slot 54, x64 0x3514F3F0, x86 0x351578C0): turn a primitive
+/// contact (`inters`, from an INTERSECT cell) into an unprojected [`GeomContact`] written into
+/// `contact` (the engine's next free contact slot; its `area` is the pool area the engine
+/// attached, or `None`).
+///
+/// * `ip.i_unprojection_mode == 0`: `dir = (vB + wB×(p − comB)) − (vA + wA×(p − comA))` at
+///   `p = inters.pt[1]`, summed as `((wB×rB + vB) − vA) − wA×rA`; `vel = |dir|`. If
+///   `vel < ip.vrel_min` (or NaN) go to the fallback; else `dir /= vel`.
+/// * mode 1: `axis = normalize(wB − wA)`, `vel = |wB − wA|`, centre = A's `rot_center` if it is
+///   strictly longer than B's, else B's.
+/// * `tmax = vel·time_interval`, `tmin = 0`, `maxcos = 0.1`, `flag = 0`; call
+///   `UNPROJECT[mode][tA][tB]`. Failure → no contact. If `t > vel·time_interval` → fallback.
+/// * Fallback: mode 0, `inters.n` normalised **in place** (sub_35021020; the caller sees it),
+///   `dir = inters.n`, `vel = 0`, `UNPROJECT[0][tA][tB]`; failure → no contact.
+/// * Contact: `t`, `pt`, `n` from the result; `dir`, mode, `vel` from the params; `id` from
+///   `inters.id` (sign-extended), `iNode` from `inters.i_node`; border = `[pt]`. `iPrim` and
+///   `iFeature` are **not** written (the caller fills them). The area is kept only if it has
+///   points.
+///
+/// The engine then counts the contact, attaches a fresh pool area to the next slot with
+/// `minedge = min_idiom(A.minVtxDist, B.minVtxDist)` (see [`next_area_min_edge`]) and raises the
+/// stop flag when the contact buffer is full; that bookkeeping belongs to the caller. Returns
+/// whether a contact was produced (the engine function itself always returns 0).
+#[allow(clippy::too_many_arguments)]
+pub fn register_intersection(
+    tables: &UnprojTables,
+    prim_a: &Primitive,
+    a: &GeomTestMotion,
+    prim_b: &Primitive,
+    b: &GeomTestMotion,
+    inters: &mut crate::collision::contact::PrimInters,
+    ip: &IntersectionParams,
+    contact: &mut GeomContact,
+    stale: StaleUnprojSlots,
+) -> bool {
+    use super::common::{lt_or_nan, normalize_in_place};
+    let mut p = UnprojParams {
+        mode: 0,
+        dir: Vec3::ZERO,
+        center: Vec3::ZERO,
+        vel: 0.0,
+        tmax: stale.tmax,
+        tmin: 0.0,
+        min_pt_dist: stale.min_pt_dist,
+        max_cos: 0.1,
+        flag: 0,
+    };
+    let mut res = UnprojResult::default();
+    let mut fallback = false;
+    let mut mode = 0usize;
+    match ip.i_unprojection_mode {
+        0 => {
+            let pt = inters.pt[1];
+            let (ra, rb) = (
+                Vec3::new(pt.x - a.com.x, pt.y - a.com.y, pt.z - a.com.z),
+                Vec3::new(pt.x - b.com.x, pt.y - b.com.y, pt.z - b.com.z),
+            );
+            let (wa, wb) = (a.w, b.w);
+            let x = (((wb.y * rb.z - wb.z * rb.y) + b.v.x) - a.v.x) - (wa.y * ra.z - wa.z * ra.y);
+            let y = (((wb.z * rb.x - wb.x * rb.z) + b.v.y) - a.v.y) - (wa.z * ra.x - wa.x * ra.z);
+            let z = (((wb.x * rb.y - wb.y * rb.x) + b.v.z) - a.v.z) - (wa.x * ra.y - wa.y * ra.x);
+            let len = ((x * x + y * y) + z * z).sqrt();
+            p.vel = len;
+            p.dir = Vec3::new(x, y, z);
+            if lt_or_nan(len, ip.vrel_min) {
+                fallback = true;
+            } else {
+                let inv = 1.0 / len;
+                p.dir = Vec3::new(x * inv, y * inv, z * inv);
+            }
+        }
+        1 => {
+            mode = 1;
+            p.mode = 1;
+            let la = (a.rot_center.x * a.rot_center.x + a.rot_center.y * a.rot_center.y)
+                + a.rot_center.z * a.rot_center.z;
+            let lb = (b.rot_center.x * b.rot_center.x + b.rot_center.y * b.rot_center.y)
+                + b.rot_center.z * b.rot_center.z;
+            p.center = if la > lb { a.rot_center } else { b.rot_center };
+            let d = Vec3::new(b.w.x - a.w.x, b.w.y - a.w.y, b.w.z - a.w.z);
+            let len = ((d.x * d.x + d.y * d.y) + d.z * d.z).sqrt();
+            let inv = 1.0 / len;
+            p.vel = len;
+            p.dir = Vec3::new(inv * d.x, d.y * inv, d.z * inv);
+        }
+        // other modes read stale stack values in the engine; treat them like mode 0's fallback
+        _ => fallback = true,
+    }
+    if !fallback {
+        p.tmax = p.vel * ip.time_interval;
+        let r = tables.unproject(mode, &mut p, prim_a, -1, prim_b, -1, &mut res, contact.area.as_mut());
+        if r == 0 {
+            return false;
+        }
+        if res.t > f64::from(p.vel * ip.time_interval) {
+            fallback = true;
+        }
+    }
+    if fallback {
+        p.mode = 0;
+        normalize_in_place(&mut inters.n);
+        p.dir = inters.n;
+        p.vel = 0.0;
+        let r = tables.unproject(0, &mut p, prim_a, -1, prim_b, -1, &mut res, contact.area.as_mut());
+        if r == 0 {
+            return false;
+        }
+    }
+    contact.t = res.t;
+    contact.pt = res.pt;
+    contact.n = res.n;
+    contact.dir = p.dir;
+    contact.vel = p.vel;
+    contact.i_unproj_mode = p.mode;
+    contact.id = [i32::from(inters.id[0]), i32::from(inters.id[1])];
+    contact.i_node = inters.i_node;
+    contact.border = vec![contact.pt];
+    if contact.area.as_ref().is_none_or(|ar| ar.npt <= 0) {
+        contact.area = None;
+    }
+    true
+}
+
+/// `min_idiom` of the two sides' `minVtxDist` (`((a + b) − |a − b|)·0.5`): the `minedge` the
+/// engine gives the area it attaches to the next contact slot after `RegisterIntersection`.
+#[must_use]
+pub fn next_area_min_edge(a: &GeomTestMotion, b: &GeomTestMotion) -> f32 {
+    ((b.min_vtx_dist + a.min_vtx_dist) - (a.min_vtx_dist - b.min_vtx_dist).abs()) * 0.5
+}
