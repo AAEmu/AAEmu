@@ -221,7 +221,7 @@ impl ClientPacket for PingPacket {
         conn: &'a mut GameConnection,
     ) -> BoxFuture<'a, Result<()>> {
         Box::pin(async move {
-            conn.last_ping = Instant::now();
+            conn.touch_ping();
             conn.send(&PongPacket {
                 tm: self.tm,
                 when: self.when,

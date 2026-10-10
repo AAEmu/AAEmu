@@ -26,7 +26,7 @@ use crate::opcodes;
 use crate::world::WorldManager;
 
 pub struct GameServer {
-    pub config: AppConfig,
+    pub config: crate::config::ConfigCell,
     pub db: MySqlPool,
     pub game_data: Arc<GameData>,
     pub registry: PacketRegistry,
@@ -76,7 +76,7 @@ impl GameServer {
             friends: FriendManager::default(),
             save: SaveManager::default(),
             systems: crate::systems::Systems::default(),
-            config,
+            config: config.into(),
             db,
             game_data: Arc::new(game_data),
             registry: crate::packets::build_registry(),

@@ -1,6 +1,9 @@
-//! Connection bookkeeping half of `AccountManager` (`Add`, `Remove`, `Contains`, `Count`).
-//! The account-details queries live in [`crate::db`]. Timed rewards (daily login, offline labor)
-//! and the dead-connection sweeper are later phases.
+//! Connection bookkeeping half of `AccountManager` (`Add`, `Remove`, `Contains`, `Count`) and
+//! the per-account locks (`_locks`). The account-details queries live in [`crate::db`]; the
+//! full `Add` (timed rewards), the credits / loyalty / labor / divine-clock updates and the
+//! dead-connection sweeper are in `systems::services::accounts`.
+
+use std::sync::Arc;
 
 use dashmap::DashMap;
 
@@ -8,6 +11,8 @@ use dashmap::DashMap;
 pub struct AccountManager {
     /// account id -> game connection id (`_accounts`).
     accounts: DashMap<u32, u32>,
+    /// `_locks` (account id -> lock serialising that account's DB updates).
+    locks: DashMap<u32, Arc<tokio::sync::Mutex<()>>>,
 }
 
 impl AccountManager {
@@ -35,5 +40,18 @@ impl AccountManager {
 
     pub fn count(&self) -> usize {
         self.accounts.len()
+    }
+
+    /// `_accounts` as (account id, connection id) pairs.
+    pub fn entries(&self) -> Vec<(u32, u32)> {
+        self.accounts
+            .iter()
+            .map(|e| (*e.key(), *e.value()))
+            .collect()
+    }
+
+    /// The lock object of `account_id` (`lock (_locks) { ... }` + `lock (accLock)`).
+    pub fn lock_of(&self, account_id: u32) -> Arc<tokio::sync::Mutex<()>> {
+        self.locks.entry(account_id).or_default().clone()
     }
 }

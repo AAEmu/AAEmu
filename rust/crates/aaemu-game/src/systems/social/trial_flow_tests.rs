@@ -82,8 +82,8 @@ fn justice_server() -> Arc<GameServer> {
             ..SystemFaction::default()
         });
     }
-    let mut s = test_server_with(data);
-    s.config.justice = JusticeConfig {
+    let s = test_server_with(data);
+    let justice = JusticeConfig {
         court_rooms: vec![CourtRoomConfig {
             id: 1,
             name: "Nuian Main Court".into(),
@@ -99,6 +99,7 @@ fn justice_server() -> Arc<GameServer> {
         }],
         ..JusticeConfig::default()
     };
+    s.config.update(|c| c.justice = justice);
     let s = Arc::new(s);
     s.set_self();
     s.systems.social.trials.load(&s);

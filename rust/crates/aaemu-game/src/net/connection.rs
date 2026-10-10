@@ -5,7 +5,7 @@
 //! login-server link) reach a connection through its [`ConnectionHandle`].
 
 use std::net::SocketAddr;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -44,6 +44,13 @@ pub struct AccountPayment {
     pub end_time: UnixTime,
 }
 
+impl AccountPayment {
+    /// `PremiumState`: premium method and `now` inside `[StartTime, EndTime]` (unix seconds).
+    pub fn premium_state(&self, now: UnixTime) -> bool {
+        self.method == PaymentMethodType::Premium && now >= self.start_time && now <= self.end_time
+    }
+}
+
 impl Default for AccountPayment {
     fn default() -> Self {
         Self {
@@ -71,6 +78,8 @@ pub struct ConnectionHandle {
     pub id: u32,
     pub ip: SocketAddr,
     account_id: Arc<AtomicU32>,
+    /// `LastPing` as unix milliseconds (`i64::MIN` = `DateTime.MinValue`, never pinged).
+    last_ping_ms: Arc<AtomicI64>,
     tx: mpsc::UnboundedSender<ConnCommand>,
     writer: mpsc::UnboundedSender<Vec<u8>>,
 }
@@ -78,6 +87,14 @@ pub struct ConnectionHandle {
 impl ConnectionHandle {
     pub fn account_id(&self) -> u32 {
         self.account_id.load(Ordering::Relaxed)
+    }
+
+    /// `LastPing` (`None` = `DateTime.MinValue`: no `PingPacket` received yet).
+    pub fn last_ping(&self) -> Option<chrono::NaiveDateTime> {
+        let ms = self.last_ping_ms.load(Ordering::Relaxed);
+        (ms != i64::MIN)
+            .then(|| chrono::DateTime::from_timestamp_millis(ms).map(|d| d.naive_utc()))
+            .flatten()
     }
 
     /// `GameConnection.SendPacket` from any task: the packet is encoded right away and queued
@@ -148,6 +165,11 @@ impl ConnectionTable {
         self.connections.len()
     }
 
+    /// `GetConnections()`.
+    pub fn all(&self) -> Vec<ConnectionHandle> {
+        self.connections.iter().map(|h| h.clone()).collect()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.connections.is_empty()
     }
@@ -158,6 +180,7 @@ pub struct GameConnection {
     pub id: u32,
     pub ip: SocketAddr,
     account_id: Arc<AtomicU32>,
+    last_ping_ms: Arc<AtomicI64>,
     pub state: GameState,
     pub payment: AccountPayment,
     /// `Characters.Values` in insertion (load) order.
@@ -194,10 +217,12 @@ impl GameConnection {
         commands: mpsc::UnboundedSender<ConnCommand>,
     ) -> (Self, ConnectionHandle) {
         let account_id = Arc::new(AtomicU32::new(0));
+        let last_ping_ms = Arc::new(AtomicI64::new(i64::MIN));
         let handle = ConnectionHandle {
             id,
             ip,
             account_id: account_id.clone(),
+            last_ping_ms: last_ping_ms.clone(),
             tx: commands.clone(),
             writer: writer.clone(),
         };
@@ -205,6 +230,7 @@ impl GameConnection {
             id,
             ip,
             account_id,
+            last_ping_ms,
             state: GameState::Lobby,
             payment: AccountPayment::default(),
             characters: Vec::new(),
@@ -226,6 +252,13 @@ impl GameConnection {
         self.account_id.store(id, Ordering::Relaxed);
     }
 
+    /// `Connection.LastPing = DateTime.UtcNow` (`PingPacket`).
+    pub fn touch_ping(&mut self) {
+        self.last_ping = Instant::now();
+        self.last_ping_ms
+            .store(chrono::Utc::now().timestamp_millis(), Ordering::Relaxed);
+    }
+
     /// `GameConnection.SendPacket(GamePacket)`: packets with the placeholder opcode `0xFFF` (no
     /// 1.2 opcode) are dropped; everything else is encoded and queued for the writer task.
     pub fn send(&mut self, packet: &dyn ServerPacket) {
@@ -243,6 +276,7 @@ impl GameConnection {
             id: self.id,
             ip: self.ip,
             account_id: self.account_id.clone(),
+            last_ping_ms: self.last_ping_ms.clone(),
             tx: self.commands.clone(),
             writer: self.writer.clone(),
         }

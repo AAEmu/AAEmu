@@ -3,10 +3,8 @@
 
 use aaemu_commons::helpers::unix_time_now;
 use aaemu_commons::PacketStream;
-use chrono::Utc;
 use futures::future::BoxFuture;
 
-use crate::db;
 use crate::error::{GameError, Result};
 use crate::login::packets::GLPlayerReconnectPacket;
 use crate::managers::LoginDecision;
@@ -106,22 +104,9 @@ pub async fn enter_world_login(
     Ok(())
 }
 
-/// `AccountManager.Add(connection)`.
+/// `AccountManager.Add(connection)` (timed rewards included: `systems::services::accounts`).
 async fn account_manager_add(server: &GameServer, conn: &GameConnection) {
-    let account_id = conn.account_id();
-    if !server.accounts.try_add(account_id, conn.id) {
-        return;
-    }
-    let _last_login = db::update_login_time(
-        &server.db,
-        &server.config,
-        account_id,
-        Utc::now().naive_utc(),
-    )
-    .await;
-    let _details = db::get_account_details(&server.db, &server.config, account_id).await;
-    // Later phase (TimedRewardsManager): DoDailyAccountLogin when last_login < today,
-    // AddOfflineLabor(connection, last_login, details.labor).
+    crate::systems::services::accounts::add(server, conn).await;
 }
 
 /// Sends `SCAccountInfoPacket` built from `Connection.Payment`.

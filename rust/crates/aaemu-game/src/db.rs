@@ -60,6 +60,9 @@ pub struct AccountDetails {
     pub loyalty: i32,
     pub last_updated: Option<NaiveDateTime>,
     pub last_login: Option<NaiveDateTime>,
+    pub last_labor_tick: Option<NaiveDateTime>,
+    pub last_credits_tick: Option<NaiveDateTime>,
+    pub last_loyalty_tick: Option<NaiveDateTime>,
 }
 
 /// `AccountManager.GetAccountDetailsInternal`, including the create-on-first-use insert.
@@ -101,6 +104,9 @@ async fn try_get_account_details(
             loyalty: int(&row, "loyalty")? as i32,
             last_updated: dt(&row, "last_updated"),
             last_login: dt(&row, "last_login"),
+            last_labor_tick: dt(&row, "last_labor_tick"),
+            last_credits_tick: dt(&row, "last_credits_tick"),
+            last_loyalty_tick: dt(&row, "last_loyalty_tick"),
         });
     }
 
@@ -134,6 +140,9 @@ async fn try_get_account_details(
     Ok(AccountDetails {
         last_login: Some(now),
         last_updated: Some(now),
+        last_labor_tick: Some(now),
+        last_credits_tick: Some(now),
+        last_loyalty_tick: Some(now),
         ..AccountDetails::default()
     })
 }
@@ -156,6 +165,128 @@ pub async fn update_login_time(
         return Some(Utc::now().naive_utc());
     }
     res.last_login
+}
+
+/// `AccountManager.AddCredits` / `AddLoyalty`: `INSERT ... ON DUPLICATE KEY UPDATE col = col +
+/// amount`; `true` when a row was affected (errors are logged, as in C#).
+pub async fn add_account_points(
+    pool: &MySqlPool,
+    column: AccountPointColumn,
+    account_id: u32,
+    amount: i32,
+) -> bool {
+    let col = match column {
+        AccountPointColumn::Credits => "credits",
+        AccountPointColumn::Loyalty => "loyalty",
+    };
+    let sql = format!(
+        "INSERT INTO accounts (account_id, {col}) VALUES(?, ?) ON DUPLICATE KEY UPDATE {col} = {col} + ?"
+    );
+    match sqlx::query(&sql)
+        .bind(account_id)
+        .bind(amount)
+        .bind(amount)
+        .execute(pool)
+        .await
+    {
+        Ok(r) => r.rows_affected() > 0,
+        Err(e) => {
+            tracing::error!("{e}");
+            false
+        }
+    }
+}
+
+/// The account point columns of [`add_account_points`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AccountPointColumn {
+    Credits,
+    Loyalty,
+}
+
+/// `AccountManager.UpdateLabor`.
+pub async fn update_labor(pool: &MySqlPool, account_id: u32, labor: i16) {
+    if let Err(e) = sqlx::query("UPDATE accounts SET labor = ? WHERE account_id = ?")
+        .bind(labor)
+        .bind(account_id)
+        .execute(pool)
+        .await
+    {
+        tracing::error!("{e}");
+    }
+}
+
+/// `AccountManager.UpdateTickTimes`: the column of the last set flag (labor, credits, loyalty
+/// in that order of precedence); no flag writes the column `error` (fails and logs, as C#).
+pub async fn update_tick_times(
+    pool: &MySqlPool,
+    account_id: u32,
+    new_time: NaiveDateTime,
+    update_labor: bool,
+    update_credits: bool,
+    update_loyalty: bool,
+) {
+    let mut field = "error";
+    if update_labor {
+        field = "last_labor_tick";
+    }
+    if update_credits {
+        field = "last_credits_tick";
+    }
+    if update_loyalty {
+        field = "last_loyalty_tick";
+    }
+    let sql = format!("UPDATE accounts SET {field} = ? WHERE account_id = ?");
+    if let Err(e) = sqlx::query(&sql)
+        .bind(new_time)
+        .bind(account_id)
+        .execute(pool)
+        .await
+    {
+        tracing::error!("{e}");
+    }
+}
+
+/// `AccountManager.UpdateDivineClock`.
+pub async fn update_divine_clock(
+    pool: &MySqlPool,
+    account_id: u32,
+    time_elapsed: u32,
+    times_taken: u32,
+) {
+    if let Err(e) = sqlx::query(
+        "UPDATE accounts SET divine_clock_time = ? , divine_clock_taken = ? WHERE account_id = ?",
+    )
+    .bind(time_elapsed)
+    .bind(times_taken)
+    .bind(account_id)
+    .execute(pool)
+    .await
+    {
+        tracing::error!("{e}");
+    }
+}
+
+/// `AccountManager.GetDivineClock`: `(divine_clock_time, divine_clock_taken)`, `(0, 0)` when the
+/// account does not exist or the query fails.
+pub async fn get_divine_clock(pool: &MySqlPool, account_id: u32) -> (u32, u32) {
+    let row = sqlx::query(
+        "SELECT account_id, CAST(divine_clock_time AS SIGNED) AS t, CAST(divine_clock_taken AS SIGNED) AS n          FROM accounts WHERE account_id = ?",
+    )
+    .bind(account_id)
+    .fetch_optional(pool)
+    .await;
+    match row {
+        Ok(Some(r)) => (
+            int(&r, "t").unwrap_or(0) as u32,
+            int(&r, "n").unwrap_or(0) as u32,
+        ),
+        Ok(None) => (0, 0),
+        Err(e) => {
+            tracing::error!("{e}");
+            (0, 0)
+        }
+    }
 }
 
 /// `LoginCharacterInfo` (AAEmu.Commons.Models).

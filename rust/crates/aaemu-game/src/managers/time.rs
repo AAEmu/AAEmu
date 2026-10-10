@@ -45,6 +45,16 @@ impl TimeManager {
         self.state.lock().expect("time poisoned").time / 3600.0
     }
 
+    /// `Get()`: the game time in seconds.
+    pub fn get(&self) -> f32 {
+        self.state.lock().expect("time poisoned").time
+    }
+
+    /// `Set(hours)`.
+    pub fn set(&self, hours: f32) {
+        self.state.lock().expect("time poisoned").time = hours * 3600.0;
+    }
+
     /// `Subscribe(connection, observer)`: sends `SCDetailedTimeOfDayPacket` and registers the
     /// observer; the returned id is the `IDisposable` to pass to [`TimeManager::unsubscribe`].
     pub fn subscribe(&self, conn: &ConnectionHandle) -> u64 {

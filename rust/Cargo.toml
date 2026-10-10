@@ -37,6 +37,11 @@ regex = "1"
 roxmltree = "0.20"
 # Added for aaemu-game (read-only access to the client compact.sqlite3; 0.32 shares libsqlite3-sys 0.30 with sqlx 0.8)
 rusqlite = { version = "0.32", features = ["bundled"] }
+# Added for aaemu-game services (WebApi HTTP server, Discord bot)
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
+twilight-gateway = { version = "0.16", default-features = false, features = ["rustls-ring", "rustls-webpki-roots", "twilight-http"] }
+twilight-http = { version = "0.16", default-features = false, features = ["rustls-ring", "rustls-webpki-roots"] }
+twilight-model = "0.16"
 
 # aaemu-login: keep password hashing (PBKDF2 @ 600k iterations, sha256_crypt) usable in debug
 # builds and tests.
