@@ -4,6 +4,8 @@
 //! |---|---|---|---|
 //! | `[0][tri][sph]` | 0x35175490 (4544 B) | 0x3517DB70 | [`unproject_tri_sph`] |
 //! | `[0][sph][tri]` | 0x35176660 (335 B wrapper) | 0x3517ED40 | `swap_linear` → tri–sph |
+//! | `[0][tri][ray]` | 0x35176B40 (4075 B) | 0x3517F190 | [`unproject_tri_ray`] |
+//! | `[0][ray][tri]` | 0x35177B40 (335 B wrapper) | 0x351802D0 | `swap_linear` → tri–ray |
 //!
 //! Shared conventions of these functions:
 //! * The triangle primitive is `{pt[3], n}`; the stored normal `n` is used as given (never
@@ -14,11 +16,13 @@
 //!   test on a float-rounded cross difference; see [`sel`] and [`sel_feat`].
 //! * `INC_MOD3` (0x3520A3A0) gives the next vertex of an edge.
 
+mod ray;
 mod sph;
 
+pub use ray::unproject_tri_ray;
 pub use sph::unproject_tri_sph;
 
-use super::common::{as_sph, as_tri, swap_linear};
+use super::common::{as_ray, as_sph, as_tri, swap_linear};
 use super::{UnprojTables, MODE_LINEAR};
 use crate::collision::contact::{ContactArea, UnprojParams, UnprojResult};
 use crate::geometry::primitives::Primitive;
@@ -75,8 +79,37 @@ fn cell_sph_tri(
     })
 }
 
+fn cell_tri_ray(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    _area: Option<&mut ContactArea>,
+) -> i32 {
+    unproject_tri_ray(p, as_tri(a), fa, as_ray(b), fb, out)
+}
+
+/// 0x35177B40: ray–tri, the 335-byte linear swap wrapper around tri–ray.
+fn cell_ray_tri(
+    p: &mut UnprojParams,
+    a: &Primitive,
+    fa: i32,
+    b: &Primitive,
+    fb: i32,
+    out: &mut UnprojResult,
+    _area: Option<&mut ContactArea>,
+) -> i32 {
+    swap_linear(p, out, |p, out| {
+        unproject_tri_ray(p, as_tri(b), fb, as_ray(a), fa, out)
+    })
+}
+
 /// Fill the cells this group owns.
 pub fn fill(t: &mut UnprojTables) {
     t.set(MODE_LINEAR, GeomType::TriMesh, GeomType::Sphere, cell_tri_sph);
     t.set(MODE_LINEAR, GeomType::Sphere, GeomType::TriMesh, cell_sph_tri);
+    t.set(MODE_LINEAR, GeomType::TriMesh, GeomType::Ray, cell_tri_ray);
+    t.set(MODE_LINEAR, GeomType::Ray, GeomType::TriMesh, cell_ray_tri);
 }

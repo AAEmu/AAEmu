@@ -4,7 +4,7 @@
 
 use aaemu_physics::collision::contact::UnprojParams;
 use aaemu_physics::collision::swept::probe::{check, Case, Rng};
-use aaemu_physics::geometry::primitives::{Primitive, SpherePrim, Triangle};
+use aaemu_physics::geometry::primitives::{Primitive, RayPrim, SpherePrim, Triangle};
 use aaemu_physics::math::Vec3;
 
 fn add(a: Vec3, b: Vec3) -> Vec3 {
@@ -223,4 +223,59 @@ fn tri_sph_linear_matches_dll() {
 #[test]
 fn sph_tri_linear_matches_dll() {
     check("p2b_tri_sph_tri", 200, &gen_sph_tri);
+}
+
+fn tri_ray_parts(rng: &mut Rng) -> (Triangle, RayPrim, UnprojParams) {
+    let sz = rng.f(0.5, 4.0);
+    let t = triangle(rng, sz);
+    let hit = on_tri(rng, &t);
+    let u = match rng.below(5) {
+        0 => scale(t.n, if rng.chance(0.5) { 1.0 } else { -1.0 }),
+        1 => {
+            // parallel to the plane
+            let e = sub(t.pt[1], t.pt[0]);
+            norm(add(e, scale(cross(t.n, e), rng.f(-1.0, 1.0))))
+        }
+        _ => rng.unit_or_axis(0.3),
+    };
+    let l0 = rng.f(0.1, 6.0);
+    let len = rng.pick(&[l0, 1.0, sz]);
+    let dv = scale(u, len);
+    let k0 = rng.f(-0.3, 1.3);
+    let k = rng.pick(&[k0, 0.0, 1.0, 0.5]);
+    let mut o = sub(hit, scale(dv, k));
+    if rng.chance(0.15) {
+        o = add(o, scale(t.n, rng.f(-0.2, 0.2)));
+    }
+    let mut p = lin_params(rng, t.n);
+    if rng.chance(0.25) {
+        // the mesh ray path pushes sideways: n × ray dir
+        p.dir = norm(cross(t.n, u));
+    }
+    (t, RayPrim { origin: o, dir: dv }, p)
+}
+
+fn gen_tri_ray(rng: &mut Rng) -> Case {
+    let (t, r, p) = tri_ray_parts(rng);
+    let c = Case::new(0, &Primitive::Triangle(t), &Primitive::Ray(r), &p);
+    let c = maybe_feat(rng, c);
+    maybe_area(rng, c)
+}
+
+fn gen_ray_tri(rng: &mut Rng) -> Case {
+    let (t, r, mut p) = tri_ray_parts(rng);
+    p.dir = scale(p.dir, -1.0);
+    let c = Case::new(0, &Primitive::Ray(r), &Primitive::Triangle(t), &p);
+    let c = maybe_feat(rng, c);
+    maybe_area(rng, c)
+}
+
+#[test]
+fn tri_ray_linear_matches_dll() {
+    check("p2b_tri_ray", 300, &gen_tri_ray);
+}
+
+#[test]
+fn ray_tri_linear_matches_dll() {
+    check("p2b_tri_ray_tri", 200, &gen_ray_tri);
 }
