@@ -10,6 +10,7 @@ pub mod dotnet_fmt;
 pub mod error;
 pub mod file_manager;
 pub mod helpers;
+pub mod logging;
 pub mod models;
 pub mod mysql;
 pub mod net;

@@ -11,7 +11,6 @@ use std::time::Instant;
 
 use aaemu_login::config::AppConfig;
 use tokio_util::sync::CancellationToken;
-use tracing_subscriber::EnvFilter;
 
 fn config_dir() -> PathBuf {
     aaemu_commons::file_manager::resolve_app_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("app"))
@@ -19,11 +18,8 @@ fn config_dir() -> PathBuf {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .init();
+    // NLog.config: console, Logs/Server.log and Logs/Error.log next to the executable.
+    aaemu_commons::logging::init(&aaemu_commons::helpers::base_directory());
 
     let start = Instant::now();
     tracing::info!(

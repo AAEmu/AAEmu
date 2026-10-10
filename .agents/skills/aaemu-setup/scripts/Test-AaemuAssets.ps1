@@ -141,7 +141,6 @@ $compactCandidates = @(
     $compactTarget,
     (Join-Path $RepoRoot ".server_files\AAEmu.Game\Data\compact.sqlite3")
 )
-$compactLegacy = Join-Path $RepoRoot "AAEmu.Game\Data\compact.sqlite3"
 $compact = $compactCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if ($compact) {
     $c = Get-Item -LiteralPath $compact
@@ -152,9 +151,6 @@ if ($compact) {
     else {
         Add-Result "compact.sqlite3" "PARTIAL" "file too small ($sizeText)" $compact
     }
-}
-elseif (Test-Path -LiteralPath $compactLegacy) {
-    Add-Result "compact.sqlite3" "PARTIAL" "found at the old C# location; copy it to rust\crates\aaemu-game\app\Data\compact.sqlite3 (no re-download)" $compactLegacy
 }
 else {
     $compactArchive = @(Get-ClientArchives | Where-Object { $_ -match 'compact|Compact|Server_Compact' })

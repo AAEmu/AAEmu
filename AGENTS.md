@@ -324,7 +324,6 @@ cargo xtask ci            # fmt --check + clippy -D warnings + test, exactly as 
 - Game flow tests run whole packet flows without MySQL (`test_support::test_server()`, `TestClient`); see `object_flow_tests.rs`, `world_flow_tests.rs`.
 - Tests needing real data are `#[ignore]`d and gated by env vars: `AAEMU_COMPACT_DB=rust/crates/aaemu-game/app/Data/compact.sqlite3 cargo test -p aaemu-game -- --ignored`; MySQL tests by `AAEMU_TEST_MYSQL`. CI does not run them — run them locally when touching that code.
 - Live end-to-end tests against running servers: `aaemu-testclient`, see [`rust/LIVE-TESTING.md`](rust/LIVE-TESTING.md).
-- Subsystem test priorities: [`Docs/TestingPlan_en.md`](Docs/TestingPlan_en.md).
 
 ---
 
@@ -344,8 +343,7 @@ When asked to modify, fix, or improve code, **do not invent conventions**. Inspe
    - [`Developer-Notes.md`](Docs/wiki/Developer-Notes.md) — startup order and subsystem wiring.
    - [`Documentation-Maintenance.md`](Docs/wiki/Documentation-Maintenance.md) — when and how to update wiki pages.
    - [`Home.md`](Docs/wiki/Home.md) — documentation map.
-6. **[`Docs/TestingPlan_en.md`](Docs/TestingPlan_en.md)** — subsystem map and testing priorities.
-7. **[`rust/PORT-AUDIT.md`](rust/PORT-AUDIT.md)** — what was ported from the C# code and what is still missing.
+6. **[`rust/PORT-AUDIT.md`](rust/PORT-AUDIT.md)** — how every file of the former C# code base maps to the Rust code.
 
 ### Rust style highlights
 

@@ -21,7 +21,6 @@ use aaemu_game::systems::services::{self, game_service};
 use aaemu_game::{login, net, GameServer};
 use anyhow::Context;
 use sqlx::mysql::MySqlPoolOptions;
-use tracing_subscriber::EnvFilter;
 
 /// Splits the command line into the app path and the configuration arguments.
 fn split_args(args: Vec<String>) -> (PathBuf, Vec<String>) {
@@ -69,11 +68,8 @@ async fn wait_for_ctrl_c() -> anyhow::Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .init();
+    // NLog.config: console, Logs/Server.log and Logs/Error.log next to the executable.
+    aaemu_commons::logging::init(&aaemu_commons::helpers::base_directory());
     initialization();
 
     let args: Vec<String> = std::env::args().skip(1).collect();

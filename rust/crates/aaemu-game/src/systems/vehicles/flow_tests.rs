@@ -1275,13 +1275,16 @@ fn real_compact_db_vehicle_tables() {
     // / `cyclic` with the string form.
     assert!(d.slave_templates.values().all(|t| !t.mountable));
     assert!(d.transfer_templates.values().any(|t| t.cyclic));
-    // Boats have a ship model, carriages a vehicle model.
-    let boat = d.slave_templates.values().find(|t| t.is_a_boat()).unwrap();
-    assert!(
-        d.ship_model(boat.model_id).is_some(),
-        "boat {} model",
-        boat.id
-    );
+    // Boats have a ship model, carriages a vehicle model. In the 1.2 data 9 of the 49
+    // boat-kind slaves have none (vehicle / prefab / missing models, e.g. 7, 19, 105), so
+    // count them instead of sampling one (HashMap order made that flaky).
+    let boats: Vec<_> = d.slave_templates.values().filter(|t| t.is_a_boat()).collect();
+    let with_ship_model = boats
+        .iter()
+        .filter(|t| d.ship_model(t.model_id).is_some())
+        .count();
+    assert_eq!((boats.len(), with_ship_model), (49, 40));
+    assert!(d.ship_model(d.slave_templates[&9].model_id).is_some());
     let carriage = d.transfer_template(6).unwrap();
     assert!(d.vehicle_model(carriage.model_id).is_some());
     // slave_attach_points.json of the server data
