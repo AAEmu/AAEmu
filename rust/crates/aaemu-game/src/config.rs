@@ -60,6 +60,9 @@ pub struct AppConfig {
     pub expedition: crate::systems::social::config::ExpeditionConfig,
     #[serde(rename = "justice")]
     pub justice: crate::systems::social::config::JusticeConfig,
+    /// `HeightMapsEnable` (C# default false; the shipped Config.json sets it to true).
+    #[serde(rename = "heightmapsenable", deserialize_with = "lenient")]
+    pub heightmaps_enable: bool,
     /// `FileManager.AppPath`: the directory holding `Config.json` and `Data/compact.sqlite3`.
     #[serde(skip)]
     pub app_path: PathBuf,
@@ -87,6 +90,7 @@ impl Default for AppConfig {
             debug_info_level: 100,
             expedition: Default::default(),
             justice: Default::default(),
+            heightmaps_enable: false,
             app_path: PathBuf::from("."),
         }
     }
@@ -190,6 +194,15 @@ pub struct WorldConfig {
     pub exp_rate: f64,
     #[serde(rename = "ignorefalldamageaccesslevel", deserialize_with = "lenient")]
     pub ignore_fall_damage_access_level: i32,
+    /// `GeoDataMode` (navmesh heights; geodata is not ported, the `false` path is used).
+    #[serde(rename = "geodatamode", deserialize_with = "lenient")]
+    pub geo_data_mode: bool,
+    /// `PreLoadTerrain`: load every heightmap cell at startup instead of on demand.
+    #[serde(rename = "preloadterrain", deserialize_with = "lenient")]
+    pub pre_load_terrain: bool,
+    /// `GrowthRate` (doodad growth time divisor).
+    #[serde(rename = "growthrate", deserialize_with = "lenient")]
+    pub growth_rate: f64,
 }
 
 impl Default for WorldConfig {
@@ -200,6 +213,9 @@ impl Default for WorldConfig {
             auto_save_interval: 5.0,
             exp_rate: 1.0,
             ignore_fall_damage_access_level: 100,
+            geo_data_mode: false,
+            pre_load_terrain: false,
+            growth_rate: 1.0,
         }
     }
 }

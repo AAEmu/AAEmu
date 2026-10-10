@@ -1,17 +1,41 @@
-//! Phase-3 subsystem: NPCs / doodads / spawns.
+//! Phase-3 subsystem: NPCs / doodads / spawns and the world-object driven managers.
 //!
 //! C# scope: `Core/Managers/UnitManagers/NpcManager`, `DoodadManager`, `Core/Managers/World/
-//! SpawnManager`, `GimmickManager`, `AiManager`, `Models/Game/NPChar/**` (templates, spawners,
-//! AI, aggro), `Models/Game/DoodadObj/**` (templates, funcs, phases, spawners), gimmicks.
+//! SpawnManager`, `GimmickManager`, `AreaTriggerManager`, `PortalManager`, `SubZoneManager`,
+//! `FishSchoolManager`, `PublicFarmManager`, `SpecialtyManager`, `SphereQuestManager` (world
+//! side), `Models/Game/NPChar/**` (templates, spawners), `Models/Game/DoodadObj/**` (templates,
+//! funcs, phases, spawners, persistence), `Models/Game/World/Interactions`, heightmaps.
+//! The NPC AI is a later phase (`Npc::has_ai` / `ai_should_tick` stay the hook).
 //!
-//! Foundation to build on: `models::npc::Npc`, `models::doodad::Doodad`,
-//! `models::gimmick::Gimmick`, `world::object` (`Entity::new`, `WorldObject`),
-//! `WorldInstance::spawn / delete / add_visible_object` (visibility packets are already
-//! handled), `managers::id` (obj ids).
+//! Layout (one owner per file, see `CONTRIBUTING-PORT.md`):
 //!
-//! Module layout (see `CONTRIBUTING-PORT.md`): packets in `packets.rs` (C2G + G2C of this
-//! subsystem), tables in `data.rs`, managers in their own files; everything is wired through
-//! the five items below, which `systems/mod.rs` already calls.
+//! | module | C# |
+//! |---|---|
+//! | [`json`] | `JsonHelper` (Newtonsoft-lenient JSON for `Data/Worlds/**`) |
+//! | [`hooks`] | the behaviour this subsystem needs from skills / economy / quests |
+//! | [`npc`] | `NpcManager`, `NpcGameData`, `Npc` stats, `NpcSpawner`, NPC interaction packets |
+//! | [`doodad`] | `DoodadManager`, `Doodad` funcs / phases, `DoodadSpawner`, persistence, `SCDoodad*` |
+//! | [`spawn_manager`] | `SpawnManager` (one per world instance) |
+//! | [`heightmap`] | `WorldCell` heightmaps, `WorldManager.GetHeight` |
+//! | [`gimmick`] | `GimmickManager`, `GimmickGameData`, `GimmickSpawner` |
+//! | [`area_trigger`], [`subzone`], [`sphere_quest`] | `AreaTriggerManager`, `SubZoneManager`, `SphereQuestManager` |
+//! | [`portal`], [`specialty`], [`public_farm`], [`fish_school`] | `PortalManager`, `SpecialtyManager`, `PublicFarmManager`, `FishSchoolManager` |
+
+pub mod area_trigger;
+pub mod doodad;
+pub mod fish_school;
+pub mod gimmick;
+pub mod heightmap;
+pub mod hooks;
+pub mod json;
+pub mod npc;
+pub mod portal;
+pub mod public_farm;
+pub mod schedule;
+pub mod spawn_manager;
+pub mod specialty;
+pub mod sphere_quest;
+pub mod subzone;
 
 use std::sync::Arc;
 
@@ -21,22 +45,98 @@ use crate::systems::{DataLoadCtx, SaveStage};
 
 /// Game-data tables of this subsystem (`server.game_data.systems.npcs`).
 #[derive(Debug, Default)]
-pub struct Data {}
+pub struct Data {
+    /// `NpcManager` templates, customs, body parts, postures, merchant goods.
+    pub npc: npc::data::NpcData,
+    /// `NpcGameData` (spawner templates and members).
+    pub npc_spawners: npc::spawner_data::NpcSpawnerData,
+    /// `DoodadManager` templates, func groups, funcs, phase funcs and func templates.
+    pub doodad: doodad::data::DoodadData,
+    /// `GimmickGameData`.
+    pub gimmick: gimmick::GimmickData,
+    /// `AreaTriggerManager` / `aoe_shapes` / `WorldManager` world-interaction groups.
+    pub area_trigger: area_trigger::AreaTriggerData,
+    /// `SubZoneManager`.
+    pub subzone: subzone::SubZoneData,
+    /// `SphereQuestManager` / `SphereGameData` (world side).
+    pub sphere: sphere_quest::SphereData,
+    /// `PortalManager` (open portals, world gates, teleports).
+    pub portal: portal::PortalTables,
+    /// `SpecialtyManager`.
+    pub specialty: specialty::SpecialtyData,
+    /// `PublicFarmManager` / `CommonFarmGameData`.
+    pub public_farm: public_farm::PublicFarmData,
+    /// `FishSchoolManager` / `FishDetailsGameData`.
+    pub fish_school: fish_school::FishSchoolData,
+    /// `GameScheduleManager` / `SchedulesGameData`.
+    pub schedule: schedule::ScheduleData,
+}
 
 impl Data {
-    /// Loads this subsystem's tables from `ctx` (TODO(npcs): port the C# loaders).
-    pub fn load(_ctx: &DataLoadCtx<'_>) -> Result<Self, crate::data::GameDataError> {
-        Ok(Self::default())
+    /// Loads this subsystem's tables from `ctx` (a failing loader aborts startup).
+    pub fn load(ctx: &DataLoadCtx<'_>) -> Result<Self, crate::data::GameDataError> {
+        Ok(Self {
+            npc: npc::data::NpcData::load(ctx)?,
+            npc_spawners: npc::spawner_data::NpcSpawnerData::load(ctx)?,
+            doodad: doodad::data::DoodadData::load(ctx)?,
+            gimmick: gimmick::GimmickData::load(ctx)?,
+            area_trigger: area_trigger::AreaTriggerData::load(ctx)?,
+            subzone: subzone::SubZoneData::load(ctx)?,
+            sphere: sphere_quest::SphereData::load(ctx)?,
+            portal: portal::PortalTables::load(ctx)?,
+            specialty: specialty::SpecialtyData::load(ctx)?,
+            public_farm: public_farm::PublicFarmData::load(ctx)?,
+            fish_school: fish_school::FishSchoolData::load(ctx)?,
+            schedule: schedule::ScheduleData::load(ctx)?,
+        })
     }
 }
 
-/// Managers of this subsystem (`server.systems.npcs`); add one field per manager.
+/// Managers of this subsystem (`server.systems.npcs`).
 #[derive(Debug, Default)]
-pub struct System {}
+pub struct System {
+    /// `NpcManager` (runtime part).
+    pub npcs: npc::manager::NpcManager,
+    /// `DoodadManager` (runtime part: coffers, player doodads, phase timers).
+    pub doodads: doodad::manager::DoodadManager,
+    /// `WorldInstance.SpawnManager` for every instance.
+    pub spawns: spawn_manager::SpawnManagers,
+    /// `WorldCell` heightmaps (lazy, per world template).
+    pub heightmaps: heightmap::Heightmaps,
+    /// `WorldInstance.GimmickManager` for every instance.
+    pub gimmicks: gimmick::GimmickManager,
+    /// `AreaTriggerManager`.
+    pub area_triggers: area_trigger::AreaTriggerManager,
+    /// `SphereQuestManager` (world side).
+    pub spheres: sphere_quest::SphereQuestManager,
+    /// `PortalManager` (runtime).
+    pub portals: portal::PortalManager,
+    /// `SpecialtyManager` (runtime ratios).
+    pub specialty: specialty::SpecialtyManager,
+    /// `PublicFarmManager`.
+    pub public_farms: public_farm::PublicFarmManager,
+    /// `FishSchoolManager`.
+    pub fish_schools: fish_school::FishSchoolManager,
+    /// Behaviour of other subsystems this one calls (installed by them at start).
+    pub hooks: hooks::NpcsHooks,
+}
 
 impl System {
-    /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
-    pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
+    /// Startup after the phase-1/2 managers (`ManagerOrchestrator` order): heightmaps, spawn
+    /// data, persistent doodads, spawning, timers.
+    pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        heightmap::start(server).await?;
+        area_trigger::start(server).await?;
+        portal::start(server).await?;
+        specialty::start(server).await?;
+        public_farm::start(server).await?;
+        sphere_quest::start(server).await?;
+        doodad::start(server).await?;
+        npc::start(server).await?;
+        gimmick::start(server).await?;
+        // `WorldManager.CreateStaticInstances`: SpawnManager.Load + SpawnAll for main_world.
+        spawn_manager::start(server).await?;
+        fish_school::start(server).await?;
         Ok(())
     }
 
@@ -44,13 +144,32 @@ impl System {
     /// number of rows written.
     pub async fn save(
         &self,
-        _server: &GameServer,
-        _tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
-        _stage: SaveStage,
+        server: &GameServer,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        stage: SaveStage,
     ) -> crate::Result<usize> {
-        Ok(0)
+        let mut n = 0;
+        n += doodad::save(server, tx, stage).await?;
+        n += portal::save(server, tx, stage).await?;
+        Ok(n)
     }
 }
 
-/// Registers this subsystem's C->S packets (`reg.register::<P>(LEVEL_PLAIN, cs::P)`).
-pub fn register(_reg: &mut PacketRegistry) {}
+/// Registers this subsystem's C->S packets.
+pub fn register(reg: &mut PacketRegistry) {
+    npc::register(reg);
+    doodad::register(reg);
+    portal::register(reg);
+    specialty::register(reg);
+    public_farm::register(reg);
+    subzone::register(reg);
+    gimmick::register(reg);
+    fish_school::register(reg);
+    area_trigger::register(reg);
+    sphere_quest::register(reg);
+}
+
+#[cfg(test)]
+mod flow_tests;
+#[cfg(test)]
+mod spawn_tests;

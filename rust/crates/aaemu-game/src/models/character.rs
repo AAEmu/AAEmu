@@ -210,7 +210,8 @@ pub struct Character {
     /// Character skill / combat state (`SkillCancelled`, `LastCast`, `IsInAggroListOf`, ...).
     pub skill_char: crate::systems::skills::state::CharacterSkillState,
     // ---- phase 3 / npcs: add this subsystem's Character fields below ----
-
+    /// `Bonding` (`BondDoodad`: the doodad seat / bed the character is attached to).
+    pub bonding: Option<crate::models::doodad::BondDoodad>,
     // ---- phase 3 / economy: add this subsystem's Character fields below ----
 
     // ---- phase 3 / social: add this subsystem's Character fields below ----
@@ -330,7 +331,7 @@ impl Character {
             // ---- phase 3 / skills ----
             skill_char: Default::default(),
             // ---- phase 3 / npcs ----
-
+            bonding: None,
             // ---- phase 3 / economy ----
 
             // ---- phase 3 / social ----

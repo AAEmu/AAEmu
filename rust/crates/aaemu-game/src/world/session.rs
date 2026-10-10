@@ -950,7 +950,8 @@ pub async fn leave_world_task(
         set_online(server, p, false);
         p.data().leave_time = Utc::now().timestamp();
         crate::systems::quests::on_leave_world(server, p.character_id);
-        // Mates, slaves, coffers, dismount: later phases.
+        crate::systems::npcs::doodad::coffer::close_coffers_opened_by(server, p);
+        // Mates, slaves, dismount: later phases.
         server.chat.leave_all_channels(p);
         // Handle Family
         crate::systems::social::session::on_leave_world_family(server, p);
@@ -1033,6 +1034,7 @@ pub async fn on_disconnect(server: &GameServer, conn: &mut GameConnection) {
     }
     // Events.OnDisconnect, mates / slaves / coffers: later phases. Note (C#): chat channels are
     // not left on a hard disconnect.
+    crate::systems::npcs::doodad::coffer::close_coffers_opened_by(server, &p);
     save_and_remove_from_world(server, Some(&p)).await;
 }
 

@@ -45,6 +45,10 @@ pub struct Npc {
     /// `Ai.ShouldTick`: set / cleared by the visibility code when players come and go
     /// (`Region.AddToCharacters` / `RemoveFromCharacters`).
     pub ai_should_tick: bool,
+    /// `CharacterTagging.TagTeam` (0 = no team has tagging rights).
+    pub tag_team: u32,
+    /// `CharacterTagging.Tagger?.ObjId ?? 0` (the player holding tagging rights).
+    pub tagger_obj_id: u32,
 }
 
 impl Npc {
@@ -66,6 +70,8 @@ impl Npc {
             portal: None,
             has_ai: false,
             ai_should_tick: false,
+            tag_team: 0,
+            tagger_obj_id: 0,
         }
     }
 
