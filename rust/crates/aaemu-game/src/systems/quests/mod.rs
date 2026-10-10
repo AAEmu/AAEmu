@@ -14,6 +14,7 @@
 //! * [`spheres`]: quest spheres; [`packets`]: C->S / S->C packets.
 
 pub mod acts;
+pub mod bridges;
 pub mod data;
 pub mod engine;
 pub mod events;
@@ -68,8 +69,11 @@ pub struct System {
     timers: Mutex<HashMap<u32, Vec<TimerEntry>>>,
     /// `WorldInstance.SphereQuestManager`.
     pub spheres: spheres::SphereQuestManager,
-    /// The quest hooks (installed by the other subsystems).
+    /// The quest hooks (`bridges::GameQuestHooks`, installed at start).
     pub hooks: HookSlot<dyn QuestHooks>,
+    /// The economy subsystem's `QuestHooks` (items, money, mails, trade packs) that
+    /// `bridges::GameQuestHooks` forwards to.
+    pub economy_hooks: HookSlot<dyn QuestHooks>,
 }
 
 impl std::fmt::Debug for System {
@@ -85,6 +89,7 @@ impl System {
     /// Startup: quest sphere manager (world coordinates need the world templates), the sphere
     /// tick (500 ms) and the daily reset task.
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        install_hooks(server);
         let s = &server.systems.quests;
         let _ = s.server.set(Arc::downgrade(server));
         let data = &server.game_data.systems.quests;
@@ -330,4 +335,10 @@ pub fn register(reg: &mut PacketRegistry) {
     reg.register::<CSSaveTutorialPacket>(LEVEL_PLAIN, cs::CSSaveTutorialPacket);
     reg.register::<CSStartedCinemaPacket>(LEVEL_PLAIN, cs::CSStartedCinemaPacket);
     reg.register::<CSCompletedCinemaPacket>(LEVEL_PLAIN, cs::CSCompletedCinemaPacket);
+}
+
+/// Installs the quest subsystem's hooks (its implementations of the other subsystems' hooks
+/// and its own `QuestHooks`). No I/O; also used by the flow tests.
+pub fn install_hooks(server: &GameServer) {
+    bridges::install(server);
 }

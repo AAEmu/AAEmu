@@ -22,6 +22,7 @@
 //! | [`portal`], [`specialty`], [`public_farm`], [`fish_school`] | `PortalManager`, `SpecialtyManager`, `PublicFarmManager`, `FishSchoolManager` |
 
 pub mod area_trigger;
+pub mod bridges;
 pub mod doodad;
 pub mod fish_school;
 pub mod gimmick;
@@ -125,6 +126,7 @@ impl System {
     /// Startup after the phase-1/2 managers (`ManagerOrchestrator` order): heightmaps, spawn
     /// data, persistent doodads, spawning, timers.
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        install_hooks(server);
         heightmap::start(server).await?;
         area_trigger::start(server).await?;
         portal::start(server).await?;
@@ -173,3 +175,9 @@ pub fn register(reg: &mut PacketRegistry) {
 mod flow_tests;
 #[cfg(test)]
 mod spawn_tests;
+
+/// Installs the NPC subsystem's implementations of the other subsystems' hooks (no I/O; also
+/// used by the flow tests).
+pub fn install_hooks(server: &GameServer) {
+    bridges::install(server);
+}

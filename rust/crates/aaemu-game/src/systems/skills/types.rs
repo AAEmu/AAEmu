@@ -781,6 +781,8 @@ pub mod tags {
     pub const STEALTH: u32 = 100;
     pub const RETURNING: u32 = 148;
     pub const NO_FIGHT: u32 = 345;
+    /// `BuffConstants.TagWanted`.
+    pub const WANTED: u32 = 894;
 }
 
 /// `SkillResult` (1.2 numbering, `SkillResult.cs`).

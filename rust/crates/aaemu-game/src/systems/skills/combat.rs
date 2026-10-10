@@ -174,6 +174,11 @@ pub fn post_update_current_hp(
     if hp > 0 {
         return;
     }
+    // attackerUnit.Events.OnKill(attackerUnit, { Target = attackerUnit }) (sic, C#); the
+    // dungeon `OnUnitKilled` world event is the instances subsystem's.
+    if let Some(ap) = attacker.and_then(WorldObject::as_player) {
+        crate::systems::quests::events::on_kill(server, ap, attacker, None, None);
+    }
     do_die(server, target, attacker, kill_reason);
 }
 
@@ -220,6 +225,10 @@ pub fn do_die(
     set_in_battle(server, victim, false);
     // Events.OnDeath (buff triggers listening to the victim)
     buffs::fire_unit_event(server, victim.obj_id(), BuffEventTriggerKind::Death, 0);
+    // killerUnit?.Events.OnKill(this, { Killer, Victim }) (quest subscribers of a player)
+    if let Some(kp) = killer.and_then(WorldObject::as_player) {
+        crate::systems::quests::events::on_kill(server, kp, None, killer, Some(victim));
+    }
     // Abusers that died leave the aggro tables they are in (OnAbuserDied).
     on_abuser_died(server, victim);
     buffs::remove_effects_on_death(server, victim);
@@ -248,6 +257,33 @@ pub fn do_die(
         }
         return;
     };
+    do_die_base(
+        server,
+        victim,
+        killer,
+        kill_reason,
+        wait,
+        lost_exp,
+        durability_loss,
+    );
+    if let Some(n) = victim.as_npc() {
+        npc_hooks.npc_after_death(server, n, Some(killer));
+    }
+    if let Some(p) = victim.as_player() {
+        character_death_tail(server, p, victim, killer);
+    }
+}
+
+/// The part of `Unit.DoDie` after the death events (the death packet, loot, target cleanup).
+fn do_die_base(
+    server: &GameServer,
+    victim: &WorldObject,
+    killer: &WorldObject,
+    kill_reason: KillReason,
+    wait: i32,
+    lost_exp: i32,
+    durability_loss: u8,
+) {
     let killer_info = killer.is_unit().then(|| {
         (
             killer.obj_id(),
@@ -269,12 +305,12 @@ pub fn do_die(
     );
     if killer.same(victim) {
         // DespawnMate (mates subsystem)
-        if let Some(n) = victim.as_npc() {
-            npc_hooks.npc_after_death(server, n, Some(killer));
-        }
         return;
     }
-    // LootingContainer.GenerateLoot(killer): part of the npc hooks (loot of NPCs).
+    // LootingContainer.GenerateLoot(killer) (NPC loot: npcs -> economy).
+    if let Some(n) = victim.as_npc() {
+        crate::systems::npcs::npc::death::generate_loot(server, n, Some(killer));
+    }
     let current_target = victim.with_unit(|u| u.unit().current_target).unwrap_or(0);
     if current_target != 0 {
         send_to_players(
@@ -330,8 +366,74 @@ pub fn do_die(
         }
         killer.with_unit(|u| u.unit_mut().current_target = 0);
     }
-    if let Some(n) = victim.as_npc() {
-        npc_hooks.npc_after_death(server, n, Some(killer));
+}
+
+/// `Character.DoDie` after `base.DoDie`: crime evidence for a friendly-fire kill (unless it
+/// was retaliation), `ClearAllAggro()` and the arrest of a wanted character killed by another
+/// character. Not ported: escalating respawn timers, exp / durability loss, PvP honor and
+/// kill counts, `DropTradePackToFloor` (items).
+fn character_death_tail(
+    server: &GameServer,
+    victim_p: &PlayerRef,
+    victim: &WorldObject,
+    killer: &WorldObject,
+) {
+    let arrestor = killer.as_player().cloned();
+    if arrestor.is_some() {
+        let relation = super::relation::relation_to(
+            server,
+            &Target::Obj(killer.clone()),
+            &Target::Obj(victim.clone()),
+        );
+        if relation == super::types::RelationState::Friendly {
+            // Friendly-fire kill -> generate crime evidence (unless retaliation)
+            let killer_owner = super::relation::owner_character(server, killer);
+            if let Some(owner) = killer_owner {
+                let retaliation = victim_p
+                    .data()
+                    .skill_char
+                    .assaulted_by
+                    .contains(&owner.character_id);
+                if !retaliation {
+                    server.systems.social.crimes.generate_evidence_from_kill(
+                        server,
+                        killer,
+                        Some(&owner),
+                        Some(victim_p),
+                    );
+                }
+            }
+        }
+    }
+    clear_all_aggro(server, victim);
+    // Arrest if wanted
+    let Some(arrestor) = arrestor else {
+        return;
+    };
+    if !buffs::check_buff_tag(server, victim, tags::WANTED) {
+        return;
+    }
+    let contemptuous =
+        victim.with_base_unit(|b| b.buffs().check_buff(buff_constants::CONTEMPTUOUS));
+    let arrest = if !contemptuous {
+        // If not a pirate arrest regardless
+        true
+    } else {
+        // If a pirate, only arrest in faction zones
+        let zone_key = victim_p.data().unit.transform.zone_id;
+        let zones = &server.game_data.zones;
+        let desperado = zones
+            .zone_by_key(zone_key)
+            .and_then(|z| zones.group(z.group_id))
+            .is_some_and(|g| g.pirate_desperado);
+        !desperado
+    };
+    if arrest {
+        server
+            .systems
+            .social
+            .trials
+            .arrest_criminal(server, victim_p, Some(&arrestor));
     }
 }
 

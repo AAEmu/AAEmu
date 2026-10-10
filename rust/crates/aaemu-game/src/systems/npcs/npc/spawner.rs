@@ -1236,7 +1236,7 @@ pub fn spawn_into_world(server: &GameServer, world: &Arc<WorldInstance>, npc: &N
 
 /// `TaskManager.Schedule(new NpcSpawnerDoDespawnTask(npc), lifeTime)`:
 /// `npc?.Spawner?.DoDespawn(npc)` after `secs` seconds.
-fn schedule_npc_do_despawn(server: &GameServer, npc: &NpcRef, secs: f32) {
+pub(crate) fn schedule_npc_do_despawn(server: &GameServer, npc: &NpcRef, secs: f32) {
     let (Some(server), Ok(rt)) = (server.self_arc(), tokio::runtime::Handle::try_current()) else {
         tracing::warn!("NpcSpawnerDoDespawnTask: no runtime / server handle");
         return;

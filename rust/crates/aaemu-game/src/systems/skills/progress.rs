@@ -9,6 +9,7 @@ use aaemu_commons::{Marshal, PacketStream};
 
 use crate::data::formulas::FormulaKind;
 use crate::models::char_data::{ability, Skill};
+use crate::models::character::Character;
 use crate::net::packet::LEVEL_PLAIN;
 use crate::opcodes::sc;
 use crate::packets::packet_def;
@@ -93,53 +94,85 @@ fn actability_exp_multiplier(_step: u8) -> f32 {
     1.0
 }
 
-/// `Character.AddExp(expDelta, shouldAddAbilityExp)`.
-pub fn add_exp(server: &GameServer, p: &PlayerRef, mut exp_delta: i32, add_ability_exp: bool) {
+/// The outcome of [`add_exp_locked`]: what `Character.AddExp` still has to send / raise once the
+/// character's lock is released.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ExpGain {
+    /// The applied delta (after `ExpRate`).
+    pub exp: i32,
+    pub should_add_ability_exp: bool,
+    /// The new level when the character leveled up.
+    pub new_level: Option<u8>,
+}
+
+/// The data part of `Character.AddExp(expDelta, shouldAddAbilityExp)` on a locked character
+/// (experience, level, `Abilities.AddActiveExp`). `None` when nothing changed.
+pub fn add_exp_locked(
+    server: &GameServer,
+    c: &mut Character,
+    mut exp_delta: i32,
+    add_ability_exp: bool,
+) -> Option<ExpGain> {
     if exp_delta == 0 {
-        return;
+        return None;
     }
     if exp_delta > 0 {
         exp_delta = (f64::from(exp_delta) * server.config.world.exp_rate) as i32;
     }
     let exp_table = &server.game_data.experience;
-    let (leveled_up, level) = {
-        let mut c = p.data();
-        let mut new_exp = c.experience.wrapping_add(exp_delta);
-        let (new_level, overflow) = match exp_table.level_from_exp(new_exp, c.unit.level, false) {
-            Ok(v) => v,
-            Err(e) => {
-                tracing::error!("AddExp for {}: {e}", c.id);
-                return;
-            }
-        };
-        let leveled = new_level > c.unit.level;
-        if new_level >= exp_table.max_player_level() {
-            new_exp -= overflow;
+    let mut new_exp = c.experience.wrapping_add(exp_delta);
+    let (new_level, overflow) = match exp_table.level_from_exp(new_exp, c.unit.level, false) {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::error!("AddExp for {}: {e}", c.id);
+            return None;
         }
-        c.experience = new_exp;
-        c.unit.level = new_level;
-        if add_ability_exp {
-            // Abilities.AddActiveExp
-            let max_exp = exp_table.exp_for_level(exp_table.max_player_level(), false);
-            let actives = [c.ability1, c.ability2, c.ability3];
-            for a in actives {
-                if a == ability::NONE {
-                    continue;
-                }
-                if let Some(ab) = c.abilities.get_mut(a) {
-                    ab.exp = (ab.exp + exp_delta).min(max_exp);
-                }
-            }
-        }
-        (leveled, new_level)
     };
-    p.send(SCExpChangedPacket {
-        obj_id: p.obj_id,
+    let leveled = new_level > c.unit.level;
+    if new_level >= exp_table.max_player_level() {
+        new_exp -= overflow;
+    }
+    c.experience = new_exp;
+    c.unit.level = new_level;
+    if add_ability_exp {
+        // Abilities.AddActiveExp
+        let max_exp = exp_table.exp_for_level(exp_table.max_player_level(), false);
+        let actives = [c.ability1, c.ability2, c.ability3];
+        for a in actives {
+            if a == ability::NONE {
+                continue;
+            }
+            if let Some(ab) = c.abilities.get_mut(a) {
+                ab.exp = (ab.exp + exp_delta).min(max_exp);
+            }
+        }
+    }
+    Some(ExpGain {
         exp: exp_delta,
         should_add_ability_exp: add_ability_exp,
+        new_level: leveled.then_some(new_level),
+    })
+}
+
+/// `SendPacket(new SCExpChangedPacket(ObjId, expDelta, shouldAddAbilityExp))`.
+pub fn send_exp_changed(p: &PlayerRef, gain: &ExpGain) {
+    p.send(SCExpChangedPacket {
+        obj_id: p.obj_id,
+        exp: gain.exp,
+        should_add_ability_exp: gain.should_add_ability_exp,
     });
-    if leveled_up {
-        // Expedition?.OnCharacterRefresh: guild member refresh (social subsystem)
+}
+
+/// The world part of `Character.AddExp` after [`send_exp_changed`] (no lock held): on a level
+/// up `Expedition?.OnCharacterRefresh` + the `SCLevelChangedPacket` broadcast (and the cached
+/// stats of the new level), then `QuestManager.DoOnLevelUpEvents` (raised on every exp change,
+/// as in C#).
+pub fn add_exp_world_tail(server: &GameServer, p: &PlayerRef, gain: &ExpGain) {
+    if let Some(level) = gain.new_level {
+        let expedition_id = p.data().unit.expedition_id;
+        if expedition_id != 0 {
+            crate::systems::social::expedition::on_character_refresh(server, p, expedition_id);
+        }
         let obj = WorldObject::from(p);
         broadcast(
             server,
@@ -152,17 +185,36 @@ pub fn add_exp(server: &GameServer, p: &PlayerRef, mut exp_delta: i32, add_abili
         );
         super::stats::refresh_cached_stats(server, &obj);
     }
-    // QuestManager.DoOnLevelUpEvents: quests subsystem
+    crate::systems::quests::events::on_level_up(server, p);
 }
 
-/// `Character.ChangeLabor(change, actabilityId)`.
-pub fn change_labor(server: &GameServer, p: &PlayerRef, change: i16, actability_id: i32) {
+/// `Character.AddExp(expDelta, shouldAddAbilityExp)`.
+pub fn add_exp(server: &GameServer, p: &PlayerRef, exp_delta: i32, add_ability_exp: bool) {
+    let gain = {
+        let mut c = p.data();
+        add_exp_locked(server, &mut c, exp_delta, add_ability_exp)
+    };
+    if let Some(gain) = gain {
+        send_exp_changed(p, &gain);
+        add_exp_world_tail(server, p, &gain);
+    }
+}
+
+/// The locked part of `Character.ChangeLabor(change, actabilityId)`: actability points, the
+/// labor experience (`AddExp`) and the labor change. Returns the labor packet and the exp
+/// gain to finish with [`send_exp_changed`] / [`add_exp_world_tail`]; `None` when the C#
+/// throws (unknown actability).
+pub fn change_labor_locked(
+    server: &GameServer,
+    c: &mut Character,
+    change: i16,
+    actability_id: i32,
+) -> Option<(SCCharacterLaborPowerChangedPacket, Option<ExpGain>)> {
     let mut actability_change = 0;
     let mut actability_step = 0u8;
     let mut exp_mul = 1.0f32;
     if actability_id > 0 {
         let limits = &server.game_data.characters.expert_limits;
-        let mut c = p.data();
         match c
             .actability
             .actabilities
@@ -188,74 +240,99 @@ pub fn change_labor(server: &GameServer, p: &PlayerRef, change: i16, actability_
                 tracing::error!(
                     "ChangeLabor: actability {actability_id} not found (KeyNotFoundException)"
                 );
-                return;
+                return None;
             }
         }
     }
+    let mut gain = None;
     if change < 0 {
-        let level = p.data().unit.level;
         let params = HashMap::from([
             ("labor_power", f64::from(-change)),
-            ("pc_level", f64::from(level)),
+            ("pc_level", f64::from(c.unit.level)),
         ]);
         let xp = server
             .game_data
             .formulas
             .get_formula_by_kind(FormulaKind::ExpByLaborPower)
             .map_or(0.0, |f| f.evaluate(&params));
-        add_exp(server, p, (xp * f64::from(exp_mul)) as i32, true);
+        gain = add_exp_locked(server, c, (xp * f64::from(exp_mul)) as i32, true);
     }
-    {
-        let mut c = p.data();
-        c.labor_power = c.labor_power.wrapping_add(change);
-        c.labor_power_modified = chrono::Utc::now().timestamp();
-    }
-    p.send(SCCharacterLaborPowerChangedPacket {
-        amount: i32::from(change),
-        action: actability_id,
-        point: actability_change,
-        step: actability_step,
-    });
+    c.labor_power = c.labor_power.wrapping_add(change);
+    c.labor_power_modified = chrono::Utc::now().timestamp();
+    Some((
+        SCCharacterLaborPowerChangedPacket {
+            amount: i32::from(change),
+            action: actability_id,
+            point: actability_change,
+            step: actability_step,
+        },
+        gain,
+    ))
 }
 
-/// `Character.ChangeGamePoints(kind, change)`.
-pub fn change_game_points(server: &GameServer, p: &PlayerRef, kind: u8, mut change: i32) {
+/// `Character.ChangeLabor(change, actabilityId)`.
+pub fn change_labor(server: &GameServer, p: &PlayerRef, change: i16, actability_id: i32) {
+    let res = {
+        let mut c = p.data();
+        change_labor_locked(server, &mut c, change, actability_id)
+    };
+    let Some((packet, gain)) = res else {
+        return;
+    };
+    // AddExp runs before the labor packet in the C#.
+    if let Some(gain) = &gain {
+        send_exp_changed(p, gain);
+        add_exp_world_tail(server, p, gain);
+    }
+    p.send(packet);
+}
+
+/// The locked part of `Character.ChangeGamePoints(kind, change)`: the packet to send (`None`
+/// for an unknown kind).
+pub fn change_game_points_locked(
+    c: &mut Character,
+    kind: u8,
+    mut change: i32,
+) -> Option<SCGamePointChangedPacket> {
     match kind {
-        GAME_POINT_HONOR => p.data().honor_point += change,
+        GAME_POINT_HONOR => c.honor_point += change,
         GAME_POINT_VOCATION => {
-            let obj = WorldObject::from(p);
-            let (add, mul) = obj
-                .with_unit(|u| {
-                    let now = now_ms();
-                    (
-                        u.unit().calculate_with_bonuses(
-                            0.0,
-                            crate::models::unit::UnitAttribute::LivingPointGain,
-                            now,
-                        ) as f32,
-                        u.unit().calculate_with_bonuses(
-                            0.0,
-                            crate::models::unit::UnitAttribute::LivingPointGainMul,
-                            now,
-                        ) as f32,
-                    )
-                })
-                .unwrap_or((0.0, 0.0));
+            let now = now_ms();
+            let add = c.unit.calculate_with_bonuses(
+                0.0,
+                crate::models::unit::UnitAttribute::LivingPointGain,
+                now,
+            ) as f32;
+            let mul = c.unit.calculate_with_bonuses(
+                0.0,
+                crate::models::unit::UnitAttribute::LivingPointGainMul,
+                now,
+            ) as f32;
             change = (change as f32 + add).round_ties_even() as i32;
             let voc_mul = mul + 100.0;
             change = (change as f32 * (voc_mul / 100.0)).round_ties_even() as i32;
-            p.data().vocation_point += change;
-            let _ = server;
+            c.vocation_point += change;
         }
         _ => {
             tracing::error!("ChangeGamePoints - Unknown Game Point Type {kind}");
-            return;
+            return None;
         }
     }
-    p.send(SCGamePointChangedPacket {
+    Some(SCGamePointChangedPacket {
         kind,
         amount: change,
-    });
+    })
+}
+
+/// `Character.ChangeGamePoints(kind, change)`.
+pub fn change_game_points(_server: &GameServer, p: &PlayerRef, kind: u8, change: i32) {
+    let packet = {
+        let mut c = p.data();
+        change_game_points_locked(&mut c, kind, change)
+    };
+    if let Some(packet) = packet {
+        p.send(packet);
+    }
 }
 
 fn active_abilities(p: &PlayerRef) -> [u8; 3] {

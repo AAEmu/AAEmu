@@ -709,27 +709,14 @@ pub fn refresh_cached_stats(server: &GameServer, obj: &WorldObject) {
         u.cast_time_mul = v[7] as f32;
     });
 }
-
-/// `Unit.UpdateGearBonuses(itemAdded, itemRemoved)`: the unit modifiers of the equipped,
-/// non-destroyed items and their gems (`Bonuses[GearBonusesIndex]`), then the gear buffs
-/// (equip effects, weapon wield, armor grade, item sets: item subsystem hook).
-pub fn update_gear_bonuses(
+/// The `Bonuses[GearBonusesIndex]` list of `UpdateGearBonuses`: the unit modifiers of the
+/// equipped, non-destroyed items and their gems.
+pub fn gear_bonuses<'a>(
     server: &GameServer,
-    p: &crate::world::PlayerRef,
-    added: Option<&crate::models::item::Item>,
-    removed: Option<&crate::models::item::Item>,
-) {
-    use crate::models::buff::GEAR_BONUSES_INDEX;
+    items: impl IntoIterator<Item = &'a crate::models::item::Item>,
+) -> Vec<crate::models::unit::Bonus> {
     use crate::models::unit::Bonus;
     let data = &server.game_data;
-    let items: Vec<crate::models::item::Item> = {
-        let c = p.data();
-        c.inventory
-            .equipment_slots()
-            .into_iter()
-            .flatten()
-            .collect()
-    };
     let mut bonuses = Vec::new();
     for item in items {
         if !item.class.is_equip() {
@@ -760,14 +747,41 @@ pub fn update_gear_bonuses(
             }
         }
     }
-    {
-        let mut c = p.data();
-        let statics = &mut c.unit.bonuses.statics;
-        match statics.iter_mut().find(|(i, _)| *i == GEAR_BONUSES_INDEX) {
-            Some((_, l)) => *l = bonuses,
-            None => statics.push((GEAR_BONUSES_INDEX, bonuses)),
-        }
+    bonuses
+}
+
+/// Replaces the `GearBonusesIndex` static bonus list of a unit.
+fn set_gear_bonuses(
+    unit: &mut crate::models::unit::UnitBase,
+    bonuses: Vec<crate::models::unit::Bonus>,
+) {
+    use crate::models::buff::GEAR_BONUSES_INDEX;
+    let statics = &mut unit.bonuses.statics;
+    match statics.iter_mut().find(|(i, _)| *i == GEAR_BONUSES_INDEX) {
+        Some((_, l)) => *l = bonuses,
+        None => statics.push((GEAR_BONUSES_INDEX, bonuses)),
     }
+}
+
+/// `Unit.UpdateGearBonuses(itemAdded, itemRemoved)`: the unit modifiers of the equipped,
+/// non-destroyed items and their gems (`Bonuses[GearBonusesIndex]`), then the gear buffs
+/// (equip effects, weapon wield, armor grade, item sets: item subsystem hook).
+pub fn update_gear_bonuses(
+    server: &GameServer,
+    p: &crate::world::PlayerRef,
+    added: Option<&crate::models::item::Item>,
+    removed: Option<&crate::models::item::Item>,
+) {
+    let items: Vec<crate::models::item::Item> = {
+        let c = p.data();
+        c.inventory
+            .equipment_slots()
+            .into_iter()
+            .flatten()
+            .collect()
+    };
+    let bonuses = gear_bonuses(server, &items);
+    set_gear_bonuses(&mut p.data().unit, bonuses);
     server
         .systems
         .skills
@@ -775,4 +789,14 @@ pub fn update_gear_bonuses(
         .items()
         .apply_gear_buffs(server, p, added, removed);
     refresh_cached_stats(server, &WorldObject::from(p));
+}
+
+/// `Unit.UpdateGearBonuses` for an NPC (its `Equipment`): the gear unit modifiers only (the
+/// item-side gear buffs are the item subsystem's and only apply to characters). The cached
+/// stats are refreshed by the NPC subsystem's getters.
+pub fn update_npc_gear_bonuses(server: &GameServer, npc: &crate::world::NpcRef) {
+    let mut n = npc.data();
+    let bonuses = gear_bonuses(server, n.equipment.iter().flatten());
+    set_gear_bonuses(&mut n.unit, bonuses);
+    crate::systems::npcs::npc::stats::refresh_cached_stats(&server.game_data, &mut n);
 }

@@ -1,47 +1,45 @@
-//! `Npc.DoDie(killer, killReason)` (`Models/Game/NPChar/Npc.cs`) with the `Unit.DoDie` part
-//! it calls (`base.DoDie`), minus combat / AI internals:
+//! `Npc.DoDie(killer, killReason)` (`Models/Game/NPChar/Npc.cs`). The common `Unit.DoDie`
+//! part (`base.DoDie`: interrupt skills, death events, buffs, `SCUnitDeathPacket`, loot, target
+//! cleanup) is the skills subsystem's `combat::do_die`, which calls the two NPC halves here
+//! through `NpcSkillHooks::npc_before_death` / `npc_after_death`:
 //!
-//! 1. `DeadTime = UtcNow`;
-//! 2. experience and monster-hunt quest events for the players with tagging rights (or the
-//!    killing player when nobody has them), with the 1.2 group / level-difference modifiers
-//!    (`quests.add_exp`, `quests.on_npc_killed`);
-//! 3. `base.DoDie`: `skills.on_unit_died` (interrupt skills, death events, buffs removed on
-//!    death), `IsInBattle = false`, `SCUnitDeathPacket` broadcast from the killer, loot
-//!    (`economy.on_npc_loot` -> `HasLootLeft`), target cleanup (`SCAiAggroPacket`,
-//!    `SCTargetChangedPacket`);
-//! 4. taggers cleared, `CurrentAggroTarget = null`, `Spawner?.DoDespawn(this)`
-//!    (`spawn_manager::on_npc_died`).
+//! 1. [`before_death`] (before `base.DoDie`): `DeadTime`, the players with tagging rights
+//!    (`CharacterTagging`: the tagging team's members within `MaxLootingRange`, else the
+//!    tagger), experience with the 1.2 raid / full-party / group / level-difference modifiers
+//!    (`quests.add_exp` -> `Character.AddExp`), monster-hunt quest events
+//!    (`quests.on_npc_killed`), and the `TagShareEnabled` quest fan-out to every damage
+//!    contributor and their team mates in range;
+//! 2. [`generate_loot`] (`LootingContainer.GenerateLoot(killer)` inside `base.DoDie`, economy);
+//! 3. [`after_death`] (after `base.DoDie`): `ClearAllAggroTargetsAndCheckCombatState`,
+//!    `CharacterTagging.ClearAllTaggers()`, `CurrentAggroTarget = null`,
+//!    `Spawner?.DoDespawn(this)` (`spawn_manager::on_npc_died`). `Ai?.GoToDead()` is the AI's.
 //!
-//! Not ported here (later phases / other subsystems): the aggro table clean-up
-//! (`ClearAllAggroTargetsAndCheckCombatState`, AI), `Ai.GoToDead`, mate experience
-//! (`MateManager.GetActiveMates` + "Pet gained .. XP" messages), the team lookup of a tagging
-//! team (`TeamManager.GetActiveTeam`: treated as an invalid team, so the tagger alone is
-//! eligible and the raid / full-party modifiers never apply), the `TagShareEnabled` fan-out and
-//! `Spawner.RespawnTime` in the death packet (0).
-//!
-//! Deviation: a `null` killer broadcasts the death packet around the NPC (C#:
-//! `NullReferenceException` on `killer.BroadcastPacket`).
+//! Not ported here: mate experience (`MateManager.GetActiveMates` + "Pet gained .. XP"
+//! messages, owned by the mates subsystem).
 
 use crate::server::GameServer;
-use crate::world::{broadcast, NpcRef, PlayerRef, WorldObject};
+use crate::systems::skills::combat::MAX_LOOTING_RANGE;
+use crate::systems::skills::geometry::{distance_to, Target};
+use crate::world::{NpcRef, PlayerRef, WorldObject};
 
-use super::packets::{SCAiAggroPacket, SCUnitDeathPacket};
-use crate::packets::world_objects::SCTargetChangedPacket;
+/// The 1.2 player experience modifier (`plMod`) for `eligible` players with tagging rights.
+pub fn player_exp_modifier(eligible: usize, is_raid: bool, is_full_team: bool) -> f32 {
+    if is_raid {
+        0.33
+    } else if is_full_team {
+        0.66
+    } else {
+        match eligible {
+            2 => 0.90,
+            3 => 0.875,
+            _ => 1.0,
+        }
+    }
+}
 
-/// `(int)(KillExp * plMod * levDif)` per eligible player, `None` when the level gap is 10 or more
-/// (no experience). `eligible` = number of eligible players.
-pub fn kill_exp_share(
-    kill_exp: i32,
-    eligible: usize,
-    player_level: u8,
-    npc_level: u8,
-) -> Option<i32> {
-    // isRaid / isFullTeam need the team (not resolved here, see the module docs).
-    let pl_mod: f32 = match eligible {
-        2 => 0.90,
-        3 => 0.875,
-        _ => 1.0,
-    };
+/// `(int)(KillExp * plMod * levDif)` for one eligible player, `None` when the level gap is 10 or
+/// more (no experience).
+pub fn kill_exp_for(kill_exp: i32, pl_mod: f32, player_level: u8, npc_level: u8) -> Option<i32> {
     let (pl, lv) = (i32::from(player_level), i32::from(npc_level));
     if pl >= lv + 10 || pl <= lv - 10 {
         return None;
@@ -55,48 +53,107 @@ pub fn kill_exp_share(
     Some((kill_exp as f32 * pl_mod * lev_dif) as i32)
 }
 
-/// `Npc.DoDie(killer, killReason)`.
-pub fn do_die(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>, kill_reason: u8) {
+/// [`kill_exp_for`] with the group modifier of `eligible` players outside a team.
+pub fn kill_exp_share(
+    kill_exp: i32,
+    eligible: usize,
+    player_level: u8,
+    npc_level: u8,
+) -> Option<i32> {
+    kill_exp_for(
+        kill_exp,
+        player_exp_modifier(eligible, false, false),
+        player_level,
+        npc_level,
+    )
+}
+
+/// `GetDistanceTo(npc, true) <= LootingContainer.MaxLootingRange`.
+fn in_looting_range(server: &GameServer, p: &PlayerRef, npc: &WorldObject) -> bool {
+    distance_to(
+        server,
+        &Target::Obj(WorldObject::from(p)),
+        &Target::Obj(npc.clone()),
+        true,
+    ) <= MAX_LOOTING_RANGE
+}
+
+/// The tagging state of an NPC: (tag team, tagger obj id, damage dealers in first-hit order).
+/// The skills subsystem's `CharacterTagging` is authoritative; the `Npc` mirror fields are
+/// used when it is empty (NPCs whose tagging was set directly).
+fn tagging_of(npc: &NpcRef) -> (u32, u32, Vec<u32>) {
+    let n = npc.data();
+    let t = &n.unit.skill_state.tagging;
+    let team = if t.tag_team != 0 {
+        t.tag_team
+    } else {
+        n.tag_team
+    };
+    let tagger = if t.tagger != 0 {
+        t.tagger
+    } else {
+        n.tagger_obj_id
+    };
+    (team, tagger, t.taggers.iter().map(|(id, _)| *id).collect())
+}
+
+/// `Npc.DoDie` before `base.DoDie`: kill experience and monster-hunt quest events.
+pub fn before_death(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>) {
     let me = WorldObject::from(npc);
     let gd = &server.game_data;
-    let (tag_team, tagger, npc_level, current_target, kill_exp) = {
+    let (npc_level, kill_exp) = {
         let mut n = npc.data();
         n.dead_time_ms = chrono::Utc::now().timestamp_millis();
         let kill_exp = super::stats::npc_stats(gd, &n).map_or(0, |s| s.kill_exp);
-        (
-            n.tag_team,
-            n.tagger_obj_id,
-            n.unit.level,
-            n.unit.current_target,
-            kill_exp,
-        )
+        (n.unit.level, kill_exp)
     };
+    let (tag_team, tagger_id, dealers) = tagging_of(npc);
     let quests = server.systems.npcs.hooks.quests.get();
+    let teams = &server.systems.social.teams;
 
     // Eligible players (CharacterTagging).
     let mut eligible: Vec<PlayerRef> = Vec::new();
-    let tagger = (tagger != 0)
-        .then(|| server.world.character_by_obj_id(tagger))
+    let tagger = (tagger_id != 0)
+        .then(|| server.world.character_by_obj_id(tagger_id))
         .flatten();
-    // `TagTeam != 0`: `TeamManager.GetActiveTeam` is not resolvable here -> the
-    // "team is not valid" branch (the tagger alone), which is also the no-team branch.
-    let _ = tag_team;
-    if let Some(t) = tagger {
-        eligible.push(t);
+    let team = teams.active_team(tag_team);
+    if tag_team != 0 {
+        match &team {
+            // Just to check the team is still a valid team.
+            Some(team) => {
+                for m in team.members.iter().flatten() {
+                    if in_looting_range(server, &m.character, &me)
+                        && !eligible.iter().any(|e| e.obj_id == m.character.obj_id)
+                    {
+                        eligible.push(m.character.clone());
+                    }
+                }
+            }
+            // A player has tag rights, but the team is not valid.
+            None => eligible.extend(tagger.clone()),
+        }
+    } else if let Some(t) = &tagger {
+        // A player has tag rights
+        eligible.push(t.clone());
     }
 
     let killer_player = killer.and_then(|k| k.as_player().cloned());
     if eligible.is_empty() {
-        if let Some(ck) = &killer_player {
-            if let Some(q) = &quests {
-                q.on_npc_killed(server, ck, npc);
-                q.add_exp(server, ck, kill_exp, npc.obj_id);
-            }
+        if let (Some(ck), Some(q)) = (&killer_player, &quests) {
+            // No eligible owner, but the killer is a character.
+            q.on_npc_killed(server, ck, npc);
+            q.add_exp(server, ck, kill_exp, npc.obj_id);
         }
     } else {
+        let (is_raid, is_full_team) = match (tag_team != 0, &team) {
+            (true, Some(t)) if !t.is_party => (true, false),
+            (true, Some(t)) => (false, t.members_count() > 3),
+            _ => (false, false),
+        };
+        let pl_mod = player_exp_modifier(eligible.len(), is_raid, is_full_team);
         for pl in &eligible {
             let level = pl.data().unit.level;
-            if let Some(exp) = kill_exp_share(kill_exp, eligible.len(), level, npc_level) {
+            if let Some(exp) = kill_exp_for(kill_exp, pl_mod, level, npc_level) {
                 if let Some(q) = &quests {
                     q.add_exp(server, pl, exp, npc.obj_id);
                 }
@@ -107,77 +164,123 @@ pub fn do_die(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>, k
         }
     }
 
-    // ---- base.DoDie (Unit.DoDie)
-    if let Some(s) = server.systems.npcs.hooks.skills.get() {
-        s.on_unit_died(server, &me, killer);
-    }
-    npc.data().unit.is_in_battle = false;
-    let killer_unit = killer.and_then(|k| k.with_unit(|u| (k.obj_id(), u.unit().name.clone())));
-    let death = SCUnitDeathPacket {
-        obj_id: npc.obj_id,
-        kill_reason,
-        resurrect_wait_time: 0, // Spawner.RespawnTime: see the module docs
-        lost_exp: 0,
-        durability_loss_rate: 0,
-        killer: killer_unit,
-    };
-    let world = server.world.world_of(&me);
-    if let Some(w) = &world {
-        match killer {
-            Some(k) => broadcast(w, k.clone(), &death, true),
-            None => broadcast(w, me.clone(), &death, true),
+    // Tag Share: quest progress (not XP / loot) for every damage contributor and their
+    // party / raid mates in range, after both branches above.
+    if server.config.world.tag_share_enabled {
+        let mut credited: Vec<u32> = eligible.iter().map(|p| p.obj_id).collect();
+        if eligible.is_empty() {
+            if let Some(ck) = &killer_player {
+                credited.push(ck.obj_id);
+            }
         }
-    }
-    let killed_by_self = killer.is_some_and(|k| k.obj_id() == npc.obj_id);
-    if !killed_by_self {
-        // LootingContainer.GenerateLoot(killer)
-        if let Some(e) = server.systems.npcs.hooks.economy.get() {
-            let has_loot = e.on_npc_loot(server, npc, killer_player.as_ref());
-            npc.data().unit.has_loot_left = has_loot;
-        }
-        if current_target != 0 {
-            if let Some(k) = killer {
-                // killer.SendPacketToPlayers([this, killer], ..): only players receive it.
-                if let Some(p) = k.as_player() {
-                    p.send(SCAiAggroPacket::new(k.obj_id(), 0));
-                }
-                let killer_target = k.with_unit(|u| {
-                    let u = u.unit_mut();
-                    u.summarize_damage = 0;
-                    u.current_target
-                });
-                if let Some(t) = killer_target.filter(|&t| t != 0) {
-                    // `killerUnit.CurrentTarget is Unit unitTarget` -> not in battle.
-                    let target = world.as_ref().and_then(|w| w.unit(t));
-                    if let Some(t) = target {
-                        t.with_unit(|u| u.unit_mut().is_in_battle = false);
-                    }
-                }
-                k.with_unit(|u| u.unit_mut().is_in_battle = false);
-                if let Some(w) = &world {
-                    broadcast(
-                        w,
-                        k.clone(),
-                        &SCTargetChangedPacket {
-                            obj_id: k.obj_id(),
-                            target_obj_id: 0,
-                        },
-                        true,
-                    );
-                }
-                k.with_unit(|u| u.unit_mut().current_target = 0);
+        for contributor in all_contributors(server, &me, &dealers) {
+            if credited.contains(&contributor.obj_id) {
+                continue;
+            }
+            credited.push(contributor.obj_id);
+            if let Some(q) = &quests {
+                q.on_npc_killed(server, &contributor, npc);
             }
         }
     }
+}
 
-    // ---- Npc.DoDie tail
+/// `Tagging.GetAllContributors(MaxLootingRange)`: every online damage dealer in range plus
+/// their online team members in range (each team resolved once).
+pub fn all_contributors(server: &GameServer, npc: &WorldObject, dealers: &[u32]) -> Vec<PlayerRef> {
+    let teams = &server.systems.social.teams;
+    let mut out: Vec<PlayerRef> = Vec::new();
+    let mut visited: Vec<u32> = Vec::new();
+    let add = |out: &mut Vec<PlayerRef>, p: PlayerRef| {
+        if !out.iter().any(|o| o.obj_id == p.obj_id) {
+            out.push(p);
+        }
+    };
+    for &id in dealers {
+        let Some(dealer) = server.world.character_by_obj_id(id) else {
+            continue;
+        };
+        let (online, in_party) = {
+            let c = dealer.data();
+            (c.is_online, c.in_party)
+        };
+        if !online || !in_looting_range(server, &dealer, npc) {
+            continue;
+        }
+        add(&mut out, dealer.clone());
+        if !in_party {
+            continue;
+        }
+        let Some(team) = teams.team_by_obj_id(dealer.obj_id) else {
+            continue;
+        };
+        if visited.contains(&team.id) {
+            continue;
+        }
+        visited.push(team.id);
+        for m in team.members.iter().flatten() {
+            if m.character.data().is_online && in_looting_range(server, &m.character, npc) {
+                add(&mut out, m.character.clone());
+            }
+        }
+    }
+    out
+}
+
+/// `LootingContainer.GenerateLoot(killer)` (inside `base.DoDie`, economy): sets
+/// `HasLootLeft`.
+pub fn generate_loot(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>) {
+    let killer_player = killer.and_then(|k| k.as_player().cloned());
+    if let Some(e) = server.systems.npcs.hooks.economy.get() {
+        let has_loot = e.on_npc_loot(server, npc, killer_player.as_ref());
+        npc.data().unit.has_loot_left = has_loot;
+    }
+}
+
+/// `Npc.DoDie` after `base.DoDie`.
+pub fn after_death(server: &GameServer, npc: &NpcRef, _killer: Option<&WorldObject>) {
+    let me = WorldObject::from(npc);
+    // ClearAllAggroTargetsAndCheckCombatState
+    let aggro_players: Vec<PlayerRef> = {
+        let ids: Vec<u32> = npc
+            .data()
+            .unit
+            .skill_state
+            .aggro_table
+            .keys()
+            .copied()
+            .collect();
+        ids.into_iter()
+            .filter_map(|id| server.world.character_by_obj_id(id))
+            .collect()
+    };
+    npc.data().unit.skill_state.aggro_table.clear();
+    for p in &aggro_players {
+        let po = WorldObject::from(p);
+        crate::systems::skills::combat::clear_aggro_of_unit(server, &me, &po);
+        let none_left = p.data().skill_char.is_in_aggro_list_of.is_empty();
+        if none_left {
+            // Cancel combat
+            p.data().unit.is_in_battle = false;
+        }
+    }
     {
+        // CharacterTagging.ClearAllTaggers(); CurrentAggroTarget = null
         let mut n = npc.data();
+        n.unit.skill_state.tagging = Default::default();
         n.tag_team = 0;
         n.tagger_obj_id = 0;
         n.current_aggro_target = 0;
     }
     super::super::spawn_manager::on_npc_died(server, npc);
+}
+
+/// `Npc.DoDie(killer, killReason)`: the whole death through the skills subsystem's
+/// `Unit.DoDie` (which calls [`before_death`], [`generate_loot`] and [`after_death`]).
+pub fn do_die(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObject>, kill_reason: u8) {
+    use crate::systems::skills::types::KillReason;
+    let reason = KillReason::from_raw(i64::from(kill_reason)).unwrap_or(KillReason::Damage);
+    crate::systems::skills::combat::do_die(server, &WorldObject::from(npc), killer, reason);
 }
 
 #[cfg(test)]
@@ -186,7 +289,6 @@ mod tests {
     use crate::opcodes::sc;
     use crate::systems::npcs::hooks::QuestsBridge;
     use crate::test_support::*;
-    use aaemu_commons::{Marshal, PacketStream};
     use std::sync::{Arc, Mutex};
 
     #[derive(Default)]
@@ -209,6 +311,7 @@ mod tests {
     #[tokio::test]
     async fn player_kills_npc() {
         let server = test_server_with(super::super::manager::tests::npc_game_data());
+        crate::systems::npcs::install_hooks(&server);
         let rec = Arc::new(Recorder::default());
         server.systems.npcs.hooks.quests.install(rec.clone());
         let mut a = TestClient::new(&server, 1, 1001);
@@ -237,26 +340,16 @@ mod tests {
             *rec.0.lock().unwrap(),
             vec!["kill 256 512".to_string(), "exp 256 340 512".to_string()]
         );
-        let death = SCUnitDeathPacket {
-            obj_id: 0x200,
-            kill_reason: 1,
-            resurrect_wait_time: 0,
-            lost_exp: 0,
-            durability_loss_rate: 0,
-            killer: Some((0x100, "Alpha".into())),
-        };
-        let body = |p: &dyn Marshal| {
-            let mut s = PacketStream::new();
-            p.write(&mut s);
-            s.into_bytes()
-        };
+        let ops = a.drain_ops();
         assert_eq!(
-            a.drain(),
+            ops,
             vec![
                 // broadcast from the killer: around (nobody else) + self
-                (sc::SCUnitDeathPacket, body(&death)),
-                (sc::SCAiAggroPacket, vec![0x00, 0x01, 0x00, 0, 0, 0, 0]),
-                (sc::SCTargetChangedPacket, vec![0x00, 0x01, 0x00, 0, 0, 0]),
+                sc::SCUnitDeathPacket,
+                sc::SCAiAggroPacket,
+                // killerUnit.IsInBattle = false
+                sc::SCCombatClearedPacket,
+                sc::SCTargetChangedPacket,
             ]
         );
         assert!(npc.data().dead_time_ms > 0);
@@ -268,7 +361,8 @@ mod tests {
         rec.0.lock().unwrap().clear();
         let npc2 = super::super::manager::create(&server, 0x201, 200).unwrap();
         npc2.data().tagger_obj_id = 0x100;
-        do_die(&server, &npc2, None, 1);
+        before_death(&server, &npc2, None);
+        after_death(&server, &npc2, None);
         // level 10 player vs level 10 NPC: (10*5 + 90) * 1 * 1.0 = 140, full share
         assert_eq!(
             *rec.0.lock().unwrap(),
@@ -283,6 +377,15 @@ mod tests {
         assert_eq!(kill_exp_share(1000, 2, 20, 20), Some(900));
         assert_eq!(kill_exp_share(1000, 3, 20, 20), Some(875));
         assert_eq!(kill_exp_share(1000, 4, 20, 20), Some(1000));
+        // raid / full party
+        assert_eq!(
+            kill_exp_for(1000, player_exp_modifier(2, true, false), 20, 20),
+            Some((1000f32 * 0.33) as i32)
+        );
+        assert_eq!(
+            kill_exp_for(1000, player_exp_modifier(4, false, true), 20, 20),
+            Some(660)
+        );
         // 3 levels above: 1 - 0.3 (f32) -> 0.7 * 1000 = 700 (699.99994 -> 699)
         let three_above = (1000f32 * 1.0 * (1.0 - 0.1 * 3.0)) as i32;
         assert_eq!(kill_exp_share(1000, 1, 23, 20), Some(three_above));

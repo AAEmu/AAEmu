@@ -1032,9 +1032,19 @@ pub fn is_inside_area_sphere(
     })
 }
 
-/// Startup: `SphereQuestManager.Load` (the static table from the first instance's template,
-/// i.e. main_world) + `Initialize` (500 ms tick).
-pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+/// Startup. The quest sphere manager that runs is the quest subsystem's
+/// (`systems::quests::spheres`, one per server: the quest acts register their per-player
+/// triggers there); running this world-side copy as well would raise every sphere event twice,
+/// so it is not started (see [`start_world_side`]).
+pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
+    debug!("SphereQuestManager: quest spheres are run by the quest subsystem");
+    Ok(())
+}
+
+/// `SphereQuestManager.Load` (the static table from the first instance's template, i.e.
+/// main_world) + `Initialize` (500 ms tick) of this world-side manager. Not started by
+/// [`start`] (kept for per-instance spheres).
+pub async fn start_world_side(server: &Arc<GameServer>) -> anyhow::Result<()> {
     let m = &server.systems.npcs.spheres;
     let template = server
         .world

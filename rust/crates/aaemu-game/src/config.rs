@@ -203,6 +203,10 @@ pub struct WorldConfig {
     /// `GrowthRate` (doodad growth time divisor).
     #[serde(rename = "growthrate", deserialize_with = "lenient")]
     pub growth_rate: f64,
+    /// `TagShareEnabled`: monster-hunt quest credit for every damage contributor (+ their
+    /// party / raid members in range) of a killed NPC.
+    #[serde(rename = "tagshareenabled", deserialize_with = "lenient")]
+    pub tag_share_enabled: bool,
 }
 
 impl Default for WorldConfig {
@@ -216,6 +220,7 @@ impl Default for WorldConfig {
             geo_data_mode: false,
             pre_load_terrain: false,
             growth_rate: 1.0,
+            tag_share_enabled: false,
         }
     }
 }

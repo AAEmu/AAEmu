@@ -13,6 +13,7 @@
 //! re-export the moved phase-2 managers (`server.chat`, `server.expeditions`, `server.friends`).
 
 pub mod achievement;
+pub mod bridges;
 pub mod chat;
 pub mod config;
 pub mod crime;
@@ -72,6 +73,7 @@ impl System {
     /// Startup after the phase-1/2 managers: DB loads, timers, hook installation.
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
         use anyhow::Context;
+        install_hooks(server);
         server
             .systems
             .social
@@ -107,4 +109,10 @@ impl System {
 /// Registers this subsystem's C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
     packets::register(reg);
+}
+
+/// Installs the social subsystem's hooks (its implementations of the other subsystems' hooks
+/// and its own `SocialHooks`). No I/O; also used by the flow tests.
+pub fn install_hooks(server: &GameServer) {
+    bridges::install(server);
 }

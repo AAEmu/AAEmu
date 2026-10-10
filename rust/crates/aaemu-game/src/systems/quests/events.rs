@@ -159,6 +159,52 @@ thread_local! {
     static ACTIVE: RefCell<Vec<(u32, Vec<PendingOp>)>> = const { RefCell::new(Vec::new()) };
 }
 
+/// Work queued by a locked [`super::hooks::QuestHooks`] method that must run once the
+/// character's lock is released (world broadcasts, stat refreshes, follow-up events).
+type WorldOp = Box<dyn FnOnce(&GameServer)>;
+
+thread_local! {
+    /// (character id, op) queued by [`after_unlock`] while that character's operation runs.
+    static AFTER_UNLOCK: RefCell<Vec<(u32, WorldOp)>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Runs `op` once the quest operation of `character_id` running on this thread has released
+/// the character's lock (immediately when no such operation runs). Locked quest hooks use it
+/// for the parts of a C# call that touch the world (`Character.AddExp` level-up broadcast,
+/// `DoOnLevelUpEvents`, buff dispatch, ...).
+pub fn after_unlock(
+    server: &GameServer,
+    character_id: u32,
+    op: impl FnOnce(&GameServer) + 'static,
+) {
+    let active = ACTIVE.with(|a| a.borrow().iter().any(|(id, _)| *id == character_id));
+    if active {
+        AFTER_UNLOCK.with(|q| q.borrow_mut().push((character_id, Box::new(op))));
+    } else {
+        op(server);
+    }
+}
+
+/// Runs the [`after_unlock`] work queued for `character_id`.
+fn run_after_unlock(server: &GameServer, character_id: u32) {
+    loop {
+        let ops: Vec<WorldOp> = AFTER_UNLOCK.with(|q| {
+            let mut q = q.borrow_mut();
+            let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut *q)
+                .into_iter()
+                .partition(|(id, _)| *id == character_id);
+            *q = rest;
+            mine.into_iter().map(|(_, op)| op).collect()
+        });
+        if ops.is_empty() {
+            break;
+        }
+        for op in ops {
+            op(server);
+        }
+    }
+}
+
 fn nested_push(character_id: u32, op: PendingOp) -> Result<(), PendingOp> {
     ACTIVE.with(|a| {
         let mut a = a.borrow_mut();
@@ -337,6 +383,7 @@ pub fn with_quests<R>(
         crate::systems::dispatch_buff_events(server, &WorldObject::from(player.clone()));
     }
     run_deferred(server, player, deferred);
+    run_after_unlock(server, character_id);
     Some(r)
 }
 

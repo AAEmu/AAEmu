@@ -18,6 +18,7 @@
 //! * [`stats`] — attribute getters; [`relation`] / [`geometry`] — targeting helpers;
 //! * [`ext`] — hooks into the npcs / economy / quests / social subsystems.
 
+pub mod bridges;
 pub mod buffs;
 pub mod combat;
 pub mod controllers;
@@ -154,7 +155,14 @@ impl UnitHooks for SkillUnitHooks {
 /// Binds the server handle (tasks) and installs the unit hooks. Idempotent.
 pub fn bind(server: &Arc<GameServer>) {
     let _ = server.systems.skills.server.set(Arc::downgrade(server));
+    install_hooks(server);
+}
+
+/// Installs the skills subsystem's hooks (`UnitHooks` and its implementations of the other
+/// subsystems' hooks). No I/O; also used by the flow tests.
+pub fn install_hooks(server: &GameServer) {
     server.systems.hooks.unit.install(Arc::new(SkillUnitHooks));
+    bridges::install(server);
 }
 
 /// `GameObject.BroadcastPacket(packet, self)` for any object (players around, plus the object

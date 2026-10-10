@@ -1236,9 +1236,32 @@ impl SpawnManager {
             self.world.template.name,
             start.elapsed()
         );
-        // TODO(npcs): FishSchoolManager.Load(World) after the doodads; TrialManager.Load /
-        // InitializeDoodads / InitializeNpc for the default instance.
+        // FishSchoolManager.Load(World) runs from `fish_school::start` after this task.
+        // Link doodads seats to the trial system
+        if self.world.id == crate::models::character::DEFAULT_INSTANCE_ID {
+            self.link_trial_spawners(server);
+        }
         count
+    }
+
+    /// `TrialManager.Load()` + `InitializeDoodads(World)` + `InitializeNpc(World)`: the jury /
+    /// audience seats (`justice.<court>.seat.<n>` / `.spectator` doodad spawners, their last
+    /// spawned doodad) and the judges (`justice.<court>.judge` NPC spawners).
+    pub fn link_trial_spawners(&self, server: &GameServer) {
+        let trials = &server.systems.social.trials;
+        trials.load(server);
+        let doodads: Vec<(String, DoodadRef)> = self
+            .get_special_doodad_spawners("justice.")
+            .into_iter()
+            .filter_map(|s| s.last().map(|d| (s.special_link.clone(), d)))
+            .collect();
+        trials.initialize_doodads(&doodads);
+        let npcs: Vec<(String, u32)> = self
+            .get_special_npc_spawners("justice.")
+            .into_iter()
+            .map(|s| (s.special_link.clone(), s.id))
+            .collect();
+        trials.initialize_npc(&npcs);
     }
 
     /// The transfer / gimmick / slave tasks of `SpawnAll` (returns the gimmicks spawned).

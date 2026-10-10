@@ -148,14 +148,27 @@ fn quaternion_inverse(q: Quaternion) -> Quaternion {
 }
 
 /// `DoodadFuncEnterInstance.Use`.
-pub fn enter_instance(f: &DoodadFuncEnterInstance, caster: Option<&WorldObject>) {
+pub fn enter_instance(
+    f: &DoodadFuncEnterInstance,
+    ctx: &DoodadCtx<'_>,
+    caster: Option<&WorldObject>,
+) {
     tracing::info!(
         "DoodadFuncEnterInstance, ZoneId: {}, ItemId: {}",
         f.zone_id,
         f.item_id
     );
-    if DoodadCtx::as_player(caster).is_some() {
-        // TODO(indun): `TrialManager.IsPlayerInCourt`, `MainWorldPosition`,
+    if let Some(character) = DoodadCtx::as_player(caster) {
+        if ctx
+            .server
+            .systems
+            .social
+            .trials
+            .is_player_in_court(character.character_id)
+        {
+            return;
+        }
+        // TODO(indun): `MainWorldPosition`,
         // `IndunManager.RequestDungeonInstance(character, ZoneId, 0)`.
         tracing::debug!("DoodadFuncEnterInstance: IndunManager is not ported");
     }
