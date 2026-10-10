@@ -26,7 +26,7 @@ The placeholder (`CPhysicalPlaceholder`, 35 slots) forwards slots 7-27 and 34 to
   * int fields: `0x80000000` (INT_MIN).
   * pointer fields: `(void*)-1`; some also treat `nullptr` as "not set".
 * Quaternions are stored `(x, y, z, w)` (w last; quat->matrix helper `sub_350247B0`).
-* Float clamp constant used for "infinite": `9.9999999e14` (0x5866D2A9 = 1482907561).
+* Float clamp constant used for "infinite": `9.9999999e14` (0x58635FA9 = 1482907561).
 * **Deferred calls**: SetParams/Action/AddGeometry/RemoveGeometry first call a "lock-or-queue" helper (`sub_35023200` SetParams, `sub_35023650` Action, `sub_35022A50` AddGeometry, `sub_35022F00` RemoveGeometry). If the world is stepping on another thread (world+0x57C4 / +0x57DC / +0x57E0 locks, entity+0x40 "processed" counter >= 0x20000), the struct is **memcpy'd into the world command queue** (world+0x51A8.. ring of pages) and the call returns 1 (or the part id). The copy size and the embedded pointer arrays come from static tables built in `sub_351E5900` (x64):
 
 | table (x64) | indexed by | content |
@@ -750,8 +750,8 @@ Fields:
 | +52 | vec3 | point (opt): adds (point−com)×impulse to angImpulse |
 | +64 | int | partid |
 | +68 | int | ipart |
-| +72 | int | iSource: ≠0 → accumulate into deferred P/L (+956/+968), applied at the next Step |
-| +76 | int | iApplyTime: ==1 → clamp \|Minv·P\| ≤ 5 and \|Iinv·L\| ≤ 5, no wake; else wake (byte508=1; simclass 1→2 + reposition) and zero idle timer +252 unless +76>0 |
+| +72 | int | iApplyTime (base naming; P0 `ActionImpulse::i_apply_time`): ≠0 → accumulate into deferred P/L (+956/+968), applied at the next Step |
+| +76 | int | iSource (P0 `ActionImpulse::i_source`): ==1 → clamp \|Minv·P\| ≤ 5 and \|Iinv·L\| ≤ 5, no wake; else wake (byte508=1; simclass 1→2 + reposition) and zero idle timer +252 unless +76>0 |
 
 Only acts if Minv > 0. Immediate mode: P += …, L += …; v = Minv·P; w = Iinv·L; CapVelocities (sub_350B9440). Always also calls the base Action.
 

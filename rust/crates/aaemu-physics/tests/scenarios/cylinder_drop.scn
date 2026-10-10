@@ -1,0 +1,12 @@
+# upright cylinder (r 0.4, half-height 0.5, axis z) dropped from z=3 with a small spin.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=cyl type=cylinder r=0.4 hh=0.5
+entity name=cyl type=rigid pos=32,32,3 q=0.0499792,0,0,0.9987503
+part ent=cyl geom=cyl mass=40
+action target=cyl type=10 v24=0,0,2
+trace ents=cyl
+print
+step n=150

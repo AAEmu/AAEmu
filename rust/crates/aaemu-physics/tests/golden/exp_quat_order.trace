@@ -1,0 +1,21 @@
+physoracle 1
+ret part marker 0
+ret part body 0
+ret action body 10 1
+step 1
+peek body 420 3dd2b33d 3e29d04d 3eb51eb5 3f6a2d5b
+peek body 460 3dd2b33d 3e29d04d 3eb51eb5 3f6a2d5b
+peek body 756 3eac1964 3e80e417 3e98f911 3f5b6190
+peek body 856 be8483ec 31c00000 b2000000 3f7746e8
+peek body 872 3e9999ac be4cccac 3dcccc54
+step 2
+step 3
+step 4
+step 5
+step 6
+step 7
+step 8
+peek body 420 3df36e3c bdffd330 3f25724f 3f3e4d5f
+peek body 460 3df36e3c bdffd330 3f25724f 3f3e4d5f
+peek body 756 3e9d4aaa 3d3eea5b 3f2815eb 3f2ff13a
+peek body 856 be8483ec 31c00000 b2000000 3f7746e8

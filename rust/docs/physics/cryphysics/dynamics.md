@@ -677,12 +677,11 @@ direction = axle, flags 0x18000|0x800000 (the impulse limit is the lateral cap),
 ---------------------------------------------------------------------------------------------------
 ## 7. Uncertainties / to verify
 
-1. Stage 1 iteration cap decodes as `max(4·nC, 6000)`. It may be `min`; check the disassembly.
+1. ~~Stage 1 iteration cap decodes as `max(4·nC, 6000)`. It may be `min`.~~ **Resolved: `max`** (disassembly at 0x3509FCDF; CRYPHYSICS-MAP Appendix A).
 2. E0, the energy reference for the solver divergence guards, comes through a garbled argument list. It looks like an
    island kinetic-energy estimate scaled by W+1748.
-3. Quaternion product order in `q_ent = B.q ⊗ qfb`. It is inferred from the shuffle pattern matching `dq ⊗ q` in body Step.
-4. The ApplyBuoyancy action_impulse struct fields iApplyTime and partid are read from stack init. Whether the impulse
-   is applied immediately or queued into E+956/968 depends on Action's sync path (not traced).
+3. ~~Quaternion product order in `q_ent = B.q ⊗ qfb`.~~ **Resolved: `normalize(B.q ⊗ qfb)`**, bit-exact against the oracle (CRYPHYSICS-MAP Appendix A).
+4. ~~Whether the ApplyBuoyancy impulse is applied immediately or queued.~~ **Resolved: immediately, same substep** (`iApplyTime`(+72) = 0, `iSource`(+76) = 1, bThreadSafe = 1; |Δv|,|Δω| ≤ 5, no wake; oracle experiment, CRYPHYSICS-MAP Appendix A).
 5. The flow-drag branch has no dt, the Vtot sum is unscaled, and cob is not rotated back for tilted planes. These are
    copied from the binary and may be genuine bugs. Keep them for fidelity, or fix them deliberately.
 6. GetMaxTimeStep constants (0.7, 1.7, 0.005, ×1.5 factor) and the "post-step zeroing" (E+504 bit 0x800) purpose are unclear.

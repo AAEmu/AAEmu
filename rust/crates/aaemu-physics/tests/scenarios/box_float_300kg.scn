@@ -1,0 +1,15 @@
+# 300 kg 1 m^3 box dropped from z=5 into water (global area, plane z=2, density 1000, resistance 1000).
+# Ground at z=-20 (top -19.5). 300 kg floats, 700 kg floats deeper, 1500 kg sinks onto the ground.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+geom name=cube type=box size=0.5,0.5,0.5
+entity name=ground type=static pos=32,32,-20
+part ent=ground geom=ground mass=0
+entity name=box type=rigid pos=32,32,5
+part ent=box geom=cube mass=300
+area name=water kind=global
+params target=water type=12 f4=1000 f16=1000 v24=0,0,0 v40=0,0,1 v52=32,32,2 i72=0
+params target=box type=12 f4=1000 f16=1000
+trace ents=box
+print
+step n=300

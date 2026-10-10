@@ -1,0 +1,12 @@
+# 1 m rigid box (10 kg) dropped from z=5 onto a static 100x100x1 box ground (top at z=0).
+# Reproduces the original harness run (expected_box_on_ground.txt).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+geom name=cube type=box size=0.5,0.5,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=box type=rigid pos=32,32,5
+part ent=box geom=cube mass=10
+trace ents=box
+print
+step n=90

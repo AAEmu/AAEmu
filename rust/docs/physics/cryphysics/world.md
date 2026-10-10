@@ -424,5 +424,5 @@ RTTI CPhysArea derives from CPhysicalPlaceholder; vtable x64 0x351ef598 (38) / x
 - Exact role of many vars entries (marked "?"); only a subset is read via a recognisable `world->vars` pattern.
 - Event type names are inferred from emitting sites; field layouts beyond the common header not mapped.
 - Slot 63 (x64-only) vs 62, slot 53, slot 97, x86 slot 49: purpose tentative.
-- Simclass list numbering (@664+8k) inferred from TimeStep usage; @760/@728.. markers need confirmation.
+- ~~Simclass list numbering (@664+8k)~~ **confirmed by the oracle**: k = simclass (0 static, 1 sleeping rigid, 2 active rigid, 3 living, 4 independent; particles also on @760). @728.. markers still unconfirmed.
 - RWI flag 0x200 semantics (post-sort) and hit fields +24/+26/+32.

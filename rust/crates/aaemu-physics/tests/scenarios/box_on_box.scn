@@ -1,0 +1,14 @@
+# a 1 m box (10 kg) resting on the ground, a second 1 m box (10 kg) dropped on it from z=4,
+# offset 0.2 m in x and yawed 20 deg (exercises box-box contacts between two dynamic bodies).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=cube type=box size=0.5,0.5,0.5
+entity name=lower type=rigid pos=32,32,0.5
+part ent=lower geom=cube mass=10
+entity name=upper type=rigid pos=32.2,32,4 q=0,0,0.1736482,0.9848078
+part ent=upper geom=cube mass=10
+trace ents=lower,upper
+print
+step n=120

@@ -383,11 +383,41 @@ Results (one worker thread, dt = 1/30):
 * Repeated runs are **bit-identical**. Outputs print every float with its raw bits, so a Rust port can
   diff against them exactly.
 
-Next steps for the oracle: a Rust FFI crate (`aaemu-physics-oracle`, Windows x64 only, dev-only)
-that wraps the same calls and generates scenario traces (ships = box/trimesh hulls on water, terrain
-heightfield, ray queries) as golden files for `aaemu-physics` tests. Multi-threaded stepping (vars
-`+504` > 1) needs a real thread-task manager behind `gEnv->pSystem` slot 84 and is not needed for the
-oracle.
+**`physoracle` (P0/PT).** The harness grew into a scenario-driven tool,
+`crates/aaemu-physics/oracle/physoracle.c` (build: `oracle/build.bat`, output
+`D:/aaemu-target/physics/oracle/`). It reads a scenario (grid, vars, geometries incl. heightfield
+terrain, entities, parts, global area, raw-field SetParams/Action/GetStatus, steps, rays, memory
+peeks) and writes a bit-exact trace; `--math` calls internal routines of the DLL (quat↔matrix,
+quaternion rotation, body UpdateState/Step) and the MSVCR100 math functions on generated inputs.
+Golden traces live in `crates/aaemu-physics/tests/golden/` and are re-verified against the DLL
+whenever `AAEMU_PHYS_ORACLE` is set. Scenario language, capabilities and limits: the crate README.
+
+Engine facts found while building it:
+* **RayWorldIntersection** returns 0 until the world's temp entity pools (world+792) exist; they are
+  allocated at the first `TimeStep` with an ordinary entity (terrain entities alone do not count).
+* The RWI flags' high word is **geomFlagsAll** (0 → 0x8000, +1 with flag 0x40); geomFlagsAny is 0xFDFF
+  unless flag 0x400 (then All = 0, Any = the high-word value). Parts are only tested when
+  `(partFlags & All) == All && (partFlags & Any) != 0`, so default rays need part flag **0x8000**.
+* **ArcheAge addition "DrawRayOnGrid"**: unless `gEnv` byte +289 is set, the grid ray walk
+  (the grid ray walk 0x351AD6A0 and the same check in 0x35103EA0 and the heightfield ray march 0x35158BA0) rejects rays with |dir.x| or |dir.y| larger than an
+  integer config value read through `gEnv+112` → slot 20 → `+248` and logs
+  `"DrawRayOnGrid, dir.x(%.1f), dir.y(%.1f)"`. The zone server's value is a game CVar (unknown); the
+  oracle uses 1000.
+* **Heightfield terrain** must go through world slot 17 `SetHeightfieldData(primitives::heightfield*,
+  matMapping, nMats)`, which creates one terrain entity per caller slot (world+1568+8·i, part flags
+  0xFDFF, objtype 0x100). A heightfield geometry added to an ordinary static entity gets an empty bbox
+  and never collides. `CHeightfield::SetData` ignores the primitive's basis/origin, and a zero
+  `typemask` makes it loop forever (typepower is derived from the lowest set bit).
+* Entities join the simclass lists (world+664+8·k) only at the first `TimeStep` after creation.
+* A default (zero) `action_impulse` still wakes a sleeping rigid body (simclass 1 → 2, awake byte);
+  the `impulse` vector itself is **not optional** (no unused test: an unused value puts NaN into P).
+* The "infinite" clamp constant is `9.9999999e14` = bits **0x58635FA9** (entities.md had 0x5866D2A9).
+* The physics-vars block holds **93 non-zero words** after construction with `gEnv == NULL`
+  (the constructor's defaults plus `dedicated` (612) = 1); full table with names:
+  `crates/aaemu-physics/src/physvars.rs`.
+
+Multi-threaded stepping (vars `+504` > 1) needs a real thread-task manager behind
+`gEnv->pSystem` slot 84 and is not needed for the oracle.
 
 ---
 
@@ -425,9 +455,46 @@ can then be replaced. Parallelism: P1a, P1b and the oracle crate can be done by 
 P2a splits per pair family (box/tri/round/ray), so up to four agents; P3 and P4a/b are better kept to
 one or two agents because they share the entity/world structs.
 
-Open questions to settle while porting (each is listed in the appendices):
-* the solver iteration cap (`max` vs `min(4·nContacts, 6000)`);
-* the quaternion product order between body and entity;
-* whether buoyancy impulses apply immediately or the next step;
-* which simclass list is which at world `+664 + 8·k`;
-* many params fields are marked *(inferred)* — confirm each one with the oracle before relying on it.
+Open questions to settle while porting: see **Appendix A** (the first four are resolved).
+
+---
+
+## Appendix A — open questions
+
+Resolved in P0 (oracle experiments in `crates/aaemu-physics/tests/experiments.rs`, scenarios
+`tests/scenarios/exp_*.scn`):
+
+1. **Solver stage-1 iteration cap: `max(4·nContacts, 6000)`.** InvokeContactSolver 0x3509E850
+   computes `a = nC·V[12]; d = a − V[8]; budget = a − (d & (d >> 31))` (x64 0x3509FCDF…), the
+   branch-free **max**, and passes it as the 7th argument of the PGS loop 0x3509AC90, which stops at
+   `iters >= budget`. (Settled from the disassembly; an oracle experiment would need > 1500
+   contacts in one island.)
+2. **Quaternion product order: `q_ent = normalize(B.q ⊗ qfb)`.** Oracle: a spinning rigid plank
+   with a rotated, offset part (qfb ≠ identity); `q_new` (+460) equals `B.q ⊗ qfb` evaluated with
+   the engine's SSE lane order (`math::Quat::product`) and normalised with
+   `((x²+w²)+y²)+z²` (`Quat::normalized_xwyz`) **bit for bit** at two steps; `qfb ⊗ B.q` does
+   not match. Body integration is `q = dq ⊗ q` (verified bit-exact by the `bodystep` probe, which
+   also pins MSVCR100 `sinf`/`cosf`, the double-precision quat→matrix and the R·diag·Rᵀ order).
+3. **Buoyancy is applied in the same (sub)step.** ApplyBuoyancy issues
+   `Action(action_impulse{iApplyTime(+72)=0, iSource(+76)=1}, bThreadSafe=1)` (stack init at
+   0x350C0E50): immediate P/L update with |Δv|, |Δω| ≤ 5 and no wake, after that substep's
+   integration and before gravity. Oracle: a box released at rest fully submerged has
+   v_z = +0.758 after the first world step (a next-step application would give −0.327) and has
+   already moved inside that step (rigid substeps ≤ 0.02 s); the deferred-impulse accumulator
+   E+956 is never touched.
+4. **Simclass lists: `world+664+8·k` holds simclass k** — 0 static (664), 1 sleeping rigid (672),
+   2 active rigid (680), 3 living (688), 4 independent (696; particles are also on the independent
+   stepping list +760), 7 deleted (720, from the TimeStep cleanup code).
+
+Still open:
+
+5. Many params fields are marked *(inferred)*; the P0 structs carry them with sentinel defaults.
+   `tests/params_oracle.rs` verifies that the Rust default images of params pos (0), part (6), simulation (10), buoyancy
+   (12), flags (15), foreign data (11), timeout (23) and actions impulse (2) and set_velocity (10)
+   are neutral in the DLL and that set fields take effect; confirm the remaining ids
+   when a phase starts using them.
+6. E0 (energy reference of the solver divergence guards), GetMaxTimeStep constants, the post-step
+   zeroing (`dynamics.md` §7 items 2, 6, 7).
+7. MSVCR100 `asinf`/`acosf` and the double `sin`/`cos`/`exp`/`asin` are not ported bit-exactly
+   yet (`math::crt`; measured mismatch rates in the crate README).
+8. The zone server's value of the RWI "DrawRayOnGrid" limit (`gEnv+112` → slot 20 → `+248`).

@@ -1,0 +1,25 @@
+# RayWorldIntersection against a static box (yawed 30 deg) and the ground.
+# RWI flags: high word = geomFlagsAll the part flags must contain (0 -> 0x8000, the "ray" collision
+# class); geomFlagsAny = 0xFDFF unless flag 0x400. Parts here carry 0x8000 (ray-collidable) except
+# the "noray" box, which a default ray must miss but flags=0x10000 (geomFlagsAll=1) must hit.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0 flags=0x1809F
+geom name=crate type=box size=1,0.5,0.75
+entity name=crate type=static pos=32,32,0.75 q=0,0,0.258819,0.9659258
+part ent=crate geom=crate mass=0 flags=0x1809F
+geom name=small type=box size=0.25,0.25,0.25
+entity name=noray type=static pos=36,36,2
+part ent=noray geom=small mass=0 flags=0x1009F
+# RWI needs the world temp pools (world+792), which the first TimeStep allocates.
+step n=1
+ray name=down org=32,32,10 dir=0,0,-20 types=0x13F max=4
+ray name=side org=20,32.1,0.5 dir=30,0,0 types=0x13F max=4
+ray name=diag org=30,30,5 dir=4,4,-8 types=0x13F max=4
+ray name=miss org=0,0,10 dir=0,0,5 types=0x13F max=4
+ray name=ground_only org=40,40,3 dir=0,0,-10 types=0x13F max=4
+ray name=static_mask_off org=32,32,10 dir=0,0,-20 types=0x2 max=4
+ray name=noray_default org=36,36,10 dir=0,0,-20 types=0x13F max=4
+ray name=noray_flags1 org=36,36,10 dir=0,0,-20 types=0x13F flags=0x10000 max=4
+ray name=short org=32,32,10 dir=0,0,-5 types=0x13F max=4
