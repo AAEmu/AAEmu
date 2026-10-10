@@ -1,0 +1,13 @@
+# MSVCR100 double exp/sin/cos (ported bit-exactly in src/geometry/shapes/closest/crt64.rs),
+# log and atan2 (math::crt) on full-precision random doubles. Tests: tests/p1a_closest.rs.
+crtd fn=exp n=300 seed=11 lo=-30 hi=10
+crtd fn=exp n=150 seed=12 lo=-745 hi=710
+crtd fn=exp n=50 seed=13 lo=-1e-6 hi=1e-6
+crtd fn=sin n=250 seed=14 lo=0 hi=1.0471975511965976
+crtd fn=sin n=150 seed=15 lo=-200 hi=200
+crtd fn=sin n=50 seed=16 lo=-1e-3 hi=1e-3
+crtd fn=cos n=250 seed=17 lo=0 hi=1.0471975511965976
+crtd fn=cos n=150 seed=18 lo=-200 hi=200
+crtd fn=cos n=50 seed=19 lo=-1e-3 hi=1e-3
+crtd fn=log n=150 seed=20 lo=1e-12 hi=1e6
+crtd fn=atan2 n=150 seed=21 lo=-100 hi=100
