@@ -327,7 +327,7 @@ pub fn step(w: &mut World, e: EntIdx, dt: f32) -> bool {
                     let pos = w.ent(e).pos;
                     let org = rd(w, e).prev_pos;
                     let dir = Vec3::new(pn.x - pos.x, pn.y - pos.y, pn.z - pos.z);
-                    let mut hit = crate::world::queries::RayHit::default();
+                    let mut hit = crate::world::queries::rwi::RayHit::default();
                     if w.ray_trace_entity(col, org, dir, &mut hit, None, 3, true) != 0 {
                         let b = w.bodies.get_mut(body_id);
                         b.v = Vec3::new(b.v.x * 0.5, b.v.y * 0.5, b.v.z * 0.5);

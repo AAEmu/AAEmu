@@ -848,10 +848,17 @@ pub fn install_generic_intersect(f: GenericIntersectFn) -> bool {
     GENERIC.set(f).is_ok()
 }
 
-/// The installed generic `CGeometry::Intersect` (P1c), if any.
-#[must_use]
-pub fn generic_intersect() -> Option<GenericIntersectFn> {
+/// The generic `CGeometry::Intersect` installed with [`install_generic_intersect`], if any
+/// (added for the world queries, which call [`intersect`] directly to keep the `gwd` write-back).
+pub fn installed_generic() -> Option<GenericIntersectFn> {
     GENERIC.get().copied()
+}
+
+/// The shared tables with the installed generic fallback (what [`geometry_intersect`] uses).
+pub fn env_with_generic() -> PrimIntersectEnv {
+    let mut env = *shared_env();
+    env.generic = installed_generic();
+    env
 }
 
 /// The shared tables used by the [`Geometry::intersect`] glue.

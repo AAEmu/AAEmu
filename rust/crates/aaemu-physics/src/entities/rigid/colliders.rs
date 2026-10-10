@@ -11,7 +11,7 @@
 use super::contacts::ContactScratch;
 use crate::collision::contact::IntersectionParams;
 use crate::collision::prim_intersect::scratch::{c, ThreadScratch};
-use crate::collision::prim_intersect::{intersect, shared_env, IntersectOut};
+use crate::collision::prim_intersect::{intersect, IntersectOut};
 use crate::entities::base::Part;
 use crate::geometry::{GeomWorldData, Geometry};
 use crate::math::{Mat33, Quat, Vec3};
@@ -115,7 +115,7 @@ pub fn queue_awake(w: &mut World, e: EntIdx, dt: f32) {
 /// Mirrored quirk: the `flags92 & 1` pre-pass adds `unk_380 & ((3 − n) >> 31) & …` to the
 /// colliders' `+64` words; `(3 − n) >> 31` (unsigned) is always 0 there, so the pass adds
 /// nothing and is omitted.
-pub fn get_potential_colliders(w: &mut World, e: EntIdx, dt: f32) -> (Vec<EntIdx>, i32) {
+pub fn get_potential_colliders(w: &mut World, e: EntIdx, _dt: f32) -> (Vec<EntIdx>, i32) {
     let (bv, bw, minv) = {
         let b = w.bodies.get(w.ent(e).rigid().expect("rigid").body);
         (b.v, b.w, b.minv)
@@ -260,8 +260,7 @@ fn geom_intersect(
     gwd_b: &GeomWorldData,
     ip: &mut IntersectionParams,
 ) -> IntersectOut {
-    let mut env = *shared_env();
-    env.generic = crate::collision::prim_intersect::generic_intersect();
+    let env = crate::collision::prim_intersect::env_with_generic();
     if a.is_a_primitive() {
         intersect(&env, s, a, b, gwd_a, gwd_b, ip)
     } else {

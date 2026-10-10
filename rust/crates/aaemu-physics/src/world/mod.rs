@@ -29,6 +29,7 @@ pub mod grid;
 pub mod grid_query;
 pub mod queries;
 pub mod queue;
+pub mod terrain;
 
 use crate::entities::base::Entity;
 use crate::math::Vec3;
@@ -207,6 +208,8 @@ pub struct World {
     pub tscratch: Vec<crate::collision::prim_intersect::scratch::ThreadScratch>,
     /// The static dummy contact of RegisterContactPoint's aggregate path (`qword_3521AF50`).
     pub agg_contact_id: crate::solver::ContactId,
+    /// Query state: ray-limit settings, query queues, terrain basis ([`queries::QueryState`]).
+    pub queries: queries::QueryState,
 }
 
 impl World {
@@ -278,6 +281,7 @@ impl World {
                 .map(crate::collision::prim_intersect::scratch::ThreadScratch::new)
                 .collect(),
             agg_contact_id: crate::solver::ContactId::NONE,
+            queries: queries::QueryState::default(),
         };
         w.ccd_scratch
             .resize_with(MAX_CALLERS, crate::entities::rigid::contacts::ContactScratch::default);
