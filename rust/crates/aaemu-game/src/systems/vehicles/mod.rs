@@ -83,8 +83,8 @@ impl System {
         });
         spawn_ticker(
             server,
-            Duration::from_secs(60),
-            Duration::from_secs(60),
+            shipyards::TICK_INTERVAL,
+            shipyards::TICK_START_DELAY,
             shipyards::shipyard_tick,
         );
         spawn_ticker(server, Duration::from_secs(1), Duration::ZERO, |s| {
@@ -159,7 +159,7 @@ impl crate::systems::services::radar::RadarShipHooks for RadarShips {
     }
 }
 
-fn spawn_ticker(
+pub(crate) fn spawn_ticker(
     server: &Arc<GameServer>,
     period: Duration,
     first_delay: Duration,

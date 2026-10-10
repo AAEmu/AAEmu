@@ -463,6 +463,11 @@ fn first_bag_item(character: &PlayerRef, template_id: u32) -> Option<u64> {
     ids.first().copied()
 }
 
+/// `ShipyardTickTask` start delay (`TimeSpan.FromMinutes(1)`).
+pub const TICK_START_DELAY: std::time::Duration = std::time::Duration::from_secs(60);
+/// `ShipyardTickTask` repeat interval (`TimeSpan.FromMinutes(1)`).
+pub const TICK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(60);
+
 /// `ShipyardTick()` (every minute): tax protection / deterioration of every shipyard.
 pub fn shipyard_tick(server: &GameServer) {
     for s in server.systems.vehicles.shipyards.all() {
@@ -575,3 +580,7 @@ fn set_decay_buff(server: &GameServer, shipyard: &ShipyardRef, is_decay: bool) {
         crate::systems::skills::buffs::remove_buff(server, &obj, buff::DETERIORATION);
     }
 }
+
+#[cfg(test)]
+#[path = "shipyards_tests.rs"]
+mod port_tests;
