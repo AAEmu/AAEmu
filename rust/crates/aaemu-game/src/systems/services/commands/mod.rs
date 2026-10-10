@@ -10,6 +10,7 @@
 //! step). With no commands registered, `Handle` answers exactly like the C# server without
 //! loaded scripts.
 
+pub mod doodads;
 pub mod output;
 pub mod params;
 pub mod sub;
@@ -392,3 +393,9 @@ impl CommandManager {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod chain_tests;
+
+#[cfg(test)]
+mod doodads_tests;

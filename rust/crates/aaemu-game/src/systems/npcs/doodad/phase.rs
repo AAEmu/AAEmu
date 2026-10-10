@@ -540,3 +540,7 @@ pub fn init_doodad(ctx: &DoodadCtx<'_>) {
 #[cfg(test)]
 #[path = "phase_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "guard_time_tests.rs"]
+mod guard_time_tests;

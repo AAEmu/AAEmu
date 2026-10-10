@@ -348,14 +348,25 @@ pub fn public_farm_tick(server: &GameServer, now_ms: i64) -> Vec<DoodadRef> {
     released
 }
 
+/// `PublicFarmTickStartTask` start delay (`TimeSpan.FromMinutes(1)`).
+pub const TICK_START_DELAY: Duration = Duration::from_secs(60);
+/// `PublicFarmTickStartTask` repeat interval (`TimeSpan.FromMinutes(1)`).
+pub const TICK_INTERVAL: Duration = Duration::from_secs(60);
+
 /// `Initialize()`: the one-minute `PublicFarmTickStartTask`.
 pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
     tracing::info!("Initialising Public Farm Manager...");
     tracing::info!("PublicFarmTickTask: Started");
+    schedule_tick(server, TICK_START_DELAY, TICK_INTERVAL);
+    Ok(())
+}
+
+/// `taskManager.Schedule(new PublicFarmTickStartTask(), startDelay, repeatInterval)`: one
+/// Tokio task running [`public_farm_tick`] after `start_delay`, then every `interval`.
+fn schedule_tick(server: &Arc<GameServer>, start_delay: Duration, interval: Duration) {
     let weak = Arc::downgrade(server);
     tokio::spawn(async move {
-        let period = Duration::from_secs(60);
-        let mut iv = tokio::time::interval_at(tokio::time::Instant::now() + period, period);
+        let mut iv = tokio::time::interval_at(tokio::time::Instant::now() + start_delay, interval);
         loop {
             iv.tick().await;
             let Some(server) = weak.upgrade() else {
@@ -364,7 +375,6 @@ pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
             public_farm_tick(&server, now_ms());
         }
     });
-    Ok(())
 }
 
 // ------------------------------------------------------------------------------------------
@@ -679,3 +689,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "public_farm_tests.rs"]
+mod port_tests;
