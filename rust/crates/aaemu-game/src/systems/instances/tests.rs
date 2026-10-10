@@ -107,7 +107,7 @@ fn simple_packets_are_byte_exact() {
         .write_bool(false);
     assert_eq!(
         body(&SCSkillCooldownResetPacket {
-            unit_id: 0x1234,
+            obj_id: 0x1234,
             skill_id: 5,
             tag_id: 0,
             gcd: false

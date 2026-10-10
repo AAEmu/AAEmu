@@ -220,8 +220,6 @@ pub struct WorldConfig {
     pub loot_rate: f64,
     #[serde(rename = "goldlootmultiplier", deserialize_with = "lenient")]
     pub gold_loot_multiplier: f64,
-    #[serde(rename = "daysfortaxpayment", deserialize_with = "lenient")]
-    pub days_for_tax_payment: u32,
     #[serde(rename = "actabilityrate", deserialize_with = "lenient")]
     pub actability_rate: f64,
     #[serde(rename = "pvedurabilitylossrate", deserialize_with = "lenient")]
@@ -231,6 +229,13 @@ pub struct WorldConfig {
     /// `MaxInstances` (systems::instances).
     #[serde(rename = "maxinstances", deserialize_with = "lenient")]
     pub max_instances: u32,
+    // ---- phase 3 / housing ----
+    /// `DaysForTaxPayment` (days of protection one tax payment buys).
+    #[serde(rename = "daysfortaxpayment", deserialize_with = "lenient")]
+    pub days_for_tax_payment: u32,
+    /// `UsePersistentHouseDoodads` (house-bound doodads are stored in the `doodads` table).
+    #[serde(rename = "usepersistenthousedoodads", deserialize_with = "lenient")]
+    pub use_persistent_house_doodads: bool,
 }
 
 impl Default for WorldConfig {
@@ -249,11 +254,13 @@ impl Default for WorldConfig {
             vocation_rate: 1.0,
             loot_rate: 1.0,
             gold_loot_multiplier: 1.0,
-            days_for_tax_payment: 7,
+
             actability_rate: 1.0,
             pve_durability_loss_rate: 1.0,
             pvp_durability_loss_rate: 1.0,
             max_instances: 32,
+            days_for_tax_payment: 7,
+            use_persistent_house_doodads: false,
         }
     }
 }

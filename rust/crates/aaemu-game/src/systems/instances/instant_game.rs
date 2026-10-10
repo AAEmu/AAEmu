@@ -583,7 +583,7 @@ pub fn reset_all_skill_cooldowns(server: &GameServer, p: &PlayerRef, trigger_gcd
         .skills_by_tag(PLAYER_SKILLS_TAG)
     {
         packets.add(&SCSkillCooldownResetPacket {
-            unit_id: p.obj_id,
+            obj_id: p.obj_id,
             skill_id: *skill_id,
             tag_id: 0,
             gcd: trigger_gcd,

@@ -24,7 +24,7 @@ use super::runtime::DoodadCtx;
 use super::tasks::{self, TaskScheduler};
 use crate::models::doodad::{doodad_owner_type, Doodad};
 use crate::server::GameServer;
-use crate::systems::npcs::{area_trigger, hooks, public_farm};
+use crate::systems::npcs::{area_trigger, public_farm};
 use crate::world::{now_ms, DoodadRef, Entity, PlayerRef, WorldInstance, WorldObject};
 
 /// `HousingPermission` values `ChangeDoodadData` checks.
@@ -342,10 +342,7 @@ pub fn create_player_doodad(
     let target_house = if ignore_houses {
         None
     } else {
-        economy
-            .as_ref()
-            .and_then(|h| h.house_at_location(server, x, y))
-            .and_then(|house_id| hooks::house_by_db_id(server, house_id))
+        crate::systems::housing::house_at_location(server, x, y)
     };
 
     // C#: Create returns null for an unknown template (NullReferenceException).
@@ -474,16 +471,12 @@ pub fn handle_create_doodad(server: &GameServer, player: &PlayerRef, p: &CSCreat
     }
 
     // Labor cost can be skipped by planting on "owned" land (also blocks if not allowed)
-    if let Some(h) = &economy {
-        if let Some(house_id) = h.house_at_location(server, p.x, p.y) {
-            if let Some(allowed) = h.house_allowed_to_interact(server, house_id, player) {
-                if !allowed {
-                    player.send(error_msg(error_message::NO_PERM));
-                    return;
-                }
-                labor_cost = 0;
-            }
+    if let Some(house) = crate::systems::housing::house_at_location(server, p.x, p.y) {
+        if !crate::systems::housing::allowed_to_interact(server, &house, player) {
+            player.send(error_msg(error_message::NO_PERM));
+            return;
         }
+        labor_cost = 0;
     }
 
     // Check labor cost

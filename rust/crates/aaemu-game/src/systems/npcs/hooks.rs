@@ -487,24 +487,25 @@ pub trait EconomyBridge: Send + Sync {
     }
 
     /// `HousingManager.GetHouseById(houseId)` + `house.AllowedToInteract(player)`: `None` when
-    /// the house does not exist. Default: `Some(true)` for a house in the world (permissions not
-    /// ported), else `None`.
+    /// the house does not exist. Default: the housing subsystem.
     fn house_allowed_to_interact(
         &self,
         server: &GameServer,
         house_db_id: u32,
-        _player: &PlayerRef,
+        player: &PlayerRef,
     ) -> Option<bool> {
-        house_by_db_id(server, house_db_id).map(|_| true)
+        crate::systems::housing::allowed_to_interact_by_id(server, house_db_id, player)
     }
 
     /// `HousingManager.Demolish(connection, house, false, false)` (`Demolish` interaction).
+    /// Default: the housing subsystem.
     fn demolish_house(
         &self,
-        _server: &GameServer,
-        _player: &PlayerRef,
-        _house: &crate::world::HouseRef,
+        server: &GameServer,
+        player: &PlayerRef,
+        house: &crate::world::HouseRef,
     ) {
+        crate::systems::housing::demolish_by_player(server, player, house);
     }
 
     /// `CofferContainer.CofferType` (`ChestType`) of coffer container `container_id`.
@@ -590,9 +591,9 @@ pub trait EconomyBridge: Send + Sync {
     }
 
     /// `HousingManager.GetHouseAtLocation(x, y)` (database id of the house whose land covers
-    /// the point). Default: `None`.
-    fn house_at_location(&self, _server: &GameServer, _x: f32, _y: f32) -> Option<u32> {
-        None
+    /// the point). Default: the housing subsystem.
+    fn house_at_location(&self, server: &GameServer, x: f32, y: f32) -> Option<u32> {
+        crate::systems::housing::house_at_location(server, x, y).map(|h| h.data().id)
     }
 }
 
@@ -615,13 +616,16 @@ pub fn backpack_slot_empty(player: &PlayerRef) -> bool {
         .is_none()
 }
 
-/// `HousingManager.GetHouseById(id)`: the house with database id `id` in any world instance.
+/// `HousingManager.GetHouseById(id)` (the housing subsystem's `_houses`; houses only placed in
+/// a world instance, e.g. by tests, are found there as a fallback).
 pub fn house_by_db_id(server: &GameServer, id: u32) -> Option<crate::world::HouseRef> {
-    server.world.worlds().iter().find_map(|w| {
-        w.all_of_kind(crate::world::ObjectKind::House)
-            .into_iter()
-            .filter_map(|o| o.as_house().cloned())
-            .find(|h| h.data().id == id)
+    crate::systems::housing::house_by_id(server, id).or_else(|| {
+        server.world.worlds().iter().find_map(|w| {
+            w.all_of_kind(crate::world::ObjectKind::House)
+                .into_iter()
+                .filter_map(|o| o.as_house().cloned())
+                .find(|h| h.data().id == id)
+        })
     })
 }
 

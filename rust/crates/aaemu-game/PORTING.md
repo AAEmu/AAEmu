@@ -19,7 +19,7 @@ client --FinishState(1..6)---------->   <-- ChangeState(state+1);  FinishState(7
 client --CSListCharacter(lvl1)------>   <-- SCGetSlotCount, SCAccountInfo, [LoadAccount: Character.Load +
                                              CheckForDeletedCharactersDeletion -> SCCharacterDeleted +
                                              SCDeleteCharacterResponse(1)], SCRaceCongestion,
-                                             SCCharacterList x ceil(n/2), (SCLoginCharInfoHouse per house: todo)
+                                             SCCharacterList x ceil(n/2), SCLoginCharInfoHouse per house
 client --CSLeaveWorld(ServerSelect)->   game -> GLPlayerReconnect;  LGPlayerReconnect -> SCReconnectAuth
 ```
 
@@ -137,7 +137,7 @@ systems::{skills, npcs, economy, social, quests}: Data (tables), System (manager
 | `Core/Managers/World/StreamManager` | `managers/stream.rs`, `stream/cells.rs` | done | AddToken/RemoveToken/Login (wrong account removes the token, as C#), RequestCell/ContinueCell incl. the C# `next - 1` copy off-by-one. |
 | `Core/Managers/Stream/UccManager`, `Models/Stream`, `Core/Managers/Id/UccIdManager` | `stream/ucc.rs`, `stream/models.rs` | partial | Load/Save (`uccs` table, data in the MEDIUMBLOB as the default C# build), upload (simple + custom), download, checks, id allocation. `CreateStamp`/`ApplyStamp` (item-side, used by skill effects) todo. ConfirmDefaultUcc saves before granting the Crest Ink (C# creates the item first). |
 | `Core/Managers/TimedRewardsManager` | – | todo | Daily login + offline labor on enter (called from AccountManager.Add). |
-| `Core/Managers/HousingManager`, `Models/Game/Housing` | – | todo | Needed for `Connection.Houses` / `SCLoginCharInfoHouse` / `SCMyHouse`. |
+| `Core/Managers/HousingManager`, `Models/Game/Housing` | `systems/housing/` | done | See "Phase 3 subsystems". |
 | `Core/Managers/CrimeManager` | `db_character.rs` | partial | CheckWantedThreshold thresholds only. |
 | Other `Core/Managers/*` (AI, AccessLevel, Animation, Command, Duel, EffectTask, ExpressText, Family, FishSchool, Gimmick, ManaRegen, Mate, Model, Music, Plot, PublicFarm, Quest, Radar, Shipyard, Slave, SubZone, Sus, Task/Tick, Team, Trial; World: Spawn, AreaTrigger, Physics, SphereQuest) | – | todo | |
 | `Models/Game/Units/UnitCustomModelParams` | `models/unit_model.rs` | done | |
@@ -233,6 +233,19 @@ connected by `systems::economy::wiring`).
 | `RadarManager` | – | not social | Telescope / fish school registration from buff templates: skills / npcs. |
 
 Cross-subsystem calls still to wire (API exists in social): npcs -> `trials.initialize_doodads` / `initialize_npc` after spawning `justice.*` spawners and install `SocialHooks` (spawn_doodad, doodad_phase_changed, terrain_height, create_player_doodad, evidence_func, doodad_change_phase, judge_obj_id); skills/combat -> `crimes.generate_evidence_from_damage/kill`, `trials.arrest_criminal`, `teams.are_team_members` / `team_by_obj_id` / `is_obj_member`, `duels` queries, `report_bot*`, and hooks `check_buff_tag` / `remove_buffs_by_tag` / `post_update_current_hp`; economy -> `teams.next_loot_winner` / `next_eligible_looter`, hook `update_owned_housing_faction`; instance / portal entry -> `trials.is_player_in_court`; mates -> hook `force_dismount`; teleports -> `session::on_moved` (C# `Character.SetPosition` -> `TeamManager.UpdatePosition`; plain movement does not call it in C# either).
+
+### systems::housing
+
+| Area (C#) | Rust | Status | Notes |
+|---|---|---|---|
+| `HousingGameData` (`item_housings`, `housings`, `housing_binding_doodads` + `Data/housing_bindings*.json`, `housing_build_steps`, `housing_decorations`, `item_housing_decorations`, `PostLoad`), `TaxationsManager` (`taxations`) | `systems/housing/data.rs` | done | Gated real-DB test `housing_real_compact_db` (row counts, bindings positioned). Duplicate build steps fail the load (C# `Dictionary.Add`). |
+| `HousingManager` (all methods), `House` behaviour (`CurrentStep` setter + bound doodads, `AddBuildAction`, `Spawn` / `Delete` / visibility of `AttachedDoodads`, `AllowedToInteract`, `OnDeath`, `Save`), `HousingTaxTask`, `MailForTax` content | `systems/housing/{manager,ops,db}.rs` | done | Build (tax certificates or gold), permission, rename, recover toggle, demolish (+ `ReturnHouseItemsToOwner` mails), sale / sale markers / cancel / buy (+ mails, furniture owner), decoration, taxes (bills, untouchable / removal buffs, demolition timer every 10 s), death, `GetHouseAtLocation`, act-ability bonus. Items / money / mail go through `housing::hooks::HousingEconomyHooks` (economy installs it). |
+| Housing packets (11 CS, 14 SC incl. `SCLoginCharInfoHouse`, `SCMyHouse`) | `systems/housing/packets.rs` | done | Byte-exact tests. `CSChangeHousePayPacket` has opcode 0xfff in 1.2 (not registered). `SCHouseOwnerNameChangedPacket` is social's (`packets/misc.rs`). |
+| `CraftEffect` (`WorldInteractionGroup.Building`) | `systems/housing/mod.rs::apply_effect` | done | Routed first by `skills::ext::ExtHooks::route_effect`; quest `DoDoodadInteractionEvents` after it. |
+| `SpawnManager.Load` / `SpawnPersistentDoodads` housing parts, `LoadAccount` / `CSListCharacter` / `CSSelectCharacter` / `Character.Load` / `DeleteCharacterAssets` housing parts | `npcs/spawn_manager.rs`, `packets/c2g.rs`, `world/session.rs`, `db_character.rs` (one call each) | done | `LoadPlayerHousing` + `SpawnAll` before the persistent doodads, house parenting + bound doodads, `ReconcileBoundDoodads` (`UsePersistentHouseDoodads`). |
+| Placement validation | – | n/a | The 1.2 C# `Build` validates nothing but the design item (TODOs); the client checks the housing areas. Land checks for doodads (`GetHouseAtLocation` + `AllowedToInteract`) are ported and used by `CSCreateDoodad` / `CreatePlayerDoodad`. |
+
+Hooks the economy subsystem must install (`server.systems.housing.hooks`): `inventory_item`, `item`, `inventory_item_count`, `bag_consume_item`, `subtract_money`, `move_item_to_system_container`, `destroy_item`, `take_coffer_items`, `send_mail`, `send_mail_with_new_items`, `delete_house_mails`, `house_mail_ids`, `update_tax_mail`. Housing API for others: `housing::{house_by_id, house_at_location, allowed_to_interact(_by_id), pay_weekly_tax (MailManager tax payment), act_ability_bonus_at (CharacterCraft), update_owned_housing_faction, demolish_by_player}`.
 
 ### systems::quests
 
@@ -375,6 +388,16 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
   account updates of special effects run as async tasks.
 * systems::skills: `saveFactions` KeyNotFound (C# throws) is logged as an error.
 * `systems::npcs`: doodad func timers are tokio tasks (cancel = generation bump); `DoodadManager.Create`'s `Task.Run(InitDoodad)` is a spawned task; `TimeManager.OnTimeOfDayChange` runs from a 10 s poller. `GetNpcSpawner` template rewrites do not propagate to already loaded spawners; the "first" concurrent-dictionary entry is the lowest key; spawn files are processed in sorted name order (C# `Directory.GetFiles` order is unspecified). Portal book deletions are written at the next periodic save. Debug messages check only the character's access level. Coffer slot counting stops at 255 (C# loops forever). Where the C# would throw on a null / failed cast the Rust code returns quietly. Geodata (navmesh heights), physics, water, sticky parents, AI, transfers / slaves spawning and housing are not ported.
+* systems::housing: dates are stored with second precision (unix seconds); `DateTime.MinValue`
+  rows load as 0, so a manually inserted house with both dates at MinValue gets 1970-01-15 as
+  protection end (C#: 0001-01-15; both are "expired"). `Connection.Houses` is not snapshotted:
+  `SCLoginCharInfoHouse` / `SCMyHouse` read the account's houses when they are sent. A house row
+  with an unknown template is skipped (C# NRE aborts the load). The non-persistent bound doodads
+  of a deleted house are removed from the world's object table (the C# leaks them). Sale signs
+  fall back to the house Z when no heightmaps are loaded. The house `Expedition` (owner's guild)
+  is stored on ownership changes instead of being read live. Where the C# throws inside an
+  operation (null decoration design / doodad template / taxation, missing furniture item), the
+  operation is aborted and logged.
 
 * systems::instances: the dungeon loader awaits the spawn tasks before registering the indun events again (C# does not await `Task.WhenAll`, a race) and reads the spawn files there instead of in `CreateWorldInstance`; `DestroyInstantGame` cleans the instance up and releases its id right away (C#: the finalizer, later); `Environment.TickCount` is a process-relative monotonic clock; the `World.Template.SpawnPosition` mutation in `MoveCharacterTo*` is a local value; paths that throw in C# (missing action / room / zone / rule set, `_members[x]` of a non-member, a destroyed dungeon's `World`) log and return, keeping the side effects done before the throw; `EndGame().Start()` throwing after a victory is modelled as "the rest of `OnKill` (respawn) does not run"; the cross-instance region switch removes the object from every old neighbour once (no double notification of its own sector).
 
@@ -497,3 +520,13 @@ Hooks / TODOs left for other subsystems: mates `RemoveAndDespawnAllActiveOwnedMa
 * systems::economy: cash shop — loyalty is charged at the undiscounted price, the max-level check
   sends the low-level error, page 0 behaves like page 1.
 * `systems::instances`: `RegisterIndunEvents` runs in the `Dungeon` constructor and again in the loader, so every indun event handler is subscribed twice; a dungeon kill raises `OnUnitKilled` (and the victim's `OnDeath`) in `PostUpdateCurrentHp` and again in `DoDie` — NPC-killed action chains run four times; `IndunEventDoodadSpawneds.UnSubscribe` adds the handler (`+=`); `AreaClearTick` stops at the first cleared room (`return`); a new dungeon verifies the requirements twice (the entry item is consumed twice) and the creator gets `SCProcessingInstancePacket` twice; `Transform.CloneDetached(character)` / `MainWorldPosition.Clone()` fire `OnZoneChange(0, zone)` (the instance zone chat is never left); `ApplyWorldSpawnPosition` stores the spawn rotation in degrees; leaving an instance sends the (radian) return rotation through `DegToRad` again and `SCLoadInstancePacket` names `MainWorldPosition.WorldId`; `DestroyDungeon` removes the players from the instance without moving them out; `InstantGame.RemovePlayer` looks the corps lists up by 0 / 1 instead of the faction ids (never cleaned); `AddScore` always sends `Corps1` / `score2 = 0`; the kill packet's victim count is the victim corps' kills; entering a battlefield sets the corps faction, so `Character.SetFaction` kicks guild members of another mother faction from their guild and party; offline queue applicants are never pruned (`CharObj` is never null); `RemoveGame` leaves the game in the queue list; `TowerDefGameData` / battlefields.json loops stop (`return`) at the first orphan row.
+* systems::housing: `CalculateBuildingTaxInfo` returns before computing anything when the
+  account has no house yet, so the first house is free (no tax, no deposit) and the
+  construction tax window shows 0; demolition returns the deposit anyway. `CSSellHousePacket`
+  does not check that the seller owns the house, and looks the buyer name up without
+  normalizing it. `Family` / `Guild` permission falls through to "public" for players without a
+  family / guild. `SCHouseTaxInfoPacket.isAlreadyPaid` is true when payment is *required*.
+  The demolition money (deposit) is only mailed when at least one item is returned.
+  `CraftEffect` on a finished house throws (`BuildSteps[-1]`). The `BaseAction` sum is not
+  reset when the step goes back to 0 / -1. `SetForSale` on a house already for sale adds a second
+  set of sale signs. `RemoveDeadHouse` queues the house id for deletion a second time.

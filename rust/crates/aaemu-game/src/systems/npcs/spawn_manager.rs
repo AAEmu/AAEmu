@@ -682,18 +682,21 @@ impl SpawnManager {
             .map_err(anyhow::Error::msg)?;
 
         if self.world.template.id == gd.worlds.default_world_template_id() {
-            // TODO(npcs/housing): HousingManager.LoadPlayerHousing(World) + SpawnAll() (houses
-            // before doodads) and ReconcileBoundDoodads (UsePersistentHouseDoodads).
+            // Load player housing data; houses need to be spawned before doodads.
+            crate::systems::housing::load_for_world(server, &self.world).await?;
             tracing::info!(
                 "Loading persistent doodads for {}",
                 self.world.template.name
             );
             let mut spawned = 0;
-            for owner_type in [
-                doodad_owner_type::HOUSING,
-                doodad_owner_type::SYSTEM,
-                doodad_owner_type::CHARACTER,
-            ] {
+            // Load furniture and bound doodads
+            spawned += self
+                .spawn_persistent_doodads(server, doodad_owner_type::HOUSING, -1, None, false)
+                .await?;
+            // Reconcile bound doodads: spawn any missing from DB, remove duplicates
+            crate::systems::housing::after_housing_doodads_loaded(server);
+            // Load plants/packs and everything else that was placed into the world by players
+            for owner_type in [doodad_owner_type::SYSTEM, doodad_owner_type::CHARACTER] {
                 spawned += self
                     .spawn_persistent_doodads(server, owner_type, -1, None, false)
                     .await?;
@@ -1101,21 +1104,17 @@ impl SpawnManager {
                 }
             }
             if house_id > 0 && !has_parent {
-                // TODO(npcs/housing): parent to HousingManager.GetHouseById(OwnerDbId) and the
-                // UsePersistentHouseDoodads binding (`AttachedDoodads`).
-                match self
-                    .world
-                    .all_of_kind(ObjectKind::House)
-                    .into_iter()
-                    .find(|h| h.as_house().is_some_and(|h| h.data().id == house_id))
-                {
-                    Some(h) => {
-                        doodad.data().parent_obj_id = h.obj_id();
-                        self.world.attach_child(&h, &doodad_obj);
-                    }
-                    None => tracing::warn!(
+                // HousingManager.GetHouseById(OwnerDbId): parent + bound doodad registration
+                // (UsePersistentHouseDoodads).
+                if !crate::systems::housing::attach_loaded_doodad(
+                    server,
+                    &self.world,
+                    house_id,
+                    &doodad,
+                ) {
+                    tracing::warn!(
                         "Unable to place doodad {db_id} can't find it's owning house {house_id}"
-                    ),
+                    );
                 }
             }
             if let Some(p) = use_parent_object {

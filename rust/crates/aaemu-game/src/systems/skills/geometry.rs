@@ -138,7 +138,10 @@ pub fn distance_to(server: &GameServer, from: &Target, to: &Target, include_z: b
     }
     let mut d = raw_distance(&a, &b, include_z);
     if let Target::Obj(o) = to {
-        if let Some(m) = o.with_unit(|u| u.unit().model_id) {
+        if let Some(r) = crate::systems::housing::house_radius(server, o) {
+            // Subtract house radius (GardenRadius * Scale)
+            d -= r;
+        } else if let Some(m) = o.with_unit(|u| u.unit().model_id) {
             d -= server.game_data.systems.skills.model_radius(m);
         }
     }

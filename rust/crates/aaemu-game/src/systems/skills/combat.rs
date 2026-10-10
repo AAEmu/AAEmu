@@ -236,6 +236,8 @@ pub fn do_die(
     }
     // ParentWorld.Events.OnUnitKilled + killerUnit?.Events.OnKill (systems::instances).
     crate::systems::instances::events::on_do_die(server, victim, killer);
+    // House.OnDeath
+    crate::systems::housing::on_unit_died(server, victim);
     // Abusers that died leave the aggro tables they are in (OnAbuserDied).
     on_abuser_died(server, victim);
     buffs::remove_effects_on_death(server, victim);

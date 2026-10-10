@@ -880,7 +880,9 @@ impl ExtHooks {
         template: &EffectTemplate,
         args: &EffectArgs<'_>,
     ) -> bool {
-        self.npcs().apply_effect(server, kind, template, args)
+        // The housing `CraftEffect` (Building) branch first; everything else is unchanged.
+        crate::systems::housing::apply_effect(server, kind, template, args)
+            || self.npcs().apply_effect(server, kind, template, args)
             || self.items().apply_effect(server, kind, template, args)
             || self.quests().apply_effect(server, kind, template, args)
             || self.social().apply_effect(server, kind, template, args)

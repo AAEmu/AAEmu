@@ -689,24 +689,5 @@ impl Marshal for SCTowerDefWaveStartPacket {
     }
 }
 
-/// `SCSkillCooldownResetPacket(chr, skillId, tagId, gcd)` (`Character.ResetAllSkillCooldowns`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SCSkillCooldownResetPacket {
-    pub unit_id: u32,
-    pub skill_id: u32,
-    pub tag_id: u32,
-    pub gcd: bool,
-}
-packet_def!(
-    SCSkillCooldownResetPacket,
-    level = LEVEL_PLAIN,
-    opcode = sc::SCSkillCooldownResetPacket
-);
-impl Marshal for SCSkillCooldownResetPacket {
-    fn write(&self, s: &mut PacketStream) {
-        s.write_bc(self.unit_id)
-            .write_u32(self.skill_id)
-            .write_u32(self.tag_id)
-            .write_bool(self.gcd);
-    }
-}
+/// `SCSkillCooldownResetPacket`: one definition per opcode (`crate::systems::skills::packets::SCSkillCooldownResetPacket`).
+pub use crate::systems::skills::packets::SCSkillCooldownResetPacket;

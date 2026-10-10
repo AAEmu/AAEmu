@@ -330,8 +330,9 @@ pub async fn check_for_deleted_characters_deletion(
         .await?
         .rows_affected();
         if res > 0 {
-            // DeleteCharacterAssets(character, false): guild and family (social); houses and mail
-            // returns are later phases.
+            // DeleteCharacterAssets(character, false): houses, then guild and family (social);
+            // mail returns are a later phase.
+            crate::systems::housing::delete_character_assets(server, character.id);
             crate::systems::social::session::delete_character_assets(server, character).await;
             if let Some(p) = packets {
                 p.push(Box::new(crate::packets::world::SCCharacterDeletedPacket {
