@@ -67,6 +67,7 @@ fn vw(v: Vec3) -> [f32; 3] {
 
 /// A primitive of a case: probe type id and words, plus the port object.
 #[derive(Clone, Debug)]
+#[allow(dead_code)] // solid primitives: cases come with CTriMesh slot 54
 enum Prim {
     Box(BoxPrim),
     Sphere(SpherePrim),
@@ -151,7 +152,10 @@ fn ip_words(ip: &IntersectionParams) -> String {
         | u32::from(ip.keep_prev_contacts) << 8
         | u32::from(ip.no_area_contacts) << 24;
     d[27] = u32::from(ip.no_intersection);
-    d.iter().map(|x| format!("{x:08x}")).collect::<Vec<_>>().join(" ")
+    d.iter()
+        .map(|x| format!("{x:08x}"))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// The probe's contact text for a port contact.
@@ -243,8 +247,16 @@ struct Case {
 fn rand_gwd(rng: &mut Rng, near: Vec3) -> GeomWorldData {
     GeomWorldData {
         offset: near + rng.v(-0.5, 0.5),
-        r: if rng.chance(0.3) { Mat33::IDENTITY } else { rng.rot() },
-        scale: if rng.chance(0.7) { 1.0 } else { rng.r(0.5, 2.0) },
+        r: if rng.chance(0.3) {
+            Mat33::IDENTITY
+        } else {
+            rng.rot()
+        },
+        scale: if rng.chance(0.7) {
+            1.0
+        } else {
+            rng.r(0.5, 2.0)
+        },
         v: rng.v(-2.0, 2.0),
         w: rng.v(-1.0, 1.0),
         center_of_mass: near + rng.v(-1.0, 1.0),

@@ -292,9 +292,7 @@ fn leaves(
             ctx.s[1].bvs.b_marked = 0;
             ctx.s[0].bvs.b_marked = 0;
             sum += geoms[s].proto_register(ctx, s, geoms[s ^ 1], is, io, &mut inters);
-            if (ctx.s[1].bvs.b_marked & ctx.s[0].bvs.b_marked)
-                + ctx.s[1].gt.stop
-                + ctx.s[0].gt.stop
+            if (ctx.s[1].bvs.b_marked & ctx.s[0].bvs.b_marked) + ctx.s[1].gt.stop + ctx.s[0].gt.stop
                 > 0
             {
                 return sum;
@@ -315,10 +313,11 @@ fn run_traversal(ctx: &mut IntersectCtx<'_>, geoms: [&dyn GeomProtocol; 2], na: 
         .get_node_bv(&mut ctx.arena.bv, na);
     let g = &ctx.s[1].gt;
     let (r, o, sc) = (g.r_rel, g.offset_rel, g.scale_rel);
-    let hb = geoms[1]
-        .proto_bv_tree()
-        .tree()
-        .get_node_bv_transformed(&mut ctx.arena.bv, &r, o, sc, nb);
+    let hb =
+        geoms[1]
+            .proto_bv_tree()
+            .tree()
+            .get_node_bv_transformed(&mut ctx.arena.bv, &r, o, sc, nb);
     traverse(ctx, geoms, ha, hb);
 }
 
@@ -484,7 +483,11 @@ pub fn intersect(
         let g = &mut sd.gt;
         g.center_of_rotation = ip.center_of_rotation;
         let f = (1 - 2 * k as i32) as f32;
-        g.unproj_dir = Vec3::new(ip.unproj_dir.x * f, ip.unproj_dir.y * f, ip.unproj_dir.z * f);
+        g.unproj_dir = Vec3::new(
+            ip.unproj_dir.x * f,
+            ip.unproj_dir.y * f,
+            ip.unproj_dir.z * f,
+        );
         g.n_max_contacts = n_max;
         g.stop = 0;
         g.field_260 = 0;
@@ -605,10 +608,11 @@ fn intersect_sweep(
         .get_node_bv_swept(&mut ctx.arena.bv, dl, ll, 0);
     let g = &ctx.s[1].gt;
     let (r, o, sc) = (g.r_rel, g.offset_rel, g.scale_rel);
-    let hb = geoms[1]
-        .proto_bv_tree()
-        .tree()
-        .get_node_bv_transformed(&mut ctx.arena.bv, &r, o, sc, 0);
+    let hb =
+        geoms[1]
+            .proto_bv_tree()
+            .tree()
+            .get_node_bv_transformed(&mut ctx.arena.bv, &r, o, sc, 0);
     let mut found = false;
     if let Some(ha) = ha {
         traverse_sweep(&mut ctx, geoms, ha, hb, &mut c, &mut found);
@@ -697,11 +701,16 @@ fn traverse_sweep(
         for j in 0..nb.max(0) as usize {
             let pa = ctx.s[0].gt.prims[i];
             let pb = ctx.s[1].gt.prims[j];
-            if ctx.unproj.unproject(0, &mut p, &pa, -1, &pb, -1, &mut res, None) == 0 {
+            if ctx
+                .unproj
+                .unproject(0, &mut p, &pa, -1, &pb, -1, &mut res, None)
+                == 0
+            {
                 continue;
             }
             let nd = (res.n.x * sd.x + res.n.y * sd.y) + res.n.z * sd.z;
-            if !(nd > 0.0) {
+            // `comiss nd, 0; jbe`: NaN rejects
+            if nd.partial_cmp(&0.0) != Some(std::cmp::Ordering::Greater) {
                 continue;
             }
             let lf = f64::from(len);

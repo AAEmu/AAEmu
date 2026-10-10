@@ -91,7 +91,7 @@ impl Side {
 
 /// The per-caller scratch (base 0x35256F80 + iCaller·0x39FB8) as far as the intersection
 /// routines share it across calls.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct CallerArena {
     /// BV records and used-node maps (P1b).
     pub bv: BvArena,
@@ -107,20 +107,6 @@ pub struct CallerArena {
     pub w16ecc: u32,
     /// +0x39F68: OVERLAP scratch, −1 at the start of every `Intersect`.
     pub overlap_scratch: i32,
-}
-
-impl Default for CallerArena {
-    fn default() -> Self {
-        Self {
-            bv: BvArena::new(),
-            n_contacts: 0,
-            n_areas: 0,
-            n_area_pts: 0,
-            w16ec8: 0,
-            w16ecc: 0,
-            overlap_scratch: 0,
-        }
-    }
 }
 
 /// Entries of the contact pool.

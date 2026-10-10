@@ -16,7 +16,9 @@ use crate::collision::swept::sweep::{
 };
 use crate::geometry::bvtree::{BvRecord, RayBv, SingleBoxTree};
 use crate::geometry::shapes::protocol::{ray_register_intersection, IntersectionProtocol};
-use crate::geometry::shapes::{BoxGeom, CapsuleGeom, CylinderGeom, RayGeom, SingleBoxBv, SphereGeom};
+use crate::geometry::shapes::{
+    BoxGeom, CapsuleGeom, CylinderGeom, RayGeom, SingleBoxBv, SphereGeom,
+};
 use crate::ids::GeomType;
 
 fn single_box(bv: &SingleBoxBv) -> SingleBoxTree {

@@ -5,7 +5,8 @@ mod p1c_common;
 
 #[test]
 fn cube_dump_parses() {
-    let text = std::fs::read_to_string(p1c_common::golden_dir().join("p1c_dump_cube.trace")).unwrap();
+    let text =
+        std::fs::read_to_string(p1c_common::golden_dir().join("p1c_dump_cube.trace")).unwrap();
     let lines: Vec<&str> = text.lines().collect();
     let (m, used) = p1c_common::parse_mesh_dump(&lines);
     assert_eq!(used, lines.len());
