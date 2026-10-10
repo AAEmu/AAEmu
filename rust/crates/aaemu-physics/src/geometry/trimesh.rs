@@ -40,12 +40,44 @@ pub mod unproject_sphere;
 use crate::geometry::bvtree::select::MeshTree;
 use crate::math::Vec3;
 
-/// One entry of the island list (`+128`, 40 bytes each, built by sub_351C0D80).
-/// Field meanings are filled in by [`topology`].
+/// One entry of the island list (`+128`, 40 bytes each, built by sub_351C0D80, see
+/// [`topology`]): `+0` first triangle of the island's triangle list (linked through
+/// [`TriMesh::tri_island`]), `+4` triangle count, `+8`/`+12`/`+16` three ints set to −1 (not
+/// read by the ported code), `+20` signed volume, `+24` volume-weighted centre, `+36` 0.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct MeshIsland {
     /// The 10 dwords of the record as the original stores them.
     pub words: [u32; 10],
+}
+
+impl MeshIsland {
+    /// `+0` the island's first triangle (head of its list in [`TriMesh::tri_island`]).
+    #[must_use]
+    pub fn first_tri(&self) -> i32 {
+        self.words[0] as i32
+    }
+
+    /// `+4` the island's triangle count.
+    #[must_use]
+    pub fn n_tris(&self) -> i32 {
+        self.words[1] as i32
+    }
+
+    /// `+20` the island's signed volume.
+    #[must_use]
+    pub fn volume(&self) -> f32 {
+        f32::from_bits(self.words[5])
+    }
+
+    /// `+24` the island's centre (the mean of its vertex references).
+    #[must_use]
+    pub fn center(&self) -> Vec3 {
+        Vec3::new(
+            f32::from_bits(self.words[6]),
+            f32::from_bits(self.words[7]),
+            f32::from_bits(self.words[8]),
+        )
+    }
 }
 
 /// `CTriMesh` (0x260 bytes). Field offsets are those of the x64 object.
@@ -87,8 +119,17 @@ pub struct TriMesh {
     pub aux: Option<Vec<i32>>,
     /// `+168` maximum vertex valency.
     pub max_vertex_valency: i32,
-    /// `+476` ray-grid build count (slot 22); the grid itself lives in [`raytest`].
+    /// `+476` ray-grid build count (slot 22).
     pub ray_grid_ready: i32,
+    /// `+176..+312` the ray grid built by slot 22 (`PrepareForRayTest`, 0x351D7C40) and read by
+    /// `PointInsideStatus` (slot 61) and the mesh ray path; `None` until built.
+    pub ray_grid: Option<inside::RayGrid>,
+    /// `+32` foreign data pointer (slots 35 / 37; opaque to the engine).
+    pub foreign_data: crate::sentinel::RawPtr,
+    /// `+40` iForeignData (slots 36 / 37).
+    pub i_foreign_data: i32,
+    /// `+544` the foreign data returned by slot 35 for id −1.
+    pub foreign_data_mesh: crate::sentinel::RawPtr,
     /// `+480` IsConvex cache: results for 4 tolerances.
     pub convex_cache: [i32; 4],
     /// `+496` IsConvex cache: the tolerances (init −1).
@@ -101,8 +142,9 @@ pub struct TriMesh {
     pub cached_extent: [f32; 2],
     /// `+528` cached centre (slot 32); `.x` holds the sentinel until computed.
     pub cached_center: Vec3,
-    /// `+540` subtraction counter (slot 38).
-    pub n_subtractions: i32,
+    /// `+540` number of open plus non-manifold edges found by the last topology pass
+    /// (sub_351BFA60); slot 38 returns it.
+    pub n_bad_edges: i32,
     /// `+588` error / invalid count (slot 34).
     pub n_errors: i32,
     /// `+600` lowest referenced vertex index (Load's vertex trimming).
@@ -136,13 +178,17 @@ impl Default for TriMesh {
             aux: None,
             max_vertex_valency: 0,
             ray_grid_ready: 0,
+            ray_grid: None,
+            foreign_data: crate::sentinel::RawPtr::NULL,
+            i_foreign_data: 0,
+            foreign_data_mesh: crate::sentinel::RawPtr::NULL,
             convex_cache: [0; 4],
             convex_tol: [-1.0; 4],
             multi_island: 0,
             cached_volume: unused,
             cached_extent: [unused; 2],
             cached_center: Vec3::new(unused, 0.0, 0.0),
-            n_subtractions: 0,
+            n_bad_edges: 0,
             n_errors: 0,
             i_vtx_min: 0,
             save_pad: [0; 16],
