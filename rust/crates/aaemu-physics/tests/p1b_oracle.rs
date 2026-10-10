@@ -303,7 +303,9 @@ fn check(name: &str, port: &str, live: impl FnOnce(&Path) -> String) {
     let reference = if let Some(exe) = probe() {
         let r = live(&exe);
         let bless = std::env::var_os("AAEMU_PHYS_BLESS").is_some();
-        if bless && std::fs::read_to_string(&gp).ok().as_deref() != Some(r.as_str()) {
+        // Only rewrite when the masked text differs: the uninitialised bytes vary run to run.
+        let old = std::fs::read_to_string(&gp).ok();
+        if bless && old.as_deref().map(mask) != Some(mask(&r)) {
             std::fs::write(&gp, &r).unwrap();
         } else if let Ok(g) = std::fs::read_to_string(&gp) {
             assert_eq!(

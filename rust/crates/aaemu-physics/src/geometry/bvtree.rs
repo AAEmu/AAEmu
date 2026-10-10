@@ -31,7 +31,28 @@
 //! [`BvTree`] is the slot interface (object safe, `Box<dyn BvTree>` in the mesh). The parts of
 //! `geometry_under_test` the trees touch are [`BvTestState`] (embed it in the gtest);
 //! geometry slot 56 (`GetPrimitiveList`) is called by the traversal with the
-//! [`NodeContents`] range that slot 23 returns.
+//! [`NodeContents`] range that slot 23 returns. A mesh gets its tree from
+//! [`select::build_mesh_tree`] (the `CTriMesh` constructor's choice for its build flags) or
+//! [`load_tree`] (blob type id + slot 22); [`BuildMesh`] is the view of the mesh arrays the
+//! builders permute. Consumers must ignore a record's basis when its `bOriented` is 0 (it is
+//! stale pool memory, as in the original).
+//!
+//! ## Original bugs kept (each documented at its site)
+//!
+//! * `CAABBTree` slot 6 always leaves the used-node map null (marking never happens, but the
+//!   arena pools are still consumed); slot 10 does not advance the swept pool, so slot 13
+//!   overwrites the root record while reading it, and slot 13's second child tests the
+//!   parent's *swept* `bOriented`.
+//! * `COBBTree` slot 13 writes the second child's `bOriented` into the first child.
+//! * The OBB builder fits nodes of > 100 triangles (depth ≤ 4) to their convex hull but reads
+//!   the hull's indices from the mesh vertex array instead of the unique-vertex buffer.
+//! * The mesh constructor does not back up the auxiliary per-triangle array (+160) between
+//!   candidate trees.
+//! * `IsIdentity` (sub_3513A010) treats a NaN sum as identity.
+//!
+//! Evidence: `tests/p1b_oracle.rs` (the DLL's own builders, slots and helpers via
+//! `tests/p1b_probe.c`; 1,542 real meshes), `tests/p1b_blobs.rs` (byte-exact round trips of
+//! every real serialized tree), `tests/p1b_traversal.rs`.
 
 pub mod aabb;
 pub mod fit;
