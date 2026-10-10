@@ -1,0 +1,23 @@
+SkillCategory|DROPPED|written to SkillTemplate.Category at load, never read
+BuffEvents,OnBuffStartedArgs,OnDispelledArgs,OnTimeoutArgs|MERGED|systems/skills/buffs.rs fire_buff_trigger (empty arg classes)
+BuffToleranceStep|MERGED|systems/skills/data/misc.rs BuffTolerance.steps
+BuffTrigger|PORTED|systems/skills/buffs.rs execute_trigger/TriggerSub
+DeathBuffTrigger,DispelledBuffTrigger,StartedBuffTrigger,TimeoutBuffTrigger|DROPPED|never instantiated (BuffTriggersHandler uses base BuffTrigger)
+BuffTriggerEventKind|DROPPED|no usages; BuffEventTriggerKind ported in systems/skills/types.rs
+MateState|MERGED|systems/skills/data/effects.rs mate_state_id (C# only stores it)
+ReceiveLuluLeaflet|DROPPED|not in SpecialType enum, unreachable, logs only
+PlotConditionType|MERGED|systems/skills/plots.rs condition_check (numeric kinds)
+PlotVariableType|DROPPED|no usages
+PlotStep|DROPPED|no references
+PlotSourceUpdateMethodType,PlotTargetUpdateMethodType|MERGED|systems/skills/plots.rs update_target_info (numeric ids)
+IPlotTargetParams|MERGED|systems/skills/plots.rs AreaArgs
+PlotObjectType|MERGED|systems/skills/types.rs PlotObject enum
+ItemGradeEnchanting|DROPPED|special effect not in SpecialType enum, logs only
+CastType|MERGED|systems/skills/types.rs CastAction discriminants
+DetachUnitReason|DROPPED|used only in commented-out code
+SkillResultKeys|MERGED|systems/skills/unit_reqs.rs string-key table
+UnitProcs|DROPPED|C# RollProcsForKind never fires (LastProc=MinValue => skipped), documented systems/economy/bridges.rs
+SkillControllerPacketDebug|DROPPED|debug logging, flag hard-wired off
+RopeTensionHistory|MERGED|systems/vehicles/harpoon.rs history map
+DespawnTask|DROPPED|never created
+MeleeCastTask|DROPPED|only used in commented-out code (Skill.cs)

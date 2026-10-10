@@ -1,0 +1,12 @@
+BigEndianBitConverter,LittleEndianBitConverter,Endianness|MERGED|aaemu-commons (u16/u32::from_le_bytes / from_be_bytes in packet_stream.rs); the C# converters are only referenced by EndianBitConverter
+BaseProtocolHandler,PacketBase|MERGED|aaemu-commons/src/net + aaemu-game/src/net (FrameCodec, ServerPacket / ClientPacket traits)
+PacketLogLevel|MERGED|tracing levels (packet logging verbosity)
+KoreaAuthFlowFactory,ConnectionIdLeaseFactory,LoginSessionFactory,InternalPacketDescriptor,LoginPacketDescriptor|DROPPED|DI factory / descriptor scaffolding; the Rust login builds flows and sessions directly (aaemu-login/src/controllers, network)
+CACancelEnterWorldPacketHandler,CAChallengeResponse2PacketHandler,CAChallengeResponsePacketHandler,CAEnterWorldPacketHandler,CAListWorldPacketHandler,CARequestAuthGameOnPacketHandler,CARequestAuthMailRuPacketHandler,CARequestAuthPacketHandler,CARequestAuthTrionPacketHandler,CARequestReconnectPacketHandler|MERGED|aaemu-login/src/handlers.rs handle_c2l (one match arm per handler)
+GLGameServerLoadPacketHandler,GLPlayerEnterPacketHandler,GLPlayerReconnectPacketHandler,GLRegisterGameServerPacketHandler,GLRequestInfoPacketHandler|MERGED|aaemu-login/src/handlers.rs handle_g2l
+OtpValidationResult,PcCertValidationResult|MERGED|aaemu-login/src/services/two_factor.rs (Result values of the OTP / PC-cert checks)
+SkillObjectPortalInfo,SkillObjectSavePortalInfo|PORTED|aaemu-game/src/systems/skills/types.rs SkillObject::PortalInfo / SavePortalInfo
+SlaveInitialItemPacks|DROPPED|enum with no references (pack ids are read from the data)
+ShipTuningDebug,ChatTags,MarkerSet,MassBoxGameGeometry|DROPPED|debug instrumentation, hard-wired off in C# (systems/ai/physics/mod.rs note)
+SkillObjectText,SkillObjectPosition,SkillObjectUnk5,SkillObjectUnk6|PORTED|aaemu-game/src/systems/skills/types.rs SkillObject variants
+ZoneConflict|PORTED|aaemu-game/src/systems/social/zone_conflict.rs (runtime) + aaemu-game/src/data/world_data.rs (data)

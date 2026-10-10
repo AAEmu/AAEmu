@@ -1,0 +1,26 @@
+CharacterCounters|MERGED|models/character.rs flattened fields
+OnTeamJoinArgs,OnTeamLeaveArgs,OnDungeonLeaveArgs,OnDisconnectArgs|MERGED|systems/instances/events.rs hooks raised from systems/social/team.rs, world/session.rs
+ActabilityCategoriesTemplate|MERGED|data/character_templates.rs id->group map
+AppellationTemplate|MERGED|data/character_templates.rs id->buff map
+BlockedTemplate|MERGED|models/character.rs (owner, blocked) tuples
+TeamRole|DROPPED|no references
+QuestActObjAlias|DROPPED|never built by a loader, RunAct returns true
+QuestActObjInviteType,QuestCompleteKind,QuestContextTextKind,QuestItemGroups,QuestMarkState,QuestNameKind,QuestPattern,QuestStatusFailed|DROPPED|zero references
+OnMonsterHuntArgs,OnItemGatherArgs,OnItemGroupGatherArgs,OnTalkMadeArgs,OnTalkNpcGroupMadeArgs,OnItemUseArgs,OnInteractionArgs,OnCraftArgs,OnExpressFireArgs,OnLevelUpArgs,OnMateLevelUpArgs,OnAbilityLevelUpArgs,OnEnterSphereArgs,OnExitSphereArgs,OnCinemaStartedArgs,OnCinemaEndedArgs,OnReportNpcArgs,OnReportDoodadArgs,OnAttackArgs,OnDamageArgs,OnDamagedArgs,OnDamagedMeleeArgs,OnDamagedRangedArgs,OnDamagedSpellArgs,OnDamagedSiegeArgs,OnDeathArgs,OnUnmountArgs,OnKillAnyArgs,OnHealedArgs,OnCombatStartedArgs,InIdleArgs,InAlertArgs,OnSpawnArgs,OnDespawnArgs,OnTimerExpiredArgs,OnQuestStepChangedArgs,OnDamagedCollisionArgs,OnImmortalityArgs,OnTimeArgs,OnLandingArgs,OnRemoveOnDamagedArgs|MERGED|event args become hook / BuffEventTriggerKind parameters (systems/quests/events.rs, systems/skills/buffs.rs, systems/ai/npc_events.rs)
+OnMovementArgs,OnChannelingCancelArgs,OnAggroArgs,OnAttackedArgs|DROPPED|raised in C# but nothing subscribes
+InDeadArgs,OnAlertArgs,OnAcceptDoodadArgs,OnItemGroupUseArgs,OnQuestCompleteArgs,OnReportJournalArgs|DROPPED|never raised in C#
+AchievementGameData|DROPPED|loads private dictionaries, no getters / no outside references
+DamageModifierGameData|DROPPED|GetModifiersForBuff has zero callers
+TagType|MERGED|systems/skills/data/mod.rs tag lookups
+GameDataAttribute,IGameDataLoader,IGameDataManager,GameDataManager|MERGED|data/mod.rs explicit loads (reflection/DI)
+OpenPortalEffects,VersionCalc|DROPPED|unused
+UnitPointsRegenTask|DROPPED|never scheduled; regen in systems/skills/regen.rs
+DuelDistanceСheckTask,DuelResultСheckTask|PORTED|systems/social/duel.rs
+DuelFuncTask|DROPPED|abstract, no subclasses
+SaveTickStartTask|MERGED|managers/save.rs
+ItemDoodadTemplate,MusicSheetTemplate,TreasureMapTemplate,UccTemplate,SummonSlaveTemplate|MERGED|data/items.rs template kinds
+ItemLocation,GameScoreEventKind|DROPPED|unused
+HouseTax,HousingAreas|DROPPED|only referenced in comments
+UnitAttributeAttribute|MERGED|systems/skills/progress.rs calculate_with_bonuses (reflection)
+ListMailResponseItems|DROPPED|unused wrapper
+DBConnections|PORTED|config.rs

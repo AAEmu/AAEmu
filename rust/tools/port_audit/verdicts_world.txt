@@ -1,0 +1,34 @@
+AggroExtensions|DROPPED|only caller is commented out (Npc.cs)
+NpcEvents|PORTED|systems/ai/npc_events.rs
+NpcGroupAggroRuleKind|DROPPED|unused enum
+NpcSkill|PORTED|systems/npcs/npc/data.rs
+NpcSpawnType|DROPPED|unused enum
+SpawnerPlayerInRadiusCache,SpawnerPlayerCountCache,SpawnerNpcsInZoneCache|MERGED|systems/npcs/npc/spawner.rs cache tuples
+NpcGroupMember,NpcGroupGameData|DROPPED|loaded by reflection loader, getters never called
+Patrol,Combat,Line,Track|DROPPED|never instantiated outside Patrol itself (systems/ai/simulation.rs note)
+UnitMovePause|DROPPED|never created
+BigMonsterAttackBehavior,DespawningBehavior,DoNothingBehavior,DummyBehavior,FollowUnitBehavior,FlytrapAlertBehavior|PORTED|systems/ai/behaviors.rs
+NpcControlCategory|MERGED|systems/ai/hooks.rs raw ids
+PathType|MERGED|systems/quests/templates.rs raw u32
+AiNavigation,AreasMissionPoints,AreasMission|DROPPED|unused (only private uncalled FindClosest)
+AreaMissionBai,AreaMissionNode,AreaMissionType,NetMissionBai,NetMissionNode,NetMissionEdge,NetMissionNodeNavType,VertexMissionBai,VertexMissionNode,MaterialsFile,MaterialsListFile,FlightMissionReader,FlightNavRegion,FlightLinkDescriptor,RoadMissionReader,RoadNode,WaypointSurfaceNavigationReader,WaypointSurfaceNavigation,LinkRecord,VoxelMeshReader,VoxelMeshProcessor,VoxelChunkEntry|DROPPED|no caller in the C# server (export/tooling)
+ForbiddenAreasType|MERGED|systems/ai/geodata/bai.rs ForbiddenKind
+ObjectDataType1Brush,ObjectDataType13Road,Matrix3x4,AssetPath|MERGED|systems/ai/physics/objects_file.rs (size-skipped, values unused)
+OnUnitKilledArgs,OnUnitSpawnArgs,OnUnitCombatStartArgs,OnUnitCombatEndArgs,OnAreaClearArgs,OnDoodadSpawnArgs|MERGED|systems/instances/events.rs world events
+ZoneConfig,CellConfig,SectorConfig|DROPPED|unused
+ZoneClimateElem|MERGED|systems/npcs/doodad/manager.rs climate pairs
+ZoneGroupBannedTag|DROPPED|loaded, never read
+GimmickTask|DROPPED|abstract base without subclasses
+JsonNpcPath|DROPPED|unused
+JsonSlaveSpawns|DROPPED|only used by the GM command SlaveSaveSubCommand (GM commands port)
+AreaTriggerTickTask|DROPPED|never created; tick in systems/npcs/area_trigger.rs
+DoodadFuncTask|MERGED|systems/npcs/doodad/tasks.rs FuncTaskKind
+NpcSpawnerDoSpawnTask|DROPPED|never created
+StormState|MERGED|systems/ai/physics/forces.rs
+ShipWindProfile|PORTED|systems/ai/physics/ship.rs
+SegmentRef|MERGED|systems/ai/physics/barriers.rs tuple
+ForceGenerator|MERGED|systems/ai/physics/forces.rs
+CollisionTriangle,HeightmapTester|MERGED|systems/ai/physics/jitter.rs SAT terrain contact
+BaiLayers,ReferenceEqualityComparer|MERGED|systems/ai/physics/barriers.rs
+AnimCategory,AnimCombatSyncEvent,AnimDuration|MERGED|systems/skills/data/misc.rs
+WaterDebugSnapshot|DROPPED|debug only (water-debug GM command)
