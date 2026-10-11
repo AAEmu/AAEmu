@@ -1,8 +1,7 @@
 # Shared watcher for WatchLoginServer.ps1 / WatchGameServer.ps1:
 #   * builds the server with cargo and runs it;
 #   * restarts it when it exits (crash, shutdown command, ...);
-#   * rebuilds and restarts it when a Rust source file of the server or of aaemu-commons changes
-#     (the successor of `dotnet watch` hot reload, which restarted on rude edits);
+#   * rebuilds and restarts it when a Rust source file of the server or of aaemu-commons changes;
 #   * uses .server_files\<ServerName> as application directory (Config.json, Data, ...) when it
 #     holds a Config.json (the folder created by docker-install-local), otherwise the crate's
 #     app\ folder (rust\crates\<Package>\app).

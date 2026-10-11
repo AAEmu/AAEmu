@@ -15,7 +15,7 @@ docker compose build --no-cache
 echo -e "Done"
 
 # The End
-echo -e "Launch by running 'docker compose up -d' in the root of AAEmu and connect to 127.0.0.1 in AAEmu.Launcher"
+echo -e "Launch by running 'docker compose up -d' in the root of AAEmu and start the client with aaemu-launcher --login 127.0.0.1:1237 (see Docs/wiki/Client.md)"
 echo -e "You can stop the server by issuing the command 'docker compose down' in the root of AAEmu"
 echo -e "If you want a development environment (with quick reload and auto-rebuild), use the command docker compose watch or docker compose up --watch and DO NOT CLOSE the terminal"
 echo -e "Update done"

@@ -2,7 +2,7 @@
 #   Uncomment the line "db_data:/var/lib/mysql" and comment the line "./.server_files/AAEmu.Database/mysql:/var/lib/mysql" that are in the db services
 #   Also uncomment the two volumes line at the end... This is useful if you use WSL Shell on Windows to launch the compose file.
 # Local development without containers for the servers: `cd rust && cargo xtask dev` starts only the
-# `db` service and runs the login and game servers natively (replaces the former .NET Aspire AppHost).
+# `db` service and runs the login and game servers natively.
 services:
  
     db:

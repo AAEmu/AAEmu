@@ -25,8 +25,8 @@ It uses two schemas:
 
 ### `cargo xtask dev` (optional orchestration)
 
-`cargo xtask dev` is the preferred contributor workflow for local development
-(it replaces the former .NET Aspire AppHost). It starts MySQL in Docker, then
+`cargo xtask dev` is the preferred contributor workflow for local development.
+It starts MySQL in Docker, then
 the login server and the game server, and injects runtime configuration
 through environment variables.
 
@@ -45,9 +45,20 @@ Uses reference data (SQLite) and mutable state (MySQL).
 
 Listens on port `1239` (game), `1250` (stream) and `1280` (web API).
 
-### Game launcher
+### Game launcher (`aaemu-launcher`)
 
-Starts the ArcheAge client against a chosen login server.
+Starts the ArcheAge client against a chosen login server. The 1.2 client does
+not ask for credentials itself: `aaemu-launcher` (`rust/crates/aaemu-launcher`)
+puts an encrypted login ticket (user name and SHA-256 password hash) into an
+inherited Windows file mapping and starts `bin32/archeage.exe` with the login
+server address and the mapping handle. See [Client](Client#launcher-aaemu-launcher).
+
+### Lua client driver (developers)
+
+`aaemu-clientdriver` (`rust/crates/aaemu-clientdriver`) loads a small driver DLL
+into a running client and runs Lua in the client's script states, so tools can
+read client state and trigger UI actions (login, character select, movement,
+chat) without screenshot automation. Not needed to play.
 
 ### ArcheAge client
 
@@ -69,11 +80,10 @@ sequenceDiagram
     You -->> Game : Start
     Game ->> Login : Register / internal comms
 
-    You -->> Launcher : Start
-    Launcher -->> Login : Check status and authenticate
-    You -->> Launcher : Click Play
-    Launcher -->> Client : Start ArcheAge client
-    Client ->> Login: Fetch server list and authenticate
+    You -->> Launcher : aaemu-launcher --client ... --login ... --user ...
+    Launcher -->> Client : Start ArcheAge client with login ticket
+    Client -->> Launcher : Ticket taken (event signalled)
+    Client ->> Login: Authenticate with ticket, fetch server list
     You -->> Client : Select server
     Client ->> Game : Connect to game world
 ```

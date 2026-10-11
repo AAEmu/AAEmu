@@ -155,7 +155,7 @@ pub async fn run(config: AppConfig, shutdown: CancellationToken) -> anyhow::Resu
     );
     let login_task = tokio::spawn(login::run(server.clone(), login_listener, shutdown.clone()));
 
-    // Listen on any HTTP URLs assigned by the orchestrator (e.g. Aspire via ASPNETCORE_URLS)
+    // Health endpoints on the HTTP URLs of the `urls` setting (or `ASPNETCORE_URLS`)
     if let Some(urls) = &server.config.urls {
         for port in health::ports_from_urls(urls) {
             let shutdown = shutdown.clone();

@@ -4,9 +4,9 @@ Guidance for coding agents working in this repository.
 
 ## What this repo is
 
-Open-source **ArcheAge** server emulator written in **Rust** (Cargo workspace in `rust/`: `aaemu-login`, `aaemu-game`, shared `aaemu-commons`, tools, a headless test client and `xtask`). Local orchestration is **`cargo xtask dev`** (MySQL in Docker + login + game). Branch of record for active work: **`develop`**.
+Open-source **ArcheAge** server emulator written in **Rust** (Cargo workspace in `rust/`: `aaemu-login`, `aaemu-game`, shared `aaemu-commons`, the CryPhysics port `aaemu-physics`, the client launcher `aaemu-launcher`, the Lua client driver `aaemu-clientdriver`, tools, a headless test client and `xtask`). Local orchestration is **`cargo xtask dev`** (MySQL in Docker + login + game). Branch of record for active work: **`develop`**.
 
-The servers were ported from C# (.NET). The old C# projects (`AAEmu.*`, `Tools/`) may still be on disk during the transition; they are **not** built or used any more. Do not edit them or add code there.
+The servers were ported from C# (.NET). The C# projects (`AAEmu.*`, `Tools/`) have been **removed** from the repository (commit `a2ab80abd`); they exist only in the git history, which `rust/PORT-AUDIT.md` and `PORTING.md` cite for provenance. No .NET SDK is needed.
 
 Target client: **ArcheAge 1.2** (`r208022`).
 
@@ -63,7 +63,11 @@ Wiki mirrors: `Docs/wiki/Installation-&-Setup.md`, `Local-Development-Guide.md`,
 | **SQLite `compact.sqlite3`** | **Read-only** static game data (items, NPCs, skills, quests templates, …). |
 | **MySQL** | **Read/write** state: `aaemu_login` (accounts) + `aaemu_game` (characters, items, world). |
 
-Sequence (play): start Login → start Game (registers with Login) → launcher/client auth on Login → select server → connect to Game.
+Sequence (play): start Login → start Game (registers with Login) → `aaemu-launcher` starts the client with a login ticket → client auth on Login → select server → connect to Game.
+
+Start the client (Windows): `cd rust && cargo run --release -p aaemu-launcher -- --client <client>/bin32/archeage.exe --login 127.0.0.1:1237 --user NAME` (password: prompt, `--password`, `--password-file` or `$AAEMU_PASSWORD`; never echo real passwords). No third-party launcher is needed.
+
+Network layer (listeners, `FrameCodec` framing, per-connection tasks): [`Docs/networking.md`](Docs/networking.md).
 
 Authoritative component diagram: [`Docs/wiki/Components.md`](Docs/wiki/Components.md).
 
@@ -79,6 +83,9 @@ Authoritative component diagram: [`Docs/wiki/Components.md`](Docs/wiki/Component
 | `rust/crates/aaemu-commons/` | Shared network primitives (`packet_stream.rs`, `net.rs`), MySQL helpers + SQL updater (`mysql.rs`), AAPak (`aapak/`), client files, utilities |
 | `rust/crates/aaemu-login/` | Login server (`src/`, runtime files in `app/`) |
 | `rust/crates/aaemu-game/` | Game server (largest crate; runtime files in `app/`) |
+| `rust/crates/aaemu-physics/` | CryPhysics port (collision worlds, ships) used by `systems::ai::collision`; game config `Configurations/Physics.json`; docs in `rust/docs/physics/` |
+| `rust/crates/aaemu-launcher/` | Starts the 1.2 client with the Trion login ticket (`--client`, `--login`, `--user`); see `rust/LIVE-TESTING.md` §6 |
+| `rust/crates/aaemu-clientdriver/` | Lua driver for the real client (injected `aadriver.dll` + CLI); [`rust/docs/client/LUA-DRIVER.md`](rust/docs/client/LUA-DRIVER.md) |
 | `rust/crates/aaemu-testclient/` | Headless 1.2 client bot: live smoke tests, parity diffs, load tests ([`rust/LIVE-TESTING.md`](rust/LIVE-TESTING.md)) |
 | `rust/crates/aaemu-tool-worldconverter/` | Offline world / heightmap converter |
 | `rust/crates/aaemu-tool-updatesfortransform/` | Offline spawn-data update tool |
@@ -88,11 +95,11 @@ Authoritative component diagram: [`Docs/wiki/Components.md`](Docs/wiki/Component
 | `Docs/wiki/` | Human-facing setup and architecture docs |
 | `Scripts/` | Build/start/publish/watch helpers (bat/ps1/sh) |
 | `docker/Dockerfile`, `docker-compose.yaml` | Container images (`login`, `game` targets) and the Compose stack |
-| `.client_files/` | **Local only** (gitignored): extracted 1.2 client + launcher |
+| `.client_files/` | **Local only** (gitignored): extracted 1.2 client |
 | `.server_files/` | **Local only** (gitignored): Compose/runtime data |
 | `**/Config.Local.json` | **Local only** (gitignored): machine overrides |
 
-Do not commit client packs, launcher binaries, `compact.sqlite3`, or secrets.
+Do not commit client packs, built binaries, `compact.sqlite3`, or secrets.
 
 ### Game crate layout (high signal)
 
@@ -396,14 +403,13 @@ When asked to modify, fix, or improve code, **do not invent conventions**. Inspe
 - Silent multi‑GB MEGA re-downloads without inventory + HitL
 - Changing default production Docker Compose passwords casually
 - Full protocol reverse-engineering writeups without a concrete task
-- Editing the legacy C# projects (they are being removed)
 
 ---
 
 ## Quick verify (before saying “ready to play”)
 
-1. Inventory script: client + compact + launcher **OK**
+1. Inventory script: client + compact + `aaemu-launcher` built **OK**
 2. Login listens on **1237**
 3. Game listens on **1239** / **1250**
 4. Login log shows **Registered GameServer**
-5. Launcher points at `.client_files/.../bin32/archeage.exe`, server `127.0.0.1`
+5. `aaemu-launcher --client .client_files/.../bin32/archeage.exe --login 127.0.0.1:1237` reports `client signalled the ticket event`

@@ -25,8 +25,8 @@ your extra branch(es).
 
 ### Development workflow
 
-AAEmu is written in Rust (it was ported from C#; the old .NET projects are being removed). All code
-lives in the Cargo workspace in `rust/`. You need stable Rust installed via [rustup](https://rustup.rs/).
+AAEmu is written in Rust (it was ported from C#; the C# projects have been removed and remain only
+in the git history). All code lives in the Cargo workspace in `rust/`. You need stable Rust installed via [rustup](https://rustup.rs/).
 
 Before opening a pull request, run the same checks as CI from the `rust/` directory:
 
@@ -46,7 +46,12 @@ cargo xtask ci                                           # all three, exactly as
 - `cargo xtask dev` starts MySQL (Docker), the login server and the game server for manual testing,
   see the [Local Development Guide](Docs/wiki/Local-Development-Guide.md).
 - [`rust/LIVE-TESTING.md`](rust/LIVE-TESTING.md) explains how to test against a running server with
-  the headless `aaemu-testclient` bot (scripted scenarios, parity diffs, load tests).
+  the headless `aaemu-testclient` bot (scripted scenarios, parity diffs, load tests) and how to
+  start the real client with `aaemu-launcher`; [`rust/docs/client/LUA-DRIVER.md`](rust/docs/client/LUA-DRIVER.md)
+  describes driving the real client through Lua (`aaemu-clientdriver`).
+- Network layer: [`Docs/networking.md`](Docs/networking.md). Zone physics (`aaemu-physics`, configured
+  in `Configurations/Physics.json`): `rust/docs/physics/` and the "systems::ai collision" section of
+  [`PORTING.md`](rust/crates/aaemu-game/PORTING.md).
 - Porting or extending game logic: read
   [`rust/crates/aaemu-game/CONTRIBUTING-PORT.md`](rust/crates/aaemu-game/CONTRIBUTING-PORT.md)
   (conventions and how to port a feature) and [`rust/PORT-AUDIT.md`](rust/PORT-AUDIT.md)

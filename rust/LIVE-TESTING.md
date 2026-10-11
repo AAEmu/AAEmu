@@ -142,9 +142,9 @@ slower than 250 ms are logged as `Slow packet handler: ...`.
 
 ### C#
 
-The C# projects are no longer part of the repository after the Rust migration; for parity runs
-check out the last commit that still has them (`AAEmu.Login/`, `AAEmu.Game/`) into a separate
-worktree and build from there.
+The C# projects were removed from the repository in `a2ab80abd`; for parity runs check out the
+commit before it into a separate worktree (`git worktree add D:/aaemu-wt/cs a2ab80abd^`) and build
+`AAEmu.Login/` and `AAEmu.Game/` there with the .NET SDK (only needed for these parity runs):
 
 ```sh
 dotnet build AAEmu.Login/AAEmu.Login.csproj -c Release --artifacts-path D:/aaemu-live/dotnet

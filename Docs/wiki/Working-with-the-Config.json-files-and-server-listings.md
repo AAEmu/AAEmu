@@ -112,6 +112,33 @@ directory.
 
 For contributor workflows, prefer `Config.Local.json`.
 
+## Physics (`Configurations/Physics.json`)
+
+The game server builds a collision world per zone from the client data
+(terrain, brushes, vegetation, doodad colliders, water) on `aaemu-physics`, a
+port of the client's CryPhysics. It is used for line-of-sight, blink/teleport
+targets, falls, NPC movement and ships. Settings in the `Physics` section
+(all optional):
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `Enable` | `true` | Collision worlds and queries; `false` answers from the heightmap only |
+| `Geometry` | `Full` | `Terrain`, `Brushes` (+ `brush.dat`) or `Full` (+ vegetation) |
+| `LoadRadiusCells` | `1` | Cells (1024 m) kept loaded around players, ships and active NPCs (1 = 3x3) |
+| `LoadOnQuery` | `true` | A query in an unloaded cell loads it synchronously |
+| `UnloadAfterSeconds` | `600` | Unload cells nobody was near for this long (0 = never) |
+| `SyncPeriodMs` | `1000` | Period of the cell residency / doodad collider sync |
+| `DoodadColliders` | `true` | Colliders for doodads and houses from their models |
+| `PreloadAllCells` | `false` | Load every cell at startup (slow; for measurements) |
+| `MovementVerifyEnable` | `false` | The zone server's movement-hack checks |
+| `FallDamageZoneCap` | `true` | Cap fall damage like the zone server |
+| `CryPhysicsShips` | `true` | Simulate ships on the CryPhysics port |
+
+Physics needs client data (`game_pak`); without it the server falls back to
+the heightmap. Lower `Geometry` or `LoadRadiusCells` to save memory on small
+machines. Background:
+[`rust/docs/physics/`](https://github.com/AAEmu/AAEmu/tree/develop/rust/docs/physics).
+
 ## Migration note from old setup docs
 
 Older instructions referenced `aaemu_login.game_servers` and SQL inserts.

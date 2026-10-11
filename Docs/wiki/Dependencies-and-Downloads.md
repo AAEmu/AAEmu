@@ -55,10 +55,14 @@ Directory with many client versions:
 
 - [MEGA client directory](https://mega.nz/folder/C3Q0WQjT#vRUethZLPiYSo2B4nE_etg)
 
-### AAEmu Launcher (required for normal client login flow)
+### Client launcher (built from source, nothing to download)
 
-- [AAEmu Launcher releases](https://github.com/ZeromusXYZ/AAEmu-Launcher/releases)
-- [AAEmu Launcher wiki](https://github.com/ZeromusXYZ/AAEmu-Launcher/wiki)
+The client is started by `aaemu-launcher`, which is part of this repository
+(`rust/crates/aaemu-launcher`, Windows). Build it with
+`cargo build --release -p aaemu-launcher` from `rust/`; a published build
+contains it in `Tools/`. See [Client](Client#launcher-aaemu-launcher) for the
+command line. The public AAEmu Launcher also works as an alternative but is not
+required.
 
 ## Where files go after download
 
@@ -69,8 +73,9 @@ Directory with many client versions:
    `rust/crates/aaemu-game/app/Config.Local.json` (preferred) or
    `rust/crates/aaemu-game/app/Configurations/ClientData.json`, or put
    `game_pak` in `rust/crates/aaemu-game/app/ClientData/`.
-1. Keep launcher extracted in any folder, then set `Path to Game` to
-   `archeage.exe` (usually in client `bin32`).
+1. Extract the client anywhere; pass its `bin32\archeage.exe` to
+   `aaemu-launcher --client` (see [Client](Client)). The client folder itself
+   is not modified.
 
 ## Related
 

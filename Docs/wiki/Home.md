@@ -1,6 +1,6 @@
 # ![AAEmu](https://i.imgur.com/NFDY376.png)
 
-Open source server software for ArcheAge written in Rust (ported from C#/.NET).
+Open source server software for ArcheAge written in Rust (originally written in C#/.NET; the C# code has been removed).
 
 ## Start Here
 
@@ -60,8 +60,15 @@ Open source server software for ArcheAge written in Rust (ported from C#/.NET).
 
 - The servers have been ported from C# (.NET) to Rust. The Cargo workspace is
   in `rust/`; build with `cargo build --release`.
-- `cargo xtask dev` (MySQL in Docker + login + game) replaces the .NET Aspire
-  AppHost as the preferred contributor workflow.
+- The former C# projects have been removed from the repository; they remain
+  only in the git history.
+- `cargo xtask dev` (MySQL in Docker + login + game) is the preferred
+  contributor workflow.
+- The client is started with AAEmu's own `aaemu-launcher`; no third-party
+  launcher is needed (see [Client](Client)).
+- Developer tooling: `aaemu-clientdriver` (Lua driver for the real client) and
+  the CryPhysics port `aaemu-physics` (zone collision, configured in
+  `Configurations/Physics.json`).
 - Runtime configuration and data live in the crates' application directories:
   `rust/crates/aaemu-login/app/` and `rust/crates/aaemu-game/app/`.
 - Logging goes to stdout and is controlled with `RUST_LOG`.

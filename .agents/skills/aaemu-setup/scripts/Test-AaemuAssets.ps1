@@ -3,16 +3,18 @@
   Inventory AAEmu local assets; skip re-download when present.
 
 .DESCRIPTION
-  Checks .client_files client/launcher layout and the game server's compact.sqlite3
-  (rust/crates/aaemu-game/app/Data/ or .server_files/AAEmu.Game/Data/).
-  Never downloads MEGA/Drive multi-GB content. Optionally fetches the small
-  GitHub launcher release when missing, or opens wiki download pages for HitL.
+  Checks the .client_files client layout, the game server's compact.sqlite3
+  (rust/crates/aaemu-game/app/Data/ or .server_files/AAEmu.Game/Data/) and
+  whether the repository's own client launcher (aaemu-launcher) is built.
+  Never downloads MEGA/Drive multi-GB content. Optionally builds aaemu-launcher
+  with cargo when missing, or opens wiki download pages for HitL.
 
 .PARAMETER RepoRoot
   Repository root. Default: three levels above this script.
 
-.PARAMETER FetchLauncherIfMissing
-  If launcher exe is missing, download latest AAEmu-Launcher release asset via gh or HTTPS.
+.PARAMETER BuildLauncherIfMissing
+  If aaemu-launcher is not built, run `cargo build --release -p aaemu-launcher`
+  in rust/ (needs Rust via rustup). Alias: -FetchLauncherIfMissing.
 
 .PARAMETER OpenMissingDownloadPages
   Open browser tabs for missing client/compact downloads (human completes MEGA/Drive).
@@ -26,7 +28,8 @@
 [CmdletBinding()]
 param(
     [string] $RepoRoot = "",
-    [switch] $FetchLauncherIfMissing,
+    [Alias("FetchLauncherIfMissing")]
+    [switch] $BuildLauncherIfMissing,
     [switch] $OpenMissingDownloadPages,
     [long] $MinGamePakBytes = 1GB,
     [long] $MinCompactBytes = 1MB
@@ -49,7 +52,8 @@ $clientRootCandidates = @(
 $UrlClientMega = "https://mega.nz/folder/GnwjQCrZ#WNWzX_lDvkzCqoTtt7I42Q"
 $UrlClientMegaAlt = "https://mega.nz/folder/C3Q0WQjT#vRUethZLPiYSo2B4nE_etg"
 $UrlCompactMega = "https://mega.nz/file/6vxlAZiJ#Xb8VWnG4rFRRklxw6LZaYBPdZvC6j73xLPKIPAK80S8"
-$UrlLauncherReleases = "https://github.com/ZeromusXYZ/AAEmu-Launcher/releases"
+$RustDir = Join-Path $RepoRoot "rust"
+$LauncherBuildCmd = "cd rust; cargo build --release -p aaemu-launcher"
 
 function Format-Size([long] $n) {
     if ($n -ge 1GB) { return ("{0:N2} GB" -f ($n / 1GB)) }
@@ -87,20 +91,44 @@ function Find-ArcheageExe {
     return $null
 }
 
+function Get-CargoTargetDir {
+    # Honors CARGO_TARGET_DIR and rust/.cargo/config.toml (target-dir) through cargo metadata.
+    if ($env:CARGO_TARGET_DIR) {
+        if ([System.IO.Path]::IsPathRooted($env:CARGO_TARGET_DIR)) { return $env:CARGO_TARGET_DIR }
+        return (Join-Path $RustDir $env:CARGO_TARGET_DIR)
+    }
+    if ((Test-Path -LiteralPath $RustDir) -and (Get-Command cargo -ErrorAction SilentlyContinue)) {
+        Push-Location $RustDir
+        try {
+            $json = cargo metadata --format-version 1 --no-deps --offline 2>$null
+            if ($LASTEXITCODE -eq 0 -and $json) {
+                $dir = ($json | Out-String | ConvertFrom-Json).target_directory
+                if ($dir) { return $dir }
+            }
+        }
+        catch { }
+        finally { Pop-Location }
+    }
+    return (Join-Path $RustDir "target")
+}
+
 function Find-LauncherExe {
-    $prefer = Join-Path $clientFiles "launcher\AAEmu.Launcher\AAEmu.Launcher.exe"
-    if (Test-Path -LiteralPath $prefer) { return $prefer }
-    if (-not (Test-Path -LiteralPath $clientFiles)) { return $null }
-    $any = Get-ChildItem -LiteralPath $clientFiles -Recurse -Filter "AAEmu.Launcher.exe" -File -ErrorAction SilentlyContinue |
-        Select-Object -First 1
-    if ($any) { return $any.FullName }
+    $target = Get-CargoTargetDir
+    $candidates = foreach ($prof in @("release", "debug")) {
+        foreach ($name in @("aaemu-launcher.exe", "aaemu-launcher")) {
+            $p = Join-Path (Join-Path $target $prof) $name
+            if (Test-Path -LiteralPath $p -PathType Leaf) { Get-Item -LiteralPath $p }
+        }
+    }
+    $newest = $candidates | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($newest) { return $newest.FullName }
     return $null
 }
 
 function Get-ClientArchives {
     if (-not (Test-Path -LiteralPath $clientFiles)) { return @() }
     Get-ChildItem -LiteralPath $clientFiles -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.Extension -match '\.(7z|zip|rar)$' -or $_.Name -match 'ArcheAge|compact|Launcher' } |
+        Where-Object { $_.Extension -match '\.(7z|zip|rar)$' -or $_.Name -match 'ArcheAge|compact' } |
         ForEach-Object { $_.FullName }
 }
 
@@ -162,54 +190,31 @@ else {
     }
 }
 
-# Launcher
+# Launcher: the repository's own aaemu-launcher (rust/crates/aaemu-launcher)
 $launcher = Find-LauncherExe
 if ($launcher) {
-    Add-Result "launcher" "OK" "present - skip re-download" $launcher
+    Add-Result "launcher" "OK" "aaemu-launcher built - start the client with: aaemu-launcher --client <client>\bin32\archeage.exe --login 127.0.0.1:1237 --user NAME" $launcher
 }
-elseif ($FetchLauncherIfMissing) {
-    Write-Host "Launcher missing - fetching latest GitHub release..." -ForegroundColor Cyan
-    New-Item -ItemType Directory -Force -Path $clientFiles | Out-Null
-    $extractDir = Join-Path $clientFiles "launcher"
-    New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
-    $destArchive = Join-Path $clientFiles "AAEmu.Launcher-latest.7z"
-    try {
-        if (Get-Command gh -ErrorAction SilentlyContinue) {
-            gh release download --repo ZeromusXYZ/AAEmu-Launcher --pattern "*.7z" --dir $clientFiles --clobber
-            $got = Get-ChildItem -LiteralPath $clientFiles -Filter "AAEmu.Launcher*.7z" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-            if ($got) { $destArchive = $got.FullName }
-        }
-        else {
-            $api = Invoke-RestMethod -Uri "https://api.github.com/repos/ZeromusXYZ/AAEmu-Launcher/releases/latest" -Headers @{ "User-Agent" = "aaemu-setup" }
-            $asset = $api.assets | Where-Object { $_.name -like "*.7z" } | Select-Object -First 1
-            if (-not $asset) { throw "No .7z asset on latest release" }
-            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $destArchive -UseBasicParsing
-        }
-        $sevenZ = @(
-            "${env:ProgramFiles}\7-Zip\7z.exe",
-            "${env:ProgramFiles(x86)}\7-Zip\7z.exe"
-        ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-        if (-not $sevenZ -and (Get-Command 7z -ErrorAction SilentlyContinue)) { $sevenZ = "7z" }
-        if ($sevenZ) {
-            & $sevenZ x $destArchive "-o$extractDir" -y | Out-Null
-        }
-        else {
-            Write-Host "Downloaded $destArchive but no 7z found - extract manually to .client_files\launcher\" -ForegroundColor Yellow
-        }
+elseif ($BuildLauncherIfMissing) {
+    if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+        Add-Result "launcher" "MISSING" "cargo not found - install Rust via https://rustup.rs/, then: $LauncherBuildCmd" ""
+    }
+    else {
+        Write-Host "aaemu-launcher not built - running cargo build --release -p aaemu-launcher ..." -ForegroundColor Cyan
+        Push-Location $RustDir
+        try { cargo build --release -p aaemu-launcher }
+        finally { Pop-Location }
         $launcher = Find-LauncherExe
         if ($launcher) {
-            Add-Result "launcher" "OK" "fetched and extracted" $launcher
+            Add-Result "launcher" "OK" "aaemu-launcher built" $launcher
         }
         else {
-            Add-Result "launcher" "PARTIAL" "archive downloaded; extract to .client_files\launcher\" $destArchive
+            Add-Result "launcher" "MISSING" "cargo build failed - see the output above" ""
         }
-    }
-    catch {
-        Add-Result "launcher" "MISSING" ("fetch failed: {0} - {1}" -f $_.Exception.Message, $UrlLauncherReleases) ""
     }
 }
 else {
-    Add-Result "launcher" "MISSING" "AAEmu.Launcher.exe not found (use -FetchLauncherIfMissing or HitL GitHub)" ""
+    Add-Result "launcher" "MISSING" "aaemu-launcher not built - run: $LauncherBuildCmd (or re-run with -BuildLauncherIfMissing)" ""
 }
 
 Write-Host ""
@@ -238,9 +243,6 @@ if ($OpenMissingDownloadPages) {
     if ($missing.Name -contains "compact.sqlite3" -or $partial.Name -contains "compact.sqlite3") {
         Start-Process $UrlCompactMega
     }
-    if ($missing.Name -contains "launcher") {
-        Start-Process $UrlLauncherReleases
-    }
 }
 
 if ($missing.Count -eq 0 -and $partial.Count -eq 0) {
@@ -259,7 +261,7 @@ if ($missing.Name -contains "compact.sqlite3" -or $partial.Name -contains "compa
     Write-Host "    Copy final file to rust\crates\aaemu-game\app\Data\compact.sqlite3"
 }
 if ($missing.Name -contains "launcher") {
-    Write-Host "  - Launcher: $UrlLauncherReleases  (or re-run with -FetchLauncherIfMissing)"
+    Write-Host "  - Launcher: $LauncherBuildCmd  (or re-run with -BuildLauncherIfMissing)"
 }
 Write-Host "  Re-run this script after downloads/extracts. Existing OK assets will be skipped."
 exit 1

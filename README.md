@@ -8,7 +8,8 @@
 __Open source server software for ArcheAge (1.2) written in Rust__
 
 > AAEmu was originally written in C# (.NET). The login server, game server and tools have been
-> ported to Rust; the Cargo workspace lives in [`rust/`](rust/).
+> ported to Rust and the C# code has been removed (it remains in the git history); the Cargo
+> workspace lives in [`rust/`](rust/).
 
 ## Getting started
 

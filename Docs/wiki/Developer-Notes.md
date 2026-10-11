@@ -6,14 +6,18 @@
 
 ## Architecture note: the Rust port
 
-The login server, game server and tools were ported from C# (.NET) to Rust.
-The code lives in the Cargo workspace in `rust/`:
+The login server, game server and tools were ported from C# (.NET) to Rust,
+and the C# projects have since been removed from the repository (they remain in
+the git history). All code lives in the Cargo workspace in `rust/`:
 
 | Crate | Purpose |
 | --- | --- |
 | `aaemu-commons` | Shared network primitives, MySQL helpers and SQL updater, AAPak, utilities |
 | `aaemu-login` | Login server |
 | `aaemu-game` | Game server |
+| `aaemu-physics` | Port of the client's CryPhysics (collision worlds, ships); configured by `Configurations/Physics.json` |
+| `aaemu-launcher` | Starts the 1.2 client with a login ticket (replaces the public AAEmu Launcher) |
+| `aaemu-clientdriver` | Lua driver for the real client (injected DLL + CLI), see `rust/docs/client/LUA-DRIVER.md` |
 | `aaemu-testclient` | Headless 1.2 client bot for live tests, parity checks and load tests |
 | `aaemu-tool-worldconverter`, `aaemu-tool-updatesfortransform` | Offline tools |
 | `xtask` | `cargo xtask ci`, `dev` and `publish` |
@@ -31,7 +35,15 @@ What this means for contributors:
 - [`rust/PORT-AUDIT.md`](https://github.com/AAEmu/AAEmu/blob/develop/rust/PORT-AUDIT.md)
   tracks what has been ported from the C# code.
 - [`rust/LIVE-TESTING.md`](https://github.com/AAEmu/AAEmu/blob/develop/rust/LIVE-TESTING.md)
-  explains running the servers against real data with `aaemu-testclient`.
+  explains running the servers against real data with `aaemu-testclient` and
+  starting the real client with `aaemu-launcher`.
+- [`rust/docs/client/LUA-DRIVER.md`](https://github.com/AAEmu/AAEmu/blob/develop/rust/docs/client/LUA-DRIVER.md)
+  describes driving the real client through Lua (`aaemu-clientdriver`).
+- [`rust/docs/physics/`](https://github.com/AAEmu/AAEmu/tree/develop/rust/docs/physics)
+  documents the CryPhysics port; the game crate's `PORTING.md` section
+  "systems::ai collision" explains how the zone physics uses it.
+- [`Docs/networking.md`](https://github.com/AAEmu/AAEmu/blob/develop/Docs/networking.md)
+  describes the network layer (listeners, framing, connection tasks).
 
 Operational impact for setup docs:
 

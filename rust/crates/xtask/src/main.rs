@@ -3,8 +3,8 @@
 //! `cargo run -p xtask -- <command>` inside `rust/`).
 //!
 //! * `publish` — release build plus a distributable folder (binaries, configuration, data, SQL),
-//!   the successor of `dotnet publish` / `Scripts/publish.sh`.
-//! * `dev` — local orchestration replacing the `AAEmu.Aspire.AppHost` project: MySQL in Docker
+//!   also used by `Scripts/publish.sh`.
+//! * `dev` — local orchestration: MySQL in Docker
 //!   (the `db` service of `docker-compose.yaml`), then the login server, then the game server
 //!   once the login server accepts game-server registrations, all wired through environment
 //!   variables.

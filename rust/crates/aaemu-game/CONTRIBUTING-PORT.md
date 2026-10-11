@@ -1,8 +1,9 @@
 # Porting guide for `aaemu-game` (phase 3+)
 
 This crate is a faithful port of `AAEmu.Game` for the **1.2 client** (`client_12_r208022`).
-The reference is the C# in this worktree (`AAEmu.Game/` next to `rust/`); wire formats must
-match the 1.2 C# byte for byte. `PORTING.md` holds the status table, deviations and the C#
+The reference is the C# code base, which was removed from the repository in `a2ab80abd`; read it
+from the git history (`git show a2ab80abd^:AAEmu.Game/<path>`, or a worktree of `a2ab80abd^`). Wire
+formats must match the 1.2 C# byte for byte. `PORTING.md` holds the status table, deviations and the C#
 bugs we mirror. This file explains *where code goes* and *how to use the shared object model*
 so several subsystems can be ported in parallel without merge conflicts.
 

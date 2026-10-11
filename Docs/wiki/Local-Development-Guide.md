@@ -11,9 +11,8 @@ The preferred way to run AAEmu locally is `cargo xtask dev`. It starts MySQL
 in Docker, builds the servers, and starts the login server and the game server
 with the right settings, in the right order.
 
-`cargo xtask dev` replaces the former .NET Aspire AppHost
-(`AAEmu.Aspire.AppHost`) from the C# version of AAEmu. It is optional: the
-manual and Docker workflows are still supported.
+`cargo xtask dev` is optional: the manual and Docker workflows are still
+supported.
 
 ## Prerequisites
 
@@ -25,7 +24,6 @@ manual and Docker workflows are still supported.
    [Dependencies and Downloads](Dependencies-and-Downloads):
    - `compact.sqlite3`
    - ArcheAge 1.2 client
-   - AAEmu Launcher
 1. Place `compact.sqlite3` in `rust/crates/aaemu-game/app/Data/`.
 1. Configure the `game_pak` path in the game configuration.
 
@@ -110,6 +108,49 @@ Database inspection: `docker compose up -d adminer`, then open
 For automated end-to-end checks against the running servers, see
 [`rust/LIVE-TESTING.md`](https://github.com/AAEmu/AAEmu/blob/develop/rust/LIVE-TESTING.md)
 (the `aaemu-testclient` bot).
+
+## Starting the client
+
+Start the 1.2 client against the local servers with AAEmu's own launcher
+(Windows):
+
+```sh
+cd rust
+cargo run --release -p aaemu-launcher -- --client "C:/ArcheAge/bin32/archeage.exe" --login 127.0.0.1:1237 --user myname
+```
+
+It asks for the password; `--password PW`, `--password-file FILE` or the
+`AAEMU_PASSWORD` environment variable avoid the prompt (handy for scripts).
+With `AutoAccount` (default) the account is created on the first login. See
+[Client](Client#launcher-aaemu-launcher) for all options.
+
+## Driving the client from tools (Lua driver)
+
+For automated tests against the real client, `aaemu-clientdriver` loads a
+driver DLL into the running client and runs Lua in its script states (read UI
+or game state, call the same Lua the UI buttons call):
+
+```sh
+cargo run --release -p aaemu-launcher -- --client "C:/ArcheAge/bin32/archeage.exe" --user luadrv --nosplash --arg -DEVMODE
+cargo run --release -p aaemu-clientdriver -- inject
+cargo run --release -p aaemu-clientdriver -- lua -t ui "return CheckLoginButtonActivation ~= nil"
+```
+
+The in-client part is 32-bit C++ and needs MSVC with the x86 toolset
+(`rust/crates/aaemu-clientdriver/native/build.bat`). Build steps, commands and
+caveats:
+[`rust/docs/client/LUA-DRIVER.md`](https://github.com/AAEmu/AAEmu/blob/develop/rust/docs/client/LUA-DRIVER.md).
+For headless protocol-level tests use `aaemu-testclient` instead (see
+`rust/LIVE-TESTING.md`).
+
+## Physics
+
+The game server's collision world (`aaemu-physics`, a CryPhysics port) loads
+zone cells from the client data around players. It is configured in
+`rust/crates/aaemu-game/app/Configurations/Physics.json`; for a faster start on
+small machines lower `Geometry` (`Terrain` / `Brushes`) or `LoadRadiusCells`,
+or set `Enable` to `false`. See
+[Working with the Config.json files](Working-with-the-Config.json-files-and-server-listings#physics-configurationsphysicsjson).
 
 ## Health and readiness
 

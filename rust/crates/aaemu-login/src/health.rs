@@ -1,6 +1,6 @@
 //! Minimal HTTP health endpoints (`/health/live`, `/health/ready`), served on the ports of the
-//! `urls` setting (`ASPNETCORE_URLS`) like the C# `MapHealthChecks` when run under an
-//! orchestrator such as Aspire. No checks are registered, so both report `Healthy`.
+//! `urls` setting (the `ASPNETCORE_URLS` environment variable is still accepted for it), for
+//! orchestrators and container health checks. No checks are registered, so both report `Healthy`.
 
 use std::net::SocketAddr;
 

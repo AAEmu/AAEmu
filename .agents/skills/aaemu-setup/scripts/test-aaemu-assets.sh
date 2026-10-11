@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Inventory AAEmu local assets; skip re-download when present.
 # Never downloads MEGA/Drive multi-GB content.
-# Optional: fetch GitHub launcher when missing; open browser for HitL links.
+# Also checks that the repository's own client launcher (aaemu-launcher) is built.
+# Optional: build aaemu-launcher with cargo when missing; open browser for HitL links.
 #
 # Usage (from repo root or any cwd):
 #   ./scripts/test-aaemu-assets.sh
-#   ./scripts/test-aaemu-assets.sh --fetch-launcher
+#   ./scripts/test-aaemu-assets.sh --build-launcher
 #   ./scripts/test-aaemu-assets.sh --open-missing
 #   ./scripts/test-aaemu-assets.sh --repo-root /path/to/AAEmu
 
@@ -13,7 +14,7 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
-FETCH_LAUNCHER=0
+BUILD_LAUNCHER=0
 OPEN_MISSING=0
 MIN_GAME_PAK=$((1024 * 1024 * 1024))   # 1 GiB
 MIN_COMPACT=$((1024 * 1024))           # 1 MiB
@@ -21,7 +22,7 @@ MIN_COMPACT=$((1024 * 1024))           # 1 MiB
 URL_CLIENT_MEGA="https://mega.nz/folder/GnwjQCrZ#WNWzX_lDvkzCqoTtt7I42Q"
 URL_CLIENT_MEGA_ALT="https://mega.nz/folder/C3Q0WQjT#vRUethZLPiYSo2B4nE_etg"
 URL_COMPACT_MEGA="https://mega.nz/file/6vxlAZiJ#Xb8VWnG4rFRRklxw6LZaYBPdZvC6j73xLPKIPAK80S8"
-URL_LAUNCHER="https://github.com/ZeromusXYZ/AAEmu-Launcher/releases"
+LAUNCHER_BUILD_CMD="cd rust && cargo build --release -p aaemu-launcher"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -29,8 +30,8 @@ while [[ $# -gt 0 ]]; do
       REPO_ROOT="$(cd "$2" && pwd)"
       shift 2
       ;;
-    --fetch-launcher|--fetch-launcher-if-missing)
-      FETCH_LAUNCHER=1
+    --build-launcher|--build-launcher-if-missing|--fetch-launcher)
+      BUILD_LAUNCHER=1
       shift
       ;;
     --open-missing|--open-missing-download-pages)
@@ -38,7 +39,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h|--help)
-      sed -n '2,12p' "$0"
+      sed -n '2,11p' "$0"
       exit 0
       ;;
     *)
@@ -127,20 +128,42 @@ find_archeage_exe() {
   return 1
 }
 
-find_launcher_exe() {
-  local prefer="${CLIENT_FILES}/launcher/AAEmu.Launcher/AAEmu.Launcher.exe"
-  if [[ -f "$prefer" ]]; then
-    echo "$prefer"
+cargo_target_dir() {
+  # Honors CARGO_TARGET_DIR and rust/.cargo/config.toml (target-dir) through cargo metadata.
+  local rust_dir="${REPO_ROOT}/rust"
+  if [[ -n "${CARGO_TARGET_DIR:-}" ]]; then
+    case "$CARGO_TARGET_DIR" in
+      /*|[A-Za-z]:*) echo "$CARGO_TARGET_DIR" ;;
+      *) echo "${rust_dir}/${CARGO_TARGET_DIR}" ;;
+    esac
     return 0
   fi
-  # Wine/native: also accept AAEmu.Launcher without .exe if ever published
-  if [[ -d "$CLIENT_FILES" ]]; then
-    local found
-    found="$(find "$CLIENT_FILES" -type f \( -name 'AAEmu.Launcher.exe' -o -name 'AAEmu.Launcher' \) 2>/dev/null | head -n1 || true)"
-    if [[ -n "${found}" ]]; then
-      echo "$found"
+  if [[ -d "$rust_dir" ]] && command -v cargo >/dev/null 2>&1; then
+    local dir
+    dir="$(cd "$rust_dir" && cargo metadata --format-version 1 --no-deps --offline 2>/dev/null \
+      | grep -oE '"target_directory":"[^"]*"' | head -n1 | sed -e 's/^"target_directory":"//' -e 's/"$//' -e 's/\\\\/\//g' || true)"
+    if [[ -n "$dir" ]]; then
+      echo "$dir"
       return 0
     fi
+  fi
+  echo "${rust_dir}/target"
+}
+
+find_launcher_exe() {
+  local target prof name f newest=""
+  target="$(cargo_target_dir)"
+  for prof in release debug; do
+    for name in aaemu-launcher.exe aaemu-launcher; do
+      f="${target}/${prof}/${name}"
+      if [[ -f "$f" ]] && { [[ -z "$newest" ]] || [[ "$f" -nt "$newest" ]]; }; then
+        newest="$f"
+      fi
+    done
+  done
+  if [[ -n "$newest" ]]; then
+    echo "$newest"
+    return 0
   fi
   return 1
 }
@@ -151,7 +174,7 @@ list_archives() {
   fi
   find "$CLIENT_FILES" -maxdepth 1 -type f \( \
     -iname '*.7z' -o -iname '*.zip' -o -iname '*.rar' -o \
-    -iname '*ArcheAge*' -o -iname '*compact*' -o -iname '*Launcher*' \
+    -iname '*ArcheAge*' -o -iname '*compact*' \
   \) 2>/dev/null || true
 }
 
@@ -218,53 +241,25 @@ else
   fi
 fi
 
-# --- Launcher ---
+# --- Launcher: the repository's own aaemu-launcher (rust/crates/aaemu-launcher) ---
+# It starts the Windows client; on Linux/macOS it only builds (and --dry-run works).
 LAUNCHER=""
 if LAUNCHER="$(find_launcher_exe)"; then
-  add_result "launcher" "OK" "present - skip re-download" "$LAUNCHER"
-elif [[ "$FETCH_LAUNCHER" -eq 1 ]]; then
-  echo "Launcher missing - fetching latest GitHub release..."
-  mkdir -p "${CLIENT_FILES}/launcher"
-  DEST_ARCHIVE="${CLIENT_FILES}/AAEmu.Launcher-latest.7z"
-  EXTRACT_DIR="${CLIENT_FILES}/launcher"
-  set +e
-  FETCH_OK=0
-  if command -v gh >/dev/null 2>&1; then
-    gh release download --repo ZeromusXYZ/AAEmu-Launcher --pattern "*.7z" --dir "$CLIENT_FILES" --clobber
-    GOT="$(ls -t "${CLIENT_FILES}"/AAEmu.Launcher*.7z 2>/dev/null | head -n1 || true)"
-    if [[ -n "$GOT" ]]; then
-      DEST_ARCHIVE="$GOT"
-      FETCH_OK=1
-    fi
+  add_result "launcher" "OK" "aaemu-launcher built - start the client with: aaemu-launcher --client <client>/bin32/archeage.exe --login 127.0.0.1:1237 --user NAME" "$LAUNCHER"
+elif [[ "$BUILD_LAUNCHER" -eq 1 ]]; then
+  if ! command -v cargo >/dev/null 2>&1; then
+    add_result "launcher" "MISSING" "cargo not found - install Rust via https://rustup.rs/, then: ${LAUNCHER_BUILD_CMD}" ""
   else
-    API_JSON="$(curl -fsSL -H "User-Agent: aaemu-setup" \
-      https://api.github.com/repos/ZeromusXYZ/AAEmu-Launcher/releases/latest 2>/dev/null || true)"
-    DL_URL="$(echo "$API_JSON" | grep -oE 'https://[^"]+\.7z' | head -n1 || true)"
-    if [[ -n "$DL_URL" ]]; then
-      if curl -fsSL -o "$DEST_ARCHIVE" "$DL_URL"; then
-        FETCH_OK=1
-      fi
-    fi
-  fi
-  if [[ "$FETCH_OK" -eq 1 ]]; then
-    if command -v 7z >/dev/null 2>&1; then
-      7z x "$DEST_ARCHIVE" "-o${EXTRACT_DIR}" -y >/dev/null
-    elif command -v 7za >/dev/null 2>&1; then
-      7za x "$DEST_ARCHIVE" "-o${EXTRACT_DIR}" -y >/dev/null
-    else
-      echo "Downloaded ${DEST_ARCHIVE} but no 7z found - extract manually to .client_files/launcher/"
-    fi
+    echo "aaemu-launcher not built - running cargo build --release -p aaemu-launcher ..."
+    (cd "${REPO_ROOT}/rust" && cargo build --release -p aaemu-launcher)
     if LAUNCHER="$(find_launcher_exe)"; then
-      add_result "launcher" "OK" "fetched and extracted" "$LAUNCHER"
+      add_result "launcher" "OK" "aaemu-launcher built" "$LAUNCHER"
     else
-      add_result "launcher" "PARTIAL" "archive downloaded; extract to .client_files/launcher/" "$DEST_ARCHIVE"
+      add_result "launcher" "MISSING" "cargo build failed - see the output above" ""
     fi
-  else
-    add_result "launcher" "MISSING" "fetch failed - ${URL_LAUNCHER}" ""
   fi
-  set -u
 else
-  add_result "launcher" "MISSING" "AAEmu.Launcher.exe not found (use --fetch-launcher or HitL GitHub)" ""
+  add_result "launcher" "MISSING" "aaemu-launcher not built - run: ${LAUNCHER_BUILD_CMD} (or re-run with --build-launcher)" ""
 fi
 
 # --- Report ---
@@ -316,9 +311,6 @@ if [[ "$OPEN_MISSING" -eq 1 ]]; then
   if [[ "$HAS_COMPACT_ISSUE" -eq 1 ]]; then
     open_url "$URL_COMPACT_MEGA"
   fi
-  if [[ "$HAS_LAUNCHER_ISSUE" -eq 1 ]]; then
-    open_url "$URL_LAUNCHER"
-  fi
 fi
 
 if [[ "$MISSING" -eq 0 && "$PARTIAL" -eq 0 ]]; then
@@ -337,7 +329,7 @@ if [[ "$HAS_COMPACT_ISSUE" -eq 1 ]]; then
   echo "    Copy final file to rust/crates/aaemu-game/app/Data/compact.sqlite3"
 fi
 if [[ "$HAS_LAUNCHER_ISSUE" -eq 1 ]]; then
-  echo "  - Launcher: ${URL_LAUNCHER}  (or re-run with --fetch-launcher)"
+  echo "  - Launcher: ${LAUNCHER_BUILD_CMD}  (or re-run with --build-launcher)"
 fi
 echo "  Re-run this script after downloads/extracts. Existing OK assets will be skipped."
 exit 1

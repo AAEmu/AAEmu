@@ -26,7 +26,6 @@ Use this path if you want the fastest contributor onboarding.
 1. Download required files from [Dependencies and Downloads](Dependencies-and-Downloads):
    - `compact.sqlite3`
    - ArcheAge 1.2 client
-   - AAEmu Launcher
 1. Place `compact.sqlite3` in `rust/crates/aaemu-game/app/Data/`.
 1. Set your `game_pak` path.
 
@@ -49,6 +48,9 @@ Expected startup sequence:
 1. Login and game servers are built and started (login first).
 1. Both servers log to the console; `Ctrl+C` stops them.
 
+Then start the client with `aaemu-launcher` (see
+[Starting the client](#starting-the-client)).
+
 For full details, see [Local Development Guide](Local-Development-Guide).
 
 ## Track B: Manual setup workflow
@@ -63,7 +65,6 @@ Use this path if you do not want to use Docker.
 1. Download required files from [Dependencies and Downloads](Dependencies-and-Downloads):
    - `compact.sqlite3`
    - ArcheAge 1.2 client
-   - AAEmu Launcher
 1. Place `compact.sqlite3` in `rust/crates/aaemu-game/app/Data/`.
 
 ### Database setup (manual)
@@ -154,7 +155,7 @@ GitHub release contain ready-to-run folders:
 aaemu-<version>-<target>/
   AAEmu.Login/   aaemu-login binary, Config.json, ExampleConfig.Local.json
   AAEmu.Game/    aaemu-game binary, Config.json, Configurations/, Data/, ClientData/, Scripts/
-  Tools/         world converter, updates-for-transform, test client
+  Tools/         aaemu-launcher, world converter, updates-for-transform, test client
   SQL/
 ```
 
@@ -163,14 +164,30 @@ each `Config.json` as described above, and start the binaries from their
 folders (login first). Rust does not need to be installed for a published
 build.
 
-### Launcher setup
+## Starting the client
 
-1. Open AAEmu Launcher.
-1. Set `Path to Game` to your `archeage.exe` in the client `bin32` folder.
-1. Set login credentials.
+The 1.2 client is started by AAEmu's own launcher, `aaemu-launcher`, which
+hands it the login ticket (Windows). From a source checkout:
 
-If auto-account creation is enabled (default), accounts are created on first
-login.
+```sh
+cd rust
+cargo build --release -p aaemu-launcher
+cargo run --release -p aaemu-launcher -- --client "C:\ArcheAge\bin32\archeage.exe" --login 127.0.0.1:1237 --user myname
+```
+
+In a published build, run `Tools/aaemu-launcher.exe` with the same arguments.
+
+- `--client`: `archeage.exe` in the `bin32` folder of the extracted client.
+- `--login`: the login server's public address and port (`1237` by default;
+  use the server's LAN/public address when the client runs on another
+  machine).
+- `--user`: account name. The launcher asks for the password, or use
+  `--password PW`, `--password-file FILE` or the `AAEMU_PASSWORD` environment
+  variable.
+
+If auto-account creation is enabled (`AutoAccount`, default), accounts are
+created on first login. More options and details: [Client](Client#launcher-aaemu-launcher).
+The public AAEmu Launcher also works as an alternative.
 
 ## Docker workflow
 

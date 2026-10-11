@@ -1,7 +1,7 @@
 # FAQ
 
 - Audience: Contributors, testers, and players
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on October 10, 2026
 - Prerequisites: None
 
 ## Project basics
@@ -71,8 +71,17 @@ In a source checkout: `rust/crates/aaemu-login/app/` and
 
 ### Where can I find the launcher
 
-Use the latest release:
-[AAEmu Launcher releases](https://github.com/ZeromusXYZ/AAEmu-Launcher/releases)
+It is part of this repository: `aaemu-launcher` (`rust/crates/aaemu-launcher`).
+Build it with `cargo build --release -p aaemu-launcher` in `rust/` (a published
+build has it in `Tools/`) and start the client with
+
+```sh
+aaemu-launcher --client "C:\ArcheAge\bin32\archeage.exe" --login 127.0.0.1:1237 --user myname
+```
+
+It asks for the password (or use `--password`, `--password-file` or
+`AAEMU_PASSWORD`). See [Client](Client#launcher-aaemu-launcher). The public AAEmu
+Launcher also still works, but is not needed.
 
 ### Where can I find client downloads
 
@@ -81,7 +90,7 @@ Use the client list on [Client](Client).
 If you need a directory of many client versions, use:
 [MEGA client directory](https://mega.nz/folder/C3Q0WQjT#vRUethZLPiYSo2B4nE_etg).
 
-For the full dependency checklist (including `compact.sqlite3` and launcher),
+For the full dependency checklist (including `compact.sqlite3`),
 see [Dependencies and Downloads](Dependencies-and-Downloads).
 
 ## Configuration and networking

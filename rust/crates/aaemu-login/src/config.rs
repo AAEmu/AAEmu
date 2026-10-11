@@ -120,7 +120,7 @@ pub struct NetworkConfig {
 pub struct DbConnectionsConfig {
     #[serde(rename = "mysqlprovider")]
     pub mysql_provider: MySqlConnectionSettings,
-    /// Apply database schema updates without an interactive prompt (Aspire / CI).
+    /// Apply database schema updates without an interactive prompt (`cargo xtask dev`, Docker, CI).
     #[serde(
         rename = "autoapplyupdates",
         default,

@@ -5,7 +5,7 @@ description: >
   playable: asset inventory, Human-in-the-Loop downloads, config, then either
   Docker + `cargo xtask dev` or non-Docker host MySQL + standalone Login/Game.
   Use when the user wants to set up AAEmu, install/run the server, play on a
-  local server, get the client/launcher working, choose Docker vs non-Docker,
+  local server, get the client or aaemu-launcher working, choose Docker vs non-Docker,
   or mentions game_pak, compact.sqlite3, cargo xtask dev, Config.Local, or Maintenance.
 ---
 
@@ -48,23 +48,23 @@ Default: Path A if Docker works; Path B if user has or wants no Docker.
 
 Use the matching shell for the host (same checks, same exit codes):
 
-| Shell | Inventory | Fetch launcher if missing | Open missing download pages (HitL) |
+| Shell | Inventory | Build `aaemu-launcher` if missing | Open missing download pages (HitL) |
 | --- | --- | --- | --- |
-| **PowerShell** (Windows) | `powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1` | add `-FetchLauncherIfMissing` | add `-OpenMissingDownloadPages` |
-| **Bash** (Linux / macOS / WSL / Git Bash) | `bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh` | add `--fetch-launcher` | add `--open-missing` |
+| **PowerShell** (Windows) | `powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1` | add `-BuildLauncherIfMissing` | add `-OpenMissingDownloadPages` |
+| **Bash** (Linux / macOS / WSL / Git Bash) | `bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh` | add `--build-launcher` | add `--open-missing` |
 
 Examples:
 
 ```powershell
 # Windows PowerShell
 powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1
-powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1 -FetchLauncherIfMissing
+powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1 -BuildLauncherIfMissing
 ```
 
 ```bash
 # Linux / macOS / WSL
 bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh
-bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh --fetch-launcher
+bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh --build-launcher
 chmod +x .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh   # optional once
 ```
 
@@ -81,10 +81,14 @@ Canonical local layout (gitignored `.client_files/`):
 ```text
 .client_files/
   ArcheAge 1.2 (r208022) for AAEmu/     # game_pak + bin32/archeage.exe
-  launcher/AAEmu.Launcher/              # AAEmu.Launcher.exe
   *.7z / *.zip                          # optional kept archives
 rust/crates/aaemu-game/app/Data/compact.sqlite3   # or .server_files/AAEmu.Game/Data/ (Docker)
+<cargo target dir>/release/aaemu-launcher(.exe)   # built from rust/crates/aaemu-launcher
 ```
+
+The launcher is **not downloaded**: it is part of the Cargo workspace. The
+scripts find it in the Cargo target directory (`rust/target` by default; they
+honor `CARGO_TARGET_DIR` and `rust/.cargo/config.toml` via `cargo metadata`).
 
 **MEGA / Drive (client, compact.sqlite3):** open the wiki links for the human
 (or browser). Wait until they confirm the file is saved (prefer
@@ -92,10 +96,13 @@ rust/crates/aaemu-game/app/Data/compact.sqlite3   # or .server_files/AAEmu.Game/
 **Do not** loop re-downloads when `game_pak` / `archeage.exe` / `compact.sqlite3`
 already satisfy the script checks.
 
-**Launcher (GitHub):** safe to auto-fetch with `-FetchLauncherIfMissing` /
-`--fetch-launcher` when absent; still skip when present.
+**Launcher (`aaemu-launcher`):** when missing, build it
+(`cd rust && cargo build --release -p aaemu-launcher`) or let the script do it
+with `-BuildLauncherIfMissing` / `--build-launcher`; skip when present. No
+third-party launcher is needed.
 
-**Note:** The official game client/launcher are **Windows** binaries. Bash
+**Note:** The game client is a **Windows** binary, and `aaemu-launcher` can only
+start it on Windows (elsewhere it builds and supports `--dry-run`). Bash
 inventory still validates server-side assets (`game_pak`, `compact.sqlite3`) on
 Linux hosts that only run Login/Game.
 
@@ -157,15 +164,35 @@ watch progress. Detach Windows GUIs so agent shells do not kill them.
 
 ### Step 5 — Launcher and first login
 
-1. Start `.client_files/launcher/AAEmu.Launcher/AAEmu.Launcher.exe` (detached).
-2. Path to Game → `.../bin32/archeage.exe`; server IP → `127.0.0.1`.
-3. Account: AutoAccount usually creates on first login.
+The 1.2 client gets its login ticket from a launcher; use the repository's own
+`aaemu-launcher` (Windows):
+
+```powershell
+cd rust
+cargo run --release -p aaemu-launcher -- `
+  --client "REPO_ROOT\.client_files\ArcheAge 1.2 (r208022) for AAEmu\bin32\archeage.exe" `
+  --login 127.0.0.1:1237 --user NAME
+```
+
+1. `--client` is the client's `bin32\archeage.exe` (or set `AAEMU_CLIENT`);
+   `--login` is the login server's public address (default `127.0.0.1:1237`).
+2. Password: prompted on the console, or `--password PW`, `--password-file F`
+   (first line) or `$AAEMU_PASSWORD`. Ask the human for it; do not invent or
+   echo real passwords.
+3. Account: `AutoAccount` (on by default) creates it on the first login.
+4. Optional: `--lang en_us` (default), `--nosplash`, `--arg X`, `--wait`,
+   `--dry-run` (prints the command line only); `--help` lists all options.
+5. Start it detached on Windows agents so the client survives the agent shell.
+
+(The public AAEmu Launcher also works as an alternative, but it is not
+required and the scripts no longer fetch it.)
 
 ### Step 6 — Verify “ready to play”
 
 - [ ] Login port **1237** listening  
 - [ ] Game ports **1239** and **1250** listening  
 - [ ] Login log contains `Registered GameServer`  
+- [ ] `aaemu-launcher` reports `client signalled the ticket event`  
 - [ ] Client server list is **not** stuck on Maintenance  
 
 If Maintenance: almost always game failed to register (often **port 1234**

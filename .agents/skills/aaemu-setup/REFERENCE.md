@@ -11,7 +11,7 @@ Wiki sources of truth:
 | --- | --- | --- | --- |
 | Client 1.2 `r208022` | multi‑GB (archive ~8GB+) | MEGA / Google Drive (wiki) | **HitL only** — inventory + user download |
 | Compact / `compact.sqlite3` | tens of MB archive | MEGA (wiki) | **HitL only** — then copy into `rust/crates/aaemu-game/app/Data/` |
-| AAEmu Launcher | ~few MB | GitHub releases | Optional script fetch if missing |
+| `aaemu-launcher` | built locally | `rust/crates/aaemu-launcher` (this repo) | `cargo build --release -p aaemu-launcher`; optional script build if missing |
 
 ### Inventory scripts (PowerShell + Bash)
 
@@ -21,21 +21,21 @@ packages. Exit `0` when all OK; exit `1` when anything MISSING/PARTIAL.
 | Action | PowerShell | Bash |
 | --- | --- | --- |
 | Report only | `powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1` | `bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh` |
-| Fetch launcher if missing | add `-FetchLauncherIfMissing` | add `--fetch-launcher` |
+| Build `aaemu-launcher` if missing | add `-BuildLauncherIfMissing` | add `--build-launcher` |
 | Open missing download pages | add `-OpenMissingDownloadPages` | add `--open-missing` |
 | Custom repo root | `-RepoRoot 'D:\path\AAEmu'` | `--repo-root /path/AAEmu` |
 
 ```powershell
 # Windows PowerShell — from repo root
 powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1
-powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1 -FetchLauncherIfMissing
+powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1 -BuildLauncherIfMissing
 powershell -File .agents/skills/aaemu-setup/scripts/Test-AaemuAssets.ps1 -OpenMissingDownloadPages
 ```
 
 ```bash
 # Linux / macOS / WSL / Git Bash — from repo root
 bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh
-bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh --fetch-launcher
+bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh --build-launcher
 bash .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh --open-missing
 ```
 
@@ -45,27 +45,60 @@ Optional: `chmod +x .agents/skills/aaemu-setup/scripts/test-aaemu-assets.sh` the
 
 - Extracted client: `game_pak` exists and size is large (script default ≥ 1 GB) **and** `bin32/archeage.exe` exists  
 - Compact: `rust/crates/aaemu-game/app/Data/compact.sqlite3` (or `.server_files/AAEmu.Game/Data/compact.sqlite3` for Docker) exists and size ≥ 1 MB  
-- Launcher: `AAEmu.Launcher.exe` under `.client_files/launcher/`  
+- Launcher: `aaemu-launcher(.exe)` in `<cargo target dir>/release/` or `debug/` (default target dir `rust/target`; `CARGO_TARGET_DIR` and `rust/.cargo/config.toml` are honored via `cargo metadata`)  
 - Archives under `.client_files/*.7z` count as “archive present” but still need extract if runtime files are missing  
 
-**Platform note:** Playing the official client requires Windows (or Wine, unsupported here). Linux hosts commonly run **Path A/B servers only**; bash still validates `game_pak` + `compact.sqlite3` for the game process.
+**Platform note:** Playing the official client requires Windows (or Wine, unsupported here); `aaemu-launcher` builds everywhere but only starts the client on Windows (`--dry-run` works anywhere). Linux hosts commonly run **Path A/B servers only**; bash still validates `game_pak` + `compact.sqlite3` for the game process.
 
 ### Expected paths after extract
 
 ```text
 .client_files/ArcheAge 1.2 (r208022) for AAEmu/game_pak
-.client_files/ArcheAge 1.2 (r208022) for AAEmu/bin32/archeage.exe
-.client_files/launcher/AAEmu.Launcher/AAEmu.Launcher.exe
+.client_files/ArcheAge 1.2 (r208022) for AAEmu/bin32/archeage.exe   # --client for aaemu-launcher
 rust/crates/aaemu-game/app/Data/compact.sqlite3
 ```
 
 Nested extract folders: move contents up so the paths above resolve.
 
-### Launcher settings (`settings.aelcf`)
+### Starting the client (`aaemu-launcher`)
 
-- `pathToGame` → absolute `archeage.exe`
-- `serverIPAddress` → `127.0.0.1`
-- `loginType` → `trino_1_2`
+The 1.2 client does not ask for credentials; a launcher passes it an RC4-encrypted
+login ticket through an inherited file mapping (`-handle MAP:EVENT`). The
+repository's `aaemu-launcher` does this (Windows only):
+
+```powershell
+cd rust
+cargo build --release -p aaemu-launcher
+# then (binary in <cargo target dir>\release\, or use: cargo run --release -p aaemu-launcher -- ...)
+aaemu-launcher --client "REPO_ROOT\.client_files\ArcheAge 1.2 (r208022) for AAEmu\bin32\archeage.exe" `
+               --login 127.0.0.1:1237 --user NAME
+```
+
+| Option | Meaning |
+| --- | --- |
+| `--client PATH` | Client `bin32\archeage.exe` (default `$AAEMU_CLIENT`) |
+| `--login HOST:PORT` | Login server public address (default `127.0.0.1:1237`) |
+| `--user NAME` | Account name (`AutoAccount` creates it on the first login) |
+| `--password PW` / `--password-file F` | Password; else `$AAEMU_PASSWORD`, else a console prompt |
+| `--lang LANG` | Client locale (default `en_us`) |
+| `--nosplash`, `--arg X` | Extra client arguments |
+| `--wait` | Stay until the client exits and report its exit code |
+| `--dry-run` | Print the command line and ticket (hash masked); start nothing |
+
+Success: `client started (pid N)` and `client signalled the ticket event`, then the
+login log shows the account connecting. Protocol details: `rust/LIVE-TESTING.md` §6.
+`cargo xtask publish` also puts `aaemu-launcher` into the release's `Tools/` folder.
+
+The public AAEmu Launcher (`loginType` `trino_1_2`) also works as an alternative,
+but nothing here needs or fetches it.
+
+### Lua client driver (developers)
+
+`rust/crates/aaemu-clientdriver` injects a small driver DLL into the running 1.2
+client and runs Lua in its System / UI script states (UI actions, state reads)
+instead of screenshot automation. Start the client with `aaemu-launcher ... --arg -DEVMODE`,
+then `aaemu-clientdriver inject` / `lua -t ui '...'`. Build and usage:
+`rust/docs/client/LUA-DRIVER.md` (needs MSVC x86 for the native part).
 
 ## Ports
 
