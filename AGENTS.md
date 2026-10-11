@@ -5,6 +5,8 @@ Guidance for coding agents working in this repository.
 > **Starting the servers or the real client?** Read [`AGENT-QUICKSTART.md`](AGENT-QUICKSTART.md)
 > first: `Scripts/live-stack.sh build|sync|start|client|status|shot|stop`, machine paths, ports and
 > the rules that bite (C: is full, MySQL 3306 is off-limits, client folders are read-only).
+> **Porting zone features / using the 10.x client as reference?** Read [`REVERSING.md`](REVERSING.md):
+> where both clients and the zone binaries are, IDA databases, decompiles and RE notes, and the workflow.
 
 ## What this repo is
 

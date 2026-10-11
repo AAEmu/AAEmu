@@ -2,6 +2,8 @@
 
 Short handoff for agents (and humans) working on this machine. Details live in
 [`rust/LIVE-TESTING.md`](rust/LIVE-TESTING.md); conventions in [`AGENTS.md`](AGENTS.md).
+Both clients, the 10.x zone reference binaries, IDA databases and all reverse-engineering notes:
+[`REVERSING.md`](REVERSING.md).
 
 ## TL;DR
 
