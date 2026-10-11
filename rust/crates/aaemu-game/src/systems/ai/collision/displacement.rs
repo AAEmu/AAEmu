@@ -39,6 +39,21 @@ pub struct Collider {
     pub capsule: bool,
 }
 
+impl Collider {
+    /// The collider of a unit's living entity (`pe_player_dimensions` of
+    /// [`super::living::dimensions`]: capsule of the model radius, centred at half the model
+    /// height).
+    pub fn from_living(p: &super::data::LivingParams) -> Self {
+        let d = super::living::dimensions(p);
+        Self {
+            height: d.height_collider,
+            radius: d.size_collider.x,
+            half_height: d.size_collider.z,
+            capsule: d.use_capsule != 0,
+        }
+    }
+}
+
 impl Default for Collider {
     /// `sub_3925E670` without a living entity: `(x, y, z + 1)`, r 0.35, hh 0, capsule.
     fn default() -> Self {
@@ -163,6 +178,7 @@ pub fn blink_position(
     extend: bool,
     ent_types: u32,
     include_dz: bool,
+    collider: &Collider,
 ) -> Option<[f32; 3]> {
     let pw = super::phys_world(server, instance_id)?;
     let f = Vec3::new(feet[0], feet[1], feet[2]);
@@ -173,16 +189,7 @@ pub fn blink_position(
     let max = Vec3::new(f.x.max(end.x) + 2.0, f.y.max(end.y) + 2.0, f.z + 50.0);
     super::ensure_box(server, &pw, min, max);
     let mut st = pw.lock();
-    let p = blink_position_in(
-        &mut st,
-        f,
-        d,
-        dist,
-        extend,
-        ent_types,
-        include_dz,
-        &Collider::default(),
-    );
+    let p = blink_position_in(&mut st, f, d, dist, extend, ent_types, include_dz, collider);
     Some([p.x, p.y, p.z])
 }
 
@@ -208,6 +215,7 @@ pub fn clip_move(
         false,
         ENT_TYPES_SOLID,
         false,
+        &Collider::default(),
     )
 }
 

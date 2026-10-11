@@ -28,6 +28,7 @@ pub mod config;
 pub mod data;
 pub mod displacement;
 pub mod fall;
+pub mod living;
 pub mod models;
 pub mod move_verify;
 pub mod movement;

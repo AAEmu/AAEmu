@@ -214,6 +214,13 @@ fn blink_end(server: &GameServer, unit: &WorldObject, target: &mut PositionAndRo
         return;
     }
     let instance_id = unit.transform().instance_id;
+    // the unit's living-entity collider (sub_3925E670), the default capsule without a model
+    let collider = match unit.with_unit(|u| u.unit().model_id) {
+        Some(m) => crate::systems::ai::collision::displacement::Collider::from_living(
+            &crate::systems::ai::collision::living::unit_params(server, m),
+        ),
+        None => crate::systems::ai::collision::displacement::Collider::default(),
+    };
     if let Some(p) = crate::systems::ai::collision::displacement::blink_position(
         server,
         instance_id,
@@ -223,6 +230,7 @@ fn blink_end(server: &GameServer, unit: &WorldObject, target: &mut PositionAndRo
         false,
         crate::systems::ai::collision::displacement::ENT_TYPES_BLINK_UNIT,
         false,
+        &collider,
     ) {
         target.x = p[0];
         target.y = p[1];

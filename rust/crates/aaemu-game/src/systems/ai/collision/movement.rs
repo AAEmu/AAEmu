@@ -25,6 +25,7 @@ pub fn on_unit_moved(
     };
     let sys = &server.systems.ai.collision;
     let obj_id = unit.obj_id();
+    super::living::sync_one(server, world.id, unit, [u.x, u.y, u.z]);
     let now = crate::world::now_ms();
     if cfg.movement_verify_enable {
         let terrain_z = pw.terrain.as_ref().map_or(0.0, |t| {
