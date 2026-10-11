@@ -2719,7 +2719,7 @@ public class Skill
 
         var cooldownTime = Template.CooldownTime > 0 ? (uint)Template.CooldownTime : 0u;
         // Charge skills still need ArmCooldowns when CooldownTime is 0 so the spend runs.
-        if (!SkillCooldownDurationRules.ShouldArmOnAccept(!_bypassGcd, IsPureUnsupportedCast(), cooldownTime)
+        if (!SkillCooldownDurationRules.ShouldArmOnAccept(_bypassGcd, IsPureUnsupportedCast(), cooldownTime)
             && Template.ChargeCount <= 1)
             return;
 
@@ -2850,7 +2850,7 @@ public class Skill
     {
         if (_gcdArmed || unit == null)
             return;
-        if (!SkillGcdArmRules.ShouldArmOnAccept(!_bypassGcd, TlId))
+        if (!SkillGcdArmRules.ShouldArmOnAccept(_bypassGcd, TlId))
             return;
         ApplyGlobalCooldown(unit);
         _gcdArmed = true;
