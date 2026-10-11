@@ -85,7 +85,8 @@ async fn queries_and_doodad_colliders() {
         flags: collision_flags(false, false, false),
     };
     let mut shapes = HashMap::new();
-    let (added, removed) = apply_doodads(&pw, &files, &models, &mut shapes, std::slice::from_ref(&d));
+    let (added, removed) =
+        apply_doodads(&pw, &files, &models, &mut shapes, std::slice::from_ref(&d));
     assert_eq!((added, removed), (1, 0));
     let g = super::ground_height(&s, 0, 500.0, 500.0, 101.5).unwrap();
     assert!((g - 102.0).abs() < 1e-3, "{g}");

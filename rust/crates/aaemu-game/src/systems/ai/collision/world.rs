@@ -323,6 +323,8 @@ pub struct WorldState {
     pub stats: WorldStats,
     /// Entities destroyed since the last step (freed by the next `TimeStep`).
     pub pending_deletes: usize,
+    /// Water-volume areas by volume key ([`super::water_areas`]).
+    pub water_areas: HashMap<String, Vec<EntIdx>>,
 }
 
 impl std::fmt::Debug for WorldState {
@@ -618,6 +620,7 @@ impl PhysWorld {
             objects: HashMap::new(),
             stats: WorldStats::default(),
             pending_deletes: 0,
+            water_areas: HashMap::new(),
         };
         // Warm-up: the temp pools exist after the first entity, and after the first step with
         // dt > 0 the caller counts as a physics thread (entities join the grid at once).

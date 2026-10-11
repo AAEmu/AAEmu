@@ -53,6 +53,8 @@ pub struct FakeWorld {
     pub doodads: Vec<DoodadObstacle>,
     pub lifetime_calls: RefCell<Vec<u32>>,
     pub lines: Vec<(u32, HarpoonLine)>,
+    /// The collision world for CryPhysics hulls.
+    pub cry: Option<std::sync::Arc<crate::systems::ai::collision::world::PhysWorld>>,
 }
 
 impl FakeWorld {
@@ -63,6 +65,7 @@ impl FakeWorld {
             doodads: Vec::new(),
             lifetime_calls: RefCell::new(Vec::new()),
             lines: Vec::new(),
+            cry: None,
         }
     }
 }
@@ -114,6 +117,9 @@ impl TickWorld for FakeWorld {
     fn bai_cell(&self, _cell_x: i32, _cell_y: i32) -> Option<[[Option<BaiRef>; 4]; 4]> {
         None
     }
+    fn cry_world(&self) -> Option<std::sync::Arc<crate::systems::ai::collision::world::PhysWorld>> {
+        self.cry.clone()
+    }
 }
 
 pub fn cfg() -> PhysConfig {
@@ -122,6 +128,7 @@ pub fn cfg() -> PhysConfig {
         realistic_sea_weather: false,
         geo_data_mode: false,
         game_time: 0.0,
+        cryphysics: false,
     }
 }
 
@@ -244,6 +251,210 @@ fn two_ships_ramming_separate_and_take_hull_damage() {
     );
 }
 
+/// A FakeWorld whose hulls run on the CryPhysics port: terrain plane at `floor`, ocean at
+/// `ocean`, 2 × 2 cells.
+fn cry_world(ocean: f32, floor: f32) -> FakeWorld {
+    let mut w = FakeWorld::new(FakeEnv::flat(ocean, floor));
+    w.cry = Some(std::sync::Arc::new(
+        crate::systems::ai::collision::world::PhysWorld::new(
+            0,
+            0,
+            "test",
+            2,
+            2,
+            ocean,
+            Some(std::sync::Arc::new(
+                crate::systems::ai::collision::terrain::tests::Plane {
+                    a: floor,
+                    b: 0.0,
+                    c: 0.0,
+                    n: 1024,
+                },
+            )),
+        ),
+    ));
+    w
+}
+
+fn cry_cfg() -> PhysConfig {
+    PhysConfig {
+        cryphysics: true,
+        ..cfg()
+    }
+}
+
+#[test]
+fn cryphysics_ship_floats_and_sails() {
+    let w = cry_world(100.0, 40.0);
+    let wp = WorldPhysics::new(0);
+    add(&wp, 1, 1000.0, 1000.0, 99.0, 0.0);
+    wp.enqueue(Pending::Driver {
+        obj_id: 1,
+        has_driver: true,
+    });
+    wp.enqueue(Pending::Request {
+        obj_id: 1,
+        throttle: 127,
+        steering: 0,
+    });
+    let mut now = 10_000;
+    for _ in 0..250 {
+        now += 40;
+        let out = wp.tick(&w, 40, now, cry_cfg());
+        assert_eq!(out.movements.len(), 1);
+    }
+    let snap = wp.snapshot(1).expect("snapshot");
+    assert!(
+        (snap.position.z - 100.0).abs() < 2.0,
+        "floats at the ocean: z {}",
+        snap.position.z
+    );
+    assert!(snap.position.y > 1010.0, "y {}", snap.position.y);
+    assert!(
+        (snap.position.x - 1000.0).abs() < 1.0,
+        "x {}",
+        snap.position.x
+    );
+    let cry = w.cry.as_ref().unwrap();
+    assert_eq!(wp.inspect(|st| st.cry.ents.len()), 1);
+    // removal destroys the hull entity
+    wp.enqueue(Pending::Remove(1));
+    wp.tick(&w, 40, now + 40, cry_cfg());
+    assert_eq!(wp.inspect(|st| st.cry.ents.len()), 0);
+    let _ = cry;
+}
+
+#[test]
+fn cryphysics_ships_push_each_other_and_report_contacts() {
+    let w = cry_world(100.0, 40.0);
+    let wp = WorldPhysics::new(0);
+    // b sits a hull length ahead of a; a pushes it at full throttle (~1.5 m/s with this model)
+    add(&wp, 1, 500.0, 500.0, 99.5, 0.0);
+    add(&wp, 2, 500.0, 516.0, 99.5, 0.0);
+    wp.enqueue(Pending::Driver {
+        obj_id: 1,
+        has_driver: true,
+    });
+    wp.enqueue(Pending::Request {
+        obj_id: 1,
+        throttle: 127,
+        steering: 0,
+    });
+    let mut damage = Vec::new();
+    let mut now = 0;
+    for _ in 0..600 {
+        now += 40;
+        damage.extend(wp.tick(&w, 40, now, cry_cfg()).damage);
+    }
+    assert!(wp.inspect(|st| st.cry.events_seen) > 0, "collision events");
+    let a = wp.snapshot(1).unwrap();
+    let b = wp.snapshot(2).unwrap();
+    assert!(b.position.y > 520.0, "b was pushed: {}", b.position.y);
+    assert!(
+        b.position.y - a.position.y > 12.0,
+        "{} {}",
+        a.position.y,
+        b.position.y
+    );
+    // a push below the ZWUnitCollision minimum closing speed deals no damage
+    assert!(damage.is_empty(), "{damage:?}");
+}
+
+#[test]
+fn unit_collisions_keep_the_pair_maximum_for_500_ms() {
+    use super::cry::UnitCollisions;
+    let ships = [
+        PhysShip::new(
+            spec(1, 0.0, 0.0, 99.0, 0.0),
+            model(),
+            ShipGameView::default(),
+        ),
+        PhysShip::new(
+            spec(2, 0.0, 14.0, 99.0, 0.0),
+            model(),
+            ShipGameView::default(),
+        ),
+    ];
+    let p = aaemu_physics::math::Vec3::ZERO;
+    let mut u = UnitCollisions::default();
+    u.record(Some(1), Some(2), 1.5, p, 0); // below the minimum: dropped
+    u.record(Some(2), Some(1), 4.0, p, 0);
+    u.record(Some(1), Some(2), 6.0, p, 100);
+    u.record(Some(1), None, 30.0, p, 100); // vs terrain: clamped to the maximum
+    let d = u.flush(&ships, 600);
+    let pct = |t, a| {
+        d.iter()
+            .find(|h| h.target == t && h.attacker == a)
+            .map(|h| h.percent)
+    };
+    let scaled6 = super::contacts::speed_scaled_hull_damage_percent(6.0);
+    // a's bow points at b (nose cone): minimum; b is hit at 6 m/s
+    assert_eq!(pct(1, 2), Some(1));
+    assert_eq!(pct(2, 1), Some(scaled6));
+    assert_eq!(pct(1, 1), Some(10));
+    // within 500 ms of the flush nothing is reported
+    u.record(Some(1), Some(2), 8.0, p, 700);
+    assert!(u.flush(&ships, 800).is_empty());
+    assert_eq!(u.flush(&ships, 1100).len(), 2);
+}
+
+#[test]
+fn cryphysics_ship_runs_aground_on_the_terrain() {
+    // the sea floor rises: 0.5 m deep water everywhere → the hull rests on the terrain
+    let w = cry_world(100.0, 99.5);
+    let wp = WorldPhysics::new(0);
+    add(&wp, 1, 500.0, 500.0, 102.0, 0.0);
+    let mut now = 0;
+    for _ in 0..150 {
+        now += 40;
+        wp.tick(&w, 40, now, cry_cfg());
+    }
+    let s = wp.snapshot(1).unwrap();
+    // the bottom box rests on z = 99.5 (hull box half height 1.5 + bottom box 0.3)
+    assert!(s.position.z > 99.5 + 1.0, "z {}", s.position.z);
+}
+
+#[test]
+fn cryphysics_ship_floats_on_a_lake_above_the_ocean() {
+    use crate::systems::ai::physics::water::{WaterBodyArea, WaterBodyAreaType};
+    // terrain at 140, ocean at 100, a 200 × 200 m lake at 150 (10 m deep)
+    let w = cry_world(100.0, 140.0);
+    let mut lake = WaterBodyArea::new("lake", WaterBodyAreaType::Polygon);
+    lake.depth = 10.0;
+    lake.points = vec![
+        Vec3::new(400.0, 400.0, 150.0),
+        Vec3::new(600.0, 400.0, 150.0),
+        Vec3::new(600.0, 600.0, 150.0),
+        Vec3::new(400.0, 600.0, 150.0),
+    ];
+    lake.update_bounds();
+    {
+        let mut st = w.cry.as_ref().unwrap().lock();
+        assert_eq!(
+            crate::systems::ai::collision::water_areas::sync_areas(&mut st, &[lake.clone()]),
+            1
+        );
+        // idempotent
+        assert_eq!(
+            crate::systems::ai::collision::water_areas::sync_areas(&mut st, &[lake]),
+            0
+        );
+    }
+    let wp = WorldPhysics::new(0);
+    add(&wp, 1, 500.0, 500.0, 150.0, 0.0);
+    let mut now = 0;
+    for _ in 0..200 {
+        now += 40;
+        wp.tick(&w, 40, now, cry_cfg());
+    }
+    let s = wp.snapshot(1).unwrap();
+    assert!(
+        (s.position.z - 150.0).abs() < 2.0,
+        "floats on the lake: z {}",
+        s.position.z
+    );
+}
+
 mod server_flow {
     use std::sync::Arc;
 
@@ -348,5 +559,55 @@ mod server_flow {
         physics::run_world_tick(&server, &wp, 40);
         assert!(physics::ship_state(&server, 0x300).is_none());
         let _ = WorldObject::from(a);
+    }
+
+    #[tokio::test]
+    async fn cryphysics_ships_through_the_server_collision_world() {
+        let server = server();
+        server
+            .systems
+            .ai
+            .collision
+            .test_files
+            .set(Arc::new(std::collections::HashMap::new()))
+            .unwrap();
+        server
+            .systems
+            .ai
+            .collision
+            .test_terrain
+            .set(Arc::new(
+                crate::systems::ai::collision::terrain::tests::Plane {
+                    a: 40.0,
+                    b: 0.0,
+                    c: 0.0,
+                    n: 1024,
+                },
+            ))
+            .unwrap_or_else(|_| panic!("terrain"));
+        let mut client = TestClient::new(&server, 1, 1);
+        let _p = spawn_player(
+            &server,
+            &client,
+            test_character(1, "Sailor", 500.0, 480.0),
+            0x100,
+        );
+        let a = spawn_slave(&server, 0x300, 500.0, 500.0);
+        client.drain();
+        physics::set_ship_driver(&server, 0x300, true);
+        physics::set_ship_request(&server, 0x300, 127, 0);
+        let wp = server.systems.ai.physics.world(0).expect("physics world");
+        for _ in 0..100 {
+            physics::run_world_tick(&server, &wp, 40);
+        }
+        // the hull lives in the collision world
+        assert_eq!(wp.inspect(|st| st.cry.ents.len()), 1);
+        let ops: Vec<u16> = client.drain().into_iter().map(|f| f.0 & 0x7FFF).collect();
+        assert!(ops.contains(&sc::SCOneUnitMovementPacket), "{ops:?}");
+        let t = a.data().unit.transform;
+        assert!(t.y > 501.0, "the slave moved: {}", t.y);
+        // the synthetic world's ocean level
+        let ocean = server.world.world(0).unwrap().template.ocean_level;
+        assert!((t.z - ocean).abs() < 2.0, "floats: {} vs {ocean}", t.z);
     }
 }

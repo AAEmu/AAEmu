@@ -35,6 +35,7 @@ pub mod objects;
 pub mod query;
 pub mod residency;
 pub mod terrain;
+pub mod water_areas;
 pub mod world;
 
 #[cfg(test)]
@@ -329,6 +330,16 @@ pub fn ensure_box(server: &GameServer, pw: &PhysWorld, min: Vec3, max: Vec3) {
 
 fn v(p: [f32; 3]) -> Vec3 {
     Vec3::new(p[0], p[1], p[2])
+}
+
+/// Adds the water volumes of the loaded cells as buoyancy areas ([`water_areas`]).
+pub fn sync_water(server: &GameServer, pw: &PhysWorld) -> usize {
+    let Some(world) = server.world.world(pw.instance_id) else {
+        return 0;
+    };
+    let areas = crate::systems::ai::physics::world_water(server, &world).areas_snapshot();
+    let mut st = pw.lock();
+    water_areas::sync_areas(&mut st, &areas)
 }
 
 /// `GetTerrainElevation(x, y)` (I3DEngine vt+1064): terrain only, 0 where the engine returns
