@@ -236,6 +236,8 @@ public class DamageEffectRulesTests
     {
         await Assert.That(DamageEffectRules.IncomingAdjust(1000f, 0.9f, -49f)).IsEqualTo(851f);
         await Assert.That(DamageEffectRules.IncomingAdjust(1000f, 1f, 0f)).IsEqualTo(1000f);
+        // Flat add larger than the hit must not go negative (that would heal via ReduceCurrentHp).
+        await Assert.That(DamageEffectRules.IncomingAdjust(30f, 1f, -49f)).IsEqualTo(0f);
     }
 
     [Test]

@@ -70,23 +70,47 @@ public class AreaShape
                 return true;
 
             // Body radius: Gods' Whip Wave bolts use a 2×2 box; a mob whose centre sits just outside
-            // still overlaps the volume. Treat ModelSize as an XY pad toward the box centre.
+            // still overlaps the volume when its ModelSize reaches the nearest face (not only when
+            // the centre-to-origin segment intersects the box).
             var pad = o.ModelSize;
-            if (pad <= 0f)
-                return false;
-            var dx = originPos.X - p.X;
-            var dy = originPos.Y - p.Y;
-            var dist = MathF.Sqrt(dx * dx + dy * dy);
-            if (dist <= pad)
-                return true;
-            var scale = (dist - pad) / dist;
-            var qx = originPos.X - dx * scale;
-            var qy = originPos.Y - dy * scale;
-            return MathUtil.PointInTriangle((qx, qy), vertices[0], vertices[1], vertices[2])
-                   || MathUtil.PointInTriangle((qx, qy), vertices[0], vertices[2], vertices[3]);
+            return pad > 0f && DistanceToCuboidXy(p.X, p.Y, vertices) <= pad;
         }).ToList();
 
         return toCheck;
+    }
+
+    /// <summary>XY distance from a point to the nearest edge of a convex cuboid (vertex order around the face).</summary>
+    private static float DistanceToCuboidXy(float px, float py, (float, float)[] vertices)
+    {
+        var minSq = float.MaxValue;
+        for (var i = 0; i < 4; i++)
+        {
+            var (ax, ay) = vertices[i];
+            var (bx, by) = vertices[(i + 1) % 4];
+            minSq = Math.Min(minSq, DistanceToSegmentSq(px, py, ax, ay, bx, by));
+        }
+
+        return MathF.Sqrt(minSq);
+    }
+
+    private static float DistanceToSegmentSq(float px, float py, float ax, float ay, float bx, float by)
+    {
+        var abx = bx - ax;
+        var aby = by - ay;
+        var abLenSq = abx * abx + aby * aby;
+        if (abLenSq <= 1e-12f)
+        {
+            var dx = px - ax;
+            var dy = py - ay;
+            return dx * dx + dy * dy;
+        }
+
+        var t = Math.Clamp(((px - ax) * abx + (py - ay) * aby) / abLenSq, 0f, 1f);
+        var qx = ax + t * abx;
+        var qy = ay + t * aby;
+        var ex = px - qx;
+        var ey = py - qy;
+        return ex * ex + ey * ey;
     }
 
     /// <summary>

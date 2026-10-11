@@ -70,4 +70,18 @@ public class AreaShapeCuboidTests
         await Assert.That(hits.Count).IsEqualTo(1);
         await Assert.That(hits[0].ObjId).IsEqualTo(neighbour.ObjId);
     }
+
+    [Test]
+    public async Task ModelSizePad_HitsOffAxisFaceOverlap()
+    {
+        // Centre-toward pad used to miss this: body overlaps the right face, but the point pulled
+        // toward the box origin stays outside the rectangle.
+        var shape = BoltBox();
+        var origin = Origin();
+        var neighbour = At(2.4f, 1.8f);
+        neighbour.ModelSize = 0.45f;
+        var hits = shape.ComputeCuboid(origin, [neighbour]);
+        await Assert.That(hits.Count).IsEqualTo(1);
+        await Assert.That(hits[0].ObjId).IsEqualTo(neighbour.ObjId);
+    }
 }

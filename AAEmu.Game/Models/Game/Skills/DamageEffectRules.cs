@@ -178,9 +178,10 @@ public static class DamageEffectRules
 
     /// <summary>
     /// Victim incoming scale: typed mul, then typed flat add (<c>incoming_*_damage_val</c> / Add attrs).
+    /// Never negative — a flat add larger than the hit must not heal through <c>ReduceCurrentHp</c>.
     /// </summary>
     public static float IncomingAdjust(float damage, float incomingMul, float incomingAdd) =>
-        damage * incomingMul + incomingAdd;
+        Math.Max(0f, damage * incomingMul + incomingAdd);
 
     /// <summary>
     /// True when the attacker stands outside the victim's front cone (<see cref="MathUtil.IsFront"/>).

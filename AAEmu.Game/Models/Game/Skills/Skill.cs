@@ -2712,7 +2712,19 @@ public class Skill
     /// Arms the cast's skill cooldown once. Cast-time skills call this at SkillStarted; instant and
     /// plot paths call it from Cast / ApplyPlotOnlyFireCosts / DoPlotEnd. A second call is a no-op.
     /// </summary>
-    private void EnsureSkillCooldownArmed(Unit unit) => ArmCooldowns(unit);
+    private void EnsureSkillCooldownArmed(Unit unit)
+    {
+        if (unit == null)
+            return;
+
+        var cooldownTime = Template.CooldownTime > 0 ? (uint)Template.CooldownTime : 0u;
+        // Charge skills still need ArmCooldowns when CooldownTime is 0 so the spend runs.
+        if (!SkillCooldownDurationRules.ShouldArmOnAccept(!_bypassGcd, IsPureUnsupportedCast(), cooldownTime)
+            && Template.ChargeCount <= 1)
+            return;
+
+        ArmCooldowns(unit);
+    }
 
     /// <summary>
     /// Arms the cast's cooldown on the skill id, on every cooldown tag the skill carries, and on the
@@ -2836,7 +2848,9 @@ public class Skill
     /// </summary>
     private void EnsureGlobalCooldownArmed(Unit unit)
     {
-        if (_bypassGcd || _gcdArmed || unit == null)
+        if (_gcdArmed || unit == null)
+            return;
+        if (!SkillGcdArmRules.ShouldArmOnAccept(!_bypassGcd, TlId))
             return;
         ApplyGlobalCooldown(unit);
         _gcdArmed = true;
