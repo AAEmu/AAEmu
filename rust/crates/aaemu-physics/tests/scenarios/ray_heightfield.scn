@@ -1,0 +1,25 @@
+# Heightfield terrain set through world slot 17 SetHeightfieldData (the path the engine uses for
+# terrain: per-caller terrain entities at world+1568, ray objtype 0x100). 64x64 cells of 1 m,
+# h = 1 + 0.05*ix + 0.02*iy. Rays straight down and slanted, then a 1 m box dropped onto the slope.
+# (A heightfield geometry added to an ordinary static entity gets an empty bbox and never collides.)
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=hf type=heightfield n=64,64 step=1,1 hscale=1 fn=slope h0=1 kx=0.05 ky=0.02 worldhf=1
+# RWI returns 0 until the world's temp entity pools (world+792) exist; they are allocated when an
+# ordinary entity is registered and the world steps (the terrain entities alone do not trigger it).
+geom name=tiny type=box size=0.1,0.1,0.1
+entity name=marker type=static pos=60,60,50
+part ent=marker geom=tiny mass=0
+step n=1
+ray name=d1 org=10.5,20.25,30 dir=0,0,-60 max=2
+ray name=d2 org=33.3,7.7,30 dir=0,0,-60 max=2
+ray name=d3 org=0.2,0.2,30 dir=0,0,-60 max=2
+ray name=slant org=5,5,10 dir=20,10,-15 max=2
+ray name=terrain_only org=12.25,40.75,30 dir=0,0,-60 types=0x100 max=2
+ray name=no_terrain org=12.25,40.75,30 dir=0,0,-60 types=0x3F max=2
+ray name=outside org=-5,-5,30 dir=0,0,-60 max=2
+geom name=cube type=box size=0.5,0.5,0.5
+entity name=box type=rigid pos=20,20,5
+part ent=box geom=cube mass=10
+trace ents=box
+print
+step n=150 every=5

@@ -1,0 +1,25 @@
+# P7: CCD — small fast boxes and a sphere shot at a thin static wall (0.05 m) and at the ground.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=wall type=box size=0.025,3,2
+entity name=wall type=static pos=34,32,2
+part ent=wall geom=wall mass=0
+geom name=pellet type=box size=0.1,0.1,0.1
+geom name=ball type=sphere r=0.1
+entity name=p1 type=rigid pos=30,32,1
+part ent=p1 geom=pellet mass=1
+entity name=p2 type=rigid pos=30,31,2 q=0,0,0.3826834,0.9238795
+part ent=p2 geom=pellet mass=1
+entity name=b1 type=rigid pos=30,33,1.5
+part ent=b1 geom=ball mass=1
+entity name=p3 type=rigid pos=32,30,6
+part ent=p3 geom=pellet mass=1
+action target=p1 type=10 v12=40,0,0
+action target=p2 type=10 v12=60,0,3
+action target=b1 type=10 v12=80,0,0
+action target=p3 type=10 v12=0,0,-90
+trace ents=p1,p2,b1,p3
+print
+step n=60

@@ -15,6 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 aaemu-commons.workspace = true
+aaemu-physics.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

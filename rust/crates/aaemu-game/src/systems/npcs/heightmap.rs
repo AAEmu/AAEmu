@@ -680,6 +680,27 @@ impl WorldHeightmap {
         ))
     }
 
+    /// The height of grid point `(ix, iy)` of the whole world (2 m grid, world position
+    /// `(2·ix, 2·iy)`), loading its cell on demand. 0 outside the map, in a cell without
+    /// heightmap and for a failing cell (`systems::ai::collision` terrain heightfield).
+    pub fn grid_sample(&self, files: &ClientFileManager, ix: i32, iy: i32) -> f32 {
+        if ix < 0 || iy < 0 {
+            return 0.0;
+        }
+        let (cx, cy) = (ix / CELL_HMAP_RESOLUTION, iy / CELL_HMAP_RESOLUTION);
+        if cx >= self.cell_x || cy >= self.cell_y {
+            return 0.0;
+        }
+        match self.verify_cell_loaded(files, cx, cy) {
+            Ok(Some(map)) => {
+                let (sx, sy) = (ix % CELL_HMAP_RESOLUTION, iy % CELL_HMAP_RESOLUTION);
+                let v = map[(sx * CELL_HMAP_RESOLUTION + sy) as usize];
+                (f64::from(v) / self.height_max_coefficient) as f32
+            }
+            _ => 0.0,
+        }
+    }
+
     /// `VerifyCellLoaded` for every cell (`PreLoadTerrain`). Returns the number of cells whose
     /// load threw.
     pub fn preload_all(&self, files: &ClientFileManager) -> usize {

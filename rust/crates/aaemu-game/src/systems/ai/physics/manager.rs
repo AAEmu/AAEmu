@@ -46,8 +46,16 @@ pub trait TickWorld: PhysEnv {
     fn any_whirlpool_buff(&self) -> bool;
     /// The terrain collider samples (`None` = no heightmap).
     fn terrain(&self) -> Option<&dyn TerrainSamples>;
+    /// Loads a cell of the collision world (CryPhysics ships).
+    fn load_collision_cell(&self, _cell: (i32, i32)) {}
+    /// Adds the loaded water volumes to the collision world as buoyancy areas.
+    fn sync_collision_water(&self) {}
     /// `WorldCell.VerifyCellLoaded()` + the cell's 4x4 `BaiLoader` (`GeoDataMode`).
     fn bai_cell(&self, cell_x: i32, cell_y: i32) -> Option<[[Option<BaiRef>; 4]; 4]>;
+    /// The instance's collision world (CryPhysics ships, [`super::cry`]); `None` = Jitter2.
+    fn cry_world(&self) -> Option<Arc<crate::systems::ai::collision::world::PhysWorld>> {
+        None
+    }
 }
 
 /// The settings a tick uses.
@@ -59,6 +67,8 @@ pub struct PhysConfig {
     /// `GeoDataMode` (static barriers on).
     pub geo_data_mode: bool,
     pub game_time: f32,
+    /// `Physics.CryPhysicsShips`: hulls on the CryPhysics port when the collision world exists.
+    pub cryphysics: bool,
 }
 
 /// A queued call (`_pendingActions`).
@@ -123,6 +133,8 @@ pub struct PhysState {
     pub barriers: BarrierZones,
     loop_index: u64,
     cache_stamp: HashMap<u32, (u64, (f32, f32))>,
+    /// The CryPhysics hulls ([`super::cry`]).
+    pub cry: super::cry::CryShips,
 }
 
 impl PhysState {
@@ -183,10 +195,16 @@ impl PhysState {
             }
         }
 
+        // CryPhysics hulls: the engine floats, integrates and collides them
+        let cry_pw = if cfg.cryphysics { w.cry_world() } else { None };
+        let cry = cry_pw.is_some();
+
         // 3. Step the physics world (PreStep generators, then integration)
         if dt > 0.0 {
-            for s in &mut self.ships {
-                forces::buoyancy(s, w, now_ms);
+            if !cry {
+                for s in &mut self.ships {
+                    forces::buoyancy(s, w, now_ms);
+                }
             }
             {
                 let mut all: Vec<&mut PhysShip> = self.ships.iter_mut().collect();
@@ -208,9 +226,28 @@ impl PhysState {
                     s.body.velocity += dv;
                 }
             }
-            let mut bodies: Vec<&mut super::jitter::RigidBody> =
-                self.ships.iter_mut().map(|s| &mut s.body).collect();
-            self.world.step(&mut bodies, dt, w.terrain());
+            if let Some(pw) = &cry_pw {
+                // load the cells under the ships first (static colliders, terrain)
+                for s in &self.ships {
+                    let (x, y) = (s.pos.x, s.pos.y);
+                    if let Some(c) = pw.cell_of(x, y) {
+                        if !pw.touch_cell(c) {
+                            w.load_collision_cell(c);
+                        }
+                    }
+                }
+                w.sync_collision_water();
+                let mut st = pw.lock();
+                self.cry.push(&mut st, &self.ships);
+                st.world.step(dt);
+                self.cry.pull(&st, &mut self.ships);
+                out.damage
+                    .extend(self.cry.collision_damage(&st, &self.ships, now_ms));
+            } else {
+                let mut bodies: Vec<&mut super::jitter::RigidBody> =
+                    self.ships.iter_mut().map(|s| &mut s.body).collect();
+                self.world.step(&mut bodies, dt, w.terrain());
+            }
         }
 
         // 4. per-ship sync and helm
@@ -244,7 +281,12 @@ impl PhysState {
             if rx * rx + ry * ry > 1e-8 {
                 self.kicks.push((s.spec.obj_id, Vec3::new(rx, 0.0, ry)));
             }
-            for _ in 0..shore::resolve_terrain_contacts(s, w, dt, gravity) {
+            let terrain_hits = if cry {
+                0
+            } else {
+                shore::resolve_terrain_contacts(s, w, dt, gravity)
+            };
+            for _ in 0..terrain_hits {
                 out.damage.push(HullDamage {
                     target: s.spec.obj_id,
                     attacker: s.spec.obj_id,
@@ -282,12 +324,14 @@ impl PhysState {
         for s in ships.iter_mut() {
             ship::apply_force_and_torque(s, dt, cfg.wind, cfg.game_time);
         }
-        contacts::resolve_all_pairs(&mut ships, dt, &mut out.damage);
+        if !cry {
+            contacts::resolve_all_pairs(&mut ships, dt, &mut out.damage);
+        }
 
         for s in ships.iter_mut() {
             s.static_obstacle_hull_damage_contact_active = false;
         }
-        if !ships.is_empty() {
+        if !ships.is_empty() && !cry {
             for s in ships.iter_mut() {
                 let r = contacts::doodad_query_radius(s);
                 let doodads = w.doodads_around(s.spec.obj_id, r);
@@ -298,7 +342,7 @@ impl PhysState {
             }
         }
 
-        if cfg.geo_data_mode {
+        if cfg.geo_data_mode && !cry {
             for s in ships.iter() {
                 if s.view.instance_id != instance_id {
                     continue;
@@ -318,7 +362,7 @@ impl PhysState {
             }
         }
 
-        if !ships.is_empty() {
+        if !ships.is_empty() && !cry {
             for s in ships.iter_mut() {
                 if s.view.instance_id == instance_id {
                     contacts::resolve_ship_vs_steep_terrain(s, w);

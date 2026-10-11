@@ -1,0 +1,6 @@
+# P1a misc: DrawWireframe (slot 15) into a recording IPhysRenderer.
+gwire type=box n=15 seed=7401
+gwire type=sphere n=12 seed=7402
+gwire type=cylinder n=12 seed=7403
+gwire type=capsule n=8 seed=7404
+gwire type=ray n=6 seed=7405

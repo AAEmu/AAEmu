@@ -1,0 +1,24 @@
+# Open question: are buoyancy impulses applied in the same step or the next one?
+# A 300 kg 1 m^3 box starts at rest fully submerged (top at the water plane z=2). If buoyancy were
+# deferred to the next world step, step 1 would only add gravity (v_z = -0.327 m/s); the trace shows
+# v_z = +0.758 and a position change inside step 1 (rigid substeps of <= 0.02 s), and the deferred
+# impulse accumulator E+956 stays zero.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+geom name=cube type=box size=0.5,0.5,0.5
+entity name=ground type=static pos=32,32,-20
+part ent=ground geom=ground mass=0
+entity name=box type=rigid pos=32,32,1.5
+part ent=box geom=cube mass=300
+area name=water kind=global
+params target=water type=12 f4=1000 f16=1000 v24=0,0,0 v40=0,0,1 v52=32,32,2 i72=0
+params target=box type=12 f4=1000 f16=1000
+trace ents=box
+print
+peek target=box off=956 n=6
+step n=1
+peek target=box off=956 n=6
+peek target=box off=772 n=3
+step n=1
+peek target=box off=956 n=6
+step n=1

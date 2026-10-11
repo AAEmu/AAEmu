@@ -3,6 +3,13 @@
 version = 4
 
 [[package]]
+name = "aaemu-clientdriver"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "aaemu-commons"
 version = "0.1.0"
 dependencies = [
@@ -27,6 +34,7 @@ name = "aaemu-game"
 version = "0.1.0"
 dependencies = [
  "aaemu-commons",
+ "aaemu-physics",
  "aes",
  "anyhow",
  "axum",
@@ -92,6 +100,10 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
 ]
+
+[[package]]
+name = "aaemu-physics"
+version = "0.1.0"
 
 [[package]]
 name = "aaemu-testclient"

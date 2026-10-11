@@ -553,7 +553,8 @@ pub fn create(
         Some(SkillControllerKind::Leap) => {
             tracing::trace!("SkillController: create LeapSkillController");
             let (o, t) = positions(server, owner, target);
-            let l = LinearMove::leap(template, o, t);
+            let mut l = LinearMove::leap(template, o, t);
+            clip_linear_move(server, owner, o, &mut l);
             tracing::debug!(
                 "LeapSC: owner={} target={} dir={:?} dur={}ms endPos=({:.1},{:.1},{:.1}) speed={:.1}",
                 owner.obj_id(),
@@ -570,7 +571,8 @@ pub fn create(
         Some(SkillControllerKind::Dash) => {
             tracing::trace!("SkillController: create DashSkillController");
             let (o, t) = positions(server, owner, target);
-            let d = LinearMove::dash(template, o, t);
+            let mut d = LinearMove::dash(template, o, t);
+            clip_linear_move(server, owner, o, &mut d);
             Some(new_ref(Some(template), owner, target, Behavior::Dash(d)))
         }
         _ => {
@@ -627,6 +629,23 @@ pub fn new_floating(
         );
     }
     new_ref(template, owner, target, Behavior::Floating(f))
+}
+
+/// The end point of a leap / dash where the zone's physics stops the unit
+/// (`GetBlinkPosition` with entity types 0x107, collision service); the speed keeps the
+/// controller's duration. Without the service the C# end point is kept.
+fn clip_linear_move(server: &GameServer, owner: &WorldObject, o: Vec3, m: &mut LinearMove) {
+    let e = m.end_position;
+    let Some(p) = crate::systems::ai::collision::displacement::clip_move(
+        server,
+        owner.transform().instance_id,
+        [o.x, o.y, o.z],
+        [e.x, e.y, e.z],
+    ) else {
+        return;
+    };
+    m.end_position = Vec3::new(p[0], p[1], p[2]);
+    m.calculated_speed = calculate_distance(o, m.end_position, true) / duration_sec(m.duration);
 }
 
 fn positions(server: &GameServer, owner: &WorldObject, target: &Target) -> (Vec3, Vec3) {

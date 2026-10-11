@@ -1,0 +1,33 @@
+# P1c: the trimesh geometry sources and CreateMesh options, each with geominfo (and dump=1: the
+# vertices and the stored (tree-permuted) triangles). Pins the built-in generators bit for bit
+# (tests/p1c_scenarios.rs rebuilds them in Rust), the mesh-file loader, the BV-tree choice flags
+# and CreateMesh's primitive approximation (tol > 0 with flags 0x800 cylinder / 0x1000 box /
+# 0x2000 sphere / 0x200000 capsule).
+geom name=grid type=mesh gen=grid nx=3 ny=2 step=1.5,2 z=0.25 dump=1
+geom name=noisy type=mesh gen=grid nx=4 ny=4 step=1 noise=7,0.25 dump=1
+geom name=terrain type=mesh gen=terrainmesh nx=4 ny=3 step=2 amp=1.5 k=0.3 dump=1
+geom name=box type=mesh gen=box size=0.5,0.7,0.9 dump=1
+geom name=ico0 type=mesh gen=icosphere r=1 sub=0 dump=1
+geom name=ico2 type=mesh gen=icosphere r=0.5 sub=2 dump=1
+geom name=cyl type=mesh gen=cylinder r=0.4 hh=0.6 seg=7 dump=1
+geom name=scaled type=mesh gen=box size=1,1,1 scale=0.5 offset=1,2,3 dump=1
+geom name=wedge type=mesh file=p1c_meshes/wedge.mesh dump=1
+geom name=wedge_mat type=mesh file=p1c_meshes/wedge.mesh mat=5
+# BV tree choice: 0x20 OBB, 0x40 AABB, 0x40000 AABB in principal axes, 0x80 single box; with
+# several bits the cheapest tree wins (the chosen bit is what +152 shows)
+geom name=t_obb type=mesh gen=icosphere r=0.5 sub=2 flags=0x20
+geom name=t_aabb type=mesh gen=icosphere r=0.5 sub=2 flags=0x40
+geom name=t_rot type=mesh gen=icosphere r=0.5 sub=2 flags=0x40000
+geom name=t_single type=mesh gen=icosphere r=0.5 sub=2 flags=0x80
+geom name=t_all type=mesh gen=icosphere r=0.5 sub=2 flags=0x400E0
+geom name=t_leaf type=mesh gen=grid nx=8 ny=8 step=1 flags=0x40 mintris=1 maxtris=1
+geom name=t_obbf type=mesh gen=grid nx=8 ny=8 step=1 noise=3,0.5 flags=0x60 obb=0.5
+# primitive approximation
+geom name=a_box type=mesh gen=box size=0.5,0.7,0.9 tol=0.05 flags=0x1040
+geom name=a_cyl type=mesh gen=cylinder r=0.5 hh=1 seg=32 tol=0.05 flags=0x840
+geom name=a_sph type=mesh gen=icosphere r=0.5 sub=2 tol=0.05 flags=0x2040
+geom name=a_none type=mesh gen=box size=0.5,0.7,0.9 tol=0.05 flags=0x40
+geom name=a_wrong type=mesh gen=box size=0.5,0.7,0.9 tol=0.05 flags=0x2840
+geom name=a_tol0 type=mesh gen=box size=0.5,0.7,0.9 tol=0 flags=0x203840
+geom name=prim type=box size=0.5,0.7,0.9
+geominfo name=prim

@@ -1,0 +1,28 @@
+# Open question: which simclass list is which at world+664+8k. listwhere prints the list head offsets
+# that contain the entity (664+8k for k=0..7, plus +760 and +816). Entities enter lists at the first step.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+geom name=cube type=box size=0.5,0.5,0.5
+geom name=ball type=sphere r=0.3
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=box type=rigid pos=32,32,3
+part ent=box geom=cube mass=10
+entity name=liv type=living pos=20,20,1
+entity name=prt type=particle pos=10,10,5
+entity name=emptyrigid type=rigid pos=40,40,5
+listwhere target=ground
+listwhere target=box
+listwhere target=liv
+listwhere target=prt
+listwhere target=emptyrigid
+step n=1
+listwhere target=ground
+listwhere target=box
+listwhere target=liv
+listwhere target=prt
+listwhere target=emptyrigid
+trace ents=box
+step n=60 every=60
+listwhere target=box
+status target=box type=1 i4=-1 i8=-1 dump=80,1

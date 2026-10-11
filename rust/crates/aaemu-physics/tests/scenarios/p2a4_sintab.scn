@@ -1,0 +1,3 @@
+# P2a-4: the quarter-wave sine table (0x3537B450, 1025 floats) the cylinder pairs search,
+# read from the DLL image after its static initialiser 0x351E5900 ran.
+peekdll va=0x3537B450 n=1025

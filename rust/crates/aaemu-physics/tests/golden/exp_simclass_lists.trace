@@ -1,0 +1,20 @@
+physoracle 1
+ret part ground 0
+ret part box 0
+listwhere ground
+listwhere box
+listwhere liv
+listwhere prt
+listwhere emptyrigid
+step 1
+listwhere ground 664
+listwhere box 680
+listwhere liv 688
+listwhere prt 696 760
+listwhere emptyrigid 680
+step 60
+e box p 41fff49f 420003b9 3efdaaae q 2f1b8cfb 3068b9a0 3dfd80b4 3f7e0801 v 00000000 00000000 00000000 w 00000000 00000000 00000000 sc 1 aw 0
+step 61
+e box p 41fff49f 420003b9 3efdaaae q 2f1b8cfb 3068b9a0 3dfd80b4 3f7e0801 v 00000000 00000000 00000000 w 00000000 00000000 00000000 sc 1 aw 0
+listwhere box 672
+ret status box 1 1 00000001

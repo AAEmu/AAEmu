@@ -1,0 +1,6 @@
+# P1a misc: slot 51 (occlusion cubemap) of the primitives.
+gcube type=box n=50 seed=7301 res=5
+gcube type=sphere n=50 seed=7302 res=5
+gcube type=cylinder n=30 seed=7303 res=4
+gcube type=capsule n=25 seed=7304 res=4
+gcube type=ray n=5 seed=7305 res=4

@@ -1,0 +1,35 @@
+# P1c (needs AAEMU_PHYS_CGF_DIR): primitives dropped onto real static corpus models: a cliff rock
+# (cliff_rock_a_med, 344 tris, AABB) and a castle tower (housing_castle_tower_c, 222 tris), both on
+# a static box ground (top z = 0).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=rock type=mesh cgf=game\objects\env\05_nature\08_cry_source\rocks\cliff_rocks\cliff_rock_a_med.cgf
+geom name=tower type=mesh cgf=game\objects\env\01_nuia\001_housing\housing_castle\housing_castle_tower_c.cgf
+geom name=ground type=box size=60,60,0.5
+entity name=ground type=static pos=80,64,-0.5
+part ent=ground geom=ground mass=0
+entity name=rock type=static pos=64,64,6
+part ent=rock geom=rock mass=0
+entity name=tower type=static pos=100,64,5.6
+part ent=tower geom=tower mass=0
+geom name=cube type=box size=0.5,0.5,0.5
+geom name=ball type=sphere r=0.5
+geom name=cyl type=cylinder r=0.4 hh=0.6
+geom name=cap type=capsule r=0.3 hh=0.5
+entity name=rbox type=rigid pos=63,65,16 q=0.1530459,0.1530459,0.0000000,0.9762960
+part ent=rbox geom=cube mass=10
+entity name=rball type=rigid pos=61,63,16
+part ent=rball geom=ball mass=10
+entity name=rcap type=rigid pos=65,66,16 q=0.0000000,0.5000000,0.0000000,0.8660254
+part ent=rcap geom=cap mass=10
+entity name=rcyl type=rigid pos=62,67,16
+part ent=rcyl geom=cyl mass=10
+entity name=tbox type=rigid pos=97,61,19 q=0.0000000,0.2418448,0.2418448,0.9396926
+part ent=tbox geom=cube mass=10
+entity name=tball type=rigid pos=98,62,19
+part ent=tball geom=ball mass=10
+entity name=tcap type=rigid pos=96,60,19 q=0.6427876,0.0000000,0.0000000,0.7660444
+part ent=tcap geom=cap mass=10
+trace ents=rbox,rball,rcap,rcyl,tbox,tball,tcap
+print
+step n=90
+step n=210 every=5

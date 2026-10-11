@@ -1,0 +1,216 @@
+# P4a ApplyBuoyancy called directly (oracle/p3_areas.c abuoy): global water plane z=0.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+area name=glob kind=global
+params target=glob type=12 v40=0.0995037,0,0.9950372 v52=0,0,0.5 v24=0.5,-0.3,0 f12=0.3 i72=0
+geom name=b1 type=box size=1,0.5,0.75
+geom name=s1 type=sphere r=0.8
+geom name=c1 type=cylinder r=0.5 hh=1
+geom name=k1 type=capsule r=0.4 hh=0.7
+entity name=e1 type=rigid pos=6,10,0.3
+part ent=e1 geom=b1 mass=50
+params target=e1 type=12 f4=1000  f12=0 f76=0
+poke target=e1 off=448 v=6,10,0.3
+poke target=e1 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e1 off=476 v=4.9,8.9,-0.8999999999999999
+poke target=e1 off=488 v=7.1,11.1,1.5
+poke target=e1 off=808 v=0.3,-0.4,-1
+poke target=e1 off=796 v=0.2,0.1,-0.3
+poke target=e1 off=684 f=0.05
+gather tag=g1 ent=e1 dt=0.02
+abuoy tag=b1 ent=e1 dt=0.02
+abuoy tag=c1 ent=e1 dt=0.01 g=0,0,-9.8
+entity name=e2 type=rigid pos=10,10,-4
+part ent=e2 geom=b1 mass=50
+params target=e2 type=12 f4=1000  f12=0.4 f76=0
+poke target=e2 off=448 v=10,10,-4
+poke target=e2 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e2 off=476 v=8.9,8.9,-5.2
+poke target=e2 off=488 v=11.1,11.1,-2.8
+poke target=e2 off=808 v=0.3,-0.4,0.5
+poke target=e2 off=796 v=0.2,0.1,-0.3
+poke target=e2 off=684 f=0.05
+gather tag=g2 ent=e2 dt=0.02
+abuoy tag=b2 ent=e2 dt=0.02
+abuoy tag=c2 ent=e2 dt=0.01 g=0,0,-9.8
+entity name=e3 type=rigid pos=14,10,0.6
+part ent=e3 geom=b1 mass=50
+params target=e3 type=12 f4=1000 f16=0 f12=0 f76=0.2
+poke target=e3 off=448 v=14,10,0.6
+poke target=e3 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e3 off=476 v=12.9,8.9,-0.6
+poke target=e3 off=488 v=15.1,11.1,1.7999999999999998
+poke target=e3 off=808 v=0.3,-0.4,2
+poke target=e3 off=796 v=0.2,0.1,-0.3
+poke target=e3 off=684 f=0.05
+gather tag=g3 ent=e3 dt=0.02
+abuoy tag=b3 ent=e3 dt=0.02
+abuoy tag=c3 ent=e3 dt=0.01 g=0,0,-9.8
+entity name=e4 type=rigid pos=18,10,0.0
+part ent=e4 geom=b1 mass=50
+params target=e4 type=12 f4=1000 f16=0 f12=0 f76=0
+poke target=e4 off=448 v=18,10,0.0
+poke target=e4 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e4 off=476 v=16.9,8.9,-1.2
+poke target=e4 off=488 v=19.1,11.1,1.2
+poke target=e4 off=808 v=0.3,-0.4,0
+poke target=e4 off=796 v=0.2,0.1,-0.3
+poke target=e4 off=684 f=0.05
+gather tag=g4 ent=e4 dt=0.02
+abuoy tag=b4 ent=e4 dt=0.02
+abuoy tag=c4 ent=e4 dt=0.01 g=0,0,-9.8
+entity name=e5 type=rigid pos=22,10,0.3
+part ent=e5 geom=s1 mass=40
+params target=e5 type=12 f4=1000  f12=0 f76=0
+poke target=e5 off=448 v=22,10,0.3
+poke target=e5 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e5 off=476 v=20.9,8.9,-0.8999999999999999
+poke target=e5 off=488 v=23.1,11.1,1.5
+poke target=e5 off=808 v=0.3,-0.4,-1
+poke target=e5 off=796 v=0.2,0.1,-0.3
+poke target=e5 off=684 f=0.05
+gather tag=g5 ent=e5 dt=0.02
+abuoy tag=b5 ent=e5 dt=0.02
+abuoy tag=c5 ent=e5 dt=0.01 g=0,0,-9.8
+entity name=e6 type=rigid pos=26,10,-4
+part ent=e6 geom=s1 mass=40
+params target=e6 type=12 f4=1000  f12=0.4 f76=0
+poke target=e6 off=448 v=26,10,-4
+poke target=e6 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e6 off=476 v=24.9,8.9,-5.2
+poke target=e6 off=488 v=27.1,11.1,-2.8
+poke target=e6 off=808 v=0.3,-0.4,0.5
+poke target=e6 off=796 v=0.2,0.1,-0.3
+poke target=e6 off=684 f=0.05
+gather tag=g6 ent=e6 dt=0.02
+abuoy tag=b6 ent=e6 dt=0.02
+abuoy tag=c6 ent=e6 dt=0.01 g=0,0,-9.8
+entity name=e7 type=rigid pos=30,10,0.6
+part ent=e7 geom=s1 mass=40
+params target=e7 type=12 f4=1000 f16=0 f12=0 f76=0.2
+poke target=e7 off=448 v=30,10,0.6
+poke target=e7 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e7 off=476 v=28.9,8.9,-0.6
+poke target=e7 off=488 v=31.1,11.1,1.7999999999999998
+poke target=e7 off=808 v=0.3,-0.4,2
+poke target=e7 off=796 v=0.2,0.1,-0.3
+poke target=e7 off=684 f=0.05
+gather tag=g7 ent=e7 dt=0.02
+abuoy tag=b7 ent=e7 dt=0.02
+abuoy tag=c7 ent=e7 dt=0.01 g=0,0,-9.8
+entity name=e8 type=rigid pos=34,10,0.0
+part ent=e8 geom=s1 mass=40
+params target=e8 type=12 f4=1000 f16=0 f12=0 f76=0
+poke target=e8 off=448 v=34,10,0.0
+poke target=e8 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e8 off=476 v=32.9,8.9,-1.2
+poke target=e8 off=488 v=35.1,11.1,1.2
+poke target=e8 off=808 v=0.3,-0.4,0
+poke target=e8 off=796 v=0.2,0.1,-0.3
+poke target=e8 off=684 f=0.05
+gather tag=g8 ent=e8 dt=0.02
+abuoy tag=b8 ent=e8 dt=0.02
+abuoy tag=c8 ent=e8 dt=0.01 g=0,0,-9.8
+entity name=e9 type=rigid pos=38,10,0.3
+part ent=e9 geom=c1 mass=60
+params target=e9 type=12 f4=1000  f12=0 f76=0
+poke target=e9 off=448 v=38,10,0.3
+poke target=e9 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e9 off=476 v=36.9,8.9,-0.8999999999999999
+poke target=e9 off=488 v=39.1,11.1,1.5
+poke target=e9 off=808 v=0.3,-0.4,-1
+poke target=e9 off=796 v=0.2,0.1,-0.3
+poke target=e9 off=684 f=0.05
+gather tag=g9 ent=e9 dt=0.02
+abuoy tag=b9 ent=e9 dt=0.02
+abuoy tag=c9 ent=e9 dt=0.01 g=0,0,-9.8
+entity name=e10 type=rigid pos=42,10,-4
+part ent=e10 geom=c1 mass=60
+params target=e10 type=12 f4=1000  f12=0.4 f76=0
+poke target=e10 off=448 v=42,10,-4
+poke target=e10 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e10 off=476 v=40.9,8.9,-5.2
+poke target=e10 off=488 v=43.1,11.1,-2.8
+poke target=e10 off=808 v=0.3,-0.4,0.5
+poke target=e10 off=796 v=0.2,0.1,-0.3
+poke target=e10 off=684 f=0.05
+gather tag=g10 ent=e10 dt=0.02
+abuoy tag=b10 ent=e10 dt=0.02
+abuoy tag=c10 ent=e10 dt=0.01 g=0,0,-9.8
+entity name=e11 type=rigid pos=46,10,0.6
+part ent=e11 geom=c1 mass=60
+params target=e11 type=12 f4=1000 f16=0 f12=0 f76=0.2
+poke target=e11 off=448 v=46,10,0.6
+poke target=e11 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e11 off=476 v=44.9,8.9,-0.6
+poke target=e11 off=488 v=47.1,11.1,1.7999999999999998
+poke target=e11 off=808 v=0.3,-0.4,2
+poke target=e11 off=796 v=0.2,0.1,-0.3
+poke target=e11 off=684 f=0.05
+gather tag=g11 ent=e11 dt=0.02
+abuoy tag=b11 ent=e11 dt=0.02
+abuoy tag=c11 ent=e11 dt=0.01 g=0,0,-9.8
+entity name=e12 type=rigid pos=50,10,0.0
+part ent=e12 geom=c1 mass=60
+params target=e12 type=12 f4=1000 f16=0 f12=0 f76=0
+poke target=e12 off=448 v=50,10,0.0
+poke target=e12 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e12 off=476 v=48.9,8.9,-1.2
+poke target=e12 off=488 v=51.1,11.1,1.2
+poke target=e12 off=808 v=0.3,-0.4,0
+poke target=e12 off=796 v=0.2,0.1,-0.3
+poke target=e12 off=684 f=0.05
+gather tag=g12 ent=e12 dt=0.02
+abuoy tag=b12 ent=e12 dt=0.02
+abuoy tag=c12 ent=e12 dt=0.01 g=0,0,-9.8
+entity name=e13 type=rigid pos=54,10,0.3
+part ent=e13 geom=k1 mass=30
+params target=e13 type=12 f4=1000  f12=0 f76=0
+poke target=e13 off=448 v=54,10,0.3
+poke target=e13 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e13 off=476 v=52.9,8.9,-0.8999999999999999
+poke target=e13 off=488 v=55.1,11.1,1.5
+poke target=e13 off=808 v=0.3,-0.4,-1
+poke target=e13 off=796 v=0.2,0.1,-0.3
+poke target=e13 off=684 f=0.05
+gather tag=g13 ent=e13 dt=0.02
+abuoy tag=b13 ent=e13 dt=0.02
+abuoy tag=c13 ent=e13 dt=0.01 g=0,0,-9.8
+entity name=e14 type=rigid pos=58,10,-4
+part ent=e14 geom=k1 mass=30
+params target=e14 type=12 f4=1000  f12=0.4 f76=0
+poke target=e14 off=448 v=58,10,-4
+poke target=e14 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e14 off=476 v=56.9,8.9,-5.2
+poke target=e14 off=488 v=59.1,11.1,-2.8
+poke target=e14 off=808 v=0.3,-0.4,0.5
+poke target=e14 off=796 v=0.2,0.1,-0.3
+poke target=e14 off=684 f=0.05
+gather tag=g14 ent=e14 dt=0.02
+abuoy tag=b14 ent=e14 dt=0.02
+abuoy tag=c14 ent=e14 dt=0.01 g=0,0,-9.8
+entity name=e15 type=rigid pos=62,10,0.6
+part ent=e15 geom=k1 mass=30
+params target=e15 type=12 f4=1000 f16=0 f12=0 f76=0.2
+poke target=e15 off=448 v=62,10,0.6
+poke target=e15 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e15 off=476 v=60.9,8.9,-0.6
+poke target=e15 off=488 v=63.1,11.1,1.7999999999999998
+poke target=e15 off=808 v=0.3,-0.4,2
+poke target=e15 off=796 v=0.2,0.1,-0.3
+poke target=e15 off=684 f=0.05
+gather tag=g15 ent=e15 dt=0.02
+abuoy tag=b15 ent=e15 dt=0.02
+abuoy tag=c15 ent=e15 dt=0.01 g=0,0,-9.8
+entity name=e16 type=rigid pos=66,10,0.0
+part ent=e16 geom=k1 mass=30
+params target=e16 type=12 f4=1000 f16=0 f12=0 f76=0
+poke target=e16 off=448 v=66,10,0.0
+poke target=e16 off=460 q=0.1,-0.05,0.2,0.9721
+poke target=e16 off=476 v=64.9,8.9,-1.2
+poke target=e16 off=488 v=67.1,11.1,1.2
+poke target=e16 off=808 v=0.3,-0.4,0
+poke target=e16 off=796 v=0.2,0.1,-0.3
+poke target=e16 off=684 f=0.05
+gather tag=g16 ent=e16 dt=0.02
+abuoy tag=b16 ent=e16 dt=0.02
+abuoy tag=c16 ent=e16 dt=0.01 g=0,0,-9.8

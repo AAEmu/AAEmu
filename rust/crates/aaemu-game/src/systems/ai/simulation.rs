@@ -490,7 +490,8 @@ pub fn move_to(server: &GameServer, sim: &SimRef, npc: &NpcRef, target: Vec3) {
             world_z: world.z,
         },
     );
-    let z = npc::reference_height(server, ai, new.x, new.y, new.z, zone);
+    let instance_id = npc.data().unit.transform.instance_id;
+    let z = npc::reference_height_in(server, instance_id, ai, new.x, new.y, new.z, zone);
     let new = Vec3::new(new.x, new.y, z);
     let angle = calculate_angle_from(new, target);
     let (vx, vy) = add_distance_to_front(

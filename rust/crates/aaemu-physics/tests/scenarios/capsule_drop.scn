@@ -1,0 +1,11 @@
+# capsule (r 0.3, half-length 0.6) tilted 30 deg about x, dropped from z=3 (tips over and rolls).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=cap type=capsule r=0.3 hh=0.6
+entity name=cap type=rigid pos=32,32,3 q=0.258819,0,0,0.9659258
+part ent=cap geom=cap mass=50
+trace ents=cap
+print
+step n=150

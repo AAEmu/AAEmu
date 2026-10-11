@@ -1,0 +1,199 @@
+# P1c rays: RayWorldIntersection against static trimesh entities: a noisy grid floor, a
+# rotated mesh box, a mesh icosphere, a tilted mesh cylinder, trimesh terrain. Vertical grids,
+# slanted and grazing rays, rays from inside, upward rays from below; ext=1 adds the hit's
+# +24/+26/+32/+60/+64 fields (+64 = triangle index in the engine's stored order).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=floor type=mesh gen=grid nx=16 ny=16 step=1 noise=3,0.3 dump=1
+geom name=mbox type=mesh gen=box size=1,1,1 dump=1
+geom name=ico type=mesh gen=icosphere r=2 sub=2 flags=0x20
+geom name=mcyl type=mesh gen=cylinder r=1 hh=1.5 seg=12
+geom name=tmesh type=mesh gen=terrainmesh nx=12 ny=12 step=1.5 amp=1 k=0.5
+entity name=floor type=static pos=64,64,0
+part ent=floor geom=floor mass=0 id=11
+entity name=mbox type=static pos=40,40,2 q=0.0691723,0.1383446,0.2075169,0.9659258
+part ent=mbox geom=mbox mass=0 id=12
+entity name=ico type=static pos=88,40,3
+part ent=ico geom=ico mass=0 id=13
+entity name=mcyl type=static pos=40,88,2 q=0.2588190,0.0000000,0.0000000,0.9659258
+part ent=mcyl geom=mcyl mass=0 id=14
+entity name=tmesh type=static pos=88,88,0
+part ent=tmesh geom=tmesh mass=0 id=15
+step n=1
+ray name=fl_0_0 org=56.7,56.7,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_1_0 org=59.62,56.7,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_2_0 org=62.54,56.7,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_3_0 org=65.46,56.7,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_4_0 org=68.38,56.7,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_5_0 org=71.3,56.7,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_0_1 org=56.7,59.62,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_1_1 org=59.62,59.62,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_2_1 org=62.54,59.62,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_3_1 org=65.46,59.62,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_4_1 org=68.38,59.62,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_5_1 org=71.3,59.62,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_0_2 org=56.7,62.54,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_1_2 org=59.62,62.54,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_2_2 org=62.54,62.54,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_3_2 org=65.46,62.54,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_4_2 org=68.38,62.54,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_5_2 org=71.3,62.54,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_0_3 org=56.7,65.46,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_1_3 org=59.62,65.46,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_2_3 org=62.54,65.46,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_3_3 org=65.46,65.46,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_4_3 org=68.38,65.46,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_5_3 org=71.3,65.46,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_0_4 org=56.7,68.38,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_1_4 org=59.62,68.38,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_2_4 org=62.54,68.38,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_3_4 org=65.46,68.38,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_4_4 org=68.38,68.38,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_5_4 org=71.3,68.38,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_0_5 org=56.7,71.3,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_1_5 org=59.62,71.3,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_2_5 org=62.54,71.3,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_3_5 org=65.46,71.3,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_4_5 org=68.38,71.3,5 dir=0,0,-10 max=4 ext=1
+ray name=fl_5_5 org=71.3,71.3,5 dir=0,0,-10 max=4 ext=1
+ray name=flup_0_0 org=58.9,58.9,-3 dir=0,0,10 max=4 ext=1
+ray name=flup_1_0 org=64,58.9,-3 dir=0,0,10 max=4 ext=1
+ray name=flup_2_0 org=69.1,58.9,-3 dir=0,0,10 max=4 ext=1
+ray name=flup_0_1 org=58.9,64,-3 dir=0,0,10 max=4 ext=1
+ray name=flup_1_1 org=64,64,-3 dir=0,0,10 max=4 ext=1
+ray name=flup_2_1 org=69.1,64,-3 dir=0,0,10 max=4 ext=1
+ray name=flup_0_2 org=58.9,69.1,-3 dir=0,0,10 max=4 ext=1
+ray name=flup_1_2 org=64,69.1,-3 dir=0,0,10 max=4 ext=1
+ray name=flup_2_2 org=69.1,69.1,-3 dir=0,0,10 max=4 ext=1
+ray name=flsl_0_0 org=57,57,4 dir=6,5,-8 max=4 ext=1
+ray name=flsl_1_0 org=60,57,4 dir=6,5,-8 max=4 ext=1
+ray name=flsl_2_0 org=63,57,4 dir=6,5,-8 max=4 ext=1
+ray name=flsl_0_1 org=57,60,4 dir=6,5,-8 max=4 ext=1
+ray name=flsl_1_1 org=60,60,4 dir=6,5,-8 max=4 ext=1
+ray name=flsl_2_1 org=63,60,4 dir=6,5,-8 max=4 ext=1
+ray name=flsl_0_2 org=57,63,4 dir=6,5,-8 max=4 ext=1
+ray name=flsl_1_2 org=60,63,4 dir=6,5,-8 max=4 ext=1
+ray name=flsl_2_2 org=63,63,4 dir=6,5,-8 max=4 ext=1
+ray name=fl_graze org=55,63.5,0.05 dir=18,0,0 max=4 ext=1
+ray name=bx_0_0 org=38.6,38.6,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_1_0 org=39.3,38.6,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_2_0 org=40,38.6,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_3_0 org=40.7,38.6,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_4_0 org=41.4,38.6,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_0_1 org=38.6,39.3,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_1_1 org=39.3,39.3,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_2_1 org=40,39.3,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_3_1 org=40.7,39.3,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_4_1 org=41.4,39.3,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_0_2 org=38.6,40,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_1_2 org=39.3,40,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_2_2 org=40,40,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_3_2 org=40.7,40,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_4_2 org=41.4,40,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_0_3 org=38.6,40.7,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_1_3 org=39.3,40.7,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_2_3 org=40,40.7,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_3_3 org=40.7,40.7,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_4_3 org=41.4,40.7,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_0_4 org=38.6,41.4,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_1_4 org=39.3,41.4,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_2_4 org=40,41.4,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_3_4 org=40.7,41.4,6 dir=0,0,-8 max=4 ext=1
+ray name=bx_4_4 org=41.4,41.4,6 dir=0,0,-8 max=4 ext=1
+ray name=bxsl_0_0 org=39,39,6 dir=1,-2,-8 max=4 ext=1
+ray name=bxsl_1_0 org=40,39,6 dir=1,-2,-8 max=4 ext=1
+ray name=bxsl_2_0 org=41,39,6 dir=1,-2,-8 max=4 ext=1
+ray name=bxsl_0_1 org=39,40,6 dir=1,-2,-8 max=4 ext=1
+ray name=bxsl_1_1 org=40,40,6 dir=1,-2,-8 max=4 ext=1
+ray name=bxsl_2_1 org=41,40,6 dir=1,-2,-8 max=4 ext=1
+ray name=bxsl_0_2 org=39,41,6 dir=1,-2,-8 max=4 ext=1
+ray name=bxsl_1_2 org=40,41,6 dir=1,-2,-8 max=4 ext=1
+ray name=bxsl_2_2 org=41,41,6 dir=1,-2,-8 max=4 ext=1
+ray name=bx_in_x org=40,40,2 dir=3,0,0 max=4 ext=1
+ray name=bx_in_y org=40,40,2 dir=0,-3,0 max=4 ext=1
+ray name=bx_in_d org=40.2,39.9,2.1 dir=2,2,2 max=4 ext=1
+ray name=bx_side org=35,40.1,2 dir=10,0,0 max=4 ext=1
+ray name=ic_0_0 org=85.8,37.8,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_1_0 org=86.9,37.8,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_2_0 org=88,37.8,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_3_0 org=89.1,37.8,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_4_0 org=90.2,37.8,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_0_1 org=85.8,38.9,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_1_1 org=86.9,38.9,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_2_1 org=88,38.9,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_3_1 org=89.1,38.9,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_4_1 org=90.2,38.9,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_0_2 org=85.8,40,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_1_2 org=86.9,40,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_2_2 org=88,40,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_3_2 org=89.1,40,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_4_2 org=90.2,40,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_0_3 org=85.8,41.1,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_1_3 org=86.9,41.1,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_2_3 org=88,41.1,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_3_3 org=89.1,41.1,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_4_3 org=90.2,41.1,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_0_4 org=85.8,42.2,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_1_4 org=86.9,42.2,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_2_4 org=88,42.2,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_3_4 org=89.1,42.2,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_4_4 org=90.2,42.2,8 dir=0,0,-10 max=4 ext=1
+ray name=ic_in org=88,40,3 dir=0,0,4 max=4 ext=1
+ray name=ic_in2 org=88.5,40.5,3.2 dir=-4,1,-1 max=4 ext=1
+ray name=ic_tan org=84,42,3 dir=8,0,0 max=4 ext=1
+ray name=ic_through org=84,40.3,3.1 dir=8,0,0 max=4 ext=1
+ray name=cy_0_0 org=38.5,86.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_1_0 org=39.5,86.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_2_0 org=40.5,86.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_3_0 org=41.5,86.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_0_1 org=38.5,87.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_1_1 org=39.5,87.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_2_1 org=40.5,87.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_3_1 org=41.5,87.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_0_2 org=38.5,88.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_1_2 org=39.5,88.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_2_2 org=40.5,88.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_3_2 org=41.5,88.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_0_3 org=38.5,89.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_1_3 org=39.5,89.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_2_3 org=40.5,89.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_3_3 org=41.5,89.5,6 dir=0,0,-8 max=4 ext=1
+ray name=cy_axis org=40,85,0.3 dir=0,6,3.5 max=4 ext=1
+ray name=cy_side org=36,88,2 dir=8,0,0 max=4 ext=1
+ray name=tm_0_0 org=80,80,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_1_0 org=84,80,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_2_0 org=88,80,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_3_0 org=92,80,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_4_0 org=96,80,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_0_1 org=80,84,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_1_1 org=84,84,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_2_1 org=88,84,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_3_1 org=92,84,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_4_1 org=96,84,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_0_2 org=80,88,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_1_2 org=84,88,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_2_2 org=88,88,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_3_2 org=92,88,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_4_2 org=96,88,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_0_3 org=80,92,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_1_3 org=84,92,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_2_3 org=88,92,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_3_3 org=92,92,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_4_3 org=96,92,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_0_4 org=80,96,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_1_4 org=84,96,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_2_4 org=88,96,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_3_4 org=92,96,5 dir=0,0,-10 max=4 ext=1
+ray name=tm_4_4 org=96,96,5 dir=0,0,-10 max=4 ext=1
+ray name=tmsl_0_0 org=84,84,4 dir=3,-2,-6 max=4 ext=1
+ray name=tmsl_1_0 org=88,84,4 dir=3,-2,-6 max=4 ext=1
+ray name=tmsl_2_0 org=92,84,4 dir=3,-2,-6 max=4 ext=1
+ray name=tmsl_0_1 org=84,88,4 dir=3,-2,-6 max=4 ext=1
+ray name=tmsl_1_1 org=88,88,4 dir=3,-2,-6 max=4 ext=1
+ray name=tmsl_2_1 org=92,88,4 dir=3,-2,-6 max=4 ext=1
+ray name=tmsl_0_2 org=84,92,4 dir=3,-2,-6 max=4 ext=1
+ray name=tmsl_1_2 org=88,92,4 dir=3,-2,-6 max=4 ext=1
+ray name=tmsl_2_2 org=92,92,4 dir=3,-2,-6 max=4 ext=1
+ray name=tm_graze org=79,88,0.2 dir=18,0.5,0 max=4 ext=1
+ray name=static_only org=64,64,5 dir=0,0,-10 types=0x1 max=4 ext=1
+ray name=no_static org=64,64,5 dir=0,0,-10 types=0x3E max=4 ext=1
+ray name=multi org=30,40,2 dir=60,0,0.5 max=4 ext=1

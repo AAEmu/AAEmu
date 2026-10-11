@@ -18,6 +18,7 @@
 //! | [`replication`] | `PhysicsManager.SendUpdatedMovementData` + the visual bank / pitch |
 //! | [`water`], [`objects_file`] | `WaterBodies`, `WaterBodyArea`, `Models/CryEngine/Objects` (`object.dat` water volumes) |
 //! | [`manager`] | `PhysicsManager` (per-instance thread and loop) |
+//! | [`cry`] | Rust: the hulls on the CryPhysics port (`Physics.CryPhysicsShips`): `ShipUnitModel::InitPhysicalEntity` parts, engine buoyancy / collision, ZWUnitCollision damage; replaces the Jitter2 step, the C# buoyancy and the manual depenetration passes when the collision world exists |
 //!
 //! Integration with the slaves subsystem: it calls [`add_ship`] / [`remove_ship`] (C#
 //! `world.Physics.AddShip` / `RemoveShip`), [`set_ship_request`] (helm `ShipRequestMoveType`),
@@ -28,6 +29,7 @@
 
 pub mod barriers;
 pub mod contacts;
+pub mod cry;
 pub mod forces;
 pub mod harpoon;
 pub mod jitter;
@@ -339,6 +341,7 @@ fn config(server: &GameServer) -> PhysConfig {
         realistic_sea_weather: w.sea_weather_model == crate::config::SeaWeatherModelType::Realistic,
         geo_data_mode: w.geo_data_mode,
         game_time: server.time.get_time(),
+        cryphysics: server.config.physics.cryphysics_ships,
     }
 }
 
@@ -636,6 +639,22 @@ impl TickWorld for ServerTickWorld<'_> {
 
     fn terrain(&self) -> Option<&dyn TerrainSamples> {
         self.terrain.as_ref().map(|t| t as &dyn TerrainSamples)
+    }
+
+    fn cry_world(&self) -> Option<Arc<crate::systems::ai::collision::world::PhysWorld>> {
+        crate::systems::ai::collision::phys_world(self.server, self.world.id)
+    }
+
+    fn sync_collision_water(&self) {
+        if let Some(pw) = crate::systems::ai::collision::phys_world(self.server, self.world.id) {
+            crate::systems::ai::collision::sync_water(self.server, &pw);
+        }
+    }
+
+    fn load_collision_cell(&self, cell: (i32, i32)) {
+        if let Some(pw) = crate::systems::ai::collision::phys_world(self.server, self.world.id) {
+            crate::systems::ai::collision::load_cell(self.server, &pw, cell);
+        }
     }
 
     fn bai_cell(&self, cell_x: i32, cell_y: i32) -> Option<[[Option<BaiRef>; 4]; 4]> {

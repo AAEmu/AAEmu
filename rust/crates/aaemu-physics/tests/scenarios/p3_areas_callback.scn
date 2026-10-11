@@ -1,0 +1,48 @@
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+area name=glob kind=global
+# the temp lists GetEntitiesInBox needs exist after the first step with an ordinary entity
+geom name=pool_g type=box size=0.5,0.5,0.5
+entity name=pool_e type=static pos=250,250,-90
+part ent=pool_e geom=pool_g mass=0
+step n=1 every=0
+params target=glob type=12 v40=0,0,1 v52=0,0,0 i72=0
+geom name=gs type=sphere r=6
+area name=cb0 kind=geom geom=gs pos=20,20,0
+params target=cb0 type=18 i36=1 v16=6,6,6
+area name=cb1 kind=spline pts=0,0,0;10,2,0;20,0,0 r=3 pos=10,40,0
+params target=cb1 type=18 i32=0 i36=1 v4=0,0,-2
+params target=cb1 type=12 v40=0,0,1 v52=0,0,0.5 i72=0
+entity name=probe type=static pos=20,20,0
+checkareas tag=n0 pt=17.1682,23.5594,-2.4573 ent=probe
+checkareas tag=n1 pt=17.6528,15.9649,2.2340 ent=probe
+checkareas tag=n2 pt=15.5237,18.4804,-1.3884 ent=probe
+checkareas tag=n3 pt=20.4645,19.6265,-0.3069 ent=probe
+checkareas tag=n4 pt=24.2124,23.2262,-2.9988 ent=probe
+checkareas tag=n5 pt=19.3197,16.5084,-1.4504 ent=probe
+areacb mode=0
+checkareas tag=a0 pt=21.6625,19.6227,-1.4977
+checkareas tag=a1 pt=23.8454,22.4250,0.6458
+checkareas tag=a2 pt=23.4874,15.7239,-1.5237
+checkareas tag=a3 pt=21.0597,15.1226,2.5130
+checkareas tag=a4 pt=17.8864,41.9952,0.4458
+checkareas tag=a5 pt=17.8599,40.6583,-0.6804
+checkareas tag=a6 pt=13.2468,40.2446,-0.7601
+checkareas tag=a7 pt=22.4645,40.6558,-0.3495
+areacb mode=1 prio=1
+checkareas tag=b0 pt=21.4066,15.8619,1.7208 ent=probe
+checkareas tag=b1 pt=20.6920,15.1365,0.2624 ent=probe
+checkareas tag=b2 pt=16.1091,22.1670,-0.1250 ent=probe
+checkareas tag=b3 pt=21.1187,16.8705,-2.7378 ent=probe
+checkareas tag=b4 pt=13.1074,40.7133,-0.9690 ent=probe
+checkareas tag=b5 pt=25.2799,41.5691,0.7999 ent=probe
+checkareas tag=b6 pt=19.0517,40.5581,0.6236 ent=probe
+checkareas tag=b7 pt=18.2701,40.5866,-0.2915 ent=probe
+areacb mode=2 prio=2
+checkareas tag=c0 pt=16.3607,20.8483,0.4861 imedium=0 caller=0 nareas=2
+checkareas tag=c1 pt=16.7273,19.8319,1.0358 imedium=0 caller=0 nareas=2
+checkareas tag=c2 pt=23.6992,15.6680,0.3927 imedium=0 caller=0 nareas=2
+checkareas tag=c3 pt=22.1832,23.9988,-0.6923 imedium=0 caller=0 nareas=2
+checkareas tag=c4 pt=17.0608,40.3588,0.8447 imedium=0 caller=0 nareas=2
+checkareas tag=c5 pt=13.1657,38.0072,0.1255 imedium=0 caller=0 nareas=2
+checkareas tag=c6 pt=26.9633,39.9509,0.1214 imedium=0 caller=0 nareas=2
+checkareas tag=c7 pt=14.8556,38.0657,-0.0096 imedium=0 caller=0 nareas=2

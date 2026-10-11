@@ -1,0 +1,10 @@
+[package]
+name = "aaemu-physics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Bit-faithful Rust port of the CryPhysics engine used by the ArcheAge zone server (derived from the shipped binaries only)"
+
+# No dependencies on purpose: the engine core is plain Rust. The oracle (oracle/physoracle.c) is a
+# separate MSVC-built tool, only used by tests when AAEMU_PHYS_ORACLE points at it.
+[dependencies]

@@ -1,0 +1,16 @@
+[package]
+name = "aaemu-clientdriver"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Drives a running ArcheAge 1.2 client: runs Lua in its System / UI script states through the in-client aadriver.dll (named pipe)"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "aaemu-clientdriver"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true

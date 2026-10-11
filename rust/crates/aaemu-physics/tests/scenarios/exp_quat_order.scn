@@ -1,0 +1,23 @@
+# Open question: quaternion product order of the entity pose in rigid Step (q_ent = B.q (x) qfb or qfb (x) B.q).
+# A rigid plank whose part is rotated and offset (so qfb != identity) spins in free fall; the raw words of
+# the entity's committed q (+420), new q (+460), body q (+756), qfb (+856) and offsfb (+872) are dumped.
+# tests/experiments.rs recomputes both orders with the engine's product and normalisation.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=plank type=box size=1,0.5,0.25
+geom name=tiny type=box size=0.1,0.1,0.1
+entity name=marker type=static pos=60,60,50
+part ent=marker geom=tiny mass=0
+entity name=body type=rigid pos=32,32,20 q=0.1,0.2,0.3,0.9273618
+part ent=body geom=plank mass=50 q=0.258819,0,0,0.9659258 pos=0.3,-0.2,0.1
+action target=body type=10 v24=1.5,-2.0,3.0
+step n=1
+peek target=body off=420 n=4
+peek target=body off=460 n=4
+peek target=body off=756 n=4
+peek target=body off=856 n=4
+peek target=body off=872 n=3
+step n=7
+peek target=body off=420 n=4
+peek target=body off=460 n=4
+peek target=body off=756 n=4
+peek target=body off=856 n=4

@@ -1646,8 +1646,9 @@ pub fn calc_next_roaming_position(c: &AiCtx<'_>) -> Vec3 {
         let n = c.npc.data();
         (n.can_fly, n.spawner_z, n.unit.transform.zone_id)
     };
-    let z = npc::reference_height(
+    let z = npc::reference_height_in(
         c.server,
+        c.obj.transform().instance_id,
         Some(crate::systems::npcs::heightmap::ReferenceHeightAi {
             can_fly,
             hold_or_idle: matches!(c.ai.current_behavior(), Some(B::HoldPosition | B::Idle)),

@@ -1,0 +1,23 @@
+# P2a-1 (box-cylinder / cylinder-box): a tilted cylinder dropped on a static box (rim and edge
+# contacts), a cylinder lying on its side, and a box dropped on a static cylinder.
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+geom name=block type=box size=1,1,0.4
+entity name=block type=static pos=30,32,0.4 q=0,0,0.0871557,0.9961947
+part ent=block geom=block mass=0
+geom name=cyl type=cylinder r=0.3 hh=0.4
+entity name=tilted type=rigid pos=30.1,32,2.5 q=0.2588190,0.1,0,0.9607689
+part ent=tilted geom=cyl mass=20
+entity name=side type=rigid pos=33,32,1.5 q=0.7071068,0,0,0.7071068
+part ent=side geom=cyl mass=20
+geom name=post type=cylinder r=0.5 hh=0.5
+entity name=post type=static pos=36,32,0.5
+part ent=post geom=post mass=0
+geom name=cube type=box size=0.3,0.3,0.3
+entity name=onpost type=rigid pos=36.1,32,2.5 q=0.1,0.2,0.3,0.9273618
+part ent=onpost geom=cube mass=6
+trace ents=tilted,side,onpost
+print
+step n=180

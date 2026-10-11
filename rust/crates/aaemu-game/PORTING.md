@@ -328,12 +328,169 @@ Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` check
 | `AIManager` (100 ms tick, `AddAi`, region activity) | `systems/ai/manager.rs` | done | Per-AI mutex + queued calls (see deviations). |
 | AI members of `Npc` / `Unit` (`MoveTowards`, `LookTowards`, `StopMovement`, `SetTarget`, `CurrentAggroTarget`, `CurrentGameStance`, `BaseMoveSpeed`, `OnDamageReceived`, `CheckIfEmptyAggroToReturn`, `ClearAllAggro`, `FindPath`), `NpcEvents` | `systems/ai/{npc,combat,skills,npc_events}.rs` | done | `SCOneUnitMovementPacket` movement, aggro tables through the skills API. |
 | `AiPathsManager` (`Data/Path`), `AiPathHandler`, `Units/Route/Simulation` | `systems/ai/{path_handler,simulation}.rs` | done | Every `Data/Path/*.path` file loads (test). |
-| `AiGeoDataManager`, CryEngine `.bai` readers (net / hide / areas / verts missions), A* `PathNode`, `GetHeight`, `ReducePath` | `systems/ai/geodata/` | done | `GeoDataMode` only. 35 828 pak `.bai` files parse; the areas reader matches the C# reader on every dumped file (differential harness); routes found on all 16 worlds with zone geodata. |
+| `AiGeoDataManager`, CryEngine `.bai` readers (net / areas / verts missions), A* `PathNode`, `GetHeight`, `ReducePath` | `systems/ai/geodata/` | done | `GeoDataMode` only. Engine-faithful readers and a merged cross-sector graph (see "geodata deviations" below). 1.2 pak: 9 447 net (2 299 of them v54) + 9 447 verts (2 299 v1) + 3 265 areas files parse with 0 trailing bytes; 279 path areas files below v21 are rejected by version like the engine (they do not fit the v21 layout either), the 7 399 `hidemission` files are not read. The areas reader matched the C# reader on every dumped file (differential harness; path areas < v21 now excluded on purpose). Gated tests: `real_ai_*`, `real_nav_*` (`AAEMU_GAME_PAK`, `AAEMU_BAI_SAMPLES=D:\aa-re\zone\agent_geom\data`). |
 | `Gimmick.MoveTowards`, flytrap gimmick | `systems/ai/gimmick.rs` | done | |
 | Hooks for npcs / skills (create AI by `ai_file_id`, spawn / engage / death / delete / faction, NPC control effect, spyglass), AStar GM commands | `systems/ai/hooks.rs` | done | `AiHooks` in `server.systems.hooks.ai`; the npcs `NpcSkills` calls the AI parts of `NpcSkillHooks` directly (no decorator); `AiAStarHooks` installed into the services `ASTAR_HOOKS`. |
 | `Physics/**`, `PhysicsManager` (ship hulls: Jitter2 world, `ShipController`, shore / ship–ship / doodad / cliff / static barrier contacts, buoyancy, whirlpool, storm lamps, harpoon tow, replication), `ShipSiegeAoEHit` geometry | `systems/ai/physics/` | done | The Jitter2 subset is bit-exact against Jitter2 2.8.8 for the integration (embedded reference test). Slaves call `add_ship` / `remove_ship` / `set_ship_request` / `set_ship_driver` / `ship_state` and may install `ShipPhysicsHooks` (harpoon rope state). |
 | `WaterBodies`, `WaterBodyArea`, `Models/CryEngine/Objects` (`object.dat`) | `systems/ai/physics/{water,objects_file}.rs` | done | Water areas of all 1 294 client `object.dat` files equal the C# output bit for bit (differential harness, gated test `real_ai_object_dat_water_bodies`). Gimmick `FloatToSurface` uses them. |
 | `ShipTuningDebug`, `HarpoonMechanicsDebug` logging, `ShipHarpoonRopeController` | – | not ported / slaves | Debug code is hard-wired off in the C#; the rope controller belongs to the slaves subsystem. |
+| (Rust only) the 10.x zone server's collision world: terrain heightfield, `brush.dat` / `vegetation.dat` statics from CGF `MeshPhysicsData`, doodad colliders, ocean / water-volume buoyancy areas, living-entity proxies of units, ray / sweep query service, `GetBlinkPosition`, ZWUnitFell, ZWReportMoveHack, ZWUnitCollision, CryPhysics hulls | `systems/ai/collision/`, `systems/ai/physics/cry.rs` | done | On the CryPhysics port (`aaemu-physics`), `Configurations/Physics.json`. See "systems::ai collision" below. |
+
+#### systems::ai collision (the zone's physics, Rust only)
+
+References: `rust/docs/physics/ZONE-PHYSICS-USAGE.md`, `D:\aa-re\zone\agent_geom\{sub_cgf,sub_x2game}.md`,
+the x2game / cry3dengine decompiles (addresses below). Config `Physics` (`Configurations/Physics.json`):
+`Enable` (true), `Geometry` (`Terrain` / `Brushes` / `Full`), `LoadRadiusCells` (1), `LoadOnQuery`
+(true), `UnloadAfterSeconds` (600), `SyncPeriodMs` (1000), `DoodadColliders` (true),
+`PreloadAllCells` (false), `MovementVerifyEnable` (false = `movement_verify_enable 0`),
+`FallDamageZoneCap` (true), `CryPhysicsShips` (true). The service is off without client data
+(`HeightMapsEnable`); every caller then keeps its previous (C# / heightmap) answer.
+
+* **World per instance** (`collision::world::PhysWorld`): entity grid over the world (at most 1024
+  cells per axis, z origin −256), terrain heightfield from the `heightmap.dat` samples (2 m step;
+  fn-pointer callback slots, `collision::terrain`), the ocean as the global buoyancy area at
+  `oceanLevel` (density / resistance 1000), `SetWaterMat` index 1 *(inferred)*, `gEnv+289` set (no
+  DrawRayOnGrid limit).
+* **Cells** load lazily (`collision::residency`): around players and ships every `SyncPeriodMs`, by
+  queries that touch a cell (at most 16 cells per query); idle cells are unloaded. The zone loads
+  its zone's cells at start (`SeamlessSystem::LoadZone` 0x365704D0).
+* **Brushes** (`CBrush::Physicalize` 0x30111970): static entity at the brush matrix (scale =
+  |column 0|), parts 0x1000 (0x18FFF, 0x10FFF with a no-collide geometry, `| 0xA` with render flag
+  0x400000), 0x1001 (0x8000), 0x1002 (0x4000), entity flags `|= 0x8000`. The foreign-data class bits
+  of render flags 0x40 / 0x80 / 0x2000 are not modelled. **Vegetation** (`CVegetation::Physicalize`
+  0x30103DC0, matrix 0x30102840): static entity, density 800, flags 0x04018FFF, 0x1002 when present;
+  groups whose model only has a no-collide geometry (most grass / foliage) get no entity, like the
+  server (0x1001 needs the CVar ≥ 2). Not applied: the terrain alignment of `bAlignToTerrain`
+  groups. The sector order of `brush.dat` / `vegetation.dat` is x-major (fixed from the data: 99.2 %
+  of the trees sit on the terrain with it, 23 % with y-major).
+* **Models** (`collision::{cgf,models}`): every `MeshPhysicsData` slot of a node's mesh through
+  `LoadPhysGeometry` (blobs that share the render mesh get its positions / u16 indices / subset
+  material ids); node transforms are not applied (`AddPhysGeom` 0x300400D0 does not). Material
+  mappings / surface types are not loaded (hits report surface −1 / 0).
+* **Doodads** (`collision::objects`): model class by prefix (`sub_39451CE0`: `cgf://`,
+  `vegetation://`, `cga://`, `prefab://` = the Brush objects of the prefab library; else no geometry)
+  from `doodad_func_groups.model` (read by `collision::data`; the C# discards the column), flags by
+  `_UpdateCollisionParams` (`sub_39451190`: `collide_vehicle` 0x08, `collide_ship` 0x80,
+  `no_collision` → 0x8000 only). Synced from the doodads of the loaded cells every residency tick
+  (`sync_doodad` for immediate updates). Houses: the 1.2 DB has no house model paths (`prefab_models`
+  has ids only), so there are no house colliders. Gimmicks: not built.
+* **Units** (`collision::living`): inactive `CLivingEntity` proxies (P5) from
+  `actor_models.physics_living_*` + radius / height, placed on every client move (players, mounts)
+  and every residency tick (NPCs). The client stays authoritative; the zone's per-frame actor
+  simulation is not run.
+* **Queries** (`collision::{query,mod}`): `terrain_height` = `GetTerrainElevation` (`sub_300D4E00`:
+  triangle split on `dx + dy = 1`, 0 when a corner is 0 or below the first sample), `ground_height` =
+  first static / terrain hit (0x101, rays 0x8F) from z + 2 m down, `raycast` (any mask),
+  `line_of_sight` (0x101), `sweep_capsule` (PWI), `water_level` / `is_water` (the C# water bodies),
+  `surface_type` (0x11F). `displacement::blink_position` = `GetBlinkPosition` (`sub_3925E670` /
+  `sub_3925D990`).
+
+**Behaviour changes (with the service on):**
+
+* Blink (`WZBlinkUnit` 0x39369B10, terrain only) ends where the unit's collider stops, 0.1 m before a
+  contact, following 30° slopes; leap / dash end points and NPC knockback / impulse / explosion
+  pushes stop at static / rigid geometry (0x107) and land on the ground; teleport-to-unit uses the
+  ground at the end point; in-place resurrect snaps to the ground (`GetResurrectablePosition`
+  `sub_3925D3B0`).
+* Ground-targeted plot positions, doodad spawns / respawns, backpack drops, land slave summons and
+  transfer parts use the physics ground (static + terrain) instead of the bilinear heightmap; ship
+  summons read the sea floor with `GetTerrainElevation`.
+* Walking NPCs (not flying / holding / idling) stand on the physics ground (`reference_height_in`);
+  NPC spawner points snap to it within 1 m (`npc_spawn_on_terrain`). Real data: 1 487 of the 1 524
+  NPC spawns of the 4 busiest main_world cells are within 1 m of the physics ground (1 407 of the
+  terrain elevation alone; 178 stand on brushes).
+* Fall damage (`collision::movement`, ZWUnitFell 0x3935C850): the zone's tracker (`sub_392D7600`:
+  start z, max downward speed, landing on the physics ground) gates and caps the client's
+  `fallVel`: no damage when `min(v, √(40·Δh)) < 20 m/s`, else the client value capped at that
+  speed. The client value is converted with 32000 / 63.25 units per m/s *(inferred from the C#
+  curve)*. Swimming / hanging / attached units keep the client value (the movement path
+  `sub_39232570` forwards it). `FallDamageZoneCap = false` restores the C#.
+* Movement verification (off by default): reasons 0, 11, 12, 15–17 and 19 are logged (no consumer).
+* Ships (`physics::cry`, `CryPhysicsShips`): hull entities per `ShipUnitModel::InitPhysicalEntity`
+  (`sub_39286C50`) from `ship_models`; engine buoyancy (ocean + water-volume boxes) and collisions
+  (terrain, brushes, vegetation, `collide_ship` doodads, other hulls) replace the Jitter2 step, the
+  C# buoyancy force and the shore / ship–ship / doodad / barrier / steep-terrain depenetration.
+  Hull damage comes from the ZWUnitCollision aggregation: closing speeds ≤ 2 m/s are ignored (the C#
+  dealt 1 % on any overlap); the pair maximum per 500 ms (clamped to 10 m/s) gives the C#'s
+  speed-scaled percentage (nose-cone rule kept). The 1.2 data has neither the expression constants
+  (12 / 13 / 21) nor the `physics_collision_*_damage_mul` columns. The keel width (0.2 m) and the
+  default tube offset (half beam, the zone's `bbox.x / 2`) are inferred / taken literally.
+* Water volumes (`collision::water_areas`): world slot 83 (2-D polygon areas) is not ported, so
+  polygons are bounding boxes and rivers per-segment oriented boxes.
+
+**Measured** (release, 1.2 pak, `tests/collision_measure.rs`): the 3×3 cells (9..11, 13..15): 7 849
+statics, 675 models, 13 MB of blobs, 37 MB heap, 146 ms per cell, 3.5 µs per vertical ray. The whole
+main_world (1 330 cell slots): 152 059 brush + 68 809 vegetation entities, 4 295 models, 90 MB of
+blobs, 1.0 GB heap of which about 600 MB are the heightmap cells, 8 s; 1.0 µs per ray.
+
+#### systems::ai geodata deviations (engine behaviour instead of the C#)
+
+Reference: the 10.0.2.13 `cryaisystem_dedicate.dll` (image base 0x31000000), notes in
+`D:\aa-re\zone\agent_geom\sub_navmesh.md` (§2 formats, §5 gaps) and
+`rust/docs/physics/ZONE-PHYSICS-USAGE.md` §2.5. The C# (`AiGeoDataManager`, `*MissionReader`,
+`PathNode`) is no longer mirrored on these points:
+
+* **Areas version** (sector reader 0x31149764, whole-level reader 0x3107AB58): path sector
+  files must be v21 (1.2) or v22 (10.x; same layout). The C# rejected `> 21`, so every 10.x
+  areas file failed (no forbidden areas / boundaries / nav modifiers). Path files below v21 are
+  rejected like the engine's sector reader (279 files of the 1.2 pak, v19 / v20; 272 of them
+  do not parse with the v21 layout either); zone
+  folder files stay accepted up to v22 (the whole-level reader still has the old-version
+  branches).
+* **Net / verts versions**: the 10.x engine wants net == 55 (`CGraph::ReadNodes`, 0x311030A8)
+  and verts == 2 (0x311A2AC4); the C# accepted anything `<=`. Rust accepts net 55 and 54 and
+  verts 2 and 1 and rejects every other version. **Deliberate deviation from the 10.x engine
+  (1.2 data compatibility):** 2 299 path sectors of the 1.2 pak are net v54 + verts v1 (the same
+  sectors), with the v55 node / link and v2 vertex layouts: all of them parse with 0 trailing
+  bytes (gated test `real_nav_pak_12_old_sector_versions_parse`).
+* **`hidemission*.bai` is not loaded** (no engine reader references it; stale v54 graphs). The
+  C# read them into `HideMissionReaders` and never used them.
+* **Nav-modifier header** (0x31149764): `u64 type; u64 waypointConnections; u8 altered` (17
+  bytes), not `i32, i32, u8, f32, f32`; `altered` was always true (it read the low byte of the
+  second u64 = 2). The `ver <= 16` (extra u32) / `ver >= 18` (light level byte) branches now
+  use the file's version instead of the constant 21.
+* **Links** (0x310FB7E8): byte +42 bit 0 is the engine link flag 0x800000
+  (`LinkDescriptor.is_pure_triangular_link`); the C# tested `== 1`, false for every 10.x link
+  (9 / 8 / 10 / 165). Byte +43 (`simple_passability_check` in the C#) is not read by the engine
+  and is kept raw as `unused_43`; the floats at +28..+36 (C# length / maxWaterDepth /
+  minWaterDepth) are not read by the engine and are kept as `unread_28`.
+* **Merged cross-sector graph** (`geodata/graph.rs`): every folder that loads is merged into
+  one `NavGraph` per world template like the engine's `CGraph`: vertices de-duplicated by XY
+  (< 1e-4 m, 0x311A1D14), nodes by XY (< 1e-4 m) + equal navType (0x31101C68), links
+  re-attached (0x310FB7E8; a repeated link overwrites the earlier one's attributes, radius
+  stored as i16 centimetres like `SetRadius` 0x31083160, self links skipped, links to unknown
+  ids dropped). Positions are compared in exact f64 world coordinates (the engine uses f32
+  origin-relative ones). The engine streams a 3x3-sector window around one focus; Rust keeps
+  its lazy per-cell loading (the 4x4 sectors of a cell on first use, never unloaded) and merges
+  incrementally. A* runs on the graph, so routes cross sector and cell borders (a whole 1.2 cell
+  merges 151 border nodes / 193 vertices); before expanding a node the cells its triangle
+  touches (+0.5 m) are loaded so the neighbour cell's copy of a border triangle is merged.
+* **Pass radius**: links with `maxPassRadius` below the agent radius, and blocked links
+  (negative radius; -1 on ~17 % of the links), are not traversed. `PathNode::find_path` (all NPC
+  callers) uses `graph::DEFAULT_AGENT_RADIUS` = 0.25 m, the X2 walkability probe radius
+  (`ai_DefaultWalkability` 1, constants at 0x311FF070); `find_path_with_radius` takes the
+  caller's.
+* **Start / goal node and `GetHeight`** (`GetEnclosing`): the triangle node whose XY triangle
+  (its 3 corners in the verts file) contains the point; the height is interpolated on the
+  triangle's plane. The C# nearest-node behaviour is kept when no triangle encloses the point,
+  and when the C# nearest node of the position's bai is not a triangle node: the zone instances
+  navigate indoors on human waypoints (navType 4) under a few huge placeholder triangles (the
+  engine picks the waypoint graph through the indoor nav modifiers, which are not modelled).
+  With several enclosing triangles the one whose plane height is closest to the query z wins.
+  Data caveat: the node positions of the real files lie inside their triangles but ~0.2 m above
+  the plane (median; p90 ~1 m, up to ~20 m on large triangles over uneven ground, and the huge
+  sparse coastal triangles can be off by 100+ m), so plane heights differ from the old
+  nearest-node heights by that much.
+* **Zone-geodata routes**: on the 1.2 instances only 5 of 16 synthetic test routes (dummy node 1
+  at the origin to the middle node) succeed; the others' goals are not linked to the start or
+  only through blocked links
+  (raw-file BFS agrees); the old "routes" were presumably the C# position-based neighbour lookup jumping
+  between unconnected nodes and the iteration cut-off.
+* Kept on purpose: the A* step cost `G` is the distance from the link's source to the goal
+  (C# quirk, `sub_navmesh.md` §5.11), the linear open-set scan and the iteration limit;
+  `FindClosestToTheCurrent`, `ReducePath`, `CheckImpossibleWalk` are unchanged. Not done: link
+  exposure costs, node flags, nav modifiers in the search, physics walkability
+  (`CheckWalkability` 0x3100B214), the engine's 3x3 streaming window.
 
 ## Phase 3b wiring (cross-subsystem hooks)
 

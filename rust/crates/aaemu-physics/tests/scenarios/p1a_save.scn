@@ -1,0 +1,11 @@
+# P1a: Save (slot 25) bytes, Load (slot 27) into a second object, and the CGF physics blob through
+# CGeomManager::LoadPhysGeometry (slot 16: version, 64-byte phys_geometry header with the inertia
+# floor, LoadGeometry type switch, sphere properties recomputed).
+gprobe probe=save type=box n=60 seed=301
+gprobe probe=save type=sphere n=40 seed=302
+gprobe probe=save type=cylinder n=60 seed=303
+gprobe probe=save type=capsule n=60 seed=304
+gphysblob type=box n=40 seed=305
+gphysblob type=sphere n=30 seed=306
+gphysblob type=cylinder n=40 seed=307
+gphysblob type=capsule n=40 seed=308

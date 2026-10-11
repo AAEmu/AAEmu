@@ -1,0 +1,47 @@
+physoracle 1
+ret part ground 0
+ret part box 0
+echo params_pos
+ret params box 0 1
+snapdiff box
+echo params_part
+ret params box 6 1
+snapdiff box
+echo params_simulation
+ret params box 10 1
+snapdiff box
+echo params_buoyancy
+ret params box 12 1
+snapdiff box
+echo params_flags
+ret params box 15 1
+snapdiff box
+echo params_foreign_data
+ret params box 11 1
+snapdiff box
+echo params_timeout
+ret params box 23 1
+snapdiff box
+echo action_impulse
+ret action box 2 1
+snapdiff box 68 132 508
+echo action_set_velocity
+ret action box 10 1
+snapdiff box
+echo set_pos
+ret params box 0 1
+step 40
+e box p 41f00000 41f80000 40a00000 q 00000000 00000000 3e8483ed 3f7746ea v 00000000 00000000 00000000 w 00000000 00000000 00000000 sc 2 aw 1
+echo set_velocity
+ret action box 10 1
+step 40
+e box p 41f00000 41f80000 40a00000 q 00000000 00000000 3e8483ed 3f7746ea v 3f800000 40000000 40400000 w 00000000 00000000 3f800000 sc 2 aw 1
+echo impulse
+ret action box 2 1
+step 40
+e box p 41f00000 41f80000 40a00000 q 00000000 00000000 3e8483ed 3f7746ea v 3f800000 40000000 41000000 w 00000000 00000000 3f800000 sc 2 aw 1
+echo sim_gravity
+ret params box 10 1
+peek box 616 00000000 00000000 c0000000 00000000 00000000 c0000000
+step 41
+e box p 41f04425 41f8884a 40a88041 q 00000000 00000000 3e8cb970 3f7623fb v 3f7f25f2 3fff25f2 40fd05bc w 00000000 00000000 3f7f25f0 sc 2 aw 1

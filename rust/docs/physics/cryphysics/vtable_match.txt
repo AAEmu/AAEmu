@@ -1,0 +1,68 @@
+# x64 class (+this offset) | x64 vtable | n64 | x86 vtable | n86 | score
+CArticulatedEntity                       +0   0x351ed638  83  <->  0x351fa2d8  83   4.63
+CBVTree                                  +0   0x351edc68  26  <->  0x351fa7a0  26   4.92
+IGeometry                                +0   0x351edd48  46  <->  0x351fa808  46   4.99
+CGeometry                                +0   0x351edfa8  60  <->  0x351fa930  60   4.80
+CLivingEntity                            +0   0x351ee1d8  77  <->  0x351faa60  78   3.77
+CSingleBoxTree                           +0   0x351ee4a8  26  <->  0x351fabe0  26   4.81
+CCylinderGeom                            +0   0x351ee588  60  <->  0x351fac48  60   4.73
+CCapsuleGeom                             +0   0x351ee778  60  <->  0x351fad38  60   4.76
+CSphereGeom                              +0   0x351ee968  60  <->  0x351fae30  60   4.91
+CRayGeom                                 +0   0x351eeb58  60  <->  0x351faf20  60   4.84
+CParticleEntity                          +0   0x351eee88  77  <->  0x351fb220  78   3.83
+IPhysicalEntity                          +0   0x351ef218  32  <->  0x351fb4a0  32   4.99
+CPhysicalPlaceholder                     +0   0x351ef358  35  <->  0x351fb538  35   4.70
+CPhysArea                                +0   0x351ef598  38  <->  0x351fb658  38   4.84
+CPhysicalEntity                          +0   0x351efe38  77  <->  0x351fb7c0  77   4.95
+IThreadTask                              +0   0x351f0120   4  <->  0x351fbe68   4   4.93
+IPhysicalEntityIt                        +0   0x351f0148   7  <->  0x351fbe78   7   4.96
+IPhysicalWorld                           +0   0x351f0188 104  <->  0x351fbe98 103   4.03
+IPhysUtils                               +0   0x351f04d0   4  <->  0x351fc034   4   4.93
+?$_i_reference_target@H@@                +0   0x351f0550   3  <->  0x351fc098   3   4.82
+IGeomManager                             +0   0x351f0588  26  <->  0x351fc0b8  26   4.99
+CGeomManager                             +0   0x351f0668  27  <->  0x351fc120  27   4.81
+SThreadTaskInfo                          +0   0x351f0748   3  <->  0x351fc18c   3   4.82
+SPhysTask                                +0   0x351f0768   4  <->  0x351fc198   4   3.72
+CPhysicalWorld::CPhysicalEntityIt        +0   0x351f0798   7  <->  0x351fc1a8   7   4.81
+CPhysicalWorld                           +16  0x351f09e8  27  <->  0x351fc518  27   4.65
+CPhysicalWorld                           +8   0x351f0ac8   4  <->  0x351fc584   4   3.39
+CRigidEntity                             +0   0x351f14c8  83  <->  0x351fcd08  83   4.78
+CRopeEntity                              +0   0x351f1a48  77  <->  0x351fd2c0  77   5.02
+CSoftEntity                              +0   0x351f1de8  77  <->  0x351fd5b8  77   4.95
+CHeightfieldBV                           +0   0x351f2068  26  <->  0x351fd720  26   4.92
+CHeightfield                             +0   0x351f2148  62  <->  0x351fd788  62   4.89
+CWheeledVehicleEntity                    +0   0x351f2388  84  <->  0x351fd9a0  84   4.58
+bop_meshupdate_thunk                     +0   0x351f2720   1  <->  0x351fdba0   1   4.82
+bop_meshupdate                           +0   0x351f2730   1  <->  0x351fdba4   1   4.86
+IBreakableGrid2d                         +0   0x351f28d8   7  <->  0x351fdd58   7   4.96
+CMemStream                               +0   0x351f2968   2  <->  0x351fddbc   3   2.75
+CVoxelBV                                 +0   0x351f2988  26  <->  0x351fddc8  26   4.77
+CBreakableGrid2d                         +0   0x351f2a68   7  <->  0x351fde30   7   5.38
+CVoxelGeom                               +0   0x351f2ab8  62  <->  0x351fde60  62   4.96
+ITetrLattice                             +0   0x351f2f68   7  <->  0x351fe210   7   4.96
+CTetrLattice                             +0   0x351f2fa8   7  <->  0x351fe22c   7   5.49
+COBBTree                                 +0   0x351f3008  26  <->  0x351fe280  26   4.99
+CAABBTree                                +0   0x351f30e8  26  <->  0x351fe2e8  26   5.05
+CTriMesh                                 +0   0x351f31c8  62  <->  0x351fe350  62   4.99
+ICryUnknown                              +0   0x351f3468   3  <->  0x351fe4d0   3   4.90
+ICryFactory                              +0   0x351f34d0   6  <->  0x351fe500   6   4.95
+ISystemEventListener                     +0   0x351f3508   2  <->  0x351fe518   3   3.86
+CEngineModule_CryPhysics                 +0   0x351f3520   6  <->  0x351fe534   6   4.99
+CEngineModule_CryPhysics::CFactory       +0   0x351f3e78   6  <->  0x351fe564   6   4.81
+boost::detail::sp_counted_base           +0   0x351f3ec0   4  <->  0x351fe58c   4   4.86
+?$sp_counted_impl_p@UICryUnknown@@@detail@boost@@ +0   0x351f3f10   4  <->  0x351fe5c8   4   4.79
+CPhysicalWorld                           +0   0x351f0af8 105  <->  0x351fc598 104   1.49
+CBoxGeom                                 +0   0x351ef8a8  60  <->  0x351fba30  60   4.82
+CRayBV                                   +0   0x351edec8  26  <->  0x351fa8d0  22   -5.00
+
+# x64 vtables without x86 counterpart
+  stdext::exception +0 0x351edc08 3
+  stdext::bad_alloc +0 0x351edc40 3
+  CPhysicalStub +0 0x351ef478 35
+  CSystemEventListner_Physics +0 0x351f3600 2
+  type_info +0 0x351f44c0 1
+
+# x86 vtables without x64 counterpart
+  0x351fa8c0 4
+  0x351fbe60 2
+  0x351fe524 3

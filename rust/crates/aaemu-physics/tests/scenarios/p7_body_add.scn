@@ -1,0 +1,53 @@
+# P7 RigidBody::Add (0x3509D460) + idmatBreakable auto-assignment (0x35052CC0): multi-part
+# rigid bodies. Each `peek ... 744 53` dumps the whole RigidBody (E+744, 212 bytes) after an
+# AddGeometry; `getparams ... type=6 dump=68,1` reads a part's flags (pe_params_part.flagsOR).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+surface idx=0 flags=0x400
+surface idx=5 flags=0x30000
+geom name=cube type=box size=0.5,0.5,0.5
+geom name=slab type=box size=1,0.25,0.5
+geom name=ball type=sphere r=0.4
+geom name=rod type=cylinder r=0.2 hh=1.5 axis=1,0,0
+# single part (RigidBody::Create path)
+entity name=one type=rigid pos=32,32,10 q=0,0,0.1736482,0.9848078
+part ent=one geom=cube mass=10
+peek target=one off=744 n=53
+# two equal cubes side by side
+entity name=two type=rigid pos=20,40,5 q=0,0,0.1736482,0.9848078
+part ent=two geom=cube mass=10
+part ent=two geom=cube mass=10 pos=1,0,0
+peek target=two off=744 n=53
+# different parts, rotated placements, density and scale, a massless part
+entity name=mix type=rigid pos=40,24,7 q=0.1,-0.2,0.3,0.9273618
+part ent=mix geom=cube mass=10
+peek target=mix off=744 n=53
+part ent=mix geom=slab mass=7 pos=0.3,-0.7,0.4 q=0.2,0.1,0.3,0.9273618
+peek target=mix off=744 n=53
+part ent=mix geom=ball density=500 scale=0.8 pos=-0.5,0.6,-0.2
+peek target=mix off=744 n=53
+part ent=mix geom=rod mass=3 pos=0.1,0.2,1.1 q=0,0.3826834,0,0.9238795
+peek target=mix off=744 n=53
+part ent=mix geom=cube mass=0 pos=5,5,5
+peek target=mix off=744 n=53
+part ent=mix geom=slab mass=1000 pos=-2,0.5,0.25 q=0.5,0.5,0.5,0.5
+peek target=mix off=744 n=53
+# a heavy and a very light part (large mass ratio)
+entity name=ratio type=rigid pos=12,12,3
+part ent=ratio geom=slab mass=50000 q=0,0,0.3826834,0.9238795
+part ent=ratio geom=ball mass=0.001 pos=3,-2,1
+peek target=ratio off=744 n=53
+# idmatBreakable auto (i80=U): surface 0 has flag 0x400 and id field 0 -> part flag 0x800000;
+# surface 5 has id field 3 -> id 2 >= 0 on a non-mesh -> reset, no flag; flags 0x4 alone is
+# outside the 0xFFB mask (no auto)
+entity name=brk type=rigid pos=50,50,2
+part ent=brk geom=cube mass=10 i80=U
+getparams target=brk type=6 i8=0 dump=68,1
+part ent=brk geom=cube mass=10 i80=U i64=5 pos=1,0,0
+getparams target=brk type=6 i8=0 dump=68,1
+getparams target=brk type=6 i8=1 dump=68,1
+part ent=brk geom=cube mass=10 i80=U flags=0x4 pos=2,0,0
+getparams target=brk type=6 i8=2 dump=68,1
+part ent=brk geom=cube mass=10 i80=U flags=0x2 pos=3,0,0
+getparams target=brk type=6 i8=3 dump=68,1
+part ent=brk geom=cube mass=10 flags=0x2 pos=4,0,0
+getparams target=brk type=6 i8=4 dump=68,1

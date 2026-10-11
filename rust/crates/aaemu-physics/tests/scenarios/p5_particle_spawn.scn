@@ -1,0 +1,26 @@
+# P5: particles created between steps (direct grid/list registration from the stepping
+# thread) next to ones created before the first step (queued registration), in the
+# simclass-4 list behind its insertion marker; traceable particles meeting each other and a
+# rigid body, a sleeping particle woken by Action(8), and a stopped world step (dt 0).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+geom name=ground type=box size=50,50,0.5
+geom name=cube type=box size=0.3,0.3,0.3
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=a type=particle pos=30,32,1
+params target=a type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x400 f8=0.4 f12=0.3 v20=1,0,0 f32=1
+trace ents=a
+print
+step n=5
+entity name=b type=particle pos=33,32,1
+params target=b type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x400 f8=0.4 f12=0.3 v20=-1,0,0 f32=3
+entity name=box type=rigid pos=31.5,33,2
+part ent=box geom=cube mass=3
+entity name=c type=particle pos=31.5,32.95,0.5
+params target=c type=3 i4=U f8=U f12=U f16=U f20=U f32=U f36=U f40=U f44=U f48=U i52=U f56=U f68=U f80=U f92=U f104=U f128=U f132=U f136=U p144=unused i152=U i156=U i160=U i4=0x400 f8=0.2 f12=0.2 v20=0,0,1 f32=0
+trace ents=a,b,c,box
+step n=20
+step n=2 dt=0
+step n=60
+action target=a type=8 i4=1
+step n=10

@@ -9,6 +9,7 @@ license = "GPL-3.0-or-later"
 
 [workspace.dependencies]
 aaemu-commons = { path = "crates/aaemu-commons" }
+aaemu-physics = { path = "crates/aaemu-physics" }
 anyhow = "1"
 thiserror = "1"
 bytes = "1"

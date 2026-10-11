@@ -1,0 +1,38 @@
+# P5: gear shifting: 6 gears with shift RPMs (params 2), automatic up-shifts under full pedal,
+# a manual change to neutral (gear 1), down-shifts while coasting, the gear clamp (min/max).
+grid axisz=2 org=0,0,-100 n=64,64 step=4,4
+surface idx=0 friction=1
+geom name=ground type=box size=50,50,0.5
+geom name=hull type=box size=1,2,0.35
+geom name=wheel type=cylinder r=0.4 hh=0.15 axis=1,0,0
+entity name=ground type=static pos=32,32,-0.5
+part ent=ground geom=ground mass=0
+entity name=car type=wheeled pos=32,20,1.0
+part ent=car geom=hull mass=400 i0=1 i112=U
+part ent=car geom=wheel mass=20 pos=1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,1.4,-0.45 i0=1 i112=1 i116=0 i120=1 i124=0 v128=-1.1,1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+part ent=car geom=wheel mass=20 pos=-1.1,-1.4,-0.45 i0=1 i112=0 i116=1 i120=1 i124=0 v128=-1.1,-1.4,-0.2 f140=0.4 f144=0.25 f148=0.25 f152=0 f156=-0.5 f160=U f164=U f168=U f172=U f176=U f180=U
+trace ents=car
+step n=40 every=10
+params target=car type=2 f8=150000 f20=4000 f64=2500 f68=1200 f72=800 f60=300 f80=2 i84=6 p88=buf:400 f400=-3 f404=0 f408=3.5 f412=2.4 f416=1.6 f420=1.1 i96=5 i100=1
+getparams target=car type=2 p88=buf:400 dump=0,22
+getparams target=car type=2 p88=buf:400 dump=400,6
+action target=car type=3 f4=1 f20=0.2 i24=0 i28=0 i32=2
+step n=15
+status target=car type=4 dump=0,15
+step n=15
+status target=car type=4 dump=0,15
+step n=15
+status target=car type=4 dump=0,15
+step n=15
+status target=car type=4 dump=0,15
+action target=car type=3 i32=1
+step n=20
+status target=car type=4 dump=0,15
+action target=car type=3 f4=0 i32=4
+step n=30
+status target=car type=4 dump=0,15
+action target=car type=3 i32=9
+step n=10
+status target=car type=4 dump=0,15

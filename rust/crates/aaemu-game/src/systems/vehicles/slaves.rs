@@ -1120,9 +1120,19 @@ pub(crate) fn create_spawn(
             while in_front < 50.0 + ship.mass_box_size_x {
                 let mut check = spawn_pos;
                 add_distance_to_front(&mut check, in_front);
-                let floor =
-                    crate::systems::npcs::heightmap::world_height(server, world, check.x, check.y)
-                        .unwrap_or(0.0);
+                // the sea floor: terrain elevation (GetTerrainElevation) with the service
+                let floor = crate::systems::ai::collision::terrain_height_or(
+                    server,
+                    world.id,
+                    check.x,
+                    check.y,
+                    || {
+                        crate::systems::npcs::heightmap::world_height(
+                            server, world, check.x, check.y,
+                        )
+                        .unwrap_or(0.0)
+                    },
+                );
                 if floor > 0.0 {
                     let surface = super::ship_physics::water_surface(
                         server,
@@ -1146,13 +1156,22 @@ pub(crate) fn create_spawn(
             spawn_pos.z += offset_z;
         } else {
             // TODO (C#): check for maximum height difference for summoning
-            let h = crate::systems::npcs::heightmap::world_height(
+            let h = crate::systems::ai::collision::ground_height_or(
                 server,
-                world,
+                world.id,
                 spawn_pos.x,
                 spawn_pos.y,
-            )
-            .unwrap_or(0.0);
+                spawn_pos.z,
+                || {
+                    crate::systems::npcs::heightmap::world_height(
+                        server,
+                        world,
+                        spawn_pos.x,
+                        spawn_pos.y,
+                    )
+                    .unwrap_or(0.0)
+                },
+            );
             if h > 0.0 {
                 spawn_pos.set_height(h);
             }
@@ -1922,7 +1941,10 @@ fn distribute_slave_drop_doodads(server: &GameServer, slave: &SlaveRef) {
             let r = rng.gen::<f32>() * drop.radius;
             let (x, y, z) = (center.x + v[0] * r, center.y + v[1] * r, center.z);
             let h = if !drop.on_water {
-                crate::systems::npcs::heightmap::world_height(server, &world, x, y).unwrap_or(0.0)
+                crate::systems::ai::collision::ground_height_or(server, world.id, x, y, z, || {
+                    crate::systems::npcs::heightmap::world_height(server, &world, x, y)
+                        .unwrap_or(0.0)
+                })
             } else {
                 super::ship_physics::water_surface(server, &world, [x, y, z])
             };

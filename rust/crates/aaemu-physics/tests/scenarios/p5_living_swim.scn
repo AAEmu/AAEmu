@@ -1,0 +1,24 @@
+# P5: swimming. Living entities do not query areas: the zone sets bSwimming and the water
+# gravity through player_dynamics. A swimmer in the ocean (global water plane at z=0, sea bed
+# at z=-10) dives, swims and surfaces; then swimming is switched off.
+grid axisz=2 org=-128,-128,-100 n=64,64 step=4,4
+area name=glob kind=global
+params target=glob type=12 v40=0,0,1 v52=0,0,0 i72=0
+geom name=bed type=box size=30,30,1
+entity name=seabed type=static pos=0,0,-11
+part ent=seabed geom=bed
+entity name=s type=living pos=0,0,-0.8
+params target=s type=4 f4=U f8=U f12=U f16=0.6 v20=0,0,-0.5 f32=U i36=1 f40=U i44=U f48=U f52=U f56=U f60=U f64=U f68=U i72=U p80=unused i92=U
+trace ents=s
+step n=10
+action target=s type=1 v4=1.5,0,-2 i16=0 f20=0
+step n=40
+status target=s type=2 dump=4,27
+action target=s type=1 v4=0,1,1.5 i16=0 f20=0
+step n=60
+action target=s type=1 v4=0,0,0 i16=0 f20=0
+step n=20
+params target=s type=4 f4=U f8=U f12=U f16=0 v20=0,0,-9.8 f32=U i36=0 f40=U i44=U f48=U f52=U f56=U f60=U f64=U f68=U i72=U p80=unused i92=U
+step n=60 every=2
+status target=s type=2 dump=4,27
+getparams target=s type=4 dump=4,24

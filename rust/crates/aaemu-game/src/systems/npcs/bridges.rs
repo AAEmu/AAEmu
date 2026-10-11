@@ -300,7 +300,14 @@ impl NpcSkillHooks for NpcSkills {
         };
         // `GeoData.GetHeight(doodad.Transform.World.Position)` (the caster-based position).
         let base = detached_transform(&world, caster);
-        let z = super::heightmap::get_height(server, zone_id, base.x, base.y, base.z);
+        let z = crate::systems::ai::collision::ground_height_or(
+            server,
+            world.id,
+            base.x,
+            base.y,
+            base.z,
+            || super::heightmap::get_height(server, zone_id, base.x, base.y, base.z),
+        );
         {
             let mut d = doodad.data();
             d.transform = base;

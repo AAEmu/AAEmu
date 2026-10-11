@@ -1,0 +1,18 @@
+# Static engine tables read straight from the DLL after CreatePhysicalWorld(NULL):
+#  - the physics-vars block (world+104..+632) with the constructor defaults
+#  - sizeof tables built at init by sub_351E5900: params (0x3537C640, 27 ints),
+#    actions (0x3537C5F0, 19 ints), geomparams (0x3537C5D8, 3 ints)
+#  - surface table defaults for index 0: bounciness (world+4456), friction (+6504),
+#    dynamic friction (+8552), flags (+18792)
+dumpvars
+peekdll va=0x3537C640 n=27
+peekdll va=0x3537C5F0 n=19
+peekdll va=0x3537C5D8 n=3
+peekworld off=4456 n=1
+peekworld off=6504 n=1
+peekworld off=8552 n=1
+peekworld off=18792 n=1
+peekworld off=10600 n=1
+peekworld off=12648 n=1
+peekworld off=14696 n=1
+peekworld off=16744 n=1
