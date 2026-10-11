@@ -328,7 +328,8 @@ pub fn sin(x: f64) -> f64 {
         }
         let x2 = x * x;
         let x6 = (x2 * x2) * x2;
-        let p = ((SIN_S6 * x2 + SIN_S5) * x2 + SIN_S4) * x6 + ((SIN_S3 * x2 + SIN_S2) * x2 + SIN_S1);
+        let p =
+            ((SIN_S6 * x2 + SIN_S5) * x2 + SIN_S4) * x6 + ((SIN_S3 * x2 + SIN_S2) * x2 + SIN_S1);
         return x + (x * x2) * p;
     }
     let neg = bits != ax;

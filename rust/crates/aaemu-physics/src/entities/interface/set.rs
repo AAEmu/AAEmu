@@ -33,8 +33,8 @@
 //! per-part placeholders, which the port does not create.
 
 use super::{caller, is_entity, is_rigid, params_gate, rd_i32, rd_u64, Gate};
-use crate::entities::base::{compute_bbox, EntityKind};
 use crate::entities::base::params::set_params_pos;
+use crate::entities::base::{compute_bbox, EntityKind};
 use crate::entities::rigid::{buoyancy, contacts, mass};
 use crate::math::Vec3;
 use crate::params::{
@@ -53,7 +53,9 @@ pub fn set_params(w: &mut World, e: EntIdx, buf: &mut [u8], thread_safe: i32) ->
         return 0;
     }
     match &w.ent(e).kind {
-        EntityKind::Living(_) => return crate::entities::living::set_params(w, e, buf, thread_safe),
+        EntityKind::Living(_) => {
+            return crate::entities::living::set_params(w, e, buf, thread_safe)
+        }
         EntityKind::Particle(_) => {
             return crate::entities::particle::set_params(w, e, buf, thread_safe)
         }

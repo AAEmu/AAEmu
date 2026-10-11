@@ -303,7 +303,9 @@ impl Scenario {
                     "wheeled" => 3,
                     "living" => 4,
                     "particle" => 5,
-                    t => t.parse::<i32>().map_err(|_| format!("entity type {t} not supported"))?,
+                    t => t
+                        .parse::<i32>()
+                        .map_err(|_| format!("entity type {t} not supported"))?,
                 };
                 // the oracle's pe_params_pos image: template, pos, q, then the field setters
                 let mut b = vec![0u8; 512];
@@ -602,11 +604,7 @@ impl Scenario {
 
 /// The oracle's `apply_fields` in token order: `fOFF=`, `iOFF=`, `uOFF=`, `bOFF=`,
 /// `vOFF=x,y,z`, `qOFF=`, `pOFF=null|unused`, `hex=`.
-fn apply_fields(
-    toks: &[&str],
-    b: &mut [u8],
-    ents: &HashMap<String, EntIdx>,
-) -> Result<(), String> {
+fn apply_fields(toks: &[&str], b: &mut [u8], ents: &HashMap<String, EntIdx>) -> Result<(), String> {
     for t in toks {
         let Some((k, v)) = t.split_once('=') else {
             continue;

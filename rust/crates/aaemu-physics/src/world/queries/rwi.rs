@@ -1001,7 +1001,11 @@ impl World {
                     } else {
                         0
                     };
-                    (s, p.map_or(dummy, |p| p.flags), p.map_or(0, |p| p.surface_bits))
+                    (
+                        s,
+                        p.map_or(dummy, |p| p.flags),
+                        p.map_or(0, |p| p.surface_bits),
+                    )
                 }
                 PartSrc::Dummy { part_flags } => (c.id[0], part_flags, 0),
             };

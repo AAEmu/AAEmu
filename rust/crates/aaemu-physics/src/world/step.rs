@@ -645,7 +645,10 @@ impl World {
         // contacts on parts with flag 0x400000 → slot 59 OnContactResolved of that side
         // (living 0x350279B0 clips its velocities, wheeled vehicles 0x35104760 count hull
         // contacts; the rigid slot 59 (breakable parts and constraints) is not ported)
-        let cl = self.solver[_tid].as_ref().map(|s| s.contacts()).unwrap_or_default();
+        let cl = self.solver[_tid]
+            .as_ref()
+            .map(|s| s.contacts())
+            .unwrap_or_default();
         for c in cl {
             let k = *self.contacts.get(c);
             if (k.ipart[0] | k.ipart[1]) < 0 {

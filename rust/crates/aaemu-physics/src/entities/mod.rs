@@ -125,9 +125,7 @@ pub fn update(w: &mut World, e: EntIdx, dt: f32, damping: f32) -> u32 {
 /// living 0x35027190; base `return 0`.
 pub fn register_contacts(w: &mut World, e: EntIdx, dt: f32, n_max: i32) -> i32 {
     match &w.ent(e).kind {
-        EntityKind::Rigid(r) if r.wheeled.is_some() => {
-            wheeled::register_contacts(w, e, dt, n_max)
-        }
+        EntityKind::Rigid(r) if r.wheeled.is_some() => wheeled::register_contacts(w, e, dt, n_max),
         EntityKind::Rigid(_) => rigid::update::register_contacts(w, e, dt, n_max),
         EntityKind::Living(_) => living::register_contacts(w, e, dt, n_max),
         _ => 0,
@@ -408,7 +406,13 @@ pub fn on_contact(w: &mut World, e: EntIdx, c: crate::solver::ContactId, side: i
 /// 0x350AAF80; base 0. (Its callers, the base SetParams(part) wake-up of static neighbours
 /// and the base RemoveGeometry, are not ported.)
 #[must_use]
-pub fn has_part_contacts_with(w: &World, e: EntIdx, other: EntIdx, ipart: i32, greater: i32) -> bool {
+pub fn has_part_contacts_with(
+    w: &World,
+    e: EntIdx,
+    other: EntIdx,
+    ipart: i32,
+    greater: i32,
+) -> bool {
     if w.ent(e).wheeled().is_some() {
         return wheeled::has_part_contacts_with(w, e, other, ipart, greater);
     }
@@ -419,7 +423,13 @@ pub fn has_part_contacts_with(w: &World, e: EntIdx, other: EntIdx, ipart: i32, g
 /// constraint — none in the port) on part `ipart` of the other side (or a higher part with
 /// `greater`).
 #[must_use]
-pub fn class_has_part_contacts_with(w: &World, e: EntIdx, other: EntIdx, ipart: i32, greater: i32) -> bool {
+pub fn class_has_part_contacts_with(
+    w: &World,
+    e: EntIdx,
+    other: EntIdx,
+    ipart: i32,
+    greater: i32,
+) -> bool {
     let ent = w.ent(e);
     let EntityKind::Rigid(r) = &ent.kind else {
         return false;
