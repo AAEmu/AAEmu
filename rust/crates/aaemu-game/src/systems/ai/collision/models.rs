@@ -61,7 +61,12 @@ impl ModelPhys {
 
 /// Builds the model physics from a CGF file's bytes. `None` = no physics in the file.
 pub fn load_model(path: &str, data: &[u8]) -> Result<Option<ModelPhys>, String> {
-    let blobs = cgf::physics_blobs(data).map_err(|e| format!("{path}: {e}"))?;
+    let blobs = match cgf::physics_blobs(data) {
+        Ok(b) => b,
+        // `.cdf` character definitions (XML) behind `cga://` doodad models: no static physics
+        Err(cgf::CgfError::Signature) => return Ok(None),
+        Err(e) => return Err(format!("{path}: {e}")),
+    };
     let mut parts = Vec::new();
     let mut bytes = 0;
     for b in &blobs {

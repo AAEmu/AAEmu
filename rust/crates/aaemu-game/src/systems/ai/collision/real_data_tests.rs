@@ -294,3 +294,67 @@ fn real_collision_cells_load_and_answer() {
     // some spawns stand on brushes (bridges, floors, docks)
     assert!(on_static > 0);
 }
+
+/// The doodad model references of the DB resolve to colliders (cgf / vegetation / prefab).
+#[test]
+#[ignore = "needs AAEMU_GAME_PAK and AAEMU_COMPACT_DB"]
+fn real_collision_doodad_models_resolve() {
+    let Some(e) = env() else { return };
+    let Ok(db) = std::env::var("AAEMU_COMPACT_DB") else {
+        return;
+    };
+    let conn =
+        rusqlite::Connection::open_with_flags(db, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .expect("db");
+    let data = super::data::CollisionData::load(&conn).expect("collision data");
+    println!(
+        "{} func group models, {} actor models",
+        data.func_group_models.len(),
+        data.living.len()
+    );
+    assert!(data.func_group_models.len() > 10_000);
+    let files = Files::Client(e.files.clone());
+    let models = ModelCache::new(Arc::new(files.clone()));
+    let mut prefab_xml = HashMap::new();
+    let mut by_kind: HashMap<&str, (usize, usize)> = HashMap::new();
+    let mut refs: Vec<&String> = data.func_group_models.values().collect();
+    refs.sort();
+    refs.dedup();
+    for m in refs.iter().take(1500) {
+        let r = super::objects::parse_model_ref(m);
+        let kind = match &r {
+            super::objects::ModelRef::Brush(_) => "cgf",
+            super::objects::ModelRef::Vegetation(_) => "vegetation",
+            super::objects::ModelRef::Prefab { .. } => "prefab",
+            super::objects::ModelRef::Cga(_) => "cga",
+            super::objects::ModelRef::Dummy => "dummy",
+        };
+        let ok = super::objects::resolve_shape(&files, &models, &mut prefab_xml, &r).is_some();
+        let c = by_kind.entry(kind).or_default();
+        c.0 += 1;
+        c.1 += usize::from(ok);
+    }
+    println!("resolved (refs, with physics): {by_kind:?}");
+    assert!(by_kind.get("cgf").is_some_and(|c| c.1 * 2 > c.0));
+    assert!(by_kind.get("prefab").is_some_and(|c| c.1 > 0));
+    // list the models whose physics fails to load
+    for m in refs.iter().take(1500) {
+        if let super::objects::ModelRef::Brush(p)
+        | super::objects::ModelRef::Cga(p)
+        | super::objects::ModelRef::Vegetation(p) = super::objects::parse_model_ref(m)
+        {
+            if let Some(b) = e.files.read_file(&p) {
+                if let Err(err) = super::models::load_model(&p, &b) {
+                    println!("load failure: {err}");
+                }
+            }
+        }
+    }
+    assert_eq!(
+        models
+            .stats
+            .failed
+            .load(std::sync::atomic::Ordering::Relaxed),
+        0
+    );
+}
