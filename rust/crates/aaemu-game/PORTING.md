@@ -334,6 +334,94 @@ Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` check
 | `Physics/**`, `PhysicsManager` (ship hulls: Jitter2 world, `ShipController`, shore / ship–ship / doodad / cliff / static barrier contacts, buoyancy, whirlpool, storm lamps, harpoon tow, replication), `ShipSiegeAoEHit` geometry | `systems/ai/physics/` | done | The Jitter2 subset is bit-exact against Jitter2 2.8.8 for the integration (embedded reference test). Slaves call `add_ship` / `remove_ship` / `set_ship_request` / `set_ship_driver` / `ship_state` and may install `ShipPhysicsHooks` (harpoon rope state). |
 | `WaterBodies`, `WaterBodyArea`, `Models/CryEngine/Objects` (`object.dat`) | `systems/ai/physics/{water,objects_file}.rs` | done | Water areas of all 1 294 client `object.dat` files equal the C# output bit for bit (differential harness, gated test `real_ai_object_dat_water_bodies`). Gimmick `FloatToSurface` uses them. |
 | `ShipTuningDebug`, `HarpoonMechanicsDebug` logging, `ShipHarpoonRopeController` | – | not ported / slaves | Debug code is hard-wired off in the C#; the rope controller belongs to the slaves subsystem. |
+| (Rust only) the 10.x zone server's collision world: terrain heightfield, `brush.dat` / `vegetation.dat` statics from CGF `MeshPhysicsData`, doodad colliders, ocean / water-volume buoyancy areas, living-entity proxies of units, ray / sweep query service, `GetBlinkPosition`, ZWUnitFell, ZWReportMoveHack, ZWUnitCollision, CryPhysics hulls | `systems/ai/collision/`, `systems/ai/physics/cry.rs` | done | On the CryPhysics port (`aaemu-physics`), `Configurations/Physics.json`. See "systems::ai collision" below. |
+
+#### systems::ai collision (the zone's physics, Rust only)
+
+References: `rust/docs/physics/ZONE-PHYSICS-USAGE.md`, `D:\aa-re\zone\agent_geom\{sub_cgf,sub_x2game}.md`,
+the x2game / cry3dengine decompiles (addresses below). Config `Physics` (`Configurations/Physics.json`):
+`Enable` (true), `Geometry` (`Terrain` / `Brushes` / `Full`), `LoadRadiusCells` (1), `LoadOnQuery`
+(true), `UnloadAfterSeconds` (600), `SyncPeriodMs` (1000), `DoodadColliders` (true),
+`PreloadAllCells` (false), `MovementVerifyEnable` (false = `movement_verify_enable 0`),
+`FallDamageZoneCap` (true), `CryPhysicsShips` (true). The service is off without client data
+(`HeightMapsEnable`); every caller then keeps its previous (C# / heightmap) answer.
+
+* **World per instance** (`collision::world::PhysWorld`): entity grid over the world (at most 1024
+  cells per axis, z origin −256), terrain heightfield from the `heightmap.dat` samples (2 m step;
+  fn-pointer callback slots, `collision::terrain`), the ocean as the global buoyancy area at
+  `oceanLevel` (density / resistance 1000), `SetWaterMat` index 1 *(inferred)*, `gEnv+289` set (no
+  DrawRayOnGrid limit).
+* **Cells** load lazily (`collision::residency`): around players and ships every `SyncPeriodMs`, by
+  queries that touch a cell (at most 16 cells per query); idle cells are unloaded. The zone loads
+  its zone's cells at start (`SeamlessSystem::LoadZone` 0x365704D0).
+* **Brushes** (`CBrush::Physicalize` 0x30111970): static entity at the brush matrix (scale =
+  |column 0|), parts 0x1000 (0x18FFF, 0x10FFF with a no-collide geometry, `| 0xA` with render flag
+  0x400000), 0x1001 (0x8000), 0x1002 (0x4000), entity flags `|= 0x8000`. The foreign-data class bits
+  of render flags 0x40 / 0x80 / 0x2000 are not modelled. **Vegetation** (`CVegetation::Physicalize`
+  0x30103DC0, matrix 0x30102840): static entity, density 800, flags 0x04018FFF, 0x1002 when present;
+  groups whose model only has a no-collide geometry (most grass / foliage) get no entity, like the
+  server (0x1001 needs the CVar ≥ 2). Not applied: the terrain alignment of `bAlignToTerrain`
+  groups. The sector order of `brush.dat` / `vegetation.dat` is x-major (fixed from the data: 99.2 %
+  of the trees sit on the terrain with it, 23 % with y-major).
+* **Models** (`collision::{cgf,models}`): every `MeshPhysicsData` slot of a node's mesh through
+  `LoadPhysGeometry` (blobs that share the render mesh get its positions / u16 indices / subset
+  material ids); node transforms are not applied (`AddPhysGeom` 0x300400D0 does not). Material
+  mappings / surface types are not loaded (hits report surface −1 / 0).
+* **Doodads** (`collision::objects`): model class by prefix (`sub_39451CE0`: `cgf://`,
+  `vegetation://`, `cga://`, `prefab://` = the Brush objects of the prefab library; else no geometry)
+  from `doodad_func_groups.model` (read by `collision::data`; the C# discards the column), flags by
+  `_UpdateCollisionParams` (`sub_39451190`: `collide_vehicle` 0x08, `collide_ship` 0x80,
+  `no_collision` → 0x8000 only). Synced from the doodads of the loaded cells every residency tick
+  (`sync_doodad` for immediate updates). Houses: the 1.2 DB has no house model paths (`prefab_models`
+  has ids only), so there are no house colliders. Gimmicks: not built.
+* **Units** (`collision::living`): inactive `CLivingEntity` proxies (P5) from
+  `actor_models.physics_living_*` + radius / height, placed on every client move (players, mounts)
+  and every residency tick (NPCs). The client stays authoritative; the zone's per-frame actor
+  simulation is not run.
+* **Queries** (`collision::{query,mod}`): `terrain_height` = `GetTerrainElevation` (`sub_300D4E00`:
+  triangle split on `dx + dy = 1`, 0 when a corner is 0 or below the first sample), `ground_height` =
+  first static / terrain hit (0x101, rays 0x8F) from z + 2 m down, `raycast` (any mask),
+  `line_of_sight` (0x101), `sweep_capsule` (PWI), `water_level` / `is_water` (the C# water bodies),
+  `surface_type` (0x11F). `displacement::blink_position` = `GetBlinkPosition` (`sub_3925E670` /
+  `sub_3925D990`).
+
+**Behaviour changes (with the service on):**
+
+* Blink (`WZBlinkUnit` 0x39369B10, terrain only) ends where the unit's collider stops, 0.1 m before a
+  contact, following 30° slopes; leap / dash end points and NPC knockback / impulse / explosion
+  pushes stop at static / rigid geometry (0x107) and land on the ground; teleport-to-unit uses the
+  ground at the end point; in-place resurrect snaps to the ground (`GetResurrectablePosition`
+  `sub_3925D3B0`).
+* Ground-targeted plot positions, doodad spawns / respawns, backpack drops, land slave summons and
+  transfer parts use the physics ground (static + terrain) instead of the bilinear heightmap; ship
+  summons read the sea floor with `GetTerrainElevation`.
+* Walking NPCs (not flying / holding / idling) stand on the physics ground (`reference_height_in`);
+  NPC spawner points snap to it within 1 m (`npc_spawn_on_terrain`). Real data: 1 487 of the 1 524
+  NPC spawns of the 4 busiest main_world cells are within 1 m of the physics ground (1 407 of the
+  terrain elevation alone; 178 stand on brushes).
+* Fall damage (`collision::movement`, ZWUnitFell 0x3935C850): the zone's tracker (`sub_392D7600`:
+  start z, max downward speed, landing on the physics ground) gates and caps the client's
+  `fallVel`: no damage when `min(v, √(40·Δh)) < 20 m/s`, else the client value capped at that
+  speed. The client value is converted with 32000 / 63.25 units per m/s *(inferred from the C#
+  curve)*. Swimming / hanging / attached units keep the client value (the movement path
+  `sub_39232570` forwards it). `FallDamageZoneCap = false` restores the C#.
+* Movement verification (off by default): reasons 0, 11, 12, 15–17 and 19 are logged (no consumer).
+* Ships (`physics::cry`, `CryPhysicsShips`): hull entities per `ShipUnitModel::InitPhysicalEntity`
+  (`sub_39286C50`) from `ship_models`; engine buoyancy (ocean + water-volume boxes) and collisions
+  (terrain, brushes, vegetation, `collide_ship` doodads, other hulls) replace the Jitter2 step, the
+  C# buoyancy force and the shore / ship–ship / doodad / barrier / steep-terrain depenetration.
+  Hull damage comes from the ZWUnitCollision aggregation: closing speeds ≤ 2 m/s are ignored (the C#
+  dealt 1 % on any overlap); the pair maximum per 500 ms (clamped to 10 m/s) gives the C#'s
+  speed-scaled percentage (nose-cone rule kept). The 1.2 data has neither the expression constants
+  (12 / 13 / 21) nor the `physics_collision_*_damage_mul` columns. The keel width (0.2 m) and the
+  default tube offset (half beam, the zone's `bbox.x / 2`) are inferred / taken literally.
+* Water volumes (`collision::water_areas`): world slot 83 (2-D polygon areas) is not ported, so
+  polygons are bounding boxes and rivers per-segment oriented boxes.
+
+**Measured** (release, 1.2 pak, `tests/collision_measure.rs`): the 3×3 cells (9..11, 13..15): 7 849
+statics, 675 models, 13 MB of blobs, 37 MB heap, 146 ms per cell, 3.5 µs per vertical ray. The whole
+main_world (1 330 cell slots): 152 059 brush + 68 809 vegetation entities, 4 295 models, 90 MB of
+blobs, 1.0 GB heap of which about 600 MB are the heightmap cells, 8 s; 1.0 µs per ray.
 
 #### systems::ai geodata deviations (engine behaviour instead of the C#)
 
