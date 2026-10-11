@@ -2,6 +2,10 @@
 
 Guidance for coding agents working in this repository.
 
+> **Starting the servers or the real client?** Read [`AGENT-QUICKSTART.md`](AGENT-QUICKSTART.md)
+> first: `Scripts/live-stack.sh build|sync|start|client|status|shot|stop`, machine paths, ports and
+> the rules that bite (C: is full, MySQL 3306 is off-limits, client folders are read-only).
+
 ## What this repo is
 
 Open-source **ArcheAge** server emulator written in **Rust** (Cargo workspace in `rust/`: `aaemu-login`, `aaemu-game`, shared `aaemu-commons`, the CryPhysics port `aaemu-physics`, the client launcher `aaemu-launcher`, the Lua client driver `aaemu-clientdriver`, tools, a headless test client and `xtask`). Local orchestration is **`cargo xtask dev`** (MySQL in Docker + login + game). Branch of record for active work: **`develop`**.
