@@ -1,10 +1,12 @@
-using AAEmu.Game;
+﻿using AAEmu.Game;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.UnitTests.Utils;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills.Plots;
 
@@ -21,6 +23,15 @@ public class PlotTreelessEndTests
     private const uint SkillId = 13499;
     private const uint PlotId = 47;
     private const int CooldownMs = 5000;
+
+    private SingletonScope<SkillManager> _skills;
+
+    [Before(HookType.Test)]
+    public void InstallSkillManager() =>
+        _skills = new SingletonScope<SkillManager>(TestManagers.CreateSkillManager());
+
+    [After(HookType.Test)]
+    public void RestoreSkillManager() => _skills?.Dispose();
 
     /// <summary>"…free TlId slots remaining with a total of: Gets 12, Releases 7".</summary>
     private static ulong ReleasesReported(string status)

@@ -1,4 +1,5 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
@@ -6,6 +7,7 @@ using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.UnitTests.Utils;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills.Plots;
 
@@ -20,6 +22,15 @@ public class PlotTimelineIdTests
 {
     private const ushort LaunchTlId = 372;
     private const uint PlotSkillId = 11;
+
+    private SingletonScope<SkillManager> _skills;
+
+    [Before(HookType.Test)]
+    public void InstallSkillManager() =>
+        _skills = new SingletonScope<SkillManager>(TestManagers.CreateSkillManager());
+
+    [After(HookType.Test)]
+    public void RestoreSkillManager() => _skills?.Dispose();
 
     private static Skill CreateClearedSkill()
     {
