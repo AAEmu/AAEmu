@@ -97,6 +97,18 @@ public class NpcTemplate
     public uint EquipClothsId { get; set; }
     public uint EquipWeaponsId { get; set; }
 
+    /// <summary><c>npcs.weapon_element_id</c> → <c>item_elements.id</c> for NPC-authored element hits.</summary>
+    public uint WeaponElementId { get; set; }
+
+    /// <summary><c>npcs.weapon_element_level</c>: specialisation level paired with <see cref="WeaponElementId"/>.</summary>
+    public int WeaponElementLevel { get; set; }
+
+    /// <summary><c>npcs.armor_type_id</c> → <c>enum_armor_types</c> (cloth/leather/metal) for element resist.</summary>
+    public uint ArmorTypeId { get; set; }
+
+    /// <summary><c>npcs.armor_element_level</c>: resist growth against the attacker's element.</summary>
+    public int ArmorElementLevel { get; set; }
+
     public uint HairId { get; set; } = 0;
     public UnitCustomModelParams ModelParams { get; set; } = new();
     public EquipItemsTemplate Items { get; set; } = new();

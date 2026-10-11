@@ -1,4 +1,6 @@
-using AAEmu.Game.Models.Game.Units;
+﻿using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills;
 
@@ -160,16 +162,49 @@ public static class DamageEffectRules
     /// <summary>
     /// The damage factor of a critical hit: the caster's typed critical bonus (<c>melee_critical_bonus</c> and
     /// its ranged and spell twins) plus this effect's own <c>critical_bonus</c>, less the victim's
-    /// flexibility, over 100 — the expression this path already applied, with the effect's authored bonus
-    /// folded in.
+    /// flexibility bonus reduction (formula 26 / <c>FlexibilityCriticalBonusReduction</c>), over 100.
     /// </summary>
     /// <remarks>
     /// <c>critical_bonus</c> is 0 on 10,999 of the 11,001 rows, and adding 0f is exact, so those rows
     /// crit for exactly what they crit for before. The two rows that author 100 (damage effects 2225 and
     /// 2227, both multiplier 2.0 hits) double the critical bonus on top of whatever the caster carries.
+    /// <paramref name="flexibilityBonusReduction"/> is already in critical-bonus units (not raw flexibility).
     /// </remarks>
-    public static float CriticalFactor(float unitCriticalBonus, int effectCriticalBonus, float victimFlexibility) =>
-        1f + ((unitCriticalBonus + effectCriticalBonus) - victimFlexibility / 100f) / 100f;
+    public static float CriticalFactor(
+        float unitCriticalBonus,
+        int effectCriticalBonus,
+        float flexibilityBonusReduction) =>
+        1f + ((unitCriticalBonus + effectCriticalBonus) - flexibilityBonusReduction) / 100f;
+
+    /// <summary>
+    /// Victim incoming scale: typed mul, then typed flat add (<c>incoming_*_damage_val</c> / Add attrs).
+    /// </summary>
+    public static float IncomingAdjust(float damage, float incomingMul, float incomingAdd) =>
+        damage * incomingMul + incomingAdd;
+
+    /// <summary>
+    /// True when the attacker stands outside the victim's front cone (<see cref="MathUtil.IsFront"/>).
+    /// </summary>
+    public static bool IsBackAttack(GameObject victim, GameObject attacker) =>
+        victim != null && attacker != null && !MathUtil.IsFront(victim, attacker);
+
+    /// <summary>
+    /// Typed <c>backattack_*_damage_mul</c> for this hit's damage type. Identity (1.0) when the type has
+    /// no back-attack twin (siege) or the caster carries no bonus.
+    /// </summary>
+    public static float SelectBackattackMul(DamageType damageType, Unit caster) => damageType switch
+    {
+        DamageType.Melee => caster.BackattackMeleeDamageMul,
+        DamageType.Ranged => caster.BackattackRangedDamageMul,
+        DamageType.Magic => caster.BackattackSpellDamageMul,
+        _ => NeutralFactor
+    };
+
+    /// <summary>
+    /// Applies the caster's back-attack mul only for a rear hit; front/side hits keep the identity factor.
+    /// </summary>
+    public static float BackattackFactor(bool isBackAttack, float backattackMul) =>
+        isBackAttack ? backattackMul : NeutralFactor;
 
     /// <summary>
     /// The damage a hit does against a victim carrying <c>target_buff_tag_id</c>: the authored multiplier,
@@ -188,6 +223,31 @@ public static class DamageEffectRules
     /// </remarks>
     public static float TargetBuffDamage(float damage, float targetBuffBonusMul, int targetBuffBonus) =>
         damage * targetBuffBonusMul + targetBuffBonus;
+
+    /// <summary>
+    /// Proficiency add-on on a damage hit (<c>actability_group_id</c> / <c>actability_step</c> /
+    /// <c>actability_add</c> / <c>actability_mul</c>). Same shape as the heal path: steps =
+    /// points / step, then flat add and a multiplicative share of the current value.
+    /// </summary>
+    /// <remarks>
+    /// 85 of 11,001 <c>damage_effects</c> rows author a non-zero add or mul (most are add 2.0 at
+    /// step 1000 on group 7). A missing group, a zero step, or zero add+mul leaves
+    /// <paramref name="value"/> unchanged.
+    /// </remarks>
+    public static int ActabilityAdjust(int value, int points, int step, float add, float mul)
+    {
+        if (step <= 0 || value < 0)
+            return value;
+        if (add == 0f && mul == 0f)
+            return value;
+
+        var steps = points / step;
+        if (add != 0f)
+            value += (int)(steps * add);
+        if (mul != 0f)
+            value += (int)(value * (float)steps * mul);
+        return value;
+    }
 
     /// <summary>
     /// The per-victim scale <c>target_health_min</c>/<c>max</c>/<c>mul</c>/<c>add</c> applies to the rolled

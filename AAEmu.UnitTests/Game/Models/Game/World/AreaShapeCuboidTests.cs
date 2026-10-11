@@ -58,4 +58,16 @@ public class AreaShapeCuboidTests
         var hits = shape.ComputeCuboid(origin, [At(0.5f, 0.5f), At(1.5f, 0f)]);
         await Assert.That(hits.Count).IsEqualTo(2);
     }
+
+    [Test]
+    public async Task ModelSizePad_PullsInANeighbourJustOutsideTheBox()
+    {
+        var shape = BoltBox();
+        var origin = Origin();
+        var neighbour = At(2.4f, 0f);
+        neighbour.ModelSize = 0.6f;
+        var hits = shape.ComputeCuboid(origin, [neighbour, At(3.5f, 0f)]);
+        await Assert.That(hits.Count).IsEqualTo(1);
+        await Assert.That(hits[0].ObjId).IsEqualTo(neighbour.ObjId);
+    }
 }

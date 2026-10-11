@@ -144,11 +144,8 @@ public class DamageEffect : EffectTemplate
     public float CombatResourceDpsMd { get; set; } = 1f;
 
     /// <summary>
-    /// <c>use_element_effect</c> (239 rows): scale the hit by <c>formulas</c> 65,
-    /// <c>(element_value / (element_value + 8000)) * element_effect_ratio * (1 - element_resist_value /
-    /// (element_resist_value + 200))</c>. Loaded, and not consumed yet: the 10.0.2.13 server has no source for
-    /// any of the three variables — <c>enum_unit_attribute</c> carries no element attack or resist id, and
-    /// <c>holdables.element_id</c>, <c>item_elements</c> and <c>armor_element_resists</c> are not loaded.
+    /// <c>use_element_effect</c> (239 rows): scale the hit by <c>formulas</c> 65 after the effect
+    /// multiplier. See <see cref="ElementDamageRules"/>.
     /// </summary>
     public bool UseElementEffect { get; set; }
 
@@ -301,16 +298,20 @@ public class DamageEffect : EffectTemplate
 
         // Stats/Weapon DPS
         var dpsInc = 0;
+        var vsNpc = trg is Npc;
         switch (DamageType)
         {
             case DamageType.Melee:
-                dpsInc = ((Unit)caster).DpsInc;
+                dpsInc = ((Unit)caster).DpsInc
+                    + (vsNpc ? ((Unit)caster).MeleeDpsIncAntiNpc : 0);
                 break;
             case DamageType.Magic:
-                dpsInc = ((Unit)caster).MDps + ((Unit)caster).MDpsInc;
+                dpsInc = ((Unit)caster).MDps + ((Unit)caster).MDpsInc
+                    + (vsNpc ? ((Unit)caster).SpellDpsIncAntiNpc : 0);
                 break;
             case DamageType.Ranged:
-                dpsInc = ((Unit)caster).RangedDpsInc;
+                dpsInc = ((Unit)caster).RangedDpsInc
+                    + (vsNpc ? ((Unit)caster).RangedDpsIncAntiNpc : 0);
                 break;
             case DamageType.Siege:
                 // siege_dps (260), the siege counterpart of spell_dps: the caster's own contribution to the
@@ -362,6 +363,15 @@ public class DamageEffect : EffectTemplate
         min *= Multiplier;
         max *= Multiplier;
 
+        // use_element_effect / formulas 65: after the effect multiplier, before distance factors. A row
+        // that clears the flag, a weapon with no element, or a missing content row leaves factor 0 —
+        // ApplyBonus is then bit-for-bit the input.
+        var elementFactor = ElementDamageRules.FactorFor(
+            UseElementEffect, (Unit)caster, trg, WeaponSlotId,
+            UseMainhandWeapon, UseOffhandWeapon, UseRangedWeapon);
+        min = ElementDamageRules.ApplyBonus(min, elementFactor);
+        max = ElementDamageRules.ApplyBonus(max, elementFactor);
+
         // Distance factors, from the content's own rows: damage_multiplier_by_height (formulas 11) for the
         // 10,584 rows that leave adjust_damage_by_height set, and damage_multiplier_by_range (formulas 12)
         // for the 123 that set adjust_damage_by_range. Both are the identity — `min *= 1f` is bit-for-bit
@@ -406,6 +416,14 @@ public class DamageEffect : EffectTemplate
 
         min *= antiKindMultiplier;
         max *= antiKindMultiplier;
+
+        // backattack_*_damage_mul (attrs 121-123): only when the caster is outside the victim's front cone.
+        // A caster with no bonus keeps factor 1.0 either way.
+        var backattackFactor = DamageEffectRules.BackattackFactor(
+            DamageEffectRules.IsBackAttack(trg, caster),
+            DamageEffectRules.SelectBackattackMul(DamageType, (Unit)caster));
+        min *= backattackFactor;
+        max *= backattackFactor;
 
         if (source.Skill != null)
         {
@@ -535,22 +553,21 @@ public class DamageEffect : EffectTemplate
         if (caster is Character && trg is Character)
             finalDamage *= 1 - CombatFormulaRules.BattleResistReduction(trg.BattleResist);
 
-        // Do Critical Dmgs
+        // Do Critical Dmgs — flexibility reduction is formula 26 (same scale as critical_bonus), not raw/100.
         var flexibilityBonusReduction = CombatFormulaRules.FlexibilityCriticalBonusReduction(trg.Flexibility);
         switch (hitType)
         {
             case SkillHitType.MeleeCritical:
                 finalDamage *= DamageEffectRules.CriticalFactor(
-                    ((Unit)caster).MeleeCriticalBonus, CriticalBonus, trg.Flexibility);
+                    ((Unit)caster).MeleeCriticalBonus, CriticalBonus, flexibilityBonusReduction);
                 break;
             case SkillHitType.RangedCritical:
                 finalDamage *= DamageEffectRules.CriticalFactor(
-                    ((Unit)caster).RangedCriticalBonus, CriticalBonus, trg.Flexibility);
+                    ((Unit)caster).RangedCriticalBonus, CriticalBonus, flexibilityBonusReduction);
                 break;
             case SkillHitType.SpellCritical:
                 finalDamage *= DamageEffectRules.CriticalFactor(
-                    ((Unit)caster).SpellCriticalBonus, CriticalBonus, trg.Flexibility);
-                break;
+                    ((Unit)caster).SpellCriticalBonus, CriticalBonus, flexibilityBonusReduction);
                 break;
             default:
                 break;
@@ -567,31 +584,65 @@ public class DamageEffect : EffectTemplate
                 case DamageType.Melee:
                     armor = Math.Max(0f, targetUnit.Armor - ((Unit)caster).DefensePenetration);
                     reductionMul = 1.0f - armor / (armor + 5300.0f);
-                    finalDamage = finalDamage * targetUnit.IncomingMeleeDamageMul;
+                    finalDamage = DamageEffectRules.IncomingAdjust(
+                        finalDamage,
+                        targetUnit.IncomingMeleeDamageMul
+                        * (caster is Npc ? targetUnit.IncomingDamageMulAntiNpc : 1f),
+                        targetUnit.IncomingMeleeDamageAdd
+                        + (caster is Npc ? targetUnit.IncomingMeleeDamageAddAntiNpc : 0f));
                     break;
                 case DamageType.Ranged:
                     armor = Math.Max(0f, targetUnit.Armor - ((Unit)caster).DefensePenetration);
                     reductionMul = 1.0f - armor / (armor + 5300.0f);
-                    finalDamage = finalDamage * targetUnit.IncomingRangedDamageMul;
+                    finalDamage = DamageEffectRules.IncomingAdjust(
+                        finalDamage,
+                        targetUnit.IncomingRangedDamageMul
+                        * (caster is Npc ? targetUnit.IncomingDamageMulAntiNpc : 1f),
+                        targetUnit.IncomingRangedDamageAdd
+                        + (caster is Npc ? targetUnit.IncomingRangedDamageAddAntiNpc : 0f));
                     break;
                 case DamageType.Magic:
                     armor = Math.Max(0f, targetUnit.MagicResistance - ((Unit)caster).MagicPenetration);
                     reductionMul = 1.0f - armor / (armor + 5300.0f);
-                    finalDamage = finalDamage * targetUnit.IncomingSpellDamageMul;
+                    finalDamage = DamageEffectRules.IncomingAdjust(
+                        finalDamage,
+                        targetUnit.IncomingSpellDamageMul
+                        * (caster is Npc ? targetUnit.IncomingDamageMulAntiNpc : 1f),
+                        targetUnit.IncomingSpellDamageAdd
+                        + (caster is Npc ? targetUnit.IncomingSpellDamageAddAntiNpc : 0f));
                     break;
                 case DamageType.Siege:
                     // incoming_siege_damage_mul (149), read off the victim. Siege damage still takes no
                     // armour reduction, as it did on the default branch, and still takes IncomingDamageMul:
                     // a victim without a 149 row has a factor of exactly 1.0f here and keeps its numbers.
-                    finalDamage = finalDamage * targetUnit.IncomingSiegeDamageMul * targetUnit.IncomingDamageMul;
+                    finalDamage = DamageEffectRules.IncomingAdjust(
+                        finalDamage,
+                        targetUnit.IncomingSiegeDamageMul * targetUnit.IncomingDamageMul
+                        * (caster is Npc ? targetUnit.IncomingDamageMulAntiNpc : 1f),
+                        targetUnit.IncomingSiegeDamageAdd);
                     break;
                 default:
-                    finalDamage = finalDamage * targetUnit.IncomingDamageMul;
+                    finalDamage = DamageEffectRules.IncomingAdjust(
+                        finalDamage,
+                        targetUnit.IncomingDamageMul
+                        * (caster is Npc ? targetUnit.IncomingDamageMulAntiNpc : 1f),
+                        0f);
                     break;
             }
         }
         var value = (int)(finalDamage * reductionMul);
         var absorbed = (int)(finalDamage * (1.0f - reductionMul));
+
+        // actability_* (85 rows): same proficiency steps as HealEffect — after mitigation so the
+        // add/mul land on the number the packet reports. Identity when the group is unset or the
+        // caster has no actability table.
+        if (caster is Character damagePlayer && ActabilityGroupId > 0 &&
+            damagePlayer.Actability.Actabilities.TryGetValue(ActabilityGroupId, out var damageActability))
+        {
+            value = DamageEffectRules.ActabilityAdjust(
+                value, damageActability.Point, ActabilityStep, ActabilityAdd, ActabilityMul);
+        }
+
         var healthStolen = (int)(value * (HealthStealRatio / 100.0f));
         var manaStolen = (int)(value * (ManaStealRatio / 100.0f));
 

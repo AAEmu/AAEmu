@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Game.Utils;
 
@@ -56,18 +56,34 @@ public class AreaShape
             //origin.Transform.World.ToRollPitchYawSBytes().Item3);
             origin.Transform.World.Rotation.Z);
 
+        var originPos = origin.Transform.World.Position;
         toCheck = toCheck.Where(o =>
         {
-            var tri1 = MathUtil.PointInTriangle((o.Transform.World.Position.X, o.Transform.World.Position.Y), vertices[0], vertices[1],
-                vertices[2]);
+            var p = o.Transform.World.Position;
+            var tri1 = MathUtil.PointInTriangle((p.X, p.Y), vertices[0], vertices[1], vertices[2]);
 
             // Fan from vertex 0, not (v1,v2,v3): the quad's two triangles have to share a diagonal
             // through the SAME corner. Splitting it as (v0,v1,v2)+(v1,v2,v3) leaves a quarter-wedge
             // of every cuboid uncovered, so an entire quarter of each box AoE never registered a hit.
-            var tri2 = MathUtil.PointInTriangle((o.Transform.World.Position.X, o.Transform.World.Position.Y), vertices[0], vertices[2],
-                vertices[3]);
+            var tri2 = MathUtil.PointInTriangle((p.X, p.Y), vertices[0], vertices[2], vertices[3]);
+            if (tri1 || tri2)
+                return true;
 
-            return tri1 || tri2;
+            // Body radius: Gods' Whip Wave bolts use a 2×2 box; a mob whose centre sits just outside
+            // still overlaps the volume. Treat ModelSize as an XY pad toward the box centre.
+            var pad = o.ModelSize;
+            if (pad <= 0f)
+                return false;
+            var dx = originPos.X - p.X;
+            var dy = originPos.Y - p.Y;
+            var dist = MathF.Sqrt(dx * dx + dy * dy);
+            if (dist <= pad)
+                return true;
+            var scale = (dist - pad) / dist;
+            var qx = originPos.X - dx * scale;
+            var qy = originPos.Y - dy * scale;
+            return MathUtil.PointInTriangle((qx, qy), vertices[0], vertices[1], vertices[2])
+                   || MathUtil.PointInTriangle((qx, qy), vertices[0], vertices[2], vertices[3]);
         }).ToList();
 
         return toCheck;

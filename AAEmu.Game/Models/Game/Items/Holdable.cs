@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Formulas;
+﻿using AAEmu.Game.Models.Game.Formulas;
 
 namespace AAEmu.Game.Models.Game.Items;
 
@@ -29,6 +29,11 @@ public class Holdable
     public int RenewCategory { get; set; }
     public int ItemProcId { get; set; }
     public int StatMultiplier { get; set; }
+
+    /// <summary>
+    /// <c>holdables.element_id</c> → <c>item_elements.id</c>. 0 means the holdable carries no attack element.
+    /// </summary>
+    public uint ElementId { get; set; }
 
     // Attack animation IDs per weapon — right hand (R) and left hand (L)
     public uint AnimR1Id { get; set; }

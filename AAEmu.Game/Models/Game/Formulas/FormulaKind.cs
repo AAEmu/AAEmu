@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Formulas;
+﻿namespace AAEmu.Game.Models.Game.Formulas;
 
 public enum FormulaKind
 {
@@ -86,4 +86,10 @@ public enum FormulaKind
     /// (the piece) and gain_item_level (the slot ladder's own gain at the level the client shows).
     /// </summary>
     EquipSlotReinforceGainItemLevel = 69,
+
+    /// <summary>
+    /// Element specialisation damage scale (<c>use_element_effect</c>). Variables: element_value,
+    /// element_effect_ratio, element_resist_value.
+    /// </summary>
+    ElementDamageEffect = 65,
 };

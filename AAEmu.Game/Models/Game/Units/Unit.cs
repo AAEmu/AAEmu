@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Numerics;
 
 using AAEmu.Commons.Network;
@@ -44,8 +44,11 @@ public class Unit : BaseUnit, IUnit
     {
         get
         {
-            return (ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0) * Scale;
+            var radius = ModelManager.Instance.GetActorModel(ModelId)?.Radius;
+            // Fall back to the GameObject value when models are not loaded (unit hosts / tests).
+            return radius is > 0f ? radius.Value * Scale : base.ModelSize;
         }
+        set => base.ModelSize = value;
     }
 
     public virtual float BaseMoveSpeed
@@ -190,6 +193,17 @@ public class Unit : BaseUnit, IUnit
     public virtual int HDps { get; set; }
     [UnitAttribute(UnitAttribute.HealDpsInc)]
     public virtual int HDpsInc { get; set; }
+
+    /// <summary>
+    /// Flat DPS-inc against NPCs only (<c>melee_dps_inc_anti_npc</c> and siblings). Added into the hit's
+    /// dpsInc term when the victim is an NPC; zero when unset.
+    /// </summary>
+    [UnitAttribute(UnitAttribute.MeleeDpsIncAntiNpc)]
+    public virtual int MeleeDpsIncAntiNpc => (int)CalculateWithBonuses(0d, UnitAttribute.MeleeDpsIncAntiNpc);
+    [UnitAttribute(UnitAttribute.RangedDpsIncAntiNpc)]
+    public virtual int RangedDpsIncAntiNpc => (int)CalculateWithBonuses(0d, UnitAttribute.RangedDpsIncAntiNpc);
+    [UnitAttribute(UnitAttribute.SpellDpsIncAntiNpc)]
+    public virtual int SpellDpsIncAntiNpc => (int)CalculateWithBonuses(0d, UnitAttribute.SpellDpsIncAntiNpc);
     // Was annotated MeleeAntiMissMul (78), which the property does not read: MeleeAccuracy is the
     // MeleeAntiMiss (18) stat — Character.MeleeAccuracy evaluates the MeleeAntiMiss formula and composes
     // CalculateWithBonuses(res, MeleeAntiMiss) into it. 78 is the anti-miss *multiplier* and lives on the
@@ -278,6 +292,16 @@ public class Unit : BaseUnit, IUnit
     [UnitAttribute(UnitAttribute.HealDamageMul)]
     public virtual float HealDamageMul => PerMilleDeltaMul(UnitAttribute.HealDamageMul);
 
+    // Back-attack output (enum_unit_attribute 121-123). Same per-mille shape as MeleeDamageMul: no row is
+    // exactly 1.0x, and the C-window keys are backattack_melee/ranged/spell_damage_mul. DamageEffect only
+    // applies these when the attacker is outside the victim's front cone.
+    [UnitAttribute(UnitAttribute.BackattackMeleeDamageMul)]
+    public virtual float BackattackMeleeDamageMul => PerMilleDeltaMul(UnitAttribute.BackattackMeleeDamageMul);
+    [UnitAttribute(UnitAttribute.BackattackRangedDamageMul)]
+    public virtual float BackattackRangedDamageMul => PerMilleDeltaMul(UnitAttribute.BackattackRangedDamageMul);
+    [UnitAttribute(UnitAttribute.BackattackSpellDamageMul)]
+    public virtual float BackattackSpellDamageMul => PerMilleDeltaMul(UnitAttribute.BackattackSpellDamageMul);
+
     /// <summary>
     /// Composes a <c>*_mul</c> attribute authored as a per-mille delta from 0, the shape
     /// <c>Character.MeleeDamageMul</c> and <c>Character.HealMul</c> already use: the 1000 baseline is
@@ -298,6 +322,33 @@ public class Unit : BaseUnit, IUnit
     public virtual float IncomingRangedDamageMul { get; set; } = 1f;
     [UnitAttribute(UnitAttribute.IncomingSpellDamageMul)]
     public virtual float IncomingSpellDamageMul { get; set; } = 1f;
+
+    // Flat incoming adds (enum 142/144/146/148 + anti-NPC 200-202). C-window keys
+    // incoming_*_damage_val. Zero when unset; negative values reduce damage taken.
+    [UnitAttribute(UnitAttribute.IncomingMeleeDamageAdd)]
+    public virtual float IncomingMeleeDamageAdd => (float)CalculateWithBonuses(0d, UnitAttribute.IncomingMeleeDamageAdd);
+    [UnitAttribute(UnitAttribute.IncomingRangedDamageAdd)]
+    public virtual float IncomingRangedDamageAdd => (float)CalculateWithBonuses(0d, UnitAttribute.IncomingRangedDamageAdd);
+    [UnitAttribute(UnitAttribute.IncomingSpellDamageAdd)]
+    public virtual float IncomingSpellDamageAdd => (float)CalculateWithBonuses(0d, UnitAttribute.IncomingSpellDamageAdd);
+    [UnitAttribute(UnitAttribute.IncomingSiegeDamageAdd)]
+    public virtual float IncomingSiegeDamageAdd => (float)CalculateWithBonuses(0d, UnitAttribute.IncomingSiegeDamageAdd);
+    [UnitAttribute(UnitAttribute.IncomingMeleeDamageAddAntiNpc)]
+    public virtual float IncomingMeleeDamageAddAntiNpc =>
+        (float)CalculateWithBonuses(0d, UnitAttribute.IncomingMeleeDamageAddAntiNpc);
+    [UnitAttribute(UnitAttribute.IncomingRangedDamageAddAntiNpc)]
+    public virtual float IncomingRangedDamageAddAntiNpc =>
+        (float)CalculateWithBonuses(0d, UnitAttribute.IncomingRangedDamageAddAntiNpc);
+    [UnitAttribute(UnitAttribute.IncomingSpellDamageAddAntiNpc)]
+    public virtual float IncomingSpellDamageAddAntiNpc =>
+        (float)CalculateWithBonuses(0d, UnitAttribute.IncomingSpellDamageAddAntiNpc);
+
+    /// <summary>
+    /// Incoming damage multiplier vs NPC attackers only (<c>incoming_damage_mul_anti_npc</c>). Same
+    /// per-mille delta shape as the typed incoming muls: unset is exactly 1.0f.
+    /// </summary>
+    [UnitAttribute(UnitAttribute.IncomingDamageMulAntiNpc)]
+    public virtual float IncomingDamageMulAntiNpc => PerMilleDeltaMul(UnitAttribute.IncomingDamageMulAntiNpc);
 
     // Attack pace and siege output (enum_unit_attribute 54, 55, 119, 149, 204, 215, 218, 260, 261).
     // The attack-speed ids are one rating seen from several sides, so they are read as the raw per-mille
@@ -1799,9 +1850,16 @@ public class Unit : BaseUnit, IUnit
 
     private void ApplyWeaponWieldBuff()
     {
+        // Always clear: NPCs/mates/slaves used to keep 쌍수/방패/양손 from their cosmetic
+        // equipment slots and show those player-only icons on the target frame.
         Buffs.RemoveBuff((uint)BuffConstants.EquipDualwield);
         Buffs.RemoveBuff((uint)BuffConstants.EquipShield);
         Buffs.RemoveBuff((uint)BuffConstants.EquipTwoHanded);
+
+        // Player loadout only. NpcManager still calls UpdateGearBonuses for body/weapon
+        // templates; those are visuals/DPS, not the equip-stance buffs.
+        if (this is not Character)
+            return;
 
         BuffTemplate buffTemplate = null;
         switch (GetWeaponWieldKind())

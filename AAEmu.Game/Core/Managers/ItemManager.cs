@@ -40,6 +40,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
     private Dictionary<int, GradeTemplate> _grades;
     private Dictionary<uint, Holdable> _holdables;
+    private Dictionary<uint, ItemElementDesc> _itemElements;
+    private Dictionary<(uint ArmorTypeId, uint ItemElementId), ArmorElementResistDesc> _armorElementResists;
     private Dictionary<string, uint> _constHoldableTypes;
     private Dictionary<string, uint> _constItemTypes;
     private HashSet<uint> _itemInstrumentSounds;
@@ -161,6 +163,19 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     {
         return _holdables.GetValueOrDefault(id);
     }
+
+    /// <summary><c>item_elements</c> row by id, or null when absent.</summary>
+    public ItemElementDesc GetItemElement(uint id) =>
+        _itemElements != null && _itemElements.TryGetValue(id, out var row) ? row : null;
+
+    /// <summary>
+    /// <c>armor_element_resists</c> row for one armor type against one attack element, or null.
+    /// </summary>
+    public ArmorElementResistDesc GetArmorElementResist(uint armorTypeId, uint itemElementId) =>
+        _armorElementResists != null
+        && _armorElementResists.TryGetValue((armorTypeId, itemElementId), out var row)
+            ? row
+            : null;
 
     /// <summary>Wearable-slot row by slot type id (coverage + gear-score weight).</summary>
     public WearableSlot GetWearableSlot(uint slotTypeId)
@@ -616,6 +631,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
         _grades = [];
         _holdables = [];
+        _itemElements = [];
+        _armorElementResists = [];
         _constHoldableTypes = new Dictionary<string, uint>(StringComparer.Ordinal);
         _constItemTypes = new Dictionary<string, uint>(StringComparer.Ordinal);
         _itemInstrumentSounds = [];
@@ -812,10 +829,57 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             AnimR2Id = reader.GetUInt32("anim_r2_id", 0),
                             AnimL2Id = reader.GetUInt32("anim_l2_id", 0),
                             AnimR3Id = reader.GetUInt32("anim_r3_id", 0),
-                            AnimL3Id = reader.GetUInt32("anim_l3_id", 0)
+                            AnimL3Id = reader.GetUInt32("anim_l3_id", 0),
+                            ElementId = reader.GetUInt32("element_id", 0)
                         };
 
                         _holdables.Add(template.Id, template);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT id, default_element_value, add_element_value FROM item_elements";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var row = new ItemElementDesc
+                        {
+                            Id = reader.GetUInt32("id"),
+                            DefaultElementValue = reader.GetInt32("default_element_value"),
+                            AddElementValue = reader.GetInt32("add_element_value")
+                        };
+                        _itemElements[row.Id] = row;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT id, armor_type_id, item_element_id, default_element_resist_value, " +
+                    "add_element_resist_value, effect_ratio FROM armor_element_resists";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var row = new ArmorElementResistDesc
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ArmorTypeId = reader.GetUInt32("armor_type_id"),
+                            ItemElementId = reader.GetUInt32("item_element_id"),
+                            DefaultElementResistValue = reader.GetInt32("default_element_resist_value"),
+                            AddElementResistValue = reader.GetInt32("add_element_resist_value"),
+                            EffectRatio = reader.GetInt32("effect_ratio")
+                        };
+                        _armorElementResists[(row.ArmorTypeId, row.ItemElementId)] = row;
                     }
                 }
             }

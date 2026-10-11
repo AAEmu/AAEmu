@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
 using System.Xml;
@@ -1319,8 +1319,11 @@ public class WorldManager(
                 }
             case AreaShapeType.Cuboid:
                 {
-                    var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
-                    var res = GetAround<T>(obj, (float)diagonal, true);
+                    // Half-extents Value1/Value2 → corner at hypot; pad so a unit whose centre sits
+                    // just outside the box but whose model overlaps still enters ComputeCuboid.
+                    // A tight hypot-only radius dropped neighbours of Gods' Whip Wave bolts (2×2 box).
+                    var corner = MathF.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
+                    var res = GetAround<T>(obj, corner + 2f, true);
                     res = shape.ComputeCuboid(obj, res);
                     return res;
                 }
