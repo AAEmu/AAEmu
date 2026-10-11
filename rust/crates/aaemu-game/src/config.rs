@@ -114,6 +114,9 @@ pub struct AppConfig {
     /// `HeightMapsEnable` (C# default false; the shipped Config.json sets it to true).
     #[serde(rename = "heightmapsenable", deserialize_with = "lenient")]
     pub heightmaps_enable: bool,
+    /// `Physics` (`systems::ai::collision::config`, Rust only: the CryPhysics collision world).
+    #[serde(rename = "physics")]
+    pub physics: crate::systems::ai::collision::config::PhysicsConfig,
     /// `FileManager.AppPath`: the directory holding `Config.json` and `Data/compact.sqlite3`.
     #[serde(skip)]
     pub app_path: PathBuf,
@@ -150,6 +153,7 @@ impl Default for AppConfig {
             justice: Default::default(),
             dungeons: Default::default(),
             heightmaps_enable: false,
+            physics: Default::default(),
             app_path: PathBuf::from("."),
         }
     }
@@ -483,7 +487,8 @@ pub const USER_SECRETS_ID: &str = "426ad5c3-9a72-44e9-88f5-4b5940b98c28";
 
 /// The top-level `AppConfiguration` members (environment variables are only applied below
 /// these keys; anything else could never bind).
-const TOP_LEVEL_KEYS: [&str; 28] = [
+const TOP_LEVEL_KEYS: [&str; 29] = [
+    "physics",
     "id",
     "additionalesid",
     "secretkey",

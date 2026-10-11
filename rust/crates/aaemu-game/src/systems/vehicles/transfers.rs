@@ -270,13 +270,16 @@ pub fn create(
             &mut part.unit.transform,
             BOUNDED_CHILD_ALONG_FRONT_OFFSET_METERS,
         );
-        let h = crate::systems::npcs::heightmap::world_height(
-            server,
-            world,
+        // the ground under the part (zone: transfer path rays 0x101, sub_3973EF70)
+        let (px, py, pz) = (
             part.unit.transform.x,
             part.unit.transform.y,
-        )
-        .unwrap_or(0.0);
+            part.unit.transform.z,
+        );
+        let h =
+            crate::systems::ai::collision::ground_height_or(server, world.id, px, py, pz, || {
+                crate::systems::npcs::heightmap::world_height(server, world, px, py).unwrap_or(0.0)
+            });
         part.unit.transform.set_height(h);
         let part = Entity::new(part_obj_id, part);
         let part_obj = WorldObject::from(&part);

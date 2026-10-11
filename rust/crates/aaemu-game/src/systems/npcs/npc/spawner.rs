@@ -1329,7 +1329,15 @@ fn spawn_npc(
     let can_fly = npc.data().can_fly;
     if !can_fly {
         let mut p = spawner.position();
-        let new_z = geo_data_height(server, &world, p.x, p.y);
+        // npc_spawn_on_terrain: the physics ground (collision service) under the spawn point
+        let new_z = crate::systems::ai::collision::ground_height_or(
+            server,
+            world.id,
+            p.x,
+            p.y,
+            p.z,
+            || geo_data_height(server, &world, p.x, p.y),
+        );
         if (p.z - new_z).abs() < 1.0 {
             p.z = new_z;
             spawner.set_position(p);

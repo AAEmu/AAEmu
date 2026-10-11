@@ -842,12 +842,23 @@ fn update_area_target(
     }
     // Max(previous Z + offset, WorldManager.GetHeight(posUnit.Transform))
     let prev_z = world_pos(server, &prev).z;
-    let ground = crate::systems::npcs::heightmap::get_height(
+    // zone: the ground (static + terrain) under the target position (collision service);
+    // without it the C# heightmap height.
+    let ground = crate::systems::ai::collision::ground_height_or(
         server,
-        pos.zone_id,
+        pos.instance_id,
         pos.pos.x,
         pos.pos.y,
         pos.pos.z,
+        || {
+            crate::systems::npcs::heightmap::get_height(
+                server,
+                pos.zone_id,
+                pos.pos.x,
+                pos.pos.y,
+                pos.pos.z,
+            )
+        },
     );
     pos.pos.z = (prev_z + args.height_offset as f32 / 1000.0).max(ground);
     let pos_t = Target::Pos(pos);

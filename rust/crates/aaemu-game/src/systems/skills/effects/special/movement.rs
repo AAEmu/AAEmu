@@ -66,9 +66,37 @@ pub(crate) fn move_npc(
     displaced: bool,
 ) {
     let obj = WorldObject::from(npc);
-    let (x, y, mut z) = end;
-    // `GeoData.GetHeight(end)`: snap to the ground when it is within 5 m.
-    if let Some(world) = world_of(server, &obj) {
+    let (mut x, mut y, mut z) = end;
+    let instance_id = obj.transform().instance_id;
+    let start = world_pos(server, &Target::Obj(obj.clone()));
+    // Displacements (knockback, impulse, explosion): the zone moves the unit's physics
+    // (WZKnockBackUnit 0x39258BB0 / X2::Unit::Impulse 0x3925C7D0), so it stops at walls and
+    // lands on the ground: `GetBlinkPosition` along the push, then the ground under the end
+    // point (collision service).
+    let physics_end = if displaced {
+        crate::systems::ai::collision::displacement::clip_move(
+            server,
+            instance_id,
+            [start.x, start.y, start.z],
+            [x, y, start.z],
+        )
+        .and_then(|p| {
+            let g = crate::systems::ai::collision::ground_height(
+                server,
+                instance_id,
+                p[0],
+                p[1],
+                z.max(p[2]),
+            )?;
+            Some((p[0], p[1], g))
+        })
+    } else {
+        None
+    };
+    if let Some(p) = physics_end {
+        (x, y, z) = p;
+    } else if let Some(world) = world_of(server, &obj) {
+        // `GeoData.GetHeight(end)`: snap to the ground when it is within 5 m.
         let ground_z = crate::systems::npcs::npc::spawner::geo_data_height(server, &world, x, y);
         if ground_z > 0.0 && (z - ground_z).abs() < 5.0 {
             z = ground_z;
@@ -145,6 +173,7 @@ pub fn blink(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     if let Some(p) = caster.as_player() {
         let mut new_pos = world_pos(server, &Target::Obj(caster.clone()));
         add_distance_to_front(&mut new_pos, v[0] as f32);
+        blink_end(server, caster, &mut new_pos);
         server
             .systems
             .skills
@@ -162,6 +191,7 @@ pub fn blink(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     } else if let Some(npc) = caster.as_npc() {
         let mut new_pos = world_pos(server, &Target::Obj(caster.clone()));
         add_distance_to_front(&mut new_pos, v[0] as f32);
+        blink_end(server, caster, &mut new_pos);
         move_npc(
             server,
             npc,
@@ -169,6 +199,42 @@ pub fn blink(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
             Some((v[0] as f32, v[1] as f32)),
             false,
         );
+    }
+}
+
+/// `WZBlinkUnit` (x2game 0x39369B10 → `GetBlinkPosition` 0x3925E670): the zone sweeps the
+/// unit's collider from its position towards the blink target against the terrain
+/// (`entTypes 256`), stopping 0.1 m before a contact and stepping down 30° slopes. Without the
+/// collision service the target is kept (C#).
+fn blink_end(server: &GameServer, unit: &WorldObject, target: &mut PositionAndRotation) {
+    let from = world_pos(server, &Target::Obj(unit.clone()));
+    let dir = [target.x - from.x, target.y - from.y, target.z - from.z];
+    let dist = (dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]).sqrt();
+    if dist <= 0.0 {
+        return;
+    }
+    let instance_id = unit.transform().instance_id;
+    // the unit's living-entity collider (sub_3925E670), the default capsule without a model
+    let collider = match unit.with_unit(|u| u.unit().model_id) {
+        Some(m) => crate::systems::ai::collision::displacement::Collider::from_living(
+            &crate::systems::ai::collision::living::unit_params(server, m),
+        ),
+        None => crate::systems::ai::collision::displacement::Collider::default(),
+    };
+    if let Some(p) = crate::systems::ai::collision::displacement::blink_position(
+        server,
+        instance_id,
+        [from.x, from.y, from.z],
+        dir,
+        dist,
+        false,
+        crate::systems::ai::collision::displacement::ENT_TYPES_BLINK_UNIT,
+        false,
+        &collider,
+    ) {
+        target.x = p[0];
+        target.y = p[1];
+        target.z = p[2];
     }
 }
 
@@ -202,6 +268,15 @@ pub fn teleport_to_unit(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4])
     let Some(caster) = &args.caster else {
         return;
     };
+    // the ground at the end point (collision service; else the target's z as in C#)
+    let end_z = crate::systems::ai::collision::ground_height_or(
+        server,
+        caster.transform().instance_id,
+        end_x,
+        end_y,
+        target_position.z,
+        || target_position.z,
+    );
     if let Some(p) = caster.as_player() {
         p.send(SCBlinkUnitPacket {
             obj_id: caster.obj_id(),
@@ -209,16 +284,10 @@ pub fn teleport_to_unit(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4])
             degree: 0.0,
             x: end_x,
             y: end_y,
-            z: target_position.z,
+            z: end_z,
         });
     } else if let Some(npc) = caster.as_npc() {
-        move_npc(
-            server,
-            npc,
-            (end_x, end_y, target_position.z),
-            Some((0.0, 0.0)),
-            false,
-        );
+        move_npc(server, npc, (end_x, end_y, end_z), Some((0.0, 0.0)), false);
     }
 }
 
@@ -288,6 +357,7 @@ pub fn knock_back(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     if target.as_player().is_some() {
         return;
     }
+
     if let Some(npc) = target.as_npc() {
         move_npc(server, npc, end, None, true);
     }

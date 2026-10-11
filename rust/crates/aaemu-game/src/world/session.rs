@@ -805,14 +805,17 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
                     .sus
                     .finalize_transform(server, &target);
             }
+            // the zone's view of the move (systems::ai::collision): ZWUnitFell gate / cap and
+            // the movement verifier; the client fallVel without the collision service
+            let fall_vel = crate::systems::ai::collision::movement::on_unit_moved(
+                server, &world, &target, mt.time, u,
+            );
             match target.as_player() {
                 // Character.SetPosition (BuffRemoveOn.Move when moved) + DoFallDamage(FallVel).
-                Some(player) => {
-                    crate::systems::skills::on_moved(server, player, old_pos, u.fall_vel)
-                }
+                Some(player) => crate::systems::skills::on_moved(server, player, old_pos, fall_vel),
                 None => {
-                    if u.fall_vel > 0 && target.is_unit() {
-                        crate::systems::vehicles::do_fall_damage(server, &target, u.fall_vel);
+                    if fall_vel > 0 && target.is_unit() {
+                        crate::systems::vehicles::do_fall_damage(server, &target, fall_vel);
                     }
                 }
             }

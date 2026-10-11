@@ -117,6 +117,11 @@ fn pair_mass_weights(mass_a: f32, mass_b: f32) -> (f32, f32) {
     (wa, 1.0 - wa)
 }
 
+/// `IsOtherShipInNoseCone` (public for the CryPhysics collision damage).
+pub fn nose_cone(to_x: f32, to_z: f32, bow: f32) -> bool {
+    is_other_ship_in_nose_cone(to_x, to_z, bow)
+}
+
 fn is_other_ship_in_nose_cone(to_x: f32, to_z: f32, bow: f32) -> bool {
     let len_sq = to_x * to_x + to_z * to_z;
     if len_sq < 0.04 {

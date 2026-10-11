@@ -72,6 +72,8 @@ pub struct ShipModel {
     pub mass_box_size_y: f32,
     pub mass_box_size_z: f32,
     pub water_density: f32,
+    /// `water_damping` (Rust: the CryPhysics hull buoyancy, `physics::cry`).
+    pub water_damping: f32,
     pub water_resistance: f32,
     pub steer_vel: f32,
     pub accel: f32,
@@ -262,6 +264,7 @@ impl AiData {
                 mass_box_size_y: r.f32("mass_box_size_y")?,
                 mass_box_size_z: r.f32("mass_box_size_z")?,
                 water_density: r.f32_or("water_density", 1.0)?,
+                water_damping: r.f32_or("water_damping", 0.0).unwrap_or(0.0),
                 water_resistance: r.f32_or("water_resistance", 1.0)?,
                 steer_vel: r.f32("steer_vel")?,
                 accel: r.f32("accel")?,
