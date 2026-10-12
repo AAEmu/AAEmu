@@ -7,6 +7,8 @@ name = "aaemu-clientdriver"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64",
+ "serde_json",
 ]
 
 [[package]]
@@ -63,6 +65,7 @@ dependencies = [
 name = "aaemu-launcher"
 version = "0.1.0"
 dependencies = [
+ "aaemu-clientdriver",
  "anyhow",
  "hex",
  "rand",

@@ -13,6 +13,7 @@ name = "aaemu-launcher"
 path = "src/main.rs"
 
 [dependencies]
+aaemu-clientdriver = { path = "../aaemu-clientdriver" }
 anyhow.workspace = true
 sha2.workspace = true
 hex.workspace = true

@@ -132,6 +132,7 @@ fn print_reply(r: Reply) -> anyhow::Result<()> {
 fn run() -> anyhow::Result<()> {
     let a = parse()?;
     match a.cmd.as_str() {
+        "mcp" => aaemu_clientdriver::mcp::run(),
         "list" => {
             let clients = find_clients()?;
             if clients.is_empty() {
@@ -163,6 +164,37 @@ fn run() -> anyhow::Result<()> {
         "ping" => {
             let mut d = Driver::connect(resolve_pid(&a)?, Duration::from_secs(5))?;
             print_reply(d.send(&Request::Ping)?)
+        }
+        "pak" => {
+            let action = a.rest.first().map(String::as_str).unwrap_or("status");
+            if ![
+                "optimize", "baseline", "profile", "status", "trace", "off", "verify",
+            ]
+            .contains(&action)
+            {
+                bail!("pak expects optimize, baseline, profile, status, trace, off or verify");
+            }
+            let mut d = Driver::connect(resolve_pid(&a)?, Duration::from_secs(5))?;
+            print_reply(d.send(&Request::PakIo(action.into()))?)
+        }
+        "screenshot" => {
+            let path = a
+                .rest
+                .first()
+                .context("screenshot needs an output PNG path")?;
+            let mut d = Driver::connect(resolve_pid(&a)?, Duration::from_secs(5))?;
+            std::fs::write(path, d.screenshot()?)?;
+            println!("{path}");
+            Ok(())
+        }
+        "window" => {
+            let visible = match a.rest.first().map(String::as_str) {
+                Some("show") => true,
+                Some("hide") => false,
+                _ => bail!("window needs show or hide"),
+            };
+            let mut d = Driver::connect(resolve_pid(&a)?, Duration::from_secs(5))?;
+            print_reply(d.send(&Request::Window(visible))?)
         }
         "lua" => {
             let c = code(&a)?;
@@ -218,7 +250,12 @@ fn run() -> anyhow::Result<()> {
 }
 
 fn main() {
-    if let Err(e) = run() {
+    let result = if std::env::args().nth(1).as_deref() == Some("mcp") {
+        aaemu_clientdriver::mcp::run()
+    } else {
+        run()
+    };
+    if let Err(e) = result {
         eprintln!("error: {e:#}");
         std::process::exit(2);
     }

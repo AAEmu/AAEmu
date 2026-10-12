@@ -55,7 +55,13 @@ int wmain(int argc, wchar_t** argv) {
     HANDLE th = CreateRemoteThread(h, NULL, 0, (LPTHREAD_START_ROUTINE)load, remote, 0, NULL);
     if (!th) { VirtualFreeEx(h, remote, 0, MEM_RELEASE); CloseHandle(h); return fail("CreateRemoteThread"); }
 
-    WaitForSingleObject(th, 30000);
+    if (WaitForSingleObject(th, 30000) != WAIT_OBJECT_0) {
+        // LoadLibrary may still be reading the remote path. Leave that small allocation
+        // in the client until it exits rather than freeing memory under a running thread.
+        CloseHandle(th); CloseHandle(h);
+        fprintf(stderr, "aainject: LoadLibraryW did not finish within 30 s; client left running\n");
+        return 1;
+    }
     DWORD code = 0; GetExitCodeThread(th, &code);
     VirtualFreeEx(h, remote, 0, MEM_RELEASE);
     CloseHandle(th); CloseHandle(h);

@@ -14,3 +14,5 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+serde_json.workspace = true
+base64.workspace = true

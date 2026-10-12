@@ -24,6 +24,7 @@ CLIENT=${AAEMU_CLIENT:-D:/AA1.2/bin32/archeage.exe}       # read-only client ins
 LOGIN=${AAEMU_LOGIN:-127.0.0.1:21237}
 CLIENT_USER=${AAEMU_USER:-clienttest}
 PWFILE=${AAEMU_PASSWORD_FILE:-$LIVE/cfg/client-test-password.txt}
+DRIVER_DLL=${AAEMU_DRIVER_DLL:-$(dirname "$BIN")/aadriver/aadriver.dll}
 
 MYSQL=("$MYSQL_BIN/mysql.exe" -h127.0.0.1 -P"$MYSQL_PORT" -uroot)
 running() { tasklist 2>/dev/null | grep -qi "^$1"; }
@@ -90,11 +91,16 @@ cmd_start() {
 
 cmd_client() {
   running archeage.exe && { echo "client already running"; return; }
+  local driver_args=()
+  if [ -f "$DRIVER_DLL" ]; then
+    driver_args=(--driver-dll "$(cygpath -w "$DRIVER_DLL" 2>/dev/null || echo "$DRIVER_DLL")")
+  fi
   ("$BIN/aaemu-launcher.exe" --client "$(cygpath -w "$CLIENT" 2>/dev/null || echo "$CLIENT")" \
      --login "$LOGIN" --user "$CLIENT_USER" --password-file "$PWFILE" \
+     "${driver_args[@]}" \
      > "$LIVE/logs/launcher.log" 2>&1 &)
   sleep 8; cat "$LIVE/logs/launcher.log"
-  echo "login appears in rs-login.log as '$CLIENT_USER connected.' after ~60-80 s of client loading"
+  echo "login appears in rs-login.log as '$CLIENT_USER connected.' after client loading"
 }
 
 cmd_status() {

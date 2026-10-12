@@ -110,12 +110,15 @@ pub struct LaunchOptions {
     pub lang: String,
     /// Extra client arguments (e.g. `-nosplash`), inserted before the HackShield argument.
     pub extra_args: Vec<String>,
+    /// Enable client audio. The injected startup policy owns only this process's sessions.
+    pub sound: bool,
     /// Append [`HSHIELD_ARG`] like the public launcher.
     pub hshield_arg: bool,
 }
 
-/// The client arguments (without the executable), as the public launcher builds them:
-/// `-t +auth_ip HOST -auth_port PORT -handle MAP:EVENT [-lang L] [extra...] [+acpxmk]`.
+/// The public launcher's authentication arguments, followed by our audio policy:
+/// `-t +auth_ip HOST -auth_port PORT -handle MAP:EVENT [-lang L] [extra...]
+/// +s_SoundEnable 0|1 +s_MusicEnable 0|1 [+acpxmk]`.
 pub fn client_args(opts: &LaunchOptions, map_handle: u32, event_handle: u32) -> Vec<String> {
     let mut a: Vec<String> = vec![
         "-t".into(),
@@ -131,6 +134,21 @@ pub fn client_args(opts: &LaunchOptions, map_handle: u32, event_handle: u32) -> 
         a.push(opts.lang.clone());
     }
     a.extend(opts.extra_args.iter().cloned());
+    // r208022 CrySoundSystem sub_36058970 registers s_SoundEnable (0 disables
+    // sound). Music has its own gate. The driver marker also enforces the launch
+    // choice across the client's later profile resets. Keep policy after extras.
+    a.extend([
+        if opts.sound {
+            "-aaemu-sound"
+        } else {
+            "-aaemu-silent"
+        }
+        .into(),
+        "+s_SoundEnable".into(),
+        u8::from(opts.sound).to_string(),
+        "+s_MusicEnable".into(),
+        u8::from(opts.sound).to_string(),
+    ]);
     if opts.hshield_arg {
         a.push(HSHIELD_ARG.into());
     }
@@ -235,19 +253,20 @@ mod tests {
     }
 
     #[test]
-    fn args_match_public_launcher() {
+    fn args_preserve_public_launcher_authentication_and_add_silent_audio() {
         let opts = LaunchOptions {
             login_host: "127.0.0.1".into(),
             login_port: 1237,
             lang: "en_us".into(),
             extra_args: vec!["-nosplash".into()],
+            sound: false,
             hshield_arg: true,
         };
         let a = client_args(&opts, 0x2a4, 0x1c);
         assert_eq!(
             a.join(" "),
             "-t +auth_ip 127.0.0.1 -auth_port 1237 -handle 000002A4:0000001C -lang en_us \
-             -nosplash +acpxmk"
+             -nosplash -aaemu-silent +s_SoundEnable 0 +s_MusicEnable 0 +acpxmk"
         );
         let opts = LaunchOptions {
             lang: String::new(),
@@ -257,8 +276,37 @@ mod tests {
         };
         assert_eq!(
             client_args(&opts, 1, 2).join(" "),
-            "-t +auth_ip 127.0.0.1 -auth_port 1237 -handle 00000001:00000002"
+            "-t +auth_ip 127.0.0.1 -auth_port 1237 -handle 00000001:00000002 -aaemu-silent +s_SoundEnable 0 +s_MusicEnable 0"
         );
+    }
+
+    #[test]
+    fn audio_policy_reaches_the_client_command_line_with_explicit_driver_marker() {
+        let mut opts = LaunchOptions {
+            login_host: "127.0.0.1".into(),
+            login_port: 1237,
+            lang: String::new(),
+            extra_args: vec![],
+            sound: false,
+            hshield_arg: false,
+        };
+        let silent = client_args(&opts, 1, 2);
+        assert_eq!(
+            command_line("C:\\Game Dir\\bin32\\archeage.exe", &silent),
+            "\"C:\\Game Dir\\bin32\\archeage.exe\" -t +auth_ip 127.0.0.1 -auth_port 1237 -handle 00000001:00000002 -aaemu-silent +s_SoundEnable 0 +s_MusicEnable 0"
+        );
+        opts.sound = true;
+        let audible = client_args(&opts, 1, 2);
+        assert_eq!(&silent[..7], &audible[..7]);
+        assert_eq!(
+            &audible[7..],
+            &["-aaemu-sound", "+s_SoundEnable", "1", "+s_MusicEnable", "1"]
+        );
+        // Extra engine arguments precede the explicit launcher audio choice.
+        opts.sound = false;
+        opts.extra_args = vec!["+s_SoundEnable".into(), "1".into()];
+        let args = client_args(&opts, 1, 2);
+        assert_eq!(&args[args.len() - 5..], &silent[7..]);
     }
 
     #[test]

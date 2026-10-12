@@ -3,7 +3,7 @@
 //! ```text
 //! aaemu-launcher --client <dir>\bin32\archeage.exe --login 127.0.0.1:1237 --user NAME
 //!                [--password PW | --password-file F]   (else $AAEMU_PASSWORD, else prompt)
-//!                [--lang en_us] [--nosplash] [--arg X]... [--no-hshield-arg] [--cwd DIR]
+//!                [--lang en_us] [--nosplash] [--sound] [--arg X]... [--no-hshield-arg] [--cwd DIR]
 //!                [--ticket-timeout SECS] [--wait] [--dry-run]
 //! ```
 //!
@@ -29,6 +29,17 @@ aaemu-launcher: start the ArcheAge 1.2 (Trion) client with a launcher ticket
   --lang LANG            client locale, e.g. en_us, de, fr, ru, ko, ja, zh_cn (default en_us;
                          empty string = do not pass -lang)
   --nosplash             pass -nosplash
+  --sound                enable client sound and music (silent by default)
+  --no-sound             disable client sound and music
+  --fast-start           skip the timed login logo stages (enabled by default)
+  --fast-pak             use 64 KB pak read-ahead (enabled by default)
+  --smooth-start         normal-priority CPU clock calibration (enabled by default)
+  --no-fast-start        use the original timed login logo stages
+  --no-fast-pak          use the original 1 MB pak read-ahead
+  --no-smooth-start      use the original CPU clock calibration priorities
+  --hidden               render in a hidden 1280x720 DX10 window (needs the driver)
+  --multi-client         accept this client's built-in confirmation for another instance
+  --driver-dll PATH      x86 aadriver.dll (required for startup audio policy)
   --arg X                extra client argument (repeatable)
   --no-hshield-arg       do not append +acpxmk
   --cwd DIR              working directory of the client (default: the executable's folder)
@@ -46,13 +57,24 @@ struct Cli {
     lang: String,
     extra: Vec<String>,
     hshield_arg: bool,
+    sound: bool,
     cwd: Option<PathBuf>,
     ticket_timeout: u32,
     wait: bool,
     dry_run: bool,
+    driver_dll: Option<PathBuf>,
+    fast_start: bool,
+    fast_pak: bool,
+    smooth_start: bool,
+    hidden: bool,
+    multi_client: bool,
 }
 
 fn parse_cli() -> anyhow::Result<Cli> {
+    parse_args(std::env::args().skip(1))
+}
+
+fn parse_args(mut it: impl Iterator<Item = String>) -> anyhow::Result<Cli> {
     let mut cli = Cli {
         client: std::env::var_os("AAEMU_CLIENT").map(PathBuf::from),
         login: "127.0.0.1:1237".into(),
@@ -62,12 +84,18 @@ fn parse_cli() -> anyhow::Result<Cli> {
         lang: "en_us".into(),
         extra: vec![],
         hshield_arg: true,
+        sound: false,
         cwd: None,
         ticket_timeout: 60,
         wait: false,
         dry_run: false,
+        driver_dll: std::env::var_os("AADRIVER_DLL").map(PathBuf::from),
+        fast_start: true,
+        fast_pak: true,
+        smooth_start: true,
+        hidden: false,
+        multi_client: false,
     };
-    let mut it = std::env::args().skip(1);
     while let Some(a) = it.next() {
         let mut val = || it.next().with_context(|| format!("{a} needs a value"));
         match a.as_str() {
@@ -78,6 +106,17 @@ fn parse_cli() -> anyhow::Result<Cli> {
             "--password-file" => cli.password_file = Some(val()?.into()),
             "--lang" => cli.lang = val()?,
             "--nosplash" => cli.extra.push("-nosplash".into()),
+            "--sound" => cli.sound = true,
+            "--no-sound" => cli.sound = false,
+            "--fast-start" => cli.fast_start = true,
+            "--fast-pak" => cli.fast_pak = true,
+            "--smooth-start" => cli.smooth_start = true,
+            "--no-fast-start" => cli.fast_start = false,
+            "--no-fast-pak" => cli.fast_pak = false,
+            "--no-smooth-start" => cli.smooth_start = false,
+            "--hidden" => cli.hidden = true,
+            "--multi-client" => cli.multi_client = true,
+            "--driver-dll" => cli.driver_dll = Some(val()?.into()),
             "--arg" => cli.extra.push(val()?),
             "--no-hshield-arg" => cli.hshield_arg = false,
             "--cwd" => cli.cwd = Some(val()?.into()),
@@ -119,8 +158,66 @@ fn split_login(login: &str) -> anyhow::Result<(String, u16)> {
     }
 }
 
+fn driver_candidates(exe: &std::path::Path) -> Vec<PathBuf> {
+    let Some(dir) = exe.parent() else {
+        return Vec::new();
+    };
+    let mut paths = vec![dir.join("aadriver.dll"), dir.join("aadriver/aadriver.dll")];
+    // Cargo controllers live in target/debug or target/release; native/build.bat
+    // places the shared x86 driver in target/aadriver.
+    if let Some(target) = dir.parent() {
+        paths.push(target.join("aadriver/aadriver.dll"));
+    }
+    // native/build.bat's default output for a source checkout, including when
+    // Cargo uses a custom target directory on another drive.
+    paths.push(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../aaemu-clientdriver/native/out/aadriver.dll"),
+    );
+    paths
+}
+
 fn main() -> anyhow::Result<()> {
-    let cli = parse_cli()?;
+    let mut cli = parse_cli()?;
+    if cli.driver_dll.is_none() && !cli.dry_run {
+        cli.driver_dll = driver_candidates(&std::env::current_exe()?)
+            .into_iter()
+            .find(|path| path.is_file());
+        if cli.driver_dll.is_none() {
+            bail!("startup audio policy needs aadriver.dll even with optimizations disabled: build aaemu-clientdriver/native/build.bat, use --driver-dll PATH or AADRIVER_DLL");
+        }
+    }
+    if cli.fast_start || cli.fast_pak || cli.smooth_start || cli.hidden || cli.multi_client {
+        cli.extra.push("-nosplash".into());
+    }
+    if cli.fast_start {
+        cli.extra.push("-aaemu-fast-start".into());
+    }
+    if cli.fast_pak {
+        cli.extra.push("-aaemu-fast-pak".into());
+    }
+    if cli.smooth_start {
+        cli.extra.push("-aaemu-smooth-start".into());
+    }
+    if cli.multi_client {
+        cli.extra.push("-aaemu-multi-client".into());
+    }
+    if cli.hidden {
+        cli.extra.extend(
+            [
+                "-aaemu-hidden",
+                "+r_driver",
+                "DX10",
+                "+r_fullscreen",
+                "0",
+                "+r_width",
+                "1280",
+                "+r_height",
+                "720",
+            ]
+            .map(str::to_owned),
+        );
+    }
     let client = cli
         .client
         .clone()
@@ -135,6 +232,7 @@ fn main() -> anyhow::Result<()> {
         login_port,
         lang: cli.lang.clone(),
         extra_args: cli.extra.clone(),
+        sound: cli.sound,
         hshield_arg: cli.hshield_arg,
     };
     let exe = client.to_string_lossy().to_string();
@@ -146,6 +244,12 @@ fn main() -> anyhow::Result<()> {
             ticket_plain(&ticket_xml(&user, "<sha256-hex of the password>"))
         );
         return Ok(());
+    }
+
+    if let Some(dll) = &cli.driver_dll {
+        if !dll.is_file() {
+            bail!("driver DLL {} not found", dll.display());
+        }
     }
 
     let password = read_password(&cli)?;
@@ -191,8 +295,15 @@ fn run(
             .unwrap_or_else(|| PathBuf::from(".")),
     };
     println!("starting: {cmd}");
-    let proc = Process::spawn(client, &cmd, &cwd)?;
+    let mut proc = Process::spawn(client, &cmd, &cwd, &ticket, cli.hidden, true)?;
     println!("client started (pid {})", proc.pid);
+    if let Some(dll) = &cli.driver_dll {
+        aaemu_clientdriver::win::inject(proc.pid, dll).context("early client driver injection")?;
+        proc.wait_for_audio_ready(20_000)
+            .context("client audio policy readiness (rebuild aadriver.dll if outdated)")?;
+        proc.resume()?;
+        println!("client driver injected");
+    }
 
     // Keep the mapping alive until the client has taken the ticket (it signals the event), it
     // exits, or the timeout runs out. The client holds its own inherited handles, so closing
@@ -231,4 +342,68 @@ fn run(
     _mapping: &[u8],
 ) -> anyhow::Result<()> {
     bail!("starting the client needs Windows (use --dry-run to inspect the arguments)")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normal_launch_enables_optimizations_without_hiding_the_window() {
+        let cli = parse_args(std::iter::empty()).unwrap();
+        assert!(cli.fast_start && cli.smooth_start && cli.fast_pak);
+        assert!(!cli.hidden);
+        assert!(!cli.multi_client);
+        assert!(!cli.sound);
+    }
+
+    #[test]
+    fn sound_is_explicit_and_independent_of_rendering_and_startup_profiles() {
+        let args = [
+            "--sound",
+            "--hidden",
+            "--no-fast-start",
+            "--no-fast-pak",
+            "--no-smooth-start",
+        ];
+        let cli = parse_args(args.into_iter().map(str::to_owned)).unwrap();
+        assert!(cli.sound && cli.hidden);
+        assert!(!cli.fast_start && !cli.fast_pak && !cli.smooth_start);
+        let cli = parse_args(["--sound", "--no-sound"].into_iter().map(str::to_owned)).unwrap();
+        assert!(!cli.sound);
+        assert!(USAGE.contains("required for startup audio policy"));
+    }
+
+    #[test]
+    fn additional_instance_confirmation_is_explicit() {
+        let cli = parse_args(["--multi-client".to_owned()].into_iter()).unwrap();
+        assert!(cli.multi_client);
+    }
+
+    #[test]
+    fn original_profiles_can_be_selected_and_reenabled() {
+        let args = ["--no-fast-start", "--no-fast-pak", "--no-smooth-start"];
+        let cli = parse_args(args.into_iter().map(str::to_owned)).unwrap();
+        assert!(!cli.fast_start && !cli.fast_pak && !cli.smooth_start);
+        let args = args
+            .into_iter()
+            .chain(["--fast-start", "--fast-pak", "--smooth-start"]);
+        let cli = parse_args(args.map(str::to_owned)).unwrap();
+        assert!(cli.fast_start && cli.fast_pak && cli.smooth_start);
+    }
+
+    #[test]
+    fn driver_search_supports_published_and_cargo_layouts() {
+        let dir = PathBuf::from("target").join("release");
+        assert_eq!(
+            driver_candidates(&dir.join("aaemu-launcher.exe")),
+            vec![
+                dir.join("aadriver.dll"),
+                dir.join("aadriver/aadriver.dll"),
+                PathBuf::from("target").join("aadriver/aadriver.dll"),
+                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../aaemu-clientdriver/native/out/aadriver.dll")
+            ]
+        );
+    }
 }

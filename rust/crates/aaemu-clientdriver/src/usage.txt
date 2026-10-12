@@ -3,17 +3,26 @@ aaemu-clientdriver: run Lua inside a running ArcheAge 1.2 client
   list                              list running clients and whether the driver is loaded
   inject [--dll PATH] [--pid N]     load the in-client driver (aadriver.dll) and ping it
   ping   [--pid N]                  driver / engine info
+  screenshot [--pid N] PATH.png     capture the next DX10/DX11 back buffer, including while hidden
+  window [--pid N] show|hide        control window visibility without minimising the renderer
+  pak [--pid N] ACTION              optimize (64 KB read-ahead), baseline (1 MB), profile,
+                                    status (JSON), trace (CSV), off or verify (engine byte parity)
+  mcp [options]                    serve local newline-delimited JSON-RPC on stdin/stdout
+                                    --dll PATH --launcher PATH --client PATH --password-file PATH
+                                    --login HOST:PORT --user NAME --artifact-dir DIR
   lua    [-t system|ui|third] [--pid N] <code...>|-
                                     compile `return <code>` (else as statements), run it on the
                                     client main thread, print the returned values (TAB-joined)
   exec   [-t ...] [--pid N] <code...>|-
                                     run <code> through IScriptSystem::ExecuteBuffer (no result)
   repl   [-t ...] [--pid N]         interactive line REPL
-  unload [--pid N]                  unhook and unload the driver
+  unload [--pid N]                  detach hooks and restore a hidden window; restart to reattach
 
 With no --pid the single running client is used. Code read from stdin when the argument is `-`
 or absent. The driver DLL is found next to this exe, under --dll, or at $AADRIVER_DLL.
 
-This controller must be built 32-bit to match the x86 client:
-  cargo build -p aaemu-clientdriver --target i686-pc-windows-msvc --release
+The normal 64-bit controller uses the x86 aainject.exe next to aadriver.dll.
+Build the native parts with native/build.bat, then cargo build -p aaemu-clientdriver --release.
+MCP launch defaults to fast startup, normal-priority CPU calibration, 64 KB pak read-ahead and hidden rendering. It needs a configured client and
+password file; the other tools can attach to an existing client. Screenshots still need a GPU.
 See rust/docs/client/LUA-DRIVER.md.

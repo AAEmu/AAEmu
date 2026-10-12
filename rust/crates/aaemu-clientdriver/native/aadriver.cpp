@@ -33,6 +33,11 @@
 #include <string.h>
 #include <string>
 #include <deque>
+#include "visuals.h"
+#include "pakio.h"
+#include "startup.h"
+#include "input.h"
+#include "audio.h"
 
 // ---- client build constants (CryScriptSystem.dll, preferred base 0x35500000) -----------
 // All addresses are RVAs; the DLL is relocated at run time (seen at 0x27E70000).
@@ -77,6 +82,12 @@ static volatile LONG g_unloading;
 static DWORD     g_mainTid;
 static char      g_logPath[MAX_PATH];
 static CRITICAL_SECTION g_lock;
+static bool g_fastStart;
+static bool g_fastApplied;
+static bool g_fastCVarApplied;
+static bool g_hideOnStart;
+static bool g_silent;
+static bool g_sound;
 
 // ---- logging ---------------------------------------------------------------------------
 static void logf(const char* fmt, ...) {
@@ -194,7 +205,10 @@ static void drainQueue() {
         __try {
             // (std::string work cannot sit directly in a __try frame with unwinding; delegate)
             struct Run { static void go(Request* r) {
-                r->reply = r->op == 'B' ? runExecuteBuffer(r->target, r->code) : runLua(r->op, r->code);
+                if (r->op == 'F') r->reply = pakio::verify();
+                else if (r->op == 'I') r->reply = input::control(*(void**)(g_css + RVA_gEnv), r->code);
+                else if (r->op == 'W') r->reply = visuals::window(r->code == "show");
+                else r->reply = r->op == 'B' ? runExecuteBuffer(r->target, r->code) : runLua(r->op, r->code);
             } };
             Run::go(r);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
@@ -206,10 +220,50 @@ static void drainQueue() {
 
 static void __fastcall HookUpdate(void* self, void* /*edx*/) {
     InterlockedIncrement(&g_inHook);
-    g_origUpdate(self);
     if (!g_unloading) {
         if (!g_mainTid) g_mainTid = GetCurrentThreadId();
-        if (GetCurrentThreadId() == g_mainTid) drainQueue();
+        if (GetCurrentThreadId() == g_mainTid) {
+            if (g_silent) runLua('S',
+                "if System and System.GetCVar and System.SetCVar then "
+                "local a,b=System.GetCVar('s_SoundEnable'),System.GetCVar('s_MusicEnable') "
+                "if a~=nil and a~=0 then System.SetCVar('s_SoundEnable',0) end "
+                "if b~=nil and b~=0 then System.SetCVar('s_MusicEnable',0) end end");
+            // The game registers this CVar after command-line processing. Apply it at the
+            // first script tick, on the Lua owner thread, before the logo stages advance.
+            if (g_fastStart && !g_fastCVarApplied) {
+                std::string reply = runLua('S',
+                    "if System and (System.GetCVar('login_fast_start')) ~= nil then "
+                    "System.SetCVar('login_fast_start',1) return (System.GetCVar('login_fast_start')) end");
+                if (reply == "01") { g_fastCVarApplied = true; logf("fast start: login_fast_start=1"); }
+            }
+            if (g_fastStart && !g_fastApplied) {
+                // r208022 chooses the initial logo state before the first script Update.
+                // Use the same UI binding as the login transition once that state exists.
+                std::string reply = runLua('U',
+                    "if X2LoginCharacter and X2LoginCharacter.GetCurrentStage then "
+                    "local stage=X2LoginCharacter:GetCurrentStage() "
+                    "if stage==1 then X2LoginCharacter:StartLoginPage() return 'skipped' "
+                    "elseif stage>=2 then return 'ready' end end");
+                if (reply == "0skipped" || reply == "0ready") {
+                    g_fastApplied = true; logf("fast start: login logo transition %s", reply.c_str() + 1);
+                }
+            }
+            if (g_hideOnStart) {
+                if (visuals::window(false)[0] == '0') { g_hideOnStart = false; logf("hidden window ready"); }
+            }
+        }
+    }
+    g_origUpdate(self);
+    if (!g_unloading && GetCurrentThreadId() == g_mainTid) {
+        // Profile/UI scripts can reset audio during Update. The process session
+        // is already muted before startup; keep engine telemetry consistent too.
+        if (g_silent) runLua('S',
+            "if System and System.GetCVar and System.SetCVar then "
+                "local a,b=System.GetCVar('s_SoundEnable'),System.GetCVar('s_MusicEnable') "
+                "if a~=nil and a~=0 then System.SetCVar('s_SoundEnable',0) end "
+                "if b~=nil and b~=0 then System.SetCVar('s_MusicEnable',0) end end");
+        input::tick(*(void**)(g_css + RVA_gEnv));
+        drainQueue();
     }
     InterlockedDecrement(&g_inHook);
 }
@@ -224,7 +278,38 @@ static bool setSlot(void** slot, void* value) {
 }
 
 static bool waitForClient() {
+    bool smooth = wcsstr(GetCommandLineW(), L"-aaemu-smooth-start") != NULL;
+    bool multiClient = wcsstr(GetCommandLineW(), L"-aaemu-multi-client") != NULL;
+    bool applied = false;
     for (int i = 0; i < 6000; ++i) {  // up to 10 minutes
+        // The loader explicitly offers Yes/No to a second instance. Accept only this
+        // process's known r208022 dialog when the launcher requested multiplayer.
+        // No mutex, executable bytes or client files are changed.
+        if (multiClient) EnumWindows([](HWND window, LPARAM) -> BOOL {
+            DWORD pid = 0; GetWindowThreadProcessId(window, &pid);
+            if (pid != GetCurrentProcessId()) return TRUE;
+            wchar_t title[64] = {}, klass[32] = {};
+            GetWindowTextW(window, title, 64); GetClassNameW(window, klass, 32);
+            if (wcscmp(title, L"Too many applications") || wcscmp(klass, L"#32770")) return TRUE;
+            BYTE* exe = (BYTE*)GetModuleHandleW(NULL);
+            IMAGE_NT_HEADERS* nt = (IMAGE_NT_HEADERS*)(exe + ((IMAGE_DOS_HEADER*)exe)->e_lfanew);
+            if (nt->FileHeader.TimeDateStamp != 0x543CB762 || nt->OptionalHeader.SizeOfImage != 0x3E3C00) return TRUE;
+            // Original loader RVA 11040 calls MessageBoxA(MB_YESNO) on a duplicate
+            // ArcheAge mutex and continues on IDYES. Validate its prompt and buttons.
+            wchar_t prompt[256] = {};
+            GetDlgItemTextW(window, 0xffff, prompt, 256);
+            HWND yes = GetDlgItem(window, IDYES), no = GetDlgItem(window, IDNO);
+            if (!yes || !no || !wcsstr(prompt, L"There is already a x2client application running") ||
+                !wcsstr(prompt, L"Do you want to start another one?")) return TRUE;
+            PostMessageW(window, WM_COMMAND, MAKEWPARAM(IDYES, BN_CLICKED), (LPARAM)yes);
+            logf("multi-client: accepted this process's additional-instance confirmation");
+            return FALSE;
+        }, 0);
+        // Clock calibration runs before the script environment exists. Apply its
+        // narrow priority fix as soon as CrySystem is loaded, ahead of Lua hooks.
+        if (smooth && !applied && startup::install()) {
+            applied = true; logf("smooth start: CPU clock calibration uses normal priorities");
+        }
         HMODULE m = GetModuleHandleA("CryScriptSystem.dll");
         if (m) {
             BYTE* b = (BYTE*)m;
@@ -296,7 +381,7 @@ static std::string pingInfo() {
                 env ? *(void**)(env + OFF_gEnv_SSystem) : NULL,
                 env ? *(void**)(env + OFF_gEnv_SSUI) : NULL,
                 env ? *(void**)(env + OFF_gEnv_SSThird) : NULL, g_hooked, g_mainTid);
-    return buf;
+    return std::string(buf) + visuals::info() + startup::info() + " fast=" + (g_fastApplied ? "1" : "0") + " silent=" + (g_silent ? "1" : "0");
 }
 
 static std::string submit(char op, char target, const std::string& code, DWORD timeoutMs) {
@@ -321,23 +406,53 @@ static std::string submit(char op, char target, const std::string& code, DWORD t
 }
 
 static DWORD WINAPI unloadThread(LPVOID) {
+    submit('I', 0, "release", 30000);
     InterlockedExchange(&g_unloading, 1);
     removeHook();
+    visuals::remove();
+    pakio::remove();
+    startup::remove();
     // let in-flight hook calls leave our code before the module goes away
     for (int i = 0; i < 200 && g_inHook; ++i) Sleep(10);
     Sleep(200);
-    logf("unloading");
-    FreeLibraryAndExitThread(g_self, 0);
+    logf("detached (module retained until process exit for in-flight virtual calls)");
     return 0;
 }
 
+static DWORD WINAPI audioThread(LPVOID) {
+        if (!audio::prepare_start(g_silent)) {
+            logf("audio start: process audio session policy failed; launcher must not resume client");
+            return 1;
+        }
+        wchar_t name[96];
+        _snwprintf_s(name, _countof(name), _TRUNCATE, L"Local\\aaemu-client-audio-ready-%lu", GetCurrentProcessId());
+        HANDLE ready = CreateEventW(nullptr, TRUE, FALSE, name);
+        if (!ready || !SetEvent(ready)) { logf("silent start: readiness event failed"); return 1; }
+        // Keep the readiness event and COM registrations alive until process exit.
+        logf("audio start: own process sessions %s before resume", g_silent ? "muted" : "unmuted once");
+        // Session notifications need a live MTA apartment. This policy outlives
+        // pipe disconnect and driver detach; the DLL is retained until exit.
+        Sleep(INFINITE);
+        return 0;
+}
+
 static DWORD WINAPI serverThread(LPVOID) {
+    if (g_silent || g_sound) {
+        HANDLE thread = CreateThread(nullptr,0,audioThread,nullptr,0,nullptr);
+        if (!thread) { logf("audio start: policy thread failed"); return 1; }
+        CloseHandle(thread);
+    }
     if (!waitForClient() || !installHook()) { logf("driver inactive"); }
+    else {
+        if (wcsstr(GetCommandLineW(), L"-aaemu-fast-pak"))
+            logf("fast pak: %s", pakio::control("optimize").c_str());
+        logf("DXGI capture hook: %s", visuals::install() ? "ready" : "unavailable");
+    }
     char name[64];
     _snprintf_s(name, sizeof(name), _TRUNCATE, "\\\\.\\pipe\\aaemu-clientdriver-%lu", GetCurrentProcessId());
     logf("serving %s", name);
     for (;;) {
-        HANDLE h = CreateNamedPipeA(name, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+        HANDLE h = CreateNamedPipeA(name, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
                                     1, 1 << 16, 1 << 16, 0, NULL);
         if (h == INVALID_HANDLE_VALUE) { logf("CreateNamedPipe failed (%lu)", GetLastError()); return 1; }
         if (!ConnectNamedPipe(h, NULL) && GetLastError() != ERROR_PIPE_CONNECTED) { CloseHandle(h); continue; }
@@ -351,11 +466,21 @@ static DWORD WINAPI serverThread(LPVOID) {
             std::string reply;
             switch (op) {
             case 'P': reply = pingInfo(); break;
+            case 'I': reply = submit('I', 0, req.substr(1), 30000); break;
+            case 'V': reply = visuals::profile(req.substr(1)); break;
             case 'S': case 'U': case 'T': reply = submit(op, 0, req.substr(1), 30000); break;
             case 'B':
                 reply = req.size() < 2 ? std::string("2missing target") : submit('B', req[1], req.substr(2), 30000);
                 break;
-            case 'X': reply = "0unloading"; unload = true; break;
+            case 'C': reply = visuals::capture(); break;
+            case 'F':
+                reply = req.substr(1) == "verify" ? submit('F', 0, "", 30000) : pakio::control(req.substr(1));
+                break;
+            case 'W':
+                reply = req.substr(1) == "hide" || req.substr(1) == "show"
+                    ? submit('W', 0, req.substr(1), 30000) : "2window expects hide or show";
+                break;
+            case 'X': reply = "0detaching (module retained; restart client to reattach)"; unload = true; break;
             default: reply = std::string("2unknown op '") + op + "'"; break;
             }
             if (!sendReply(h, reply) || unload) break;
@@ -368,6 +493,10 @@ static DWORD WINAPI serverThread(LPVOID) {
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = hModule;
+        g_fastStart = wcsstr(GetCommandLineW(), L"-aaemu-fast-start") != NULL;
+        g_hideOnStart = wcsstr(GetCommandLineW(), L"-aaemu-hidden") != NULL;
+        g_silent = wcsstr(GetCommandLineW(), L"-aaemu-silent") != NULL;
+        g_sound = wcsstr(GetCommandLineW(), L"-aaemu-sound") != NULL;
         DisableThreadLibraryCalls(hModule);
         InitializeCriticalSection(&g_lock);
         GetModuleFileNameA(hModule, g_logPath, sizeof(g_logPath));

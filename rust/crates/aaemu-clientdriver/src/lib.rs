@@ -7,8 +7,10 @@
 //!
 //! Wire format, both directions: `u32 LE length` + `length` bytes.
 //! * request: one op byte + payload (`S`/`U`/`T` + Lua = run in the System / UI / third state,
-//!   `B` + target + Lua = the engine's own `ExecuteBuffer`, `P` = ping, `X` = unload);
-//! * response: one status byte (`0` ok, `1` Lua error, `2` driver error) + UTF-8 text.
+//!   `B` + target + Lua = the engine's own `ExecuteBuffer`, `P` = ping, `X` = detach,
+//!   `C` = capture, `Whide`/`Wshow` = window visibility, `F` + action = pak I/O);
+//! * response: one status byte (`0` ok, `1` Lua error, `2` driver error) + UTF-8 text,
+//!   except successful capture replies, which contain binary PNG bytes.
 //!
 //! This module holds the platform independent pieces (framing, the PE export lookup used to
 //! find the 32-bit `LoadLibraryW`); [`win`] does the Win32 part (pipe, process lookup, DLL
@@ -50,6 +52,17 @@ pub enum Request {
     /// Run `code` through `IScriptSystem::ExecuteBuffer` (no values, errors go to the log).
     ExecuteBuffer(Target, String),
     Ping,
+    /// Captures the next DXGI back buffer. The reply contains binary PNG bytes.
+    Screenshot,
+    /// Shows or hides the window without minimising the renderer.
+    Window(bool),
+    /// Controls pak read-ahead, raw I/O profiling, or engine read byte verification.
+    PakIo(String),
+    /// Posts bounded keyboard events to CryInput; release runs in the client even after disconnect.
+    Input(String),
+    /// Controls bounded DXGI frame interval recording.
+    FrameProfile(String),
+    /// Detaches hooks; the native module stays mapped until the client exits.
     Unload,
 }
 
@@ -60,8 +73,28 @@ impl Request {
             Request::Lua(t, code) => [&[t.op()][..], code.as_bytes()].concat(),
             Request::ExecuteBuffer(t, code) => [&[b'B', t.op()][..], code.as_bytes()].concat(),
             Request::Ping => vec![b'P'],
+            Request::Screenshot => vec![b'C'],
+            Request::Window(visible) => {
+                if *visible {
+                    b"Wshow".to_vec()
+                } else {
+                    b"Whide".to_vec()
+                }
+            }
             Request::Unload => vec![b'X'],
+            Request::PakIo(action) => [b"F".as_slice(), action.as_bytes()].concat(),
+            Request::Input(action) => [b"I".as_slice(), action.as_bytes()].concat(),
+            Request::FrameProfile(action) => [b"V".as_slice(), action.as_bytes()].concat(),
         }
+    }
+}
+
+/// Validates a binary screenshot reply without converting PNG data to UTF-8.
+pub fn screenshot_reply(bytes: &[u8]) -> anyhow::Result<Vec<u8>> {
+    match bytes.split_first() {
+        Some((b'0', png)) if png.starts_with(b"\x89PNG\r\n\x1a\n") => Ok(png.to_vec()),
+        Some((b'0', _)) => anyhow::bail!("driver returned an invalid PNG"),
+        _ => Reply::parse(bytes).into_result().map(|_| Vec::new()),
     }
 }
 
@@ -201,6 +234,7 @@ pub fn export_rva(image: &[u8], name: &str) -> anyhow::Result<u32> {
     bail!("export {name} not found")
 }
 
+pub mod mcp;
 #[cfg(windows)]
 pub mod win;
 
@@ -219,7 +253,12 @@ mod tests {
             b"BSx=1".to_vec()
         );
         assert_eq!(Request::Ping.payload(), b"P".to_vec());
+        assert_eq!(Request::Screenshot.payload(), b"C".to_vec());
+        assert_eq!(Request::Window(false).payload(), b"Whide".to_vec());
         assert_eq!(Request::Unload.payload(), b"X".to_vec());
+        assert_eq!(Request::PakIo("profile".into()).payload(), b"Fprofile");
+        assert_eq!(Request::Input("w 1000".into()).payload(), b"Iw 1000");
+        assert_eq!(Request::FrameProfile("off".into()).payload(), b"Voff");
     }
 
     #[test]
@@ -238,6 +277,20 @@ mod tests {
         assert_eq!(&buf[..4], &5u32.to_le_bytes());
         let mut r = &buf[..];
         assert_eq!(read_frame(&mut r).unwrap(), b"hello");
+    }
+
+    #[test]
+    fn screenshot_is_binary_and_errors_are_preserved() {
+        let png = b"\x89PNG\r\n\x1a\n\xff\0";
+        assert_eq!(
+            screenshot_reply(&[b"0".as_slice(), png].concat()).unwrap(),
+            png
+        );
+        assert!(screenshot_reply(b"0not PNG").is_err());
+        assert!(screenshot_reply(b"2no frame")
+            .unwrap_err()
+            .to_string()
+            .contains("no frame"));
     }
 
     #[test]

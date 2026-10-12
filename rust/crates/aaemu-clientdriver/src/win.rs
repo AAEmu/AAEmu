@@ -77,6 +77,7 @@ extern "system" {
     ) -> Handle;
     fn WaitForSingleObject(h: Handle, ms: u32) -> u32;
     fn GetExitCodeThread(h: Handle, code: *mut u32) -> i32;
+    fn TerminateProcess(h: Handle, code: u32) -> i32;
     fn GetModuleFileNameExW(h: Handle, m: Handle, name: *mut u16, size: u32) -> u32;
 }
 
@@ -106,6 +107,82 @@ impl Drop for OwnedHandle {
         if !self.0.is_null() {
             unsafe { CloseHandle(self.0) };
         }
+    }
+}
+
+/// A retained handle to a client launched by the controller. Keeping the original process
+/// object alive prevents a reused PID from granting ownership of an unrelated later client.
+pub struct OwnedClient(OwnedHandle);
+
+impl OwnedClient {
+    pub fn is_running(&self) -> anyhow::Result<bool> {
+        match unsafe { WaitForSingleObject(self.0 .0, 0) } {
+            0 => Ok(false),
+            0x102 => Ok(true),
+            _ => Err(last_error("WaitForSingleObject")),
+        }
+    }
+
+    pub fn open(pid: u32) -> anyhow::Result<Self> {
+        if !find_clients()?.iter().any(|p| p.pid == pid) {
+            bail!("pid {pid} is not an ArcheAge client");
+        }
+        let handle = unsafe {
+            OpenProcess(
+                1 /* PROCESS_TERMINATE */ | 0x00100000, /* SYNCHRONIZE */
+                0,
+                pid,
+            )
+        };
+        if handle.is_null() {
+            return Err(last_error("OpenProcess"));
+        }
+        Ok(Self(OwnedHandle(handle)))
+    }
+
+    pub fn stop(&self) -> anyhow::Result<()> {
+        if unsafe { WaitForSingleObject(self.0 .0, 0) } == 0 {
+            return Ok(());
+        }
+        if unsafe { TerminateProcess(self.0 .0, 0) } == 0 {
+            return Err(last_error("TerminateProcess"));
+        }
+        // TerminateProcess is asynchronous: pending disk/GPU I/O must cancel before a
+        // subsequent launch sees the client gone and can acquire its single-instance mutex.
+        match unsafe { WaitForSingleObject(self.0 .0, 10_000) } {
+            0 => {}
+            u32::MAX => return Err(last_error("WaitForSingleObject")),
+            _ => bail!("client termination did not finish within 10 seconds"),
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::windows::process::CommandExt;
+
+    #[test]
+    fn stop_waits_for_the_owned_process_and_is_idempotent() {
+        let mut child = std::process::Command::new("powershell.exe")
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "Start-Sleep -Seconds 30",
+            ])
+            .creation_flags(0x08000000 /* CREATE_NO_WINDOW */)
+            .spawn()
+            .unwrap();
+        let handle = unsafe { OpenProcess(1 | 0x00100000, 0, child.id()) };
+        assert!(!handle.is_null());
+        let owned = OwnedClient(OwnedHandle(handle));
+        assert!(owned.is_running().unwrap());
+        owned.stop().unwrap();
+        assert!(!owned.is_running().unwrap());
+        assert!(child.try_wait().unwrap().is_some());
+        owned.stop().unwrap();
     }
 }
 
@@ -219,13 +296,18 @@ pub fn inject(pid: u32, dll: &Path) -> anyhow::Result<()> {
         return inject_direct(pid, dll);
     }
     let exe = find_injector(dll)?;
-    let status = std::process::Command::new(&exe)
+    let output = std::process::Command::new(&exe)
         .arg(pid.to_string())
         .arg(dll)
-        .status()
+        .output()
         .with_context(|| format!("running {}", exe.display()))?;
-    if !status.success() {
-        bail!("{} exited with {status}", exe.display());
+    if !output.status.success() {
+        bail!(
+            "{} exited with {}: {}",
+            exe.display(),
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
     Ok(())
 }
@@ -317,7 +399,11 @@ pub fn inject_direct(pid: u32, dll: &Path) -> anyhow::Result<()> {
         return Err(last_error("CreateRemoteThread"));
     }
     let thread = OwnedHandle(thread);
-    unsafe { WaitForSingleObject(thread.0, 30_000) };
+    if unsafe { WaitForSingleObject(thread.0, 30_000) } != 0 {
+        // The remote thread can still read the path. Retain it until process exit.
+        std::mem::forget(free);
+        bail!("LoadLibraryW did not finish within 30 s; client left running");
+    }
     let mut code = 0u32;
     unsafe { GetExitCodeThread(thread.0, &mut code) };
     drop(free);
@@ -369,5 +455,11 @@ impl Driver {
     /// One request / reply round trip.
     pub fn send(&mut self, req: &Request) -> anyhow::Result<Reply> {
         Ok(roundtrip(&mut self.file, req)?)
+    }
+
+    /// Returns PNG bytes from the client's renderer, independent of desktop visibility.
+    pub fn screenshot(&mut self) -> anyhow::Result<Vec<u8>> {
+        crate::write_frame(&mut self.file, &Request::Screenshot.payload())?;
+        crate::screenshot_reply(&crate::read_frame(&mut self.file)?)
     }
 }
