@@ -406,7 +406,7 @@ gear/brake telemetry; `action: "discard"` requests dismount, whose completion is
 `client_mode_actions` reads the stock mode action bar, including fishing rod actions, native
 tooltips, availability, cooldowns, active native hotkeys and staged option binding rows.
 Each slot also reports `bounds: {x, y, width, height}` in client pixels from the verified
-stock widget `GetOffset()` and `GetExtent()` getters, for locating a normal `client_pointer`
+stock widget `GetEffectiveOffset()` and `GetEffectiveExtent()` getters, including UI scaling, for locating a normal `client_pointer`
 click after inspecting the current UI.
 Empty staged rows do not mean the native action has no active hotkey. It reads at most ten slots and
 does not cast or change shortcuts. Check these bindings before submitting a fishing response

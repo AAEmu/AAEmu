@@ -150,7 +150,7 @@ pub fn request(name: &str, args: &Value) -> anyhow::Result<(Target, String)> {
             }
             (Target::Ui, format!("{WORLD}local unit={}\n{UNIT_STATE}",quote(unit)))
         },
-        "client_mode_actions" => (Target::Ui,format!("{WORLD}local count=X2Unit:GetModeActionsCount() local slots={{}} for i=1,math.min(count,10) do local b=modeSkillActionBar and modeSkillActionBar.buttons and modeSkillActionBar.buttons[i] if b then local x,y=b:GetOffset() local width,height=b:GetExtent() slots[tostring(i)]={{slot=i,bounds={{x=x,y=y,width=width,height=height}},binded_type=b:GetBindedType(),info=b:GetTooltip(),can_use=b.canUse,cooldown=b.cooldown,cooldown_duration=b.cooldownDuration,skill_level=b.skillLevel,learned=b.learned,hotkey=b:GetHotKey(),staged_primary=X2Hotkey:GetOptionBinding('mode_action_bar_button',1,true,i),staged_secondary=X2Hotkey:GetOptionBinding('mode_action_bar_button',2,true,i)}} end end local result={{count=count,slots=slots}}")),
+        "client_mode_actions" => (Target::Ui,format!("{WORLD}local count=X2Unit:GetModeActionsCount() local slots={{}} for i=1,math.min(count,10) do local b=modeSkillActionBar and modeSkillActionBar.buttons and modeSkillActionBar.buttons[i] if b then local x,y=b:GetEffectiveOffset() local width,height=b:GetEffectiveExtent() slots[tostring(i)]={{slot=i,bounds={{x=x,y=y,width=width,height=height}},binded_type=b:GetBindedType(),info=b:GetTooltip(),can_use=b.canUse,cooldown=b.cooldown,cooldown_duration=b.cooldownDuration,skill_level=b.skillLevel,learned=b.learned,hotkey=b:GetHotKey(),staged_primary=X2Hotkey:GetOptionBinding('mode_action_bar_button',1,true,i),staged_secondary=X2Hotkey:GetOptionBinding('mode_action_bar_button',2,true,i)}} end end local result={{count=count,slots=slots}}")),
         "client_vehicle" => { let act=args["action"].as_str().unwrap_or("status");
             let discard=if act=="discard" { "X2SiegeWeapon:DiscardSiegeWeapon() " } else { "" };
             (Target::Ui,format!("{WORLD}{discard}local result={{has_vehicle=X2Player:HasSlaveUnit(),mounted=X2SiegeWeapon:IsMountedSiegeWeapon(),driver=X2SiegeWeapon:IsDriver(),info=X2SiegeWeapon:GetMountedSiegeWeaponInfo(),vehicle=X2SiegeWeapon:GetVehicleInfo(),speed=X2SiegeWeapon:GetSiegeWeaponSpeed(),turn_speed=X2SiegeWeapon:GetSiegeWeaponTurnSpeed()}}")) },
@@ -192,8 +192,8 @@ mod tests {
         let (target, code) = request("client_mode_actions", &json!({})).unwrap();
         assert_eq!(target, Target::Ui);
         assert!(code.contains("math.min(count,10)"));
-        assert!(code.contains("b:GetOffset()"));
-        assert!(code.contains("b:GetExtent()"));
+        assert!(code.contains("b:GetEffectiveOffset()"));
+        assert!(code.contains("b:GetEffectiveExtent()"));
         assert!(code.contains("GetOptionBinding('mode_action_bar_button',2,true,i)"));
         assert!(!code.contains("SetOptionBinding"));
         assert!(!code.contains("EstablishSlot"));
