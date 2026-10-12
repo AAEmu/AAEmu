@@ -34,6 +34,8 @@ struct MemDb {
     accounts: Mutex<HashMap<u32, (i32, i32)>>,
     sales: Mutex<Vec<AuditIcsSale>>,
     stock: Mutex<Vec<(u32, i32)>>,
+    fail_debits: Mutex<bool>,
+    fail_stock_updates: Mutex<bool>,
 }
 
 impl CashShopDb for MemDb {
@@ -65,6 +67,9 @@ impl CashShopDb for MemDb {
         account_id: u32,
         amount: i32,
     ) -> BoxFuture<'a, bool> {
+        if amount < 0 && *self.fail_debits.lock().unwrap() {
+            return Box::pin(async { false });
+        }
         self.accounts
             .lock()
             .unwrap()
@@ -80,6 +85,9 @@ impl CashShopDb for MemDb {
         account_id: u32,
         amount: i32,
     ) -> BoxFuture<'a, bool> {
+        if amount < 0 && *self.fail_debits.lock().unwrap() {
+            return Box::pin(async { false });
+        }
         self.accounts
             .lock()
             .unwrap()
@@ -125,6 +133,9 @@ impl CashShopDb for MemDb {
         shop_item_id: u32,
         remaining: i32,
     ) -> BoxFuture<'a, bool> {
+        if *self.fail_stock_updates.lock().unwrap() {
+            return Box::pin(async { false });
+        }
         self.stock.lock().unwrap().push((shop_item_id, remaining));
         Box::pin(async { true })
     }
@@ -589,6 +600,205 @@ fn cart(st: &CashShopState, picks: &[(u32, usize)]) -> Vec<IcsSku> {
         .iter()
         .map(|(id, i)| st.shop_items[id].skus[*i].clone())
         .collect()
+}
+
+#[tokio::test]
+async fn checkout_rejects_unpaid_aa_points_and_invalid_cart_values_before_mutation() {
+    let base = cart(&shop_state(), &[(200, 0)])[0].clone();
+    let mut aa = base.clone();
+    aa.currency = currency::AA_POINTS;
+    let mut price = base.clone();
+    price.price = u32::MAX;
+    price.discount_price = 0;
+    let mut total = base.clone();
+    total.price = i32::MAX as u32;
+    total.discount_price = 0;
+    let mut zero = base.clone();
+    zero.item_count = 0;
+    let mut count = base.clone();
+    count.item_count = u32::MAX;
+    let mut bonus = base.clone();
+    bonus.bonus_item_count = u32::MAX;
+    let mut missing = base.clone();
+    missing.item_id = 999_999;
+    let mut missing_bonus = base;
+    missing_bonus.bonus_item_id = 999_999;
+    for (cart, error) in [
+        (vec![aa], error_message::INGAME_SHOP_BUY_FAIL_AA_POINT),
+        (vec![price], error_message::INGAME_SHOP_BUY_FAIL),
+        (
+            vec![total.clone(), total],
+            error_message::INGAME_SHOP_BUY_FAIL,
+        ),
+        (vec![zero], error_message::INGAME_SHOP_BUY_FAIL),
+        (vec![count], error_message::INGAME_SHOP_BUY_FAIL),
+        (vec![bonus], error_message::INGAME_SHOP_BUY_FAIL),
+        (vec![missing], error_message::INGAME_SHOP_BUY_FAIL),
+        (vec![missing_bonus], error_message::INGAME_SHOP_BUY_FAIL),
+    ] {
+        let mut s = shop();
+        s.db.accounts.lock().unwrap().insert(1001, (100, 100));
+        let buyer = s.w.pa.clone();
+        buyer.data().money2 = 123_456; // Bank gold must not be charged as AA points.
+        execute_buy(&s.w.server, 1, &buyer, &buyer, &cart).await;
+        assert_eq!(s.db.accounts.lock().unwrap()[&1001], (100, 100));
+        assert_eq!(buyer.data().money2, 123_456);
+        assert_eq!(
+            s.w.server.systems.economy.cash_shop.state().shop_items[&200].remaining,
+            3
+        );
+        assert!(s.db.stock.lock().unwrap().is_empty());
+        assert!(s.db.sales.lock().unwrap().is_empty());
+        assert!(s.mail.0.lock().unwrap().is_empty());
+        assert_eq!(
+            s.w.a.drain(),
+            vec![
+                (sc::SCErrorMsgPacket, error_body(error)),
+                (sc::SCICSBuyResultPacket, result_body(false, "Alice", 0)),
+            ]
+        );
+    }
+}
+
+#[tokio::test]
+async fn checkout_charges_displayed_discount_for_coins_and_loyalty() {
+    for (currency, balance) in [(currency::COINS, 10), (currency::LOYALTY, 10)] {
+        let mut s = shop();
+        let buyer = s.w.pa.clone();
+        buyer.data().money = balance;
+        s.db.accounts
+            .lock()
+            .unwrap()
+            .insert(1001, (0, balance as i32));
+        let mut sku = cart(&shop_state(), &[(200, 0)])[0].clone();
+        sku.currency = currency;
+        sku.discount_price = 10;
+        execute_buy(&s.w.server, 1, &buyer, &buyer, &[sku]).await;
+        if currency == currency::COINS {
+            assert_eq!(buyer.data().money, 0);
+        } else {
+            assert_eq!(s.db.accounts.lock().unwrap()[&1001].1, 0);
+        }
+        assert_eq!(s.db.sales.lock().unwrap()[0].sale_cost, 10);
+        assert_eq!(s.mail.0.lock().unwrap().len(), 1);
+        assert_eq!(
+            s.w.a.drain().last().unwrap().1,
+            result_body(true, "Alice", 0)
+        );
+    }
+}
+
+#[tokio::test]
+async fn checkout_failed_payment_or_stock_update_never_fulfills_or_records_sale() {
+    for stock_failure in [false, true] {
+        let mut s = shop();
+        let buyer = s.w.pa.clone();
+        s.db.accounts.lock().unwrap().insert(1001, (100, 100));
+        *s.db.fail_debits.lock().unwrap() = !stock_failure;
+        *s.db.fail_stock_updates.lock().unwrap() = stock_failure;
+        execute_buy(
+            &s.w.server,
+            1,
+            &buyer,
+            &buyer,
+            &cart(&shop_state(), &[(200, 0)]),
+        )
+        .await;
+        assert_eq!(s.db.accounts.lock().unwrap()[&1001], (100, 100));
+        assert_eq!(
+            s.w.server.systems.economy.cash_shop.state().shop_items[&200].remaining,
+            3
+        );
+        assert!(s.db.sales.lock().unwrap().is_empty());
+        assert!(s.mail.0.lock().unwrap().is_empty());
+        assert_eq!(
+            s.w.a.drain(),
+            vec![
+                (
+                    sc::SCErrorMsgPacket,
+                    error_body(error_message::INGAME_SHOP_BUY_FAIL)
+                ),
+                (sc::SCICSBuyResultPacket, result_body(false, "Alice", 0)),
+            ]
+        );
+    }
+}
+
+#[tokio::test]
+async fn checkout_checks_total_item_quantity_for_stock_and_purchase_limits() {
+    for limited in [false, true] {
+        let mut s = shop();
+        let buyer = s.w.pa.clone();
+        s.db.accounts.lock().unwrap().insert(1001, (100, 100));
+        let mut entry = cart(&shop_state(), &[(200, 0)])[0].clone();
+        entry.item_count = 2;
+        if limited {
+            let mut st = s.w.server.systems.economy.cash_shop.state();
+            let item = st.shop_items.get_mut(&200).unwrap();
+            item.remaining = -1;
+            item.limited_type = limit_type::ACCOUNT;
+            item.limited_stock_max = 3;
+        }
+        execute_buy(&s.w.server, 1, &buyer, &buyer, &[entry.clone(), entry]).await;
+        assert_eq!(s.db.accounts.lock().unwrap()[&1001], (100, 100));
+        assert!(s.db.sales.lock().unwrap().is_empty());
+        assert!(s.mail.0.lock().unwrap().is_empty());
+        assert_eq!(
+            s.w.a.drain(),
+            vec![
+                (
+                    sc::SCErrorMsgPacket,
+                    error_body(error_message::INGAME_SHOP_SOLD_OUT)
+                ),
+                (sc::SCICSBuyResultPacket, result_body(false, "Alice", 0)),
+            ]
+        );
+    }
+}
+
+#[tokio::test]
+#[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; uses connection-local temporary accounts"]
+async fn private_mysql_cash_shop_debits_are_guarded_and_do_not_overdraw() {
+    use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
+    use std::str::FromStr;
+    let Ok(url) = std::env::var("AAEMU_TEST_MYSQL") else {
+        return;
+    };
+    let options = MySqlConnectOptions::from_str(&url).expect("valid private MySQL URL");
+    assert_eq!(
+        options.get_port(),
+        3317,
+        "Only private MySQL3317 is allowed"
+    );
+    let pool = MySqlPoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await
+        .unwrap();
+    sqlx::query("CREATE TEMPORARY TABLE accounts (account_id INT PRIMARY KEY, credits INT NOT NULL DEFAULT 0, loyalty INT NOT NULL DEFAULT 0)").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO accounts VALUES (1,100,30)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (a, b) = tokio::join!(
+        add_credits_sql(&pool, 1, -80),
+        add_credits_sql(&pool, 1, -80)
+    );
+    assert_ne!(a, b);
+    assert!(!add_credits_sql(&pool, 2, -1).await);
+    assert!(!add_loyalty_sql(&pool, 1, -31).await);
+    assert!(add_loyalty_sql(&pool, 1, -30).await);
+    let values: (i32, i32) =
+        sqlx::query_as("SELECT credits,loyalty FROM accounts WHERE account_id=1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(values, (20, 0));
+    sqlx::query("DROP TEMPORARY TABLE accounts")
+        .execute(&pool)
+        .await
+        .unwrap();
+    pool.close().await;
 }
 
 #[tokio::test]

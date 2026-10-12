@@ -138,7 +138,12 @@ impl Eval<'_> {
                 } else {
                     f64::from(mate_kind_id)
                 };
-                HashMap::from([("level", self.level()), ("mate_kind", mate_kind)])
+                // The real 1.2 mate pool formulas use sta/int and the regen
+                // formulas use spi. Keep the per-formula mate-kind coefficient
+                // while supplying the same attribute inputs as combat getters.
+                let mut params = self.full_params();
+                params.insert("mate_kind", mate_kind);
+                params
             }
             // `Slave` getters pass `level` + `str`..`fai` like transfers and shipyards.
             VehicleKind::Slave | VehicleKind::Transfer | VehicleKind::Shipyard => {
@@ -462,5 +467,98 @@ pub(crate) mod tests {
         // MaxHp uses the mate_kind variable (7) then CalculateWithBonuses (+10%); the regen
         // getters pass the raw MateKindId (3).
         assert_eq!(v, vec![77.0, 3.0, 10.0]);
+    }
+
+    #[tokio::test]
+    async fn mate_pools_and_regeneration_include_attributes_and_mate_kind_coefficients() {
+        let mut data = crate::data::GameData::empty();
+        data.formulas = formulas(
+            &[
+                (99, "(level * 140 + sta * 12) * mate_kind", 14, 5),
+                (100, "level * 15 + int * 10 * mate_kind", 15, 5),
+                (101, "spi * 0.1 + 7", 16, 5),
+                (102, "spi * 0.07 + 7", 17, 5),
+                (144, "10 + (level - 1) * 4", 24, 5),
+                (150, "10 + (level - 1) * 4", 25, 5),
+                (156, "10 + (level - 1) * 4", 26, 5),
+                (216, "(spi * 0.1) * 2", 31, 5),
+                (223, "(spi * 0.1) * 2", 32, 5),
+            ],
+            &[
+                (99, 5, 1, 1.0),
+                (100, 5, 1, 1.0),
+                (99, 5, 3, 7.0),
+                (100, 5, 3, 2.0),
+            ],
+        );
+        let server = crate::test_support::test_server_with(data);
+        let unit = UnitBase {
+            level: 5,
+            ..Default::default()
+        };
+        let kinds = [
+            StatKind::MaxHp,
+            StatKind::MaxMp,
+            StatKind::HpRegen,
+            StatKind::MpRegen,
+            StatKind::PersistentHpRegen,
+            StatKind::PersistentMpRegen,
+        ];
+        assert_eq!(
+            stats_of(
+                &server,
+                VehicleKind::Mate { mate_kind_id: 1 },
+                &unit,
+                &kinds
+            ),
+            vec![1012.0, 335.0, 11.0, 10.0, 1.0, 1.0]
+        );
+        assert_eq!(
+            stats_of(
+                &server,
+                VehicleKind::Mate { mate_kind_id: 3 },
+                &unit,
+                &kinds[..2]
+            ),
+            vec![7084.0, 595.0]
+        );
+    }
+
+    #[tokio::test]
+    #[ignore = "needs AAEMU_COMPACT_DB"]
+    async fn real_mate_pool_formulas_match_the_level_five_horse() {
+        let Ok(path) = std::env::var("AAEMU_COMPACT_DB") else {
+            return;
+        };
+        let conn =
+            Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+        let mut data = crate::data::GameData::empty();
+        data.formulas = FormulaManager::load(&conn).unwrap();
+        let server = crate::test_support::test_server_with(data);
+        let unit = UnitBase {
+            level: 5,
+            ..Default::default()
+        };
+        // Exact r208022 Brown Lilyut Horse (npc5431, mate kind1). The live
+        // unmodified client independently reported max_hp1012 on the fixture.
+        assert_eq!(
+            stats_of(
+                &server,
+                VehicleKind::Mate { mate_kind_id: 1 },
+                &unit,
+                &[
+                    StatKind::Sta,
+                    StatKind::Int,
+                    StatKind::Spi,
+                    StatKind::MaxHp,
+                    StatKind::MaxMp,
+                    StatKind::HpRegen,
+                    StatKind::MpRegen,
+                    StatKind::PersistentHpRegen,
+                    StatKind::PersistentMpRegen
+                ]
+            ),
+            vec![26.0, 26.0, 26.0, 1012.0, 335.0, 11.0, 10.0, 1.0, 1.0]
+        );
     }
 }

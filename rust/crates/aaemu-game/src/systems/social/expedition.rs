@@ -988,9 +988,12 @@ pub async fn change_member_role(server: &GameServer, p: &PlayerRef, new_role: u8
     save(server, id).await;
 }
 
-/// `ExpeditionManager.ChangeOwner(connection, newOwnerId)`. Note (C#): `OwnerName` is not
-/// updated.
+/// `ExpeditionManager.ChangeOwner(connection, newOwnerId)`: keep the persistent owner id,
+/// name and roles consistent; transferring to oneself is a no-op.
 pub async fn change_owner(server: &GameServer, owner: &PlayerRef, new_owner_id: u32) {
+    if new_owner_id == owner.character_id {
+        return;
+    }
     let Some(e) = expedition_of(server, owner) else {
         return;
     };
@@ -1011,6 +1014,7 @@ pub async fn change_owner(server: &GameServer, owner: &PlayerRef, new_owner_id: 
         old.role = 0;
         let old = (old.character_id, old.role, old.name.clone());
         e.faction.owner_id = new_owner_id;
+        e.faction.owner_name = new.2.clone();
         (old, new, members)
     });
     let Some((old, new, members)) = res else {

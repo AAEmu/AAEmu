@@ -298,6 +298,98 @@ async fn mount_and_dismount_flow() {
 }
 
 #[tokio::test]
+async fn mate_summon_sends_attribute_pools_and_preserves_injured_exhausted_and_dead_saves() {
+    use crate::net::registry::ClientPacket;
+    let mut d = data();
+    d.formulas = super::stats::tests::formulas(
+        &[
+            (99, "(level * 140 + sta * 12) * mate_kind", 14, 5),
+            (100, "level * 15 + int * 10 * mate_kind", 15, 5),
+            (144, "10 + (level - 1) * 4", 24, 5),
+            (150, "10 + (level - 1) * 4", 25, 5),
+            (156, "10 + (level - 1) * 4", 26, 5),
+        ],
+        &[(99, 5, 1, 1.0), (100, 5, 1, 1.0)],
+    );
+    let template = d.systems.npcs.npc.templates.get_mut(&MATE_NPC).unwrap();
+    template.level = 5;
+    template.mate_kind_id = 1;
+    let server = server_with(d);
+    let mut client = TestClient::new(&server, 1, 1);
+    let (player, item_id) = player_with_item(&server, &client, 1, PA, (100.0, 100.0), MATE_ITEM);
+    // The synthetic Character defaults to zero HP. A dead owner's mates are
+    // correctly despawned on mate death, so this restore flow needs a living owner.
+    {
+        let mut data = player.data();
+        data.unit.hp = 1000;
+        data.unit.max_hp = 1000;
+    }
+    client.conn.active_char = Some(player.clone());
+    client.drain();
+    mates::spawn_mount(&server, &player, item_id);
+    let manager = server.systems.vehicles.mates.get(0);
+    let mut mate = manager.get_active_mates(1).pop().unwrap();
+    {
+        let mate = mate.data();
+        assert_eq!(
+            (
+                mate.unit.hp,
+                mate.unit.max_hp,
+                mate.unit.mp,
+                mate.unit.max_mp
+            ),
+            (1012, 1012, 335, 335)
+        );
+    }
+    let frames = client.drain();
+    let mut points = PacketStream::new();
+    points
+        .write_bc(mate.obj_id)
+        .write_i32(1012 * 100)
+        .write_i32(335 * 100);
+    assert_eq!(body(&frames, sc::SCUnitPointsPacket), points.as_bytes());
+
+    for (hp, mp) in [(117, 0), (0, 42)] {
+        {
+            let mut unit = mate.data();
+            unit.unit.hp = hp;
+            unit.unit.mp = mp;
+        }
+        let tl_id = mate.data().unit.tl_id;
+        super::packets::CSRemoveMatePacket { tl_id }
+            .handle(&server, &mut client.conn)
+            .await
+            .unwrap();
+        assert!(manager.get_active_mates(1).is_empty());
+        let stored = server.systems.vehicles.mates.character_mates(1).unwrap();
+        assert_eq!(
+            (
+                stored.get(item_id).unwrap().hp,
+                stored.get(item_id).unwrap().mp
+            ),
+            (hp, mp)
+        );
+        client.drain();
+        mates::spawn_mount(&server, &player, item_id);
+        let restored = manager.get_active_mates(1).pop().unwrap();
+        {
+            let data = restored.data();
+            assert_eq!((data.unit.hp, data.unit.mp), (hp, mp));
+        }
+        let mut points = PacketStream::new();
+        points
+            .write_bc(restored.obj_id)
+            .write_i32(hp * 100)
+            .write_i32(mp * 100);
+        assert_eq!(
+            body(&client.drain(), sc::SCUnitPointsPacket),
+            points.as_bytes()
+        );
+        mate = restored;
+    }
+}
+
+#[tokio::test]
 async fn second_summon_despawns_and_logout_keeps_stale_entry() {
     let server = server_with(data());
     let mut a = TestClient::new(&server, 1, 1);

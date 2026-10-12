@@ -94,6 +94,460 @@ fn chat(t: i16, msg: &str) -> PacketStream {
     s
 }
 
+fn user_join(name: &str, password: &str, create: bool) -> PacketStream {
+    let mut s = PacketStream::new();
+    s.write_str(name).write_str(password).write_bool(create);
+    s
+}
+
+fn user_leave(identity: i64) -> PacketStream {
+    let mut s = PacketStream::new();
+    s.write_i64(identity);
+    s
+}
+
+fn user_chat(identity: i64, message: &str) -> PacketStream {
+    let mut s = PacketStream::new();
+    s.write_i64(identity)
+        .write_str("")
+        .write_str(message)
+        .write_u8(0)
+        .write_i32(7);
+    s
+}
+
+fn expect_chat_error(p: &mut Pc, error: i16) {
+    use crate::packets::world::SCErrorMsgPacket;
+    assert_eq!(
+        p.frames(),
+        vec![(
+            sc::SCErrorMsgPacket,
+            body(&SCErrorMsgPacket::new(error, 0, true))
+        )]
+    );
+}
+
+#[tokio::test]
+async fn user_chat_input_budgets_count_utf8_bytes_and_session_membership() {
+    use crate::systems::social::chat::user_channel_identity;
+    use crate::systems::social::util::error;
+    let server = test_server();
+    let mut a = pc(&server, 1, "Al", 100.0, 100.0);
+    let mut b = pc(&server, 2, "Bob", 110.0, 100.0);
+    settle(&mut [&mut a, &mut b]);
+    let maximum_name = "é".repeat(24); //48 UTF-8 bytes
+    let maximum_password = "λ".repeat(32); //64 UTF-8 bytes
+    let requests = vec![
+        user_join("", "", true),
+        user_join(&"a".repeat(49), "", true),
+        user_join(&"é".repeat(25), "", true),
+        user_join("Valid", &"x".repeat(65), true),
+        user_join("Valid", &"λ".repeat(33), true),
+        user_join("bad\nname", "", true),
+        user_join("bad\0name", "", true),
+        user_join("Valid", "bad\tpassword", true),
+        user_join("Valid", "bad\u{0085}password", true),
+    ];
+    for request in requests {
+        a.send(&server, cs::CSJoinUserChatChannelPacket, request)
+            .await;
+        expect_chat_error(&mut a, error::CHAT_NO_CHANNEL);
+        assert!(!server
+            .chat
+            .list_all_channels()
+            .iter()
+            .any(|c| c.chat_type == chat_type::USER));
+    }
+    // Invalid UTF-8 expands during the shared decoder:17 raw bytes become51 decoded bytes.
+    let mut malformed_name = PacketStream::new();
+    malformed_name
+        .write_i16(17)
+        .write_raw(&[0xff; 17])
+        .write_str("")
+        .write_bool(true);
+    a.send(&server, cs::CSJoinUserChatChannelPacket, malformed_name)
+        .await;
+    expect_chat_error(&mut a, error::CHAT_NO_CHANNEL);
+    let mut malformed_password = PacketStream::new();
+    malformed_password
+        .write_str("Valid")
+        .write_i16(22)
+        .write_raw(&[0xff; 22])
+        .write_bool(true);
+    a.send(&server, cs::CSJoinUserChatChannelPacket, malformed_password)
+        .await;
+    expect_chat_error(&mut a, error::CHAT_NO_CHANNEL);
+
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join(&maximum_name, &maximum_password, true),
+    )
+    .await;
+    assert_eq!(a.ops(), vec![sc::SCJoinedChatChannelPacket]);
+    for index in 0..7 {
+        a.send(
+            &server,
+            cs::CSJoinUserChatChannelPacket,
+            user_join(&format!("Other{index}"), "", true),
+        )
+        .await;
+        assert_eq!(a.ops(), vec![sc::SCJoinedChatChannelPacket]);
+    }
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Ninth", "", true),
+    )
+    .await;
+    expect_chat_error(&mut a, error::CHAT_NO_CHANNEL);
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join(&maximum_name, &maximum_password, false),
+    )
+    .await;
+    expect_chat_error(&mut a, error::CHAT_ALREADY_JOINED_CHANNEL);
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join(&maximum_name, &maximum_password, true),
+    )
+    .await;
+    expect_chat_error(&mut a, error::CHAT_CHANNEL_ALREADY_EXISTS);
+    b.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Peer", "", true),
+    )
+    .await;
+    assert_eq!(b.ops(), vec![sc::SCJoinedChatChannelPacket]);
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Peer", "", false),
+    )
+    .await;
+    expect_chat_error(&mut a, error::CHAT_NO_CHANNEL);
+    let channel = server
+        .chat
+        .list_all_channels()
+        .into_iter()
+        .find(|c| c.chat_type == chat_type::USER && c.internal_name() == "Other0")
+        .unwrap();
+    a.send(
+        &server,
+        cs::CSLeaveChatChannelPacket,
+        user_leave(user_channel_identity(&channel)),
+    )
+    .await;
+    assert_eq!(a.ops(), vec![sc::SCLeavedChatChannelPacket]);
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Peer", "", false),
+    )
+    .await;
+    assert_eq!(a.ops(), vec![sc::SCJoinedChatChannelPacket]);
+    let peer = server
+        .chat
+        .list_all_channels()
+        .into_iter()
+        .find(|c| c.chat_type == chat_type::USER && c.internal_name() == "Peer")
+        .unwrap();
+    // Message decoding has the same expansion risk: the response must never wrap its string
+    // length or exceed the transport's u16 frame size.
+    let mut malformed_message = PacketStream::new();
+    malformed_message
+        .write_i64(user_channel_identity(&peer))
+        .write_str("")
+        .write_i16(10923)
+        .write_raw(&vec![0xff; 10923])
+        .write_u8(0)
+        .write_i32(0);
+    a.send(&server, cs::CSSendChatMessagePacket, malformed_message)
+        .await;
+    expect_chat_error(&mut a, error::CHAT_NO_CHANNEL);
+    assert!(b.frames().is_empty());
+    server.chat.leave_user_channels(&a.p, &server.ids.chat);
+    a.frames();
+    assert_eq!(peer.members().len(), 1);
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Again", "", true),
+    )
+    .await;
+    assert_eq!(a.ops(), vec![sc::SCJoinedChatChannelPacket]);
+}
+
+#[tokio::test]
+async fn user_chat_create_join_password_message_and_leave_flow() {
+    use crate::packets::world::{SCChatMessagePacket, SCLeavedChatChannelPacket};
+    use crate::systems::social::chat::user_channel_identity;
+    use crate::systems::social::util::error;
+    let server = test_server();
+    let mut a = pc(&server, 1, "Al", 100.0, 100.0);
+    let mut b = pc(&server, 2, "Bob", 110.0, 100.0);
+    let mut outsider = pc(&server, 3, "Cy", 120.0, 100.0);
+    settle(&mut [&mut a, &mut b, &mut outsider]);
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Friends", "secret", true),
+    )
+    .await;
+    let channel = server
+        .chat
+        .list_all_channels()
+        .into_iter()
+        .find(|c| c.chat_type == chat_type::USER)
+        .unwrap();
+    assert_eq!(channel.internal_name(), "Friends");
+    let identity = user_channel_identity(&channel);
+    let mut joined = PacketStream::new();
+    joined
+        .write_i16(15)
+        .write_i16(0)
+        .write_u32(channel.internal_id)
+        .write_str("Friends");
+    assert_eq!(
+        a.frames(),
+        vec![(sc::SCJoinedChatChannelPacket, joined.as_bytes().to_vec())]
+    );
+    assert!(channel.contains(&a.p));
+
+    for (request, expected) in [
+        (
+            user_join("Friends", "secret", true),
+            error::CHAT_CHANNEL_ALREADY_EXISTS,
+        ),
+        (
+            user_join("Friends", "secret", false),
+            error::CHAT_ALREADY_JOINED_CHANNEL,
+        ),
+    ] {
+        a.send(&server, cs::CSJoinUserChatChannelPacket, request)
+            .await;
+        expect_chat_error(&mut a, expected);
+    }
+    for (request, expected) in [
+        (user_join("Missing", "", false), error::CHAT_NO_CHANNEL),
+        (user_join("Friends", "", false), error::CHAT_PRIVATE_CHANNEL),
+        (
+            user_join("Friends", "wrong", false),
+            error::CHAT_WRONG_PASSWORD,
+        ),
+    ] {
+        b.send(&server, cs::CSJoinUserChatChannelPacket, request)
+            .await;
+        expect_chat_error(&mut b, expected);
+        assert!(!channel.contains(&b.p));
+    }
+    b.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Friends", "secret", false),
+    )
+    .await;
+    assert_eq!(
+        b.frames(),
+        vec![(sc::SCJoinedChatChannelPacket, joined.as_bytes().to_vec())]
+    );
+    assert_eq!(channel.members().len(), 2);
+
+    outsider
+        .send(
+            &server,
+            cs::CSSendChatMessagePacket,
+            user_chat(identity, "intrusion"),
+        )
+        .await;
+    expect_chat_error(&mut outsider, error::CHAT_NOT_JOINED_CHANNEL);
+    assert!(a.frames().is_empty() && b.frames().is_empty());
+    outsider
+        .send(&server, cs::CSLeaveChatChannelPacket, user_leave(identity))
+        .await;
+    expect_chat_error(&mut outsider, error::CHAT_NOT_JOINED_CHANNEL);
+    assert_eq!(channel.members().len(), 2);
+
+    a.send(
+        &server,
+        cs::CSSendChatMessagePacket,
+        user_chat(identity, "hello"),
+    )
+    .await;
+    let sender = crate::world::session::chat_sender(&a.p.data(), a.p.obj_id);
+    let mut expected = body(&SCChatMessagePacket {
+        chat_type: chat_type::USER,
+        sender: Some(sender),
+        message: "hello".into(),
+        ability: 7,
+        language_type: 0,
+    });
+    expected[..8].copy_from_slice(&identity.to_le_bytes());
+    assert_eq!(
+        a.frames(),
+        vec![(sc::SCChatMessagePacket, expected.clone())]
+    );
+    assert_eq!(b.frames(), vec![(sc::SCChatMessagePacket, expected)]);
+    assert!(outsider.frames().is_empty());
+
+    let wrong_subtype = identity | (1i64 << 16);
+    a.send(
+        &server,
+        cs::CSSendChatMessagePacket,
+        user_chat(wrong_subtype, "wrong channel"),
+    )
+    .await;
+    expect_chat_error(&mut a, error::CHAT_NO_CHANNEL);
+    a.send(
+        &server,
+        cs::CSLeaveChatChannelPacket,
+        user_leave(wrong_subtype),
+    )
+    .await;
+    expect_chat_error(&mut a, error::CHAT_NO_CHANNEL);
+    let normal = server.chat.faction_chat(148);
+    normal.join(&a.p);
+    a.frames();
+    a.send(
+        &server,
+        cs::CSLeaveChatChannelPacket,
+        user_leave(user_channel_identity(&normal)),
+    )
+    .await;
+    expect_chat_error(&mut a, error::CHAT_NO_CHANNEL);
+    assert!(normal.contains(&a.p));
+
+    a.send(&server, cs::CSLeaveChatChannelPacket, user_leave(identity))
+        .await;
+    assert_eq!(
+        a.frames(),
+        vec![(
+            sc::SCLeavedChatChannelPacket,
+            body(&SCLeavedChatChannelPacket {
+                chat_type: 15,
+                sub_type: 0,
+                faction_id: channel.internal_id
+            })
+        )]
+    );
+    assert!(!channel.contains(&a.p) && channel.contains(&b.p));
+    a.send(
+        &server,
+        cs::CSSendChatMessagePacket,
+        user_chat(identity, "after leave"),
+    )
+    .await;
+    expect_chat_error(&mut a, error::CHAT_NOT_JOINED_CHANNEL);
+    b.send(&server, cs::CSLeaveChatChannelPacket, user_leave(identity))
+        .await;
+    assert_eq!(b.frames().len(), 1);
+    assert!(!server
+        .chat
+        .list_all_channels()
+        .iter()
+        .any(|c| c.chat_type == chat_type::USER));
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Friends", "", true),
+    )
+    .await;
+    assert_eq!(
+        a.frames(),
+        vec![(sc::SCJoinedChatChannelPacket, joined.as_bytes().to_vec())]
+    );
+}
+
+#[tokio::test]
+async fn user_chat_requires_active_session_and_cleans_departing_members() {
+    use crate::systems::social::chat::user_channel_identity;
+    use crate::systems::social::util::error;
+    let server = test_server();
+    let mut a = pc(&server, 1, "Al", 100.0, 100.0);
+    let mut b = pc(&server, 2, "Bob", 110.0, 100.0);
+    settle(&mut [&mut a, &mut b]);
+    a.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Public", "", true),
+    )
+    .await;
+    b.send(
+        &server,
+        cs::CSJoinUserChatChannelPacket,
+        user_join("Public", "", false),
+    )
+    .await;
+    settle(&mut [&mut a, &mut b]);
+    let channel = server
+        .chat
+        .list_all_channels()
+        .into_iter()
+        .find(|c| c.chat_type == chat_type::USER)
+        .unwrap();
+    let identity = user_channel_identity(&channel);
+
+    let mut unauthenticated = TestClient::new(&server, 9, 1009);
+    for (op, request) in [
+        (
+            cs::CSJoinUserChatChannelPacket,
+            user_join("Nobody", "", true),
+        ),
+        (cs::CSLeaveChatChannelPacket, user_leave(identity)),
+        (
+            cs::CSSendChatMessagePacket,
+            user_chat(identity, "unauthenticated"),
+        ),
+    ] {
+        server
+            .handle_frame(
+                &mut unauthenticated.conn,
+                &encode_raw(1, op, request.as_bytes()),
+            )
+            .await
+            .unwrap();
+        assert!(unauthenticated.drain().is_empty());
+    }
+    assert_eq!(channel.members().len(), 2);
+    crate::world::session::set_online(&server, &a.p, false);
+    assert!(!channel.contains(&a.p) && channel.contains(&b.p));
+    assert_eq!(a.ops(), vec![sc::SCLeavedChatChannelPacket]);
+    let stale = a.p.clone();
+    server.world.try_remove_character(a.p.obj_id);
+    let new_session = pc(&server, 1, "Al", 100.0, 100.0);
+    assert_eq!(
+        server.chat.send_user_message(
+            &new_session.p,
+            0,
+            channel.internal_id,
+            &crate::packets::world::SCChatMessagePacket {
+                chat_type: 15,
+                sender: None,
+                message: "new session".into(),
+                ability: 0,
+                language_type: 0
+            }
+        ),
+        Err(error::CHAT_NOT_JOINED_CHANNEL)
+    );
+    assert!(!channel.contains(&stale));
+    // The disconnect edge must also clean an already-offline active character, for which
+    // on_disconnect skips the ordinary set_online(false) hook.
+    b.p.data().is_online = false;
+    crate::world::session::on_disconnect(&server, &mut b.c.conn).await;
+    assert!(!channel.contains(&b.p));
+    assert!(b.ops().contains(&sc::SCLeavedChatChannelPacket));
+    assert!(!server
+        .chat
+        .list_all_channels()
+        .iter()
+        .any(|c| c.chat_type == chat_type::USER));
+    assert_eq!(server.chat.clean_up_channels(&server.ids.chat), 0);
+}
+
 /// A forms a party with B (invite + accept). Returns the team id.
 async fn form_party(server: &GameServer, a: &mut Pc, b: &mut Pc) -> u32 {
     a.send(server, cs::CSInviteToTeamPacket, invite(0, "Bob"))
@@ -828,6 +1282,27 @@ async fn guild_create_invite_kick_roles_and_disband() {
     for x in pcs.iter_mut() {
         assert_eq!(x.ops(), vec![sc::SCExpeditionRoleChangedPacket]);
     }
+    let before_transfer = server.expeditions.get(id).unwrap();
+    // An outsider, an ordinary member, and a self-transfer cannot change the owner snapshot
+    // or downgrade the current owner's role. Invalid requests send no transition packets.
+    for (actor, target) in [(9, 2), (3, 2), (1, 1)] {
+        let mut request = PacketStream::new();
+        request.write_u32(target);
+        if actor == 9 {
+            outsider
+                .send(&server, cs::CSChangeExpeditionOwnerPacket, request)
+                .await;
+        } else {
+            pcs[(actor - 1) as usize]
+                .send(&server, cs::CSChangeExpeditionOwnerPacket, request)
+                .await;
+        }
+        assert_eq!(server.expeditions.get(id).unwrap(), before_transfer);
+        assert!(outsider.ops().is_empty());
+        for member in pcs.iter_mut() {
+            assert!(member.ops().is_empty());
+        }
+    }
     let mut s = PacketStream::new();
     s.write_u32(2);
     pcs[0]
@@ -835,6 +1310,7 @@ async fn guild_create_invite_kick_roles_and_disband() {
         .await;
     let e = server.expeditions.get(id).unwrap();
     assert_eq!(e.faction.owner_id, 2);
+    assert_eq!(e.faction.owner_name, "M2"); // The existing save binds this snapshot field.
     assert_eq!(
         (e.member(1).unwrap().role, e.member(2).unwrap().role),
         (0, 255)
@@ -898,6 +1374,125 @@ async fn guild_creation_needs_a_full_party() {
     let f = a.frames();
     assert_eq!(f.len(), 1);
     assert_eq!(f[0].1[..2], 294i16.to_le_bytes()); // ExpeditionCreateMember
+}
+
+#[tokio::test]
+#[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; uses connection-local temporary expedition tables"]
+async fn private_mysql_expedition_owner_transition_persists_consistent_snapshot() {
+    use crate::data::world_data::SystemFaction;
+    use crate::systems::social::expedition::{self, Expedition};
+    use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
+    use std::str::FromStr;
+    let Ok(url) = std::env::var("AAEMU_TEST_MYSQL") else {
+        return;
+    };
+    let options = MySqlConnectOptions::from_str(&url).expect("valid private MySQL URL");
+    assert_eq!(
+        options.get_port(),
+        3317,
+        "Only private MySQL3317 is allowed"
+    );
+    let pool = MySqlPoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await
+        .unwrap();
+    // Single-connection temporary tables shadow the application tables for this test only.
+    let mut schemas = Vec::new();
+    for table in ["expeditions", "expedition_members"] {
+        let (_, ddl): (String, String) = sqlx::query_as(&format!("SHOW CREATE TABLE `{table}`"))
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert!(ddl.starts_with("CREATE TABLE"));
+        schemas.push(ddl.replacen("CREATE TABLE", "CREATE TEMPORARY TABLE", 1));
+    }
+    for ddl in schemas {
+        sqlx::query(&ddl).execute(&pool).await.unwrap();
+    }
+    let mut server = test_server();
+    server.db = pool.clone();
+    let mut a = pc(&server, 1, "Al", 100.0, 100.0);
+    let mut b = pc(&server, 2, "Bob", 110.0, 100.0);
+    settle(&mut [&mut a, &mut b]);
+    a.p.data().unit.expedition_id = 77;
+    b.p.data().unit.expedition_id = 77;
+    server.expeditions.add(Expedition {
+        faction: SystemFaction {
+            id: 77,
+            name: "Knights".into(),
+            owner_id: 1,
+            owner_name: "Al".into(),
+            mother_id: 148,
+            ..Default::default()
+        },
+        members: vec![
+            expedition::member_from_character(&server, 77, &a.p, true),
+            expedition::member_from_character(&server, 77, &b.p, false),
+        ],
+        policies: Vec::new(),
+        removed_members: Vec::new(),
+        is_disbanded: false,
+    });
+    let mut request = PacketStream::new();
+    request.write_u32(2);
+    a.send(&server, cs::CSChangeExpeditionOwnerPacket, request)
+        .await;
+    let saved: (i64, String) =
+        sqlx::query_as("SELECT CAST(owner AS SIGNED),owner_name FROM expeditions WHERE id=77")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(saved, (2, "Bob".into()));
+    let roles: Vec<(i64, i64)> =
+        sqlx::query_as("SELECT CAST(character_id AS SIGNED),CAST(role AS SIGNED) FROM expedition_members ORDER BY character_id")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(roles, vec![(1, 0), (2, 255)]);
+    let snapshot = server.expeditions.get(77).unwrap();
+    assert_eq!(
+        (
+            snapshot.faction.owner_id,
+            snapshot.faction.owner_name.as_str()
+        ),
+        (2, "Bob")
+    );
+    assert_eq!(
+        a.ops(),
+        vec![
+            sc::SCExpeditionOwnerChangedPacket,
+            sc::SCExpeditionRoleChangedPacket,
+            sc::SCExpeditionRoleChangedPacket
+        ]
+    );
+    assert_eq!(
+        b.ops(),
+        vec![
+            sc::SCExpeditionOwnerChangedPacket,
+            sc::SCExpeditionRoleChangedPacket,
+            sc::SCExpeditionRoleChangedPacket
+        ]
+    );
+    let mut self_transfer = PacketStream::new();
+    self_transfer.write_u32(2);
+    b.send(&server, cs::CSChangeExpeditionOwnerPacket, self_transfer)
+        .await;
+    assert_eq!(server.expeditions.get(77).unwrap(), snapshot);
+    assert!(a.ops().is_empty() && b.ops().is_empty());
+    let saved_after: (i64, String) =
+        sqlx::query_as("SELECT CAST(owner AS SIGNED),owner_name FROM expeditions WHERE id=77")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(saved_after, saved);
+    for table in ["expedition_members", "expeditions"] {
+        sqlx::query(&format!("DROP TEMPORARY TABLE {table}"))
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
+    pool.close().await;
 }
 
 #[tokio::test]

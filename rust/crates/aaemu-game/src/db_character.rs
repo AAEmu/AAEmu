@@ -824,8 +824,8 @@ pub async fn save_character(
     };
     // Column order roll,pitch,yaw receives @yaw,@pitch,@roll: `roll` stores Rotation.Z and
     // `yaw` stores Rotation.X; Load reads them back crosswise, so the round trip is consistent.
-    // Note (C#): @reported_as_bot_count is bound but not in the column list, so the column is
-    // reset to its default on every save.
+    // Persist both bot-report counters: REPLACE must not reset the reported character's
+    // counter to its schema default when saving unrelated character changes.
     sqlx::query(
         "REPLACE INTO `characters` \
         (`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`experience`,`recoverable_exp`,\
@@ -836,9 +836,9 @@ pub async fn save_character(
         `hostile_faction_kills`,`pvp_honor`,`died_in_pvp`,`died_in_pvp_war_zone`,\
         `delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,\
         `num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`,\
-        `arrest_count`, `accept_guilty_count`, `accept_trial_count`, `not_guilty_count`, `guilty_count`, `evidence_reported_count`, `bot_reported_count`,\
+        `arrest_count`, `accept_guilty_count`, `accept_trial_count`, `not_guilty_count`, `guilty_count`, `evidence_reported_count`, `bot_reported_count`, `reported_as_bot_count`,\
         `offline_guilty_time`,`offline_guilty_region`) VALUES \
-        (?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?, ?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?, ?,?,?,?, ?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?, ?,?)",
+        (?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?, ?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?, ?,?,?,?, ?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?, ?,?)",
     )
     .bind(c.id)
     .bind(c.account_id)
@@ -907,6 +907,7 @@ pub async fn save_character(
     .bind(c.guilty_count)
     .bind(c.evidence_reported_count)
     .bind(c.bot_reported_count)
+    .bind(c.reported_as_bot_count)
     .bind(c.offline_guilty_time)
     .bind(c.offline_guilty_region)
     .execute(&mut **tx)
@@ -1244,4 +1245,66 @@ pub async fn offline_blocked_infos(pool: &MySqlPool, ids: &[u32]) -> Result<Vec<
         });
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
+    use std::str::FromStr;
+
+    #[tokio::test]
+    #[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; uses only temporary tables"]
+    async fn private_mysql_character_save_preserves_both_bot_report_counters() {
+        let Ok(url) = std::env::var("AAEMU_TEST_MYSQL") else {
+            return;
+        };
+        let options = MySqlConnectOptions::from_str(&url).expect("valid private MySQL URL");
+        assert_eq!(
+            options.get_port(),
+            3317,
+            "only private MySQL3317 is allowed"
+        );
+        let pool = MySqlPoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .expect("private MySQL");
+        // MySQL rejects an unqualified same-name CREATE ... LIKE as a duplicate alias.
+        // Shadow the live names with connection-local copies of their actual schemas.
+        for table in ["characters", "character_active_buffs"] {
+            let (_, definition): (String, String) =
+                sqlx::query_as(&format!("SHOW CREATE TABLE `{table}`"))
+                    .fetch_one(&pool)
+                    .await
+                    .unwrap();
+            assert!(definition.starts_with("CREATE TABLE "));
+            let temporary = definition.replacen("CREATE TABLE ", "CREATE TEMPORARY TABLE ", 1);
+            sqlx::query(&temporary).execute(&pool).await.unwrap();
+        }
+        let mut character = Character::new(1, 1, UnitCustomModelParams::default());
+        character.unit.name = "BotCounterFixture".into();
+        character.created = Utc::now().timestamp();
+        character.bot_reported_count = 9;
+        character.reported_as_bot_count = 7;
+        character.offline_guilty_region = 6;
+        for expected in [(9, 7), (11, 12)] {
+            character.bot_reported_count = expected.0;
+            character.reported_as_bot_count = expected.1;
+            let mut transaction = pool.begin().await.unwrap();
+            save_character(&mut transaction, &mut character, Utc::now().timestamp())
+                .await
+                .unwrap();
+            transaction.commit().await.unwrap();
+            let saved: (i64, i64, i64) = sqlx::query_as(
+                "SELECT CAST(bot_reported_count AS SIGNED), CAST(reported_as_bot_count AS SIGNED), \
+                 CAST(offline_guilty_region AS SIGNED) FROM characters WHERE id=1",
+            )
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert_eq!(saved, (i64::from(expected.0), i64::from(expected.1), 6));
+        }
+        pool.close().await;
+    }
 }

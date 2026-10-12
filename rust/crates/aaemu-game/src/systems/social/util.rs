@@ -30,6 +30,12 @@ pub mod error {
     pub const ONLY_EXPEDITION_MEMBER: i16 = 808;
     pub const CHAT_NOT_IN_PARTY: i16 = 267;
     pub const CHAT_NOT_IN_RAID: i16 = 268;
+    pub const CHAT_CHANNEL_ALREADY_EXISTS: i16 = 269;
+    pub const CHAT_NO_CHANNEL: i16 = 270;
+    pub const CHAT_ALREADY_JOINED_CHANNEL: i16 = 271;
+    pub const CHAT_PRIVATE_CHANNEL: i16 = 272;
+    pub const CHAT_WRONG_PASSWORD: i16 = 273;
+    pub const CHAT_NOT_JOINED_CHANNEL: i16 = 467;
 }
 
 /// `Character.SendErrorMessage(type)` (`SCErrorMsgPacket(type, 0, true)`).

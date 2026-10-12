@@ -874,9 +874,9 @@ and in NPC wandering / buff remaining times.
 * `new SCFactionListPacket()` / `new SCFactionRelationListPacket()` (empty lists) use the
   hard-coded type ids 0x007 / 0x008, which are `SCTrionConfigPacket` / `SCFactionListPacket` in
   the 1.2 table.
-* `Character.Save` binds `@reported_as_bot_count` but the column is missing from the REPLACE list:
-  the column is reset to its default on every save. The rotation columns are written crosswise
-  (`roll` <- Rotation.Z, `yaw` <- Rotation.X), consistently with `Load`, so the round trip works.
+* `Character.Save` writes the rotation columns crosswise (`roll` <- Rotation.Z,
+  `yaw` <- Rotation.X), consistently with `Load`, so the round trip works. The former omitted
+  `reported_as_bot_count` column is fixed in the feature audit below.
 * `CharacterSkills.Load` re-learns stored skills through `AddSkill(id)`, re-checking the ability
   tree and skill points and recomputing the level (the stored level is ignored).
 * `CharacterManager.Load`: `character_supplies` creates `_abilityItems` entries that
@@ -1076,6 +1076,45 @@ Confirmed gaps fixed in the world server (1.2 opcodes and packet layouts retaine
 * Cinema completion resends neighbouring world objects before raising quest events, matching
   the former 1.2 C# packet handler. A packet flow checks NPC state/points replication and the
   cinema objective's normal transition to Ready.
+
+Additional world-side fixes from the same audit:
+
+* Cash-shop checkout charges the effective discounted price, validates templates and checked
+  cart totals before fulfillment, serializes stock updates, and uses guarded SQL credit and
+  loyalty debits. Gold still uses the inventory transaction path. The formerly free AA Points
+  branch now returns the existing failure (778): a distinct authoritative 1.2 AA Points wallet
+  has not been established. `money2` is bank gold, not an AA Points balance. Unit flows and
+  private-MySQL tests cover failed debits, limits and concurrent overdraft attempts. Debit,
+  audit and commercial-mail delivery do not yet form one crash-atomic transaction/outbox.
+* Temporary USER chat channels implement the existing join/leave packets and packed eight-byte
+  channel identity. Membership belongs to the current player session, chat requires that
+  membership, and disconnect releases empty channels and ids. Emulator policy is server-global
+  exact names/passwords, USER subtype zero and allocated chat ids; persistent ownership or
+  moderation is not inferred from the zone reference. Budgets are 48 UTF-8 bytes for a name,
+  64 for a password, eight joined channels per player and 1,024 channels per server. These are
+  emulator limits, not a claim about retail 1.2 limits. Packet flows check the exact wire bytes,
+  authentication, passwords, stale sessions, malformed/oversized input and capacity cleanup.
+  The real 1.2 client creates a password-protected channel and sends through its normal
+  `X2Chat` bindings. Explicit native leave parameters remain unverified; disconnect cleanup
+  is covered separately.
+* Mate pool and regeneration formulas now receive the complete attribute parameter set plus
+  mate kind. Real 1.2 level-five horse formulas produce 1,012 maximum HP and 335 maximum MP;
+  the old incomplete parameter map failed and produced zero maximum pools. Summoning clamps
+  saved pools to the computed maximum and preserves injured, exhausted and dead saves. Mate
+  skill requests require ownership or an actual server-managed passenger/parent relation
+  before charging resources. The slave child-cannon versus parent-caster mapping remains
+  unverified and is not tightened by this mate-only rule.
+  A fresh Gray Lilyut Horse scroll (8160) was also checked in the real client: full pools,
+  mounting, dismounting and dismissal/resummoning passed. The native Run! action was not
+  exercised because the captured pet button had no key binding and its Lua click handler
+  only dismissed a tooltip; server cast permission flows are tested separately.
+* Character persistence saves `reported_as_bot_count` as well as `bot_reported_count`; the
+  former was read but omitted from REPLACE, resetting the reported character's counter on
+  every save. A private-MySQL temporary-table test covers repeated saves and adjacent fields.
+* Expedition ownership transfer now keeps `owner_name` consistent with the validated new
+  owner. Transferring to oneself is a no-op, preserving the owner role instead of demoting
+  it. Packet flows and a private-MySQL temporary-table test verify both roles and the saved
+  owner identity.
 
 Remaining packet stubs and table candidates are still subject to behavior review. Missing SQL
 mentions do not establish disuse (some names are selected dynamically); empty tables, client

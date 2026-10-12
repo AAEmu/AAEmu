@@ -112,6 +112,12 @@ pub fn start_skill(server: &GameServer, conn: &mut GameConnection, p: CSStartSki
         else {
             return;
         };
+        if caster
+            .as_mate()
+            .is_some_and(|mate| !super::mount_authority::may_use_mate(&player, mate))
+        {
+            return;
+        }
         // StormShipLogic.TryBlockMountOrSlaveSkill (vehicles + ai storm buff)
         if let Some(slave) = caster.as_slave() {
             if crate::systems::vehicles::ship_physics::storm_blocks_slave_skill(

@@ -388,6 +388,9 @@ impl CashShopDb for MySqlCashShopDb {
 
 /// `AccountManager.AddCredits` (`RemoveCredits` = negative amount).
 pub async fn add_credits_sql(pool: &MySqlPool, account_id: u32, amount: i32) -> bool {
+    if amount < 0 {
+        return spend_account_points_sql(pool, account_id, amount, currency::CREDITS).await;
+    }
     match sqlx::query(
         "INSERT INTO accounts (account_id, credits) VALUES(?, ?) ON DUPLICATE KEY UPDATE credits = credits + ?",
     )
@@ -407,6 +410,9 @@ pub async fn add_credits_sql(pool: &MySqlPool, account_id: u32, amount: i32) -> 
 
 /// `AccountManager.AddLoyalty`.
 pub async fn add_loyalty_sql(pool: &MySqlPool, account_id: u32, amount: i32) -> bool {
+    if amount < 0 {
+        return spend_account_points_sql(pool, account_id, amount, currency::LOYALTY).await;
+    }
     match sqlx::query(
         "INSERT INTO accounts (account_id, loyalty) VALUES(?, ?) ON DUPLICATE KEY UPDATE loyalty = loyalty + ?",
     )
@@ -419,6 +425,37 @@ pub async fn add_loyalty_sql(pool: &MySqlPool, account_id: u32, amount: i32) -> 
         Ok(r) => r.rows_affected() > 0,
         Err(e) => {
             tracing::error!("{e}");
+            false
+        }
+    }
+}
+
+/// Account debits must pass a balance check in the same SQL statement as the debit.
+async fn spend_account_points_sql(
+    pool: &MySqlPool,
+    account_id: u32,
+    amount: i32,
+    currency: u8,
+) -> bool {
+    let sql = match currency {
+        currency::CREDITS => {
+            "UPDATE accounts SET credits = credits + ? WHERE account_id = ? AND credits >= ?"
+        }
+        currency::LOYALTY => {
+            "UPDATE accounts SET loyalty = loyalty + ? WHERE account_id = ? AND loyalty >= ?"
+        }
+        _ => return false,
+    };
+    match sqlx::query(sql)
+        .bind(amount)
+        .bind(account_id)
+        .bind(-i64::from(amount))
+        .execute(pool)
+        .await
+    {
+        Ok(result) => result.rows_affected() > 0,
+        Err(error) => {
+            tracing::error!("Cash shop debit failed: {error}");
             false
         }
     }
@@ -583,6 +620,8 @@ impl CashShopState {
 #[derive(Debug, Default)]
 pub struct CashShopManager {
     state: Mutex<CashShopState>,
+    /// Serializes the async checkout against other checkouts on this server.
+    purchases: tokio::sync::Mutex<()>,
     /// Account / audit store; MySQL ([`MySqlCashShopDb`]) when nothing is installed.
     pub db: HookSlot<dyn CashShopDb>,
     /// `CommercialMail` (mail port).
@@ -871,6 +910,7 @@ pub async fn execute_buy(
     cart: &[IcsSku],
 ) {
     let mgr = manager(server);
+    let _purchase = mgr.purchases.lock().await;
     let store = mgr.store();
     let (buyer_name, buyer_id, buyer_account, buyer_level, buyer_money) = {
         let c = buyer.data();
@@ -887,16 +927,83 @@ pub async fn execute_buy(
         (c.unit.name.clone(), c.id, c.account_id)
     };
 
+    if mgr.mail.get().is_none() {
+        fail(
+            buyer,
+            error_message::INGAME_SHOP_BUY_FAIL,
+            buy_mode,
+            &target_name,
+        );
+        return;
+    }
     // ---- check_costs
     // Calculate costs (of all different types in the cart)
     let mut costs = [0u32; currency::MAX as usize];
+    let mut quantities = HashMap::<u32, u32>::new();
     for sku in cart {
+        // The 1.2 AA-point wallet is not implemented. It is distinct from bank money2.
+        if sku.currency == currency::AA_POINTS {
+            fail(
+                buyer,
+                error_message::INGAME_SHOP_BUY_FAIL_AA_POINT,
+                buy_mode,
+                &target_name,
+            );
+            return;
+        }
+        if sku.item_count == 0
+            || sku.item_count > i32::MAX as u32
+            || sku.bonus_item_count > i32::MAX as u32
+            || server.game_data.items.template(sku.item_id).is_none()
+            || (sku.bonus_item_id > 0
+                && sku.bonus_item_count > 0
+                && server.game_data.items.template(sku.bonus_item_id).is_none())
+        {
+            fail(
+                buyer,
+                error_message::INGAME_SHOP_BUY_FAIL,
+                buy_mode,
+                &target_name,
+            );
+            return;
+        }
         let Some(c) = costs.get_mut(usize::from(sku.currency)) else {
             // C#: IndexOutOfRangeException ends the task.
-            tracing::error!("Invalid Currency {}", sku.currency);
+            fail(
+                buyer,
+                error_message::INGAME_SHOP_BUY_FAIL,
+                buy_mode,
+                &target_name,
+            );
             return;
         };
-        *c = c.wrapping_add(sku.effective_price());
+        let Some(total) = c
+            .checked_add(sku.effective_price())
+            .filter(|v| *v <= i32::MAX as u32)
+        else {
+            fail(
+                buyer,
+                error_message::INGAME_SHOP_BUY_FAIL,
+                buy_mode,
+                &target_name,
+            );
+            return;
+        };
+        *c = total;
+        let quantity = quantities.entry(sku.shop_id).or_default();
+        let Some(total) = quantity
+            .checked_add(sku.item_count)
+            .filter(|v| *v <= i32::MAX as u32)
+        else {
+            fail(
+                buyer,
+                error_message::INGAME_SHOP_BUY_FAIL,
+                buy_mode,
+                &target_name,
+            );
+            return;
+        };
+        *quantity = total;
     }
     let before = store.account_details(server, buyer_account).await;
     // Check Credits
@@ -909,7 +1016,6 @@ pub async fn execute_buy(
         );
         return;
     }
-    // TODO (C#): Check AA Points
     // Check Loyalty
     if i64::from(costs[currency::LOYALTY as usize]) > i64::from(before.loyalty) {
         fail(
@@ -1024,7 +1130,7 @@ pub async fn execute_buy(
         }
         // Check Remaining Stock (limited stock items)
         if shop_item.remaining >= 0 {
-            let bought = cart.iter().filter(|b| b.shop_id == sku.shop_id).count() as i64;
+            let bought = i64::from(quantities[&sku.shop_id]);
             if i64::from(shop_item.remaining) < bought {
                 fail(
                     buyer,
@@ -1035,18 +1141,6 @@ pub async fn execute_buy(
                 return;
             }
         }
-        // TODO (C#): Check Limited Sales remaining (character or account)
-    }
-
-    // ---- transactions
-    let mut entries_sold = 0;
-    for sku in cart {
-        let shop_item = mgr.state().shop_items.get(&sku.shop_id).cloned();
-        let Some(shop_item) = shop_item else {
-            tracing::error!("Something went wrong in region transactions detecting shopItem");
-            continue;
-        };
-
         // Validate Limited Sales
         if shop_item.limited_type != limit_type::NONE {
             let char_filter = if shop_item.limited_type == limit_type::CHARACTER {
@@ -1067,21 +1161,86 @@ pub async fn execute_buy(
                     };
                     if shop_item.limited_type == limit_type::CHARACTER {
                         if old.buyer_char == buyer_id {
-                            old_count = old_count.wrapping_add(old_sku.item_count);
+                            old_count = old_count.saturating_add(old_sku.item_count);
                         }
                     } else if shop_item.limited_type == limit_type::ACCOUNT
                         && old.buyer_account == buyer_account
                     {
-                        old_count = old_count.wrapping_add(old_sku.item_count);
+                        old_count = old_count.saturating_add(old_sku.item_count);
                     }
                 }
             }
             // Check if with the new amount we still stay under the limit
-            if old_count.wrapping_add(sku.item_count) > u32::from(shop_item.limited_stock_max) {
-                tracing::error!("Tried to buy more items than allowed by the limit");
-                send_error(buyer, error_message::INGAME_SHOP_SOLD_OUT);
-                continue;
+            if old_count.saturating_add(quantities[&sku.shop_id])
+                > u32::from(shop_item.limited_stock_max)
+            {
+                fail(
+                    buyer,
+                    error_message::INGAME_SHOP_SOLD_OUT,
+                    buy_mode,
+                    &target_name,
+                );
+                return;
             }
+        }
+    }
+
+    // ---- transactions
+    let mut entries_sold = 0;
+    for sku in cart {
+        let shop_item = mgr.state().shop_items.get(&sku.shop_id).cloned();
+        let Some(shop_item) = shop_item else {
+            tracing::error!("Something went wrong in region transactions detecting shopItem");
+            continue;
+        };
+
+        // `ItemManager.Create(id, count, FixedGrade >= 0 ? FixedGrade : 0)`; a missing template
+        // makes the C# throw here (the task ends; earlier entries stay sold).
+        let Some(main) = create_item(server, sku.item_id, sku.item_count) else {
+            tracing::error!("Unknown item template {} in SKU {}", sku.item_id, sku.sku);
+            return;
+        };
+        let mut items = vec![main];
+        if sku.bonus_item_id > 0 && sku.bonus_item_count > 0 {
+            let Some(bonus) = create_item(server, sku.bonus_item_id, sku.bonus_item_count) else {
+                tracing::error!(
+                    "Unknown item template {} in SKU {}",
+                    sku.bonus_item_id,
+                    sku.sku
+                );
+                return;
+            };
+            items.push(bonus);
+        }
+
+        // No item, stock or sale may be fulfilled when the debit fails.
+        let price = sku.effective_price() as i32;
+        let paid = if price == 0 {
+            true
+        } else {
+            match sku.currency {
+                currency::CREDITS => store.add_credits(server, buyer_account, -price).await,
+                currency::LOYALTY => store.add_loyalty(server, buyer_account, -price).await,
+                currency::COINS => {
+                    let mut txn = ItemTxn::begin(server);
+                    inventory::change_money(
+                        &mut txn.out(),
+                        buyer,
+                        slot_type::INVENTORY,
+                        slot_type::NONE,
+                        price,
+                        task_type::STORE_BUY,
+                    )
+                }
+                _ => false,
+            }
+        };
+        if !paid {
+            for item in &items {
+                server.ids.item.release_id(item.id as u32);
+            }
+            send_error(buyer, error_message::INGAME_SHOP_BUY_FAIL);
+            continue;
         }
 
         // Reduce remaining stock if needed
@@ -1107,70 +1266,46 @@ pub async fn execute_buy(
             };
             match new_remaining {
                 Some(r) => {
-                    store
+                    if !store
                         .update_remaining_stock(server, shop_item.shop_id, r)
+                        .await
+                    {
+                        if let Some(item) = mgr.state().shop_items.get_mut(&shop_item.shop_id) {
+                            item.remaining = shop_item.remaining;
+                        }
+                        refund_checkout_price(
+                            server,
+                            store.as_ref(),
+                            buyer,
+                            buyer_account,
+                            sku.currency,
+                            price,
+                        )
                         .await;
+                        for item in &items {
+                            server.ids.item.release_id(item.id as u32);
+                        }
+                        send_error(buyer, error_message::INGAME_SHOP_BUY_FAIL);
+                        continue;
+                    }
                 }
                 None => {
-                    // Out of Stock!!!
+                    refund_checkout_price(
+                        server,
+                        store.as_ref(),
+                        buyer,
+                        buyer_account,
+                        sku.currency,
+                        price,
+                    )
+                    .await;
+                    for item in &items {
+                        server.ids.item.release_id(item.id as u32);
+                    }
                     send_error(buyer, error_message::INGAME_SHOP_SOLD_OUT);
                     continue;
                 }
             }
-        }
-
-        // Reduce currency
-        match sku.currency {
-            currency::CREDITS => {
-                if !store
-                    .add_credits(server, buyer_account, -(sku.effective_price() as i32))
-                    .await
-                {
-                    tracing::error!(
-                        "Sale validation failed for {buyer_name}, {} x {}",
-                        sku.currency,
-                        sku.price
-                    );
-                }
-            }
-            currency::AA_POINTS => {
-                tracing::warn!(
-                    "Sale currency not implemented {} for {buyer_name}",
-                    sku.currency
-                );
-            }
-            currency::LOYALTY => {
-                if i64::from(before.loyalty) < i64::from(sku.price) {
-                    tracing::error!(
-                        "Sale validation failed for {buyer_name}, {} x {}",
-                        sku.currency,
-                        sku.price
-                    );
-                }
-                store
-                    .add_loyalty(server, buyer_account, (sku.price as i32).wrapping_neg())
-                    .await;
-            }
-            currency::COINS => {
-                let ok = {
-                    let mut txn = ItemTxn::begin(server);
-                    inventory::subtract_money(
-                        &mut txn.out(),
-                        buyer,
-                        slot_type::INVENTORY,
-                        sku.price as i32,
-                        task_type::STORE_BUY,
-                    )
-                };
-                if !ok {
-                    tracing::error!(
-                        "Sale validation failed for {buyer_name}, {} x {}",
-                        sku.currency,
-                        sku.price
-                    );
-                }
-            }
-            _ => tracing::error!("Invalid Currency {}", sku.currency),
         }
 
         let names = &server.game_data.systems.economy.cash_shop;
@@ -1179,25 +1314,6 @@ pub async fn execute_buy(
         } else {
             names.item_name(sku.item_id)
         };
-        // `ItemManager.Create(id, count, FixedGrade >= 0 ? FixedGrade : 0)`; a missing template
-        // makes the C# throw here (the task ends; earlier entries stay sold).
-        let Some(main) = create_item(server, sku.item_id, sku.item_count) else {
-            tracing::error!("Unknown item template {} in SKU {}", sku.item_id, sku.sku);
-            return;
-        };
-        let mut items = vec![main];
-        if sku.bonus_item_id > 0 && sku.bonus_item_count > 0 {
-            let Some(bonus) = create_item(server, sku.bonus_item_id, sku.bonus_item_count) else {
-                tracing::error!(
-                    "Unknown item template {} in SKU {}",
-                    sku.bonus_item_id,
-                    sku.sku
-                );
-                return;
-            };
-            items.push(bonus);
-        }
-
         let mail = CommercialMailRequest {
             receiver_id: target_id,
             receiver_name: target_name.clone(),
@@ -1275,6 +1391,45 @@ pub async fn execute_buy(
             receiver_name: target_name,
             charge_aa_point: aa_points,
         });
+    }
+}
+
+// Checkout still uses the existing in-memory mail delivery and independent SQL statements.
+// A durable transaction/outbox is required for crash-atomic fulfillment; this compensation
+// prevents known stock-update failures from consuming currency without any delivered goods.
+async fn refund_checkout_price(
+    server: &GameServer,
+    store: &dyn CashShopDb,
+    buyer: &PlayerRef,
+    account: u32,
+    currency: u8,
+    price: i32,
+) {
+    if price == 0 {
+        return;
+    }
+    let refunded = match currency {
+        currency::CREDITS => store.add_credits(server, account, price).await,
+        currency::LOYALTY => store.add_loyalty(server, account, price).await,
+        currency::COINS => {
+            let mut txn = ItemTxn::begin(server);
+            inventory::add_money(
+                &mut txn.out(),
+                buyer,
+                slot_type::INVENTORY,
+                price,
+                task_type::STORE_BUY,
+            )
+        }
+        _ => false,
+    };
+    if !refunded {
+        tracing::error!(
+            account,
+            price,
+            currency,
+            "Cash shop payment compensation failed"
+        );
     }
 }
 

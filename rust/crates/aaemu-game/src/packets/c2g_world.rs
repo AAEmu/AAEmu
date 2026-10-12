@@ -278,6 +278,10 @@ impl ClientPacket for CSSendChatMessagePacket {
         conn: &'a mut GameConnection,
     ) -> BoxFuture<'a, Result<()>> {
         Box::pin(async move {
+            if self.chat_type == crate::systems::social::chat::chat_type::USER {
+                crate::systems::social::packets::chat::send_user_chat(server, conn, self).await;
+                return Ok(());
+            }
             session::send_chat_message(
                 server,
                 conn,

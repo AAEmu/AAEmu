@@ -813,8 +813,10 @@ pub fn spawn_mount(server: &GameServer, owner: &PlayerRef, skill_item_id: u64) {
     m.unit.model_id = template.model_id;
     m.unit.faction_id = owner_faction;
     m.unit.level = db.level as u8;
-    m.unit.hp = if db.hp > 0 { db.hp } else { 100 };
-    m.unit.mp = if db.mp > 0 { db.mp } else { 100 };
+    // New mates start with the configured high pool values in create_new_mate.
+    // A saved zero HP is a dead mate, and zero MP is an exhausted mate.
+    m.unit.hp = db.hp.max(0);
+    m.unit.mp = db.mp.max(0);
     m.unit.scale = template.scale;
     m.owner_obj_id = owner.obj_id;
     m.item_id = db.item_id;

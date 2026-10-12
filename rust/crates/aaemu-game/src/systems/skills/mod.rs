@@ -28,6 +28,7 @@ pub mod effects;
 pub mod ext;
 pub mod geometry;
 pub mod handlers;
+mod mount_authority;
 pub mod packets;
 pub mod packets_special;
 pub mod plots;

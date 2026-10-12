@@ -1165,6 +1165,7 @@ pub async fn on_disconnect(server: &GameServer, conn: &mut GameConnection) {
         return;
     };
     crate::systems::economy::on_disconnect(server, &p);
+    server.chat.leave_user_channels(&p, &server.ids.chat);
     if p.data().is_online {
         set_online(server, &p, false);
     }

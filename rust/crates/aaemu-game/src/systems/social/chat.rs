@@ -96,11 +96,15 @@ impl ChatChannel {
             }
             m.push(p.clone());
         }
-        p.send(SCJoinedChatChannelPacket {
-            chat_type: self.chat_type,
-            sub_type: self.sub_type,
-            faction_id: self.faction,
-        });
+        if self.chat_type == chat_type::USER {
+            p.send(super::packets::chat::user_joined(self));
+        } else {
+            p.send(SCJoinedChatChannelPacket {
+                chat_type: self.chat_type,
+                sub_type: self.sub_type,
+                faction_id: self.faction,
+            });
+        }
         true
     }
 
@@ -172,6 +176,27 @@ pub mod race {
 
 type Channels<K> = Mutex<BTreeMap<K, ChannelRef>>;
 
+// Explicit emulator budgets, not established retail 1.2 limits. Bound decoded UTF-8 bytes
+// (including replacement characters from malformed input), stored state and client frames.
+pub const USER_CHANNEL_NAME_BYTES: usize = 48;
+pub const USER_CHANNEL_PASSWORD_BYTES: usize = 64;
+pub const USER_CHANNELS_PER_SESSION: usize = 8;
+pub const USER_CHANNELS_TOTAL: usize = 1024;
+
+/// Temporary user channels have no persistent owner or administration policy.
+struct UserChannel {
+    channel: ChannelRef,
+    password: String,
+}
+
+impl std::fmt::Debug for UserChannel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("UserChannel")
+            .field("channel", &self.channel)
+            .finish_non_exhaustive()
+    }
+}
+
 /// `ChatManager`.
 #[derive(Debug)]
 pub struct ChatManager {
@@ -184,6 +209,7 @@ pub struct ChatManager {
     guild_channels: Channels<u32>,
     family_channels: Channels<u32>,
     court_room_channels: Channels<u8>,
+    user_channels: Mutex<BTreeMap<u32, UserChannel>>,
 }
 
 impl ChatManager {
@@ -200,6 +226,7 @@ impl ChatManager {
             guild_channels: Mutex::default(),
             family_channels: Mutex::default(),
             court_room_channels: Mutex::default(),
+            user_channels: Mutex::default(),
         };
         {
             let mut f = m.faction_channels.lock().expect("chat poisoned");
@@ -283,6 +310,13 @@ impl ChatManager {
         res.extend(values(&self.raid_channels));
         res.extend(values(&self.guild_channels));
         res.extend(values(&self.family_channels));
+        res.extend(
+            self.user_channels
+                .lock()
+                .expect("chat poisoned")
+                .values()
+                .map(|c| c.channel.clone()),
+        );
         res
     }
 
@@ -436,6 +470,142 @@ impl ChatManager {
             .cloned()
     }
 
+    /// Emulator policy: exact names/passwords, temporary server-global channels. The 1.2
+    /// identity is USER / subtype zero / allocated chat id; it is opaque to the client.
+    pub fn join_user_channel(
+        &self,
+        p: &PlayerRef,
+        name: &str,
+        password: &str,
+        create: bool,
+        chat_ids: &IdManager,
+    ) -> Result<(), i16> {
+        use super::util::error;
+        if name.is_empty()
+            || name.len() > USER_CHANNEL_NAME_BYTES
+            || name.chars().any(char::is_control)
+            || password.len() > USER_CHANNEL_PASSWORD_BYTES
+            || password.chars().any(char::is_control)
+        {
+            return Err(error::CHAT_NO_CHANNEL);
+        }
+        let mut channels = self.user_channels.lock().expect("chat poisoned");
+        let joined_count = || channels.values().filter(|c| c.channel.contains(p)).count();
+        let existing = channels
+            .values()
+            .find(|c| c.channel.internal_name() == name);
+        if let Some(existing) = existing {
+            if create {
+                return Err(error::CHAT_CHANNEL_ALREADY_EXISTS);
+            }
+            if existing.channel.contains(p) {
+                return Err(error::CHAT_ALREADY_JOINED_CHANNEL);
+            }
+            if !existing.password.is_empty() && password.is_empty() {
+                return Err(error::CHAT_PRIVATE_CHANNEL);
+            }
+            if existing.password != password {
+                return Err(error::CHAT_WRONG_PASSWORD);
+            }
+            if joined_count() >= USER_CHANNELS_PER_SESSION {
+                return Err(error::CHAT_NO_CHANNEL);
+            }
+            existing.channel.join(p);
+            return Ok(());
+        }
+        if !create
+            || joined_count() >= USER_CHANNELS_PER_SESSION
+            || channels.len() >= USER_CHANNELS_TOTAL
+        {
+            return Err(error::CHAT_NO_CHANNEL);
+        }
+        let id = chat_ids.get_next_id().map_err(|_| error::CHAT_NO_CHANNEL)?;
+        let channel = Arc::new(ChatChannel::new(
+            chat_type::USER,
+            0,
+            id,
+            id,
+            name.to_string(),
+        ));
+        channel.join(p);
+        channels.insert(
+            id,
+            UserChannel {
+                channel,
+                password: password.to_string(),
+            },
+        );
+        Ok(())
+    }
+
+    /// Only a member of the exact opaque USER identity can leave it. Client requests never
+    /// alter party/family/faction channels, which their owning systems control.
+    pub fn leave_user_channel(
+        &self,
+        p: &PlayerRef,
+        identity: i64,
+        chat_ids: &IdManager,
+    ) -> Result<(), i16> {
+        use super::util::error;
+        let mut channels = self.user_channels.lock().expect("chat poisoned");
+        let id = (identity as u64 >> 32) as u32;
+        let entry = channels
+            .get(&id)
+            .filter(|c| user_channel_identity(&c.channel) == identity)
+            .ok_or(error::CHAT_NO_CHANNEL)?;
+        if !entry.channel.leave(p) {
+            return Err(error::CHAT_NOT_JOINED_CHANNEL);
+        }
+        if entry.channel.is_empty() {
+            channels.remove(&id);
+            chat_ids.release_id(id);
+        }
+        Ok(())
+    }
+
+    /// Membership uses the current PlayerRef, not a reusable character/object id.
+    pub fn send_user_message(
+        &self,
+        p: &PlayerRef,
+        sub_type: i16,
+        channel_id: u32,
+        message: &SCChatMessagePacket,
+    ) -> Result<usize, i16> {
+        use super::util::error;
+        let channels = self.user_channels.lock().expect("chat poisoned");
+        let entry = channels
+            .get(&channel_id)
+            .filter(|c| c.channel.sub_type == sub_type)
+            .ok_or(error::CHAT_NO_CHANNEL)?;
+        if !entry.channel.contains(p) {
+            return Err(error::CHAT_NOT_JOINED_CHANNEL);
+        }
+        if message.message.len() > i16::MAX as usize {
+            return Err(error::CHAT_NO_CHANNEL);
+        }
+        let packet = super::packets::chat::user_message(&entry.channel, message);
+        // The six-byte plain packet header is part of the transport's u16 frame length.
+        if packet.body.len() + 6 > u16::MAX as usize {
+            return Err(error::CHAT_NO_CHANNEL);
+        }
+        Ok(entry.channel.send_packet(&packet))
+    }
+
+    pub fn leave_user_channels(&self, p: &PlayerRef, chat_ids: &IdManager) {
+        let mut channels = self.user_channels.lock().expect("chat poisoned");
+        let empty: Vec<u32> = channels
+            .iter()
+            .filter_map(|(id, c)| {
+                c.channel.leave(p);
+                c.channel.is_empty().then_some(*id)
+            })
+            .collect();
+        for id in empty {
+            channels.remove(&id);
+            chat_ids.release_id(id);
+        }
+    }
+
     /// `LeaveAllChannels` (faction, court rooms, nation, zone, party, raid, guild, family; each
     /// in key order — the C# iterates `ConcurrentDictionary`s, whose order is unspecified).
     pub fn leave_all_channels(&self, p: &PlayerRef) {
@@ -454,17 +624,36 @@ impl ChatManager {
                 c.leave(p);
             }
         }
+        for channel in self.user_channels.lock().expect("chat poisoned").values() {
+            channel.channel.leave(p);
+        }
     }
 
     /// `CleanUpChannels`: removes the empty zone / party / raid / guild / family channels and
     /// releases their ids. Returns the number of removed channels.
     pub fn clean_up_channels(&self, chat_ids: &IdManager) -> usize {
+        let mut users = self.user_channels.lock().expect("chat poisoned");
+        let empty: Vec<u32> = users
+            .iter()
+            .filter_map(|(id, c)| c.channel.is_empty().then_some(*id))
+            .collect();
+        for id in &empty {
+            users.remove(id);
+            chat_ids.release_id(*id);
+        }
         clean_up(&self.zone_channels, chat_ids)
             + clean_up(&self.party_channels, chat_ids)
             + clean_up(&self.raid_channels, chat_ids)
             + clean_up(&self.guild_channels, chat_ids)
             + clean_up(&self.family_channels, chat_ids)
+            + empty.len()
     }
+}
+
+pub fn user_channel_identity(channel: &ChatChannel) -> i64 {
+    ((u64::from(channel.faction) << 32)
+        | (u64::from(channel.sub_type as u16) << 16)
+        | u64::from(channel.chat_type as u16)) as i64
 }
 
 fn values<K>(m: &Channels<K>) -> Vec<ChannelRef> {
@@ -529,5 +718,120 @@ mod tests {
         // The released id is handed out again.
         let again = m.raid_chat(9, Some("x"), ids);
         assert!(again.internal_id == id || again.internal_id == p.internal_id);
+    }
+
+    #[tokio::test]
+    async fn user_channel_global_budget_allows_existing_join_and_recovers_capacity() {
+        use crate::net::packet::encode_raw;
+        use crate::opcodes::{cs, sc};
+        use crate::packets::world::SCErrorMsgPacket;
+        use crate::systems::social::packets::body;
+        use crate::systems::social::util::error;
+        use crate::test_support::{spawn_player, test_character, test_server, TestClient};
+        use aaemu_commons::PacketStream;
+        let server = test_server();
+        let mut client = TestClient::new(&server, 1, 1001);
+        let player = spawn_player(
+            &server,
+            &client,
+            test_character(1, "Budget", 100.0, 100.0),
+            0x101,
+        );
+        client.conn.active_char = Some(player.clone());
+        client.drain();
+        // Lightweight fixture for a full map of channels awaiting the cleanup tick after
+        // their members left. No thousands of simulated clients or live connections needed.
+        let mut first = 0;
+        {
+            let mut channels = server.chat.user_channels.lock().unwrap();
+            for index in 0..USER_CHANNELS_TOTAL {
+                let id = server.ids.chat.get_next_id().unwrap();
+                if index == 0 {
+                    first = id;
+                }
+                channels.insert(
+                    id,
+                    UserChannel {
+                        channel: Arc::new(ChatChannel::new(
+                            chat_type::USER,
+                            0,
+                            id,
+                            id,
+                            format!("Channel{index}"),
+                        )),
+                        password: String::new(),
+                    },
+                );
+            }
+        }
+        let mut join = PacketStream::new();
+        join.write_str("Channel0").write_str("").write_bool(false);
+        server
+            .handle_frame(
+                &mut client.conn,
+                &encode_raw(1, cs::CSJoinUserChatChannelPacket, join.as_bytes()),
+            )
+            .await
+            .unwrap();
+        assert_eq!(client.drain_ops(), vec![sc::SCJoinedChatChannelPacket]);
+        let mut create = PacketStream::new();
+        create.write_str("New").write_str("").write_bool(true);
+        server
+            .handle_frame(
+                &mut client.conn,
+                &encode_raw(1, cs::CSJoinUserChatChannelPacket, create.as_bytes()),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            client.drain(),
+            vec![(
+                sc::SCErrorMsgPacket,
+                body(&SCErrorMsgPacket::new(error::CHAT_NO_CHANNEL, 0, true))
+            )]
+        );
+        assert_eq!(server.chat.user_channels.lock().unwrap().len(), 1024);
+        let channel = server
+            .chat
+            .user_channels
+            .lock()
+            .unwrap()
+            .get(&first)
+            .unwrap()
+            .channel
+            .clone();
+        let mut leave = PacketStream::new();
+        leave.write_i64(user_channel_identity(&channel));
+        server
+            .handle_frame(
+                &mut client.conn,
+                &encode_raw(1, cs::CSLeaveChatChannelPacket, leave.as_bytes()),
+            )
+            .await
+            .unwrap();
+        assert_eq!(client.drain_ops(), vec![sc::SCLeavedChatChannelPacket]);
+        server
+            .handle_frame(
+                &mut client.conn,
+                &encode_raw(1, cs::CSJoinUserChatChannelPacket, create.as_bytes()),
+            )
+            .await
+            .unwrap();
+        assert_eq!(client.drain_ops(), vec![sc::SCJoinedChatChannelPacket]);
+        let replacement = server
+            .chat
+            .user_channels
+            .lock()
+            .unwrap()
+            .get(&first)
+            .unwrap()
+            .channel
+            .clone();
+        assert_eq!(replacement.internal_name(), "New");
+        assert!(replacement.contains(&player));
+        assert_eq!(server.chat.clean_up_channels(&server.ids.chat), 1023);
+        assert_eq!(server.chat.user_channels.lock().unwrap().len(), 1);
+        server.chat.leave_user_channels(&player, &server.ids.chat);
+        assert!(server.chat.user_channels.lock().unwrap().is_empty());
     }
 }
