@@ -1,4 +1,4 @@
-{
+﻿{
     "Features": {
         // Server-only switches. 10.0.2.13 dropped both bits from the fset blob; the server logic
         // behind them is still live and never needed the client to know about it.

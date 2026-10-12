@@ -6,6 +6,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 public interface INpcManager : ILoadable, IInitializable
 {
+    /// <summary>NPC id behind a <c>const_npc_types</c> name, or 0 when absent.</summary>
+    uint GetConstNpcId(string name);
+
     bool Exist(uint templateId);
     NpcTemplate GetTemplate(uint templateId);
     Dictionary<uint, NpcTemplate> GetAllTemplates();

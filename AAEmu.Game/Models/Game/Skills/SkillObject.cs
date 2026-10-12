@@ -43,7 +43,7 @@ public enum SkillObjectType
     /// <summary>The awakening result the player picked. See <see cref="SkillObjectItemChangeMapping"/>.</summary>
     ItemChangeMapping = 26,
 
-    /// <summary>Expedition portal selection: portal id followed by the content-selected skill id.</summary>
+    /// <summary>Expedition portal selection: portal id followed by a 3-byte object id.</summary>
     ExpeditionPortal = 30
 }
 
@@ -431,25 +431,25 @@ public class SkillObjectItemChangeMapping : SkillObject
 }
 
 /// <summary>
-/// The current client's expedition-portal wrapper writes type 30 followed by two u32 values: the
-/// selected saved portal and the skill chosen from game content.
+/// Client skill-object type 30: selected saved portal id, then a 3-byte object id (not a u32).
+/// Reading that second field as a u32 ate the following inputDirection byte and truncated CSStartSkill.
 /// </summary>
 public sealed class SkillObjectExpeditionPortal : SkillObject
 {
     public uint PortalId { get; set; }
-    public uint SkillId { get; set; }
+    public uint ObjId { get; set; }
 
     public override void Read(PacketStream stream)
     {
         PortalId = stream.ReadUInt32();
-        SkillId = stream.ReadUInt32();
+        ObjId = stream.ReadBc();
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
         stream.Write(PortalId);
-        stream.Write(SkillId);
+        stream.WriteBc(ObjId);
         return stream;
     }
 }

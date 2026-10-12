@@ -30,7 +30,7 @@ internal static class UnitStatePlacementSerializer
 
     private static void GroundWorldNpc(Unit unit, UnitStateWireContext context)
     {
-        if (context.Npc is null || context.Npc.IsZoneMirror)
+        if (!UnitStateGroundRules.ShouldSnapWorldNpcToHeightmap(context.Npc))
             return;
 
         var position = unit.Transform.Local.Position;

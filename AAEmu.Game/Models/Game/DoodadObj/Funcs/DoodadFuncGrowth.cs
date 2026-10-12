@@ -1,6 +1,8 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
@@ -16,7 +18,9 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        owner.SetScale(StartScale / 1000f);
+        var startScale = DoodadGrowthScaleRules.ResolveScale(StartScale, EndScale, owner.Scale);
+        var endScale = DoodadGrowthScaleRules.ResolveScale(EndScale, StartScale, startScale);
+        owner.SetScale(startScale);
         var customDelay = Delay / AppConfiguration.Instance.World.GrowthRate; // decrease delay
         if (ZoneManager.Instance.DoodadHasMatchingClimate(owner))
             customDelay = customDelay * 0.73f;
@@ -56,8 +60,14 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
         }
 
         // Create and assign the completion task.
-        owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, 0, NextPhase, EndScale / 1000f);
+        owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, 0, NextPhase, endScale);
         TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(timeLeft));
+
+        // Guild worldgate active phase: persist growth across World bounce and push the HUD timer.
+        var portalFuncs = DoodadManager.Instance.GetFuncsForGroup(owner.FuncGroupId)
+            .Select(f => f.FuncType);
+        if (ExpeditionPortalDoodadRules.PhaseOpensPortalUi(portalFuncs))
+            ExpeditionActivityServices.Get().OnWorldgateTimerArmed(owner);
 
         return false;
     }

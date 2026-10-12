@@ -1,8 +1,9 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 
@@ -42,6 +43,7 @@ public interface IHousingManager
     void HousingTradeList(GameConnection connection, short zoneGroup);
     void SendTownhallState(GameConnection connection, short zoneGroup);
     bool PayWeeklyTax(House house);
+    bool TryChargeTaxForHouse(Character character, House house, int taxCopper, ItemTaskType taskType, bool useAaPoint);
     bool PrepayHouseTax(GameConnection connection, ushort tlId, bool useAaPoint);
     (int, int) Save(MySqlConnection connection, MySqlTransaction transaction);
     void ReconcileBoundDoodads();

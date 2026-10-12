@@ -4,6 +4,7 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// One <c>skill_reqs</c> row: a buff or buff tag on the caster or on the target that either forbids or
 /// requires the cast.
 /// </summary>
+/// <param name="Id">The <c>skill_reqs.id</c> (also the SCSkillStarted detail the client uses for $1).</param>
 /// <param name="OnTarget">True for <c>target='t'</c> (check the skill's target), false for the caster.</param>
 /// <param name="BuffId">The buff id the row names, or 0.</param>
 /// <param name="BuffTagId">The buff tag the row names, or 0.</param>
@@ -12,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// while it does. See <see cref="SkillRequirementRules.IsRowForbidding"/> for when a row means this.
 /// </param>
 /// <param name="Message">The client string shown when the row fails.</param>
-public readonly record struct SkillRequirement(bool OnTarget, uint BuffId, uint BuffTagId, bool Require, string Message);
+public readonly record struct SkillRequirement(uint Id, bool OnTarget, uint BuffId, uint BuffTagId, bool Require, string Message);
 
 /// <summary>
 /// <c>skill_reqs</c> / <c>skill_req_skills</c> / <c>skill_req_skill_tags</c>: the buff and buff-tag gates a
@@ -56,6 +57,20 @@ public readonly record struct SkillRequirement(bool OnTarget, uint BuffId, uint 
 /// the summon in exactly the peace zone the player is standing in, with that row's own message. The four
 /// rows above are the only ones that survived that check as genuine requirements; each is a state the
 /// player is barred from acting in, and its skill exists to be used there.</para>
+///
+/// <para>Reading those peace rows as <i>forbid while the buff is up</i> is also wrong for live play.
+/// Tag 402 평화 지역 가능 ("usable in a peace zone") and the non-combat tags on the same links
+/// (instruments, emotes, mount summon, potions, …) are exactly the skills the client leaves undimmed
+/// next to a Nuia statue; combat greying is client-side and does not use these rows. Enforcing the
+/// forbid blocked dash, dance recall, instruments, and potion use at the statue. Peace-zone notice
+/// rows are therefore ignored as forbids — see <see cref="PeaceZoneNoticeRequirementIds"/>.</para>
+///
+/// <para>Exception for expedition portal-save (<c>SpecialType.SaveExpeditionPortal</c>): the same row 25
+/// is linked directly on those three skills, and the Space-Time Ink item text requires standing at a Nuia
+/// statue — so for those skills only, row 25 is flipped to require.</para>
+///
+/// <para>SkillReqFail toast text comes from the row's <c>message</c> via <c>SendMessage</c>. Do not put
+/// <c>skill_reqs.id</c> in the SCSkillStarted ushort — id 25 is also <c>ErrorMessageType.BagFull</c>.</para>
 /// </remarks>
 public static class SkillRequirementRules
 {
@@ -85,6 +100,20 @@ public static class SkillRequirementRules
     public static readonly IReadOnlySet<uint> RequireRowsByDesign = new HashSet<uint> { 15, 37, 58, 59 };
 
     /// <summary>
+    /// Nuia peace buff row. Expedition portal-save skills flip this to a require (must stand at a Nuia
+    /// statue). As a forbid it is ignored — see <see cref="PeaceZoneNoticeRequirementIds"/>.
+    /// </summary>
+    public const uint NuiaPeaceRequirementId = 25;
+
+    /// <summary>
+    /// Peace-zone notice rows (Nuia / instance / generic / resurrection-tree). Linked to tag 402 and
+    /// other non-combat tags; the client leaves those skills undimmed in the zone, so a forbid while
+    /// the buff is up must not run. Combat greying is client-side. Portal-save flips row 25 to require.
+    /// </summary>
+    public static readonly IReadOnlySet<uint> PeaceZoneNoticeRequirementIds =
+        new HashSet<uint> { 25, 115, 232, 286, 371 };
+
+    /// <summary>
     /// Whether one <c>skill_reqs</c> row refuses the cast while its buff or tag is present, as opposed to
     /// requiring it. Rows that are not forbids are the handful in <see cref="RequireRowsByDesign"/>.
     /// </summary>
@@ -93,6 +122,26 @@ public static class SkillRequirementRules
     public static bool IsRowForbidding(uint rowId, bool defaultResult)
     {
         return defaultResult || !RequireRowsByDesign.Contains(rowId);
+    }
+
+    /// <summary>
+    /// Whether a forbid-polarity peace-zone notice should be skipped (client already allows the skill).
+    /// </summary>
+    public static bool IsIgnoredPeaceZoneForbid(in SkillRequirement requirement) =>
+        !requirement.Require && PeaceZoneNoticeRequirementIds.Contains(requirement.Id);
+
+    /// <summary>
+    /// Expedition portal-save skills keep row <see cref="NuiaPeaceRequirementId"/> as a require even
+    /// though that row is otherwise an ignored peace-zone notice.
+    /// </summary>
+    public static SkillRequirement WithDirectLinkPolarity(
+        uint rowId,
+        SkillRequirement requirement,
+        bool isExpeditionPortalSaveSkill)
+    {
+        if (rowId == NuiaPeaceRequirementId && isExpeditionPortalSaveSkill && !requirement.Require)
+            return requirement with { Require = true };
+        return requirement;
     }
 
     /// <summary>Whether one row fails for a unit in the given state.</summary>
@@ -106,16 +155,18 @@ public static class SkillRequirementRules
     }
 
     /// <summary>
-    /// Whether the cast may proceed. <paramref name="message"/> receives the first failing row's client
-    /// string, so the caller can show why.
+    /// Whether the cast may proceed. <paramref name="message"/> and <paramref name="failedRequirementId"/>
+    /// receive the first failing row's client string and <c>skill_reqs.id</c> (for logs / SendMessage).
     /// </summary>
     public static bool AllowsCast(
         IReadOnlyList<SkillRequirement> requirements,
         Func<SkillRequirement, bool> carriesBuff,
         Func<SkillRequirement, bool> carriesBuffTag,
-        out string message)
+        out string message,
+        out uint failedRequirementId)
     {
         message = null;
+        failedRequirementId = 0;
         if (requirements == null || requirements.Count == 0)
             return true;
 
@@ -124,6 +175,9 @@ public static class SkillRequirementRules
 
         foreach (var requirement in requirements)
         {
+            if (IsIgnoredPeaceZoneForbid(requirement))
+                continue;
+
             var hasBuff = carriesBuff?.Invoke(requirement) ?? false;
             var hasTag = carriesBuffTag?.Invoke(requirement) ?? false;
 
@@ -138,6 +192,7 @@ public static class SkillRequirementRules
             if (Fails(requirement, hasBuff, hasTag))
             {
                 message = requirement.Message;
+                failedRequirementId = requirement.Id;
                 return false;
             }
         }
@@ -150,6 +205,7 @@ public static class SkillRequirementRules
                 if (!requirement.Require)
                     continue;
                 message = requirement.Message;
+                failedRequirementId = requirement.Id;
                 break;
             }
 
@@ -158,4 +214,12 @@ public static class SkillRequirementRules
 
         return true;
     }
+
+    /// <summary>Compatibility overload when the caller does not need the failing row id.</summary>
+    public static bool AllowsCast(
+        IReadOnlyList<SkillRequirement> requirements,
+        Func<SkillRequirement, bool> carriesBuff,
+        Func<SkillRequirement, bool> carriesBuffTag,
+        out string message) =>
+        AllowsCast(requirements, carriesBuff, carriesBuffTag, out message, out _);
 }

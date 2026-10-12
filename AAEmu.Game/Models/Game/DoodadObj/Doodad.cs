@@ -680,6 +680,22 @@ public class Doodad : BaseUnit
                         return;
                     }
                 }
+
+                // Inactive worldgate etc.: compact rows are DoodadFuncUse + func_skill_id. F often
+                // arrives as skill 0; run Use once so it can schedule that skill and advance.
+                foreach (var kickoff in allFuncsForGroup)
+                {
+                    var kickTemplate = DoodadManager.Instance.GetFuncTemplate(kickoff.FuncId, kickoff.FuncType)
+                        as DoodadFuncUse;
+                    if (kickTemplate == null ||
+                        !DoodadSkillLessUseRules.KickoffUseOnSkillLess(kickoff.FuncType, kickTemplate.SkillId))
+                        continue;
+                    if (DoFunc(caster, startedSkillId, kickoff))
+                    {
+                        ListGroupId.Clear();
+                        return;
+                    }
+                }
             }
             else
             {

@@ -66,6 +66,8 @@ public class NpcManager(
     /// </summary>
     private static Dictionary<uint, Creature> Creatures { get; set; } = [];
 
+    private readonly Dictionary<string, uint> _constNpcTypes = [];
+
     /// <summary>
     /// Returns the default name of a NPC as defined in data/creatures.xml
     /// </summary>
@@ -75,6 +77,13 @@ public class NpcManager(
     {
         return Creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
     }
+
+    /// <summary>NPC id behind a <c>const_npc_types</c> name, or 0 when the constant is absent.</summary>
+    public uint GetConstNpcId(string name) =>
+        string.IsNullOrEmpty(name) ? 0u : _constNpcTypes.GetValueOrDefault(name, 0u);
+
+    /// <summary>For tests: seeds a const NPC without opening compact.</summary>
+    public void SetConstNpcForTest(string name, uint npcId) => _constNpcTypes[name] = npcId;
 
     /// <summary>
     /// Checks if a given NPC Template exists
@@ -687,11 +696,30 @@ public class NpcManager(
         TccLookup.Clear();
         TotalCharacterCustoms.Clear();
         ItemBodyParts.Clear();
+        _constNpcTypes.Clear();
         Creatures = Creature.GetAllCreatures();
 
         Logger.Info("Loading npc templates...");
         using (var connection = SQLite.CreateConnection())
         {
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT name, npc_id FROM const_npc_types";
+                command.Prepare();
+                using (var sqliteDataReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                {
+                    while (reader.Read())
+                    {
+                        var name = reader.GetString("name", string.Empty);
+                        if (!string.IsNullOrEmpty(name))
+                            _constNpcTypes[name] = reader.GetUInt32("npc_id", 0);
+                    }
+                }
+            }
+
+            Logger.Info($"Loaded {_constNpcTypes.Count} npc type constants");
+
             using (var command = connection.CreateCommand())
             {
 

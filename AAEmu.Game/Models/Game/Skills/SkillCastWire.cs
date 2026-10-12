@@ -72,6 +72,13 @@ public static class SkillCastWire
             case SkillObjectType.ItemChangeMapping when skillObject is SkillObjectItemChangeMapping cm:
                 stream.Write(cm.MappingId);
                 break;
+            // Type 30: portalId u32 + bc. Announcing the flag without the body makes the client
+            // read cast-time fields as the portal payload — no cast bar / anim (same class as
+            // synthesis materials above).
+            case SkillObjectType.ExpeditionPortal when skillObject is SkillObjectExpeditionPortal ep:
+                stream.Write(ep.PortalId);
+                stream.WriteBc(ep.ObjId);
+                break;
         }
 
         stream.Write((byte)0); // inputDirection

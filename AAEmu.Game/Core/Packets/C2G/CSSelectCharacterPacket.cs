@@ -30,7 +30,7 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             // Despawn any old pets this character might have even before loading it
             character.Load();
             character.Connection = Connection;
-            var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
+            var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id).ToList();
             // Remove old pets from all world instances
             foreach (var worldInstance in WorldManager.Instance.GetWorlds())
             {
@@ -64,6 +64,16 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
                     Connection.Shutdown();
                     return;
                 }
+            }
+
+            // Guild residence is owned by the placer; other members still need SCHouseData (owner
+            // marker 601) so GetExpeditionHouseId is set. Association must have run first.
+            var residenceHouseId = character.Expedition?.ResidenceHouseId ?? 0;
+            if (residenceHouseId != 0 && houses.All(h => h.Id != residenceHouseId))
+            {
+                var residence = HousingManager.Instance.GetHouseById(residenceHouseId);
+                if (residence != null)
+                    houses.Add(residence);
             }
 
             var mySlave = Connection.ActiveChar.ParentWorld?.SlaveManager

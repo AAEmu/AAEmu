@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.DoodadObj.Funcs;
+﻿using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj;
 
@@ -14,6 +16,40 @@ public static class DoodadSkillLessUseRules
         return funcType is "DoodadFuncLootItem"
             or "DoodadFuncLootPack"
             or "DoodadFuncCutdowning"
-            or nameof(DoodadFuncCraftOrderBoardUiOpen);
+            or nameof(DoodadFuncCraftOrderBoardUiOpen)
+            or nameof(DoodadFuncExpeditionPortalUiOpen);
+    }
+
+    /// <summary>
+    /// Inactive guild worldgate (and similar): the compact row is <c>DoodadFuncUse</c> with a
+    /// <c>func_skill_id</c>. F often arrives as skill 0; running that Use once schedules the real
+    /// skill so the phase can advance. Bare Uses with no skill stay off this path.
+    /// </summary>
+    public static bool KickoffUseOnSkillLess(string funcType, uint funcSkillId) =>
+        funcSkillId > 0 && funcType is "DoodadFuncUse" or nameof(DoodadFuncUse);
+
+    /// <summary>
+    /// Some doodad funcs name a <c>func_skill_id</c> whose skill row has zero
+    /// <c>skill_effects</c> (guild worldgate list open). The client still casts that skill at the
+    /// doodad; without a bridge the cast applies nothing and never calls <see cref="Doodad.Use"/>.
+    /// </summary>
+    public static bool ShouldDriveEffectlessSkillUse(uint skillId, int effectCount, uint funcSkillId) =>
+        skillId != 0 && effectCount == 0 && funcSkillId == skillId;
+
+    public static void DriveEffectlessDoodadUses(BaseUnit caster, uint skillId, int effectCount,
+        IEnumerable<BaseUnit> targets)
+    {
+        if (caster == null || skillId == 0 || effectCount != 0 || targets == null)
+            return;
+
+        foreach (var target in targets)
+        {
+            if (target is not Doodad doodad)
+                continue;
+            var func = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
+            if (func == null || !ShouldDriveEffectlessSkillUse(skillId, effectCount, func.SkillId))
+                continue;
+            doodad.Use(caster, skillId);
+        }
     }
 }
