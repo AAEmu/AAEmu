@@ -570,6 +570,9 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         // Only now, with the row written, is the in-memory dominion and the clients told. A World that dies
         // between the commit and here re-reads the same record on its next tick.
         dominionManager.ApplySettlement(zoneGroupId, settled);
+        // A record that was already on file scored when it was first settled.
+        if (!wasOnRecord && settled.WinnerFactionId != 0)
+            FactionPowerManager.Instance.AddSiegeWin(settled.WinnerFactionId, zoneGroupId);
         BroadcastScore(zoneGroupId, SiegeScoreState.Empty(zoneGroupId));
 
         return wasOnRecord ? SiegeSettlementResult.AlreadySettled : SiegeSettlementResult.Settled;

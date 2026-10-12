@@ -267,7 +267,18 @@ public class FactionExileManager : Singleton<FactionExileManager>
         if (!force && (!IsExileFaction(from) || !IsExileFaction(to)))
             return "both factions must take part in the exile system";
 
+        if (!force && !ignoreLimit && !CheckCooldown(character))
+            return $"faction change cooldown runs until {CooldownEnds(character.Id):yyyy-MM-dd HH:mm} UTC";
+        if (!force && LeaveRuleBlock(character) is { } blocked)
+            return blocked;
+        if (character.Expedition != null && character.Expedition.OwnerId == character.Id)
+            return "a guild leader must hand over the guild first";
+
         ExileRoute route = null;
+        var now = DateTime.UtcNow;
+        var originalFaction = (uint)(character.Faction?.Id ?? 0);
+        uint original;
+        DateTime at;
         lock (_sync)
         {
             if (!force)
@@ -280,54 +291,43 @@ public class FactionExileManager : Singleton<FactionExileManager>
                     return "this exile route is closed";
                 if (_suspended.Contains(from) || _suspended.Contains(to))
                     return "one of the factions is suspended from exile";
+                // The slot is taken before the lock is released so two exiles cannot share the last one.
+                if (route != null)
+                    route.Used++;
             }
+
+            var known = _lastExile.TryGetValue(character.Id, out var previous);
+            original = known ? previous.Original : originalFaction;
+            // A GM move does not start the character's own faction change cooldown.
+            at = !force ? now : known ? previous.At : now.AddSeconds(-CooldownSeconds);
         }
 
-        if (!force && !ignoreLimit && !CheckCooldown(character))
-            return $"faction change cooldown runs until {CooldownEnds(character.Id):yyyy-MM-dd HH:mm} UTC";
-        if (!force && LeaveRuleBlock(character) is { } blocked)
-            return blocked;
+        if (!SaveExile(character.Id, (uint)targetFaction.Id, original, from, at, route))
+        {
+            lock (_sync)
+            {
+                if (route is { Used: > 0 })
+                    route.Used--;
+            }
+
+            return "the faction change could not be saved, nothing was changed";
+        }
+
+        lock (_sync)
+            _lastExile[character.Id] = (original, at);
 
         if (character.Expedition != null)
-        {
-            if (character.Expedition.OwnerId == character.Id)
-                return "a guild leader must hand over the guild first";
             ExpeditionManager.Instance.Leave(character);
-        }
-
         if (character.Family > 0)
             FamilyManager.Instance.LeaveFamily(character);
 
-        var originalFaction = (uint)(character.Faction?.Id ?? 0);
         character.SetFaction(targetFaction.Id);
         RaidRecruitmentManager.Instance.OnFactionChanged(character);
         ChatManager.Instance.SyncFactionChannel(character);
         HousingManager.Instance.UpdateOwnedHousingFaction(character.Id, targetFaction.Id);
         foreach (var doodad in character.ParentWorld?.SpawnManager?.GetPlayerDoodads(character.Id) ?? [])
             DoodadManager.Instance.RefreshFaction(doodad, character, doodad.ParentObj as Models.Game.Housing.House);
-        using (var connection = MySQL.CreateConnection())
-        using (var transaction = connection.BeginTransaction())
-        {
-            character.Save(connection, transaction);
-            transaction.Commit();
-        }
-
-        var now = DateTime.UtcNow;
-        lock (_sync)
-        {
-            var known = _lastExile.TryGetValue(character.Id, out var previous);
-            var original = known ? previous.Original : originalFaction;
-            // A GM move does not start the character's own faction change cooldown.
-            var at = !force ? now : known ? previous.At : now.AddSeconds(-CooldownSeconds);
-            _lastExile[character.Id] = (original, at);
-            SaveCharacter(character.Id, original, from, (uint)targetFaction.Id, at);
-
-            if (route != null && !force)
-            {
-                route.Used++;
-                SaveCount(route);
-            }
-        }
+        FactionPowerManager.Instance.ApplyInferiorBuff(character);
 
         if (!force)
             FactionPowerManager.Instance.AddExile(to);
@@ -542,11 +542,47 @@ public class FactionExileManager : Singleton<FactionExileManager>
             Execute("INSERT INTO faction_exile_suspensions (faction_id) VALUES (@f)", ("@f", factionId));
     }
 
-    private static void SaveCharacter(uint characterId, uint original, uint from, uint to, DateTime at) =>
-        Execute("""
-            REPLACE INTO character_exiles (character_id, original_faction_id, from_faction_id, to_faction_id, exiled_at)
-            VALUES (@c, @o, @f, @t, @a)
-            """, ("@c", characterId), ("@o", original), ("@f", from), ("@t", to), ("@a", at));
+    /// <summary>The faction, the exile record and the route's used slots in one transaction.</summary>
+    private bool SaveExile(uint characterId, uint factionId, uint original, uint from, DateTime at, ExileRoute route)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var transaction = connection.BeginTransaction();
+            void Run(string sql, params (string Name, object Value)[] parameters)
+            {
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = sql;
+                foreach (var (name, value) in parameters)
+                    command.Parameters.AddWithValue(name, value);
+                command.ExecuteNonQuery();
+            }
+
+            Run("UPDATE characters SET faction_id = @f WHERE id = @c", ("@f", factionId), ("@c", characterId));
+            Run("""
+                REPLACE INTO character_exiles (character_id, original_faction_id, from_faction_id, to_faction_id, exiled_at)
+                VALUES (@c, @o, @f, @t, @a)
+                """, ("@c", characterId), ("@o", original), ("@f", from), ("@t", factionId), ("@a", at));
+            if (route != null)
+            {
+                uint used;
+                uint week;
+                lock (_sync)
+                    (used, week) = (route.Used, _week);
+                Run("REPLACE INTO faction_exile_counts (week_num, from_faction, to_faction, used) VALUES (@w, @f, @t, @u)",
+                    ("@w", week), ("@f", route.FromFactionId), ("@t", route.ToFactionId), ("@u", used));
+            }
+
+            transaction.Commit();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "Exile: saving the faction change of character {0} failed", characterId);
+            return false;
+        }
+    }
 
     private static void SaveCharacterTime(uint characterId, DateTime at) =>
         Execute("UPDATE character_exiles SET exiled_at = @a WHERE character_id = @c", ("@c", characterId), ("@a", at));

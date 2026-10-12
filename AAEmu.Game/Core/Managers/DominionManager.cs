@@ -840,7 +840,6 @@ public class DominionManager(ITaskManager taskManager, IExpeditionManager expedi
             dominion.FactionId = (FactionsEnum)record.WinnerFactionId;
             // A settled dominion belongs to a nation, not to the guild that declared it last cycle.
             dominion.ExpeditionId = 0;
-            FactionPowerManager.Instance.AddSiegeWin(record.WinnerFactionId, zoneId);
         }
 
         dominion.LastSiegeEndTime = record.SettledAtUtc;

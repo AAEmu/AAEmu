@@ -172,6 +172,7 @@ public sealed class GameService : IHostedService, IDisposable
 
 
         await SaveManager.Instance.StopAsync();
+        FactionPowerManager.Instance.Save();
 
         if (_gameKeepaliveTimer != null)
         {

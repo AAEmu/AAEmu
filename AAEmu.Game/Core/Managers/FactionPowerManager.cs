@@ -37,7 +37,7 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
     private readonly Dictionary<uint, FactionPowerScore> _current = [];
     private readonly Dictionary<uint, FactionPowerScore> _previous = [];
     private readonly Dictionary<uint, FactionPowerStanding> _overrides = [];
-    private readonly HashSet<uint> _dirty = [];
+    private readonly Dictionary<(uint Week, uint FactionId), FactionPowerScore> _dirty = [];
     private HashSet<uint> _superiors = [];
     private HashSet<uint> _inferiors = [];
     private uint _week;
@@ -140,7 +140,7 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
         }
 
         _current[factionId] = score;
-        _dirty.Add(factionId);
+        _dirty[(score.WeekNum, factionId)] = score;
         return score;
     }
 
@@ -150,8 +150,9 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
             return;
         lock (_sync)
         {
-            change(RowNoLock(factionId));
-            _dirty.Add(factionId);
+            var row = RowNoLock(factionId);
+            change(row);
+            _dirty[(row.WeekNum, factionId)] = row;
         }
     }
 
@@ -355,8 +356,10 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
     {
         var week = FactionPowerRules.WeekNumber(DateTime.UtcNow);
         var rolledOver = false;
+        bool changed;
         lock (_sync)
         {
+            changed = _dirty.Count > 0;
             if (week != _week)
             {
                 foreach (var factionId in PowerFactions())
@@ -377,12 +380,27 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
         }
 
         if (!rolledOver)
+        {
+            if (changed)
+                WorldManager.Instance.BroadcastPacketToServer(BuildPacket());
             return;
+        }
+
         Logger.Info("Faction power: week {0} started, superior [{1}], inferior [{2}]",
             week, string.Join(",", Superiors), string.Join(",", Inferiors));
         Broadcast();
     }
 
+    /// <summary>Writes the changed scores now, e.g. before the server stops.</summary>
+    public void Save()
+    {
+        if (!IsStarted)
+            return;
+        lock (_sync)
+            SaveNoLock();
+    }
+
+    /// <summary>Writes every changed row, of this week or an earlier one; rows that fail stay queued for the next tick.</summary>
     private void SaveNoLock()
     {
         if (_dirty.Count == 0)
@@ -390,10 +408,8 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
         try
         {
             using var connection = MySQL.CreateConnection();
-            foreach (var factionId in _dirty)
+            foreach (var (key, s) in _dirty.ToList())
             {
-                if (!_current.TryGetValue(factionId, out var s))
-                    continue;
                 using var command = connection.CreateCommand();
                 command.CommandText = """
                     REPLACE INTO faction_power_scores (week_num, faction_id, siege_point, siege_maintain_point,
@@ -411,9 +427,8 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
                 command.Parameters.AddWithValue("@raidJoint", s.RaidJointPoint);
                 command.Parameters.AddWithValue("@immigrate", s.ImmigratePoint);
                 command.ExecuteNonQuery();
+                _dirty.Remove(key);
             }
-
-            _dirty.Clear();
         }
         catch (Exception exception)
         {
