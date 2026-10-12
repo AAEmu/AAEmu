@@ -78,4 +78,23 @@ public class HousingResidenceRulesTests
         await Assert.That(HousingTaxPaymentRules.DepositCopper(200000)).IsEqualTo(400000);
         await Assert.That(HousingTaxPaymentRules.DepositCopper(0)).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task RefundKind_MatchesAppliedCurrency()
+    {
+        await Assert.That(HousingTaxPaymentRules.RefundKind(null))
+            .IsEqualTo(HousingTaxRefundKind.None);
+        await Assert.That(HousingTaxPaymentRules.RefundKind(HousingTaxCharge.Empty))
+            .IsEqualTo(HousingTaxRefundKind.None);
+
+        await Assert.That(HousingTaxPaymentRules.RefundKind(new HousingTaxCharge { ContributionPoints = 60 }))
+            .IsEqualTo(HousingTaxRefundKind.Contribution);
+        await Assert.That(HousingTaxPaymentRules.RefundKind(new HousingTaxCharge { CopperAmount = 1000, UsedAaPoint = false }))
+            .IsEqualTo(HousingTaxRefundKind.Gold);
+        await Assert.That(HousingTaxPaymentRules.RefundKind(new HousingTaxCharge { CopperAmount = 1000, UsedAaPoint = true }))
+            .IsEqualTo(HousingTaxRefundKind.AaPoint);
+        // Planned seals are not applied until the house commits — no item restore on failure.
+        await Assert.That(HousingTaxPaymentRules.RefundKind(new HousingTaxCharge { BoundCertificates = 3, TaxCertificates = 1 }))
+            .IsEqualTo(HousingTaxRefundKind.None);
+    }
 }

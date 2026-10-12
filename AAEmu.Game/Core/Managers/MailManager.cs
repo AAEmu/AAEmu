@@ -1649,11 +1649,10 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 mail.Body.BillingAmount,
                 ItemTaskType.Mail,
                 autoUseAAPoint,
-                out var contributionCharged))
+                out var taxCharge))
             return false;
 
-        if (!housingManager.Value.CompleteHouseTaxPayment(
-                character, house, mail.Body.BillingAmount, contributionCharged))
+        if (!housingManager.Value.CompleteHouseTaxPayment(character, house, taxCharge))
         {
             Logger.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
             return false;

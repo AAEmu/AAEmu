@@ -58,4 +58,29 @@ public static class HousingTaxPaymentRules
             throw new ArgumentOutOfRangeException(nameof(goldRatio), goldRatio, "Tax gold ratio must be positive.");
         return Math.Max(1, (int)Math.Ceiling(taxCopper / (double)goldRatio));
     }
+
+    /// <summary>
+    /// Which applied wallet/prestige pieces a failed house write must reverse.
+    /// Pending seal plans are not applied yet and need no item restore.
+    /// </summary>
+    public static HousingTaxRefundKind RefundKind(HousingTaxCharge charge)
+    {
+        if (charge == null || charge.IsEmpty)
+            return HousingTaxRefundKind.None;
+        if (charge.ContributionPoints > 0)
+            return HousingTaxRefundKind.Contribution;
+        if (charge.CopperAmount > 0)
+            return charge.UsedAaPoint ? HousingTaxRefundKind.AaPoint : HousingTaxRefundKind.Gold;
+        // Seals stay in the bag until ApplyCommitted; a failed persist abandons the plans.
+        return HousingTaxRefundKind.None;
+    }
+}
+
+/// <summary>Applied currency that <see cref="HousingTaxPaymentRules.RefundKind"/> names for a charge.</summary>
+public enum HousingTaxRefundKind : byte
+{
+    None = 0,
+    Contribution = 1,
+    Gold = 2,
+    AaPoint = 3,
 }
