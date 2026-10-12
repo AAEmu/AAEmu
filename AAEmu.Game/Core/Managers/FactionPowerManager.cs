@@ -191,6 +191,16 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
     /// <returns>False when the award could not be saved and should be tried again.</returns>
     private bool TryRecordSiegeAwardNoLock(SiegeAward award)
     {
+        // A win from last week changes what this week carries over; that row is saved in the same transaction.
+        FactionPowerScore carried = null;
+        if (award.Week + 1 == _week)
+        {
+            var last = _previous.GetValueOrDefault(award.FactionId);
+            carried = RowNoLock(award.FactionId).Clone();
+            carried.SiegeMaintainPoint = FactionPowerRules.Maintain((last?.SiegePoint ?? 0) + award.Points,
+                last?.SiegeMaintainPoint ?? 0, SiegeMaintainPercent);
+        }
+
         try
         {
             using var connection = MySQL.CreateConnection();
@@ -224,6 +234,13 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
                 command.ExecuteNonQuery();
             }
 
+            if (carried != null)
+            {
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                WriteRow(command, carried);
+            }
+
             transaction.Commit();
         }
         catch (Exception exception)
@@ -239,17 +256,13 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
             row.SiegePoint += award.Points;
             _dirty[(row.WeekNum, award.FactionId)] = row;
         }
-        else if (award.Week + 1 == _week)
+        else if (carried != null)
         {
             if (!_previous.TryGetValue(award.FactionId, out var last))
                 _previous[award.FactionId] = last = new FactionPowerScore { WeekNum = award.Week, FactionId = award.FactionId };
             last.SiegePoint += award.Points;
             _dirty[(last.WeekNum, award.FactionId)] = last;
-            if (_current.TryGetValue(award.FactionId, out var current))
-            {
-                current.SiegeMaintainPoint = FactionPowerRules.Maintain(last.SiegePoint, last.SiegeMaintainPoint, SiegeMaintainPercent);
-                _dirty[(current.WeekNum, award.FactionId)] = current;
-            }
+            RowNoLock(award.FactionId).SiegeMaintainPoint = carried.SiegeMaintainPoint;
 
             ClassifyNoLock();
             _reclassified = true;
