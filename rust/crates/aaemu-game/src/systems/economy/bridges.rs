@@ -994,22 +994,38 @@ impl ItemSkillHooks for EconomyForSkills {
             }
             (EffectKind::ImprintUccEffect, EffectTemplate::ImprintUcc { .. }) => {
                 tracing::trace!("ImprintUccEffect");
-                item_effects::imprint_ucc(
-                    server,
-                    player_target(args),
-                    skill_item(&args.caster_caster),
-                    item_target(&args.target_caster).map(|(id, _)| id),
-                );
+                let out = match player_caster(args).filter(|caster| {
+                    player_target(args).is_some_and(|target| target.obj_id == caster.obj_id)
+                }) {
+                    Some(player) => item_effects::imprint_ucc(
+                        server,
+                        Some(player),
+                        skill_item(&args.caster_caster),
+                        item_target(&args.target_caster).map(|(id, _)| id),
+                    ),
+                    None => Outcome::Cancelled,
+                };
+                if out == Outcome::Cancelled {
+                    cancel_skill(args);
+                }
                 true
             }
             (EffectKind::CleanupUccEffect, EffectTemplate::CleanupUcc { .. }) => {
                 tracing::trace!("CleanupUccEffect");
-                item_effects::cleanup_ucc(
-                    server,
-                    player_target(args),
-                    skill_item(&args.caster_caster),
-                    item_target(&args.target_caster).map(|(id, _)| id),
-                );
+                let out = match player_caster(args).filter(|caster| {
+                    player_target(args).is_some_and(|target| target.obj_id == caster.obj_id)
+                }) {
+                    Some(player) => item_effects::cleanup_ucc(
+                        server,
+                        Some(player),
+                        skill_item(&args.caster_caster),
+                        item_target(&args.target_caster).map(|(id, _)| id),
+                    ),
+                    None => Outcome::Cancelled,
+                };
+                if out == Outcome::Cancelled {
+                    cancel_skill(args);
+                }
                 true
             }
             (EffectKind::ConversionEffect, EffectTemplate::Conversion(_)) => {
@@ -1136,13 +1152,25 @@ impl ItemSkillHooks for EconomyForSkills {
         dye_template_id: u32,
         target_item_id: u64,
     ) {
-        // TODO (C#): Should check whether the item being dyed is actually dyeable.
         let mut txn = ItemTxn::begin(server);
         let inv = Inv::of(player);
+        // Skill.Apply consumes its source item after effects, unless this flag cancels it.
+        // Reject before editing equipment so an invalid target also keeps its dye.
+        let reject = || player.data().skill_char.skill_cancelled = true;
+        let Some(dye_holder) = inv.holder_of(dye_item_id) else {
+            reject();
+            return;
+        };
+        let dye = lock(&dye_holder).get_item_by_id(dye_item_id).cloned();
+        if !dye.is_some_and(|i| i.template_id == dye_template_id && i.count > 0) {
+            reject();
+            return;
+        }
         let Some(holder) = inv.holder_of(target_item_id) else {
             tracing::error!(
                 "Dyeing: target item {target_item_id} not found (NullReferenceException)"
             );
+            reject();
             return;
         };
         // Check the item used is in the Dye (33) category.
@@ -1156,17 +1184,28 @@ impl ItemSkillHooks for EconomyForSkills {
                 "{} tried to dye with a non-dye item - item id {dye_item_id} and template id {dye_template_id}",
                 player.data().unit.name
             );
+            reject();
+            return;
+        }
+        let target = lock(&holder).get_item_by_id(target_item_id).cloned();
+        if !target.is_some_and(|i| {
+            i.is_equip()
+                && server
+                    .game_data
+                    .items
+                    .default_dye_ids
+                    .contains_key(&i.template_id)
+        }) {
+            reject();
             return;
         }
         let after = {
             let mut g = lock(&holder);
             let Some(it) = g.get_item_by_id_mut(target_item_id) else {
+                drop(g);
+                reject();
                 return;
             };
-            if !it.is_equip() {
-                tracing::error!("Dyeing: item {target_item_id} is not an EquipItem (InvalidCast)");
-                return;
-            }
             it.details.dye_item_id = dye_template_id;
             it.dirty = true;
             it.clone()
@@ -1365,6 +1404,10 @@ impl ItemSkillHooks for EconomyForSkills {
         Self::special(server, special_type, args, values)
     }
 }
+
+#[cfg(test)]
+#[path = "dye_tests.rs"]
+mod dye_tests;
 
 // ---------------------------------------------------------------------------------------------
 // services: SheetMusicInventory / CharacterItemOps / WebApi / buy-back wipe

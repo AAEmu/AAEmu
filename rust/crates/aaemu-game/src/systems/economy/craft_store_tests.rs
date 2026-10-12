@@ -188,7 +188,11 @@ fn data() -> GameData {
 }
 
 fn world() -> World {
-    let server = Arc::new(test_server_with(data()));
+    world_with_data(data())
+}
+
+fn world_with_data(data: GameData) -> World {
+    let server = Arc::new(test_server_with(data));
     server.set_self();
     let mut a = TestClient::new(&server, 1, 1001);
     let mut b = TestClient::new(&server, 2, 1002);
@@ -626,6 +630,259 @@ fn buy_body(npc: u32, buy: &[(u32, i32, u8)], buy_back: &[i32]) -> Vec<u8> {
     }
     s.write_bool(false);
     s.into_bytes()
+}
+
+#[tokio::test]
+async fn shop_checkout_rejects_money_only_and_mixed_currency_shortages() {
+    for (money, honor, vocation, purchases) in [
+        (5, 100, 100, vec![(STACK, 1, 0)]),
+        (100, 0, 100, vec![(STACK, 1, 0), (STACK, 1, 1)]),
+        (100, 100, 0, vec![(STACK, 1, 2)]),
+    ] {
+        let mut d = data();
+        d.items
+            .templates
+            .get_mut(&STACK)
+            .unwrap()
+            .living_point_price = 4;
+        let mut w = world_with_data(d);
+        w.server.systems.economy.hooks.npcs.install(Arc::new(Shops));
+        spawn_npc(&mut w, MERCHANT_NPC, 1234, 101.0);
+        {
+            let mut c = w.pa.data();
+            c.money = money;
+            c.honor_point = honor;
+            c.vocation_point = vocation;
+        }
+        let before = Inv::of(&w.pa).bag().lock().unwrap().items.clone();
+        run::<CSBuyItemsPacket>(&mut w, 0, &buy_body(MERCHANT_NPC, &purchases, &[]));
+        let c = w.pa.data();
+        assert_eq!(
+            (c.money, c.honor_point, c.vocation_point),
+            (money, honor, vocation)
+        );
+        drop(c);
+        assert_eq!(Inv::of(&w.pa).bag().lock().unwrap().items, before);
+        assert!(w.a.drain().is_empty());
+    }
+}
+
+#[tokio::test]
+async fn shop_checkout_rejects_invalid_counts_unpriced_currency_and_overflow() {
+    for (price, honor, purchases) in [
+        (10, 3, vec![(STACK, 1, 255)]),
+        (10, 0, vec![(STACK, 1, 1)]),
+        (10, 3, vec![(STACK, 1, 2)]),
+        (10, 3, vec![(STACK, 0, 0)]),
+        (10, 3, vec![(STACK, -1, 0)]),
+        (10, 3, vec![(STACK, i32::MAX, 0)]),
+        (1_500_000_000, 3, vec![(STACK, 1, 0), (STACK, 1, 0)]),
+    ] {
+        let mut d = data();
+        let template = d.items.templates.get_mut(&STACK).unwrap();
+        template.price = price;
+        template.honor_price = honor;
+        let mut w = world_with_data(d);
+        w.server.systems.economy.hooks.npcs.install(Arc::new(Shops));
+        spawn_npc(&mut w, MERCHANT_NPC, 1234, 101.0);
+        {
+            let mut c = w.pa.data();
+            c.money = 4_000_000_000;
+            c.honor_point = 100;
+            c.vocation_point = 100;
+        }
+        let pa = w.pa.clone();
+        give(&w, &pa, 2, STACK, 4, 0);
+        let before = Inv::of(&pa).bag().lock().unwrap().items.clone();
+        run::<CSBuyItemsPacket>(&mut w, 0, &buy_body(MERCHANT_NPC, &purchases, &[]));
+        let c = pa.data();
+        assert_eq!(
+            (c.money, c.honor_point, c.vocation_point),
+            (4_000_000_000, 100, 100)
+        );
+        drop(c);
+        assert_eq!(Inv::of(&pa).bag().lock().unwrap().items, before);
+        assert!(w.a.drain().is_empty());
+    }
+}
+
+#[tokio::test]
+async fn shop_checkout_capacity_failure_rolls_back_all_goods_and_buyback() {
+    for with_buyback in [false, true] {
+        let mut w = world();
+        w.server.systems.economy.hooks.npcs.install(Arc::new(Shops));
+        spawn_npc(&mut w, MERCHANT_NPC, 1234, 101.0);
+        w.pa.data().money = 1000;
+        Inv::of(&w.pa).bag().lock().unwrap().set_container_size(1);
+        let buyback = w.server.systems.economy.store.buyback(w.pa.character_id);
+        let back = w
+            .server
+            .items
+            .create(
+                STACK,
+                1,
+                0,
+                1,
+                &w.server.game_data.items,
+                &w.server.ids.item,
+                0,
+            )
+            .unwrap();
+        buyback
+            .lock()
+            .unwrap()
+            .add_new_item(back, 0, &w.server.game_data.items)
+            .unwrap();
+        let before_back = buyback.lock().unwrap().items.clone();
+        let purchases = if with_buyback {
+            vec![(STACK, 1, 0)]
+        } else {
+            vec![(STACK, 20, 0), (STACK, 1, 0)]
+        };
+        let indices = if with_buyback { vec![0] } else { vec![] };
+        run::<CSBuyItemsPacket>(&mut w, 0, &buy_body(MERCHANT_NPC, &purchases, &indices));
+        assert!(Inv::of(&w.pa).bag().lock().unwrap().items.is_empty());
+        assert_eq!(buyback.lock().unwrap().items, before_back);
+        assert_eq!(w.pa.data().money, 1000);
+        assert!(w.a.drain().is_empty());
+    }
+}
+
+#[tokio::test]
+async fn shop_checkout_mixed_payment_and_configured_free_goods_succeed() {
+    let mut d = data();
+    d.items
+        .templates
+        .get_mut(&STACK)
+        .unwrap()
+        .living_point_price = 4;
+    let mut w = world_with_data(d);
+    w.server.systems.economy.hooks.npcs.install(Arc::new(Shops));
+    spawn_npc(&mut w, MERCHANT_NPC, 1234, 101.0);
+    {
+        let mut c = w.pa.data();
+        c.money = 100;
+        c.honor_point = 10;
+        c.vocation_point = 10;
+    }
+    run::<CSBuyItemsPacket>(
+        &mut w,
+        0,
+        &buy_body(
+            MERCHANT_NPC,
+            &[(STACK, 1, 0), (STACK, 1, 1), (STACK, 1, 2)],
+            &[],
+        ),
+    );
+    assert_eq!(item_at(&w.pa, 2, 0).unwrap().count, 3);
+    let c = w.pa.data();
+    assert_eq!((c.money, c.honor_point, c.vocation_point), (90, 7, 6));
+    drop(c);
+    let frames = w.a.drain();
+    assert_eq!(frames.len(), 7);
+    assert_eq!(
+        frames[3],
+        (
+            sc::SCGamePointChangedPacket,
+            bytes(&SCGamePointChangedPacket {
+                kind: 0,
+                amount: -3
+            })
+        )
+    );
+    assert_eq!(
+        frames[4],
+        (
+            sc::SCGamePointChangedPacket,
+            bytes(&SCGamePointChangedPacket {
+                kind: 1,
+                amount: -4
+            })
+        )
+    );
+    assert_eq!(
+        frames[5],
+        (
+            sc::SCItemTaskSuccessPacket,
+            task_body(task_type::DEPOSIT_MONEY, vec![ItemTask::MoneyChange(-10)])
+        )
+    );
+
+    let mut d = data();
+    d.items.templates.get_mut(&STACK).unwrap().price = 0;
+    let mut w = world_with_data(d);
+    w.server.systems.economy.hooks.npcs.install(Arc::new(Shops));
+    spawn_npc(&mut w, MERCHANT_NPC, 1234, 101.0);
+    run::<CSBuyItemsPacket>(&mut w, 0, &buy_body(MERCHANT_NPC, &[(STACK, 1, 0)], &[]));
+    assert_eq!(item_at(&w.pa, 2, 0).unwrap().count, 1);
+    assert_eq!(w.pa.data().money, 0);
+}
+
+#[tokio::test]
+async fn shop_checkout_vocation_earnings_bonuses_do_not_change_configured_price() {
+    use crate::models::unit::{Bonus, BonusTemplate, UnitAttribute, UnitModifierType};
+    // Additive gains could reverse a debit; multipliers could overcharge or
+    // discount it. Neither changes the price shown by the 1.2 shop UI.
+    for (add, multiplier) in [(0, 0), (100, 0), (0, 200), (0, -50), (100, 200)] {
+        for available in [49, 50, 100] {
+            let mut d = data();
+            d.items
+                .templates
+                .get_mut(&STACK)
+                .unwrap()
+                .living_point_price = 50;
+            let mut w = world_with_data(d);
+            w.server.systems.economy.hooks.npcs.install(Arc::new(Shops));
+            spawn_npc(&mut w, MERCHANT_NPC, 1234, 101.0);
+            {
+                let mut c = w.pa.data();
+                c.vocation_point = available;
+                for (index, attribute, value) in [
+                    (1, UnitAttribute::LivingPointGain, add),
+                    (2, UnitAttribute::LivingPointGainMul, multiplier),
+                ] {
+                    c.unit.bonuses.add_bonus(
+                        index,
+                        Bonus {
+                            template: BonusTemplate {
+                                attribute,
+                                modifier_type: UnitModifierType::Value,
+                                value,
+                                linear_level_bonus: 0,
+                            },
+                            value,
+                        },
+                    );
+                }
+            }
+            run::<CSBuyItemsPacket>(&mut w, 0, &buy_body(MERCHANT_NPC, &[(STACK, 1, 2)], &[]));
+            assert_eq!(w.pa.data().money, 0);
+            assert_eq!(w.pa.data().honor_point, 0);
+            if available < 50 {
+                assert_eq!(w.pa.data().vocation_point, available);
+                assert!(Inv::of(&w.pa).bag().lock().unwrap().items.is_empty());
+                assert!(w.a.drain().is_empty());
+            } else {
+                assert_eq!(w.pa.data().vocation_point, available - 50);
+                assert_eq!(item_at(&w.pa, 2, 0).unwrap().count, 1);
+                let point_changes: Vec<_> =
+                    w.a.drain()
+                        .into_iter()
+                        .filter(|(opcode, _)| *opcode == sc::SCGamePointChangedPacket)
+                        .collect();
+                assert_eq!(
+                    point_changes,
+                    vec![(
+                        sc::SCGamePointChangedPacket,
+                        bytes(&SCGamePointChangedPacket {
+                            kind: 1,
+                            amount: -50,
+                        }),
+                    )]
+                );
+            }
+        }
+    }
 }
 
 #[tokio::test]

@@ -595,12 +595,9 @@ fn on_removed(server: &GameServer, owner: &WorldObject, b: &Buff) {
         dispel(server, &template, caster.as_ref(), owner, b, b.exit_replace);
         restore_faction(server, owner, &template);
     } else {
-        // `RemoveBuff` / `RemoveEffect(index | template, skill)`: `Template.Dispel`, then
-        // `SetInUse(false)` -> `StopEffectTask` (timeout / dispelled triggers, a second
-        // `Dispel`), then the modifier caches. The double dispel (two SCBuffRemovedPackets)
-        // is the C# behaviour.
+        // Explicit removal fires Dispelled through unsubscribe, never Timeout. Keep the
+        // existing double Dispel packet order for this bookkeeping removal path.
         dispel(server, &template, caster.as_ref(), owner, b, false);
-        fire_buff_trigger_with(server, owner, b, BuffEventTriggerKind::Timeout);
         unsubscribe_triggers(server, owner, b);
         dispel(server, &template, caster.as_ref(), owner, b, false);
         restore_faction(server, owner, &template);
@@ -638,6 +635,9 @@ pub fn schedule_effect(server: &GameServer, owner: &WorldObject, index: u32, rep
     let Some(b) = get_buff(owner, index) else {
         return;
     };
+    // ACTING arrives from the timer. Explicit exit enters FINISHING, including a
+    // CREATED buff whose Started event has not yet completed its lifecycle.
+    let timed_out = b.state == effect_state::ACTING;
     let template = full_template(server, &b.template);
     let now = now_ms();
     match b.state {
@@ -704,16 +704,18 @@ pub fn schedule_effect(server: &GameServer, owner: &WorldObject, index: u32, rep
             e.in_use = false;
             e.exit_replace = replace;
         });
-        stop_effect_task(server, owner, index);
+        stop_effect_task(server, owner, index, timed_out);
     }
 }
 
 /// `Buff.StopEffectTask(replace)` (the replace flag travels in `Buff.exit_replace`).
-fn stop_effect_task(server: &GameServer, owner: &WorldObject, index: u32) {
+fn stop_effect_task(server: &GameServer, owner: &WorldObject, index: u32, timed_out: bool) {
     let Some(b) = get_buff(owner, index) else {
         return;
     };
-    fire_buff_trigger(server, owner, index, BuffEventTriggerKind::Timeout);
+    if timed_out {
+        fire_buff_trigger(server, owner, index, BuffEventTriggerKind::Timeout);
+    }
     unsubscribe_triggers(server, owner, &b);
     owner.with_base_unit(|u| u.buffs_mut().remove_effect_by_index(index));
     crate::systems::dispatch_buff_events(server, owner);
@@ -727,11 +729,11 @@ pub fn exit(server: &GameServer, owner: &WorldObject, index: u32, replace: bool)
     if b.state == effect_state::FINISHED {
         return;
     }
+    // DispelEffect and explicit removal must not enter the timer's Timeout path. FISH
+    // status removal during catch plot792 otherwise invokes its escape skill21616.
+    set_buff(owner, index, |e| e.state = effect_state::FINISHING);
     if b.state != effect_state::CREATED {
-        set_buff(owner, index, |e| e.state = effect_state::FINISHING);
         schedule_effect(server, owner, index, replace);
-    } else {
-        set_buff(owner, index, |e| e.state = effect_state::FINISHING);
     }
 }
 
@@ -1666,3 +1668,7 @@ pub fn unit_caster(obj_id: u32) -> NetSkillCaster {
 
 /// `UnitAttribute` helper re-export for callers that build bonuses.
 pub type Attr = UnitAttribute;
+
+#[cfg(test)]
+#[path = "buff_removal_tests.rs"]
+mod buff_removal_tests;

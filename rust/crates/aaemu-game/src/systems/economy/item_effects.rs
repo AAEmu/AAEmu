@@ -1078,30 +1078,54 @@ pub fn apply_stamp(stamp: &Item, target: &mut Item) {
     target.set_ucc(stamp.ucc_id);
 }
 
-/// `ImprintUccEffect.Apply` (stamp a UCC onto an item). `target` = the effect target when it
-/// is a character.
+/// Resolve both UCC operands in the caster's inventory while the caller holds an ItemTxn.
+/// Loose items and other characters' containers cannot be addressed by an item skill.
+fn owned_ucc_items(
+    player: &PlayerRef,
+    source: SkillItem,
+    target_id: u64,
+) -> Option<(Item, ContainerRef)> {
+    if source.item_id == target_id {
+        return None;
+    }
+    let inv = Inv::of(player);
+    let source_item = inv.item_by_id(source.item_id)?;
+    if source_item.owner_id != u64::from(player.character_id)
+        || source_item.template_id != source.item_template_id
+        || source_item.count <= 0
+    {
+        return None;
+    }
+    let holder = inv.holder_of(target_id)?;
+    let valid_target = lock(&holder)
+        .get_item_by_id(target_id)
+        .is_some_and(|item| item.owner_id == u64::from(player.character_id) && item.count > 0);
+    valid_target.then_some((source_item, holder))
+}
+
+/// `ImprintUccEffect.Apply` (stamp a UCC onto an item). The caller supplies the caster and
+/// cancels rejected effects before the skill's subsequent reagent consumption.
 pub fn imprint_ucc(
     server: &GameServer,
     target: Option<&PlayerRef>,
     stamp: Option<SkillItem>,
     target_item_id: Option<u64>,
-) {
+) -> Outcome {
     tracing::trace!("ImprintUccEffect");
     let (Some(player), Some(stamp), Some(target_id)) = (target, stamp, target_item_id) else {
-        return;
+        return Outcome::Cancelled;
     };
     let mut txn = ItemTxn::begin(server);
-    let stamp_item = server.items.item_by_id(stamp.item_id);
-    // TODO (C#): Check if items are owned by caster
-    let applied = stamp_item.as_ref().and_then(|s| {
-        with_any_item_mut(server, target_id, |t| {
-            apply_stamp(s, t);
-            t.clone()
-        })
-    });
-    let (Some(stamp_item), Some(target_item)) = (stamp_item, applied) else {
-        tracing::warn!("ImprintUccEffect: Invalid item reference");
-        return;
+    let Some((stamp_item, holder)) = owned_ucc_items(player, stamp, target_id) else {
+        return Outcome::Cancelled;
+    };
+    let target_item = {
+        let mut container = lock(&holder);
+        let Some(target_item) = container.get_item_by_id_mut(target_id) else {
+            return Outcome::Cancelled;
+        };
+        apply_stamp(&stamp_item, target_item);
+        target_item.clone()
     };
     txn.out().send(
         player,
@@ -1119,6 +1143,7 @@ pub fn imprint_ucc(
         ),
     );
     // Retail consumes the stamp with QuestRemoveSupplies; the C# leaves it to the skill.
+    Outcome::Done
 }
 
 /// `CleanupUccEffect.Apply` (bleach: removes the UCC of an item).
@@ -1127,20 +1152,22 @@ pub fn cleanup_ucc(
     target: Option<&PlayerRef>,
     bleach: Option<SkillItem>,
     target_item_id: Option<u64>,
-) {
+) -> Outcome {
     tracing::trace!("CleanupUccEffect");
     let (Some(player), Some(bleach), Some(target_id)) = (target, bleach, target_item_id) else {
-        return;
+        return Outcome::Cancelled;
     };
     let mut txn = ItemTxn::begin(server);
-    if server.items.item_by_id(bleach.item_id).is_none() {
-        return;
-    }
-    let Some(target_item) = with_any_item_mut(server, target_id, |t| {
-        t.set_ucc(0);
-        t.clone()
-    }) else {
-        return;
+    let Some((_, holder)) = owned_ucc_items(player, bleach, target_id) else {
+        return Outcome::Cancelled;
+    };
+    let target_item = {
+        let mut container = lock(&holder);
+        let Some(target_item) = container.get_item_by_id_mut(target_id) else {
+            return Outcome::Cancelled;
+        };
+        target_item.set_ucc(0);
+        target_item.clone()
     };
     txn.out().send(
         player,
@@ -1157,6 +1184,7 @@ pub fn cleanup_ucc(
             vec![ItemTask::update_bits(&target_item)],
         ),
     );
+    Outcome::Done
 }
 
 /// `FishingLoot.Execute`: the fishing loot pack of the target's zone group (land pack above

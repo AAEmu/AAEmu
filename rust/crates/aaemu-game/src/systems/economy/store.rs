@@ -12,7 +12,7 @@ use aaemu_commons::{Marshal, PacketStream};
 use crate::error::Result;
 use crate::models::container::{slot_type, ContainerKind, ContainerRef, ItemContainer};
 use crate::models::item::Item;
-use crate::models::item_task::{task_type, ItemTask};
+use crate::models::item_task::{task_type, ItemFx, ItemTask};
 use crate::net::connection::GameConnection;
 use crate::net::packet::LEVEL_PLAIN;
 use crate::net::registry::PacketRegistry;
@@ -26,7 +26,51 @@ use super::craft::distance_2d;
 use super::error_message;
 use super::inventory::{self, game_point_kind, lock_pair, Inv, ItemTxn};
 use super::item_handlers::{active, sync_client_packet};
-use super::item_packets::SCItemTaskSuccessPacket;
+use super::item_packets::{SCGamePointChangedPacket, SCItemTaskSuccessPacket};
+
+/// Discard a failed staged checkout while releasing only newly allocated IDs.
+fn discard_shop_stage(
+    txn: &mut ItemTxn<'_>,
+    staged: &ItemContainer,
+    bag: &ItemContainer,
+    buyback: &ItemContainer,
+) {
+    let original = |id| bag.get_item_by_id(id).is_some() || buyback.get_item_by_id(id).is_some();
+    let mut release: Vec<u64> = staged
+        .items
+        .iter()
+        .map(|i| i.id)
+        .filter(|id| !original(*id))
+        .collect();
+    for fx in txn.env.take_fx().0 {
+        if let ItemFx::ReleaseId(id) = fx {
+            if !original(id) {
+                release.push(id);
+            }
+        }
+    }
+    release.sort_unstable();
+    release.dedup();
+    for id in release {
+        txn.env.fx.push(ItemFx::ReleaseId(id));
+    }
+}
+
+fn checked_shop_refund(server: &GameServer, item: &Item) -> Option<i32> {
+    let template = server.game_data.items.template(item.template_id)?;
+    let multiplier = server
+        .game_data
+        .systems
+        .economy
+        .store
+        .refund_multiplier(item.grade)?;
+    if template.refund < 0 || multiplier < 0 || item.count <= 0 {
+        return None;
+    }
+    // Preserve grade refund rounding, widening the multiplication before it.
+    let per = (i64::from(template.refund) * i64::from(multiplier)) as f32 / 100.0;
+    i32::try_from((per as i64).checked_mul(i64::from(item.count))?).ok()
+}
 
 /// `ShopCurrencyType`.
 pub mod shop_currency_type {
@@ -284,11 +328,18 @@ impl CSBuyItemsPacket {
         let mut money = 0i32;
         let mut honor_points = 0i32;
         let mut vocation_badges = 0i32;
-
-        // Get list of items to buy from the shop
         let mut items_buy = Vec::new();
         for e in &self.buy {
-            // If using a NPC shop, check if the NPC is selling the specified item
+            if e.count <= 0
+                || !matches!(
+                    e.currency,
+                    shop_currency_type::MONEY
+                        | shop_currency_type::HONOR
+                        | shop_currency_type::VOCATION_BADGES
+                )
+            {
+                return;
+            }
             if self.npc_obj_id != 0 {
                 let sells = match (pack_id, &npc_hooks) {
                     (Some(pack), Some(h)) => h.merchant_sells(server, pack, e.item_id),
@@ -298,123 +349,171 @@ impl CSBuyItemsPacket {
                     continue;
                 }
             }
-            // TODO (C#): validate doodad "shop" (mirage furniture for example)
-            items_buy.push((e.item_id, e.grade, e.count));
+            // Doodad catalog policy remains the existing separate limitation.
             let Some(template) = server.game_data.items.template(e.item_id) else {
-                // C#: template.Price on a null template -> NullReferenceException
-                tracing::error!("CSBuyItemsPacket: unknown item template {}", e.item_id);
                 return;
             };
-            match e.currency {
-                shop_currency_type::MONEY => {
-                    money = money.wrapping_add(template.price.wrapping_mul(e.count));
-                }
-                shop_currency_type::HONOR => {
-                    honor_points =
-                        honor_points.wrapping_add(template.honor_price.wrapping_mul(e.count));
-                }
+            if template.max_count <= 0 {
+                return;
+            }
+            let (price, total) = match e.currency {
+                shop_currency_type::MONEY => (template.price, &mut money),
+                shop_currency_type::HONOR => (template.honor_price, &mut honor_points),
                 shop_currency_type::VOCATION_BADGES => {
-                    vocation_badges = vocation_badges
-                        .wrapping_add(template.living_point_price.wrapping_mul(e.count));
+                    (template.living_point_price, &mut vocation_badges)
                 }
-                _ => tracing::error!("Unknown currency type"),
-            }
-        }
-
-        // Get a list of items to buy from the buyback window
-        let buyback = server.systems.economy.store.buyback(p.character_id);
-        let mut items_buy_back: Vec<(u64, i32)> = Vec::new();
-        for &index in &self.buy_back {
-            let item = buyback
-                .lock()
-                .expect("container poisoned")
-                .get_item_by_slot(index)
-                .cloned();
-            let Some(item) = item else { continue };
-            if items_buy_back.iter().any(|(id, _)| *id == item.id) {
-                // C#: Dictionary.Add of the same item -> ArgumentException
-                tracing::error!("CSBuyItemsPacket: buy-back item {} listed twice", item.id);
+                _ => return,
+            };
+            // A zero non-money price is an unpriced currency, not a free alternative.
+            if price < 0 || (price == 0 && e.currency != shop_currency_type::MONEY) {
                 return;
             }
-            items_buy_back.push((item.id, index));
-            let Some(v) = refund_value(server, &item) else {
-                tracing::error!("CSBuyItemsPacket: no refund data for item {}", item.id);
+            let Some(cost) = price.checked_mul(e.count) else {
                 return;
             };
-            money = money.wrapping_add(v);
-        }
-
-        let (cur_money, cur_honor, cur_voc) = {
-            let c = p.data();
-            (c.money, c.honor_point, c.vocation_point)
-        };
-        // C# quirk: `&&` - only refused when every currency is short.
-        if i64::from(money) > cur_money && honor_points > cur_honor && vocation_badges > cur_voc {
-            return;
+            let Some(sum) = total.checked_add(cost) else {
+                return;
+            };
+            *total = sum;
+            items_buy.push((e.item_id, e.count));
         }
 
         let inv = Inv::of(&p);
-        let bag = inv.bag();
+        let bag_ref = inv.bag();
+        let buyback_ref = server.systems.economy.store.buyback(p.character_id);
         let mut txn = ItemTxn::begin(server);
-        let mut tasks = Vec::new();
-        for (item_id, _grade, count) in items_buy {
-            // Omit grade when creating to prevent "cheating" when creating the grade
-            bag.lock()
-                .expect("container poisoned")
-                .acquire_default_item(task_type::STORE_BUY, item_id, count, -1, 0, &mut txn.env);
+        // Character before containers; all item effects remain queued until commit.
+        let mut character = p.data();
+        let (mut bag, source) = lock_pair(&bag_ref, &buyback_ref);
+        let Some(mut buyback) = source else { return };
+        let mut items_buy_back = Vec::new();
+        for &index in &self.buy_back {
+            let Some(item) = buyback.get_item_by_slot(index) else {
+                continue;
+            };
+            if items_buy_back.contains(&item.id) {
+                return;
+            }
+            let Some(value) = checked_shop_refund(server, item) else {
+                return;
+            };
+            let Some(sum) = money.checked_add(value) else {
+                return;
+            };
+            money = sum;
+            items_buy_back.push(item.id);
+        }
+        if i64::from(money) > character.money
+            || honor_points > character.honor_point
+            || vocation_badges > character.vocation_point
+        {
+            return;
+        }
+        let Some(next_money) = character.money.checked_sub(i64::from(money)) else {
+            return;
+        };
+        let Some(next_honor) = character.honor_point.checked_sub(honor_points) else {
+            return;
+        };
+        // Stock 1.2 store/cmd.lua displays livingPointPrice * quantity and
+        // subtracts that exact total from the current balance. Point-gain
+        // bonuses belong to earnings, not the configured shop price.
+        let vocation_change = -vocation_badges;
+        let Some(next_vocation) = character.vocation_point.checked_add(vocation_change) else {
+            return;
+        };
+        if next_vocation < 0 {
+            return;
         }
 
-        for (item_id, _index) in items_buy_back {
-            let data = txn.data();
+        let mut staged_bag = bag.clone();
+        let mut staged_buyback = buyback.clone();
+        let mut succeeded = true;
+        for (item_id, count) in items_buy {
+            let template = txn.data().template(item_id).expect("preflight template");
+            let existing: Vec<_> = staged_bag
+                .items
+                .iter()
+                .filter(|i| i.template_id == item_id)
+                .collect();
+            let units: i64 = existing.iter().map(|i| i64::from(i.count)).sum();
+            let capacity = (existing.len() as i64 + i64::from(staged_bag.free_slot_count()))
+                * i64::from(template.max_count)
+                - units;
+            // The existing container acquisition uses i32 space arithmetic.
+            if capacity < i64::from(count)
+                || capacity > i64::from(i32::MAX)
+                || !staged_bag.acquire_default_item(
+                    task_type::STORE_BUY,
+                    item_id,
+                    count,
+                    -1,
+                    0,
+                    &mut txn.env,
+                )
             {
-                let (mut b, src) = lock_pair(&bag, &buyback);
-                if let Some(mut src) = src {
-                    b.move_item_from(
-                        &mut src,
-                        task_type::STORE_BUY,
-                        item_id,
-                        -1,
-                        data,
-                        &mut txn.env.fx,
-                    );
+                succeeded = false;
+                break;
+            }
+        }
+        let mut tasks = Vec::new();
+        if succeeded {
+            for item_id in items_buy_back {
+                if !staged_bag.move_item_from(
+                    &mut staged_buyback,
+                    task_type::STORE_BUY,
+                    item_id,
+                    -1,
+                    txn.data(),
+                    &mut txn.env.fx,
+                ) {
+                    succeeded = false;
+                    break;
+                }
+                if let Some(item) = staged_bag.get_item_by_id(item_id) {
+                    tasks.push(ItemTask::buyback(item));
                 }
             }
-            let now = bag
-                .lock()
-                .expect("container poisoned")
-                .get_item_by_id(item_id)
-                .cloned()
-                .or_else(|| {
-                    buyback
-                        .lock()
-                        .expect("container poisoned")
-                        .get_item_by_id(item_id)
-                        .cloned()
-                });
-            if let Some(item) = now {
-                tasks.push(ItemTask::buyback(&item));
-            }
         }
-
+        if !succeeded {
+            discard_shop_stage(&mut txn, &staged_bag, &bag, &buyback);
+            return;
+        }
+        *bag = staged_bag;
+        *buyback = staged_buyback;
+        character.money = next_money;
+        character.honor_point = next_honor;
+        character.vocation_point = next_vocation;
+        drop(buyback);
+        drop(bag);
+        drop(character);
         let mut out = txn.out();
         if honor_points > 0 {
-            inventory::change_game_points(&mut out, &p, game_point_kind::HONOR, -honor_points);
+            out.send(
+                &p,
+                SCGamePointChangedPacket {
+                    kind: game_point_kind::HONOR,
+                    amount: -honor_points,
+                },
+            );
         }
         if vocation_badges > 0 {
-            inventory::change_game_points(
-                &mut out,
+            out.send(
                 &p,
-                game_point_kind::VOCATION,
-                -vocation_badges,
+                SCGamePointChangedPacket {
+                    kind: game_point_kind::VOCATION,
+                    amount: vocation_change,
+                },
             );
         }
         if money > 0 {
-            inventory::change_money_at(
-                &mut out,
+            out.send(
                 &p,
-                slot_type::INVENTORY,
-                -money,
-                task_type::DEPOSIT_MONEY,
+                SCItemTaskSuccessPacket {
+                    action: task_type::DEPOSIT_MONEY,
+                    tasks: vec![ItemTask::MoneyChange(-money)],
+                    force_remove: Vec::new(),
+                },
             );
         }
         out.send(

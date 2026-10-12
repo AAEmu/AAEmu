@@ -197,15 +197,33 @@ pub fn start_skill(server: &GameServer, conn: &mut GameConnection, p: CSStartSki
         let Some((template_id, _)) = items.owned_item(server, &player, item_id) else {
             return;
         };
-        let use_ok = items.item_use_skill(server, template_id).is_some_and(
-            |(use_skill_id, bind_on_pickup)| skill_id == use_skill_id || bind_on_pickup,
-        );
-        if !use_ok {
+        let Some((use_skill_id, bind_on_pickup)) = items.item_use_skill(server, template_id) else {
+            return;
+        };
+        if skill_id != use_skill_id && !bind_on_pickup {
             return;
         }
         let Some(skill) = template_skill(server, skill_id) else {
             return;
         };
+        // The legacy bind-on-pickup exception supports fireplace portal actions, but
+        // binding alone cannot authorize imprinting or bleaching a UCC. Require the
+        // actual item's configured use skill at this client boundary; internal casts
+        // and plot children continue through the server-driven skill APIs.
+        if skill_id != use_skill_id
+            && skill.template.effects.iter().any(|effect| {
+                matches!(
+                    effect.template,
+                    Some((
+                        super::data::EffectKind::ImprintUccEffect
+                            | super::data::EffectKind::CleanupUccEffect,
+                        _
+                    ))
+                )
+            })
+        {
+            return;
+        }
         let (r, v) = skill::use_skill(
             server,
             &skill,
@@ -271,6 +289,10 @@ pub fn start_skill(server: &GameServer, conn: &mut GameConnection, p: CSStartSki
         player.send(pkt);
     }
 }
+
+#[cfg(test)]
+#[path = "ucc_item_authority_tests.rs"]
+mod ucc_item_authority_tests;
 
 /// `CharacterSkills.IsVariantOfSkill(skillId)`.
 fn is_variant_of_skill(

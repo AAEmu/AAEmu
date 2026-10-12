@@ -182,7 +182,11 @@ fn data() -> GameData {
 /// Two players next to each other (char ids 1 / 2), their containers registered in the item
 /// manager (`ItemManager.GetItemByItemId` lookups).
 fn world() -> World {
-    let server = Arc::new(test_server_with(data()));
+    world_with_data(data())
+}
+
+fn world_with_data(data: GameData) -> World {
+    let server = Arc::new(test_server_with(data));
     server.set_self();
     let mut a = TestClient::new(&server, 1, 1001);
     let mut b = TestClient::new(&server, 2, 1002);
@@ -796,6 +800,300 @@ async fn gain_item_effect() {
 // ---------------------------------------------------------------------------------------------
 // UCC
 // ---------------------------------------------------------------------------------------------
+
+fn ucc_world() -> World {
+    use crate::systems::skills::data::{EffectKind, EffectTemplate};
+    let mut d = data();
+    // Authentic 1.2 Crest Ink / Crest Bleach are use-skill reagents. Their effect rows
+    // consume_source_item=false; the skill still debits one source after successful apply.
+    for (item_id, skill_id) in [(17662, 14433), (19780, 16046)] {
+        let mut item = ItemTemplate::plain(item_id, 10);
+        item.use_skill_id = skill_id;
+        item.use_skill_as_reagent = true;
+        d.items.templates.insert(item_id, item);
+    }
+    d.systems.skills.add_effect(
+        EffectKind::ImprintUccEffect,
+        EffectTemplate::ImprintUcc { id: 5, item_id: 0 },
+        0,
+    );
+    d.systems.skills.add_effect(
+        EffectKind::CleanupUccEffect,
+        EffectTemplate::CleanupUcc { id: 1 },
+        0,
+    );
+    let w = world_with_data(d);
+    super::bridges::install(&w.server);
+    w
+}
+
+fn ucc_source_template(cleanup: bool) -> u32 {
+    if cleanup {
+        19780
+    } else {
+        17662
+    }
+}
+
+// UCC and ownership are not both included in every item class's wire details.
+fn ucc_item_state(w: &World, id: u64) -> (Vec<u8>, u64, u64, bool) {
+    // Unlike the older single-owner `item` helper, this observation must cover Bob's
+    // registered containers too, before and after the attempted foreign-item cast.
+    let item = w.server.items.item_by_id(id).expect("UCC fixture item");
+    (body(&item), item.ucc_id, item.owner_id, item.dirty)
+}
+
+/// Exercise the real effect dispatch followed by skill-owned source consumption, rather
+/// than directly calling an effect and simulating its debit in the test.
+fn cast_ucc(
+    w: &World,
+    cleanup: bool,
+    source: SkillItem,
+    target_id: u64,
+    target_player: &PlayerRef,
+) -> crate::systems::skills::state::SkillRef {
+    use crate::systems::skills::data::{EffectKind, SkillEffect, SkillTemplate};
+    use crate::systems::skills::geometry::Target;
+    use crate::systems::skills::skill::{apply_effects, CastCtx};
+    use crate::systems::skills::state::SkillRun;
+    use crate::systems::skills::types::{SkillCastTarget, SkillCaster, SkillObject};
+    use crate::world::WorldObject;
+
+    let (skill_id, kind, effect_id) = if cleanup {
+        (16046, EffectKind::CleanupUccEffect, 1)
+    } else {
+        (14433, EffectKind::ImprintUccEffect, 5)
+    };
+    let effect = SkillEffect {
+        effect_id,
+        template: Some((kind, effect_id)),
+        weight: 0,
+        start_level: 1,
+        end_level: 99,
+        friendly: true,
+        non_friendly: true,
+        target_buff_tag_id: 0,
+        target_no_buff_tag_id: 0,
+        source_buff_tag_id: 0,
+        source_no_buff_tag_id: 0,
+        chance: 100,
+        front: true,
+        back: true,
+        target_npc_tag_id: 0,
+        application_method: 1,
+        consume_source_item: false,
+        consume_item_id: 0,
+        consume_item_count: 1,
+        always_hit: false,
+        item_set_id: 0,
+        interaction_success_hit: false,
+    };
+    let skill = SkillRun::new(
+        Arc::new(SkillTemplate {
+            id: skill_id,
+            target_type: 9,
+            target_selection: 2,
+            effects: vec![effect],
+            ..SkillTemplate::default()
+        }),
+        1,
+    );
+    apply_effects(
+        &w.server,
+        &skill,
+        &CastCtx {
+            caster: WorldObject::from(&w.pa),
+            caster_caster: SkillCaster::Item {
+                obj_id: w.pa.obj_id,
+                item_id: source.item_id,
+                item_template_id: source.item_template_id,
+                type1: 0,
+                type2: 0,
+            },
+            target: Target::Obj(WorldObject::from(target_player)),
+            target_caster: SkillCastTarget::Item {
+                obj_id: target_player.obj_id,
+                id: target_id,
+                type1: 0,
+                type2: 0,
+            },
+            skill_object: SkillObject::None,
+        },
+    );
+    skill
+}
+
+#[tokio::test]
+async fn ucc_owned_dispatch_consumes_one_source_after_imprint_or_cleanup() {
+    for cleanup in [false, true] {
+        let mut w = ucc_world();
+        let source_id = give(
+            &w,
+            &w.pa,
+            slot_type::INVENTORY,
+            ucc_source_template(cleanup),
+            2,
+            0,
+        );
+        let target_id = give(&w, &w.pa, slot_type::INVENTORY, ARMOR, 1, 1);
+        {
+            let bag = Inv::of(&w.pa).bag();
+            let mut bag = bag.lock().unwrap();
+            bag.get_item_by_id_mut(source_id).unwrap().set_ucc(0xABCD);
+            bag.get_item_by_id_mut(target_id).unwrap().set_ucc(0x1234);
+        }
+        let skill = cast_ucc(
+            &w,
+            cleanup,
+            SkillItem {
+                item_id: source_id,
+                item_template_id: ucc_source_template(cleanup),
+            },
+            target_id,
+            &w.pa,
+        );
+        assert!(!skill.cancelled());
+        assert_eq!(item(&w, source_id).unwrap().count, 1);
+        assert_eq!(
+            item(&w, target_id).unwrap().ucc_id,
+            if cleanup { 0 } else { 0xABCD }
+        );
+        let ops = w.a.drain_ops();
+        assert!(ops.contains(&sc::SCItemUccDataChangedPacket));
+        assert!(ops.contains(&sc::SCItemTaskSuccessPacket));
+        assert!(w.b.drain().is_empty());
+    }
+}
+
+#[tokio::test]
+async fn ucc_foreign_source_target_or_resolved_player_cancels_without_debit() {
+    for cleanup in [false, true] {
+        for case in [
+            "foreign_source",
+            "foreign_target",
+            "foreign_player",
+            "both_foreign",
+        ] {
+            let mut w = ucc_world();
+            let source_owner = if matches!(case, "foreign_source" | "both_foreign") {
+                &w.pb
+            } else {
+                &w.pa
+            };
+            let target_owner = if matches!(case, "foreign_target" | "both_foreign") {
+                &w.pb
+            } else {
+                &w.pa
+            };
+            let source_id = give(
+                &w,
+                source_owner,
+                slot_type::INVENTORY,
+                ucc_source_template(cleanup),
+                2,
+                0,
+            );
+            let target_id = give(&w, target_owner, slot_type::INVENTORY, ARMOR, 1, 1);
+            Inv::of(source_owner)
+                .bag()
+                .lock()
+                .unwrap()
+                .get_item_by_id_mut(source_id)
+                .unwrap()
+                .set_ucc(0xABCD);
+            Inv::of(target_owner)
+                .bag()
+                .lock()
+                .unwrap()
+                .get_item_by_id_mut(target_id)
+                .unwrap()
+                .set_ucc(0x1234);
+            let source_before = ucc_item_state(&w, source_id);
+            let target_before = ucc_item_state(&w, target_id);
+            let resolved_player = if matches!(case, "foreign_player" | "both_foreign") {
+                &w.pb
+            } else {
+                &w.pa
+            };
+            let skill = cast_ucc(
+                &w,
+                cleanup,
+                SkillItem {
+                    item_id: source_id,
+                    item_template_id: ucc_source_template(cleanup),
+                },
+                target_id,
+                resolved_player,
+            );
+            assert!(skill.cancelled(), "{case}, cleanup={cleanup}");
+            assert_eq!(ucc_item_state(&w, source_id), source_before, "{case}");
+            assert_eq!(ucc_item_state(&w, target_id), target_before, "{case}");
+            assert!(w.a.drain().is_empty(), "{case}");
+            assert!(w.b.drain().is_empty(), "{case}");
+        }
+    }
+}
+
+#[tokio::test]
+async fn ucc_invalid_source_count_template_or_same_item_cancels_without_mutation() {
+    for cleanup in [false, true] {
+        for case in [
+            "empty_source",
+            "forged_template",
+            "same_item",
+            "wrong_owner_metadata",
+        ] {
+            let mut w = ucc_world();
+            let source_id = give(
+                &w,
+                &w.pa,
+                slot_type::INVENTORY,
+                ucc_source_template(cleanup),
+                2,
+                0,
+            );
+            let target_id = give(&w, &w.pa, slot_type::INVENTORY, ARMOR, 1, 1);
+            {
+                let bag = Inv::of(&w.pa).bag();
+                let mut bag = bag.lock().unwrap();
+                let source = bag.get_item_by_id_mut(source_id).unwrap();
+                source.set_ucc(0xABCD);
+                if case == "empty_source" {
+                    source.count = 0;
+                }
+                if case == "wrong_owner_metadata" {
+                    source.owner_id = u64::from(w.pb.character_id);
+                }
+                bag.get_item_by_id_mut(target_id).unwrap().set_ucc(0x1234);
+            }
+            let source_before = ucc_item_state(&w, source_id);
+            let target_before = ucc_item_state(&w, target_id);
+            let skill = cast_ucc(
+                &w,
+                cleanup,
+                SkillItem {
+                    item_id: source_id,
+                    item_template_id: if case == "forged_template" {
+                        POWDER
+                    } else {
+                        ucc_source_template(cleanup)
+                    },
+                },
+                if case == "same_item" {
+                    source_id
+                } else {
+                    target_id
+                },
+                &w.pa,
+            );
+            assert!(skill.cancelled(), "{case}, cleanup={cleanup}");
+            assert_eq!(ucc_item_state(&w, source_id), source_before, "{case}");
+            assert_eq!(ucc_item_state(&w, target_id), target_before, "{case}");
+            assert!(w.a.drain().is_empty(), "{case}");
+            assert!(w.b.drain().is_empty(), "{case}");
+        }
+    }
+}
 
 #[tokio::test]
 async fn ucc_imprint_cleanup_and_stamp() {
