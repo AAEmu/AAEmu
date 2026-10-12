@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils.DB;
+﻿using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -20,13 +20,14 @@ public sealed class ExpeditionRecruitmentService(
     TimeProvider timeProvider = null)
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    public const int PageSize = 5; // shipped recruitment list inserts five rows per page
+    // Client event 476 hard-codes page capacity 15; the SC body always carries that many slots.
+    public const int PageSize = 15;
 
     public IReadOnlyList<ExpeditionRecruitment> GetActive(DateTime now) => repository.GetActive(now);
 
     public ExpeditionRecruitmentPage Search(Character viewer, ExpeditionRecruitmentQuery query, DateTime now)
     {
-        if (!IsCurrentSession(viewer)) return new(0, PageSize, []);
+        if (!IsCurrentSession(viewer)) return new(0, 1, []);
         var applied = query.MineOnly
             ? repository.GetApplicationsForCharacter(viewer.Id, now).Select(x => x.ExpeditionId).ToHashSet()
             : null;
@@ -34,13 +35,16 @@ public sealed class ExpeditionRecruitmentService(
         {
             var expedition = expeditionManager.GetExpedition((FactionsEnum)row.ExpeditionId);
             if (expedition == null || expedition.isDisbanded) return false;
-            if (viewer.Faction.MotherId != expedition.MotherId) return false;
+            // Guilded viewers have Faction.MotherId = race sponsor; resolve alliance the same way as listings.
+            if (expeditionManager.GetCharacterAllianceId(viewer) != expeditionManager.GetAllianceId(expedition))
+                return false;
             if (applied != null && !applied.Contains(row.ExpeditionId)) return false;
             if (query.MinimumLevel > 0 && expedition.Level < (uint)query.MinimumLevel) return false;
             if (query.MaximumLevel > 0 && expedition.Level > (uint)query.MaximumLevel) return false;
             if (!string.IsNullOrWhiteSpace(query.ExpeditionName) &&
                 !expedition.Name.Contains(query.ExpeditionName, StringComparison.OrdinalIgnoreCase)) return false;
-            return query.InterestMask == 0 || (row.InterestMask & query.InterestMask) != 0;
+            // Client sends interest 0xFFFF for "any"; only a specific bit mask filters.
+            return query.InterestMask is 0 or -1 || (row.InterestMask & query.InterestMask) != 0;
         }).ToList();
         rows = query.SortType switch
         {
@@ -50,7 +54,7 @@ public sealed class ExpeditionRecruitmentService(
             _ => rows
         };
         var page = Math.Max(1, (int)query.Page);
-        return new(rows.Count, PageSize, rows.Skip((page - 1) * PageSize).Take(PageSize).ToArray());
+        return new(rows.Count, page, rows.Skip((page - 1) * PageSize).Take(PageSize).ToArray());
     }
 
     public IReadOnlyList<ExpeditionRecruitmentApplication> GetMyApplications(Character character) =>
@@ -145,7 +149,8 @@ public sealed class ExpeditionRecruitmentService(
             using var transaction = connection.BeginTransaction();
             var candidate = repository.GetCandidateForUpdate(character.Id, connection, transaction);
             if (candidate == null || candidate.ExpeditionId != 0 || expedition.isDisbanded ||
-                character.Expedition != null || character.Faction.MotherId != expedition.MotherId)
+                character.Expedition != null ||
+                expeditionManager.GetCharacterAllianceId(character) != expeditionManager.GetAllianceId(expedition))
                 return Rollback(transaction, ExpeditionRecruitmentResult.WrongFaction);
             var recruitment = repository.GetForUpdate(expeditionId, connection, transaction);
             if (recruitment == null || recruitment.ExpiresAt <= now) return Rollback(transaction, ExpeditionRecruitmentResult.NotFound);

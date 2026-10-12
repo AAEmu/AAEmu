@@ -114,6 +114,20 @@ public class Expedition : SystemFaction
 
         SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0), worldManager);
         (chatManager ?? ChatManager.Instance).GetGuildChat(this)?.JoinChannel(character);
+        // Nameplate guild tag is unit-scoped. Create/join already announce via UnitExpeditionChanged;
+        // login used to skip it, so a World bounce left the local actor at expedition 0 (blank tag)
+        // even though MyExpeditionId / the guild window were fine.
+        WorldIntegration.RelayUnitExpeditionChangedToZone?.Invoke(character.ObjId, 0, (int)Id);
+        character.BroadcastPacket(
+            new SCUnitExpeditionChangedPacket(character.ObjId, character.Id, "", character.Name ?? "", 0,
+                (uint)Id, false),
+            true);
+        // unitId=0 sentinel = "this is about you" (same as create/leave) for the local MyExpedition cache.
+        character.SendPacket(new SCUnitExpeditionChangedPacket(0, character.Id, "", character.Name ?? "", 0,
+            (uint)Id, false));
+        // Select-burst SendExpeditionInfo runs before the local unit exists; the client then reports
+        // IsExpedInfoLoaded=false and drops the nameplate tag. Re-push the in-world create/join set.
+        ExpeditionManager.SendExpeditionInfo(character);
         ApplyBuffBonuses(character);
         }
         if (ExpeditionPublicAssignmentServices.TryGet(out var assignmentService))
@@ -121,11 +135,9 @@ public class Expedition : SystemFaction
     }
 
     /// <summary>
-    /// Recomputes one member's prestige-shop buff stat bonuses from <see cref="PurchasedBuffGrades"/> and
-    /// pushes a fresh UnitState so the client's character sheet reflects them.
-    /// TODO: an already-open character-info sheet only picks this up after a relog/reopen, not live -
-    /// every trigger tried for a live refresh had an unwanted side effect (a spurious buff-bar icon, or
-    /// risking wrong data in the actability-management panel). Not a data bug, just not instantaneous.
+    /// Recomputes one member's prestige-shop buff stat bonuses from <see cref="PurchasedBuffGrades"/>,
+    /// applies them server-side, and tells the client which grades sit on that unit so it can recompute
+    /// Max Hp/Mp (and the rest of the sheet) from its own <c>unit_modifiers</c>.
     /// </summary>
     public void ApplyBuffBonuses(Character character)
     {
@@ -144,12 +156,13 @@ public class Expedition : SystemFaction
             }
         }
         character.BuffModifiersCache.ReplaceExpeditionModifiers(gradeIds);
-        character.SendPacket(new SCUnitStatePacket(character));
-        // SCUnitState alone updates the client's cached Max Hp/Mp (the sheet's denominator) but does NOT
-        // redraw the visible HP/MP bar - that only happens on SCUnitPointsPacket, per the same two-packet
-        // pattern Character.ApplyLevelUpBenefits already uses for the exact same "max stat changed" case.
-        // Current Hp/Mp are unchanged here (buffs raise the ceiling, not a free refill), just re-sent so
-        // the bar redraws against the new max.
+        // Client Max Hp/Mp are recomputed locally from SCExpeditionBuffUnit + unit_modifiers.
+        // Guild-wide SCExpeditionBuffs only refreshes the shop UI. Never push a self SCUnitState here -
+        // NotifyInGame builds the local player without one, and a self UnitState was wiping the
+        // nameplate guild tag after login ApplyBuffBonuses.
+        character.SendPacket(new SCExpeditionBuffUnitPacket(character.ObjId, PurchasedBuffGrades));
+        // Current Hp/Mp are unchanged here (buffs raise the ceiling, not a free refill); re-send so the
+        // bar redraws against the new max the BuffUnit packet just installed.
         character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
     }
 

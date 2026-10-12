@@ -1,6 +1,7 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Expeditions.Activities;
 
 namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
@@ -39,15 +40,16 @@ public sealed class SCExpeditionActivityPacketTests
     [Arguments(3, 8)]
     public async Task ManagementHistory_WritesDetailOnlyForNativeDetailKinds(int type, int detailBytes)
     {
+        var usedAt = new DateTime(2026, 9, 13, 0, 0, 0, DateTimeKind.Utc);
         var history = new ExpeditionManagementHistory(
-            "Member", type, 10, new DateTime(2026, 9, 13, 0, 0, 0, DateTimeKind.Utc), 20, 30);
+            "Member", type, 10, usedAt, 20, 30);
         var stream = history.Write(new PacketStream());
         var reader = new PacketStream(stream.GetBytes());
 
         await Assert.That(reader.ReadString()).IsEqualTo("Member");
-        await Assert.That(reader.ReadInt32()).IsEqualTo(type);
+        await Assert.That(reader.ReadByte()).IsEqualTo((byte)type);
         await Assert.That(reader.ReadUInt64()).IsEqualTo(10UL);
-        _ = reader.ReadDateTime();
+        await Assert.That(reader.ReadInt64()).IsEqualTo(Helpers.UnixTime(ServerCalendar.AsUtc(usedAt)));
         await Assert.That(reader.LeftBytes).IsEqualTo(detailBytes);
         if (detailBytes > 0)
         {

@@ -30,7 +30,9 @@ public class QuestActConAcceptItem(QuestComponentTemplate parentComponent) : Que
         if (!Cleanup)
             return;
 
-        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, Count, null);
+        // quest_act_con_accept_items has no count column; RunAct always checks for 1. Leaving
+        // Count at the QuestActTemplate default (0) made ConsumeItem a no-op and left the token in bag.
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, ResolveConsumeAmount(Count), null);
     }
 
     public override void QuestDropped(Quest quest)
@@ -38,6 +40,9 @@ public class QuestActConAcceptItem(QuestComponentTemplate parentComponent) : Que
         base.QuestDropped(quest);
         if (!DestroyWhenDrop)
             return;
-        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, Count, null);
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, ResolveConsumeAmount(Count), null);
     }
+
+    /// <summary>Accept-item rows have no count column; treat unset/non-positive as one token.</summary>
+    public static int ResolveConsumeAmount(int count) => count > 0 ? count : 1;
 }

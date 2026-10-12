@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Collections.Concurrent;
 
@@ -224,14 +224,45 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             command.CommandText =
                 "SELECT expedition_id,expedition_rejoin_until FROM characters WHERE id=@characterId AND deleted=0";
             command.Parameters.AddWithValue("@characterId", character.Id);
-            FactionsEnum expeditionId;
+            uint characterExpeditionId;
             using (var reader = command.ExecuteReader())
             {
                 if (!reader.Read())
                     throw new InvalidOperationException($"Character {character.Id} disappeared during guild login association.");
-                expeditionId = (FactionsEnum)reader.GetUInt32("expedition_id");
+                characterExpeditionId = reader.GetUInt32("expedition_id");
                 character.ExpeditionRejoinUntil = reader.GetInt64("expedition_rejoin_until");
             }
+
+            uint? rosterExpeditionId = null;
+            lock (_expeditionsSync)
+            {
+                foreach (var guild in _expeditions.Values)
+                {
+                    lock (guild.SyncRoot)
+                    {
+                        if (guild.GetMember(character.Id) != null)
+                        {
+                            rosterExpeditionId = (uint)guild.Id;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            var decision = GuildLoginAssociationRules.Resolve(characterExpeditionId, rosterExpeditionId);
+            if (decision.HealCharacterRow)
+            {
+                using var heal = connection.CreateCommand();
+                heal.CommandText =
+                    "UPDATE characters SET expedition_id=@expeditionId WHERE id=@characterId AND deleted=0 AND expedition_id=0";
+                heal.Parameters.AddWithValue("@expeditionId", decision.ExpeditionId);
+                heal.Parameters.AddWithValue("@characterId", character.Id);
+                if (heal.ExecuteNonQuery() != 1)
+                    throw new InvalidOperationException(
+                        $"Failed to heal characters.expedition_id for {character.Id} from roster guild {decision.ExpeditionId}.");
+            }
+
+            var expeditionId = (FactionsEnum)decision.ExpeditionId;
             lock (_expeditionsSync)
                 character.Expedition = _expeditions.GetValueOrDefault(expeditionId);
             if (character.Expedition is { } expedition)
@@ -303,7 +334,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         chatManager.GetGuildChat(expedition)?.LeaveChannel(character);
         character.Bonuses[Buffs.ExpeditionBonusesIndex] = [];
         character.BuffModifiersCache.ReplaceExpeditionModifiers([]);
-        character.SendPacket(new SCUnitStatePacket(character));
+        character.SendPacket(new SCExpeditionBuffUnitPacket(character.ObjId, new Dictionary<uint, byte>()));
         character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
     }
 
@@ -352,6 +383,18 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
     {
         var motherId = FactionManagerForAlliance.GetFaction(expedition.MotherId)?.MotherId ?? FactionsEnum.Invalid;
         return motherId == FactionsEnum.Invalid ? expedition.MotherId : motherId;
+    }
+
+    /// <summary>
+    /// Alliance root used for recruit-board / join faction gates. A guilded character's
+    /// <c>Faction.MotherId</c> is the race sponsor, not the alliance; unguilded race
+    /// factions already expose the alliance on MotherId.
+    /// </summary>
+    public FactionsEnum GetCharacterAllianceId(Character character)
+    {
+        if (character?.Expedition != null)
+            return GetAllianceId(character.Expedition);
+        return character?.Faction?.MotherId ?? FactionsEnum.Invalid;
     }
 
     private Expedition Create(string name, Character owner, FactionsEnum sponsorId)
@@ -1335,9 +1378,14 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         {
             Logger.Warn("ExpeditionBuffGrade purchase rejected: buffId={0} grade={1} reason={2} (character {3}, expedition {4})",
                 buffId, targetGrade, decision.Reason, character.Name, expedition.Name);
-            character.SendErrorMessage(decision.Reason == GuildBuffPurchaseRejection.InsufficientContribution
-                ? ErrorMessageType.NotEnoughRequiredItem
-                : ErrorMessageType.Invalid);
+            character.SendErrorMessage(decision.Reason switch
+            {
+                GuildBuffPurchaseRejection.InsufficientContribution => ErrorMessageType.NotEnoughContributionPoint,
+                GuildBuffPurchaseRejection.ResidenceRequired => ErrorMessageType.ExpeditionHouseNotExist,
+                GuildBuffPurchaseRejection.ExpeditionLevelTooLow => ErrorMessageType.NotEnoughExpeditionLevel,
+                GuildBuffPurchaseRejection.OutOfOrder => ErrorMessageType.Invalid,
+                _ => ErrorMessageType.Invalid
+            });
             return false;
         }
 
@@ -1417,7 +1465,13 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
                 committedPublication.PublishPackets();
             }
 
+            // Shop path already pushes SCAddContributionPoint + descriptor; without those the
+            // prestige total stays frozen until relog even though the debit committed.
+            if (contributionCost > 0)
+                character.SendPacket(new SCAddContributionPointPacket(
+                    unchecked((uint)-(int)contributionCost), member.ContributionPoint));
             expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0), worldManager);
+            expedition.SendDescriptor(worldManager);
             expedition.SendPacket(new SCExpeditionBuffsPacket((uint)expedition.Id, expedition.PurchasedBuffGrades), worldManager);
             expedition.SendPacket(new SCExpeditionBuffChangedPacket((int)expedition.Id, (int)buffId, currentGrade, targetGrade), worldManager);
             expedition.ApplyBuffBonusesToAllOnline(worldManager);
@@ -1432,11 +1486,19 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         return true;
     }
 
-    /// <summary>Sends the guild's current full prestige-shop buff state to one client - handles CSExpeditionBuffPacket's "view" request and should also fire on Expedition join/login, mirroring SendExpeditionInfo.</summary>
-    public void SendExpeditionBuffs(Character character)
+    /// <summary>
+    /// Sends one guild's prestige-shop buff grades to a viewer. <paramref name="expeditionId"/> is the
+    /// listed/target guild (from CSExpeditionBuffPacket.type); 0 means the viewer's own expedition.
+    /// </summary>
+    public void SendExpeditionBuffs(Character character, uint expeditionId = 0)
     {
-        var expedition = character.Expedition;
-        if (expedition == null)
+        if (character == null)
+            return;
+
+        var expedition = expeditionId != 0
+            ? GetExpedition((FactionsEnum)expeditionId)
+            : character.Expedition;
+        if (expedition == null || expedition.isDisbanded)
             return;
 
         lock (expedition.SyncRoot)
@@ -1634,6 +1696,93 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             SendExpeditionInfo(joined);
             expedition.OnCharacterLogin(joined, worldManager, chatManager);
         }
+        }
+    }
+
+public bool TryCreateSoloExpedition(Character owner, string name, out string error)
+    {
+        error = null;
+        if (!IsCurrentSession(owner))
+        {
+            error = "Character session is not current.";
+            return false;
+        }
+        if (owner.Expedition != null)
+        {
+            error = "Already in a guild.";
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 32)
+        {
+            error = "Invalid guild name length.";
+            return false;
+        }
+        if (!_nameRegex.IsMatch(name))
+        {
+            error = "Guild name has invalid characters.";
+            return false;
+        }
+
+        var sponsorId = owner.Faction.MotherId;
+        var sponsor = FactionManagerForAlliance.GetFaction(sponsorId);
+        if (sponsor is not { ShowCreateExpedition: true })
+        {
+            error = "Faction cannot found a guild.";
+            return false;
+        }
+
+        using var persistenceOperation = PersistenceOperationScope.Enter();
+        using var membershipLocks = AcquireMembershipLocks([owner.Id]);
+        lock (_expeditionsSync)
+        {
+            if (_expeditions.Values.Any(expedition =>
+                    string.Equals(name, expedition.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                error = "A guild with that name already exists.";
+                return false;
+            }
+            if (!IsCurrentSession(owner) || owner.Expedition != null)
+            {
+                error = "Character is no longer available to found a guild.";
+                return false;
+            }
+
+            // Disband leaves a rejoin cooldown that would fail PersistNewExpedition's claim.
+            owner.ExpeditionRejoinUntil = 0;
+
+            Expedition expedition;
+            lock (owner.WalletSyncRoot)
+            {
+                expedition = Create(name, owner, sponsorId);
+                _expeditions.Add(expedition.Id, expedition);
+                owner.Expedition = expedition;
+                try
+                {
+                    PersistNewExpedition(expedition, [owner], owner, creationCost: 0);
+                }
+                catch (Exception ex)
+                {
+                    if (ReferenceEquals(owner.Expedition, expedition))
+                        owner.Expedition = null;
+                    if (_expeditions.GetValueOrDefault(expedition.Id) == expedition)
+                        _expeditions.Remove(expedition.Id);
+                    error = ex.Message;
+                    return false;
+                }
+            }
+
+            var expeditionsSnapshot = _expeditions.Values.ToArray();
+            foreach (var online in worldManager.GetAllCharacters())
+                SendExpeditionList(online, expeditionsSnapshot);
+
+            WorldIntegration.RelayUnitExpeditionChangedToZone?.Invoke(owner.ObjId, 0, (int)expedition.Id);
+            owner.BroadcastPacket(
+                new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false),
+                true);
+            owner.SendPacket(new SCUnitExpeditionChangedPacket(0, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false));
+            SendExpeditionInfo(owner);
+            expedition.OnCharacterLogin(owner, worldManager, chatManager);
+            return true;
         }
     }
 
