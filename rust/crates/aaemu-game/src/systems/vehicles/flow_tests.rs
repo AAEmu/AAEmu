@@ -41,6 +41,9 @@ const SLAVE_ITEM: u32 = 5001;
 const PA: u32 = 0x00F0_0001;
 const PB: u32 = 0x00F0_0002;
 
+#[path = "deck_standing_tests.rs"]
+mod deck_standing_tests;
+
 fn exp_table() -> ExperienceTable {
     ExperienceTable::from_templates(
         (1..=3u8)

@@ -3,7 +3,8 @@
 //! `world::session::move_unit`.
 
 use crate::models::movement::{
-    get_slave_rotation_in_degrees, MoveType, MoveTypeFlags, ShipRequestMove, UnitMove, VehicleMove,
+    get_slave_rotation_in_degrees, MoveType, MoveTypeActorFlags, MoveTypeFlags, ShipRequestMove,
+    UnitMove, VehicleMove,
 };
 use crate::packets::world::SCOneUnitMovementPacket;
 use crate::server::GameServer;
@@ -172,9 +173,6 @@ pub fn player_riding(server: &GameServer, character: &PlayerRef, player: &Player
     true
 }
 
-/// The standing-on-object part of `UnitMoveType` (`MoveTypeFlags.StandingOnObject` of the move
-/// header + `GcId`): parents the moving unit to the object it stands on (ship decks), or
-/// detaches it.
 /// `CSMoveUnitPacket.IsBoardedOnTransfer(unit)`: a character whose sticky parent is a transfer
 /// that lists it in `AttachedCharacters`.
 pub fn is_boarded_on_transfer(world: &WorldInstance, unit: &WorldObject) -> bool {
@@ -187,8 +185,13 @@ pub fn is_boarded_on_transfer(world: &WorldInstance, unit: &WorldObject) -> bool
         .is_some_and(|t| t.data().attached_characters.contains(&unit.obj_id()))
 }
 
+/// Parents the moving unit to its supporting object, or detaches it. The actor's
+/// standing flag carries the GC block independently of the movement header: a
+/// controller update can retain that block while clearing the header flag.
 pub fn standing_on(world: &WorldInstance, target: &WorldObject, mt: &MoveType, u: &UnitMove) {
-    let standing = mt.flags.contains(MoveTypeFlags::STANDING_ON_OBJECT);
+    let standing = mt.flags.contains(MoveTypeFlags::STANDING_ON_OBJECT)
+        || u.actor_flags
+            .contains(MoveTypeActorFlags::STANDING_ON_OBJECT);
     let current = target.transform().parent_obj_id;
     // GcId 1 means the current parent, not a request to detach from it.
     let parent_id = if u.gc_id == 1 { current } else { u.gc_id };

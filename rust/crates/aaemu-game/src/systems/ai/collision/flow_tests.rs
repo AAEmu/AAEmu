@@ -168,3 +168,170 @@ async fn zone_fall_gate_in_the_movement_path() {
     );
     let _ = Files::Map(Arc::new(HashMap::new()));
 }
+
+#[tokio::test]
+async fn deck_movement_syncs_composed_world_proxy_and_verifier_coordinates() {
+    use crate::models::movement::MoveTypeActorFlags;
+    use crate::models::slave::Slave;
+    use crate::world::Entity;
+    use std::sync::atomic::Ordering;
+
+    let s = server(300.0);
+    s.config.update(|c| c.physics.movement_verify_enable = true);
+    let client = TestClient::new(&s, 1, 1);
+    let player = spawn_player(
+        &s,
+        &client,
+        test_character(1, "Deck", 1003.0, 1002.0),
+        0x100,
+    );
+    let world = s.world.world(0).unwrap();
+    let obj = WorldObject::from(&player);
+    let mut hull = Slave::new(1, 1);
+    hull.unit
+        .transform
+        .set_position(1000.0, 1000.0, 305.0, 0.0, 0.0, std::f32::consts::FRAC_PI_2);
+    let slave = Entity::new(0x300, hull);
+    world.spawn(&slave, &s.view_ctx());
+    world.attach_child(&WorldObject::from(&slave), &obj);
+    player.data().unit.transform.set_xyz(2.0, -3.0, -3.0);
+    let movement = UnitMove {
+        x: 2.0,
+        y: -3.0,
+        z: -3.0,
+        actor_flags: MoveTypeActorFlags::STANDING_ON_OBJECT,
+        gc_flags: 1,
+        gc_id: slave.obj_id,
+        x2: 1003.0,
+        y2: 1002.0,
+        z2: 302.0,
+        ..Default::default()
+    };
+    let pw = super::phys_world(&s, 0).unwrap();
+    // Wrong deck-local samples below z=-1 would trigger the verifier's reason12.
+    for i in 0..201 {
+        assert_eq!(
+            super::movement::on_unit_moved(&s, &world, &obj, i * 20, &movement),
+            0
+        );
+    }
+    let pos = {
+        let state = pw.lock();
+        let proxy = state.living[&obj.obj_id()];
+        state.world.ent(proxy).pos
+    };
+    assert!((pos.x - 1003.0).abs() < 1e-4 && (pos.y - 1002.0).abs() < 1e-4);
+    assert_eq!(pos.z, 302.0);
+    assert_eq!(
+        s.systems
+            .ai
+            .collision
+            .move_verify
+            .reports
+            .load(Ordering::Relaxed),
+        0
+    );
+    assert!(s.systems.ai.collision.fall.state(obj.obj_id()).is_none());
+    assert_eq!(player.data().unit.transform.parent_obj_id, slave.obj_id);
+}
+
+#[tokio::test]
+async fn supported_actor_and_actual_parent_reset_fall_but_onfoot_falls_remain() {
+    use crate::models::movement::MoveTypeActorFlags;
+    use crate::models::slave::Slave;
+    use crate::world::Entity;
+
+    let s = server(300.0);
+    let client = TestClient::new(&s, 1, 1);
+    let player = spawn_player(
+        &s,
+        &client,
+        test_character(1, "Faller", 500.0, 500.0),
+        0x100,
+    );
+    let world = s.world.world(0).unwrap();
+    let obj = WorldObject::from(&player);
+    let mut movement = UnitMove {
+        x: 500.0,
+        y: 500.0,
+        z: 350.0,
+        ..Default::default()
+    };
+    super::movement::on_unit_moved(&s, &world, &obj, 0, &movement);
+    assert!(
+        s.systems
+            .ai
+            .collision
+            .fall
+            .state(obj.obj_id())
+            .unwrap()
+            .airborne
+    );
+    // A support flag can arrive before the supporting object is resolved.
+    movement.actor_flags = MoveTypeActorFlags::STANDING_ON_OBJECT;
+    super::movement::on_unit_moved(&s, &world, &obj, 20, &movement);
+    assert!(s.systems.ai.collision.fall.state(obj.obj_id()).is_none());
+    // An actual attachment exempts tracking even if this frame omits the flag.
+    let mut hull = Slave::new(1, 1);
+    hull.unit.transform.set_xyz(500.0, 500.0, 300.0);
+    let slave = Entity::new(0x300, hull);
+    world.spawn(&slave, &s.view_ctx());
+    world.attach_child(&WorldObject::from(&slave), &obj);
+    player.data().unit.transform.set_xyz(0.0, 0.0, 50.0);
+    movement.actor_flags = MoveTypeActorFlags::default();
+    super::movement::on_unit_moved(&s, &world, &obj, 40, &movement);
+    assert!(s.systems.ai.collision.fall.state(obj.obj_id()).is_none());
+    world.detach_child(&obj);
+    // Ordinary on-foot motion still starts/caps a genuine 50m fall.
+    super::movement::on_unit_moved(&s, &world, &obj, 60, &movement);
+    assert!(
+        s.systems
+            .ai
+            .collision
+            .fall
+            .state(obj.obj_id())
+            .unwrap()
+            .airborne
+    );
+    movement.z = 300.0;
+    movement.fall_vel = 30360;
+    let velocity = super::movement::on_unit_moved(&s, &world, &obj, 80, &movement);
+    assert_eq!(velocity, (2000f32.sqrt() * FALL_VEL_UNITS_PER_MPS) as u16);
+}
+
+#[tokio::test]
+async fn vanished_deck_uses_world_backup_without_moving_character_transform() {
+    use crate::models::movement::MoveTypeActorFlags;
+    let s = server(300.0);
+    let client = TestClient::new(&s, 1, 1);
+    let player = spawn_player(
+        &s,
+        &client,
+        test_character(1, "LateDeck", 500.0, 500.0),
+        0x100,
+    );
+    player.data().unit.transform.set_xyz(500.0, 500.0, 302.0);
+    let world = s.world.world(0).unwrap();
+    let obj = WorldObject::from(&player);
+    let before = obj.transform();
+    let pw = super::phys_world(&s, 0).unwrap();
+    let movement = UnitMove {
+        x: 1.0,
+        y: 2.0,
+        z: -3.0,
+        x2: 500.0,
+        y2: 500.0,
+        z2: 302.0,
+        actor_flags: MoveTypeActorFlags::STANDING_ON_OBJECT,
+        gc_flags: 1,
+        gc_id: 0x999,
+        ..Default::default()
+    };
+    super::movement::on_unit_moved(&s, &world, &obj, 0, &movement);
+    let pos = {
+        let state = pw.lock();
+        state.world.ent(state.living[&obj.obj_id()]).pos
+    };
+    assert_eq!(pos, Vec3::new(500.0, 500.0, 302.0));
+    assert_eq!(obj.transform(), before);
+}

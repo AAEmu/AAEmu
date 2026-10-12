@@ -25,22 +25,47 @@ pub fn on_unit_moved(
     };
     let sys = &server.systems.ai.collision;
     let obj_id = unit.obj_id();
-    super::living::sync_one(server, world.id, unit, [u.x, u.y, u.z]);
+    // A gcFlags=1 deck update carries primary coordinates in the supporting
+    // object's frame. Session already applied that local transform: compose it
+    // here instead of placing the physics proxy near the world origin.
+    let parented = unit.transform().parent_obj_id != 0;
+    let (x, y, z) = if parented {
+        let pos = world.world_pos_rot(unit);
+        (pos.x, pos.y, pos.z)
+    } else if u
+        .actor_flags
+        .contains(MoveTypeActorFlags::STANDING_ON_OBJECT)
+        && u.gc_flags & 1 != 0
+    {
+        // A late frame after the supporting object vanished still has a world
+        // backup; its primary deck offset is no longer a world position.
+        (u.x2, u.y2, u.z2)
+    } else {
+        (u.x, u.y, u.z)
+    };
+    let on_object = parented
+        || unit.core().sticky_parent() != 0
+        || u.actor_flags
+            .contains(MoveTypeActorFlags::STANDING_ON_OBJECT)
+        || u.actor_flags
+            .contains(MoveTypeActorFlags::HANGING_FROM_OBJECT);
+    super::living::sync_one(server, world.id, unit, [x, y, z]);
     let now = crate::world::now_ms();
     if cfg.movement_verify_enable {
-        let terrain_z = pw.terrain.as_ref().map_or(0.0, |t| {
-            super::terrain::terrain_elevation(t.as_ref(), u.x, u.y)
-        });
+        let terrain_z = pw
+            .terrain
+            .as_ref()
+            .map_or(0.0, |t| super::terrain::terrain_elevation(t.as_ref(), x, y));
         sys.move_verify.verify(
             obj_id,
             MoveSample {
-                x: u.x,
-                y: u.y,
-                z: u.z,
+                x,
+                y,
+                z,
                 client_ms: i64::from(time_ms),
                 server_ms: now,
                 terrain_z,
-                exempt: unit.core().sticky_parent() != 0,
+                exempt: on_object,
             },
         );
     }
@@ -49,20 +74,17 @@ pub fn on_unit_moved(
     if !(unit.as_player().is_some() || unit.as_npc().is_some() || unit.as_mate().is_some()) {
         return u.fall_vel;
     }
-    let on_object = unit.core().sticky_parent() != 0
-        || u.actor_flags
-            .contains(MoveTypeActorFlags::HANGING_FROM_OBJECT);
-    if on_object || super::is_water(server, world.id, u.x, u.y, u.z) {
+    if on_object || super::is_water(server, world.id, x, y, z) {
         sys.fall.reset(obj_id);
         // the tracker (path a) does not run there; path b forwards the client value
         return u.fall_vel;
     }
-    let start_z = sys.fall.start_z(obj_id).unwrap_or(u.z);
-    let ground = super::ground_height(server, world.id, u.x, u.y, u.z);
-    sys.fall.sample(obj_id, u.z, ground, now);
+    let start_z = sys.fall.start_z(obj_id).unwrap_or(z);
+    let ground = super::ground_height(server, world.id, x, y, z);
+    sys.fall.sample(obj_id, z, ground, now);
     if u.fall_vel == 0 || !cfg.fall_damage_zone_cap {
         return u.fall_vel;
     }
-    let land_z = ground.unwrap_or(u.z).min(u.z);
-    zone_fall_vel(u.fall_vel, start_z.max(u.z), land_z).unwrap_or(0)
+    let land_z = ground.unwrap_or(z).min(z);
+    zone_fall_vel(u.fall_vel, start_z.max(z), land_z).unwrap_or(0)
 }
