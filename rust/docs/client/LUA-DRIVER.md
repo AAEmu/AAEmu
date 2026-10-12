@@ -343,7 +343,7 @@ initialization, tool discovery, argument validation and image content. Stdout co
 messages. The launcher inherits only the two ticket handles so its output pipes close promptly
 while the client stays alive. Tools are `client_list`, `client_attach`, `client_status`,
 `client_launch`, `client_lua`, `client_screenshot`, `client_window`, `client_pak` and `client_stop`.
-Vehicle and gameplay tests also have `client_input`, `client_action`, `client_inventory`,
+Vehicle and gameplay tests also have `client_input`, `client_action`, `client_inventory`, `client_mode_actions`,
 `client_use_item`, `client_chat`, `client_vehicle`, `client_entities` and `client_perf`.
 Launch defaults to silent audio and fast hidden rendering with normal-priority CPU calibration and 64 KB pak
 read-ahead; pass `fast_start: false`, `smooth_start: false`, `fast_pak: false` or `hidden: false` to compare
@@ -371,7 +371,12 @@ bounded Ctrl+1 chord through the normal client input listeners. Modifiers preced
 key release precedes modifier release. Overlapping chords retain shared modifiers until the
 last chord ends, and `release` clears all driver-held keys. A failed primary press releases
 only modifiers newly pressed for that request. Existing physical modifier flags are included
-in events without writing the client's physical modifier state.
+in events. Each synchronous dispatch temporarily supplies the event's modifier mask to the
+native getter so stock UI listeners see the chord, then restores the exact saved physical
+state, including after a failed dispatch or C++ listener exception. This shadow lasts only
+for `PostInputEvent`; between events, including during a held chord, native modifier getters
+report physical state. Unsupported modifier getter/setter slots reject modified chords before
+posting any events; plain inputs retain their existing compatibility path.
 An accepted chord confirms input submission. Confirm a skill cast separately with
 server packets and resource, cooldown or buff changes; an empty hotkey query alone
 does not establish the binding's native signature or prove the action is unbound.
@@ -382,8 +387,11 @@ at `0x335034A4` onward, Ctrl ID 28 at `0x3350381A`, Shift ID 41 at `0x335039B9`,
 Alt ID 55 at `0x33503B9E`. Their native modifier masks are `0x11`, `0x22`, and `0x44`.
 The keyboard event builder `0x3350416C` supplies modifier flags to the 32-byte event at
 offset 20; `0x3350439C` writes its value at offset 24. The driver reads physical modifiers
-through guarded slot 22 (`0x33501E65`) and composes each synthetic event's mask. Native
-tests cover event bytes, modifier overlap, release ordering, deadlines and failed-post cleanup.
+through guarded slot 22 (`0x33501E65`) and composes each synthetic event's mask. The exact
+vtable at `0x3350C388` identifies `SetModifiers` as slot 24 (`0x33501E6D`); the stock keyboard
+path calls it at `0x335041E8` before dispatch. Native tests also check the global getter inside
+dispatch and exact restoration afterward, modifier overlap, release ordering, deadlines,
+unsupported modifier slots and failed-post cleanup.
 Input submission does not prove that a skill cast succeeded: verify the client's binding,
 server cast, mana and buff results. The live pet Run! shortcut remains unverified.
 
@@ -395,6 +403,11 @@ scroll requests dismissal. `client_vehicle` reports driver/seat state, speed, tu
 gear/brake telemetry; `action: "discard"` requests dismount, whose completion is asynchronous.
 `client_chat` sends normal Say messages, including GM commands subject to server permissions.
 `client_action` executes a validated UI hotkey action. Continuous movement uses `client_input`.
+`client_mode_actions` reads the stock mode action bar, including fishing rod actions, native
+tooltips, availability, cooldowns, active native hotkeys and staged option binding rows.
+Empty staged rows do not mean the native action has no active hotkey. It reads at most ten slots and
+does not cast or change shortcuts. Check these bindings before submitting a fishing response
+through `client_input`; verify the resulting cast and fish reaction on the server.
 
 `client_entities` returns bounded nearby entity transforms and terrain heights in **client-local
 coordinates**. The seamless map origin can change; these values must not be passed directly to

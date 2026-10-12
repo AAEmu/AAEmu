@@ -1,12 +1,19 @@
 #define AADRIVER_INPUT_TEST
+namespace input {
+int physical=0;
+bool modifier_get_supported=true,modifier_set_supported=true;
+}
 #include "input.cpp"
 #include <assert.h>
 #include <stddef.h>
 static std::vector<input::Event> events;
-static int attempts=0,fail_at=0;
+static int attempts=0,fail_at=0,throw_at=0;
 namespace input {
-int physical=0;
 bool record(const Event& event) {
+    // Model a stock synchronous listener querying the native global getter.
+    if(modifier_get_supported && modifier_set_supported)
+        assert(physical_modifiers((void*)1)==event.modifiers);
+    if(attempts+1==throw_at) { ++attempts;throw 1; }
     if(++attempts==fail_at) return false;
     events.push_back(event);return true;
 }
@@ -46,15 +53,18 @@ int main() {
     events.clear();
     input::physical=0x200; // Existing physical CapsLock is retained in every event.
     assert(input::control_at(env,"ctrl+1 100",1000)[0]=='0');
+    assert(input::physical==0x200); // Only dispatch sees the synthetic modifier state.
     event(0,28,true,0x211);event(1,1,true,0x211);
     assert(!strcmp(events[0].name,"lctrl") && !strcmp(events[1].name,"1"));
     assert(input::control_at(env,"shift+ctrl+2 200",1000)[0]=='0');
+    assert(input::physical==0x200);
     event(2,41,true,0x233);event(3,2,true,0x233);
     assert(input::control_at(env,"alt+1 10",1000)[0]=='2'); // Primary1 already held.
     input::tick_at(env,1099);assert(events.size()==4);
     input::tick_at(env,1100);event(4,1,false,0x233);assert(events.size()==5);
     // Shared ctrl must stay down after the first chord reaches its deadline.
     input::tick_at(env,1200);
+    assert(input::physical==0x200);
     event(5,2,false,0x233);event(6,41,false,0x211);event(7,28,false,0x200);
     assert(input::held.empty());
 
@@ -68,6 +78,7 @@ int main() {
     // An unavailable primary post rolls back only newly posted modifiers.
     events.clear();fail_at=attempts+2;
     assert(input::control_at(env,"ctrl+3 10",3000)[0]=='2');
+    assert(input::physical==0);
     assert(input::held.empty() && events.size()==2);
     event(0,28,true,0x11);event(1,28,false,0);fail_at=0;
     // Failure in a second modifier must leave an older chord's ctrl hold intact.
@@ -79,6 +90,33 @@ int main() {
     event(2,41,true,0x33);event(3,41,false,0x11);
     fail_at=0;input::tick_at(env,3200);
     event(4,1,false,0x11);event(5,28,false,0);assert(input::held.empty());
+    // A C++ listener exception restores all saved physical flags before rollback.
+    events.clear();input::physical=0x244;throw_at=attempts+2;
+    assert(input::control_at(env,"ctrl+3 10",3300)[0]=='2');
+    assert(input::physical==0x244 && input::held.empty() && events.size()==2);
+    event(0,28,true,0x255);event(1,28,false,0x244);throw_at=0;
+    // Physical modifiers can change between posts; release restores the new snapshot.
+    events.clear();input::physical=0x200;
+    assert(input::control_at(env,"ctrl+1 10",3400)[0]=='0');
+    input::physical=0x444;
+    input::tick_at(env,3410);
+    event(2,1,false,0x455);event(3,28,false,0x444);
+    assert(input::physical==0x444 && input::held.empty());
+    // Unsupported Get/Set slots reject an entire modified chord before any mutation.
+    // Plain input keeps the existing compatibility path.
+    for(int unsupported=0;unsupported<2;++unsupported) {
+        events.clear();input::physical=0x200;
+        input::modifier_get_supported=unsupported!=0;
+        input::modifier_set_supported=unsupported==0;
+        int saved_attempts=attempts;
+        assert(input::control_at(env,"ctrl+1 10",3500)[0]=='2');
+        assert(events.empty() && attempts==saved_attempts && input::physical==0x200);
+        assert(input::control_at(env,"w 10",3500)[0]=='0');
+        input::tick_at(env,3510);
+        assert(events.size()==2 && input::held.empty() && input::physical==0x200);
+    }
+    input::modifier_get_supported=input::modifier_set_supported=true;
+    input::physical=0;
     // Number row IDs, including0 ->10, and deadline cleanup without a pipe call.
     for(int i=0;i<10;++i) {
         events.clear();char command[16];sprintf_s(command,sizeof(command),"%d 1",i);
@@ -86,5 +124,20 @@ int main() {
         input::tick_at(env,4001);assert(events.size()==2 && input::held.empty());
         event(0,i?i:10,true,0);event(1,i?i:10,false,0);
     }
-    puts("input event bytes, modifier chords, shared holds, bounds, rollback and deadline release passed");
+    // Native mode-bar hotkeys use letter keys as well as the number row.
+    // Each exact R..P ID supports a chord, bounded deadline and scoped global restoration.
+    const char* letters="rtyuiop";
+    input::physical=0x200;
+    for(int i=0;i<7;++i) {
+        events.clear();char command[16];sprintf_s(command,sizeof(command),"ctrl+%c 2",letters[i]);
+        assert(input::control_at(env,command,4100)[0]=='0');
+        assert(events.size()==2 && input::physical==0x200);
+        event(0,28,true,0x211);event(1,18+i,true,0x211);
+        assert(events[1].name[0]==letters[i] && events[1].name[1]==0);
+        input::tick_at(env,4101);assert(events.size()==2);
+        input::tick_at(env,4102);
+        assert(events.size()==4 && input::held.empty() && input::physical==0x200);
+        event(2,18+i,false,0x211);event(3,28,false,0x200);
+    }
+    puts("input event bytes, synchronous modifier shadow/restoration, shared holds, bounds, rollback and deadline release passed");
 }

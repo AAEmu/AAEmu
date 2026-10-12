@@ -18,19 +18,20 @@ if errorlevel 1 ( echo [!] driver build failed & exit /b 1 )
 cl /nologo /O2 /MT /EHsc /W4 "%~dp0startup-test.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\startup-test.exe" /link /NOLOGO kernel32.lib
 if errorlevel 1 ( echo [!] startup tests build failed & exit /b 1 )
 "%AADRIVER_OUT%\startup-test.exe"
-if errorlevel 1 ( echo [!] startup tests failed & exit /b 1 )
+rem Windows abort/exception exit codes can be negative; every nonzero fixture result fails.
+if not "%errorlevel%"=="0" ( echo [!] startup tests failed & exit /b 1 )
 cl /nologo /O2 /MT /EHsc /W4 "%~dp0input-test.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\input-test.exe" /link /NOLOGO kernel32.lib
 if errorlevel 1 ( echo [!] input tests build failed & exit /b 1 )
 "%AADRIVER_OUT%\input-test.exe"
-if errorlevel 1 ( echo [!] input tests failed & exit /b 1 )
+if not "%errorlevel%"=="0" ( echo [!] input tests failed & exit /b 1 )
 cl /nologo /O2 /MT /EHsc /W4 "%~dp0audio-test.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\audio-test.exe" /link /NOLOGO kernel32.lib ole32.lib
 if errorlevel 1 ( echo [!] audio tests build failed & exit /b 1 )
 "%AADRIVER_OUT%\audio-test.exe"
-if errorlevel 1 ( echo [!] audio tests failed & exit /b 1 )
+if not "%errorlevel%"=="0" ( echo [!] audio tests failed & exit /b 1 )
 cl /nologo /O2 /MT /EHsc /W4 "%~dp0virtualpak-test.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\virtualpak-test.exe" /link /NOLOGO kernel32.lib shell32.lib
 if errorlevel 1 ( echo [!] virtual pak tests build failed & exit /b 1 )
 "%AADRIVER_OUT%\virtualpak-test.exe"
-if errorlevel 1 ( echo [!] virtual pak tests failed & exit /b 1 )
+if not "%errorlevel%"=="0" ( echo [!] virtual pak tests failed & exit /b 1 )
 cl /nologo /O2 /MT /W3 "%~dp0aainject.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\aainject.exe" /link /NOLOGO kernel32.lib
 if errorlevel 1 ( echo [!] injector build failed & exit /b 1 )
 echo [ok] %AADRIVER_OUT%\aadriver.dll

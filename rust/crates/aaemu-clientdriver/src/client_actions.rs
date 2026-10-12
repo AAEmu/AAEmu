@@ -7,9 +7,10 @@ use serde_json::{json, Value};
 pub fn tools(pid: Value) -> Vec<Value> {
     vec![
         tool("client_perf", "Record DXGI frame intervals (profile resets and enables, off disables, status reads). Reports FPS, mean, p95, p99 and maximum for the latest 2048 rendered frames. Screenshot readback can affect timings; capture after profiling.",json!({"pid":pid,"action":{"type":"string","enum":["profile","status","off"]}}), &["action"], false),
-        tool("client_input", "Press a keyboard key or number-row chord through the client's CryInput on its main thread. Optional ctrl/shift/alt modifiers are pressed before the key and released after it. Works with hidden rendering, without desktop keystrokes. Automatic release after 1..10000 ms survives MCP disconnect. release clears all test keys.",json!({"pid":pid,"key":{"type":"string","enum":["w","a","s","d","q","e","space","f","g","1","2","3","4","5","6","7","8","9","0","release"]},"modifiers":{"type":"array","maxItems":3,"uniqueItems":true,"items":{"type":"string","enum":["ctrl","shift","alt"]}},"duration_ms":{"type":"integer","minimum":1,"maximum":10000}}), &["key"], false),
+        tool("client_input", "Press a keyboard key or number-row chord through the client's CryInput on its main thread. Optional ctrl/shift/alt modifiers are pressed before the key and released after it. Works with hidden rendering, without desktop keystrokes. Automatic release after 1..10000 ms survives MCP disconnect. release clears all test keys.",json!({"pid":pid,"key":{"type":"string","enum":["w","a","s","d","q","e","r","t","y","u","i","o","p","space","f","g","1","2","3","4","5","6","7","8","9","0","release"]},"modifiers":{"type":"array","maxItems":3,"uniqueItems":true,"items":{"type":"string","enum":["ctrl","shift","alt"]}},"duration_ms":{"type":"integer","minimum":1,"maximum":10000}}), &["key"], false),
         tool("client_action", "Execute a valid 1.2 UI hotkey action, such as do_interaction_1, cycle_hostile_forward or toggle_bag. Continuous movement uses client_input.",json!({"pid":pid,"action":{"type":"string","minLength":1,"maxLength":96}}), &["action"], false),
         tool("client_inventory", "Read inventory slots, item templates, names, counts and use skills from the live client. bag_id defaults to 1 (inventory).",json!({"pid":pid,"bag_id":{"type":"integer","minimum":1,"maximum":2}}), &[], true),
+        tool("client_mode_actions", "Read the active 1.2 mode action bar, including fishing rod actions, native tooltips, availability, cooldowns, active hotkeys and staged option binding rows. Requires a character in the world; does not change bindings or cast skills.",json!({"pid":pid}), &[], true),
         tool("client_use_item", "Use an owned inventory item through its normal client skill cast. Returns whether the client accepted the cast, not a guarantee the server completed it; verify entities and vehicle status after casting/portal time.",json!({"pid":pid,"item_template_id":{"type":"integer","minimum":1,"maximum":u32::MAX}}), &["item_template_id"], false),
         tool("client_chat", "Send a message or GM command through the normal Say channel. Server permissions still apply. Requires a character in the world.",json!({"pid":pid,"message":{"type":"string","minLength":1,"maxLength":512}}), &["message"], false),
         tool("client_vehicle", "Read mounted vehicle, driver, speed, turn speed and vehicle telemetry; discard leaves the driver's seat through the normal client action.",json!({"pid":pid,"action":{"type":"string","enum":["status","discard"]}}), &[], false),
@@ -22,6 +23,7 @@ pub fn is_tool(name: &str) -> bool {
         name,
         "client_action"
             | "client_inventory"
+            | "client_mode_actions"
             | "client_use_item"
             | "client_chat"
             | "client_vehicle"
@@ -98,6 +100,7 @@ pub fn request(name: &str, args: &Value) -> anyhow::Result<(Target, String)> {
         "client_use_item" => { let id=args["item_template_id"].as_u64().context("missing item_template_id")?;
             (Target::Ui,format!("{WORLD}local info=X2Bag:FindFirstBagItemInfoByItemType({id}) assert(info,'item is not in the inventory') local accepted=X2Bag:UseItemByType({id}) local result={{item_template_id={id},skill_id=info.skillType,accepted=accepted}}")) },
         "client_inventory" => (Target::Ui,format!("{WORLD}local slots={{}} local bag={} for slot=1, X2Bag:Capacity() do local info=X2Bag:GetBagItemInfo(bag,slot) if info then slots[tostring(slot)]={{slot=slot,item_template_id=info.itemType,name=info.name,count=info.stack,skill_id=info.skillType,dead=info.dead,locked=info.locked}} end end local result={{bag_id=bag,slots=slots}}",args["bag_id"].as_u64().unwrap_or(1))),
+        "client_mode_actions" => (Target::Ui,format!("{WORLD}local count=X2Unit:GetModeActionsCount() local slots={{}} for i=1,math.min(count,10) do local b=modeSkillActionBar and modeSkillActionBar.buttons and modeSkillActionBar.buttons[i] if b then slots[tostring(i)]={{slot=i,binded_type=b:GetBindedType(),info=b:GetTooltip(),can_use=b.canUse,cooldown=b.cooldown,cooldown_duration=b.cooldownDuration,skill_level=b.skillLevel,learned=b.learned,hotkey=b:GetHotKey(),staged_primary=X2Hotkey:GetOptionBinding('mode_action_bar_button',1,true,i),staged_secondary=X2Hotkey:GetOptionBinding('mode_action_bar_button',2,true,i)}} end end local result={{count=count,slots=slots}}")),
         "client_vehicle" => { let act=args["action"].as_str().unwrap_or("status");
             let discard=if act=="discard" { "X2SiegeWeapon:DiscardSiegeWeapon() " } else { "" };
             (Target::Ui,format!("{WORLD}{discard}local result={{has_vehicle=X2Player:HasSlaveUnit(),mounted=X2SiegeWeapon:IsMountedSiegeWeapon(),driver=X2SiegeWeapon:IsDriver(),info=X2SiegeWeapon:GetMountedSiegeWeaponInfo(),vehicle=X2SiegeWeapon:GetVehicleInfo(),speed=X2SiegeWeapon:GetSiegeWeaponSpeed(),turn_speed=X2SiegeWeapon:GetSiegeWeaponTurnSpeed()}}")) },
@@ -127,6 +130,22 @@ mod tests {
         assert!(code.contains("UseItemByType(26874)"));
         assert!(code.contains("accepted=accepted"));
         assert!(code.contains("assert(info"));
+    }
+    #[test]
+    fn mode_actions_are_bounded_read_only_telemetry() {
+        let definition = tools(json!({"type":"integer"}))
+            .into_iter()
+            .find(|t| t["name"] == "client_mode_actions")
+            .unwrap();
+        assert_eq!(definition["annotations"]["readOnlyHint"], true);
+        assert!(is_tool("client_mode_actions"));
+        let (target, code) = request("client_mode_actions", &json!({})).unwrap();
+        assert_eq!(target, Target::Ui);
+        assert!(code.contains("math.min(count,10)"));
+        assert!(code.contains("GetOptionBinding('mode_action_bar_button',2,true,i)"));
+        assert!(!code.contains("SetOptionBinding"));
+        assert!(!code.contains("EstablishSlot"));
+        assert!(!code.contains("ExcuteActionHandler"));
     }
     #[test]
     fn feature_schemas_reject_unbounded_or_wrong_inputs() {
