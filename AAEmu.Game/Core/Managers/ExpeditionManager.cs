@@ -553,6 +553,9 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
                     }
                 }
 
+                if (GuildRolePolicyRules.NeedsDefaultPolicies(expedition.Policies.Count))
+                    expedition.Policies = GetDefaultPolicies(expedition.Id);
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -1747,7 +1750,8 @@ public bool TryCreateSoloExpedition(Character owner, string name, out string err
                 return false;
             }
 
-            // Disband leaves a rejoin cooldown that would fail PersistNewExpedition's claim.
+            // Disband/leave persist a rejoin cooldown; GM solo-create must clear it in the
+            // claim transaction (memory-only clear is not enough for PersistNewExpedition).
             owner.ExpeditionRejoinUntil = 0;
 
             Expedition expedition;
@@ -1758,7 +1762,8 @@ public bool TryCreateSoloExpedition(Character owner, string name, out string err
                 owner.Expedition = expedition;
                 try
                 {
-                    PersistNewExpedition(expedition, [owner], owner, creationCost: 0);
+                    PersistNewExpedition(expedition, [owner], owner, creationCost: 0,
+                        allowDuringRejoinCooldown: true);
                 }
                 catch (Exception ex)
                 {
@@ -3248,8 +3253,25 @@ public bool TryCreateSoloExpedition(Character owner, string name, out string err
         }
     }
 
+    /// <summary>
+    /// Clears a persisted rejoin cooldown (memory + MySQL). Used by GM guild-reset helpers
+    /// after Disband/Leave write a future <c>expedition_rejoin_until</c>.
+    /// </summary>
+    public void ClearExpeditionRejoinCooldown(Character character)
+    {
+        if (character == null)
+            return;
+        character.ExpeditionRejoinUntil = 0;
+        using var connection = persistenceConnections.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "UPDATE characters SET expedition_rejoin_until=0 WHERE id=@characterId AND deleted=0";
+        command.Parameters.AddWithValue("@characterId", character.Id);
+        command.ExecuteNonQuery();
+    }
+
     private void PersistNewExpedition(Expedition expedition, IReadOnlyCollection<Character> founders,
-        Character owner, long creationCost)
+        Character owner, long creationCost, bool allowDuringRejoinCooldown = false)
     {
         using var connection = persistenceConnections.Open();
         using var transaction = connection.BeginTransaction();
@@ -3259,14 +3281,20 @@ public bool TryCreateSoloExpedition(Character owner, string name, out string err
             {
                 using var claim = connection.CreateCommand();
                 claim.Transaction = transaction;
+                var rejoinGate = allowDuringRejoinCooldown
+                    ? string.Empty
+                    : " AND expedition_rejoin_until<=@unixNow";
                 claim.CommandText = character.Id == owner.Id
-                    ? "UPDATE characters SET expedition_id=@expeditionId,expedition_rejoin_until=0,money=money-@creationCost WHERE id=@characterId AND deleted=0 AND expedition_id=0 AND expedition_rejoin_until<=@unixNow AND money>=@creationCost"
-                    : "UPDATE characters SET expedition_id=@expeditionId,expedition_rejoin_until=0 WHERE id=@characterId AND deleted=0 AND expedition_id=0 AND expedition_rejoin_until<=@unixNow";
+                    ? "UPDATE characters SET expedition_id=@expeditionId,expedition_rejoin_until=0,money=money-@creationCost WHERE id=@characterId AND deleted=0 AND expedition_id=0" +
+                      rejoinGate + " AND money>=@creationCost"
+                    : "UPDATE characters SET expedition_id=@expeditionId,expedition_rejoin_until=0 WHERE id=@characterId AND deleted=0 AND expedition_id=0" +
+                      rejoinGate;
                 claim.Parameters.AddWithValue("@expeditionId", (uint)expedition.Id);
                 claim.Parameters.AddWithValue("@characterId", character.Id);
                 if (character.Id == owner.Id)
                     claim.Parameters.AddWithValue("@creationCost", creationCost);
-                claim.Parameters.AddWithValue("@unixNow", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                if (!allowDuringRejoinCooldown)
+                    claim.Parameters.AddWithValue("@unixNow", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
                 if (claim.ExecuteNonQuery() != 1)
                     throw new InvalidOperationException($"Founding character {character.Id} is no longer guildless.");
             }

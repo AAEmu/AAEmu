@@ -34,7 +34,8 @@ public class GuildDisband : ICommand
             return;
         }
 
-        character.ExpeditionRejoinUntil = 0;
-        CommandManager.SendNormalText(this, messageOutput, $"Disbanded {name}. Rejoin cooldown cleared in memory; /guildcreate also clears it.");
+        ExpeditionManager.Instance.ClearExpeditionRejoinCooldown(character);
+        CommandManager.SendNormalText(this, messageOutput,
+            $"Disbanded {name}. Rejoin cooldown cleared (memory and saved).");
     }
 }
