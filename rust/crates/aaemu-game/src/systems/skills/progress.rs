@@ -236,7 +236,6 @@ pub fn change_labor_locked(
     let mut actability_step = 0u8;
     let mut exp_mul = 1.0f32;
     if actability_id > 0 {
-        let limits = &server.game_data.characters.expert_limits;
         match c
             .actability
             .actabilities
@@ -251,7 +250,11 @@ pub fn change_labor_locked(
                 // CharacterActability.AddPoint
                 let prev = a.point;
                 a.point += add;
-                if let Some(l) = limits.iter().find(|l| l.id == u32::from(a.step)) {
+                if let Some(l) = server
+                    .game_data
+                    .characters
+                    .expert_limit(usize::from(a.step))
+                {
                     if a.point > l.up_limit {
                         a.point = l.up_limit;
                     }
@@ -604,4 +607,55 @@ pub fn swap_ability(server: &GameServer, p: &PlayerRef, old: u8, new: u8) {
         },
         true,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::character_templates::ExpertLimit;
+    use crate::data::GameData;
+    use crate::models::char_data::Actability;
+    use crate::test_support::{test_character, test_server_with};
+
+    #[tokio::test]
+    async fn labor_actability_uses_zero_based_tiers_and_reports_actual_capped_gain() {
+        let mut data = GameData::empty();
+        // Real 1.2 ordering: row ids start at 1; actability steps start at 0.
+        data.characters.expert_limits = [10_000, 20_000, 30_000, 40_000, 50_000, 70_000]
+            .into_iter()
+            .enumerate()
+            .map(|(index, up_limit)| ExpertLimit {
+                id: index as u32 + 1,
+                up_limit,
+                expert_limit_count: 0,
+            })
+            .collect();
+        let server = test_server_with(data);
+        for (step, before, after, earned) in [
+            (0, 9_995, 10_000, 5),
+            (0, 10_000, 10_000, 0),
+            (4, 49_995, 50_000, 5),
+            (4, 50_000, 50_000, 0),
+            (5, 50_000, 50_010, 10),
+        ] {
+            let mut character = test_character(1, "Fisher", 500.0, 500.0);
+            character.labor_power = 500;
+            character.actability.actabilities.push(Actability {
+                id: 7,
+                point: before,
+                step,
+            });
+            let (packet, _) = change_labor_locked(&server, &mut character, -10, 7).unwrap();
+            assert_eq!(character.actability.actabilities[0].point, after);
+            assert_eq!(character.actability.actabilities[0].step, step);
+            assert_eq!(character.labor_power, 490);
+            assert_eq!(packet.point, earned);
+            assert!(packet.point >= 0);
+            let mut expected = (-10i32).to_le_bytes().to_vec();
+            expected.extend(7i32.to_le_bytes());
+            expected.extend(earned.to_le_bytes());
+            expected.push(step);
+            assert_eq!(crate::net::packet::encode(&packet)[6..], expected);
+        }
+    }
 }
