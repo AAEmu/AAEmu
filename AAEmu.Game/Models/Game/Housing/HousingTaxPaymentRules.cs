@@ -61,13 +61,13 @@ public static class HousingTaxPaymentRules
 
     /// <summary>
     /// Which applied wallet/prestige pieces a failed house write must reverse.
-    /// Pending seal plans are not applied yet and need no item restore.
+    /// Pending seal plans and uncommitted prestige are not applied yet and need no restore.
     /// </summary>
     public static HousingTaxRefundKind RefundKind(HousingTaxCharge charge)
     {
         if (charge == null || charge.IsEmpty)
             return HousingTaxRefundKind.None;
-        if (charge.ContributionPoints > 0)
+        if (charge.ContributionCommitted && charge.ContributionPoints > 0)
             return HousingTaxRefundKind.Contribution;
         if (charge.CopperAmount > 0)
             return charge.UsedAaPoint ? HousingTaxRefundKind.AaPoint : HousingTaxRefundKind.Gold;

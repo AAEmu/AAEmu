@@ -182,7 +182,7 @@ public class HousingManager(
         // current guild and would reassign the building if they join another.
         var residenceNamed = ExpeditionManager.Instance.Expeditions
             .FirstOrDefault(e => e.ResidenceHouseId == house.Id);
-        var expedition = residenceNamed ?? house.Expedition;
+        var expedition = HousingResidenceRules.ResolveOwningExpedition(residenceNamed, house.Expedition);
         if (expedition == null)
         {
             if (dirty)
@@ -1483,8 +1483,8 @@ public class HousingManager(
         ItemConsumptionPlan designPlan;
         lock (connection.ActiveChar.Inventory.MutationSyncRoot)
         {
-            if (!connection.ActiveChar.Inventory.TryPlanBagConsumption(
-                    sourceDesignItem.TemplateId, 1, out designPlan))
+            if (!connection.ActiveChar.Inventory.TryPlanExactBagConsumption(
+                    sourceDesignItem.Id, 1, out designPlan))
             {
                 RefundHousingTaxCharge(connection.ActiveChar, placementCharge);
                 connection.ActiveChar.SendErrorMessage(ErrorMessageType.BagInvalidItem);
@@ -1893,7 +1893,8 @@ public class HousingManager(
         {
             var ratio = ContentConfigGameData.Instance.RequireInt(HousingTaxPaymentRules.ContributionGoldRatioKey);
             var cost = HousingTaxPaymentRules.CurrencyUnits(taxCopper, ratio);
-            if (!ExpeditionManager.Instance.TryChangeContributionPoints(character, -cost, false))
+            // Reserve only — prestige is written in the same transaction as the house row.
+            if (!ExpeditionManager.Instance.CanChangeContributionPoints(character, -cost))
             {
                 character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
                 return false;
@@ -2750,7 +2751,7 @@ public class HousingManager(
     }
 
     /// <summary>
-    /// Commits the house row with any gold/AA wallet change and planned seal/design item rows.
+    /// Commits the house row with prestige / gold/AA / planned seal/design item rows together.
     /// </summary>
     private void PersistHouseWithTaxPayment(
         Character character,
@@ -2762,36 +2763,61 @@ public class HousingManager(
         var sealPlans = charge.SealPlans;
         var needsItemPlans = sealPlans.Count > 0 || designPlan != null;
         var needsCharacterSave = charge.RequiresCharacterSave && character != null;
+        var needsContribution = charge.RequiresContributionPersist;
 
-        if (!needsItemPlans && !needsCharacterSave)
+        if (!needsItemPlans && !needsCharacterSave && !needsContribution)
         {
             SaveHouseNow(house);
             return;
         }
 
         if (character == null)
-            throw new InvalidOperationException("Housing tax payment persistence requires a character when wallet or items change.");
+            throw new InvalidOperationException("Housing tax payment persistence requires a character when wallet, prestige, or items change.");
 
         List<ItemConsumptionPublication> publications = null;
-        lock (character.Inventory.MutationSyncRoot)
+
+        void RunPersist()
         {
             publications = WithPersistenceOperation(() =>
             {
                 var snapshots = new List<ItemPersistenceSnapshot>();
-                foreach (var plan in sealPlans)
-                    snapshots.AddRange(plan.CapturePersistenceSnapshots(itemManager));
-                if (designPlan != null)
-                    snapshots.AddRange(designPlan.CapturePersistenceSnapshots(itemManager));
+                if (needsItemPlans)
+                {
+                    foreach (var plan in sealPlans)
+                        snapshots.AddRange(plan.CapturePersistenceSnapshots(itemManager));
+                    if (designPlan != null)
+                        snapshots.AddRange(designPlan.CapturePersistenceSnapshots(itemManager));
+                }
 
+                ExpeditionManager.PendingContributionPointsChange pendingContribution = null;
                 using var connection = MySQL.CreateConnection();
                 using var transaction = connection.BeginTransaction();
                 if (!house.Save(connection, transaction))
                     throw new InvalidOperationException($"House {house.Id} failed to save during tax payment persistence.");
                 if (needsCharacterSave)
                     character.Save(connection, transaction);
+                if (needsContribution)
+                {
+                    if (!ExpeditionManager.Instance.TryWriteContributionPoints(
+                            character,
+                            -charge.ContributionPoints,
+                            false,
+                            connection,
+                            transaction,
+                            out pendingContribution))
+                        throw new InvalidOperationException(
+                            $"Failed to write prestige debit for house {house.Id} / character {character.Id}.");
+                }
+
                 if (snapshots.Count > 0)
                     itemManager.PersistSnapshots(connection, transaction, snapshots);
                 transaction.Commit();
+
+                if (pendingContribution != null)
+                {
+                    pendingContribution.ApplyLive(worldManager);
+                    charge.ContributionCommitted = true;
+                }
 
                 var applied = new List<ItemConsumptionPublication>();
                 foreach (var plan in sealPlans)
@@ -2803,6 +2829,34 @@ public class HousingManager(
                 return applied;
             });
         }
+
+        // Expedition rename locks guild then inventory; keep that order when both are needed.
+        if (needsContribution)
+        {
+            var expedition = character.Expedition;
+            var member = expedition?.GetMember(character);
+            if (expedition == null || member == null)
+                throw new InvalidOperationException($"Character {character.Id} cannot pay housing tax with prestige without a guild membership.");
+
+            lock (expedition.SyncRoot)
+            lock (member)
+            {
+                if (needsItemPlans)
+                {
+                    lock (character.Inventory.MutationSyncRoot)
+                        RunPersist();
+                }
+                else
+                    RunPersist();
+            }
+        }
+        else if (needsItemPlans)
+        {
+            lock (character.Inventory.MutationSyncRoot)
+                RunPersist();
+        }
+        else
+            RunPersist();
 
         if (publications == null)
             return;

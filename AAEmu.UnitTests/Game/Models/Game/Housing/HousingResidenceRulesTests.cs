@@ -87,8 +87,14 @@ public class HousingResidenceRulesTests
         await Assert.That(HousingTaxPaymentRules.RefundKind(HousingTaxCharge.Empty))
             .IsEqualTo(HousingTaxRefundKind.None);
 
+        // Prestige is reserved until the house txn commits — uncommitted means no refund.
         await Assert.That(HousingTaxPaymentRules.RefundKind(new HousingTaxCharge { ContributionPoints = 60 }))
-            .IsEqualTo(HousingTaxRefundKind.Contribution);
+            .IsEqualTo(HousingTaxRefundKind.None);
+        await Assert.That(HousingTaxPaymentRules.RefundKind(new HousingTaxCharge
+        {
+            ContributionPoints = 60,
+            ContributionCommitted = true
+        })).IsEqualTo(HousingTaxRefundKind.Contribution);
         await Assert.That(HousingTaxPaymentRules.RefundKind(new HousingTaxCharge { CopperAmount = 1000, UsedAaPoint = false }))
             .IsEqualTo(HousingTaxRefundKind.Gold);
         await Assert.That(HousingTaxPaymentRules.RefundKind(new HousingTaxCharge { CopperAmount = 1000, UsedAaPoint = true }))

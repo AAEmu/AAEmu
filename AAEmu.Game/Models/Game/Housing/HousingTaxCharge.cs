@@ -11,8 +11,14 @@ public sealed class HousingTaxCharge
 {
     public static HousingTaxCharge Empty { get; } = new();
 
-    /// <summary>Prestige already debited via expedition_members.</summary>
+    /// <summary>Prestige units to debit with the house row (not applied until commit).</summary>
     public int ContributionPoints { get; set; }
+
+    /// <summary>
+    /// True after <c>expedition_members</c> and live memory both accepted the prestige debit.
+    /// Only then may a failed follow-up refund prestige.
+    /// </summary>
+    public bool ContributionCommitted { get; set; }
 
     /// <summary>Bound tax certificates included in <see cref="SealPlans"/>.</summary>
     public int BoundCertificates { get; set; }
@@ -33,6 +39,8 @@ public sealed class HousingTaxCharge
     public List<ItemConsumptionPlan> SealPlans { get; } = [];
 
     public bool RequiresCharacterSave => CopperAmount > 0;
+
+    public bool RequiresContributionPersist => ContributionPoints > 0 && !ContributionCommitted;
 
     public bool HasPendingSealPlans => SealPlans.Count > 0;
 

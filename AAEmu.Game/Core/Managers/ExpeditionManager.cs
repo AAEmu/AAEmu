@@ -716,6 +716,34 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         }
     }
 
+    /// <summary>
+    /// True when <paramref name="amount"/> can be applied to the character's live prestige balance
+    /// without writing the database. Used to reserve housing-tax prestige before a joint house commit.
+    /// </summary>
+    public bool CanChangeContributionPoints(Character character, int amount)
+    {
+        var expedition = character?.Expedition;
+        var member = expedition?.GetMember(character);
+        if (member == null)
+            return false;
+        if (amount == 0)
+            return true;
+
+        var newTotal = (long)member.ContributionPoint + amount;
+        if (newTotal is < 0 or > uint.MaxValue)
+            return false;
+        if (amount > 0)
+        {
+            var weekStart = ServerCalendar.WeekStartMondayUtc;
+            var currentWeekly = WeeklyContributionRules.CurrentValue(member.WeeklyContributionPoint,
+                member.WeeklyContributionPeriodStart, weekStart);
+            if ((long)currentWeekly + amount > uint.MaxValue)
+                return false;
+        }
+
+        return true;
+    }
+
     public bool TryChangeContributionPoints(Character character, int amount, bool addToWeeklyTotal)
     {
         var expedition = character.Expedition;
@@ -730,39 +758,120 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         lock (expedition.SyncRoot)
         lock (member)
         {
-            if (!ReferenceEquals(character.Expedition, expedition) || expedition.GetMember(character) != member)
-                return false;
-            var newTotal = (long)member.ContributionPoint + amount;
-            var weekStart = ServerCalendar.WeekStartMondayUtc;
-            var currentWeekly = WeeklyContributionRules.CurrentValue(member.WeeklyContributionPoint,
-                member.WeeklyContributionPeriodStart, weekStart);
-            var weeklyDelta = addToWeeklyTotal && amount > 0 ? amount : 0;
-            var newWeeklyTotal = (long)currentWeekly + weeklyDelta;
-            if (newTotal is < 0 or > uint.MaxValue || newWeeklyTotal > uint.MaxValue)
-                return false;
-
             using var connection = persistenceConnections.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText =
-                "UPDATE expedition_members SET contribution_point = @contribution_point, weekly_contribution_point = @weekly_contribution_point, weekly_contribution_period_start = @week_start WHERE character_id = @character_id AND expedition_id = @expedition_id";
-            command.Parameters.AddWithValue("@contribution_point", (uint)newTotal);
-            command.Parameters.AddWithValue("@weekly_contribution_point", (uint)newWeeklyTotal);
-            command.Parameters.AddWithValue("@week_start", weekStart);
-            command.Parameters.AddWithValue("@character_id", member.CharacterId);
-            command.Parameters.AddWithValue("@expedition_id", member.ExpeditionId);
-            if (command.ExecuteNonQuery() != 1)
+            using var transaction = connection.BeginTransaction();
+            if (!TryWriteContributionPoints(
+                    character, amount, addToWeeklyTotal, connection, transaction, out var pending))
                 return false;
-
-            member.ContributionPoint = (uint)newTotal;
-            member.WeeklyContributionPoint = (uint)newWeeklyTotal;
-            member.WeeklyContributionPeriodStart = weekStart;
+            transaction.Commit();
+            pending.ApplyLive(worldManager);
         }
 
-        character.SendPacket(new SCAddContributionPointPacket(unchecked((uint)amount), member.ContributionPoint));
-        expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0), worldManager);
-        // Refresh the guild overview aggregate after this member's personal contribution balance changes.
-        expedition.SendDescriptor(worldManager);
         return true;
+    }
+
+    /// <summary>
+    /// Writes the contribution delta on the caller's open transaction. Live memory and packets stay
+    /// unchanged until <see cref="PendingContributionPointsChange.ApplyLive"/> runs after commit.
+    /// Caller must hold the expedition and member locks.
+    /// </summary>
+    public bool TryWriteContributionPoints(
+        Character character,
+        int amount,
+        bool addToWeeklyTotal,
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        out PendingContributionPointsChange pending)
+    {
+        pending = null;
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        var expedition = character?.Expedition;
+        var member = expedition?.GetMember(character);
+        if (member == null)
+            return false;
+        if (amount == 0)
+        {
+            pending = PendingContributionPointsChange.NoOp;
+            return true;
+        }
+
+        if (!ReferenceEquals(character.Expedition, expedition) || expedition.GetMember(character) != member)
+            return false;
+
+        var newTotal = (long)member.ContributionPoint + amount;
+        var weekStart = ServerCalendar.WeekStartMondayUtc;
+        var currentWeekly = WeeklyContributionRules.CurrentValue(member.WeeklyContributionPoint,
+            member.WeeklyContributionPeriodStart, weekStart);
+        var weeklyDelta = addToWeeklyTotal && amount > 0 ? amount : 0;
+        var newWeeklyTotal = (long)currentWeekly + weeklyDelta;
+        if (newTotal is < 0 or > uint.MaxValue || newWeeklyTotal > uint.MaxValue)
+            return false;
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "UPDATE expedition_members SET contribution_point = @contribution_point, weekly_contribution_point = @weekly_contribution_point, weekly_contribution_period_start = @week_start WHERE character_id = @character_id AND expedition_id = @expedition_id AND contribution_point = @previous";
+        command.Parameters.AddWithValue("@contribution_point", (uint)newTotal);
+        command.Parameters.AddWithValue("@weekly_contribution_point", (uint)newWeeklyTotal);
+        command.Parameters.AddWithValue("@week_start", weekStart);
+        command.Parameters.AddWithValue("@character_id", member.CharacterId);
+        command.Parameters.AddWithValue("@expedition_id", member.ExpeditionId);
+        command.Parameters.AddWithValue("@previous", member.ContributionPoint);
+        if (command.ExecuteNonQuery() != 1)
+            return false;
+
+        pending = new PendingContributionPointsChange(
+            character, expedition, member, amount, (uint)newTotal, (uint)newWeeklyTotal, weekStart);
+        return true;
+    }
+
+    /// <summary>
+    /// Live prestige update + packets after a successful <see cref="TryWriteContributionPoints"/> commit.
+    /// </summary>
+    public sealed class PendingContributionPointsChange
+    {
+        public static PendingContributionPointsChange NoOp { get; } = new(null, null, null, 0, 0, 0, default);
+
+        private readonly Character _character;
+        private readonly Expedition _expedition;
+        private readonly ExpeditionMember _member;
+        private readonly int _amount;
+        private readonly uint _newTotal;
+        private readonly uint _newWeeklyTotal;
+        private readonly DateTime _weekStart;
+
+        internal PendingContributionPointsChange(
+            Character character,
+            Expedition expedition,
+            ExpeditionMember member,
+            int amount,
+            uint newTotal,
+            uint newWeeklyTotal,
+            DateTime weekStart)
+        {
+            _character = character;
+            _expedition = expedition;
+            _member = member;
+            _amount = amount;
+            _newTotal = newTotal;
+            _newWeeklyTotal = newWeeklyTotal;
+            _weekStart = weekStart;
+        }
+
+        public void ApplyLive(IWorldManager worldManager)
+        {
+            if (_member == null || _amount == 0)
+                return;
+
+            _member.ContributionPoint = _newTotal;
+            _member.WeeklyContributionPoint = _newWeeklyTotal;
+            _member.WeeklyContributionPeriodStart = _weekStart;
+            _character.SendPacket(new SCAddContributionPointPacket(unchecked((uint)_amount), _member.ContributionPoint));
+            _expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(_member, 0), worldManager);
+            _expedition.SendDescriptor(worldManager);
+        }
     }
 
     public bool TryAddDailyContributionPoints(Character character, int requestedAmount)
