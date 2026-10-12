@@ -408,6 +408,14 @@ tooltips, availability, cooldowns, active native hotkeys and staged option bindi
 Empty staged rows do not mean the native action has no active hotkey. It reads at most ten slots and
 does not cast or change shortcuts. Check these bindings before submitting a fishing response
 through `client_input`; verify the resulting cast and fish reaction on the server.
+`client_pointer` moves or left-clicks in client pixels through the guarded 1.2 mouse handler.
+The mouse-lock mode is rejected before position events because that native path can move the
+desktop cursor. Clicks position first and wait at least 50 ms for the native Update before
+pressing, then hold for 100 ms and release on the driver's independent tick; repeated
+clicks while held are rejected. `client_input` with `key: "release"` also releases the mouse.
+Stock Map clicks and native mouse coordinates have been checked with hidden rendering.
+Allow the client to render the resulting UI before taking a screenshot; input acceptance
+alone does not establish that a ground-targeted cast or server interaction completed.
 
 `client_entities` returns bounded nearby entity transforms and terrain heights in **client-local
 coordinates**. The seamless map origin can change; these values must not be passed directly to

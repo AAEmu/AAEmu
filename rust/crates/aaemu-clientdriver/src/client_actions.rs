@@ -8,6 +8,7 @@ pub fn tools(pid: Value) -> Vec<Value> {
     vec![
         tool("client_perf", "Record DXGI frame intervals (profile resets and enables, off disables, status reads). Reports FPS, mean, p95, p99 and maximum for the latest 2048 rendered frames. Screenshot readback can affect timings; capture after profiling.",json!({"pid":pid,"action":{"type":"string","enum":["profile","status","off"]}}), &["action"], false),
         tool("client_input", "Press a keyboard key or number-row chord through the client's CryInput on its main thread. Optional ctrl/shift/alt modifiers are pressed before the key and released after it. Works with hidden rendering, without desktop keystrokes. Automatic release after 1..10000 ms survives MCP disconnect. release clears all test keys.",json!({"pid":pid,"key":{"type":"string","enum":["w","a","s","d","q","e","r","t","y","u","i","o","p","space","f","g","1","2","3","4","5","6","7","8","9","0","release"]},"modifiers":{"type":"array","maxItems":3,"uniqueItems":true,"items":{"type":"string","enum":["ctrl","shift","alt"]}},"duration_ms":{"type":"integer","minimum":1,"maximum":10000}}), &["key"], false),
+        tool("client_pointer", "Move or left-click through the supported 1.2 client's native mouse handler on its main thread. Coordinates are client pixels, bounded to 0..4095. Hidden rendering is supported. Rejects native mouse-lock mode before movement to preserve the desktop cursor. A click holds for 100 ms with automatic release independent of MCP; verify the resulting UI or gameplay action.",json!({"pid":pid,"action":{"type":"string","enum":["move","click"]},"x":{"type":"integer","minimum":0,"maximum":4095},"y":{"type":"integer","minimum":0,"maximum":4095}}), &["action","x","y"], false),
         tool("client_action", "Execute a valid 1.2 UI hotkey action, such as do_interaction_1, cycle_hostile_forward or toggle_bag. Continuous movement uses client_input.",json!({"pid":pid,"action":{"type":"string","minLength":1,"maxLength":96}}), &["action"], false),
         tool("client_inventory", "Read inventory slots, item templates, names, counts and use skills from the live client. bag_id defaults to 1 (inventory).",json!({"pid":pid,"bag_id":{"type":"integer","minimum":1,"maximum":2}}), &[], true),
         tool("client_mode_actions", "Read the active 1.2 mode action bar, including fishing rod actions, native tooltips, availability, cooldowns, active hotkeys and staged option binding rows. Requires a character in the world; does not change bindings or cast skills.",json!({"pid":pid}), &[], true),
@@ -93,6 +94,20 @@ pub fn input_command(args: &Value) -> anyhow::Result<String> {
     Ok(format!("{prefix}{key} {duration}"))
 }
 
+#[cfg(any(windows, test))]
+pub fn pointer_command(args: &Value) -> anyhow::Result<String> {
+    let action = args["action"].as_str().context("missing action")?;
+    if !matches!(action, "move" | "click") {
+        bail!("pointer action must be move or click");
+    }
+    let x = args["x"].as_u64().context("x must be an integer")?;
+    let y = args["y"].as_u64().context("y must be an integer")?;
+    if x > 4095 || y > 4095 {
+        bail!("pointer coordinates must be 0..4095 client pixels");
+    }
+    Ok(format!("mouse_{action} {x} {y}"))
+}
+
 pub fn request(name: &str, args: &Value) -> anyhow::Result<(Target, String)> {
     let (target, body) = match name {
         "client_action" => (Target::Ui,format!("{WORLD}local action={} assert(X2Hotkey:IsValidActionName(action),'unknown client action') X2Hotkey:ExcuteActionHandler(action) local result={{action=action,submitted=true}}",quote(args["action"].as_str().context("missing action")?))),
@@ -152,6 +167,13 @@ mod tests {
         for (name, args) in [
             ("client_input", json!({"key":"w","duration_ms":10001})),
             ("client_input", json!({"key":"escape"})),
+            ("client_pointer", json!({"action":"click","x":4096,"y":0})),
+            ("client_pointer", json!({"action":"click","x":0,"y":-1})),
+            ("client_pointer", json!({"action":"click","x":0.5,"y":1})),
+            (
+                "client_pointer",
+                json!({"action":"right_click","x":1,"y":1}),
+            ),
             (
                 "client_input",
                 json!({"key":"1","modifiers":["ctrl","ctrl"]}),
@@ -200,5 +222,24 @@ mod tests {
         assert_eq!(input_command(&json!({"key":"release"})).unwrap(), "release");
         assert!(input_command(&json!({"key":"release","modifiers":["ctrl"]})).is_err());
         assert!(input_command(&json!({"key":"1","modifiers":["ctrl","ctrl"]})).is_err());
+    }
+    #[test]
+    fn pointer_commands_preserve_exact_coordinates_and_reject_invalid_requests() {
+        assert_eq!(
+            pointer_command(&json!({"action":"move","x":0,"y":4095})).unwrap(),
+            "mouse_move 0 4095"
+        );
+        assert_eq!(
+            pointer_command(&json!({"action":"click","x":123,"y":87})).unwrap(),
+            "mouse_click 123 87"
+        );
+        for args in [
+            json!({"action":"click","x":-1,"y":0}),
+            json!({"action":"click","x":0,"y":4096}),
+            json!({"action":"click","x":"123","y":0}),
+            json!({"action":"drag","x":1,"y":1}),
+        ] {
+            assert!(pointer_command(&args).is_err());
+        }
     }
 }

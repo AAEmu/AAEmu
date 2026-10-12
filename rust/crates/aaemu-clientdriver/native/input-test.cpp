@@ -2,6 +2,10 @@
 namespace input {
 int physical=0;
 bool modifier_get_supported=true,modifier_set_supported=true;
+void* mouse_slots[29]={0};
+unsigned char mouse_module[0x5000]={0};
+bool mouse_locked_flag=false,mouse_button_down=false,lock_after_x=false,lock_after_down=false;
+float mouse_x=0,mouse_y=0;
 }
 #include "input.cpp"
 #include <assert.h>
@@ -17,6 +21,17 @@ bool record(const Event& event) {
     if(++attempts==fail_at) return false;
     events.push_back(event);return true;
 }
+bool record_mouse(const Event& event) {
+    assert(event.device==1);
+    // The native mouse device stores state before dispatching to listeners.
+    if(event.id==269) { assert(!mouse_locked_flag);mouse_x=event.value; }
+    else if(event.id==270) { assert(!mouse_locked_flag);mouse_y=event.value; }
+    else { assert(event.id==256);mouse_button_down=event.state==1; }
+    bool accepted=record(event);
+    if((event.id==269 && lock_after_x) || (event.id==256 && event.state==1 && lock_after_down))
+        mouse_locked_flag=true;
+    return accepted;
+}
 }
 static void event(size_t i,int id,bool down,int mask) {
     const input::Event& actual=events.at(i);
@@ -25,6 +40,15 @@ static void event(size_t i,int id,bool down,int mask) {
     assert(actual.device==0 && actual.unicode==0 && actual.symbol==NULL);
     // The exact x86 event bytes consumed by native listeners, including mods+20.
     input::Event expected={0,down?1:2,actual.name,id,0,mask,down?1.f:0.f,NULL};
+    assert(!memcmp(&actual,&expected,32));
+}
+static void mouse_event(size_t i,int id,int state,float value,int mask=0x200) {
+    const input::Event& actual=events.at(i);
+    const char* name=id==269?"pos_x":id==270?"pos_y":"mouse1";
+    assert(actual.device==1 && actual.state==state && actual.id==id);
+    assert(actual.unicode==0 && actual.symbol==NULL && actual.modifiers==mask);
+    assert(actual.value==value && !strcmp(actual.name,name));
+    input::Event expected={1,state,actual.name,id,0,mask,value,NULL};
     assert(!memcmp(&actual,&expected,32));
 }
 int main() {
@@ -139,5 +163,133 @@ int main() {
         assert(events.size()==4 && input::held.empty() && input::physical==0x200);
         event(2,18+i,false,0x211);event(3,28,false,0x200);
     }
+    input::mouse_slots[26]=input::mouse_module+0x4564;
+    input::mouse_slots[28]=input::mouse_module+0x457C;
+    events.clear();
+    assert(input::control_at(env,"mouse_move 123 87",5000)[0]=='0');
+    assert(events.size()==2 && input::mouse_x==123 && input::mouse_y==87);
+    assert(input::physical==0x200 && !input::mouse_button_down);
+    mouse_event(0,269,8,123);mouse_event(1,270,8,87);
+    events.clear();
+    assert(input::control_at(env,"mouse_click 4095 0",5000)[0]=='0');
+    assert(events.size()==2 && input::physical==0x200 && !input::mouse_button_down && input::mouse_held && input::mouse_pending);
+    mouse_event(0,269,8,4095);mouse_event(1,270,8,0);
+    assert(input::control_at(env,"mouse_click 1 2",5001)[0]=='2');
+    assert(input::control_at(env,"mouse_click -1 2",5001)[0]=='2');
+    assert(events.size()==2 && input::mouse_held && !input::mouse_button_down);
+    input::tick_at(env,5049);assert(events.size()==2 && input::mouse_pending);
+    input::tick_at(env,5050);assert(events.size()==3 && input::mouse_button_down && !input::mouse_pending);
+    mouse_event(2,256,1,1);
+    assert(input::control_at(env,"mouse_click 1 2",5051)[0]=='2');
+    assert(events.size()==3 && input::mouse_held && input::mouse_button_down);
+    input::tick_at(env,5149);assert(events.size()==3 && input::mouse_button_down);
+    // Only the independent driver tick is needed after the requester disconnects.
+    input::tick_at(env,5150);
+    assert(events.size()==4 && !input::mouse_button_down && !input::mouse_held);
+    mouse_event(3,256,2,0);
+    // Cancelling the position phase must not send an unmatched button-up.
+    events.clear();
+    assert(input::control_at(env,"mouse_click 12 34",5000)[0]=='0');
+    assert(input::control_at(env,"release",5020)=="0released");
+    assert(events.size()==2 && !input::mouse_held && !input::mouse_pending && !input::mouse_button_down);
+    input::tick_at(env,5050);assert(events.size()==2);
+    // A lock acquired during the render gap cancels the press without further events.
+    events.clear();
+    assert(input::control_at(env,"mouse_click 12 34",5000)[0]=='0');
+    input::mouse_locked_flag=true;input::tick_at(env,5050);
+    assert(events.size()==2 && !input::mouse_held && !input::mouse_pending && !input::mouse_button_down);
+    input::mouse_locked_flag=false;
+    // Keep the later no-mutation assertions tied to the last requested coordinates.
+    assert(input::control_at(env,"mouse_move 4095 0",5150)[0]=='0');
+    // Invalid coordinates, a locked cursor, or unsupported slots cause no event/state change.
+    events.clear();int saved_attempts=attempts;
+    for(const char* bad: {"mouse_move","mouse_move 1","mouse_move 1 2 extra",
+        "mouse_move -1 0","mouse_click 4096 0","mouse_click 1 -1",
+        "mouse_click 1 4096","mouse_move 1.5 0","mouse_movefoo 1 2",
+        "mouse_click 4294967296 0","mouse_move 0000000000000000",
+        "mouse_move +1 2","mouse_move 1e2 0"})
+        assert(input::control_at(env,bad,5000)[0]=='2');
+    assert(events.empty() && attempts==saved_attempts && input::mouse_x==4095 && input::mouse_y==0);
+    input::mouse_locked_flag=true;
+    assert(input::control_at(env,"mouse_move 1 2",5000)[0]=='2');
+    assert(input::control_at(env,"mouse_click 1 2",5000)[0]=='2');
+    assert(events.empty() && attempts==saved_attempts && !input::mouse_button_down);
+    input::mouse_locked_flag=false;
+    for(int slot: {26,28}) {
+        void* saved=input::mouse_slots[slot];input::mouse_slots[slot]=NULL;
+        assert(input::control_at(env,"mouse_click 1 2",5000)[0]=='2');
+        assert(events.empty() && attempts==saved_attempts);
+        input::mouse_slots[slot]=saved;
+    }
+    input::modifier_set_supported=false;
+    assert(input::control_at(env,"mouse_click 1 2",5000)[0]=='2');
+    assert(events.empty() && attempts==saved_attempts && input::physical==0x200);
+    input::modifier_set_supported=true;
+    // A mouse listener can lock after the first position event; do not send the second axis.
+    input::lock_after_x=true;
+    assert(input::control_at(env,"mouse_click 12 34",5000)[0]=='2');
+    assert(events.size()==1 && !input::mouse_button_down && input::physical==0x200);
+    mouse_event(0,269,8,12);input::lock_after_x=input::mouse_locked_flag=false;
+    // Button release bypasses the position lock branch, even if a click listener locks it.
+    events.clear();input::lock_after_down=true;
+    assert(input::control_at(env,"mouse_click 12 34",5000)[0]=='0');
+    assert(events.size()==2 && input::mouse_pending && !input::mouse_button_down);
+    input::tick_at(env,5050);
+    assert(events.size()==3 && input::mouse_button_down && input::mouse_locked_flag);
+    input::tick_at(env,5150);
+    assert(events.size()==4 && !input::mouse_button_down && !input::mouse_held);
+    mouse_event(3,256,2,0);input::lock_after_down=input::mouse_locked_flag=false;
+    // A failed or throwing button-down still reaches button-up; a failed up is retried.
+    for(int failure: {0,1,2}) {
+        events.clear();
+        if(failure==0) fail_at=attempts+3;
+        else if(failure==1) throw_at=attempts+3;
+        else fail_at=attempts+4;
+        assert(input::control_at(env,"mouse_click 12 34",5000)[0]=='0');
+        assert(events.size()==2 && input::mouse_pending && !input::mouse_button_down);
+        input::tick_at(env,5050);
+        if(failure==2) {
+            assert(input::mouse_button_down && input::mouse_held);
+            input::tick_at(env,5150);
+        }
+        assert(!input::mouse_button_down && input::physical==0x200);
+        assert(!input::mouse_held);
+        mouse_event(0,269,8,12);mouse_event(1,270,8,34);
+        mouse_event(events.size()-1,256,2,0);
+        fail_at=throw_at=0;
+    }
+    // Mouse dispatch sees a held test modifier without consuming the keyboard hold.
+    events.clear();
+    assert(input::control_at(env,"ctrl+1 200",5100)[0]=='0');
+    assert(input::control_at(env,"mouse_click 12 34",5100)[0]=='0');
+    mouse_event(2,269,8,12,0x211);
+    assert(input::held.size()==1 && input::physical==0x200 && input::mouse_pending && !input::mouse_button_down);
+    input::tick_at(env,5150);mouse_event(4,256,1,1,0x211);
+    input::tick_at(env,5250);mouse_event(5,256,2,0,0x211);
+    assert(input::held.size()==1 && !input::mouse_held && !input::mouse_button_down);
+    input::tick_at(env,5300);assert(input::held.empty() && input::physical==0x200);
+    // Explicit release cleans both input types before releasing their shared modifiers.
+    events.clear();
+    assert(input::control_at(env,"ctrl+1 200",5400)[0]=='0');
+    assert(input::control_at(env,"mouse_click 12 34",5400)[0]=='0');
+    input::tick_at(env,5450);
+    assert(input::control_at(env,"release",5451)=="0released");
+    assert(events.size()==8 && input::held.empty() && !input::mouse_held && !input::mouse_button_down);
+    event(5,1,false,0x211);mouse_event(6,256,2,0,0x211);event(7,28,false,0x200);
+    // Equal deadlines release mouse1 while the keyboard modifier is still available.
+    events.clear();
+    assert(input::control_at(env,"ctrl+1 150",5500)[0]=='0');
+    assert(input::control_at(env,"mouse_click 12 34",5500)[0]=='0');
+    input::tick_at(env,5550);input::tick_at(env,5650);
+    mouse_event(5,256,2,0,0x211);event(6,1,false,0x211);event(7,28,false,0x200);
+    assert(input::held.empty() && !input::mouse_held && !input::mouse_button_down);
+    // The hold ends 100 ms after the actual delayed press, not the planned press time.
+    events.clear();
+    assert(input::control_at(env,"mouse_click 12 34",5800)[0]=='0');
+    input::tick_at(env,5875);
+    assert(events.size()==3 && input::mouse_button_down && !input::mouse_pending);
+    input::tick_at(env,5974);assert(events.size()==3 && input::mouse_button_down);
+    input::tick_at(env,5975);
+    assert(events.size()==4 && !input::mouse_held && !input::mouse_button_down);
     puts("input event bytes, synchronous modifier shadow/restoration, shared holds, bounds, rollback and deadline release passed");
 }

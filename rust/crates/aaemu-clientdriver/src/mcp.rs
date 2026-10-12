@@ -396,6 +396,12 @@ mod backend {
                         driver.send(&Request::Input(command))?.into_result()?,
                     ))
                 }
+                "client_pointer" => {
+                    let command = actions::pointer_command(args)?;
+                    Ok(text_result(
+                        driver.send(&Request::Input(command))?.into_result()?,
+                    ))
+                }
                 name if actions::is_tool(name) => {
                     let (target, code) = actions::request(name, args)?;
                     let response = driver.send(&Request::Lua(target, code))?.into_result()?;
@@ -604,7 +610,7 @@ mod tests {
         assert_eq!(results.len(), 2);
         assert_eq!(results[0]["result"]["protocolVersion"], VERSION);
         assert_eq!(results[1]["id"], "list");
-        assert_eq!(results[1]["result"]["tools"].as_array().unwrap().len(), 18);
+        assert_eq!(results[1]["result"]["tools"].as_array().unwrap().len(), 19);
     }
     #[test]
     fn schema_errors_are_distinct_from_execution_errors() {

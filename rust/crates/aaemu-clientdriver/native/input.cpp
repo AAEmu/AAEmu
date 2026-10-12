@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+#include <sstream>
 #include "input.h"
 
 namespace input {
@@ -10,6 +11,9 @@ namespace input {
 // One shared declaration lets the optimized fixture see getter/setter aliasing.
 extern int physical;
 extern bool modifier_get_supported,modifier_set_supported;
+extern void* mouse_slots[29];
+extern unsigned char mouse_module[0x5000];
+extern bool mouse_locked_flag;
 #endif
 struct Key { const char* name; int id; int modifier; };
 // r208022 keyboard key IDs (escape = 0, number row, tab, Q/W/E..., space = 56).
@@ -25,6 +29,9 @@ static const Key modifiers[] = {{"lctrl",28,0x11},{"shift",41,0x22},{"alt",55,0x
 static const char* modifier_names[] = {"ctrl","shift","alt"};
 struct Held { const Key* key; int modifiers; ULONGLONG until; };
 static std::vector<Held> held;
+static bool mouse_held=false;
+static bool mouse_pending=false;
+static ULONGLONG mouse_until=0;
 // SInputEvent from CryInput.dll sub_3350439C: 32 bytes, value at +24.
 struct Event { int device, state; const char* name; int id, unicode, modifiers;
     float value; void* symbol; };
@@ -123,6 +130,107 @@ static int held_modifiers() {
     for(size_t i=0;i<held.size();++i) mask|=held[i].modifiers;
     return mask;
 }
+static bool mouse_slots_supported(void** slots,BYTE* module) {
+    // CMessageInput vtable RVA C850, forwarding to the owned mouse device.
+    return slots[26]==module+0x4564 && slots[28]==module+0x457C;
+}
+static bool checked_mouse(void* env) {
+    if(!checked(env) || !modifier_state_supported(env)) return false;
+#ifdef AADRIVER_INPUT_TEST
+    return mouse_slots_supported(mouse_slots,mouse_module);
+#else
+    void* object=checked(env);
+    BYTE* module=(BYTE*)GetModuleHandleA("CryInput.dll");
+    if(!mouse_slots_supported(*(void***)object,module)) return false;
+    void* device=*(void**)((BYTE*)object+0x68);
+    return device && *((int*)((BYTE*)device+4))==1
+        && (*(void***)device)[14]==module+0x49E7
+        && (*(void***)device)[16]==module+0x4F7C;
+#endif
+}
+static bool mouse_locked(void* env) {
+#ifdef AADRIVER_INPUT_TEST
+    (void)env;
+    return mouse_locked_flag;
+#else
+    void* object=checked(env);
+    typedef bool (__thiscall *Get)(void*);
+    return ((Get)(*(void***)object)[28])(object);
+#endif
+}
+static bool mouse_event(void* env,int id,int state,const char* name,float value) {
+    if(!checked_mouse(env)) return false;
+    Event event={1,state,name,id,0,physical_modifiers(env)|held_modifiers(),value,NULL};
+    try {
+#ifndef AADRIVER_INPUT_TEST
+        void* object=checked(env);
+        EnabledInput enabled(object);
+#endif
+        ModifierShadow shadow(env,event.modifiers);
+#ifdef AADRIVER_INPUT_TEST
+        extern bool record_mouse(const Event&);
+        return record_mouse(event);
+#else
+        typedef void (__thiscall *Mouse)(void*,const Event&);
+        ((Mouse)(*(void***)object)[26])(object,event);
+        return true;
+#endif
+    } catch(...) { return false; }
+}
+static void mouse_up(void* env) {
+    // Mouse1 bypasses the position-lock branch, including after a listener locks it.
+    if(!mouse_event(env,256,2,"mouse1",0.f)) mouse_event(env,256,2,"mouse1",0.f);
+}
+static void release_mouse(void* env) {
+    if(!mouse_held) return;
+    bool pressed=!mouse_pending;
+    mouse_held=false;
+    mouse_pending=false;
+    if(pressed) mouse_up(env);
+}
+static void tick_mouse(void* env,ULONGLONG now) {
+    if(!mouse_held || now<mouse_until) return;
+    if(!mouse_pending) { release_mouse(env);return; }
+    if(!checked_mouse(env) || mouse_locked(env)) {
+        // Cancel a queued click without a button-up when no press occurred.
+        mouse_held=mouse_pending=false;
+        return;
+    }
+    mouse_pending=false;
+    if(!mouse_event(env,256,1,"mouse1",1.f)) { release_mouse(env);return; }
+    mouse_until=now+100;
+}
+static std::string mouse_control(void* env,const std::string& command,bool click,ULONGLONG now) {
+    std::istringstream words(command);
+    std::string name,x_text,y_text,extra;
+    unsigned coords[2]={0,0};
+    if(!(words>>name>>x_text>>y_text) || (words>>extra)
+        || name!=(click?"mouse_click":"mouse_move"))
+        return "2mouse input expects client-pixel x y within 0..4095";
+    const std::string* texts[2]={&x_text,&y_text};
+    for(int i=0;i<2;++i) for(char digit:*texts[i]) {
+        if(digit<'0' || digit>'9' || coords[i]>409 || coords[i]*10+(digit-'0')>4095)
+            return "2mouse input expects client-pixel x y within 0..4095";
+        coords[i]=coords[i]*10+(digit-'0');
+    }
+    unsigned x=coords[0],y=coords[1];
+    if(click && mouse_held) return "2mouse button already held; release first";
+    if(!checked_mouse(env)) return "2CryInput mouse is not the supported r208022 build";
+    // The native locked-position path calls SetCursorPos; never enter that path.
+    if(mouse_locked(env)) return "2mouse input unavailable while native mouse is locked";
+    if(!mouse_event(env,269,8,"pos_x",(float)x)) return "2mouse input unavailable";
+    // A synchronous listener can change mouse-lock state after the first axis.
+    if(mouse_locked(env)) return "2mouse input became locked";
+    if(!mouse_event(env,270,8,"pos_y",(float)y)) return "2mouse input unavailable";
+    if(!click) return "0mouse moved";
+    if(mouse_locked(env)) return "2mouse input became locked";
+    mouse_held=true;
+    mouse_pending=true;
+    // The driver ticks after native Update and before draining new requests. A queued
+    // position therefore receives at least one Update before the next eligible press.
+    mouse_until=now+50;
+    return "0mouse click queued (press after 50 ms, release 100 ms later; verify the resulting action)";
+}
 static void release_modifiers(void* env,int before,int after) {
     for(int i=2;i>=0;--i) {
         const Key& key=modifiers[i];
@@ -136,10 +244,13 @@ void release(void* env) {
     int mask=held_modifiers();
     // All primary keys leave before any chord modifiers.
     for(size_t i=0;i<held.size();++i) post(env,*held[i].key,false,physical_modifiers(env)|mask);
+    release_mouse(env);
     held.clear();
     release_modifiers(env,mask,0);
 }
 static void tick_at(void* env,ULONGLONG now) {
+    // Release before same-deadline keyboard modifiers, with no dependency on the pipe.
+    tick_mouse(env,now);
     for(size_t i=0;i<held.size();) {
         if(now>=held[i].until) {
             int mask=held_modifiers();
@@ -154,6 +265,8 @@ static void tick_at(void* env,ULONGLONG now) {
 void tick(void* env) { tick_at(env,GetTickCount64()); }
 static std::string control_at(void* env,const std::string& command,ULONGLONG now) {
     if(command=="release") { release(env);return "0released"; }
+    if(command.compare(0,10,"mouse_move")==0) return mouse_control(env,command,false,now);
+    if(command.compare(0,11,"mouse_click")==0) return mouse_control(env,command,true,now);
     char name[32]={0},extra=0;unsigned duration=0;
     if(sscanf_s(command.c_str(),"%31s %u %c",name,(unsigned)sizeof(name),&duration,&extra,1)!=2
         || duration<1 || duration>10000) return "2input expects a supported key and duration 1..10000 ms";
