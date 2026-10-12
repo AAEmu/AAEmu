@@ -1648,25 +1648,27 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 house,
                 mail.Body.BillingAmount,
                 ItemTaskType.Mail,
-                autoUseAAPoint))
+                autoUseAAPoint,
+                out var contributionCharged))
             return false;
 
-        if (!housingManager.Value.PayWeeklyTax(house))
-            Logger.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
-        else
+        if (!housingManager.Value.CompleteHouseTaxPayment(
+                character, house, mail.Body.BillingAmount, contributionCharged))
         {
-            if (mail.Header.Status != MailStatus.Read)
-            {
-                mail.Header.Status = MailStatus.Read;
-                character.Mails.UnreadMailCount.UpdateReceived(mail.MailType, -1);
-            }
-
-            character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));
-            character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.UnreadMailCount));
-            DeleteMail(mail);
-            character.Mails.SendUnreadMailCount();
+            Logger.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
+            return false;
         }
 
+        if (mail.Header.Status != MailStatus.Read)
+        {
+            mail.Header.Status = MailStatus.Read;
+            character.Mails.UnreadMailCount.UpdateReceived(mail.MailType, -1);
+        }
+
+        character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));
+        character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.UnreadMailCount));
+        DeleteMail(mail);
+        character.Mails.SendUnreadMailCount();
         return true;
     }
 

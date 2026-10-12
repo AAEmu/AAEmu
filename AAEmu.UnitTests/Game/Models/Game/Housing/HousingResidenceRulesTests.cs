@@ -39,11 +39,30 @@ public class HousingResidenceRulesTests
         await Assert.That(HousingTaxPaymentRules.UsesContributionTax(false)).IsFalse();
         await Assert.That(HousingTaxPaymentRules.ResolveTaxType(true, taxItemFeature: true))
             .IsEqualTo(HousingTaxPaymentRules.TaxTypeContribution);
+        await Assert.That(HousingTaxPaymentRules.ResolveTaxType(true, taxItemFeature: false))
+            .IsEqualTo(HousingTaxPaymentRules.TaxTypeContribution);
         await Assert.That(HousingTaxPaymentRules.ResolveTaxType(false, taxItemFeature: true))
             .IsEqualTo(HousingTaxPaymentRules.TaxTypeSeal);
-        // Client Lua: HOUSING_TAX_SEAL=1, HOUSING_TAX_CONTRIBUTION=2 (not 0).
+        // Ordinary houses with TaxItem off bill gold copper, not contribution.
+        await Assert.That(HousingTaxPaymentRules.ResolveTaxType(false, taxItemFeature: false))
+            .IsEqualTo(HousingTaxPaymentRules.TaxTypeGold);
+        // Client Lua: HOUSING_TAX_SEAL=1, HOUSING_TAX_CONTRIBUTION=2.
         await Assert.That(HousingTaxPaymentRules.TaxTypeSeal).IsEqualTo((byte)1);
         await Assert.That(HousingTaxPaymentRules.TaxTypeContribution).IsEqualTo((byte)2);
+        await Assert.That(HousingTaxPaymentRules.TaxTypeGold).IsEqualTo((byte)0);
+    }
+
+    [Test]
+    public async Task ResolveOwningExpedition_PrefersResidenceNamedGuild()
+    {
+        var named = new SystemFaction { Id = (FactionsEnum)100 };
+        var current = new SystemFaction { Id = (FactionsEnum)200 };
+
+        await Assert.That(HousingResidenceRules.ResolveOwningExpedition(named, current).Id)
+            .IsEqualTo(named.Id);
+        await Assert.That(HousingResidenceRules.ResolveOwningExpedition(null, current).Id)
+            .IsEqualTo(current.Id);
+        await Assert.That(HousingResidenceRules.ResolveOwningExpedition(null, null)).IsNull();
     }
 
     [Test]
@@ -56,5 +75,7 @@ public class HousingResidenceRulesTests
         // Seals use tax_gold_ratio 10000.
         await Assert.That(HousingTaxPaymentRules.CurrencyUnits(600000, 10000)).IsEqualTo(60);
         await Assert.That(HousingTaxPaymentRules.CurrencyUnits(0, 100)).IsEqualTo(0);
+        await Assert.That(HousingTaxPaymentRules.DepositCopper(200000)).IsEqualTo(400000);
+        await Assert.That(HousingTaxPaymentRules.DepositCopper(0)).IsEqualTo(0);
     }
 }

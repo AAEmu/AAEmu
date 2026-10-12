@@ -28,4 +28,13 @@ public static class HousingResidenceRules
             return current;
         return expedition;
     }
+
+    /// <summary>
+    /// Prefer the guild that still names this house as its residence. The placer's current
+    /// membership is only a fallback (placement, before <c>residence_house_id</c> is written).
+    /// </summary>
+    public static SystemFaction ResolveOwningExpedition(
+        SystemFaction residenceNamedGuild,
+        SystemFaction ownerCurrentGuild) =>
+        residenceNamedGuild ?? ownerCurrentGuild;
 }

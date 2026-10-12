@@ -43,7 +43,9 @@ public interface IHousingManager
     void HousingTradeList(GameConnection connection, short zoneGroup);
     void SendTownhallState(GameConnection connection, short zoneGroup);
     bool PayWeeklyTax(House house);
-    bool TryChargeTaxForHouse(Character character, House house, int taxCopper, ItemTaskType taskType, bool useAaPoint);
+    bool TryChargeTaxForHouse(Character character, House house, int taxCopper, ItemTaskType taskType, bool useAaPoint,
+        out int contributionCharged);
+    bool CompleteHouseTaxPayment(Character character, House house, int taxCopper, int contributionCharged);
     bool PrepayHouseTax(GameConnection connection, ushort tlId, bool useAaPoint);
     (int, int) Save(MySqlConnection connection, MySqlTransaction transaction);
     void ReconcileBoundDoodads();

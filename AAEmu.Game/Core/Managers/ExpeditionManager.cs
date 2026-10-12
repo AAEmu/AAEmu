@@ -664,6 +664,58 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         return res;
     }
 
+    /// <summary>
+    /// Credits prestige to a member row (online or offline). Used when demolishing a guild
+    /// residence so the placement deposit returns in the same currency it was charged.
+    /// </summary>
+    public bool TryCreditContributionPoints(uint characterId, uint expeditionId, int amount)
+    {
+        if (characterId == 0 || expeditionId == 0 || amount <= 0)
+            return false;
+
+        var online = worldManager.GetCharacterById(characterId);
+        if (online?.Expedition is { } onlineGuild &&
+            (uint)onlineGuild.Id == expeditionId &&
+            onlineGuild.GetMember(online) != null)
+            return TryChangeContributionPoints(online, amount, false);
+
+        var expedition = GetExpedition((FactionsEnum)expeditionId);
+        if (expedition == null)
+            return false;
+
+        using var persistenceOperation = PersistenceOperationScope.Enter();
+        lock (expedition.SyncRoot)
+        {
+            var member = expedition.Members.FirstOrDefault(m => m.CharacterId == characterId);
+            if (member == null)
+                return false;
+
+            lock (member)
+            {
+                var newTotal = (long)member.ContributionPoint + amount;
+                if (newTotal > uint.MaxValue)
+                    return false;
+
+                using var connection = persistenceConnections.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText =
+                    "UPDATE expedition_members SET contribution_point = @contribution_point WHERE character_id = @character_id AND expedition_id = @expedition_id AND contribution_point = @previous";
+                command.Parameters.AddWithValue("@contribution_point", (uint)newTotal);
+                command.Parameters.AddWithValue("@character_id", characterId);
+                command.Parameters.AddWithValue("@expedition_id", expeditionId);
+                command.Parameters.AddWithValue("@previous", member.ContributionPoint);
+                if (command.ExecuteNonQuery() != 1)
+                    return false;
+
+                member.ContributionPoint = (uint)newTotal;
+            }
+
+            expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0), worldManager);
+            expedition.SendDescriptor(worldManager);
+            return true;
+        }
+    }
+
     public bool TryChangeContributionPoints(Character character, int amount, bool addToWeeklyTotal)
     {
         var expedition = character.Expedition;

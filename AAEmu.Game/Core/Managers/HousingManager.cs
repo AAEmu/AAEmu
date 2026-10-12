@@ -178,8 +178,11 @@ public class HousingManager(
         var dirty = house.Permission != HousingPermission.Guild;
         house.Permission = HousingPermission.Guild;
 
-        var expedition = house.Expedition
-                         ?? ExpeditionManager.Instance.Expeditions.FirstOrDefault(e => e.ResidenceHouseId == house.Id);
+        // ResidenceHouseId is authoritative once set; House.Expedition follows the placer's
+        // current guild and would reassign the building if they join another.
+        var residenceNamed = ExpeditionManager.Instance.Expeditions
+            .FirstOrDefault(e => e.ResidenceHouseId == house.Id);
+        var expedition = residenceNamed ?? house.Expedition;
         if (expedition == null)
         {
             if (dirty)
@@ -1467,16 +1470,20 @@ public class HousingManager(
 
         CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out _, out _, out _, out _);
 
+        var placingExpeditionResidence = HousingGameData.Instance.IsExpeditionResidenceTemplate(designId);
         if (!TryChargeHousingTax(
                 connection.ActiveChar,
                 totalTaxAmountDue,
-                HousingGameData.Instance.IsExpeditionResidenceTemplate(designId),
+                placingExpeditionResidence,
                 ItemTaskType.HouseCreation,
-                autoUseAaPoint))
+                autoUseAaPoint,
+                out var placementContributionCharged))
             return;
 
         if (connection.ActiveChar.Inventory.Bag.ConsumeItem(ItemTaskType.HouseBuilding, sourceDesignItem.TemplateId, 1, sourceDesignItem) <= 0)
         {
+            RefundHousingTaxCharge(
+                connection.ActiveChar, totalTaxAmountDue, placingExpeditionResidence, placementContributionCharged);
             connection.ActiveChar.SendErrorMessage(ErrorMessageType.BagInvalidItem);
             return;
         }
@@ -1532,6 +1539,10 @@ public class HousingManager(
         if (WorldIntegration.ZoneAuthority)
             HousingZoneBridge.NotifyZoneHouseCreated(house);
         UpdateTaxInfo(house);
+
+        // Prestige (and gold/seal) already left the wallet — persist the new row before the next
+        // SaveManager tick so a crash cannot keep the debit without the house.
+        SaveHouseNow(house);
 
         if (HousingGameData.Instance.IsExpeditionResidenceTemplate(designId) && connection.ActiveChar.Expedition != null)
         {
@@ -1821,13 +1832,41 @@ public class HousingManager(
         House house,
         int taxCopper,
         ItemTaskType taskType,
-        bool useAaPoint) =>
+        bool useAaPoint,
+        out int contributionCharged) =>
         TryChargeHousingTax(
             character,
             taxCopper,
             HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId),
             taskType,
-            useAaPoint);
+            useAaPoint,
+            out contributionCharged);
+
+    /// <summary>
+    /// Extends protection after a successful tax charge and writes the house row immediately so a
+    /// prestige debit cannot outlive an unsaved <c>ProtectionEndDate</c>.
+    /// </summary>
+    public bool CompleteHouseTaxPayment(Character character, House house, int taxCopper, int contributionCharged)
+    {
+        if (house == null)
+            return false;
+        if (!PayWeeklyTax(house))
+        {
+            RefundHousingTaxCharge(
+                character,
+                taxCopper,
+                HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId),
+                contributionCharged);
+            return false;
+        }
+
+        return TryPersistHouseAfterTaxCharge(
+            character,
+            house,
+            taxCopper,
+            HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId),
+            contributionCharged);
+    }
 
     /// <summary>
     /// Charges placement or upkeep tax in the currency the house family uses: guild residences debit
@@ -1839,8 +1878,10 @@ public class HousingManager(
         int taxCopper,
         bool isExpeditionResidence,
         ItemTaskType taskType,
-        bool useAaPoint)
+        bool useAaPoint,
+        out int contributionCharged)
     {
+        contributionCharged = 0;
         if (taxCopper <= 0)
             return true;
 
@@ -1854,6 +1895,7 @@ public class HousingManager(
                 return false;
             }
 
+            contributionCharged = cost;
             return true;
         }
 
@@ -2134,15 +2176,23 @@ public class HousingManager(
                 out _, out _, out _, out _, out var weeklyTax))
             return false;
 
+        var isExpeditionResidence = HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId);
         if (!TryChargeHousingTax(
                 character,
                 weeklyTax,
-                HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId),
+                isExpeditionResidence,
                 ItemTaskType.HouseDeposit,
-                useAaPoint))
+                useAaPoint,
+                out var contributionCharged))
             return false;
 
         if (!PayWeeklyTax(house))
+        {
+            RefundHousingTaxCharge(character, weeklyTax, isExpeditionResidence, contributionCharged);
+            return false;
+        }
+
+        if (!TryPersistHouseAfterTaxCharge(character, house, weeklyTax, isExpeditionResidence, contributionCharged))
             return false;
 
         UpdateTaxInfo(house);
@@ -2346,10 +2396,31 @@ public class HousingManager(
                 Logger.Error($"Was unable to find design items for demolishing {house.Name} ({house.Id}). HouseTemplateId: {house.Template.Id}, DesignItemId: {designItemId}");
             }
 
-            // Return taxes
+            // Return the placement deposit in the same currency the house charged.
             if (!failedToPayTax)
             {
-                if (FeaturesManager.Fsets.TaxItem)
+                var weeklyCopper = (int)(house.Template.Taxation?.Tax ?? 0);
+                if (HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId))
+                {
+                    var ratio = ContentConfigGameData.Instance.RequireInt(
+                        HousingTaxPaymentRules.ContributionGoldRatioKey);
+                    var prestige = HousingTaxPaymentRules.CurrencyUnits(
+                        HousingTaxPaymentRules.DepositCopper(weeklyCopper), ratio);
+                    if (prestige > 0)
+                    {
+                        var expeditionId = (uint)(ExpeditionManager.Instance.Expeditions
+                            .FirstOrDefault(e => e.ResidenceHouseId == house.Id)?.Id
+                            ?? house.Faction?.Id ?? 0);
+                        if (!ExpeditionManager.Instance.TryCreditContributionPoints(
+                                ownerId, expeditionId, prestige))
+                        {
+                            Logger.Warn(
+                                "ReturnHouseItemsToOwner: could not refund {0} prestige for house {1} owner {2} guild {3}",
+                                prestige, house.Id, ownerId, expeditionId);
+                        }
+                    }
+                }
+                else if (FeaturesManager.Fsets.TaxItem)
                 {
                     var taxItem = itemManager.Create(Item.BoundTaxCertificate, (int)(house.Template.Taxation.Tax / 5000), 0);
                     taxItem.OwnerId = ownerId;
@@ -2358,7 +2429,7 @@ public class HousingManager(
                 }
                 else
                 {
-                    returnedMoney = (int)(house.Template.Taxation.Tax * 2);
+                    returnedMoney = HousingTaxPaymentRules.DepositCopper(weeklyCopper);
                 }
             }
         }
@@ -2618,6 +2689,48 @@ public class HousingManager(
         using var transaction = connection.BeginTransaction();
         house.Save(connection, transaction);
         transaction.Commit();
+    }
+
+    private bool TryPersistHouseAfterTaxCharge(
+        Character character,
+        House house,
+        int taxCopper,
+        bool isExpeditionResidence,
+        int contributionCharged)
+    {
+        try
+        {
+            SaveHouseNow(house);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to persist house {0} after tax charge; refunding payment", house.Id);
+            RefundHousingTaxCharge(character, taxCopper, isExpeditionResidence, contributionCharged);
+            return false;
+        }
+    }
+
+    private static void RefundHousingTaxCharge(
+        Character character,
+        int taxCopper,
+        bool isExpeditionResidence,
+        int contributionCharged)
+    {
+        if (character == null || taxCopper <= 0)
+            return;
+
+        if (HousingTaxPaymentRules.UsesContributionTax(isExpeditionResidence))
+        {
+            if (contributionCharged > 0)
+                ExpeditionManager.Instance.TryChangeContributionPoints(character, contributionCharged, false);
+            return;
+        }
+
+        // Seal / gold placement refunds are rare (design consume failure). Seal stacks are not
+        // reconstructed here; gold returns the copper bill.
+        if (!FeaturesManager.Fsets.TaxItem)
+            character.ChangeMoney(SlotType.Inventory, taxCopper);
     }
 
     /// <summary>
