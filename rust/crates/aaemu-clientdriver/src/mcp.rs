@@ -396,6 +396,20 @@ mod backend {
                         driver.send(&Request::Input(command))?.into_result()?,
                     ))
                 }
+                "client_mode_input" => {
+                    let (target, code) = actions::request(name, args)?;
+                    let response = driver.send(&Request::Lua(target, code))?.into_result()?;
+                    let mut value: Value = serde_json::from_str(&response)
+                        .context("mode action returned invalid JSON")?;
+                    let command = actions::mode_input_command(args, &value)?;
+                    let input_response = driver.send(&Request::Input(command))?.into_result()?;
+                    value["submitted"] = json!(true);
+                    value["input_response"] = json!(input_response);
+                    let response = value.to_string();
+                    Ok(
+                        json!({"content":[{"type":"text","text":response}],"structuredContent":value,"isError":false}),
+                    )
+                }
                 "client_pointer" => {
                     let command = actions::pointer_command(args)?;
                     Ok(text_result(
@@ -610,7 +624,7 @@ mod tests {
         assert_eq!(results.len(), 2);
         assert_eq!(results[0]["result"]["protocolVersion"], VERSION);
         assert_eq!(results[1]["id"], "list");
-        assert_eq!(results[1]["result"]["tools"].as_array().unwrap().len(), 21);
+        assert_eq!(results[1]["result"]["tools"].as_array().unwrap().len(), 22);
     }
     #[test]
     fn schema_errors_are_distinct_from_execution_errors() {

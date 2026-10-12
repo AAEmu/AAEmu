@@ -13,6 +13,7 @@ pub fn tools(pid: Value) -> Vec<Value> {
         tool("client_inventory", "Read inventory slots, item templates, names, counts and use skills from the live client. bag_id defaults to 1 (inventory).",json!({"pid":pid,"bag_id":{"type":"integer","minimum":1,"maximum":2}}), &[], true),
         tool("client_unit_state", "Read the player or current target's native opaque unit ID, distance, name, health, maximum health and at most 32 visible buffs and 32 visible debuffs, indexed from 1. An absent target returns present=false without fabricated health. target defaults to target. Requires an in-world character; does not target or cast.",json!({"pid":pid,"target":{"type":"string","enum":["player","target"],"default":"target"}}), &[], true),
         tool("client_loot", "Read the current native loot bag, up to 32 one-based item rows, and effective pixel bounds of its Take All button. Requires an in-world character; does not open a corpse or take items.",json!({"pid":pid}), &[], true),
+        tool("client_mode_input", "Press an active mode action slot's actual native GetHotKey binding through CryInput. Requires an in-world character, an available skill button and a supported key/chord. Rejects missing, unavailable, unbound or unsupported slots; never clicks, rebinds or enables a widget. Returns the observed binding and submitted input; verify the resulting cast separately.",json!({"pid":pid,"slot":{"type":"integer","minimum":1,"maximum":10},"duration_ms":{"type":"integer","minimum":1,"maximum":10000}}), &["slot"], false),
         tool("client_mode_actions", "Read the active 1.2 mode action bar, including fishing rod actions, native tooltips, client-pixel widget bounds, availability, cooldowns, active hotkeys and staged option binding rows. Requires a character in the world; does not change bindings or cast skills.",json!({"pid":pid}), &[], true),
         tool("client_use_item", "Use an owned inventory item through its normal client skill cast. Returns whether the client accepted the cast, not a guarantee the server completed it; verify entities and vehicle status after casting/portal time.",json!({"pid":pid,"item_template_id":{"type":"integer","minimum":1,"maximum":u32::MAX}}), &["item_template_id"], false),
         tool("client_chat", "Send a message or GM command through the normal Say channel. Server permissions still apply. Requires a character in the world.",json!({"pid":pid,"message":{"type":"string","minLength":1,"maxLength":512}}), &["message"], false),
@@ -29,6 +30,7 @@ pub fn is_tool(name: &str) -> bool {
             | "client_unit_state"
             | "client_loot"
             | "client_mode_actions"
+            | "client_mode_input"
             | "client_use_item"
             | "client_chat"
             | "client_vehicle"
@@ -138,6 +140,70 @@ pub fn input_command(args: &Value) -> anyhow::Result<String> {
     Ok(format!("{prefix}{key} {duration}"))
 }
 
+/// Convert the observed mode button's binding into the existing native input
+/// command. Do not substitute default/staged bindings for an empty active key.
+#[cfg(any(windows, test))]
+pub fn mode_input_command(args: &Value, state: &Value) -> anyhow::Result<String> {
+    let slot = args["slot"].as_u64().context("missing mode slot")?;
+    if !(1..=10).contains(&slot) || state["slot"].as_u64() != Some(slot) {
+        bail!("mode slot must be the requested active slot 1..10");
+    }
+    if state["can_use"].as_bool() != Some(true) {
+        bail!("mode action is unavailable");
+    }
+    if state["binded_type"] != "skill"
+        || !state["skill_id"]
+            .as_u64()
+            .is_some_and(|id| id > 0 && id <= u64::from(u32::MAX))
+    {
+        bail!("mode slot is not bound to a valid skill");
+    }
+    let hotkey = state["hotkey"]
+        .as_str()
+        .context("mode action has no active hotkey")?;
+    if hotkey.is_empty() || hotkey.len() > 64 || !hotkey.is_ascii() {
+        bail!("mode action has an empty or unsupported active hotkey");
+    }
+    let normalized = hotkey.to_ascii_lowercase();
+    let mut parts: Vec<_> = normalized.split(['-', '+']).collect();
+    let key = parts.pop().context("mode action has no active key")?;
+    if !matches!(
+        key,
+        "w" | "a"
+            | "s"
+            | "d"
+            | "q"
+            | "e"
+            | "r"
+            | "t"
+            | "y"
+            | "u"
+            | "i"
+            | "o"
+            | "p"
+            | "space"
+            | "f"
+            | "g"
+            | "1"
+            | "2"
+            | "3"
+            | "4"
+            | "5"
+            | "6"
+            | "7"
+            | "8"
+            | "9"
+            | "0"
+    ) {
+        bail!("unsupported mode action hotkey {hotkey}");
+    }
+    let duration = match args.get("duration_ms") {
+        Some(value) => value.as_u64().context("duration_ms must be an integer")?,
+        None => 100,
+    };
+    input_command(&json!({"key":key,"modifiers":parts,"duration_ms":duration}))
+}
+
 #[cfg(any(windows, test))]
 pub fn pointer_command(args: &Value) -> anyhow::Result<String> {
     let action = args["action"].as_str().context("missing action")?;
@@ -169,6 +235,13 @@ pub fn request(name: &str, args: &Value) -> anyhow::Result<(Target, String)> {
                 bail!("target must be player or target");
             }
             (Target::Ui, format!("{WORLD}local unit={}\n{UNIT_STATE}",quote(unit)))
+        },
+        "client_mode_input" => {
+            let slot = args["slot"].as_u64().context("missing mode slot")?;
+            if !(1..=10).contains(&slot) {
+                bail!("mode slot must be 1..10");
+            }
+            (Target::Ui, format!("{WORLD}local slot={slot} local count=X2Unit:GetModeActionsCount() or 0 assert(slot<=math.min(count,10),'mode slot is not active') local b=modeSkillActionBar and modeSkillActionBar.buttons and modeSkillActionBar.buttons[slot] assert(b,'mode action button is missing') assert(b.canUse==true,'mode action is unavailable') local binded=b:GetBindedType() assert(binded=='skill','mode slot is not bound to a skill') local info=b:GetTooltip() assert(type(info)=='table' and info.tipType=='skill' and type(info.type)=='number' and info.type>0,'mode slot has no valid skill') local hotkey=b:GetHotKey() assert(type(hotkey)=='string' and #hotkey>0,'mode action has no active hotkey') local result={{slot=slot,can_use=b.canUse,binded_type=binded,hotkey=hotkey,skill_id=info.type,skill_name=info.name}}"))
         },
         "client_mode_actions" => (Target::Ui,format!("{WORLD}local count=X2Unit:GetModeActionsCount() local slots={{}} for i=1,math.min(count,10) do local b=modeSkillActionBar and modeSkillActionBar.buttons and modeSkillActionBar.buttons[i] if b then local x,y=b:GetEffectiveOffset() local width,height=b:GetEffectiveExtent() slots[tostring(i)]={{slot=i,bounds={{x=x,y=y,width=width,height=height}},binded_type=b:GetBindedType(),info=b:GetTooltip(),can_use=b.canUse,cooldown=b.cooldown,cooldown_duration=b.cooldownDuration,skill_level=b.skillLevel,learned=b.learned,hotkey=b:GetHotKey(),staged_primary=X2Hotkey:GetOptionBinding('mode_action_bar_button',1,true,i),staged_secondary=X2Hotkey:GetOptionBinding('mode_action_bar_button',2,true,i)}} end end local result={{count=count,slots=slots}}")),
         "client_vehicle" => { let act=args["action"].as_str().unwrap_or("status");
@@ -222,6 +295,106 @@ mod tests {
                 .is_err()
         );
     }
+    #[test]
+    fn mode_input_uses_observed_bindings_and_rejects_unavailable_or_unsupported_actions() {
+        let args = json!({"slot":7});
+        let observed = |hotkey| json!({"slot":7,"can_use":true,"binded_type":"skill","skill_id":21290,"hotkey":hotkey});
+        for (hotkey, expected) in [
+            ("r", "r 100"),
+            ("CTRL-8", "ctrl+8 100"),
+            ("shift-alt-CTRL-0", "ctrl+shift+alt+0 100"),
+            ("Ctrl+Shift+P", "ctrl+shift+p 100"),
+            ("SPACE", "space 100"),
+        ] {
+            assert_eq!(
+                mode_input_command(&args, &observed(hotkey)).unwrap(),
+                expected
+            );
+        }
+        assert_eq!(
+            mode_input_command(&json!({"slot":7,"duration_ms":250}), &observed("CTRL-8")).unwrap(),
+            "ctrl+8 250"
+        );
+        for hotkey in [
+            "",
+            "release",
+            "F1",
+            "META-8",
+            "CTRL-CTRL-8",
+            "CTRL-",
+            "-8",
+            "CTRL-8-extra",
+            " CTRL-8",
+            "é",
+        ] {
+            assert!(mode_input_command(&args, &observed(hotkey)).is_err());
+        }
+        for (field, value) in [
+            ("slot", json!(6)),
+            ("can_use", json!(false)),
+            ("can_use", Value::Null),
+            ("binded_type", json!("function")),
+            ("skill_id", json!(0)),
+            ("skill_id", json!("21290")),
+            ("hotkey", Value::Null),
+        ] {
+            let mut state = observed("CTRL-8");
+            state[field] = value;
+            assert!(mode_input_command(&args, &state).is_err());
+        }
+        for args in [
+            json!({"slot":0}),
+            json!({"slot":11}),
+            json!({"slot":7,"duration_ms":0}),
+            json!({"slot":7,"duration_ms":10001}),
+        ] {
+            assert!(mode_input_command(&args, &observed("CTRL-8")).is_err());
+        }
+    }
+
+    #[test]
+    fn mode_input_queries_current_slot_without_mutating_buttons_or_bindings() {
+        let definition = tools(json!({"type":"integer"}))
+            .into_iter()
+            .find(|t| t["name"] == "client_mode_input")
+            .unwrap();
+        assert_eq!(definition["annotations"]["readOnlyHint"], false);
+        assert!(is_tool("client_mode_input"));
+        for slot in [1, 10] {
+            super::super::validate(&definition["inputSchema"], &json!({"slot":slot})).unwrap();
+        }
+        for args in [
+            json!({}),
+            json!({"slot":0}),
+            json!({"slot":11}),
+            json!({"slot":1.5}),
+            json!({"slot":7,"hotkey":"r"}),
+            json!({"slot":7,"duration_ms":10001}),
+        ] {
+            assert!(super::super::validate(&definition["inputSchema"], &args).is_err());
+        }
+        let (target, code) = request("client_mode_input", &json!({"slot":7})).unwrap();
+        assert_eq!(target, Target::Ui);
+        assert!(code.contains(WORLD));
+        assert!(code.contains("local slot=7"));
+        assert!(code.contains("slot<=math.min(count,10)"));
+        assert!(code.contains("b.canUse==true"));
+        assert!(code.contains("b:GetBindedType()"));
+        assert!(code.contains("b:GetTooltip()"));
+        assert!(code.contains("b:GetHotKey()"));
+        for forbidden in [
+            "SetOptionBinding",
+            "GetOptionBinding",
+            "SetHotKey",
+            "Enable(",
+            "ExcuteActionHandler",
+            "OnClick",
+            "mouse_",
+        ] {
+            assert!(!code.contains(forbidden));
+        }
+    }
+
     #[test]
     fn mode_actions_are_bounded_read_only_telemetry() {
         let definition = tools(json!({"type":"integer"}))

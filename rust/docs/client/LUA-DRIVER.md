@@ -344,7 +344,7 @@ messages. The launcher inherits only the two ticket handles so its output pipes 
 while the client stays alive. Tools are `client_list`, `client_attach`, `client_status`,
 `client_launch`, `client_lua`, `client_screenshot`, `client_window`, `client_pak` and `client_stop`.
 Vehicle and gameplay tests also have `client_input`, `client_action`, `client_inventory`, `client_mode_actions`,
-`client_unit_state`, `client_loot`, `client_use_item`, `client_chat`, `client_vehicle`, `client_entities` and `client_perf`.
+`client_unit_state`, `client_mode_input`, `client_loot`, `client_use_item`, `client_chat`, `client_vehicle`, `client_entities` and `client_perf`.
 Launch defaults to silent audio and fast hidden rendering with normal-priority CPU calibration and 64 KB pak
 read-ahead; pass `fast_start: false`, `smooth_start: false`, `fast_pak: false` or `hidden: false` to compare
 profiles. Pass `sound: true` to enable sound and music; normal launcher runs use `--sound`.
@@ -411,6 +411,17 @@ click after inspecting the current UI.
 Empty staged rows do not mean the native action has no active hotkey. It reads at most ten slots and
 does not cast or change shortcuts. Check these bindings before submitting a fishing response
 through `client_input`; verify the resulting cast and fish reaction on the server.
+`client_mode_input` takes a one-based active mode `slot` from 1 to 10 and reads
+that button's current `canUse`, bound skill tooltip and `GetHotKey()`. It rejects
+missing, unavailable, unbound or unsupported bindings, then presses the observed
+key through the same native CryInput path as `client_input`. Letter/number-row
+keys and `space` support case-insensitive `ctrl`/`shift`/`alt` chords, including
+stock `CTRL-8`. Optional `duration_ms` is bounded to 1–10000 ms (default 100).
+It never clicks, rebinds or enables buttons. The result includes `slot`, `hotkey`,
+`skill_id`, available `skill_name`, `submitted` and the native input response.
+The slot can change between reading its binding and pressing the key; submission
+does not prove the server completed the cast. Verify the resulting skill and
+fish state using native telemetry and server observations.
 `client_unit_state` reads `target: "player"` or `target: "target"` (the default) through
 the stock `X2Unit` getters. An absent target returns `present: false` without
 fabricated health, ID or distance values. Present units include `name`, native
