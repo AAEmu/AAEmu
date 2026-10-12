@@ -610,7 +610,7 @@ mod tests {
         assert_eq!(results.len(), 2);
         assert_eq!(results[0]["result"]["protocolVersion"], VERSION);
         assert_eq!(results[1]["id"], "list");
-        assert_eq!(results[1]["result"]["tools"].as_array().unwrap().len(), 20);
+        assert_eq!(results[1]["result"]["tools"].as_array().unwrap().len(), 21);
     }
     #[test]
     fn schema_errors_are_distinct_from_execution_errors() {

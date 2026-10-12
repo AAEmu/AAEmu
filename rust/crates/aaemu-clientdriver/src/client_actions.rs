@@ -12,6 +12,7 @@ pub fn tools(pid: Value) -> Vec<Value> {
         tool("client_action", "Execute a valid 1.2 UI hotkey action, such as do_interaction_1, cycle_hostile_forward or toggle_bag. Continuous movement uses client_input.",json!({"pid":pid,"action":{"type":"string","minLength":1,"maxLength":96}}), &["action"], false),
         tool("client_inventory", "Read inventory slots, item templates, names, counts and use skills from the live client. bag_id defaults to 1 (inventory).",json!({"pid":pid,"bag_id":{"type":"integer","minimum":1,"maximum":2}}), &[], true),
         tool("client_unit_state", "Read the player or current target's native name, health, maximum health and at most 32 visible buffs and 32 visible debuffs, indexed from 1. An absent target returns present=false without fabricated health. target defaults to target. Requires an in-world character; does not target or cast.",json!({"pid":pid,"target":{"type":"string","enum":["player","target"],"default":"target"}}), &[], true),
+        tool("client_loot", "Read the current native loot bag, up to 32 one-based item rows, and effective pixel bounds of its Take All button. Requires an in-world character; does not open a corpse or take items.",json!({"pid":pid}), &[], true),
         tool("client_mode_actions", "Read the active 1.2 mode action bar, including fishing rod actions, native tooltips, client-pixel widget bounds, availability, cooldowns, active hotkeys and staged option binding rows. Requires a character in the world; does not change bindings or cast skills.",json!({"pid":pid}), &[], true),
         tool("client_use_item", "Use an owned inventory item through its normal client skill cast. Returns whether the client accepted the cast, not a guarantee the server completed it; verify entities and vehicle status after casting/portal time.",json!({"pid":pid,"item_template_id":{"type":"integer","minimum":1,"maximum":u32::MAX}}), &["item_template_id"], false),
         tool("client_chat", "Send a message or GM command through the normal Say channel. Server permissions still apply. Requires a character in the world.",json!({"pid":pid,"message":{"type":"string","minLength":1,"maxLength":512}}), &["message"], false),
@@ -26,6 +27,7 @@ pub fn is_tool(name: &str) -> bool {
         "client_action"
             | "client_inventory"
             | "client_unit_state"
+            | "client_loot"
             | "client_mode_actions"
             | "client_use_item"
             | "client_chat"
@@ -58,6 +60,19 @@ local function encode(v,depth)
 end
 "#;
 const WORLD: &str = "assert(X2:IsEnteredWorld() and X2Unit:UnitName('player'), 'a character must be in the world') ";
+
+const LOOT: &str = r#"
+local result={count=X2Loot:GetNumLootItems() or 0,items={}}
+for i=1,math.min(result.count,32) do
+ local item=X2Loot:GetLootingBagItemInfo(i)
+ if item then result.items[tostring(i)]={index=i,name=item.name,count=item.stackSize,item_template_id=item.itemType,grade=item.itemGrade,money=item.money,aapoint=item.aapoint} end
+end
+local button=lootWindow and lootWindow.allLootBtn
+if button then
+ local x,y=button:GetEffectiveOffset() local width,height=button:GetEffectiveExtent()
+ result.take_all_bounds={x=x,y=y,width=width,height=height}
+end
+"#;
 
 // Stock 1.2 UnitBuff/UnitDeBuff indices are one-based. Nil counts are normal
 // before a target exists; do not turn missing native health into zero.
@@ -140,6 +155,7 @@ pub fn request(name: &str, args: &Value) -> anyhow::Result<(Target, String)> {
         "client_use_item" => { let id=args["item_template_id"].as_u64().context("missing item_template_id")?;
             (Target::Ui,format!("{WORLD}local info=X2Bag:FindFirstBagItemInfoByItemType({id}) assert(info,'item is not in the inventory') local accepted=X2Bag:UseItemByType({id}) local result={{item_template_id={id},skill_id=info.skillType,accepted=accepted}}")) },
         "client_inventory" => (Target::Ui,format!("{WORLD}local slots={{}} local bag={} for slot=1, X2Bag:Capacity() do local info=X2Bag:GetBagItemInfo(bag,slot) if info then slots[tostring(slot)]={{slot=slot,item_template_id=info.itemType,name=info.name,count=info.stack,skill_id=info.skillType,dead=info.dead,locked=info.locked}} end end local result={{bag_id=bag,slots=slots}}",args["bag_id"].as_u64().unwrap_or(1))),
+        "client_loot" => (Target::Ui,format!("{WORLD}{LOOT}")),
         "client_unit_state" => {
             let unit = match args.get("target") {
                 None => "target",
@@ -180,6 +196,27 @@ mod tests {
         assert!(code.contains("UseItemByType(26874)"));
         assert!(code.contains("accepted=accepted"));
         assert!(code.contains("assert(info"));
+    }
+    #[test]
+    fn loot_telemetry_is_bounded_one_based_and_does_not_take_items() {
+        let definition = tools(json!({"type":"integer"}))
+            .into_iter()
+            .find(|t| t["name"] == "client_loot")
+            .unwrap();
+        assert_eq!(definition["annotations"]["readOnlyHint"], true);
+        assert!(is_tool("client_loot"));
+        let (target, code) = request("client_loot", &json!({})).unwrap();
+        assert_eq!(target, Target::Ui);
+        assert!(code.contains(WORLD));
+        assert!(code.contains("for i=1,math.min(result.count,32)"));
+        assert!(code.contains("X2Loot:GetLootingBagItemInfo(i)"));
+        assert!(code.contains("button:GetEffectiveOffset()"));
+        assert!(!code.contains("X2Loot:LootItem("));
+        assert!(!code.contains("SelectInteraction("));
+        assert!(
+            super::super::validate(&definition["inputSchema"], &json!({"action":"take_all"}))
+                .is_err()
+        );
     }
     #[test]
     fn mode_actions_are_bounded_read_only_telemetry() {

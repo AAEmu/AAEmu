@@ -344,7 +344,7 @@ messages. The launcher inherits only the two ticket handles so its output pipes 
 while the client stays alive. Tools are `client_list`, `client_attach`, `client_status`,
 `client_launch`, `client_lua`, `client_screenshot`, `client_window`, `client_pak` and `client_stop`.
 Vehicle and gameplay tests also have `client_input`, `client_action`, `client_inventory`, `client_mode_actions`,
-`client_unit_state`, `client_use_item`, `client_chat`, `client_vehicle`, `client_entities` and `client_perf`.
+`client_unit_state`, `client_loot`, `client_use_item`, `client_chat`, `client_vehicle`, `client_entities` and `client_perf`.
 Launch defaults to silent audio and fast hidden rendering with normal-priority CPU calibration and 64 KB pak
 read-ahead; pass `fast_start: false`, `smooth_start: false`, `fast_pak: false` or `hidden: false` to compare
 profiles. Pass `sound: true` to enable sound and music; normal launcher runs use `--sound`.
@@ -420,6 +420,11 @@ counts are retained as `buff_count`/`debuff_count`, while each collection reads 
 32 entries using `UnitBuffCount`/`UnitDeBuffCount` and `UnitBuff`/`UnitDeBuff`.
 Hidden server buffs may be absent from these visible lists. The tool requires an in-world
 character and does not select a target or cast a skill.
+`client_loot` reads the current native loot bag with `count` and at most 32 one-based
+`items`, retaining available stock name, count, template, grade, money and AA-point fields.
+It also reports effective `take_all_bounds` for the existing Take All widget. Inspect a
+screenshot before clicking: the button may be hidden during timed loot notifications.
+The tool does not open a corpse or take items; use normal interaction and pointer input.
 `client_pointer` moves or left-clicks in client pixels through the guarded 1.2 mouse handler.
 The mouse-lock mode is rejected before position events because that native path can move the
 desktop cursor. Clicks position first and wait at least 50 ms for the native Update before
