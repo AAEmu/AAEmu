@@ -411,14 +411,17 @@ impl AreaTrigger {
             return;
         };
         let old = self.state().units.clone();
+        // Character object IDs survive reconnects, but the PlayerRef and its
+        // buff/trigger state do not. Compare the retained object's identity so
+        // a replacement receives OnEnter even when no-player ticks were skipped.
         let left: Vec<_> = old
             .iter()
-            .filter(|o| current.iter().all(|n| n.obj_id() != o.obj_id()))
+            .filter(|o| current.iter().all(|n| !std::ptr::eq(n.core(), o.core())))
             .cloned()
             .collect();
         let new: Vec<_> = current
             .iter()
-            .filter(|n| old.iter().all(|o| o.obj_id() != n.obj_id()))
+            .filter(|n| old.iter().all(|o| !std::ptr::eq(o.core(), n.core())))
             .cloned()
             .collect();
         for unit in &new {
@@ -759,6 +762,192 @@ mod tests {
         ));
     }
 
+    fn school_aura_server() -> Arc<GameServer> {
+        let mut data = crate::data::GameData::empty();
+        data.systems
+            .skills
+            .add_buff(crate::systems::skills::data::BuffTemplate {
+                id: 5767,
+                kind: 1,
+                stack_rule: 1,
+                system: true,
+                // Actual school-area buff is permanent while inside its trigger.
+                duration: 0,
+                ..Default::default()
+            });
+        data.skills.buffs.insert(
+            5767,
+            crate::data::skills::BuffTemplate::simple(5767, crate::data::skills::BuffKind::Good),
+        );
+        let server = Arc::new(crate::test_support::test_server_with(data));
+        server.set_self();
+        crate::systems::skills::bind(&server);
+        server
+    }
+
+    fn school_aura_trigger(
+        server: &GameServer,
+        world: &WorldInstance,
+        caster: &WorldObject,
+    ) -> Arc<AreaTrigger> {
+        let school = Entity::new(server.ids.object.get_next_id().unwrap(), Doodad::new(6447));
+        {
+            let mut d = school.data();
+            d.transform.set_position(100.0, 100.0, 100.0, 0.0, 0.0, 0.0);
+            d.transform.instance_id = world.id;
+            d.func_group_id = 17247;
+        }
+        world.spawn(&school, &server.view_ctx());
+        // Actual 1.2 active Arowana phase: Clout1609/shape3608, Any,
+        // duration/tick0; applies5767 to nearby units on entry.
+        let trigger = Arc::new(AreaTrigger {
+            shape: Some(AreaShape {
+                id: 3608,
+                kind: AREA_SHAPE_SPHERE,
+                value1: 50.0,
+                value2: 0.0,
+                value3: 0.0,
+            }),
+            owner: Some(school),
+            caster: Some(caster.clone()),
+            target_relation: skill_target_relation::ANY,
+            inside_buff_id: Some(5767),
+            ..Default::default()
+        });
+        add_area_trigger(server, trigger.clone());
+        trigger
+    }
+
+    #[tokio::test]
+    async fn school_aura_reconnect_reenters_dormant_cached_trigger_with_same_object_id() {
+        use crate::test_support::{spawn_player, test_character, TestClient};
+        let server = school_aura_server();
+        let world = server.world.world(0).unwrap();
+        let mut old_client = TestClient::new(&server, 81, 1081);
+        let old = spawn_player(
+            &server,
+            &old_client,
+            test_character(81, "Fisher", 111.0, 100.0),
+            0x810,
+        );
+        old_client.conn.active_char = Some(old.clone());
+        let trigger = school_aura_trigger(&server, &world, &WorldObject::from(&old));
+        server.systems.npcs.area_triggers.tick(&server);
+        assert_eq!(old.data().unit.trigger_count(5767), 1);
+        assert!(old.data().unit.buffs.check_buff(5767));
+
+        world.hide(&old);
+        world.remove_object(old.obj_id);
+        server.world.try_remove_character(old.obj_id);
+        old_client.conn.active_char = None;
+        assert!(!region_has_player_activity(&world, (1, 1)));
+        // Normal manager skips empty-activity regions; the old entry stays cached.
+        server.systems.npcs.area_triggers.tick(&server);
+        assert_eq!(trigger.unit_ids(), vec![old.obj_id]);
+        assert_eq!(old.data().unit.trigger_count(5767), 1);
+
+        let mut new_client = TestClient::new(&server, 82, 1081);
+        let new = spawn_player(
+            &server,
+            &new_client,
+            test_character(81, "Fisher", 111.0, 100.0),
+            old.obj_id,
+        );
+        new_client.conn.active_char = Some(new.clone());
+        assert!(!Arc::ptr_eq(&old, &new));
+        assert!(!new.data().unit.buffs.check_buff(5767));
+        server.systems.npcs.area_triggers.tick(&server);
+        assert_eq!(new.data().unit.trigger_count(5767), 1);
+        assert!(new.data().unit.buffs.check_buff(5767));
+        assert_eq!(old.data().unit.trigger_count(5767), 0);
+        assert!(!old.data().unit.buffs.check_buff(5767));
+        assert!(std::ptr::eq(
+            trigger.state().units[0].core(),
+            WorldObject::from(&new).core()
+        ));
+        server.systems.npcs.area_triggers.tick(&server);
+        assert_eq!(new.data().unit.trigger_count(5767), 1);
+        assert_eq!(
+            new.data()
+                .unit
+                .buffs
+                .effects
+                .iter()
+                .filter(|b| b.template.id == 5767)
+                .count(),
+            1
+        );
+    }
+
+    #[tokio::test]
+    async fn school_aura_reconnect_preserves_peers_and_overlapping_trigger_counts() {
+        use crate::test_support::{spawn_player, test_character, TestClient};
+        let server = school_aura_server();
+        let world = server.world.world(0).unwrap();
+        let old_client = TestClient::new(&server, 91, 1091);
+        let old = spawn_player(
+            &server,
+            &old_client,
+            test_character(91, "Fisher", 111.0, 100.0),
+            0x910,
+        );
+        let peer_client = TestClient::new(&server, 92, 1092);
+        let peer = spawn_player(
+            &server,
+            &peer_client,
+            test_character(92, "Peer", 112.0, 100.0),
+            0x920,
+        );
+        let caster = WorldObject::from(&old);
+        let first = school_aura_trigger(&server, &world, &caster);
+        let second = school_aura_trigger(&server, &world, &caster);
+        server.systems.npcs.area_triggers.tick(&server);
+        for p in [&old, &peer] {
+            assert_eq!(p.data().unit.trigger_count(5767), 2);
+            assert!(p.data().unit.buffs.check_buff(5767));
+        }
+        // Remove and replace between manager ticks while the peer keeps activity.
+        world.hide(&old);
+        world.remove_object(old.obj_id);
+        server.world.try_remove_character(old.obj_id);
+        let new_client = TestClient::new(&server, 93, 1091);
+        let new = spawn_player(
+            &server,
+            &new_client,
+            test_character(91, "Fisher", 111.0, 100.0),
+            old.obj_id,
+        );
+        server.systems.npcs.area_triggers.tick(&server);
+        assert_eq!(old.data().unit.trigger_count(5767), 0);
+        assert!(!old.data().unit.buffs.check_buff(5767));
+        for _ in 0..3 {
+            server.systems.npcs.area_triggers.tick(&server);
+            for p in [&new, &peer] {
+                assert_eq!(p.data().unit.trigger_count(5767), 2);
+                assert_eq!(
+                    p.data()
+                        .unit
+                        .buffs
+                        .effects
+                        .iter()
+                        .filter(|b| b.template.id == 5767)
+                        .count(),
+                    1
+                );
+            }
+        }
+        remove_area_trigger(&server, &first);
+        for p in [&new, &peer] {
+            assert_eq!(p.data().unit.trigger_count(5767), 1);
+            assert!(p.data().unit.buffs.check_buff(5767));
+        }
+        remove_area_trigger(&server, &second);
+        for p in [&new, &peer] {
+            assert_eq!(p.data().unit.trigger_count(5767), 0);
+            assert!(!p.data().unit.buffs.check_buff(5767));
+        }
+    }
+
     #[test]
     fn region_fit() {
         assert!(radius_fits_current_region(32.0, 32.0, 10.0));
@@ -800,6 +989,23 @@ mod real_data_tests {
         assert_eq!(d.world_interaction_groups.len(), rows("wi_group_wis"));
         let s = d.get_area_shape_by_id(1000).unwrap();
         assert_eq!((s.kind, s.value1), (AREA_SHAPE_SPHERE, 40.0));
+        let school_shape = d.get_area_shape_by_id(3608).unwrap();
+        assert_eq!(
+            (school_shape.kind, school_shape.value1),
+            (AREA_SHAPE_SPHERE, 50.0)
+        );
+        let school_clout: (i32, i32, u32, u32, u32) = conn.query_row(
+            "SELECT duration, tick, target_relation_id, buff_id, aoe_shape_id FROM doodad_func_clouts WHERE id=1609",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+        ).unwrap();
+        assert_eq!(school_clout, (0, 0, 0, 5767, 3608));
+        let school_phase: (u32, String) = conn.query_row(
+            "SELECT actual_func_id, actual_func_type FROM doodad_phase_funcs WHERE doodad_func_group_id=17247 AND id=22951",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        ).unwrap();
+        assert_eq!(school_phase, (1609, "DoodadFuncClout".into()));
         assert_eq!(
             d.get_world_interaction_group(46),
             Some(world_interaction_group::CRAFT)
