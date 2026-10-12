@@ -1132,7 +1132,13 @@ Additional world-side fixes from the same audit:
   Flow tests cover wrong/correct species chum, active-school expiry replacement, fish sales,
   trophies, replay and failure paths; a real-compact test checks the Bamboo rod's plot 821,
   Yellow Lure and 100-labor consumption. The real client equips the rod and exposes all seven
-  mode actions. A complete native catch/reaction/loot cycle is still under investigation.
+  mode actions. Native stand confirmation casts also consume one Gargantuan Blue Marlin pack
+  for trophy 28004 or pay exactly 400,000 copper (the client shows 40 gold); a later empty-back
+  sale attempt leaves the balance unchanged. The stand remains available after conversion.
+  Equipment acquisition now rejects multiple packs before any item creation or mutation,
+  preserves explicit occupied slots and permits NPC fish pickup into an empty backpack slot
+  even with a full bag. Occupied packs and full-bag glider replacement preserve the loot for
+  retry. A complete native catch/reaction/loot cycle is still under investigation.
   Fish Leap controllers also remain incomplete: the current shared linear movement ignores
   native vertical angle/acceleration, target-following flags and Leap-specific landing rules.
   Terrain snapping in that shared tick prevents an isolated vertical-offset fix from matching

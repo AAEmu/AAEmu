@@ -384,6 +384,16 @@ pub fn try_equip_new_backpack(
     grade: i32,
     crafter_id: u32,
 ) -> bool {
+    // Validate before taking off an existing glider: a backpack cannot be stacked or
+    // acquired into multiple equipment slots.
+    if count != 1
+        || !txn
+            .data()
+            .template(template_id)
+            .is_some_and(|t| matches!(t.kind, TemplateKind::Backpack { .. }) && t.max_count > 0)
+    {
+        return false;
+    }
     // Remove player backpack
     if take_off_backpack(txn, inv, task, true) {
         // Put tradepack in their backpack slot
@@ -1408,3 +1418,7 @@ pub fn item_use(server: &GameServer, player: &PlayerRef, template_id: u32) {
 
 /// `EquipmentItemSlotType.Backpack` re-export for callers.
 pub const BACKPACK_SLOT_TYPE: u32 = EQUIPMENT_ITEM_SLOT_TYPE_BACKPACK;
+
+#[cfg(test)]
+#[path = "backpack_acquire_tests.rs"]
+mod backpack_acquire_tests;

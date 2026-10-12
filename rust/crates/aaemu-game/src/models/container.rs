@@ -321,6 +321,9 @@ impl ItemContainer {
             }
         }
         if self.is_equipment() {
+            if item.count != 1 {
+                return false;
+            }
             // `Owner == null`: not applicable to NPCs (mate gear resolves its owner by id).
             if !self.has_owner && !(self.kind == ContainerKind::MateEquipment && self.owner_id > 0)
             {
@@ -458,8 +461,16 @@ impl ItemContainer {
         let mut new_slot = -1;
         let mut can_add_to_same_slot = false;
 
+        // An explicit equipment slot cannot fall back to an unrelated empty slot.
+        if self.is_equipment()
+            && preferred_slot >= 0
+            && self.get_item_by_slot(preferred_slot).is_some()
+        {
+            return None;
+        }
+
         // When adding wearables to equipment container, for the slot numbers if needed
-        if self.is_equipment() && item.class.is_equip() && preferred_slot < 0 {
+        if self.is_equipment() && preferred_slot < 0 {
             if let Some(st) = template.and_then(ItemTemplate::gear_slot_type) {
                 if let Some(&s) = allowed_gear_slots(st)
                     .iter()
@@ -865,6 +876,14 @@ impl ItemContainer {
         }
         let (current, units) = self.items_by_template(template_id, grade);
         let template = env.data.template(template_id)?; // Invalid item templateId
+                                                        // Backpacks have one equipment slot. Reject the complete request before creating
+                                                        // its first item, rather than failing after a partial acquisition.
+        if self.is_equipment()
+            && matches!(template.kind, TemplateKind::Backpack { .. })
+            && (amount != 1 || self.get_item_by_slot(equip_slot::BACKPACK).is_some())
+        {
+            return None;
+        }
         let free = current.len() as i32 * template.max_count - units
             + self.free_slot_count * template.max_count;
         // Trying to add too many item units to this container ?

@@ -1013,13 +1013,20 @@ fn try_distribute(
     let count = entry.item.count;
     let server = ctx.txn.server;
     let inv = Inv::of(player);
-    let money = player.data().money;
-    let free = inv
-        .bag()
-        .lock()
-        .expect("container poisoned")
-        .space_left_for_item(&entry.item, &server.game_data.items, money);
-    if free < count {
+    let auto_equip = server.game_data.items.is_auto_equip_trade_pack(template_id);
+    // Auto-equipped packs need the backpack slot (and bag room only to remove a glider).
+    // Reject malformed multi-pack loot before moving the worn item or allocating an id.
+    let no_room = if auto_equip {
+        count != 1
+    } else {
+        let money = player.data().money;
+        inv.bag()
+            .lock()
+            .expect("container poisoned")
+            .space_left_for_item(&entry.item, &server.game_data.items, money)
+            < count
+    };
+    if no_room {
         g.items.insert(idx, entry);
         failed(ctx, g, pid, error_message::BAG_FULL, idx, template_id);
         return false;
@@ -1032,7 +1039,7 @@ fn try_distribute(
             count,
             task_type::DEPOSIT_MONEY,
         );
-    } else if server.game_data.items.is_auto_equip_trade_pack(template_id) {
+    } else if auto_equip {
         // Auto-equip tradepack item branch.
         if inventory::take_off_backpack(ctx.txn, &inv, task_type::RECOVER_DOODAD_ITEM, true) {
             let new_id = match server.ids.item.get_next_id() {
