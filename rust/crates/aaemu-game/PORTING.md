@@ -338,6 +338,42 @@ Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` check
 
 #### systems::ai collision (the zone's physics, Rust only)
 
+**Vehicle test fixes (2026-10-11):** the physics thread measures elapsed time after sleeping and
+advances its previous tick to that instant. The former pre-sleep timestamp produced alternating
+waited/back-to-back iterations and repeated elapsed time; at 25 TPS with 3 ms of work it stepped
+about twice as often. Clock tests now verify 25 ticks integrate exactly 1 s, including fractional
+milliseconds and late wake-ups. Empty physics instances skip simulation/environment queries
+after removing their final CryPhysics hull; the removal test checks both cleanup and idle queries.
+`CSDespawnSlavePacket` copies the instance id before calling vehicle cleanup so its temporary
+player data lock is released. A live scroll dismissal previously deadlocked there; the item-skill
+flow test now casts an owned item, binds the driver and dismisses through this packet with a
+bounded completion check. Cars retain the 1.2 client's authoritative `VehicleMove` simulation;
+these changes affect server ship timing and vehicle cleanup.
+Ships now load the normal prefab reference from `ship_models` and prefer the authored `buoy*`
+brushes, preserving the CGF physics geometry and local position/quaternion/scale. They replace
+the fallback tube rather than adding a second displaced volume. The geometries share the
+collision model cache and are loaded on summon, not each tick. The real 1.2 clipper prefab has
+two such brushes; the rowboat has none and retains its explicit tube. A gated real-data test
+checks both placements, settled draft and driven motion at two headings.
+The server's ship transform now uses the same visual quaternion as its movement packet. This
+fixes the mirrored C# yaw-in-pitch bug for attached passengers and parts without changing the
+wire order; a placement test compares the transform and quantized packet quaternion.
+Standing-on-object movement preserves the current parent for `GcId == 1`. Captured 1.2
+`gcFlags=1` packets carry a primary local position and an auxiliary world position; a late
+packet whose supporting object has disappeared uses the world backup. A packet-flow test
+checks a rotated ship, the current-parent sentinel, walking off with a stale header flag and
+the missing-parent backup. This fixes false origin jumps when leaving a ship.
+Seated slave passengers ignore late unit walking updates until the ordinary discard clears
+their seat membership. A steering request that restores a missing parent converts the driver's
+world transform to the ship's local frame. The live client exposed the old detach/re-attach
+sequence placing the driver's world coordinates under a ship parent; the new flow test covers
+boarding, a stale walking packet, recovery and discard. Missing-zone debug logs include the
+object id, parent and both coordinate frames to diagnose future attachment problems.
+During live-stack validation, the comment/trailing-comma JSON reader was found recursively
+stripping the remainder after each commented comma in `Scripts/Commands/kits.json`. It now scans
+only to the next token, retaining Newtonsoft-compatible comments and trailing commas without
+exponential startup work. The shipped kit file and quoted/commented tokens have regression tests.
+
 References: `rust/docs/physics/ZONE-PHYSICS-USAGE.md`, `D:\aa-re\zone\agent_geom\{sub_cgf,sub_x2game}.md`,
 the x2game / cry3dengine decompiles (addresses below). Config `Physics` (`Configurations/Physics.json`):
 `Enable` (true), `Geometry` (`Terrain` / `Brushes` / `Full`), `LoadRadiusCells` (1), `LoadOnQuery`
@@ -399,6 +435,15 @@ the x2game / cry3dengine decompiles (addresses below). Config `Physics` (`Config
   NPC spawner points snap to it within 1 m (`npc_spawn_on_terrain`). Real data: 1 487 of the 1 524
   NPC spawns of the 4 busiest main_world cells are within 1 m of the physics ground (1 407 of the
   terrain elevation alone; 178 stand on brushes).
+  **Visibility deviation (systems::npcs / world::unit_state, 2026-10-11):** NPC unit-state packets
+  preserve the spawn/movement transform instead of the C# serializer's `GetReferenceHeight`
+  mutation. That mutation could replace a collision floor with a coarse navmesh plane or reset
+  an idling NPC to its original spawn Z after movement. In those 1 487 grounded spawns, 324
+  navigation heights were over 1 m above ground (maximum upward difference 10.008 m), and 126
+  were over 1 m below. The real collision test checks encoded positions, including static floors;
+  byte-exact unit-state tests cover AI-less, walking, idle and flying NPCs and repeated visibility.
+  Height queries now stay out of visibility serialization and its world/object locks. Flying and
+  elevated authored spawns keep their existing positions; the 1 m spawn snap policy is unchanged.
 * Fall damage (`collision::movement`, ZWUnitFell 0x3935C850): the zone's tracker (`sub_392D7600`:
   start z, max downward speed, landing on the physics ground) gates and caps the client's
   `fallVel`: no damage when `min(v, √(40·Δh)) < 20 m/s`, else the client value capped at that
@@ -414,7 +459,8 @@ the x2game / cry3dengine decompiles (addresses below). Config `Physics` (`Config
   dealt 1 % on any overlap); the pair maximum per 500 ms (clamped to 10 m/s) gives the C#'s
   speed-scaled percentage (nose-cone rule kept). The 1.2 data has neither the expression constants
   (12 / 13 / 21) nor the `physics_collision_*_damage_mul` columns. The keel width (0.2 m) and the
-  default tube offset (half beam, the zone's `bbox.x / 2`) are inferred / taken literally.
+  default tube offset (half beam, the zone's `bbox.x / 2`) are inferred / taken literally. Prefab
+  buoy brushes take precedence over that fallback, as in the engine.
 * Water volumes (`collision::water_areas`): world slot 83 (2-D polygon areas) is not ported, so
   polygons are bounding boxes and rivers per-segment oriented boxes.
 
@@ -597,6 +643,14 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 * systems::economy: item operations are serialised by the economy operation lock (`ItemTxn`) and
   their packets / quest events are flushed after the container locks are released, in the C#
   order; character packets sent during an operation go through the same queue (`Out`).
+* systems::economy: `CSRepairPetItemsPacket` repairs owned mate equipment containers at the
+  current nearby blacksmith (the native 10.x button at `0x399093D0` supplies its NPC id).
+  Repair bills cannot exceed available money; repairing destroyed equipped gear restores its
+  bonuses. Mate gear changes and item unpacking require the authenticated owner. Received-mail
+  read, attachment and delete operations require the receiver; sent-mail reads require the sender.
+  Auction cancellation requires the seller. Coffer opens and moves reuse the existing chest
+  permission rules and require a nearby live coffer; moves require the caller's open session.
+  Ordinary inventory packets resolve item ids only inside the caller's inventory containers.
 * systems::economy: `AddOrMoveExistingItem` with the item's own container as target relocates the
   item (the C# inserts the same object a second time into `Items`). `SplitOrMoveItemEx` looks up
   the source / target items in the two containers only (the C# `GetItemByItemId` searches every
@@ -605,6 +659,9 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   and aborts the operation; `Wipe` drops an item `CanDestroy` refuses instead of looping forever.
 * systems::economy: trade items are kept by id (an item no longer in the giver's containers or put
   up twice is an error); a missing trade partner is ignored instead of half-applying the change.
+  Leave-world and hard disconnect cancel the departing actor's trade and prune its invitations
+  before world removal, notifying the peer through the existing cancellation packet. Cleanup
+  is idempotent and rejects an old player handle when the object id belongs to a new session.
 * systems::economy: auction lots are enumerated in id order (`ConcurrentDictionary` order in C#),
   search / cheapest lot skip lots whose item or template is missing; mails are kept in a map that
   reproduces the C# `Dictionary` enumeration order; mail dates are whole unix seconds.
@@ -614,6 +671,14 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   `Specialty` config section yet).
 * systems::economy: the localized item names are loaded by four modules (items search, auction,
   mail, cash shop); a later cleanup can share one cache.
+* systems::services: authenticated `CSRequestCharBriefPacket` and `CSCharDetailPacket` requests
+  return online character profiles through the existing 1.2 outbound formats (the C# inbound
+  handlers only logged). Offline, absent and unauthenticated requests receive no reply; offline
+  lookup and failure-response semantics remain unresolved.
+* systems::social: family title and steward requests require targets in the caller's own family.
+  Authorized packet changes call the existing family snapshot save immediately; the C# handlers
+  only changed memory. Team risky actions require membership and known actions, with owner
+  authorization for kick/dismiss and a self target for leave before any side effects.
 
 * systems::quests: rewards, items, money, exp, skills, NPC faction, teams, mails go through
   `quests::hooks::QuestHooks` (`GameQuestHooks`; the item / money / mail part is the economy's).
@@ -627,7 +692,6 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   data (`SetObjective` on a non-objective act, `MaxObjective` division by zero, the timer step
   switch): they abort the event invocation list / sphere tick. Out-of-range objective reads
   that would throw in RunAct / score sums read 0 (no 1.2 quest triggers them).
-* systems::quests: `CSCompletedCinemaPacket` does not call `ResendVisibleObjectsToCharacter`.
 * systems::quests: the daily reset runs at 00:00 UTC (C# cron in server local time).
 * systems::social: saves of guilds / families run inline in the handler (C# synchronous); a
   failed guild save keeps the removed-member ids for the next attempt. `ExpeditionConfig`
@@ -784,12 +848,12 @@ and in NPC wandering / buff remaining times.
   `GetBoolean(column)` (`GetInt64 != 0`), so `is_active`, `is_hidden`, `complete_or` and
   `or_unit_reqs` always load as `false`.
 * systems::social: `AskRiskyTeam` makes the acting unit (the kicker) leave its chat channels;
-  any member may dismiss a team; a member joining an existing team never joins the party / raid
+  a member joining an existing team never joins the party / raid
   chat (but can still talk into it); `IsMarked` compares mark object ids with character ids;
   `ExpeditionManager.ChangeOwner` does not update `OwnerName`; `ReplyInvite` does not check an
   existing guild; `ChangeExpeditionRolePolicy` requires the Expel right; disbanded guilds stay in
-  the list; family invitations always carry family id 1; family title / steward changes are not
-  saved; hard disconnects keep the family member's character set; `Character.AddCrime` wraps on
+  the list; family invitations always carry family id 1; hard disconnects keep the family member's
+  character set; `Character.AddCrime` wraps on
   overflow; `GetTrialChat` throws when the faction has no court and the player is in no trial;
   `CSAddFriend` accepts yourself.
 
@@ -887,11 +951,10 @@ and in NPC wandering / buff remaining times.
 * systems::economy: loot dice pick the lowest positive roll; looting allocates a new item id that
   is never released; `ItemProc` `ignoreRoll` never procs; `HDps` uses the magic DPS grade value;
   fish conversion only uses the first pack.
-* systems::economy: auction — anyone can cancel a lot without bids, cancel mails a new copy while
+* systems::economy: auction — cancel mails a new copy while
   the listed item stays in the auction container, posting fees / bids do not check the balance,
   the "ExpireDate" sort uses `PostDate`, a buyout sends no `SCAuctionBidPacket`.
-* systems::economy: mail — no ownership check on read / take / delete by id (only
-  `CSTakeAttachmentSequentially` checks), opening the mailbox re-sends a "got mail" per unread mail,
+* systems::economy: mail — opening the mailbox re-sends a "got mail" per unread mail,
   `ReturnMail` fails on mails with fewer than 10 attachments, `FinalizeForBidFail` uses
   `AucOffFail`, receiver lookup is case-sensitive.
 * systems::economy: trade — `OkTrade` proceeds when only one side locked, the put-up amount is only
@@ -902,10 +965,9 @@ and in NPC wandering / buff remaining times.
 * `systems::instances`: `RegisterIndunEvents` runs in the `Dungeon` constructor and again in the loader, so every indun event handler is subscribed twice; a dungeon kill raises `OnUnitKilled` (and the victim's `OnDeath`) in `PostUpdateCurrentHp` and again in `DoDie` — NPC-killed action chains run four times; `IndunEventDoodadSpawneds.UnSubscribe` adds the handler (`+=`); `AreaClearTick` stops at the first cleared room (`return`); a new dungeon verifies the requirements twice (the entry item is consumed twice) and the creator gets `SCProcessingInstancePacket` twice; `Transform.CloneDetached(character)` / `MainWorldPosition.Clone()` fire `OnZoneChange(0, zone)` (the instance zone chat is never left); `ApplyWorldSpawnPosition` stores the spawn rotation in degrees; leaving an instance sends the (radian) return rotation through `DegToRad` again and `SCLoadInstancePacket` names `MainWorldPosition.WorldId`; `DestroyDungeon` removes the players from the instance without moving them out; `InstantGame.RemovePlayer` looks the corps lists up by 0 / 1 instead of the faction ids (never cleaned); `AddScore` always sends `Corps1` / `score2 = 0`; the kill packet's victim count is the victim corps' kills; entering a battlefield sets the corps faction, so `Character.SetFaction` kicks guild members of another mother faction from their guild and party; offline queue applicants are never pruned (`CharObj` is never null); `RemoveGame` leaves the game in the queue list; `TowerDefGameData` / battlefields.json loops stop (`return`) at the first orphan row.
 * systems::housing: `CalculateBuildingTaxInfo` returns before computing anything when the
   account has no house yet, so the first house is free (no tax, no deposit) and the
-  construction tax window shows 0; demolition returns the deposit anyway. `CSSellHousePacket`
-  does not check that the seller owns the house, and looks the buyer name up without
-  normalizing it. `Family` / `Guild` permission falls through to "public" for players without a
-  family / guild. `SCHouseTaxInfoPacket.isAlreadyPaid` is true when payment is *required*.
+  construction tax window shows 0; demolition returns the deposit anyway. Sale buyer names
+  are looked up without normalizing them. Seller ownership and absent family/guild permission
+  checks are fixed by the feature audit. `SCHouseTaxInfoPacket.isAlreadyPaid` is true when payment is *required*.
   The demolition money (deposit) is only mailed when at least one item is returned.
   `CraftEffect` on a finished house throws (`BuildSteps[-1]`). The `BaseAction` sum is not
   reset when the step goes back to 0 / -1. `SetForSale` on a house already for sale adds a second
@@ -922,7 +984,7 @@ and in NPC wandering / buff remaining times.
   cooldown does not survive a restart); `DoodadFuncRecoverItem` looks the owning slave up by its
   DB id as an obj id; `GetActiveMates(...).FirstOrDefault()` decides the `Raid` relation mate.
 * systems::vehicles: `Unit.DespawnMate` on a mate's own death only despawns when its owner is
-  dead; `UnitMoveType` without the standing flag detaches a driver from its vehicle.
+  dead. The former `UnitMoveType` driver-detachment bug is fixed (see vehicle test fixes above).
 * systems::vehicles: `SpawnEffect` (slave) writes `PosDistance = 2` back into the template and
   `Rotate(Rotation with { Z = .. })` doubles the roll / pitch; an owner-less boat throws in
   `Create` after spawning (`GetWorld(owner.Transform.InstanceId)`).
@@ -950,9 +1012,75 @@ and in NPC wandering / buff remaining times.
 * systems::services: `CSExpressEmotionPacket` passes the animation id as the emotion id to
   `DoOnExpressFireEvents`; `SCUserNotesLoadedPacket` writes the UTF-16 length of the song.
 * systems::ai: AI params are shared mutable objects (`RestorationOnReturn` / `GoReturnState` changes leak between NPCs of the same params row); `CheckIfEmptyAggroToReturn` inspects the abuser instead of the NPC; `IdleBehavior` enters combat and then still runs the talk greeting; the archer's delay uses `CastingTime` as seconds; the big monster's hovering phase rises 15 m per tick; `FindPath` sends debug chat lines; `ExtraLink` shapes are added twice; `UsedAreaNames` is global across worlds; `Gimmick.CurrentTarget` is never read.
-* systems::ai physics: the heightmap collider's bounds use the sample count as metres, so only the first half of each world axis has terrain contacts; `SendUpdatedMovementData` applies the Jitter quaternion to the transform without the Y/Z swap of `SyncTransformWithRigidBody`, so between ticks a ship's yaw sits in the pitch slot of its transform; the dry-land "roll correction torque" is added as a force and the beached "anti-gravity" force is not mass-scaled; ships are only simulated while `Transform.WorldId` equals the instance id; the buoyancy sample points are computed but unused.
+* systems::ai physics: the heightmap collider's bounds use the sample count as metres, so only the first half of each world axis has terrain contacts; the dry-land "roll correction torque" is added as a force and the beached "anti-gravity" force is not mass-scaled; ships are only simulated while `Transform.WorldId` equals the instance id; the buoyancy sample points are computed but unused. The former `SendUpdatedMovementData` yaw-in-pitch transform bug is fixed (see the vehicle test fixes above).
 
 ## Coverage audit (phase 5)
+
+### Feature audit against 1.2 data (2026-10-11)
+
+Registration and C# port coverage are separate from feature correctness. Run
+`python -I rust/tools/port_audit/features.py --compact-db <compact.sqlite3> --output <report.json>`
+to inventory all 244 supported inbound CS/X2 packets, the compact tables, MySQL base tables,
+production/test references and incomplete-code candidates. Optional `--reference <decompiled.c>`
+links exact table literals to the local reference functions. The report contains schemas and
+counts, not rows or secrets. Keep reports with client data outside git. Test the inventory with
+`python -I rust/tools/port_audit/features_test.py`.
+
+Confirmed gaps fixed in the world server (1.2 opcodes and packet layouts retained):
+
+* `CSChangeSlaveNamePacket` now validates ownership and the configured name pattern, normalizes
+  the name, broadcasts the existing `SCUnitNameChangedPacket` and saves the slave name.
+  A two-player packet flow checks unauthorized/invalid requests and the saved snapshot.
+* `skill_reqs`, `skill_req_skills` and `skill_req_skill_tags` restrict casts while the matching
+  caster/target buff is active. Blacklists and whitelists support skill ids and tags. Native
+  reference: 10.x `sub_393616E0` / `sub_39CEECD0`; failure is the existing 1.2 `SkillReqFail`
+  (0x32) with the requirement id. Validation runs before mana, cooldown or start-skill buff
+  removal. Tests cover real 1.2 bindings, target tags and the byte-exact failure response.
+* `item_accept_quests` supplies the authoritative item-to-quest mapping rather than relying
+  solely on `QuestActConAcceptItem` discovery. Item-cast acceptance checks `items.impl_id ==
+  AcceptQuest` and preserves the ITEM acceptor. Native loader: 10.x `sub_39AF5840`. Loader and
+  item acceptance tests cover the binding, normal quest progression and duplicate use.
+* `manual_funcs` enables discrete dynamic buff modifiers. Native `sub_39C06B90` loads at most
+  200 integers; `sub_39BF39F0` / `sub_39BF6160` selects by completed buff ticks, clamps to the
+  last entry, and requires a positive duration/tick. The existing linear behavior is retained.
+  Tests check tick boundaries and removal; real data includes the leg-injury and wing curves.
+* `CSCannotStartTradePacket` sends the existing refusal response to a pending requester.
+  Acceptance and refusal require a matching server-issued invitation, consumed on reply;
+  invitations expire after 60 seconds. Tests check byte-exact refusal, forged/replayed replies
+  and the normal exchange handshake. This also closes unsolicited trade acceptance in C#.
+* `QuestActObjItemGroupGather` / `QuestActObjItemGroupUse` now count as objectives and subscribe
+  to inventory/use events. The existing `quest_item_group_items` bindings define membership;
+  gather objectives count current inventory, use objectives count matching uses. Cleanup/drop
+  consumes only the required group quantity. This extends the adjacent single-item act model;
+  it is not claimed as byte-for-byte native quest execution parity. Tests cover multiple item
+  types, removal, unrelated items, duplicate member rows, use events and quest abandonment.
+  Real 1.2 quests 5490 and 5489 are checked for assigned objective wire slots.
+* Priest blessing purchases now use the existing 1.2 `priest_buffs` data, payment item task
+  22 and errors 149/150, with live priest interaction/range, funds, duplicate and buff checks.
+  The native descriptor is confirmed by 10.x `sub_39B07970`; the world-only purchase logic is
+  not present in that reference. `CSRemoveBuffPacket` now checks the slave's summoner before
+  allowing client cancellation, matching the existing owned-mate rule.
+* House sale/cancellation is owner-only; construction and decoration items must match the
+  loaded design bindings. Decoration uses the house permission checks, which now require
+  actual family/guild membership before shared access. Battlefield entry requires the
+  player to be in the invited instance and enrolls/subscribes once. Regression flows cover
+  foreign sales, forged designs, shared permissions, premature entry and duplicate entry.
+* `CSMoveUnitPacket` unit motion is limited to the authenticated character and owned mates.
+  Vehicle and ship requests require the server's driver-seat record; ordinary passengers
+  cannot drive. Client despawn requests require the slave's summoner. Tests reject forged
+  movement/control/despawn while retaining normal motion and driver reattachment.
+* Object-free quest reports no longer jump from arbitrary active quests straight to rewards.
+  They use the existing validated early-completion path or evaluate an automatic/journal
+  Ready step. NPC/doodad report acts still require their object. Packet flows cover rejected
+  premature/omitted-NPC requests, journal completion, early-completion thresholds and replay.
+* Cinema completion resends neighbouring world objects before raising quest events, matching
+  the former 1.2 C# packet handler. A packet flow checks NPC state/points replication and the
+  cinema objective's normal transition to Ready.
+
+Remaining packet stubs and table candidates are still subject to behavior review. Missing SQL
+mentions do not establish disuse (some names are selected dynamically); empty tables, client
+visuals and schema migration metadata do not imply missing server features. The 10.x reference
+may contain modern-only fields or behavior and is not a source of 1.2 wire layouts.
 
 `rust/PORT-AUDIT.md` maps every C# file of `AAEmu.Commons`, `AAEmu.Login` and `AAEmu.Game`
 (GM commands and unit tests excluded) to its Rust counterpart with a status (ported / merged /

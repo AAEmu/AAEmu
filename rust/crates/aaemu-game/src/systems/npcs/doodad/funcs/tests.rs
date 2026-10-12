@@ -803,6 +803,7 @@ async fn coffer_open_close_tracking() {
         container_id: 0,
         opened_by: None,
     });
+    fx.doodad.data().data = i32::from(crate::models::house::housing_permission::PUBLIC);
     assert!(coffer::open_coffer_doodad(&fx.server, &fx.player, 0x200));
     assert_eq!(
         fx.client.drain_ops(),

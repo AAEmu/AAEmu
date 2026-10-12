@@ -11,12 +11,11 @@
 //! [`ItemTxn`] is started (the finished trade is taken out of the table first) and callers must
 //! not hold a character or container lock when calling in.
 //!
-//! The C# never cancels a trade when a partner logs out or walks away: the entry stays in the
-//! table and the partner's next trade packet throws on the missing character. [`cancel_trade`]
-//! (`TradeManager.CancelTrade(objId, reason)`) is public for the coordinator should it want to
-//! wire it into leave-world / disconnect (that would be a deviation).
+//! Departing players cancel their trades and pending invitations before world removal, so a
+//! reconnect can start a fresh trade without first clearing stale object ids.
 
-use std::sync::{Mutex, MutexGuard};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use aaemu_commons::{Marshal, PacketStream};
 
@@ -59,6 +58,8 @@ pub struct TradeTemplate {
 #[derive(Debug, Default)]
 pub struct TradeManager {
     trades: Mutex<Vec<TradeTemplate>>,
+    /// (requester, recipient) -> expiry; a reply must match a server-issued invitation.
+    invitations: Mutex<HashMap<(u32, u32), i64>>,
 }
 
 type Trades<'a> = MutexGuard<'a, Vec<TradeTemplate>>;
@@ -71,6 +72,22 @@ impl TradeManager {
     /// The running trades (copies, for tests / GM tools).
     pub fn trades(&self) -> Vec<TradeTemplate> {
         self.lock().clone()
+    }
+
+    fn invite(&self, owner: u32, target: u32, now: i64) {
+        let mut invitations = self.invitations.lock().unwrap_or_else(|e| e.into_inner());
+        invitations.retain(|_, expiry| *expiry > now);
+        // One outstanding invitation per recipient matches the client's single dialog.
+        invitations.retain(|(_, recipient), _| *recipient != target);
+        invitations.insert((owner, target), now + 60_000);
+    }
+
+    fn take_invitation(&self, owner: u32, target: u32, now: i64) -> bool {
+        self.invitations
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&(owner, target))
+            .is_some_and(|expiry| expiry > now)
     }
 }
 
@@ -197,6 +214,9 @@ fn partners(server: &GameServer, t: &TradeTemplate) -> Option<(PlayerRef, Player
 
 /// `TradeManager.CanStartTrade(owner, target)`.
 pub fn can_start_trade(server: &GameServer, owner: &PlayerRef, target: &PlayerRef) {
+    if owner.obj_id == target.obj_id {
+        return;
+    }
     let mut trades = manager(server).lock();
     if is_trading(server, &mut trades, owner.obj_id)
         || is_trading(server, &mut trades, target.obj_id)
@@ -211,6 +231,7 @@ pub fn can_start_trade(server: &GameServer, owner: &PlayerRef, target: &PlayerRe
         name_of(target),
         target.obj_id
     );
+    manager(server).invite(owner.obj_id, target.obj_id, crate::world::now_ms());
     target.send(SCCanStartTradePacket {
         obj_id: owner.obj_id,
     });
@@ -256,6 +277,27 @@ pub fn start_trade(server: &GameServer, owner: &PlayerRef, target: &PlayerRef) {
 pub fn cancel_trade(server: &GameServer, obj_id: u32, reason: i32, trade_id: u32) {
     let mut trades = manager(server).lock();
     cancel_locked(server, &mut trades, obj_id, reason, trade_id);
+}
+
+/// Ends only this departing player's trade and invitations. Repeated lifecycle calls are
+/// harmless; an old player handle must not cancel a new session reusing its object id.
+pub fn on_player_departed(server: &GameServer, player: &PlayerRef) {
+    if character(server, player.obj_id).is_some_and(|current| !Arc::ptr_eq(&current, player)) {
+        return;
+    }
+    let mgr = manager(server);
+    let mut trades = mgr.lock();
+    mgr.invitations
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .retain(|(owner, target), _| *owner != player.obj_id && *target != player.obj_id);
+    loop {
+        let id = get_trade_id(&trades, player.obj_id);
+        if id == 0 {
+            break;
+        }
+        cancel_locked(server, &mut trades, player.obj_id, 0, id);
+    }
 }
 
 /// `TradeManager.AddItem(character, slotType, slot, amount)`. The amount is only checked (the
@@ -945,7 +987,7 @@ impl CSCanStartTradePacket {
 }
 sync_client_packet!(CSCanStartTradePacket);
 
-/// `CSCannotStartTradePacket` (logged only, TODO in C#).
+/// `CSCannotStartTradePacket`: forward a decline only to its pending requester.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CSCannotStartTradePacket {
     pub obj_id: u32,
@@ -960,13 +1002,17 @@ impl CSCannotStartTradePacket {
         })
     }
 
-    fn run(self, _server: &GameServer, _conn: &mut GameConnection) {
-        tracing::warn!(
-            "CannotStartTrade, ObjId: {}, Reason: {}",
-            self.obj_id,
-            self.reason
-        );
-        // TODO (C#)
+    fn run(self, server: &GameServer, conn: &mut GameConnection) {
+        let Some(target) = active(conn) else { return };
+        if !manager(server).take_invitation(self.obj_id, target.obj_id, crate::world::now_ms()) {
+            return;
+        }
+        if let Some(owner) = character(server, self.obj_id) {
+            owner.send(SCCannotStartTradePacket {
+                obj_id: target.obj_id,
+                reason: self.reason,
+            });
+        }
     }
 }
 sync_client_packet!(CSCannotStartTradePacket);
@@ -989,6 +1035,9 @@ impl CSStartTradePacket {
             return;
         };
         let Some(target) = active(conn) else { return };
+        if !manager(server).take_invitation(owner.obj_id, target.obj_id, crate::world::now_ms()) {
+            return;
+        }
         start_trade(server, &owner, &target);
     }
 }
@@ -1116,3 +1165,19 @@ impl CSTradeOkPacket {
     }
 }
 sync_client_packet!(CSTradeOkPacket);
+
+#[cfg(test)]
+mod invitation_tests {
+    use super::TradeManager;
+
+    #[test]
+    fn invitations_require_matching_peers_and_expire_at_the_deadline() {
+        let manager = TradeManager::default();
+        manager.invite(100, 101, 1000);
+        assert!(!manager.take_invitation(100, 102, 1001));
+        assert!(manager.take_invitation(100, 101, 60_999));
+        assert!(!manager.take_invitation(100, 101, 60_999));
+        manager.invite(100, 101, 1000);
+        assert!(!manager.take_invitation(100, 101, 61_000));
+    }
+}

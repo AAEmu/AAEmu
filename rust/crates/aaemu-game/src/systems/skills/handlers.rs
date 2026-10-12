@@ -436,7 +436,8 @@ impl ClientPacket for CSRemoveBuffPacket {
             {
                 if o.as_mate()
                     .is_some_and(|m| m.data().owner_obj_id == player.obj_id)
-                    || o.as_slave().is_some()
+                    || o.as_slave()
+                        .is_some_and(|s| s.data().summoner_id == player.character_id)
                 {
                     remove(&o);
                 }

@@ -817,6 +817,8 @@ pub fn start(server: &GameServer, owner: &WorldObject, index: u32) {
                     source_start_ms: b.start_time_ms,
                     source_duration: b.duration,
                     linear_func: Some(f),
+                    manual_values: None,
+                    source_tick_ms: template.tick,
                 }),
                 None => tracing::warn!(
                     "Missing linear_func {} for dynamic_unit_modifier on buff {}.",
@@ -824,11 +826,22 @@ pub fn start(server: &GameServer, owner: &WorldObject, index: u32) {
                     template.id
                 ),
             },
-            "ManualFunc" => tracing::warn!(
-                "ManualFunc dynamic_unit_modifier not implemented (func_id={}, buff {}).",
-                t.func_id,
-                template.id
-            ),
+            "ManualFunc" => match data.manual_funcs.get(&t.func_id) {
+                Some(values) => dynamics.push(DynamicBonus {
+                    template: t.clone(),
+                    source_buff_index: index,
+                    source_start_ms: b.start_time_ms,
+                    source_duration: b.duration,
+                    linear_func: None,
+                    manual_values: Some(values.clone()),
+                    source_tick_ms: template.tick,
+                }),
+                None => tracing::warn!(
+                    "Missing manual_func {} for dynamic_unit_modifier on buff {}.",
+                    t.func_id,
+                    template.id
+                ),
+            },
             other => tracing::warn!(
                 "Unsupported dynamic_unit_modifier FuncType={other}, FuncId={}, buff {}.",
                 t.func_id,

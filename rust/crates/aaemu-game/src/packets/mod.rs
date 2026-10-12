@@ -62,6 +62,26 @@ pub fn build_registry() -> PacketRegistry {
 
 #[cfg(test)]
 mod tests {
+    /// Cover the target client's complete non-reserved inbound table independently
+    /// of the historical C# registration fixture. Behavior still needs feature flows.
+    #[test]
+    fn every_supported_1_2_inbound_opcode_has_a_handler() {
+        let registry = super::build_registry();
+        let supported: Vec<_> = crate::opcodes::cs::NAMES
+            .iter()
+            .filter(|(opcode, _)| *opcode != 0xfff)
+            .collect();
+        assert_eq!(supported.len(), 244);
+        for (opcode, name) in supported {
+            assert!(
+                registry
+                    .iter()
+                    .any(|((_, registered), _)| registered == *opcode),
+                "missing handler for {name} (0x{opcode:03x})"
+            );
+        }
+    }
+
     #[test]
     fn no_duplicate_registrations() {
         let r = super::build_registry();

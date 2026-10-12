@@ -107,6 +107,8 @@ pub struct AiData {
     pub actor_models: HashMap<u32, Arc<ActorModel>>,
     /// `ModelManager.GetShipModel(modelId)` (by model id).
     pub ship_models: HashMap<u32, ShipModel>,
+    /// Normal prefab references, by model id, for the engine's authored buoyancy parts.
+    pub ship_model_refs: HashMap<u32, String>,
 }
 
 impl AiData {
@@ -252,6 +254,7 @@ impl AiData {
             Ok(())
         })?;
         let mut ships: HashMap<u32, ShipModel> = HashMap::new();
+        let mut ship_refs = HashMap::new();
         for_each_row(conn, "SELECT * FROM ship_models", [], |r| {
             let m = ShipModel {
                 id: r.u32("id")?,
@@ -278,6 +281,7 @@ impl AiData {
                 keel_height: r.f32("keel_height")?,
                 keel_offset_z: r.f32("keel_offset_z")?,
             };
+            ship_refs.entry(m.id).or_insert(r.string_or("normal", "")?);
             ships.entry(m.id).or_insert(m);
             Ok(())
         })?;
@@ -337,6 +341,11 @@ impl AiData {
                 "ShipModel" => {
                     if let Some(s) = ships.get(&sub_id) {
                         self.ship_models.entry(id).or_insert(*s);
+                        if let Some(reference) = ship_refs.get(&sub_id) {
+                            self.ship_model_refs
+                                .entry(id)
+                                .or_insert_with(|| reference.clone());
+                        }
                     }
                 }
                 _ => {}

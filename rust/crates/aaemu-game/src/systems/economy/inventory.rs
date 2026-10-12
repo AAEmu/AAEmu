@@ -23,7 +23,7 @@ use crate::models::item::{Item, ItemClass};
 use crate::models::item_task::{task_type, ItemFxList, ItemTask};
 use crate::packets::world::SCErrorMsgPacket;
 use crate::server::GameServer;
-use crate::world::PlayerRef;
+use crate::world::{PlayerRef, WorldObject};
 
 use super::error_message;
 use super::item_packets::{
@@ -486,13 +486,11 @@ pub fn split_or_move_item(
     to_slot: u8,
     count: i32,
 ) -> bool {
-    let items = &txn.server.items;
     let holder = |id: u64| {
         if id == 0 {
             return None;
         }
         inv.holder_of_any(id)
-            .or_else(|| items.holding_container(id))
     };
     let from_holder = holder(from_item_id);
     if from_holder.is_none() && from_item_id != 0 {
@@ -992,7 +990,29 @@ pub fn coffer_items(
     to_slot: u8,
     db_id: u64,
 ) -> bool {
-    // TODO (C#): Verify if you have access to the coffer
+    let server = txn.server;
+    let Some(player) = server.world.character_by_id(inv.character_id) else {
+        return false;
+    };
+    let Some(world) = server.world.world_of(&WorldObject::from(&player)) else {
+        return false;
+    };
+    let Some(doodad) = world.all_doodads().into_iter().find(|d| {
+        d.data()
+            .coffer
+            .as_ref()
+            .is_some_and(|c| c.container_id == db_id && c.opened_by == Some(inv.character_id))
+    }) else {
+        return false;
+    };
+    if !crate::systems::npcs::doodad::coffer::allowed_to_interact(server, &doodad, &player)
+        || world
+            .world_pos_rot(&WorldObject::from(&player))
+            .distance_to(&world.world_pos_rot(&WorldObject::from(&doodad)), false)
+            > 5.0
+    {
+        return false;
+    }
     let coffer = txn.server.items.container_by_id(db_id);
     let pick = |st: u8| -> Option<ContainerRef> {
         if st == slot_type::TRADE {

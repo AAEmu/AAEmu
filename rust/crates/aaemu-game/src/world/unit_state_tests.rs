@@ -79,8 +79,6 @@ fn npc_unit_state_bytes() {
     npc.unit = base("Wolf", 1234);
     npc.template_gender = 1;
     npc.template_race = 2;
-    let p = npc_unit_state(0x010203, &mut npc, "", 0);
-
     let mut e = PacketStream::new();
     e.write_bc(0x010203).write_str("Wolf").write_u8(1); // BaseUnitType.Npc
     e.write_bc(0x010203)
@@ -95,8 +93,26 @@ fn npc_unit_state_bytes() {
     // No equipment at all: ModelParams.SetType(Skin) -> type 2 + hair, skin, model ids.
     e.write_u8(2).write_u32(0).write_u32(0).write_u32(0);
     tail(&mut e, &[255, 0xFF], &[0, 0], 0x12);
-    assert_eq!(p.body, e.as_bytes());
-    assert_eq!(npc.unit.model_params.kind, UnitCustomModelType::SKIN);
+    // Collision ground, bridge floors, flight and an NPC idling after moving all
+    // keep their authoritative transform, even when the spawner's Z differs.
+    for (has_ai, can_fly, idle) in [
+        (false, false, false),
+        (true, false, false),
+        (true, false, true),
+        (true, true, false),
+    ] {
+        npc.has_ai = has_ai;
+        npc.can_fly = can_fly;
+        npc.ai_hold_or_idle = idle;
+        npc.spawner_z = Some(60.0);
+        let before = npc.unit.transform;
+        for _ in 0..2 {
+            let p = npc_unit_state(0x010203, &mut npc, "", 0);
+            assert_eq!(p.body, e.as_bytes());
+            assert_eq!(npc.unit.transform, before);
+            assert_eq!(npc.unit.model_params.kind, UnitCustomModelType::SKIN);
+        }
+    }
 }
 
 #[test]

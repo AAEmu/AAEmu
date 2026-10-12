@@ -197,7 +197,7 @@ impl MateManagers {
             .cloned()
     }
 
-    fn name_regex(&self, server: &GameServer) -> &regex::Regex {
+    pub(crate) fn name_regex(&self, server: &GameServer) -> &regex::Regex {
         self.name_regex.get_or_init(|| {
             server
                 .config
@@ -243,6 +243,9 @@ pub fn change_target_mate(server: &GameServer, owner: &PlayerRef, tl_id: u32, ob
     let Some(mate) = manager_of(server, owner).get_active_mate_by_tl_id(tl_id) else {
         return;
     };
+    if mate.data().owner_obj_id != owner.obj_id {
+        return;
+    }
     let world = world_of(server, &WorldObject::from(&mate));
     let target = if obj_id > 0 {
         world
@@ -371,16 +374,26 @@ fn trigger_remove_on(server: &GameServer, obj: &WorldObject, on: BuffRemoveOn) {
     crate::systems::dispatch_buff_events(server, obj);
 }
 
-/// `UnMountMate(character, tlId, attachPoint, reason)` (the `character` argument is only the
-/// `OnUnmount` event sender in C#).
-pub fn unmount_mate(
-    server: &GameServer,
-    _character: &PlayerRef,
-    tl_id: u32,
-    point: u8,
-    reason: u8,
-) {
-    unmount_mate_by(server, None, tl_id, point, reason);
+/// `UnMountMate(character, tlId, attachPoint, reason)`: a client can only leave its own seat.
+pub fn unmount_mate(server: &GameServer, character: &PlayerRef, tl_id: u32, point: u8, reason: u8) {
+    let instance = character.data().unit.transform.instance_id;
+    let Some(mate) = server
+        .systems
+        .vehicles
+        .mates
+        .get(instance)
+        .get_active_mate_by_tl_id(tl_id)
+    else {
+        return;
+    };
+    if !mate
+        .data()
+        .passenger(point)
+        .is_some_and(|seat| seat.obj_id == character.obj_id)
+    {
+        return;
+    }
+    unmount_mate_by(server, Some(instance), tl_id, point, reason);
 }
 
 /// `UnMountMate` in the instance of `instance_id` (or the mate found in any instance).
@@ -902,6 +915,12 @@ pub fn spawn_mount(server: &GameServer, owner: &PlayerRef, skill_item_id: u64) {
 
 /// `owner.Mates.DespawnMate(tlId)`.
 pub fn despawn_mate(server: &GameServer, owner: &PlayerRef, tl_id: u32) {
+    if !manager_of(server, owner)
+        .get_active_mate_by_tl_id(tl_id)
+        .is_some_and(|mate| mate.data().owner_obj_id == owner.obj_id)
+    {
+        return;
+    }
     let owner_id = owner.data().id;
     if let Some(mate) = manager_of(server, owner).get_active_mate_by_tl_id(tl_id) {
         let snapshot = {

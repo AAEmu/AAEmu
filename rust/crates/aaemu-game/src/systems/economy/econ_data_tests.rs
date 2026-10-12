@@ -619,6 +619,134 @@ async fn repair_single_equipment_at_a_blacksmith() {
 }
 
 #[tokio::test]
+async fn repair_all_respects_total_available_money() {
+    let mut d = data();
+    let mut boots = d.items.templates[&PRICEY].clone();
+    boots.id = 5002;
+    if let TemplateKind::Armor(equip) = &mut boots.kind {
+        equip.slot_type_id = 7;
+    }
+    d.items.templates.insert(5002, boots);
+    let mut w = world_with(d);
+    let npc = spawn_npc(&mut w);
+    w.server.systems.economy.hooks.npcs.install(Arc::new(Smith));
+    w.pa.data().unit.current_interaction_object = npc.obj_id;
+    let mut ids = Vec::new();
+    for (slot, template) in [(equip_slot::CHEST, PRICEY), (equip_slot::FEET, 5002)] {
+        let id = give(&w, &w.pa.clone(), slot_type::EQUIPMENT, template, 1, slot);
+        Inv::of(&w.pa)
+            .equipment()
+            .lock()
+            .unwrap()
+            .get_item_by_id_mut(id)
+            .unwrap()
+            .details
+            .durability = 4;
+        ids.push(id);
+    }
+    w.pa.data().money = 200; // Each costs 150; only one can be paid for.
+    run::<repair::CSRepairAllEquipmentsPacket>(&mut w, 0, &[0]);
+    assert_eq!(w.pa.data().money, 50);
+    let repaired = Inv::of(&w.pa).equipped(equip_slot::FEET).unwrap();
+    assert_eq!(repaired.id, ids[1]);
+    assert_eq!(repaired.details.durability, 10);
+    assert_eq!(
+        Inv::of(&w.pa)
+            .equipped(equip_slot::CHEST)
+            .unwrap()
+            .details
+            .durability,
+        4
+    );
+    assert_eq!(
+        w.a.drain(),
+        vec![
+            (
+                sc::SCItemTaskSuccessPacket,
+                task_body(task_type::DEPOSIT_MONEY, vec![ItemTask::MoneyChange(-150)])
+            ),
+            (
+                sc::SCItemTaskSuccessPacket,
+                task_body(task_type::REPAIR, vec![ItemTask::update(&repaired)])
+            ),
+        ]
+    );
+}
+
+#[tokio::test]
+async fn pet_repair_requires_own_equipment_and_current_blacksmith() {
+    use super::mate_equipment::CSRepairPetItemsPacket;
+    let mut w = world_with(data());
+    let npc = spawn_npc(&mut w);
+    w.server.systems.economy.hooks.npcs.install(Arc::new(Smith));
+    let mut ids = Vec::new();
+    for owner in [&w.pa, &w.pb] {
+        let container = w.server.items.container_for_character(
+            owner.character_id,
+            slot_type::EQUIPMENT_MATE,
+            77,
+            &w.server.ids.container,
+        );
+        let mut item = Item::create(
+            u64::from(owner.character_id) + 900,
+            w.server.game_data.items.template(PRICEY).unwrap(),
+            1,
+            0,
+            1,
+            &w.server.game_data.items,
+            0,
+        );
+        item.slot_type = slot_type::EQUIPMENT_MATE;
+        item.slot = equip_slot::CHEST;
+        item.details.durability = 4;
+        ids.push(item.id);
+        container.lock().unwrap().items.push(item);
+    }
+    w.pa.data().money = 1000;
+    let mut s = PacketStream::new();
+    s.write_bc(npc.obj_id);
+    run::<CSRepairPetItemsPacket>(&mut w, 0, s.as_bytes());
+    assert!(w.a.drain().is_empty());
+    assert_eq!(
+        w.server
+            .items
+            .item_by_id(ids[0])
+            .unwrap()
+            .details
+            .durability,
+        4
+    );
+    w.pa.data().unit.current_interaction_object = npc.obj_id;
+    run::<CSRepairPetItemsPacket>(&mut w, 0, s.as_bytes());
+    let repaired = w.server.items.item_by_id(ids[0]).unwrap();
+    assert_eq!(repaired.details.durability, 10);
+    assert_eq!(
+        w.server
+            .items
+            .item_by_id(ids[1])
+            .unwrap()
+            .details
+            .durability,
+        4
+    );
+    assert_eq!(w.pa.data().money, 850);
+    assert_eq!(
+        w.a.drain(),
+        vec![
+            (
+                sc::SCItemTaskSuccessPacket,
+                task_body(task_type::DEPOSIT_MONEY, vec![ItemTask::MoneyChange(-150)])
+            ),
+            (
+                sc::SCItemTaskSuccessPacket,
+                task_body(task_type::REPAIR, vec![ItemTask::update(&repaired)])
+            ),
+        ]
+    );
+    assert!(w.b.drain().is_empty());
+}
+
+#[tokio::test]
 async fn durability_loss_and_death() {
     let w = world_with(data());
     let id = give(

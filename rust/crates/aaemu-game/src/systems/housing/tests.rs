@@ -1048,10 +1048,14 @@ async fn placement_and_interaction_permissions() {
     assert!(allowed(&fx.pb));
     fx.pb.data().account_id = 1002;
     house.data().permission = housing_permission::FAMILY;
-    // C#: Family permission for a player without a family falls through to `default` (true).
-    assert!(allowed(&fx.pb));
+    // A missing family must not grant access to a family-only house.
+    assert!(!allowed(&fx.pb));
+    assert!(allowed(&fx.pa)); // the owner may still use the house without a family
     fx.pb.data().family = 9;
     assert!(!allowed(&fx.pb)); // family 9 does not exist / owner not a member
+    house.data().permission = housing_permission::GUILD;
+    assert!(!allowed(&fx.pb)); // neither character is in a guild
+    assert!(allowed(&fx.pa));
     house.data().permission = housing_permission::PUBLIC;
     assert!(allowed(&fx.pb));
     // Unfinished houses are always open.
@@ -1240,4 +1244,137 @@ async fn house_radius_counts_in_skill_distance() {
         super::house_radius(&fx.server, &WorldObject::from(&fx.pa)),
         None
     );
+}
+
+#[tokio::test]
+async fn house_sale_packets_require_owner_and_keep_internal_gm_operations() {
+    use crate::net::registry::ClientPacket;
+
+    let mut fx = fixture(false);
+    fx.a.conn.active_char = Some(fx.pa.clone());
+    fx.b.conn.active_char = Some(fx.pb.clone());
+    let house = place_house(&fx, DESIGN, &fx.pa, 120.0, 100.0, -1);
+    let tl = house.data().unit.tl_id;
+    fx.eco
+        .item_counts
+        .lock()
+        .unwrap()
+        .insert(manager::APPRAISAL_CERTIFICATE, 1);
+    assert!(!ops::set_for_sale_by_tl(
+        &fx.server,
+        tl,
+        100,
+        0,
+        Some(&fx.pb)
+    ));
+    CSSellHousePacket {
+        tl,
+        money_amount: 100,
+        sell_to: String::new(),
+    }
+    .handle(&fx.server, &mut fx.b.conn)
+    .await
+    .unwrap();
+    assert_eq!(house.data().sell_price, 0);
+    assert!(fx.eco.calls().is_empty());
+    assert!(ops::set_for_sale_by_tl(&fx.server, tl, 100, 0, None));
+    CSSellHousePacket {
+        tl,
+        money_amount: 0,
+        sell_to: String::new(),
+    }
+    .handle(&fx.server, &mut fx.b.conn)
+    .await
+    .unwrap();
+    CSSellHouseCancelPacket { tl }
+        .handle(&fx.server, &mut fx.b.conn)
+        .await
+        .unwrap();
+    assert_eq!(house.data().sell_price, 100);
+    assert!(fx.eco.calls().is_empty());
+    assert!(fx.eco.mails().is_empty());
+    CSSellHouseCancelPacket { tl }
+        .handle(&fx.server, &mut fx.a.conn)
+        .await
+        .unwrap();
+    assert_eq!(house.data().sell_price, 0);
+    assert_eq!(fx.eco.calls(), vec!["mail+items 28085 1"]);
+}
+
+#[tokio::test]
+async fn mismatched_house_design_rejected_before_any_payment_or_consumption() {
+    let fx = fixture(false);
+    fx.eco.items.lock().unwrap().push(HouseItem {
+        item_id: 77,
+        template_id: DESIGN_ITEM,
+        owner_id: 1,
+        count: 1,
+        max_count: 1,
+        ..Default::default()
+    });
+    fx.eco.item_counts.lock().unwrap().insert(DESIGN_ITEM, 1);
+    let mut packet = create_packet(0.0);
+    packet.design_id = FARM; // the owned cottage design does not build this farm
+    ops::build(&fx.server, &fx.pa, 1001, &packet);
+    assert!(fx.eco.calls().is_empty());
+    assert!(fx
+        .server
+        .systems
+        .housing
+        .manager
+        .by_account(1001)
+        .is_empty());
+    assert_eq!(fx.eco.item_counts.lock().unwrap()[&DESIGN_ITEM], 1);
+}
+
+#[tokio::test]
+async fn decoration_rejects_private_house_and_mismatched_owned_item() {
+    let fx = fixture(false);
+    let house = place_house(&fx, DESIGN, &fx.pa, 120.0, 100.0, -1);
+    fx.eco.items.lock().unwrap().push(HouseItem {
+        item_id: 501,
+        template_id: CHAIR_ITEM,
+        owner_id: 2,
+        count: 1,
+        max_count: 1,
+        ..Default::default()
+    });
+    let packet = CSDecorateHousePacket {
+        house_tl: house.data().unit.tl_id,
+        design_id: 50,
+        x: 1.0,
+        y: 1.0,
+        z: 0.0,
+        quat: [0.0, 0.0, 0.0, 1.0],
+        parent_obj_id: house.obj_id,
+        item_id: 501,
+    };
+    assert_eq!(ops::decorate_house(&fx.server, &fx.pb, &packet), Ok(false));
+    house.data().permission = housing_permission::PUBLIC;
+    fx.eco.items.lock().unwrap()[0].template_id = DESIGN_ITEM;
+    assert_eq!(ops::decorate_house(&fx.server, &fx.pb, &packet), Ok(false));
+    assert!(fx.eco.calls().is_empty());
+    let world = fx.server.world.world(0).unwrap();
+    let house_id = house.data().id;
+    assert!(!world
+        .doodads_by_house_db_id(house_id)
+        .iter()
+        .any(|d| d.data().template_id == CHAIR_DOODAD));
+}
+
+#[test]
+fn decoration_design_accepts_every_bound_item_template() {
+    let mut data = super::Data::default();
+    for (id, item_id) in [(1, 8000), (2, 8001)] {
+        data.add_item_housing_decoration(ItemHousingDecoration {
+            id,
+            item_id,
+            design_id: 50,
+            restore: true,
+        });
+    }
+    assert!(data.decoration_accepts_item(50, 8000));
+    assert!(data.decoration_accepts_item(50, 8001));
+    assert!(!data.decoration_accepts_item(50, 8002));
+    assert!(!data.decoration_accepts_item(51, 8000));
 }

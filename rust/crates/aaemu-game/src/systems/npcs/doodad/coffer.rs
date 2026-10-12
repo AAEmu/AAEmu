@@ -21,7 +21,7 @@ use crate::net::registry::{ClientPacket, PacketRegistry};
 use crate::opcodes::{cs, sc};
 use crate::packets::packet_def;
 use crate::server::GameServer;
-use crate::world::{DoodadRef, PlayerRef};
+use crate::world::{DoodadRef, PlayerRef, WorldObject};
 
 /// `ChestType.Otherworldly`.
 pub const CHEST_TYPE_OTHERWORLDLY: u8 = 2;
@@ -210,6 +210,19 @@ pub fn open_coffer_doodad(server: &GameServer, player: &PlayerRef, obj_id: u32) 
         );
         return false;
     };
+    if !allowed_to_interact(server, &doodad, player) {
+        return false;
+    }
+    let Some(world) = server.world.world_of(&WorldObject::from(player)) else {
+        return false;
+    };
+    if world
+        .world_pos_rot(&WorldObject::from(player))
+        .distance_to(&world.world_pos_rot(&WorldObject::from(&doodad)), false)
+        > 5.0
+    {
+        return false;
+    }
     let coffer = {
         let mut d = doodad.data();
         let c = d.coffer.as_mut().expect("coffer");
@@ -217,7 +230,6 @@ pub fn open_coffer_doodad(server: &GameServer, player: &PlayerRef, obj_id: u32) 
         if c.opened_by.is_some() {
             return false;
         }
-        // TODO (C#): Check permissions
         c.opened_by = Some(char_id);
         c.clone()
     };

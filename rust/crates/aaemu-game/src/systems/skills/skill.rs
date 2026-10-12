@@ -353,6 +353,29 @@ pub fn use_skill(
         skill.state().cancelled = true;
         return (unit_reqs::skill_result_for_key(req.key), req.value);
     }
+    // Resolve buff restrictions before cooldown writes or StartSkill buff removal:
+    // removing a restrictive buff first would let the forbidden skill bypass it.
+    let checked_target = if !server
+        .game_data
+        .systems
+        .skills
+        .buff_skill_requirements
+        .is_empty()
+    {
+        let target = initial_target(server, skill, caster, &caster_caster, target_caster);
+        if let Some(req) = super::buff_reqs::failed_requirement(
+            server,
+            &template,
+            caster,
+            target.as_ref().and_then(Target::as_obj),
+        ) {
+            skill.state().cancelled = true;
+            return (skill_result::SKILL_REQ_FAIL, req);
+        }
+        target
+    } else {
+        None
+    };
     let now = now_ms();
     if template.cooldown_time > 0 {
         if let Some(o) = &cooldown_owner {
@@ -407,7 +430,9 @@ pub fn use_skill(
         );
     }
     let skill_object = skill_object.unwrap_or_default();
-    let Some(target) = initial_target(server, skill, caster, &caster_caster, target_caster) else {
+    let Some(target) = checked_target
+        .or_else(|| initial_target(server, skill, caster, &caster_caster, target_caster))
+    else {
         if let Some(n) = caster.as_npc() {
             server
                 .systems

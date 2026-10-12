@@ -70,6 +70,143 @@ fn ok(w: &mut World, who: u8) {
 }
 
 #[tokio::test]
+async fn trade_departure_cancels_peer_and_reconnect_starts_without_stale_cleanup() {
+    use crate::test_support::{spawn_player, test_character, TestClient};
+    use crate::world::session;
+    for disconnect in [false, true] {
+        let mut w = world();
+        start(&mut w);
+        let old_trade = w.server.systems.economy.trade.trades()[0].id;
+        let item_id = give(&w, &w.pa, slot_type::INVENTORY, STACK, 2, 0);
+        w.pa.data().money = 100;
+        w.pb.data().money = 200;
+        putup_item(&mut w, 0, slot_type::INVENTORY, 0, 2);
+        putup_money(&mut w, 0, 50);
+        lock(&mut w, 0, true);
+        lock(&mut w, 1, true);
+        let trade = &w.server.systems.economy.trade.trades()[0];
+        assert!(trade.lock_owner && trade.lock_target);
+        w.a.drain();
+        w.b.drain();
+        let departed = w.pa.clone();
+        if disconnect {
+            session::on_disconnect(&w.server, &mut w.a.conn).await;
+        } else {
+            session::leave_world_task(&w.server, Some(&mut w.a.conn), 1, Some(departed.clone()))
+                .await;
+        }
+        assert!(w.server.systems.economy.trade.trades().is_empty());
+        let cancellations = |frames: Vec<(u16, Vec<u8>)>| {
+            frames
+                .into_iter()
+                .filter(|(op, _)| *op == sc::SCTradeCanceledPacket)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(cancellations(w.a.drain()), vec![canceled(0, true)]);
+        assert_eq!(cancellations(w.b.drain()), vec![canceled(0, false)]);
+        assert_eq!(
+            item_at(&departed, slot_type::INVENTORY, 0).unwrap().id,
+            item_id
+        );
+        assert_eq!((departed.data().money, w.pb.data().money), (100, 200));
+        assert!(w
+            .server
+            .world
+            .character_by_obj_id(departed.obj_id)
+            .is_none());
+        let mut reconnected = TestClient::new(&w.server, 3, 1001);
+        let player = spawn_player(
+            &w.server,
+            &reconnected,
+            test_character(1, "Alice", 100.0, 100.0),
+            departed.obj_id,
+        );
+        reconnected.conn.active_char = Some(player.clone());
+        w.a = reconnected;
+        w.pa = player;
+        w.a.drain();
+        w.b.drain();
+        start(&mut w); // The first fresh invitation/acceptance succeeds without a priming cancel.
+        assert_ne!(w.server.systems.economy.trade.trades()[0].id, old_trade);
+        on_player_departed(&w.server, &departed); // Late old-session cleanup cannot cancel the new actor's trade.
+        assert_eq!(w.server.systems.economy.trade.trades().len(), 1);
+        assert!(w.a.drain().is_empty() && w.b.drain().is_empty());
+    }
+}
+
+#[tokio::test]
+async fn departure_prunes_invites_without_touching_unrelated_players_trade() {
+    use crate::test_support::{spawn_player, test_character, TestClient};
+    for departing_recipient in [false, true] {
+        let mut w = world();
+        run::<CSCanStartTradePacket>(&mut w, 0, &bc(0x101));
+        w.b.drain();
+        let departing = if departing_recipient { &w.pb } else { &w.pa };
+        on_player_departed(&w.server, departing);
+        run::<CSStartTradePacket>(&mut w, 1, &bc(0x100));
+        assert!(w.server.systems.economy.trade.trades().is_empty());
+        assert!(w.a.drain().is_empty() && w.b.drain().is_empty());
+        start(&mut w);
+        let outsider = TestClient::new(&w.server, 3, 1003);
+        let third = spawn_player(
+            &w.server,
+            &outsider,
+            test_character(3, "Third", 100.0, 100.0),
+            0x102,
+        );
+        w.a.drain();
+        w.b.drain();
+        let before = w.server.systems.economy.trade.trades();
+        on_player_departed(&w.server, &third);
+        assert_eq!(w.server.systems.economy.trade.trades(), before);
+        assert!(w.a.drain().is_empty() && w.b.drain().is_empty());
+        cancel_trade(&w.server, w.pa.obj_id, 0, 0);
+        w.a.drain();
+        w.b.drain();
+        run::<CSCanStartTradePacket>(&mut w, 0, &bc(0x101));
+        w.b.drain();
+        on_player_departed(&w.server, &third);
+        run::<CSStartTradePacket>(&mut w, 1, &bc(0x100));
+        assert_eq!(w.a.drain(), vec![(sc::SCTradeStartedPacket, bc(0x101))]);
+        assert_eq!(w.b.drain(), vec![(sc::SCTradeStartedPacket, bc(0x100))]);
+        assert_eq!(w.server.systems.economy.trade.trades().len(), 1);
+    }
+}
+
+#[tokio::test]
+async fn trade_invitation_decline_notifies_requester_and_cannot_be_replayed() {
+    let mut w = world();
+    // Accepting an unsolicited invitation cannot open a trade on another player.
+    run::<CSStartTradePacket>(&mut w, 1, &bc(0x100));
+    assert!(w.server.systems.economy.trade.trades().is_empty());
+    assert!(w.a.drain().is_empty() && w.b.drain().is_empty());
+    run::<CSCanStartTradePacket>(&mut w, 0, &bc(0x101));
+    assert_eq!(w.b.drain(), vec![(sc::SCCanStartTradePacket, bc(0x100))]);
+    let decline = |id| {
+        let mut s = PacketStream::new();
+        s.write_bc(id).write_i32(3);
+        s.into_bytes()
+    };
+    // The requester cannot masquerade as the recipient, even using a valid peer id.
+    run::<CSCannotStartTradePacket>(&mut w, 0, &decline(0x101));
+    assert!(w.a.drain().is_empty() && w.b.drain().is_empty());
+    run::<CSCannotStartTradePacket>(&mut w, 1, &decline(0x100));
+    let mut expected = PacketStream::new();
+    expected.write_bc(0x101).write_i32(3);
+    assert_eq!(
+        w.a.drain(),
+        vec![(sc::SCCannotStartTradePacket, expected.into_bytes())]
+    );
+    assert!(w.b.drain().is_empty());
+    run::<CSCannotStartTradePacket>(&mut w, 1, &decline(0x100));
+    run::<CSStartTradePacket>(&mut w, 1, &bc(0x100));
+    assert!(w.a.drain().is_empty() && w.b.drain().is_empty());
+    assert!(w.server.systems.economy.trade.trades().is_empty());
+    // A fresh invitation still follows the normal handshake.
+    start(&mut w);
+}
+
+#[tokio::test]
 async fn packets_layout() {
     let check = |f: Vec<u8>, op: u16, body: &[u8]| {
         assert_eq!(u16::from_le_bytes([f[4], f[5]]), op);

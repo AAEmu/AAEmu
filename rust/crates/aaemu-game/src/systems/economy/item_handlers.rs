@@ -561,6 +561,9 @@ pub fn unwrap_item(
         return false;
     };
     let mut c = container.lock().expect("container poisoned");
+    if c.owner_id != p.character_id {
+        return false;
+    }
     let Some(item) = c.get_item_by_id_mut(item_id) else {
         return false;
     };

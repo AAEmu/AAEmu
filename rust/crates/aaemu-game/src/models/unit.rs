@@ -224,6 +224,9 @@ pub struct DynamicBonus {
     pub source_start_ms: i64,
     pub source_duration: i32,
     pub linear_func: Option<LinearFuncTemplate>,
+    pub manual_values: Option<Vec<i32>>,
+    /// Template tick interval in milliseconds (the native manual function index is a tick).
+    pub source_tick_ms: f64,
 }
 
 impl DynamicBonus {
@@ -239,7 +242,20 @@ impl DynamicBonus {
                 }
                 Some(f.value(ratio))
             }
-            // "ManualFunc": not implemented in C# either.
+            "ManualFunc" => {
+                // 10.x sub_39BF39F0 / sub_39BF6160: discrete tick index, clamp at
+                // the final entry; timed modifiers require duration and tick > 0.
+                if self.source_duration <= 0 || self.source_tick_ms <= 0.0 {
+                    return None;
+                }
+                let values = self.manual_values.as_ref()?;
+                if values.is_empty() {
+                    return None;
+                }
+                let elapsed = now_ms.saturating_sub(self.source_start_ms).max(0) as f64;
+                let index = ((elapsed / self.source_tick_ms) as usize).min(values.len() - 1);
+                Some(f64::from(values[index]))
+            }
             _ => None,
         }
     }
@@ -929,6 +945,8 @@ mod tests {
                 source_buff_index: 2,
                 source_start_ms: 0,
                 source_duration: 1000,
+                manual_values: None,
+                source_tick_ms: 0.0,
                 linear_func: Some(LinearFuncTemplate {
                     id: 1,
                     start_value: 0,

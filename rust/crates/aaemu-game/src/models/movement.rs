@@ -387,7 +387,8 @@ pub struct UnitMove {
     pub gc_flags: u8,
     /// `actor.gcPartId`, present when `actor_flags & 0x20`.
     pub gc_part_id: u16,
-    /// Position relative to the gc object (`ix`/`iy`/`iz`), present when `actor_flags & 0x20`.
+    /// Auxiliary gc frame (`ix`/`iy`/`iz`), present when `actor_flags & 0x20`.
+    /// With `gc_flags & 1`, this is the world position; the primary position is relative.
     pub x2: f32,
     pub y2: f32,
     pub z2: f32,

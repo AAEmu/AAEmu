@@ -159,8 +159,8 @@ impl QuestSkillHooks for QuestsForSkills {
                     tracing::debug!("No target character given");
                     return true;
                 };
-                // `item.Template.ImplId == ItemImplEnum.AcceptQuest`: item templates do not
-                // carry the impl id yet; a quest starter item is treated as one.
+                // Quest-starter items use the explicit item/quest relation; other item
+                // effects retain the effect's own quest id.
                 let item = match args.caster_caster {
                     SkillCaster::Item {
                         item_template_id, ..
@@ -168,10 +168,11 @@ impl QuestSkillHooks for QuestsForSkills {
                         item_template_id,
                         server
                             .game_data
-                            .systems
-                            .quests
-                            .quest_id_from_starter_item(item_template_id)
-                            > 0,
+                            .items
+                            .template(item_template_id)
+                            .is_some_and(|t| {
+                                t.impl_id == crate::data::items::item_impl::ACCEPT_QUEST
+                            }),
                     )),
                     _ => None,
                 };

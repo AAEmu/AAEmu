@@ -830,4 +830,5 @@ pub mod skill_result {
     pub const NOT_NOW: u8 = 0x2C;
     pub const NO_PERM: u8 = 0x2D;
     pub const BAG_FULL: u8 = 0x2E;
+    pub const SKILL_REQ_FAIL: u8 = 0x32;
 }

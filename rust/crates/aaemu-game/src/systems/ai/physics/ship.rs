@@ -105,6 +105,8 @@ impl Default for ShipGameView {
 pub struct PhysShip {
     pub spec: ShipSpec,
     pub model: ShipModel,
+    /// Authored prefab brushes named `buoy*` (shared CGF geometries, local placements).
+    pub buoys: Vec<crate::systems::ai::collision::objects::ShapePart>,
     pub body: RigidBody,
     pub replication: ReplicationSmoothing,
     /// The ship's `Transform` (game axes; ships are root objects so local = world). Written to the
@@ -180,6 +182,7 @@ impl PhysShip {
             rot: (0.0, 0.0, spec.yaw),
             spec,
             model,
+            buoys: Vec::new(),
             body,
             replication: ReplicationSmoothing::default(),
             view,

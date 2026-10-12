@@ -787,8 +787,8 @@ impl TeamManager {
 
     /// `AskRiskyTeam(unit, teamId, targetId, riskyAction)`: leave, kick or dismiss.
     ///
-    /// Note (C#): the chat channels are left by `unit` (the kicker, for a kick), and any member
-    /// may dismiss the team.
+    /// Note (C#): the chat channels are left by `unit` (the kicker, for a kick). Destructive
+    /// requests require membership; kicking and dismissing require the current owner.
     pub fn ask_risky_team(
         &self,
         server: &GameServer,
@@ -813,12 +813,18 @@ impl TeamManager {
         let Some(team) = (team_id != 0).then(|| st.teams.get_mut(&team_id)).flatten() else {
             return;
         };
-        let mut is_auto_disband = false;
-        if (risky_action == risky_action::KICK && team.owner_id != unit.character_id)
+        if !matches!(
+            risky_action,
+            risky_action::LEAVE | risky_action::KICK | risky_action::DISMISS
+        ) || !team.is_member(unit.character_id)
+            || (matches!(risky_action, risky_action::KICK | risky_action::DISMISS)
+                && team.owner_id != unit.character_id)
             || (risky_action == risky_action::LEAVE && unit.character_id != target_id)
+            || (risky_action != risky_action::DISMISS && !team.is_member(target_id))
         {
             return;
         }
+        let mut is_auto_disband = false;
         if !team.is_party {
             raid_chat(server, team).leave(unit);
         }

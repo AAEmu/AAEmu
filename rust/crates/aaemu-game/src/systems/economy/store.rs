@@ -637,7 +637,7 @@ impl Marshal for SCSoldItemListPacket {
 // CSBuyPriestBuffPacket / CSBuyCoinItemPacket / CSSellBackpackGoodsPacket
 // -------------------------------------------------------------------------------------------
 
-/// `CSBuyPriestBuffPacket` (only logged in the 1.2 C#).
+/// `CSBuyPriestBuffPacket` (purchase the selected priest blessing).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CSBuyPriestBuffPacket {
     pub priest_buff_id: u32,
@@ -652,12 +652,15 @@ impl CSBuyPriestBuffPacket {
         })
     }
 
-    fn run(self, _server: &GameServer, _conn: &mut GameConnection) {
-        tracing::warn!(
-            "BuyPriestBuff, PriestBuffId: {}, NpcUnitId: {}",
-            self.priest_buff_id,
-            self.npc_unit_id
-        );
+    fn run(self, server: &GameServer, conn: &mut GameConnection) {
+        if let Some(player) = &conn.active_char {
+            crate::systems::skills::priest::buy(
+                server,
+                player,
+                self.priest_buff_id,
+                self.npc_unit_id,
+            );
+        }
     }
 }
 sync_client_packet!(CSBuyPriestBuffPacket);

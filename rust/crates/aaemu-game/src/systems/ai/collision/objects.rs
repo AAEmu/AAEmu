@@ -116,6 +116,15 @@ fn parse_vec(s: &str) -> Vec<f32> {
 /// The brushes of a prefab (`<PrefabsLibrary><Prefab Name><Objects><Object Type="Brush"
 /// Prefab=… Pos Rotate(w,x,y,z) Scale>`), as model path + local placement.
 pub fn prefab_brushes(xml: &str, name: &str) -> Vec<(String, Vec3, Quat, f32)> {
+    prefab_brushes_with_prefix(xml, name, "")
+}
+
+/// The same local placements, restricted to brush names with a case-insensitive prefix.
+pub fn prefab_brushes_with_prefix(
+    xml: &str,
+    name: &str,
+    prefix: &str,
+) -> Vec<(String, Vec3, Quat, f32)> {
     let Ok(doc) = roxmltree::Document::parse(xml) else {
         return Vec::new();
     };
@@ -127,8 +136,17 @@ pub fn prefab_brushes(xml: &str, name: &str) -> Vec<(String, Vec3, Quat, f32)> {
         return Vec::new();
     };
     let mut out = Vec::new();
+    let prefix = prefix.to_ascii_lowercase();
     for o in prefab.descendants().filter(|n| n.has_tag_name("Object")) {
         if o.attribute("Type") != Some("Brush") {
+            continue;
+        }
+        if !o
+            .attribute("Name")
+            .unwrap_or("")
+            .to_ascii_lowercase()
+            .starts_with(&prefix)
+        {
             continue;
         }
         let Some(model) = o.attribute("Prefab").filter(|s| !s.trim().is_empty()) else {
@@ -453,5 +471,23 @@ mod tests {
         assert_eq!(b[0].2.w, "0.70710671".parse::<f32>().unwrap());
         assert_eq!(b[0].3, 2.0);
         assert!(prefab_brushes(xml, "missing").is_empty());
+    }
+
+    #[test]
+    fn prefab_buoys_only_include_named_brushes_of_the_selected_prefab() {
+        let xml = r#"<PrefabsLibrary><Prefab Name="boat.a"><Objects>
+            <Object Type="Brush" Name="hull" Prefab="Objects/hull.cgf"/>
+            <Object Type="Brush" Name="Buoy0" Prefab="Objects/box.cgf" Pos="0,-3,0.15" Scale="2.5,2.5,2.5"/>
+            <Object Type="Entity" Name="buoy1" Prefab="Objects/box.cgf"/>
+            </Objects></Prefab><Prefab Name="boat.b"><Objects>
+            <Object Type="Brush" Name="buoy0" Prefab="Objects/other.cgf"/>
+            </Objects></Prefab></PrefabsLibrary>"#;
+        let parts = prefab_brushes_with_prefix(xml, "BOAT.A", "BUOY");
+        assert_eq!(parts.len(), 1);
+        assert_eq!(parts[0].0, "game/objects/box.cgf");
+        assert_eq!(parts[0].1, Vec3::new(0.0, -3.0, 0.15));
+        assert_eq!(parts[0].3, 2.5);
+        assert_eq!(prefab_brushes(xml, "boat.a").len(), 2);
+        assert!(prefab_brushes_with_prefix(xml, "boat.a", "missing").is_empty());
     }
 }

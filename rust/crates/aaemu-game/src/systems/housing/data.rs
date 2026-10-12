@@ -440,6 +440,14 @@ impl HousingData {
             .find(|x| x.design_id == deco_design_id)
     }
 
+    /// Whether this item template supplies the requested decoration (several items may
+    /// share a design).
+    pub fn decoration_accepts_item(&self, design_id: u32, item_id: u32) -> bool {
+        self.item_housing_decorations
+            .iter()
+            .any(|row| row.design_id == design_id && row.item_id == item_id)
+    }
+
     /// `GetItemIdByDesign(designId)`: the first `item_housings.item_id` of the design whose item
     /// template exists (0 = none).
     pub fn item_id_by_design(&self, design_id: u32, item_exists: impl Fn(u32) -> bool) -> u32 {

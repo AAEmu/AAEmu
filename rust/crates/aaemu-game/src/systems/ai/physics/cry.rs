@@ -11,7 +11,7 @@
 //!
 //! | part | geometry | flags / collider | mass |
 //! |---|---|---|---|
-//! | buoy tube | cylinder along the ship's Y at `(0, 0, tube_offset_z)`, `r = tube_radius`, `hh = tube_length` (desc +204/+208/+200; 0 → half beam / half length) | `0x10000` (floats) / 0 | 0 |
+//! | buoys | prefab brushes named `buoy*`, using their CGF physics geometry and local position, rotation and scale; otherwise a cylinder along the ship's Y at `(0, 0, tube_offset_z)`, `r = tube_radius`, `hh = tube_length` (desc +204/+208/+200; 0 → half beam / half length) | `0x10000` (floats) / 0 | 0 |
 //! | keel | box at `(0, 0, keel_offset_z − keel_height)` (desc +100/+104/+108) when the keel has a size | `0x10000` / 0 | 0 |
 //! | mass | box `mass_box_size / 2` at `mass_center` | 0 / 0 | `mass` (desc +112) |
 //! | hull | the same box | `0x80` / `0x80` (ship collision class) | 1 |
@@ -50,6 +50,11 @@ use aaemu_physics::world::events::Event;
 use aaemu_physics::world::EntIdx;
 
 use crate::systems::ai::collision::world::{ObjKind, Owner, WorldState};
+use crate::systems::ai::collision::{
+    models::{phys_slot, ModelCache},
+    objects::{self, ModelRef, ShapePart},
+    Files,
+};
 use crate::systems::ai::data::ShipModel;
 use crate::systems::skills::controllers::Vec3;
 
@@ -96,6 +101,32 @@ pub struct ShipPart {
 
 fn boxp(center: PVec3, half: PVec3) -> Primitive {
     Primitive::Box(BoxPrim::aligned(center, half))
+}
+
+/// `ShipUnitModel::InitPhysicalEntity` prefers prefab brushes whose names start with
+/// `buoy` (10.x zone 0x39286C50, also present in the 1.2 speedboat prefab). The cylinder
+/// is only the fallback when none of these authored physics parts exist.
+pub fn prefab_buoys(files: &Files, models: &ModelCache, reference: &str) -> Vec<ShapePart> {
+    let ModelRef::Prefab { library, name } = objects::parse_model_ref(reference) else {
+        return Vec::new();
+    };
+    let Some(bytes) = files.read(&library) else {
+        return Vec::new();
+    };
+    let xml = crate::data::client_files::decode_text(&bytes);
+    objects::prefab_brushes_with_prefix(&xml, &name, "buoy")
+        .into_iter()
+        .filter_map(|(path, pos, q, scale)| {
+            let model = models.get(&path)?;
+            model.slot(phys_slot::DEFAULT)?;
+            Some(ShapePart {
+                model,
+                pos,
+                q,
+                scale,
+            })
+        })
+        .collect()
 }
 
 /// The parts of `InitPhysicalEntity` for a ship model at `scale`.
@@ -191,7 +222,13 @@ pub fn create_entity(st: &mut WorldState, ship: &PhysShip) -> Option<EntIdx> {
     let e = st
         .world
         .create_physical_entity(2, 0.0, Some(&pp), 0, 0, -1)?;
-    for p in ship_parts(&ship.model, ship.spec.scale) {
+    for (index, p) in ship_parts(&ship.model, ship.spec.scale)
+        .into_iter()
+        .enumerate()
+    {
+        if index == 0 && !ship.buoys.is_empty() {
+            continue; // Authored buoys replace the fallback tube, never add both volumes.
+        }
         let Some(g) = st.world.geometry(&p.prim) else {
             continue;
         };
@@ -204,7 +241,22 @@ pub fn create_entity(st: &mut WorldState, ship: &PhysShip) -> Option<EntIdx> {
         };
         add_geometry(&mut st.world, e, &g, &gp, -1);
     }
-    // kWaterDensity: 1.0 in every 1.2 `ship_models` row (the C# loader default); 0 = unset
+    for part in &ship.buoys {
+        if let Some(geom) = part.model.slot(phys_slot::DEFAULT) {
+            let gp = GeomParams {
+                pos: part.pos * ship.spec.scale,
+                q: part.q,
+                scale: part.scale * ship.spec.scale,
+                mass: 0.0,
+                density: 0.0,
+                flags: 0x1_0000,
+                flags_collider: 0,
+                ..GeomParams::default()
+            };
+            add_geometry(&mut st.world, e, geom, &gp, -1);
+        }
+    }
+    // kWaterDensity comes from the model (rowboats use 0.7); 0 = unset.
     let kd = if ship.model.water_density > 0.0 {
         ship.model.water_density
     } else {
@@ -506,6 +558,69 @@ mod tests {
     use crate::systems::ai::collision::world::PhysWorld;
     use crate::systems::ai::physics::ship::tests::{model, spec};
     use crate::systems::ai::physics::ship::{PhysShip, ShipGameView};
+
+    #[test]
+    fn authored_buoys_replace_the_tube_and_preserve_their_local_placements() {
+        use crate::systems::ai::collision::models::{ModelPart, ModelPhys};
+
+        let pw = PhysWorld::new(0, 0, "t", 1, 1, 100.0, None);
+        let mut st = pw.lock();
+        let geom = st
+            .world
+            .geometry(&boxp(PVec3::ZERO, PVec3::new(1.0, 1.0, 0.125)))
+            .unwrap();
+        let model_phys = Arc::new(ModelPhys {
+            path: "game/objects/test_buoy.cgf".into(),
+            parts: vec![ModelPart {
+                slot: phys_slot::DEFAULT,
+                geom: geom.clone(),
+            }],
+            blob_bytes: 0,
+        });
+        let mut ship = PhysShip::new(
+            spec(1, 300.0, 300.0, 100.0, 0.0),
+            model(),
+            ShipGameView::default(),
+        );
+        ship.spec.scale = 2.0;
+        let fallback = create_entity(&mut st, &ship).unwrap();
+        assert_eq!(
+            st.world.ents[fallback.0 as usize]
+                .as_ref()
+                .unwrap()
+                .parts
+                .iter()
+                .filter(|p| p.flags & 0x1_0000 != 0)
+                .count(),
+            1
+        );
+        let q = PQuat::new(0.043619387, 0.0, 0.0, 0.99904823);
+        ship.buoys = [-3.0, 2.7]
+            .into_iter()
+            .map(|y| ShapePart {
+                model: model_phys.clone(),
+                pos: PVec3::new(0.0, y, 0.15),
+                q,
+                scale: 3.0,
+            })
+            .collect();
+        let authored = create_entity(&mut st, &ship).unwrap();
+        let floating: Vec<_> = st.world.ents[authored.0 as usize]
+            .as_ref()
+            .unwrap()
+            .parts
+            .iter()
+            .filter(|p| p.flags & 0x1_0000 != 0)
+            .collect();
+        assert_eq!(floating.len(), 2, "no extra fallback volume");
+        for (part, y) in floating.iter().zip([-6.0, 5.4]) {
+            assert_eq!(part.pos, PVec3::new(0.0, y, 0.3));
+            assert_eq!(part.q, q);
+            assert_eq!(part.scale, 6.0);
+            assert_eq!((part.flags_collider, part.mass), (0, 0.0));
+            assert!(Arc::ptr_eq(&part.pgeom, &geom));
+        }
+    }
 
     #[test]
     fn a_falling_hull_logs_collision_events() {

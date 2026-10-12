@@ -169,6 +169,16 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
         );
         return;
     };
+    if server
+        .game_data
+        .systems
+        .housing
+        .item_id_by_design(p.design_id, |item_id| item_id == source.template_id)
+        == 0
+    {
+        send_error(player, err::BAG_INVALID_ITEM);
+        return;
+    }
     let total = match calculate_building_tax_info(server, char_account, template, true) {
         Ok((_, info)) => info.total_tax_to_pay,
         Err(e) => {
@@ -841,6 +851,9 @@ pub fn set_for_sale(
     buyer_id: u32,
     seller: Option<&PlayerRef>,
 ) -> bool {
+    if seller.is_some_and(|player| house.data().unit.owner_id != player.character_id) {
+        return false;
+    }
     if !template_of(server, house).is_some_and(|t| t.is_sellable) {
         return false;
     }
@@ -1159,6 +1172,15 @@ pub fn decorate_house(
         send_error(player, err::INVALID_HOUSE_INFO);
         return Ok(false);
     };
+    if !manager::allowed_to_interact(server, &house, player)
+        || !server
+            .game_data
+            .systems
+            .housing
+            .decoration_accepts_item(p.design_id, item.template_id)
+    {
+        return Ok(false);
+    }
     let ucc_id = if item.ucc_id > 0 {
         server
             .streams
@@ -1180,7 +1202,6 @@ pub fn decorate_house(
                 p.design_id
             )
         })?;
-    // TODO (C#): Validate if designId is correct for the given item
     let world = world_of(server, &house).ok_or("house without world")?;
     let house_obj = WorldObject::from(&house);
     let doodad = crate::systems::npcs::doodad::manager::create(

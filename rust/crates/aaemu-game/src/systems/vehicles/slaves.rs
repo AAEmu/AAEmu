@@ -31,6 +31,7 @@ use super::data::{attach_point, SlaveTemplate};
 use super::packets::{
     item_task_type, SCItemTaskSuccessPacket, SCMySlavePacket, SCSlaveBoundPacket,
     SCSlaveCreatedPacket, SCSlaveDespawnPacket, SCSlaveRemovedPacket, SCUnitDetachedPacket,
+    SCUnitNameChangedPacket,
 };
 use super::{broadcast, error, harpoon, now_ms, stats, world_of};
 
@@ -295,6 +296,42 @@ fn player_world(server: &GameServer, p: &PlayerRef) -> Option<Arc<WorldInstance>
     world_of(server, &WorldObject::from(p))
 }
 
+/// `CSChangeSlaveNamePacket`: rename an owned summoned slave and persist its saved name.
+pub fn rename_slave(server: &GameServer, owner: &PlayerRef, tl_id: u16, new_name: &str) -> bool {
+    let Some(world) = player_world(server, owner) else {
+        return false;
+    };
+    let Some(slave) = get_slave_by_tl_id(&world, u32::from(tl_id)) else {
+        return false;
+    };
+    if slave.data().owner_obj_id != owner.obj_id {
+        return false;
+    }
+    if new_name.trim().is_empty()
+        || !server
+            .systems
+            .vehicles
+            .mates
+            .name_regex(server)
+            .is_match(new_name)
+    {
+        return false;
+    }
+    let name = crate::managers::name::normalize_name(new_name);
+    slave.data().unit.name = name.clone();
+    broadcast(
+        server,
+        &WorldObject::from(&slave),
+        &SCUnitNameChangedPacket {
+            obj_id: slave.obj_id,
+            name,
+        },
+        true,
+    );
+    save(server, &slave);
+    true
+}
+
 /// `SlaveManager.GetIsMounted(character.ObjId) ?? GetActiveSlaveByOwnerObjId(character.ObjId)`.
 pub fn character_slave(server: &GameServer, p: &PlayerRef) -> Option<WorldObject> {
     let world = player_world(server, p)?;
@@ -488,6 +525,9 @@ pub fn delete(
     let Some(slave) = world.slave(obj_id) else {
         return;
     };
+    if owner.is_some_and(|player| slave.data().summoner_obj_id != player.obj_id) {
+        return;
+    }
     save(server, &slave);
     let (attached_chars, tl) = {
         let d = slave.data();

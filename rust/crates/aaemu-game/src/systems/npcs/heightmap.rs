@@ -24,7 +24,6 @@ use tracing::{debug, error, info};
 
 use crate::data::client_files::ClientFileManager;
 use crate::data::world_templates::{WorldTemplate, WorldTemplates, CELL_SIZE, SECTORS_PER_CELL};
-use crate::models::npc::Npc;
 use crate::server::GameServer;
 use crate::world::{WorldInstance, WorldObject};
 
@@ -1011,42 +1010,6 @@ impl Heightmaps {
     }
 }
 
-/// The heightmaps `SCUnitStatePacket` uses for the NPC reference height (C# reaches the
-/// `WorldManager` singleton from inside `Write`). Installed by [`start`] only when
-/// `HeightMapsEnable` is set.
-static ACTIVE: RwLock<Option<Arc<HeightmapWorlds>>> = RwLock::new(None);
-
-/// `SCUnitStatePacket.Write` for an NPC: `Transform.Local.SetHeight(WorldManager
-/// .GetReferenceHeight(npc.Ai, Local.X, Local.Y, Local.Z, Transform.ZoneId))`.
-///
-/// The AI keeps `ai_hold_or_idle` (current behavior) and `spawner_z` on the NPC. Without
-/// installed heightmaps (`HeightMapsEnable = false`, tests) nothing is changed — the C# would
-/// write 0 for an AI-less NPC then.
-pub fn adjust_npc_reference_height(npc: &mut Npc) {
-    let Some(h) = ACTIVE.read().unwrap_or_else(|e| e.into_inner()).clone() else {
-        return;
-    };
-    let t = npc.unit.transform;
-    let ai = npc.has_ai.then_some(ReferenceHeightAi {
-        can_fly: npc.can_fly,
-        hold_or_idle: npc.ai_hold_or_idle,
-        spawner_z: npc.spawner_z,
-        world_z: t.z,
-    });
-    let height = h.get_reference_height(ai.as_ref(), t.x, t.y, t.z, t.zone_id);
-    npc.unit.transform.set_height(height);
-}
-
-/// Loads (on demand) the heightmap cell an NPC's unit state will read, without holding any
-/// world lock. No-op without installed heightmaps.
-pub fn warm_npc_height(npc: &crate::world::NpcRef) {
-    let Some(h) = ACTIVE.read().unwrap_or_else(|e| e.into_inner()).clone() else {
-        return;
-    };
-    let t = npc.data().unit.transform;
-    let _ = h.get_height(t.zone_id, t.x, t.y, t.z);
-}
-
 /// `WorldManager.GetHeight(zoneKey, x, y, z)` on `server`'s heightmaps (0 before startup).
 pub fn get_height(server: &GameServer, zone_key: u32, x: f32, y: f32, z: f32) -> f32 {
     server
@@ -1103,9 +1066,6 @@ pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
         worlds
     })
     .await?;
-    if config.heightmaps_enable {
-        *ACTIVE.write().unwrap_or_else(|e| e.into_inner()) = Some(worlds.clone());
-    }
     server.systems.npcs.heightmaps.install(worlds);
     Ok(())
 }

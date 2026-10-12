@@ -733,6 +733,16 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
             crate::systems::vehicles::movement::vehicle_move(server, &world, &me, &target, &mt, v);
         }
         MoveKind::Unit(u) => {
+            // Only the authenticated character or its owned mate can submit unit motion.
+            // Resolve authority before buff removal, attachment changes or replication.
+            let controlled = match &target {
+                WorldObject::Player(player) => Arc::ptr_eq(player, &me),
+                WorldObject::Mate(mate) => mate.data().owner_obj_id == me.obj_id,
+                _ => false,
+            };
+            if !controlled {
+                return;
+            }
             // Its moving Pets, handle Pet XP for moving
             if let Some(mate) = target.as_mate() {
                 crate::systems::vehicles::movement::on_mate_unit_move(server, &me, mate, u);
@@ -740,7 +750,9 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
             if let Some(player) = target.as_player() {
                 // RemoveEffects (BuffRemoveOn.Move on a moving velocity): skills subsystem.
                 crate::systems::skills::on_move_request(server, player, u.vel_x, u.vel_y, u.vel_z);
-                if crate::systems::vehicles::movement::player_riding(server, &me, player) {
+                if crate::systems::vehicles::movement::player_riding(server, &me, player)
+                    || crate::systems::vehicles::movement::player_bound_to_slave(&world, player)
+                {
                     return;
                 }
                 // SetPlayerMoved: MOTD on the first movement after loading.
@@ -771,14 +783,34 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
                 let t = target.transform();
                 (t.x, t.y, t.z)
             };
+            // A 1.2 gcFlags=1 actor sends its primary position in the supporting
+            // object's frame and the auxiliary position in world coordinates. If
+            // the parent has disappeared, use the world backup rather than placing
+            // the character's small deck offset at the world origin.
+            let missing_parent = target.transform().parent_obj_id == 0
+                && u.actor_flags
+                    .contains(MoveTypeActorFlags::STANDING_ON_OBJECT)
+                && u.gc_flags & 1 != 0;
+            let (x, y, z, rx, ry, rz) = if missing_parent {
+                (
+                    u.x2,
+                    u.y2,
+                    u.z2,
+                    u.rotation_x2,
+                    u.rotation_y2,
+                    u.rotation_z2,
+                )
+            } else {
+                (u.x, u.y, u.z, u.rotation_x, u.rotation_y, u.rotation_z)
+            };
             target.with_transform(|t| {
                 t.set_position(
-                    u.x,
-                    u.y,
-                    u.z,
-                    direction_to_radian(u.rotation_x),
-                    direction_to_radian(u.rotation_y),
-                    direction_to_radian(u.rotation_z),
+                    x,
+                    y,
+                    z,
+                    direction_to_radian(rx),
+                    direction_to_radian(ry),
+                    direction_to_radian(rz),
                 )
             });
             let packet = SCOneUnitMovementPacket {
@@ -1132,6 +1164,7 @@ pub async fn on_disconnect(server: &GameServer, conn: &mut GameConnection) {
     let Some(p) = conn.active_char.clone() else {
         return;
     };
+    crate::systems::economy::on_disconnect(server, &p);
     if p.data().is_online {
         set_online(server, &p, false);
     }

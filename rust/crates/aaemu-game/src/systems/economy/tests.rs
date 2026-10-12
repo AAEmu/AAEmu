@@ -25,6 +25,19 @@ pub const ARMOR: u32 = 2000; // chest, bind on equip
 pub const TIMED: u32 = 3000; // 60 minutes absolute lifetime
 pub const SINGLE: u32 = 4000; // max 1
 
+#[tokio::test]
+async fn unpack_rejects_another_characters_item() {
+    let w = world();
+    let id = give(&w, &w.pb, slot_type::INVENTORY, SINGLE, 1, 3);
+    w.server.items.add_container(Inv::of(&w.pb).bag());
+    let before = item_at(&w.pb, slot_type::INVENTORY, 3).unwrap();
+    assert!(!unwrap_item(&w.server, &w.pa, slot_type::INVENTORY, 3, id));
+    assert_eq!(item_at(&w.pb, slot_type::INVENTORY, 3).unwrap(), before);
+    assert!(unwrap_item(&w.server, &w.pb, slot_type::INVENTORY, 3, id));
+    let after = item_at(&w.pb, slot_type::INVENTORY, 3).unwrap();
+    assert_ne!(after.flags, before.flags);
+}
+
 pub fn test_data() -> GameData {
     let mut d = GameData::empty();
     d.items.grades.insert(
@@ -182,6 +195,95 @@ fn move_body(from: u64, to: u64, fst: u8, fs: u8, tst: u8, ts: u8) -> PacketStre
         .write_u8(tst)
         .write_u8(ts);
     s
+}
+
+#[tokio::test]
+async fn ordinary_item_moves_reject_foreign_global_items() {
+    let mut w = world();
+    let id = give(&w, &w.pb, slot_type::INVENTORY, SINGLE, 1, 3);
+    w.server.items.add_container(Inv::of(&w.pb).bag());
+    let before = item_at(&w.pb, slot_type::INVENTORY, 3).unwrap();
+    let body = move_body(id, 0, slot_type::INVENTORY, 3, slot_type::INVENTORY, 0);
+    run::<CSSwapItemsPacket>(&mut w, 0, body.as_bytes());
+    assert_eq!(item_at(&w.pb, slot_type::INVENTORY, 3).unwrap(), before);
+    assert!(item_at(&w.pa, slot_type::INVENTORY, 0).is_none());
+    assert_eq!(w.a.drain_ops(), vec![sc::SCErrorMsgPacket]);
+    assert!(w.b.drain().is_empty());
+}
+
+#[tokio::test]
+async fn coffer_moves_require_opening_permission_and_nearby_doodad() {
+    use crate::models::doodad::{Doodad, DoodadCofferState};
+    use crate::models::house::housing_permission;
+    use crate::systems::npcs::doodad::coffer;
+    use crate::world::Entity;
+    let mut w = world();
+    w.server.names.add_character(1, "Alice", 1001);
+    w.server.names.add_character(2, "Bob", 1002);
+    let container = w
+        .server
+        .items
+        .new_coffer_container(2, &w.server.ids.container);
+    let container_id = container.lock().unwrap().container_id;
+    let item = Item::create(
+        900,
+        w.server.game_data.items.template(SINGLE).unwrap(),
+        1,
+        0,
+        1,
+        &w.server.game_data.items,
+        0,
+    );
+    container
+        .lock()
+        .unwrap()
+        .add_new_item(item, 0, &w.server.game_data.items)
+        .unwrap();
+    let mut d = Doodad::new(100);
+    d.owner_id = 2;
+    d.data = i32::from(housing_permission::PRIVATE);
+    d.transform.set_xyz(102.0, 100.0, 100.0);
+    d.coffer = Some(DoodadCofferState {
+        container_id,
+        capacity: 10,
+        opened_by: None,
+    });
+    let doodad = Entity::new(0x300, d);
+    w.server
+        .world
+        .world(0)
+        .unwrap()
+        .spawn(&doodad, &w.server.view_ctx());
+    w.a.drain();
+    w.b.drain();
+    assert!(!coffer::open_coffer_doodad(&w.server, &w.pa, doodad.obj_id));
+    assert!(w.a.drain().is_empty());
+    let mut body = move_body(900, 0, slot_type::TRADE, 0, slot_type::INVENTORY, 0);
+    body.write_u64(container_id);
+    run::<CSSwapCofferItemsPacket>(&mut w, 0, body.as_bytes());
+    assert_eq!(w.a.drain_ops(), vec![sc::SCErrorMsgPacket]);
+    assert!(container.lock().unwrap().get_item_by_id(900).is_some());
+
+    // The normal item packet must not bypass coffer permission using its global item id.
+    let bypass = move_body(900, 0, slot_type::TRADE, 0, slot_type::INVENTORY, 0);
+    run::<CSSwapItemsPacket>(&mut w, 0, bypass.as_bytes());
+    assert_eq!(w.a.drain_ops(), vec![sc::SCErrorMsgPacket]);
+
+    // A shared family chest remains usable through the coffer workflow.
+    w.pa.data().family = 99;
+    w.pb.data().family = 99;
+    doodad.data().data = i32::from(housing_permission::FAMILY);
+    assert!(coffer::open_coffer_doodad(&w.server, &w.pa, doodad.obj_id));
+    w.a.drain();
+    doodad.data().transform.set_xyz(200.0, 100.0, 100.0);
+    run::<CSSwapCofferItemsPacket>(&mut w, 0, body.as_bytes());
+    assert_eq!(w.a.drain_ops(), vec![sc::SCErrorMsgPacket]);
+    assert!(container.lock().unwrap().get_item_by_id(900).is_some());
+    doodad.data().transform.set_xyz(102.0, 100.0, 100.0);
+    run::<CSSwapCofferItemsPacket>(&mut w, 0, body.as_bytes());
+    assert_eq!(item_at(&w.pa, slot_type::INVENTORY, 0).unwrap().id, 900);
+    assert!(container.lock().unwrap().items.is_empty());
+    assert_eq!(w.a.drain_ops(), vec![sc::SCItemTaskSuccessPacket]);
 }
 
 #[tokio::test]

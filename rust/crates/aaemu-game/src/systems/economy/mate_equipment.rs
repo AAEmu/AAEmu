@@ -264,6 +264,11 @@ pub fn change_mate_equipment(
         );
         return;
     };
+    // A tl id identifies a visible mate; it does not grant access to its equipment.
+    if p.owning_player_id != character.character_id || mate.data().owner_obj_id != character.obj_id
+    {
+        return;
+    }
     if p.item_count == 0 {
         return;
     }
@@ -405,7 +410,7 @@ impl CSChangeSlaveEquipmentPacket {
 }
 sync_client_packet!(CSChangeSlaveEquipmentPacket);
 
-/// `CSRepairPetItemsPacket` (only logs in 1.2).
+/// `CSRepairPetItemsPacket`: repair the character's mate equipment at a blacksmith.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CSRepairPetItemsPacket {
     pub npc_id: u32,
@@ -418,8 +423,11 @@ impl CSRepairPetItemsPacket {
         })
     }
 
-    fn run(self, _server: &GameServer, _conn: &mut GameConnection) {
-        tracing::warn!("RepairPetItems, NpcId: {}", self.npc_id);
+    fn run(self, server: &GameServer, conn: &mut GameConnection) {
+        let Some(character) = active(conn) else {
+            return;
+        };
+        super::repair::repair_pet_items(server, &character, self.npc_id);
     }
 }
 sync_client_packet!(CSRepairPetItemsPacket);

@@ -257,7 +257,11 @@ struct Fixture {
 }
 
 fn fixture() -> Fixture {
-    let server = Arc::new(test_server_with(data()));
+    fixture_with(data())
+}
+
+fn fixture_with(data: GameData) -> Fixture {
+    let server = Arc::new(test_server_with(data));
     super::bind(&server);
     let mut client = TestClient::new(&server, 1, 1);
     let mut c = test_character(1, "Caster", 100.0, 100.0);
@@ -293,6 +297,213 @@ fn cast_packet(skill_id: u32, target: SkillCastTarget) -> CSStartSkillPacket {
         flag: 0,
         skill_object: SkillObject::None,
     }
+}
+
+#[tokio::test]
+async fn manual_buff_modifier_steps_on_ticks_and_is_removed_with_the_buff() {
+    let mut d = data();
+    let skills = &mut d.systems.skills;
+    skills
+        .manual_funcs
+        .insert(11, vec![-1000, -1000, -700, -350]);
+    let mut template = (**skills.buff(BUFF_ID).unwrap()).clone();
+    template.duration = 5000;
+    template.tick = 1000.0;
+    template.dynamic_bonuses = vec![crate::models::unit::DynamicBonusTemplate {
+        attribute: UnitAttribute::MoveSpeedMul,
+        modifier_type: UnitModifierType::Value,
+        func_id: 11,
+        func_type: "ManualFunc".into(),
+    }];
+    skills.add_buff(template);
+    let f = fixture_with(d);
+    let me = WorldObject::from(&f.player);
+    super::buffs::add_buff_by_id(&f.server, &me, BUFF_ID, &me, 0);
+    let bonus = f
+        .player
+        .data()
+        .unit
+        .bonuses
+        .dynamic_bonuses(UnitAttribute::MoveSpeedMul)[0]
+        .clone();
+    for (elapsed, expected) in [
+        (0, -1000.0),
+        (999, -1000.0),
+        (1000, -1000.0),
+        (1999, -1000.0),
+        (2000, -700.0),
+        (3000, -350.0),
+        (4999, -350.0),
+    ] {
+        assert_eq!(
+            bonus.evaluate(bonus.source_start_ms + elapsed),
+            Some(expected)
+        );
+    }
+    let mut no_ticks = bonus.clone();
+    no_ticks.source_tick_ms = 0.0;
+    assert_eq!(no_ticks.evaluate(no_ticks.source_start_ms), None);
+    super::buffs::remove_buff(&f.server, &me, BUFF_ID);
+    assert!(f
+        .player
+        .data()
+        .unit
+        .bonuses
+        .dynamic_bonuses(UnitAttribute::MoveSpeedMul)
+        .is_empty());
+}
+
+#[tokio::test]
+async fn buff_skill_requirement_rejects_cast_before_spending_or_removing_the_buff() {
+    use super::buff_reqs::BuffSkillRequirement;
+    let mut data = data();
+    let skills = &mut data.systems.skills;
+    let mut buff = (**skills.buff(BUFF_ID).unwrap()).clone();
+    buff.remove_on_start_skill = true;
+    skills.add_buff(buff);
+    let mut damage = (**skills.skill(DAMAGE_SKILL).unwrap()).clone();
+    damage.cancel_ongoing_buffs = true;
+    skills.add_skill(damage);
+    skills.buff_skill_requirements.push(BuffSkillRequirement {
+        id: 100,
+        buff_id: BUFF_ID,
+        default_result: true,
+        skill_ids: std::collections::HashSet::from([DAMAGE_SKILL]),
+        ..Default::default()
+    });
+    let mut f = fixture_with(data);
+    let me = WorldObject::from(&f.player);
+    let buff = super::buffs::new_buff(
+        &f.server,
+        f.server.game_data.systems.skills.buff(BUFF_ID).unwrap(),
+        Some(&me),
+        &SkillCaster::Unit(PLAYER_OBJ),
+        None,
+        crate::world::now_ms(),
+    );
+    super::buffs::add_buff(&f.server, &me, buff, 0, 0);
+    let mana_before = f.player.data().unit.mp;
+    start_skill(
+        &f.server,
+        &mut f.client.conn,
+        cast_packet(DAMAGE_SKILL, SkillCastTarget::Unit(NPC_OBJ)),
+    );
+    assert_eq!(f.npc.data().unit.hp, 1000);
+    {
+        let c = f.player.data();
+        assert!(c.unit.buffs.check_buff(BUFF_ID));
+        assert_eq!(c.unit.mp, mana_before);
+        assert_eq!(c.unit.skill_last_used_ms, 0);
+    }
+    let frames = frames(&mut f.client);
+    let body = &frames
+        .iter()
+        .find(|(op, _)| *op == sc::SCSkillStartedPacket)
+        .unwrap()
+        .1;
+    let mut expected = PacketStream::new();
+    expected
+        .write_u32(DAMAGE_SKILL)
+        .write_u16(0)
+        .write_u8(0)
+        .write_bc(PLAYER_OBJ) // unit caster
+        .write_u8(0)
+        .write_bc(NPC_OBJ) // unit target
+        .write_u8(0) // no skill object
+        .write_u16(0)
+        .write_u16(0)
+        .write_u8(0)
+        .write_u8(5)
+        .write_u8(0x32)
+        .write_u32(100); // result and requirement id
+    assert_eq!(body, expected.as_bytes());
+    assert!(!frames.iter().any(|(op, _)| *op == sc::SCSkillFiredPacket));
+    super::buffs::remove_buff(&f.server, &me, BUFF_ID);
+    start_skill(
+        &f.server,
+        &mut f.client.conn,
+        cast_packet(DAMAGE_SKILL, SkillCastTarget::Unit(NPC_OBJ)),
+    );
+    assert_eq!(
+        f.npc.data().unit.hp,
+        400,
+        "the same cast succeeds after the restriction ends"
+    );
+}
+
+#[tokio::test]
+async fn buff_skill_requirement_whitelist_and_target_tags_follow_the_reference_rules() {
+    use super::buff_reqs::{failed_requirement, BuffSkillRequirement};
+    let mut data = data();
+    let skills = &mut data.systems.skills;
+    skills.skill_tags.insert(DAMAGE_SKILL, vec![88]);
+    skills.tagged_buffs.insert(77, vec![BUFF_ID]);
+    skills.buff_skill_requirements.push(BuffSkillRequirement {
+        id: 10,
+        buff_id: BUFF_ID,
+        default_result: false,
+        skill_tags: std::collections::HashSet::from([88]),
+        ..Default::default()
+    });
+    skills.buff_skill_requirements.push(BuffSkillRequirement {
+        id: 20,
+        target: true,
+        buff_tag_id: 77,
+        default_result: true,
+        skill_ids: std::collections::HashSet::from([DAMAGE_SKILL]),
+        ..Default::default()
+    });
+    let f = fixture_with(data);
+    let caster = WorldObject::from(&f.player);
+    let target = WorldObject::from(&f.npc);
+    let skills = &f.server.game_data.systems.skills;
+    let damage = skills.skill(DAMAGE_SKILL).unwrap();
+    let heal = skills.skill(HEAL_SKILL).unwrap();
+    assert_eq!(
+        failed_requirement(&f.server, heal, &caster, Some(&target)),
+        None,
+        "no buff means no whitelist restriction"
+    );
+    let make_buff = || {
+        super::buffs::new_buff(
+            &f.server,
+            skills.buff(BUFF_ID).unwrap(),
+            Some(&caster),
+            &SkillCaster::Unit(PLAYER_OBJ),
+            None,
+            crate::world::now_ms(),
+        )
+    };
+    let caster_buff = make_buff();
+    f.player
+        .data()
+        .unit
+        .buffs
+        .add_buff(caster_buff, 0, 0, crate::world::now_ms());
+    assert_eq!(
+        failed_requirement(&f.server, damage, &caster, Some(&target)),
+        None,
+        "skill tag is whitelisted"
+    );
+    assert_eq!(
+        failed_requirement(&f.server, heal, &caster, Some(&target)),
+        Some(10)
+    );
+    let target_buff = make_buff();
+    f.npc
+        .data()
+        .unit
+        .buffs
+        .add_buff(target_buff, 0, 0, crate::world::now_ms());
+    assert_eq!(
+        failed_requirement(&f.server, damage, &caster, Some(&target)),
+        Some(20)
+    );
+    assert_eq!(
+        failed_requirement(&f.server, damage, &caster, None),
+        None,
+        "position targets carry no unit buff requirement"
+    );
 }
 
 /// Frames of a test client: level-1 (op, body) plus the inflated contents of level-4 batches.

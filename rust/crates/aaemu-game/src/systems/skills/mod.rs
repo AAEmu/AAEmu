@@ -19,6 +19,7 @@
 //! * [`ext`] — hooks into the npcs / economy / quests / social subsystems.
 
 pub mod bridges;
+pub mod buff_reqs;
 pub mod buffs;
 pub mod combat;
 pub mod controllers;
@@ -30,6 +31,7 @@ pub mod handlers;
 pub mod packets;
 pub mod packets_special;
 pub mod plots;
+pub mod priest;
 pub mod progress;
 pub mod regen;
 pub mod relation;
@@ -46,6 +48,8 @@ pub mod water;
 mod buff_tests;
 #[cfg(test)]
 mod effect_task_manager_tests;
+#[cfg(test)]
+mod handler_permission_tests;
 #[cfg(test)]
 mod leap_skill_controller_tests;
 #[cfg(test)]

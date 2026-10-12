@@ -1,6 +1,6 @@
 //! Shared test doubles and the tick-level flow tests of the ship physics.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use crate::systems::ai::geodata::manager::BaiRef;
 use crate::systems::skills::controllers::Vec3;
@@ -55,6 +55,7 @@ pub struct FakeWorld {
     pub lines: Vec<(u32, HarpoonLine)>,
     /// The collision world for CryPhysics hulls.
     pub cry: Option<std::sync::Arc<crate::systems::ai::collision::world::PhysWorld>>,
+    pub environment_queries: Cell<usize>,
 }
 
 impl FakeWorld {
@@ -66,6 +67,7 @@ impl FakeWorld {
             lifetime_calls: RefCell::new(Vec::new()),
             lines: Vec::new(),
             cry: None,
+            environment_queries: Cell::new(0),
         }
     }
 }
@@ -109,6 +111,8 @@ impl TickWorld for FakeWorld {
         Vec::new()
     }
     fn any_whirlpool_buff(&self) -> bool {
+        self.environment_queries
+            .set(self.environment_queries.get() + 1);
         false
     }
     fn terrain(&self) -> Option<&dyn TerrainSamples> {
@@ -118,6 +122,8 @@ impl TickWorld for FakeWorld {
         None
     }
     fn cry_world(&self) -> Option<std::sync::Arc<crate::systems::ai::collision::world::PhysWorld>> {
+        self.environment_queries
+            .set(self.environment_queries.get() + 1);
         self.cry.clone()
     }
 }
@@ -321,7 +327,129 @@ fn cryphysics_ship_floats_and_sails() {
     wp.enqueue(Pending::Remove(1));
     wp.tick(&w, 40, now + 40, cry_cfg());
     assert_eq!(wp.inspect(|st| st.cry.ents.len()), 0);
-    let _ = cry;
+    assert!(cry.lock().owners.values().all(|owner| !matches!(
+        owner,
+        crate::systems::ai::collision::world::Owner::Object {
+            kind: crate::systems::ai::collision::world::ObjKind::Ship,
+            ..
+        }
+    )));
+    let queries = w.environment_queries.get();
+    for _ in 0..100 {
+        let out = wp.tick(&w, 40, now + 80, cry_cfg());
+        assert!(out.movements.is_empty());
+        assert!(out.damage.is_empty());
+    }
+    assert_eq!(
+        w.environment_queries.get(),
+        queries,
+        "an empty world skips simulation queries after the final hull is cleaned up"
+    );
+}
+
+/// Settle and drive the actual 1.2 clipper's buoyancy parts in deep water at two headings.
+#[test]
+#[ignore]
+fn real_clipper_prefab_buoyancy_draft() {
+    use crate::data::client_files::ClientFileManager;
+    use crate::systems::ai::collision::{models::ModelCache, Files};
+    let (Ok(db), Ok(pak)) = (
+        std::env::var("AAEMU_COMPACT_DB"),
+        std::env::var("AAEMU_GAME_PAK"),
+    ) else {
+        return;
+    };
+    let conn =
+        rusqlite::Connection::open_with_flags(db, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .unwrap();
+    let data = crate::systems::ai::data::AiData::load_from(&conn).unwrap();
+    let client = std::sync::Arc::new(ClientFileManager::from_sources(
+        &[pak],
+        std::path::Path::new("."),
+    ));
+    let files = Files::Client(client.clone());
+    let models = ModelCache::new(client);
+    let buoys = super::cry::prefab_buoys(&files, &models, &data.ship_model_refs[&128]);
+    assert_eq!(buoys.len(), 2, "the clipper's two authored buoys must load");
+    assert!((buoys[0].pos.z - 0.1499939).abs() < 1e-5);
+    assert!((buoys[1].pos.z - 0.1000061).abs() < 1e-5);
+    assert!((buoys[0].scale - 2.9766002).abs() < 1e-5);
+    let rowboat = super::cry::prefab_buoys(&files, &models, &data.ship_model_refs[&129]);
+    assert!(
+        rowboat.is_empty(),
+        "the rowboat keeps its explicit tube geometry"
+    );
+    let simulate = |parts, yaw| {
+        let mut w = cry_world(100.0, 40.0);
+        w.view.move_speed_mul = 4.0;
+        let wp = WorldPhysics::new(0);
+        let mut spec = super::ship::tests::spec(1, 1000.0, 1000.0, 100.0, yaw);
+        spec.kind = super::SlaveKind::SPEEDBOAT;
+        let mut ship =
+            super::ship::PhysShip::new(spec, data.ship_models[&128], ShipGameView::default());
+        ship.buoys = parts;
+        wp.enqueue(Pending::Add(Box::new(ship)));
+        let mut height = Vec::new();
+        for i in 0..1500 {
+            wp.tick(&w, 40, 10_000 + i * 40, cry_cfg());
+            let snap = wp.snapshot(1).unwrap();
+            assert!(snap.position.z.is_finite());
+            if i >= 1250 {
+                height.push(snap.position.z);
+            }
+        }
+        let mean = height.iter().sum::<f32>() / height.len() as f32;
+        let min = height.iter().copied().fold(f32::INFINITY, f32::min);
+        let max = height.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+        wp.enqueue(Pending::Driver {
+            obj_id: 1,
+            has_driver: true,
+        });
+        let mut moving_max_z = f32::NEG_INFINITY;
+        let mut moving_max_tilt = 0.0f32;
+        let mut peak_speed = 0.0f32;
+        for i in 0..400 {
+            let (throttle, steering) = if i < 100 {
+                (127, 0)
+            } else if i < 175 {
+                (127, 127)
+            } else {
+                (-127, 0)
+            };
+            wp.enqueue(Pending::Request {
+                obj_id: 1,
+                throttle,
+                steering,
+            });
+            wp.tick(&w, 40, 70_000 + i * 40, cry_cfg());
+            let snap = wp.snapshot(1).unwrap();
+            moving_max_z = moving_max_z.max(snap.position.z);
+            peak_speed = peak_speed.max(snap.speed.abs());
+            let tilt = wp.inspect(|st| {
+                let q = super::cry::quat_to_phys(st.ships[0].body.orientation);
+                let up = q.rotate(aaemu_physics::math::Vec3::new(0.0, 0.0, 1.0));
+                up.z.clamp(-1.0, 1.0).acos()
+            });
+            moving_max_tilt = moving_max_tilt.max(tilt);
+        }
+        (mean, min, max, moving_max_z, moving_max_tilt, peak_speed)
+    };
+    for yaw in [0.0, 2.26423] {
+        let baseline = simulate(Vec::new(), yaw);
+        let authored = simulate(buoys.clone(), yaw);
+        println!(
+            "clipper root z, ocean 100, yaw {yaw}: fallback {baseline:?}, authored {authored:?}"
+        );
+        assert!(
+            (99.75..99.9).contains(&authored.0),
+            "authored buoy waterline: {authored:?}"
+        );
+        assert!(
+            authored.2 - authored.1 < 0.01,
+            "settled draft remains stable"
+        );
+        assert!(authored.5 > 1.0, "the helm actually drives the ship");
+    }
 }
 
 #[test]

@@ -613,31 +613,54 @@ pub async fn kick_member(server: &GameServer, kicker: &PlayerRef, kicked_id: u32
     save_or_finish_disband(server, family_id, disband).await;
 }
 
-/// `ChangeTitle(owner, memberId, newTitle)` (steward only; not saved until the next family
-/// save, as in C#).
+/// `ChangeTitle(owner, memberId, newTitle)` (steward only).
 pub fn change_title(server: &GameServer, owner: &PlayerRef, member_id: u32, new_title: &str) {
+    let _ = update_title(server, owner, member_id, new_title);
+}
+
+/// Applies an authorized title change and persists the resulting family snapshot.
+pub async fn change_title_and_save(
+    server: &GameServer,
+    owner: &PlayerRef,
+    member_id: u32,
+    new_title: &str,
+) {
+    if let Some(id) = update_title(server, owner, member_id, new_title) {
+        save_family(server, id).await;
+    }
+}
+
+fn update_title(
+    server: &GameServer,
+    owner: &PlayerRef,
+    member_id: u32,
+    new_title: &str,
+) -> Option<u32> {
     let family_id = owner.data().family;
     if family_id == 0 {
-        return;
+        return None;
     }
     let mut st = server.systems.social.families.lock();
     let Some(f) = st.families.get(&family_id) else {
         tracing::error!("ChangeTitle: no family {family_id}");
-        return;
+        return None;
     };
     match f.member(owner.character_id) {
         Some(m) if m.role == 1 => {}
-        Some(_) => return,
+        Some(_) => return None,
         None => {
             tracing::error!("ChangeTitle: {} not in family", owner.character_id);
-            return;
+            return None;
         }
     }
-    // `_familyMembers[memberId]` (any family's member).
+    // The target must belong to the steward's own family.
     let Some(&mf) = st.family_members.get(&member_id) else {
         tracing::error!("ChangeTitle: unknown member {member_id}");
-        return;
+        return None;
     };
+    if mf != family_id {
+        return None;
+    }
     if let Some(m) = st
         .families
         .get_mut(&mf)
@@ -653,31 +676,49 @@ pub fn change_title(server: &GameServer, owner: &PlayerRef, member_id: u32, new_
         },
         0,
     );
+    Some(family_id)
 }
 
-/// `ChangeOwner(previousOwner, memberId)` (steward only; not saved, as in C#).
+/// `ChangeOwner(previousOwner, memberId)` (steward only).
 pub fn change_owner(server: &GameServer, previous: &PlayerRef, member_id: u32) {
+    let _ = update_owner(server, previous, member_id);
+}
+
+/// Applies an authorized steward change and persists the resulting family snapshot.
+pub async fn change_owner_and_save(server: &GameServer, previous: &PlayerRef, member_id: u32) {
+    if let Some(id) = update_owner(server, previous, member_id) {
+        save_family(server, id).await;
+    }
+}
+
+fn update_owner(server: &GameServer, previous: &PlayerRef, member_id: u32) -> Option<u32> {
+    if member_id == previous.character_id {
+        return None;
+    }
     let family_id = previous.data().family;
     if family_id == 0 {
-        return;
+        return None;
     }
     let mut st = server.systems.social.families.lock();
     let Some(f) = st.families.get(&family_id) else {
         tracing::error!("ChangeOwner: no family {family_id}");
-        return;
+        return None;
     };
     match f.member(previous.character_id) {
         Some(m) if m.role == 1 => {}
-        Some(_) => return,
+        Some(_) => return None,
         None => {
             tracing::error!("ChangeOwner: {} not in family", previous.character_id);
-            return;
+            return None;
         }
     }
     let Some(&mf) = st.family_members.get(&member_id) else {
         tracing::error!("ChangeOwner: unknown member {member_id}");
-        return;
+        return None;
     };
+    if mf != family_id {
+        return None;
+    }
     if let Some(m) = st
         .families
         .get_mut(&mf)
@@ -701,6 +742,7 @@ pub fn change_owner(server: &GameServer, previous: &PlayerRef, member_id: u32) {
         0,
     );
     f.send_packet(&SCFamilyDescPacket { family: f.info() }, 0);
+    Some(family_id)
 }
 
 /// `FamilyManager.LeaveFamily(character)` for a character that is not in the world (character

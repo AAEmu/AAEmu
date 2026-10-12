@@ -11,7 +11,7 @@ cs_packet!(
     CSJoinUserChatChannelPacket { name: String, pwd: String, create: bool }
     read |s| { Ok(Self { name: s.read_string()?, pwd: s.read_string()?, create: s.read_bool()? }) }
     handle |self, server, conn| {
-        tracing::debug!("JoinUserChatChannel, Name: {}, Password: {}, Create: {}", self.name, self.pwd, self.create);
+        tracing::debug!("JoinUserChatChannel, Name: {}, Create: {}", self.name, self.create);
         Ok(())
     }
 );

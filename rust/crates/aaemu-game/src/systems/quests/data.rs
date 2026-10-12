@@ -143,6 +143,8 @@ pub struct QuestData {
     pub group_items: OrderedGroups,
     /// `_groupNpcs` (`quest_monster_npcs`).
     pub group_npcs: OrderedGroups,
+    /// Explicit quest-starter bindings (`item_accept_quests`), item template -> quest.
+    pub starter_quests: HashMap<u32, u32>,
     /// `UnitRequirementsGameData`.
     pub unit_reqs: UnitReqsData,
     /// `SphereGameData._spheres`.
@@ -169,6 +171,7 @@ impl QuestData {
         d.load_components(conn)?;
         d.load_base_acts(conn)?;
         d.load_detail_acts(conn)?;
+        d.load_item_starters(conn)?;
         for_each_row(conn, "SELECT * FROM quest_item_group_items", [], |r| {
             d.group_items
                 .add(r.u32("quest_item_group_id")?, r.u32("item_id")?);
@@ -185,6 +188,29 @@ impl QuestData {
         d.sign_spheres = load_sign_spheres(files, "main_world")?;
         tracing::info!("Loaded {} quests", d.templates.len());
         Ok(d)
+    }
+
+    fn load_item_starters(&mut self, conn: &Connection) -> Result<(), GameDataError> {
+        // 10.x zone 0x39AF5840 loads this relation directly; the same table is in 1.2.
+        for_each_row(
+            conn,
+            "SELECT item_id, quest_id FROM item_accept_quests",
+            [],
+            |r| {
+                let item = r.u32("item_id")?;
+                if self
+                    .starter_quests
+                    .insert(item, r.u32("quest_id")?)
+                    .is_some()
+                {
+                    return Err(rusqlite::Error::InvalidParameterName(format!(
+                        "duplicate quest starter item {item}"
+                    )));
+                }
+                Ok(())
+            },
+        )?;
+        Ok(())
     }
 
     fn load_supplies(&mut self, conn: &Connection) -> Result<(), GameDataError> {
@@ -1483,6 +1509,9 @@ impl QuestData {
 
     /// `GetQuestIdFromStarterItem(itemTemplateId)`.
     pub fn quest_id_from_starter_item(&self, item_template_id: u32) -> u32 {
+        if let Some(&quest) = self.starter_quests.get(&item_template_id) {
+            return quest;
+        }
         for (_, found) in self.acts_of_type("QuestActConAcceptItem") {
             if !matches!(found.kind, ActKind::ConAcceptItem { item_id, .. } if item_id == item_template_id)
             {
@@ -1626,6 +1655,37 @@ pub fn parse_sign_spheres(contents: &str, zone_id: u32) -> Result<Vec<RawSignSph
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn explicit_item_starter_binding_is_loaded_and_preferred() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE item_accept_quests (item_id INT, quest_id INT);
+            INSERT INTO item_accept_quests VALUES (19572,3101);",
+        )
+        .unwrap();
+        let mut data = QuestData::default();
+        data.load_item_starters(&conn).unwrap();
+        assert_eq!(data.quest_id_from_starter_item(19572), 3101);
+        assert_eq!(data.quest_id_from_starter_item(9999), 0);
+        conn.execute("INSERT INTO item_accept_quests VALUES (19572,9999)", [])
+            .unwrap();
+        assert!(QuestData::default().load_item_starters(&conn).is_err());
+    }
+
+    #[test]
+    #[ignore = "needs AAEMU_COMPACT_DB"]
+    fn real_item_starter_bindings_load_the_1_2_data() {
+        let Ok(path) = std::env::var("AAEMU_COMPACT_DB") else {
+            return;
+        };
+        let conn =
+            Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+        let mut data = QuestData::default();
+        data.load_item_starters(&conn).unwrap();
+        assert_eq!(data.starter_quests.len(), 367);
+        assert_eq!(data.quest_id_from_starter_item(19572), 3101);
+    }
 
     #[test]
     fn sign_sphere_parsing() {

@@ -125,6 +125,190 @@ async fn form_party(server: &GameServer, a: &mut Pc, b: &mut Pc) -> u32 {
 }
 
 #[tokio::test]
+async fn risky_team_actions_require_member_owner_and_known_action() {
+    let server = test_server();
+    let mut a = pc(&server, 1, "Al", 100.0, 100.0);
+    let mut b = pc(&server, 2, "Bob", 110.0, 100.0);
+    let mut c = pc(&server, 3, "Cy", 120.0, 100.0);
+    settle(&mut [&mut a, &mut b, &mut c]);
+    let team_id = form_party(&server, &mut a, &mut b).await;
+    settle(&mut [&mut a, &mut b, &mut c]);
+    for (actor, target, action) in [
+        (3, 0, risky_action::DISMISS),
+        (3, 3, risky_action::LEAVE),
+        (3, 2, risky_action::KICK),
+        (2, 0, risky_action::DISMISS),
+        (2, 1, risky_action::KICK),
+        (2, 1, risky_action::LEAVE),
+        (1, 0, u8::MAX),
+        (1, 99, risky_action::KICK),
+    ] {
+        let actor = match actor {
+            1 => &mut a,
+            2 => &mut b,
+            _ => &mut c,
+        };
+        actor
+            .send(
+                &server,
+                cs::CSAskRiskyTeamActionPacket,
+                risky(team_id, target, action),
+            )
+            .await;
+        assert!(a.ops().is_empty() && b.ops().is_empty() && c.ops().is_empty());
+        let team = server
+            .systems
+            .social
+            .teams
+            .active_team(team_id)
+            .expect("team preserved");
+        assert_eq!(team.owner_id, 1);
+        assert_eq!(team.members_count(), 2);
+        assert!(a.p.data().in_party && b.p.data().in_party);
+        assert!(!c.p.data().in_party);
+    }
+    // Rejected requests also preserve both party channel memberships.
+    a.send(
+        &server,
+        cs::CSSendChatMessagePacket,
+        chat(chat_type::PARTY, "still here"),
+    )
+    .await;
+    assert_eq!(a.ops(), vec![sc::SCChatMessagePacket]);
+    assert_eq!(b.ops(), vec![sc::SCChatMessagePacket]);
+    assert!(c.ops().is_empty());
+    // The authenticated owner can still dismiss the party.
+    a.send(
+        &server,
+        cs::CSAskRiskyTeamActionPacket,
+        risky(team_id, 0, risky_action::DISMISS),
+    )
+    .await;
+    for member in [&mut a, &mut b] {
+        let frames = member.frames();
+        assert_eq!(
+            find(&frames, sc::SCTeamDismissedPacket),
+            vec![body(&SCTeamDismissedPacket { team_id })]
+        );
+        assert_eq!(
+            find(&frames, sc::SCLeavedTeamPacket),
+            vec![body(&SCLeavedTeamPacket {
+                team_id,
+                kicked: false,
+                dismissed: true
+            })]
+        );
+        assert!(!member.p.data().in_party);
+    }
+    assert!(server.systems.social.teams.active_team(team_id).is_none());
+}
+
+#[tokio::test]
+async fn family_changes_reject_foreign_members_and_save_authorized_snapshots() {
+    use crate::systems::social::family::{Family, FamilyMember};
+    use crate::systems::social::packets::family::*;
+    let server = test_server();
+    let mut a = pc(&server, 1, "Al", 100.0, 100.0);
+    let mut b = pc(&server, 2, "Bob", 110.0, 100.0);
+    let mut c = pc(&server, 3, "Cy", 120.0, 100.0);
+    settle(&mut [&mut a, &mut b, &mut c]);
+    let member = |p: &PlayerRef, role| FamilyMember {
+        character: Some(p.clone()),
+        id: p.character_id,
+        name: p.data().unit.name.clone(),
+        role,
+        title: "Old".into(),
+    };
+    server.systems.social.families.insert(Family {
+        id: 11,
+        members: vec![member(&a.p, 1), member(&b.p, 0)],
+        removed_members: vec![901],
+    });
+    server.systems.social.families.insert(Family {
+        id: 22,
+        members: vec![member(&c.p, 1)],
+        removed_members: vec![902],
+    });
+    a.p.data().family = 11;
+    b.p.data().family = 11;
+    c.p.data().family = 22;
+    let mut title = PacketStream::new();
+    title.write_u32(3).write_str("Forged");
+    a.send(&server, cs::CSFamilyChangeTitlePacket, title).await;
+    let mut owner = PacketStream::new();
+    owner.write_u32(3);
+    a.send(&server, cs::CSFamilyChangeOwnerPacket, owner).await;
+    assert!(a.ops().is_empty() && b.ops().is_empty() && c.ops().is_empty());
+    let own = server.systems.social.families.family(11).unwrap();
+    let foreign = server.systems.social.families.family(22).unwrap();
+    assert_eq!(own.member(1).unwrap().role, 1);
+    assert_eq!(own.removed_members, vec![901]); // Invalid requests never request a save snapshot.
+    assert_eq!(foreign.member(3).unwrap().title, "Old");
+    assert_eq!(foreign.member(3).unwrap().role, 1);
+    assert_eq!(foreign.removed_members, vec![902]);
+    let mut title = PacketStream::new();
+    title.write_u32(2).write_str("Brother");
+    a.send(&server, cs::CSFamilyChangeTitlePacket, title).await;
+    for member in [&mut a, &mut b] {
+        assert_eq!(
+            member.frames(),
+            vec![(
+                sc::SCFamilyTitleChangedPacket,
+                body(&SCFamilyTitleChangedPacket {
+                    family_id: 11,
+                    member_id: 2,
+                    title: "Brother".into()
+                })
+            )]
+        );
+    }
+    let mut updated = server.systems.social.families.family(11).unwrap();
+    assert_eq!(updated.member(2).unwrap().title, "Brother");
+    assert!(updated.removed_members.is_empty()); // Existing save_family took its updated snapshot.
+    updated.removed_members.push(903);
+    server.systems.social.families.insert(updated);
+    let mut owner = PacketStream::new();
+    owner.write_u32(2);
+    a.send(&server, cs::CSFamilyChangeOwnerPacket, owner).await;
+    let updated = server.systems.social.families.family(11).unwrap();
+    assert_eq!(updated.member(1).unwrap().role, 0);
+    assert_eq!(updated.member(2).unwrap().role, 1);
+    assert_eq!(updated.member(2).unwrap().title, "Brother");
+    assert!(updated.removed_members.is_empty());
+    for member in [&mut a, &mut b] {
+        assert_eq!(
+            member.frames(),
+            vec![
+                (
+                    sc::SCFamilyOwnerChangedPacket,
+                    body(&SCFamilyOwnerChangedPacket {
+                        family_id: 11,
+                        member_id: 2
+                    })
+                ),
+                (
+                    sc::SCFamilyDescPacket,
+                    body(&SCFamilyDescPacket {
+                        family: updated.info()
+                    })
+                ),
+            ]
+        );
+    }
+    assert!(c.ops().is_empty());
+    assert_eq!(
+        server
+            .systems
+            .social
+            .families
+            .family(22)
+            .unwrap()
+            .removed_members,
+        vec![902]
+    );
+}
+
+#[tokio::test]
 async fn team_invite_accept_chat_owner_kick_leave() {
     let server = test_server();
     let mut a = pc(&server, 1, "Al", 100.0, 100.0);

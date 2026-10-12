@@ -204,9 +204,6 @@ macro_rules! log_only_packet {
     };
 }
 
-log_only_packet!(CSCharDetailPacket, debug, |s| {
-    format!(", Name: {}", s.read_string()?)
-});
 log_only_packet!(CSCleanupLogicLinkPacket, warn, |s| {
     format!(", ObjId: {}", s.read_bc()?)
 });
@@ -226,9 +223,6 @@ log_only_packet!(CSEditorGameModePacket, debug, |s| {
 log_only_packet!(CSRankCharacterPacket, debug, |s| {
     let _ = s;
     String::new()
-});
-log_only_packet!(CSRequestCharBriefPacket, debug, |s| {
-    format!(", Id: {}", s.read_u32()?)
 });
 log_only_packet!(CSRequestPermissionToPlayCinemaForDirectingMode, warn, |s| {
     let _quest_context_id = s.read_u32()?;
@@ -250,6 +244,88 @@ log_only_packet!(CSResturnAddrsPacket, warn, |s| {
     let f = s.read_u32()?;
     format!(", CodeBase: {code_base}, CodeSize: {code_size}, Fn: {f}")
 });
+
+/// Public character inspection by name, using the 1.2 character-detail packet.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CSCharDetailPacket {
+    pub name: String,
+}
+
+impl ClientPacket for CSCharDetailPacket {
+    const NAME: &'static str = "CSCharDetailPacket";
+
+    fn read(s: &mut PacketStream) -> Result<Self> {
+        Ok(Self {
+            name: s.read_string()?,
+        })
+    }
+
+    fn handle<'a>(
+        self,
+        server: &'a GameServer,
+        conn: &'a mut GameConnection,
+    ) -> BoxFuture<'a, Result<()>> {
+        Box::pin(async move {
+            if conn.active_char.is_none() {
+                return Ok(());
+            }
+            let Some(target) = server.world.character_by_name(&self.name) else {
+                return Ok(());
+            };
+            let packet = {
+                let character = target.data();
+                if !character.is_online {
+                    return Ok(());
+                }
+                crate::packets::g2c_misc::SCCharDetailPacket::new(&character, true)
+            };
+            conn.send(&packet);
+            Ok(())
+        })
+    }
+}
+
+/// Character id-to-name/race lookup. The native brief cache sends this request on a miss.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CSRequestCharBriefPacket {
+    pub id: u32,
+}
+
+impl ClientPacket for CSRequestCharBriefPacket {
+    const NAME: &'static str = "CSRequestCharBriefPacket";
+
+    fn read(s: &mut PacketStream) -> Result<Self> {
+        Ok(Self { id: s.read_u32()? })
+    }
+
+    fn handle<'a>(
+        self,
+        server: &'a GameServer,
+        conn: &'a mut GameConnection,
+    ) -> BoxFuture<'a, Result<()>> {
+        Box::pin(async move {
+            if conn.active_char.is_none() {
+                return Ok(());
+            }
+            let Some(target) = server.world.character_by_id(self.id) else {
+                return Ok(());
+            };
+            let packet = {
+                let character = target.data();
+                if !character.is_online {
+                    return Ok(());
+                }
+                crate::packets::g2c_misc::SCCharBriefPacket {
+                    char_id: character.id,
+                    name: character.unit.name.clone(),
+                    race: character.race,
+                }
+            };
+            conn.send(&packet);
+            Ok(())
+        })
+    }
+}
 
 /// `CSActiveWeaponChangedPacket`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -767,6 +843,107 @@ mod tests {
             }),
             e.into_bytes()
         );
+    }
+
+    #[tokio::test]
+    async fn character_queries_return_online_profile_only_to_authenticated_requester() {
+        use crate::net::packet::encode_raw;
+        let server = test_server();
+        let mut a = TestClient::new(&server, 1, 1001);
+        let mut b = TestClient::new(&server, 2, 1002);
+        let pa = spawn_player(&server, &a, test_character(1, "Al", 10.0, 10.0), 0x100);
+        let pb = spawn_player(&server, &b, test_character(2, "Bo", 12.0, 10.0), 0x101);
+        a.conn.active_char = Some(pa);
+        b.conn.active_char = Some(pb.clone());
+        {
+            let mut target = pb.data();
+            target.is_online = true;
+            target.race = 5;
+            target.unit.hp = 77;
+            target.unit.level = 17;
+            target.ability1 = 1;
+            target.ability2 = 2;
+            target.ability3 = 3;
+            target.leave_time = 4242;
+        }
+        a.drain();
+        b.drain();
+        let mut brief = PacketStream::new();
+        brief.write_u32(2);
+        let mut detail = PacketStream::new();
+        detail.write_str("bO"); // Existing world lookup is case insensitive.
+        for (opcode, request) in [
+            (cs::CSRequestCharBriefPacket, &brief),
+            (cs::CSCharDetailPacket, &detail),
+        ] {
+            server
+                .handle_frame(&mut a.conn, &encode_raw(1, opcode, request.as_bytes()))
+                .await
+                .unwrap();
+        }
+        let mut expected_detail = PacketStream::new();
+        expected_detail
+            .write_u32(2)
+            .write_str("Bo")
+            .write_u8(5)
+            .write_i32(7700)
+            .write_u8(17)
+            .write_u8(1)
+            .write_u8(2)
+            .write_u8(3)
+            .write_i64((12i64 * 4096) << 32)
+            .write_i64((10i64 * 4096) << 32)
+            .write_f32(100.0)
+            .write_u32(crate::test_support::TEST_ZONE)
+            .write_i64(4242)
+            .write_raw(&[0; 28 * 4])
+            .write_bool(true);
+        assert_eq!(
+            a.drain(),
+            vec![
+                (sc::SCCharBriefPacket, vec![2, 0, 0, 0, 2, 0, b'B', b'o', 5]),
+                (sc::SCCharDetailPacket, expected_detail.into_bytes()),
+            ]
+        );
+        assert!(b.drain().is_empty());
+        let mut absent_brief = PacketStream::new();
+        absent_brief.write_u32(999);
+        let mut absent_detail = PacketStream::new();
+        absent_detail.write_str("Nobody");
+        for (opcode, request) in [
+            (cs::CSRequestCharBriefPacket, &absent_brief),
+            (cs::CSCharDetailPacket, &absent_detail),
+        ] {
+            server
+                .handle_frame(&mut a.conn, &encode_raw(1, opcode, request.as_bytes()))
+                .await
+                .unwrap();
+        }
+        assert!(a.drain().is_empty());
+        pb.data().is_online = false;
+        for (opcode, request) in [
+            (cs::CSRequestCharBriefPacket, &brief),
+            (cs::CSCharDetailPacket, &detail),
+        ] {
+            server
+                .handle_frame(&mut a.conn, &encode_raw(1, opcode, request.as_bytes()))
+                .await
+                .unwrap();
+        }
+        assert!(a.drain().is_empty());
+        pb.data().is_online = true;
+        a.conn.active_char = None;
+        for (opcode, request) in [
+            (cs::CSRequestCharBriefPacket, &brief),
+            (cs::CSCharDetailPacket, &detail),
+        ] {
+            server
+                .handle_frame(&mut a.conn, &encode_raw(1, opcode, request.as_bytes()))
+                .await
+                .unwrap();
+        }
+        assert!(a.drain().is_empty());
+        assert!(b.drain().is_empty());
     }
 
     #[tokio::test]

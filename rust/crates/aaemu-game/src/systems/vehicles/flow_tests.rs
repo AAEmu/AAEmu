@@ -378,6 +378,117 @@ fn slave_data() -> GameData {
 }
 
 #[tokio::test]
+async fn summon_item_cast_rejects_unowned_items_then_creates_and_binds_vehicle() {
+    use crate::systems::skills::data::effects::{EffectTemplate, SpecialEffect};
+    use crate::systems::skills::data::{EffectKind, SkillTemplate};
+    use crate::systems::skills::handlers::{start_skill, CSStartSkillPacket};
+    use crate::systems::skills::types::{SkillCastTarget, SkillCaster, SkillObject};
+    let mut d = slave_data();
+    let skill_id = 58_002;
+    d.items.templates.get_mut(&SLAVE_ITEM).unwrap().use_skill_id = skill_id;
+    d.systems.skills.add_effect(
+        EffectKind::SpecialEffect,
+        EffectTemplate::Special(SpecialEffect {
+            id: 1,
+            special_effect_type_id: 60,
+            value1: 0,
+            value2: 0,
+            value3: 0,
+            value4: 0,
+        }),
+        1,
+    );
+    d.systems.skills.add_skill(SkillTemplate {
+        id: skill_id,
+        target_type: 0, // Summon items target their owner.
+        level_rule_no_consideration: true,
+        effects: vec![crate::systems::skills::tests::skill_effect(
+            1,
+            EffectKind::SpecialEffect,
+            1,
+        )],
+        ..SkillTemplate::default()
+    });
+    let server = server_with(d);
+    crate::systems::economy::bridges::install(&server);
+    crate::systems::npcs::install_hooks(&server);
+    super::install_hooks(&server);
+    let mut a = TestClient::new(&server, 1, 1);
+    let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), SLAVE_ITEM);
+    // Runtime inventory loading also registers containers with ItemManager, which owns
+    // item-cast authorization. The generic vehicle fixture only populates the bag.
+    let bag = pa
+        .data()
+        .inventory
+        .get(slot_type::INVENTORY)
+        .unwrap()
+        .clone();
+    bag.lock().unwrap().items[0].owner_id = u64::from(pa.character_id);
+    server.items.add_container(bag);
+    a.conn.active_char = Some(pa.clone());
+    let world = server.world.world(0).unwrap();
+    server.systems.npcs.spawns.get_or_create(&world);
+    a.drain();
+    let packet = |item_id| CSStartSkillPacket {
+        skill_id,
+        caster: SkillCaster::Item {
+            obj_id: PA,
+            item_id,
+            item_template_id: SLAVE_ITEM,
+            type1: 0,
+            type2: 0,
+        },
+        target: SkillCastTarget::Unit(PA),
+        flag: 0,
+        skill_object: SkillObject::None,
+    };
+    start_skill(&server, &mut a.conn, packet(item_id + 100));
+    assert!(slaves::get_active_slave_by_owner_obj_id(&world, PA).is_none());
+    start_skill(&server, &mut a.conn, packet(item_id));
+    // The special effect queues the asynchronous saved-vehicle lookup before creation.
+    let slave = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if let Some(s) = slaves::get_active_slave_by_owner_obj_id(&world, PA) {
+                break s;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("summon skill must create the vehicle");
+    let frames = a.drain();
+    assert!(ops(&frames).contains(&sc::SCSlaveCreatedPacket));
+    assert!(ops(&frames).contains(&sc::SCSlaveStatePacket));
+    assert_eq!(slave.data().unit.template_id, SLAVE_TEMPLATE);
+    let tl = slave.data().unit.tl_id;
+    slaves::bind_slave_by_tl(&server, &pa, u32::from(tl));
+    assert_eq!(pa.data().unit.transform.parent_obj_id, slave.obj_id);
+    assert!(ops(&a.drain()).contains(&sc::SCSlaveBoundPacket));
+    // Go through the real despawn packet while still bound. A temporary player guard in
+    // a call argument used to survive into delete/unbind and deadlock the whole world.
+    use crate::net::registry::ClientPacket;
+    let (done, result) = std::sync::mpsc::channel();
+    let task_server = server.clone();
+    let task_player = pa.clone();
+    let obj_id = slave.obj_id;
+    std::thread::spawn(move || {
+        let mut client = TestClient::new(&task_server, 1, 1);
+        client.conn.active_char = Some(task_player);
+        let packet = super::packets::CSDespawnSlavePacket {
+            slave_obj_id: obj_id,
+        };
+        let status = futures::executor::block_on(packet.handle(&task_server, &mut client.conn));
+        done.send(status).unwrap();
+    });
+    result
+        .recv_timeout(Duration::from_secs(2))
+        .expect("despawning a mounted vehicle must not retain the player lock")
+        .unwrap();
+    assert_eq!(pa.data().unit.transform.parent_obj_id, 0);
+    assert!(world.slave(slave.obj_id).is_none());
+}
+
+#[tokio::test]
 async fn slave_summon_bind_drive_and_despawn() {
     let server = server_with(slave_data());
     let mut a = TestClient::new(&server, 1, 1);
@@ -515,6 +626,313 @@ async fn slave_summon_bind_drive_and_despawn() {
     sm.check_respawns_tick(&server);
     assert!(!slave.core().is_visible());
     assert!(ops(&b.drain()).contains(&sc::SCUnitsRemovedPacket));
+}
+
+#[tokio::test]
+async fn rename_slave_packet_checks_ownership_and_updates_the_saved_name() {
+    use crate::net::registry::ClientPacket;
+    let server = server_with(slave_data());
+    let mut owner = TestClient::new(&server, 1, 1);
+    let (player, item_id) = player_with_item(&server, &owner, 1, PA, (100.0, 100.0), SLAVE_ITEM);
+    owner.conn.active_char = Some(player.clone());
+    let mut stranger = TestClient::new(&server, 2, 2);
+    let other = spawn_player(
+        &server,
+        &stranger,
+        test_character(2, "Other", 101.0, 100.0),
+        PB,
+    );
+    stranger.conn.active_char = Some(other);
+    let world = server.world.world(0).unwrap();
+    server.systems.npcs.spawns.get_or_create(&world);
+    let item = mates::owned_item(&server, &player, item_id).unwrap();
+    let slave = slaves::create_core(
+        &server,
+        &world,
+        Some(&player),
+        None,
+        SLAVE_TEMPLATE,
+        Some(item),
+        false,
+        None,
+        None,
+    )
+    .unwrap();
+    let tl_id = slave.data().unit.tl_id;
+    let original = slave.data().unit.name.clone();
+    owner.drain();
+    stranger.drain();
+    super::packets::CSChangeSlaveNamePacket {
+        tl_id,
+        name: "Hijacked".into(),
+    }
+    .handle(&server, &mut stranger.conn)
+    .await
+    .unwrap();
+    assert_eq!(slave.data().unit.name, original);
+    for name in ["", "a very long invalid vehicle name", "Bad<Name>"] {
+        super::packets::CSChangeSlaveNamePacket {
+            tl_id,
+            name: name.into(),
+        }
+        .handle(&server, &mut owner.conn)
+        .await
+        .unwrap();
+        assert_eq!(slave.data().unit.name, original);
+    }
+    super::packets::CSChangeSlaveNamePacket {
+        tl_id,
+        name: "sEaBrEeZe".into(),
+    }
+    .handle(&server, &mut owner.conn)
+    .await
+    .unwrap();
+    assert_eq!(slave.data().unit.name, "Seabreeze");
+    assert_eq!(slaves::snapshot(&server, &slave)[0].name, "Seabreeze");
+    let mut expected = PacketStream::new();
+    expected.write_bc(slave.obj_id).write_str("Seabreeze");
+    assert_eq!(
+        body(&owner.drain(), sc::SCUnitNameChangedPacket),
+        expected.as_bytes()
+    );
+    assert_eq!(
+        body(&stranger.drain(), sc::SCUnitNameChangedPacket),
+        expected.as_bytes()
+    );
+}
+
+#[tokio::test]
+async fn client_motion_and_despawn_cannot_control_other_players_or_slaves() {
+    use crate::models::mate::Mate;
+    use crate::models::movement::{ShipRequestMove, UnitMove, VehicleMove};
+    use crate::models::slave::Slave;
+    use crate::net::registry::ClientPacket;
+    use crate::world::Entity;
+
+    let server = server_with(GameData::empty());
+    let mut a = TestClient::new(&server, 1, 1);
+    let pa = spawn_player(&server, &a, test_character(1, "A", 100.0, 100.0), PA);
+    a.conn.active_char = Some(pa.clone());
+    let b = TestClient::new(&server, 2, 2);
+    let pb = spawn_player(&server, &b, test_character(2, "B", 101.0, 100.0), PB);
+    let world = server.world.world(0).unwrap();
+    let mut pet = Mate::new(1, 1);
+    pet.owner_obj_id = PB;
+    pet.unit.transform.set_xyz(102.0, 100.0, 100.0);
+    let pet = Entity::new(0x300, pet);
+    world.spawn(&pet, &server.view_ctx());
+    let walking = MoveType::new(MoveKind::Unit(UnitMove {
+        x: 500.0,
+        y: 500.0,
+        z: 100.0,
+        vel_x: 10,
+        ..Default::default()
+    }));
+    crate::world::session::move_unit(&server, &mut a.conn, PB, walking.clone()).await;
+    crate::world::session::move_unit(&server, &mut a.conn, pet.obj_id, walking.clone()).await;
+    assert_eq!(pb.data().unit.transform.x, 101.0);
+    assert!(!pb.data().finished_loading);
+    assert_eq!(pet.data().unit.transform.x, 102.0);
+    assert_eq!(pet.data().xp_task, 0);
+    // Ordinary motion still moves the authenticated character.
+    crate::world::session::move_unit(&server, &mut a.conn, PA, walking).await;
+    assert_eq!(pa.data().unit.transform.x, 500.0);
+
+    let mut hull = Slave::new(2, 1);
+    hull.unit.transform.set_xyz(510.0, 500.0, 99.0);
+    hull.unit.tl_id = 3;
+    hull.summoner_obj_id = PB;
+    let slave = Entity::new(0x301, hull);
+    world.spawn(&slave, &server.view_ctx());
+    let ship = MoveType::new(MoveKind::ShipRequest(ShipRequestMove {
+        throttle: 1,
+        steering: 1,
+    }));
+    crate::world::session::move_unit(&server, &mut a.conn, slave.obj_id, ship.clone()).await;
+    assert_eq!(slave.data().throttle_request, 0);
+    assert_eq!(pa.data().unit.transform.parent_obj_id, 0);
+    let car = MoveType::new(MoveKind::Vehicle(VehicleMove {
+        x: 700.0,
+        y: 700.0,
+        z: 100.0,
+        ..Default::default()
+    }));
+    crate::world::session::move_unit(&server, &mut a.conn, slave.obj_id, car.clone()).await;
+    assert_eq!(slave.data().unit.transform.x, 510.0);
+    super::packets::CSDespawnSlavePacket {
+        slave_obj_id: slave.obj_id,
+    }
+    .handle(&server, &mut a.conn)
+    .await
+    .unwrap();
+    assert!(world.slave(slave.obj_id).is_some());
+
+    // A passenger is not the driver, even when attached to the same vehicle.
+    slaves::bind_slave(&server, &pa, slave.obj_id, attach_point::PASSENGER0, 7);
+    crate::world::session::move_unit(&server, &mut a.conn, slave.obj_id, ship.clone()).await;
+    assert_eq!(slave.data().throttle_request, 0);
+    slaves::unbind_slave(&server, &pa, 3, slaves::attach_reason::SLAVE_BINDING);
+    slaves::bind_slave(&server, &pa, slave.obj_id, attach_point::DRIVER, 7);
+    crate::world::session::move_unit(&server, &mut a.conn, slave.obj_id, ship).await;
+    assert_eq!(slave.data().throttle_request, 1);
+    crate::world::session::move_unit(&server, &mut a.conn, slave.obj_id, car).await;
+    assert_eq!(slave.data().unit.transform.x, 700.0);
+}
+
+#[tokio::test]
+async fn slave_driver_ignores_late_walking_and_reattaches_in_the_correct_frame() {
+    use crate::models::movement::{ShipRequestMove, UnitMove};
+    use crate::models::slave::Slave;
+    use crate::world::Entity;
+
+    let server = server_with(GameData::empty());
+    let mut client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(
+        &server,
+        &client,
+        test_character(1, "Sailor", 1002.0, 1001.0),
+        PA,
+    );
+    client.conn.active_char = Some(player.clone());
+    let world = server.world.world(0).unwrap();
+    let mut hull = Slave::new(1, 1);
+    hull.unit
+        .transform
+        .set_position(1000.0, 1000.0, 99.0, 0.0, 0.0, std::f32::consts::FRAC_PI_2);
+    let slave = Entity::new(0x300, hull);
+    world.spawn(&slave, &server.view_ctx());
+    slave.data().unit.tl_id = 3;
+    slaves::bind_slave(&server, &player, slave.obj_id, attach_point::DRIVER, 7);
+
+    // The real client can send its last swimming/walking position just after boarding.
+    // It must not replace the seat's local transform with that world position.
+    let walking = MoveType::new(MoveKind::Unit(UnitMove {
+        x: 1002.0,
+        y: 1001.0,
+        z: 100.0,
+        ..Default::default()
+    }));
+    crate::world::session::move_unit(&server, &mut client.conn, PA, walking.clone()).await;
+    let t = player.data().unit.transform;
+    assert_eq!(
+        (t.parent_obj_id, t.x, t.y, t.z),
+        (slave.obj_id, 0.0, 0.0, 0.0)
+    );
+
+    // Recovery from a missing transform parent preserves world position. Keeping the
+    // world coordinates as local coordinates previously moved drivers outside the map.
+    let me = WorldObject::from(&player);
+    world.detach_child(&me);
+    me.with_transform(|t| t.set_position(1002.0, 1001.0, 100.0, 0.0, 0.0, 0.0));
+    let request = MoveType::new(MoveKind::ShipRequest(ShipRequestMove::default()));
+    crate::world::session::move_unit(&server, &mut client.conn, slave.obj_id, request).await;
+    let t = player.data().unit.transform;
+    assert_eq!(t.parent_obj_id, slave.obj_id);
+    assert!((t.x - 1.0).abs() < 1e-4 && (t.y + 2.0).abs() < 1e-4);
+    let p = world.world_pos_rot(&me);
+    assert!((p.x - 1002.0).abs() < 1e-4 && (p.y - 1001.0).abs() < 1e-4);
+    assert_eq!(p.z, 100.0);
+
+    // After the ordinary discard, walking packets resume applying world coordinates.
+    slaves::unbind_slave(&server, &player, 3, slaves::attach_reason::SLAVE_BINDING);
+    crate::world::session::move_unit(&server, &mut client.conn, PA, walking).await;
+    let t = player.data().unit.transform;
+    assert_eq!((t.parent_obj_id, t.x, t.y, t.z), (0, 1002.0, 1001.0, 100.0));
+}
+
+#[tokio::test]
+async fn deck_movement_uses_relative_coordinates_and_keeps_the_current_parent() {
+    use crate::models::movement::{MoveTypeActorFlags, MoveTypeFlags, UnitMove};
+    use crate::models::slave::Slave;
+    use crate::world::Entity;
+
+    let server = server_with(GameData::empty());
+    let mut client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(
+        &server,
+        &client,
+        test_character(1, "Sailor", 1002.0, 1001.0),
+        PA,
+    );
+    client.conn.active_char = Some(player.clone());
+    let world = server.world.world(0).unwrap();
+    let mut hull = Slave::new(1, 1);
+    hull.unit
+        .transform
+        .set_position(1000.0, 1000.0, 99.0, 0.0, 0.0, std::f32::consts::FRAC_PI_2);
+    let slave = Entity::new(0x300, hull);
+    world.spawn(&slave, &server.view_ctx());
+    let mut move_type = MoveType::new(MoveKind::Unit(UnitMove {
+        // Captured 1.2 gcFlags=1 layout: primary local, auxiliary world.
+        x: 1.0,
+        y: -2.0,
+        z: 1.0,
+        rotation_z: 32,
+        actor_flags: MoveTypeActorFlags::STANDING_ON_OBJECT,
+        gc_flags: 1,
+        gc_id: slave.obj_id,
+        x2: 1002.0,
+        y2: 1001.0,
+        z2: 100.0,
+        rotation_z2: 64,
+        ..Default::default()
+    }));
+    move_type.flags = MoveTypeFlags::STANDING_ON_OBJECT;
+    crate::world::session::move_unit(&server, &mut client.conn, PA, move_type.clone()).await;
+    let t = player.data().unit.transform;
+    assert_eq!(
+        (t.parent_obj_id, t.x, t.y, t.z),
+        (slave.obj_id, 1.0, -2.0, 1.0)
+    );
+    assert!((t.rot_z - std::f32::consts::FRAC_PI_2).abs() < 1e-5);
+    let p = world.world_pos_rot(&WorldObject::from(&player));
+    assert!((p.x - 1002.0).abs() < 1e-4 && (p.y - 1001.0).abs() < 1e-4);
+    assert_eq!(p.z, 100.0);
+    // The next update references its current supporting object with the gc sentinel.
+    let MoveKind::Unit(u) = &mut move_type.kind else {
+        unreachable!()
+    };
+    u.gc_id = 1;
+    u.x = 2.0;
+    u.y = -3.0;
+    u.x2 = 1003.0;
+    u.y2 = 1002.0;
+    crate::world::session::move_unit(&server, &mut client.conn, PA, move_type).await;
+    let t = player.data().unit.transform;
+    assert_eq!((t.parent_obj_id, t.x, t.y), (slave.obj_id, 2.0, -3.0));
+    // Walking off the deck restores ordinary world coordinates.
+    let mut off = MoveType::new(MoveKind::Unit(UnitMove {
+        x: 1004.0,
+        y: 1003.0,
+        z: 100.0,
+        ..Default::default()
+    }));
+    // The real client can retain the header flag for the first off-deck update,
+    // while the actor no longer carries a gc block.
+    off.flags = MoveTypeFlags::STANDING_ON_OBJECT;
+    crate::world::session::move_unit(&server, &mut client.conn, PA, off).await;
+    let t = player.data().unit.transform;
+    assert_eq!((t.parent_obj_id, t.x, t.y, t.z), (0, 1004.0, 1003.0, 100.0));
+    // A late deck update after the supporting object was removed uses the world
+    // backup, not its small local offset.
+    let mut late = MoveType::new(MoveKind::Unit(UnitMove {
+        x: 1.0,
+        y: -2.0,
+        z: 1.0,
+        actor_flags: MoveTypeActorFlags::STANDING_ON_OBJECT,
+        gc_flags: 1,
+        gc_id: 0x999,
+        x2: 1005.0,
+        y2: 1004.0,
+        z2: 100.0,
+        rotation_z2: 32,
+        ..Default::default()
+    }));
+    late.flags = MoveTypeFlags::STANDING_ON_OBJECT;
+    crate::world::session::move_unit(&server, &mut client.conn, PA, late).await;
+    let t = player.data().unit.transform;
+    assert_eq!((t.parent_obj_id, t.x, t.y, t.z), (0, 1005.0, 1004.0, 100.0));
+    assert!((t.rot_z - std::f32::consts::FRAC_PI_2).abs() < 1e-5);
 }
 
 #[tokio::test]
@@ -1394,4 +1812,199 @@ async fn real_transfer_follows_its_client_route() {
         let d2 = ((m.x - p.x).powi(2) + (m.y - p.y).powi(2)).sqrt();
         assert!((d2 - 9.24417).abs() < 0.01, "trail distance {d2}");
     }
+}
+
+#[tokio::test]
+async fn mate_client_packets_require_owner_for_target_and_actual_rider_for_unmount() {
+    use super::packets::{CSChangeMateTargetPacket, CSUnMountMatePacket};
+    use crate::net::registry::ClientPacket;
+
+    let server = server_with(data());
+    let mut a = TestClient::new(&server, 1, 1);
+    let mut b = TestClient::new(&server, 2, 2);
+    let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), MATE_ITEM);
+    let pb = spawn_player(&server, &b, test_character(2, "B", 110.0, 110.0), PB);
+    a.conn.active_char = Some(pa.clone());
+    b.conn.active_char = Some(pb.clone());
+    mates::spawn_mount(&server, &pa, item_id);
+    let mate = server
+        .systems
+        .vehicles
+        .mates
+        .get(0)
+        .get_active_mates(1)
+        .pop()
+        .unwrap();
+    let tl = mate.data().unit.tl_id;
+    CSChangeMateTargetPacket {
+        tl_id: tl,
+        obj_id: PB,
+    }
+    .handle(&server, &mut b.conn)
+    .await
+    .unwrap();
+    assert_eq!(mate.data().unit.current_target, 0);
+    CSChangeMateTargetPacket {
+        tl_id: tl,
+        obj_id: PB,
+    }
+    .handle(&server, &mut a.conn)
+    .await
+    .unwrap();
+    assert_eq!(mate.data().unit.current_target, PB);
+    mates::mount_mate(&server, &pa, u32::from(tl), attach_point::DRIVER, 1);
+    mates::mount_mate(&server, &pb, u32::from(tl), attach_point::PASSENGER0, 1);
+    a.drain();
+    b.drain();
+    CSUnMountMatePacket {
+        tl_id: tl,
+        ap: attach_point::DRIVER,
+        reason: 4,
+    }
+    .handle(&server, &mut b.conn)
+    .await
+    .unwrap();
+    CSUnMountMatePacket {
+        tl_id: tl,
+        ap: attach_point::PASSENGER0,
+        reason: 4,
+    }
+    .handle(&server, &mut a.conn)
+    .await
+    .unwrap();
+    assert!(a.drain().is_empty());
+    assert!(b.drain().is_empty());
+    assert!(pa.data().is_riding);
+    assert!(pb.data().is_riding);
+    assert_eq!(
+        mate.data().passenger(attach_point::DRIVER).unwrap().obj_id,
+        PA
+    );
+    assert_eq!(
+        mate.data()
+            .passenger(attach_point::PASSENGER0)
+            .unwrap()
+            .obj_id,
+        PB
+    );
+    CSUnMountMatePacket {
+        tl_id: tl,
+        ap: attach_point::PASSENGER0,
+        reason: 4,
+    }
+    .handle(&server, &mut b.conn)
+    .await
+    .unwrap();
+    assert!(!pb.data().is_riding);
+    assert!(pa.data().is_riding);
+    CSUnMountMatePacket {
+        tl_id: tl,
+        ap: attach_point::DRIVER,
+        reason: 4,
+    }
+    .handle(&server, &mut a.conn)
+    .await
+    .unwrap();
+    assert!(!pa.data().is_riding);
+}
+
+#[tokio::test]
+async fn remove_mate_packet_rejects_foreign_owner_and_preserves_actual_owner_despawn() {
+    use super::packets::CSRemoveMatePacket;
+    use crate::net::registry::ClientPacket;
+
+    let server = server_with(data());
+    let mut a = TestClient::new(&server, 1, 1);
+    let mut b = TestClient::new(&server, 2, 2);
+    let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), MATE_ITEM);
+    let pb = spawn_player(&server, &b, test_character(2, "B", 110.0, 110.0), PB);
+    a.conn.active_char = Some(pa.clone());
+    b.conn.active_char = Some(pb);
+    mates::spawn_mount(&server, &pa, item_id);
+    let manager = server.systems.vehicles.mates.get(0);
+    let mate = manager.get_active_mates(1).pop().unwrap();
+    let tl = mate.data().unit.tl_id;
+    let world = server.world.world(0).unwrap();
+    CSRemoveMatePacket { tl_id: tl }
+        .handle(&server, &mut b.conn)
+        .await
+        .unwrap();
+    assert!(world.mate(mate.obj_id).is_some());
+    assert_eq!(manager.get_active_mates(1).len(), 1);
+    assert!(!mate.data().deleted);
+    CSRemoveMatePacket { tl_id: tl }
+        .handle(&server, &mut a.conn)
+        .await
+        .unwrap();
+    assert!(world.mate(mate.obj_id).is_none());
+    assert!(manager.get_active_mates(1).is_empty());
+    assert!(mate.data().deleted);
+}
+
+#[tokio::test]
+async fn hang_and_unhang_packets_only_mutate_the_authenticated_character() {
+    use super::packets::{CSHangPacket, CSUnhangPacket};
+    use crate::net::registry::ClientPacket;
+
+    let server = server_with(data());
+    let mut a = TestClient::new(&server, 1, 1);
+    let mut b = TestClient::new(&server, 2, 2);
+    let pa = spawn_player(&server, &a, test_character(1, "A", 100.0, 100.0), PA);
+    let pb = spawn_player(&server, &b, test_character(2, "B", 103.0, 100.0), PB);
+    a.conn.active_char = Some(pa.clone());
+    b.conn.active_char = Some(pb.clone());
+    let world = server.world.world(0).unwrap();
+    let mut data = crate::models::npc::Npc::new(MATE_NPC);
+    data.unit.transform.set_xyz(105.0, 100.0, 100.0);
+    let anchor = crate::world::Entity::new(0x200, data);
+    world.spawn(&anchor, &server.view_ctx());
+    a.drain();
+    b.drain();
+    CSHangPacket {
+        unit_obj_id: PB,
+        target_obj_id: anchor.obj_id,
+    }
+    .handle(&server, &mut a.conn)
+    .await
+    .unwrap();
+    assert_eq!(pb.core().sticky_parent(), 0);
+    assert!(a.drain().is_empty());
+    assert!(b.drain().is_empty());
+    // A server-forced sticky attachment remains available and cannot be cleared by another client.
+    world.set_sticky_parent(&WorldObject::from(&pb), Some(&WorldObject::from(&anchor)));
+    CSUnhangPacket {
+        unit_obj_id: PB,
+        reason: 2,
+    }
+    .handle(&server, &mut a.conn)
+    .await
+    .unwrap();
+    assert_eq!(pb.core().sticky_parent(), anchor.obj_id);
+    CSHangPacket {
+        unit_obj_id: PA,
+        target_obj_id: anchor.obj_id,
+    }
+    .handle(&server, &mut a.conn)
+    .await
+    .unwrap();
+    assert_eq!(pa.core().sticky_parent(), anchor.obj_id);
+    assert!(b.drain_ops().contains(&sc::SCHungPacket));
+    CSUnhangPacket {
+        unit_obj_id: PA,
+        reason: 2,
+    }
+    .handle(&server, &mut a.conn)
+    .await
+    .unwrap();
+    assert_eq!(pa.core().sticky_parent(), 0);
+    assert_eq!(pb.core().sticky_parent(), anchor.obj_id);
+    assert!(b.drain_ops().contains(&sc::SCUnhungPacket));
+    CSUnhangPacket {
+        unit_obj_id: PB,
+        reason: 2,
+    }
+    .handle(&server, &mut b.conn)
+    .await
+    .unwrap();
+    assert_eq!(pb.core().sticky_parent(), 0);
 }

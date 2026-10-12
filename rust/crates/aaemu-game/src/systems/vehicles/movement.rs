@@ -19,10 +19,12 @@ pub fn ship_request(
     target: &WorldObject,
     r: &ShipRequestMove,
 ) {
-    // TODO (C#): Validate if we are in the driver seat
     let Some(ship) = target.as_slave() else {
         return;
     };
+    if !controls_slave(character, ship) {
+        return;
+    }
     {
         let mut d = ship.data();
         d.throttle_request = r.throttle;
@@ -33,17 +35,41 @@ pub fn ship_request(
     attach_if_needed(server, character, target);
 }
 
+fn controls_slave(character: &PlayerRef, slave: &crate::world::SlaveRef) -> bool {
+    if character.data().attached_point != super::data::attach_point::DRIVER {
+        return false;
+    }
+    slave
+        .data()
+        .attached_characters
+        .iter()
+        .any(|(point, id)| *point == super::data::attach_point::DRIVER && *id == character.obj_id)
+}
+
 fn attach_if_needed(server: &GameServer, character: &PlayerRef, parent: &WorldObject) {
     let me = WorldObject::from(character);
     if me.transform().parent_obj_id == parent.obj_id() {
         return;
     }
     if let Some(world) = super::world_of(server, &me) {
-        if me.transform().parent_obj_id != 0 {
-            world.detach_child(&me);
-        }
-        world.attach_child(parent, &me);
+        crate::systems::npcs::doodad::funcs::world::attach_keeping_world(&world, parent, &me);
     }
+}
+
+/// A seated slave passenger follows the server's attachment until the discard packet.
+/// A late walking update must not detach the driver before the next steering request.
+pub fn player_bound_to_slave(world: &WorldInstance, player: &PlayerRef) -> bool {
+    let (parent, point) = {
+        let c = player.data();
+        (c.unit.transform.parent_obj_id, c.attached_point)
+    };
+    point != super::data::attach_point::NONE
+        && world.slave(parent).is_some_and(|s| {
+            s.data()
+                .attached_characters
+                .iter()
+                .any(|(p, id)| *p == point && *id == player.obj_id)
+        })
 }
 
 /// `VehicleMoveType`: a land vehicle driven by the client.
@@ -55,10 +81,12 @@ pub fn vehicle_move(
     mt: &MoveType,
     v: &VehicleMove,
 ) {
-    // TODO (C#): Validate if we are in the driver seat
     let Some(car) = target.as_slave() else {
         return;
     };
+    if !controls_slave(character, car) {
+        return;
+    }
     let (rx, ry, rz) = get_slave_rotation_in_degrees(v.rotation_x, v.rotation_y, v.rotation_z);
     attach_if_needed(server, character, target);
     car.data()
@@ -161,13 +189,14 @@ pub fn is_boarded_on_transfer(world: &WorldInstance, unit: &WorldObject) -> bool
 
 pub fn standing_on(world: &WorldInstance, target: &WorldObject, mt: &MoveType, u: &UnitMove) {
     let standing = mt.flags.contains(MoveTypeFlags::STANDING_ON_OBJECT);
-    // GcId 1 probably means "current parent" and is ignored.
-    let parent = if standing && u.gc_id > 1 {
-        world.object(u.gc_id).filter(|o| !o.same(target))
+    let current = target.transform().parent_obj_id;
+    // GcId 1 means the current parent, not a request to detach from it.
+    let parent_id = if u.gc_id == 1 { current } else { u.gc_id };
+    let parent = if standing && parent_id != 0 {
+        world.object(parent_id).filter(|o| !o.same(target))
     } else {
         None
     };
-    let current = target.transform().parent_obj_id;
     match (current, parent) {
         (c, None) if c != 0 => {
             // No longer standing on object

@@ -371,7 +371,22 @@ pub fn add_ship(server: &Arc<GameServer>, instance_id: u32, spec: ShipSpec) -> b
         .entry(instance_id)
         .or_insert_with(|| Arc::new(WorldPhysics::new(instance_id)))
         .clone();
-    let ship = PhysShip::new(spec, model, ShipGameView::default());
+    let mut ship = PhysShip::new(spec, model, ShipGameView::default());
+    if server.config.physics.cryphysics_ships {
+        if let (Some(files), Some(reference)) = (
+            super::collision::files(server),
+            server
+                .game_data
+                .systems
+                .ai
+                .ai
+                .ship_model_refs
+                .get(&ship.spec.model_id),
+        ) {
+            let models = super::collision::model_cache(server, &files);
+            ship.buoys = cry::prefab_buoys(&files, &models, reference);
+        }
+    }
     // the initial transform sync (rotation becomes yaw-only)
     if let Some(world) = server.world.world(instance_id) {
         if let Some(obj) = world.slave(ship.spec.obj_id).map(WorldObject::from) {

@@ -71,6 +71,14 @@ pub fn read_mail(txn: &mut ItemTxn<'_>, player: &PlayerRef, is_sent: bool, id: i
     let mails = &server.systems.economy.mail;
     let mut st = mails.state();
     let Some(m) = st.all.get_mut(id) else { return };
+    let owner = if is_sent {
+        m.header.sender_id
+    } else {
+        m.header.receiver_id
+    };
+    if owner != player.character_id {
+        return;
+    }
     if m.header.status == mail_status::UNREAD && !is_sent {
         player.data().unread_mail.update_received(m.mail_type, -1);
         m.open_date = mail::now();
@@ -212,6 +220,9 @@ pub fn get_attached(
         return Ok(res);
     };
     let cid = player.character_id;
+    if this_mail.header.receiver_id != cid {
+        return Ok(false);
+    }
     let mut took_money = false;
     if this_mail.mail_type == mail_type::AUC_OFF_SUCCESS
         && this_mail.body.copper_coins > 0
@@ -402,13 +413,13 @@ pub fn get_attached(
     Ok(res)
 }
 
-/// `DeleteMail(id, isSent)` (no ownership check, as in C#).
+/// `DeleteMail(id, isSent)`: only the receiver may delete received mail.
 pub fn delete_mail(txn: &mut ItemTxn<'_>, player: &PlayerRef, id: i64, is_sent: bool) {
     let server = txn.server;
     let mails = &server.systems.economy.mail;
     let mut st = mails.state();
     let Some(m) = st.all.get(id) else { return };
-    if is_sent || m.header.attachments > 0 {
+    if is_sent || m.header.receiver_id != player.character_id || m.header.attachments > 0 {
         return;
     }
     let modified = m.header.status != mail_status::READ;
@@ -435,6 +446,9 @@ pub fn return_mail(txn: &mut ItemTxn<'_>, player: &PlayerRef, id: i64) {
     let Some(this_mail) = server.systems.economy.mail.get_mail_by_id(id) else {
         return;
     };
+    if this_mail.header.receiver_id != player.character_id {
+        return;
+    }
     if this_mail.body.attachments.len() < MAX_MAIL_ATTACHMENTS {
         tracing::error!(
             "ReturnMail({id}): ArgumentOutOfRangeException (fewer than 10 attachments)"

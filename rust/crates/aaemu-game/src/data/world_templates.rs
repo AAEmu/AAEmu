@@ -315,23 +315,31 @@ pub(crate) fn strip_json_extensions(src: &str) -> String {
                 out.push(' ');
             }
             ',' => {
-                let next = chars[i + 1..]
-                    .iter()
-                    .copied()
-                    .enumerate()
-                    .find(|(_, c)| !c.is_whitespace());
-                // Look past comments too by checking the stripped remainder lazily: only drop
-                // the comma when the next significant char closes a container.
-                let closes = match next {
-                    Some((_, ']' | '}')) => true,
-                    Some((off, '/')) => {
-                        let rest: String = chars[i + 1 + off..].iter().collect();
-                        let stripped = strip_json_extensions(&rest);
-                        matches!(stripped.trim_start().chars().next(), Some(']' | '}'))
+                // Only scan to the next token. Recursively stripping the entire remainder
+                // for each comment repeats work exponentially on the shipped kits.json.
+                let mut j = i + 1;
+                loop {
+                    match chars.get(j) {
+                        Some(c) if c.is_whitespace() => j += 1,
+                        Some('/') if chars.get(j + 1) == Some(&'/') => {
+                            j += 2;
+                            while j < chars.len() && chars[j] != '\n' {
+                                j += 1;
+                            }
+                        }
+                        Some('/') if chars.get(j + 1) == Some(&'*') => {
+                            j += 2;
+                            while j < chars.len()
+                                && !(chars[j] == '*' && chars.get(j + 1) == Some(&'/'))
+                            {
+                                j += 1;
+                            }
+                            j = (j + 2).min(chars.len());
+                        }
+                        _ => break,
                     }
-                    _ => false,
-                };
-                if !closes {
+                }
+                if !matches!(chars.get(j), Some(']' | '}')) {
                     out.push(c);
                 }
                 i += 1;
@@ -1185,6 +1193,18 @@ mod tests {
         );
         assert_eq!(<f32 as XmlAttributeValue>::change_type("1e3"), Some(1000.0));
         assert_eq!(<f32 as XmlAttributeValue>::change_type("abc"), None);
+    }
+
+    #[test]
+    fn json_comments_after_commas_keep_tokens_and_parse_the_shipped_item_kits() {
+        let src = r#"["雪 // , }", /* first */ // second
+            2, /* trailing */ // closing
+        ]"#;
+        let value: Value = serde_json::from_str(&strip_json_extensions(src)).unwrap();
+        assert_eq!(value, serde_json::json!(["雪 // , }", 2]));
+        let kits = include_str!("../../app/Scripts/Commands/kits.json");
+        let value: Value = serde_json::from_str(&strip_json_extensions(kits)).unwrap();
+        assert!(value["itemkits"].as_array().unwrap().len() > 100);
     }
 
     #[test]

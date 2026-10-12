@@ -519,6 +519,8 @@ impl ActKind {
                 | ObjExpressFire { .. }
                 | ObjInteraction { .. }
                 | ObjItemGather { .. }
+                | ObjItemGroupGather { .. }
+                | ObjItemGroupUse { .. }
                 | ObjItemUse { .. }
                 | ObjLevel { .. }
                 | ObjMateLevel { .. }

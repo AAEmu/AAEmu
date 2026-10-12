@@ -455,6 +455,12 @@ pub fn on_enter_world(server: &GameServer, p: &PlayerRef, _qualified_id: u64) {
     let Some(game) = server.systems.instances.instant_games.current(p) else {
         return;
     };
+    if p.data().unit.transform.instance_id != game.world_id {
+        return;
+    }
+    if game.st().member_index(p).is_some() {
+        return;
+    }
     let Some(c) = game.st().corps_of(p) else {
         return;
     };
@@ -469,11 +475,6 @@ pub fn on_enter_world(server: &GameServer, p: &PlayerRef, _qualified_id: u64) {
         game.rule_set.corps2_faction_id
     };
     set_character_faction(server, p, faction);
-    server.systems.instances.events.characters.subscribe(
-        p,
-        CharEvent::Kill,
-        Handler::Game(game.clone()),
-    );
     let start = {
         let mut st = game.st();
         if st.member_index(p).is_some() {
@@ -505,6 +506,11 @@ pub fn on_enter_world(server: &GameServer, p: &PlayerRef, _qualified_id: u64) {
         // TODO (C#): This can be done better; game expire after 60 seconds if not enough players
         st.members.len() as u64 == u64::from(game.rule_set.corps_size) * 2
     };
+    server.systems.instances.events.characters.subscribe(
+        p,
+        CharEvent::Kill,
+        Handler::Game(game.clone()),
+    );
     if start {
         start_game(server, &game);
     }

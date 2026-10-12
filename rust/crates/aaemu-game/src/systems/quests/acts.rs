@@ -37,6 +37,46 @@ impl Ctx<'_> {
         }
     }
 
+    fn item_group_count(&self, group: u32) -> i32 {
+        let mut seen = std::collections::HashSet::new();
+        self.data
+            .group_items
+            .members(group)
+            .iter()
+            .filter(|id| seen.insert(**id))
+            .fold(0i32, |count, id| {
+                count.saturating_add(items_count(self.c, *id).max(0))
+            })
+    }
+
+    /// Consume the objective quantity across group members in the loaded table order.
+    fn consume_item_group(&mut self, group: u32, mut left: i32) {
+        let mut seen = std::collections::HashSet::new();
+        let hooks = self.hooks.clone();
+        let player = self.player.clone();
+        for &item in self.data.group_items.members(group) {
+            if left <= 0 {
+                break;
+            }
+            if !seen.insert(item) {
+                continue;
+            }
+            let count = left.min(items_count(self.c, item).max(0));
+            if count > 0 {
+                let removed = hooks.consume_item(
+                    self.server,
+                    player.as_ref(),
+                    self.c,
+                    item_task::QUEST_REMOVE_SUPPLIES,
+                    item,
+                    count,
+                    None,
+                );
+                left = left.saturating_sub(removed.clamp(0, count));
+            }
+        }
+    }
+
     /// `QuestActTemplate.RunAct(quest, questAct, currentObjectiveCount)`.
     pub(crate) fn act_run(&mut self, h: QuestHandle, p: ActPath, count: i32) -> bool {
         let data = self.data;
@@ -185,12 +225,19 @@ impl Ctx<'_> {
             ObjExpressFire { .. }
             | ObjInteraction { .. }
             | ObjItemUse { .. }
+            | ObjItemGroupUse { .. }
             | ObjMonsterGroupHunt { .. }
             | ObjMonsterHunt { .. } => count >= at.count,
             ObjItemGather { item_id, .. } => {
                 let n = items_count(self.c, *item_id);
                 let r = self.set_objective(h, a, n);
                 self.log_throw(r, "QuestActObjItemGather.RunAct");
+                self.get_objective(h, a) >= at.count
+            }
+            ObjItemGroupGather { item_group_id, .. } => {
+                let n = self.item_group_count(*item_group_id);
+                let r = self.set_objective(h, a, n);
+                self.log_throw(r, "QuestActObjItemGroupGather.RunAct");
                 self.get_objective(h, a) >= at.count
             }
             ObjLevel { level, .. } => {
@@ -343,8 +390,6 @@ impl Ctx<'_> {
             | ObjCondition { .. }
             | ObjDoodadPhaseCheck { .. }
             | ObjEffectFire { .. }
-            | ObjItemGroupGather { .. }
-            | ObjItemGroupUse { .. }
             | ObjSendMail { .. }
             | ObjZoneNpcTalk { .. }
             | ObjZoneQuestComplete { .. }
@@ -489,13 +534,21 @@ impl Ctx<'_> {
             ObjCraft { .. } => self.st.subscribe(EventKind::Craft, h, p),
             ObjExpressFire { .. } => self.st.subscribe(EventKind::ExpressFire, h, p),
             ObjInteraction { .. } => self.st.subscribe(EventKind::Interaction, h, p),
+            ObjItemGroupGather { item_group_id, .. } => {
+                let n = self.item_group_count(*item_group_id);
+                let r = self.set_objective(h, a, n);
+                self.log_throw(r, "QuestActObjItemGroupGather.InitializeAction");
+                self.st.subscribe(EventKind::ItemGroupGather, h, p);
+            }
             ObjItemGather { item_id, .. } => {
                 let n = items_count(self.c, *item_id);
                 let r = self.set_objective(h, a, n);
                 self.log_throw(r, "QuestActObjItemGather.InitializeAction");
                 self.st.subscribe(EventKind::ItemGather, h, p);
             }
-            ObjItemUse { .. } => self.st.subscribe(EventKind::ItemUse, h, p),
+            ObjItemUse { .. } | ObjItemGroupUse { .. } => {
+                self.st.subscribe(EventKind::ItemUse, h, p)
+            }
             ObjLevel { .. } => self.st.subscribe(EventKind::LevelUp, h, p),
             ObjMateLevel { .. } => self.st.subscribe(EventKind::MateLevelUp, h, p),
             ObjMonsterGroupHunt { .. } => self.st.subscribe(EventKind::MonsterGroupHunt, h, p),
@@ -540,6 +593,7 @@ impl Ctx<'_> {
             EtcItemObtain { .. } | ObjItemGather { .. } => {
                 self.st.unsubscribe(EventKind::ItemGather, h, p)
             }
+            ObjItemGroupGather { .. } => self.st.unsubscribe(EventKind::ItemGroupGather, h, p),
             ObjAggro { .. } => self.st.unsubscribe(EventKind::Kill, h, p),
             ObjCinema { .. } => {
                 self.st.unsubscribe(EventKind::CinemaEnded, h, p);
@@ -548,7 +602,9 @@ impl Ctx<'_> {
             ObjCraft { .. } => self.st.unsubscribe(EventKind::Craft, h, p),
             ObjExpressFire { .. } => self.st.unsubscribe(EventKind::ExpressFire, h, p),
             ObjInteraction { .. } => self.st.unsubscribe(EventKind::Interaction, h, p),
-            ObjItemUse { .. } => self.st.unsubscribe(EventKind::ItemUse, h, p),
+            ObjItemUse { .. } | ObjItemGroupUse { .. } => {
+                self.st.unsubscribe(EventKind::ItemUse, h, p)
+            }
             ObjLevel { .. } => self.st.unsubscribe(EventKind::LevelUp, h, p),
             ObjMateLevel { .. } => self.st.unsubscribe(EventKind::MateLevelUp, h, p),
             ObjMonsterGroupHunt { .. } => self.st.unsubscribe(EventKind::MonsterGroupHunt, h, p),
@@ -634,6 +690,14 @@ impl Ctx<'_> {
                 let n = self.cleanup_count(h, a);
                 consume(self, *item_id, n);
             }
+            ActKind::ObjItemGroupGather {
+                item_group_id,
+                cleanup,
+                ..
+            } if *cleanup => {
+                let n = self.cleanup_count(h, a);
+                self.consume_item_group(*item_group_id, n);
+            }
             ActKind::SupplyItem {
                 item_id, cleanup, ..
             } if *cleanup && at.component_kind != kind::REWARD => consume(self, *item_id, at.count),
@@ -670,6 +734,14 @@ impl Ctx<'_> {
                 destroy_when_drop,
                 ..
             } if *destroy_when_drop => (*item_id, self.cleanup_count(h, a)),
+            ActKind::ObjItemGroupGather {
+                item_group_id,
+                destroy_when_drop,
+                ..
+            } if *destroy_when_drop => {
+                self.consume_item_group(*item_group_id, self.cleanup_count(h, a));
+                return;
+            }
             ActKind::SupplyItem {
                 item_id,
                 destroy_when_drop,
@@ -782,6 +854,24 @@ impl Ctx<'_> {
                 }
                 let n = items_count(self.c, *item_id);
                 self.set_objective(h, a, n)?;
+            }
+            (
+                ObjItemGroupGather { item_group_id, .. },
+                QuestEvent::ItemGroupGather {
+                    item_id, group_id, ..
+                },
+            ) => {
+                if group_id != item_group_id || !data.group_items.contains(*item_group_id, *item_id)
+                {
+                    return Ok(());
+                }
+                self.set_objective(h, a, self.item_group_count(*item_group_id))?;
+            }
+            (ObjItemGroupUse { item_group_id, .. }, QuestEvent::ItemUse { item_id }) => {
+                if !data.group_items.contains(*item_group_id, *item_id) {
+                    return Ok(());
+                }
+                self.add_objective(h, a, 1)?;
             }
             (ObjItemUse { item_id, .. }, QuestEvent::ItemUse { item_id: i }) => {
                 if i != item_id {

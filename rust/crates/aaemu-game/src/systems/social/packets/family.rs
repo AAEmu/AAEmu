@@ -155,7 +155,7 @@ cs_packet!(
     read |s| { Ok(Self { member_id: s.read_u32()?, title: s.read_string()? }) }
     handle |self, server, conn| {
         let p = active_char!(conn);
-        family::change_title(server, &p, self.member_id, &self.title);
+        family::change_title_and_save(server, &p, self.member_id, &self.title).await;
         tracing::debug!("FamilyChangeTitle, memberId: {}, title: {}", self.member_id, self.title);
         Ok(())
     }
@@ -167,7 +167,7 @@ cs_packet!(
     read |s| { Ok(Self { id: s.read_u32()? }) }
     handle |self, server, conn| {
         let p = active_char!(conn);
-        family::change_owner(server, &p, self.id);
+        family::change_owner_and_save(server, &p, self.id).await;
         tracing::debug!("FamilyChangeOwner, Id: {}", self.id);
         Ok(())
     }

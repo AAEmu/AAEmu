@@ -5,7 +5,8 @@
 //!   is the one that puts trees on the terrain;
 //! * a few main_world cells load (counts, models, timing, memory of the physics blobs);
 //! * ground heights from the physics world (rays 0x101) match the NPC spawn heights of
-//!   `Data/Worlds/main_world/npc_spawns.json`;
+//!   `Data/Worlds/main_world/npc_spawns.json` and survive unit-state serialization even where
+//!   the approximate navigation height differs;
 //! * rays hit brushes / vegetation (static entities) above the terrain.
 
 use std::collections::HashMap;
@@ -191,6 +192,27 @@ fn real_collision_cells_load_and_answer() {
         println!("veg 013_014: no group {no_group}, no model {no_model}, no file/physics {no_file}, no default slot {no_coll}, ok {ok}; top {top:?}");
     }
     let spawns = npc_spawns();
+    let worlds = WorldTemplates::load(&e.files, &app_path()).expect("world templates");
+    let nav = super::super::geodata::manager::AiGeoData::new(
+        worlds
+            .get_world_template_by_id(e.template_id)
+            .expect("main_world"),
+        true,
+        Arc::new(super::super::geodata::ClientBaiFiles(e.files.clone())),
+        Arc::new(super::super::geodata::bai::UsedAreaNames::default()),
+        None,
+    );
+    let mut prefix = aaemu_commons::PacketStream::new();
+    prefix
+        .write_bc(1)
+        .write_str("")
+        .write_u8(1) // NPC
+        .write_bc(1)
+        .write_u32(1)
+        .write_u32(0)
+        .write_u8(0)
+        .write_str("");
+    let position_offset = prefix.len();
     // the cells with the most NPC spawns
     let mut per_cell: HashMap<(i32, i32), usize> = HashMap::new();
     for s in &spawns {
@@ -254,6 +276,8 @@ fn real_collision_cells_load_and_answer() {
     let t = terrain(&e);
     let (mut n, mut near, mut on_static, mut terrain_near) = (0, 0, 0, 0);
     let mut worst = Vec::new();
+    let (mut nav_above, mut nav_below) = (0, 0);
+    let mut nav_worst = Vec::new();
     let tq = Instant::now();
     for s in spawns
         .iter()
@@ -276,6 +300,33 @@ fn real_collision_cells_load_and_answer() {
         if let Some(h) = hit {
             if (h.pos.z - s[2]).abs() < 1.0 {
                 near += 1;
+                let mut npc = crate::models::npc::Npc::new(1);
+                npc.has_ai = true;
+                npc.spawner_z = Some(s[2]);
+                npc.unit.transform.zone_id =
+                    worlds.get_zone_id(worlds.get_world_template_by_id(e.template_id), s[0], s[1]);
+                npc.unit
+                    .transform
+                    .set_position(s[0], s[1], h.pos.z, 0.0, 0.0, 0.0);
+                let before = npc.unit.transform;
+                let mut position = aaemu_commons::PacketStream::new();
+                position.write_position(s[0], s[1], h.pos.z);
+                let state = crate::world::unit_state::npc_unit_state(1, &mut npc, "", 0);
+                assert_eq!(npc.unit.transform, before);
+                assert_eq!(
+                    &state.body[position_offset..position_offset + position.len()],
+                    position.as_bytes(),
+                    "collision floor at {s:?}"
+                );
+                let nav_z = nav.get_height(crate::systems::skills::controllers::Vec3::new(
+                    s[0], s[1], h.pos.z,
+                ));
+                if nav_z != 0.0 {
+                    let delta = nav_z - h.pos.z;
+                    nav_above += usize::from(delta > 1.0);
+                    nav_below += usize::from(delta < -1.0);
+                    nav_worst.push((*s, h.pos.z, nav_z, delta));
+                }
             } else if worst.len() < 5 {
                 worst.push((*s, h.pos.z, h.owner));
             }
@@ -288,9 +339,18 @@ fn real_collision_cells_load_and_answer() {
         "{n} spawns: ground within 1 m {near}, terrain elevation within 1 m {terrain_near}, on static geometry {on_static}; {:?} per ray; e.g. {worst:?}",
         tq.elapsed() / n.max(1) as u32
     );
+    nav_worst.sort_by(|a, b| b.3.total_cmp(&a.3));
+    nav_worst.truncate(5);
+    println!(
+        "grounded spawns vs navmesh: {nav_above} over 1 m above ground, {nav_below} over 1 m below; worst {nav_worst:?}"
+    );
     assert!(n > 50);
     assert!(near * 10 >= n * 9, "{near}/{n}");
     assert!(near >= terrain_near);
+    assert!(
+        nav_above > 0,
+        "fixture covers a navmesh height above the collision floor"
+    );
     // some spawns stand on brushes (bridges, floors, docks)
     assert!(on_static > 0);
 }

@@ -1076,6 +1076,54 @@ async fn sequential_take_checks_receiver_and_auction_labor() {
 }
 
 #[tokio::test]
+async fn received_mail_operations_reject_the_sender() {
+    let mut w = mail_world();
+    w.pa.data().money = 1000;
+    assert_eq!(
+        send_p2p(&w, mail_type::EXPRESS, "Bob", 100, &[]),
+        mail_result::SUCCESS
+    );
+    let id = bob_mail_ids(&w.server)[0];
+    let before = w.server.systems.economy.mail.get_mail_by_id(id).unwrap();
+    let sender_money = w.pa.data().money;
+    let receiver_count = w.pb.data().unread_mail;
+    w.a.drain();
+    w.b.drain();
+    let mut s = PacketStream::new();
+    s.write_bool(false).write_i64(id);
+    run::<CSReadMailPacket>(&mut w, 0, s.as_bytes());
+    let mut s = PacketStream::new();
+    s.write_i64(id);
+    run::<CSTakeAttachmentMoneyPacket>(&mut w, 0, s.as_bytes());
+    run::<CSTakeAllAttachmentItemPacket>(&mut w, 0, s.as_bytes());
+    assert!(w.a.drain().is_empty());
+    assert_eq!(w.pa.data().money, sender_money);
+    assert_eq!(w.pb.data().unread_mail, receiver_count);
+    let after = w.server.systems.economy.mail.get_mail_by_id(id).unwrap();
+    assert_eq!(after.header.status, before.header.status);
+    assert_eq!(after.body.copper_coins, 100);
+
+    // An empty received mail also cannot be deleted through its sender's connection.
+    assert_eq!(
+        send_p2p(&w, mail_type::EXPRESS, "Bob", 0, &[]),
+        mail_result::SUCCESS
+    );
+    let empty_id = *bob_mail_ids(&w.server).last().unwrap();
+    w.a.drain();
+    let mut s = PacketStream::new();
+    s.write_i64(empty_id).write_bool(false);
+    run::<CSDeleteMailPacket>(&mut w, 0, s.as_bytes());
+    assert!(w.a.drain().is_empty());
+    assert!(w
+        .server
+        .systems
+        .economy
+        .mail
+        .get_mail_by_id(empty_id)
+        .is_some());
+}
+
+#[tokio::test]
 async fn delete_unread_mail_updates_counter() {
     let mut w = mail_world();
     w.pa.data().money = 1000;

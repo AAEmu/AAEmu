@@ -587,13 +587,13 @@ pub fn allowed_to_interact(server: &GameServer, house: &HouseRef, player: &Playe
         let c = player.data();
         (c.id, c.account_id, c.family, c.unit.expedition_id)
     };
+    if char_id == owner {
+        return true;
+    }
     match permission {
         housing_permission::PRIVATE => {
-            if char_id == owner {
-                return true;
-            }
             let owner_account = server.names.get_character_account(owner);
-            account_id == owner_account
+            account_id != 0 && account_id == owner_account
         }
         housing_permission::FAMILY if family > 0 => server
             .systems
@@ -605,8 +605,8 @@ pub fn allowed_to_interact(server: &GameServer, house: &HouseRef, player: &Playe
             .expeditions
             .get(expedition)
             .is_some_and(|e| e.members.iter().any(|m| m.character_id == owner)),
-        // Public, and Family / Guild for players without a family / guild (C# `default`).
-        _ => true,
+        housing_permission::PUBLIC => true,
+        _ => false,
     }
 }
 

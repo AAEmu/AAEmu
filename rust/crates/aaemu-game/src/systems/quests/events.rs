@@ -508,14 +508,40 @@ pub fn on_report(
             );
         });
     } else {
-        // Doesn't have a NPC or Doodad to turn in at, just auto-complete it
+        // Object-free reporting must not skip objectives or an NPC/doodad report act.
         run_or_queue(server, player, move |ctx| {
-            if let Some(h) = ctx.st.active_handle(quest_id) {
-                if let Some(q) = ctx.st.quest_mut(h) {
-                    q.selected_reward_index = selected;
-                }
-                ctx.set_step(h, super::model::kind::REWARD);
+            let Some(h) = ctx.st.active_handle(quest_id) else {
+                return;
+            };
+            let step = ctx.st.quest(h).map(|q| q.step);
+            if step == Some(super::model::kind::PROGRESS) {
+                // The existing early-completion path checks both the template flag and
+                // the objective threshold before granting any reward.
+                ctx.try_complete_quest_as_let_it_done(quest_id, selected);
+                return;
             }
+            if step != Some(super::model::kind::READY) {
+                return;
+            }
+            let automatic_report = ctx.data.template(quest_id).is_some_and(|t| {
+                t.components_of(&ctx.data.components, super::model::kind::READY)
+                    .into_iter()
+                    .flat_map(|c| &c.acts)
+                    .any(|&a| {
+                        matches!(
+                            ctx.data.acts[a].kind,
+                            super::templates::ActKind::ConAutoComplete
+                                | super::templates::ActKind::ConReportJournal
+                        )
+                    })
+            });
+            if !automatic_report {
+                return;
+            }
+            if let Some(q) = ctx.st.quest_mut(h) {
+                q.selected_reward_index = selected;
+            }
+            ctx.run_current_step(h);
         });
     }
 }

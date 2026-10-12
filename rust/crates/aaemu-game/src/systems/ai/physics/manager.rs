@@ -179,6 +179,11 @@ impl PhysState {
         cfg: PhysConfig,
     ) -> TickOutput {
         let mut out = TickOutput::default();
+        // The thread survives the last dismissal. Keep one tick to remove CryPhysics
+        // entities, then stop querying/stepping an otherwise idle collision world.
+        if self.ships.is_empty() && self.cry.ents.is_empty() {
+            return out;
+        }
         self.loop_index += 1;
         let dt = (dt_ms as f64 / 1000.0) as f32;
 
@@ -397,6 +402,26 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+/// Tick starts measured after sleeping. Advancing at the pre-sleep timestamp causes
+/// alternating back-to-back ticks and integrates the sleep interval twice.
+struct TickClock {
+    previous: Duration,
+    period: Duration,
+}
+
+impl TickClock {
+    fn wait(&self, now: Duration) -> Duration {
+        self.period
+            .saturating_sub(now.saturating_sub(self.previous))
+    }
+
+    fn advance(&mut self, now: Duration) -> i64 {
+        let elapsed = now.as_millis().saturating_sub(self.previous.as_millis()) as i64;
+        self.previous = now;
+        elapsed
+    }
+}
+
 /// `WorldInstance.Physics`.
 #[derive(Debug)]
 pub struct WorldPhysics {
@@ -473,22 +498,23 @@ impl WorldPhysics {
         let spawned = std::thread::Builder::new().name(name).spawn(move || {
             let target = Duration::from_secs_f32(1.0 / tps);
             let origin = Instant::now();
-            let ms = || origin.elapsed().as_millis() as i64;
-            let mut last_tick = ms();
+            let mut clock = TickClock {
+                previous: Duration::ZERO,
+                period: target,
+            };
             loop {
-                let current = ms();
-                let to_next = last_tick + target.as_millis() as i64 - current;
-                if to_next > 1 {
-                    std::thread::sleep(Duration::from_millis(to_next as u64));
-                } else if to_next < -(tps as i64) {
+                let wait = clock.wait(origin.elapsed());
+                if !wait.is_zero() {
+                    std::thread::sleep(wait);
+                }
+                let total = clock.advance(origin.elapsed());
+                if total > target.as_millis() as i64 * 2 {
                     tracing::warn!(
                         "Physics thread is running slow at {} / {} ms",
-                        current - last_tick,
+                        total,
                         target.as_millis()
                     );
                 }
-                let total = ms() - last_tick;
-                last_tick = current;
                 let (Some(server), Some(wp)) = (server.upgrade(), me.upgrade()) else {
                     return;
                 };
@@ -521,5 +547,43 @@ fn snapshot_of(s: &PhysShip) -> ShipSnapshot {
         half_length: s.model.mass_box_size_y * s.spec.scale * 0.5,
         half_beam: s.model.mass_box_size_x * s.spec.scale * 0.5,
         is_boat: s.spec.kind.is_boat(),
+    }
+}
+
+#[cfg(test)]
+mod clock_tests {
+    use super::*;
+
+    #[test]
+    fn tick_schedule_counts_sleep_once_and_preserves_wall_time() {
+        let mut c = TickClock {
+            previous: Duration::ZERO,
+            period: Duration::from_millis(40),
+        };
+        let mut now = Duration::ZERO;
+        let mut integrated = 0;
+        for _ in 0..25 {
+            now += c.wait(now);
+            integrated += c.advance(now);
+            // Physics work takes 3 ms, leaving 37 ms to the next tick, never 0 ms.
+            now += Duration::from_millis(3);
+            assert_eq!(c.wait(now), Duration::from_millis(37));
+        }
+        assert_eq!(integrated, 1000);
+        assert_eq!(c.previous, Duration::from_secs(1));
+    }
+
+    #[test]
+    fn late_ticks_do_not_duplicate_elapsed_time_or_lose_fractional_ms() {
+        let mut c = TickClock {
+            previous: Duration::ZERO,
+            period: Duration::from_millis(40),
+        };
+        assert_eq!(c.advance(Duration::from_micros(40500)), 40);
+        assert_eq!(c.advance(Duration::from_micros(81000)), 41);
+        let late = Duration::from_millis(150);
+        assert_eq!(c.wait(late), Duration::ZERO);
+        assert_eq!(c.advance(late), 69);
+        assert_eq!(c.wait(late), Duration::from_millis(40));
     }
 }

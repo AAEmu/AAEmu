@@ -1155,3 +1155,65 @@ async fn real_dungeon_spawns_load_and_leave_returns_to_main_world() {
         .iter()
         .any(|(op, _)| *op == sc::SCLoadInstancePacket));
 }
+
+#[tokio::test]
+async fn battlefield_entered_requires_actual_instance_and_subscribes_kills_once() {
+    let server = camp_server(1, 60);
+    let mut p = Pc::new(&server, 7, "Invited", 100.0, 100.0);
+    instant_game::apply_to_battlefield(&server, 7, corps::ANY, &p.p);
+    instant_game::battlefield_tick(&server);
+    let game = server
+        .systems
+        .instances
+        .instant_games
+        .current(&p.p)
+        .unwrap();
+    p.frames();
+    let original_faction = p.p.data().unit.faction_id;
+    let entered = 1u64.to_le_bytes();
+    p.frame(&server, cs::CSEnteredInstantGameWorldPacket, &entered)
+        .await;
+    assert!(p.frames().is_empty());
+    assert!(game.st().members.is_empty());
+    assert_eq!(p.p.data().unit.faction_id, original_faction);
+    assert_eq!(
+        server
+            .systems
+            .instances
+            .events
+            .characters
+            .count(&p.p, CharEvent::Kill),
+        0
+    );
+    let mut join = vec![1];
+    join.extend_from_slice(&entered);
+    p.frame(&server, cs::CSJoinInstantGamePacket, &join).await;
+    assert_eq!(p.instance(), game.world_id);
+    p.frames();
+    p.frame(&server, cs::CSEnteredInstantGameWorldPacket, &entered)
+        .await;
+    assert!(p.ops().contains(&sc::SCInstantGameJoinedPacket));
+    assert_eq!(game.st().members.len(), 1);
+    assert_eq!(
+        server
+            .systems
+            .instances
+            .events
+            .characters
+            .count(&p.p, CharEvent::Kill),
+        1
+    );
+    p.frame(&server, cs::CSEnteredInstantGameWorldPacket, &entered)
+        .await;
+    assert!(p.frames().is_empty());
+    assert_eq!(game.st().members.len(), 1);
+    assert_eq!(
+        server
+            .systems
+            .instances
+            .events
+            .characters
+            .count(&p.p, CharEvent::Kill),
+        1
+    );
+}

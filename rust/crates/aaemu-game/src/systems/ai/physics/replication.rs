@@ -180,18 +180,12 @@ pub fn send_updated_movement_data(
     mt.flags = MoveTypeFlags(0);
     mt.time = (now_ms - ship.spec.spawn_time_ms).max(0) as u32;
 
-    // Transform.Local.SetPosition(rb X, Z, Y); ApplyFromQuaternion(rb.Orientation) — C# bug
-    // mirrored: the Jitter quaternion is applied without the Y/Z swap of
-    // SyncTransformWithRigidBody, so between ticks the yaw sits in the pitch slot — then
-    // SetRotation(X, Y + bank, Z + ground pitch + wave).
+    // Keep the world transform consistent with the visual quaternion sent above. Applying
+    // the Jitter quaternion directly put yaw in the game pitch slot and rotated attached
+    // passengers/parts out of the ship's frame. The wire quaternion/order stays unchanged.
     let position = crate::systems::skills::controllers::Vec3::new(p.x, p.z, p.y);
-    let q = rb_orientation;
-    let (rx, ry, rz) = from_quaternion(q.x, q.y, q.z, q.w);
-    let rotation = (
-        rx,
-        ry + rep.bank_smoothed,
-        rz + rep.ground_pitch_smoothed + wave,
-    );
+    let visual_q = Quat::from_yaw_pitch_roll(banked.2, banked.0, banked.1);
+    let rotation = from_quaternion(visual_q.y, visual_q.z, visual_q.x, visual_q.w);
     ship.pos = position;
     ship.rot = rotation;
     if ship.replication.contact_hold_ticks > 0 {
@@ -246,5 +240,53 @@ mod tests {
         // wave pitch only on water: some rotation is present
         assert!(s.wave_pitch_phase > 0.0);
         assert!((3.0..=14.0).contains(&visual_max_bank_deg(&s.model, 1.0)));
+    }
+
+    #[test]
+    fn world_transform_matches_the_wire_quaternion_for_attached_parts() {
+        use crate::models::transform::{PositionAndRotation, Quaternion};
+
+        let env = FakeEnv::flat(100.0, 50.0);
+        let mut s = PhysShip::new(
+            spec(7, 10.0, 20.0, 99.8, 0.7),
+            model(),
+            ShipGameView::default(),
+        );
+        s.cached_water_surface = 100.0;
+        s.cached_floor_level = 50.0;
+        s.body.orientation = Quat::from_yaw_pitch_roll(0.7, 0.08, -0.04);
+        s.body.angular_velocity.y = 0.03;
+        s.body.velocity.z = 2.0;
+        let update = send_updated_movement_data(&mut s, &env, 0.04, 1000);
+        let MoveKind::Ship(m) = update.move_type.kind else {
+            panic!("ship move")
+        };
+        let k = 0.000_030_52;
+        let (x, y, z) = (
+            f32::from(m.rotation_x) * k,
+            f32::from(m.rotation_y) * k,
+            f32::from(m.rotation_z) * k,
+        );
+        let wire_q = Quaternion {
+            x,
+            y,
+            z,
+            w: (1.0 - x * x - y * y - z * z).sqrt(),
+        };
+        let world_q = PositionAndRotation {
+            rot_x: update.rotation.0,
+            rot_y: update.rotation.1,
+            rot_z: update.rotation.2,
+            ..Default::default()
+        }
+        .to_quaternion();
+        // Attached parts must land in the same world position seen by the client.
+        for offset in [[0.0, -2.9, 1.04376], [2.0, 4.0, -0.5]] {
+            let a = wire_q.rotate(offset);
+            let b = world_q.rotate(offset);
+            for axis in 0..3 {
+                assert!((a[axis] - b[axis]).abs() < 0.001, "{a:?} vs {b:?}");
+            }
+        }
     }
 }

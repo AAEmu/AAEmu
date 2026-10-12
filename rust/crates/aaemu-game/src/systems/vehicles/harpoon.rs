@@ -462,6 +462,9 @@ pub fn on_slave_skill_used(
 /// which is cleared; a ship the unit was hanging on (its harpoon rope) has its rope broken for
 /// the clients.
 pub fn unhang(server: &GameServer, character: &PlayerRef, unit_obj_id: u32, reason: u32) {
+    if unit_obj_id != character.obj_id {
+        return;
+    }
     let me = WorldObject::from(character);
     let world = world_of(server, &me);
     let mut target_obj_id = 0;
@@ -499,6 +502,9 @@ pub fn unhang(server: &GameServer, character: &PlayerRef, unit_obj_id: u32, reas
 /// `CSHangPacket.Read`: the unit's sticky parent becomes the target, `SCHungPacket` goes to
 /// the others around the active character and a doodad target is used by the unit.
 pub fn hang(server: &GameServer, character: &PlayerRef, unit_obj_id: u32, target_obj_id: u32) {
+    if unit_obj_id != character.obj_id {
+        return;
+    }
     tracing::trace!("Hang, unitObjId: {unit_obj_id}, targetObjId: {target_obj_id}");
     let me = WorldObject::from(character);
     let Some(world) = world_of(server, &me) else {

@@ -52,6 +52,19 @@ Operational impact for setup docs:
   `rust/crates/aaemu-game/app/`.
 - Logging is configured with `RUST_LOG` instead of `NLog.config`.
 
+The 1.2 feature audit in `rust/tools/port_audit/features.py` inventories supported inbound
+packets and database table usage separately from C# port coverage. Supply a read-only
+`compact.sqlite3` with `--compact-db` and save the JSON report outside the repository with
+`--output`. The game crate's `PORTING.md` records reference functions, tested fixes and
+remaining gaps; packet registration alone does not establish that a feature works.
+
+The world server enforces buff-dependent skill restrictions, reads explicit quest starter
+item mappings, evaluates manual timed buff modifiers, and runs group-item quest objectives.
+Owned vehicle renames, priest purchases and trade refusals use existing 1.2 packets. The
+audit also adds ownership/permission checks to equipment, mail, containers, auctions,
+housing and movement, and prevents duplicate battlefield enrollment. These changes require
+no separate zone process or database migration.
+
 ## Related
 
 - [Home](Home)

@@ -614,14 +614,17 @@ impl AuctionManager {
         self.remove_auction_lot(server, lot.id);
     }
 
-    /// `CancelAuctionLot(player, auctionId)`. As in C#, any player may cancel any lot without
-    /// bids; the mailed item is a new copy and the listed item stays in the auction container.
+    /// `CancelAuctionLot(player, auctionId)`: only the seller may cancel a lot without bids.
+    /// The mailed item is a new copy and the listed item stays in the auction container.
     pub fn cancel_auction_lot(&self, server: &GameServer, player: &PlayerRef, auction_id: u64) {
         let _op = self.op();
         let Some(lot) = self.lot(auction_id) else {
             tracing::warn!("AuctionLot with ID {auction_id} not found.");
             return;
         };
+        if lot.client_id != player.character_id {
+            return;
+        }
         if !lot.bidder_name.is_empty() {
             // Someone has already bid on the item, and we do not want to remove it
             tracing::warn!("AuctionLot with ID {auction_id} has already been bid on.");

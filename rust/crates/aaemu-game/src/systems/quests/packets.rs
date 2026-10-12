@@ -527,8 +527,7 @@ impl ClientPacket for CSStartedCinemaPacket {
     }
 }
 
-/// `CSCompletedCinemaPacket` (empty). `WorldManager.ResendVisibleObjectsToCharacter` is not
-/// ported (see PORTING.md).
+/// `CSCompletedCinemaPacket` (empty): restore neighbouring objects before quest events.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CSCompletedCinemaPacket;
 
@@ -547,6 +546,7 @@ impl ClientPacket for CSCompletedCinemaPacket {
         Box::pin(async move {
             tracing::warn!("CompletedCinema");
             if let Some(p) = active(conn) {
+                crate::systems::npcs::portal::resend_visible_objects_to_character(server, &p);
                 events::on_cinema_ended(server, &p);
             }
             Ok(())

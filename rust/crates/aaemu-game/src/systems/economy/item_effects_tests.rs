@@ -1057,6 +1057,23 @@ fn run_mate(w: &mut World, body: &[u8]) {
 }
 
 #[tokio::test]
+async fn mate_equipment_rejects_another_characters_mate() {
+    let mut w = world();
+    let mate = spawn_mate(&mut w);
+    mate.data().owner_obj_id = w.pb.obj_id;
+    let id = give(&w, &w.pa.clone(), slot_type::INVENTORY, ARMOR, 1, 3);
+    let wire = item(&w, id).unwrap();
+    run_mate(
+        &mut w,
+        &mate_body(Some(&wire), None, 3, equip_slot::CHEST as u8),
+    );
+    assert_eq!(item_at(&w.pa, slot_type::INVENTORY, 3).unwrap().id, id);
+    assert!(mate.data().equipment.iter().all(Option::is_none));
+    assert!(w.a.drain().is_empty());
+    assert!(w.b.drain().is_empty());
+}
+
+#[tokio::test]
 async fn mate_equipment_equip_unequip_and_refusal() {
     let mut w = world();
     let mate = spawn_mate(&mut w);

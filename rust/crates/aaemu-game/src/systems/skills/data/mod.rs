@@ -83,6 +83,8 @@ pub struct Data {
     pub combat_buffs: HashMap<u32, Vec<CombatBuffTemplate>>,
     /// `_linearFuncs`.
     pub linear_funcs: HashMap<u32, LinearFuncTemplate>,
+    /// `manual_funcs`: per-tick values for dynamic buff modifiers.
+    pub manual_funcs: HashMap<u32, Vec<i32>>,
     /// `_skillReagents` (table order).
     pub skill_reagents: Vec<SkillItemAmount>,
     /// `_skillProducts` (table order).
@@ -96,11 +98,15 @@ pub struct Data {
     pub model_radii: HashMap<u32, f32>,
     /// `UnitRequirementsGameData` by owner type.
     pub unit_reqs: HashMap<String, Vec<UnitReq>>,
+    /// Buff-dependent caster/target restrictions (`skill_reqs` and skill/tag bindings).
+    pub buff_skill_requirements: Vec<super::buff_reqs::BuffSkillRequirement>,
     pub buff_game_data: BuffGameData,
     /// `TagsGameData` npc tags.
     pub npc_tags: HashMap<u32, Vec<u32>>,
     /// `ZoneGroup.BuffId`.
     pub zone_group_buffs: HashMap<u32, u32>,
+    /// Blessings sold through the 1.2 priest interaction.
+    pub priest_buffs: HashMap<u32, super::priest::PriestBuff>,
 }
 
 fn dup(what: &str, id: u32) -> rusqlite::Error {
@@ -184,6 +190,7 @@ impl Data {
             d.linear_funcs.insert(f.id, f);
             Ok(())
         })?;
+        d.manual_funcs = misc::load_manual_funcs(conn)?;
         for_each_row(conn, "SELECT * FROM dynamic_unit_modifiers", [], |r| {
             let buff_id = r.u32("buff_id")?;
             if let Some(t) = buffs.get_mut(&buff_id) {
@@ -396,9 +403,11 @@ impl Data {
         d.area_shapes = misc::load_area_shapes(conn)?;
         d.model_radii = misc::load_actor_model_radii(conn)?;
         d.unit_reqs = misc::load_unit_reqs(conn)?;
+        d.buff_skill_requirements = super::buff_reqs::load(conn)?;
         d.buff_game_data = BuffGameData::load(conn)?;
         d.npc_tags = misc::load_npc_tags(conn)?;
         d.zone_group_buffs = misc::load_zone_group_buffs(conn)?;
+        d.priest_buffs = super::priest::load(conn)?;
         Ok(d)
     }
 
@@ -617,6 +626,9 @@ mod tests {
             files.add_source(&pak, std::path::Path::new("."));
         }
         let d = Data::load_from(&conn, &files).unwrap();
+        assert_eq!(d.manual_funcs.len(), 3);
+        assert_eq!(d.manual_funcs[&11], vec![-1000, -1000, -700, -350]);
+        assert_eq!(d.manual_funcs[&15], vec![500, 150]);
         let effect_counts: Vec<String> = EffectKind::ALL
             .iter()
             .map(|k| format!("{}={}", k.name(), d.effects.get(k).map_or(0, |m| m.len())))

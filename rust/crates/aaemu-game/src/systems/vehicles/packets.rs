@@ -294,11 +294,13 @@ cs_packet!(
 );
 
 cs_packet!(
-    /// `CSChangeSlaveNamePacket` (log only in C#).
+    /// `CSChangeSlaveNamePacket`.
     CSChangeSlaveNamePacket { tl_id: u16, name: String }
     read |s| { Ok(Self { tl_id: s.read_u16()?, name: s.read_string()? }) }
     handle |self, server, conn| {
         tracing::debug!("ChangeSlaveName, Tl: {}, Name: {}", self.tl_id, self.name);
+        let p = active_char!(conn);
+        slaves::rename_slave(server, &p, self.tl_id, &self.name);
         Ok(())
     }
 );
@@ -309,7 +311,8 @@ cs_packet!(
     read |s| { Ok(Self { slave_obj_id: s.read_bc()? }) }
     handle |self, server, conn| {
         let p = active_char!(conn);
-        slaves::delete(server, Some(&p), p.data().unit.transform.instance_id, self.slave_obj_id, false);
+        let instance_id = p.data().unit.transform.instance_id;
+        slaves::delete(server, Some(&p), instance_id, self.slave_obj_id, false);
         Ok(())
     }
 );

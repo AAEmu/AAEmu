@@ -180,9 +180,9 @@ impl System {
 }
 
 /// `LeaveWorldTask`: `BuyBackItems.Wipe()` and the economy's per-character state
-/// (`CharacterCraft`, `PreviousBackPackItemId`). Trades are not cancelled (the C# does not
-/// either).
+/// (`CharacterCraft`, `PreviousBackPackItemId`) plus trade lifecycle cleanup.
 pub fn on_leave_world(server: &GameServer, player: &crate::world::PlayerRef) {
+    trade::on_player_departed(server, player);
     let e = &server.systems.economy;
     let id = player.character_id;
     e.store.wipe_buyback(server, id);
@@ -191,6 +191,11 @@ pub fn on_leave_world(server: &GameServer, player: &crate::world::PlayerRef) {
         .lock()
         .unwrap_or_else(|e| e.into_inner())
         .remove(&id);
+}
+
+/// Hard disconnect: cancel trades while both player handles can still be resolved.
+pub fn on_disconnect(server: &GameServer, player: &crate::world::PlayerRef) {
+    trade::on_player_departed(server, player);
 }
 
 /// Registers this subsystem's C->S packets.

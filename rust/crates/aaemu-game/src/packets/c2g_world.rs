@@ -49,7 +49,15 @@ impl ClientPacket for CSCreateCharacterPacket {
         server: &'a GameServer,
         conn: &'a mut GameConnection,
     ) -> BoxFuture<'a, Result<()>> {
-        Box::pin(async move { character::create(server, conn, self.0).await })
+        Box::pin(async move {
+            // A validated enter-world ticket installs the account id. New TCP connections
+            // start in Lobby too, so the state alone does not prove authentication.
+            if conn.account_id() == 0 {
+                conn.shutdown();
+                return Ok(());
+            }
+            character::create(server, conn, self.0).await
+        })
     }
 }
 
@@ -328,6 +336,34 @@ pub fn register(r: &mut crate::net::registry::PacketRegistry) {
 mod tests {
     use super::*;
     use aaemu_commons::Marshal;
+
+    #[tokio::test]
+    async fn unauthenticated_create_character_does_not_allocate_character_assets() {
+        let server = crate::test_support::test_server();
+        let mut client = crate::test_support::TestClient::new(&server, 1, 0);
+        assert_eq!(client.conn.account_id(), 0);
+        let containers_before = server.items.all_containers().len();
+        let request = CSCreateCharacterPacket(CreateCharacterRequest {
+            name: "Noauth".into(),
+            race: 1,
+            gender: 1,
+            body_items: [0; 7],
+            model_params: UnitCustomModelParams::default(),
+            ability1: 1,
+            ability2: 11,
+            ability3: 11,
+            level: 1,
+        });
+        request
+            .handle(&server, &mut client.conn)
+            .await
+            .expect("rejected before DB access");
+        assert!(client.conn.is_closing());
+        assert!(client.conn.characters.is_empty());
+        assert!(server.names.no_names_registered());
+        assert!(!server.names.name_exists("Noauth"));
+        assert_eq!(server.items.all_containers().len(), containers_before);
+    }
 
     #[test]
     fn reads_create_character() {

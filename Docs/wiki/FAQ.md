@@ -1,7 +1,7 @@
 # FAQ
 
 - Audience: Contributors, testers, and players
-- Last verified against: `develop` on October 10, 2026
+- Last verified against: working tree on October 11, 2026
 - Prerequisites: None
 
 ## Project basics
@@ -83,6 +83,11 @@ It asks for the password (or use `--password`, `--password-file` or
 `AAEMU_PASSWORD`). See [Client](Client#launcher-aaemu-launcher). The public AAEmu
 Launcher also still works, but is not needed.
 
+Normal launches enable fast startup, smooth startup and optimized pak loading.
+Build the native driver first using [Client](Client#faster-startup-and-automated-client-tests);
+the launcher finds it automatically. Individual opt-outs are `--no-fast-start`,
+`--no-smooth-start` and `--no-fast-pak`.
+
 ### Where can I find client downloads
 
 Use the client list on [Client](Client).
@@ -128,6 +133,18 @@ Check:
 ### First stop for common setup failures
 
 Use [Mini troubleshoot guide](Mini-troubleshoot-guide).
+
+### Why can NPCs float above the ground
+
+Earlier visibility packets recalculated NPC heights from the navigation mesh, whose
+coarse triangles can differ from collision ground by several metres. They could also
+reset an idling NPC to its original spawn height after it moved across a slope.
+The current server preserves the position selected by spawning and movement when it
+sends visibility packets. Rebuild and restart the game server to use this correction.
+
+Flying and swimming NPCs retain their intended heights. For remaining cases, include
+the NPC name, location and whether it floated immediately or after moving when
+reporting the issue; an incorrect spawn position needs a separate correction.
 
 ## Related
 

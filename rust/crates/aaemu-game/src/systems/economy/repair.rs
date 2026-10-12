@@ -7,7 +7,7 @@ use aaemu_commons::PacketStream;
 
 use crate::data::items::equipment_item_slot_type;
 use crate::error::Result;
-use crate::models::container::{equip_slot, slot_type};
+use crate::models::container::{equip_slot, slot_type, ContainerRef};
 use crate::models::item::{Item, ItemClass};
 use crate::models::item_task::{task_type, ItemTask};
 use crate::net::connection::GameConnection;
@@ -32,29 +32,100 @@ pub struct RepairTarget {
 
 /// `Character.DoRepair(items)` (`None` entries are the C# null items).
 pub fn do_repair(server: &GameServer, player: &PlayerRef, items: &[Option<RepairTarget>]) {
+    let inv = Inv::of(player);
+    let repaired = repair_in_containers(server, player, items, &[inv.bag(), inv.equipment()]);
+    if let Some(hooks) = server.systems.economy.hooks.gear.get() {
+        for (item, was_destroyed) in repaired {
+            if was_destroyed && item.slot_type == slot_type::EQUIPMENT {
+                hooks.update_gear_bonuses(server, &WorldObject::from(player), Some(&item), None);
+            }
+        }
+    }
+}
+
+/// The native repair-pet button (10.x `sub_399093D0`) sends its current blacksmith's obj id.
+/// Use the 1.2 equipment containers and repair task format, including unsummoned mates.
+pub fn repair_pet_items(server: &GameServer, player: &PlayerRef, npc_id: u32) {
+    if npc_id == 0 || player.data().unit.current_interaction_object != npc_id {
+        return;
+    }
+    let owner_id = player.character_id;
+    let containers: Vec<_> = server
+        .items
+        .all_containers()
+        .into_iter()
+        .filter(|c| {
+            let c = c.lock().expect("container poisoned");
+            c.owner_id == owner_id && c.slot_type == slot_type::EQUIPMENT_MATE
+        })
+        .collect();
+    let items: Vec<_> = containers
+        .iter()
+        .flat_map(|c| {
+            c.lock()
+                .expect("container poisoned")
+                .items
+                .iter()
+                .map(|i| Some(RepairTarget { item_id: i.id }))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let repaired = repair_in_containers(server, player, &items, &containers);
+    let Some(world) = server.world.world_of(&WorldObject::from(player)) else {
+        return;
+    };
+    for obj in world.all_of_kind(crate::world::ObjectKind::Mate) {
+        let Some(mate) = obj.as_mate() else {
+            continue;
+        };
+        let owned = mate.data().owner_obj_id == player.obj_id;
+        if !owned {
+            continue;
+        }
+        for (item, was_destroyed) in &repaired {
+            let updated = {
+                let mut m = mate.data();
+                let mut updated = false;
+                for equipped in m.equipment.iter_mut().flatten() {
+                    if equipped.id == item.id {
+                        *equipped = item.clone();
+                        updated = true;
+                    }
+                }
+                updated
+            };
+            if updated && *was_destroyed {
+                if let Some(hooks) = server.systems.economy.hooks.gear.get() {
+                    hooks.update_gear_bonuses(server, &obj, Some(item), None);
+                }
+            }
+        }
+    }
+}
+
+fn repair_in_containers(
+    server: &GameServer,
+    player: &PlayerRef,
+    items: &[Option<RepairTarget>],
+    containers: &[ContainerRef],
+) -> Vec<(Item, bool)> {
     let data = &server.game_data.items;
     let mut txn = ItemTxn::begin(server);
-    let inv = Inv::of(player);
-    let (bag, equipment) = (inv.bag(), inv.equipment());
     let mut tasks = Vec::new();
     let mut repair_cost = 0i32;
+    let mut repaired = Vec::new();
     for target in items.iter().flatten() {
         let id = target.item_id;
-        let container = if bag
-            .lock()
-            .expect("container poisoned")
-            .get_item_by_id(id)
-            .is_some()
-        {
-            bag.clone()
-        } else if equipment
-            .lock()
-            .expect("container poisoned")
-            .get_item_by_id(id)
-            .is_some()
-        {
-            equipment.clone()
-        } else {
+        let Some(container) = containers
+            .iter()
+            .find(|c| {
+                c.lock()
+                    .expect("container poisoned")
+                    .get_item_by_id(id)
+                    .is_some()
+            })
+            .cloned()
+        else {
             tracing::warn!(
                 "Attempting to repair an item that isn't in your inventory or equipment, Item: {id}"
             );
@@ -113,7 +184,10 @@ pub fn do_repair(server: &GameServer, player: &PlayerRef, items: &[Option<Repair
             continue;
         };
         let money = player.data().money;
-        if money < i64::from(cost) {
+        let Some(total_cost) = repair_cost.checked_add(cost).filter(|_| cost >= 0) else {
+            continue;
+        };
+        if money < i64::from(total_cost) {
             tracing::warn!(
                 "Not enough money to repair, Item: {id}, Money: {money}, RepairCost: {cost}"
             );
@@ -121,12 +195,14 @@ pub fn do_repair(server: &GameServer, player: &PlayerRef, items: &[Option<Repair
         }
         let mut c = container.lock().expect("container poisoned");
         if let Some(i) = c.get_item_by_id_mut(id) {
+            let was_destroyed = i.details.durability == 0;
             i.details.durability = max;
             i.dirty = true;
             tasks.push(ItemTask::update(i));
+            repaired.push((i.clone(), was_destroyed));
         }
         drop(c);
-        repair_cost = repair_cost.wrapping_add(cost);
+        repair_cost = total_cost;
     }
     if repair_cost > 0 {
         // ChangeMoney(SlotType.Inventory, -repairCost) (default task DepositMoney)
@@ -146,6 +222,7 @@ pub fn do_repair(server: &GameServer, player: &PlayerRef, items: &[Option<Repair
             force_remove: Vec::new(),
         },
     );
+    repaired
 }
 
 /// `DurabilityLossTargets`.

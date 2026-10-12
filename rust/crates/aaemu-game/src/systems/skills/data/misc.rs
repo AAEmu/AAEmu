@@ -11,6 +11,32 @@ use crate::data::client_files::ClientFileManager;
 use crate::data::sqlite::for_each_row;
 use crate::models::unit::{BuffAttribute, BuffModifier, UnitModifierType};
 
+/// Native `LoadManualFuncDescs` (sub_39C06B90): at most 200 semicolon-separated integers.
+pub fn load_manual_funcs(conn: &Connection) -> rusqlite::Result<HashMap<u32, Vec<i32>>> {
+    let mut funcs = HashMap::new();
+    for_each_row(conn, "SELECT id, value_list FROM manual_funcs", [], |r| {
+        let id = r.u32("id")?;
+        let text = r.string("value_list")?;
+        let values = text
+            .split(';')
+            .filter(|s| !s.trim().is_empty())
+            .take(200)
+            .map(|s| {
+                s.trim().parse::<i32>().map_err(|_| {
+                    rusqlite::Error::InvalidParameterName(format!("invalid manual_func {id} value"))
+                })
+            })
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        if funcs.insert(id, values).is_some() {
+            return Err(rusqlite::Error::InvalidParameterName(format!(
+                "duplicate manual_func {id}"
+            )));
+        }
+        Ok(())
+    })?;
+    Ok(funcs)
+}
+
 /// `Anim`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Anim {
@@ -324,6 +350,22 @@ pub fn load_zone_group_buffs(conn: &Connection) -> rusqlite::Result<HashMap<u32,
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn manual_functions_load_signed_values_and_reject_invalid_entries() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE manual_funcs(id INT,value_list TEXT);
+            INSERT INTO manual_funcs VALUES (11,'-1000;-1000;-700;-350'),(15,'500;150');",
+        )
+        .unwrap();
+        let funcs = load_manual_funcs(&conn).unwrap();
+        assert_eq!(funcs[&11], vec![-1000, -1000, -700, -350]);
+        assert_eq!(funcs[&15], vec![500, 150]);
+        conn.execute("INSERT INTO manual_funcs VALUES (22,'bad')", [])
+            .unwrap();
+        assert!(load_manual_funcs(&conn).is_err());
+    }
 
     #[test]
     fn g_file_parsing() {

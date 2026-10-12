@@ -1639,6 +1639,178 @@ fn decode(frames: Vec<(u16, Vec<u8>)>) -> Vec<u16> {
 }
 
 #[tokio::test]
+async fn item_group_quests_track_inventory_use_and_cleanup_only_matching_items() {
+    let (server, _) = server_with(|d| {
+        d.group_items.add(7, 7001);
+        d.group_items.add(7, 7002);
+        d.group_items.add(7, 7001); // Duplicate metadata must not double the inventory.
+        for id in [100, 200] {
+            d.add_template(quest(id));
+            d.add_component(component(id * 10 + 1, id, kind::START));
+            d.add_act(id * 10 + 1, id, id, 0, ActKind::ConAutoComplete);
+            d.add_component(component(id * 10 + 3, id, kind::PROGRESS));
+            d.add_component(component(id * 10 + 4, id, kind::READY));
+            d.add_act(
+                id * 10 + 4,
+                id + 2,
+                id + 2,
+                0,
+                ActKind::ConReportNpc {
+                    npc_id: 500,
+                    use_alias: false,
+                    alias_id: 0,
+                },
+            );
+        }
+        d.add_act(
+            1003,
+            101,
+            1,
+            3,
+            ActKind::ObjItemGroupGather {
+                item_group_id: 7,
+                cleanup: true,
+                highlight_doodad_id: 0,
+                highlight_doodad_phase: -1,
+                use_alias: false,
+                alias_id: 0,
+                drop_when_destroy: false,
+                destroy_when_drop: true,
+            },
+        );
+        d.add_act(
+            2003,
+            201,
+            1,
+            2,
+            ActKind::ObjItemGroupUse {
+                item_group_id: 7,
+                highlight_doodad_id: 0,
+                highlight_doodad_phase: -1,
+                use_alias: false,
+                alias_id: 0,
+                drop_when_destroy: false,
+            },
+        );
+    });
+    let client = TestClient::new(&server, 1, 1001);
+    let player = spawn_player(&server, &client, character(), 0x100);
+    give_item(&mut player.data(), 7001, 1);
+    give_item(&mut player.data(), 9999, 20);
+    events::add_quest(&server, &player, 100, false);
+    events::add_quest(&server, &player, 200, false);
+    server.systems.quests.run_queued_evaluations(&server);
+    let objective = |id| {
+        player
+            .data()
+            .quests
+            .active
+            .iter()
+            .find(|q| q.template_id == id)
+            .unwrap()
+            .objectives[0]
+    };
+    assert_eq!(objective(100), 1);
+    events::on_items_acquired(&server, &player, 9999, 20);
+    assert_eq!(objective(100), 1);
+    give_item(&mut player.data(), 7002, 1);
+    events::on_items_acquired(&server, &player, 7002, 1);
+    assert_eq!(objective(100), 2);
+    take_items(&mut player.data(), 7001, 1);
+    events::on_items_consumed(&server, &player, 7001, 1);
+    assert_eq!(objective(100), 1);
+    give_item(&mut player.data(), 7001, 2);
+    events::on_items_acquired(&server, &player, 7001, 2);
+    server.systems.quests.run_queued_evaluations(&server);
+    assert_eq!(objective(100), 3);
+    assert_eq!(
+        player
+            .data()
+            .quests
+            .active
+            .iter()
+            .find(|q| q.template_id == 100)
+            .unwrap()
+            .step,
+        kind::READY
+    );
+
+    events::on_item_use(&server, &player, 9999);
+    assert_eq!(objective(200), 0);
+    events::on_item_use(&server, &player, 7001);
+    assert_eq!(objective(200), 1);
+    events::on_item_use(&server, &player, 7002);
+    server.systems.quests.run_queued_evaluations(&server);
+    assert_eq!(objective(200), 2);
+    // Abandoning the gather quest destroys only its required group quantity.
+    events::drop_quest(&server, &player, 100, true);
+    assert_eq!(super::engine::items_count(&player.data(), 7001), 0);
+    assert_eq!(super::engine::items_count(&player.data(), 7002), 0);
+    assert_eq!(super::engine::items_count(&player.data(), 9999), 20);
+    assert!(!events::has_quest(&player, 100));
+    assert!(events::has_quest(&player, 200));
+}
+
+#[tokio::test]
+async fn quest_starter_item_uses_its_binding_and_item_acceptor() {
+    let (server, _) = server_with(|d| {
+        d.add_template(quest(100));
+        d.add_component(component(1001, 100, kind::START));
+        d.add_act(
+            1001,
+            1,
+            1,
+            0,
+            ActKind::ConAcceptItem {
+                item_id: 19572,
+                cleanup: false,
+                drop_when_destroy: false,
+                destroy_when_drop: false,
+            },
+        );
+        d.add_component(component(1003, 100, kind::PROGRESS));
+        d.add_act(
+            1003,
+            2,
+            1,
+            2,
+            ActKind::ObjMonsterHunt {
+                npc_id: 600,
+                use_alias: false,
+                alias_id: 0,
+                highlight_doodad_id: 0,
+                highlight_doodad_phase: -1,
+            },
+        );
+        d.starter_quests.insert(19572, 100);
+    });
+    let mut client = TestClient::new(&server, 1, 1001);
+    let player = spawn_player(&server, &client, character(), 0x100);
+    give_item(&mut player.data(), 19572, 1);
+    client.drain();
+
+    // The item's binding overrides the effect's quest id.
+    events::accept_quest_effect(&server, &player, 999_999, Some((19572, true)));
+    assert!(events::has_quest(&player, 100));
+    assert!(!events::has_quest(&player, 999_999));
+    let frames = client.drain();
+    let started = frames
+        .iter()
+        .find(|(op, _)| *op == sc::SCQuestContextStartedPacket)
+        .unwrap();
+    let b = &started.1;
+    assert_eq!(&b[8..12], &100u32.to_le_bytes());
+    assert_eq!(b[b.len() - 9], acceptor::ITEM);
+    assert_eq!(&b[b.len() - 8..b.len() - 4], &19572u32.to_le_bytes());
+
+    server.systems.quests.run_queued_evaluations(&server);
+    assert_eq!(player.data().quests.active[0].step, kind::PROGRESS);
+    // Using the starter twice cannot duplicate the active quest.
+    events::accept_quest_effect(&server, &player, 999_999, Some((19572, true)));
+    assert_eq!(player.data().quests.active.len(), 1);
+}
+
+#[tokio::test]
 async fn npc_quest_flow_through_packets_and_events() {
     let (server, rec) = server_with(main_quest);
     let mut client = TestClient::new(&server, 1, 1001);
@@ -1691,6 +1863,23 @@ async fn npc_quest_flow_through_packets_and_events() {
     assert_eq!(player.data().quests.active[0].step, kind::PROGRESS);
     client.drain();
 
+    // A forged object-free report cannot skip the unfinished kill objective.
+    let without_object = CSCompleteQuestContextPacket {
+        quest_context_id: 100,
+        npc_obj_id: 0,
+        doodad_obj_id: 0,
+        selected: 0,
+    };
+    without_object
+        .clone()
+        .handle(&server, &mut client.conn)
+        .await
+        .unwrap();
+    server.systems.quests.run_queued_evaluations(&server);
+    assert_eq!(player.data().quests.active[0].step, kind::PROGRESS);
+    assert!(rec.take().is_empty());
+    assert!(client.drain().is_empty());
+
     // Kill objective through the event API
     events::on_npc_killed(&server, &player, &wolf);
     server.systems.quests.run_queued_evaluations(&server);
@@ -1705,6 +1894,16 @@ async fn npc_quest_flow_through_packets_and_events() {
     }
     let ops = client.drain_ops();
     assert!(ops.iter().all(|o| *o == sc::SCQuestContextUpdatedPacket));
+
+    // Ready still requires its NPC report act; omitting that object grants nothing.
+    without_object
+        .handle(&server, &mut client.conn)
+        .await
+        .unwrap();
+    server.systems.quests.run_queued_evaluations(&server);
+    assert_eq!(player.data().quests.active[0].step, kind::READY);
+    assert!(rec.take().is_empty());
+    assert!(client.drain().is_empty());
 
     // Turn in at the NPC (CSCompleteQuestContextPacket)
     let complete = CSCompleteQuestContextPacket {
@@ -1742,6 +1941,136 @@ async fn npc_quest_flow_through_packets_and_events() {
     assert_eq!(c.experience, 1280);
     assert_eq!(c.money, 202);
     assert_eq!(server.systems.quests.queued_count(), 0);
+}
+
+#[tokio::test]
+async fn completed_cinema_resends_neighbours_before_advancing_its_objective() {
+    use crate::net::registry::ClientPacket;
+    let (server, _) = server_with(|d| {
+        single_act_quest(
+            d,
+            8,
+            0,
+            ActKind::ObjCinema {
+                cinema_id: 44,
+                use_alias: false,
+                alias_id: 0,
+            },
+        );
+    });
+    let mut client = TestClient::new(&server, 1, 1001);
+    let player = spawn_player(&server, &client, character(), 0x100);
+    client.conn.active_char = Some(player.clone());
+    let mut npc = crate::models::npc::Npc::new(777);
+    npc.unit.transform.set_xyz(103.0, 100.0, 100.0);
+    let npc = Entity::new(0x200, npc);
+    server
+        .world
+        .world(0)
+        .unwrap()
+        .spawn(&npc, &server.view_ctx());
+    events::add_quest(&server, &player, 8, false);
+    server.systems.quests.run_queued_evaluations(&server);
+    client.drain();
+    CSStartedCinemaPacket
+        .handle(&server, &mut client.conn)
+        .await
+        .unwrap();
+    assert_eq!(player.data().quest_state.currently_playing_cinema_id, 44);
+    CSCompletedCinemaPacket
+        .handle(&server, &mut client.conn)
+        .await
+        .unwrap();
+    let frames = client.drain();
+    for opcode in [sc::SCUnitStatePacket, sc::SCUnitPointsPacket] {
+        assert!(frames.iter().any(|(op, body)| {
+            *op == opcode && PacketStream::from_bytes(body.clone()).read_bc().unwrap() == npc.obj_id
+        }));
+    }
+    assert_eq!(player.data().quest_state.currently_playing_cinema_id, 0);
+    server.systems.quests.run_queued_evaluations(&server);
+    assert_eq!(player.data().quests.active[0].step, kind::READY);
+    assert_eq!(player.data().quests.active[0].objectives[0], 1);
+    client.drain();
+    client.conn.active_char = None;
+    CSCompletedCinemaPacket
+        .handle(&server, &mut client.conn)
+        .await
+        .unwrap();
+    assert!(client.drain().is_empty());
+}
+
+#[tokio::test]
+async fn object_free_quest_report_preserves_journal_and_validated_early_completion() {
+    let (server, rec) = server_with(|d| {
+        for id in [800, 801] {
+            d.add_template(QuestTemplate {
+                let_it_done: id == 800,
+                ..quest(id)
+            });
+            d.add_component(component(id * 10 + 1, id, kind::START));
+            d.add_act(id * 10 + 1, id, id, 0, ActKind::ConAutoComplete);
+            d.add_component(component(id * 10 + 2, id, kind::PROGRESS));
+            d.add_act(
+                id * 10 + 2,
+                id + 10,
+                id,
+                if id == 800 { 4 } else { 2 },
+                ActKind::ObjCraft {
+                    craft_id: id,
+                    use_alias: false,
+                    alias_id: 0,
+                    highlight_doodad_id: 0,
+                    highlight_doodad_phase: -1,
+                },
+            );
+            if id == 801 {
+                d.add_component(component(id * 10 + 3, id, kind::READY));
+                d.add_act(id * 10 + 3, id + 20, id, 0, ActKind::ConReportJournal);
+            }
+            d.add_component(component(id * 10 + 4, id, kind::REWARD));
+            d.add_act(
+                id * 10 + 4,
+                id + 30,
+                id,
+                0,
+                ActKind::SupplyCopper { amount: 10 },
+            );
+        }
+    });
+    let client = TestClient::new(&server, 1, 1001);
+    let player = spawn_player(&server, &client, character(), 0x100);
+    for id in [800, 801] {
+        events::add_quest(&server, &player, id, false);
+    }
+    server.systems.quests.run_queued_evaluations(&server);
+    events::on_report(&server, &player, 800, 0, 0, 0);
+    server.systems.quests.run_queued_evaluations(&server);
+    assert!(rec.take().is_empty());
+    assert!(events::has_quest(&player, 800));
+    events::with_quests(&server, &player, None, |ctx| {
+        for _ in 0..2 {
+            ctx.dispatch(&QuestEvent::Craft { craft_id: 800 }).unwrap();
+            ctx.dispatch(&QuestEvent::Craft { craft_id: 801 }).unwrap();
+        }
+        let early = ctx.st.active_handle(800).unwrap();
+        assert_eq!(
+            ctx.objective_status(early),
+            ObjectiveStatus::CanEarlyComplete
+        );
+        let journal = ctx.st.active_handle(801).unwrap();
+        ctx.run_current_step(journal);
+        assert_eq!(ctx.st.quest(journal).unwrap().step, kind::READY);
+    });
+    events::on_report(&server, &player, 800, 0, 0, 0);
+    events::on_report(&server, &player, 801, 0, 0, 0);
+    server.systems.quests.run_queued_evaluations(&server);
+    assert!(!events::has_quest(&player, 800));
+    assert!(!events::has_quest(&player, 801));
+    assert_eq!(rec.take(), vec!["money 10", "money 10"]);
+    events::on_report(&server, &player, 800, 0, 0, 0);
+    events::on_report(&server, &player, 801, 0, 0, 0);
+    assert!(rec.take().is_empty());
 }
 
 #[tokio::test]
@@ -1873,6 +2202,22 @@ async fn real_compact_db_quest_tables() {
         return;
     };
     let d = real_data(&conn);
+    assert_eq!(d.starter_quests.len(), 367);
+    // These are live progress acts in 1.2, not orphan detail rows.
+    for (quest_id, class) in [
+        (5490, "QuestActObjItemGroupGather"),
+        (5489, "QuestActObjItemGroupUse"),
+    ] {
+        let act = d
+            .acts
+            .iter()
+            .find(|a| a.quest_id == quest_id && a.kind.class_name() == class)
+            .unwrap();
+        assert!(
+            act.objective_index < 5,
+            "{class} must have a wire objective slot"
+        );
+    }
     let count =
         |sql: &str| -> usize { conn.query_row(sql, [], |r| r.get::<_, i64>(0)).unwrap() as usize };
     assert_eq!(

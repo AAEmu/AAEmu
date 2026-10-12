@@ -771,6 +771,16 @@ async fn cancel_mails_a_new_copy_and_keeps_bid_lots() {
     let (mut w, log) = auction_world();
     let (item_id, lot) = post(&mut w, SWORD, 0, 1000, 2);
     w.a.drain();
+    // A foreign client knows the public lot id but cannot cancel the seller's listing.
+    let before_item = w.server.items.item_by_id(item_id).unwrap();
+    let before_money = (money(&w.pa), money(&w.pb));
+    run::<CSCancelAuctionPacket>(&mut w, 1, &cancel_body(lot.id));
+    assert!(w.b.drain().is_empty());
+    assert!(w.a.drain().is_empty());
+    assert!(log.take().is_empty());
+    assert_eq!(w.server.items.item_by_id(item_id).unwrap(), before_item);
+    assert_eq!((money(&w.pa), money(&w.pb)), before_money);
+    assert_eq!(w.server.systems.economy.auction.lot(lot.id).unwrap(), lot);
     run::<CSCancelAuctionPacket>(&mut w, 0, &cancel_body(lot.id));
     let frames = w.a.drain();
     assert_eq!(frames.len(), 1);

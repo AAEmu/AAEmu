@@ -380,7 +380,7 @@ cs_packet!(
 );
 
 cs_packet!(
-    /// `CSSellHousePacket`. Note (C#): the seller's ownership of the house is not checked.
+    /// `CSSellHousePacket` (the listing can only be changed by its owner).
     CSSellHousePacket { tl: u16, money_amount: u32, sell_to: String }
     read |s| {
         Ok(Self { tl: s.read_u16()?, money_amount: s.read_u32()?, sell_to: s.read_string()? })
@@ -391,6 +391,11 @@ cs_packet!(
             self.tl, self.money_amount, self.sell_to
         );
         let player = active_char!(conn);
+        if !server.systems.housing.manager.by_tl(self.tl)
+            .is_some_and(|house| house.data().unit.owner_id == player.character_id)
+        {
+            return Ok(());
+        }
         let mut sell_to_id = 0;
         if !self.sell_to.is_empty() {
             // Note (C#): the typed name is not normalized before the lookup.
@@ -418,6 +423,12 @@ cs_packet!(
     read |s| { Ok(Self { tl: s.read_u16()? }) }
     handle |self, server, conn| {
         tracing::debug!("SellHouseCancel, Tl: {}", self.tl);
+        let player = active_char!(conn);
+        if !server.systems.housing.manager.by_tl(self.tl)
+            .is_some_and(|house| house.data().unit.owner_id == player.character_id)
+        {
+            return Ok(());
+        }
         ops::cancel_for_sale_by_tl(server, self.tl, true);
         Ok(())
     }
