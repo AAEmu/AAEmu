@@ -412,9 +412,14 @@ Empty staged rows do not mean the native action has no active hotkey. It reads a
 does not cast or change shortcuts. Check these bindings before submitting a fishing response
 through `client_input`; verify the resulting cast and fish reaction on the server.
 `client_unit_state` reads `target: "player"` or `target: "target"` (the default) through
-the stock `X2Unit` name and health getters. An absent target returns `present: false`
-without a fabricated health value. Present units include `name`, native `health` and
-`max_health`, plus `buffs` and `debuffs` keyed by their one-based visible indices.
+the stock `X2Unit` getters. An absent target returns `present: false` without
+fabricated health, ID or distance values. Present units include `name`, native
+`health` and `max_health`, and available `unit_id`/`distance` values from
+`X2Unit:GetUnitId(unit)` and `X2Unit:UnitDistance(unit)`. Each getter takes exactly
+one unit token; IDs retain their native opaque value. Stock Lua treats distance
+as a numeric visibility measure but does not establish its geometry or units;
+the tool reports the native result without conversion or a zero fallback.
+`buffs` and `debuffs` are keyed by their one-based visible indices.
 Each entry contains its `index` and available stock `buff_id`/`path` fields. The native
 counts are retained as `buff_count`/`debuff_count`, while each collection reads at most
 32 entries using `UnitBuffCount`/`UnitDeBuffCount` and `UnitBuff`/`UnitDeBuff`.

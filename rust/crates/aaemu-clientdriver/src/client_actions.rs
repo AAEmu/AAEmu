@@ -11,7 +11,7 @@ pub fn tools(pid: Value) -> Vec<Value> {
         tool("client_pointer", "Move or left-click through the supported 1.2 client's native mouse handler on its main thread. Coordinates are client pixels, bounded to 0..4095. Hidden rendering is supported. Rejects native mouse-lock mode before movement to preserve the desktop cursor. A click holds for 100 ms with automatic release independent of MCP; verify the resulting UI or gameplay action.",json!({"pid":pid,"action":{"type":"string","enum":["move","click"]},"x":{"type":"integer","minimum":0,"maximum":4095},"y":{"type":"integer","minimum":0,"maximum":4095}}), &["action","x","y"], false),
         tool("client_action", "Execute a valid 1.2 UI hotkey action, such as do_interaction_1, cycle_hostile_forward or toggle_bag. Continuous movement uses client_input.",json!({"pid":pid,"action":{"type":"string","minLength":1,"maxLength":96}}), &["action"], false),
         tool("client_inventory", "Read inventory slots, item templates, names, counts and use skills from the live client. bag_id defaults to 1 (inventory).",json!({"pid":pid,"bag_id":{"type":"integer","minimum":1,"maximum":2}}), &[], true),
-        tool("client_unit_state", "Read the player or current target's native name, health, maximum health and at most 32 visible buffs and 32 visible debuffs, indexed from 1. An absent target returns present=false without fabricated health. target defaults to target. Requires an in-world character; does not target or cast.",json!({"pid":pid,"target":{"type":"string","enum":["player","target"],"default":"target"}}), &[], true),
+        tool("client_unit_state", "Read the player or current target's native opaque unit ID, distance, name, health, maximum health and at most 32 visible buffs and 32 visible debuffs, indexed from 1. An absent target returns present=false without fabricated health. target defaults to target. Requires an in-world character; does not target or cast.",json!({"pid":pid,"target":{"type":"string","enum":["player","target"],"default":"target"}}), &[], true),
         tool("client_loot", "Read the current native loot bag, up to 32 one-based item rows, and effective pixel bounds of its Take All button. Requires an in-world character; does not open a corpse or take items.",json!({"pid":pid}), &[], true),
         tool("client_mode_actions", "Read the active 1.2 mode action bar, including fishing rod actions, native tooltips, client-pixel widget bounds, availability, cooldowns, active hotkeys and staged option binding rows. Requires a character in the world; does not change bindings or cast skills.",json!({"pid":pid}), &[], true),
         tool("client_use_item", "Use an owned inventory item through its normal client skill cast. Returns whether the client accepted the cast, not a guarantee the server completed it; verify entities and vehicle status after casting/portal time.",json!({"pid":pid,"item_template_id":{"type":"integer","minimum":1,"maximum":u32::MAX}}), &["item_template_id"], false),
@@ -76,11 +76,15 @@ end
 
 // Stock 1.2 UnitBuff/UnitDeBuff indices are one-based. Nil counts are normal
 // before a target exists; do not turn missing native health into zero.
+// Stock GetUnitId/UnitDistance each take one token; preserve opaque IDs and
+// unavailable distance. The Lua consumers do not specify distance geometry.
 const UNIT_STATE: &str = r#"
 local name=X2Unit:UnitName(unit)
 local result={unit=unit,present=name~=nil}
 if result.present then
  result.name=name
+ result.unit_id=X2Unit:GetUnitId(unit)
+ result.distance=X2Unit:UnitDistance(unit)
  result.health=X2Unit:UnitHealth(unit)
  result.max_health=X2Unit:UnitMaxHealth(unit)
  result.buff_count=X2Unit:UnitBuffCount(unit) or 0
@@ -277,6 +281,11 @@ mod tests {
         assert!(code.contains("for i=1,math.min(result.debuff_count,32)"));
         assert!(code.contains("local b=X2Unit:UnitBuff(unit,i)"));
         assert!(code.contains("local b=X2Unit:UnitDeBuff(unit,i)"));
+        assert!(code.contains("result.unit_id=X2Unit:GetUnitId(unit)"));
+        assert!(code.contains("result.distance=X2Unit:UnitDistance(unit)"));
+        assert!(!code.contains("tonumber("));
+        assert!(!code.contains("UnitDistance(unit) or 0"));
+        assert!(!code.contains("GetUnitId(unit) or 0"));
         assert!(!code.contains("UnitHealth(unit) or 0"));
         assert!(!code.contains("TargetUnit("));
         assert!(!code.contains("ExcuteActionHandler"));
