@@ -227,6 +227,7 @@ impl Command for AddKit {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::sync::Arc;
 
     use super::super::harness;
@@ -237,10 +238,11 @@ mod tests {
     use crate::systems::economy::inventory::Inv;
 
     fn env_with_kits(json: &str) -> ScriptEnv {
+        static NEXT_ENV: AtomicU64 = AtomicU64::new(0);
         let dir = std::env::temp_dir().join(format!(
             "aaemu-kit-test-{}-{}",
             std::process::id(),
-            json.len()
+            NEXT_ENV.fetch_add(1, Ordering::Relaxed)
         ));
         let cmd_dir = dir.join("Scripts").join("Commands");
         std::fs::create_dir_all(&cmd_dir).unwrap();
