@@ -1,12 +1,10 @@
 using System.Collections.Concurrent;
-using System.Numerics;
 using System.Text;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
-using AAEmu.Game.IO;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -394,80 +392,6 @@ public sealed class ExpeditionActivityService(IExpeditionActivityRepository repo
             return TryTeleport(actor, portal.ZoneId, destinationWorld, portal.X, portal.Y, portal.Z,
                 portal.ZRot, TeleportReason.Portal);
         }
-    }
-
-    /// <summary>
-    /// Spawns a book-style enter/exit portal pair on the guild worldgate for the selected saved base.
-    /// Walk-through uses the same CSUsePortal path as a personal portal book.
-    /// </summary>
-    public bool OpenPortalAtWorldgate(Character actor, uint portalId)
-    {
-        using var persistenceOperation = PersistenceOperationScope.Enter();
-        var expedition = actor?.Expedition;
-        if (expedition == null)
-            return false;
-        lock (expedition.SyncRoot)
-        {
-            if (actor.Connection?.ActiveChar != actor || worldManager.GetCharacterById(actor.Id) != actor ||
-                !ReferenceEquals(actor.Expedition, expedition) || expedition.GetMember(actor) == null)
-                return false;
-
-            var point = repository.GetPortals((uint)expedition.Id).FirstOrDefault(x => x.Id == portalId);
-            var bookPortal = ExpeditionWorldgatePortalRules.ToBookPortal(point);
-            if (bookPortal == null)
-                return false;
-
-            Vector3? worldgatePos = null;
-            var aimpoint = Vector3.Zero;
-            if (expedition.ResidenceHouseId != 0)
-            {
-                var house = HousingManager.Instance.GetHouseById(expedition.ResidenceHouseId);
-                var worldgate = FindActiveWorldgate(house);
-                if (worldgate != null)
-                {
-                    var p = worldgate.Transform.World.Position;
-                    worldgatePos = new Vector3(p.X, p.Y, p.Z);
-                    aimpoint = TryReadWorldgateAimpoint(worldgate);
-                }
-            }
-
-            var casterPos = actor.Transform.World.Position;
-            var enter = ExpeditionWorldgatePortalRules.ResolveEnterPosition(
-                worldgatePos, new Vector3(casterPos.X, casterPos.Y, casterPos.Z), aimpoint);
-
-            return PortalManager.Instance.OpenExpeditionPortal(actor, bookPortal, enter);
-        }
-    }
-
-    private static Vector3 TryReadWorldgateAimpoint(Doodad worldgate)
-    {
-        // Prefer the live phase model (activated = portal_on) so the aimpoint matches the
-        // prefab that already carries the pad particle; fall back to the almighty default.
-        var model = ResolveWorldgatePrefabModel(worldgate);
-        if (!PrefabAimpointRules.TrySplitPrefabUri(model, out var libraryPath, out var prefabName))
-            return Vector3.Zero;
-
-        var xml = ClientFileManager.GetFileAsString(libraryPath);
-        return PrefabAimpointRules.TryGetLocalOffset(xml, prefabName, out var offset)
-            ? offset
-            : Vector3.Zero;
-    }
-
-    private static string ResolveWorldgatePrefabModel(Doodad worldgate)
-    {
-        if (worldgate == null)
-            return null;
-
-        // Phase group rows carry the portal_on / portal_off prefab URI.
-        if (worldgate.FuncGroupId != 0)
-        {
-            var phaseGroup = DoodadManager.Instance.GetDoodadFuncGroups(worldgate.TemplateId)
-                .FirstOrDefault(g => g.Id == worldgate.FuncGroupId);
-            if (!string.IsNullOrEmpty(phaseGroup?.Model))
-                return phaseGroup.Model;
-        }
-
-        return worldgate.Template?.Model;
     }
 
     public bool ChangeSponsor(Character actor, uint expectedSponsorId, uint sponsorId)

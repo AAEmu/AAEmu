@@ -11,7 +11,6 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -495,34 +494,6 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
     }
 
     /// <summary>
-    /// Expedition opens synthesize a fresh <see cref="Portal"/> each cast, so identity is
-    /// (entry id, expedition owner id) rather than reference equality.
-    /// </summary>
-    private void DeleteOwnerPortalsByEntry(Character owner, uint portalId, uint expeditionId)
-    {
-        Models.Game.Units.Portal[] matched;
-        lock (_ownerPortalsLock)
-        {
-            if (owner == null || !_ownerPortals.TryGetValue(owner.Id, out var portals))
-                return;
-
-            matched =
-            [
-                .. portals.Where(portal =>
-                    portal.SourcePortal != null &&
-                    portal.SourcePortal.Id == portalId &&
-                    portal.SourcePortal.Owner == expeditionId)
-            ];
-            foreach (var portal in matched)
-                portals.Remove(portal);
-            if (portals.Count == 0)
-                _ownerPortals.Remove(owner.Id);
-        }
-
-        DeleteAlive(matched, DeleteLivePortal);
-    }
-
-    /// <summary>
     /// Create a portal Npc object and returns it.
     /// </summary>
     protected virtual Models.Game.Units.Portal MakePortal(Character owner, bool isExit, Portal portalInfo,
@@ -541,7 +512,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             portalInfo.X, portalInfo.Y, portalInfo.Z,
             0f, 0f, portalInfo.ZRot);
 
-        // Enter stays in the caster's zone (on the worldgate / book cast); exit uses the destination.
+        // Enter stays in the caster's zone (book cast position); exit uses the destination zone.
         var liveZoneId = isExit ? portalInfo.ZoneId : owner.Transform.ZoneId;
         var portalNpc = new Models.Game.Units.Portal
         {
@@ -639,65 +610,6 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
 
         RegisterLivePortal(owner, entrance);
         RegisterLivePortal(owner, exit);
-    }
-
-    public bool OpenExpeditionPortal(Character owner, Portal portalInfo, Vector3 enterPosition)
-    {
-        if (owner == null || portalInfo == null)
-            return false;
-
-        var enterNpcId = npcManager.GetConstNpcId(ExpeditionWorldgatePortalRules.EnterNpcConstName);
-        var exitNpcId = npcManager.GetConstNpcId(ExpeditionWorldgatePortalRules.ExitNpcConstName);
-        if (!ExpeditionWorldgatePortalRules.TryResolveNpcPair(enterNpcId, exitNpcId))
-        {
-            Logger.Error(
-                "OpenExpeditionPortal: const_npc_types '{0}'/'{1}' are missing",
-                ExpeditionWorldgatePortalRules.EnterNpcConstName,
-                ExpeditionWorldgatePortalRules.ExitNpcConstName);
-            return false;
-        }
-
-        if (npcManager.GetTemplate(enterNpcId) == null || npcManager.GetTemplate(exitNpcId) == null)
-        {
-            Logger.Error("OpenExpeditionPortal: portal NPC templates {0}/{1} are not loaded",
-                enterNpcId, exitNpcId);
-            return false;
-        }
-
-        if (!float.IsFinite(enterPosition.X) || !float.IsFinite(enterPosition.Y) || !float.IsFinite(enterPosition.Z))
-            return false;
-
-        // Worldgate activation already paid for the open — no book reagents.
-        var portalEffectObj = new SkillObjectUnk1
-        {
-            Id = (int)portalInfo.Id,
-            X = enterPosition.X,
-            Y = enterPosition.Y,
-            Z = enterPosition.Z
-        };
-
-        var entrance = MakePortal(owner, false, portalInfo, portalEffectObj, enterNpcId);
-        if (entrance == null)
-            return false;
-
-        var exit = MakePortal(owner, true, portalInfo, portalEffectObj, exitNpcId);
-        if (exit == null)
-        {
-            entrance.Delete();
-            return false;
-        }
-
-        entrance.LinkedPortal = exit;
-        exit.LinkedPortal = entrance;
-
-        DeleteOwnerPortalsByEntry(owner, portalInfo.Id, portalInfo.Owner);
-        RegisterLivePortal(owner, entrance);
-        RegisterLivePortal(owner, exit);
-
-        Logger.Info(
-            "OpenExpeditionPortal: owner={0} portal={1} enter=({2:0.0},{3:0.0},{4:0.0}) exitZone={5}",
-            owner.Name, portalInfo.Id, enterPosition.X, enterPosition.Y, enterPosition.Z, portalInfo.ZoneId);
-        return true;
     }
 
     /// <summary>

@@ -51,25 +51,6 @@ public sealed class ExpeditionActivityServiceTests
     }
 
     [Test]
-    public async Task OpenPortalAtWorldgate_RejectsStaleExpeditionReferenceBeforeReadingPortal()
-    {
-        var repository = Mock.Of<IExpeditionActivityRepository>();
-        var world = Mock.Of<IWorldManager>();
-        var actor = CreateCharacter(42);
-        var expedition = new Expedition { Id = (FactionsEnum)700, OwnerId = actor.Id };
-        actor.Expedition = expedition;
-        world.GetCharacterById(actor.Id).Returns(actor);
-        var repositoryReads = 0;
-        repository.GetPortals(Any<uint>()).Callback(() => repositoryReads++).Returns([]);
-        var service = CreateService(repository.Object, world.Object);
-
-        var result = service.OpenPortalAtWorldgate(actor, 1);
-
-        await Assert.That(result).IsFalse();
-        await Assert.That(repositoryReads).IsEqualTo(0);
-    }
-
-    [Test]
     public async Task PortalAndHistoryReads_RejectCharacterMissingFromCurrentWorldRegistry()
     {
         var repository = Mock.Of<IExpeditionActivityRepository>();

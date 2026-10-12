@@ -22,11 +22,5 @@ public interface IPortalManager : ILoadable
     uint GetDistrictIdByReturnPoint(uint returnPointId, FactionsEnum factionId);
     void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj, OpenPortalEffect effect);
 
-    /// <summary>
-    /// Spawns a temporary enter/exit portal pair for a guild worldgate selection (no book reagents).
-    /// Enter sits at <paramref name="enterPosition"/>; exit at <paramref name="portalInfo"/>.
-    /// </summary>
-    bool OpenExpeditionPortal(Character owner, Portal portalInfo, System.Numerics.Vector3 enterPosition);
-
     Portal GetClosestReturnPortal(Character character);
 }
