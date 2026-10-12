@@ -10,9 +10,6 @@ namespace input {
 // One shared declaration lets the optimized fixture see getter/setter aliasing.
 extern int physical;
 extern bool modifier_get_supported,modifier_set_supported;
-extern void* mouse_slots[29];
-extern unsigned char mouse_module[0x5000];
-extern bool mouse_locked_flag;
 #endif
 struct Key { const char* name; int id; int modifier; };
 // r208022 keyboard key IDs (escape = 0, number row, tab, Q/W/E..., space = 56).
@@ -126,75 +123,6 @@ static int held_modifiers() {
     for(size_t i=0;i<held.size();++i) mask|=held[i].modifiers;
     return mask;
 }
-static bool mouse_slots_supported(void** slots,BYTE* module) {
-    // CMessageInput vtable RVA C850, forwarding to the owned mouse device.
-    return slots[26]==module+0x4564 && slots[28]==module+0x457C;
-}
-static bool checked_mouse(void* env) {
-    if(!checked(env) || !modifier_state_supported(env)) return false;
-#ifdef AADRIVER_INPUT_TEST
-    return mouse_slots_supported(mouse_slots,mouse_module);
-#else
-    void* object=checked(env);
-    BYTE* module=(BYTE*)GetModuleHandleA("CryInput.dll");
-    if(!mouse_slots_supported(*(void***)object,module)) return false;
-    void* device=*(void**)((BYTE*)object+0x68);
-    return device && *((int*)((BYTE*)device+4))==1
-        && (*(void***)device)[14]==module+0x49E7
-        && (*(void***)device)[16]==module+0x4F7C;
-#endif
-}
-static bool mouse_locked(void* env) {
-#ifdef AADRIVER_INPUT_TEST
-    (void)env;
-    return mouse_locked_flag;
-#else
-    void* object=checked(env);
-    typedef bool (__thiscall *Get)(void*);
-    return ((Get)(*(void***)object)[28])(object);
-#endif
-}
-static bool mouse_event(void* env,int id,int state,const char* name,float value) {
-    if(!checked_mouse(env)) return false;
-    Event event={1,state,name,id,0,physical_modifiers(env)|held_modifiers(),value,NULL};
-    try {
-#ifndef AADRIVER_INPUT_TEST
-        void* object=checked(env);
-        EnabledInput enabled(object);
-#endif
-        ModifierShadow shadow(env,event.modifiers);
-#ifdef AADRIVER_INPUT_TEST
-        extern bool record_mouse(const Event&);
-        return record_mouse(event);
-#else
-        typedef void (__thiscall *Mouse)(void*,const Event&);
-        ((Mouse)(*(void***)object)[26])(object,event);
-        return true;
-#endif
-    } catch(...) { return false; }
-}
-static std::string mouse_control(void* env,const std::string& command,bool click) {
-    char name[16]={0},extra=0;unsigned x=0,y=0;
-    if(sscanf_s(command.c_str(),"%15s %u %u %c",name,(unsigned)sizeof(name),&x,&y,&extra,1)!=3
-        || strcmp(name,click?"mouse_click":"mouse_move") || x>4095 || y>4095)
-        return "2mouse input expects client-pixel x y within 0..4095";
-    if(!checked_mouse(env)) return "2CryInput mouse is not the supported r208022 build";
-    // The native locked-position path calls SetCursorPos; never enter that path.
-    if(mouse_locked(env)) return "2mouse input unavailable while native mouse is locked";
-    if(!mouse_event(env,269,8,"pos_x",(float)x)) return "2mouse input unavailable";
-    // A synchronous listener can change mouse-lock state after the first axis.
-    if(mouse_locked(env)) return "2mouse input became locked";
-    if(!mouse_event(env,270,8,"pos_y",(float)y)) return "2mouse input unavailable";
-    if(!click) return "0mouse moved (experimental native consumer validation required)";
-    if(mouse_locked(env)) return "2mouse input became locked";
-    bool pressed=mouse_event(env,256,1,"mouse1",1.f);
-    // Mouse1 bypasses the position-lock branch, so cleanup remains safe if a click
-    // listener locks the mouse. Always release after an attempted press, including errors.
-    bool released=mouse_event(env,256,2,"mouse1",0.f);
-    if(!released) mouse_event(env,256,2,"mouse1",0.f);
-    return pressed && released?"0mouse clicked (experimental native consumer validation required)"
-        :"2mouse click failed; button release attempted";
-}
 static void release_modifiers(void* env,int before,int after) {
     for(int i=2;i>=0;--i) {
         const Key& key=modifiers[i];
@@ -226,8 +154,6 @@ static void tick_at(void* env,ULONGLONG now) {
 void tick(void* env) { tick_at(env,GetTickCount64()); }
 static std::string control_at(void* env,const std::string& command,ULONGLONG now) {
     if(command=="release") { release(env);return "0released"; }
-    if(command.compare(0,10,"mouse_move")==0) return mouse_control(env,command,false);
-    if(command.compare(0,11,"mouse_click")==0) return mouse_control(env,command,true);
     char name[32]={0},extra=0;unsigned duration=0;
     if(sscanf_s(command.c_str(),"%31s %u %c",name,(unsigned)sizeof(name),&duration,&extra,1)!=2
         || duration<1 || duration>10000) return "2input expects a supported key and duration 1..10000 ms";
