@@ -86,7 +86,8 @@ public class NpcSpawnRelay
         }
 
         conflictGroupId = 0;
-        return NpcScheduleGate.IsClosed(parsed.SpawnerType);
+        return GameSpawnerGate.IsClosed(parsed.SpawnerId, parsed.SpawnerType)
+               || NpcScheduleGate.IsClosed(parsed.SpawnerType);
     }
 
     /// <summary>
@@ -276,6 +277,32 @@ public class NpcSpawnRelay
         }
 
         return bcId;
+    }
+
+    /// <summary>
+    /// Mirrors again the tracked NPCs of these npc_spawners ids (matched on id or type) that are open
+    /// again and not mirrored, for NPCs that were hidden rather than despawned while their spawner was shut.
+    /// </summary>
+    public int RemirrorSpawners(ZoneConnection connection, IReadOnlySet<uint> spawnerIds)
+    {
+        var ok = 0;
+        foreach (var (bcId, raw) in connection.Units.Snapshot())
+        {
+            var parsed = ZwSpawnNpcParser.TryParse(raw);
+            if (parsed == null || (!spawnerIds.Contains(parsed.SpawnerId) && !spawnerIds.Contains(parsed.SpawnerType)))
+                continue;
+            if (IsClosed(connection, parsed, out _) || WorldIntegration.FindUnitAcrossWorlds(bcId) != null)
+                continue;
+
+            if (TryMirror(connection, bcId, parsed))
+            {
+                ok++;
+                if (TrySendNpcState(connection, bcId, parsed))
+                    ZoneNpcSpawnerCatalog.SetState(connection, parsed, active: true);
+            }
+        }
+
+        return ok;
     }
 
     /// <summary>

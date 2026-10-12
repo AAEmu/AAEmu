@@ -49,6 +49,9 @@ public class WorldContentGameData : Singleton<WorldContentGameData>, IGameDataLo
                 var type = reader.GetString("content_type");
                 var name = reader.GetString("name");
 
+                if (IsWithheld(type, name))
+                    continue;
+
                 var categoryId = WorldContentFilterPack.CategoryIdOf(type);
                 if (categoryId == null)
                 {
@@ -83,6 +86,28 @@ public class WorldContentGameData : Singleton<WorldContentGameData>, IGameDataLo
 
         if (rows == 0)
             Logger.Warn("World content: world_contents is empty, so the pack will configure nothing");
+    }
+
+    /// <summary>
+    /// Entries kept out of the pack; the same name stays active in its other categories.
+    /// Quest exile_pirate lists the exile-to-Outlaws broker and exile quests (9432, 9583, 9515, 9909),
+    /// which the client never offers while it is active; the Exile System decides when those routes open.
+    /// </summary>
+    private static readonly (string Type, string Name)[] Withheld =
+    [
+        ("QuestContext", "exile_pirate"),
+    ];
+
+    private static bool IsWithheld(string type, string name)
+    {
+        foreach (var (withheldType, withheldName) in Withheld)
+        {
+            if (string.Equals(type.Trim(), withheldType, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(name, withheldName, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
     }
 
     public void PostLoad()

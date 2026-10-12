@@ -207,6 +207,34 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
     /// a live character's is — the loader is the one an inventory load uses, so an offline member is listed with
     /// the gear they logged out in rather than as a zero.
     /// </remarks>
+    /// <summary>Whether the character is registered in the raid team of a territory whose siege is about to start or running.</summary>
+    public bool IsInSiegeMode(Character character)
+    {
+        if (character == null)
+            return false;
+
+        var running = DominionManager.Instance.Dominions
+            .Where(d => d.SiegeTimers?.SiegePeriod is (byte)SiegePeriod.ReadyToSiege or (byte)SiegePeriod.Siege)
+            .Select(d => d.ZoneId)
+            .ToHashSet();
+        if (running.Count == 0)
+            return false;
+
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT zone_id FROM siege_raid_team_members WHERE character_id=@c";
+        command.Parameters.AddWithValue("@c", character.Id);
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            if (running.Contains((ushort)reader.GetInt32(0)))
+                return true;
+        }
+
+        return false;
+    }
+
     public List<SiegeRaidTeamMemberInfo> GetRaidTeamMembers(ushort zoneId, uint factionId)
     {
         var members = new List<SiegeRaidTeamMemberInfo>();
