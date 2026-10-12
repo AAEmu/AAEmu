@@ -1116,6 +1116,12 @@ Additional world-side fixes from the same audit:
   it. Packet flows and a private-MySQL temporary-table test verify both roles and the saved
   owner identity.
 
+* Safe Portal Mode now honors `CSUsePortalPacket.only_my_portal` against the portal creator's
+  character id and sends the existing 609 error for a foreign portal. Shared mode preserves
+  public access. The loaded-slave instance check also runs before setting the player's
+  movement freeze flag, so rejecting a loaded vehicle leaves movement state unchanged.
+  Registry packet flows cover both initial flag states, exact errors and a later valid use.
+
 Remaining packet stubs and table candidates are still subject to behavior review. Missing SQL
 mentions do not establish disuse (some names are selected dynamically); empty tables, client
 visuals and schema migration metadata do not imply missing server features. The 10.x reference

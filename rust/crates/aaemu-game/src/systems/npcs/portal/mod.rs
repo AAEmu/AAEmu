@@ -48,6 +48,7 @@ pub const ITEM_TASK_TELEPORT: u8 = 23;
 
 /// `ErrorMessageType` values used here.
 pub mod error_message {
+    pub const NOT_MY_PORTAL: i16 = 609;
     pub const CANNOT_USE_PORTAL_WITH_BACKPACK: i16 = 610;
     pub const CANNOT_USE_PORTAL_IN_TRIAL: i16 = 611;
     pub const SLAVE_EQUIPMENT_LOADED_ITEM: i16 = 801;
@@ -770,6 +771,17 @@ fn deg_to_rad(v: f32) -> f32 {
 
 /// `PortalManager.UsePortal(character, objId)` (`CSUsePortalPacket`).
 pub fn use_portal(server: &GameServer, player: &PlayerRef, obj_id: u32) {
+    use_portal_with_preference(server, player, obj_id, false);
+}
+
+/// The 1.2 Safe Portal Mode flag restricts only that request to its creator's portal.
+/// Shared mode retains the normal ability to use another player's summoned portal.
+pub fn use_portal_with_preference(
+    server: &GameServer,
+    player: &PlayerRef,
+    obj_id: u32,
+    only_my_portal: bool,
+) {
     let instance_id = player.data().unit.transform.instance_id;
     let Some(world) = server.world.world(instance_id) else {
         return;
@@ -778,10 +790,20 @@ pub fn use_portal(server: &GameServer, player: &PlayerRef, obj_id: u32) {
         return;
     };
     // `(Portal)GetNpc(objId)`: any other NPC is an InvalidCastException in C#.
-    let Some(teleport) = npc.data().portal.as_ref().map(|p| p.teleport_position) else {
+    let portal = {
+        let npc = npc.data();
+        npc.portal
+            .as_ref()
+            .map(|p| (p.teleport_position, npc.unit.owner_id))
+    };
+    let Some((teleport, owner_id)) = portal else {
         tracing::warn!("UsePortal: npc {obj_id} is not a portal");
         return;
     };
+    if only_my_portal && owner_id != player.character_id {
+        player.send(SCErrorMsgPacket::new(error_message::NOT_MY_PORTAL, 0, true));
+        return;
+    }
     let overburdened =
         server.systems.npcs.hooks.skills.get().is_some_and(|s| {
             s.check_buff_tag(server, &WorldObject::from(player), TAG_OVERBURDENED)
@@ -807,17 +829,14 @@ pub fn use_portal(server: &GameServer, player: &PlayerRef, obj_id: u32) {
         ));
         return;
     }
-    let current_instance = {
-        let mut c = player.data();
-        c.disabled_set_position = true;
-        c.unit.transform.instance_id
-    };
+    let current_instance = player.data().unit.transform.instance_id;
     if teleport.instance_id != current_instance {
         // The loaded-slave check (SlaveEquipmentLoadedItem) and
         // `RemoveAndDespawnAllActiveOwnedMates/Slaves` (vehicles subsystem).
         if !crate::systems::vehicles::on_instance_change(server, player) {
             return;
         }
+        player.data().disabled_set_position = true;
         player.send(SCLoadInstancePacket {
             instance_id: teleport.world_id,
             zone_id: teleport.zone_id,
@@ -835,6 +854,8 @@ pub fn use_portal(server: &GameServer, player: &PlayerRef, obj_id: u32) {
             parent_obj_id: parent,
             ..teleport
         };
+    } else {
+        player.data().disabled_set_position = true;
     }
     player.send(SCTeleportUnitPacket {
         reason: packets::teleport_reason::PORTAL,

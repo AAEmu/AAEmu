@@ -7,9 +7,9 @@ use super::packets::*;
 use super::*;
 use crate::data::world_data::{DistrictReturnPoint, Zone};
 use crate::data::GameData;
-use crate::net::packet::encode;
+use crate::net::packet::{encode, encode_raw};
 use crate::net::registry::ClientPacket;
-use crate::opcodes::sc;
+use crate::opcodes::{cs, sc};
 use crate::systems::npcs::npc::data::NpcTemplate;
 use crate::test_support::{spawn_player, test_character, test_server_with, TestClient, TEST_ZONE};
 
@@ -129,6 +129,173 @@ fn portal_npc(server: &GameServer, at: (f32, f32)) -> NpcRef {
         .unwrap()
         .spawn(&npc, &server.view_ctx());
     npc
+}
+
+async fn request_portal(
+    server: &GameServer,
+    client: &mut TestClient,
+    obj_id: u32,
+    only_my_portal: bool,
+) {
+    let mut body = aaemu_commons::PacketStream::new();
+    body.write_bc(obj_id).write_bool(only_my_portal);
+    server
+        .handle_frame(
+            &mut client.conn,
+            &encode_raw(1, cs::CSUsePortalPacket, body.as_bytes()),
+        )
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn safe_portal_mode_uses_character_owner_and_preserves_public_sharing() {
+    let server = test_server_with(data());
+    let mut owner_client = TestClient::new(&server, 1, 1001);
+    let owner = spawn_player(
+        &server,
+        &owner_client,
+        test_character(1, "Alice", 100.0, 100.0),
+        0x101,
+    );
+    owner_client.conn.active_char = Some(owner.clone());
+    let mut peer_client = TestClient::new(&server, 2, 1002);
+    let peer = spawn_player(
+        &server,
+        &peer_client,
+        test_character(2, "Bob", 102.0, 100.0),
+        0x102,
+    );
+    peer_client.conn.active_char = Some(peer.clone());
+    let portal = portal_npc(&server, (101.0, 101.0));
+    portal.data().unit.owner_id = owner.character_id;
+    owner_client.drain();
+    peer_client.drain();
+    let expected_teleport = body(&SCTeleportUnitPacket {
+        reason: teleport_reason::PORTAL,
+        error_message: 0,
+        x: 500.0,
+        y: 600.0,
+        z: 70.0,
+        z2: std::f32::consts::FRAC_PI_2,
+    });
+    request_portal(&server, &mut owner_client, portal.obj_id, true).await;
+    assert_eq!(
+        owner_client.drain(),
+        vec![(sc::SCTeleportUnitPacket, expected_teleport.clone())]
+    );
+    assert!(owner.data().disabled_set_position);
+    let peer_before = peer.data().clone();
+    request_portal(&server, &mut peer_client, portal.obj_id, true).await;
+    assert_eq!(
+        peer_client.drain(),
+        vec![(
+            sc::SCErrorMsgPacket,
+            vec![0x61, 0x02, 0x61, 0x02, 0, 0, 0, 0, 1]
+        )]
+    ); //609,609,kind0,notify
+    let peer_after = peer.data().clone();
+    assert_eq!(peer_after.unit.transform, peer_before.unit.transform);
+    assert_eq!(
+        peer_after.disabled_set_position,
+        peer_before.disabled_set_position
+    );
+    assert_eq!(
+        (peer_after.money, peer_after.money2),
+        (peer_before.money, peer_before.money2)
+    );
+    assert!(owner_client.drain().is_empty());
+    request_portal(&server, &mut peer_client, portal.obj_id, false).await;
+    assert_eq!(
+        peer_client.drain(),
+        vec![(sc::SCTeleportUnitPacket, expected_teleport)]
+    );
+    assert!(peer.data().disabled_set_position);
+    let mut unauthenticated = TestClient::new(&server, 9, 1009);
+    request_portal(&server, &mut unauthenticated, portal.obj_id, false).await;
+    assert!(unauthenticated.drain().is_empty());
+}
+
+#[tokio::test]
+async fn loaded_slave_portal_rejection_preserves_movement_state_and_vehicle() {
+    use crate::models::{doodad::Doodad, slave::Slave};
+    let server = test_server_with(data());
+    let mut client = TestClient::new(&server, 1, 1001);
+    let player_obj_id = server.ids.object.get_next_id().unwrap();
+    let player = spawn_player(
+        &server,
+        &client,
+        test_character(1, "Alice", 100.0, 100.0),
+        player_obj_id,
+    );
+    client.conn.active_char = Some(player.clone());
+    let portal = portal_npc(&server, (101.0, 101.0));
+    {
+        let mut npc = portal.data();
+        npc.unit.owner_id = player.character_id;
+        let destination = &mut npc.portal.as_mut().unwrap().teleport_position;
+        destination.instance_id = 7;
+        destination.world_id = 3;
+    }
+    let world = server.world.world(0).unwrap();
+    let mut cargo = Doodad::new(1);
+    cargo.item_template_id = 123;
+    cargo.transform.set_xyz(101.0, 100.0, 100.0);
+    cargo.transform.zone_id = TEST_ZONE;
+    let cargo = Entity::new(server.ids.object.get_next_id().unwrap(), cargo);
+    world.spawn(&cargo, &server.view_ctx());
+    let mut slave = Slave::new(1, 1);
+    slave.summoner_id = player.character_id;
+    slave.summoner_obj_id = player.obj_id;
+    slave.unit.owner_id = player.character_id;
+    slave.unit.hp = 1;
+    slave.unit.transform.set_xyz(101.0, 100.0, 100.0);
+    slave.unit.transform.zone_id = TEST_ZONE;
+    slave.attached_doodads.push(cargo.obj_id);
+    let slave = Entity::new(server.ids.object.get_next_id().unwrap(), slave);
+    world.spawn(&slave, &server.view_ctx());
+    // All fixture objects use the allocator. A manual player0x101 previously collided with
+    // the allocated cargo0x101; WorldInstance.AddObject correctly kept the player instead.
+    assert_eq!(
+        world.doodad(cargo.obj_id).unwrap().data().item_template_id,
+        123
+    );
+    assert_eq!(
+        crate::systems::vehicles::slaves::get_active_slave_by_owner_obj_id(&world, player.obj_id)
+            .unwrap()
+            .obj_id,
+        slave.obj_id
+    );
+    client.drain();
+    let before_transform = player.data().unit.transform;
+    for was_disabled in [false, true] {
+        player.data().disabled_set_position = was_disabled;
+        request_portal(&server, &mut client, portal.obj_id, true).await;
+        assert_eq!(
+            client.drain(),
+            vec![(
+                sc::SCErrorMsgPacket,
+                vec![0x21, 0x03, 0x21, 0x03, 0, 0, 0, 0, 1]
+            )]
+        ); //801,801,kind0,notify
+        assert_eq!(player.data().disabled_set_position, was_disabled);
+        assert_eq!(player.data().unit.transform, before_transform);
+        assert!(world.slave(slave.obj_id).is_some());
+        assert!(world.doodad(cargo.obj_id).is_some());
+        assert_eq!(slave.data().attached_doodads, vec![cargo.obj_id]);
+    }
+    // Rejection does not prevent a later legitimate same-instance portal request.
+    player.data().disabled_set_position = false;
+    {
+        let mut npc = portal.data();
+        let destination = &mut npc.portal.as_mut().unwrap().teleport_position;
+        destination.instance_id = 0;
+        destination.world_id = 0;
+    }
+    request_portal(&server, &mut client, portal.obj_id, true).await;
+    assert_eq!(client.drain_ops(), vec![sc::SCTeleportUnitPacket]);
+    assert!(player.data().disabled_set_position);
+    assert!(world.slave(slave.obj_id).is_some());
 }
 
 #[tokio::test]

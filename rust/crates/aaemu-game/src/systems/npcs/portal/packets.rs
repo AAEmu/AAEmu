@@ -47,7 +47,7 @@ impl ClientPacket for CSUsePortalPacket {
             // `Connection.ActiveChar` is null outside the world: the C# throws (NRE) in
             // `UsePortal`, which only ends this packet.
             if let Some(me) = conn.active_char.clone() {
-                super::use_portal(server, &me, self.obj_id);
+                super::use_portal_with_preference(server, &me, self.obj_id, self.only_my_portal);
             }
             Ok(())
         })
