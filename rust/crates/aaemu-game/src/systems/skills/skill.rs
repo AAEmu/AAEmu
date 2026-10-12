@@ -329,6 +329,26 @@ pub fn use_skill(
         return (skill_result::INVALID_SOURCE, 0);
     }
     let template = skill.template.clone();
+    // The 1.2 fishing reactions require the caster's own spawned NPC. OwnerId is
+    // the character id; using an object id here would accept unrelated NPCs or
+    // reject the fisherman. Resolve this before cast state, GCD or buff mutations.
+    let owned_target = if template.target_my_npc {
+        let Some(player) = caster.as_player() else {
+            return (unit_reqs::skill_result_for_key("skill_not_my_npc"), 0);
+        };
+        let target = initial_target(server, skill, caster, &caster_caster, target_caster);
+        let owner = target
+            .as_ref()
+            .and_then(Target::as_obj)
+            .and_then(WorldObject::as_npc)
+            .map(|npc| npc.data().unit.owner_id);
+        if player.character_id == 0 || owner != Some(player.character_id) {
+            return (unit_reqs::skill_result_for_key("skill_not_my_npc"), 0);
+        }
+        target
+    } else {
+        None
+    };
     let character = caster.as_player().cloned();
     let cooldown_owner = character
         .clone()
@@ -362,7 +382,8 @@ pub fn use_skill(
         .buff_skill_requirements
         .is_empty()
     {
-        let target = initial_target(server, skill, caster, &caster_caster, target_caster);
+        let target = owned_target
+            .or_else(|| initial_target(server, skill, caster, &caster_caster, target_caster));
         if let Some(req) = super::buff_reqs::failed_requirement(
             server,
             &template,
@@ -374,7 +395,7 @@ pub fn use_skill(
         }
         target
     } else {
-        None
+        owned_target
     };
     let now = now_ms();
     if template.cooldown_time > 0 {
@@ -1881,3 +1902,7 @@ pub fn pos(server: &GameServer, t: &Target) -> PositionAndRotation {
 pub fn pos_target(p: PosUnit) -> Target {
     Target::Pos(p)
 }
+
+#[cfg(test)]
+#[path = "owned_npc_target_tests.rs"]
+mod owned_npc_target_tests;

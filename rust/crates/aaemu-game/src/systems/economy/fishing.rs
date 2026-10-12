@@ -1,0 +1,196 @@
+//! Fish-stand inventory operations. The 1.2 allowed-item rows and `items.refund` are
+//! authoritative here; a retail weight-dependent sale formula has not been established.
+
+use crate::data::items::TemplateKind;
+use crate::models::container::{equip_slot, slot_type};
+use crate::models::item::{Item, ItemClass};
+use crate::models::item_task::{task_type, ItemFx, ItemTask};
+use crate::server::GameServer;
+use crate::systems::npcs::doodad::templates::FuncTemplate;
+use crate::world::PlayerRef;
+
+use super::inventory::{lock_pair, Inv, ItemTxn};
+use super::loot::{loot_convert_fish_from_pack, SharedRandom};
+
+fn is_equipped_fish(
+    server: &GameServer,
+    item: &Item,
+    owner_id: u32,
+    item_id: u64,
+    template_id: u32,
+) -> bool {
+    item.id == item_id
+        && item.template_id == template_id
+        && item.owner_id == u64::from(owner_id)
+        && item.slot_type == slot_type::EQUIPMENT
+        && item.slot == equip_slot::BACKPACK
+        && item.count == 1
+        && item.class == ItemClass::Backpack
+        && server
+            .game_data
+            .items
+            .template(template_id)
+            .is_some_and(|t| matches!(t.kind, TemplateKind::Backpack { .. }))
+}
+
+pub(crate) fn sell_equipped_fish(
+    server: &GameServer,
+    player: &PlayerRef,
+    item_id: u64,
+    template_id: u32,
+    buy_func_id: u32,
+) -> bool {
+    let allowed = server
+        .game_data
+        .systems
+        .npcs
+        .doodad
+        .phase_func_templates
+        .get("DoodadFuncBuyFishItem")
+        .is_some_and(|rows| {
+            rows.values().any(|row| {
+                matches!(row, FuncTemplate::BuyFishItem(f)
+                    if f.doodad_func_buy_fish_id == buy_func_id && f.item_id == template_id)
+            })
+        });
+    if !allowed {
+        return false;
+    }
+    let Some(refund) = server
+        .game_data
+        .items
+        .template(template_id)
+        .map(|t| t.refund)
+        .filter(|refund| *refund >= 0)
+    else {
+        return false;
+    };
+    let mut txn = ItemTxn::begin(server);
+    let inv = Inv::of(player);
+    let equipment_ref = inv.equipment();
+    // Character before container: container locks are leaves.
+    let mut character = player.data();
+    let Some(balance) = character.money.checked_add(i64::from(refund)) else {
+        return false;
+    };
+    let mut equipment = equipment_ref.lock().expect("container poisoned");
+    let Some(item) = equipment.get_item_by_slot(equip_slot::BACKPACK) else {
+        return false;
+    };
+    if !is_equipped_fish(server, item, inv.character_id, item_id, template_id)
+        || !txn.env.rules.can_destroy(item)
+    {
+        return false;
+    }
+    if equipment
+        .remove_item_task(
+            task_type::SKILL_EFFECT_CONSUMPTION,
+            item_id,
+            true,
+            &mut txn.env,
+        )
+        .is_none()
+    {
+        return false;
+    }
+    character.money = balance;
+    txn.env.fx.tasks(
+        inv.character_id,
+        task_type::DEPOSIT_MONEY,
+        vec![ItemTask::MoneyChange(refund)],
+    );
+    true
+}
+
+pub(crate) fn convert_equipped_fish(
+    server: &GameServer,
+    player: &PlayerRef,
+    item_id: u64,
+    template_id: u32,
+    convert_func_id: u32,
+    task: u8,
+) -> bool {
+    let Some(convert) = server
+        .game_data
+        .items
+        .loot_packs_by_fish(template_id)
+        .iter()
+        .find(|row| row.doodad_func_convert_fish_id == convert_func_id)
+    else {
+        return false;
+    };
+    let econ = &server.game_data.systems.economy;
+    let Some(details) = econ.items.fish_details.get(&template_id) else {
+        return false;
+    };
+    if details.min_length < 0
+        || details.max_length <= 0
+        || details.max_length < details.min_length
+        || details.min_weight < 0
+        || details.max_weight < details.min_weight
+    {
+        return false;
+    }
+    let mut txn = ItemTxn::begin(server);
+    let inv = Inv::of(player);
+    let equipment_ref = inv.equipment();
+    let bag_ref = inv.bag();
+    let (mut equipment, bag) = lock_pair(&equipment_ref, &bag_ref);
+    let Some(mut bag) = bag else {
+        return false;
+    };
+    let Some(source) = equipment.get_item_by_slot(equip_slot::BACKPACK) else {
+        return false;
+    };
+    if !is_equipped_fish(server, source, inv.character_id, item_id, template_id)
+        || !txn.env.rules.can_destroy(source)
+    {
+        return false;
+    }
+    let mut rng = SharedRandom;
+    let Some(trophies) =
+        loot_convert_fish_from_pack(server, template_id, convert.loot_pack_id, &mut rng)
+    else {
+        return false;
+    };
+    // This lottery allocates only its single selected row (it breaks after selection).
+    let Some(trophy) = trophies.into_iter().next() else {
+        return false;
+    };
+    let Some(fish) = econ.items.create_big_fish(
+        &server.game_data.items,
+        &trophy,
+        server.config.id,
+        &mut rng,
+        txn.env.now,
+    ) else {
+        txn.env.fx.push(ItemFx::ReleaseId(trophy.id));
+        return false;
+    };
+    let data = txn.data();
+    if bag.place(&fish, -1, data).is_none() {
+        txn.env.fx.push(ItemFx::ReleaseId(fish.id));
+        return false;
+    }
+    let before_equipment = equipment.clone();
+    let fx_before = txn.env.fx.len();
+    if equipment
+        .remove_item_task(task, item_id, true, &mut txn.env)
+        .is_none()
+    {
+        txn.env.fx.push(ItemFx::ReleaseId(fish.id));
+        return false;
+    }
+    // Both containers stay locked throughout placement and consumption. Restore the
+    // source and discard its queued effects if delivery nonetheless refuses the item.
+    if let Err(fish) = bag.add_item(task, fish, -1, data, &mut txn.env.fx) {
+        *equipment = before_equipment;
+        txn.env.fx.0.truncate(fx_before);
+        txn.env.fx.push(ItemFx::ReleaseId(fish.id));
+        return false;
+    }
+    true
+}
+
+#[cfg(test)]
+mod tests;

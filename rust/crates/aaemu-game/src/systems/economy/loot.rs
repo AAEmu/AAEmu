@@ -473,12 +473,26 @@ pub fn loot_convert_fish(
     template_id: u32,
     rng: &mut dyn LootRng,
 ) -> Option<Vec<Item>> {
-    let mut items = Vec::new();
-    let data = &server.game_data;
-    let Some(convert) = data.items.loot_packs_by_fish(template_id).first() else {
-        return Some(items);
+    let Some(convert) = server
+        .game_data
+        .items
+        .loot_packs_by_fish(template_id)
+        .first()
+    else {
+        return Some(Vec::new());
     };
-    let pack = data.systems.economy.loot.pack(convert.loot_pack_id)?;
+    loot_convert_fish_from_pack(server, template_id, convert.loot_pack_id, rng)
+}
+
+/// A fish stand's permitted conversion pack, selected by its actual conversion function.
+pub(crate) fn loot_convert_fish_from_pack(
+    server: &GameServer,
+    template_id: u32,
+    loot_pack_id: u32,
+    rng: &mut dyn LootRng,
+) -> Option<Vec<Item>> {
+    let mut items = Vec::new();
+    let pack = server.game_data.systems.economy.loot.pack(loot_pack_id)?;
     let mut drop_rate_max = 0u32;
     for l in &pack.loots {
         drop_rate_max = drop_rate_max.wrapping_add(l.drop_rate);

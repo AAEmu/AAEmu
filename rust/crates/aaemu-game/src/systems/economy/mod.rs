@@ -31,6 +31,7 @@ pub mod data;
 #[cfg(test)]
 mod econ_data_tests;
 pub mod error_message;
+pub(crate) mod fishing;
 pub mod fx;
 pub mod hooks;
 pub mod inventory;

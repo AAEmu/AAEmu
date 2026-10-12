@@ -486,6 +486,31 @@ pub trait EconomyBridge: Send + Sync {
     ) {
     }
 
+    /// Consume the exact equipped fish and pay its static refund in one inventory operation.
+    fn try_sell_equipped_fish(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _backpack_id: u64,
+        _backpack_template_id: u32,
+        _buy_func_id: u32,
+    ) -> bool {
+        false
+    }
+
+    /// Deliver a permitted trophy and consume the exact equipped fish atomically.
+    fn try_convert_equipped_fish(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _backpack_id: u64,
+        _backpack_template_id: u32,
+        _convert_func_id: u32,
+        _task: u8,
+    ) -> bool {
+        false
+    }
+
     /// `HousingManager.GetHouseById(houseId)` + `house.AllowedToInteract(player)`: `None` when
     /// the house does not exist. Default: the housing subsystem.
     fn house_allowed_to_interact(

@@ -81,7 +81,7 @@ pub fn use_func(
         F::RemoveItem(f) => items::remove_item(f, ctx, caster),
         F::Purchase(f) => items::purchase(f, ctx, caster),
         F::BuyFish(f) => items::buy_fish(f, ctx, caster),
-        F::ConvertFish(_) => items::convert_fish(ctx, caster),
+        F::ConvertFish(f) => items::convert_fish_with_id(ctx, caster, f.id),
         F::ConsumeChanger(f) => items::consume_changer(f, ctx, caster),
         // --- skills / quests ---
         F::Use(f) => skills::use_(f, ctx, caster, skill_id, next_phase),

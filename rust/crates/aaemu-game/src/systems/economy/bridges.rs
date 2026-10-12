@@ -2035,6 +2035,42 @@ impl crate::systems::npcs::hooks::EconomyBridge for EconomyForNpcs {
         Some(true)
     }
 
+    fn try_sell_equipped_fish(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        backpack_id: u64,
+        backpack_template_id: u32,
+        buy_func_id: u32,
+    ) -> bool {
+        super::fishing::sell_equipped_fish(
+            server,
+            player,
+            backpack_id,
+            backpack_template_id,
+            buy_func_id,
+        )
+    }
+
+    fn try_convert_equipped_fish(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        backpack_id: u64,
+        backpack_template_id: u32,
+        convert_func_id: u32,
+        task: u8,
+    ) -> bool {
+        super::fishing::convert_equipped_fish(
+            server,
+            player,
+            backpack_id,
+            backpack_template_id,
+            convert_func_id,
+            task,
+        )
+    }
+
     fn give_convert_fish_trophy(
         &self,
         server: &GameServer,

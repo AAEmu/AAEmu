@@ -325,8 +325,9 @@ pub fn purchase(f: &DoodadFuncPurchase, ctx: &DoodadCtx<'_>, caster: Option<&Wor
 }
 
 /// `DoodadFuncBuyFish.Use`.
-pub fn buy_fish(_f: &DoodadFuncBuyFish, ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>) {
+pub fn buy_fish(f: &DoodadFuncBuyFish, ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>) {
     tracing::trace!("DoodadFuncBuyFish");
+    set_to_next_phase(ctx, false);
     let Some(player) = DoodadCtx::as_player(caster) else {
         return;
     };
@@ -334,41 +335,36 @@ pub fn buy_fish(_f: &DoodadFuncBuyFish, ctx: &DoodadCtx<'_>, caster: Option<&Wor
         send_error(player, err::STORE_BACKPACK_NOGOODS);
         return;
     };
-    // to display the phase animation correctly for doodad
-    ctx.doodad.data().item_template_id = backpack_template;
-    // TODO (C#): receiving money and removing the back pack
-    let total = ctx
-        .server
-        .game_data
-        .systems
-        .npcs
-        .specialty
-        .item_refunds
-        .get(&backpack_template)
-        .copied()
-        .unwrap_or(0);
-    // C# bug mirrored: `Money += total` and then `AddMoney` adds it a second time.
-    player.data().money += i64::from(total);
     let eco = economy(ctx.server);
-    eco.remove_equipment_item(
-        ctx.server,
-        player,
-        item_task::SKILL_EFFECT_CONSUMPTION,
-        backpack_id,
-    );
-    if total >= 0 {
-        eco.change_money(
-            ctx.server,
-            player,
-            i64::from(total),
-            item_task::DEPOSIT_MONEY,
-        );
+    if eco.try_sell_equipped_fish(ctx.server, player, backpack_id, backpack_template, f.id) {
+        // The sale animation is entered only after payment and consumption succeeded.
+        ctx.doodad.data().item_template_id = backpack_template;
+        set_to_next_phase(ctx, true);
     }
 }
 
 /// `DoodadFuncConvertFish.Use`.
 pub fn convert_fish(ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>) {
+    set_to_next_phase(ctx, false);
+    let group = ctx.doodad.data().func_group_id;
+    let func_id = ctx
+        .data()
+        .funcs_for_group(group)
+        .iter()
+        .find(|f| f.func_type == "DoodadFuncConvertFish")
+        .map(|f| f.func_id);
+    if let Some(func_id) = func_id {
+        convert_fish_with_id(ctx, caster, func_id);
+    }
+}
+
+pub fn convert_fish_with_id(
+    ctx: &DoodadCtx<'_>,
+    caster: Option<&WorldObject>,
+    convert_func_id: u32,
+) {
     tracing::trace!("DoodadFuncConvertFish");
+    set_to_next_phase(ctx, false);
     let Some(player) = DoodadCtx::as_player(caster) else {
         return;
     };
@@ -376,10 +372,16 @@ pub fn convert_fish(ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>) {
         send_error(player, err::STORE_BACKPACK_NOGOODS);
         return;
     };
-    // TODO (C#): receiving trophy and removing the back pack
     let eco = economy(ctx.server);
-    eco.remove_equipment_item(ctx.server, player, item_task::FISHING, backpack_id);
-    eco.give_convert_fish_trophy(ctx.server, player, backpack_template, item_task::FISHING);
+    eco.try_convert_equipped_fish(
+        ctx.server,
+        player,
+        backpack_id,
+        backpack_template,
+        convert_func_id,
+        item_task::FISHING,
+    );
+    // Conversion's 1.2 successor is -1: remain at the stand instead of deleting it.
 }
 
 /// `DoodadFuncConsumeChanger.Use`: stores a trade pack into a trade-pack storage.

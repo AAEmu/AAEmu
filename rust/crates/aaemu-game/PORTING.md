@@ -1122,6 +1122,23 @@ Additional world-side fixes from the same audit:
   movement freeze flag, so rejecting a loaded vehicle leaves movement state unchanged.
   Registry packet flows cover both initial flag states, exact errors and a later valid use.
 
+* Sport-fishing stands now pay the existing 1.2 `items.refund` once and consume the validated
+  equipped fish in the same inventory operation. Trophy conversion selects the pack for the
+  actual conversion function and preserves the fish when mapping, reward or bag placement
+  fails. Successful conversion keeps the stand. A retail weight-dependent sale formula has
+  not been established; the existing static refund remains the emulator policy.
+  The five rod reactions with `target_my_npc` require an NPC owned by the caster's character
+  id before cast, resource, buff or cooldown mutations. Character and object ids are distinct.
+  Flow tests cover wrong/correct species chum, active-school expiry replacement, fish sales,
+  trophies, replay and failure paths; a real-compact test checks the Bamboo rod's plot 821,
+  Yellow Lure and 100-labor consumption. The real client equips the rod and exposes all seven
+  mode actions. A complete native catch/reaction/loot cycle is still under investigation.
+  Fish Leap controllers also remain incomplete: the current shared linear movement ignores
+  native vertical angle/acceleration, target-following flags and Leap-specific landing rules.
+  Terrain snapping in that shared tick prevents an isolated vertical-offset fix from matching
+  the 10.x reference. Creator-immunity semantics also need separate verification because the
+  initial FISH buffs are cast by the fish itself.
+
 Remaining packet stubs and table candidates are still subject to behavior review. Missing SQL
 mentions do not establish disuse (some names are selected dynamically); empty tables, client
 visuals and schema migration metadata do not imply missing server features. The 10.x reference
