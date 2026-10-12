@@ -826,42 +826,12 @@ fn move_in_range(c: &mut AiCtx<'_>, k: BehaviorKind, target: Option<&WorldObject
     let mut speed = npc::real_movement_speed(&c.obj, f64::from(base_move_speed(c)));
     let move_flags = npc::real_movement_flags(speed);
     speed *= delta_seconds(delta_ms);
-    // Fish overrides
+    // Sport-fish direction plots provide bounded movement through SkillController.
+    // The former C# experimental global-axis drift added movement after each controller
+    // and changed the heading used by the next relative plot (Dive even moved along Y).
+    // Between authored controllers, stop without changing fish position or rotation.
     if buffs::check_buffs_by_tag(c.server, &c.obj, npc::tags::FISH) {
-        // Halve the speed for the sports fish movement logic
-        speed *= 0.5;
-        let cur = owner_pos(c);
-        let dest = if buffs::check_buffs_by_tag(c.server, &c.obj, npc::tags::LEFT) {
-            Some(Vec3::new(cur.x - 10000.0, cur.y, cur.z))
-        } else if buffs::check_buffs_by_tag(c.server, &c.obj, npc::tags::RIGHT) {
-            Some(Vec3::new(cur.x + 10000.0, cur.y, cur.z))
-        } else if buffs::check_buffs_by_tag(c.server, &c.obj, npc::tags::BACK) {
-            let pp = target.map_or(Vec3::default(), |t| npc::world_pos(c.server, t));
-            let mut dir = Vec3::new(cur.x - pp.x, cur.y - pp.y, cur.z - pp.z);
-            let len = (dir.x * dir.x + dir.y * dir.y + dir.z * dir.z).sqrt();
-            if len == 0.0 {
-                dir = Vec3::new(1.0, 0.0, 0.0);
-            } else {
-                dir = Vec3::new(dir.x / len, dir.y / len, dir.z / len);
-            }
-            Some(Vec3::new(
-                cur.x + dir.x * 10000.0,
-                cur.y + dir.y * 10000.0,
-                cur.z + dir.z * 10000.0,
-            ))
-        } else if buffs::check_buffs_by_tag(c.server, &c.obj, npc::tags::DESCEND) {
-            Some(Vec3::new(cur.x, cur.y - 10000.0, cur.z))
-        } else {
-            None
-        };
-        match dest {
-            Some(d) => {
-                npc::look_towards(c.server, &c.npc, d, 4);
-                npc_move_towards(c, d, speed as f32, move_flags, 1.0);
-            }
-            // If no specific fish buff is active, remain still.
-            None => npc::stop_movement(c.server, &c.npc),
-        }
+        npc::stop_movement(c.server, &c.npc);
         return;
     }
     let t = template_scalars(c);
@@ -2466,3 +2436,7 @@ mod tests {
         assert_eq!(delta_seconds(1120), 0.12);
     }
 }
+
+#[cfg(test)]
+#[path = "fish_movement_tests.rs"]
+mod fish_movement_tests;

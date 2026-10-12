@@ -1149,6 +1149,11 @@ Additional world-side fixes from the same audit:
   the fish onto the seabed. Direct character damage to owned FISH NPCs requires the character
   owner and the loaded fishing exception tag; this conservative FISH-specific rule does not
   infer generic creator/skill-tag exception semantics. Buff caster identity remains the fish.
+* Sport-fish movement now uses its authored skill controllers exclusively. Between controllers,
+  FISH NPCs stop without changing position or heading. The former experimental C# override
+  added continuous movement toward global 10,000-metre offsets (including horizontal drift
+  for Dive), beyond the 1.2 Carp's bounded relative endpoints. Regular and real-data tests
+  cover cue pauses, controller ownership, subsequent heading and ordinary NPC movement.
 * Ship replication preserves the physical quaternion instead of rebuilding it through the
   legacy Euler conversion, including mixed yaw/tilt and positive-W packet reconstruction.
   Solid hull and bottom boxes use transformed authored collision-proxy bounds independently
