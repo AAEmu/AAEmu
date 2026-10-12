@@ -561,13 +561,18 @@ fn on_refreshed(server: &GameServer, owner: &WorldObject, b: &Buff) {
         return;
     };
     let (gen, tick, time_left) = gen;
-    schedule_dispel_task(
-        server,
-        owner,
-        b.index,
-        gen,
-        if tick > 0.0 { tick } else { time_left },
-    );
+    // GetTimeLeft=-1 denotes a permanent buff, not an immediate expiry. Keep
+    // the new generation above to invalidate old tasks; only timed/ticking
+    // effects need another task after refresh.
+    if tick > 0.0 || time_left >= 0.0 {
+        schedule_dispel_task(
+            server,
+            owner,
+            b.index,
+            gen,
+            if tick > 0.0 { tick } else { time_left },
+        );
+    }
 }
 
 fn remove_modifiers(server: &GameServer, owner: &WorldObject, buff_id: u32) {
