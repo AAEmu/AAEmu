@@ -289,6 +289,9 @@ fn cry_cfg() -> PhysConfig {
     }
 }
 
+#[path = "longliner_tests.rs"]
+mod longliner_tests;
+
 #[test]
 fn cryphysics_ship_floats_and_sails() {
     let w = cry_world(100.0, 40.0);

@@ -385,6 +385,7 @@ pub fn add_ship(server: &Arc<GameServer>, instance_id: u32, spec: ShipSpec) -> b
         ) {
             let models = super::collision::model_cache(server, &files);
             ship.buoys = cry::prefab_buoys(&files, &models, reference);
+            ship.collision_bounds = cry::model_collision_bounds(&files, &models, reference);
         }
     }
     // the initial transform sync (rotation becomes yaw-only)

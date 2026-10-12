@@ -340,7 +340,7 @@ pub fn move_towards(
     if is_shackled_or_snared(server, &obj) {
         return false;
     }
-    let (pos, zone_id, can_fly, spawner_z, stance, alertness) = {
+    let (pos, zone_id, can_fly, spawner_z, stance, alertness, model_id) = {
         let n = npc.data();
         let t = n.unit.transform;
         (
@@ -350,6 +350,7 @@ pub fn move_towards(
             n.spawner_z,
             n.current_game_stance,
             n.current_alertness,
+            n.unit.model_id,
         )
     };
     let target_dist = calculate_distance(pos, other, true);
@@ -358,21 +359,34 @@ pub fn move_towards(
     }
     let travel_dist = target_dist.min(distance);
     let new = add_distance_to_front_between(travel_dist, target_dist, pos, other);
-    let target_z = reference_height_in(
-        server,
-        obj.transform().instance_id,
-        ai.map(|a| ReferenceHeightAi {
-            can_fly,
-            hold_or_idle: a.hold_or_idle,
-            spawner_z,
-            world_z: world_pos(server, &obj).z,
-        }),
-        new.x,
-        new.y,
-        new.z,
-        zone_id,
-    );
-    let new = Vec3::new(new.x, new.y, target_z);
+    let underwater = server
+        .game_data
+        .systems
+        .ai
+        .ai
+        .actor_model(model_id)
+        .is_some_and(|m| m.underwater_creature);
+    let new = if underwater {
+        // Native bUnderwaterCreature uses 3D movement. Keep the authored step height;
+        // projecting onto the seabed would move a surface fish away from its angler.
+        underwater_step(server, obj.transform().instance_id, model_id, pos, new)
+    } else {
+        let target_z = reference_height_in(
+            server,
+            obj.transform().instance_id,
+            ai.map(|a| ReferenceHeightAi {
+                can_fly,
+                hold_or_idle: a.hold_or_idle,
+                spawner_z,
+                world_z: world_pos(server, &obj).z,
+            }),
+            new.x,
+            new.y,
+            new.z,
+            zone_id,
+        );
+        Vec3::new(new.x, new.y, target_z)
+    };
     let angle = calculate_angle_from(new, other);
     let (vel_x, vel_y) = add_distance_to_front(
         4000.0,
@@ -409,6 +423,47 @@ pub fn move_towards(
     check_moved_position(server, &obj);
     send_move(server, &obj, mt);
     false
+}
+
+/// A 3D living-collider step without the ground projection used by walking NPCs.
+fn underwater_step(
+    server: &GameServer,
+    instance_id: u32,
+    model_id: u32,
+    from: Vec3,
+    to: Vec3,
+) -> Vec3 {
+    let collider = server
+        .game_data
+        .systems
+        .ai
+        .collision
+        .living
+        .get(&model_id)
+        .map(crate::systems::ai::collision::displacement::Collider::from_living)
+        .unwrap_or_default();
+    let hit = crate::systems::ai::collision::sweep_capsule(
+        server,
+        instance_id,
+        [from.x, from.y, from.z + collider.height],
+        [to.x, to.y, to.z + collider.height],
+        collider.radius,
+        collider.half_height,
+        crate::systems::ai::collision::query::mask::SOLID_TERRAIN,
+    );
+    if let Some(Some(contact)) = hit {
+        let distance = calculate_distance(from, to, true);
+        if distance > f32::EPSILON {
+            return add_distance_to_front_between(
+                (contact.dist - 0.1).max(0.0).min(distance),
+                distance,
+                from,
+                to,
+            );
+        }
+        return from;
+    }
+    to
 }
 
 /// `WorldManager.GetReferenceHeight(ai, x, y, z, zoneId)` (terrain / navmesh height, or the
@@ -605,6 +660,22 @@ pub fn around(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    use aaemu_physics::geometry::primitives::BoxPrim;
+    use aaemu_physics::geometry::shapes::stream::{save_phys_geometry, PhysGeomHeader};
+    use aaemu_physics::geometry::shapes::BoxGeom;
+    use aaemu_physics::math::{Quat, Vec3 as PhysicsVec3};
+
+    use crate::data::GameData;
+    use crate::models::npc::Npc;
+    use crate::opcodes::sc;
+    use crate::systems::ai::collision::objects::{apply_doodads, collision_flags, DoodadInfo};
+    use crate::systems::ai::collision::terrain::tests::Plane;
+    use crate::systems::ai::data::ActorModel;
+    use crate::test_support::{spawn_player, test_character, test_server_with, TestClient};
+    use crate::world::Entity;
 
     #[test]
     fn movement_flags() {
@@ -618,5 +689,162 @@ mod tests {
         assert_eq!(clamp_deg_angle(270.0), -90.0);
         assert_eq!(clamp_deg_angle(-190.0), 170.0);
         assert_eq!(clamp_deg_angle(180.0), 180.0);
+    }
+
+    fn water_server() -> GameServer {
+        let mut data = GameData::empty();
+        for (model, underwater) in [(1373, true), (1374, false)] {
+            data.systems.ai.ai.actor_models.insert(
+                model,
+                Arc::new(ActorModel {
+                    id: if underwater { 633 } else { 634 },
+                    radius: 0.5,
+                    height: 0.5,
+                    movement_id: 0,
+                    underwater_creature: underwater,
+                    ..ActorModel::default()
+                }),
+            );
+            data.systems.skills.model_radii.insert(model, 0.5);
+            data.systems.ai.collision.living.insert(
+                model,
+                crate::systems::ai::collision::data::LivingParams::default(),
+            );
+        }
+        let server = test_server_with(data);
+        let shape = BoxGeom::new(&BoxPrim::aligned(
+            PhysicsVec3::ZERO,
+            PhysicsVec3::splat(1.0),
+        ));
+        let header = PhysGeomHeader {
+            inertia: PhysicsVec3::splat(1.0),
+            q: Quat::IDENTITY,
+            origin: PhysicsVec3::ZERO,
+            volume: 8.0,
+            unk52: 1,
+            surface_idx: 0,
+        };
+        let mut blob = Vec::new();
+        save_phys_geometry(&header, &shape, &mut blob);
+        let files = HashMap::from([(
+            "game/objects/test/water_wall.cgf".into(),
+            crate::systems::ai::collision::cgf::tests::synthetic_cgf(&blob),
+        )]);
+        assert!(server
+            .systems
+            .ai
+            .collision
+            .test_files
+            .set(Arc::new(files))
+            .is_ok());
+        assert!(server
+            .systems
+            .ai
+            .collision
+            .test_terrain
+            .set(Arc::new(Plane {
+                a: 103.795,
+                b: 0.0,
+                c: 0.0,
+                n: 1024,
+            }))
+            .is_ok());
+        server
+    }
+
+    fn water_npc(server: &GameServer, obj_id: u32, model: u32, can_fly: bool) -> NpcRef {
+        let mut n = Npc::new(13072);
+        n.unit.model_id = model;
+        n.unit.scale = 1.0;
+        n.unit.hp = 1000;
+        n.unit.max_hp = 1000;
+        n.unit.transform.set_xyz(500.0, 500.0, 113.7);
+        n.spawner_z = Some(113.7);
+        n.can_fly = can_fly;
+        let npc = Entity::new(obj_id, n);
+        server
+            .world
+            .world(0)
+            .unwrap()
+            .spawn(&npc, &server.view_ctx());
+        npc
+    }
+
+    #[tokio::test]
+    async fn underwater_move_preserves_height_and_fishing_range_while_walkers_snap() {
+        let server = water_server();
+        let mut client = TestClient::new(&server, 1, 1);
+        let mut character = test_character(1, "Angler", 430.0, 500.0);
+        character.unit.transform.z = 113.7;
+        let angler = spawn_player(&server, &client, character, 0x100);
+        let fish = water_npc(&server, 0x200, 1373, false);
+        let walker = water_npc(&server, 0x201, 1374, false);
+        let flyer = water_npc(&server, 0x202, 1374, true);
+        client.drain();
+        for npc in [&fish, &walker, &flyer] {
+            move_towards(
+                &server,
+                npc,
+                Some(MoveAi {
+                    hold_or_idle: false,
+                }),
+                Vec3::new(520.0, 500.0, 113.7),
+                10.0,
+                4,
+                1.0,
+            );
+        }
+        let fish_pos = fish.data().unit.transform;
+        assert!((fish_pos.x - 510.0).abs() < 0.001);
+        assert!((fish_pos.z - 113.7).abs() < 0.001);
+        assert!((walker.data().unit.transform.z - 103.795).abs() < 0.001);
+        assert!((flyer.data().unit.transform.z - 113.7).abs() < 0.001);
+        // The real response skills have an 80 m range. A spurious 10 m seabed drop
+        // would put this fish outside it despite the same horizontal movement.
+        assert!(
+            distance_to(
+                &server,
+                &WorldObject::from(&fish),
+                &WorldObject::from(&angler),
+                true
+            ) <= 80.0
+        );
+        assert!(client.drain_ops().contains(&sc::SCOneUnitMovementPacket));
+    }
+
+    #[tokio::test]
+    async fn underwater_move_sweeps_solids_without_projecting_onto_seabed() {
+        let server = water_server();
+        let fish = water_npc(&server, 0x200, 1373, false);
+        let world = crate::systems::ai::collision::phys_world(&server, 0).unwrap();
+        let files = crate::systems::ai::collision::files(&server).unwrap();
+        let models = crate::systems::ai::collision::model_cache(&server, &files);
+        let obstacle = DoodadInfo {
+            obj_id: 42,
+            model: "cgf://objects/test/water_wall.cgf".into(),
+            pos: PhysicsVec3::new(505.0, 500.0, 114.2),
+            q: Quat::IDENTITY,
+            scale: 1.0,
+            flags: collision_flags(false, false, false),
+        };
+        let mut shapes = HashMap::new();
+        assert_eq!(
+            apply_doodads(&world, &files, &models, &mut shapes, &[obstacle]),
+            (1, 0)
+        );
+        move_towards(
+            &server,
+            &fish,
+            Some(MoveAi {
+                hold_or_idle: false,
+            }),
+            Vec3::new(520.0, 500.0, 113.7),
+            10.0,
+            4,
+            1.0,
+        );
+        let position = fish.data().unit.transform;
+        assert!(position.x > 500.0 && position.x < 504.0, "{position:?}");
+        assert!((position.z - 113.7).abs() < 0.001);
     }
 }

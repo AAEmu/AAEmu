@@ -6,7 +6,6 @@ use crate::models::movement::{MoveKind, MoveType, MoveTypeFlags, ShipMove};
 use crate::systems::ai::data::ShipModel;
 use crate::systems::ai::numerics::{deg_to_rad, Quat};
 
-use super::jitter::yaw_pitch_roll;
 use super::ship::{from_quaternion, PhysShip};
 use super::PhysEnv;
 
@@ -98,8 +97,6 @@ pub fn send_updated_movement_data(
     dt_sec: f32,
     now_ms: i64,
 ) -> MovementUpdate {
-    let rb_orientation = ship.body.orientation;
-    let rpy = yaw_pitch_roll(rb_orientation);
     let max_bank_deg = visual_max_bank_deg(&ship.model, ship.spec.scale);
     const BANK_RESPONSE: f32 = 7.5;
     let dt = 0.0001f32.max(dt_sec);
@@ -149,12 +146,47 @@ pub fn send_updated_movement_data(
             (ship.ground_pitch_angle - rep.ground_pitch_smoothed) * alpha_v;
     }
     let rep = ship.replication;
-    let banked = (
-        rpy.0,
-        rpy.1 + rep.bank_smoothed,
-        rpy.2 + rep.ground_pitch_smoothed + wave,
+    // ShipMove carries game-axis quaternion XYZ. Rebuilding the physical orientation
+    // through the legacy Euler helper changes mixed yaw/tilt (and can show a rolled hull
+    // while CryPhysics is upright). Compose cosmetic motion in the hull's local frame.
+    let physical = super::cry::quat_to_phys(ship.body.orientation);
+    let body_q = crate::models::transform::Quaternion {
+        x: physical.x,
+        y: physical.y,
+        z: physical.z,
+        w: physical.w,
+    };
+    let (bank_s, bank_c) = (rep.bank_smoothed * 0.5).sin_cos();
+    let (pitch_s, pitch_c) = ((rep.ground_pitch_smoothed + wave) * 0.5).sin_cos();
+    // Local +Y is the bow axis (heel); local +X changes bow/stern pitch.
+    let bank_q = crate::models::transform::Quaternion {
+        x: 0.0,
+        y: bank_s,
+        z: 0.0,
+        w: bank_c,
+    };
+    let pitch_q = crate::models::transform::Quaternion {
+        x: pitch_s,
+        y: 0.0,
+        z: 0.0,
+        w: pitch_c,
+    };
+    let mut visual_q = body_q * bank_q * pitch_q;
+    // The1.2 packet omitsW and the receiver reconstructs its positive square root.
+    if visual_q.w < 0.0 {
+        visual_q = crate::models::transform::Quaternion {
+            x: -visual_q.x,
+            y: -visual_q.y,
+            z: -visual_q.z,
+            w: -visual_q.w,
+        };
+    }
+    const QUATERNION_UNIT: f32 = 0.000_030_52;
+    let (rot_x, rot_y, rot_z) = (
+        float_to_short(visual_q.x / QUATERNION_UNIT),
+        float_to_short(visual_q.y / QUATERNION_UNIT),
+        float_to_short(visual_q.z / QUATERNION_UNIT),
     );
-    let (rot_z, rot_y, rot_x) = slave_rotation_from_degrees(banked.0, banked.1, banked.2);
 
     const VEL_MULTIPLIER: f32 = 2048.0;
     let av = ship.body.angular_velocity;
@@ -180,12 +212,9 @@ pub fn send_updated_movement_data(
     mt.flags = MoveTypeFlags(0);
     mt.time = (now_ms - ship.spec.spawn_time_ms).max(0) as u32;
 
-    // Keep the world transform consistent with the visual quaternion sent above. Applying
-    // the Jitter quaternion directly put yaw in the game pitch slot and rotated attached
-    // passengers/parts out of the ship's frame. The wire quaternion/order stays unchanged.
+    // Attached parts use the same game-axis orientation transmitted to the client.
     let position = crate::systems::skills::controllers::Vec3::new(p.x, p.z, p.y);
-    let visual_q = Quat::from_yaw_pitch_roll(banked.2, banked.0, banked.1);
-    let rotation = from_quaternion(visual_q.y, visual_q.z, visual_q.x, visual_q.w);
+    let rotation = from_quaternion(visual_q.x, visual_q.y, visual_q.z, visual_q.w);
     ship.pos = position;
     ship.rot = rotation;
     if ship.replication.contact_hold_ticks > 0 {

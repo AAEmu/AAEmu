@@ -222,6 +222,7 @@ fn data() -> GameData {
             radius: 0.5,
             height: 2.0,
             movement_id: 0,
+            underwater_creature: false,
             stances: vec![
                 stance(GameStanceType::COMBAT, 2.0, 5.0, 8.0),
                 stance(GameStanceType::RELAXED, 2.0, 5.0, 8.0),

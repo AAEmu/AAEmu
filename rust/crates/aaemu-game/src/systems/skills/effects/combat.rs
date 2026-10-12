@@ -127,9 +127,17 @@ pub fn damage(
         return;
     };
     let damage_type = DamageType::from_raw(i64::from(e.damage_type));
-    buffs::trigger_remove_on(server, &trg, BuffRemoveOn::AttackedEtc, 0);
-    buffs::trigger_remove_on(server, &caster, BuffRemoveOn::AttackEtc, 0);
-    if buffs::check_damage_immune(server, &trg, damage_type) {
+    let blocked_fish = crate::systems::economy::fishing::blocks_character_fish_damage(
+        server,
+        &trg,
+        &caster,
+        args.source.skill().map(|skill| skill.template.id),
+    );
+    if !blocked_fish {
+        buffs::trigger_remove_on(server, &trg, BuffRemoveOn::AttackedEtc, 0);
+        buffs::trigger_remove_on(server, &caster, BuffRemoveOn::AttackEtc, 0);
+    }
+    if blocked_fish || buffs::check_damage_immune(server, &trg, damage_type) {
         let mut p = SCUnitDamagedPacket::new(
             args.cast,
             args.caster_caster,

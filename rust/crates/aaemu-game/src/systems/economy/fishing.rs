@@ -7,10 +7,58 @@ use crate::models::item::{Item, ItemClass};
 use crate::models::item_task::{task_type, ItemFx, ItemTask};
 use crate::server::GameServer;
 use crate::systems::npcs::doodad::templates::FuncTemplate;
-use crate::world::PlayerRef;
+use crate::world::{PlayerRef, WorldObject};
 
 use super::inventory::{lock_pair, Inv, ItemTxn};
 use super::loot::{loot_convert_fish_from_pack, SharedRandom};
+
+/// Conservative fishing safety adaptation: an active FISH status that requests
+/// creator immunity permits character damage only from its owner, using a skill
+/// in its configured exception tag. The 1.2 FISH description allows fishing only.
+/// The creator is the NPC's character owner, not its self-cast buff caster.
+/// This does not infer general creator/skill-tag exception rules for other buffs.
+pub(crate) fn blocks_character_fish_damage(
+    server: &GameServer,
+    target: &WorldObject,
+    caster: &WorldObject,
+    source_skill_id: Option<u32>,
+) -> bool {
+    let (Some(npc), Some(player)) = (target.as_npc(), caster.as_player()) else {
+        return false;
+    };
+    let (owner_id, buff_ids) = {
+        let npc = npc.data();
+        (
+            npc.unit.owner_id,
+            npc.unit
+                .buffs
+                .effects
+                .iter()
+                .map(|b| b.template.id)
+                .collect::<Vec<_>>(),
+        )
+    };
+    if owner_id == 0 {
+        return false;
+    }
+    let skills = &server.game_data.systems.skills;
+    let fish_buffs = skills
+        .buffs_by_tag(crate::systems::ai::npc::tags::FISH)
+        .unwrap_or(&[]);
+    buff_ids.into_iter().any(|id| {
+        fish_buffs.contains(&id)
+            && skills.buff(id).is_some_and(|b| {
+                b.immune_except_creator
+                    && (owner_id != player.character_id
+                        || (b.immune_except_skill_tag_id != 0
+                            && !source_skill_id.is_some_and(|skill_id| {
+                                skills
+                                    .skill_tags(skill_id)
+                                    .contains(&b.immune_except_skill_tag_id)
+                            })))
+            })
+    })
+}
 
 fn is_equipped_fish(
     server: &GameServer,

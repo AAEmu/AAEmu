@@ -14,7 +14,7 @@
 //! | buoys | prefab brushes named `buoy*`, using their CGF physics geometry and local position, rotation and scale; otherwise a cylinder along the ship's Y at `(0, 0, tube_offset_z)`, `r = tube_radius`, `hh = tube_length` (desc +204/+208/+200; 0 → half beam / half length) | `0x10000` (floats) / 0 | 0 |
 //! | keel | box at `(0, 0, keel_offset_z − keel_height)` (desc +100/+104/+108) when the keel has a size | `0x10000` / 0 | 0 |
 //! | mass | box `mass_box_size / 2` at `mass_center` | 0 / 0 | `mass` (desc +112) |
-//! | hull | the same box | `0x80` / `0x80` (ship collision class) | 1 |
+//! | hull | transformed authored model collision-proxy bounds; mass-box fallback when assets are unavailable | `0x80` / `0x80` (ship collision class) | 1 |
 //! | bottom | box below the hull: `x,y = max(h·0.9, h − 3)`, `z = max(hz·0.2, 0.4/2)` (`g_unit_collide_bottom_box_*`) | `0x100` / `0x100` | 0.01 |
 //!
 //! then `pe_params_buoyancy` (`kWaterDensity = water_density`, `waterDamping = water_damping`,
@@ -129,8 +129,74 @@ pub fn prefab_buoys(files: &Files, models: &ModelCache, reference: &str) -> Vec<
         .collect()
 }
 
+/// Model bounds for the solid hull, separate from its inertia box (native0x39286C50).
+/// The native entity also has render/non-brush bounds not exposed by our model loader;
+/// use the authored DEFAULT physics proxies transformed into the prefab frame. This
+/// documented proxy adaptation avoids inventing dimensions when assets are available.
+pub fn model_collision_bounds(
+    files: &Files,
+    models: &ModelCache,
+    reference: &str,
+) -> Option<BoxPrim> {
+    let mut xml = HashMap::new();
+    let shape = objects::resolve_shape(
+        files,
+        models,
+        &mut xml,
+        &objects::parse_model_ref(reference),
+    )?;
+    let mut min = PVec3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
+    let mut max = PVec3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY);
+    let mut found = false;
+    for part in shape.parts {
+        let Some(geometry) = part.model.slot(phys_slot::DEFAULT) else {
+            continue;
+        };
+        let bounds = geometry.geom.bbox();
+        if !part.scale.is_finite() || part.scale <= 0.0 {
+            return None;
+        }
+        for corner in 0..8 {
+            let local = PVec3::new(
+                if corner & 1 == 0 {
+                    -bounds.size.x
+                } else {
+                    bounds.size.x
+                },
+                if corner & 2 == 0 {
+                    -bounds.size.y
+                } else {
+                    bounds.size.y
+                },
+                if corner & 4 == 0 {
+                    -bounds.size.z
+                } else {
+                    bounds.size.z
+                },
+            );
+            let point = part.pos
+                + part
+                    .q
+                    .rotate((bounds.center + bounds.basis.transpose().mul_vec(local)) * part.scale);
+            if !point.x.is_finite() || !point.y.is_finite() || !point.z.is_finite() {
+                return None;
+            }
+            min = PVec3::new(min.x.min(point.x), min.y.min(point.y), min.z.min(point.z));
+            max = PVec3::new(max.x.max(point.x), max.y.max(point.y), max.z.max(point.z));
+            found = true;
+        }
+    }
+    let half = (max - min) * 0.5;
+    (found && half.x > 0.0 && half.y > 0.0 && half.z > 0.0)
+        .then_some(BoxPrim::aligned((min + max) * 0.5, half))
+}
+
 /// The parts of `InitPhysicalEntity` for a ship model at `scale`.
 pub fn ship_parts(m: &ShipModel, scale: f32) -> Vec<ShipPart> {
+    ship_parts_with_bounds(m, scale, None)
+}
+
+pub fn ship_parts_with_bounds(m: &ShipModel, scale: f32, bounds: Option<BoxPrim>) -> Vec<ShipPart> {
     let s = scale;
     let half = PVec3::new(
         m.mass_box_size_x * 0.5 * s,
@@ -142,20 +208,22 @@ pub fn ship_parts(m: &ShipModel, scale: f32) -> Vec<ShipPart> {
         m.mass_center_y * s,
         m.mass_center_z * s,
     );
+    let hull_half = bounds.map_or(half, |b| b.size * s);
+    let hull_center = bounds.map_or(c, |b| b.center * s);
     let mut parts = Vec::new();
     // buoy tube (desc +200 length, +204 z offset, +208 radius; 0 → defaults from the bounds)
     let tube_len = if m.tube_length == 0.0 {
-        half.y
+        hull_half.y
     } else {
         m.tube_length * s
     };
     let tube_r = if m.tube_radius == 0.0 {
-        half.x
+        hull_half.x
     } else {
         m.tube_radius * s
     };
     let tube_z = if m.tube_offset_z == 0.0 {
-        half.x
+        hull_half.x
     } else {
         m.tube_offset_z * s
     };
@@ -182,7 +250,7 @@ pub fn ship_parts(m: &ShipModel, scale: f32) -> Vec<ShipPart> {
             mass: 0.0,
         });
     }
-    // the mass part and the hull collision box
+    // Native mass box: inertia only, never a solid collider.
     parts.push(ShipPart {
         prim: boxp(c, half),
         flags: 0,
@@ -190,19 +258,23 @@ pub fn ship_parts(m: &ShipModel, scale: f32) -> Vec<ShipPart> {
         mass: m.mass,
     });
     parts.push(ShipPart {
-        prim: boxp(c, half),
+        prim: boxp(hull_center, hull_half),
         flags: 0x80,
         collider: 0x80,
         mass: 1.0,
     });
     // the bottom box (g_unit_collide_bottom_box_size_rate 0.9, max gap 3.0, height rate 0.2,
     // min height gap 0.4)
-    let bx = (half.x - 3.0).max(half.x * 0.9);
-    let by = (half.y - 3.0).max(half.y * 0.9);
-    let bz = (half.z * 0.2).max(0.4 * 0.5);
+    let bx = (hull_half.x - 3.0).max(hull_half.x * 0.9);
+    let by = (hull_half.y - 3.0).max(hull_half.y * 0.9);
+    let bz = (hull_half.z * 0.2).max(0.4 * 0.5);
     parts.push(ShipPart {
         prim: boxp(
-            PVec3::new(c.x, c.y, c.z - (bz + half.z)),
+            PVec3::new(
+                hull_center.x,
+                hull_center.y,
+                hull_center.z - (bz + hull_half.z),
+            ),
             PVec3::new(bx, by, bz),
         ),
         flags: 0x100,
@@ -222,7 +294,7 @@ pub fn create_entity(st: &mut WorldState, ship: &PhysShip) -> Option<EntIdx> {
     let e = st
         .world
         .create_physical_entity(2, 0.0, Some(&pp), 0, 0, -1)?;
-    for (index, p) in ship_parts(&ship.model, ship.spec.scale)
+    for (index, p) in ship_parts_with_bounds(&ship.model, ship.spec.scale, ship.collision_bounds)
         .into_iter()
         .enumerate()
     {
@@ -558,6 +630,116 @@ mod tests {
     use crate::systems::ai::collision::world::PhysWorld;
     use crate::systems::ai::physics::ship::tests::{model, spec};
     use crate::systems::ai::physics::ship::{PhysShip, ShipGameView};
+
+    fn assert_same_primitive(a: Primitive, b: Primitive) {
+        match (a, b) {
+            (Primitive::Box(a), Primitive::Box(b)) => assert_eq!(a, b),
+            (Primitive::Cylinder(a), Primitive::Cylinder(b)) => assert_eq!(a, b),
+            _ => panic!("different primitive kinds: {a:?}, {b:?}"),
+        }
+    }
+
+    #[test]
+    fn authored_hull_bounds_do_not_change_the_inertia_box_or_explicit_buoy_parameters() {
+        let model = model();
+        let bounds = BoxPrim::aligned(PVec3::new(2.0, -1.0, 3.0), PVec3::new(4.0, 8.0, 2.0));
+        for scale in [0.5, 1.0, 2.0] {
+            let fallback = ship_parts(&model, scale);
+            let authored = ship_parts_with_bounds(&model, scale, Some(bounds));
+            let mass =
+                |parts: &[ShipPart]| parts.iter().find(|p| p.mass == model.mass).unwrap().clone();
+            assert_same_primitive(mass(&fallback).prim, mass(&authored).prim);
+            assert_eq!((mass(&authored).flags, mass(&authored).collider), (0, 0));
+            let hull = authored.iter().find(|p| p.collider == 0x80).unwrap();
+            assert_same_primitive(
+                hull.prim,
+                Primitive::Box(BoxPrim::aligned(bounds.center * scale, bounds.size * scale)),
+            );
+            let bottom = authored.iter().find(|p| p.collider == 0x100).unwrap();
+            let Primitive::Box(bottom) = bottom.prim else {
+                panic!("bottom box")
+            };
+            assert!(
+                (bottom.center.z + bottom.size.z - (bounds.center.z - bounds.size.z) * scale).abs()
+                    < 1e-5
+            );
+        }
+        let mut explicit = model;
+        explicit.tube_length = 7.0;
+        explicit.tube_radius = 1.25;
+        explicit.tube_offset_z = 0.3;
+        assert_same_primitive(
+            ship_parts(&explicit, 2.0)[0].prim,
+            ship_parts_with_bounds(&explicit, 2.0, Some(bounds))[0].prim,
+        );
+        let fallback = ship_parts(&model, 1.0);
+        let explicit_fallback = ship_parts_with_bounds(&model, 1.0, None);
+        assert_eq!(fallback.len(), explicit_fallback.len());
+        for (a, b) in fallback.iter().zip(explicit_fallback) {
+            assert_same_primitive(a.prim, b.prim);
+            assert_eq!((a.flags, a.collider, a.mass), (b.flags, b.collider, b.mass));
+        }
+    }
+
+    #[test]
+    fn prefab_hull_bounds_apply_rotation_scale_translation_and_cache_models() {
+        use aaemu_physics::geometry::shapes::stream::{save_phys_geometry, PhysGeomHeader};
+        use aaemu_physics::geometry::shapes::BoxGeom;
+        let geometry = BoxGeom::new(&BoxPrim::aligned(PVec3::ZERO, PVec3::new(1.0, 2.0, 0.5)));
+        let mut blob = Vec::new();
+        save_phys_geometry(
+            &PhysGeomHeader {
+                inertia: PVec3::new(1.0, 1.0, 1.0),
+                q: PQuat::IDENTITY,
+                origin: PVec3::ZERO,
+                volume: 8.0,
+                unk52: 1,
+                surface_idx: 0,
+            },
+            &geometry,
+            &mut blob,
+        );
+        let mut map = HashMap::new();
+        map.insert(
+            "game/objects/test/hull.cgf".to_string(),
+            crate::systems::ai::collision::cgf::tests::synthetic_cgf(&blob),
+        );
+        map.insert("game/prefabs/test.xml".to_string(), br#"<PrefabsLibrary><Prefab Name="boats.normal"><Objects>
+          <Object Type="Brush" Name="hullA" Prefab="objects/test/hull.cgf" Pos="10,-3,2" Rotate="0.70710678,0,0,0.70710678" Scale="2,2,2"/>
+          <Object Type="Brush" Name="hullB" Prefab="objects/test/hull.cgf" Pos="-3,6,1"/>
+        </Objects></Prefab></PrefabsLibrary>"#.to_vec());
+        let map = Arc::new(map);
+        let files = Files::Map(map.clone());
+        let cache = ModelCache::new(map);
+        let bounds =
+            model_collision_bounds(&files, &cache, "prefab://prefabs/test.xml/boats.normal")
+                .unwrap();
+        assert!((bounds.center.x - 5.0).abs() < 1e-5);
+        assert!((bounds.center.y - 1.5).abs() < 1e-5);
+        assert!((bounds.center.z - 1.75).abs() < 1e-5);
+        assert!((bounds.size.x - 9.0).abs() < 1e-5);
+        assert!((bounds.size.y - 6.5).abs() < 1e-5);
+        assert!((bounds.size.z - 1.25).abs() < 1e-5);
+        let loaded = cache
+            .stats
+            .loaded
+            .load(std::sync::atomic::Ordering::Relaxed);
+        assert_eq!(
+            model_collision_bounds(&files, &cache, "prefab://prefabs/test.xml/boats.normal"),
+            Some(bounds)
+        );
+        assert_eq!(
+            cache
+                .stats
+                .loaded
+                .load(std::sync::atomic::Ordering::Relaxed),
+            loaded
+        );
+        assert!(
+            model_collision_bounds(&files, &cache, "prefab://prefabs/test.xml/boats.missing")
+                .is_none()
+        );
+    }
 
     #[test]
     fn authored_buoys_replace_the_tube_and_preserve_their_local_placements() {

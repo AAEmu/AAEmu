@@ -1139,11 +1139,22 @@ Additional world-side fixes from the same audit:
   preserves explicit occupied slots and permits NPC fish pickup into an empty backpack slot
   even with a full bag. Occupied packs and full-bag glider replacement preserve the loot for
   retry. A complete native catch/reaction/loot cycle is still under investigation.
-  Fish Leap controllers also remain incomplete: the current shared linear movement ignores
-  native vertical angle/acceleration, target-following flags and Leap-specific landing rules.
-  Terrain snapping in that shared tick prevents an isolated vertical-offset fix from matching
-  the 10.x reference. Creator-immunity semantics also need separate verification because the
-  initial FISH buffs are cast by the fish itself.
+  Native chumming has also activated a Carp school (17243 → 17245), supplied buff 5767 and
+  enabled a normal sport cast that consumes one Yellow Lure. Native fish spawning and reaction
+  casts are observed; complete capture and corpse pickup remain under investigation.
+  NPC fixed-position/self-target Leap controllers now use the reference velocity/acceleration
+  math and vertical movement packets, with a kinematic 3D collision sweep. Moving unit targets,
+  parented actors and unsupported landing rotation retain the prior linear path; native living
+  actor contact prediction is unavailable. Underwater actor models move in 3D without projecting
+  the fish onto the seabed. Direct character damage to owned FISH NPCs requires the character
+  owner and the loaded fishing exception tag; this conservative FISH-specific rule does not
+  infer generic creator/skill-tag exception semantics. Buff caster identity remains the fish.
+* Ship replication preserves the physical quaternion instead of rebuilding it through the
+  legacy Euler conversion, including mixed yaw/tilt and positive-W packet reconstruction.
+  Solid hull and bottom boxes use transformed authored collision-proxy bounds independently
+  of the inertia-only mass box. Native entity bounds can include render and non-brush objects
+  unavailable to this loader, so this is a documented proxy adaptation. Explicit buoyancy
+  settings remain authoritative; missing model assets retain the prior geometry fallback.
 
 Remaining packet stubs and table candidates are still subject to behavior review. Missing SQL
 mentions do not establish disuse (some names are selected dynamically); empty tables, client

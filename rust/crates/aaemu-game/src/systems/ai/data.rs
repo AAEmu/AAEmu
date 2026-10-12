@@ -48,6 +48,8 @@ pub struct ActorModel {
     pub height: f32,
     /// 0 = normal, 1 = mounts, 2 = bird / fish (ignores gravity), 3 = underground.
     pub movement_id: i32,
+    /// Authored `bUnderwaterCreature`: swims in 3D independently of `movement_id`.
+    pub underwater_creature: bool,
     /// `Stances` (by `GameStanceType`).
     pub stances: Vec<(GameStanceType, GameStance)>,
 }
@@ -248,6 +250,7 @@ impl AiData {
                 radius: r.f32("radius")?,
                 height: r.f32("height")?,
                 movement_id: r.i32("movement_id")?,
+                underwater_creature: r.bool_str("underwater_creature")?,
                 stances: Vec::new(),
             };
             actors.entry(m.id).or_insert(m);
@@ -434,6 +437,41 @@ mod tests {
             .filter(|m| !m.stances.is_empty())
             .count();
         assert!(with_stances > 500, "{with_stances}");
+    }
+
+    #[test]
+    fn underwater_actor_models_are_independent_of_flying_movement() {
+        let c = Connection::open_in_memory().unwrap();
+        c.execute_batch(
+            "CREATE TABLE actor_models (id INT, radius REAL, height REAL,
+                movement_id INT, underwater_creature TEXT);
+             INSERT INTO actor_models VALUES (633, 0.5, 0.5, 0, 't'), (634, 0.5, 2, 2, 'f');
+             CREATE TABLE ship_models (id INT);
+             CREATE TABLE game_stances (id INT);
+             CREATE TABLE models (id INT, sub_id INT, sub_type TEXT);
+             INSERT INTO models VALUES (1373, 633, 'ActorModel'), (1374, 634, 'ActorModel');",
+        )
+        .unwrap();
+        let mut d = AiData::default();
+        d.load_models(&c).unwrap();
+        let carp = d.actor_model(1373).unwrap();
+        assert_eq!(carp.movement_id, 0);
+        assert!(carp.underwater_creature);
+        assert!(!d.actor_model(1374).unwrap().underwater_creature);
+    }
+
+    #[test]
+    #[ignore = "needs AAEMU_COMPACT_DB"]
+    fn real_compact_db_underwater_carp_model() {
+        let Some(c) = conn() else {
+            return;
+        };
+        let d = AiData::load_from(&c).expect("real AI models");
+        let carp = d.actor_model(1373).expect("Carp model1373");
+        assert_eq!(carp.id, 633);
+        assert_eq!(carp.movement_id, 0);
+        assert!(carp.underwater_creature);
+        assert_eq!((carp.radius, carp.height), (0.5, 0.5));
     }
 
     fn fmt_f(f: f32) -> String {

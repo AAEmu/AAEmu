@@ -324,6 +324,149 @@ impl LinearMove {
     }
 }
 
+/// Fixed-position Leap motion, including the native self-target initialization used by
+/// sport fish. Foreign unit targets still use `LinearMove`: their native closest-point
+/// endpoint refresh and actor-contact state are not represented by this server.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LeapArc {
+    pub end_position: Vec3,
+    pub duration: f32,
+    pub elapsed: f32,
+    pub horizontal_speed: f32,
+    pub vertical_speed: f32,
+    pub vertical_acceleration: f32,
+    minimum_speed: f32,
+    stop_on_overshoot: bool,
+    rotate: bool,
+}
+
+impl LeapArc {
+    /// 10.x 0x39231780 / 0x39231AB0: a position offset follows the normalized 3D
+    /// owner-to-target vector. A self target instead follows quaternion forward (+Y).
+    /// NPCs have no player input-direction selector; only their zero-input path is used.
+    fn new(
+        template: &SkillControllerTemplate,
+        start: Vec3,
+        target: Vec3,
+        self_forward: Option<Vec3>,
+        animation_speed: f32,
+    ) -> Option<Self> {
+        if template.value[2] <= 0 || template.value[12] != 0 {
+            return None; // runtime landing-rotation flag is not ported
+        }
+        let offset = template.value[3] as f32 * 0.001;
+        let end = if let Some(forward) = self_forward {
+            let length = (forward.x * forward.x + forward.y * forward.y).sqrt();
+            let forward = if length > f32::EPSILON {
+                Vec3::new(forward.x / length, forward.y / length, 0.0)
+            } else {
+                Vec3::new(0.0, 1.0, 0.0)
+            };
+            Vec3::new(
+                start.x + forward.x * offset,
+                start.y + forward.y * offset,
+                start.z,
+            )
+        } else {
+            let delta = Vec3::new(target.x - start.x, target.y - start.y, target.z - start.z);
+            let length = delta.length_squared().sqrt();
+            let direction = if length > f32::EPSILON {
+                delta.normalize()
+            } else {
+                Vec3::default()
+            };
+            Vec3::new(
+                target.x + direction.x * offset,
+                target.y + direction.y * offset,
+                target.z + direction.z * offset,
+            )
+        };
+        let distance = calculate_distance(start, end, false);
+        if distance < 0.01 {
+            return None; // 0x39227620: already arrived, including self-target 7071/offset0
+        }
+        // 0x39227E10 uses AttackAnimSpeedMul (119), not movement-speed slow/root.
+        // The additional 10.x attribute218 has no 1.2 UnitAttribute representation.
+        let scale = if template.value[11] == 1 {
+            animation_speed.max(0.001)
+        } else {
+            1.0
+        };
+        let duration_ms = if scale >= 0.01 {
+            (template.value[2] as f32 / scale).floor().max(1.0)
+        } else {
+            template.value[2] as f32
+        };
+        let duration = duration_ms * 0.001;
+        let minimum_speed = template.value[1] as f32 * scale;
+        // 0x39227750: only the remaining-distance speed is capped at50.
+        let horizontal_speed = minimum_speed.max((distance / duration).clamp(0.0, 50.0));
+        let angle = deg_to_rad_f32(template.value[0] as f32);
+        let vertical_speed = (((end.z - start.z) / distance).atan() + angle)
+            .min(deg_to_rad_f32(80.0))
+            .tan()
+            * horizontal_speed;
+        let eta = distance / horizontal_speed;
+        let vertical_acceleration = if angle > 0.0 && eta > 0.0 {
+            (2.0 * ((end.z - start.z) - eta * vertical_speed) / (eta * eta)).clamp(-3000.0, 3000.0)
+        } else {
+            0.0
+        };
+        Some(Self {
+            end_position: end,
+            duration,
+            elapsed: 0.0,
+            horizontal_speed,
+            vertical_speed,
+            vertical_acceleration,
+            minimum_speed,
+            stop_on_overshoot: template.value[7] == 1,
+            rotate: template.value[8] == 1,
+        })
+    }
+
+    /// The server integrates the verified initial velocity/acceleration over measured
+    /// elapsed time. Native uses an active living actor; our proxies are inactive, so this
+    /// is kinematic integration, not a claim of bit-identical physics scheduling.
+    fn advance(&mut self, current: Vec3, dt: f32) -> Option<(Vec3, Vec3, bool)> {
+        let remaining = self.duration - self.elapsed;
+        let distance = calculate_distance(current, self.end_position, false);
+        if !dt.is_finite() || dt <= 0.0 || remaining <= 0.0 || distance < 0.01 {
+            return None;
+        }
+        if distance >= 1.0 {
+            self.horizontal_speed = self
+                .minimum_speed
+                .max((distance / remaining).clamp(0.0, 50.0));
+        }
+        let mut step = dt.min(remaining);
+        let predicted_overshoot = self.horizontal_speed * step > distance;
+        if predicted_overshoot && self.stop_on_overshoot {
+            return None;
+        }
+        if self.horizontal_speed > 0.0 {
+            step = step.min(distance / self.horizontal_speed);
+        }
+        let dx = (self.end_position.x - current.x) / distance;
+        let dy = (self.end_position.y - current.y) / distance;
+        let next = Vec3::new(
+            current.x + dx * self.horizontal_speed * step,
+            current.y + dy * self.horizontal_speed * step,
+            current.z + self.vertical_speed * step + 0.5 * self.vertical_acceleration * step * step,
+        );
+        self.vertical_speed += self.vertical_acceleration * step;
+        self.elapsed += step;
+        let velocity = Vec3::new(
+            dx * self.horizontal_speed,
+            dy * self.horizontal_speed,
+            self.vertical_speed,
+        );
+        let ended = self.elapsed >= self.duration
+            || calculate_distance(next, self.end_position, false) < 0.01;
+        Some((next, velocity, ended))
+    }
+}
+
 /// `FloatingSkillController` state.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FloatingMove {
@@ -441,6 +584,7 @@ pub enum Behavior {
     Floating(FloatingMove),
     Wandering(WanderingMove),
     Leap(LinearMove),
+    BallisticLeap(LeapArc),
     Dash(LinearMove),
 }
 
@@ -553,6 +697,38 @@ pub fn create(
         Some(SkillControllerKind::Leap) => {
             tracing::trace!("SkillController: create LeapSkillController");
             let (o, t) = positions(server, owner, target);
+            // Verified fixed-target subset only. The native unit-target path resolves
+            // live model closest points; retain the old behavior for those targets.
+            let self_target = target.as_obj().is_some_and(|obj| obj.same(owner));
+            if owner.as_npc().is_some()
+                && owner.transform().parent_obj_id == 0
+                && (matches!(target, Target::Pos(_)) || self_target)
+            {
+                let animation_speed = owner
+                    .with_unit(|u| {
+                        u.unit().calculate_with_bonuses(
+                            1000.0,
+                            crate::models::unit::UnitAttribute::AttackAnimSpeedMul,
+                            now_ms(),
+                        ) as f32
+                            / 1000.0
+                    })
+                    .unwrap_or(1.0);
+                let forward = self_target.then(|| {
+                    let v = world_pos(server, target)
+                        .to_quaternion()
+                        .rotate([0.0, 1.0, 0.0]);
+                    Vec3::new(v[0], v[1], v[2])
+                });
+                if let Some(arc) = LeapArc::new(template, o, t, forward, animation_speed) {
+                    return Some(new_ref(
+                        Some(template),
+                        owner,
+                        target,
+                        Behavior::BallisticLeap(arc),
+                    ));
+                }
+            }
             let mut l = LinearMove::leap(template, o, t);
             clip_linear_move(server, owner, o, &mut l);
             tracing::debug!(
@@ -747,7 +923,9 @@ impl SkillControllerRef {
                 }
                 self.subscribe(server);
             }
-            Behavior::Leap(_) | Behavior::Dash(_) => self.subscribe(server),
+            Behavior::Leap(_) | Behavior::BallisticLeap(_) | Behavior::Dash(_) => {
+                self.subscribe(server)
+            }
         }
     }
 
@@ -778,6 +956,9 @@ impl SkillControllerRef {
             }
         }
         self.base_end(owner_present);
+        if matches!(behavior, Behavior::BallisticLeap(_)) && owner_present {
+            npc_stop_movement(server, &self.owner);
+        }
         if let Behavior::Wandering(_) = behavior {
             if !owner_present || self.owner.as_npc().is_none() {
                 return;
@@ -807,6 +988,19 @@ impl SkillControllerRef {
         let behavior = self.lock().behavior;
         let source = self.source_buff_id();
         let next = match behavior {
+            Behavior::BallisticLeap(arc) => {
+                if !present
+                    || self.owner_dead()
+                    || (source == 0
+                        && self.has_effect(server, |t| {
+                            t.stun || t.sleep || t.root || t.knockdown || t.fastened
+                        }))
+                {
+                    Next::End
+                } else {
+                    self.leap_arc_tick(server, arc, dt)
+                }
+            }
             Behavior::Leap(l) | Behavior::Dash(l) => {
                 // Owner gone / dead; a voluntary move (no source buff) also ends on stun / sleep.
                 if !present
@@ -941,6 +1135,7 @@ impl SkillController {
             Behavior::Floating(_) => SkillControllerKind::Floating,
             Behavior::Wandering(_) => SkillControllerKind::Wandering,
             Behavior::Leap(_) => SkillControllerKind::Leap,
+            Behavior::BallisticLeap(_) => SkillControllerKind::Leap,
             Behavior::Dash(_) => SkillControllerKind::Dash,
         }
     }
@@ -988,7 +1183,93 @@ impl SkillController {
         })
     }
 
-    /// `DashSkillController.MoveTowards` / `LeapSkillController.MoveTowards`.
+    fn leap_arc_tick(&self, server: &GameServer, mut arc: LeapArc, dt: f32) -> Next {
+        let current = self.local_pos();
+        let Some((mut next, mut velocity, mut ended)) = arc.advance(current, dt) else {
+            return Next::End;
+        };
+        // Native predicts contacts on its active living actor. This server has inactive
+        // proxies: sweep each actual 3D step instead of preclipping the ground chord.
+        // Stop at a solid contact; no terrain snap may erase the airborne part of the arc.
+        let model = self.owner.with_unit(|u| u.unit().model_id).unwrap_or(0);
+        let collider = server
+            .game_data
+            .systems
+            .ai
+            .collision
+            .living
+            .get(&model)
+            .map(crate::systems::ai::collision::displacement::Collider::from_living)
+            .unwrap_or_default();
+        let hit = crate::systems::ai::collision::sweep_capsule(
+            server,
+            self.owner.transform().instance_id,
+            [current.x, current.y, current.z + collider.height],
+            [next.x, next.y, next.z + collider.height],
+            collider.radius,
+            collider.half_height,
+            crate::systems::ai::collision::displacement::ENT_TYPES_SOLID,
+        );
+        if let Some(Some(contact)) = hit {
+            let distance = calculate_distance(current, next, true);
+            if distance > f32::EPSILON {
+                next = add_distance_to_front_between(
+                    (contact.dist - 0.1).max(0.0).min(distance),
+                    distance,
+                    current,
+                    next,
+                );
+            } else {
+                next = current;
+            }
+            velocity = Vec3::default();
+            ended = true;
+        }
+        {
+            let mut inner = self.lock();
+            if inner.state == ScState::Ended {
+                return Next::End;
+            }
+            inner.behavior = Behavior::BallisticLeap(arc);
+        }
+        let mut tr = self.owner.transform();
+        if arc.rotate && calculate_distance(current, next, false) > f32::EPSILON {
+            tr.rot_z = heading(current, next).0;
+        }
+        self.owner.with_transform(|t| {
+            t.set_xyz(next.x, next.y, next.z);
+            t.rot_z = tr.rot_z;
+        });
+        let (rx, ry, rz) = roll_pitch_yaw_sbytes_movement(tr.rot_x, tr.rot_y, tr.rot_z);
+        let wire_velocity = |v: f32| (v * 1000.0).clamp(i16::MIN as f32, i16::MAX as f32) as i16;
+        self.send_move(
+            server,
+            UnitMove {
+                x: next.x,
+                y: next.y,
+                z: next.z,
+                vel_x: wire_velocity(velocity.x),
+                vel_y: wire_velocity(velocity.y),
+                vel_z: wire_velocity(velocity.z),
+                rotation_x: rx,
+                rotation_y: ry,
+                rotation_z: rz,
+                delta_movement: [0, 127, 0],
+                stance: GameStanceType(0),
+                alertness: MoveTypeAlertness::COMBAT,
+                actor_flags: MoveTypeActorFlags(4),
+                ..UnitMove::default()
+            },
+            MoveTypeFlags::MOVING,
+        );
+        if ended {
+            Next::End
+        } else {
+            Next::Continue
+        }
+    }
+
+    /// `DashSkillController.MoveTowards` / unsupported-target `LeapSkillController.MoveTowards`.
     fn linear_move_towards(
         &self,
         server: &GameServer,
@@ -1326,6 +1607,10 @@ pub fn npc_stop_movement(server: &GameServer, npc: &WorldObject) {
 }
 
 #[cfg(test)]
+#[path = "leap_arc_tests.rs"]
+mod leap_arc_tests;
+
+#[cfg(test)]
 mod tests {
     use super::super::data::BuffTemplate;
     use super::*;
@@ -1510,7 +1795,7 @@ mod tests {
     const PLAYER_OBJ: u32 = 0x100;
     const NPC_OBJ: u32 = 0x200;
 
-    fn setup() -> (Arc<GameServer>, TestClient, PlayerRef, NpcRef) {
+    pub(super) fn setup() -> (Arc<GameServer>, TestClient, PlayerRef, NpcRef) {
         let server = Arc::new(test_server_with(GameData::empty()));
         super::super::bind(&server);
         let client = TestClient::new(&server, 1, 1);

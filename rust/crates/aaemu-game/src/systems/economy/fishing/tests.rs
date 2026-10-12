@@ -25,6 +25,313 @@ const OTHER_PACK: u32 = 99991;
 const FILLER: u32 = 99992;
 const REFUND: i32 = 400000;
 
+const FISH_STATUS: u32 = 5357;
+const ATTACK_MARKER: u32 = 91001;
+const ATTACKED_MARKER: u32 = 91002;
+const SIEGE_IMMUNITY: u32 = 91003;
+
+struct FishDamageFixture {
+    server: Arc<GameServer>,
+    owner: PlayerRef,
+    foreign: PlayerRef,
+    fish: crate::world::NpcRef,
+    _owner_client: TestClient,
+    foreign_client: TestClient,
+}
+
+impl FishDamageFixture {
+    fn new() -> Self {
+        Self::with_creator_flag(true)
+    }
+
+    fn with_creator_flag(creator_flag: bool) -> Self {
+        use crate::systems::skills::data::BuffTemplate;
+        let mut data = GameData::empty();
+        // Actual 1.2 small-FISH immunity: Siege(3) remains allowed, while
+        // the creator association is independently held by the spawned NPC.
+        data.systems.skills.add_buff(BuffTemplate {
+            id: FISH_STATUS,
+            kind: 3,
+            duration: 600_000,
+            melee_immune: true,
+            spell_immune: true,
+            ranged_immune: true,
+            immune_except_creator: creator_flag,
+            immune_except_skill_tag_id: 1024,
+            ..Default::default()
+        });
+        data.systems
+            .skills
+            .tagged_buffs
+            .insert(1025, vec![FISH_STATUS]);
+        data.systems.skills.skill_tags.insert(21196, vec![1024]);
+        for (id, attack, attacked, siege) in [
+            (ATTACK_MARKER, true, false, false),
+            (ATTACKED_MARKER, false, true, false),
+            (SIEGE_IMMUNITY, false, false, true),
+        ] {
+            data.systems.skills.add_buff(BuffTemplate {
+                id,
+                kind: 1,
+                stack_rule: 1,
+                remove_on_attack_etc: attack,
+                remove_on_attacked_etc: attacked,
+                siege_immune: siege,
+                // An unrelated creator flag must not qualify the FISH buff.
+                immune_except_creator: true,
+                ..Default::default()
+            });
+        }
+        data.skills.buffs.insert(
+            FISH_STATUS,
+            crate::data::skills::BuffTemplate::simple(
+                FISH_STATUS,
+                crate::data::skills::BuffKind::Hidden,
+            ),
+        );
+        let server = Arc::new(test_server_with(data));
+        server.set_self();
+        crate::systems::skills::bind(&server);
+        let mut owner_client = TestClient::new(&server, 71, 1071);
+        let owner = spawn_player(
+            &server,
+            &owner_client,
+            test_character(71, "FishOwner", 100.0, 100.0),
+            0x710,
+        );
+        owner_client.conn.active_char = Some(owner.clone());
+        let mut foreign_client = TestClient::new(&server, 72, 1072);
+        let foreign = spawn_player(
+            &server,
+            &foreign_client,
+            test_character(72, "OtherFisher", 100.0, 100.0),
+            0x720,
+        );
+        foreign_client.conn.active_char = Some(foreign.clone());
+        let mut npc = crate::models::npc::Npc::new(12835);
+        npc.unit.level = 5;
+        npc.unit.hp = 1000;
+        npc.unit.max_hp = 1000;
+        npc.unit.owner_id = owner.character_id;
+        npc.unit.transform.set_xyz(105.0, 100.0, 100.0);
+        let fish = Entity::new(0x730, npc);
+        let template = crate::systems::npcs::npc::data::NpcTemplate {
+            id: 12835,
+            buffs: vec![FISH_STATUS],
+            ..Default::default()
+        };
+        crate::systems::npcs::npc::manager::initialize_spawn_buffs(&server, &fish, &template);
+        // Finish queued spawn-buff activation before damage snapshots; a later
+        // attack callback must not become the fixture's first dispatch.
+        crate::systems::dispatch_buff_events(&server, &WorldObject::from(&fish));
+        assert_eq!(
+            fish.data().unit.buffs.effects[0].state,
+            crate::models::buff::effect_state::ACTING,
+        );
+        server
+            .world
+            .world(0)
+            .unwrap()
+            .spawn(&fish, &server.view_ctx());
+        owner_client.drain();
+        foreign_client.drain();
+        Self {
+            server,
+            owner,
+            foreign,
+            fish,
+            _owner_client: owner_client,
+            foreign_client,
+        }
+    }
+
+    fn damage(&self, caster: &WorldObject, damage_type: u8) {
+        self.damage_with_skill(caster, damage_type, None);
+    }
+
+    fn damage_with_skill(&self, caster: &WorldObject, damage_type: u8, skill_id: Option<u32>) {
+        use crate::systems::skills::effects::{combat, EffectArgs, EffectSource};
+        use crate::systems::skills::geometry::Target;
+        use crate::systems::skills::types::{
+            CastAction, SkillCastTarget, SkillCaster, SkillObject,
+        };
+        let mut damage = crate::systems::skills::tests::damage_effect(91000, 100);
+        damage.damage_type = damage_type.into();
+        let args = EffectArgs {
+            caster: Some(caster.clone()),
+            caster_caster: SkillCaster::Unit(caster.obj_id()),
+            target: Target::Obj(WorldObject::from(&self.fish)),
+            target_caster: SkillCastTarget::Unit(self.fish.obj_id),
+            cast: CastAction::Skill {
+                skill_id: skill_id.unwrap_or(91000),
+                tl_id: 0,
+            },
+            source: skill_id.map_or_else(EffectSource::default, |id| {
+                EffectSource::from_skill(crate::systems::skills::state::SkillRun::new(
+                    Arc::new(crate::systems::skills::tests::skill_template(id)),
+                    1,
+                ))
+            }),
+            skill_object: &SkillObject::None,
+        };
+        combat::damage(&self.server, &damage, &args, None);
+    }
+}
+
+#[tokio::test]
+async fn fish_creator_blocks_foreign_ordinary_siege_damage() {
+    use crate::systems::skills::packets::SCUnitDamagedPacket;
+    use crate::systems::skills::types::{CastAction, SkillCaster, SkillHitType};
+    use crate::systems::skills::{buffs, types::DamageType};
+    use aaemu_commons::PacketStream;
+    let mut f = FishDamageFixture::new();
+    let original = f.fish.data().unit.buffs.effects[0].clone();
+    assert_eq!(original.caster_obj_id, f.fish.obj_id);
+    assert_eq!(f.fish.data().unit.owner_id, f.owner.character_id);
+    assert!(!buffs::check_damage_immune(
+        &f.server,
+        &WorldObject::from(&f.fish),
+        Some(DamageType::Siege),
+    ));
+    // The owner control uses the actual 1.2 fishing reaction's exception tag.
+    f.damage_with_skill(&WorldObject::from(&f.owner), 3, Some(21196));
+    assert_eq!(f.fish.data().unit.hp, 900);
+    f.fish.data().unit.hp = 1000;
+    let foreign = WorldObject::from(&f.foreign);
+    let fish = WorldObject::from(&f.fish);
+    buffs::add_buff_by_id(&f.server, &foreign, ATTACK_MARKER, &foreign, 0);
+    buffs::add_buff_by_id(&f.server, &fish, ATTACKED_MARKER, &fish, 0);
+    let fish_buffs = f.fish.data().unit.buffs.effects.clone();
+    let foreign_buffs = f.foreign.data().unit.buffs.effects.clone();
+    let aggro = f.fish.data().unit.skill_state.aggro_table.clone();
+    f.foreign_client.drain();
+    f.damage(&WorldObject::from(&f.foreign), 3);
+    assert_eq!(f.fish.data().unit.hp, 1000);
+    assert_eq!(f.fish.data().unit.buffs.effects, fish_buffs);
+    assert_eq!(f.foreign.data().unit.buffs.effects, foreign_buffs);
+    assert_eq!(f.fish.data().unit.skill_state.aggro_table, aggro);
+    assert_eq!(f.foreign.data().unit.summarize_damage, 0);
+    assert_eq!(f.fish.data().unit.buffs.effects[0], original);
+    let mut immune = SCUnitDamagedPacket::new(
+        CastAction::Skill {
+            skill_id: 91000,
+            tl_id: 0,
+        },
+        SkillCaster::Unit(f.foreign.obj_id),
+        f.foreign.obj_id,
+        f.fish.obj_id,
+        1,
+        0,
+    );
+    immune.hit_type = SkillHitType::Immune;
+    let mut expected = PacketStream::new();
+    expected.write(&immune);
+    let frames = f.foreign_client.drain();
+    assert_eq!(
+        frames
+            .iter()
+            .filter(|p| p.0 == sc::SCUnitDamagedPacket)
+            .count(),
+        1,
+    );
+    assert_eq!(
+        frames
+            .into_iter()
+            .find(|p| p.0 == sc::SCUnitDamagedPacket)
+            .unwrap()
+            .1,
+        expected.into_bytes(),
+    );
+    // A valid fishing skill tag still cannot override a different creator.
+    f.damage_with_skill(&foreign, 3, Some(21196));
+    assert_eq!(f.fish.data().unit.hp, 1000);
+    assert_eq!(f.fish.data().unit.buffs.effects, fish_buffs);
+    assert_eq!(f.foreign.data().unit.buffs.effects, foreign_buffs);
+    assert_eq!(f.foreign.data().unit.summarize_damage, 0);
+}
+
+#[tokio::test]
+async fn fish_creator_preserves_owner_reaction_and_other_damage_immunity() {
+    use crate::systems::skills::buffs;
+    let f = FishDamageFixture::new();
+    let owner = WorldObject::from(&f.owner);
+    let fish = WorldObject::from(&f.fish);
+    let original = f.fish.data().unit.buffs.effects[0].clone();
+    buffs::add_buff_by_id(&f.server, &owner, ATTACK_MARKER, &owner, 0);
+    f.damage(&owner, 3);
+    f.damage_with_skill(&owner, 3, Some(91000));
+    assert_eq!(f.fish.data().unit.hp, 1000);
+    assert!(f.owner.data().unit.buffs.check_buff(ATTACK_MARKER));
+    assert_eq!(f.owner.data().unit.summarize_damage, 0);
+    f.damage_with_skill(&owner, 3, Some(21196));
+    assert_eq!(f.fish.data().unit.hp, 900);
+    assert!(!f.owner.data().unit.buffs.check_buff(ATTACK_MARKER));
+    assert_eq!(f.fish.data().unit.buffs.effects[0], original);
+    for damage_type in [1, 2, 4] {
+        f.damage_with_skill(&owner, damage_type, Some(21196));
+        assert_eq!(f.fish.data().unit.hp, 900);
+    }
+    buffs::add_buff_by_id(&f.server, &fish, SIEGE_IMMUNITY, &fish, 0);
+    f.damage_with_skill(&owner, 3, Some(21196));
+    assert_eq!(f.fish.data().unit.hp, 900);
+}
+
+#[tokio::test]
+async fn fish_creator_scope_excludes_unowned_unflagged_and_removed_fish_status() {
+    use crate::systems::skills::buffs;
+    let f = FishDamageFixture::with_creator_flag(false);
+    let fish = WorldObject::from(&f.fish);
+    // A creator flag on a different, non-FISH buff must not qualify this status.
+    buffs::add_buff_by_id(&f.server, &fish, ATTACKED_MARKER, &fish, 0);
+    f.damage(&WorldObject::from(&f.foreign), 3);
+    assert_eq!(f.fish.data().unit.hp, 900);
+
+    let f = FishDamageFixture::new();
+    f.fish.data().unit.owner_id = 0;
+    f.damage(&WorldObject::from(&f.foreign), 3);
+    assert_eq!(f.fish.data().unit.hp, 900);
+
+    let f = FishDamageFixture::new();
+    buffs::remove_buff(&f.server, &WorldObject::from(&f.fish), FISH_STATUS);
+    assert!(!f.fish.data().unit.buffs.check_buff(FISH_STATUS));
+    f.damage(&WorldObject::from(&f.foreign), 3);
+    assert_eq!(f.fish.data().unit.hp, 900);
+}
+
+#[tokio::test]
+async fn fish_creator_keeps_npc_source_and_removed_status_death_damage() {
+    use crate::systems::skills::buffs;
+    let f = FishDamageFixture::new();
+    crate::systems::npcs::bridges::install(&f.server);
+    let mut npc = crate::models::npc::Npc::new(1234);
+    npc.unit.level = 5;
+    npc.unit.hp = 1000;
+    npc.unit.max_hp = 1000;
+    npc.unit.transform.set_xyz(105.0, 100.0, 100.0);
+    let npc = Entity::new(0x740, npc);
+    f.server
+        .world
+        .world(0)
+        .unwrap()
+        .spawn(&npc, &f.server.view_ctx());
+    let npc_source = WorldObject::from(&npc);
+    assert!(!super::blocks_character_fish_damage(
+        &f.server,
+        &WorldObject::from(&f.fish),
+        &WorldObject::from(&f.fish),
+        None,
+    ));
+    f.damage(&npc_source, 3);
+    assert_eq!(f.fish.data().unit.hp, 900);
+    // Death plot792 dispels FISH before its damage. This preserves that
+    // callback boundary without guessing a creator from a buff caster.
+    buffs::remove_buff(&f.server, &WorldObject::from(&f.fish), FISH_STATUS);
+    f.fish.data().unit.hp = 100;
+    f.damage_with_skill(&WorldObject::from(&f.owner), 3, Some(21322));
+    assert_eq!(f.fish.data().unit.hp, 0);
+    assert!(f.fish.data().dead_time_ms > 0);
+}
+
 fn data() -> GameData {
     let mut data = GameData::empty();
     for id in [FISH, OTHER_PACK] {
@@ -647,6 +954,27 @@ async fn real_compact_db_sport_fishing_rules_and_plot_consumption() {
     let conn =
         rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
             .unwrap();
+    for buff_id in [5357, 6213, 6214] {
+        let rules: (String, String, u32) = conn
+            .query_row(
+                "SELECT immune_except_creator,siege_immune,immune_except_skill_tag_id FROM buffs WHERE id=?",
+                [buff_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(rules, ("t".into(), "f".into(), 1024));
+    }
+    assert_eq!(crate::systems::skills::types::DamageType::Siege as u8, 3);
+    for skill_id in [21135, 21194, 21195, 21196, 21290] {
+        let tagged: u32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM tagged_skills WHERE tag_id=1024 AND skill_id=?",
+                [skill_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(tagged, 1);
+    }
     let mut game_data = GameData::empty();
     game_data.items = crate::data::items::ItemData::load(&conn).unwrap();
     game_data.systems.economy.items =

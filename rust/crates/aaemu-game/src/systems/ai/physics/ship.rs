@@ -107,6 +107,9 @@ pub struct PhysShip {
     pub model: ShipModel,
     /// Authored prefab brushes named `buoy*` (shared CGF geometries, local placements).
     pub buoys: Vec<crate::systems::ai::collision::objects::ShapePart>,
+    /// Authored default collision geometry bounds in unscaled game/model axes. Native
+    /// hull bounds are independent of the inertia-only mass box; None keeps asset-free fallback.
+    pub collision_bounds: Option<aaemu_physics::geometry::primitives::BoxPrim>,
     pub body: RigidBody,
     pub replication: ReplicationSmoothing,
     /// The ship's `Transform` (game axes; ships are root objects so local = world). Written to the
@@ -183,6 +186,7 @@ impl PhysShip {
             spec,
             model,
             buoys: Vec::new(),
+            collision_bounds: None,
             body,
             replication: ReplicationSmoothing::default(),
             view,
