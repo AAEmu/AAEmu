@@ -114,6 +114,80 @@ steps and the limits of those tests are in the driver's
 Build commands, MCP connection settings and the repeatable startup comparison
 are in [`rust/docs/client/LUA-DRIVER.md`](https://github.com/AAEmu/AAEmu/blob/develop/rust/docs/client/LUA-DRIVER.md#7-fast-startup-hidden-rendering-and-mcp).
 
+### Lossless compressed client packs
+
+`aaemu-pak` stores the original `game_pak` byte stream in independently compressed
+256 KB chunks. Every asset, file-table byte and original offset is preserved; no
+textures, audio or models are converted. The native driver presents those bytes to
+the supported Trion 1.2 client's existing pack reader. Each decoded chunk has a
+SHA-256 check and the reader uses a shared 32 MB cache.
+
+Build the Windows tooling with MSVC installed:
+
+```powershell
+Scripts/build-client-pak.ps1
+```
+
+This builds `aaemu-pak.exe`, the launcher and MCP CLI in Cargo's release directory,
+plus the x86 `aaemu_pak.dll`, `aadriver.dll` and injector in the driver's output
+directory. `-OutputDirectory PATH` selects another driver directory. Keep both
+DLLs together when distributing the tools.
+
+Convert into a separate directory, then verify it:
+
+```powershell
+aaemu-pak build C:\ArcheAge\game_pak D:\ArcheAgeCompressed
+aaemu-pak verify D:\ArcheAgeCompressed\game.aacm
+```
+
+The output is `game.aacm` and content-addressed `.aacb` blobs. Launch with
+`--pak-manifest D:\ArcheAgeCompressed\game.aacm`, or place the manifest and its
+blobs in a writable client distribution's root alongside `bin32` and `game`.
+The normal launcher discovers that root's `game.aacm` automatically; MCP
+`client_launch` also accepts `pak_manifest`. `--no-compressed-pak` disables
+automatic discovery. Conversion never modifies the source pack.
+
+To distribute an update, first produce the updated original-format pack, then
+create a patch against the exact installed manifest:
+
+```powershell
+aaemu-pak diff D:\Updated\game_pak D:\ArcheAgeCompressed\game.aacm D:\UpdatePackage
+aaemu-pak apply D:\ArcheAgeCompressed\game.aacm D:\UpdatePackage
+```
+
+Send the entire `UpdatePackage` directory. Its receipt binds the base and new
+manifest hashes. Close clients before applying; the Windows driver pins its
+manifest so updates fail while it is running. The updater verifies the candidate
+stream and blobs before replacing the manifest, rejects a different base, and
+treats a repeated successful update as a verified no-op. Old manifests and blobs
+remain available for rollback.
+
+Patches reuse identical chunks at any logical offset, including aligned moves and
+duplicates. Insertions that shift content by less than a chunk can still produce
+a large patch. Old blobs remain on disk after updates; space reclamation and
+automatic downloading are separate future work. Receipts check package integrity
+and the installed base; they do not authenticate the publisher. Distribute updates
+through a trusted channel.
+
+The complete reference 1.2 pack shrank from 24.88 GB to 12.86 GB (48.3%), including
+its manifest. Full decoded-stream SHA-256 matched the original, and a separate
+client with no original `game_pak` authenticated, rendered the world and moved.
+Compression alone increased warm world-loading time in three local trials; it is
+a storage option, and its speed depends on disk speed and decompression.
+
+To experiment with leaving frequently read chunks uncompressed, record a pak trace
+with the MCP profiler or `Scripts/client-smoke.py --pak-profile`, then package it:
+
+```powershell
+aaemu-pak profile D:\ArcheAgeCompressed\game.aacm D:\Trace\fast-2-pak.csv D:\HotChunkUpdate
+aaemu-pak apply D:\ArcheAgeCompressed\game.aacm D:\HotChunkUpdate
+```
+
+This preserves every logical byte and keeps untraced chunks compressed. It adds a
+raw blob while retaining the old compressed blob for rollback, so budget additional
+disk space. Trace coverage depends on the character, area and actions exercised;
+measure startup and world loading before choosing it for a distribution.
+
 ### Extra client archives
 
 - [MEGA client directory (multiple versions)](https://mega.nz/folder/C3Q0WQjT#vRUethZLPiYSo2B4nE_etg)

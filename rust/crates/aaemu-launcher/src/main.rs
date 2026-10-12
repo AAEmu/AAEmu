@@ -40,6 +40,8 @@ aaemu-launcher: start the ArcheAge 1.2 (Trion) client with a launcher ticket
   --hidden               render in a hidden 1280x720 DX10 window (needs the driver)
   --multi-client         accept this client's built-in confirmation for another instance
   --driver-dll PATH      x86 aadriver.dll (required for startup audio policy)
+  --pak-manifest PATH    lossless compressed pak manifest; else <client>/game.aacm if present
+  --no-compressed-pak    disable automatic compressed pak discovery
   --arg X                extra client argument (repeatable)
   --no-hshield-arg       do not append +acpxmk
   --cwd DIR              working directory of the client (default: the executable's folder)
@@ -68,6 +70,8 @@ struct Cli {
     smooth_start: bool,
     hidden: bool,
     multi_client: bool,
+    pak_manifest: Option<PathBuf>,
+    compressed_pak: bool,
 }
 
 fn parse_cli() -> anyhow::Result<Cli> {
@@ -95,6 +99,8 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> anyhow::Result<Cli> {
         smooth_start: true,
         hidden: false,
         multi_client: false,
+        pak_manifest: std::env::var_os("AAEMU_PAK_MANIFEST").map(PathBuf::from),
+        compressed_pak: true,
     };
     while let Some(a) = it.next() {
         let mut val = || it.next().with_context(|| format!("{a} needs a value"));
@@ -116,6 +122,14 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> anyhow::Result<Cli> {
             "--no-smooth-start" => cli.smooth_start = false,
             "--hidden" => cli.hidden = true,
             "--multi-client" => cli.multi_client = true,
+            "--pak-manifest" => {
+                cli.pak_manifest = Some(val()?.into());
+                cli.compressed_pak = true;
+            }
+            "--no-compressed-pak" => {
+                cli.pak_manifest = None;
+                cli.compressed_pak = false;
+            }
             "--driver-dll" => cli.driver_dll = Some(val()?.into()),
             "--arg" => cli.extra.push(val()?),
             "--no-hshield-arg" => cli.hshield_arg = false,
@@ -177,6 +191,16 @@ fn driver_candidates(exe: &std::path::Path) -> Vec<PathBuf> {
     paths
 }
 
+fn compressed_pak_path(cli: &Cli, client: &std::path::Path) -> Option<PathBuf> {
+    if !cli.compressed_pak {
+        return None;
+    }
+    cli.pak_manifest.clone().or_else(|| {
+        let candidate = client.parent()?.parent()?.join("game.aacm");
+        candidate.is_file().then_some(candidate)
+    })
+}
+
 fn main() -> anyhow::Result<()> {
     let mut cli = parse_cli()?;
     if cli.driver_dll.is_none() && !cli.dry_run {
@@ -222,6 +246,25 @@ fn main() -> anyhow::Result<()> {
         .client
         .clone()
         .context("--client (or AAEMU_CLIENT) is required")?;
+    if let Some(path) = compressed_pak_path(&cli, &client) {
+        if !path.is_file() {
+            bail!("compressed pak manifest {} not found", path.display());
+        }
+        if !cli.dry_run {
+            let bridge = cli
+                .driver_dll
+                .as_ref()
+                .and_then(|dll| dll.parent())
+                .context("compressed pak requires an early client driver")?
+                .join("aaemu_pak.dll");
+            if !bridge.is_file() {
+                bail!("compressed pak bridge {} not found; build the i686 aaemu-pak library next to aadriver.dll", bridge.display());
+            }
+        }
+        cli.extra.push("-aaemu-pak-manifest".into());
+        cli.extra
+            .push(path.canonicalize()?.to_string_lossy().into_owned());
+    }
     let user = cli.user.clone().context("--user is required")?;
     if user.trim().is_empty() {
         bail!("--user must not be empty");
@@ -378,6 +421,28 @@ mod tests {
     fn additional_instance_confirmation_is_explicit() {
         let cli = parse_args(["--multi-client".to_owned()].into_iter()).unwrap();
         assert!(cli.multi_client);
+    }
+
+    #[test]
+    fn compressed_pak_selection_is_explicit_and_can_be_disabled() {
+        let client = PathBuf::from("Client").join("bin32").join("archeage.exe");
+        let cli = parse_args(
+            ["--pak-manifest", "custom.aacm"]
+                .into_iter()
+                .map(str::to_owned),
+        )
+        .unwrap();
+        assert_eq!(
+            compressed_pak_path(&cli, &client),
+            Some("custom.aacm".into())
+        );
+        let cli = parse_args(
+            ["--pak-manifest", "custom.aacm", "--no-compressed-pak"]
+                .into_iter()
+                .map(str::to_owned),
+        )
+        .unwrap();
+        assert_eq!(compressed_pak_path(&cli, &client), None);
     }
 
     #[test]

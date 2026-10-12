@@ -104,6 +104,8 @@ def wait_stage(rpc, pid, expected, timeout):
                 return
         except RuntimeError as error:
             last = str(error)
+            if "not a running archeage.exe" in last:
+                raise RuntimeError(f"client exited before stage {expected}: {last}") from error
         time.sleep(0.5)
     raise RuntimeError(f"stage {expected} not reached within {timeout}s: {last}")
 
@@ -134,6 +136,9 @@ def main():
     parser.add_argument("--driver-exe", type=pathlib.Path, required=True)
     parser.add_argument("--dll", type=pathlib.Path, required=True)
     parser.add_argument("--client", type=pathlib.Path, required=True)
+    parser.add_argument("--launcher", type=pathlib.Path)
+    parser.add_argument("--pak-manifest", type=pathlib.Path,
+                        help="launch through the lossless compressed pack manifest")
     parser.add_argument("--password-file", type=pathlib.Path, required=True)
     parser.add_argument("--login", default="127.0.0.1:1237")
     parser.add_argument("--user", default="clienttest")
@@ -172,6 +177,8 @@ def main():
     command = [str(args.driver_exe), "mcp", "--dll", str(args.dll), "--client", str(args.client),
                "--password-file", str(args.password_file), "--login", args.login, "--user", args.user,
                "--artifact-dir", str(args.output_dir / "mcp")]
+    if args.launcher:
+        command.extend(["--launcher", str(args.launcher)])
     rpc = Rpc(command)
     measurements = []
     try:
@@ -191,7 +198,10 @@ def main():
                 label = f"{profile}-{trial + 1}"
                 started = time.monotonic()
                 try:
-                    launch = rpc.text("client_launch", fast_start=fast, fast_pak=fast_pak, smooth_start=smooth, hidden=args.hidden)
+                    launch_args = dict(fast_start=fast, fast_pak=fast_pak, smooth_start=smooth, hidden=args.hidden)
+                    if args.pak_manifest:
+                        launch_args["pak_manifest"] = str(args.pak_manifest.resolve())
+                    launch = rpc.text("client_launch", **launch_args)
                     pid = int(re.search(r"client started \(pid (\d+)\)", launch)[1])
                     if args.compare_smooth:
                         priority = PriorityProbe(pid)
@@ -252,6 +262,8 @@ def main():
                         rpc.tool("client_window", pid=pid, visible=False)
                     entry = {"profile": label, "fast_pak": fast_pak, "smooth_start": smooth, "seconds_to_server_select": seconds, "hidden": args.hidden,
                              "status": status, "screenshot": str((args.output_dir / f"{label}.png").resolve())}
+                    if args.pak_manifest:
+                        entry["pak_manifest"] = str(args.pak_manifest.resolve())
                     if priority_samples is not None:
                         entry["priority_classes"] = sorted(set(s[1] for s in priority_samples))
                         (args.output_dir / f"{label}-priority.json").write_text(json.dumps(priority_samples), encoding="utf-8")

@@ -364,6 +364,29 @@ including when the MCP session disconnects, and `key: "release"` clears every te
 The native fixture tests cover key IDs, overlapping presses, deadlines, release and invalid
 commands. These inputs work while hidden and do not send keys to another desktop application.
 
+Number-row keys `"1"` through `"0"` also accept an optional `modifiers` array containing
+distinct `"ctrl"`, `"shift"`, and `"alt"` values. For example,
+`client_input {"pid":1234,"key":"1","modifiers":["ctrl"],"duration_ms":100}` presses a
+bounded Ctrl+1 chord through the normal client input listeners. Modifiers precede the key;
+key release precedes modifier release. Overlapping chords retain shared modifiers until the
+last chord ends, and `release` clears all driver-held keys. A failed primary press releases
+only modifiers newly pressed for that request. Existing physical modifier flags are included
+in events without writing the client's physical modifier state.
+An accepted chord confirms input submission. Confirm a skill cast separately with
+server packets and resource, cooldown or buff changes; an empty hotkey query alone
+does not establish the binding's native signature or prove the action is unbound.
+
+This mapping comes from the target binary, not a modern engine header: r208022
+`CryInput.dll` (timestamp `0x543CB7CE`, image size `0x14000`) registers number-row IDs 1–10
+at `0x335034A4` onward, Ctrl ID 28 at `0x3350381A`, Shift ID 41 at `0x335039B9`, and
+Alt ID 55 at `0x33503B9E`. Their native modifier masks are `0x11`, `0x22`, and `0x44`.
+The keyboard event builder `0x3350416C` supplies modifier flags to the 32-byte event at
+offset 20; `0x3350439C` writes its value at offset 24. The driver reads physical modifiers
+through guarded slot 22 (`0x33501E65`) and composes each synthetic event's mask. Native
+tests cover event bytes, modifier overlap, release ordering, deadlines and failed-post cleanup.
+Input submission does not prove that a skill cast succeeded: verify the client's binding,
+server cast, mana and buff results. The live pet Run! shortcut remains unverified.
+
 `client_use_item` calls `X2Bag:UseItemByType` for a scroll actually present in inventory, preserving
 the client's normal skill cast, placement checks and server ownership checks. `accepted: true`
 means the client accepted the request; wait for casting/portal completion and verify
@@ -688,3 +711,77 @@ driver pipes are separate per process; the stock clients still share
 `Documents\ArcheAge` logs and settings. Shared client logs can overwrite or interleave and
 are unsuitable as per-process evidence. Use PID-specific driver telemetry/screenshots and
 server logs instead. This harness does not isolate Windows user profiles or benchmark FPS.
+
+## 12. Compressed pack testing
+
+Run `Scripts/build-client-pak.ps1` to build the x86 Rust bridge, native driver and
+64-bit CLI tools. The bridge's C ABI exchanges opaque handles and caller-owned byte
+buffers; its allocator remains inside the DLL. The supported client DLL is checked
+against its r208022 PE timestamp and image size before installing pack hooks.
+
+The launcher passes `--pak-manifest` as the driver's private startup argument. The
+driver prepares silent audio first, loads the bridge and the client's stock
+`CrySystem.dll` while the main thread is suspended, then redirects that module's
+pack-file imports. The stock ANSI mount first calls the legacy CRT `_stat32i64`;
+that import and the wide mount's `GetFileAttributesW` report a read-only regular
+virtual file with the original 64-bit size. The CRT structure's 48-byte layout is
+checked against the shipped x86 runtime. Other files continue through the original
+functions.
+Virtual handles use independent cursors, 64-bit seeks, ordinary EOF behavior and
+read-only writes. Rust positional I/O and decoding run outside the shared cache
+lock, allowing independent client loader threads to read concurrently.
+
+MCP `client_launch` accepts an optional absolute `pak_manifest` path. Use a separate
+client copy containing `bin32` and `game` but no original `game_pak` to establish that
+the compressed path can actually boot, authenticate and load a world. Supply a
+disposable test account and character. `client_status` reports `virtual_pak=1`, the
+original logical pack size, and virtual open/read counters; save those with the
+rendered screenshot and normal server enter-world evidence.
+
+Run `aaemu-pak verify` before live tests. It checks complete blob hashes, all decoded
+chunks and the logical stream SHA-256. Native fixtures check cursor, seek, EOF,
+write-denial, legacy metadata layout and foreign-file forwarding; Rust tests cover concurrency, malformed
+manifests, update corruption, wrong bases, replay and OS writer-lock recovery after
+process termination. Windows update tests also check both directions of the
+client/update manifest-sharing exclusion. Do not replace a live client's manifest.
+
+The pack crate's Windows tests also run as 32-bit binaries, matching the bridge's
+architecture. Update tests bound receipt reads and blob hashing/copies even when
+package files change after preverification; failures preserve the installed
+manifest and do not publish an invalid blob.
+
+The complete local 1.2 pack test decoded 24,877,137,920 bytes with SHA-256
+`c7fa0c854fceb8ffaf6f2024c1b05f61a25f07ba2c1c5c1e0f7abe49daea1f34`, matching the
+original file independently. The compressed blob plus manifest occupies
+12,859,559,617 bytes (48.3% less). A disposable copy without `game_pak` reached the
+world, rendered, moved and passed all 21 client reader checks; engine sound and
+music remained disabled. Automatic `game.aacm` discovery passed repeated launches.
+
+Three sequential trials per pack, using the same disposable character, hidden
+rendering and fast/smooth/silent defaults, gave these medians on this machine:
+
+| Pack | Server-selection startup | Enter-world loading |
+|---|---:|---:|
+| Original pack | 21.875 s | 11.125 s |
+| Compressed 256 KB chunks | 23.141 s | 13.922 s |
+| Compressed with traced chunks stored raw | 23.328 s | 12.157 s |
+
+These are local warm-cache measurements, with no controlled cache flush or
+cross-machine comparison. Compression saved storage but increased warm world
+loading by 25.1%; do not infer a speed improvement from file size. To experiment
+with avoiding decompression of traced chunks, run `aaemu-pak profile BASE_MANIFEST
+READ_TRACE_CSV PATCH_DIRECTORY`, then apply that package offline. It preserves the
+logical hash, reuses cold chunks, and adds raw storage while retaining old blobs.
+Test areas beyond the trace before choosing a distribution profile.
+The recorded profile added 1,184,104,448 bytes, for 14,043,664,105 bytes including
+the manifest (43.5% below the original). Its median world load improved 12.7%
+over full compression but remained 9.3% slower than the original warm pack.
+A decoder-context reuse experiment did not improve these measurements reliably
+and was removed. Subsequent comparisons should identify the driver build and
+record cache conditions.
+
+The real update exclusion check launched an owned compressed client, attempted a
+valid profile package, and received Windows sharing error 32; the installed
+manifest SHA stayed unchanged. Closing that client permits normal verified update
+application. Root-relative SHA filenames and receipt bounds reject arbitrary file
+paths. Receipts protect integrity/base identity, not publisher authenticity.

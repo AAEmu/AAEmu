@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include "pakio.h"
+#include "virtualpak.h"
 
 namespace pakio {
 typedef DWORD (__cdecl *Read_t)(HANDLE, void*, DWORD);
@@ -64,6 +65,7 @@ static bool readAhead(bool small) {
 }
 
 static bool isPak(HANDLE file) {
+    if (virtualpak::is_handle(file)) return true;
     AcquireSRWLockShared(&lock);
     auto found = handles.find(file);
     bool known = found != handles.end();
@@ -90,7 +92,8 @@ static DWORD __cdecl hookRead(HANDLE file, void* buffer, DWORD count) {
         return originalRead(file, buffer, count);
     }
     LARGE_INTEGER position = {}, zero = {}, start, end;
-    bool positioned = SetFilePointerEx(file, zero, &position, FILE_CURRENT) != FALSE;
+    bool positioned = virtualpak::position(file, &position.QuadPart) ||
+        SetFilePointerEx(file, zero, &position, FILE_CURRENT) != FALSE;
     SetLastError(previousError);
     QueryPerformanceCounter(&start);
     DWORD result = originalRead(file, buffer, count);
@@ -150,9 +153,13 @@ static bool install() {
     if (!base || !xl) return false;
     void** read = importSlot(base, "?XlReadFile@@YAIPAX0I@Z");
     void** close = importSlot(base, "?XlCloseFile@@YA_NPAX@Z");
-    originalRead = reinterpret_cast<Read_t>(GetProcAddress(xl, "?XlReadFile@@YAIPAX0I@Z"));
-    originalClose = reinterpret_cast<Close_t>(GetProcAddress(xl, "?XlCloseFile@@YA_NPAX@Z"));
-    if (!read || !close || !originalRead || !originalClose) return false;
+    void* stockRead = GetProcAddress(xl, "?XlReadFile@@YAIPAX0I@Z");
+    void* stockClose = GetProcAddress(xl, "?XlCloseFile@@YA_NPAX@Z");
+    if (!read || !close || !stockRead || !stockClose) return false;
+    if (*read != stockRead && !virtualpak::owns_read_function(*read)) return false;
+    if (*close != stockClose && !virtualpak::owns_close_function(*close)) return false;
+    originalRead = reinterpret_cast<Read_t>(*read);
+    originalClose = reinterpret_cast<Close_t>(*close);
     QueryPerformanceFrequency(&frequency);
     samples.reserve(maxSamples);
     if (!exchange(close, reinterpret_cast<void*>(originalClose), reinterpret_cast<void*>(&hookClose))) return false;

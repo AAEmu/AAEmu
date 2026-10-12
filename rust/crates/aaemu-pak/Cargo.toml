@@ -1,0 +1,20 @@
+[package]
+name = "aaemu-pak"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Lossless chunked virtual ArcheAge pak and content-addressed updates"
+
+[lib]
+name = "aaemu_pak_bridge"
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+thiserror.workspace = true
+anyhow.workspace = true
+sha2.workspace = true
+hex.workspace = true
+zstd.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true

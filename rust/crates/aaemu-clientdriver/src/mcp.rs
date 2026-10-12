@@ -38,7 +38,7 @@ pub fn tools() -> Vec<Value> {
         tool("client_window", "Show or hide the client without minimising it. Hidden rendering needs a windowed DX10/DX11 client.",
             json!({"pid":pid,"visible":{"type":"boolean"}}), &["visible"], false),
         tool("client_launch", "Launch another local 1.2 client with its own ticket and early driver injection. Silent by default; sound=true enables client sound and music. user and password_file override the session defaults; passwords are accepted only by filename. Use distinct accounts and target subsequent actions by the returned PID.",
-            json!({"user":{"type":"string","minLength":1,"maxLength":32},"password_file":{"type":"string","minLength":1,"maxLength":32767},"fast_start":{"type":"boolean"},"fast_pak":{"type":"boolean"},"smooth_start":{"type":"boolean"},"hidden":{"type":"boolean"},"sound":{"type":"boolean","default":false}}), &[], false),
+            json!({"user":{"type":"string","minLength":1,"maxLength":32},"password_file":{"type":"string","minLength":1,"maxLength":32767},"pak_manifest":{"type":"string","minLength":1,"maxLength":32767},"fast_start":{"type":"boolean"},"fast_pak":{"type":"boolean"},"smooth_start":{"type":"boolean"},"hidden":{"type":"boolean"},"sound":{"type":"boolean","default":false}}), &[], false),
         tool("client_stop", "Stop a client launched by this MCP session. Existing user clients cannot be stopped by this tool.", json!({"pid":pid}), &["pid"], false),
     ];
     result.extend(actions::tools(pid));
@@ -87,6 +87,21 @@ fn validate(schema: &Value, args: &Value) -> anyhow::Result<()> {
                     && n <= property["maximum"].as_u64().unwrap_or(u64::MAX)
             }),
             Some("boolean") => value.is_boolean(),
+            Some("array") => value.as_array().is_some_and(|items| {
+                items.len() as u64 <= property["maxItems"].as_u64().unwrap_or(0)
+                    && items.iter().all(|item| {
+                        property["items"]["type"].as_str() == Some("string")
+                            && item.is_string()
+                            && property["items"]["enum"]
+                                .as_array()
+                                .is_some_and(|choices| choices.contains(item))
+                    })
+                    && (property["uniqueItems"] != true
+                        || items
+                            .iter()
+                            .enumerate()
+                            .all(|(i, item)| !items[..i].contains(item)))
+            }),
             Some("string") => value.as_str().is_some_and(|s| {
                 let len = s.chars().count() as u64;
                 len >= property["minLength"].as_u64().unwrap_or(0)
@@ -376,12 +391,7 @@ mod backend {
                     )
                 }
                 "client_input" => {
-                    let key = args["key"].as_str().context("missing key")?;
-                    let command = if key == "release" {
-                        key.into()
-                    } else {
-                        format!("{key} {}", args["duration_ms"].as_u64().unwrap_or(100))
-                    };
+                    let command = actions::input_command(args)?;
                     Ok(text_result(
                         driver.send(&Request::Input(command))?.into_result()?,
                     ))
@@ -486,6 +496,13 @@ mod backend {
                 .arg(&self.dll)
                 .arg("--multi-client");
             cmd.args(launch_profile_args(args));
+            if let Some(manifest) = args["pak_manifest"].as_str() {
+                let path = PathBuf::from(manifest);
+                if !path.is_file() {
+                    bail!("compressed pak manifest {} not found", path.display());
+                }
+                cmd.arg("--pak-manifest").arg(path);
+            }
             let output = cmd.output().context("launching client")?;
             let stdout = String::from_utf8_lossy(&output.stdout);
             if let Some(pid) = stdout.lines().find_map(|line| {

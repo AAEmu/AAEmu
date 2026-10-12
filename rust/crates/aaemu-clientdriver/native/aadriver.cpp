@@ -35,6 +35,7 @@
 #include <deque>
 #include "visuals.h"
 #include "pakio.h"
+#include "virtualpak.h"
 #include "startup.h"
 #include "input.h"
 #include "audio.h"
@@ -381,7 +382,7 @@ static std::string pingInfo() {
                 env ? *(void**)(env + OFF_gEnv_SSystem) : NULL,
                 env ? *(void**)(env + OFF_gEnv_SSUI) : NULL,
                 env ? *(void**)(env + OFF_gEnv_SSThird) : NULL, g_hooked, g_mainTid);
-    return std::string(buf) + visuals::info() + startup::info() + " fast=" + (g_fastApplied ? "1" : "0") + " silent=" + (g_silent ? "1" : "0");
+    return std::string(buf) + visuals::info() + startup::info() + virtualpak::info() + " fast=" + (g_fastApplied ? "1" : "0") + " silent=" + (g_silent ? "1" : "0");
 }
 
 static std::string submit(char op, char target, const std::string& code, DWORD timeoutMs) {
@@ -424,6 +425,11 @@ static DWORD WINAPI audioThread(LPVOID) {
             logf("audio start: process audio session policy failed; launcher must not resume client");
             return 1;
         }
+        if (!virtualpak::prepare_start()) {
+            logf("compressed pak startup failed: %s; launcher must not resume client", virtualpak::error().c_str());
+            return 1;
+        }
+        logf("pak startup:%s", virtualpak::info().c_str());
         wchar_t name[96];
         _snwprintf_s(name, _countof(name), _TRUNCATE, L"Local\\aaemu-client-audio-ready-%lu", GetCurrentProcessId());
         HANDLE ready = CreateEventW(nullptr, TRUE, FALSE, name);

@@ -13,7 +13,7 @@ if not defined VCVARS ( echo [!] vcvars32.bat not found - install the MSVC x86 b
 call "%VCVARS%" >nul
 if not defined AADRIVER_OUT set "AADRIVER_OUT=%~dp0out"
 if not exist "%AADRIVER_OUT%" mkdir "%AADRIVER_OUT%"
-cl /nologo /O2 /MT /EHsc /W4 /LD "%~dp0aadriver.cpp" "%~dp0visuals.cpp" "%~dp0pakio.cpp" "%~dp0startup.cpp" "%~dp0input.cpp" "%~dp0audio.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\aadriver.dll" /link /NOLOGO user32.lib kernel32.lib d3d11.lib dxgi.lib gdiplus.lib ole32.lib
+cl /nologo /O2 /MT /EHsc /W4 /LD "%~dp0aadriver.cpp" "%~dp0visuals.cpp" "%~dp0pakio.cpp" "%~dp0startup.cpp" "%~dp0input.cpp" "%~dp0audio.cpp" "%~dp0virtualpak.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\aadriver.dll" /link /NOLOGO user32.lib kernel32.lib d3d11.lib dxgi.lib gdiplus.lib ole32.lib shell32.lib
 if errorlevel 1 ( echo [!] driver build failed & exit /b 1 )
 cl /nologo /O2 /MT /EHsc /W4 "%~dp0startup-test.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\startup-test.exe" /link /NOLOGO kernel32.lib
 if errorlevel 1 ( echo [!] startup tests build failed & exit /b 1 )
@@ -27,6 +27,10 @@ cl /nologo /O2 /MT /EHsc /W4 "%~dp0audio-test.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AA
 if errorlevel 1 ( echo [!] audio tests build failed & exit /b 1 )
 "%AADRIVER_OUT%\audio-test.exe"
 if errorlevel 1 ( echo [!] audio tests failed & exit /b 1 )
+cl /nologo /O2 /MT /EHsc /W4 "%~dp0virtualpak-test.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\virtualpak-test.exe" /link /NOLOGO kernel32.lib shell32.lib
+if errorlevel 1 ( echo [!] virtual pak tests build failed & exit /b 1 )
+"%AADRIVER_OUT%\virtualpak-test.exe"
+if errorlevel 1 ( echo [!] virtual pak tests failed & exit /b 1 )
 cl /nologo /O2 /MT /W3 "%~dp0aainject.cpp" /Fo"%AADRIVER_OUT%\\" /Fe"%AADRIVER_OUT%\aainject.exe" /link /NOLOGO kernel32.lib
 if errorlevel 1 ( echo [!] injector build failed & exit /b 1 )
 echo [ok] %AADRIVER_OUT%\aadriver.dll
