@@ -40,6 +40,7 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
     private readonly Dictionary<uint, FactionPowerScore> _previous = [];
     private readonly Dictionary<uint, FactionPowerStanding> _overrides = [];
     private readonly Dictionary<(uint Week, uint FactionId), FactionPowerScore> _dirty = [];
+    private readonly List<SiegeAward> _pendingSiegeAwards = [];
     private HashSet<uint> _superiors = [];
     private HashSet<uint> _inferiors = [];
     private uint _week;
@@ -160,9 +161,11 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
 
     private static uint Round(double points) => (uint)Math.Max(0, Math.Round(points));
 
+    private sealed record SiegeAward(uint FactionId, ushort ZoneGroupId, DateTime CycleWeekStart, uint Points);
+
     /// <summary>
     /// Scores a siege win once per settled cycle: the award marker and the new points are committed together,
-    /// so a replayed settlement neither scores twice nor loses an award that was never saved.
+    /// so a replayed settlement does not score twice. An award that cannot be saved is retried on the next tick.
     /// </summary>
     public void AddSiegeWin(uint factionId, ushort zoneGroupId, DateTime cycleWeekStart)
     {
@@ -170,50 +173,59 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
             return;
         var record = Data.GetRecord(FactionPowerRecordType.Siege);
         var members = Math.Max(1, SiegeManager.Instance.GetRaidTeamMembers(zoneGroupId, factionId)?.Count ?? 0);
-        var points = Round(Data.Points(record, members));
+        var award = new SiegeAward(factionId, zoneGroupId, cycleWeekStart, Round(Data.Points(record, members)));
 
         lock (_sync)
         {
-            var row = RowNoLock(factionId);
-            var updated = row.Clone();
-            updated.SiegePoint += points;
-            try
-            {
-                using var connection = MySQL.CreateConnection();
-                using var transaction = connection.BeginTransaction();
-                using (var award = connection.CreateCommand())
-                {
-                    award.Transaction = transaction;
-                    award.CommandText = """
-                        INSERT IGNORE INTO faction_power_siege_awards (zone_group_id, cycle_week_start, faction_id, week_num, points)
-                        VALUES (@zone, @cycle, @faction, @week, @points)
-                        """;
-                    award.Parameters.AddWithValue("@zone", zoneGroupId);
-                    award.Parameters.AddWithValue("@cycle", cycleWeekStart);
-                    award.Parameters.AddWithValue("@faction", factionId);
-                    award.Parameters.AddWithValue("@week", _week);
-                    award.Parameters.AddWithValue("@points", points);
-                    if (award.ExecuteNonQuery() == 0)
-                        return;
-                }
-
-                using (var command = connection.CreateCommand())
-                {
-                    command.Transaction = transaction;
-                    WriteRow(command, updated);
-                }
-
-                transaction.Commit();
-            }
-            catch (Exception exception)
-            {
-                Logger.Error(exception, "Faction power: siege win of faction {0} in zone group {1} not recorded, it is offered again on the next settlement attempt",
-                    factionId, zoneGroupId);
-                return;
-            }
-
-            row.SiegePoint = updated.SiegePoint;
+            if (!TryRecordSiegeAwardNoLock(award))
+                _pendingSiegeAwards.Add(award);
         }
+    }
+
+    /// <returns>False when the award could not be saved and should be tried again.</returns>
+    private bool TryRecordSiegeAwardNoLock(SiegeAward award)
+    {
+        var row = RowNoLock(award.FactionId);
+        var updated = row.Clone();
+        updated.SiegePoint += award.Points;
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var transaction = connection.BeginTransaction();
+            using (var marker = connection.CreateCommand())
+            {
+                marker.Transaction = transaction;
+                marker.CommandText = """
+                    INSERT IGNORE INTO faction_power_siege_awards (zone_group_id, cycle_week_start, faction_id, week_num, points)
+                    VALUES (@zone, @cycle, @faction, @week, @points)
+                    """;
+                marker.Parameters.AddWithValue("@zone", award.ZoneGroupId);
+                marker.Parameters.AddWithValue("@cycle", award.CycleWeekStart);
+                marker.Parameters.AddWithValue("@faction", award.FactionId);
+                marker.Parameters.AddWithValue("@week", _week);
+                marker.Parameters.AddWithValue("@points", award.Points);
+                if (marker.ExecuteNonQuery() == 0)
+                    return true;
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.Transaction = transaction;
+                WriteRow(command, updated);
+            }
+
+            transaction.Commit();
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "Faction power: siege win of faction {0} in zone group {1} not saved, retrying on the next tick",
+                award.FactionId, award.ZoneGroupId);
+            return false;
+        }
+
+        row.SiegePoint = updated.SiegePoint;
+        _dirty[(row.WeekNum, award.FactionId)] = row;
+        return true;
     }
 
     public void AddCompetitionResult(uint competitionId, uint winnerFactionId)
@@ -407,6 +419,8 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
         bool changed;
         lock (_sync)
         {
+            if (_pendingSiegeAwards.Count > 0)
+                _pendingSiegeAwards.RemoveAll(TryRecordSiegeAwardNoLock);
             changed = _dirty.Count > 0;
             if (week != _week)
             {
