@@ -1771,6 +1771,17 @@ CREATE TABLE IF NOT EXISTS `faction_power_scores` (
   PRIMARY KEY (`week_num`,`faction_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Weekly faction power points';
 
+-- One row per settled siege cycle that scored, written with the points so a settlement scores exactly once.
+
+CREATE TABLE IF NOT EXISTS `faction_power_siege_awards` (
+  `zone_group_id` smallint unsigned NOT NULL,
+  `cycle_week_start` datetime NOT NULL,
+  `faction_id` int unsigned NOT NULL,
+  `week_num` int unsigned NOT NULL,
+  `points` int unsigned NOT NULL,
+  PRIMARY KEY (`zone_group_id`,`cycle_week_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Siege wins already counted for faction power';
+
 CREATE TABLE IF NOT EXISTS `faction_exile_settings` (
   `name` varchar(64) NOT NULL,
   `value` int NOT NULL DEFAULT '0',

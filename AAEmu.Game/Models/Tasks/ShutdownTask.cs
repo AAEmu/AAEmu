@@ -85,6 +85,7 @@ public class ShutdownTask : Task
                 // Ignore
             }
 
+            FactionPowerManager.Instance.Save();
             if (SaveManager.Instance.DoSave())
             {
                 WorldManager.Instance.BroadcastPacketToServer(new SCNoticeMessagePacket(3, Color.Magenta, 15000,

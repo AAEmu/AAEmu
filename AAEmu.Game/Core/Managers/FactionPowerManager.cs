@@ -9,6 +9,8 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
+using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -158,14 +160,60 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
 
     private static uint Round(double points) => (uint)Math.Max(0, Math.Round(points));
 
-    public void AddSiegeWin(uint factionId, ushort zoneGroupId)
+    /// <summary>
+    /// Scores a siege win once per settled cycle: the award marker and the new points are committed together,
+    /// so a replayed settlement neither scores twice nor loses an award that was never saved.
+    /// </summary>
+    public void AddSiegeWin(uint factionId, ushort zoneGroupId, DateTime cycleWeekStart)
     {
-        if (!IsStarted)
+        if (!IsStarted || !PowerFactions().Contains(factionId))
             return;
         var record = Data.GetRecord(FactionPowerRecordType.Siege);
         var members = Math.Max(1, SiegeManager.Instance.GetRaidTeamMembers(zoneGroupId, factionId)?.Count ?? 0);
         var points = Round(Data.Points(record, members));
-        Add(factionId, s => s.SiegePoint += points);
+
+        lock (_sync)
+        {
+            var row = RowNoLock(factionId);
+            var updated = row.Clone();
+            updated.SiegePoint += points;
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var transaction = connection.BeginTransaction();
+                using (var award = connection.CreateCommand())
+                {
+                    award.Transaction = transaction;
+                    award.CommandText = """
+                        INSERT IGNORE INTO faction_power_siege_awards (zone_group_id, cycle_week_start, faction_id, week_num, points)
+                        VALUES (@zone, @cycle, @faction, @week, @points)
+                        """;
+                    award.Parameters.AddWithValue("@zone", zoneGroupId);
+                    award.Parameters.AddWithValue("@cycle", cycleWeekStart);
+                    award.Parameters.AddWithValue("@faction", factionId);
+                    award.Parameters.AddWithValue("@week", _week);
+                    award.Parameters.AddWithValue("@points", points);
+                    if (award.ExecuteNonQuery() == 0)
+                        return;
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.Transaction = transaction;
+                    WriteRow(command, updated);
+                }
+
+                transaction.Commit();
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Faction power: siege win of faction {0} in zone group {1} not recorded, it is offered again on the next settlement attempt",
+                    factionId, zoneGroupId);
+                return;
+            }
+
+            row.SiegePoint = updated.SiegePoint;
+        }
     }
 
     public void AddCompetitionResult(uint competitionId, uint winnerFactionId)
@@ -411,22 +459,7 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
             foreach (var (key, s) in _dirty.ToList())
             {
                 using var command = connection.CreateCommand();
-                command.CommandText = """
-                    REPLACE INTO faction_power_scores (week_num, faction_id, siege_point, siege_maintain_point,
-                        competition_point, quest_point, raid_point, raid_maintain_point, raid_joint_point, immigrate_point)
-                    VALUES (@week, @faction, @siege, @maintain, @competition, @quest, @raid, @raidMaintain, @raidJoint, @immigrate)
-                    """;
-                command.Parameters.AddWithValue("@week", s.WeekNum);
-                command.Parameters.AddWithValue("@faction", s.FactionId);
-                command.Parameters.AddWithValue("@siege", s.SiegePoint);
-                command.Parameters.AddWithValue("@maintain", s.SiegeMaintainPoint);
-                command.Parameters.AddWithValue("@competition", s.CompetitionPoint);
-                command.Parameters.AddWithValue("@quest", s.QuestPoint);
-                command.Parameters.AddWithValue("@raid", s.RaidPoint);
-                command.Parameters.AddWithValue("@raidMaintain", s.RaidMaintainPoint);
-                command.Parameters.AddWithValue("@raidJoint", s.RaidJointPoint);
-                command.Parameters.AddWithValue("@immigrate", s.ImmigratePoint);
-                command.ExecuteNonQuery();
+                WriteRow(command, s);
                 _dirty.Remove(key);
             }
         }
@@ -434,6 +467,26 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
         {
             Logger.Error(exception, "Faction power: saving week {0} failed, will retry", _week);
         }
+    }
+
+    private static void WriteRow(MySqlCommand command, FactionPowerScore s)
+    {
+        command.CommandText = """
+            REPLACE INTO faction_power_scores (week_num, faction_id, siege_point, siege_maintain_point,
+                competition_point, quest_point, raid_point, raid_maintain_point, raid_joint_point, immigrate_point)
+            VALUES (@week, @faction, @siege, @maintain, @competition, @quest, @raid, @raidMaintain, @raidJoint, @immigrate)
+            """;
+        command.Parameters.AddWithValue("@week", s.WeekNum);
+        command.Parameters.AddWithValue("@faction", s.FactionId);
+        command.Parameters.AddWithValue("@siege", s.SiegePoint);
+        command.Parameters.AddWithValue("@maintain", s.SiegeMaintainPoint);
+        command.Parameters.AddWithValue("@competition", s.CompetitionPoint);
+        command.Parameters.AddWithValue("@quest", s.QuestPoint);
+        command.Parameters.AddWithValue("@raid", s.RaidPoint);
+        command.Parameters.AddWithValue("@raidMaintain", s.RaidMaintainPoint);
+        command.Parameters.AddWithValue("@raidJoint", s.RaidJointPoint);
+        command.Parameters.AddWithValue("@immigrate", s.ImmigratePoint);
+        command.ExecuteNonQuery();
     }
 
     private void LoadOverrides()

@@ -302,15 +302,22 @@ public class FactionExileManager : Singleton<FactionExileManager>
             at = !force ? now : known ? previous.At : now.AddSeconds(-CooldownSeconds);
         }
 
-        if (!SaveExile(character.Id, (uint)targetFaction.Id, original, from, at, route))
+        // Held from the commit until the character carries the new faction, so a World save in between cannot
+        // write the old faction back over it.
+        using (PersistenceOperationScope.Enter())
         {
-            lock (_sync)
+            if (!SaveExile(character.Id, (uint)targetFaction.Id, original, from, at, route))
             {
-                if (route is { Used: > 0 })
-                    route.Used--;
+                lock (_sync)
+                {
+                    if (route is { Used: > 0 })
+                        route.Used--;
+                }
+
+                return "the faction change could not be saved, nothing was changed";
             }
 
-            return "the faction change could not be saved, nothing was changed";
+            character.SetFaction(targetFaction.Id);
         }
 
         lock (_sync)
@@ -321,7 +328,6 @@ public class FactionExileManager : Singleton<FactionExileManager>
         if (character.Family > 0)
             FamilyManager.Instance.LeaveFamily(character);
 
-        character.SetFaction(targetFaction.Id);
         RaidRecruitmentManager.Instance.OnFactionChanged(character);
         ChatManager.Instance.SyncFactionChannel(character);
         HousingManager.Instance.UpdateOwnedHousingFaction(character.Id, targetFaction.Id);
@@ -566,12 +572,14 @@ public class FactionExileManager : Singleton<FactionExileManager>
                 """, ("@c", characterId), ("@o", original), ("@f", from), ("@t", factionId), ("@a", at));
             if (route != null)
             {
-                uint used;
                 uint week;
                 lock (_sync)
-                    (used, week) = (route.Used, _week);
-                Run("REPLACE INTO faction_exile_counts (week_num, from_faction, to_faction, used) VALUES (@w, @f, @t, @u)",
-                    ("@w", week), ("@f", route.FromFactionId), ("@t", route.ToFactionId), ("@u", used));
+                    week = _week;
+                // One committed increment per exile; the in-memory count also holds reservations still in flight.
+                Run("""
+                    INSERT INTO faction_exile_counts (week_num, from_faction, to_faction, used) VALUES (@w, @f, @t, 1)
+                    ON DUPLICATE KEY UPDATE used = used + 1
+                    """, ("@w", week), ("@f", route.FromFactionId), ("@t", route.ToFactionId));
             }
 
             transaction.Commit();
