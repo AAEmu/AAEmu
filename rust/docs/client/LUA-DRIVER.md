@@ -344,7 +344,7 @@ messages. The launcher inherits only the two ticket handles so its output pipes 
 while the client stays alive. Tools are `client_list`, `client_attach`, `client_status`,
 `client_launch`, `client_lua`, `client_screenshot`, `client_window`, `client_pak` and `client_stop`.
 Vehicle and gameplay tests also have `client_input`, `client_action`, `client_inventory`, `client_mode_actions`,
-`client_use_item`, `client_chat`, `client_vehicle`, `client_entities` and `client_perf`.
+`client_unit_state`, `client_use_item`, `client_chat`, `client_vehicle`, `client_entities` and `client_perf`.
 Launch defaults to silent audio and fast hidden rendering with normal-priority CPU calibration and 64 KB pak
 read-ahead; pass `fast_start: false`, `smooth_start: false`, `fast_pak: false` or `hidden: false` to compare
 profiles. Pass `sound: true` to enable sound and music; normal launcher runs use `--sound`.
@@ -405,9 +405,21 @@ gear/brake telemetry; `action: "discard"` requests dismount, whose completion is
 `client_action` executes a validated UI hotkey action. Continuous movement uses `client_input`.
 `client_mode_actions` reads the stock mode action bar, including fishing rod actions, native
 tooltips, availability, cooldowns, active native hotkeys and staged option binding rows.
+Each slot also reports `bounds: {x, y, width, height}` in client pixels from the verified
+stock widget `GetOffset()` and `GetExtent()` getters, for locating a normal `client_pointer`
+click after inspecting the current UI.
 Empty staged rows do not mean the native action has no active hotkey. It reads at most ten slots and
 does not cast or change shortcuts. Check these bindings before submitting a fishing response
 through `client_input`; verify the resulting cast and fish reaction on the server.
+`client_unit_state` reads `target: "player"` or `target: "target"` (the default) through
+the stock `X2Unit` name and health getters. An absent target returns `present: false`
+without a fabricated health value. Present units include `name`, native `health` and
+`max_health`, plus `buffs` and `debuffs` keyed by their one-based visible indices.
+Each entry contains its `index` and available stock `buff_id`/`path` fields. The native
+counts are retained as `buff_count`/`debuff_count`, while each collection reads at most
+32 entries using `UnitBuffCount`/`UnitDeBuffCount` and `UnitBuff`/`UnitDeBuff`.
+Hidden server buffs may be absent from these visible lists. The tool requires an in-world
+character and does not select a target or cast a skill.
 `client_pointer` moves or left-clicks in client pixels through the guarded 1.2 mouse handler.
 The mouse-lock mode is rejected before position events because that native path can move the
 desktop cursor. Clicks position first and wait at least 50 ms for the native Update before
