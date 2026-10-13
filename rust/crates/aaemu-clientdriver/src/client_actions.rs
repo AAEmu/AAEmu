@@ -12,6 +12,7 @@ pub fn tools(pid: Value) -> Vec<Value> {
         tool("client_action", "Execute a valid 1.2 UI hotkey action, such as do_interaction_1, cycle_hostile_forward or toggle_bag. Continuous movement uses client_input.",json!({"pid":pid,"action":{"type":"string","minLength":1,"maxLength":96}}), &["action"], false),
         tool("client_inventory", "Read inventory slots, item templates, names, counts and use skills from the live client. bag_id defaults to 1 (inventory).",json!({"pid":pid,"bag_id":{"type":"integer","minimum":1,"maximum":2}}), &[], true),
         tool("client_unit_state", "Read the player or current target's native opaque unit ID, distance, name, health, maximum health and at most 32 visible buffs and 32 visible debuffs, indexed from 1. An absent target returns present=false without fabricated health. target defaults to target. Requires an in-world character; does not target or cast.",json!({"pid":pid,"target":{"type":"string","enum":["player","target"],"default":"target"}}), &[], true),
+        tool("client_target", "Select an existing native unit by its opaque hexadecimal unit_id after verifying expected_name. Changes the watch target and current target through the original 1.2 APIs; returns confirmed native target telemetry. IDs contain 1..16 hexadecimal digits, without a 0x prefix, and must be nonzero. Requires an in-world character; does not cast a skill or issue a GM command.",json!({"pid":pid,"unit_id":{"type":"string","minLength":1,"maxLength":16,"pattern":"^[0-9A-Fa-f]+$"},"expected_name":{"type":"string","minLength":1,"maxLength":128}}), &["unit_id","expected_name"], false),
         tool("client_loot", "Read the current native loot bag, up to 32 one-based item rows, and effective pixel bounds of its Take All button. Requires an in-world character; does not open a corpse or take items.",json!({"pid":pid}), &[], true),
         tool("client_mode_input", "Press an active mode action slot's actual native GetHotKey binding through CryInput. Requires an in-world character, an available skill button and a supported key/chord. Rejects missing, unavailable, unbound or unsupported slots; never clicks, rebinds or enables a widget. Returns the observed binding and submitted input; verify the resulting cast separately.",json!({"pid":pid,"slot":{"type":"integer","minimum":1,"maximum":10},"duration_ms":{"type":"integer","minimum":1,"maximum":10000}}), &["slot"], false),
         tool("client_mode_actions", "Read the active 1.2 mode action bar, including fishing rod actions, native tooltips, client-pixel widget bounds, availability, cooldowns, active hotkeys and staged option binding rows. Requires a character in the world; does not change bindings or cast skills.",json!({"pid":pid}), &[], true),
@@ -28,6 +29,7 @@ pub fn is_tool(name: &str) -> bool {
         "client_action"
             | "client_inventory"
             | "client_unit_state"
+            | "client_target"
             | "client_loot"
             | "client_mode_actions"
             | "client_mode_input"
@@ -235,6 +237,39 @@ pub fn request(name: &str, args: &Value) -> anyhow::Result<(Target, String)> {
                 bail!("target must be player or target");
             }
             (Target::Ui, format!("{WORLD}local unit={}\n{UNIT_STATE}",quote(unit)))
+        },
+        "client_target" => {
+            let id = args["unit_id"].as_str().context("missing unit_id")?;
+            if id.is_empty() || id.len() > 16 || !id.bytes().all(|b| b.is_ascii_hexdigit())
+                || id.bytes().all(|b| b == b'0')
+            {
+                bail!("unit_id must contain 1..16 hexadecimal digits and be nonzero");
+            }
+            let expected = args["expected_name"].as_str().context("missing expected_name")?;
+            if expected.is_empty() || expected.chars().count() > 128 {
+                bail!("expected_name must contain 1..128 characters");
+            }
+            // 1.2 native GetUnitInfoById/SetWatchTarget accept opaque hex IDs. TargetUnit
+            // takes a unit token, so select the verified watch target rather than passing an
+            // engine entity ID. String normalization avoids Lua-number precision loss.
+            (Target::Ui, format!(r#"{WORLD}
+local requested_id={id}
+local expected_name={expected}
+local function normalized_id(value)
+ assert(type(value)=='string' and #value>=1 and #value<=16 and string.match(value,'^[0-9a-fA-F]+$'),'native unit ID is not hexadecimal')
+ return (string.gsub(string.lower(value),'^0+',''))
+end
+local info=X2Unit:GetUnitInfoById(requested_id)
+assert(info and info.name==expected_name,'requested unit name does not match')
+X2Unit:SetWatchTarget(requested_id)
+assert(normalized_id(X2Unit:GetUnitId('watchtarget'))==normalized_id(requested_id),'native watch target ID does not match')
+X2Unit:TargetUnit('watchtarget')
+local unit='target'
+{UNIT_STATE}
+assert(result.present and result.name==expected_name and normalized_id(result.unit_id)==normalized_id(requested_id),'native target does not match')
+result.submitted=true
+result.target_id=requested_id
+"#,id=quote(id),expected=quote(expected)))
         },
         "client_mode_input" => {
             let slot = args["slot"].as_u64().context("missing mode slot")?;
@@ -462,6 +497,77 @@ mod tests {
         assert!(!code.contains("UnitHealth(unit) or 0"));
         assert!(!code.contains("TargetUnit("));
         assert!(!code.contains("ExcuteActionHandler"));
+    }
+
+    #[test]
+    fn target_requires_bounded_nonzero_native_hex_id_and_expected_name() {
+        let definition = tools(json!({}))
+            .into_iter()
+            .find(|t| t["name"] == "client_target")
+            .unwrap();
+        assert_eq!(definition["annotations"]["readOnlyHint"], false);
+        assert!(is_tool("client_target"));
+        for id in ["1", "10c", "000000000000010C", "ffffffffffffffff"] {
+            let args = json!({"unit_id":id,"expected_name":"Cottage"});
+            super::super::validate(&definition["inputSchema"], &args).unwrap();
+            assert!(request("client_target", &args).is_ok());
+        }
+        for args in [
+            json!({"expected_name":"Cottage"}),
+            json!({"unit_id":"10c"}),
+            json!({"unit_id":268,"expected_name":"Cottage"}),
+            json!({"unit_id":"","expected_name":"Cottage"}),
+            json!({"unit_id":"0","expected_name":"Cottage"}),
+            json!({"unit_id":"0000000000000000","expected_name":"Cottage"}),
+            json!({"unit_id":"10000000000000000","expected_name":"Cottage"}),
+            json!({"unit_id":"0x10c","expected_name":"Cottage"}),
+            json!({"unit_id":"10g","expected_name":"Cottage"}),
+            json!({"unit_id":" 10c","expected_name":"Cottage"}),
+            json!({"unit_id":"10c\n","expected_name":"Cottage"}),
+            json!({"unit_id":"10c","expected_name":""}),
+            json!({"unit_id":"10c","expected_name":"x".repeat(129)}),
+            json!({"unit_id":"10c","expected_name":null}),
+            json!({"unit_id":"');Quit()--","expected_name":"Cottage"}),
+        ] {
+            assert!(request("client_target", &args).is_err(), "{args}");
+        }
+        let (_, code) = request(
+            "client_target",
+            &json!({"unit_id":"10c","expected_name":"'); System.Quit(); --"}),
+        )
+        .unwrap();
+        assert!(!code.contains("System.Quit"));
+    }
+
+    #[test]
+    fn target_validates_identity_before_selection_and_returns_confirmed_unit_state() {
+        let (target, code) = request(
+            "client_target",
+            &json!({"unit_id":"0000010C","expected_name":"Cottage"}),
+        )
+        .unwrap();
+        assert_eq!(target, Target::Ui);
+        assert!(code.contains(WORLD));
+        let lookup = code.find("X2Unit:GetUnitInfoById(requested_id)").unwrap();
+        let name_check = code.find("info.name==expected_name").unwrap();
+        let watch = code.find("X2Unit:SetWatchTarget(requested_id)").unwrap();
+        let watch_check = code
+            .find("normalized_id(X2Unit:GetUnitId('watchtarget'))")
+            .unwrap();
+        let select = code.find("X2Unit:TargetUnit('watchtarget')").unwrap();
+        assert!(
+            lookup < name_check
+                && name_check < watch
+                && watch < watch_check
+                && watch_check < select
+        );
+        assert!(code.contains("normalized_id(result.unit_id)==normalized_id(requested_id)"));
+        assert!(code.contains("result.submitted=true"));
+        assert!(code.contains("result.target_id=requested_id"));
+        assert!(code.contains(UNIT_STATE));
+        assert!(!code.contains("tonumber("));
+        assert!(!code.contains("StartSkill("));
+        assert!(!code.contains("SendChatMessage("));
     }
     #[test]
     fn feature_schemas_reject_unbounded_or_wrong_inputs() {

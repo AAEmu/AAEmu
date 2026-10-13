@@ -436,6 +436,19 @@ counts are retained as `buff_count`/`debuff_count`, while each collection reads 
 32 entries using `UnitBuffCount`/`UnitDeBuffCount` and `UnitBuff`/`UnitDeBuff`.
 Hidden server buffs may be absent from these visible lists. The tool requires an in-world
 character and does not select a target or cast a skill.
+`client_target` selects a unit using its native opaque `unit_id` and a required
+`expected_name`. The ID contains 1–16 hexadecimal digits, without `0x`, and must be
+nonzero. The tool first checks `X2Unit:GetUnitInfoById(id).name`, sets the watch target
+with `X2Unit:SetWatchTarget(id)`, checks its ID, then calls
+`X2Unit:TargetUnit("watchtarget")`. It confirms the resulting target ID and name
+before returning the same native telemetry as `client_unit_state`, plus `submitted`
+and `target_id`. Leading zeros and letter case are ignored when comparing IDs;
+comparison uses strings so large opaque values do not lose precision. This path
+was verified on the original 1.2 client with an isolated Cottage target. Engine
+entity IDs returned by `client_entities` are a different identifier and must not
+be substituted. The tool changes the watch target and current target, and does
+not cast or issue commands. Verify its confirmed result before a target-dependent
+GM test.
 `client_loot` reads the current native loot bag with `count` and at most 32 one-based
 `items`, retaining available stock name, count, template, grade, money and AA-point fields.
 It also reports effective `take_all_bounds` for the existing Take All widget. Inspect a

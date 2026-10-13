@@ -624,7 +624,12 @@ mod tests {
         assert_eq!(results.len(), 2);
         assert_eq!(results[0]["result"]["protocolVersion"], VERSION);
         assert_eq!(results[1]["id"], "list");
-        assert_eq!(results[1]["result"]["tools"].as_array().unwrap().len(), 22);
+        assert_eq!(results[1]["result"]["tools"].as_array().unwrap().len(), 23);
+        assert!(results[1]["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["name"] == "client_target"));
     }
     #[test]
     fn schema_errors_are_distinct_from_execution_errors() {
