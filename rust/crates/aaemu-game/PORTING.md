@@ -475,6 +475,18 @@ blobs, 1.0 GB heap of which about 600 MB are the heightmap cells, 8 s; 1.0 µs p
 
 #### systems::ai geodata deviations (engine behaviour instead of the C#)
 
+* **Combat chase (2026-10-13)**: routes are retained for stationary targets and regenerated
+  after target movement exceeds the actor radius (minimum 0.5 m), correcting the reversed
+  C# comparison. The cached destination is the victim's world position rather than its
+  enclosing graph node. Route endpoints use actor positions, avoiding detours through the
+  start/goal triangle centers; reached corners are consumed in the same tick with a 0.25 m
+  tolerance, independently of weapon range. Grounded actors reach corners in XY and use the
+  collision floor; flyers and underwater creatures retain 3D movement. An arrival keeps the
+  travelled heading instead of evaluating `atan2(0, 0)`. References: 10.x
+  `cryaisystem_dedicate` direct route `0x31062728`, `COPStick::RegeneratePath` `0x310F18E8`
+  and target-movement regeneration in `COPStick::Execute` `0x310F24D8`. These are adaptations
+  of the existing 1.2 chase and wire format, not a complete native goal-pipe implementation.
+
 Reference: the 10.0.2.13 `cryaisystem_dedicate.dll` (image base 0x31000000), notes in
 `D:\aa-re\zone\agent_geom\sub_navmesh.md` (§2 formats, §5 gaps) and
 `rust/docs/physics/ZONE-PHYSICS-USAGE.md` §2.5. The C# (`AiGeoDataManager`, `*MissionReader`,
@@ -793,6 +805,13 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   reading `DateTime.UtcNow`; `local_impulse_to_world_displacement` takes horizontal (x, y)
   positions only, because the C# zeroes the direction's Z so the vertical offset never
   contributes.
+* systems::npcs (2026-10-13): corpse timers read the current despawn field, so fully looting
+  an NPC applies the existing shorter deadline instead of retaining the five-minute loot
+  extension captured at death. Only living NPCs count towards spawner population limits;
+  corpses remain available for loot/event cleanup without blocking the authored respawn
+  delay. Native `Npc::OnDeath` (`x2game-dev_dedicate` `0x393452D0` -> `0x39345220` ->
+  `0x39344AA0`) releases its population slot at death. This intentionally replaces the
+  C# `HasCorpse` gate; spawn scheduling and corpse expiry remain separate timers.
 * `systems::npcs`: doodad func timers are tokio tasks (cancel = generation bump); `DoodadManager.Create`'s `Task.Run(InitDoodad)` is a spawned task; `TimeManager.OnTimeOfDayChange` runs from a 10 s poller. `GetNpcSpawner` template rewrites do not propagate to already loaded spawners; the "first" concurrent-dictionary entry is the lowest key; spawn files are processed in sorted name order (C# `Directory.GetFiles` order is unspecified). Portal book deletions are written at the next periodic save. Debug messages check only the character's access level. Coffer slot counting stops at 255 (C# loops forever). Where the C# would throw on a null / failed cast the Rust code returns quietly. Sticky parents are not modelled.
 * systems::housing: dates are stored with second precision (unix seconds); `DateTime.MinValue`
   rows load as 0, so a manually inserted house with both dates at MinValue gets 1970-01-15 as

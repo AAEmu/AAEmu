@@ -1,8 +1,21 @@
 # Developer Notes
 
 - Audience: Contributors
-- Last verified against: `develop` on October 10, 2026
+- Last verified against: `develop` on October 13, 2026
 - Prerequisites: None
+
+## NPC movement and respawn
+
+Combat chase retains its route while the target is stationary and refreshes it when the
+target moves. Walking NPCs reach path corners using horizontal distance and stand on the
+collision floor, so differences between navigation heights and terrain do not stall them.
+Attack range is checked against the target separately from waypoint arrival.
+
+NPC respawn uses the spawner's authored delay and counts living NPCs towards population
+limits. A lootable corpse can remain while its replacement spawns. Unlooted items extend
+corpse lifetime by five minutes; taking the final item restores the normal corpse deadline
+or, if that deadline already passed, allows two more seconds before removal. The one-second
+cleanup tick reads this updated deadline.
 
 ## Housing behavior
 

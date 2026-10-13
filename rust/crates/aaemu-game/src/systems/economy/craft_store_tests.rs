@@ -409,6 +409,7 @@ fn cs_packets_decode() {
 #[derive(Default)]
 struct CraftRecorder {
     casts: Mutex<Vec<(u32, u32, f32)>>,
+    cast_started: tokio::sync::Notify,
     cancels: Mutex<u32>,
     crafted: Mutex<Vec<u32>>,
 }
@@ -426,6 +427,7 @@ impl CraftHooks for CraftRecorder {
             .lock()
             .unwrap()
             .push((skill_id, doodad_obj_id, mul));
+        self.cast_started.notify_one();
     }
 
     fn cancel_craft_skill(&self, _server: &GameServer, _player: &PlayerRef) {
@@ -498,7 +500,17 @@ async fn craft_batch_consumes_materials_adds_products_and_reschedules() {
     assert_eq!((st.count, st.is_crafting), (1, false));
 
     // The CraftTask re-runs Craft after the skill cooldown (0 ms here).
-    tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+    tokio::time::timeout(std::time::Duration::from_secs(2), async {
+        loop {
+            let casts = rec.casts.lock().unwrap().len();
+            if casts >= 2 {
+                break;
+            }
+            rec.cast_started.notified().await;
+        }
+    })
+    .await
+    .expect("the next craft cast should start after its cooldown");
     assert_eq!(rec.casts.lock().unwrap().len(), 2);
     assert!(w.server.systems.economy.craft.is_crafting(1));
 

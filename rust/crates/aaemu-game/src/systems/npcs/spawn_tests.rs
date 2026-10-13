@@ -84,6 +84,10 @@ fn member(id: u32, spawner: u32, npc: u32) -> NpcSpawnerNpc {
 /// two spawners), 30 (NPC 700, 2 members of an unsupported type + one valid).
 fn server() -> Arc<GameServer> {
     let mut data = GameData::empty();
+    data.items.templates.insert(
+        crate::data::items::ITEM_COINS,
+        crate::data::items::ItemTemplate::plain(crate::data::items::ITEM_COINS, i32::MAX),
+    );
     let mut t30 = template(30, 3);
     t30.npc_spawner_category_id = npc_spawner_category::AUTOCREATED;
     data.systems.npcs.npc_spawners = NpcSpawnerData::from_parts(
@@ -263,9 +267,18 @@ async fn npc_spawn_death_despawn_respawn_timing() {
     spawn_manager::active_region_tick(&server);
     assert_eq!(
         world.all_npcs().len(),
-        1,
-        "corpse still present blocks the spawn"
+        2,
+        "respawn proceeds while the corpse is still lootable"
     );
+    assert_eq!(spawner.current_spawn_count(), 1);
+    let replacement = world
+        .all_npcs()
+        .into_iter()
+        .find(|n| !n.data().unit.is_dead())
+        .unwrap();
+    assert!(!Arc::ptr_eq(&replacement, &npc));
+    spawn_manager::active_region_tick(&server);
+    assert_eq!(world.all_npcs().len(), 2, "no duplicate living population");
 
     advance(8);
     m.check_respawns_tick(&server);
@@ -274,7 +287,11 @@ async fn npc_spawn_death_despawn_respawn_timing() {
     m.check_respawns_tick(&server);
     assert!(m.pending_despawns().is_empty());
     assert!(world.npc(npc.obj_id).is_none(), "corpse deleted");
-    assert_eq!(spawner.current_spawn_count(), 0);
+    assert_eq!(
+        spawner.current_spawn_count(),
+        1,
+        "corpse cleanup keeps the replacement"
+    );
     assert!(server
         .systems
         .npcs
@@ -285,7 +302,7 @@ async fn npc_spawn_death_despawn_respawn_timing() {
     spawn_manager::active_region_tick(&server);
     let npcs = world.all_npcs();
     assert_eq!(npcs.len(), 1, "respawned");
-    assert!(!Arc::ptr_eq(&npcs[0], &npc));
+    assert!(Arc::ptr_eq(&npcs[0], &replacement));
     assert_eq!(spawner.current_spawn_count(), 1);
     assert_eq!(
         spawner.scheduled_count(),
@@ -293,6 +310,133 @@ async fn npc_spawn_death_despawn_respawn_timing() {
         "DecrementCount after the respawn"
     );
     drop(player);
+}
+
+#[tokio::test]
+async fn fully_looted_corpse_uses_shortened_deadline_and_respawn_keeps_its_own_timer() {
+    use crate::data::items::ITEM_COINS;
+    use crate::models::item::Item;
+    use crate::systems::economy::loot_packets::{loot_owner_type, LootingRule};
+    use crate::systems::economy::looting::LootManager;
+    use crate::systems::npcs::hooks::EconomyBridge;
+
+    struct LootBridge;
+    impl EconomyBridge for LootBridge {
+        fn npc_has_loot_items(&self, server: &GameServer, npc: &NpcRef) -> bool {
+            server.systems.economy.loot.item_count(npc.obj_id) > 0
+        }
+    }
+
+    let server = server();
+    super::install_hooks(&server);
+    server
+        .systems
+        .npcs
+        .hooks
+        .economy
+        .install(Arc::new(LootBridge));
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 300.0, 300.0))
+        .unwrap();
+    let spawner = m
+        .get_all_spawners()
+        .values()
+        .flatten()
+        .next()
+        .unwrap()
+        .clone();
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(
+        &server,
+        &client,
+        test_character(1, "Looter", 300.0, 300.0),
+        5000,
+    );
+    player.data().money = 0;
+    spawn_manager::active_region_tick(&server);
+    let npc = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+    let loot = server.systems.economy.loot.container(npc.obj_id);
+    {
+        let mut loot = loot.lock().unwrap();
+        loot.owner_type = loot_owner_type::NPC;
+        loot.creation_time_ms = chrono::Utc::now().timestamp_millis() - 30_000;
+        loot.team_looting_rule = Some(LootingRule::default());
+        loot.eligible_players.push(player.character_id);
+        loot.register_items(
+            [3, 7]
+                .map(|count| {
+                    let mut item = Item::new(0);
+                    item.template_id = ITEM_COINS;
+                    item.count = count;
+                    item
+                })
+                .to_vec(),
+        );
+    }
+    npc.data().unit.hp = 0;
+    spawn_manager::on_npc_died(&server, &npc);
+    let extended = server
+        .systems
+        .npcs
+        .spawns
+        .despawn_field(npc.obj_id)
+        .unwrap();
+    assert!(extended > spawn_manager::now() + Duration::from_secs(300));
+
+    assert!(LootManager::try_take_loot(
+        &server, &player, npc.obj_id, 1, false
+    ));
+    assert_eq!(server.systems.economy.loot.item_count(npc.obj_id), 1);
+    assert_eq!(
+        server.systems.npcs.spawns.despawn_field(npc.obj_id),
+        Some(extended)
+    );
+    assert!(LootManager::try_take_loot(
+        &server, &player, npc.obj_id, 2, false
+    ));
+    assert_eq!(server.systems.economy.loot.item_count(npc.obj_id), 0);
+    assert_eq!(player.data().money, 10);
+    let shortened = server
+        .systems
+        .npcs
+        .spawns
+        .despawn_field(npc.obj_id)
+        .unwrap();
+    assert!(shortened < spawn_manager::now() + Duration::from_secs(3));
+
+    advance(1);
+    m.check_respawns_tick(&server);
+    assert!(server.world.world(0).unwrap().npc(npc.obj_id).is_some());
+    advance(2);
+    m.check_respawns_tick(&server);
+    assert!(
+        server.world.world(0).unwrap().npc(npc.obj_id).is_none(),
+        "looted corpse removed after 2 s, not 5 minutes"
+    );
+    assert!(m.pending_despawns().is_empty());
+    assert_eq!(m.pending_respawns().len(), 1);
+    let other_id = server.ids.object.get_next_id().unwrap();
+    assert_ne!(
+        other_id, npc.obj_id,
+        "pending respawn reserves the corpse ID"
+    );
+    // Keep this ID allocated while the pending respawn finishes.
+    spawn_manager::active_region_tick(&server);
+    assert_eq!(
+        spawner.current_spawn_count(),
+        0,
+        "respawn still waits for 10 s"
+    );
+    advance(8);
+    m.check_respawns_tick(&server);
+    assert_eq!(
+        server.ids.object.get_next_id().unwrap(),
+        npc.obj_id,
+        "ID is released when both timers finish"
+    );
+    spawn_manager::active_region_tick(&server);
+    assert_eq!(spawner.current_spawn_count(), 1);
+    server.ids.object.release_id(other_id);
 }
 
 #[tokio::test]

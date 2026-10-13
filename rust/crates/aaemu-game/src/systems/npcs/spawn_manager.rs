@@ -1525,13 +1525,25 @@ impl SpawnManager {
         v.into_iter().map(|e| (e.obj.obj_id(), e.at)).collect()
     }
 
-    fn ready(set: &Mutex<HashMap<u32, Scheduled>>, now: Instant) -> Vec<Scheduled> {
+    fn ready(
+        set: &Mutex<HashMap<u32, Scheduled>>,
+        fields: &DashMap<u32, Instant>,
+        now: Instant,
+    ) -> Vec<Scheduled> {
         let mut v: Vec<Scheduled> = set
             .lock()
             .expect("poisoned")
             .values()
-            .filter(|e| e.at.is_none_or(|t| t <= now))
             .cloned()
+            .map(|mut e| {
+                // Looting updates obj.Despawn after scheduling the corpse. Read the
+                // live field, like CheckRespawns in C#, rather than its old snapshot.
+                if let Some(at) = fields.get(&e.obj.obj_id()) {
+                    e.at = Some(*at);
+                }
+                e
+            })
+            .filter(|e| e.at.is_none_or(|t| t <= now))
             .collect();
         v.sort_by_key(|e| e.seq);
         v
@@ -1547,7 +1559,11 @@ impl SpawnManager {
     /// One iteration of `CheckRespawns` (the 1 s respawn / despawn thread).
     pub fn check_respawns_tick(&self, server: &GameServer) {
         let _serial = server.systems.npcs.spawns.spawn_lock();
-        for e in Self::ready(&self.respawns, now()) {
+        for e in Self::ready(
+            &self.respawns,
+            &server.systems.npcs.spawns.respawn_fields,
+            now(),
+        ) {
             if e.at.is_some_and(|t| t > now()) {
                 continue;
             }
@@ -1560,9 +1576,27 @@ impl SpawnManager {
                 (_, o) => crate::systems::vehicles::respawn_object(server, o),
             }
             Self::remove_entry(&self.respawns, &e);
+            if matches!(e.link, SpawnerLink::Npc(_))
+                && !self
+                    .despawns
+                    .lock()
+                    .expect("poisoned")
+                    .contains_key(&e.obj.obj_id())
+                && self.world.object(e.obj.obj_id()).is_none()
+            {
+                // The looted corpse can disappear before its respawn timer. Reserve
+                // its ID until both timers finish so another NPC cannot replace the
+                // pending entry or supply a different live deadline under the same ID.
+                server.ids.object.release_id(e.obj.obj_id());
+                forget_object(server, e.obj.obj_id());
+            }
         }
 
-        for e in Self::ready(&self.despawns, now()) {
+        for e in Self::ready(
+            &self.despawns,
+            &server.systems.npcs.spawns.despawn_fields,
+            now(),
+        ) {
             if e.at.is_some_and(|t| t > now()) {
                 continue;
             }
@@ -1580,7 +1614,13 @@ impl SpawnManager {
             if !matches!(
                 (&e.link, &e.obj),
                 (SpawnerLink::Doodad(_), WorldObject::Doodad(_))
-            ) {
+            ) && !self
+                .respawns
+                .lock()
+                .expect("poisoned")
+                .get(&e.obj.obj_id())
+                .is_some_and(|r| matches!(r.link, SpawnerLink::Npc(_)) && r.obj.same(&e.obj))
+            {
                 server.ids.object.release_id(e.obj.obj_id());
                 forget_object(server, e.obj.obj_id());
             }

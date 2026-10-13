@@ -156,18 +156,33 @@ pub fn npc_find_path(c: &mut AiCtx<'_>, abuser: &WorldObject) {
     c.ai.path_node.start_point_pos = me;
     c.ai.path_node.end_point_pos = target;
     c.ai.path_node.zone_key = c.obj.transform().zone_id;
+    c.ai.path_node.found_path.clear();
     let Some(geo) = geo_of(c.server, &c.obj) else {
         return;
     };
     let (start, end) = (c.ai.path_node.start_point_pos, c.ai.path_node.end_point_pos);
-    let mut res_list = match c.ai.path_node.find_path(&geo, start, end) {
+    let result = c.ai.path_node.find_path(&geo, start, end);
+    // The search resolves the destination to a graph node. Chase regeneration must
+    // compare with the victim's actual position, not that triangle's centroid.
+    c.ai.path_node.end_point_pos = target;
+    let mut res_list = match result {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("FindPath for npc {}: {}", c.npc.obj_id, e.0);
             return;
         }
     };
-    res_list.push(target);
+    // The enclosing nodes select topology, not mandatory detours through the start
+    // and goal triangle centroids. Native direct paths (0x31062728) use actor positions.
+    if let Some(first) = res_list.first_mut() {
+        *first = me;
+    }
+    if res_list.len() > 1 {
+        *res_list.last_mut().expect("nonempty path") = target;
+    }
+    if res_list.last() != Some(&target) {
+        res_list.push(target);
+    }
     let reduced = match geo.reduce_path(&res_list, 10) {
         Ok(r) => r,
         Err(GeoError) => {

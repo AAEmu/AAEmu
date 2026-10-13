@@ -843,7 +843,7 @@ fn move_in_range(c: &mut AiCtx<'_>, k: BehaviorKind, target: Option<&WorldObject
     if t.base_skill_id == 2 && t.skills_count == 0 && range == 4.0 {
         range -= 1.0; // Fix that ID=7927, Plateau Earth Elemental can hit with a melee attack
     }
-    let mut distance_to_target = match target {
+    let distance_to_target = match target {
         Some(t) => npc::distance_to(c.server, &c.obj, t, true),
         None => 0.0,
     };
@@ -852,15 +852,17 @@ fn move_in_range(c: &mut AiCtx<'_>, k: BehaviorKind, target: Option<&WorldObject
         return;
     };
     let target_pos = npc::world_pos(c.server, target);
+    if distance_to_target <= range {
+        npc::stop_movement(c.server, &c.npc);
+        return;
+    }
     if geo_data_mode(c) {
-        // If not at target position (model size error margin), calculate a new route
+        // COPStick::Execute (10.x cryaisystem_dedicate 0x310F24D8) retains its route
+        // until the target moves beyond the regeneration distance. The C# test was
+        // reversed: a stationary target restarted the route at its first node every tick.
         let end = c.ai.path_node.end_point_pos;
-        let model_size = npc::model_size(c.server, &c.obj);
-        let d = ((end.x - target_pos.x).powi(2)
-            + (end.y - target_pos.y).powi(2)
-            + (end.z - target_pos.z).powi(2))
-        .sqrt();
-        if d.abs() <= model_size {
+        let repath_distance = npc::model_size(c.server, &c.obj).max(0.5);
+        if calculate_distance(end, target_pos, true) > repath_distance {
             let started = std::time::Instant::now();
             find_path(c, target);
             if started.elapsed() >= std::time::Duration::from_millis(1) {
@@ -872,36 +874,31 @@ fn move_in_range(c: &mut AiCtx<'_>, k: BehaviorKind, target: Option<&WorldObject
             }
             c.ai.path_node.end_point_pos = target_pos;
         }
-        let next = c.ai.path_node.found_path.front().copied();
-        match next {
-            Some(next) if !(next.x == 0.0 && next.y == 0.0 && next.z == 0.0) => {
-                distance_to_target = calculate_distance(owner_pos(c), next, true);
-                if distance_to_target > range {
-                    npc_move_towards(c, next, speed as f32, move_flags, range);
-                } else {
-                    if c.ai.path_node.found_path.is_empty() {
-                        npc::stop_movement(c.server, &c.npc);
-                        c.ai.path_node.found_path.clear();
-                        return;
-                    }
-                    if let Some(p) = c.ai.path_node.found_path.pop_front() {
-                        c.ai.path_node.current_target_pos = p;
-                    }
-                }
+        // Navigation heights can differ from the collision floor. Grounded actors
+        // reach waypoints in XY; attack range applies to the victim, not path corners.
+        let include_z = {
+            let n = c.npc.data();
+            n.can_fly
+                || c.server
+                    .game_data
+                    .systems
+                    .ai
+                    .ai
+                    .actor_model(n.unit.model_id)
+                    .is_some_and(|m| m.underwater_creature)
+        };
+        let pos = owner_pos(c);
+        const WAYPOINT_TOLERANCE: f32 = 0.25;
+        while let Some(next) = c.ai.path_node.found_path.front().copied() {
+            if calculate_distance(pos, next, include_z) > WAYPOINT_TOLERANCE {
+                npc_move_towards(c, next, speed as f32, move_flags, WAYPOINT_TOLERANCE);
+                return;
             }
-            _ => {
-                if distance_to_target > range {
-                    npc_move_towards(c, target_pos, speed as f32, move_flags, range);
-                } else {
-                    npc::stop_movement(c.server, &c.npc);
-                }
-            }
+            c.ai.path_node.current_target_pos = next;
+            c.ai.path_node.found_path.pop_front();
         }
-    } else if distance_to_target > range {
-        npc_move_towards(c, target_pos, speed as f32, move_flags, 1.0);
-    } else {
-        npc::stop_movement(c.server, &c.npc);
     }
+    npc_move_towards(c, target_pos, speed as f32, move_flags, 1.0);
 }
 
 /// `RequestAvailableAiSkillList` / `RequestAvailableSkillList` (same filter on both list kinds).
@@ -2501,3 +2498,7 @@ mod tests {
 #[cfg(test)]
 #[path = "fish_movement_tests.rs"]
 mod fish_movement_tests;
+
+#[cfg(test)]
+#[path = "chase_tests.rs"]
+mod chase_tests;

@@ -320,11 +320,13 @@ impl NpcSpawner {
         self.spawned_map().clear();
     }
 
-    /// `CurrentSpawnCount`.
+    /// Living population. Native Npc::OnDeath (10.x x2game 0x393452D0 ->
+    /// 0x39345220 -> 0x39344AA0) releases its population slot before corpse removal.
+    /// Keep corpses in the list for event cleanup, but exclude them from spawn limits.
     pub fn current_spawn_count(&self) -> i32 {
-        self.spawned_map()
-            .get(&self.spawner_id)
-            .map_or(0, |l| l.len() as i32)
+        self.spawned_of(self.spawner_id).map_or(0, |l| {
+            l.iter().filter(|n| !n.data().unit.is_dead()).count() as i32
+        })
     }
 
     fn spawned_of(&self, key: u32) -> Option<Vec<NpcRef>> {
@@ -429,9 +431,6 @@ impl NpcSpawner {
                 self.spawner_id,
                 self.unit_id
             );
-            return false;
-        }
-        if self.has_corpse() {
             return false;
         }
         if self.is_despawn_scheduled() {
@@ -555,11 +554,6 @@ impl NpcSpawner {
         true
     }
 
-    fn has_corpse(&self) -> bool {
-        self.spawned_of(self.spawner_id)
-            .is_some_and(|npcs| npcs.iter().any(|n| n.data().unit.is_dead()))
-    }
-
     /// `IsPlayerInSpawnRadius()` (cached for 10 s per `SpawnerId`): any player of the server
     /// within `TestRadiusPc` (or `TestRadiusNpc`) * 50 of the spawn position (3D).
     pub fn is_player_in_spawn_radius(&self, server: &GameServer) -> bool {
@@ -663,16 +657,16 @@ impl NpcSpawner {
                 }
             }
         }
-        let others: Vec<usize> = self
+        let others: Vec<Vec<NpcRef>> = self
             .spawned_map()
             .iter()
             .filter(|(k, _)| **k != self.spawner_id)
-            .map(|(_, l)| l.len())
+            .map(|(_, l)| l.clone())
             .collect();
         let mut count = 0;
         let mut are = false;
-        for len in others {
-            if len > 0 {
+        for npcs in others {
+            if npcs.iter().any(|n| !n.data().unit.is_dead()) {
                 count += self.current_spawn_count() + self.scheduled_count();
                 are = true;
             }
@@ -704,7 +698,7 @@ impl NpcSpawner {
     pub fn spawn(self: &Arc<Self>, server: &GameServer, _obj_id: u32) -> Option<NpcRef> {
         self.do_spawn(server);
         self.spawned_of(self.spawner_id)
-            .and_then(|l| l.first().cloned())
+            .and_then(|l| l.into_iter().find(|n| !n.data().unit.is_dead()))
     }
 
     /// `ForceSpawn(objId)`.
@@ -715,7 +709,7 @@ impl NpcSpawner {
         }
         self.do_spawn(server);
         self.spawned_of(self.spawner_id)
-            .and_then(|l| l.first().cloned())
+            .and_then(|l| l.into_iter().find(|n| !n.data().unit.is_dead()))
     }
 
     // ----- despawn -----

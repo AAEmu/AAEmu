@@ -353,12 +353,6 @@ pub fn move_towards(
             n.unit.model_id,
         )
     };
-    let target_dist = calculate_distance(pos, other, true);
-    if target_dist <= range_tolerance {
-        return true;
-    }
-    let travel_dist = target_dist.min(distance);
-    let new = add_distance_to_front_between(travel_dist, target_dist, pos, other);
     let underwater = server
         .game_data
         .systems
@@ -366,6 +360,12 @@ pub fn move_towards(
         .ai
         .actor_model(model_id)
         .is_some_and(|m| m.underwater_creature);
+    let target_dist = calculate_distance(pos, other, can_fly || underwater);
+    if target_dist <= range_tolerance {
+        return true;
+    }
+    let travel_dist = target_dist.min(distance);
+    let new = add_distance_to_front_between(travel_dist, target_dist, pos, other);
     let new = if underwater {
         // Native bUnderwaterCreature uses 3D movement. Keep the authored step height;
         // projecting onto the seabed would move a surface fish away from its angler.
@@ -387,7 +387,9 @@ pub fn move_towards(
         );
         Vec3::new(new.x, new.y, target_z)
     };
-    let angle = calculate_angle_from(new, other);
+    // Keep the travelled heading when a step lands exactly on a waypoint. Computing
+    // new -> other there yields atan2(0, 0), turning every arrival eastward.
+    let angle = calculate_angle_from(pos, new);
     let (vel_x, vel_y) = add_distance_to_front(
         4000.0,
         0.0,
