@@ -17,12 +17,12 @@
         "Id": 3,
         "Name": "Dwarf",
         "Pos": {
-            "X": 7664.0,
-            "Y": 12957.0,
-            "Z": 400.0,
+            "X": 8539.96,
+            "Y": 13095.018,
+            "Z": 678.409,
             "Roll": 0,
             "Pitch": 0,
-            "Yaw": 0
+            "Yaw": 64
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
@@ -73,12 +73,12 @@
         "Id": 8,
         "Name": "Warborn",
         "Pos": {
-            "X": 20988.0,
-            "Y": 5628.0,
-            "Z": 200.0,
+            "X": 19215.602,
+            "Y": 6786.97,
+            "Z": 285.594,
             "Roll": 0,
             "Pitch": 0,
-            "Yaw": 0
+            "Yaw": -177
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
