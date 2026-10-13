@@ -6,6 +6,14 @@ namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class TickManagerTests
 {
+    static TickManagerTests()
+    {
+        // The pool injects threads slowly. Under coverage these callbacks are Task.Run
+        // work, and a 2s wait expires before the first worker exists.
+        ThreadPool.GetMinThreads(out var workers, out var io);
+        ThreadPool.SetMinThreads(Math.Max(workers, 64), io);
+    }
+
     private static readonly TimeSpan OneMsTick = TimeSpan.FromMilliseconds(1);
 
     [Test]
@@ -25,7 +33,7 @@ public class TickManagerTests
         handler.Invoke();
         sw.Stop();
 
-        await Assert.That(started.Wait(TimeSpan.FromSeconds(2))).IsTrue();
+        await Assert.That(started.Wait(TimeSpan.FromSeconds(10))).IsTrue();
         release.Set();
 
         await Assert.That(sw.ElapsedMilliseconds).IsLessThan(100);
@@ -45,7 +53,7 @@ public class TickManagerTests
         }, OneMsTick, useAsync: false);
 
         var invokeTask = Task.Run(() => handler.Invoke());
-        await Assert.That(entered.Wait(TimeSpan.FromSeconds(2))).IsTrue();
+        await Assert.That(entered.Wait(TimeSpan.FromSeconds(10))).IsTrue();
         await Assert.That(invokeTask.IsCompleted).IsFalse();
 
         release.Set();
@@ -70,7 +78,7 @@ public class TickManagerTests
         }, OneMsTick, useAsync: true);
 
         handler.Invoke();
-        await Assert.That(started.Wait(TimeSpan.FromSeconds(2))).IsTrue();
+        await Assert.That(started.Wait(TimeSpan.FromSeconds(10))).IsTrue();
 
         for (var i = 0; i < 20; i++)
             handler.Invoke();
@@ -94,7 +102,7 @@ public class TickManagerTests
         }, OneMsTick, useAsync: true);
 
         handler.Invoke();
-        await Assert.That(slowStarted.Wait(TimeSpan.FromSeconds(2))).IsTrue();
+        await Assert.That(slowStarted.Wait(TimeSpan.FromSeconds(10))).IsTrue();
 
         var sw = Stopwatch.StartNew();
         for (var i = 0; i < 10; i++)
