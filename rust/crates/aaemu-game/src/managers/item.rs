@@ -28,11 +28,43 @@ pub struct ItemManager {
     loose: Mutex<Vec<Item>>,
     /// `_removedItems`.
     removed: Mutex<Vec<u64>>,
+    /// Item/container snapshots written by the current world transaction, awaiting commit.
+    pending_save: Mutex<Option<ItemSaveBatch>>,
     /// Serialises `GetItemContainerForCharacter`'s find-or-create.
     create_lock: Mutex<()>,
     /// `TreasureMap.GenerateTreasureMapData`'s chest pick (installed by the npcs subsystem,
     /// which owns the spawners and doodad templates).
     pub treasure_maps: HookSlot<dyn TreasureMapSource>,
+}
+
+#[derive(Debug, Default)]
+struct ItemSaveBatch {
+    removed: Vec<u64>,
+    containers: Vec<(ContainerRef, ContainerSaveRow)>,
+    items: Vec<(Option<ContainerRef>, u64, Item)>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct ContainerSaveRow {
+    container_id: u64,
+    kind: ContainerKind,
+    slot_type: u8,
+    size: i32,
+    owner_id: u32,
+    mate_id: u32,
+}
+
+impl ContainerSaveRow {
+    fn of(c: &ItemContainer) -> Self {
+        Self {
+            container_id: c.container_id,
+            kind: c.kind,
+            slot_type: c.slot_type,
+            size: c.container_size(),
+            owner_id: c.owner_id,
+            mate_id: c.mate_id,
+        }
+    }
 }
 
 /// Picks the treasure chest a new treasure map points at
@@ -446,7 +478,12 @@ impl ItemManager {
     /// `ItemManager.Save`: deletes queued rows, writes dirty containers and items. Returns
     /// `(updated items, deleted items, updated containers)`.
     pub async fn save(&self, tx: &mut Transaction<'_, MySql>) -> Result<(usize, usize, usize)> {
-        let removed = std::mem::take(&mut *lock(&self.removed));
+        *lock(&self.pending_save) = None;
+        let removed = lock(&self.removed).clone();
+        let mut batch = ItemSaveBatch {
+            removed: removed.clone(),
+            ..Default::default()
+        };
         let containers = self.all_containers();
         let loose = lock(&self.loose).clone();
         let mut deleted = 0;
@@ -484,43 +521,74 @@ impl ItemManager {
                 .bind(snapshot.owner_id)
                 .bind(snapshot.mate_id)
                 .execute(&mut **tx)
-                .await;
-                match res {
-                    Ok(r) => {
-                        container_updates += r.rows_affected() as usize;
-                        if r.rows_affected() > 0 {
-                            c.lock().expect("container poisoned").dirty = false;
-                        }
-                    }
-                    Err(e) => tracing::error!("{e}"),
-                }
+                .await?;
+                container_updates += res.rows_affected() as usize;
+                batch
+                    .containers
+                    .push((c.clone(), ContainerSaveRow::of(&snapshot)));
             }
             for item in &snapshot.items {
                 if item.slot_type == slot_type::NONE || !item.dirty {
                     continue;
                 }
-                if save_item(tx, item, snapshot.container_id).await {
-                    updated += 1;
-                    let mut g = c.lock().expect("container poisoned");
-                    if let Some(i) = g.items.iter_mut().find(|i| i.id == item.id) {
-                        i.dirty = false;
-                    }
-                }
+                save_item(tx, item, snapshot.container_id).await?;
+                updated += 1;
+                batch
+                    .items
+                    .push((Some(c.clone()), snapshot.container_id, item.clone()));
             }
         }
         for item in &loose {
             if item.slot_type == slot_type::NONE || !item.dirty {
                 continue;
             }
-            if save_item(tx, item, 0).await {
-                updated += 1;
+            save_item(tx, item, 0).await?;
+            updated += 1;
+            batch.items.push((None, 0, item.clone()));
+        }
+        *lock(&self.pending_save) = Some(batch);
+        Ok((updated, deleted, container_updates))
+    }
+
+    /// Mark only committed snapshots clean, preserving changes made during SQL awaits and
+    /// every pending item deletion after a failed/rolled-back transaction.
+    pub fn commit_save(&self) {
+        let Some(batch) = lock(&self.pending_save).take() else {
+            return;
+        };
+        lock(&self.removed).retain(|id| !batch.removed.contains(id));
+        for (container, row) in batch.containers {
+            let mut c = container.lock().expect("container poisoned");
+            if ContainerSaveRow::of(&c) == row {
+                c.dirty = false;
             }
         }
-        Ok((updated, deleted, container_updates))
+        for (container, container_id, snapshot) in batch.items {
+            match container {
+                Some(container) => {
+                    let mut c = container.lock().expect("container poisoned");
+                    if c.container_id != container_id {
+                        continue;
+                    }
+                    if let Some(item) = c.items.iter_mut().find(|i| i.id == snapshot.id) {
+                        if *item == snapshot {
+                            item.dirty = false;
+                        }
+                    }
+                }
+                None => {
+                    if let Some(item) = lock(&self.loose).iter_mut().find(|i| i.id == snapshot.id) {
+                        if *item == snapshot {
+                            item.dirty = false;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
-async fn save_item(tx: &mut Transaction<'_, MySql>, item: &Item, container_id: u64) -> bool {
+async fn save_item(tx: &mut Transaction<'_, MySql>, item: &Item, container_id: u64) -> Result<()> {
     let res = sqlx::query(
         "REPLACE INTO items (`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`,\
          `unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`,`expire_time`,`expire_online_minutes`,`charge_time`,`charge_count`) \
@@ -548,18 +616,14 @@ async fn save_item(tx: &mut Transaction<'_, MySql>, item: &Item, container_id: u
     .bind(from_unix(item.charge_start_time))
     .bind(item.charge_count)
     .execute(&mut **tx)
-    .await;
-    match res {
-        Ok(r) if r.rows_affected() >= 1 => true,
-        Ok(_) => {
-            tracing::error!("Error updating items {} ({}) !", item.id, item.template_id);
-            false
-        }
-        Err(e) => {
-            tracing::error!("Error: {e} (item {})", item.id);
-            false
-        }
+    .await?;
+    if res.rows_affected() == 0 {
+        return Err(crate::GameError::Protocol(format!(
+            "Item {} was not persisted",
+            item.id
+        )));
     }
+    Ok(())
 }
 
 const ITEM_SELECT: &str = "SELECT `type`, CAST(id AS UNSIGNED) AS id, CAST(template_id AS SIGNED) AS template_id, \

@@ -29,7 +29,9 @@ use crate::world::{now_ms, DoodadRef, Entity, PlayerRef, WorldInstance, WorldObj
 
 /// `HousingPermission` values `ChangeDoodadData` checks.
 mod housing_permission {
+    pub const PRIVATE: i32 = 0;
     pub const GUILD: i32 = 1;
+    pub const PUBLIC: i32 = 2;
     pub const FAMILY: i32 = 3;
 }
 
@@ -342,8 +344,15 @@ pub fn create_player_doodad(
     let target_house = if ignore_houses {
         None
     } else {
-        crate::systems::housing::house_at_location(server, x, y)
+        crate::systems::housing::house_at_location_in_world(server, world.id, x, y)
     };
+    if target_house
+        .as_ref()
+        .is_some_and(|house| !crate::systems::housing::allowed_to_interact(server, house, player))
+    {
+        player.send(error_msg(error_message::NO_PERM));
+        return None;
+    }
 
     // C#: Create returns null for an unknown template (NullReferenceException).
     let doodad = create(server, &world, 0, id, Some(&pobj), true)?;
@@ -363,14 +372,41 @@ pub fn create_player_doodad(
     match &target_house {
         Some(house) => {
             let house_id = house.data().id;
+            let house_object = WorldObject::from(house);
+            let parent = world.world_pos_rot(&house_object);
+            let scale = house.data().unit.scale;
+            let q = parent.to_quaternion();
+            let inverse = crate::models::transform::Quaternion {
+                x: -q.x,
+                y: -q.y,
+                z: -q.z,
+                w: q.w,
+            };
+            let local = inverse.rotate([x - parent.x, y - parent.y, z - parent.z]);
+            let rotation =
+                crate::models::transform::PositionAndRotation::new(0.0, 0.0, 0.0, 0.0, 0.0, z_rot);
+            let (roll, pitch, yaw) =
+                crate::models::transform::PositionAndRotation::rotation_from_quaternion(
+                    inverse * rotation.to_quaternion(),
+                );
             {
                 let mut d = doodad.data();
+                // Placement packets supply world coordinates; attach_child keeps local
+                // coordinates, so inverse-compose before parenting (also saved for restart).
+                d.transform.set_position(
+                    local[0] / scale,
+                    local[1] / scale,
+                    local[2] / scale,
+                    roll,
+                    pitch,
+                    yaw,
+                );
                 d.owner_db_id = house_id;
                 d.attach_point = crate::models::unit::attach_point::NONE;
                 d.owner_type = doodad_owner_type::HOUSING;
                 d.parent_obj_id = house.obj_id;
             }
-            world.attach_child(&WorldObject::from(house), &WorldObject::from(&doodad));
+            world.attach_child(&house_object, &WorldObject::from(&doodad));
         }
         None => doodad.data().owner_db_id = 0,
     }
@@ -471,7 +507,9 @@ pub fn handle_create_doodad(server: &GameServer, player: &PlayerRef, p: &CSCreat
     }
 
     // Labor cost can be skipped by planting on "owned" land (also blocks if not allowed)
-    if let Some(house) = crate::systems::housing::house_at_location(server, p.x, p.y) {
+    if let Some(house) =
+        crate::systems::housing::house_at_location_in_world(server, world.id, p.x, p.y)
+    {
         if !crate::systems::housing::allowed_to_interact(server, &house, player) {
             player.send(error_msg(error_message::NO_PERM));
             return;
@@ -516,6 +554,15 @@ pub fn change_doodad_data(
         return false;
     }
     if is_coffer {
+        if !matches!(
+            data,
+            housing_permission::PRIVATE
+                | housing_permission::FAMILY
+                | housing_permission::GUILD
+                | housing_permission::PUBLIC
+        ) {
+            return false;
+        }
         if data == housing_permission::FAMILY && family == 0 {
             player.send(error_msg(error_message::FAMILY_NOT_EXIST));
             return false;

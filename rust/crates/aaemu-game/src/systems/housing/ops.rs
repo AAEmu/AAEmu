@@ -9,12 +9,14 @@ use crate::models::transform::PositionAndRotation;
 use crate::server::GameServer;
 use crate::world::{HouseRef, PlayerRef, WorldObject};
 
-use super::hooks::{item_task, mail_type, slot_type, HouseItem, HouseMail, MailAttachment};
+use super::hooks::{
+    item_task, mail_type, slot_type, HouseConstructionError, HouseItem, HouseMail, MailAttachment,
+};
 use super::manager::{
     self, broadcast, calculate_building_tax_info, error_message as err, now, send_error,
     set_permission, tax_due_date, template_of, update_house_faction, update_tax_info, world_of,
     APPRAISAL_CERTIFICATE, BOUND_TAX_CERTIFICATE, COPPER_PER_CERTIFICATE, FACTION_MONSTROSITY,
-    FOR_SALE_MARKER_DOODAD_ID, HOURS_FOR_FAILED_TAX_TO_RETURN_HOUSE, TAX_CERTIFICATE,
+    FOR_SALE_MARKER_DOODAD_ID, HOURS_FOR_FAILED_TAX_TO_RETURN_HOUSE,
 };
 use super::packets::{
     CSCreateHousePacket, CSDecorateHousePacket, SCConstructHouseTaxPacket,
@@ -123,22 +125,20 @@ pub fn house_tax_info(server: &GameServer, player: &PlayerRef, tl: u16) {
     let deposit_tax = base_tax.wrapping_mul(2);
     let h = house.data().clone();
     let now = now();
-    let mut requires_payment = false;
-    let mut weeks_without_pay = -1;
-    if tax_due_date(&h) <= now {
-        requires_payment = true;
-        weeks_without_pay = 0;
-    } else if h.protection_end_date <= now {
-        requires_payment = true;
-        weeks_without_pay = 1;
-    }
+    let weeks_without_pay = if h.protection_end_date <= now {
+        1
+    } else if tax_due_date(&h) <= now {
+        0
+    } else {
+        -1
+    };
     player.send(SCHouseTaxInfoPacket {
         tl: h.unit.tl_id,
         dominion_tax_rate: 0, // TODO (C#): implement when castles are added
         money_amount: deposit_tax,
         money_amount2: info.total_tax_to_pay,
         due: h.protection_end_date,
-        is_already_paid: requires_payment,
+        is_already_paid: weeks_without_pay < 0,
         weeks_without_pay,
         is_heavy_tax_house: template.heavy_tax,
     });
@@ -151,12 +151,21 @@ pub fn house_tax_info(server: &GameServer, player: &PlayerRef, tl: u16) {
 /// `Build(connection, designId, posX, posY, posZ, zRot, itemId, moneyAmount, ht,
 /// autoUseAaPoint)`.
 pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCreateHousePacket) {
-    // TODO (C#): validate house by range... (no placement validation in the 1.2 C#)
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let hooks = server.systems.housing.hooks.get();
-    let (char_id, char_account, faction_id, char_name) = player_ids(player);
-    let source = hooks
-        .inventory_item(server, player, p.item_id)
-        .filter(|i| i.owner_id == u64::from(char_id));
+    let (char_id, char_account, faction_id, _) = player_ids(player);
+    if account_id != char_account || ![p.x, p.y, p.z, p.z_rot].iter().all(|v| v.is_finite()) {
+        send_error(player, err::INVALID_HOUSE_INFO);
+        return;
+    }
+    let source = hooks.inventory_item(server, player, p.item_id).filter(|i| {
+        i.owner_id == u64::from(char_id) && i.count > 0 && i.slot_type == slot_type::INVENTORY
+    });
     let Some(source) = source else {
         // Invalid itemId supplied or the id is not owned by the user
         send_error(player, err::BAG_INVALID_ITEM);
@@ -179,6 +188,14 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
         send_error(player, err::BAG_INVALID_ITEM);
         return;
     }
+    if let Err(e) = super::placement::validate_house(server, player, template, p.x, p.y, p.z) {
+        send_error(player, e);
+        return;
+    }
+    let Some(world) = server.world.world_of(&WorldObject::from(player)) else {
+        send_error(player, err::INVALID_HOUSE_INFO);
+        return;
+    };
     let total = match calculate_building_tax_info(server, char_account, template, true) {
         Ok((_, info)) => info.total_tax_to_pay,
         Err(e) => {
@@ -187,83 +204,37 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
         }
     };
 
-    if server
+    let tax_item = server
         .game_data
         .features
-        .check(crate::data::features::Feature::TaxItem)
-    {
-        // Pay in Tax Certificate
-        let user_tax = hooks.inventory_item_count(server, player, TAX_CERTIFICATE);
-        let user_bound = hooks.inventory_item_count(server, player, BOUND_TAX_CERTIFICATE);
-        let total_user = user_tax + user_bound;
-        let certs_cost = f64::from(total as f32 / 10000f32).ceil() as i32;
-        let mut consumed = certs_cost;
-        if certs_cost > total_user {
-            send_error(player, err::MAIL_NOT_ENOUGH_MONEY_TO_PAY_TAXES);
-            return;
-        }
-        let mut c = consumed;
-        // Use Bound First
-        if user_bound > 0 && c > 0 {
-            c = c.min(user_bound);
-            hooks.bag_consume_item(
-                server,
-                player,
-                item_task::HOUSE_CREATION,
-                BOUND_TAX_CERTIFICATE,
-                c,
-                None,
-            );
-            consumed -= c;
-        }
-        c = consumed;
-        if user_tax > 0 && c > 0 {
-            c = c.min(user_tax);
-            hooks.bag_consume_item(
-                server,
-                player,
-                item_task::HOUSE_CREATION,
-                TAX_CERTIFICATE,
-                c,
-                None,
-            );
-            consumed -= c;
-        }
-        if consumed != 0 {
-            tracing::error!(
-                "Something went wrong when paying tax for new building for player {char_name}"
-            );
-        }
-    } else {
-        // Pay in Gold
-        let money = player.data().money;
-        if i64::from(total) > money {
-            send_error(player, err::MAIL_NOT_ENOUGH_MONEY_TO_PAY_TAXES);
-            return;
-        }
-        hooks.subtract_money(server, player, total, item_task::HOUSE_CREATION);
-    }
-
-    if hooks.bag_consume_item(
-        server,
-        player,
-        item_task::HOUSE_BUILDING,
-        source.template_id,
-        1,
-        Some(source.item_id),
-    ) <= 0
-    {
-        send_error(player, err::BAG_INVALID_ITEM);
-        return;
-    }
-
-    // Spawn the actual house
-    let Some(world) = server.world.world_of(&WorldObject::from(player)) else {
+        .check(crate::data::features::Feature::TaxItem);
+    // Reserve every identifier before charging the player. The house remains unpublished
+    // until the complete payment and selected design have been consumed together.
+    let Ok(house_id) = server.ids.housing.get_next_id() else {
+        send_error(player, err::INVALID_HOUSE_INFO);
         return;
     };
     let Some(house) = manager::create(server, p.design_id, faction_id, &world, 0, 0) else {
+        server.ids.housing.release_id(house_id);
+        send_error(player, err::INVALID_HOUSE_INFO);
         return;
     };
+    house.data().id = house_id;
+    if let Err(e) = hooks.pay_house_construction(server, player, source, total, tax_item) {
+        manager::discard_created_house(server, &house);
+        server.ids.housing.release_id(house_id);
+        send_error(
+            player,
+            match e {
+                HouseConstructionError::InvalidDesign => err::BAG_INVALID_ITEM,
+                HouseConstructionError::InsufficientPayment => {
+                    err::MAIL_NOT_ENOUGH_MONEY_TO_PAY_TAXES
+                }
+            },
+        );
+        return;
+    }
+    // Spawn the actual house
     let data = &server.game_data.systems.housing;
     {
         let mut h = house.data();
@@ -275,7 +246,6 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
             }
             h.unit.name = fake;
         }
-        h.id = server.ids.housing.get_next_id().unwrap_or(0);
         h.unit.transform.set_xyz(p.x, p.y, p.z);
         // In 1.2 the rotation is sent as one sbyte: quantize so the server agrees with the
         // client (see the C# comment in Build).
@@ -286,12 +256,15 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
         h.unit.transform.rot_y = 0.0;
         h.unit.transform.rot_z = z_rot;
     }
-    let step = if template.build_steps.is_empty() {
-        -1
+    let place_date = now();
+    let initial_days = if super::placement::can_extend_house(server, &house) {
+        // The placement fee includes the first paid period (1.2 build_taxPaymentDesc).
+        // Protection also includes the existing seven-day interval before removal.
+        i64::from(server.config.world.days_for_tax_payment) + manager::TAX_PAYMENT_GRACE_DAYS
     } else {
-        0
+        // Original nonrenewable beginner plots expire after seven days.
+        7
     };
-    manager::set_current_step(server, &house, step, false);
     {
         let mut h = house.data();
         h.unit.owner_id = char_id;
@@ -299,10 +272,16 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
         h.account_id = account_id;
         set_permission(&mut h, Some(template), housing_permission::PRIVATE);
         h.allow_recover = true;
-        h.place_date = now();
-        h.protection_end_date = now() + i64::from(server.config.world.days_for_tax_payment) * DAY;
+        h.place_date = place_date;
+        h.protection_end_date = place_date + initial_days * DAY;
         h.is_dirty = true;
     }
+    let step = if template.build_steps.is_empty() {
+        -1
+    } else {
+        0
+    };
+    manager::set_current_step(server, &house, step, false);
     manager::refresh_expedition(server, &house);
     if !server.systems.housing.manager.insert(&house) {
         tracing::error!("Build: house id / tl already in use (ArgumentException)");
@@ -319,6 +298,21 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
 
 /// `ChangeHousePermission(connection, tlId, permission)`.
 pub fn change_house_permission(server: &GameServer, player: &PlayerRef, tl: u16, permission: u8) {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if !matches!(
+        permission,
+        housing_permission::PRIVATE
+            | housing_permission::GUILD
+            | housing_permission::PUBLIC
+            | housing_permission::FAMILY
+    ) {
+        return;
+    }
     let Some(house) = server.systems.housing.manager.by_tl(tl) else {
         return; // invalid house
     };
@@ -327,11 +321,18 @@ pub fn change_house_permission(server: &GameServer, player: &PlayerRef, tl: u16,
         return; // not the owner
     }
     let template = template_of(server, &house);
-    set_permission(&mut house.data(), template, permission);
+    let effective_permission = {
+        let mut h = house.data();
+        set_permission(&mut h, template, permission);
+        h.permission
+    };
     broadcast(
         server,
         &house,
-        &SCHousePermissionChangedPacket { tl, permission },
+        &SCHousePermissionChangedPacket {
+            tl,
+            permission: effective_permission,
+        },
     );
 }
 
@@ -343,6 +344,12 @@ pub fn change_house_name(
     tl: u16,
     name: &str,
 ) {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let Some(house) = server.systems.housing.manager.by_tl(tl) else {
         return;
     };
@@ -362,16 +369,30 @@ pub fn change_house_name(
         h.unit.name = new_name.clone();
         h.is_dirty = true;
     }
-    conn.send(
-        &crate::systems::social::packets::misc::SCUnitNameChangedPacket {
-            obj_id: house.obj_id,
-            name: new_name,
-        },
-    );
+    let packet = crate::systems::social::packets::misc::SCUnitNameChangedPacket {
+        obj_id: house.obj_id,
+        name: new_name,
+    };
+    // The owner's My Houses window can rename a house outside the visible region.
+    // Reply once to the requester and also refresh the nearby viewers' name plaques.
+    conn.send(&packet);
+    if let Some(world) = world_of(server, &house) {
+        for viewer in world.players_around(WorldObject::from(&house)) {
+            if viewer.obj_id != player.obj_id {
+                viewer.send_dyn(&packet);
+            }
+        }
+    }
 }
 
 /// `HousingToggleAllowRecover(character, houseTl)`.
 pub fn toggle_allow_recover(server: &GameServer, player: &PlayerRef, tl: u16) {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let Some(house) = server.systems.housing.manager.by_tl(tl) else {
         return;
     };
@@ -408,12 +429,18 @@ pub fn demolish(
     failed_to_pay_tax: bool,
     force_restore_all_decor: bool,
 ) {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let manager = &server.systems.housing.manager;
     let (id, owner, tl) = {
         let h = house.data();
         (h.id, h.unit.owner_id, h.unit.tl_id)
     };
-    if !manager.contains(id) {
+    if owner == 0 || !manager.contains(id) {
         if let Some(p) = player {
             send_error(p, err::INVALID_HOUSE_INFO);
         }
@@ -428,14 +455,6 @@ pub fn demolish(
         return;
     }
     let owner_char = server.world.character_by_id(owner);
-    {
-        // Mark it as expired protection
-        let mut h = house.data();
-        h.protection_end_date = now() - 1;
-        h.is_dirty = true;
-    }
-    // Make sure to call UpdateTaxInfo first to remove tax-rated mails of this house
-    update_tax_info(server, house);
     // Return items to player by mail
     if let Err(e) = return_house_items_to_owner(
         server,
@@ -448,6 +467,13 @@ pub fn demolish(
         tracing::error!("Demolish {id}: {e}");
         return;
     }
+    {
+        // Expire and remove outstanding bills only after every return was committed.
+        let mut h = house.data();
+        h.protection_end_date = now() - 1;
+        h.is_dirty = true;
+    }
+    update_tax_info(server, house);
     {
         // Remove owner
         let template = template_of(server, house);
@@ -535,6 +561,35 @@ pub fn return_house_items_to_owner(
     force_restore_all_decor: bool,
     new_owner: Option<&PlayerRef>,
 ) -> Result<(), String> {
+    return_house_items_with_payment(
+        server,
+        house,
+        failed_to_pay_tax,
+        force_restore_all_decor,
+        new_owner,
+        Vec::new(),
+        None,
+    )
+}
+
+enum ReturnAction {
+    Detach(crate::world::DoodadRef),
+    Delete(crate::world::DoodadRef, bool),
+    Transfer(crate::world::DoodadRef, u64),
+}
+
+/// Stage the same returns together with purchase receipts and payment. No furniture or
+/// coffer changes are published until the economy has committed the entire mail batch.
+#[allow(clippy::too_many_arguments)]
+pub fn return_house_items_with_payment(
+    server: &GameServer,
+    house: &HouseRef,
+    failed_to_pay_tax: bool,
+    force_restore_all_decor: bool,
+    new_owner: Option<&PlayerRef>,
+    mut mails: Vec<HouseMail>,
+    payment: Option<(&PlayerRef, i32)>,
+) -> Result<(), String> {
     let (owner, house_id) = {
         let h = house.data();
         (h.unit.owner_id, h.id)
@@ -546,6 +601,7 @@ pub fn return_house_items_to_owner(
     let data = &server.game_data.systems.housing;
     let hooks = server.systems.housing.hooks.get();
     let mut returned: Vec<Returned> = Vec::new();
+    let mut actions = Vec::new();
     let mut returned_money = 0;
 
     // If returning items because of a new House Owner, then don't include the design
@@ -554,13 +610,10 @@ pub fn return_house_items_to_owner(
         let design_item_id = data.item_id_by_design(template.id, |id| {
             server.game_data.items.template(id).is_some()
         });
-        match Returned::new_item(server, design_item_id, 1, owner) {
-            Some(r) => returned.push(r),
-            None => tracing::error!(
-                "Was unable to find design items for demolishing house {house_id}. HouseTemplateId: {}, DesignItemId: {design_item_id}",
-                template.id
-            ),
-        }
+        returned.push(
+            Returned::new_item(server, design_item_id, 1, owner)
+                .ok_or_else(|| format!("house {house_id} has no returnable design template"))?,
+        );
         // Return taxes
         if !failed_to_pay_tax {
             let tax = template
@@ -572,12 +625,18 @@ pub fn return_house_items_to_owner(
                 .features
                 .check(crate::data::features::Feature::TaxItem)
             {
-                let r =
-                    Returned::new_item(server, BOUND_TAX_CERTIFICATE, (tax / 5000) as i32, owner)
+                let count = super::hooks::construction_certificates(
+                    i32::try_from(u64::from(tax) * 2)
+                        .map_err(|_| "tax refund exceeds the packet money limit")?,
+                );
+                if count > 0 {
+                    let r = Returned::new_item(server, BOUND_TAX_CERTIFICATE, count, owner)
                         .ok_or("tax certificate template missing (NullReferenceException)")?;
-                returned.push(r);
+                    returned.push(r);
+                }
             } else {
-                returned_money = tax.wrapping_mul(2) as i32;
+                returned_money = i32::try_from(u64::from(tax) * 2)
+                    .map_err(|_| "tax refund exceeds the packet money limit")?;
             }
         }
     }
@@ -603,20 +662,16 @@ pub fn return_house_items_to_owner(
         if template_id == FOR_SALE_MARKER_DOODAD_ID {
             continue;
         }
-        let detach = |f: &crate::world::DoodadRef| {
-            world.detach_child(&WorldObject::from(f));
-            let mut d = f.data();
-            d.parent_obj_id = 0;
-            d.owner_db_id = 0;
-        };
-        let Some(deco) = data.decoration_by_doodad(template_id) else {
+        let this_item = hooks.item(server, item_id);
+        let placed_item_template = this_item.map_or(item_template_id, |item| item.template_id);
+        let Some(deco) = data.decoration_for_item(template_id, placed_item_template) else {
             // Is not furniture, probably plants or backpacks
-            detach(&f);
+            actions.push(ReturnAction::Detach(f));
             continue;
         };
-        let Some(deco_info) = data.item_housing_decoration(deco.id) else {
+        let Some(deco_info) = data.decoration_item(deco.id, placed_item_template) else {
             // No design info for this item ? Just detach it for now
-            detach(&f);
+            actions.push(ReturnAction::Detach(f.clone()));
             tracing::warn!(
                 "ReturnHouseItemsToOwner - Furniture has a design, but couldn't find a item for it, DoodadObjId:{} Template:{template_id}, DesignId: {}",
                 f.obj_id,
@@ -624,8 +679,6 @@ pub fn return_house_items_to_owner(
             );
             continue;
         };
-        let this_item = hooks.item(server, item_id);
-        let mut returned_this = false;
         let mut want_returned =
             (new_owner.is_none() && deco_info.restore) || force_restore_all_decor;
         // If item is bound, always return it owner
@@ -633,13 +686,19 @@ pub fn return_house_items_to_owner(
             let item = this_item.ok_or_else(|| {
                 format!("furniture item {item_id} not found (NullReferenceException)")
             })?;
+            if item.slot_type != slot_type::SYSTEM {
+                return Err(format!(
+                    "furniture item {item_id} is not in its system container"
+                ));
+            }
             if item.soul_bound {
                 want_returned = true;
             }
         }
         // A coffer with an ItemContainer: all of its items are returned too
         if let Some(container_id) = container_id.filter(|c| *c > 0) {
-            for item in hooks.take_coffer_items(server, owner, container_id) {
+            for mut item in hooks.coffer_items(server, container_id) {
+                item.owner_id = u64::from(owner);
                 returned.push(Returned::existing(&item));
             }
         }
@@ -647,43 +706,31 @@ pub fn return_house_items_to_owner(
             match new_owner {
                 None => {
                     // Just delete the doodad and attached item if no new owner
-                    if item_id != 0 {
-                        hooks.destroy_item(server, item_id);
-                    }
-                    // Is furniture, but doesn't restore, destroy it
-                    world.detach_child(&WorldObject::from(&f));
-                    f.data().item_id = 0;
-                    crate::systems::npcs::doodad::manager::delete(server, &world, &f);
+                    actions.push(ReturnAction::Delete(f, false));
                 }
-                Some(no) => {
+                Some(_) => {
                     // Move the doodad and item to the new owner
-                    if item_id != 0 {
-                        hooks.move_item_to_system_container(
-                            server,
-                            no,
-                            item_task::INVALID,
-                            item_id,
-                        );
-                    }
-                    f.data().owner_id = new_owner_id.unwrap_or(0);
+                    actions.push(ReturnAction::Transfer(f, item_id));
                 }
             }
             continue;
         }
         // Item needs to be actually returned
         if item_id > 0 {
-            // Ignore if it's not in a System container for whatever reason
-            if let Some(item) = this_item.filter(|i| i.slot_type == slot_type::SYSTEM) {
-                returned.push(Returned::existing(&item));
-                returned_this = true;
-                f.data().item_id = 0; // don't auto-delete
-            }
+            let mut item = this_item
+                .filter(|i| i.slot_type == slot_type::SYSTEM)
+                .ok_or_else(|| {
+                    format!("furniture item {item_id} is not in its system container")
+                })?;
+            item.owner_id = u64::from(owner);
+            returned.push(Returned::existing(&item));
         } else if item_template_id > 0 {
             // try to stack stackable items
-            if let Some(old) = returned
-                .iter_mut()
-                .find(|x| x.template_id == item_template_id && x.count < x.max_count)
-            {
+            if let Some(old) = returned.iter_mut().find(|x| {
+                x.template_id == item_template_id
+                    && x.count < x.max_count
+                    && matches!(x.attachment, MailAttachment::NewItem { .. })
+            }) {
                 old.add_one();
             } else {
                 let r = Returned::new_item(server, item_template_id, 1, owner).ok_or_else(|| {
@@ -691,18 +738,11 @@ pub fn return_house_items_to_owner(
                 })?;
                 returned.push(r);
             }
-            returned_this = true;
         } else {
             // Not sure what happened here, just ignore it
             continue;
         }
-        if let Some(id) = new_owner_id {
-            f.data().owner_id = id;
-        }
-        if new_owner.is_none() || returned_this {
-            world.detach_child(&WorldObject::from(&f));
-            crate::systems::npcs::doodad::manager::delete(server, &world, &f);
-        }
+        actions.push(ReturnAction::Delete(f, true));
     }
 
     // Split items into mails of maximum 10 attachments
@@ -739,11 +779,49 @@ pub fn return_house_items_to_owner(
         }
         m.attachments.push(r.attachment);
         if i % 10 == 9 || i == last {
-            hooks.send_mail(server, m.clone());
+            mails.push(m.clone());
         }
     }
-    if let Some(m) = mail {
-        tracing::trace!("Demolition mail sent to {:?}", m.receiver_name);
+    if !hooks.send_return_mails(server, mails, payment) {
+        return Err("unable to commit housing returns and purchase payment".into());
+    }
+    for action in actions {
+        match action {
+            ReturnAction::Detach(f) => {
+                world.detach_child(&WorldObject::from(&f));
+                let persistent = {
+                    let mut d = f.data();
+                    d.parent_obj_id = 0;
+                    d.owner_db_id = 0;
+                    d.is_persistent
+                };
+                if persistent {
+                    crate::systems::npcs::doodad::db::save(server, &f);
+                }
+            }
+            ReturnAction::Delete(f, returned_item) => {
+                let item_id = f.data().item_id;
+                if !returned_item && item_id != 0 {
+                    hooks.destroy_item(server, item_id);
+                }
+                world.detach_child(&WorldObject::from(&f));
+                f.data().item_id = 0;
+                crate::systems::npcs::doodad::manager::delete(server, &world, &f);
+            }
+            ReturnAction::Transfer(f, item_id) => {
+                if let Some(no) = new_owner {
+                    if item_id != 0 {
+                        hooks.move_item_to_system_container(
+                            server,
+                            no,
+                            item_task::INVALID,
+                            item_id,
+                        );
+                    }
+                    f.data().owner_id = new_owner_id.unwrap_or(0);
+                }
+            }
+        }
     }
     Ok(())
 }
@@ -851,6 +929,20 @@ pub fn set_for_sale(
     buyer_id: u32,
     seller: Option<&PlayerRef>,
 ) -> bool {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if price == 0 || i32::try_from(price).is_err() {
+        return false;
+    }
+    // The tax timer can still be waiting to demolish an expired house. Do not charge
+    // appraisal certificates for property the seller is about to lose.
+    if house.data().protection_end_date <= now() {
+        return false;
+    }
     if seller.is_some_and(|player| house.data().unit.owner_id != player.character_id) {
         return false;
     }
@@ -863,18 +955,16 @@ pub fn set_for_sale(
         return false;
     }
     let buyer_name = buyer_name.unwrap_or_default();
+    {
+        let h = house.data();
+        if h.sell_price == price && h.sell_to_player_id == buyer_id {
+            return true;
+        }
+    }
     if let Some(seller) = seller {
         let cert = calculate_sale_certificates(price);
         let hooks = server.systems.housing.hooks.get();
-        if hooks.bag_consume_item(
-            server,
-            seller,
-            item_task::BUY_HOUSE,
-            APPRAISAL_CERTIFICATE,
-            cert,
-            None,
-        ) != cert
-        {
+        if !hooks.pay_house_sale_certificates(server, seller, cert) {
             send_error(seller, err::HOUSE_CANNOT_SELL_AS_NOT_ENOUGH_SEAL);
             return false;
         }
@@ -897,6 +987,7 @@ pub fn set_for_sale(
             house_name: name,
         },
     );
+    set_for_sale_markers(server, house, false);
     set_for_sale_markers(server, house, true);
     true
 }
@@ -927,39 +1018,56 @@ fn zone_group_text(server: &GameServer, house: &House) -> String {
 
 /// `CancelForSale(house, returnCertificates)`.
 pub fn cancel_for_sale(server: &GameServer, house: &HouseRef, return_certificates: bool) -> bool {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let h = house.data().clone();
     if h.sell_price == 0 {
         return true;
     }
     let cert = calculate_sale_certificates(h.sell_price);
     let owner = server.world.character_by_id(h.unit.owner_id);
+    // Can only return certificates if owner is online and is the one resetting the sale
+    if cert > 0 && return_certificates {
+        let now_ms = crate::world::now_ms();
+        let mail = HouseMail {
+            mail_type: mail_type::HOUSING_SALE,
+            receiver_id: h.unit.owner_id,
+            sender_name: ".houseSellCancel".into(),
+            receiver_name: server.names.get_character_name(h.unit.owner_id),
+            title: format!("title({},'{}')", zone_group_text(server, &h), h.unit.name),
+            text: format!("body('{}', {APPRAISAL_CERTIFICATE}, {cert})", h.unit.name),
+            send_date_ms: now_ms,
+            recv_date_ms: now_ms + 1,
+            ..HouseMail::default()
+        };
+        let hooks = server.systems.housing.hooks.get();
+        if let Some(owner) = &owner {
+            if !hooks.send_mail_with_new_items(server, owner, mail, APPRAISAL_CERTIFICATE, cert) {
+                tracing::warn!("CancelForSale - Failed to create Appraisal Certificates for mail");
+                return false;
+            }
+        } else {
+            let mut mail = mail;
+            mail.attachments.push(MailAttachment::NewItem {
+                template_id: APPRAISAL_CERTIFICATE,
+                count: cert,
+                grade: 0,
+                owner_id: h.unit.owner_id,
+            });
+            if !hooks.send_mail(server, mail) {
+                return false;
+            }
+        }
+    }
     {
         let mut hd = house.data();
         hd.sell_price = 0;
         hd.sell_to_player_id = 0;
         hd.is_dirty = true;
-    }
-    // Can only return certificates if owner is online and is the one resetting the sale
-    if cert > 0 && return_certificates {
-        if let Some(owner) = &owner {
-            let now_ms = crate::world::now_ms();
-            let mail = HouseMail {
-                mail_type: mail_type::HOUSING_SALE,
-                receiver_id: h.unit.owner_id,
-                sender_name: ".houseSellCancel".into(),
-                receiver_name: server.names.get_character_name(h.unit.owner_id),
-                title: format!("title({},'{}')", zone_group_text(server, &h), h.unit.name),
-                text: format!("body('{}', {APPRAISAL_CERTIFICATE}, {cert})", h.unit.name),
-                send_date_ms: now_ms,
-                recv_date_ms: now_ms + 1,
-                ..HouseMail::default()
-            };
-            let hooks = server.systems.housing.hooks.get();
-            if !hooks.send_mail_with_new_items(server, owner, mail, APPRAISAL_CERTIFICATE, cert) {
-                tracing::warn!("CancelForSale - Failed to create Appraisal Certificates for mail");
-                return false;
-            }
-        }
     }
     broadcast(
         server,
@@ -1022,16 +1130,30 @@ pub fn update_furniture_owner(
 
 /// `BuyHouse(houseTlId, money, character)`.
 pub fn buy_house(server: &GameServer, tl: u16, money: u32, player: &PlayerRef) -> bool {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let Some(house) = server.systems.housing.manager.by_tl(tl) else {
         send_error(player, err::INVALID_HOUSE_INFO);
         return false;
     };
     let (char_id, char_account, char_faction, char_name) = player_ids(player);
     let h = house.data().clone();
+    if h.unit.owner_id == 0 || h.protection_end_date <= now() {
+        send_error(player, err::INVALID_HOUSE_INFO);
+        return false;
+    }
     if h.sell_price == 0 {
         send_error(player, err::HOUSE_CANNOT_BUY_AS_NOT_FOR_SALE);
         return false;
     }
+    let Ok(sale_price) = i32::try_from(h.sell_price) else {
+        send_error(player, err::HOUSE_CANNOT_BUY_AS_SALE_INFO_CHANGED);
+        return false;
+    };
     if h.sell_price != money {
         send_error(player, err::HOUSE_CANNOT_BUY_AS_SALE_INFO_CHANGED);
         return false;
@@ -1045,8 +1167,7 @@ pub fn buy_house(server: &GameServer, tl: u16, money: u32, player: &PlayerRef) -
         return false;
     }
     // NOTE (C#): check tax due maybe ?
-    let hooks = server.systems.housing.hooks.get();
-    if !hooks.subtract_money(server, player, h.sell_price as i32, item_task::BUY_HOUSE) {
+    if player.data().money < i64::from(sale_price) {
         send_error(player, err::HOUSE_CANNOT_BUY_AS_NOT_ENOUGH_MONEY);
         return false;
     }
@@ -1055,9 +1176,8 @@ pub fn buy_house(server: &GameServer, tl: u16, money: u32, player: &PlayerRef) -
     let prev_name_text = previous_owner_name.clone().unwrap_or_default();
     let now_ms = crate::world::now_ms();
 
-    // Mail confirmation mail to new owner
-    hooks.send_mail(
-        server,
+    // The buyer payment, furniture return and both receipts are committed together.
+    let receipt_mails = vec![
         HouseMail {
             mail_type: mail_type::HOUSING_SALE,
             receiver_id: char_id,
@@ -1072,10 +1192,6 @@ pub fn buy_house(server: &GameServer, tl: u16, money: u32, player: &PlayerRef) -
             recv_date_ms: now_ms + 1,
             ..HouseMail::default()
         },
-    );
-    // Send sales money to previous owner
-    hooks.send_mail(
-        server,
         HouseMail {
             mail_type: mail_type::HOUSING_SALE,
             receiver_id: previous_owner,
@@ -1083,14 +1199,22 @@ pub fn buy_house(server: &GameServer, tl: u16, money: u32, player: &PlayerRef) -
             receiver_name: previous_owner_name,
             title: format!("title('{char_name}','{}')", h.unit.name),
             text: format!("body('{char_name}', '{}', {})", h.unit.name, h.sell_price),
-            copper_coins: h.sell_price as i32,
+            copper_coins: sale_price,
             send_date_ms: now_ms,
             recv_date_ms: now_ms + 1,
             ..HouseMail::default()
         },
-    );
+    ];
 
-    if let Err(e) = return_house_items_to_owner(server, &house, false, false, Some(player)) {
+    if let Err(e) = return_house_items_with_payment(
+        server,
+        &house,
+        false,
+        false,
+        Some(player),
+        receipt_mails,
+        Some((player, sale_price)),
+    ) {
         tracing::error!("BuyHouse {}: {e}", h.id);
         return false;
     }
@@ -1152,13 +1276,18 @@ pub fn decorate_house(
     player: &PlayerRef,
     p: &CSDecorateHousePacket,
 ) -> Result<bool, String> {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let hooks = server.systems.housing.hooks.get();
     let char_id = player.data().id;
     // Check Item
-    let Some(item) = hooks
-        .item(server, p.item_id)
-        .filter(|i| i.owner_id == u64::from(char_id))
-    else {
+    let Some(item) = hooks.inventory_item(server, player, p.item_id).filter(|i| {
+        i.owner_id == u64::from(char_id) && i.slot_type == slot_type::INVENTORY && i.count > 0
+    }) else {
         return Ok(false);
     };
     // Check House
@@ -1172,6 +1301,15 @@ pub fn decorate_house(
         send_error(player, err::INVALID_HOUSE_INFO);
         return Ok(false);
     };
+    if (p.parent_obj_id != 0 && p.parent_obj_id != house.obj_id)
+        || ![p.x, p.y, p.z]
+            .into_iter()
+            .chain(p.quat)
+            .all(f32::is_finite)
+        || p.quat.iter().map(|v| f64::from(*v).powi(2)).sum::<f64>() <= f64::EPSILON
+    {
+        return Ok(false);
+    }
     if !manager::allowed_to_interact(server, &house, player)
         || !server
             .game_data
@@ -1203,6 +1341,48 @@ pub fn decorate_house(
             )
         })?;
     let world = world_of(server, &house).ok_or("house without world")?;
+    if player.data().unit.transform.instance_id != world.id || house.data().current_step != -1 {
+        return Ok(false);
+    }
+    let Some(template) = template_of(server, &house) else {
+        return Ok(false);
+    };
+    let house_id = house.data().id;
+    let mut decoration_count = 0;
+    let mut group_count = 0;
+    for d in world.doodads_by_house_db_id(house_id) {
+        let (doodad_id, item_template_id) = {
+            let d = d.data();
+            (d.template_id, d.item_template_id)
+        };
+        let Some(existing) = server
+            .game_data
+            .systems
+            .housing
+            .decoration_for_item(doodad_id, item_template_id)
+        else {
+            continue;
+        };
+        decoration_count += 1;
+        if existing.deco_act_ability_group_id == design.deco_act_ability_group_id {
+            group_count += 1;
+        }
+    }
+    if [template.deco_limit, template.absolute_deco_limit]
+        .into_iter()
+        .any(|limit| limit > 0 && decoration_count >= limit)
+        || server
+            .game_data
+            .systems
+            .housing
+            .decoration_limit(
+                template.housing_deco_limit_id,
+                design.deco_act_ability_group_id,
+            )
+            .is_some_and(|limit| group_count >= limit)
+    {
+        return Ok(false);
+    }
     let house_obj = WorldObject::from(&house);
     let doodad = crate::systems::npcs::doodad::manager::create(
         server,
@@ -1218,8 +1398,6 @@ pub fn decorate_house(
             design.doodad_id
         )
     })?;
-    world.attach_child(&house_obj, &WorldObject::from(&doodad));
-    let house_id = house.data().id;
     {
         let mut d = doodad.data();
         let q = crate::models::transform::Quaternion {
@@ -1247,17 +1425,9 @@ pub fn decorate_house(
         d.ucc_id = ucc_id;
         d.is_persistent = true;
     }
-    if doodad.data().coffer.is_some() {
-        if let Some(h) = server.systems.npcs.hooks.economy.get() {
-            h.initialize_coffer(server, &doodad, char_id);
-        }
-    }
-    crate::systems::npcs::doodad::manager::init_doodad(server, &world, &doodad);
-    crate::systems::npcs::doodad::manager::spawn(server, &world, &doodad);
-    crate::systems::npcs::doodad::db::save(server, &doodad);
-
-    let res = if item.max_count > 1 {
-        // Stackable items are simply consumed
+    // An unpaid decoration must never be published or saved. Count one cannot leave a
+    // partially consumed stack; unique items move into the system container atomically.
+    let paid = if item.max_count > 1 {
         hooks.bag_consume_item(
             server,
             player,
@@ -1267,10 +1437,23 @@ pub fn decorate_house(
             Some(item.item_id),
         ) == 1
     } else {
-        // Non-stackable items are stored in the owner's system container
         hooks.move_item_to_system_container(server, player, item_task::DOODAD_CREATE, item.item_id)
     };
-    Ok(res)
+    if !paid {
+        server.ids.object.release_id(doodad.obj_id);
+        return Ok(false);
+    }
+    world.attach_child(&house_obj, &WorldObject::from(&doodad));
+    if doodad.data().coffer.is_some() {
+        if let Some(h) = server.systems.npcs.hooks.economy.get() {
+            h.initialize_coffer(server, &doodad, char_id);
+        }
+    }
+    crate::systems::npcs::doodad::manager::init_doodad(server, &world, &doodad);
+    crate::systems::npcs::doodad::manager::spawn(server, &world, &doodad);
+    crate::systems::npcs::doodad::db::save(server, &doodad);
+
+    Ok(true)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1286,17 +1469,29 @@ pub fn craft_building(
     house: &HouseRef,
     used_skill: u32,
 ) -> bool {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let Some(template) = template_of(server, house) else {
         return false;
     };
-    let (current_action, current_step, char_name) = {
+    let char_name = player.data().unit.name.clone();
+    let (current_action, current_step, owner, house_instance) = {
         let h = house.data();
         (
             h.current_action(),
             h.current_step,
-            player.data().unit.name.clone(),
+            h.unit.owner_id,
+            h.unit.transform.instance_id,
         )
     };
+    if owner == 0 || current_step < 0 || player.data().unit.transform.instance_id != house_instance
+    {
+        return false;
+    }
     // Get the house's current build step
     let step = if current_action >= 0 && current_step < template.build_steps.len() as i32 {
         match template.build_steps.get(&current_step) {
@@ -1321,7 +1516,7 @@ pub fn craft_building(
         );
         player.data().skill_char.skill_cancelled = true;
         crate::systems::skills::skill::interrupt_skills(server, &WorldObject::from(player));
-        return true;
+        return false;
     }
     // When done, set step to -1
     if template.build_steps.is_empty() {

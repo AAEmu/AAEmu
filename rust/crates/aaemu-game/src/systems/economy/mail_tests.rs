@@ -1416,6 +1416,9 @@ impl MailHousingHooks for Housing {
     fn house_exists(&self, _s: &GameServer, house_id: u32) -> bool {
         house_id == 77
     }
+    fn house_owner_id(&self, _s: &GameServer, house_id: u32) -> Option<u32> {
+        (house_id == 77).then_some(2)
+    }
     fn pay_weekly_tax(&self, _s: &GameServer, _house_id: u32) -> bool {
         true
     }
@@ -1580,6 +1583,7 @@ async fn tax_paid_with_gold_without_tax_item_feature() {
         ..BaseMail::default()
     };
     m.header.receiver_id = 2;
+    m.header.sender_name = ".houseTax".into();
     m.header.status = mail_status::UNPAID;
     m.header.extra = 77;
     m.body.billing_amount = 500;
@@ -1614,6 +1618,211 @@ async fn tax_paid_with_gold_without_tax_item_feature() {
     );
 }
 
+fn send_bob_tax_bill(w: &World, amount: i32) -> i64 {
+    let mut bill = BaseMail {
+        mail_type: mail_type::BILLING,
+        receiver_name: "Bob".into(),
+        ..BaseMail::default()
+    };
+    bill.header.receiver_id = 2;
+    bill.header.sender_name = ".houseTax".into();
+    bill.header.status = mail_status::UNPAID;
+    bill.header.extra = 77;
+    bill.body.billing_amount = amount;
+    bill.body.recv_date = mail::now();
+    let mut txn = ItemTxn::begin(&w.server);
+    assert!(mail::send(&mut txn, bill));
+    bob_mail_ids(&w.server)[0]
+}
+
+#[tokio::test]
+async fn tax_bill_rejects_other_recipient_negative_or_read_bill_and_replay() {
+    let mut w = mail_world_with(|d| {
+        d.features.set(crate::data::Feature::TaxItem, false);
+    });
+    w.server
+        .systems
+        .economy
+        .mail
+        .hooks
+        .housing
+        .install(Arc::new(Housing));
+    let id = send_bob_tax_bill(&w, 500);
+    w.a.drain();
+    w.b.drain();
+    w.pa.data().money = 1000;
+    w.pb.data().money = 1000;
+    let unread_before = w.pb.data().unread_mail;
+    let mut body = PacketStream::new();
+    body.write_i64(id).write_bool(false);
+    run::<CSPayChargeMoneyPacket>(&mut w, 0, body.as_bytes());
+    assert_eq!(w.a.drain_ops(), vec![sc::SCErrorMsgPacket]);
+    assert_eq!(w.pa.data().money, 1000);
+    assert_eq!(w.pb.data().unread_mail, unread_before);
+    assert!(w.server.systems.economy.mail.get_mail_by_id(id).is_some());
+    w.server
+        .systems
+        .economy
+        .mail
+        .with_mail_mut(id, |bill| bill.header.sender_id = 1);
+    assert!(w
+        .server
+        .systems
+        .economy
+        .mail
+        .get_my_house_mails(77)
+        .is_empty());
+    run::<CSPayChargeMoneyPacket>(&mut w, 1, body.as_bytes());
+    assert_eq!(w.b.drain_ops(), vec![sc::SCErrorMsgPacket]);
+    assert_eq!(w.pb.data().money, 1000);
+    w.server
+        .systems
+        .economy
+        .mail
+        .with_mail_mut(id, |bill| bill.header.sender_id = 0);
+    for (amount, status, recv_date) in [
+        (-1, mail_status::UNPAID, mail::now()),
+        (500, mail_status::READ, mail::now()),
+        (500, mail_status::UNPAID, mail::now() + 60),
+    ] {
+        w.server.systems.economy.mail.with_mail_mut(id, |bill| {
+            bill.body.billing_amount = amount;
+            bill.header.status = status;
+            bill.body.recv_date = recv_date;
+        });
+        run::<CSPayChargeMoneyPacket>(&mut w, 1, body.as_bytes());
+        assert_eq!(w.b.drain_ops(), vec![sc::SCErrorMsgPacket]);
+        assert_eq!(w.pb.data().money, 1000);
+        assert_eq!(w.pb.data().unread_mail, unread_before);
+    }
+    w.server.systems.economy.mail.with_mail_mut(id, |bill| {
+        bill.body.billing_amount = 500;
+        bill.header.status = mail_status::UNPAID;
+        bill.body.recv_date = mail::now();
+    });
+    run::<CSPayChargeMoneyPacket>(&mut w, 1, body.as_bytes());
+    assert_eq!(w.pb.data().money, 500);
+    assert!(w.server.systems.economy.mail.get_mail_by_id(id).is_none());
+    w.b.drain();
+    run::<CSPayChargeMoneyPacket>(&mut w, 1, body.as_bytes());
+    assert_eq!(w.b.drain_ops(), vec![sc::SCErrorMsgPacket]);
+    assert_eq!(w.pb.data().money, 500);
+}
+
+#[tokio::test]
+async fn players_cannot_forge_system_housing_bill_sale_or_demolition_mail() {
+    let w = mail_world();
+    w.pa.data().money = 1000;
+    for kind in [
+        mail_type::BILLING,
+        mail_type::HOUSING_SALE,
+        mail_type::DEMOLISH,
+    ] {
+        assert_eq!(
+            send_p2p(&w, kind, "Bob", 0, &[]),
+            mail_result::INVALID_LETTER_FORMAT
+        );
+        assert_eq!(w.pa.data().money, 1000);
+        assert!(bob_mail_ids(&w.server).is_empty());
+    }
+}
+
+struct RefusedHousing;
+impl MailHousingHooks for RefusedHousing {
+    fn house_exists(&self, _s: &GameServer, id: u32) -> bool {
+        id == 77
+    }
+    fn house_owner_id(&self, _s: &GameServer, id: u32) -> Option<u32> {
+        (id == 77).then_some(2)
+    }
+    fn pay_weekly_tax(&self, _s: &GameServer, _id: u32) -> bool {
+        false
+    }
+}
+
+#[tokio::test]
+async fn rejected_house_payment_keeps_both_gold_and_certificates_and_unpaid_bill() {
+    for certificates in [false, true] {
+        let mut w = mail_world_with(|d| {
+            d.features.set(crate::data::Feature::TaxItem, certificates);
+            d.items.templates.insert(
+                mail::ITEM_TAX_CERTIFICATE,
+                crate::data::items::ItemTemplate::plain(mail::ITEM_TAX_CERTIFICATE, 1000),
+            );
+        });
+        w.server
+            .systems
+            .economy
+            .mail
+            .hooks
+            .housing
+            .install(Arc::new(RefusedHousing));
+        let id = send_bob_tax_bill(&w, 500);
+        let bob = w.pb.clone();
+        give(
+            &w,
+            &bob,
+            slot_type::INVENTORY,
+            mail::ITEM_TAX_CERTIFICATE,
+            3,
+            0,
+        );
+        w.pb.data().money = 1000;
+        w.b.drain();
+        let before = w.pb.data().unread_mail;
+        let mut body = PacketStream::new();
+        body.write_i64(id).write_bool(false);
+        run::<CSPayChargeMoneyPacket>(&mut w, 1, body.as_bytes());
+        assert_eq!(w.b.drain_ops(), vec![sc::SCErrorMsgPacket]);
+        assert_eq!(w.pb.data().money, 1000);
+        assert_eq!(item_at(&w.pb, slot_type::INVENTORY, 0).unwrap().count, 3);
+        assert_eq!(w.pb.data().unread_mail, before);
+        assert_eq!(
+            w.server
+                .systems
+                .economy
+                .mail
+                .get_mail_by_id(id)
+                .unwrap()
+                .header
+                .status,
+            mail_status::UNPAID
+        );
+    }
+}
+
+#[tokio::test]
+async fn large_tax_certificate_cost_rounds_up_without_f32_precision_loss() {
+    let mut w = mail_world_with(|d| {
+        d.items.templates.insert(
+            mail::ITEM_TAX_CERTIFICATE,
+            crate::data::items::ItemTemplate::plain(mail::ITEM_TAX_CERTIFICATE, 1_000_000),
+        );
+    });
+    w.server
+        .systems
+        .economy
+        .mail
+        .hooks
+        .housing
+        .install(Arc::new(Housing));
+    let id = send_bob_tax_bill(&w, 1_000_000_001);
+    let bob = w.pb.clone();
+    give(
+        &w,
+        &bob,
+        slot_type::INVENTORY,
+        mail::ITEM_TAX_CERTIFICATE,
+        100_001,
+        0,
+    );
+    let mut body = PacketStream::new();
+    body.write_i64(id).write_bool(false);
+    run::<CSPayChargeMoneyPacket>(&mut w, 1, body.as_bytes());
+    assert!(item_at(&w.pb, slot_type::INVENTORY, 0).is_none());
+    assert!(w.server.systems.economy.mail.get_mail_by_id(id).is_none());
+}
+
 #[tokio::test]
 async fn delete_house_mails_notifies_receiver() {
     let w = mail_world();
@@ -1623,6 +1832,7 @@ async fn delete_house_mails_notifies_receiver() {
         ..BaseMail::default()
     };
     m.header.receiver_id = 2;
+    m.header.sender_name = ".houseTax".into();
     m.header.extra = 88;
     m.body.recv_date = mail::now();
     let mut other = m.clone();

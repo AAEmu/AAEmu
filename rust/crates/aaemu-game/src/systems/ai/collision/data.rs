@@ -5,6 +5,8 @@
 //! * `actor_models.physics_living_*` — the living-entity parameters of characters / NPCs /
 //!   mounts (`X2::UnitModel` → `pe_player_dynamics` / `pe_player_dimensions`), plus the model
 //!   radius / height used for the collider capsule.
+//! * `models` / `prefab_elements` — the normal-state elements of construction and finished
+//!   housing models, including separately authored floors, walls and roofs.
 
 use std::collections::HashMap;
 
@@ -26,6 +28,24 @@ pub struct LivingParams {
     pub time_impulse_recover: f32,
     pub radius: f32,
     pub height: f32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prefab_model_keeps_every_normal_state_element_in_authored_order() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch("CREATE TABLE models (id INT, sub_id INT, sub_type TEXT);
+            CREATE TABLE prefab_elements (id INT, prefab_model_id INT, state_id INT, file_path TEXT);
+            INSERT INTO models VALUES (10, 4, 'PrefabModel'), (11, 4, 'ActorModel');
+            INSERT INTO prefab_elements VALUES (3, 4, 1, 'roof'), (1, 4, 1, 'floor'),
+              (2, 4, 1, 'wall'), (4, 4, 3, 'damaged'), (5, 4, 1, '');").unwrap();
+        let data = CollisionData::load(&db).unwrap();
+        assert_eq!(data.prefab_models[&10], vec!["floor", "wall", "roof"]);
+        assert!(!data.prefab_models.contains_key(&11));
+    }
 }
 
 impl Default for LivingParams {
@@ -54,6 +74,8 @@ pub struct CollisionData {
     pub func_group_models: HashMap<u32, String>,
     /// `actor_models.id → living params`.
     pub living: HashMap<u32, LivingParams>,
+    /// General model ID → all normal-state prefab elements (walls, floor, roof).
+    pub prefab_models: HashMap<u32, Vec<String>>,
 }
 
 impl CollisionData {
@@ -94,6 +116,16 @@ impl CollisionData {
             );
             Ok(())
         });
+        let _ = for_each_row(conn,
+            "SELECT m.id AS model_id, p.file_path FROM models m JOIN prefab_elements p \
+             ON p.prefab_model_id = m.sub_id WHERE m.sub_type = 'PrefabModel' AND p.state_id = 1 ORDER BY p.id",
+            [], |r| {
+                let path = r.string_or("file_path", "")?;
+                if !path.trim().is_empty() {
+                    d.prefab_models.entry(r.u32("model_id")?).or_default().push(path);
+                }
+                Ok(())
+            });
         Ok(d)
     }
 

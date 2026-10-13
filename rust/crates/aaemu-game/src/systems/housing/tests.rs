@@ -66,6 +66,61 @@ impl Eco {
 }
 
 impl HousingEconomyHooks for Eco {
+    fn pay_house_construction(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        design: HouseItem,
+        total: i32,
+        tax_item: bool,
+    ) -> Result<(), super::hooks::HouseConstructionError> {
+        use super::hooks::{construction_certificates, item_task, HouseConstructionError};
+        let certificates = construction_certificates(total);
+        let bound = self.inventory_item_count(server, player, manager::BOUND_TAX_CERTIFICATE);
+        let unbound = self.inventory_item_count(server, player, manager::TAX_CERTIFICATE);
+        if self.inventory_item_count(server, player, design.template_id) < 1 {
+            return Err(HouseConstructionError::InvalidDesign);
+        }
+        if tax_item {
+            if bound + unbound < certificates {
+                return Err(HouseConstructionError::InsufficientPayment);
+            }
+            let from_bound = bound.min(certificates);
+            if from_bound > 0 {
+                self.bag_consume_item(
+                    server,
+                    player,
+                    item_task::HOUSE_CREATION,
+                    manager::BOUND_TAX_CERTIFICATE,
+                    from_bound,
+                    None,
+                );
+            }
+            let remainder = certificates - from_bound;
+            if remainder > 0 {
+                self.bag_consume_item(
+                    server,
+                    player,
+                    item_task::HOUSE_CREATION,
+                    manager::TAX_CERTIFICATE,
+                    remainder,
+                    None,
+                );
+            }
+        } else if !self.subtract_money(server, player, total, item_task::HOUSE_CREATION) {
+            return Err(HouseConstructionError::InsufficientPayment);
+        }
+        self.bag_consume_item(
+            server,
+            player,
+            item_task::HOUSE_BUILDING,
+            design.template_id,
+            1,
+            Some(design.item_id),
+        );
+        Ok(())
+    }
+
     fn inventory_item(&self, _s: &GameServer, _p: &PlayerRef, id: u64) -> Option<HouseItem> {
         self.find(id)
     }
@@ -96,6 +151,23 @@ impl HousingEconomyHooks for Eco {
         *have -= n;
         n
     }
+    fn pay_house_sale_certificates(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        count: i32,
+    ) -> bool {
+        let have = self.inventory_item_count(server, player, manager::APPRAISAL_CERTIFICATE);
+        have >= count
+            && self.bag_consume_item(
+                server,
+                player,
+                super::hooks::item_task::BUY_HOUSE,
+                manager::APPRAISAL_CERTIFICATE,
+                count,
+                None,
+            ) == count
+    }
     fn subtract_money(&self, _s: &GameServer, _p: &PlayerRef, amount: i32, task: u8) -> bool {
         self.push(format!("money -{amount} {task}"));
         self.money_ok
@@ -108,6 +180,15 @@ impl HousingEconomyHooks for Eco {
         id: u64,
     ) -> bool {
         self.push(format!("system {task} {id}"));
+        if let Some(item) = self
+            .items
+            .lock()
+            .unwrap()
+            .iter_mut()
+            .find(|item| item.item_id == id)
+        {
+            item.slot_type = super::hooks::slot_type::SYSTEM;
+        }
         true
     }
     fn destroy_item(&self, _s: &GameServer, id: u64) {
@@ -127,6 +208,20 @@ impl HousingEconomyHooks for Eco {
     }
     fn send_mail(&self, _s: &GameServer, mail: HouseMail) -> bool {
         self.mails.lock().unwrap().push(mail);
+        true
+    }
+    fn send_return_mails(
+        &self,
+        server: &GameServer,
+        mails: Vec<HouseMail>,
+        payment: Option<(&PlayerRef, i32)>,
+    ) -> bool {
+        if let Some((buyer, amount)) = payment {
+            if !self.subtract_money(server, buyer, amount, super::hooks::item_task::BUY_HOUSE) {
+                return false;
+            }
+        }
+        self.mails.lock().unwrap().extend(mails);
         true
     }
     fn delete_house_mails(&self, _s: &GameServer, id: u32) {
@@ -387,6 +482,7 @@ async fn build_and_build_steps_flow() {
         item_id: 77,
         template_id: DESIGN_ITEM,
         owner_id: 1,
+        slot_type: super::hooks::slot_type::INVENTORY,
         count: 1,
         max_count: 1,
         ..Default::default()
@@ -403,11 +499,11 @@ async fn build_and_build_steps_flow() {
     );
 
     ops::build(&fx.server, &fx.pa, 1001, &create_packet(1.0));
-    // First house of the account: CalculateBuildingTaxInfo returns before computing (0 tax).
+    // The first placement pays one week plus the two-week deposit.
     assert_eq!(
         fx.eco.calls(),
         vec![
-            "money -0 31".to_string(),
+            "money -300000 31".to_string(),
             format!("consume 33 {DESIGN_ITEM} 1 Some(77)")
         ]
     );
@@ -483,7 +579,7 @@ async fn build_and_build_steps_flow() {
     );
     fx.b.drain();
     // Wrong construction pack: the skill is cancelled, nothing changes.
-    assert!(ops::craft_building(&fx.server, &fx.pa, &house, 999));
+    assert!(!ops::craft_building(&fx.server, &fx.pa, &house, 999));
     assert!(fx.pa.data().skill_char.skill_cancelled);
     assert_eq!(house.data().current_step, 1);
     assert!(fx.b.drain().is_empty());
@@ -539,6 +635,7 @@ async fn tax_certificates_pay_for_a_new_house() {
         item_id: 77,
         template_id: DESIGN_ITEM,
         owner_id: 1,
+        slot_type: super::hooks::slot_type::INVENTORY,
         count: 1,
         max_count: 1,
         ..Default::default()
@@ -596,7 +693,7 @@ async fn tax_info_and_construct_tax_packets() {
         money_amount: 200_000,
         money_amount2: 100_000,
         due: end,
-        is_already_paid: false,
+        is_already_paid: true,
         weeks_without_pay: -1,
         is_heavy_tax_house: true,
     };
@@ -751,7 +848,7 @@ async fn manual_demolish_returns_deposit_and_restorable_furniture() {
             owner_id: 1,
             count: 1,
             max_count: 1,
-            slot_type: super::hooks::slot_type::SYSTEM,
+            slot_type: super::hooks::slot_type::INVENTORY,
             ..Default::default()
         },
         HouseItem {
@@ -760,6 +857,7 @@ async fn manual_demolish_returns_deposit_and_restorable_furniture() {
             owner_id: 1,
             count: 2,
             max_count: 10,
+            slot_type: super::hooks::slot_type::INVENTORY,
             ..Default::default()
         },
     ]);
@@ -863,6 +961,7 @@ async fn manual_demolish_returns_deposit_and_restorable_furniture() {
 #[tokio::test]
 async fn sale_and_purchase() {
     let mut fx = fixture(false);
+    fx.pb.data().money = 3_000_000;
     let house = place_house(&fx, DESIGN, &fx.pa, 120.0, 100.0, -1);
     let tl = house.data().unit.tl_id;
     house.data().unit.name = "Villa".into();
@@ -1010,8 +1109,8 @@ async fn permissions_name_and_recover() {
         fx.a.drain(),
         vec![(sc::SCUnitNameChangedPacket, s.into_bytes())]
     );
-    assert!(fx.b.drain().is_empty()); // only the requester
-                                      // `place_house` does not set AllowRecover (Build does): false -> true.
+    assert_eq!(fx.b.drain().len(), 1); // nearby viewers see the renamed house too
+                                       // `place_house` does not set AllowRecover (Build does): false -> true.
     ops::toggle_allow_recover(&fx.server, &fx.pa, tl);
     assert!(house.data().allow_recover);
     assert_eq!(
@@ -1199,7 +1298,7 @@ async fn load_rows_and_persistent_bound_doodads() {
         let h = house.data();
         // Same place / protection date: two weeks for free.
         assert_eq!(h.protection_end_date, 1_000_000 + 14 * 24 * 3600);
-        assert!(!h.is_dirty);
+        assert!(h.is_dirty); // persist the corrected dates for the next restart
         assert_eq!(h.unit.transform.zone_id, TEST_ZONE);
         assert_eq!(h.permission, housing_permission::GUILD);
         // Non-persistent mode: the bound doodads are created by the CurrentStep setter.
@@ -1308,6 +1407,7 @@ async fn mismatched_house_design_rejected_before_any_payment_or_consumption() {
         item_id: 77,
         template_id: DESIGN_ITEM,
         owner_id: 1,
+        slot_type: super::hooks::slot_type::INVENTORY,
         count: 1,
         max_count: 1,
         ..Default::default()
@@ -1377,4 +1477,24 @@ fn decoration_design_accepts_every_bound_item_template() {
     assert!(data.decoration_accepts_item(50, 8001));
     assert!(!data.decoration_accepts_item(50, 8002));
     assert!(!data.decoration_accepts_item(51, 8000));
+}
+
+#[tokio::test]
+async fn tax_plaque_distinguishes_paid_due_and_expired_houses() {
+    let mut fx = fixture(false);
+    let house = place_house(&fx, DESIGN, &fx.pa, 300., 300., -1);
+    let tl = house.data().unit.tl_id;
+    fx.a.drain();
+    let time = manager::now();
+    for (end, paid, weeks) in [
+        (time + 14 * 86400, true, -1i32),
+        (time + 3 * 86400, false, 0),
+        (time - 86400, false, 1),
+    ] {
+        house.data().protection_end_date = end;
+        ops::house_tax_info(&fx.server, &fx.pa, tl);
+        let body = body_of(&fx.a.drain(), sc::SCHouseTaxInfoPacket);
+        assert_eq!(body[22], u8::from(paid));
+        assert_eq!(i32::from_le_bytes(body[23..27].try_into().unwrap()), weeks);
+    }
 }

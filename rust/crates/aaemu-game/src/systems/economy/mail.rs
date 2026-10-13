@@ -512,9 +512,21 @@ pub trait MailHousingHooks: Send + Sync {
         false
     }
 
+    /// The current owner of an existing house (tax bills cannot follow a former owner).
+    fn house_owner_id(&self, _server: &GameServer, _house_id: u32) -> Option<u32> {
+        None
+    }
+
     /// `HousingManager.PayWeeklyTax(house)` (adds `DaysForTaxPayment` to the protection end).
     fn pay_weekly_tax(&self, _server: &GameServer, _house_id: u32) -> bool {
         false
+    }
+
+    /// Rechecks ownership when applying the payment. Implementations should validate and
+    /// extend protection under the same house lock.
+    fn pay_weekly_tax_for(&self, server: &GameServer, house_id: u32, payer_id: u32) -> bool {
+        self.house_owner_id(server, house_id) == Some(payer_id)
+            && self.pay_weekly_tax(server, house_id)
     }
 }
 
@@ -540,15 +552,23 @@ pub struct MailState {
 #[derive(Debug)]
 pub struct MailManager {
     state: Mutex<MailState>,
+    pending_save: Mutex<Option<MailSaveBatch>>,
     pub hooks: MailHooks,
     /// `AppConfiguration.Specialty.TradePackMailDelayInMinutes` (`/settradepackmaildelay`).
     trade_pack_mail_delay_minutes: Mutex<f64>,
+}
+
+#[derive(Debug)]
+struct MailSaveBatch {
+    deleted: Vec<i64>,
+    dirty: Vec<BaseMail>,
 }
 
 impl Default for MailManager {
     fn default() -> Self {
         Self {
             state: Mutex::new(MailState::default()),
+            pending_save: Mutex::new(None),
             hooks: MailHooks::default(),
             trade_pack_mail_delay_minutes: Mutex::new(DEFAULT_TRADE_PACK_MAIL_DELAY_MINUTES),
         }
@@ -609,6 +629,8 @@ impl MailManager {
             .iter()
             .filter(|(_, m)| {
                 m.mail_type == mail_type::BILLING
+                    && m.header.sender_id == 0
+                    && m.header.sender_name == ".houseTax"
                     && extract_extra_for_house(m.header.extra).1 == house_id
             })
             .map(|(_, m)| m.id)
@@ -739,14 +761,14 @@ impl MailManager {
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
     ) -> crate::Result<(usize, usize)> {
+        *self.pending_save.lock().unwrap_or_else(|e| e.into_inner()) = None;
         let (deleted, dirty) = {
-            let mut st = self.state();
-            let deleted = std::mem::take(&mut st.deleted);
+            let st = self.state();
+            let deleted = st.deleted.clone();
             let mut dirty = Vec::new();
-            for (_, m) in st.all.iter_mut() {
+            for (_, m) in st.all.iter() {
                 if m.is_dirty {
                     dirty.push(m.clone());
-                    m.is_dirty = false;
                 }
             }
             (deleted, dirty)
@@ -786,16 +808,32 @@ impl MailManager {
             for i in 0..MAX_MAIL_ATTACHMENTS {
                 q = q.bind(m.body.attachments.get(i).copied().unwrap_or(0));
             }
-            match q.execute(&mut **tx).await {
-                Ok(_) => updated += 1,
-                Err(e) => {
-                    // Keep it for the next save (the C# exception aborts the transaction).
-                    self.with_mail_mut(m.id, |x| x.is_dirty = true);
-                    return Err(e.into());
+            q.execute(&mut **tx).await?;
+            updated += 1;
+        }
+        *self.pending_save.lock().unwrap_or_else(|e| e.into_inner()) =
+            Some(MailSaveBatch { deleted, dirty });
+        Ok((updated, deleted_count))
+    }
+
+    /// Acknowledge only committed, unchanged mail rows. Rollback leaves all bills,
+    /// attachments, sale receipts and pending deletions available for retry.
+    pub fn commit_save(&self) {
+        let batch = self
+            .pending_save
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take();
+        let Some(batch) = batch else { return };
+        let mut st = self.state();
+        st.deleted.retain(|id| !batch.deleted.contains(id));
+        for snapshot in batch.dirty {
+            if let Some(live) = st.all.get_mut(snapshot.id) {
+                if *live == snapshot {
+                    live.is_dirty = false;
                 }
             }
         }
-        Ok((updated, deleted_count))
     }
 }
 
@@ -1219,8 +1257,15 @@ pub fn pay_charge_money(
         inventory::send_error_message_to(&mut txn.out(), character, error_message::MAIL_INVALID);
         return false;
     };
-    // Only tax mail supported
-    if mail.mail_type != mail_type::BILLING {
+    // Only an unpaid, delivered tax bill addressed to this character may be paid.
+    if mail.mail_type != mail_type::BILLING
+        || mail.header.sender_id != 0
+        || mail.header.sender_name != ".houseTax"
+        || mail.header.receiver_id != character.character_id
+        || mail.header.status != mail_status::UNPAID
+        || mail.body.billing_amount < 0
+        || mail.body.recv_date > now()
+    {
         inventory::send_error_message_to(&mut txn.out(), character, error_message::MAIL_INVALID);
         return false;
     }
@@ -1229,7 +1274,12 @@ pub fn pay_charge_money(
     let house_exists = housing
         .as_ref()
         .is_some_and(|h| h.house_exists(server, house_id));
-    if !house_exists {
+    if !house_exists
+        || housing
+            .as_ref()
+            .and_then(|h| h.house_owner_id(server, house_id))
+            != Some(character.character_id)
+    {
         inventory::send_error_message_to(
             &mut txn.out(),
             character,
@@ -1238,15 +1288,15 @@ pub fn pay_charge_money(
         return false;
     }
 
-    if server.game_data.features.check(Feature::TaxItem) {
-        // use Tax Certificates as payment
+    let tax_items = server.game_data.features.check(Feature::TaxItem);
+    let required_certs = ((i64::from(mail.body.billing_amount) + 9999) / 10000) as i32;
+    let user_bound_tax_count = if tax_items {
         let inv = Inv::of(character);
         let user_tax_count = inv.items_count_in(slot_type::INVENTORY, ITEM_TAX_CERTIFICATE, -1);
         let user_bound_tax_count =
             inv.items_count_in(slot_type::INVENTORY, ITEM_BOUND_TAX_CERTIFICATE, -1);
-        let total = user_tax_count + user_bound_tax_count;
-        let mut consumed_certs = (mail.body.billing_amount as f32 / 10000f32).ceil() as i32;
-        if total < consumed_certs {
+        let total = i64::from(user_tax_count) + i64::from(user_bound_tax_count);
+        if total < i64::from(required_certs) {
             // Not enough certs
             inventory::send_error_message_to(
                 &mut txn.out(),
@@ -1255,51 +1305,9 @@ pub fn pay_charge_money(
             );
             return false;
         }
-        let bag = inv.bag();
-        // Use Bound First
-        let mut c = consumed_certs;
-        if user_bound_tax_count > 0 && c > 0 {
-            if c > user_bound_tax_count {
-                c = user_bound_tax_count;
-            }
-            bag.lock().expect("container poisoned").consume_item(
-                task_type::MAIL,
-                ITEM_BOUND_TAX_CERTIFICATE,
-                c,
-                None,
-                &mut txn.env,
-            );
-            consumed_certs -= c;
-        }
-        c = consumed_certs;
-        if user_tax_count > 0 && c > 0 {
-            if c > user_tax_count {
-                c = user_tax_count;
-            }
-            bag.lock().expect("container poisoned").consume_item(
-                task_type::MAIL,
-                ITEM_TAX_CERTIFICATE,
-                c,
-                None,
-                &mut txn.env,
-            );
-            consumed_certs -= c;
-        }
-        if consumed_certs != 0 {
-            tracing::error!(
-                "Something went wrong when paying tax for mailId {}",
-                mail.id
-            );
-        }
-        mails.with_mail_mut(mail_id, |m| {
-            m.body.billing_amount = consumed_certs;
-            m.is_dirty = true;
-        });
+        user_bound_tax_count
     } else {
-        // use gold as payment
-        let money = character.data().money;
-        if i64::from(mail.body.billing_amount) > money {
-            // Not enough gold
+        if i64::from(mail.body.billing_amount) > character.data().money {
             inventory::send_error_message_to(
                 &mut txn.out(),
                 character,
@@ -1307,6 +1315,68 @@ pub fn pay_charge_money(
             );
             return false;
         }
+        0
+    };
+
+    // Keep the bill stable through the payment and removal. ItemTxn already prevents
+    // concurrent inventory changes, so the validated cost can be consumed after housing
+    // accepts the payment. A rejected/expired house never charges the player.
+    let mut st = mails.state();
+    let current = st.all.get(mail_id);
+    if current.is_none_or(|m| {
+        m.header.receiver_id != mail.header.receiver_id
+            || m.header.status != mail_status::UNPAID
+            || m.header.extra != mail.header.extra
+            || m.body.billing_amount != mail.body.billing_amount
+    }) {
+        inventory::send_error_message_to(&mut txn.out(), character, error_message::MAIL_INVALID);
+        return false;
+    }
+    if !housing.is_some_and(|h| h.pay_weekly_tax_for(server, house_id, character.character_id)) {
+        inventory::send_error_message_to(
+            &mut txn.out(),
+            character,
+            error_message::INVALID_HOUSE_INFO,
+        );
+        return false;
+    }
+
+    if tax_items {
+        let inv = Inv::of(character);
+        let bag = inv.bag();
+        // Use Bound First
+        let mut consumed_certs = required_certs;
+        let mut c = consumed_certs;
+        if user_bound_tax_count > 0 && c > 0 {
+            if c > user_bound_tax_count {
+                c = user_bound_tax_count;
+            }
+            consumed_certs -= bag.lock().expect("container poisoned").consume_item(
+                task_type::MAIL,
+                ITEM_BOUND_TAX_CERTIFICATE,
+                c,
+                None,
+                &mut txn.env,
+            );
+        }
+        c = consumed_certs;
+        if c > 0 {
+            consumed_certs -= bag.lock().expect("container poisoned").consume_item(
+                task_type::MAIL,
+                ITEM_TAX_CERTIFICATE,
+                c,
+                None,
+                &mut txn.env,
+            );
+        }
+        if consumed_certs != 0 {
+            tracing::error!(
+                "Something went wrong when paying tax for mailId {}",
+                mail.id
+            );
+        }
+    } else {
+        // use gold as payment
         inventory::subtract_money(
             &mut txn.out(),
             character,
@@ -1316,14 +1386,7 @@ pub fn pay_charge_money(
         );
     }
 
-    let paid = housing.is_some_and(|h| h.pay_weekly_tax(server, house_id));
-    if !paid {
-        tracing::error!(
-            "Could not update protection time when paying taxes, mailId {}",
-            mail.id
-        );
-    } else {
-        let mut st = mails.state();
+    {
         let mail_type = mail.mail_type;
         if let Some(m) = st.all.get_mut(mail_id) {
             if m.header.status != mail_status::READ {

@@ -35,17 +35,19 @@ impl SaveManager {
             let (items, deleted, containers) = server.items.save(&mut tx).await?;
             systems += save_stage(server, &mut tx, SaveStage::AfterItems).await?;
             let mut characters = 0;
+            let mut saved_characters = Vec::new();
             for p in server.world.all_characters() {
                 let mut c = p.data().clone();
+                let removed = (
+                    c.removed_friends.clone(),
+                    c.removed_blocked.clone(),
+                    c.skills.removed.clone(),
+                    c.quests.removed.clone(),
+                );
                 match save_character(&mut tx, &mut c, Utc::now().timestamp()).await {
                     Ok(()) => {
                         characters += 1;
-                        let mut live = p.data();
-                        live.updated = c.updated;
-                        live.removed_friends.clear();
-                        live.removed_blocked.clear();
-                        live.skills.removed.clear();
-                        live.quests.removed.clear();
+                        saved_characters.push((p, c.updated, removed));
                     }
                     Err(e) => {
                         tracing::error!("{e}");
@@ -54,6 +56,7 @@ impl SaveManager {
                             c.id,
                             c.unit.name
                         );
+                        return Err(e);
                     }
                 }
             }
@@ -61,9 +64,19 @@ impl SaveManager {
             let total = items + deleted + containers + characters + systems;
             if total == 0 {
                 tracing::debug!("No data to update ...");
-                return Ok(true);
             }
             tx.commit().await?;
+            crate::systems::housing::manager::commit_save(server);
+            server.systems.economy.mail.commit_save();
+            server.items.commit_save();
+            for (player, updated, (friends, blocked, skills, quests)) in saved_characters {
+                let mut live = player.data();
+                live.updated = updated;
+                live.removed_friends.retain(|id| !friends.contains(id));
+                live.removed_blocked.retain(|id| !blocked.contains(id));
+                live.skills.removed.retain(|id| !skills.contains(id));
+                live.quests.removed.retain(|id| !quests.contains(id));
+            }
             if items + deleted > 0 {
                 tracing::debug!(
                     "Updated {items} and deleted {deleted} items in {containers} containers ..."

@@ -3,11 +3,8 @@
 //! `WorldTemplate.SubZones` / `HousingZones` in C#), the position lookups, `Point.IsInside`, and
 //! `CSNotifySubZonePacket`.
 //!
-//! C# quirks mirrored: one `Area` object is created per `<Entity>` and added once per `<Area>`
-//! child, so every copy has the last child's `Id` and the points of all children; an `Entity`
-//! whose `Pos` does not have 3 values adds nothing; `Point.IsInside` casts its ray to x = 1000
-//! (not infinity); `GetHousingZoneByPosition` indexes `HousingZones` (keyed by zone id) with the
-//! zone *key* and throws when absent.
+//! Each XML area retains its own id/polygon. Position lookups use database zone ids and an
+//! unbounded polygon crossing test, including points on polygon edges.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -75,6 +72,22 @@ pub fn parse_area_file(
     contents: &str,
     origin: (i32, i32),
 ) -> std::result::Result<Vec<Area>, String> {
+    parse_area_file_kind(contents, origin, false)
+}
+
+/// 1.2 housing XML puts `housing_areas.id` in `value1`; `Id` belongs to the engine trigger.
+pub fn parse_housing_area_file(
+    contents: &str,
+    origin: (i32, i32),
+) -> std::result::Result<Vec<Area>, String> {
+    parse_area_file_kind(contents, origin, true)
+}
+
+fn parse_area_file_kind(
+    contents: &str,
+    origin: (i32, i32),
+    housing: bool,
+) -> std::result::Result<Vec<Area>, String> {
     let doc = roxmltree::Document::parse(contents).map_err(|e| e.to_string())?;
     let root = doc.root_element();
     let mut out = Vec::new();
@@ -96,16 +109,22 @@ pub fn parse_area_file(
             .attribute("cellY")
             .and_then(|v| v.trim().parse::<i32>().ok())
             .unwrap_or(0);
-        let mut template = Area {
-            name: block_name.to_string(),
-            ..Default::default()
-        };
-        let mut adds = 0usize;
         for area_node in block
             .children()
             .filter(|n| n.is_element() && n.tag_name().name() == "Area")
         {
-            if let Some(id) = area_node.attribute("Id") {
+            let mut template = Area {
+                name: block_name.to_string(),
+                ..Default::default()
+            };
+            let id = if housing {
+                area_node
+                    .attribute("value1")
+                    .or_else(|| area_node.attribute("Id"))
+            } else {
+                area_node.attribute("Id")
+            };
+            if let Some(id) = id {
                 template.id = parse_uint(id).ok_or_else(|| format!("invalid area Id {id:?}"))?;
             }
             let mut start = [0f32; 3];
@@ -149,11 +168,7 @@ pub fn parse_area_file(
                     }
                 }
             }
-            adds += 1;
-        }
-        // The same Area object is added once per <Area> node.
-        for _ in 0..adds {
-            out.push(template.clone());
+            out.push(template);
         }
     }
     Ok(out)
@@ -177,7 +192,10 @@ fn load_areas(
             warn!("{path} doesn't exists or is empty.");
             continue;
         }
-        out.extend(parse_area_file(&contents, origin).map_err(|e| format!("{path}: {e}"))?);
+        out.extend(
+            parse_area_file_kind(&contents, origin, file_name == "housing_area.xml")
+                .map_err(|e| format!("{path}: {e}"))?,
+        );
     }
     Ok(out)
 }
@@ -272,62 +290,44 @@ pub fn zone_origin_cell(worlds: &WorldTemplates, zone_key: u32) -> (i32, i32) {
 // Point.IsInside
 // ---------------------------------------------------------------------------------------------
 
-fn on_segment(p: [f32; 3], q: [f32; 3], r: [f32; 3]) -> bool {
-    q[0] <= p[0].max(r[0])
-        && q[0] >= p[0].min(r[0])
-        && q[1] <= p[1].max(r[1])
-        && q[1] >= p[1].min(r[1])
-}
-
-/// `FindTripletOrientation`: 0 colinear, 1 clockwise, 2 counterclockwise.
-fn orientation(p: [f32; 3], q: [f32; 3], r: [f32; 3]) -> i32 {
-    let val = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1]);
-    if val == 0.0 {
-        0
-    } else if val > 0.0 {
-        1
-    } else {
-        2
-    }
-}
-
-fn is_line_intersection(l1: ([f32; 3], [f32; 3]), l2: ([f32; 3], [f32; 3])) -> bool {
-    let o1 = orientation(l1.0, l1.1, l2.0);
-    let o2 = orientation(l1.0, l1.1, l2.1);
-    let o3 = orientation(l2.0, l2.1, l1.0);
-    let o4 = orientation(l2.0, l2.1, l1.1);
-    if o1 != o2 && o3 != o4 {
-        return true;
-    }
-    (o1 == 0 && on_segment(l1.0, l2.0, l1.1))
-        || (o2 == 0 && on_segment(l1.0, l2.1, l1.1))
-        || (o3 == 0 && on_segment(l2.0, l1.0, l2.1))
-        || (o4 == 0 && on_segment(l2.0, l1.1, l2.1))
-}
-
-/// `Point.IsInside(polygon, n, p)` (ray to x = 1000, as C#).
+/// Polygon crossing test. World coordinates commonly exceed x=1000; a fixed ray endpoint
+/// can sit inside the polygon and invert its answer. Horizontal edges are handled separately.
 pub fn is_inside(polygon: &[[f32; 3]], p: [f32; 3]) -> bool {
-    let n = polygon.len();
-    if n < 3 {
+    if polygon.len() < 3
+        || !p[0].is_finite()
+        || !p[1].is_finite()
+        || polygon
+            .iter()
+            .any(|v| !v[0].is_finite() || !v[1].is_finite())
+    {
         return false;
     }
-    let extreme = [1000.0, p[1], 0.0];
-    let mut count = 0;
-    let mut i = 0;
-    loop {
-        let next = (i + 1) % n;
-        if is_line_intersection((polygon[i], polygon[next]), (p, extreme)) {
-            if orientation(polygon[i], p, polygon[next]) == 0 {
-                return on_segment(polygon[i], p, polygon[next]);
-            }
-            count += 1;
+    let (x, y) = (f64::from(p[0]), f64::from(p[1]));
+    let mut inside = false;
+    for (a, b) in polygon
+        .iter()
+        .zip(polygon.iter().cycle().skip(1))
+        .take(polygon.len())
+    {
+        let (ax, ay, bx, by) = (
+            f64::from(a[0]),
+            f64::from(a[1]),
+            f64::from(b[0]),
+            f64::from(b[1]),
+        );
+        if (x - ax) * (by - ay) == (y - ay) * (bx - ax)
+            && x >= ax.min(bx)
+            && x <= ax.max(bx)
+            && y >= ay.min(by)
+            && y <= ay.max(by)
+        {
+            return true;
         }
-        i = next;
-        if i == 0 {
-            break;
+        if (ay > y) != (by > y) && x < ax + (y - ay) * (bx - ax) / (by - ay) {
+            inside = !inside;
         }
     }
-    count % 2 == 1
+    inside
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -366,23 +366,28 @@ pub fn get_sub_zone_by_position(
     found
 }
 
-/// `SubZoneManager.GetHousingZoneByPosition(world, x, y)`. `Err` = the C#
-/// `KeyNotFoundException` (`HousingZones` is keyed by zone id but indexed with the zone key).
+/// Housing area ids containing a position. A zone without housing areas is an empty result.
 pub fn get_housing_zone_by_position(
     data: &GameData,
     world_template: &WorldTemplate,
     x: f32,
     y: f32,
 ) -> std::result::Result<Vec<u32>, String> {
-    let zone_id = data.worlds.get_zone_id(Some(world_template), x, y);
-    let list = data
+    let zone_key = data.worlds.get_zone_id(Some(world_template), x, y);
+    let Some(zone) = data.zones.zone_by_key(zone_key) else {
+        return Ok(Vec::new());
+    };
+    let zone_id = zone.id;
+    let Some(list) = data
         .systems
         .npcs
         .subzone
         .housing_zones
         .get(&world_template.id)
         .and_then(|z| z.get(&zone_id))
-        .ok_or_else(|| format!("The given key '{zone_id}' was not present in the dictionary."))?;
+    else {
+        return Ok(Vec::new());
+    };
     let mut found = Vec::new();
     for area in list {
         if is_inside(&area.points, [x, y, 0.0]) {
@@ -470,14 +475,12 @@ mod tests {
 </Objects>"#;
 
     #[test]
-    fn parses_areas_with_csharp_sharing() {
+    fn parses_independent_xml_areas() {
         let areas = parse_area_file(XML, (2, 3)).unwrap();
         assert_eq!(areas.len(), 2); // sub_a twice, bad_pos none
-        for a in &areas {
-            assert_eq!(a.name, "sub_a");
-            assert_eq!(a.id, 7); // last Area Id
-            assert_eq!(a.points.len(), 5); // 4 + 1 (one invalid)
-        }
+        assert_eq!(areas[0].name, "sub_a");
+        assert_eq!((areas[0].id, areas[0].points.len()), (5, 4));
+        assert_eq!((areas[1].id, areas[1].points.len()), (7, 1));
         // origin (2,3) + cellX 1 -> x offset 3072, y 3072; + entity Pos (10, 20, 0)
         assert_eq!(areas[0].points[0], [3082.0, 3092.0, 0.0]);
         assert_eq!(areas[0].points[3], [3082.0, 3192.0, 1.0]);
@@ -487,6 +490,13 @@ mod tests {
         )
         .is_err());
         assert!(parse_area_file("<Objects>", (0, 0)).is_err());
+    }
+
+    #[test]
+    fn housing_uses_database_area_id_in_value1_not_engine_trigger_id() {
+        let xml = "<Objects><Entity Name='Shape123' Pos='0,0,0'><Area Id='68' Group='1' value1='37'><Points><Point Pos='0,0,0'/><Point Pos='20,0,0'/><Point Pos='20,20,0'/></Points></Area></Entity></Objects>";
+        assert_eq!(parse_area_file(xml, (0, 0)).unwrap()[0].id, 68);
+        assert_eq!(parse_housing_area_file(xml, (0, 0)).unwrap()[0].id, 37);
     }
 
     #[test]
@@ -502,14 +512,18 @@ mod tests {
         assert!(!is_inside(&square, [-5.0, 50.0, 0.0]));
         assert!(is_inside(&square, [100.0, 50.0, 0.0])); // on an edge
         assert!(!is_inside(&square[..2], [50.0, 0.0, 0.0]));
-        // C# quirk: the "ray" is the segment to x = 1000; it misses this polygon's edges.
+        // Housing polygons can straddle the old fixed ray endpoint, or lie far beyond it.
         let across = [
             [900.0, 0.0, 0.0],
             [1100.0, 0.0, 0.0],
             [1100.0, 100.0, 0.0],
             [900.0, 100.0, 0.0],
         ];
-        assert!(!is_inside(&across, [1050.0, 50.0, 0.0]));
+        assert!(is_inside(&across, [1050.0, 50.0, 0.0]));
+        let far = across.map(|[x, y, z]| [x + 15000.0, y, z]);
+        assert!(is_inside(&far, [16050.0, 50.0, 0.0]));
+        assert!(!is_inside(&far, [17000.0, 50.0, 0.0]));
+        assert!(!is_inside(&far, [f32::NAN, 50.0, 0.0]));
     }
 
     #[test]
@@ -532,6 +546,49 @@ mod real_data_tests {
 
     fn count(m: &HashMap<u32, ZoneAreas>) -> usize {
         m.values().flat_map(|z| z.values()).map(Vec::len).sum()
+    }
+
+    #[test]
+    #[ignore = "needs AAEMU_COMPACT_DB and AAEMU_GAME_PAK"]
+    fn real_housing_placement_polygons_resolve_original_client_area_tags() {
+        let (Ok(path), Ok(pak)) = (
+            std::env::var("AAEMU_COMPACT_DB"),
+            std::env::var("AAEMU_GAME_PAK"),
+        ) else {
+            return;
+        };
+        let conn = Connection::open_with_flags(&path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+        let app = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("app");
+        let files = ClientFileManager::from_sources(&[pak], &app);
+        let ctx = DataLoadCtx {
+            conn: &conn,
+            app_path: &app,
+            files: &files,
+            language: "en_us",
+        };
+        let mut data = GameData::empty();
+        data.worlds = WorldTemplates::load(&files, &app).unwrap();
+        data.zones = ZoneData::load(&conn, 0).unwrap();
+        data.systems.housing = crate::systems::housing::Data::load(&ctx).unwrap();
+        data.systems.npcs.subzone = SubZoneData::load(&ctx).unwrap();
+        let main = data
+            .worlds
+            .get_world_template_by_name("main_world")
+            .unwrap();
+        // Original client Shape126 in zone142 uses engine Id=0 and housing database value1=52.
+        let ids = get_housing_zone_by_position(&data, main, 13944.868, 14216.393).unwrap();
+        assert!(ids.contains(&52), "unexpected housing ids: {ids:?}");
+        assert_eq!(data.systems.housing.areas.get(&52), Some(&1));
+        assert!(data.systems.housing.group_categories[&1].contains(&1));
+        let count = data.systems.npcs.subzone.housing_zones[&main.id]
+            .values()
+            .flatten()
+            .filter(|a| data.systems.housing.areas.contains_key(&a.id))
+            .count();
+        assert!(
+            count > 200,
+            "only {count} housing polygons resolve their 1.2 eligibility records"
+        );
     }
 
     #[test]

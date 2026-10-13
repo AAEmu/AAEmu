@@ -2544,6 +2544,118 @@ fn base_mail(m: &crate::systems::housing::hooks::HouseMail) -> super::mail::Base
 }
 
 impl crate::systems::housing::hooks::HousingEconomyHooks for EconomyForHousing {
+    fn pay_house_sale_certificates(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        count: i32,
+    ) -> bool {
+        use crate::systems::housing::hooks::item_task;
+        use crate::systems::housing::manager::APPRAISAL_CERTIFICATE;
+        let mut txn = ItemTxn::begin(server);
+        let bag = Inv::of(player).bag();
+        let mut bag = lock(&bag);
+        if count <= 0 || bag.items_by_template(APPRAISAL_CERTIFICATE, -1).1 < count {
+            return false;
+        }
+        bag.consume_item(
+            item_task::BUY_HOUSE,
+            APPRAISAL_CERTIFICATE,
+            count,
+            None,
+            &mut txn.env,
+        ) == count
+    }
+
+    fn pay_house_construction(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        design: crate::systems::housing::hooks::HouseItem,
+        total: i32,
+        tax_item: bool,
+    ) -> Result<(), crate::systems::housing::hooks::HouseConstructionError> {
+        use crate::systems::housing::hooks::{
+            construction_certificates, item_task, HouseConstructionError,
+        };
+        use crate::systems::housing::manager::{BOUND_TAX_CERTIFICATE, TAX_CERTIFICATE};
+
+        // ItemTxn serializes all economy operations. Effects are flushed only after the bag
+        // and character locks are released, so a quest hook cannot change the checked items.
+        let mut txn = ItemTxn::begin(server);
+        let inv = Inv::of(player);
+        let bag = inv.bag();
+        let (bound, unbound) = {
+            let bag = lock(&bag);
+            let Some(item) = bag.get_item_by_id(design.item_id) else {
+                return Err(HouseConstructionError::InvalidDesign);
+            };
+            if item.owner_id != u64::from(player.character_id)
+                || item.template_id != design.template_id
+                || item.count < 1
+                || item.slot_type != slot_type::INVENTORY
+            {
+                return Err(HouseConstructionError::InvalidDesign);
+            }
+            let bound = bag.items_by_template(BOUND_TAX_CERTIFICATE, -1).1.max(0);
+            let unbound = bag.items_by_template(TAX_CERTIFICATE, -1).1.max(0);
+            (bound, unbound)
+        };
+        if total < 0 {
+            return Err(HouseConstructionError::InsufficientPayment);
+        }
+        let certificates = construction_certificates(total);
+        if tax_item {
+            if i64::from(bound) + i64::from(unbound) < i64::from(certificates) {
+                return Err(HouseConstructionError::InsufficientPayment);
+            }
+        } else {
+            if player.data().money < i64::from(total) {
+                return Err(HouseConstructionError::InsufficientPayment);
+            }
+            if !inventory::subtract_money(
+                &mut txn.out(),
+                player,
+                slot_type::INVENTORY,
+                total,
+                item_task::HOUSE_CREATION,
+            ) {
+                return Err(HouseConstructionError::InsufficientPayment);
+            }
+        }
+        let mut bag = lock(&bag);
+        if tax_item {
+            let from_bound = bound.min(certificates);
+            if from_bound > 0 {
+                bag.consume_item(
+                    item_task::HOUSE_CREATION,
+                    BOUND_TAX_CERTIFICATE,
+                    from_bound,
+                    None,
+                    &mut txn.env,
+                );
+            }
+            let remainder = certificates - from_bound;
+            if remainder > 0 {
+                bag.consume_item(
+                    item_task::HOUSE_CREATION,
+                    TAX_CERTIFICATE,
+                    remainder,
+                    None,
+                    &mut txn.env,
+                );
+            }
+        }
+        bag.consume_item(
+            item_task::HOUSE_BUILDING,
+            design.template_id,
+            1,
+            Some(design.item_id),
+            &mut txn.env,
+        );
+        Ok(())
+    }
+
     fn inventory_item(
         &self,
         server: &GameServer,
@@ -2761,6 +2873,186 @@ impl crate::systems::housing::hooks::HousingEconomyHooks for EconomyForHousing {
         super::mail::send(&mut txn, m)
     }
 
+    fn coffer_items(
+        &self,
+        server: &GameServer,
+        container_id: u64,
+    ) -> Vec<crate::systems::housing::hooks::HouseItem> {
+        let Some(container) = server.items.container_by_id(container_id) else {
+            return Vec::new();
+        };
+        let mut items = lock(&container).items.clone();
+        items.sort_by_key(|item| std::cmp::Reverse(item.slot));
+        items.iter().map(|item| house_item(server, item)).collect()
+    }
+
+    fn send_return_mails(
+        &self,
+        server: &GameServer,
+        mails: Vec<crate::systems::housing::hooks::HouseMail>,
+        payment: Option<(&PlayerRef, i32)>,
+    ) -> bool {
+        use crate::systems::housing::hooks::{item_task, MailAttachment};
+        let mut txn = ItemTxn::begin(server);
+        let mut prepared = Vec::new();
+        let mut new_items = Vec::new();
+        let mut existing = Vec::new();
+        let mut reserved_mails = Vec::new();
+        let mut seen_existing = HashSet::new();
+        let staged: Result<(), ()> = (|| {
+            if let Some((buyer, amount)) = payment {
+                if amount < 0 || buyer.data().money < i64::from(amount) {
+                    return Err(());
+                }
+            }
+            for housing_mail in &mails {
+                let mut mail = base_mail(housing_mail);
+                let name = server
+                    .names
+                    .get_character_name(mail.header.receiver_id)
+                    .ok_or(())?;
+                if !name.eq_ignore_ascii_case(&mail.receiver_name)
+                    || server.names.get_character_id(&mail.receiver_name) != mail.header.receiver_id
+                    || housing_mail.attachments.len() > super::mail::MAX_MAIL_ATTACHMENTS
+                {
+                    return Err(());
+                }
+                let mail_id = server.ids.mail.get_next_id().map_err(|_| ())?;
+                reserved_mails.push(mail_id);
+                mail.id = i64::from(mail_id);
+                for attachment in &housing_mail.attachments {
+                    match *attachment {
+                        MailAttachment::NewItem {
+                            template_id,
+                            count,
+                            grade,
+                            owner_id,
+                        } => {
+                            if count <= 0 || owner_id != mail.header.receiver_id {
+                                return Err(());
+                            }
+                            // Reserve without ItemManager::new_id: an aborted batch must
+                            // keep pending deletions for a previously used item ID intact.
+                            let mut item = server
+                                .items
+                                .create_detached(
+                                    template_id,
+                                    count,
+                                    0,
+                                    txn.env.world_id,
+                                    txn.env.data,
+                                    txn.env.now,
+                                )
+                                .ok_or(())?;
+                            item.id = u64::from(server.ids.item.get_next_id().map_err(|_| ())?);
+                            item.grade = grade;
+                            item.owner_id = u64::from(owner_id);
+                            item.slot_type = slot_type::MAIL;
+                            item.slot = mail.body.attachments.len() as i32;
+                            mail.body.attachments.push(item.id);
+                            new_items.push(item);
+                        }
+                        MailAttachment::Existing {
+                            item_id,
+                            owner_id,
+                            add_count,
+                        } => {
+                            let item = server.items.item_by_id(item_id).ok_or(())?;
+                            if owner_id != mail.header.receiver_id
+                                || add_count < 0
+                                || item.count.checked_add(add_count).is_none()
+                                || !seen_existing.insert(item_id)
+                            {
+                                return Err(());
+                            }
+                            existing.push((
+                                item_id,
+                                owner_id,
+                                add_count,
+                                mail.body.attachments.len() as i32,
+                            ));
+                            mail.body.attachments.push(item_id);
+                        }
+                    }
+                }
+                mail.header.attachments = mail.get_total_attachment_count();
+                prepared.push((mail, name));
+            }
+            Ok(())
+        })();
+        if staged.is_err() {
+            for item in new_items {
+                server.ids.item.release_id(item.id as u32);
+            }
+            for id in reserved_mails {
+                server.ids.mail.release_id(id);
+            }
+            return false;
+        }
+        let mut state = server.systems.economy.mail.state();
+        if prepared
+            .iter()
+            .any(|(mail, _)| state.all.contains_key(mail.id))
+        {
+            for item in new_items {
+                server.ids.item.release_id(item.id as u32);
+            }
+            for id in reserved_mails {
+                server.ids.mail.release_id(id);
+            }
+            return false;
+        }
+        // Every fallible check has completed while ItemTxn excludes other economy changes.
+        if let Some((buyer, amount)) = payment {
+            if !inventory::subtract_money(
+                &mut txn.out(),
+                buyer,
+                slot_type::INVENTORY,
+                amount,
+                item_task::BUY_HOUSE,
+            ) {
+                for item in new_items {
+                    server.ids.item.release_id(item.id as u32);
+                }
+                for id in reserved_mails {
+                    server.ids.mail.release_id(id);
+                }
+                return false;
+            }
+        }
+        for (id, owner, add_count, slot) in existing {
+            let mut item = match server.items.holding_container(id) {
+                Some(source) => lock(&source).remove_item(id),
+                None => server.items.take_loose(id),
+            }
+            .expect("attachment was checked under the economy operation lock");
+            item.owner_id = u64::from(owner);
+            item.count += add_count;
+            item.slot_type = slot_type::MAIL;
+            item.slot = slot;
+            item.dirty = true;
+            server.items.add_loose(item);
+        }
+        for item in new_items {
+            server.items.add_loose(item);
+        }
+        for (mail, name) in prepared {
+            let id = mail.id;
+            state.deleted.retain(|deleted| *deleted != id);
+            let added = state.all.add(id, mail);
+            debug_assert!(added, "mail IDs were reserved and checked before commit");
+            if let Some(mail) = state.all.get_mut(id) {
+                super::mail::notify_new_mail_by_name_if_online(
+                    server,
+                    &mut txn.env.fx,
+                    mail,
+                    &name,
+                );
+            }
+        }
+        true
+    }
+
     fn delete_house_mails(&self, server: &GameServer, house_id: u32) {
         let mut txn = ItemTxn::begin(server);
         super::mail::delete_house_mails(&mut txn, house_id);
@@ -2821,8 +3113,18 @@ impl super::mail::MailHousingHooks for EconomyComposite {
         crate::systems::housing::house_by_id(server, house_id).is_some()
     }
 
+    fn house_owner_id(&self, server: &GameServer, house_id: u32) -> Option<u32> {
+        crate::systems::housing::house_by_id(server, house_id).map(|h| h.data().unit.owner_id)
+    }
+
     fn pay_weekly_tax(&self, server: &GameServer, house_id: u32) -> bool {
         crate::systems::housing::pay_weekly_tax(server, house_id)
+    }
+
+    fn pay_weekly_tax_for(&self, server: &GameServer, house_id: u32, payer_id: u32) -> bool {
+        crate::systems::housing::house_by_id(server, house_id).is_some_and(|h| {
+            crate::systems::housing::manager::pay_weekly_tax_for(server, &h, Some(payer_id))
+        })
     }
 }
 
@@ -2901,6 +3203,23 @@ impl super::craft::CraftHooks for EconomyComposite {
         crate::systems::housing::act_ability_bonus_at(server, actability_group_id, x, y)
     }
 
+    fn house_actability_bonus_in_world(
+        &self,
+        server: &GameServer,
+        instance_id: u32,
+        x: f32,
+        y: f32,
+        actability_group_id: i32,
+    ) -> u32 {
+        crate::systems::housing::act_ability_bonus_at_in_world(
+            server,
+            instance_id,
+            actability_group_id,
+            x,
+            y,
+        )
+    }
+
     fn on_craft(&self, server: &GameServer, player: &PlayerRef, craft_id: u32) {
         crate::systems::quests::events::on_craft(server, player, craft_id);
     }
@@ -2923,7 +3242,8 @@ impl item_effects::ItemEffectHooks for EconomyComposite {
         x: f32,
         y: f32,
     ) -> Option<item_effects::HouseAtLocation> {
-        let house = crate::systems::housing::house_at_location(server, x, y)?;
+        let instance_id = player.data().unit.transform.instance_id;
+        let house = crate::systems::housing::house_at_location_in_world(server, instance_id, x, y)?;
         let house_id = house.data().id;
         Some(item_effects::HouseAtLocation {
             house_id,
@@ -2971,14 +3291,23 @@ impl item_effects::ItemEffectHooks for EconomyComposite {
             d.plant_time = chrono::Utc::now().timestamp();
         }
         if let Some(h) = spawn.house {
-            let house = server.world.object(h.house_obj_id);
-            let mut d = doodad.data();
-            d.owner_db_id = h.house_id;
-            d.owner_type = crate::models::doodad::doodad_owner_type::HOUSING;
-            d.parent_obj_id = h.house_obj_id;
-            drop(d);
-            if let Some(house) = house {
-                world.attach_child(&house, &WorldObject::from(&doodad));
+            if let Some(house) = world
+                .house(h.house_obj_id)
+                .filter(|house| house.data().id == h.house_id)
+            {
+                {
+                    let mut d = doodad.data();
+                    d.owner_db_id = h.house_id;
+                    d.owner_type = crate::models::doodad::doodad_owner_type::HOUSING;
+                    d.parent_obj_id = h.house_obj_id;
+                }
+                // BackpackDoodadSpawn supplies world coordinates. Save stores the local
+                // transform, so convert before parenting just as player crop placement does.
+                crate::systems::npcs::doodad::funcs::world::attach_keeping_world(
+                    &world,
+                    &WorldObject::from(&house),
+                    &WorldObject::from(&doodad),
+                );
             }
         }
         manager::init_doodad(server, &world, &doodad);

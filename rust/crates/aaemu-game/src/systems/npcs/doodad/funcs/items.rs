@@ -147,6 +147,16 @@ pub fn recover_item(
     let Some(player) = DoodadCtx::as_player(caster) else {
         return;
     };
+    let _operation = ctx
+        .server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if ctx.doodad.data().phase.deleted {
+        return;
+    }
     let (item_id, item_template_id, owner_db_id, owner_type, template_id) = {
         let d = ctx.doodad.data();
         (
@@ -157,6 +167,25 @@ pub fn recover_item(
             d.template_id,
         )
     };
+    // Recovery can also be reached through an InteractionEffect, outside the phase
+    // machine's normal result reset. A failed recovery must never reuse an old success.
+    set_to_next_phase(ctx, false);
+    if owner_type == doodad_owner_type::HOUSING && owner_db_id > 0 {
+        let allowed =
+            crate::systems::housing::house_by_id(ctx.server, owner_db_id).is_some_and(|house| {
+                let (owner, allow_recover) = {
+                    let h = house.data();
+                    (h.unit.owner_id, h.allow_recover)
+                };
+                player.character_id == owner
+                    || (allow_recover
+                        && crate::systems::housing::allowed_to_interact(ctx.server, &house, player))
+            });
+        if !allowed {
+            send_error(player, err::INTERACTION_PERMISSION_DENY);
+            return;
+        }
+    }
     tracing::debug!(
         "DoodadFuncRecoverItem({}) - Caster:{} - DoodadOwner Template:{} - SkillId:{} - Nextphase:{}",
         f.id,
@@ -177,22 +206,6 @@ pub fn recover_item(
                 set_to_next_phase(ctx, false);
                 send_error(player, err::INTERACTION_RECOVER_PARENT);
                 return;
-            }
-            // On house property: check if the player has access to it.
-            if owner_db_id > 0 {
-                let denied = match owner_type {
-                    // `SlaveManager.GetSlaveByObjId(OwnerDbId)`: slaves do not override
-                    // `AllowedToInteract` (always true).
-                    doodad_owner_type::SLAVE => false,
-                    doodad_owner_type::HOUSING => {
-                        eco.house_allowed_to_interact(server, owner_db_id, player) == Some(false)
-                    }
-                    _ => false,
-                };
-                if denied {
-                    send_error(player, err::INTERACTION_PERMISSION_DENY);
-                    return;
-                }
             }
             if eco.is_auto_equip_trade_pack(server, item.template_id) {
                 if eco.takeoff_backpack(server, player, item_task::RECOVER_DOODAD_ITEM, true)

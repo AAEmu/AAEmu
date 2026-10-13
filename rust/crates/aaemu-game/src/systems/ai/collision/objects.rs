@@ -125,6 +125,22 @@ pub fn prefab_brushes_with_prefix(
     name: &str,
     prefix: &str,
 ) -> Vec<(String, Vec3, Quat, f32)> {
+    prefab_geometry(xml, name, prefix, false)
+}
+
+/// Housing prefabs also contain static AnimObject geometry (the 1.2 origin guard towers).
+/// Include only explicitly physicalized, non-articulated objects with non-positive mass and
+/// density; animated rigid bodies with dynamics keep their owning subsystem's physics.
+pub fn prefab_house_geometry(xml: &str, name: &str) -> Vec<(String, Vec3, Quat, f32)> {
+    prefab_geometry(xml, name, "", true)
+}
+
+fn prefab_geometry(
+    xml: &str,
+    name: &str,
+    prefix: &str,
+    static_anim_objects: bool,
+) -> Vec<(String, Vec3, Quat, f32)> {
     let Ok(doc) = roxmltree::Document::parse(xml) else {
         return Vec::new();
     };
@@ -138,9 +154,39 @@ pub fn prefab_brushes_with_prefix(
     let mut out = Vec::new();
     let prefix = prefix.to_ascii_lowercase();
     for o in prefab.descendants().filter(|n| n.has_tag_name("Object")) {
-        if o.attribute("Type") != Some("Brush") {
+        let model = if o.attribute("Type") == Some("Brush") {
+            o.attribute("Prefab")
+        } else if static_anim_objects
+            && o.attribute("Type") == Some("Entity")
+            && o.attribute("EntityClass") == Some("AnimObject")
+        {
+            let Some(properties) = o.children().find(|n| n.has_tag_name("Properties")) else {
+                continue;
+            };
+            let Some(physics) = properties.children().find(|n| n.has_tag_name("Physics")) else {
+                continue;
+            };
+            let static_body = physics.attribute("bPhysicalize") == Some("1")
+                && physics.attribute("bArticulated") == Some("0")
+                && physics
+                    .attribute("Mass")
+                    .and_then(|v| v.parse::<f32>().ok())
+                    .is_some_and(|v| v <= 0.0)
+                && physics
+                    .attribute("Density")
+                    .and_then(|v| v.parse::<f32>().ok())
+                    .is_some_and(|v| v <= 0.0);
+            let delayed = properties
+                .children()
+                .find(|n| n.has_tag_name("Animation"))
+                .is_some_and(|n| n.attribute("bPhysicalizeAfterAnimation") == Some("1"));
+            if !static_body || delayed {
+                continue;
+            }
+            properties.attribute("object_Model")
+        } else {
             continue;
-        }
+        };
         if !o
             .attribute("Name")
             .unwrap_or("")
@@ -149,7 +195,7 @@ pub fn prefab_brushes_with_prefix(
         {
             continue;
         }
-        let Some(model) = o.attribute("Prefab").filter(|s| !s.trim().is_empty()) else {
+        let Some(model) = model.filter(|s| !s.trim().is_empty()) else {
             continue;
         };
         let p = parse_vec(o.attribute("Pos").unwrap_or("0,0,0"));
@@ -344,7 +390,163 @@ pub fn apply_doodads(
     (added, stale.len())
 }
 
-/// Syncs the doodad colliders of one world (the residency tick).
+/// Housing uses the model of the current construction step. Normal prefab state 1 can
+/// contain several elements; all of them are needed for the walls, roof and floor. The zone
+/// swaps the unit model in Housing::SetBuildStep (10.x 0x3933ABD0), and records completion in
+/// Housing::SetBuildDone (0x3933AB50).
+#[derive(Debug, Clone)]
+pub struct HouseInfo {
+    pub obj_id: u32,
+    pub models: Vec<String>,
+    pub pos: Vec3,
+    pub q: Quat,
+    pub scale: f32,
+}
+
+fn house_info(server: &GameServer, world: &WorldInstance, obj: &WorldObject) -> Option<HouseInfo> {
+    let house = obj.as_house()?;
+    let (model_id, scale) = {
+        let h = house.data();
+        (h.unit.model_id, h.unit.scale)
+    };
+    let refs = server
+        .game_data
+        .systems
+        .ai
+        .collision
+        .prefab_models
+        .get(&model_id)?;
+    let (pos, q, scale) = object_placement(world, obj, scale);
+    Some(HouseInfo {
+        obj_id: obj.obj_id(),
+        models: refs.clone(),
+        pos,
+        q,
+        scale,
+    })
+}
+
+pub fn resolve_house_shape(
+    files: &Files,
+    models: &ModelCache,
+    prefab_xml: &mut HashMap<String, Option<String>>,
+    reference: &ModelRef,
+) -> Option<ColliderShape> {
+    let ModelRef::Prefab { library, name } = reference else {
+        return resolve_shape(files, models, prefab_xml, reference);
+    };
+    let xml = prefab_xml
+        .entry(library.clone())
+        .or_insert_with(|| {
+            files
+                .read(library)
+                .map(|bytes| crate::data::client_files::decode_text(&bytes))
+        })
+        .clone()?;
+    let parts = prefab_house_geometry(&xml, name)
+        .into_iter()
+        .filter_map(|(path, pos, q, scale)| {
+            Some(ShapePart {
+                model: models.get(&path)?,
+                pos,
+                q,
+                scale,
+            })
+        })
+        .collect::<Vec<_>>();
+    (!parts.is_empty()).then_some(ColliderShape { parts })
+}
+
+pub fn collect_houses(
+    server: &GameServer,
+    world: &WorldInstance,
+    cells: &[(i32, i32)],
+) -> Vec<HouseInfo> {
+    cells
+        .iter()
+        .flat_map(|&(x, y)| world.objects_in_cell(x, y))
+        .filter_map(|obj| house_info(server, world, &obj))
+        .collect()
+}
+
+fn apply_house(
+    pw: &PhysWorld,
+    files: &Files,
+    models: &ModelCache,
+    shapes: &mut HashMap<String, Option<ColliderShape>>,
+    house: &HouseInfo,
+) -> bool {
+    let model = format!("house:{}", house.models.join("|"));
+    let shape = shapes
+        .entry(model.clone())
+        .or_insert_with(|| {
+            let mut prefab_xml = HashMap::new();
+            let parts = house
+                .models
+                .iter()
+                .filter_map(|reference| {
+                    resolve_house_shape(files, models, &mut prefab_xml, &parse_model_ref(reference))
+                })
+                .flat_map(|shape| shape.parts)
+                .collect::<Vec<_>>();
+            (!parts.is_empty()).then_some(ColliderShape { parts })
+        })
+        .clone();
+    // Houses are static brushes and keep the authored collision-slot flags.
+    let key = shape_key(&model, house.pos, house.q, house.scale, (0, u32::MAX));
+    pw.lock()
+        .set_object_shape(ObjKind::House, house.obj_id, key, shape.as_ref(), false)
+}
+
+/// Applies every house in the loaded cells and removes colliders of deleted/unloaded houses.
+pub fn apply_houses(
+    pw: &PhysWorld,
+    files: &Files,
+    models: &ModelCache,
+    shapes: &mut HashMap<String, Option<ColliderShape>>,
+    houses: &[HouseInfo],
+) -> (usize, usize) {
+    let keep: HashSet<u32> = houses.iter().map(|house| house.obj_id).collect();
+    let stale = {
+        let st = pw.lock();
+        st.objects
+            .keys()
+            .filter(|(kind, id)| *kind == ObjKind::House && !keep.contains(id))
+            .map(|(_, id)| *id)
+            .collect::<Vec<_>>()
+    };
+    for id in &stale {
+        pw.lock().remove_object_collider(ObjKind::House, *id);
+    }
+    let added = houses
+        .iter()
+        .filter(|house| apply_house(pw, files, models, shapes, house))
+        .count();
+    (added, stale.len())
+}
+
+/// Installs housing geometry when a cell is first loaded by a query, before the next
+/// residency tick. This keeps house floors available immediately after entering a cell.
+pub fn sync_houses(server: &GameServer, pw: &PhysWorld) {
+    if !server.config.physics.doodad_colliders
+        && server.systems.ai.collision.test_files.get().is_none()
+    {
+        return;
+    }
+    let Some(world) = server.world.world(pw.instance_id) else {
+        return;
+    };
+    let Some(files) = super::files(server) else {
+        return;
+    };
+    let models = super::model_cache(server, &files);
+    let cells = pw.lock().cells.keys().copied().collect::<Vec<_>>();
+    let houses = collect_houses(server, &world, &cells);
+    let mut shapes = server.systems.ai.collision.shape_cache();
+    apply_houses(pw, &files, &models, &mut shapes, &houses);
+}
+
+/// Syncs doodad and housing colliders of one world (the residency tick).
 pub fn sync_world(server: &GameServer, pw: &Arc<PhysWorld>) {
     if !server.config.physics.doodad_colliders
         && server.systems.ai.collision.test_files.get().is_none()
@@ -360,8 +562,10 @@ pub fn sync_world(server: &GameServer, pw: &Arc<PhysWorld>) {
     let models = super::model_cache(server, &files);
     let cells: Vec<(i32, i32)> = pw.lock().cells.keys().copied().collect();
     let doodads = collect_doodads(server, &world, &cells);
+    let houses = collect_houses(server, &world, &cells);
     let mut shapes = server.systems.ai.collision.shape_cache();
     apply_doodads(pw, &files, &models, &mut shapes, &doodads);
+    apply_houses(pw, &files, &models, &mut shapes, &houses);
     drop(shapes);
 }
 
@@ -419,6 +623,52 @@ pub fn remove_doodad(server: &GameServer, instance_id: u32, obj_id: u32) {
         pw.lock().remove_object_collider(ObjKind::Doodad, obj_id);
     }
 }
+
+/// Immediately replaces a spawned house's collider after a construction step/model change.
+pub fn sync_house(server: &GameServer, house: &crate::world::HouseRef) {
+    if !server.config.physics.doodad_colliders
+        && server.systems.ai.collision.test_files.get().is_none()
+    {
+        return;
+    }
+    let instance_id = house.data().unit.transform.instance_id;
+    let Some(pw) = server.systems.ai.collision.existing(instance_id) else {
+        return;
+    };
+    let Some(world) = server.world.world(instance_id) else {
+        return;
+    };
+    if world.house(house.obj_id).is_none() {
+        return;
+    }
+    let Some(info) = house_info(server, &world, &WorldObject::from(house)) else {
+        pw.lock()
+            .remove_object_collider(ObjKind::House, house.obj_id);
+        return;
+    };
+    let Some(cell) = pw.cell_of(info.pos.x, info.pos.y) else {
+        return;
+    };
+    if !pw.lock().cells.contains_key(&cell) {
+        return;
+    }
+    let Some(files) = super::files(server) else {
+        return;
+    };
+    let models = super::model_cache(server, &files);
+    let mut shapes = server.systems.ai.collision.shape_cache();
+    apply_house(&pw, &files, &models, &mut shapes, &info);
+}
+
+pub fn remove_house(server: &GameServer, instance_id: u32, obj_id: u32) {
+    if let Some(pw) = server.systems.ai.collision.existing(instance_id) {
+        pw.lock().remove_object_collider(ObjKind::House, obj_id);
+    }
+}
+
+#[cfg(test)]
+#[path = "housing_collision_tests.rs"]
+mod housing_collision_tests;
 
 #[cfg(test)]
 mod tests {

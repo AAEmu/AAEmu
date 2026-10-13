@@ -25,7 +25,12 @@ pub mod hooks;
 pub mod manager;
 pub mod ops;
 pub mod packets;
+pub mod placement;
 
+#[cfg(test)]
+mod access_tests;
+#[cfg(test)]
+mod lifecycle_tests;
 #[cfg(test)]
 mod manager_tests;
 #[cfg(test)]
@@ -47,6 +52,8 @@ pub type Data = data::HousingData;
 /// Managers of this subsystem (`server.systems.housing`).
 #[derive(Debug, Default)]
 pub struct System {
+    /// Serializes housing payments, sales and furniture placement/recovery.
+    pub(crate) operation_lock: std::sync::Mutex<()>,
     /// `HousingManager`.
     pub manager: manager::HousingManager,
     /// Items / money / mail (installed by the economy subsystem).
@@ -57,7 +64,10 @@ impl System {
     /// Startup. The houses themselves are loaded by `SpawnManager.Load` of `main_world`
     /// ([`load_for_world`], called by the npcs subsystem before the persistent doodads), as in
     /// the C#.
-    pub async fn start(_server: &Arc<GameServer>) -> anyhow::Result<()> {
+    pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
+        // Housing rows are loaded with NPC spawns, before economy hooks and persisted mail.
+        // Start billing only after those subsystems have finished loading their state.
+        manager::start_tax_task(server);
         Ok(())
     }
 
@@ -130,6 +140,16 @@ pub fn house_at_location(server: &GameServer, x: f32, y: f32) -> Option<HouseRef
     manager::house_at_location(server, x, y)
 }
 
+/// House land at a position in a specific world instance.
+pub fn house_at_location_in_world(
+    server: &GameServer,
+    instance_id: u32,
+    x: f32,
+    y: f32,
+) -> Option<HouseRef> {
+    manager::house_at_location_in_world(server, instance_id, x, y)
+}
+
 /// `House.AllowedToInteract(player)`.
 pub fn allowed_to_interact(server: &GameServer, house: &HouseRef, player: &PlayerRef) -> bool {
     manager::allowed_to_interact(server, house, player)
@@ -163,6 +183,19 @@ pub fn pay_weekly_tax(server: &GameServer, house_id: u32) -> bool {
 /// `HousingManager.GetActAbilityBonusFromHouse(GetHouseAtLocation(x, y))` (crafting).
 pub fn act_ability_bonus_at(server: &GameServer, actability_group_id: i32, x: f32, y: f32) -> u32 {
     house_at_location(server, x, y).map_or(0, |h| {
+        manager::act_ability_bonus_from_house(server, actability_group_id, &h)
+    })
+}
+
+/// Housing proficiency bonus in the player's current world instance.
+pub fn act_ability_bonus_at_in_world(
+    server: &GameServer,
+    instance_id: u32,
+    actability_group_id: i32,
+    x: f32,
+    y: f32,
+) -> u32 {
+    house_at_location_in_world(server, instance_id, x, y).map_or(0, |h| {
         manager::act_ability_bonus_from_house(server, actability_group_id, &h)
     })
 }

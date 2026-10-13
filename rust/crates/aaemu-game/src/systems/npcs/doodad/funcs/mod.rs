@@ -114,8 +114,31 @@ pub fn use_func(
             tracing::trace!("DoodadFuncHarvest");
             set_to_next_phase(ctx, true);
         }
-        F::OpenFarmInfo(_) => {
-            tracing::info!("DoodadFuncOpenFarmInfo");
+        F::OpenFarmInfo(f) => {
+            // 1.2 commonfarm/info.alb opens on OPEN_COMMON_FARM_INFO. The packet's
+            // count describes the position array, not the farm's planting capacity
+            // (10.x serializer 0x39C27A00 also writes exactly `count` positions).
+            if let Some(player) = DoodadCtx::as_player(caster) {
+                if ctx
+                    .server
+                    .game_data
+                    .systems
+                    .npcs
+                    .public_farm
+                    .common_farms
+                    .iter()
+                    .any(|farm| farm.id == f.farm_id)
+                {
+                    let pos = ctx.world.world_pos_rot(&ctx.obj());
+                    player.send(crate::systems::npcs::public_farm::SCShowCommonFarmPacket {
+                        farm_type: f.farm_id as i32,
+                        count: 1,
+                        x: pos.x,
+                        y: pos.y,
+                        z: pos.z,
+                    });
+                }
+            }
             set_to_next_phase(ctx, true);
         }
         F::PuzzleRoll(_) => {

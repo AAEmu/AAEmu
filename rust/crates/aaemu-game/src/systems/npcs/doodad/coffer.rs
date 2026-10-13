@@ -96,7 +96,7 @@ pub fn allowed_to_interact(server: &GameServer, doodad: &DoodadRef, player: &Pla
                 .unwrap_or_else(|| eco.expedition_of_character(server, owner_id));
             owner_guild != 0 && expedition != 0 && expedition == owner_guild
         }
-        _ => true,
+        _ => false,
     }
 }
 
@@ -159,7 +159,7 @@ impl SCCofferContentsUpdatePacket {
         if last_slot >= coffer.capacity {
             last_slot = coffer.capacity;
         }
-        let slot_count = (last_slot - first).min(i32::from(MAX_SLOTS_TO_SEND)) as u8;
+        let slot_count = (last_slot - first).clamp(0, i32::from(MAX_SLOTS_TO_SEND)) as u8;
         let container = (coffer.container_id != 0)
             .then(|| server.items.container_by_id(coffer.container_id))
             .flatten();
@@ -340,4 +340,42 @@ impl ClientPacket for CSCofferInteractionPacket {
 /// Coffer C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
     reg.register::<CSCofferInteractionPacket>(LEVEL_PLAIN, cs::CSCofferInteractionPacket);
+}
+
+#[cfg(test)]
+mod audit_tests {
+    use super::*;
+    use crate::models::doodad::Doodad;
+    use crate::test_support::*;
+    use crate::world::Entity;
+
+    #[tokio::test]
+    async fn unknown_coffer_permission_cannot_grant_access_or_be_set_by_owner() {
+        let server = test_server();
+        let client = TestClient::new(&server, 1, 1001);
+        let player = spawn_player(&server, &client, test_character(1, "Owner", 100., 100.), 10);
+        let mut data = Doodad::new(100);
+        data.owner_id = 1;
+        data.data = 255;
+        data.coffer = Some(DoodadCofferState::default());
+        let doodad = Entity::new(20, data);
+        assert!(!allowed_to_interact(&server, &doodad, &player));
+        let world = server.world.world(0).unwrap();
+        assert!(!super::super::manager::change_doodad_data(
+            &server, &world, &player, &doodad, 255
+        ));
+        assert_eq!(doodad.data().data, 255);
+    }
+
+    #[tokio::test]
+    async fn coffer_page_past_capacity_is_empty() {
+        let server = test_server();
+        let state = DoodadCofferState {
+            capacity: 10,
+            ..Default::default()
+        };
+        assert!(SCCofferContentsUpdatePacket::new(&server, 20, &state, 30)
+            .slots
+            .is_empty());
+    }
 }

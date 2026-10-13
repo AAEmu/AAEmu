@@ -4,6 +4,27 @@
 - Last verified against: `develop` on October 10, 2026
 - Prerequisites: None
 
+## Housing behavior
+
+Housing uses the original 1.2 placement polygons and database category rules. Plot ownership is
+checked per world instance, including unfinished houses. Private, family and expedition
+permissions also apply to planting and crafting benches. Beginner land marked as nonrenewable
+expires instead of accepting weekly tax payments.
+
+Construction consumes the selected inventory design and the complete payment together. Sales
+and demolition prepare all return mail before charging or removing property. Furniture recovery
+keeps the placed object when permission is denied or the recipient's inventory cannot accept it;
+other players also need the owner's recovery toggle enabled.
+
+New renewable houses receive the prepaid tax period plus seven days of grace before removal.
+Each later payment covers one configured period. Crops and dropped packs preserve their world
+placement when attached to a house and save the corresponding local coordinates for reload.
+
+Housing save changes remain pending until the database transaction commits. Normal-state house
+prefab geometry supplies server collision for construction stages and completed floors, walls
+and roofs, including authored static animated objects in castle lodestones. Original client
+checks still govern model-specific placement slopes and footprints.
+
 ## Architecture note: the Rust port
 
 The login server, game server and tools were ported from C# (.NET) to Rust,

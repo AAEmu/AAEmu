@@ -396,8 +396,13 @@ fn recover_item(
                     };
                     if matches!(t, FuncTemplate::RecoverItem(_)) {
                         super::funcs::use_func(t, &ctx, Some(caster), skill_id, 0);
-                        // Move to next phase to remove the doodad
-                        manager::delete(server, &ctx.world, doodad);
+                        // Only a successful recovery clears the source item references.
+                        // Keep the furniture when its owner denies access or the bag is full.
+                        if doodad.data().phase.to_next_phase {
+                            manager::delete(server, &ctx.world, doodad);
+                        } else {
+                            skills_hook(server).interrupt_skills(server, caster);
+                        }
                         return;
                     }
                 }

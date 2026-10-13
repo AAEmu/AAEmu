@@ -130,6 +130,12 @@ pub fn send_mail_to_player(
     item_slots: &[(u8, u8)],
 ) -> u8 {
     let server = txn.server;
+    if !matches!(
+        mail_type,
+        mail_type::NORMAL | mail_type::EXPRESS | mail_type::REGISTERED
+    ) {
+        return mail_result::INVALID_LETTER_FORMAT;
+    }
     if receiver_name.trim().is_empty() || server.names.get_character_id(receiver_name) == 0 {
         return mail_result::UNABLE_TO_FIND_RECIPIENT;
     }

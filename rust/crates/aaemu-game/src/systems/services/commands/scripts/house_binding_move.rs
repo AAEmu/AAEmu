@@ -57,8 +57,15 @@ impl Command for HouseBindingMove {
             CommandManager::send_error_text(self, out, "Not found this attach doodad");
             return Ok(());
         };
-        housing::delete_house(server, &house);
+        // This is a visibility refresh, not permanent property deletion. Keep the house's
+        // bound attachments and their identifiers while the owner moves one attachment.
+        if let Some(world) = housing::world_of(server, &house) {
+            world.hide(&house);
+        }
         attach_point_obj.data().transform.set_xyz(x, y, z);
+        if attach_point_obj.data().is_persistent {
+            crate::systems::npcs::doodad::db::save(server, &attach_point_obj);
+        }
         housing::spawn_house(server, &house);
         player.data().unit.current_target = house.obj_id;
         let packet = SCTargetChangedPacket {

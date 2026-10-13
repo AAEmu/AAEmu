@@ -301,6 +301,7 @@ pub fn load_cell(server: &GameServer, pw: &PhysWorld, cell: (i32, i32)) {
         content.prepare_micros
     );
     pw.end_load(Some(content), cell);
+    objects::sync_houses(server, pw);
 }
 
 /// Loads (when `Physics.LoadOnQuery`) the cells a query box touches.

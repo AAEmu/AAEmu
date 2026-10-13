@@ -226,6 +226,42 @@ async fn to_next_phase_funcs_and_stubs() {
 }
 
 #[tokio::test]
+async fn open_farm_info_sends_one_sign_position_to_the_interacting_player() {
+    let mut data = GameData::empty();
+    data.systems.npcs.public_farm.common_farms.push(
+        crate::systems::npcs::public_farm::CommonFarm {
+            id: 3,
+            farm_id: 3,
+            guard_time: 86_400_000,
+            comments: String::new(),
+        },
+    );
+    let mut fx = fixture_with(Rec::default(), data);
+    fx.run(
+        FuncTemplate::OpenFarmInfo(DoodadFuncOpenFarmInfo { id: 1, farm_id: 3 }),
+        16968,
+        0,
+    );
+    let mut expected = Vec::new();
+    expected.extend_from_slice(&3i32.to_le_bytes());
+    expected.extend_from_slice(&1i32.to_le_bytes()); // one position, not the farm's capacity
+    expected.extend_from_slice(&((102 * 4096i64) << 32).to_le_bytes());
+    expected.extend_from_slice(&((100 * 4096i64) << 32).to_le_bytes());
+    expected.extend_from_slice(&100f32.to_le_bytes());
+    assert_eq!(
+        fx.client.drain(),
+        vec![(sc::SCShowCommonFarmPacket, expected)]
+    );
+    assert!(fx.to_next());
+    fx.run(
+        FuncTemplate::OpenFarmInfo(DoodadFuncOpenFarmInfo { id: 2, farm_id: 99 }),
+        16968,
+        0,
+    );
+    assert!(fx.client.drain().is_empty());
+}
+
+#[tokio::test]
 async fn loot_item_coins_mirror_double_add() {
     let fx = fixture(Rec {
         money_ok: true,

@@ -36,6 +36,18 @@ pub mod mail_type {
 /// `MailStatus.Unpaid`.
 pub const MAIL_STATUS_UNPAID: u8 = 2;
 
+/// A construction payment must either consume the selected design and the complete tax, or
+/// leave both unchanged.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HouseConstructionError {
+    InvalidDesign,
+    InsufficientPayment,
+}
+
+pub fn construction_certificates(total: i32) -> i32 {
+    ((i64::from(total.max(0)) + 9_999) / 10_000) as i32
+}
+
 /// The item fields housing reads (`ItemManager.GetItemByItemId` / `Inventory.GetItemById`).
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct HouseItem {
@@ -126,6 +138,20 @@ impl TaxMailUpdate {
 
 /// Item / money / mail services housing calls (economy subsystem).
 pub trait HousingEconomyHooks: Send + Sync {
+    /// Atomically rechecks and consumes the bag design and its placement tax. Implementations
+    /// must not partially charge a failed placement; the economy bridge holds its operation
+    /// lock across the inventory and money checks and mutations.
+    fn pay_house_construction(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _design: HouseItem,
+        _total: i32,
+        _tax_item: bool,
+    ) -> Result<(), HouseConstructionError> {
+        Err(HouseConstructionError::InvalidDesign)
+    }
+
     /// `character.Inventory.GetItemById(itemId)` (any of the character's containers).
     fn inventory_item(
         &self,
@@ -164,6 +190,16 @@ pub trait HousingEconomyHooks: Send + Sync {
         0
     }
 
+    /// Consume the entire appraisal fee atomically; insufficient certificates consume none.
+    fn pay_house_sale_certificates(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _count: i32,
+    ) -> bool {
+        false
+    }
+
     /// `Character.SubtractMoney(SlotType.Inventory, amount, task)` (false = not enough money).
     fn subtract_money(
         &self,
@@ -200,6 +236,24 @@ pub trait HousingEconomyHooks: Send + Sync {
         _container_id: u64,
     ) -> Vec<HouseItem> {
         Vec::new()
+    }
+
+    /// Read-only snapshot used to stage a housing return. No coffer item moves until the
+    /// entire return mail batch has passed validation.
+    fn coffer_items(&self, _server: &GameServer, _container_id: u64) -> Vec<HouseItem> {
+        Vec::new()
+    }
+
+    /// Publish the complete return batch and optionally pay for a house purchase together.
+    /// All recipients and attachment items must be validated and all IDs reserved before any
+    /// existing item or money is changed. `false` leaves them unchanged.
+    fn send_return_mails(
+        &self,
+        _server: &GameServer,
+        _mails: Vec<HouseMail>,
+        _payment: Option<(&PlayerRef, i32)>,
+    ) -> bool {
+        false
     }
 
     /// `MailAttachments.AcquireDefaultItemEx(Invalid, templateId, count, -1, out addedItems,

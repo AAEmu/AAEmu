@@ -26,6 +26,26 @@ pub struct Taxation {
     pub show: bool,
 }
 
+/// Placement eligibility from the 1.2 `housing_groups` table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HousingGroup {
+    pub id: u32,
+    pub houseless: bool,
+    pub existing_category_id: u32,
+    pub can_extend: bool,
+}
+
+impl Default for HousingGroup {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            houseless: false,
+            existing_category_id: 0,
+            can_extend: true,
+        }
+    }
+}
+
 /// `WorldSpawnPosition` as used by the housing bindings (`Yaw`/`Pitch`/`Roll` in degrees there,
 /// `ApplyWorldSpawnPositionWithDeg`).
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -153,6 +173,13 @@ pub struct HousingBindingTemplate {
 /// The housing tables (`server.game_data.systems.housing`).
 #[derive(Debug, Clone, Default)]
 pub struct HousingData {
+    /// Housing polygon id -> placement group (`housing_areas`).
+    pub areas: HashMap<u32, u32>,
+    pub groups: HashMap<u32, HousingGroup>,
+    /// Allowed categories for each placement group.
+    pub group_categories: HashMap<u32, Vec<u32>>,
+    /// Per-house furniture caps, keyed by (limit id, crafting furniture group).
+    pub decoration_limits: HashMap<(u32, u32), u32>,
     templates: HashMap<u32, HousingTemplate>,
     /// `_housingDecorations` (row order kept for `FirstOrDefault` by doodad id).
     decorations: Vec<HousingDecoration>,
@@ -183,6 +210,42 @@ impl HousingData {
         bindings: Vec<HousingBindingTemplate>,
     ) -> Result<Self, GameDataError> {
         let mut d = HousingData::default();
+        for_each_row(conn, "SELECT * FROM housing_areas", [], |r| {
+            let id = r.u32("id")?;
+            if d.areas.insert(id, r.u32("housing_group_id")?).is_some() {
+                return Err(dup("housing_areas", id));
+            }
+            Ok(())
+        })?;
+        for_each_row(conn, "SELECT * FROM housing_groups", [], |r| {
+            let group = HousingGroup {
+                id: r.u32("id")?,
+                houseless: r.bool_str("houseless")?,
+                existing_category_id: r.u32_or("existing_category_id", 0)?,
+                can_extend: r.bool_str("can_extend")?,
+            };
+            if d.groups.insert(group.id, group).is_some() {
+                return Err(dup("housing_groups", group.id));
+            }
+            Ok(())
+        })?;
+        for_each_row(conn, "SELECT * FROM housing_group_categories", [], |r| {
+            d.group_categories
+                .entry(r.u32("housing_group_id")?)
+                .or_default()
+                .push(r.u32("category_id")?);
+            Ok(())
+        })?;
+        for_each_row(conn, "SELECT * FROM housing_deco_limit_elems", [], |r| {
+            let key = (
+                r.u32("housing_deco_limit_id")?,
+                r.u32("deco_actability_group_id")?,
+            );
+            if d.decoration_limits.insert(key, r.u32("count")?).is_some() {
+                return Err(dup("housing_deco_limit_elems", r.u32("id")?));
+            }
+            Ok(())
+        })?;
         tracing::info!("Loading taxations ...");
         for_each_row(conn, "SELECT * FROM taxations", [], |r| {
             let t = Taxation {
@@ -417,6 +480,10 @@ impl HousingData {
         self.templates.len()
     }
 
+    pub fn decoration_limit(&self, limit_id: u32, group_id: u32) -> Option<u32> {
+        self.decoration_limits.get(&(limit_id, group_id)).copied()
+    }
+
     pub fn templates(&self) -> impl Iterator<Item = &HousingTemplate> {
         self.templates.values()
     }
@@ -438,6 +505,13 @@ impl HousingData {
         self.item_housing_decorations
             .iter()
             .find(|x| x.design_id == deco_design_id)
+    }
+
+    /// Restoration follows the item that was actually placed, not another item sharing its design.
+    pub fn decoration_item(&self, design_id: u32, item_id: u32) -> Option<&ItemHousingDecoration> {
+        self.item_housing_decorations
+            .iter()
+            .find(|row| row.design_id == design_id && row.item_id == item_id)
     }
 
     /// Whether this item template supplies the requested decoration (several items may
@@ -468,6 +542,13 @@ impl HousingData {
     /// `GetDecorationDesignFromDoodadId(doodadId)` (first in row order).
     pub fn decoration_by_doodad(&self, doodad_id: u32) -> Option<&HousingDecoration> {
         self.decorations.iter().find(|d| d.doodad_id == doodad_id)
+    }
+
+    /// Some 1.2 decorations share a world model; item identity resolves the original design.
+    pub fn decoration_for_item(&self, doodad_id: u32, item_id: u32) -> Option<&HousingDecoration> {
+        self.decorations
+            .iter()
+            .find(|d| d.doodad_id == doodad_id && self.decoration_item(d.id, item_id).is_some())
     }
 
     /// `LocalizationManager.Get("housings", "name", id)` (fallback `""`).
@@ -678,6 +759,10 @@ pub(crate) mod tests {
 
     /// The columns the loaders read.
     pub(crate) const TEST_SCHEMA: &str = "
+        CREATE TABLE housing_areas (id INT, housing_group_id INT);
+        CREATE TABLE housing_groups (id INT, houseless NUM, existing_category_id INT, can_extend NUM);
+        CREATE TABLE housing_group_categories (id INT, housing_group_id INT, category_id INT);
+        CREATE TABLE housing_deco_limit_elems (id INT, housing_deco_limit_id INT, deco_actability_group_id INT, count INT);
         CREATE TABLE taxations (id INT, tax INT, desc TEXT, SHOW NUM);
         CREATE TABLE item_housings (id INT, item_id INT, design_id INT);
         CREATE TABLE housings (id INT, name TEXT, category_id INT, main_model_id INT,
@@ -816,6 +901,13 @@ pub(crate) mod tests {
         );
         assert_eq!(d.item_housing_count(), rows("item_housings"));
         assert_eq!(d.taxations.len(), rows("taxations"));
+        assert_eq!(d.areas.len(), rows("housing_areas"));
+        assert_eq!(d.groups.len(), rows("housing_groups"));
+        assert_eq!(
+            d.group_categories.values().map(Vec::len).sum::<usize>(),
+            rows("housing_group_categories")
+        );
+        assert_eq!(d.decoration_limits.len(), rows("housing_deco_limit_elems"));
         let steps: usize = d.templates().map(|t| t.build_steps.len()).sum();
         let bound: usize = d.templates().map(|t| t.binding_doodads.len()).sum();
         let positioned = d

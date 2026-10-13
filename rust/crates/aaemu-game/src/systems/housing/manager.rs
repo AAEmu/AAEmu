@@ -41,6 +41,8 @@ pub const BOUND_TAX_CERTIFICATE: u32 = 31892;
 pub const APPRAISAL_CERTIFICATE: u32 = 28085;
 
 const DAY: i64 = 24 * 3600;
+/// Existing interval between the tax due date and removal deadline.
+pub const TAX_PAYMENT_GRACE_DAYS: i64 = 7;
 
 /// `DateTime.UtcNow` in unix seconds (housing dates are stored with second precision, like the
 /// MySQL `DATETIME` columns).
@@ -50,7 +52,7 @@ pub fn now() -> UnixTime {
 
 /// `TaxDueDate` (`ProtectionEndDate.AddDays(-7)`).
 pub fn tax_due_date(h: &House) -> UnixTime {
-    h.protection_end_date - 7 * DAY
+    h.protection_end_date - TAX_PAYMENT_GRACE_DAYS * DAY
 }
 
 /// The `HousingManager` maps.
@@ -63,9 +65,17 @@ struct Inner {
     by_tl: HashMap<u16, HouseRef>,
     /// `_removedHousings`.
     removed: Vec<u32>,
+    /// Housing snapshots written by the current save transaction, awaiting commit.
+    pending_save: Option<HousingSaveBatch>,
     /// `House.AttachedDoodads` (by house obj id; `House.attached_doodads` mirrors the obj ids
     /// for the visibility packets).
     attached: HashMap<u32, Vec<DoodadRef>>,
+}
+
+#[derive(Debug, Default)]
+struct HousingSaveBatch {
+    removed: Vec<u32>,
+    rows: Vec<(HouseRef, HouseRow)>,
 }
 
 /// `HousingManager` (`server.systems.housing.manager`).
@@ -149,25 +159,32 @@ impl HousingManager {
     }
 
     /// Removes a house from `_houses` / `_housesTl` (`RemoveDeadHouse`).
-    fn remove(&self, id: u32, tl: u16) {
+    fn remove(&self, id: u32, tl: u16, house: &HouseRef) -> bool {
         let mut inner = self.lock();
+        if inner
+            .houses
+            .get(&id)
+            .is_none_or(|current| !Arc::ptr_eq(current, house))
+        {
+            return false;
+        }
         inner.houses.remove(&id);
         inner.order.retain(|x| *x != id);
         inner.by_tl.remove(&tl);
+        true
     }
 
     /// `_removedHousings.Add(id)`.
     pub fn mark_removed(&self, id: u32) {
-        self.lock().removed.push(id);
+        let mut inner = self.lock();
+        if !inner.removed.contains(&id) {
+            inner.removed.push(id);
+        }
     }
 
     /// The pending `_removedHousings` (tests).
     pub fn removed_ids(&self) -> Vec<u32> {
         self.lock().removed.clone()
-    }
-
-    fn take_removed(&self) -> Vec<u32> {
-        std::mem::take(&mut self.lock().removed)
     }
 
     /// `House.AttachedDoodads`.
@@ -192,6 +209,9 @@ impl HousingManager {
     /// `AttachedDoodads.Add(doodad)`.
     pub fn add_attached(&self, house: &HouseRef, doodad: DoodadRef) {
         let mut list = self.attached(house.obj_id);
+        if list.iter().any(|d| d.obj_id == doodad.obj_id) {
+            return;
+        }
         list.push(doodad);
         self.set_attached(house, list);
     }
@@ -317,7 +337,15 @@ pub fn create(
     let obj_id = if obj_id > 0 {
         obj_id
     } else {
-        server.ids.object.get_next_id().ok()?
+        match server.ids.object.get_next_id() {
+            Ok(id) => id,
+            Err(_) => {
+                if tl_id == 0 {
+                    server.ids.housing_tl.release_id(u32::from(tl));
+                }
+                return None;
+            }
+        }
     };
     // Id = template.Id (duplicate of TemplateId until the DB id is assigned)
     let mut h = House::new(template.id, template.id);
@@ -344,6 +372,16 @@ pub fn create(
     Some(house)
 }
 
+/// Releases a newly created house whose placement did not complete. This does not queue a
+/// database deletion: the house has not been inserted or saved yet.
+pub fn discard_created_house(server: &GameServer, house: &HouseRef) {
+    delete_house(server, house);
+    server
+        .ids
+        .housing_tl
+        .release_id(u32::from(house.data().unit.tl_id));
+}
+
 /// The `CurrentStep` setter: model, bound doodads (finished house) or their removal, and
 /// `BaseAction`. `loading` = `IsBeingLoadedFromDb` (bound doodads come from the DB instead).
 pub fn set_current_step(server: &GameServer, house: &HouseRef, value: i32, loading: bool) {
@@ -356,26 +394,25 @@ pub fn set_current_step(server: &GameServer, house: &HouseRef, value: i32, loadi
     } else {
         template.build_steps.get(&value).map(|s| s.model_id)
     };
-    {
+    let Some(model) = model else {
+        tracing::error!(
+            "House {}: template {} has no build step {value}",
+            house.data().id,
+            template.id
+        );
+        return;
+    };
+    let changed = {
         let mut h = house.data();
+        let changed = h.current_step != value;
         h.current_step = value;
         h.is_dirty = true;
-        match model {
-            Some(m) => h.unit.model_id = m,
-            None => {
-                // C#: KeyNotFoundException in the setter (the step is kept).
-                tracing::error!(
-                    "House {}: template {} has no build step {value}",
-                    h.id,
-                    template.id
-                );
-                return;
-            }
-        }
-    }
+        h.unit.model_id = model;
+        changed
+    };
     let manager = &server.systems.housing.manager;
     if value == -1 {
-        if !loading {
+        if !loading && changed {
             for binding in &template.binding_doodads {
                 if let Some(d) = create_bound_doodad(server, house, binding) {
                     let persistent = server.config.world.use_persistent_house_doodads;
@@ -412,7 +449,7 @@ pub fn set_current_step(server: &GameServer, house: &HouseRef, value: i32, loadi
             }
         }
     }
-    if value > 0 {
+    {
         let mut base = 0;
         for i in 0..value {
             match template.build_steps.get(&i) {
@@ -427,6 +464,7 @@ pub fn set_current_step(server: &GameServer, house: &HouseRef, value: i32, loadi
         h.base_action = base;
         h.is_dirty = true;
     }
+    crate::systems::ai::collision::objects::sync_house(server, house);
 }
 
 /// One `HousingBindingDoodad` of a finished house: `DoodadManager.Create(ParentWorld, 0,
@@ -528,13 +566,14 @@ pub fn spawn_house(server: &GameServer, house: &HouseRef) {
     for d in &attached {
         crate::systems::npcs::doodad::manager::spawn(server, &world, d);
     }
+    crate::systems::ai::collision::objects::sync_house(server, house);
 }
 
 /// `House.Delete()`: persistent attached doodads are deleted (DB row included), the others
 /// detached; obj ids released; then `GameObject.Delete`.
 pub fn delete_house(server: &GameServer, house: &HouseRef) {
     let world = world_of(server, house);
-    let attached = server.systems.housing.manager.attached(house.obj_id);
+    let attached = server.systems.housing.manager.take_attached(house);
     for d in &attached {
         let (persistent, attach_point) = {
             let dd = d.data();
@@ -556,6 +595,7 @@ pub fn delete_house(server: &GameServer, house: &HouseRef) {
     }
     if let Some(w) = &world {
         w.delete(house);
+        crate::systems::ai::collision::objects::remove_house(server, w.id, house.obj_id);
         // Deviation: the non-persistent attached doodads stay in the C# object table.
         for d in &attached {
             if !d.data().is_persistent {
@@ -563,6 +603,7 @@ pub fn delete_house(server: &GameServer, house: &HouseRef) {
             }
         }
     }
+    server.ids.object.release_id(house.obj_id);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -613,15 +654,32 @@ pub fn allowed_to_interact(server: &GameServer, house: &HouseRef, player: &Playe
 /// `GetHouseAtLocation(x, y)`: the first house whose garden square contains the point
 /// (`RectangleF.Contains`).
 pub fn house_at_location(server: &GameServer, x: f32, y: f32) -> Option<HouseRef> {
+    house_at_location_in_world(server, crate::models::character::DEFAULT_INSTANCE_ID, x, y)
+}
+
+/// Finds land only in the caller's world instance.
+pub fn house_at_location_in_world(
+    server: &GameServer,
+    instance_id: u32,
+    x: f32,
+    y: f32,
+) -> Option<HouseRef> {
     for house in server.systems.housing.manager.all() {
         let Some(t) = template_of(server, &house) else {
             continue;
         };
         let r = t.garden_radius;
-        let (hx, hy) = {
+        let (hx, hy, house_instance) = {
             let h = house.data();
-            (h.unit.transform.x, h.unit.transform.y)
+            (
+                h.unit.transform.x,
+                h.unit.transform.y,
+                h.unit.transform.instance_id,
+            )
         };
+        if house_instance != instance_id {
+            continue;
+        }
         let (bx, by, w, hgt) = (hx - r, hy - r, r * 2.0, r * 2.0);
         if bx <= x && x < bx + w && by <= y && y < by + hgt {
             return Some(house);
@@ -646,9 +704,9 @@ pub fn act_ability_bonus_from_house(
     let data = &server.game_data.systems.housing;
     let mut seen: Vec<(u32, u32)> = Vec::new(); // every furniture type only counts once
     for f in world.doodads_by_house_db_id(id) {
-        let (attach, template_id) = {
+        let (attach, template_id, item_template_id, item_id) = {
             let d = f.data();
-            (d.attach_point, d.template_id)
+            (d.attach_point, d.template_id, d.item_template_id, d.item_id)
         };
         if attach != crate::models::unit::attach_point::NONE {
             continue;
@@ -656,11 +714,26 @@ pub fn act_ability_bonus_from_house(
         if template_id == FOR_SALE_MARKER_DOODAD_ID {
             continue;
         }
-        if let Some(deco) = data.decoration_by_doodad(template_id) {
+        let item_template_id = if item_template_id != 0 {
+            item_template_id
+        } else {
+            server
+                .items
+                .item_by_id(item_id)
+                .map_or(0, |i| i.template_id)
+        };
+        let decoration = data
+            .decoration_for_item(template_id, item_template_id)
+            .or_else(|| {
+                (item_template_id == 0)
+                    .then(|| data.decoration_by_doodad(template_id))
+                    .flatten()
+            });
+        if let Some(deco) = decoration {
             if deco.actability_group_id as i32 == actability_group_id
-                && !seen.iter().any(|(t, _)| *t == template_id)
+                && !seen.iter().any(|(t, _)| *t == deco.id)
             {
-                seen.push((template_id, deco.actability_up));
+                seen.push((deco.id, deco.actability_up));
             }
         }
     }
@@ -727,7 +800,9 @@ pub fn update_house_faction(server: &GameServer, house: &HouseRef, faction_id: u
             true,
         );
     }
-    house.data().unit.faction_id = faction_or_null(server, faction_id);
+    let mut h = house.data();
+    h.unit.faction_id = faction_or_null(server, faction_id);
+    h.is_dirty = true;
 }
 
 /// `UpdateOwnedHousingFaction(characterId, factionId)`.
@@ -764,9 +839,6 @@ pub fn calculate_building_tax_info(
 ) -> Result<(bool, TaxInfo), String> {
     let mut info = TaxInfo::default();
     let user_houses = server.systems.housing.manager.by_account(account_id);
-    if user_houses.is_empty() {
-        return Ok((false, info));
-    }
     for h in &user_houses {
         let heavy = template_of(server, h).is_some_and(|t| t.heavy_tax);
         if heavy {
@@ -782,25 +854,35 @@ pub fn calculate_building_tax_info(
             info.normal_house_count += 1;
         }
     }
-    // Default Heavy Tax formula for 1.2
-    let mut multiplier = info.heavy_house_count.min(MAX_HEAVY_TAX_COUNTED) as f32 * 0.5f32;
-    if info.heavy_house_count < 3 || !template.heavy_tax {
-        multiplier = 1.0;
-    }
     let Some(taxation) = template.taxation else {
         return Err(format!(
             "housing template {} has no taxation (NullReferenceException)",
             template.id
         ));
     };
-    let weekly = f64::from(taxation.tax as f32 * multiplier).ceil() as i32;
+    // The heavy tax multiplier is a half-integer; calculate it exactly and reject totals
+    // that cannot be represented on the 1.2 signed money fields.
+    let multiplier_twice = if info.heavy_house_count >= 3 && template.heavy_tax {
+        info.heavy_house_count.min(MAX_HEAVY_TAX_COUNTED) as u64
+    } else {
+        2
+    };
+    let weekly = (u64::from(taxation.tax) * multiplier_twice).div_ceil(2);
+    let deposit = if building_new_house {
+        u64::from(taxation.tax) * 2
+    } else {
+        0
+    };
+    let total = i32::try_from(weekly + deposit).map_err(|_| {
+        format!(
+            "housing template {} has an unrepresentable tax total",
+            template.id
+        )
+    })?;
+    let weekly = weekly as i32;
     info.total_tax_to_pay = weekly;
     info.one_week_tax_count = weekly;
-    if building_new_house {
-        info.total_tax_to_pay = info
-            .total_tax_to_pay
-            .wrapping_add(taxation.tax.wrapping_mul(2) as i32);
-    }
+    info.total_tax_to_pay = total;
     Ok((true, info))
 }
 
@@ -908,7 +990,7 @@ pub fn update_tax_info(server: &GameServer, house: &HouseRef) {
         return;
     }
     let hooks = server.systems.housing.hooks.get();
-    if is_demolished {
+    if is_demolished || !super::placement::can_extend_house(server, house) {
         hooks.delete_house_mails(server, id);
     } else if is_tax_due {
         let mails = hooks.house_mail_ids(server, id);
@@ -928,9 +1010,30 @@ pub fn update_tax_info(server: &GameServer, house: &HouseRef) {
 
 /// `PayWeeklyTax(house)` (called by the mail subsystem when a tax bill is paid).
 pub fn pay_weekly_tax(server: &GameServer, house: &HouseRef) -> bool {
+    pay_weekly_tax_for(server, house, None)
+}
+
+/// Extends an owned, protected house, optionally requiring the payer to still own it.
+/// Validation and the protection change share one house lock, so a stale bill cannot be
+/// applied after demolition or an ownership change.
+pub fn pay_weekly_tax_for(server: &GameServer, house: &HouseRef, payer_id: Option<u32>) -> bool {
+    if !super::placement::can_extend_house(server, house) {
+        return false;
+    }
     let days = i64::from(server.config.world.days_for_tax_payment);
     let mut h = house.data();
-    h.protection_end_date += days * DAY;
+    if h.unit.owner_id == 0
+        || h.account_id == 0
+        || h.protection_end_date <= now()
+        || payer_id.is_some_and(|id| id != h.unit.owner_id)
+        || days <= 0
+    {
+        return false;
+    }
+    let Some(end) = h.protection_end_date.checked_add(days * DAY) else {
+        return false;
+    };
+    h.protection_end_date = end;
     h.is_dirty = true;
     true
 }
@@ -1055,6 +1158,7 @@ pub fn load_house_row(
             "LoadPlayerHousing: duplicate house id {} / tl (ArgumentException)",
             r.id
         );
+        discard_created_house(server, &house);
         return None;
     }
     {
@@ -1066,11 +1170,14 @@ pub fn load_house_row(
     }
     refresh_expedition(server, &house);
     update_tax_info(server, &house);
-    house.data().is_dirty = false;
+    // Preserve repairs (old date defaults, forced public permission, faction normalization)
+    // for the next save instead of repeating them on every restart.
+    let repaired = save_row(&house).as_ref() != Some(r);
+    house.data().is_dirty = repaired;
     Some(house)
 }
 
-/// `LoadPlayerHousing(worldInstance)` (+ the tax timer).
+/// `LoadPlayerHousing(worldInstance)` (the tax timer starts after economy mail loads).
 pub async fn load_player_housing(
     server: &Arc<GameServer>,
     world: &Arc<WorldInstance>,
@@ -1083,7 +1190,6 @@ pub async fn load_player_housing(
     }
     let n = server.systems.housing.manager.count();
     tracing::info!("Loaded {n} Player Buildings");
-    start_tax_task(server);
     Ok(n)
 }
 
@@ -1215,8 +1321,10 @@ pub fn remove_dead_house(server: &GameServer, house: &HouseRef) {
         (h.id, h.unit.tl_id)
     };
     let manager = &server.systems.housing.manager;
+    if !manager.remove(id, tl, house) {
+        return;
+    }
     manager.mark_removed(id);
-    manager.remove(id, tl);
     server.ids.housing_tl.release_id(u32::from(tl));
     server.ids.housing.release_id(id);
     // TODO (C#): not sure how to handle this, just instant delete it for now
@@ -1229,27 +1337,56 @@ pub async fn save(
     tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
 ) -> crate::Result<(usize, usize)> {
     let manager = &server.systems.housing.manager;
+    manager.lock().pending_save = None;
     let mut delete_count = 0;
-    let removed = manager.take_removed();
+    let removed = manager.removed_ids();
     if !removed.is_empty() {
         super::db::delete_rows(tx, &removed).await?;
         delete_count += 1;
     }
     let mut update_count = 0;
+    let mut rows = Vec::new();
     for house in manager.all() {
         let Some(row) = save_row(&house) else {
             continue;
         };
         super::db::write_row(tx, &row).await?;
-        house.data().is_dirty = false;
+        rows.push((house, row));
         update_count += 1;
     }
+    manager.lock().pending_save = Some(HousingSaveBatch { removed, rows });
     Ok((update_count, delete_count))
+}
+
+/// Acknowledges only housing writes that committed with the complete world save. Failed or
+/// rolled-back transactions leave dirty rows and deletion IDs available for retry.
+pub fn commit_save(server: &GameServer) {
+    let manager = &server.systems.housing.manager;
+    let batch = {
+        let mut inner = manager.lock();
+        let Some(batch) = inner.pending_save.take() else {
+            return;
+        };
+        inner.removed.retain(|id| !batch.removed.contains(id));
+        batch
+    };
+    for (house, row) in batch.rows {
+        let mut h = house.data();
+        // Compare the persisted fields while holding the lock: changes made during the
+        // database await must remain dirty for the next save.
+        if row_from_house(&h).as_ref() == Some(&row) {
+            h.is_dirty = false;
+        }
+    }
 }
 
 /// The `House.Save` row (`None` = not dirty, or a recently destroyed / expired house).
 pub fn save_row(house: &HouseRef) -> Option<HouseRow> {
     let h = house.data();
+    row_from_house(&h)
+}
+
+fn row_from_house(h: &House) -> Option<HouseRow> {
     if !h.is_dirty {
         return None;
     }

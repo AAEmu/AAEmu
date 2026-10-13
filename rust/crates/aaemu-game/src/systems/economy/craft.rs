@@ -90,6 +90,18 @@ pub trait CraftHooks: Send + Sync {
         0
     }
 
+    /// Housing bonus scoped to the crafting player's world instance.
+    fn house_actability_bonus_in_world(
+        &self,
+        server: &GameServer,
+        _instance_id: u32,
+        x: f32,
+        y: f32,
+        actability_group_id: i32,
+    ) -> u32 {
+        self.house_actability_bonus(server, x, y, actability_group_id)
+    }
+
     /// quests: `QuestManager.DoOnCraftEvents(owner, craftId)`.
     fn on_craft(&self, _server: &GameServer, _player: &PlayerRef, _craft_id: u32) {}
 }
@@ -203,6 +215,67 @@ pub fn zone_group_id(server: &GameServer, zone_key: u32) -> u32 {
         .map_or(0, |z| z.group_id)
 }
 
+/// A direct crafting packet must obey the same house access rules as interacting with
+/// its furniture. Portable crafts and public world stations keep their normal skill checks.
+fn housing_bench_access(
+    server: &GameServer,
+    player: &PlayerRef,
+    doodad_id: u32,
+    skill_id: u32,
+) -> bool {
+    let Some(doodad) = server
+        .world
+        .object(doodad_id)
+        .and_then(|o| o.as_doodad().cloned())
+    else {
+        return true;
+    };
+    let (owner_type, house_id, instance_id, deleted) = {
+        let d = doodad.data();
+        (
+            d.owner_type,
+            d.owner_db_id,
+            d.transform.instance_id,
+            d.phase.deleted,
+        )
+    };
+    if owner_type != crate::models::doodad::doodad_owner_type::HOUSING {
+        return true;
+    }
+    let Some(house) = crate::systems::housing::house_by_id(server, house_id) else {
+        return false;
+    };
+    if deleted
+        || player.data().unit.transform.instance_id != instance_id
+        || house.data().unit.transform.instance_id != instance_id
+        || !crate::systems::housing::allowed_to_interact(server, &house, player)
+    {
+        return false;
+    }
+    let Some(template) = server.game_data.systems.skills.skill(skill_id) else {
+        return true;
+    };
+    if template.max_range <= 0 {
+        return true;
+    }
+    let source = crate::systems::skills::geometry::Target::Obj(WorldObject::from(player));
+    let target = crate::systems::skills::geometry::Target::Obj(WorldObject::from(&doodad));
+    let source_pos = crate::systems::skills::geometry::world_pos(server, &source);
+    let target_pos = crate::systems::skills::geometry::world_pos(server, &target);
+    [
+        source_pos.x,
+        source_pos.y,
+        source_pos.z,
+        target_pos.x,
+        target_pos.y,
+        target_pos.z,
+    ]
+    .into_iter()
+    .all(f32::is_finite)
+        && crate::systems::skills::geometry::distance_to(server, &source, &target, true)
+            <= template.max_range as f32
+}
+
 /// `CharacterCraft.Craft(craft, count, doodadId)`.
 pub fn craft(server: &GameServer, player: &PlayerRef, craft_id: u32, count: i32, doodad_id: u32) {
     let Some(craft) = server.game_data.systems.economy.craft.craft(craft_id) else {
@@ -259,6 +332,18 @@ pub fn craft(server: &GameServer, player: &PlayerRef, craft_id: u32, count: i32,
     // Check if we have permission to actually use the doodad (mostly sanity check since the
     // client already checks this before you can craft)
     let mut has_permission = true;
+    if !housing_bench_access(server, player, doodad_id, craft.skill_id) {
+        error2(
+            &mut out,
+            player,
+            error_message::CRAFT_CANT_ACT_ANY_MORE,
+            error_message::CRAFT_PERMISSION_DENY,
+            0,
+            false,
+        );
+        cancel_craft(server, player);
+        return;
+    }
     let world = server.world.world_of(&WorldObject::from(player));
     let doodad = world.as_ref().and_then(|w| w.doodad(doodad_id));
     if let Some(doodad) = &doodad {
@@ -375,8 +460,9 @@ pub fn craft(server: &GameServer, player: &PlayerRef, craft_id: u32, count: i32,
         // Check bonus from housing
         if let Some(w) = &world {
             let pos = w.world_pos_rot(&WorldObject::from(player));
-            current_points = current_points.wrapping_add(hooks.house_actability_bonus(
+            current_points = current_points.wrapping_add(hooks.house_actability_bonus_in_world(
                 server,
+                w.id,
                 pos.x,
                 pos.y,
                 skill.actability_group_id,
@@ -431,7 +517,6 @@ pub fn end_craft(server: &GameServer, player: &PlayerRef) {
         cancel_craft(server, player);
         return;
     };
-
     let labor = player.data().labor_power;
     if i32::from(labor) < state.consume_labor_power {
         let mut out = Out::Direct;
@@ -469,10 +554,40 @@ pub fn end_craft(server: &GameServer, player: &PlayerRef) {
         return;
     }
 
-    if !hand_out_products(server, player, &inv, craft) {
+    // Keep the permission check and product/material commit together with house transfers
+    // and permission changes. Economy transactions are acquired after this housing lock.
+    let housing_bench = server
+        .world
+        .object(state.doodad_id)
+        .and_then(|o| o.as_doodad().cloned())
+        .is_some_and(|d| d.data().owner_type == crate::models::doodad::doodad_owner_type::HOUSING);
+    let operation = housing_bench.then(|| {
+        server
+            .systems
+            .housing
+            .operation_lock
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+    });
+    if !housing_bench_access(server, player, state.doodad_id, craft.skill_id) {
+        drop(operation);
+        error2(
+            &mut Out::Direct,
+            player,
+            error_message::CRAFT_CANT_ACT_ANY_MORE,
+            error_message::CRAFT_PERMISSION_DENY,
+            0,
+            false,
+        );
         cancel_craft(server, player);
         return;
     }
+    if !hand_out_products(server, player, &inv, craft) {
+        drop(operation);
+        cancel_craft(server, player);
+        return;
+    }
+    drop(operation);
 
     if let Some(h) = mgr.hooks.get() {
         h.on_craft(server, player, craft.id);

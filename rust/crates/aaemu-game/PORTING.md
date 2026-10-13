@@ -244,7 +244,7 @@ Cross-subsystem calls: wired in phase 3b (see "Phase 3b wiring": trial court doo
 | Housing packets (11 CS, 14 SC incl. `SCLoginCharInfoHouse`, `SCMyHouse`) | `systems/housing/packets.rs` | done | Byte-exact tests. `CSChangeHousePayPacket` has opcode 0xfff in 1.2 (not registered). `SCHouseOwnerNameChangedPacket` is social's (`packets/misc.rs`). |
 | `CraftEffect` (`WorldInteractionGroup.Building`) | `systems/housing/mod.rs::apply_effect` | done | Routed first by `skills::ext::ExtHooks::route_effect`; quest `DoDoodadInteractionEvents` after it. |
 | `SpawnManager.Load` / `SpawnPersistentDoodads` housing parts, `LoadAccount` / `CSListCharacter` / `CSSelectCharacter` / `Character.Load` / `DeleteCharacterAssets` housing parts | `npcs/spawn_manager.rs`, `packets/c2g.rs`, `world/session.rs`, `db_character.rs` (one call each) | done | `LoadPlayerHousing` + `SpawnAll` before the persistent doodads, house parenting + bound doodads, `ReconcileBoundDoodads` (`UsePersistentHouseDoodads`). |
-| Placement validation | – | n/a | The 1.2 C# `Build` validates nothing but the design item (TODOs); the client checks the housing areas. Land checks for doodads (`GetHouseAtLocation` + `AllowedToInteract`) are ported and used by `CSCreateDoodad` / `CreatePlayerDoodad`. |
+| Placement validation | `systems/housing/placement.rs`, `systems/npcs/subzone.rs` | done | Original 1.2 housing XML `value1` tags resolve `housing_areas`/groups/categories; finite world positions, garden overlap, account eligibility, and nonrenewable beginner plots are checked server-side. World-scoped land checks also guard planting and housing crafting benches. Model-specific slope/height/footprint checks remain client-side. |
 
 Economy hooks (`server.systems.housing.hooks`): installed by `economy::bridges::EconomyForHousing`. Housing API for others: `housing::{house_by_id, house_at_location, allowed_to_interact(_by_id), pay_weekly_tax (MailManager tax payment), act_ability_bonus_at (CharacterCraft), update_owned_housing_faction, demolish_by_player}`.
 
@@ -967,15 +967,27 @@ and in NPC wandering / buff remaining times.
 * systems::economy: cash shop — loyalty is charged at the undiscounted price, the max-level check
   sends the low-level error, page 0 behaves like page 1.
 * `systems::instances`: `RegisterIndunEvents` runs in the `Dungeon` constructor and again in the loader, so every indun event handler is subscribed twice; a dungeon kill raises `OnUnitKilled` (and the victim's `OnDeath`) in `PostUpdateCurrentHp` and again in `DoDie` — NPC-killed action chains run four times; `IndunEventDoodadSpawneds.UnSubscribe` adds the handler (`+=`); `AreaClearTick` stops at the first cleared room (`return`); a new dungeon verifies the requirements twice (the entry item is consumed twice) and the creator gets `SCProcessingInstancePacket` twice; `Transform.CloneDetached(character)` / `MainWorldPosition.Clone()` fire `OnZoneChange(0, zone)` (the instance zone chat is never left); `ApplyWorldSpawnPosition` stores the spawn rotation in degrees; leaving an instance sends the (radian) return rotation through `DegToRad` again and `SCLoadInstancePacket` names `MainWorldPosition.WorldId`; `DestroyDungeon` removes the players from the instance without moving them out; `InstantGame.RemovePlayer` looks the corps lists up by 0 / 1 instead of the faction ids (never cleaned); `AddScore` always sends `Corps1` / `score2 = 0`; the kill packet's victim count is the victim corps' kills; entering a battlefield sets the corps faction, so `Character.SetFaction` kicks guild members of another mother faction from their guild and party; offline queue applicants are never pruned (`CharObj` is never null); `RemoveGame` leaves the game in the queue list; `TowerDefGameData` / battlefields.json loops stop (`return`) at the first orphan row.
-* systems::housing: `CalculateBuildingTaxInfo` returns before computing anything when the
-  account has no house yet, so the first house is free (no tax, no deposit) and the
-  construction tax window shows 0; demolition returns the deposit anyway. Sale buyer names
-  are looked up without normalizing them. Seller ownership and absent family/guild permission
-  checks are fixed by the feature audit. `SCHouseTaxInfoPacket.isAlreadyPaid` is true when payment is *required*.
-  The demolition money (deposit) is only mailed when at least one item is returned.
-  `CraftEffect` on a finished house throws (`BuildSteps[-1]`). The `BaseAction` sum is not
-  reset when the step goes back to 0 / -1. `SetForSale` on a house already for sale adds a second
-  set of sale signs. `RemoveDeadHouse` queues the house id for deletion a second time.
+* systems::housing: sale buyer names retain the original case-sensitive lookup. The housing
+  audit fixes the first-house tax/deposit omission, reversed paid flag (confirmed against the
+  1.2 housing UI bytecode), overdue counter, finished-house construction, duplicate signs,
+  stale building counters, and duplicate deletion. Construction and sale resources/mail
+  returns are preflighted together; failed returns preserve houses, furniture and coffers.
+  Recovery honors house access and the recovery toggle, including stackable furniture.
+  Housing, money, mail and inventory saves acknowledge snapshots only after commit; later
+  mutations and failed transactions retain pending changes.
+  Player crops and dropped backpacks convert their world position/rotation into house-local
+  coordinates before attachment and persistence, preserving placement when houses rotate or reload.
+  Renewable new houses begin with one prepaid `DaysForTaxPayment` period plus the existing
+  seven-day grace interval; subsequent payments still add one configured period. This is an
+  inferred correction from 1.2 `ui_texts` 4718 (`build_taxPaymentDesc`: construction pays the
+  first week's taxes) and `TaxDueDate = ProtectionEndDate - 7 days`, rather than recovered
+  world-server code. The C# starts protection at seven days, immediately marks that prepaid
+  period unpaid and removes it at its first week's end. Nonrenewable beginner plots keep
+  their authored seven-day lifetime. Exact original bill dispatch/late-fee timing is unverified.
+  Floors/walls/roofs use every normal-state prefab element and are synchronized when
+  construction, residency or demolition changes. Model-specific placement slope/height/footprint
+  checks and the developer-only
+  category-8 `max_construct_count` rule are not inferred from later versions.
 * systems::vehicles: `MateManager.RemoveAndDespawnAllActiveOwnedMates` removes the active-list
   entries by `OwnerObjId` while the list is keyed by the character id, so the deleted mates stay
   listed; after a relog the first whistle use only "despawns" the stale mate.
