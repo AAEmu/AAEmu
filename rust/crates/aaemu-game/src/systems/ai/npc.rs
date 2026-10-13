@@ -389,7 +389,7 @@ pub fn move_towards(
     };
     // Keep the travelled heading when a step lands exactly on a waypoint. Computing
     // new -> other there yields atan2(0, 0), turning every arrival eastward.
-    let angle = calculate_angle_from(pos, new);
+    let angle = calculate_angle_from(pos, other);
     let (vel_x, vel_y) = add_distance_to_front(
         4000.0,
         0.0,
