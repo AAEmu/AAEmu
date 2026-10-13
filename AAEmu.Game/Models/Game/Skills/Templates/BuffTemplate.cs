@@ -287,15 +287,39 @@ public class BuffTemplate
                 as SkillControllerTemplate;
             if (scTemplate != null)
             {
-                // Bubbletrap-style buffs set Gliding=true but leave GlidingLiftHeight=0
-                // in the DB, which would make the controller resolve to pull mode.
-                // Default to 5m lift so the controller actually enters lift mode.
-                var effectiveLiftHeight = GlidingLiftHeight > 0f ? GlidingLiftHeight
-                    : (Gliding ? 5f : 0f);
-                Logger.Debug("BuffTemplate.Start: buff {0} creating SC sc_id={1} kind={2} for owner={3} caster={4} psychoSpeed={5} liftH={6}",
-                    Id, SkillControllerId, scTemplate.KindId, owner.ObjId, caster.ObjId, PsychokinesisSpeed, effectiveLiftHeight);
+                // Floating controllers store the launch in value1/value2 as millimeters
+                // (the same /1000 scale pull mode already uses for speed). The
+                // gliding_lift_* columns on these rows are the glider default
+                // (1.5 m / 0.5 s) and drop the target after half a second.
+                // Hold for the buff, then fall when it ends.
+                float effectiveLiftHeight;
+                float effectiveLiftSpeed;
+                float effectiveLiftDuration;
+                if (scTemplate.KindId == (uint)SkillControllers.SkillControllerKind.Floating
+                    && scTemplate.Value[0] > 0)
+                {
+                    effectiveLiftHeight = scTemplate.Value[0] / 1000f;
+                    effectiveLiftSpeed = scTemplate.Value[1] > 0
+                        ? scTemplate.Value[1] / 1000f
+                        : (GlidingLiftSpeed > 0f ? GlidingLiftSpeed : 3f);
+                    var holdMs = GetDuration(buff.AbLevel);
+                    effectiveLiftDuration = holdMs > 0 ? holdMs / 1000f : 0f;
+                }
+                else
+                {
+                    // Bubbletrap-style buffs set Gliding=true but leave GlidingLiftHeight=0
+                    // in the DB, which would make the controller resolve to pull mode.
+                    // Default to 5m lift so the controller actually enters lift mode.
+                    effectiveLiftHeight = GlidingLiftHeight > 0f ? GlidingLiftHeight
+                        : (Gliding ? 5f : 0f);
+                    effectiveLiftSpeed = GlidingLiftSpeed;
+                    effectiveLiftDuration = GlidingLiftDuration;
+                }
+                Logger.Debug("BuffTemplate.Start: buff {0} creating SC sc_id={1} kind={2} for owner={3} caster={4} psychoSpeed={5} liftH={6} liftSpeed={7} liftDur={8}",
+                    Id, SkillControllerId, scTemplate.KindId, owner.ObjId, caster.ObjId, PsychokinesisSpeed,
+                    effectiveLiftHeight, effectiveLiftSpeed, effectiveLiftDuration);
                 var sc = SkillControllers.SkillController.CreateSkillController(scTemplate, owner, caster,
-                    PsychokinesisSpeed, effectiveLiftHeight, GlidingLiftSpeed, GlidingLiftDuration);
+                    PsychokinesisSpeed, effectiveLiftHeight, effectiveLiftSpeed, effectiveLiftDuration);
 #pragma warning disable CA1508 // Factory can return null for unimplemented controller kinds
                 if (sc is not null)
 #pragma warning restore CA1508
