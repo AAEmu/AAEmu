@@ -967,6 +967,15 @@ and in NPC wandering / buff remaining times.
 * systems::economy: cash shop — loyalty is charged at the undiscounted price, the max-level check
   sends the low-level error, page 0 behaves like page 1.
 * `systems::instances`: `RegisterIndunEvents` runs in the `Dungeon` constructor and again in the loader, so every indun event handler is subscribed twice; a dungeon kill raises `OnUnitKilled` (and the victim's `OnDeath`) in `PostUpdateCurrentHp` and again in `DoDie` — NPC-killed action chains run four times; `IndunEventDoodadSpawneds.UnSubscribe` adds the handler (`+=`); `AreaClearTick` stops at the first cleared room (`return`); a new dungeon verifies the requirements twice (the entry item is consumed twice) and the creator gets `SCProcessingInstancePacket` twice; `Transform.CloneDetached(character)` / `MainWorldPosition.Clone()` fire `OnZoneChange(0, zone)` (the instance zone chat is never left); `ApplyWorldSpawnPosition` stores the spawn rotation in degrees; leaving an instance sends the (radian) return rotation through `DegToRad` again and `SCLoadInstancePacket` names `MainWorldPosition.WorldId`; `DestroyDungeon` removes the players from the instance without moving them out; `InstantGame.RemovePlayer` looks the corps lists up by 0 / 1 instead of the faction ids (never cleaned); `AddScore` always sends `Corps1` / `score2 = 0`; the kill packet's victim count is the victim corps' kills; entering a battlefield sets the corps faction, so `Character.SetFaction` kicks guild members of another mother faction from their guild and party; offline queue applicants are never pruned (`CharObj` is never null); `RemoveGame` leaves the game in the queue list; `TowerDefGameData` / battlefields.json loops stop (`return`) at the first orphan row.
+* systems::housing: abandoned-house removal buff 2250 now applies its original effect
+  1876 through the normal damage path. C# rejected the house attacking itself, so the
+  building never decayed. Only the active server-owned removal tick on that same unowned
+  house bypasses the relation check; immunity and ordinary attack checks remain intact.
+  The original 10 HP / 15-second tick and death cleanup are tested, including an original
+  compact.sqlite3 gate. Demolition still clears ownership before the later decay death.
+* systems::housing: Castle reference loading now includes guard_tower_settings, guard_tower_steps,
+  siege_plans and siege_zones, preserving stage order and naive reference dates. These
+  records do not schedule sieges or implement Dominion ownership/capture authority.
 * systems::housing: sale buyer names retain the original case-sensitive lookup. The housing
   audit fixes the first-house tax/deposit omission, reversed paid flag (confirmed against the
   1.2 housing UI bytecode), overdue counter, finished-house construction, duplicate signs,
