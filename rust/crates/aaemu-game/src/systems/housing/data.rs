@@ -3,18 +3,21 @@
 //!
 //! * `item_housings`, `housings` (+ `housing_binding_doodads` per template, positions from the
 //!   bindings json), `housing_build_steps`, `housing_decorations`, `item_housing_decorations`.
+//! * Original castle references: `guard_tower_settings`, `guard_tower_steps`, `siege_zones`,
+//!   `siege_plans`. These templates do not authorize captures or create a runtime calendar.
 //! * `PostLoad`: `Template.Name = LocalizationManager.Get("housings", "name", id, Name)` and
 //!   `Template.Taxation = TaxationsManager.taxations[TaxationId]` (null when missing).
 //! * The localized texts `HousingManager` reads at runtime (`housings.name` without fallback for
 //!   a new house, `items.name` of design items for the untranslated-name fallback in `Build`).
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 
+use chrono::NaiveDateTime;
 use rusqlite::Connection;
 use serde_json::Value;
 
-use crate::data::sqlite::for_each_row;
+use crate::data::sqlite::{for_each_row, SqlRow};
 use crate::data::GameDataError;
 use crate::systems::DataLoadCtx;
 
@@ -44,6 +47,239 @@ impl Default for HousingGroup {
             can_extend: true,
         }
     }
+}
+
+/// Authored limits and buffs of a lodestone (`guard_tower_settings`).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct GuardTowerSetting {
+    pub id: u32,
+    pub radius_dominion: u32,
+    pub radius_siege: u32,
+    pub radius_declare: u32,
+    pub radius_offense_hq: u32,
+    pub comments: String,
+    pub initial_buff_id: u32,
+    pub max_gates: u32,
+    pub max_walls: u32,
+    /// Exact stage ordinal, rather than the row's insertion position.
+    pub steps: BTreeMap<u32, GuardTowerStep>,
+}
+
+/// A tower's fortification stage (`guard_tower_steps`), distinct from house construction.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct GuardTowerStep {
+    pub id: u32,
+    pub guard_tower_setting_id: u32,
+    pub step: u32,
+    pub num_gates: u32,
+    pub num_walls: u32,
+    pub buff_id: u32,
+}
+
+/// A dated entry of the original calendar (`siege_plans`). No timezone or recurrence is
+/// inferred from `week_start`; the 1.2 table contains historical 2014 dates.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SiegePlan {
+    pub id: u32,
+    pub zone_group_id: u32,
+    pub week_start: NaiveDateTime,
+}
+
+/// Raw 1.2 siege timings and referenced content (`siege_zones`). Weekday numbers retain the
+/// database convention. Loading these values does not start a siege or authorize a capture.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SiegeZone {
+    pub id: u32,
+    pub zone_group_id: u32,
+    pub start_siege_weekday: u8,
+    pub start_siege_hour: u8,
+    pub start_siege_min: u8,
+    pub siege_days: u32,
+    pub siege_hours: u32,
+    pub siege_mins: u32,
+    pub pay_weekday: u8,
+    pub pay_hour: u8,
+    pub pay_min: u8,
+    pub declare_item_id: u32,
+    pub defense_ticket_id: u32,
+    pub offense_ticket_id: u32,
+    pub reinforce_defense_delay_mins: u32,
+    pub defense_merchant_id: u32,
+    pub offense_merchant_id: u32,
+    pub dominion_merchant_id: u32,
+    pub open_hour: u8,
+    pub open_duration_hours: u32,
+    pub start_auction_weekday: u8,
+    pub start_auction_hour: u8,
+    pub start_auction_min: u8,
+    pub start_declare_weekday: u8,
+    pub start_declare_hour: u8,
+    pub start_declare_min: u8,
+    pub start_warmup_weekday: u8,
+    pub start_warmup_hour: u8,
+    pub start_warmup_min: u8,
+    pub open_weekday: u8,
+    pub monument_doodad_id: u32,
+}
+
+/// Static castle references. Territory ownership, participants, and siege outcomes belong
+/// to runtime state, not these templates.
+#[derive(Debug, Clone, Default)]
+pub struct CastleReferenceData {
+    pub guard_tower_settings: HashMap<u32, GuardTowerSetting>,
+    /// Keyed by zone group, which is the calendar/territory association in 1.2.
+    pub siege_zones: HashMap<u32, SiegeZone>,
+    /// Chronological entries per zone group; duplicate dates are preserved as separate rows.
+    pub siege_plans: HashMap<u32, Vec<SiegePlan>>,
+}
+
+impl CastleReferenceData {
+    pub fn load(conn: &Connection) -> Result<Self, GameDataError> {
+        let mut data = Self::default();
+        for_each_row(conn, "SELECT * FROM guard_tower_settings", [], |r| {
+            let setting = GuardTowerSetting {
+                id: castle_u32(r, "id")?,
+                radius_dominion: castle_u32(r, "radius_dominion")?,
+                radius_siege: castle_u32(r, "radius_siege")?,
+                radius_declare: castle_u32(r, "radius_declare")?,
+                radius_offense_hq: castle_u32(r, "radius_offense_hq")?,
+                comments: r.string_or("comments", "")?,
+                initial_buff_id: castle_u32(r, "initial_buff_id")?,
+                max_gates: castle_u32(r, "max_gates")?,
+                max_walls: castle_u32(r, "max_walls")?,
+                steps: BTreeMap::new(),
+            };
+            let id = setting.id;
+            if data.guard_tower_settings.insert(id, setting).is_some() {
+                return Err(dup("guard_tower_settings", id));
+            }
+            Ok(())
+        })?;
+        let mut step_ids = HashSet::new();
+        for_each_row(conn, "SELECT * FROM guard_tower_steps", [], |r| {
+            let step = GuardTowerStep {
+                id: castle_u32(r, "id")?,
+                guard_tower_setting_id: castle_u32(r, "guard_tower_setting_id")?,
+                step: castle_u32(r, "step")?,
+                num_gates: castle_u32(r, "num_gates")?,
+                num_walls: castle_u32(r, "num_walls")?,
+                buff_id: castle_u32(r, "buff_id")?,
+            };
+            if !step_ids.insert(step.id) {
+                return Err(dup("guard_tower_steps", step.id));
+            }
+            let Some(setting) = data
+                .guard_tower_settings
+                .get_mut(&step.guard_tower_setting_id)
+            else {
+                return Err(rusqlite::Error::InvalidParameterName(format!(
+                    "guard_tower_steps {} references missing setting {}",
+                    step.id, step.guard_tower_setting_id
+                )));
+            };
+            if setting.steps.insert(step.step, step).is_some() {
+                return Err(dup("guard_tower_steps ordinal", step.id));
+            }
+            Ok(())
+        })?;
+        let mut zone_ids = HashSet::new();
+        for_each_row(conn, "SELECT * FROM siege_zones", [], |r| {
+            let zone = SiegeZone {
+                id: castle_u32(r, "id")?,
+                zone_group_id: castle_u32(r, "zone_group_id")?,
+                start_siege_weekday: castle_clock(r, "start_siege_weekday", 6)?,
+                start_siege_hour: castle_clock(r, "start_siege_hour", 23)?,
+                start_siege_min: castle_clock(r, "start_siege_min", 59)?,
+                siege_days: castle_u32(r, "siege_days")?,
+                siege_hours: castle_u32(r, "siege_hours")?,
+                siege_mins: castle_u32(r, "siege_mins")?,
+                pay_weekday: castle_clock(r, "pay_weekday", 6)?,
+                pay_hour: castle_clock(r, "pay_hour", 23)?,
+                pay_min: castle_clock(r, "pay_min", 59)?,
+                declare_item_id: castle_u32(r, "declare_item_id")?,
+                defense_ticket_id: castle_u32(r, "defense_ticket_id")?,
+                offense_ticket_id: castle_u32(r, "offense_ticket_id")?,
+                reinforce_defense_delay_mins: castle_u32(r, "reinforce_defense_delay_mins")?,
+                defense_merchant_id: castle_u32(r, "defense_merchant_id")?,
+                offense_merchant_id: castle_u32(r, "offense_merchant_id")?,
+                dominion_merchant_id: castle_u32(r, "dominion_merchant_id")?,
+                open_hour: castle_clock(r, "open_hour", 23)?,
+                open_duration_hours: castle_u32(r, "open_duration_hours")?,
+                start_auction_weekday: castle_clock(r, "start_auction_weekday", 6)?,
+                start_auction_hour: castle_clock(r, "start_auction_hour", 23)?,
+                start_auction_min: castle_clock(r, "start_auction_min", 59)?,
+                start_declare_weekday: castle_clock(r, "start_declare_weekday", 6)?,
+                start_declare_hour: castle_clock(r, "start_declare_hour", 23)?,
+                start_declare_min: castle_clock(r, "start_declare_min", 59)?,
+                start_warmup_weekday: castle_clock(r, "start_warmup_weekday", 6)?,
+                start_warmup_hour: castle_clock(r, "start_warmup_hour", 23)?,
+                start_warmup_min: castle_clock(r, "start_warmup_min", 59)?,
+                open_weekday: castle_clock(r, "open_weekday", 6)?,
+                monument_doodad_id: castle_u32(r, "monument_doodad_id")?,
+            };
+            if !zone_ids.insert(zone.id) {
+                return Err(dup("siege_zones", zone.id));
+            }
+            if data.siege_zones.insert(zone.zone_group_id, zone).is_some() {
+                return Err(dup("siege_zones zone group", zone.zone_group_id));
+            }
+            Ok(())
+        })?;
+        let mut plan_ids = HashSet::new();
+        for_each_row(conn, "SELECT * FROM siege_plans", [], |r| {
+            let text = r.string("week_start")?;
+            let week_start =
+                NaiveDateTime::parse_from_str(&text, "%Y-%m-%d %H:%M:%S%.f").map_err(|e| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        2,
+                        rusqlite::types::Type::Text,
+                        Box::new(e),
+                    )
+                })?;
+            let plan = SiegePlan {
+                id: castle_u32(r, "id")?,
+                zone_group_id: castle_u32(r, "zone_group_id")?,
+                week_start,
+            };
+            if !plan_ids.insert(plan.id) {
+                return Err(dup("siege_plans", plan.id));
+            }
+            if !data.siege_zones.contains_key(&plan.zone_group_id) {
+                return Err(rusqlite::Error::InvalidParameterName(format!(
+                    "siege_plans {} references missing zone group {}",
+                    plan.id, plan.zone_group_id
+                )));
+            }
+            data.siege_plans
+                .entry(plan.zone_group_id)
+                .or_default()
+                .push(plan);
+            Ok(())
+        })?;
+        for plans in data.siege_plans.values_mut() {
+            plans.sort_by_key(|p| (p.week_start, p.id));
+        }
+        Ok(data)
+    }
+}
+
+fn castle_u32(row: &SqlRow<'_, '_>, column: &str) -> rusqlite::Result<u32> {
+    let value = row.i64(column)?;
+    u32::try_from(value).map_err(|_| {
+        rusqlite::Error::InvalidParameterName(format!(
+            "castle reference column {column} must fit u32, got {value}"
+        ))
+    })
+}
+
+fn castle_clock(row: &SqlRow<'_, '_>, column: &str, max: u8) -> rusqlite::Result<u8> {
+    let value = castle_u32(row, column)?;
+    if value > u32::from(max) {
+        return Err(rusqlite::Error::InvalidParameterName(format!(
+            "castle reference column {column} must be in 0..={max}, got {value}"
+        )));
+    }
+    Ok(value as u8)
 }
 
 /// `WorldSpawnPosition` as used by the housing bindings (`Yaw`/`Pitch`/`Roll` in degrees there,
@@ -173,6 +409,7 @@ pub struct HousingBindingTemplate {
 /// The housing tables (`server.game_data.systems.housing`).
 #[derive(Debug, Clone, Default)]
 pub struct HousingData {
+    pub castles: CastleReferenceData,
     /// Housing polygon id -> placement group (`housing_areas`).
     pub areas: HashMap<u32, u32>,
     pub groups: HashMap<u32, HousingGroup>,
@@ -209,7 +446,10 @@ impl HousingData {
         language: &str,
         bindings: Vec<HousingBindingTemplate>,
     ) -> Result<Self, GameDataError> {
-        let mut d = HousingData::default();
+        let mut d = HousingData {
+            castles: CastleReferenceData::load(conn)?,
+            ..HousingData::default()
+        };
         for_each_row(conn, "SELECT * FROM housing_areas", [], |r| {
             let id = r.u32("id")?;
             if d.areas.insert(id, r.u32("housing_group_id")?).is_some() {
@@ -759,6 +999,22 @@ pub(crate) mod tests {
 
     /// The columns the loaders read.
     pub(crate) const TEST_SCHEMA: &str = "
+        CREATE TABLE guard_tower_settings (id INT, radius_dominion INT, radius_siege INT,
+            radius_declare INT, radius_offense_hq INT, comments TEXT, initial_buff_id INT,
+            max_gates INT, max_walls INT);
+        CREATE TABLE guard_tower_steps (id INT, guard_tower_setting_id INT, step INT,
+            num_gates INT, num_walls INT, buff_id INT);
+        CREATE TABLE siege_plans (id INT, zone_group_id INT, week_start NUM);
+        CREATE TABLE siege_zones (id INT, start_siege_weekday INT, start_siege_hour INT,
+            start_siege_min INT, siege_days INT, siege_hours INT, siege_mins INT,
+            zone_group_id INT, pay_weekday INT, pay_hour INT, pay_min INT, declare_item_id INT,
+            defense_ticket_id INT, offense_ticket_id INT, reinforce_defense_delay_mins INT,
+            defense_merchant_id INT, offense_merchant_id INT, dominion_merchant_id INT,
+            open_hour INT, open_duration_hours INT, start_auction_weekday INT,
+            start_auction_hour INT, start_auction_min INT, start_declare_weekday INT,
+            start_declare_hour INT, start_declare_min INT, start_warmup_weekday INT,
+            start_warmup_hour INT, start_warmup_min INT, open_weekday INT,
+            monument_doodad_id INT);
         CREATE TABLE housing_areas (id INT, housing_group_id INT);
         CREATE TABLE housing_groups (id INT, houseless NUM, existing_category_id INT, can_extend NUM);
         CREATE TABLE housing_group_categories (id INT, housing_group_id INT, category_id INT);
@@ -808,6 +1064,225 @@ pub(crate) mod tests {
         )
         .unwrap();
         c
+    }
+
+    fn castle_sample() -> Connection {
+        let c = Connection::open_in_memory().unwrap();
+        c.execute_batch(TEST_SCHEMA).unwrap();
+        c.execute_batch(
+            "INSERT INTO guard_tower_settings VALUES (7,200,450,450,120,NULL,4771,2,100);
+             INSERT INTO guard_tower_steps VALUES (70,7,5,2,45,4776),(71,7,1,0,33,4772);
+             INSERT INTO siege_zones VALUES (4,0,21,0,0,1,30,33,0,23,55,21134,21314,
+                21318,20,12629,51,50,0,168,3,22,30,5,22,30,0,20,30,0,7229);
+             INSERT INTO siege_zones VALUES (6,0,21,0,0,1,30,54,0,23,55,27744,28170,
+                28171,20,13210,13211,13209,0,0,3,22,30,5,22,30,0,20,30,0,7233);
+             INSERT INTO siege_plans VALUES (29,33,'2014-02-16 00:00:00.000000'),
+                (28,33,'2014-02-02 00:00:00.123456'),
+                (30,54,'2014-02-02 00:00:00'),
+                (31,33,'2014-02-16 00:00:00.000000');",
+        )
+        .unwrap();
+        c
+    }
+
+    #[test]
+    fn castle_references_preserve_stage_order_dates_and_zero_open_duration() {
+        let c = castle_sample();
+        // The production HousingData loader wires the same records, not a test-only path.
+        let housing = HousingData::load_from(&c, "en_us", Vec::new()).unwrap();
+        let data = &housing.castles;
+        let setting = &data.guard_tower_settings[&7];
+        assert_eq!((setting.max_gates, setting.max_walls), (2, 100));
+        assert_eq!((setting.radius_dominion, setting.radius_siege), (200, 450));
+        assert_eq!(
+            (setting.radius_declare, setting.radius_offense_hq),
+            (450, 120)
+        );
+        assert_eq!(setting.initial_buff_id, 4771);
+        assert!(setting.comments.is_empty());
+        assert_eq!(setting.steps.keys().copied().collect::<Vec<_>>(), [1, 5]);
+        assert_eq!(setting.steps[&1].id, 71);
+        assert_eq!(
+            (setting.steps[&1].num_gates, setting.steps[&1].num_walls),
+            (0, 33)
+        );
+        assert_eq!(setting.steps[&5].buff_id, 4776);
+        let plans = &data.siege_plans[&33];
+        assert_eq!(plans.iter().map(|p| p.id).collect::<Vec<_>>(), [28, 29, 31]);
+        assert_eq!(
+            plans[0].week_start.to_string(),
+            "2014-02-02 00:00:00.123456"
+        );
+        // Separate same-date rows remain intact; the loader does not derive recurrence.
+        assert_eq!(plans[1].week_start, plans[2].week_start);
+        assert_eq!(data.siege_plans[&54][0].zone_group_id, 54);
+        let zone = &data.siege_zones[&33];
+        assert_eq!(zone.id, 4);
+        assert_eq!(
+            (
+                zone.start_siege_weekday,
+                zone.start_siege_hour,
+                zone.start_siege_min
+            ),
+            (0, 21, 0)
+        );
+        assert_eq!(
+            (zone.siege_days, zone.siege_hours, zone.siege_mins),
+            (0, 1, 30)
+        );
+        assert_eq!((zone.pay_weekday, zone.pay_hour, zone.pay_min), (0, 23, 55));
+        assert_eq!(
+            (
+                zone.start_auction_weekday,
+                zone.start_auction_hour,
+                zone.start_auction_min
+            ),
+            (3, 22, 30)
+        );
+        assert_eq!(
+            (
+                zone.start_declare_weekday,
+                zone.start_declare_hour,
+                zone.start_declare_min
+            ),
+            (5, 22, 30)
+        );
+        assert_eq!(
+            (
+                zone.start_warmup_weekday,
+                zone.start_warmup_hour,
+                zone.start_warmup_min
+            ),
+            (0, 20, 30)
+        );
+        assert_eq!(
+            (zone.open_weekday, zone.open_hour, zone.open_duration_hours),
+            (0, 0, 168)
+        );
+        assert_eq!(
+            (
+                zone.declare_item_id,
+                zone.defense_ticket_id,
+                zone.offense_ticket_id
+            ),
+            (21134, 21314, 21318)
+        );
+        assert_eq!(
+            (
+                zone.defense_merchant_id,
+                zone.offense_merchant_id,
+                zone.dominion_merchant_id
+            ),
+            (12629, 51, 50)
+        );
+        assert_eq!(zone.reinforce_defense_delay_mins, 20);
+        assert_eq!(zone.monument_doodad_id, 7229);
+        assert_eq!(data.siege_zones[&54].open_duration_hours, 0);
+    }
+
+    #[test]
+    fn castle_reference_duplicates_and_orphans_abort_load() {
+        for sql in [
+            "INSERT INTO guard_tower_settings SELECT * FROM guard_tower_settings;",
+            "INSERT INTO guard_tower_steps VALUES (70,7,2,0,36,4773);",
+            "INSERT INTO guard_tower_steps VALUES (72,7,1,0,33,4772);",
+            "INSERT INTO guard_tower_steps VALUES (72,99,1,0,33,4772);",
+            "INSERT INTO siege_zones SELECT * FROM siege_zones WHERE id=4;",
+            "INSERT INTO siege_zones SELECT 9,start_siege_weekday,start_siege_hour,
+                start_siege_min,siege_days,siege_hours,siege_mins,zone_group_id,
+                pay_weekday,pay_hour,pay_min,declare_item_id,defense_ticket_id,
+                offense_ticket_id,reinforce_defense_delay_mins,defense_merchant_id,
+                offense_merchant_id,dominion_merchant_id,open_hour,open_duration_hours,
+                start_auction_weekday,start_auction_hour,start_auction_min,
+                start_declare_weekday,start_declare_hour,start_declare_min,
+                start_warmup_weekday,start_warmup_hour,start_warmup_min,
+                open_weekday,monument_doodad_id FROM siege_zones WHERE id=4;",
+            "INSERT INTO siege_plans VALUES (28,33,'2014-03-02 00:00:00');",
+            "INSERT INTO siege_plans VALUES (32,99,'2014-03-02 00:00:00');",
+        ] {
+            let c = castle_sample();
+            c.execute_batch(sql).unwrap();
+            assert!(CastleReferenceData::load(&c).is_err(), "{sql}");
+        }
+    }
+
+    #[test]
+    fn castle_reference_invalid_clock_counts_and_dates_abort_load() {
+        for sql in [
+            "UPDATE siege_zones SET start_siege_weekday=7;",
+            "UPDATE siege_zones SET start_auction_hour=24;",
+            "UPDATE siege_zones SET pay_min=60;",
+            "UPDATE siege_zones SET open_hour=-1;",
+            "UPDATE guard_tower_settings SET max_walls=-1;",
+            "UPDATE guard_tower_steps SET num_gates=4294967296;",
+            "UPDATE siege_plans SET week_start='2014-02-30 00:00:00';",
+            "UPDATE siege_plans SET week_start='not a date';",
+            "UPDATE siege_plans SET week_start=NULL;",
+        ] {
+            let c = castle_sample();
+            c.execute_batch(sql).unwrap();
+            assert!(CastleReferenceData::load(&c).is_err(), "{sql}");
+        }
+    }
+
+    #[test]
+    #[ignore = "needs AAEMU_COMPACT_DB with original 1.2 castle tables"]
+    fn housing_castle_real_compact_db() {
+        let Ok(path) = std::env::var("AAEMU_COMPACT_DB") else {
+            return;
+        };
+        let conn =
+            Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+        let data = CastleReferenceData::load(&conn).unwrap();
+        let count = |table: &str| -> usize {
+            conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| {
+                r.get::<_, usize>(0)
+            })
+            .unwrap()
+        };
+        assert_eq!(
+            data.guard_tower_settings.len(),
+            count("guard_tower_settings")
+        );
+        assert_eq!(
+            data.guard_tower_settings
+                .values()
+                .map(|s| s.steps.len())
+                .sum::<usize>(),
+            count("guard_tower_steps")
+        );
+        assert_eq!(data.siege_zones.len(), count("siege_zones"));
+        assert_eq!(
+            data.siege_plans.values().map(Vec::len).sum::<usize>(),
+            count("siege_plans")
+        );
+        let tower = &data.guard_tower_settings[&1];
+        assert_eq!(
+            tower.steps.keys().copied().collect::<Vec<_>>(),
+            [1, 2, 3, 4, 5]
+        );
+        assert_eq!(tower.steps[&1].buff_id, 4772);
+        assert_eq!(tower.steps[&1].num_walls, 33);
+        assert_eq!(tower.initial_buff_id, 4771);
+        assert_eq!(data.guard_tower_settings[&11].max_walls, 100);
+        let zone = &data.siege_zones[&33];
+        assert_eq!(
+            (zone.siege_days, zone.siege_hours, zone.siege_mins),
+            (0, 1, 30)
+        );
+        assert_eq!(zone.reinforce_defense_delay_mins, 20);
+        assert_eq!(data.siege_zones[&54].open_duration_hours, 0);
+        assert!(data
+            .siege_plans
+            .values()
+            .all(|plans| plans
+                .windows(2)
+                .all(|p| (p[0].week_start, p[0].id) <= (p[1].week_start, p[1].id))));
+        assert!(data
+            .siege_plans
+            .values()
+            .flatten()
+            .all(|p| p.week_start.format("%Y").to_string() == "2014"));
     }
 
     #[test]
