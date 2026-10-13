@@ -297,8 +297,18 @@ public class FloatingSkillController : SkillController
 
     private float GetGroundHeight()
     {
-        var floorZ = Owner.ParentWorld.Template.Floor.GetFloor(Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y, Owner.Transform.World.Position.Z, FloorContext.Skill);
-        return floorZ > 0 ? floorZ : _startZ;
+        // Hint with the pre-lift ground. An airborne Z past the floor window makes a cave
+        // floor lose to surface terrain (above the NPC), and a miss returns that hint
+        // unchanged, which would also cancel the fall.
+        var hit = Owner.ParentWorld.Template.Floor.QueryFloor(
+            Owner.Transform.World.Position.X,
+            Owner.Transform.World.Position.Y,
+            _startZ,
+            FloorContext.Skill);
+        if (hit.Provider == FloorProvider.Unchanged || hit.Z <= 0f)
+            return _startZ;
+
+        return hit.Z;
     }
 
     private void PullTick(TimeSpan delta)
