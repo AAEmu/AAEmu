@@ -111,6 +111,19 @@ async fn queries_and_doodad_colliders() {
         super::line_of_sight(&s, 0, [490.0, 500.0, 101.0], [510.0, 500.0, 101.0]),
         Some(false)
     );
+    assert_eq!(
+        super::raycast_ignoring_objects(
+            &s,
+            0,
+            [490.0, 500.0, 101.0],
+            [510.0, 500.0, 101.0],
+            super::query::mask::STATIC_TERRAIN,
+            super::query::ray_flags::DEFAULT,
+            &[(ObjKind::Doodad, 42)]
+        ),
+        Some(None),
+        "an interaction ray must not be blocked by its own target collider"
+    );
     // a blink through the doodad stops in front of it (entTypes 0x107)
     let end = super::displacement::clip_move(&s, 0, [490.0, 500.0, 100.0], [510.0, 500.0, 100.0])
         .unwrap();

@@ -496,6 +496,26 @@ impl GameClient {
 
     /// `CSMoveUnitPacket` with a `UnitMoveType` for our own character.
     pub async fn move_to(&mut self, pos: (f32, f32, f32), time: u32) -> anyhow::Result<()> {
+        self.move_to_with_direction(pos, time, 0).await
+    }
+
+    /// Move into range while facing a unit, so angle restrictions and auto attacks apply.
+    pub async fn move_to_facing(
+        &mut self,
+        pos: (f32, f32, f32),
+        target: (f32, f32, f32),
+        time: u32,
+    ) -> anyhow::Result<()> {
+        self.move_to_with_direction(pos, time, facing_direction(pos, target))
+            .await
+    }
+
+    async fn move_to_with_direction(
+        &mut self,
+        pos: (f32, f32, f32),
+        time: u32,
+        direction: i8,
+    ) -> anyhow::Result<()> {
         let mut s = PacketStream::new();
         s.write_bc(self.state.self_obj)
             .write_u8(1) // MoveTypeEnum.Unit
@@ -507,7 +527,7 @@ impl GameClient {
             .write_i16(0) // velocity
             .write_i8(0)
             .write_i8(0)
-            .write_i8(0) // rotation
+            .write_i8(direction) // yaw
             .write_i8(0)
             .write_i8(0)
             .write_i8(0) // delta movement
@@ -542,6 +562,14 @@ impl GameClient {
             .write_bc(target_obj)
             .write_u8(0); // flag: no skill object
         self.send_cs(cs::CSStartSkillPacket, s.as_bytes()).await
+    }
+
+    /// Select the unit used by auto attacks, as the real client does before attacking.
+    pub async fn change_target(&mut self, target_obj: u32) -> anyhow::Result<()> {
+        let mut packet = PacketStream::new();
+        packet.write_bc(target_obj);
+        self.send_cs(cs::CSChangeTargetPacket, packet.as_bytes())
+            .await
     }
 
     /// `CSSwapItemsPacket` (bag -> bag).
@@ -615,6 +643,18 @@ fn dist2(a: (f32, f32, f32), b: (f32, f32, f32)) -> f32 {
     dx * dx + dy * dy + dz * dz
 }
 
+fn facing_direction(pos: (f32, f32, f32), target: (f32, f32, f32)) -> i8 {
+    let (dx, dy) = (target.0 - pos.0, target.1 - pos.1);
+    if dx == 0.0 && dy == 0.0 {
+        return 0;
+    }
+    let yaw = (f64::from(dy).atan2(f64::from(dx)) - std::f64::consts::FRAC_PI_2
+        + std::f64::consts::PI)
+        .rem_euclid(std::f64::consts::TAU)
+        - std::f64::consts::PI;
+    aaemu_game::models::movement::convert_radian_to_direction(yaw)
+}
+
 /// `UnitCustomModelParams` with a full face block (type 3), all defaults.
 fn write_custom_model(s: &mut PacketStream) {
     s.write_u8(3) // UnitCustomModelType.Face
@@ -639,4 +679,22 @@ fn write_custom_model(s: &mut PacketStream) {
         s.write_u32(0); // lip, pupils, eyebrow, deco colors
     }
     s.write_bytes_sized(&[0u8; 128]); // modifier
+}
+
+#[cfg(test)]
+mod facing_tests {
+    use super::*;
+
+    #[test]
+    fn movement_faces_each_compass_target_using_the_1_2_yaw() {
+        let origin = (0.0, 0.0, 0.0);
+        for (target, direction) in [
+            ((0.0, 1.0, 0.0), 0),
+            ((-1.0, 0.0, 0.0), 32),
+            ((1.0, 0.0, 0.0), -32),
+            ((0.0, -1.0, 0.0), 64),
+        ] {
+            assert_eq!(facing_direction(origin, target), direction);
+        }
+    }
 }

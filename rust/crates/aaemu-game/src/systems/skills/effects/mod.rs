@@ -4,6 +4,7 @@
 //! `ext::ExtHooks::route_effect` and logged when no subsystem handles them.
 
 pub mod combat;
+mod conversion;
 pub mod special;
 pub mod unit_fx;
 
@@ -32,6 +33,8 @@ pub struct EffectSource {
     pub buff: Option<Arc<BuffTemplate>>,
     pub amount: i32,
     pub is_trigger: bool,
+    /// The individual SkillEffect bypasses the cast's miss roll.
+    pub always_hit: bool,
 }
 
 impl EffectSource {
@@ -95,6 +98,11 @@ pub fn rand_float(min: f32, max: f32) -> f32 {
     rand::thread_rng().gen::<f32>() * (max - min) + min
 }
 
+/// A percentage chance: zero never fires, one hundred always fires.
+pub fn chance_succeeds(chance: i32) -> bool {
+    chance > 0 && (chance >= 100 || rand::thread_rng().gen_range(0..100) < chance)
+}
+
 /// `EffectTemplate.Apply` dispatch.
 pub fn apply(
     server: &GameServer,
@@ -111,6 +119,8 @@ pub fn apply(
         T::Dispel(t) => combat::dispel(server, t, args),
         T::RestoreMana(t) => combat::restore_mana(server, t, args),
         T::ManaBurn(t) => combat::mana_burn(server, t, args),
+        T::Conversion(t) => conversion::apply(server, t, args),
+        T::MoveToRezPoint { .. } => special::movement::move_to_rez_point(server, args),
         T::Aggro(t) => combat::aggro(server, t, args),
         T::Special(t) => special::apply(server, t, args),
         T::FlyingStateChange { .. } => combat::flying_state_change(server, template, args),
@@ -119,13 +129,12 @@ pub fn apply(
         T::Bubble { id, kind_id } => unit_fx::bubble(server, *id, *kind_id, args),
         T::Impulse(t) => unit_fx::impulse(server, t, args),
         T::PhysicalExplosion(t) => unit_fx::physical_explosion(server, t, args),
-        T::MoveToRezPoint { .. }
-        | T::OpenPortal { .. }
+        T::PlayLog { id, message } => tracing::debug!(effect_id = id, message, "skill play log"),
+        T::OpenPortal { .. }
         | T::AccountAttribute(_)
         | T::AcceptQuest { .. }
         | T::Cinema { .. }
         | T::CleanupUcc { .. }
-        | T::Conversion(_)
         | T::Craft { .. }
         | T::GainLootPackItem(_)
         | T::ImprintUcc { .. }

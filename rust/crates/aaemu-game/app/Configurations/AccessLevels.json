@@ -4,6 +4,8 @@
         // Always keep help at zero
         "help": 0,
         "collectdominion": 0,
+        "joinsiege": 0,
+        "leavesiege": 0,
         "fly": 0,
         
         "online": 0,

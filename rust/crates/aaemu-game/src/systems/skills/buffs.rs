@@ -600,11 +600,9 @@ fn on_removed(server: &GameServer, owner: &WorldObject, b: &Buff) {
         dispel(server, &template, caster.as_ref(), owner, b, b.exit_replace);
         restore_faction(server, owner, &template);
     } else {
-        // Explicit removal fires Dispelled through unsubscribe, never Timeout. Keep the
-        // existing double Dispel packet order for this bookkeeping removal path.
+        // Explicit removal fires Dispelled through unsubscribe, never Timeout.
         dispel(server, &template, caster.as_ref(), owner, b, false);
         unsubscribe_triggers(server, owner, b);
-        dispel(server, &template, caster.as_ref(), owner, b, false);
         restore_faction(server, owner, &template);
         remove_modifiers(server, owner, template.id);
     }
@@ -765,9 +763,11 @@ fn schedule_dispel_task(
     gen: u64,
     delay: f64,
 ) {
-    let owner_id = owner.obj_id();
+    let owner = owner.clone();
     super::tasks::schedule(server, delay as i64, move |srv| {
-        dispel_task(&srv, owner_id, index, gen);
+        if super::geometry::is_live_object(&srv, &owner) {
+            dispel_task(&srv, owner.obj_id(), index, gen);
+        }
     });
 }
 
@@ -1426,6 +1426,18 @@ pub fn trigger_remove_on(server: &GameServer, owner: &WorldObject, on: BuffRemov
             || (t.remove_on_move && on == R::Move)
             || (t.remove_on_source_dead && on == R::SourceDead && value == caster);
         if exit_now {
+            let event = match on {
+                R::Move => Some(BuffEventTriggerKind::RemoveOnMove),
+                R::DamagedEtc
+                | R::DamagedEtcDot
+                | R::DamagedSpellDot
+                | R::DamagedBuffTrigger
+                | R::AttackedEtc => Some(BuffEventTriggerKind::RemoveOnDamage),
+                _ => None,
+            };
+            if let Some(event) = event {
+                fire_buff_trigger(server, owner, index, event);
+            }
             exit(server, owner, index, false);
             continue;
         }
@@ -1463,7 +1475,7 @@ pub fn absorption_effects(server: &GameServer, owner: &WorldObject) -> Vec<u32> 
 /// One subscribed `BuffTrigger` (`BuffTriggersHandler._triggers` entry).
 #[derive(Debug, Clone, PartialEq)]
 pub struct TriggerSub {
-    /// The unit whose events are listened to (`buff.Caster`), 0 for buff events.
+    /// The buff owner whose unit events are listened to, 0 for buff events.
     pub source_obj: u32,
     pub owner_obj: u32,
     pub buff_index: u32,
@@ -1489,25 +1501,33 @@ fn subscribe_triggers(server: &GameServer, owner: &WorldObject, b: &Buff) {
     for t in templates {
         let kind = K::from_raw(i64::from(t.kind));
         let (unit_event, damaged) = match kind {
-            Some(K::Attack | K::Damage | K::Death) => (true, false),
+            Some(
+                K::Attack
+                | K::Attacked
+                | K::Damage
+                | K::Death
+                | K::Landing
+                | K::ChannelingCancel
+                | K::Unmount
+                | K::Kill
+                | K::KillAny
+                | K::DamagedCollision
+                | K::Immotality
+                | K::Time,
+            ) => (true, false),
             Some(
                 K::Damaged | K::DamagedMelee | K::DamagedRanged | K::DamagedSpell | K::DamagedSiege,
             ) => (true, true),
-            Some(K::Dispelled | K::Timeout | K::Started) => (false, false),
+            Some(K::Dispelled | K::Timeout | K::Started | K::RemoveOnMove | K::RemoveOnDamage) => {
+                (false, false)
+            }
             _ => {
                 tracing::trace!("Unimplemented BuffTrigger[\"{:?}\"]", kind);
                 continue;
             }
         };
-        if unit_event && b.caster_obj_id == 0 {
-            tracing::error!(
-                "Buff {}: trigger on a null caster (NullReferenceException in SubscribeEvents)",
-                b.template.id
-            );
-            continue;
-        }
         subs.push(TriggerSub {
-            source_obj: if unit_event { b.caster_obj_id } else { 0 },
+            source_obj: if unit_event { owner.obj_id() } else { 0 },
             owner_obj: owner.obj_id(),
             buff_index: b.index,
             template: t.clone(),
@@ -1637,6 +1657,7 @@ fn execute_trigger(
                 buff: Some(template.clone()),
                 amount,
                 is_trigger: true,
+                always_hit: false,
             },
         )
     } else {
@@ -1647,6 +1668,7 @@ fn execute_trigger(
                 buff: None,
                 amount: 0,
                 is_trigger: false,
+                always_hit: false,
             },
         )
     };

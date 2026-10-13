@@ -138,6 +138,50 @@ fn advance(secs: u64) {
 }
 
 #[tokio::test]
+async fn authored_management_groups_gate_population_and_preserve_other_groups() {
+    let server = server();
+    let m = manager(&server);
+    let mut managed = npc_def(500, 100.0, 100.0);
+    managed.base.position.zone_id = crate::test_support::TEST_ZONE;
+    managed.base.spawn_group_id = 73;
+    m.add_npc_spawner(&server, managed).unwrap();
+    let mut other = npc_def(600, 102.0, 100.0);
+    other.base.position.zone_id = crate::test_support::TEST_ZONE;
+    other.base.spawn_group_id = 74;
+    m.add_npc_spawner(&server, other).unwrap();
+    let spawner = m
+        .get_all_spawners()
+        .into_values()
+        .flatten()
+        .find(|s| s.unit_id == 500)
+        .unwrap();
+    spawner.do_event_spawn(&server);
+    let world = server.world.world(0).unwrap();
+    assert!(world.all_npcs().is_empty());
+    assert_eq!(
+        m.set_management_group(&server, crate::test_support::TEST_ZONE + 1, 73, true),
+        0
+    );
+    assert_eq!(
+        m.set_management_group(&server, crate::test_support::TEST_ZONE, 73, true),
+        1
+    );
+    assert_eq!(world.all_npcs().len(), 1);
+    let npc = world.all_npcs().pop().unwrap();
+    assert_eq!(npc.data().unit.template_id, 500);
+    m.set_management_group(&server, crate::test_support::TEST_ZONE, 73, false);
+    assert!(world.all_npcs().is_empty());
+    spawner.do_event_spawn(&server);
+    assert!(world.all_npcs().is_empty());
+    assert!(m
+        .get_all_spawners()
+        .into_values()
+        .flatten()
+        .filter(|s| s.unit_id == 600)
+        .all(|s| !s.shared().management_enabled()));
+}
+
+#[tokio::test]
 async fn npc_spawn_death_despawn_respawn_timing() {
     let server = server();
     let m = manager(&server);

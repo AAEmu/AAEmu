@@ -1,18 +1,103 @@
 //! Doodad persistence: `Doodad.Save()` (`REPLACE INTO doodads`), the row delete of
 //! `Doodad.Delete()` and `DoodadManager.DeleteDoodadById`.
 //!
-//! `Save()` is synchronous in C#; here the row is snapshotted under the doodad's lock (the DB id
-//! is allocated synchronously, like `DoodadIdManager.GetNextId`) and written by a spawned task
-//! (writes of one doodad keep their order only as far as the pool does — the last snapshot is
-//! the newest state). Without a Tokio runtime (unit tests) nothing is written.
+//! On-change snapshots and deletes enter one FIFO writer. Snapshotting and enqueueing share
+//! a lock, so old saves cannot overtake newer state or resurrect deleted objects. The normal
+//! save lifecycle drains the writer, including on shutdown.
 //! `SaveManager.DoSave` does not save doodads in C# (each change saves itself).
 
 use chrono::NaiveDateTime;
 use sqlx::MySqlConnection;
+use std::sync::Mutex;
+use tokio::sync::{mpsc, oneshot};
 
 use crate::db::{from_unix, min_value};
 use crate::server::GameServer;
 use crate::world::{DoodadRef, WorldObject};
+
+type Completion = oneshot::Sender<sqlx::Result<()>>;
+
+#[derive(Debug)]
+enum Write {
+    Save(Box<DoodadRow>, Option<Completion>),
+    Delete(u32),
+    Flush(Completion),
+}
+
+/// One writer per server. It owns no server handle and closes when the manager is dropped.
+#[derive(Debug, Default)]
+pub struct Persistence {
+    sender: Mutex<Option<mpsc::UnboundedSender<Write>>>,
+}
+
+impl Persistence {
+    fn sender<'a>(
+        &self,
+        server: &GameServer,
+        slot: &'a mut Option<mpsc::UnboundedSender<Write>>,
+    ) -> Option<&'a mpsc::UnboundedSender<Write>> {
+        if slot.is_none() {
+            let rt = tokio::runtime::Handle::try_current().ok()?;
+            let (tx, mut rx) = mpsc::unbounded_channel();
+            let pool = server.db.clone();
+            rt.spawn(async move {
+                let mut failure = None;
+                while let Some(write) = rx.recv().await {
+                    let (result, done) = match write {
+                        Write::Save(row, done) => {
+                            let result = async {
+                                let mut conn = pool.acquire().await?;
+                                write_row(&mut conn, &row).await
+                            }
+                            .await;
+                            (result, done)
+                        }
+                        Write::Delete(id) => {
+                            let result = sqlx::query("DELETE FROM doodads WHERE id = ?")
+                                .bind(id)
+                                .execute(&pool)
+                                .await
+                                .map(|_| ());
+                            (result, None)
+                        }
+                        Write::Flush(done) => {
+                            let result = failure
+                                .take()
+                                .map_or(Ok(()), |e| Err(sqlx::Error::Protocol(e)));
+                            let _ = done.send(result);
+                            continue;
+                        }
+                    };
+                    if let Err(e) = &result {
+                        tracing::error!("Doodad persistence: {e}");
+                        failure = Some(e.to_string());
+                    }
+                    if let Some(done) = done {
+                        let _ = done.send(result);
+                    }
+                }
+            });
+            *slot = Some(tx);
+        }
+        slot.as_ref()
+    }
+
+    /// Complete all earlier saves and deletes before returning.
+    pub async fn flush(&self) -> sqlx::Result<()> {
+        let rx = {
+            let slot = self.sender.lock().expect("doodad persistence poisoned");
+            let Some(tx) = slot.as_ref() else {
+                return Ok(());
+            };
+            let (done, rx) = oneshot::channel();
+            tx.send(Write::Flush(done))
+                .map_err(|_| sqlx::Error::Protocol("doodad writer stopped".into()))?;
+            rx
+        };
+        rx.await
+            .map_err(|_| sqlx::Error::Protocol("doodad writer stopped".into()))?
+    }
+}
 
 /// One `doodads` row (the `Save()` parameters).
 #[derive(Debug, Clone, PartialEq)]
@@ -40,6 +125,7 @@ pub struct DoodadRow {
     pub item_container_id: u64,
     pub data: i32,
     pub farm_type: u8,
+    pub interaction_counts: String,
 }
 
 /// Unix ms to a DATETIME (`0` = `DateTime.MinValue`).
@@ -67,11 +153,17 @@ pub fn snapshot(server: &GameServer, doodad: &DoodadRef) -> Option<DoodadRow> {
         0
     };
     let mut d = doodad.data();
-    if !d.is_persistent {
+    if !d.is_persistent || d.phase.deleted {
         return None;
     }
     if d.db_id == 0 {
-        d.db_id = server.ids.doodad.get_next_id().unwrap_or(0);
+        match server.ids.doodad.get_next_id() {
+            Ok(id) => d.db_id = id,
+            Err(e) => {
+                tracing::error!("Cannot allocate doodad database id: {e}");
+                return None;
+            }
+        }
     }
     let t = &d.transform;
     Some(DoodadRow {
@@ -99,6 +191,8 @@ pub fn snapshot(server: &GameServer, doodad: &DoodadRef) -> Option<DoodadRow> {
         item_container_id: d.coffer.as_ref().map_or(0, |c| c.container_id), // GetItemContainerId
         data: d.data,
         farm_type: d.farm_type,
+        interaction_counts: serde_json::to_string(&d.phase.interaction_counts)
+            .expect("integer phase counters serialize"),
     })
 }
 
@@ -108,8 +202,8 @@ pub async fn write_row(conn: &mut MySqlConnection, r: &DoodadRow) -> sqlx::Resul
         "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, \
          `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, \
          `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, \
-         `item_container_id`, `data`, `farm_type`) \
-         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+         `item_container_id`, `data`, `farm_type`, `interaction_counts`) \
+         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(r.id)
     .bind(r.owner_id)
@@ -134,6 +228,7 @@ pub async fn write_row(conn: &mut MySqlConnection, r: &DoodadRow) -> sqlx::Resul
     .bind(r.item_container_id)
     .bind(r.data)
     .bind(r.farm_type)
+    .bind(&r.interaction_counts)
     .execute(conn)
     .await?;
     Ok(())
@@ -141,49 +236,59 @@ pub async fn write_row(conn: &mut MySqlConnection, r: &DoodadRow) -> sqlx::Resul
 
 /// `Doodad.Save()` (fire and forget).
 pub fn save(server: &GameServer, doodad: &DoodadRef) {
+    let persistence = &server.systems.npcs.doodads.persistence;
+    let mut slot = persistence
+        .sender
+        .lock()
+        .expect("doodad persistence poisoned");
     let Some(row) = snapshot(server, doodad) else {
         return;
     };
-    let Ok(rt) = tokio::runtime::Handle::try_current() else {
-        return;
-    };
-    let pool = server.db.clone();
-    rt.spawn(async move {
-        let res = async {
-            let mut conn = pool.acquire().await?;
-            write_row(&mut conn, &row).await
+    if let Some(tx) = persistence.sender(server, &mut slot) {
+        if tx.send(Write::Save(Box::new(row), None)).is_err() {
+            tracing::error!("Doodad writer stopped");
         }
-        .await;
-        if let Err(e) = res {
-            tracing::error!("Doodad.Save {}: {e}", row.id);
-        }
-    });
+    }
 }
 
 /// `Doodad.Save()` awaited (callers that need the row written, e.g. tests / player doodads).
 pub async fn save_now(server: &GameServer, doodad: &DoodadRef) -> sqlx::Result<()> {
-    let Some(row) = snapshot(server, doodad) else {
-        return Ok(());
+    let rx = {
+        let persistence = &server.systems.npcs.doodads.persistence;
+        let mut slot = persistence
+            .sender
+            .lock()
+            .expect("doodad persistence poisoned");
+        let Some(row) = snapshot(server, doodad) else {
+            return Ok(());
+        };
+        let tx = persistence
+            .sender(server, &mut slot)
+            .ok_or_else(|| sqlx::Error::Protocol("no doodad writer runtime".into()))?;
+        let (done, rx) = oneshot::channel();
+        tx.send(Write::Save(Box::new(row), Some(done)))
+            .map_err(|_| sqlx::Error::Protocol("doodad writer stopped".into()))?;
+        rx
     };
-    let mut conn = server.db.acquire().await?;
-    write_row(&mut conn, &row).await
+    rx.await
+        .map_err(|_| sqlx::Error::Protocol("doodad writer stopped".into()))?
 }
 
 /// The row delete of `Doodad.Delete()` (`DELETE FROM doodads WHERE id = @id`, fire and forget).
 pub fn delete_row(server: &GameServer, db_id: u32) {
-    let Ok(rt) = tokio::runtime::Handle::try_current() else {
+    if db_id == 0 {
         return;
-    };
-    let pool = server.db.clone();
-    rt.spawn(async move {
-        if let Err(e) = sqlx::query("DELETE FROM doodads WHERE id = ?")
-            .bind(db_id)
-            .execute(&pool)
-            .await
-        {
-            tracing::error!("Doodad.Delete {db_id}: {e}");
+    }
+    let persistence = &server.systems.npcs.doodads.persistence;
+    let mut slot = persistence
+        .sender
+        .lock()
+        .expect("doodad persistence poisoned");
+    if let Some(tx) = persistence.sender(server, &mut slot) {
+        if tx.send(Write::Delete(db_id)).is_err() {
+            tracing::error!("Doodad writer stopped");
         }
-    });
+    }
 }
 
 /// `DoodadManager.DeleteDoodadById(connection, transaction, dbId)`: deletes a persistent doodad
@@ -195,6 +300,7 @@ pub async fn delete_doodad_by_id(
     db_id: u32,
 ) -> sqlx::Result<bool> {
     use sqlx::Row;
+    server.systems.npcs.doodads.persistence.flush().await?;
     // First grab the item related data
     let row = sqlx::query(
         "SELECT CAST(item_id AS UNSIGNED) AS item_id, \
@@ -203,11 +309,10 @@ pub async fn delete_doodad_by_id(
     .bind(db_id)
     .fetch_optional(&mut *conn)
     .await?;
-    // C# reader.GetUInt32 on both columns.
     let (item_id, container_id) = match row {
         Some(r) => (
-            u64::from(r.try_get::<u64, _>("item_id")? as u32),
-            u64::from(r.try_get::<u64, _>("item_container_id")? as u32),
+            r.try_get::<u64, _>("item_id")?,
+            r.try_get::<u64, _>("item_container_id")?,
         ),
         None => (0, 0),
     };
@@ -234,6 +339,117 @@ mod tests {
     use super::*;
     use crate::models::doodad::Doodad;
     use crate::world::Entity;
+
+    #[tokio::test]
+    #[ignore = "requires AAEMU_TEST_MYSQL; uses a connection-local temporary table"]
+    async fn doodad_persistence_orders_updates_and_delete_without_resurrection() {
+        let url = std::env::var("AAEMU_TEST_MYSQL").expect("private MySQL URL");
+        let pool = sqlx::mysql::MySqlPoolOptions::new()
+            .max_connections(1)
+            .idle_timeout(None)
+            .max_lifetime(None)
+            .connect(&url)
+            .await
+            .unwrap();
+        sqlx::query("CREATE TEMPORARY TABLE aaemu_doodad_test_template LIKE doodads")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("CREATE TEMPORARY TABLE doodads LIKE aaemu_doodad_test_template")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let mut data = crate::data::GameData::empty();
+        data.systems.npcs.doodad.templates.insert(
+            2336,
+            super::super::templates::DoodadTemplate {
+                id: 2336,
+                ..Default::default()
+            },
+        );
+        let mut server = crate::test_support::test_server_with(data);
+        server.db = pool.clone();
+        let mut d = Doodad::new(2336);
+        d.is_persistent = true;
+        d.transform.set_xyz(101.0, 102.0, 50.0);
+        d.plant_time = 1_700_000_000;
+        d.phase_time_ms = 1_700_000_000_000;
+        d.growth_time_ms = 1_700_000_000_000;
+        d.phase.interaction_counts.insert(123, 2);
+        let doodad = Entity::new(0x500, d);
+        for value in 0..100 {
+            doodad.data().data = value;
+            save(&server, &doodad);
+        }
+        save_now(&server, &doodad).await.unwrap();
+        let id = doodad.data().db_id;
+        let value: i32 = sqlx::query_scalar("SELECT data FROM doodads WHERE id = ?")
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(value, 99);
+        let world = server.world.world(0).unwrap();
+        let spawns = server.systems.npcs.spawns.get_or_create(&world);
+        assert_eq!(
+            spawns
+                .spawn_persistent_doodads(
+                    &server,
+                    crate::models::doodad::doodad_owner_type::SYSTEM,
+                    -1,
+                    None,
+                    false
+                )
+                .await
+                .unwrap(),
+            1
+        );
+        let restored = spawns.get_all_player_doodads().pop().unwrap();
+        assert_eq!(restored.data().transform.x, 101.0);
+        assert_eq!(restored.data().phase.interaction_counts.get(&123), Some(&2));
+        server
+            .systems
+            .npcs
+            .doodads
+            .persistence
+            .flush()
+            .await
+            .unwrap();
+        let counters: String =
+            sqlx::query_scalar("SELECT interaction_counts FROM doodads WHERE id = ?")
+                .bind(id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(
+            serde_json::from_str::<std::collections::HashMap<u32, u32>>(&counters)
+                .unwrap()
+                .get(&123),
+            Some(&2)
+        );
+        let saved_x: f32 = sqlx::query_scalar("SELECT x FROM doodads WHERE id = ?")
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(saved_x, 101.0);
+        super::super::manager::delete(&server, &world, &restored);
+        save(&server, &restored);
+        server
+            .systems
+            .npcs
+            .doodads
+            .persistence
+            .flush()
+            .await
+            .unwrap();
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM doodads WHERE id = ?")
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+    }
 
     #[tokio::test]
     async fn snapshot_mirrors_save_columns() {

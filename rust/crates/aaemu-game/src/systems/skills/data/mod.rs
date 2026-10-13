@@ -694,5 +694,40 @@ mod tests {
         }
         // Melee auto attack exists.
         assert!(d.skill(2).is_some());
+        for (column, loaded) in [
+            (
+                "source_alive",
+                d.skills.values().filter(|s| s.source_alive).count(),
+            ),
+            (
+                "check_obstacle",
+                d.skills.values().filter(|s| s.check_obstacle).count(),
+            ),
+            (
+                "knockback_immune",
+                d.buffs.values().filter(|b| b.knockback_immune).count(),
+            ),
+        ] {
+            let table = if column == "knockback_immune" {
+                "buffs"
+            } else {
+                "skills"
+            };
+            let expected: usize = conn
+                .query_row(
+                    &format!("SELECT COUNT(*) FROM {table} WHERE {column}='t'"),
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert!(expected > 0);
+            assert_eq!(loaded, expected, "{column}");
+        }
+        for id in [3, 4, 5] {
+            assert!(matches!(
+                d.effect(EffectKind::PlayLogEffect, id),
+                Some(EffectTemplate::PlayLog { .. })
+            ));
+        }
     }
 }

@@ -18,6 +18,7 @@
 //! NPC or calling into the world. Callers must not hold an object data lock.
 
 use std::collections::{BTreeMap, HashMap};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use tokio::time::Instant;
@@ -38,6 +39,8 @@ const CACHE_SECONDS: f64 = 10.0;
 /// The reference-type members shared by memberwise clones of one spawner entry.
 #[derive(Debug, Default)]
 pub struct NpcSpawnerShared {
+    management_group: AtomicU32,
+    management_enabled: AtomicBool,
     /// `Position`.
     position: Mutex<WorldSpawnPosition>,
     /// `SpawnedNpcs` (`<SpawnerId, List<Npc>>`).
@@ -51,6 +54,18 @@ pub struct NpcSpawnerShared {
 }
 
 impl NpcSpawnerShared {
+    pub fn set_management_group(&self, group: u32) {
+        self.management_group.store(group, Ordering::Relaxed);
+    }
+    pub fn management_group(&self) -> u32 {
+        self.management_group.load(Ordering::Relaxed)
+    }
+    pub fn set_management_enabled(&self, enabled: bool) {
+        self.management_enabled.store(enabled, Ordering::Relaxed);
+    }
+    pub fn management_enabled(&self) -> bool {
+        self.management_group() == 0 || self.management_enabled.load(Ordering::Relaxed)
+    }
     pub fn new(position: WorldSpawnPosition) -> Arc<Self> {
         Arc::new(Self {
             position: Mutex::new(position),
@@ -405,6 +420,9 @@ impl NpcSpawner {
     }
 
     fn can_spawn(&self, server: &GameServer) -> bool {
+        if !self.shared.management_enabled() {
+            return false;
+        }
         if self.template().is_none() {
             tracing::warn!(
                 "[Spawn [SpawnerId={}, UnitId={}] Template is null. Cannot determine if NPC can be spawned.",
@@ -671,6 +689,9 @@ impl NpcSpawner {
 
     /// `SpawnAll(beginning)`.
     pub fn spawn_all(self: &Arc<Self>, server: &GameServer, _beginning: bool) {
+        if !self.shared.management_enabled() {
+            return;
+        }
         if self.is_spawning_schedule_enabled(server) {
             return;
         }
@@ -1013,6 +1034,9 @@ impl NpcSpawner {
 
     /// `DoEventSpawn()`: spawns the template member matching `UnitId`.
     pub fn do_event_spawn(self: &Arc<Self>, server: &GameServer) {
+        if !self.shared.management_enabled() {
+            return;
+        }
         let Some(t) = self.template() else {
             tracing::error!(
                 "Can't spawn npc {} from spawnerId {}",
@@ -1138,6 +1162,9 @@ impl NpcSpawner {
         caster: Option<&WorldObject>,
         target: Option<&WorldObject>,
     ) {
+        // Creation, event ownership and population bookkeeping must finish before an
+        // event can end and delete the summoner's descendants.
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         let Some(template) = server
             .game_data
             .systems
@@ -1154,6 +1181,9 @@ impl NpcSpawner {
                 Ok(None) => return,
                 Err(e) => tracing::error!("{e}"),
             }
+        }
+        if let Some(caster) = caster {
+            crate::systems::instances::tower_def::on_summoned(server, caster, &n);
         }
         for npc in &n {
             if let Some(s) = self.npc_spawner(server, npc) {
@@ -1262,6 +1292,15 @@ pub(crate) fn schedule_npc_do_despawn(server: &GameServer, npc: &NpcRef, secs: f
     let npc = npc.clone();
     rt.spawn(async move {
         tokio::time::sleep(std::time::Duration::from_secs_f32(secs.max(0.0))).await;
+        let _serial = server.systems.npcs.spawns.spawn_lock();
+        if !server
+            .world
+            .object(npc.obj_id)
+            .and_then(|o| o.as_npc().cloned())
+            .is_some_and(|n| Arc::ptr_eq(&n, &npc))
+        {
+            return;
+        }
         if let Some(s) = server.systems.npcs.spawns.npc_spawner_of(npc.obj_id) {
             s.do_despawn(&server, &npc);
         }

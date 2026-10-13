@@ -29,7 +29,6 @@ mod rights_tests;
 #[cfg(test)]
 mod save_tests;
 #[cfg(test)]
-mod tests;
-
-#[cfg(test)]
 mod tax_tests;
+#[cfg(test)]
+mod tests;

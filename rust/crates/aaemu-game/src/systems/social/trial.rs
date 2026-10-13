@@ -24,6 +24,7 @@ use crate::managers::chat::ChannelRef;
 use crate::net::packet::ServerPacket;
 use crate::packets::world::{SCChatMessagePacket, SCUnitPointsPacket};
 use crate::server::GameServer;
+use crate::systems::skills::packets_special::SCLoadInstancePacket;
 use crate::systems::social::chat::{chat_type, court_room_region};
 use crate::systems::social::config::SpawnPosition;
 use crate::systems::social::crime::{
@@ -50,6 +51,8 @@ const TIME_MAX: i64 = i64::MAX;
 
 const MINUTE_MS: i64 = 60_000;
 const SECOND_MS: i64 = 1000;
+// Durations on the 1.2 wire and on buffs are signed milliseconds.
+const MAX_JAIL_MINUTES: i32 = i32::MAX / 60_000;
 
 /// `TrialStep`.
 pub mod trial_step {
@@ -154,7 +157,7 @@ pub struct JuryBox {
 #[derive(Debug, Clone)]
 pub struct TrialData {
     pub id: u32,
-    /// [`court_room_region`] (`default` = Nuian until `EnterCourtJail`).
+    /// [`court_room_region`] of the court handling this case.
     pub court_region: u8,
     /// `CourtRoom` (court room id).
     pub court_room: Option<u32>,
@@ -166,6 +169,8 @@ pub struct TrialData {
     /// `CurrentStepEndTime` (unix ms; `i64::MAX` = `DateTime.MaxValue`).
     pub current_step_end_ms: i64,
     pub jury: BTreeMap<i32, JuryBox>,
+    /// Characters actually invited to this case.
+    pub invited_jury: Vec<u32>,
     /// Minutes.
     pub jail_time: i32,
     pub evidence: Vec<CrimeEvent>,
@@ -202,16 +207,16 @@ impl TrialData {
 
     /// `AllJuryConfirmedCriminalRecords()`.
     pub fn all_jury_confirmed_criminal_records(&self) -> bool {
-        self.jury
-            .values()
-            .all(|j| j.jury_member.is_none() || j.confirm_testimony)
+        self.jury.values().all(|j| {
+            !j.jury_member.as_ref().is_some_and(|m| m.data().is_online) || j.confirm_testimony
+        })
     }
 
     /// `AllJurySelectedSentence()`.
     pub fn all_jury_selected_sentence(&self) -> bool {
-        self.jury
-            .values()
-            .all(|j| j.jury_member.is_none() || j.selected_sentence >= 0)
+        self.jury.values().all(|j| {
+            !j.jury_member.as_ref().is_some_and(|m| m.data().is_online) || j.selected_sentence >= 0
+        })
     }
 
     fn state_packet(&self, cur_jury: i32, now_ms: i64) -> SCChangeTrialStatePacket {
@@ -241,6 +246,8 @@ pub enum Effect {
     RemoveBuffsByTag(PlayerRef, BuffKind, i32, u32),
     /// `Character.SetFaction(factionId)`.
     SetFaction(PlayerRef, u32),
+    /// Update world membership and visibility after a justice teleport, outside the trial lock.
+    Teleport(PlayerRef, crate::models::transform::Transform),
 }
 
 type Effects = Vec<Effect>;
@@ -293,6 +300,29 @@ fn run_effect(server: &GameServer, e: Effect) {
             crate::systems::dispatch_buff_events(server, &WorldObject::from(&p));
         }
         Effect::SetFaction(..) => unreachable!("handled by the callers"),
+        Effect::Teleport(p, destination) => {
+            let old_instance = p.data().unit.transform.instance_id;
+            let Some(world) = server.world.world(destination.instance_id) else {
+                tracing::error!(
+                    "Justice teleport: missing instance {}",
+                    destination.instance_id
+                );
+                return;
+            };
+            if old_instance != destination.instance_id {
+                if let Some(old) = server.world.world(old_instance) {
+                    old.delete(&p);
+                }
+            }
+            p.data().unit.transform = destination;
+            let changes = if old_instance == destination.instance_id {
+                world.add_visible_object(&p, &server.view_ctx())
+            } else {
+                world.spawn(&p, &server.view_ctx())
+            };
+            crate::world::session::handle_zone_changes(server, changes);
+            crate::systems::social::session::on_moved(server, &p);
+        }
     }
 }
 
@@ -391,11 +421,22 @@ fn can_accept_trial_invites(
     let Some(p) = p else {
         return false;
     };
-    let (online, jury_point, crime_point) = {
+    let (online, jury_point, crime_point, detained) = {
         let c = p.data();
-        (c.is_online, c.jury_point, c.crime_point)
+        (
+            c.is_online,
+            c.jury_point,
+            c.crime_point,
+            c.unit.buffs.check_buffs(&[
+                buff::FORCIBLY_AWAITING_TRIAL,
+                buff::TRIAL_DEFENDANT,
+                buff::PRISONER_NUIAN,
+                buff::PRISONER_HARANYAN,
+            ]),
+        )
     };
-    if !online || jury_point <= 0 || crime_point >= crime::WANTED_CRIME_POINT_THRESHOLD {
+    if !online || detained || jury_point <= 0 || crime_point >= crime::WANTED_CRIME_POINT_THRESHOLD
+    {
         return false;
     }
     let hooks = server.systems.social.hooks.get();
@@ -421,19 +462,24 @@ fn calculate_jail_time(server: &GameServer, t: &mut TrialData) {
                 score *= 10;
             }
         }
-        default_minutes += score;
+        default_minutes = default_minutes.saturating_add(score);
     }
     t.jail_time = default_minutes;
     let (infamy, faction) = {
         let c = t.defendant.data();
         (c.infamy_point, c.unit.faction_id)
     };
-    t.jail_time = t.jail_time.wrapping_mul(1 + infamy / 1000);
+    t.jail_time = t
+        .jail_time
+        .saturating_mul(1 + infamy / 1000)
+        .clamp(0, MAX_JAIL_MINUTES);
     if faction == factions::PIRATE {
         t.jail_time = 40;
     }
     let mut c = t.defendant.data();
-    c.offline_guilty_time = t.jail_time;
+    // Pending sentences are stored in whole minutes. Even a zero-minute case must not
+    // disappear by disconnecting before the minimum prison buff is applied.
+    c.offline_guilty_time = t.jail_time.max(1);
     c.offline_guilty_region = i32::from(t.court_region);
 }
 
@@ -524,6 +570,9 @@ fn generate_jury_list(
     max_count: usize,
 ) -> Vec<PlayerRef> {
     let mut res = Vec::new();
+    if max_count == 0 {
+        return res;
+    }
     let Some(faction) = room_by_id(rooms, t.court_room).map(|r| r.faction) else {
         return res;
     };
@@ -548,6 +597,47 @@ fn generate_jury_list(
     res
 }
 
+fn teleport(server: &GameServer, p: &PlayerRef, pos: SpawnPosition, reason: u8, fx: &mut Effects) {
+    let zone_id = server.world.world(pos.world_id).map_or(pos.zone_id, |w| {
+        server
+            .game_data
+            .worlds
+            .get_zone_id(Some(&w.template), pos.x, pos.y)
+    });
+    let destination = crate::models::transform::Transform {
+        instance_id: pos.world_id,
+        world_id: pos.world_id,
+        zone_id,
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+        rot_z: deg_to_rad(pos.yaw),
+        ..Default::default()
+    };
+    if p.data().unit.transform.instance_id != destination.instance_id {
+        p.send(SCLoadInstancePacket {
+            instance_id: destination.world_id,
+            zone_id: destination.zone_id,
+            x: destination.x,
+            y: destination.y,
+            z: destination.z,
+            ang_x: destination.rot_x,
+            ang_y: destination.rot_y,
+            ang_z: destination.rot_z,
+        });
+    }
+    p.data().disabled_set_position = true;
+    p.send(SCTeleportUnitPacket {
+        reason,
+        error_message: 0,
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+        z2: destination.rot_z,
+    });
+    fx.push(Effect::Teleport(p.clone(), destination));
+}
+
 /// `TrialData.EnterCourtJail(temporaryCourtRoom, defendant)`.
 fn enter_court_jail(server: &GameServer, t: &mut TrialData, room: &CourtRoom, fx: &mut Effects) {
     t.court_region = room.region;
@@ -559,6 +649,14 @@ fn enter_court_jail(server: &GameServer, t: &mut TrialData, room: &CourtRoom, fx
         t.defendant_name = c.unit.name.clone();
         // Make sure the criminal is alive.
         c.unit.hp = c.unit.hp.max(1);
+        c.offline_guilty_region = i32::from(room.region);
+        add_own_buff(
+            server,
+            &mut c,
+            buff::FORCIBLY_AWAITING_TRIAL,
+            0,
+            util::now_ms(),
+        );
         (c.unit.hp, c.unit.mp, c.unit.transform.instance_id)
     };
     let pr = world_pos_rot(server, &WorldObject::from(&d));
@@ -588,14 +686,8 @@ fn enter_court_jail(server: &GameServer, t: &mut TrialData, room: &CourtRoom, fx
     }
     fx.push(Effect::PostUpdateHp(d.clone(), 0, hp));
     // Teleport the criminal to the local jail.
-    d.send(SCTeleportUnitPacket {
-        reason: teleport_reason::LOCKUP,
-        error_message: 0,
-        x: room.jail.x,
-        y: room.jail.y,
-        z: room.jail.z,
-        z2: deg_to_rad(room.jail.yaw),
-    });
+    fx.push(Effect::ForceDismount(d.clone()));
+    teleport(server, &d, room.jail, teleport_reason::LOCKUP, fx);
     let crime_point = d.data().crime_point;
     d.send(SCAskImprisonOrTrialPacket {
         crime_value: crime_point as u32,
@@ -605,6 +697,7 @@ fn enter_court_jail(server: &GameServer, t: &mut TrialData, room: &CourtRoom, fx
         order: 0,
         sentence_time_ms: t.jail_time.wrapping_mul(60_000),
     });
+    fx.push(Effect::DispatchBuffs(d));
 }
 
 /// `TrialData.EnterCourtRoom(courtRoom, defendant)` (+ `SendJuryInvites`).
@@ -624,10 +717,7 @@ fn enter_court_room(
         t.court_room = Some(room.id);
         // Make jury seats.
         t.jury.clear();
-        for i in 1..=room.jury_seats.len() as i32 {
-            let Some(seat) = room.jury_seats.get(&i) else {
-                continue; // Failed to find seat doodad
-            };
+        for (&i, seat) in &room.jury_seats {
             t.jury.insert(
                 i,
                 JuryBox {
@@ -649,14 +739,7 @@ fn enter_court_room(
         c.unit.buffs.remove_buff(buff::FORCIBLY_AWAITING_TRIAL);
         add_own_buff(server, &mut c, buff::TRIAL_DEFENDANT, 0, now_ms);
     }
-    d.send(SCTeleportUnitPacket {
-        reason: teleport_reason::DEFENDANT,
-        error_message: 0,
-        x: room.defendant.x,
-        y: room.defendant.y,
-        z: room.defendant.z,
-        z2: deg_to_rad(room.defendant.yaw),
-    });
+    teleport(server, &d, room.defendant, teleport_reason::DEFENDANT, fx);
     d.send(SCSummonDefendantPacket { trial: t.id });
     room.join_chat(&d);
     d.send(SCJuryWaitStatusPacket {
@@ -682,6 +765,7 @@ fn enter_court_room(
     fx.push(Effect::DispatchBuffs(d));
     // SendJuryInvites
     for p in generate_jury_list(server, rooms, queues, t, 10) {
+        t.invited_jury.push(p.character_id);
         p.send(SCInviteJuryPacket {
             defendant_name: t.defendant_name.clone(),
             trial: t.id,
@@ -734,12 +818,6 @@ fn summon_jury_member(
                 parent_obj_id: 0,
             });
         }
-        let pos = (pr.x, pr.y, pr.z);
-        util::send_message(
-            player,
-            chat_type::SYSTEM,
-            &format!("Saving location {} -> {}", fmt_vec3(pos), fmt_vec3(pos)),
-        );
         player.send(SCSummonJuryPacket {
             trial: t.id,
             court: room.id,
@@ -747,27 +825,21 @@ fn summon_jury_member(
         });
         // Teleport the jury.
         let seat_pr = world_pos_rot(server, &WorldObject::from(&seat));
-        player.send(SCTeleportUnitPacket {
-            reason: teleport_reason::JURY,
-            error_message: 0,
-            x: seat_pr.x,
-            y: seat_pr.y,
-            z: seat_pr.z,
-            z2: seat_pr.rot_z,
-        });
-        player
-            .data()
-            .unit
-            .transform
-            .set_xyz(seat_pr.x, seat_pr.y, seat_pr.z);
-        let new_pos = world_pos_rot(server, &WorldObject::from(player));
-        util::send_message(
+        let seat_world_id = seat.data().transform.world_id;
+        fx.push(Effect::ForceDismount(player.clone()));
+        teleport(
+            server,
             player,
-            chat_type::SYSTEM,
-            &format!(
-                "New location {}",
-                fmt_vec3((new_pos.x, new_pos.y, new_pos.z))
-            ),
+            SpawnPosition {
+                world_id: seat_world_id,
+                x: seat_pr.x,
+                y: seat_pr.y,
+                z: seat_pr.z,
+                yaw: seat_pr.rot_z.to_degrees(),
+                ..Default::default()
+            },
+            teleport_reason::JURY,
+            fx,
         );
         // Seat them down.
         player.send(SCJuryBeSeatedPacket {
@@ -826,19 +898,14 @@ fn result_is_guilty(
     now_ms: i64,
     fx: &mut Effects,
 ) {
+    if t.step >= step::PLEAD_GUILTY {
+        return;
+    }
     tracing::debug!("TrialStep.EndTrial - {}", t.id);
-    t.step = if plead_guilty {
-        step::PLEAD_GUILTY
-    } else {
-        step::END_TRIAL
-    };
-    t.current_step_end_ms = now_ms + END_TRIAL_SECONDS * SECOND_MS;
-    t.send_state(now_ms);
     let Some(room) = room_by_id(rooms, t.court_room) else {
         tracing::error!("ResultIsGuilty: trial {} has no court room", t.id);
         return;
     };
-    room.leave_chat(defendant);
     // Find the jail to go to.
     let Some(jail) = server
         .config
@@ -854,10 +921,20 @@ fn result_is_guilty(
         );
         return;
     };
+    t.step = if plead_guilty {
+        step::PLEAD_GUILTY
+    } else {
+        step::END_TRIAL
+    };
+    t.current_step_end_ms = now_ms + END_TRIAL_SECONDS * SECOND_MS;
+    t.send_state(now_ms);
+    room.leave_chat(defendant);
     archive_trial_evidence(server, t, now_ms);
     let pkt = {
         let mut c = defendant.data();
         let crime_count = c.crime_point;
+        c.unit.buffs.remove_buff(buff::FORCIBLY_AWAITING_TRIAL);
+        c.unit.buffs.remove_buff(buff::CANNOT_ESCAPE);
         c.offline_guilty_time = 0;
         c.offline_guilty_region = i32::from(court_room_region::INVALID);
         let v = c.crime_point.wrapping_sub(crime_count);
@@ -876,7 +953,7 @@ fn result_is_guilty(
     };
     defendant.send(pkt);
     // Prisoner buff (minimum 10 s: 0 would use the default 30 minutes).
-    let jail_time_ms = t.jail_time.wrapping_mul(60_000).max(10_000);
+    let jail_time_ms = t.jail_time.saturating_mul(60_000).max(10_000);
     {
         let mut c = defendant.data();
         match t.court_region {
@@ -897,15 +974,8 @@ fn result_is_guilty(
         }
         c.disabled_set_position = true;
     }
-    // C# bug mirrored: the jail yaw is sent in degrees.
-    defendant.send(SCTeleportUnitPacket {
-        reason: teleport_reason::JAIL,
-        error_message: 0,
-        x: jail.pos.x,
-        y: jail.pos.y,
-        z: jail.pos.z,
-        z2: jail.pos.yaw,
-    });
+    fx.push(Effect::ForceDismount(defendant.clone()));
+    teleport(server, defendant, jail.pos, teleport_reason::JAIL, fx);
     defendant
         .data()
         .unit
@@ -930,6 +1000,8 @@ fn result_is_not_guilty(
     let (pkt, infamy, faction, race, gender) = {
         let mut c = defendant.data();
         let crime_count = c.crime_point;
+        c.unit.buffs.remove_buff(buff::FORCIBLY_AWAITING_TRIAL);
+        c.unit.buffs.remove_buff(buff::CANNOT_ESCAPE);
         c.offline_guilty_time = 0;
         c.offline_guilty_region = i32::from(court_room_region::INVALID);
         c.not_guilty_count += 1;
@@ -1016,13 +1088,14 @@ fn finalize_verdict(
         6 => (sentence_result::GUILTY5, round(1.2)),
         _ => (sentence_result::NOT_GUILTY, 0),
     };
+    let sentence_time = sentence_time.clamp(0, MAX_JAIL_MINUTES);
     t.send_packets(&SCRulingStatusPacket {
         count: selected_count,
         total,
         sentence_type,
         sentence_time: sentence_time.wrapping_mul(60_000),
     });
-    t.jail_time = sentence_time;
+    t.jail_time = sentence_time.clamp(0, MAX_JAIL_MINUTES);
     let d = t.defendant.clone();
     if is_guilty {
         result_is_guilty(server, rooms, &d, t, false, now_ms, fx);
@@ -1036,6 +1109,7 @@ fn create_trial_case(
     server: &GameServer,
     trials: &mut BTreeMap<u32, TrialData>,
     defendant: &PlayerRef,
+    court_region: u8,
 ) -> Option<u32> {
     let id = match server.ids.trial.get_next_id() {
         Ok(id) => id,
@@ -1050,8 +1124,7 @@ fn create_trial_case(
     };
     let mut t = TrialData {
         id,
-        // `default(CourtRoomRegion)` until EnterCourtJail.
-        court_region: court_room_region::NUIAN,
+        court_region,
         court_room: None,
         step: step::DEFENDANT_AWAITING_TRIAL,
         defendant: defendant.clone(),
@@ -1059,6 +1132,7 @@ fn create_trial_case(
         defendant_name: name,
         current_step_end_ms: TIME_MAX,
         jury: BTreeMap::new(),
+        invited_jury: Vec::new(),
         jail_time: 15,
         evidence: Vec::new(),
     };
@@ -1316,8 +1390,7 @@ impl TrialManager {
                 if t.step == step::CLOSING_STATEMENT && t.current_step_end_ms <= now {
                     tracing::debug!("TrialStep.JuryVerdict - {}", t.id);
                     t.step = step::JURY_VERDICT;
-                    // C#: ClosingStatementMinutes (not JuryVerdictMinutes).
-                    t.current_step_end_ms = now + CLOSING_STATEMENT_MINUTES * MINUTE_MS;
+                    t.current_step_end_ms = now + JURY_VERDICT_MINUTES * MINUTE_MS;
                     t.send_state(now);
                     // Update the jury verdict panel to default.
                     t.defendant.send(SCRulingStatusPacket {
@@ -1329,9 +1402,6 @@ impl TrialManager {
                 }
                 if t.step == step::JURY_VERDICT && t.current_step_end_ms <= now {
                     tracing::debug!("TrialStep.CalculateSentence - {}", t.id);
-                    t.step = step::END_TRIAL;
-                    t.current_step_end_ms = now + JURY_VERDICT_MINUTES * MINUTE_MS;
-                    t.send_state(now);
                     finalize_verdict(server, rooms, t, now, fx);
                 }
                 if t.step == step::END_TRIAL && t.current_step_end_ms <= now {
@@ -1339,17 +1409,6 @@ impl TrialManager {
                     tracing::debug!("TrialStep.Cleanup - {}", t.id);
                     t.step = step::CLEANUP;
                     t.current_step_end_ms = TIME_MAX;
-                    if let Some(room) = room_by_id(rooms, t.court_room) {
-                        room.leave_chat(&t.defendant);
-                    }
-                    let members: Vec<(PlayerRef, DoodadRef)> = t
-                        .jury
-                        .values()
-                        .filter_map(|j| j.jury_member.clone().map(|m| (m, j.seat.clone())))
-                        .collect();
-                    for (m, seat) in members {
-                        cleanup_jury_member(server, rooms, t, &m, &seat, fx);
-                    }
                 }
                 if t.step == step::PLEAD_GUILTY {
                     t.send_packets(&SCRulingClosedPacket {});
@@ -1368,11 +1427,7 @@ impl TrialManager {
                 // Delete the trial when done.
                 if t.step == step::CLEANUP {
                     t.step = step::INVALID;
-                    // C# bug mirrored: this frees the (possibly temporary) court room even when
-                    // another trial is using it.
-                    if let Some(room) = room_by_id_mut(rooms, t.court_room) {
-                        room.current_trial = None;
-                    }
+                    cleanup_trial(server, rooms, t, true, fx);
                     tracing::debug!("TrialStep.Cleanup - {}", t.id);
                     remove = true;
                 }
@@ -1511,6 +1566,20 @@ impl TrialManager {
             }
             return false;
         }
+        let Some(t) = trials.get(&trial_id) else {
+            return false;
+        };
+        if t.step != step::AWAITING_JURY_SUMMONS {
+            send_error(player, error::TRIALS_CANNOT_JOIN_AFTER_START);
+            return false;
+        }
+        if !t.invited_jury.contains(&player.character_id)
+            || room_by_id(rooms, t.court_room).is_none_or(|r| r.faction != mother)
+            || !can_accept_trial_invites(server, rooms, trials, Some(player))
+        {
+            send_error(player, error::TRIALS_JURY_FULL);
+            return false;
+        }
         // Verify we are not already part of another trial.
         if trials.values().any(|t| {
             t.jury.values().any(|j| {
@@ -1541,9 +1610,7 @@ impl TrialManager {
         res
     }
 
-    /// `HandlePlayerLogin(player)`. Mirrors the C#: the offline-guilty handling only runs when
-    /// the player was eligible for (and has) a jury queue, because the early `return`s inside
-    /// the queue lock leave the whole method.
+    /// Restore justice state before considering jury eligibility.
     pub fn handle_player_login(&self, server: &GameServer, player: &PlayerRef) {
         let mother = mother_of(server, player);
         let now = util::now_ms();
@@ -1556,35 +1623,119 @@ impl TrialManager {
                 queues,
                 ..
             } = &mut *st;
-            if !can_accept_trial_invites(server, rooms, trials, Some(player)) {
+            if trials
+                .values()
+                .any(|t| t.defendant_id == player.character_id)
+            {
                 return;
             }
-            let Some((_, q)) = queues.iter_mut().find(|q| q.0 == mother) else {
-                return;
+            let (offline_guilty_time, region, prisoner_region) = {
+                let c = player.data();
+                let prisoner = if c.unit.buffs.check_buff(buff::PRISONER_NUIAN) {
+                    Some(court_room_region::NUIAN)
+                } else if c.unit.buffs.check_buff(buff::PRISONER_HARANYAN) {
+                    Some(court_room_region::HARANYAN)
+                } else {
+                    None
+                };
+                (
+                    c.offline_guilty_time,
+                    c.offline_guilty_region as u8,
+                    prisoner,
+                )
             };
-            if !q.contains(&player.character_id) {
-                q.push(player.character_id);
-            }
-            let offline_guilty_time = player.data().offline_guilty_time;
-            if offline_guilty_time > 0 {
-                // Create a temporary trial and immediately auto-plead guilty.
-                match self.arrest_inner(server, rooms, trials, player, None, &mut fx) {
-                    Some(tid) => {
+            if let Some(prisoner_region) = prisoner_region {
+                if let Some(room) = rooms.iter().find(|r| r.region == prisoner_region) {
+                    if let Some(jail) = server
+                        .config
+                        .justice
+                        .jails
+                        .iter()
+                        .find(|j| j.faction == room.faction)
+                    {
+                        fx.push(Effect::ForceDismount(player.clone()));
+                        teleport(server, player, jail.pos, teleport_reason::JAIL, &mut fx);
+                    }
+                }
+            } else if offline_guilty_time > 0 {
+                if let Some(room) = rooms.iter().find(|r| {
+                    r.region == region
+                        && server
+                            .config
+                            .justice
+                            .jails
+                            .iter()
+                            .any(|j| j.faction == r.faction)
+                }) {
+                    if let Some(tid) = create_trial_case(server, trials, player, region) {
                         if let Some(t) = trials.get_mut(&tid) {
+                            t.court_room = Some(room.id);
+                            t.jail_time = offline_guilty_time.clamp(0, MAX_JAIL_MINUTES);
                             result_is_guilty(server, rooms, player, t, false, now, &mut fx);
                         }
                     }
-                    None => {
-                        let (name, region) = {
-                            let c = player.data();
-                            (c.unit.name.clone(), c.offline_guilty_region)
-                        };
-                        tracing::error!(
-                            "Failed to handle justice for skipped trial of {name} ({})! Time: {offline_guilty_time}, Region: {region}",
-                            player.character_id
-                        );
+                } else {
+                    tracing::error!(
+                        "No court/jail for pending sentence of {} in region {region}",
+                        player.character_id
+                    );
+                }
+            } else if can_accept_trial_invites(server, rooms, trials, Some(player)) {
+                if let Some((_, q)) = queues.iter_mut().find(|q| q.0 == mother) {
+                    if !q.contains(&player.character_id) {
+                        q.push(player.character_id);
                     }
                 }
+            }
+        }
+        run_effects(server, fx);
+    }
+
+    /// Close an abandoned defendant's case, or vacate a disconnected juror's seat before save.
+    pub fn handle_player_logout(&self, server: &GameServer, player: &PlayerRef) {
+        let mut fx = Vec::new();
+        {
+            let mut st = self.st();
+            let State {
+                rooms,
+                trials,
+                queues,
+                ..
+            } = &mut *st;
+            remove_from_queues(queues, player.character_id);
+            let defendant_trial = trials
+                .values()
+                .find(|t| Arc::ptr_eq(&t.defendant, player))
+                .map(|t| t.id);
+            if let Some(id) = defendant_trial {
+                if let Some(t) = trials.remove(&id) {
+                    t.send_packets(&SCRulingClosedPacket {});
+                    cleanup_trial(server, rooms, &t, false, &mut fx);
+                }
+            }
+            for t in trials.values_mut() {
+                let seat_id = t
+                    .jury
+                    .iter()
+                    .find(|(_, j)| {
+                        j.jury_member
+                            .as_ref()
+                            .is_some_and(|m| Arc::ptr_eq(m, player))
+                    })
+                    .map(|(&id, _)| id);
+                if let Some(seat_id) = seat_id {
+                    cleanup_jury_member(server, rooms, t, player, false, &mut fx);
+                    if let Some(j) = t.jury.get_mut(&seat_id) {
+                        j.jury_member = None;
+                        j.confirm_testimony = false;
+                        j.selected_sentence = -1;
+                    }
+                    t.send_state(util::now_ms());
+                }
+            }
+            for room in rooms {
+                room.audience_members.retain(|m| !Arc::ptr_eq(m, player));
+                room.leave_chat(player);
             }
         }
         run_effects(server, fx);
@@ -1616,6 +1767,12 @@ impl TrialManager {
         arrestor: Option<&PlayerRef>,
         fx: &mut Effects,
     ) -> Option<u32> {
+        if let Some(t) = trials
+            .values()
+            .find(|t| t.defendant_id == criminal.character_id)
+        {
+            return Some(t.id);
+        }
         let mut criminal_region = court_room_region_by_faction(mother_of(server, criminal));
         let arrestor_region = match arrestor {
             Some(a) => court_room_region_by_faction(mother_of(server, a)),
@@ -1640,10 +1797,20 @@ impl TrialManager {
             tracing::warn!("Failed to find a court room for {criminal_name}");
             return None;
         };
+        if !server
+            .config
+            .justice
+            .jails
+            .iter()
+            .any(|j| j.faction == room.faction)
+        {
+            tracing::warn!("No jail configured for court {}", room.id);
+            return None;
+        }
         if arrestor.is_some() {
             criminal.data().arrest_count += 1;
         }
-        let Some(tid) = create_trial_case(server, trials, criminal) else {
+        let Some(tid) = create_trial_case(server, trials, criminal, room.region) else {
             tracing::warn!("Failed to create a court case for {criminal_name}");
             return None;
         };
@@ -1674,7 +1841,7 @@ impl TrialManager {
         let Some(t) = st
             .trials
             .values_mut()
-            .find(|t| t.defendant_id == e.criminal)
+            .find(|t| t.defendant_id == e.criminal && t.step < step::TRIAL_CANCELLED)
         else {
             return;
         };
@@ -1713,10 +1880,16 @@ impl TrialManager {
                 );
                 return;
             };
+            if !Arc::ptr_eq(&t.defendant, defendant) {
+                return;
+            }
+            if t.step != step::DEFENDANT_AWAITING_TRIAL {
+                return;
+            }
             if !request_trial {
                 // Directly to jail with trial.JailTime.
                 result_is_guilty(server, rooms, defendant, t, true, now_ms, &mut fx);
-            } else if t.step == step::DEFENDANT_AWAITING_TRIAL {
+            } else if t.current_step_end_ms == TIME_MAX {
                 // End the waiting time now.
                 defendant.data().accept_trial_count += 1;
                 t.current_step_end_ms = now_ms;
@@ -1738,8 +1911,10 @@ impl TrialManager {
                 );
                 return;
             };
-            if t.defendant_id == p.character_id {
-                result_is_guilty(server, rooms, p, t, true, now_ms, &mut fx);
+            if Arc::ptr_eq(&t.defendant, p) {
+                if t.step < step::TRIAL_CANCELLED {
+                    result_is_guilty(server, rooms, p, t, true, now_ms, &mut fx);
+                }
             } else {
                 let name = p.data().unit.name.clone();
                 sus_log(
@@ -1767,17 +1942,16 @@ impl TrialManager {
             let mut st = self.st();
             let State { rooms, trials, .. } = &mut *st;
             match trials.get_mut(&trial_id) {
-                Some(t) => {
+                Some(t) if Arc::ptr_eq(&t.defendant, defendant) => {
                     result_is_guilty(server, rooms, defendant, t, plead_guilty, now_ms, &mut fx)
                 }
-                None => tracing::warn!("Trial is null for {}", defendant.character_id),
+                _ => tracing::warn!("No matching trial for {}", defendant.character_id),
             }
         }
         run_effects(server, fx);
     }
 
-    /// `JuryEndTestimony(juryMember, trial, juryId)`. The C# does not check that the seat
-    /// belongs to the caller (mirrored).
+    /// Confirm records only for the caller's occupied jury seat.
     pub fn jury_end_testimony(
         &self,
         jury_member: &PlayerRef,
@@ -1798,7 +1972,15 @@ impl TrialManager {
             return;
         }
         match t.jury.get_mut(&jury_id) {
-            Some(j) if j.seat_id == jury_id => j.confirm_testimony = true,
+            Some(j)
+                if j.seat_id == jury_id
+                    && j.jury_member
+                        .as_ref()
+                        .is_some_and(|m| Arc::ptr_eq(m, jury_member))
+                    && !j.confirm_testimony =>
+            {
+                j.confirm_testimony = true
+            }
             _ => {
                 tracing::warn!(
                     "JuryEndTestimony by {name} seems to be invalid for trial {} with seatId {jury_id}",
@@ -1833,6 +2015,10 @@ impl TrialManager {
             return;
         };
         let name = jury_member.data().unit.name.clone();
+        if !(sentence_result::NOT_GUILTY..=sentence_result::GUILTY5).contains(&sentence) {
+            tracing::warn!("JuryVerdict by {name}: invalid sentence {sentence}");
+            return;
+        }
         if t.step != step::JURY_VERDICT {
             tracing::warn!(
                 "JuryVerdict by {name} for trial {} with seatId {jury_id} was confirmed outside of the correct trial step",
@@ -1852,11 +2038,14 @@ impl TrialManager {
                 tracing::error!("JuryVerdict: NullReferenceException (seat {jury_id} is empty)");
                 return;
             }
-            Some(m) if m.character_id != jury_member.character_id => {
+            Some(m) if !Arc::ptr_eq(m, jury_member) => {
                 tracing::warn!("Jury Verdict Seat does not match the expected player");
                 return;
             }
             Some(_) => {}
+        }
+        if j.selected_sentence >= 0 {
+            return;
         }
         j.selected_sentence = i32::from(sentence);
         let total = t.jury.values().filter(|j| j.jury_member.is_some()).count() as i32;
@@ -2017,12 +2206,39 @@ impl TrialManager {
 }
 
 /// The jury part of the `EndTrial` cleanup for one member.
+fn cleanup_trial(
+    server: &GameServer,
+    rooms: &mut [CourtRoom],
+    t: &TrialData,
+    reward: bool,
+    fx: &mut Effects,
+) {
+    for j in t.jury.values() {
+        if let Some(m) = &j.jury_member {
+            cleanup_jury_member(server, rooms, t, m, reward && j.selected_sentence >= 0, fx);
+        }
+    }
+    if let Some(room) = room_by_id_mut(rooms, t.court_room) {
+        room.leave_chat(&t.defendant);
+        if room.current_trial == Some(t.id) {
+            room.current_trial = None;
+        }
+    }
+    {
+        let mut c = t.defendant.data();
+        c.unit.buffs.remove_buff(buff::FORCIBLY_AWAITING_TRIAL);
+        c.unit.buffs.remove_buff(buff::TRIAL_DEFENDANT);
+        c.unit.buffs.remove_buff(buff::CANNOT_ESCAPE);
+    }
+    fx.push(Effect::DispatchBuffs(t.defendant.clone()));
+}
+
 fn cleanup_jury_member(
     server: &GameServer,
     rooms: &[CourtRoom],
     t: &TrialData,
     m: &PlayerRef,
-    seat: &DoodadRef,
+    reward: bool,
     fx: &mut Effects,
 ) {
     let escaped = server.config.justice.allow_jury_escape
@@ -2049,30 +2265,44 @@ fn cleanup_jury_member(
             "Returning jury member {name} to their old position {}",
             fmt_vec3(pos)
         );
-        let seat_rot = world_pos_rot(server, &WorldObject::from(seat)).rot_z;
-        m.send(SCTeleportUnitPacket {
-            reason: teleport_reason::JURY,
-            error_message: 0,
-            x: pos.0,
-            y: pos.1,
-            z: pos.2,
-            z2: seat_rot,
-        });
+        let world_id = main.map_or_else(|| m.data().unit.transform.world_id, |p| p.world_id);
+        teleport(
+            server,
+            m,
+            SpawnPosition {
+                world_id,
+                x: pos.0,
+                y: pos.1,
+                z: pos.2,
+                yaw: main.map_or(cur.rot_z, |p| p.rot_z).to_degrees(),
+                ..Default::default()
+            },
+            teleport_reason::JURY,
+            fx,
+        );
         let pkt = {
             let mut c = m.data();
             c.main_world_position = None;
-            c.unit.buffs.remove_buff(buff::COURT_HOUSE);
-            c.unit.buffs.remove_buff(buff::JURY);
             // Update the trials attended count.
-            let v = c.jury_point.wrapping_add(1);
-            set_jury_point(&mut c, v)
+            if reward {
+                let v = c.jury_point.saturating_add(1);
+                set_jury_point(&mut c, v)
+            } else {
+                None
+            }
         };
         tracing::debug!("{name} back at {}", fmt_vec3(cur3));
         if let Some(pkt) = pkt {
             m.send(pkt);
         }
-        fx.push(Effect::DispatchBuffs(m.clone()));
     }
+    {
+        let mut c = m.data();
+        c.unit.buffs.remove_buff(buff::COURT_HOUSE);
+        c.unit.buffs.remove_buff(buff::JURY);
+        c.unit.buffs.remove_buff(buff::CANNOT_ESCAPE);
+    }
+    fx.push(Effect::DispatchBuffs(m.clone()));
     if let Some(room) = room_by_id(rooms, t.court_room) {
         room.leave_chat(m);
     }

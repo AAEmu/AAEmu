@@ -432,6 +432,7 @@ struct Scheduled {
 struct Inner {
     npc_spawners: BTreeMap<u32, Vec<Arc<NpcSpawner>>>,
     npc_event_spawners: BTreeMap<u32, Vec<Arc<NpcSpawner>>>,
+    tower_def_spawners: BTreeMap<u32, Vec<Arc<NpcSpawner>>>,
     doodad_spawners: BTreeMap<u32, Arc<DoodadSpawner>>,
     transfer_spawners: BTreeMap<u32, SimpleSpawnerDef>,
     gimmick_spawners: BTreeMap<u32, GimmickSpawner>,
@@ -455,6 +456,7 @@ pub struct LoadStats {
     /// Generated ("fake") spawner templates; their entries are not added (C# bug).
     pub npc_fake_spawners: usize,
     pub npc_event_spawners: usize,
+    pub tower_def_spawners: usize,
     pub doodad_files: usize,
     pub doodad_entries: usize,
     pub doodad_duplicates: usize,
@@ -571,6 +573,11 @@ impl SpawnManager {
             ids.clear();
         }
         let b = &def.base;
+        let new_shared = || {
+            let shared = NpcSpawnerShared::new(b.position);
+            shared.set_management_group(b.spawn_group_id);
+            shared
+        };
         let init =
             |id: u32, spawner_id: u32, ids: Vec<u32>, template: Option<Arc<NpcSpawnerTemplate>>| {
                 NpcSpawnerInit {
@@ -589,6 +596,45 @@ impl SpawnManager {
                     template,
                 }
             };
+        let tower_ids = server
+            .game_data
+            .systems
+            .instances
+            .tower_defs
+            .npc_spawner_ids();
+        let controller_ids: Vec<_> = data
+            .get_spawner_ids(b.unit_id)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|id| tower_ids.contains(id))
+            .filter(|id| {
+                data.get_npc_spawner_template(*id).is_some_and(|t| {
+                    t.npcs
+                        .iter()
+                        .any(|n| n.member_id == b.unit_id && n.member_type == "Npc")
+                })
+            })
+            .filter(|id| ids.is_empty() || ids.contains(id))
+            .collect();
+        if !controller_ids.is_empty() {
+            // The shipped JSON lists event controllers as ordinary NPCs. Retain their
+            // authored positions/paths, but only the tower defense runtime may spawn them.
+            for id in controller_ids {
+                let mut template = NpcSpawnerTemplate::with_member(id, b.unit_id);
+                template.spawn_delay_min = 0.0;
+                template.spawn_delay_max = 0.0;
+                let spawner = NpcSpawner::new(
+                    init(id, id, vec![id], Some(Arc::new(template))),
+                    new_shared(),
+                );
+                inner
+                    .tower_def_spawners
+                    .entry(id)
+                    .or_default()
+                    .push(Arc::new(spawner));
+            }
+            return Ok(0);
+        }
         if ids.is_empty() {
             let game_data_ids = data.get_spawner_ids(b.unit_id).unwrap_or_default();
             let mut spawners = Vec::new();
@@ -626,7 +672,7 @@ impl SpawnManager {
                 // entries of the same NPC find the generated template through GetSpawnerIds.
             } else {
                 // Memberwise clones sharing Position / SpawnedNpcs / caches / NpcSpawnerIds.
-                let shared = NpcSpawnerShared::new(b.position);
+                let shared = new_shared();
                 for &id in &game_data_ids {
                     let template = data.get_npc_spawner_template(id);
                     let spawner = NpcSpawner::new(
@@ -648,7 +694,7 @@ impl SpawnManager {
             let template = NpcSpawnerTemplate::with_member(last, b.unit_id);
             let spawner = NpcSpawner::new(
                 init(last, b.spawner_id, ids, Some(Arc::new(template))),
-                NpcSpawnerShared::new(b.position),
+                new_shared(),
             );
             let key = inner.next_id;
             inner
@@ -734,6 +780,7 @@ impl SpawnManager {
             let mut inner = self.inner();
             inner.npc_spawners.clear();
             inner.npc_event_spawners.clear();
+            inner.tower_def_spawners.clear();
             inner.doodad_spawners.clear();
             inner.transfer_spawners.clear();
             inner.gimmick_spawners.clear();
@@ -752,6 +799,7 @@ impl SpawnManager {
         )?;
         self.load_gimmick_spawns(server, world_path, exists, &mut stats)?;
         self.load_simple_spawns(server, world_path, "slave_spawns", exists.slave, &mut stats)?;
+        stats.tower_def_spawners = self.inner().tower_def_spawners.values().map(Vec::len).sum();
         tracing::info!("Spawn data for {}: {stats:?}", self.world.template.name);
         Ok(stats)
     }
@@ -868,7 +916,7 @@ impl SpawnManager {
                     continue;
                 }
                 if !(exists.doodad)(def.base.unit_id) {
-                    tracing::trace!(
+                    tracing::warn!(
                         "Doodad Template {} (file entry {}) doesn't exist - {}",
                         def.base.unit_id,
                         entry + 1,
@@ -1019,7 +1067,7 @@ impl SpawnManager {
              CAST(parent_doodad AS SIGNED) AS parent_doodad, \
              CAST(item_template_id AS SIGNED) AS item_template_id, \
              CAST(item_container_id AS UNSIGNED) AS item_container_id, CAST(data AS SIGNED) AS data, \
-             CAST(farm_type AS SIGNED) AS farm_type FROM doodads WHERE owner_type = ?",
+             CAST(farm_type AS SIGNED) AS farm_type, interaction_counts FROM doodads WHERE owner_type = ?",
         );
         if owner_to_spawn_id >= 0 {
             sql.push_str(" AND house_id = ?");
@@ -1071,7 +1119,6 @@ impl SpawnManager {
             let phase_time = dt(&r, "phase_time");
             {
                 let mut d = doodad.data();
-                d.is_persistent = true;
                 d.db_id = db_id;
                 d.owner_id = owner_id;
                 d.owner_type = owner_type;
@@ -1089,11 +1136,16 @@ impl SpawnManager {
             // `FuncGroupId = phaseId` (setter: PhaseTime = now, Save, phase caches), then
             // `OverridePhaseTime = PhaseTime = phase_time`.
             crate::systems::npcs::doodad::manager::set_func_group_id(server, &doodad, phase_id);
+            let interaction_counts = r
+                .try_get::<Option<String>, _>("interaction_counts")?
+                .map(|json| serde_json::from_str(&json))
+                .transpose()?;
             {
                 let pt = phase_time.map_or(0, |t| t.and_utc().timestamp_millis().max(0));
                 let mut d = doodad.data();
                 d.phase.override_phase_time_ms = pt;
                 d.phase_time_ms = pt;
+                d.phase.interaction_counts = interaction_counts.unwrap_or_default();
             }
             let doodad_obj = WorldObject::from(&doodad);
             let mut has_parent = false;
@@ -1178,12 +1230,15 @@ impl SpawnManager {
                     }
                 }
             }
-            // `doodad.InitDoodad()`.
-            crate::systems::npcs::doodad::manager::init_doodad(server, &self.world, &doodad);
-            self.inner().player_doodads.push(doodad.clone());
-            count += 1;
+            // Only enable saving after the phase, counters, parent and position are restored.
+            doodad.data().is_persistent = true;
             if do_spawn {
                 backend::doodad_spawn(server, &self.world, &doodad);
+                crate::systems::npcs::doodad::manager::init_doodad(server, &self.world, &doodad);
+            }
+            if !doodad.data().phase.deleted {
+                self.inner().player_doodads.push(doodad.clone());
+                count += 1;
             }
         }
         // Save Coffer Doodads that had a new ItemContainer created for them
@@ -1370,6 +1425,7 @@ impl SpawnManager {
             match server.systems.npcs.spawns.doodad_spawner_of(d.obj_id) {
                 None => {
                     backend::doodad_spawn(server, &self.world, &d);
+                    crate::systems::npcs::doodad::manager::init_doodad(server, &self.world, &d);
                     count += 1;
                 }
                 Some(s) => {
@@ -1490,6 +1546,7 @@ impl SpawnManager {
 
     /// One iteration of `CheckRespawns` (the 1 s respawn / despawn thread).
     pub fn check_respawns_tick(&self, server: &GameServer) {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         for e in Self::ready(&self.respawns, now()) {
             if e.at.is_some_and(|t| t > now()) {
                 continue;
@@ -1519,11 +1576,18 @@ impl SpawnManager {
                     }
                 }
             }
-            server.ids.object.release_id(e.obj.obj_id());
-            forget_object(server, e.obj.obj_id());
+            // DoodadSpawner owns its ID release and may retain it for a pending respawn.
+            if !matches!(
+                (&e.link, &e.obj),
+                (SpawnerLink::Doodad(_), WorldObject::Doodad(_))
+            ) {
+                server.ids.object.release_id(e.obj.obj_id());
+                forget_object(server, e.obj.obj_id());
+            }
             Self::remove_entry(&self.despawns, &e);
         }
 
+        drop(_serial);
         if let Some(h) = server.systems.npcs.hooks.economy.get() {
             h.make_loot_public_tick(server, self.world.id);
         }
@@ -1553,6 +1617,88 @@ impl SpawnManager {
     /// `GetAllSpawners()` (a copy).
     pub fn get_all_spawners(&self) -> BTreeMap<u32, Vec<Arc<NpcSpawner>>> {
         self.inner().npc_spawners.clone()
+    }
+
+    /// A doodad management group uses explicit authored membership, not spawner template IDs.
+    pub fn set_management_group(
+        &self,
+        server: &GameServer,
+        zone: u32,
+        group: u32,
+        enabled: bool,
+    ) -> usize {
+        if group == 0 {
+            return 0;
+        }
+        let _serial = server.systems.npcs.spawns.spawn_lock();
+        let spawners: Vec<_> = {
+            let inner = self.inner();
+            inner
+                .npc_spawners
+                .values()
+                .chain(inner.npc_event_spawners.values())
+                .flatten()
+                .filter(|s| s.shared().management_group() == group && s.position().zone_id == zone)
+                .cloned()
+                .collect()
+        };
+        for spawner in &spawners {
+            spawner.shared().set_management_enabled(enabled);
+            if enabled {
+                spawner.do_event_spawn(server);
+            } else {
+                for npc in spawner.spawned_npcs().into_values().flatten() {
+                    if !self
+                        .world
+                        .npc(npc.obj_id)
+                        .is_some_and(|current| Arc::ptr_eq(&current, &npc))
+                    {
+                        continue;
+                    }
+                    if npc.data().dead_time_ms > 0 {
+                        self.cancel_npc_respawn(&npc);
+                        continue;
+                    }
+                    self.cancel_npc_timers(&npc);
+                    spawner.despawn(server, &npc);
+                    server.ids.object.release_id(npc.obj_id);
+                    forget_object(server, npc.obj_id);
+                }
+            }
+        }
+        spawners.len()
+    }
+
+    /// Authored controller positions for a tower defense spawner template.
+    pub fn tower_def_spawners(&self, id: u32) -> Vec<Arc<NpcSpawner>> {
+        self.inner()
+            .tower_def_spawners
+            .get(&id)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// Cancel corpse/respawn timers before deleting an event-owned NPC. Prevents a later
+    /// timer from deleting a different object after its id has been reused.
+    pub fn cancel_npc_timers(&self, npc: &NpcRef) {
+        for set in [&self.respawns, &self.despawns] {
+            Self::cancel_npc_timer(set, npc);
+        }
+    }
+
+    /// Stop an event NPC from respawning while leaving its normal loot corpse timer intact.
+    pub fn cancel_npc_respawn(&self, npc: &NpcRef) {
+        Self::cancel_npc_timer(&self.respawns, npc);
+    }
+
+    fn cancel_npc_timer(set: &Mutex<HashMap<u32, Scheduled>>, npc: &NpcRef) {
+        let mut entries = set.lock().expect("poisoned");
+        if entries
+            .get(&npc.obj_id)
+            .is_some_and(|e| e.obj.as_npc().is_some_and(|n| Arc::ptr_eq(n, npc)))
+        {
+            entries.remove(&npc.obj_id);
+        }
     }
 
     /// `GetNpcSpawner(spawnerId)`: the event spawners with that `Id` (retargets their last

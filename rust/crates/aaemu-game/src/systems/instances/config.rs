@@ -6,6 +6,31 @@ use serde::Deserialize;
 
 use crate::config::lenient;
 
+/// Opt-in schedules for tower defense events. Times and day intervals come from compact.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(default)]
+pub struct TowerDefenseConfig {
+    #[serde(rename = "enabled", deserialize_with = "lenient")]
+    pub enabled: bool,
+    #[serde(rename = "events")]
+    pub events: Vec<TowerDefenseEventConfig>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(default)]
+pub struct TowerDefenseEventConfig {
+    #[serde(rename = "id", deserialize_with = "lenient")]
+    pub id: u32,
+    /// World instance id, not the client world template id.
+    #[serde(rename = "worldid", deserialize_with = "lenient")]
+    pub world_id: u32,
+    #[serde(rename = "zonegroupid", deserialize_with = "lenient")]
+    pub zone_group_id: u16,
+    /// Zone key used by the 1.2 event packets.
+    #[serde(rename = "zoneid", deserialize_with = "lenient")]
+    pub zone_id: u32,
+}
+
 /// `DungeonLoadConfig` (one `AutoCreate` entry).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(default)]
@@ -22,6 +47,8 @@ pub struct DungeonLoadConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(default)]
 pub struct DungeonsConfig {
+    #[serde(rename = "towerdefense")]
+    pub tower_defense: TowerDefenseConfig,
     /// `AutoCleanupAfterKick`: remove a dungeon nobody is left in after a kick (QoL, not retail).
     #[serde(rename = "autocleanupafterkick", deserialize_with = "lenient")]
     pub auto_cleanup_after_kick: bool,
@@ -45,6 +72,7 @@ pub struct DungeonsConfig {
 impl Default for DungeonsConfig {
     fn default() -> Self {
         Self {
+            tower_defense: TowerDefenseConfig::default(),
             auto_cleanup_after_kick: true,
             auto_team_disband_kick_time: 30,
             auto_create: Vec::new(),
@@ -85,5 +113,16 @@ mod tests {
         assert!(d.dungeons.auto_cleanup_after_kick);
         assert_eq!(d.dungeons.auto_team_disband_kick_time, 30);
         assert_eq!(d.world.max_instances, 32);
+    }
+
+    #[test]
+    fn tower_defense_schedules_bind_and_default_to_disabled() {
+        let config = AppConfig::from_value(serde_json::json!({"Dungeons": {"TowerDefense": {
+            "Enabled": "true", "Events": [{"Id": "12", "WorldId": 0, "ZoneGroupId": 5, "ZoneId": 100}]
+        }}})).unwrap();
+        assert!(config.dungeons.tower_defense.enabled);
+        assert_eq!(config.dungeons.tower_defense.events[0].id, 12);
+        assert_eq!(config.dungeons.tower_defense.events[0].zone_group_id, 5);
+        assert!(!AppConfig::default().dungeons.tower_defense.enabled);
     }
 }

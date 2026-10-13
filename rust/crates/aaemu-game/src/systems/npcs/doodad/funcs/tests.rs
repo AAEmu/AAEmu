@@ -56,8 +56,11 @@ impl EconomyBridge for Rec {
         self.push(format!("acquire {task} {t} {c} {g}"));
         self.acquire_ok
     }
-    fn change_money(&self, _s: &GameServer, _p: &PlayerRef, amount: i64, task: u8) -> bool {
+    fn change_money(&self, _s: &GameServer, p: &PlayerRef, amount: i64, task: u8) -> bool {
         self.push(format!("money {amount} {task}"));
+        if self.money_ok {
+            p.data().money += amount;
+        }
         self.money_ok
     }
     fn give_doodad_loot_pack(
@@ -262,7 +265,7 @@ async fn open_farm_info_sends_one_sign_position_to_the_interacting_player() {
 }
 
 #[tokio::test]
-async fn loot_item_coins_mirror_double_add() {
+async fn loot_item_coins_credit_once() {
     let fx = fixture(Rec {
         money_ok: true,
         ..Rec::default()
@@ -277,7 +280,7 @@ async fn loot_item_coins_mirror_double_add() {
         ..Default::default()
     });
     fx.run(t, 0, 0);
-    assert_eq!(fx.player.data().money, 17); // the hook adds the second 7
+    assert_eq!(fx.player.data().money, 17);
     assert_eq!(fx.rec.calls(), vec!["money 7 83"]);
     assert!(fx.to_next());
 }

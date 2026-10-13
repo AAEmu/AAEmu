@@ -738,7 +738,7 @@ async fn buff_bonuses_stacking_and_removal() {
         "{fr:x?}"
     );
 
-    // RemoveBuff (bookkeeping path) dispels twice, as the C# does.
+    // Bookkeeping removal also sends exactly one removal notification.
     let b = super::buffs::new_buff(
         &server,
         &t,
@@ -753,7 +753,7 @@ async fn buff_bonuses_stacking_and_removal() {
     let fr = frames(&mut client);
     assert_eq!(
         fr.iter().filter(|f| f.0 == sc::SCBuffRemovedPacket).count(),
-        2,
+        1,
         "{fr:x?}"
     );
     assert_eq!(f.player.data().unit.max_hp, 0);

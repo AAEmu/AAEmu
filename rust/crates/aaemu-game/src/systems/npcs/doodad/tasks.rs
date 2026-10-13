@@ -12,7 +12,7 @@
 //! queued and run by [`TaskScheduler::advance`] (virtual clock).
 
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
 use super::phase;
@@ -20,7 +20,7 @@ use super::runtime::DoodadCtx;
 use super::spawner::DoodadSpawner;
 use crate::server::GameServer;
 use crate::systems::npcs::area_trigger::{self, AreaTrigger};
-use crate::world::{DoodadRef, WorldObject};
+use crate::world::{DoodadRef, WorldInstance, WorldObject};
 
 /// What a scheduled doodad task does when it fires.
 #[derive(Debug, Clone)]
@@ -45,11 +45,15 @@ pub enum FuncTaskKind {
     Tod { next_phase: i32 },
     /// `DoodadDeleteTask(owner)`.
     Delete,
+    /// A family/link signal deferred while the target is processing an interaction.
+    Pulse { source: DoodadRef, value: bool },
 }
 
 /// One scheduled doodad task.
 #[derive(Debug, Clone)]
 pub struct DoodadTask {
+    /// The original instance, so callbacks cannot act on a recycled instance ID.
+    pub world: Option<Weak<WorldInstance>>,
     /// The task's `owner` (the doodad it acts on).
     pub doodad: DoodadRef,
     /// The doodad whose `FuncTask` this is (the owner, except for `DoodadFuncCloutTask` whose
@@ -231,6 +235,11 @@ pub fn start_func_task_for(
     let generation = NEXT_GENERATION.fetch_add(1, Ordering::Relaxed);
     let old = std::mem::replace(&mut holder.data().phase.func_task, generation);
     let task = DoodadTask {
+        world: server
+            .world
+            .world_of(&WorldObject::from(owner))
+            .as_ref()
+            .map(Arc::downgrade),
         doodad: owner.clone(),
         holder: holder.clone(),
         caster: caster.cloned(),
@@ -302,6 +311,11 @@ pub fn schedule_delete(server: &GameServer, doodad: &DoodadRef) {
     schedule(
         server,
         DoodadTask {
+            world: server
+                .world
+                .world_of(&WorldObject::from(doodad))
+                .as_ref()
+                .map(Arc::downgrade),
             doodad: doodad.clone(),
             holder: doodad.clone(),
             caster: None,
@@ -314,6 +328,45 @@ pub fn schedule_delete(server: &GameServer, doodad: &DoodadRef) {
 
 /// `Task.Execute()` of a doodad task (skipped when its `FuncTask` was cancelled / replaced).
 pub fn execute(server: &GameServer, task: DoodadTask) {
+    if task.generation != 0 && task.holder.data().phase.func_task != task.generation {
+        return;
+    }
+    let Some(world) = task.world.as_ref().and_then(Weak::upgrade) else {
+        return;
+    };
+    if !server
+        .world
+        .world(world.id)
+        .is_some_and(|current| Arc::ptr_eq(&current, &world))
+    {
+        return;
+    }
+    let respawning = matches!(
+        task.kind,
+        FuncTaskKind::Final {
+            respawn_stage: Some(_),
+            ..
+        }
+    );
+    if !respawning
+        && (task.doodad.data().phase.deleted
+            || !world
+                .doodad(task.doodad.obj_id)
+                .is_some_and(|current| Arc::ptr_eq(&current, &task.doodad)))
+    {
+        return;
+    }
+    let _operation = if respawning {
+        None
+    } else {
+        match phase::Operation::enter(&task.doodad) {
+            Some(guard) => Some(guard),
+            None => {
+                schedule(server, task, Duration::from_millis(10));
+                return;
+            }
+        }
+    };
     if task.generation != 0 {
         server
             .systems
@@ -328,10 +381,7 @@ pub fn execute(server: &GameServer, task: DoodadTask) {
     if task.generation != 0 && task.holder.data().phase.func_task != task.generation {
         return; // cancelled
     }
-    let Some(ctx) = DoodadCtx::of(server, &task.doodad) else {
-        tracing::warn!("Doodad task for {} without a world", task.doodad.obj_id);
-        return;
-    };
+    let ctx = DoodadCtx::new(server, world, task.doodad.clone());
     let caster = task.caster.as_ref();
     let (template_id, func_group_id) = {
         let d = ctx.doodad.data();
@@ -412,6 +462,7 @@ pub fn execute(server: &GameServer, task: DoodadTask) {
                         schedule(
                             server,
                             DoodadTask {
+                                world: Some(Arc::downgrade(&ctx.world)),
                                 doodad: ctx.doodad.clone(),
                                 holder: ctx.doodad.clone(),
                                 caster: task.caster.clone(),
@@ -450,5 +501,32 @@ pub fn execute(server: &GameServer, task: DoodadTask) {
             phase::do_change_phase(&ctx, caster, next_phase);
         }
         FuncTaskKind::Delete => super::manager::delete(server, &ctx.world, &ctx.doodad),
+        FuncTaskKind::Pulse { source, value } => {
+            let source_ctx = DoodadCtx::new(server, ctx.world.clone(), source);
+            super::logic::receive(&source_ctx, &ctx.doodad, caster, value);
+        }
     }
+}
+
+pub(crate) fn schedule_pulse(
+    ctx: &DoodadCtx<'_>,
+    target: &DoodadRef,
+    caster: Option<&WorldObject>,
+    value: bool,
+) {
+    schedule(
+        ctx.server,
+        DoodadTask {
+            world: Some(Arc::downgrade(&ctx.world)),
+            doodad: target.clone(),
+            holder: target.clone(),
+            caster: caster.cloned(),
+            generation: 0,
+            kind: FuncTaskKind::Pulse {
+                source: ctx.doodad.clone(),
+                value,
+            },
+        },
+        Duration::from_millis(10),
+    );
 }

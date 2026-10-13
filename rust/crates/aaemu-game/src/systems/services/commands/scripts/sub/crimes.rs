@@ -1063,8 +1063,13 @@ mod tests {
     use crate::data::GameData;
     use crate::opcodes::sc;
     use crate::server::GameServer;
-    use crate::systems::npcs::doodad::templates::DoodadTemplate;
-    use crate::systems::social::config::{CourtRoomConfig, JusticeConfig, SpawnPosition};
+    use crate::systems::npcs::doodad::templates::{
+        doodad_func_group_kind, DoodadFunc, DoodadFuncEvidenceItemLoot, DoodadFuncGroups,
+        DoodadTemplate, FuncTemplate,
+    };
+    use crate::systems::social::config::{
+        CourtRoomConfig, JailConfig, JusticeConfig, SpawnPosition,
+    };
     use crate::systems::social::crime::buff;
 
     const NUIA: u32 = 148;
@@ -1101,6 +1106,61 @@ mod tests {
                 },
             );
         }
+        // Reports require a real evidence function, as on the production bloodstains/footprints.
+        for (id, kind, value) in [(877, 2, 1), (878, 3, 25), (3313, 4, 3), (3314, 4, 3)] {
+            let group = DoodadFuncGroups {
+                id,
+                almighty: id,
+                group_kind_id: doodad_func_group_kind::START,
+                ..Default::default()
+            };
+            data.systems
+                .npcs
+                .doodad
+                .templates
+                .get_mut(&id)
+                .unwrap()
+                .func_groups
+                .push(group.clone());
+            data.systems
+                .npcs
+                .doodad
+                .all_func_groups_index
+                .insert(id, data.systems.npcs.doodad.all_func_groups.len());
+            data.systems.npcs.doodad.all_func_groups.push(group);
+            let func = DoodadFunc {
+                group_id: id,
+                func_id: id,
+                func_key: id,
+                func_type: "DoodadFuncEvidenceItemLoot".into(),
+                ..Default::default()
+            };
+            data.systems
+                .npcs
+                .doodad
+                .funcs_by_id
+                .insert(id, func.clone());
+            data.systems
+                .npcs
+                .doodad
+                .funcs_by_groups
+                .insert(id, vec![func]);
+            data.systems
+                .npcs
+                .doodad
+                .func_templates
+                .entry("DoodadFuncEvidenceItemLoot")
+                .or_default()
+                .insert(
+                    id,
+                    FuncTemplate::EvidenceItemLoot(DoodadFuncEvidenceItemLoot {
+                        id,
+                        crime_kind_id: kind,
+                        crime_value: value,
+                        ..Default::default()
+                    }),
+                );
+        }
         data
     }
 
@@ -1123,6 +1183,12 @@ mod tests {
                     faction: NUIA,
                     defendant: pos(10.0),
                     holding_cell: pos(1234.5),
+                }],
+                jails: vec![JailConfig {
+                    id: 1,
+                    name: "Nuian Jail".into(),
+                    faction: NUIA,
+                    pos: pos(1200.0),
                 }],
                 ..JusticeConfig::default()
             }

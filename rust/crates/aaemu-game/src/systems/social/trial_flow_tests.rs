@@ -51,6 +51,10 @@ const DEFENDANT_POS: SpawnPosition = SpawnPosition {
 /// A test server with the trial buffs, the Nuia / Haranya factions, one Nuian court room
 /// (id 1) and one Nuian jail.
 fn justice_server() -> Arc<GameServer> {
+    justice_server_with(|_| {})
+}
+
+fn justice_server_with(configure: impl FnOnce(&mut JusticeConfig)) -> Arc<GameServer> {
     let mut data = GameData::empty();
     for id in [
         buff::PRISONER_NUIAN,
@@ -83,7 +87,7 @@ fn justice_server() -> Arc<GameServer> {
         });
     }
     let s = test_server_with(data);
-    let justice = JusticeConfig {
+    let mut justice = JusticeConfig {
         court_rooms: vec![CourtRoomConfig {
             id: 1,
             name: "Nuian Main Court".into(),
@@ -99,6 +103,7 @@ fn justice_server() -> Arc<GameServer> {
         }],
         ..JusticeConfig::default()
     };
+    configure(&mut justice);
     s.config.update(|c| c.justice = justice);
     let s = Arc::new(s);
     s.set_self();
@@ -142,6 +147,37 @@ async fn send(server: &GameServer, pc: &mut Pc, opcode: u16, f: impl FnOnce(&mut
 
 fn ops(frames: &[(u16, Vec<u8>)]) -> Vec<u16> {
     frames.iter().map(|f| f.0).collect()
+}
+
+// Justice teleports also replicate entering/leaving regions. Check the trial protocol here;
+// server position and region membership have dedicated regressions below.
+fn trial_frames(client: &mut TestClient) -> Vec<(u16, Vec<u8>)> {
+    let mut arrest_points = false;
+    client
+        .drain()
+        .into_iter()
+        .filter(|(op, _)| {
+            if *op == sc::SCCharacterResurrectedPacket {
+                arrest_points = true;
+            }
+            if *op == sc::SCUnitPointsPacket {
+                // Arrest explicitly sends points after resurrecting. Region replication
+                // additionally sends nearby characters' points when a teleport arrives.
+                return std::mem::take(&mut arrest_points);
+            }
+            !matches!(
+                *op,
+                sc::SCUnitsRemovedPacket
+                    | sc::SCUnitStatePacket
+                    | sc::SCCharacterStatePacket
+                    | sc::SCTargetChangedPacket
+                    | sc::SCDoodadsCreatedPacket
+                    | sc::SCDoodadsRemovedPacket
+                    | sc::SCGimmicksCreatedPacket
+                    | sc::SCGimmicksRemovedPacket
+            )
+        })
+        .collect()
 }
 
 fn find(frames: &[(u16, Vec<u8>)], op: u16) -> Vec<Vec<u8>> {
@@ -213,7 +249,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     let mut j2 = player(&server, 3, "Juror2", |c| c.jury_point = 1);
     let mut arrestor = player(&server, 4, "Guard", |_| {});
     for pc in [&mut d, &mut j1, &mut j2, &mut arrestor] {
-        pc.client.drain();
+        trial_frames(&mut pc.client);
     }
     // Murder of a level-10 victim: 20 * 10 minutes.
     assert!(server.systems.social.crimes.insert(murder(50, 1, 2)));
@@ -233,7 +269,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     )
     .await;
     assert_eq!(
-        find(&j2.client.drain(), sc::SCJuryWaitingNumberPacket),
+        find(&trial_frames(&mut j2.client), sc::SCJuryWaitingNumberPacket),
         vec![vec![pos, 0, 0, 0]]
     );
 
@@ -241,7 +277,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     let tid = trials
         .arrest_criminal(&server, &d.p, Some(&arrestor.p))
         .expect("trial");
-    let f = d.client.drain();
+    let f = trial_frames(&mut d.client);
     assert_eq!(
         ops(&f),
         vec![
@@ -288,7 +324,11 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     );
     // Neighbours see the arrest.
     assert_eq!(
-        find(&arrestor.client.drain(), sc::SCCriminalArrestedPacket).len(),
+        find(
+            &trial_frames(&mut arrestor.client),
+            sc::SCCriminalArrestedPacket
+        )
+        .len(),
         1
     );
     {
@@ -307,7 +347,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     assert_eq!(d.p.data().accept_trial_count, 1);
     let t0 = util::now_ms() + 1;
     trials.update_tick(&server, t0).await;
-    let f = d.client.drain();
+    let f = trial_frames(&mut d.client);
     assert_eq!(
         ops(&f),
         vec![
@@ -388,14 +428,14 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         trial: tid,
     });
     assert_eq!(
-        find(&j1.client.drain(), sc::SCInviteJuryPacket),
+        find(&trial_frames(&mut j1.client), sc::SCInviteJuryPacket),
         vec![invite.clone()]
     );
     assert_eq!(
-        find(&j2.client.drain(), sc::SCInviteJuryPacket),
+        find(&trial_frames(&mut j2.client), sc::SCInviteJuryPacket),
         vec![invite]
     );
-    assert!(arrestor.client.drain().is_empty());
+    assert!(trial_frames(&mut arrestor.client).is_empty());
     assert_eq!(
         trial::trial_chat(&server, &d.p).map(|c| c.internal_name()),
         Some("Nuian Court".into())
@@ -406,14 +446,12 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         s.write_bool(true).write_u32(tid);
     })
     .await;
-    let f = j1.client.drain();
+    let f = trial_frames(&mut j1.client);
     assert_eq!(
         ops(&f),
         vec![
-            sc::SCChatMessagePacket,
             sc::SCSummonJuryPacket,
             sc::SCTeleportUnitPacket,
-            sc::SCChatMessagePacket,
             sc::SCJuryBeSeatedPacket,
             sc::SCJoinedChatChannelPacket,
             sc::SCTrialInfoPacket,
@@ -423,7 +461,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         ]
     );
     assert_eq!(
-        f[1].1,
+        f[0].1,
         body(&SCSummonJuryPacket {
             trial: tid,
             court: 1,
@@ -431,7 +469,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         })
     );
     assert_eq!(
-        f[2].1,
+        f[1].1,
         body(&SCTeleportUnitPacket {
             reason: teleport_reason::JURY,
             error_message: 0,
@@ -442,7 +480,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         })
     );
     assert_eq!(
-        f[4].1,
+        f[2].1,
         body(&SCJuryBeSeatedPacket {
             is_west: false,
             trial: tid,
@@ -451,7 +489,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         })
     );
     assert_eq!(
-        f[9].1,
+        f[7].1,
         body(&SCJuryWaitStatusPacket {
             count: 1,
             total: 2,
@@ -472,7 +510,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
             .check_buffs(&[buff::COURT_HOUSE, buff::JURY, buff::CANNOT_ESCAPE]));
     }
     assert_eq!(
-        find(&d.client.drain(), sc::SCJuryWaitStatusPacket),
+        find(&trial_frames(&mut d.client), sc::SCJuryWaitStatusPacket),
         vec![body(&SCJuryWaitStatusPacket {
             count: 1,
             total: 2,
@@ -485,7 +523,10 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         s.write_bool(true).write_u32(tid);
     })
     .await;
-    assert_eq!(ops(&j1.client.drain()), vec![sc::SCErrorMsgPacket]);
+    assert_eq!(
+        ops(&trial_frames(&mut j1.client)),
+        vec![sc::SCErrorMsgPacket]
+    );
 
     // Juror 2 accepts: all seats taken -> the summons step ends now.
     send(&server, &mut j2, cs::CSReplyInviteJuryPacket, |s| {
@@ -493,7 +534,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     })
     .await;
     assert_eq!(
-        find(&j2.client.drain(), sc::SCJuryBeSeatedPacket),
+        find(&trial_frames(&mut j2.client), sc::SCJuryBeSeatedPacket),
         vec![body(&SCJuryBeSeatedPacket {
             is_west: false,
             trial: tid,
@@ -503,7 +544,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     );
     for pc in [&mut d, &mut j1] {
         assert_eq!(
-            find(&pc.client.drain(), sc::SCJuryWaitStatusPacket),
+            find(&trial_frames(&mut pc.client), sc::SCJuryWaitStatusPacket),
             vec![body(&SCJuryWaitStatusPacket {
                 count: 2,
                 total: 2,
@@ -517,7 +558,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     let t1 = util::now_ms() + 1;
     trials.update_tick(&server, t1).await;
     for pc in [&mut d, &mut j1, &mut j2] {
-        let f = pc.client.drain();
+        let f = trial_frames(&mut pc.client);
         assert_eq!(
             ops(&f),
             vec![sc::SCChatMessagePacket, sc::SCChangeTrialStatePacket]
@@ -544,19 +585,19 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     })
     .await;
     assert_eq!(
-        find(&d.client.drain(), sc::SCChangeJuryOkCountPacket),
+        find(&trial_frames(&mut d.client), sc::SCChangeJuryOkCountPacket),
         vec![
             body(&SCChangeJuryOkCountPacket { count: 1, total: 2 }),
             body(&SCChangeJuryOkCountPacket { count: 2, total: 2 })
         ]
     );
-    j1.client.drain();
-    j2.client.drain();
+    trial_frames(&mut j1.client);
+    trial_frames(&mut j2.client);
 
     // Tick: ClosingStatement; the defendant skips it.
     trials.update_tick(&server, util::now_ms() + 1).await;
     assert_eq!(
-        states(&d.client.drain()),
+        states(&trial_frames(&mut d.client)),
         vec![(trial_step::CLOSING_STATEMENT, 2)]
     );
     send(&server, &mut d, cs::CSSkipFinalStatementPacket, |s| {
@@ -566,7 +607,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
 
     // Tick: JuryVerdict (+ the default ruling panel for the defendant).
     trials.update_tick(&server, util::now_ms() + 1).await;
-    let f = d.client.drain();
+    let f = trial_frames(&mut d.client);
     assert_eq!(
         ops(&f),
         vec![sc::SCChangeTrialStatePacket, sc::SCRulingStatusPacket]
@@ -581,8 +622,8 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
             sentence_time: 0
         })
     );
-    j1.client.drain();
-    j2.client.drain();
+    trial_frames(&mut j1.client);
+    trial_frames(&mut j2.client);
 
     // Votes: guilty (5 = Guilty4, 100% of the jail time).
     send(&server, &mut j1, cs::CSJuryVerdictPacket, |s| {
@@ -595,7 +636,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     })
     .await;
     assert_eq!(
-        find(&j2.client.drain(), sc::SCRulingStatusPacket),
+        find(&trial_frames(&mut j2.client), sc::SCRulingStatusPacket),
         Vec::<Vec<u8>>::new()
     );
     send(&server, &mut j2, cs::CSJuryVerdictPacket, |s| {
@@ -611,26 +652,25 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         })
     };
     assert_eq!(
-        find(&d.client.drain(), sc::SCRulingStatusPacket),
+        find(&trial_frames(&mut d.client), sc::SCRulingStatusPacket),
         vec![ruling(1), ruling(2)]
     );
     assert_eq!(
-        find(&j1.client.drain(), sc::SCRulingStatusPacket),
+        find(&trial_frames(&mut j1.client), sc::SCRulingStatusPacket),
         vec![ruling(1), ruling(2)]
     );
     assert_eq!(
-        find(&j2.client.drain(), sc::SCRulingStatusPacket),
+        find(&trial_frames(&mut j2.client), sc::SCRulingStatusPacket),
         vec![ruling(2)]
     );
 
     // Tick: EndTrial, verdict and the guilty result.
     let t_end = util::now_ms() + 1;
     trials.update_tick(&server, t_end).await;
-    let f = d.client.drain();
+    let f = trial_frames(&mut d.client);
     assert_eq!(
         ops(&f),
         vec![
-            sc::SCChangeTrialStatePacket,
             sc::SCRulingStatusPacket,
             sc::SCChangeTrialStatePacket,
             sc::SCLeavedChatChannelPacket,
@@ -638,9 +678,8 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
             sc::SCTeleportUnitPacket,
         ]
     );
-    assert_eq!(&f[0].1[..9], state_bytes(tid, trial_step::END_TRIAL, 2));
     assert_eq!(
-        f[1].1,
+        f[0].1,
         body(&SCRulingStatusPacket {
             count: 2,
             total: 2,
@@ -649,7 +688,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         })
     );
     assert_eq!(
-        f[2].1,
+        f[1].1,
         body(&SCChangeTrialStatePacket {
             trial_id: tid,
             state: trial_step::END_TRIAL,
@@ -659,7 +698,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
     );
     // Wanted is gone after the crime points were cleared: crime state 0.
     assert_eq!(
-        f[4].1,
+        f[3].1,
         body(&SCCrimeChangedPacket {
             points: 60,
             crime_points: 0,
@@ -667,16 +706,16 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
             crime_state: 0
         })
     );
-    // C# bug mirrored: the jail yaw goes out in degrees.
+    // Justice teleports consistently use radians.
     assert_eq!(
-        f[5].1,
+        f[4].1,
         body(&SCTeleportUnitPacket {
             reason: teleport_reason::JAIL,
             error_message: 0,
             x: 300.0,
             y: 310.0,
             z: 50.0,
-            z2: 90.0
+            z2: std::f32::consts::FRAC_PI_2
         })
     );
     {
@@ -701,22 +740,21 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         .is_empty());
     assert!(server.systems.social.crimes.get(50).unwrap().judgement_time > 0);
     for pc in [&mut j1, &mut j2] {
-        let f = pc.client.drain();
+        let f = trial_frames(&mut pc.client);
         assert_eq!(
             ops(&f),
-            vec![
-                sc::SCChangeTrialStatePacket,
-                sc::SCRulingStatusPacket,
-                sc::SCChangeTrialStatePacket
-            ]
+            vec![sc::SCRulingStatusPacket, sc::SCChangeTrialStatePacket]
         );
         assert!(!pc.p.data().unit.buffs.check_buff(buff::JURY));
     }
 
     // 30 s later: ruling closed, the jury returns home, the trial is removed.
     trials.update_tick(&server, t_end + 31_000).await;
-    assert_eq!(ops(&d.client.drain()), vec![sc::SCRulingClosedPacket]);
-    let f = j1.client.drain();
+    assert_eq!(
+        ops(&trial_frames(&mut d.client)),
+        vec![sc::SCRulingClosedPacket]
+    );
+    let f = trial_frames(&mut j1.client);
     assert_eq!(
         ops(&f),
         vec![
@@ -734,7 +772,7 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
             x: 102.0,
             y: 100.0,
             z: 100.0,
-            z2: 1.25
+            z2: 0.0
         })
     );
     assert_eq!(f[2].1, body(&SCJuryPointChangedPacket { jury_point: 2 }));
@@ -753,7 +791,10 @@ async fn jury_trial_flow_to_guilty_verdict_and_cleanup() {
         s.write_bool(true).write_u32(tid);
     })
     .await;
-    assert_eq!(find(&j2.client.drain(), sc::SCErrorMsgPacket).len(), 1);
+    assert_eq!(
+        find(&trial_frames(&mut j2.client), sc::SCErrorMsgPacket).len(),
+        1
+    );
 }
 
 #[tokio::test]
@@ -770,7 +811,7 @@ async fn plead_guilty_path() {
     }));
     // No arrestor: the region comes from OfflineGuiltyRegion (0 = Nuian).
     let tid = trials.arrest_criminal(&server, &d.p, None).expect("trial");
-    let f = d.client.drain();
+    let f = trial_frames(&mut d.client);
     assert_eq!(f[0].0, sc::SCCharacterResurrectedPacket);
     // Theft of an offline victim: 8 minutes.
     assert_eq!(
@@ -786,7 +827,7 @@ async fn plead_guilty_path() {
         s.write_bool(false);
     })
     .await;
-    let f = d.client.drain();
+    let f = trial_frames(&mut d.client);
     assert_eq!(
         ops(&f),
         vec![
@@ -818,14 +859,17 @@ async fn plead_guilty_path() {
         );
     }
     trials.update_tick(&server, util::now_ms()).await;
-    assert_eq!(ops(&d.client.drain()), vec![sc::SCRulingClosedPacket]);
+    assert_eq!(
+        ops(&trial_frames(&mut d.client)),
+        vec![sc::SCRulingClosedPacket]
+    );
     assert!(trials.trial_ids().is_empty());
     // CSCancelTrial on a finished trial: the C# NRE is logged.
     send(&server, &mut d, cs::CSCancelTrialPacket, |s| {
         s.write_u32(tid);
     })
     .await;
-    assert!(d.client.drain().is_empty());
+    assert!(trial_frames(&mut d.client).is_empty());
 }
 
 #[tokio::test]
@@ -848,24 +892,23 @@ async fn not_guilty_verdict_with_one_juror() {
     trials.update_tick(&server, util::now_ms() + 1).await; // ClosingStatement
                                                            // Not skipped: the closing statement runs its minute.
     trials.update_tick(&server, util::now_ms() + 61_000).await; // JuryVerdict
-    d.client.drain();
-    j.client.drain();
+    trial_frames(&mut d.client);
+    trial_frames(&mut j.client);
     trials.jury_verdict(&j.p, tid, 1, 1, util::now_ms());
     let t = util::now_ms() + 1;
     trials.update_tick(&server, t).await;
-    let f = d.client.drain();
+    let f = trial_frames(&mut d.client);
     assert_eq!(
         ops(&f),
         vec![
             sc::SCRulingStatusPacket, // the juror's vote count
-            sc::SCChangeTrialStatePacket,
             sc::SCRulingStatusPacket,
             sc::SCChangeTrialStatePacket,
             sc::SCCrimeChangedPacket,
         ]
     );
     assert_eq!(
-        f[2].1,
+        f[1].1,
         body(&SCRulingStatusPacket {
             count: 1,
             total: 1,
@@ -874,7 +917,7 @@ async fn not_guilty_verdict_with_one_juror() {
         })
     );
     assert_eq!(
-        f[4].1,
+        f[3].1,
         body(&SCCrimeChangedPacket {
             points: 70,
             crime_points: 0,
@@ -887,7 +930,7 @@ async fn not_guilty_verdict_with_one_juror() {
     // The defendant stays in the court chat until the cleanup.
     trials.update_tick(&server, t + 31_000).await;
     assert_eq!(
-        ops(&d.client.drain()),
+        ops(&trial_frames(&mut d.client)),
         vec![sc::SCRulingClosedPacket, sc::SCLeavedChatChannelPacket]
     );
     assert_eq!(j.p.data().jury_point, 4);
@@ -904,7 +947,7 @@ async fn trial_without_jury_is_cancelled_with_the_default_sentence() {
     trials.reply_imprison_or_trial(&server, &d.p, true, util::now_ms());
     // Nobody queued: the summons wait is skipped in the same tick.
     trials.update_tick(&server, util::now_ms() + 1).await;
-    let f = d.client.drain();
+    let f = trial_frames(&mut d.client);
     assert_eq!(
         states(&f),
         vec![
@@ -915,7 +958,7 @@ async fn trial_without_jury_is_cancelled_with_the_default_sentence() {
     );
     // Next tick: no active jury -> cancelled -> guilty with the default sentence.
     trials.update_tick(&server, util::now_ms() + 1).await;
-    let f = d.client.drain();
+    let f = trial_frames(&mut d.client);
     assert_eq!(
         ops(&f),
         vec![
@@ -944,7 +987,6 @@ async fn trial_without_jury_is_cancelled_with_the_default_sentence() {
 async fn login_with_offline_guilty_time_goes_to_jail() {
     let server = justice_server();
     let trials = &server.systems.social.trials;
-    // Only eligible jurors reach the offline-guilty handling (C# early returns).
     let d = player(&server, 1, "Escapee", |c| {
         c.jury_point = 1;
         c.offline_guilty_time = 12;
@@ -952,18 +994,686 @@ async fn login_with_offline_guilty_time_goes_to_jail() {
     });
     let mut d = d;
     trial::handle_player_login(&server, &d.p);
-    assert_eq!(trials.jury_queue(NUIA), vec![1]);
-    let f = d.client.drain();
+    assert!(trials.jury_queue(NUIA).is_empty());
+    let f = trial_frames(&mut d.client);
     assert!(ops(&f).contains(&sc::SCTeleportUnitPacket));
     assert_eq!(d.p.data().offline_guilty_time, 0);
     assert_eq!(d.p.data().guilty_count, 1);
     assert!(d.p.data().unit.buffs.check_buff(buff::PRISONER_NUIAN));
 
-    // Not eligible (no jury point): nothing happens.
+    // Jail enforcement also applies without jury eligibility.
     let mut e = player(&server, 2, "Other", |c| c.offline_guilty_time = 12);
     trial::handle_player_login(&server, &e.p);
-    assert!(e.client.drain().is_empty());
-    assert_eq!(e.p.data().offline_guilty_time, 12);
+    assert!(ops(&trial_frames(&mut e.client)).contains(&sc::SCTeleportUnitPacket));
+    assert_eq!(e.p.data().offline_guilty_time, 0);
+    assert_eq!(
+        e.p.data()
+            .unit
+            .buffs
+            .effect_from_buff_id(buff::PRISONER_NUIAN)
+            .unwrap()
+            .duration,
+        12 * 60_000
+    );
+}
+
+async fn summoned_trial(count: u32) -> (Arc<GameServer>, Pc, Vec<Pc>, u32) {
+    let server = justice_server();
+    let trials = &server.systems.social.trials;
+    let links: Vec<_> = (1..=count)
+        .map(|i| {
+            (
+                format!("justice.1.seat.{i}"),
+                seat(0x900 + i, 400.0 + i as f32),
+            )
+        })
+        .collect();
+    trials.initialize_doodads(&links);
+    let mut defendant = player(&server, 1, "Defendant", |c| {
+        c.crime_point = 50;
+        c.infamy_point = 50;
+    });
+    let mut jurors: Vec<_> = (0..count)
+        .map(|i| player(&server, i + 2, &format!("Juror{i}"), |c| c.jury_point = 1))
+        .collect();
+    server.systems.social.crimes.insert(murder(50, 1, 99)); // offline victim: 20 minutes
+    trials.update_jury_queues(&server);
+    let tid = trials.arrest_criminal(&server, &defendant.p, None).unwrap();
+    send(
+        &server,
+        &mut defendant,
+        cs::CSReplyImprisonOrTrialPacket,
+        |s| {
+            s.write_bool(true);
+        },
+    )
+    .await;
+    trials.update_tick(&server, util::now_ms() + 1).await;
+    for juror in &mut jurors {
+        send(&server, juror, cs::CSReplyInviteJuryPacket, |s| {
+            s.write_bool(true).write_u32(tid);
+        })
+        .await;
+    }
+    trials.update_tick(&server, util::now_ms() + 1).await;
+    assert_eq!(
+        trials.get_trial(tid).unwrap().step,
+        trial_step::CONFIRM_CRIMINAL_RECORD
+    );
+    defendant.client.drain();
+    for juror in &mut jurors {
+        juror.client.drain();
+    }
+    (server, defendant, jurors, tid)
+}
+
+async fn open_verdict(server: &GameServer, defendant: &mut Pc, jurors: &mut [Pc], tid: u32) {
+    for (i, juror) in jurors.iter_mut().enumerate() {
+        send(server, juror, cs::CSJuryEndTestimonyPacket, |s| {
+            s.write_u32(tid).write_i32(i as i32 + 1);
+        })
+        .await;
+    }
+    server
+        .systems
+        .social
+        .trials
+        .update_tick(server, util::now_ms() + 1)
+        .await;
+    send(server, defendant, cs::CSSkipFinalStatementPacket, |s| {
+        s.write_u32(tid);
+    })
+    .await;
+    server
+        .systems
+        .social
+        .trials
+        .update_tick(server, util::now_ms() + 1)
+        .await;
+    assert_eq!(
+        server.systems.social.trials.get_trial(tid).unwrap().step,
+        trial_step::JURY_VERDICT
+    );
+    defendant.client.drain();
+    for juror in jurors {
+        juror.client.drain();
+    }
+}
+
+#[tokio::test]
+async fn jury_can_only_confirm_its_own_seat_once() {
+    let (server, mut d, mut jury, tid) = summoned_trial(2).await;
+    for caller in [&mut d, &mut jury[0]] {
+        send(&server, caller, cs::CSJuryEndTestimonyPacket, |s| {
+            s.write_u32(tid).write_i32(2);
+        })
+        .await;
+    }
+    assert!(!server.systems.social.trials.get_trial(tid).unwrap().jury[&2].confirm_testimony);
+    send(&server, &mut jury[0], cs::CSJuryEndTestimonyPacket, |s| {
+        s.write_u32(tid).write_i32(1);
+    })
+    .await;
+    assert_eq!(
+        find(&d.client.drain(), sc::SCChangeJuryOkCountPacket),
+        vec![body(&SCChangeJuryOkCountPacket { count: 1, total: 2 })]
+    );
+    send(&server, &mut jury[0], cs::CSJuryEndTestimonyPacket, |s| {
+        s.write_u32(tid).write_i32(1);
+    })
+    .await;
+    assert!(find(&d.client.drain(), sc::SCChangeJuryOkCountPacket).is_empty());
+}
+
+#[tokio::test]
+async fn invalid_spoofed_and_repeated_votes_cannot_change_the_verdict() {
+    let (server, mut d, mut jury, tid) = summoned_trial(1).await;
+    open_verdict(&server, &mut d, &mut jury, tid).await;
+    for sentence in [0, 7, 255] {
+        send(&server, &mut jury[0], cs::CSJuryVerdictPacket, |s| {
+            s.write_u32(tid).write_i32(1).write_u8(sentence);
+        })
+        .await;
+    }
+    send(&server, &mut d, cs::CSJuryVerdictPacket, |s| {
+        s.write_u32(tid).write_i32(1).write_u8(1);
+    })
+    .await;
+    assert_eq!(
+        server.systems.social.trials.get_trial(tid).unwrap().jury[&1].selected_sentence,
+        -1
+    );
+    for sentence in [5, 1] {
+        send(&server, &mut jury[0], cs::CSJuryVerdictPacket, |s| {
+            s.write_u32(tid).write_i32(1).write_u8(sentence);
+        })
+        .await;
+    }
+    server
+        .systems
+        .social
+        .trials
+        .update_tick(&server, util::now_ms() + 1)
+        .await;
+    assert_eq!(d.p.data().guilty_count, 1);
+    assert_eq!(
+        d.p.data()
+            .unit
+            .buffs
+            .effect_from_buff_id(buff::PRISONER_NUIAN)
+            .unwrap()
+            .duration,
+        20 * 60_000
+    );
+    for op in [cs::CSReplyImprisonOrTrialPacket, cs::CSCancelTrialPacket] {
+        send(&server, &mut d, op, |s| {
+            if op == cs::CSCancelTrialPacket {
+                s.write_u32(tid);
+            } else {
+                s.write_bool(false);
+            }
+        })
+        .await;
+    }
+    assert_eq!(d.p.data().accept_guilty_count, 0);
+    assert_eq!(d.p.data().guilty_count, 1);
+}
+
+#[tokio::test]
+async fn all_six_jury_choices_apply_the_expected_sentence() {
+    for (sentence, minutes) in [(1, 0), (2, 4), (3, 10), (4, 16), (5, 20), (6, 24)] {
+        let (server, mut d, mut jury, tid) = summoned_trial(1).await;
+        open_verdict(&server, &mut d, &mut jury, tid).await;
+        send(&server, &mut jury[0], cs::CSJuryVerdictPacket, |s| {
+            s.write_u32(tid).write_i32(1).write_u8(sentence);
+        })
+        .await;
+        let end = util::now_ms() + 1;
+        server.systems.social.trials.update_tick(&server, end).await;
+        assert_eq!(
+            find(&d.client.drain(), sc::SCRulingStatusPacket).last(),
+            Some(&body(&SCRulingStatusPacket {
+                count: 1,
+                total: 1,
+                sentence_type: sentence,
+                sentence_time: minutes * 60_000,
+            }))
+        );
+        {
+            let c = d.p.data();
+            if minutes == 0 {
+                assert_eq!(c.not_guilty_count, 1);
+                assert!(!c.unit.buffs.check_buff(buff::PRISONER_NUIAN));
+                assert!(!c.unit.buffs.check_buff(buff::CANNOT_ESCAPE));
+            } else {
+                assert_eq!(
+                    c.unit
+                        .buffs
+                        .effect_from_buff_id(buff::PRISONER_NUIAN)
+                        .unwrap()
+                        .duration,
+                    minutes * 60_000
+                );
+                assert_eq!(
+                    (c.unit.transform.x, c.unit.transform.y, c.unit.transform.z),
+                    (JAIL_POS.x, JAIL_POS.y, JAIL_POS.z)
+                );
+            }
+        }
+        server
+            .systems
+            .social
+            .trials
+            .update_tick(&server, end + 31_000)
+            .await;
+        assert!(server.systems.social.trials.trial_ids().is_empty());
+        assert_eq!(jury[0].p.data().main_world_position, None);
+        assert!(!jury[0].p.data().unit.buffs.check_buff(buff::CANNOT_ESCAPE));
+    }
+}
+
+#[tokio::test]
+async fn the_most_common_jury_sentence_wins() {
+    let (server, mut d, mut jury, tid) = summoned_trial(3).await;
+    open_verdict(&server, &mut d, &mut jury, tid).await;
+    for (i, sentence) in [1, 5, 5].into_iter().enumerate() {
+        send(&server, &mut jury[i], cs::CSJuryVerdictPacket, |s| {
+            s.write_u32(tid).write_i32(i as i32 + 1).write_u8(sentence);
+        })
+        .await;
+    }
+    server
+        .systems
+        .social
+        .trials
+        .update_tick(&server, util::now_ms() + 1)
+        .await;
+    assert_eq!(d.p.data().guilty_count, 1);
+    assert_eq!(
+        server
+            .systems
+            .social
+            .trials
+            .get_trial(tid)
+            .unwrap()
+            .jail_time,
+        20
+    );
+}
+
+#[tokio::test]
+async fn a_guilty_plea_in_a_holding_cell_cannot_free_an_occupied_court() {
+    let (server, d, mut jury, tid) = summoned_trial(1).await;
+    let trials = &server.systems.social.trials;
+    let mut other = player(&server, 10, "Other", |c| c.crime_point = 50);
+    let other_tid = trials.arrest_criminal(&server, &other.p, None).unwrap();
+    send(&server, &mut other, cs::CSReplyImprisonOrTrialPacket, |s| {
+        s.write_bool(false);
+    })
+    .await;
+    trials.update_tick(&server, util::now_ms() + 1).await;
+    assert!(trials.get_trial(other_tid).is_none());
+    assert_eq!(trials.court_rooms()[0].current_trial, Some(tid));
+    trials.cancel_trial(&server, &d.p, tid, util::now_ms());
+    trials.update_tick(&server, util::now_ms() + 1).await;
+    let c = jury[0].p.data();
+    assert!(c.main_world_position.is_none());
+    assert!(!c
+        .unit
+        .buffs
+        .check_buffs(&[buff::COURT_HOUSE, buff::JURY, buff::CANNOT_ESCAPE]));
+    assert_eq!(c.unit.transform.x, 102.0);
+    assert_eq!(c.jury_point, 1);
+    drop(c);
+    assert!(ops(&jury[0].client.drain()).contains(&sc::SCRulingClosedPacket));
+}
+
+#[tokio::test]
+async fn disconnecting_defendant_closes_the_case_and_enforces_the_saved_sentence() {
+    let (server, d, jury, tid) = summoned_trial(1).await;
+    d.p.data().is_online = false;
+    super::session::on_online_changed(&server, &d.p, false);
+    assert!(server.systems.social.trials.get_trial(tid).is_none());
+    assert_eq!(d.p.data().offline_guilty_time, 20);
+    assert_eq!(jury[0].p.data().unit.transform.x, 102.0);
+    assert!(jury[0].p.data().main_world_position.is_none());
+    assert_eq!(jury[0].p.data().jury_point, 1);
+    assert!(server.systems.social.trials.court_rooms()[0]
+        .current_trial
+        .is_none());
+    // NotifyInGame after reconnect must enforce the pending sentence even without jury points.
+    d.p.data().is_online = true;
+    trial::handle_player_login(&server, &d.p);
+    assert_eq!(d.p.data().guilty_count, 1);
+    assert_eq!(
+        d.p.data()
+            .unit
+            .buffs
+            .effect_from_buff_id(buff::PRISONER_NUIAN)
+            .unwrap()
+            .duration,
+        20 * 60_000
+    );
+    trial::handle_player_login(&server, &d.p);
+    assert_eq!(d.p.data().guilty_count, 1);
+}
+
+#[tokio::test]
+async fn disconnecting_a_juror_vacates_the_seat_without_awarding_attendance() {
+    let (server, _d, jury, tid) = summoned_trial(2).await;
+    jury[0].p.data().is_online = false;
+    super::session::on_online_changed(&server, &jury[0].p, false);
+    let t = server.systems.social.trials.get_trial(tid).unwrap();
+    assert_eq!(t.active_jury_count(), 1);
+    assert!(t.jury[&1].jury_member.is_none());
+    assert_eq!(jury[0].p.data().unit.transform.x, 102.0);
+    assert_eq!(jury[0].p.data().jury_point, 1);
+    assert!(!jury[0].p.data().unit.buffs.check_buff(buff::CANNOT_ESCAPE));
+}
+
+#[tokio::test]
+async fn restored_prisoner_keeps_remaining_online_time_and_can_finish_the_sentence() {
+    let server = justice_server();
+    crate::systems::skills::install_hooks(&server);
+    let mut prisoner = player(&server, 1, "Prisoner", |_| {});
+    let now = util::now_ms();
+    let row = crate::db_character::SavedBuffRow {
+        buff_id: buff::PRISONER_NUIAN,
+        ab_level: 1,
+        time_left: 5_000,
+        charge: 0,
+        real_time: false,
+        saved_at_ms: now - 86_400_000,
+    };
+    crate::db_character::apply_active_buffs(&server, &mut prisoner.p.data(), &[row], now);
+    crate::systems::dispatch_buff_events(&server, &crate::world::WorldObject::from(&prisoner.p));
+    trial::handle_player_login(&server, &prisoner.p);
+    let buff = prisoner
+        .p
+        .data()
+        .unit
+        .buffs
+        .effect_from_buff_id(buff::PRISONER_NUIAN)
+        .unwrap()
+        .clone();
+    assert_eq!(buff.duration, 5_000);
+    assert_eq!(prisoner.p.data().guilty_count, 0);
+    assert_eq!(prisoner.p.data().unit.transform.x, JAIL_POS.x);
+    assert!(ops(&prisoner.client.drain()).contains(&sc::SCTeleportUnitPacket));
+    // Run the scheduled completion without waiting five seconds in the test.
+    crate::systems::skills::buffs::dispel_task(
+        &server,
+        prisoner.p.obj_id,
+        buff.index,
+        buff.task_gen,
+    );
+    assert!(!prisoner
+        .p
+        .data()
+        .unit
+        .buffs
+        .check_buff(buff::PRISONER_NUIAN));
+}
+
+#[tokio::test]
+async fn arrest_is_idempotent_and_justice_teleports_update_server_regions() {
+    let server = justice_server();
+    let trials = &server.systems.social.trials;
+    let d = player(&server, 1, "Wanted", |c| c.crime_point = 50);
+    let guard = player(&server, 2, "Guard", |_| {});
+    let tid = trials
+        .arrest_criminal(&server, &d.p, Some(&guard.p))
+        .unwrap();
+    assert_eq!(
+        trials.arrest_criminal(&server, &d.p, Some(&guard.p)),
+        Some(tid)
+    );
+    assert_eq!(trials.trial_ids(), vec![tid]);
+    assert_eq!(d.p.data().arrest_count, 1);
+    assert!(d
+        .p
+        .data()
+        .unit
+        .buffs
+        .check_buff(buff::FORCIBLY_AWAITING_TRIAL));
+    assert_eq!(d.p.data().unit.transform.x, HOLDING_CELL.x);
+    assert_eq!(d.p.region(), Some((0, 3, 3)));
+    trials.reply_imprison_or_trial(&server, &d.p, false, util::now_ms());
+    assert_eq!(d.p.data().unit.transform.x, JAIL_POS.x);
+    assert_eq!(d.p.region(), Some((0, 4, 4)));
+    assert!(!d
+        .p
+        .data()
+        .unit
+        .buffs
+        .check_buff(buff::FORCIBLY_AWAITING_TRIAL));
+    trials.reply_imprison_or_trial(&server, &d.p, false, util::now_ms());
+    assert_eq!(d.p.data().accept_guilty_count, 1);
+}
+
+#[tokio::test]
+async fn jury_invites_require_an_invitation_the_right_faction_and_current_eligibility() {
+    let server = justice_server();
+    let trials = &server.systems.social.trials;
+    trials.initialize_doodads(&[("justice.1.seat.1".into(), seat(0x900, 400.0))]);
+    let d = player(&server, 1, "Defendant", |c| c.crime_point = 50);
+    let invited = player(&server, 2, "Invited", |c| c.jury_point = 1);
+    let foreign = player(&server, 3, "Foreign", |c| {
+        c.jury_point = 1;
+        c.unit.faction_id = 102;
+    });
+    trials.update_jury_queues(&server);
+    let tid = trials.arrest_criminal(&server, &d.p, None).unwrap();
+    trials.reply_imprison_or_trial(&server, &d.p, true, util::now_ms());
+    trials.update_tick(&server, util::now_ms() + 1).await;
+    let late = player(&server, 4, "Uninvited", |c| c.jury_point = 1);
+    trials.update_jury_queues(&server);
+    for p in [&foreign.p, &late.p] {
+        assert!(!trials.process_trial_invite_reply(&server, p, true, tid, util::now_ms()));
+    }
+    invited.p.data().crime_point = 50; // queue is stale until the next tick
+    assert!(!trials.process_trial_invite_reply(&server, &invited.p, true, tid, util::now_ms()));
+    assert_eq!(trials.get_trial(tid).unwrap().active_jury_count(), 0);
+}
+
+#[tokio::test]
+async fn sparse_jury_seats_are_usable() {
+    let server = justice_server();
+    let trials = &server.systems.social.trials;
+    trials.initialize_doodads(&[("justice.1.seat.3".into(), seat(0x900, 400.0))]);
+    let d = player(&server, 1, "Defendant", |c| c.crime_point = 50);
+    let j = player(&server, 2, "Juror", |c| c.jury_point = 1);
+    trials.update_jury_queues(&server);
+    let tid = trials.arrest_criminal(&server, &d.p, None).unwrap();
+    trials.reply_imprison_or_trial(&server, &d.p, true, util::now_ms());
+    trials.update_tick(&server, util::now_ms() + 1).await;
+    assert!(trials.process_trial_invite_reply(&server, &j.p, true, tid, util::now_ms()));
+    assert!(trials.get_trial(tid).unwrap().jury[&3]
+        .jury_member
+        .is_some());
+}
+
+#[tokio::test]
+async fn undecided_jury_times_out_to_the_default_sentence() {
+    let (server, mut d, mut jury, tid) = summoned_trial(1).await;
+    open_verdict(&server, &mut d, &mut jury, tid).await;
+    server
+        .systems
+        .social
+        .trials
+        .update_tick(&server, util::now_ms() + 61_000)
+        .await;
+    assert_eq!(
+        d.p.data()
+            .unit
+            .buffs
+            .effect_from_buff_id(buff::PRISONER_NUIAN)
+            .unwrap()
+            .duration,
+        10 * 60_000
+    );
+}
+
+#[tokio::test]
+async fn haranyan_sentences_keep_their_region_including_for_pirates_on_reconnect() {
+    let server = justice_server_with(|j| {
+        j.court_rooms[0].id = 3;
+        j.court_rooms[0].faction = HARANYA;
+        j.jails[0].faction = HARANYA;
+    });
+    let trials = &server.systems.social.trials;
+    let d = player(&server, 1, "Defendant", |c| {
+        c.unit.faction_id = 102;
+        c.crime_point = 50;
+    });
+    server.systems.social.crimes.insert(murder(50, 1, 99));
+    trials.arrest_criminal(&server, &d.p, None).unwrap();
+    assert_eq!(d.p.data().offline_guilty_region, 1);
+    d.p.data().is_online = false;
+    super::session::on_online_changed(&server, &d.p, false);
+    {
+        let mut c = d.p.data();
+        c.unit.faction_id = 161;
+        c.is_online = true;
+    }
+    trial::handle_player_login(&server, &d.p);
+    assert_eq!(
+        d.p.data()
+            .unit
+            .buffs
+            .effect_from_buff_id(buff::PRISONER_HARANYAN)
+            .unwrap()
+            .duration,
+        20 * 60_000
+    );
+    assert!(!d.p.data().unit.buffs.check_buff(buff::PRISONER_NUIAN));
+}
+
+#[tokio::test]
+async fn concurrent_reports_only_count_a_piece_of_evidence_once() {
+    let server = justice_server();
+    let hooks = Arc::new(FakeHooks::default());
+    server.systems.social.hooks.install(hooks.clone());
+    let criminal = player(&server, 1, "Criminal", |_| {});
+    let a = player(&server, 2, "WitnessA", |_| {});
+    let b = player(&server, 3, "WitnessB", |_| {});
+    let mut doodad = Doodad::new(878);
+    doodad.owner_type = doodad_owner_type::CHARACTER;
+    doodad.owner_id = 1;
+    doodad.data = 2;
+    let evidence = Entity::new(0x900, doodad);
+    let crimes = &server.systems.social.crimes;
+    let (a, b) = tokio::join!(
+        crimes.report_crime(&server, &a.p, &evidence, 1, 2, 3, "first"),
+        crimes.report_crime(&server, &b.p, &evidence, 1, 2, 3, "second"),
+    );
+    assert_ne!(a.is_some(), b.is_some());
+    assert_eq!(crimes.crimes_of_player(1, false).len(), 1);
+    assert_eq!(criminal.p.data().crime_point, 25);
+    assert_eq!(criminal.p.data().evidence_reported_count, 1);
+    assert_eq!(hooks.phases.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn arrest_from_an_instance_loads_the_main_world_and_moves_membership() {
+    let server = justice_server();
+    let d = player(&server, 1, "Defendant", |c| c.crime_point = 50);
+    let main = server.world.world(0).unwrap();
+    let instance = server.world.create_world_instance(
+        Arc::new(crate::data::world_templates::WorldTemplate::synthetic(
+            1,
+            "test_instance",
+            2,
+            2,
+            TEST_ZONE,
+        )),
+        42,
+    );
+    main.delete(&d.p);
+    {
+        let mut c = d.p.data();
+        c.unit.transform.instance_id = 42;
+        c.unit.transform.world_id = 1;
+    }
+    instance.spawn(&d.p, &server.view_ctx());
+    let mut d = d;
+    d.client.drain();
+    server
+        .systems
+        .social
+        .trials
+        .arrest_criminal(&server, &d.p, None)
+        .unwrap();
+    let frames = d.client.drain();
+    let load = frames
+        .iter()
+        .position(|f| f.0 == sc::SCLoadInstancePacket)
+        .unwrap();
+    let teleport = frames
+        .iter()
+        .position(|f| f.0 == sc::SCTeleportUnitPacket)
+        .unwrap();
+    assert!(load < teleport);
+    assert_eq!(d.p.data().unit.transform.instance_id, 0);
+    assert!(instance.character_by_obj_id(d.p.obj_id).is_none());
+    assert!(main.character_by_obj_id(d.p.obj_id).is_some());
+    assert_eq!(d.p.region(), Some((0, 3, 3)));
+}
+
+#[tokio::test]
+async fn sentence_duration_cannot_overflow_the_prison_buff_or_wire() {
+    let (server, mut d, mut jury, tid) = summoned_trial(1).await;
+    d.p.data().infamy_point = i32::MAX;
+    server
+        .systems
+        .social
+        .trials
+        .add_new_evidence(&server, &murder(51, 1, 99));
+    open_verdict(&server, &mut d, &mut jury, tid).await;
+    send(&server, &mut jury[0], cs::CSJuryVerdictPacket, |s| {
+        s.write_u32(tid).write_i32(1).write_u8(6);
+    })
+    .await;
+    server
+        .systems
+        .social
+        .trials
+        .update_tick(&server, util::now_ms() + 1)
+        .await;
+    let max_minutes = i32::MAX / 60_000;
+    assert_eq!(
+        d.p.data()
+            .unit
+            .buffs
+            .effect_from_buff_id(buff::PRISONER_NUIAN)
+            .unwrap()
+            .duration,
+        max_minutes * 60_000
+    );
+    let ruling = find(&d.client.drain(), sc::SCRulingStatusPacket);
+    assert_eq!(
+        ruling.last(),
+        Some(&body(&SCRulingStatusPacket {
+            count: 1,
+            total: 1,
+            sentence_type: sentence_result::GUILTY5,
+            sentence_time: max_minutes * 60_000,
+        }))
+    );
+}
+
+#[tokio::test]
+async fn even_a_zero_minute_pending_case_survives_disconnect() {
+    let server = justice_server();
+    let d = player(&server, 1, "Defendant", |c| c.crime_point = 50);
+    server
+        .systems
+        .social
+        .trials
+        .arrest_criminal(&server, &d.p, None)
+        .unwrap();
+    d.p.data().is_online = false;
+    super::session::on_online_changed(&server, &d.p, false);
+    assert_eq!(d.p.data().offline_guilty_time, 1);
+    d.p.data().is_online = true;
+    trial::handle_player_login(&server, &d.p);
+    assert_eq!(
+        d.p.data()
+            .unit
+            .buffs
+            .effect_from_buff_id(buff::PRISONER_NUIAN)
+            .unwrap()
+            .duration,
+        60_000
+    );
+}
+
+#[test]
+#[ignore = "requires AAEMU_COMPACT_DB"]
+fn real_justice_buffs_preserve_prison_sentences() {
+    let Ok(path) = std::env::var("AAEMU_COMPACT_DB") else {
+        return;
+    };
+    let conn =
+        rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .unwrap();
+    let data = crate::data::skills::SkillData::load(&conn).unwrap();
+    for id in [buff::PRISONER_NUIAN, buff::PRISONER_HARANYAN] {
+        let template = data.buff(id).unwrap();
+        assert_eq!(template.kind, BuffKind::Bad);
+        assert!(!template.real_time);
+        let mut b = crate::models::buff::Buff::new(template.clone(), Default::default(), None, 0);
+        b.duration = 10_000;
+        assert!(b.should_persist(9_000));
+        assert!(!b.should_persist(10_000));
+    }
+    for id in [
+        buff::FORCIBLY_AWAITING_TRIAL,
+        buff::TRIAL_DEFENDANT,
+        buff::JURY,
+    ] {
+        assert_eq!(data.buff(id).unwrap().duration, 0);
+    }
 }
 
 #[tokio::test]
@@ -988,18 +1698,18 @@ async fn audience_join_and_leave() {
     trials.initialize_doodads(&[("justice.1.spectator".into(), Entity::new(0x950, bench))]);
     let mut a = player(&server, 1, "Watcher", |_| {});
     let mut far = player(&server, 20, "Far", |_| {});
-    a.client.drain();
+    trial_frames(&mut a.client);
     // Too far away (> 5 m): refused.
     send(&server, &mut far, cs::CSJoinTrialAudiencePacket, |s| {
         s.write_u32(5137);
     })
     .await;
-    assert!(far.client.drain().is_empty());
+    assert!(trial_frames(&mut far.client).is_empty());
     send(&server, &mut a, cs::CSJoinTrialAudiencePacket, |s| {
         s.write_u32(5137);
     })
     .await;
-    let f = a.client.drain();
+    let f = trial_frames(&mut a.client);
     assert_eq!(
         ops(&f),
         vec![
@@ -1016,12 +1726,16 @@ async fn audience_join_and_leave() {
         })
     );
     assert_eq!(
-        find(&far.client.drain(), sc::SCTrialAudienceJoinedPacket).len(),
+        find(
+            &trial_frames(&mut far.client),
+            sc::SCTrialAudienceJoinedPacket
+        )
+        .len(),
         1
     );
     send(&server, &mut a, cs::CSLeaveTrialAudiencePacket, |_| {}).await;
     assert_eq!(
-        ops(&a.client.drain()),
+        ops(&trial_frames(&mut a.client)),
         vec![sc::SCTrialAudienceLeftPacket, sc::SCLeavedChatChannelPacket]
     );
     send(&server, &mut a, cs::CSNaviOpenBountyPacket, |s| {
@@ -1029,7 +1743,7 @@ async fn audience_join_and_leave() {
     })
     .await;
     assert_eq!(
-        a.client.drain(),
+        trial_frames(&mut a.client),
         vec![(sc::SCBountyListPacket, vec![0, 0, 0, 0, 0])]
     );
 }
@@ -1118,8 +1832,8 @@ async fn crime_report_through_hooks() {
     let stain = Entity::new(0x800, d);
     let world = server.world.world(0).unwrap();
     world.spawn(&stain, &server.view_ctx());
-    criminal.client.drain();
-    reporter.client.drain();
+    trial_frames(&mut criminal.client);
+    trial_frames(&mut reporter.client);
 
     // The criminal cannot report its own crime.
     send(&server, &mut criminal, cs::CSReportCrimePacket, |s| {
@@ -1130,7 +1844,7 @@ async fn crime_report_through_hooks() {
             .write_str("me");
     })
     .await;
-    assert!(criminal.client.drain().is_empty());
+    assert!(trial_frames(&mut criminal.client).is_empty());
     assert!(hooks.phases.lock().unwrap().is_empty());
 
     // An arrested criminal also receives the new record.
@@ -1140,7 +1854,7 @@ async fn crime_report_through_hooks() {
         .trials
         .arrest_criminal(&server, &criminal.p, None)
         .unwrap();
-    criminal.client.drain();
+    trial_frames(&mut criminal.client);
 
     send(&server, &mut reporter, cs::CSReportCrimePacket, |s| {
         s.write_bc(0x800)
@@ -1178,7 +1892,7 @@ async fn crime_report_through_hooks() {
         )
     );
     assert_eq!(e.position, (110.0, 105.0, 100.0));
-    let f = criminal.client.drain();
+    let f = trial_frames(&mut criminal.client);
     assert_eq!(
         ops(&f),
         vec![sc::SCCrimeChangedPacket, sc::SCCrimeRecordsPacket]
@@ -1189,7 +1903,7 @@ async fn crime_report_through_hooks() {
             points: 25,
             crime_points: 25,
             infamy_points: 25,
-            crime_state: 0
+            crime_state: 2
         })
     );
     let entry = server.systems.social.crimes.record_entry(&server, e);

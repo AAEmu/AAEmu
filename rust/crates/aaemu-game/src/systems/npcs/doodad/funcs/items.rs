@@ -69,37 +69,26 @@ pub fn loot_item(
         return;
     };
     let eco = economy(ctx.server);
-    let mut res = true;
-    if f.item_id == ITEM_COINS {
-        // C# bug mirrored: `Money += count` and then `AddMoney` adds it a second time.
-        player.data().money += i64::from(count);
-        res = count >= 0
+    let res = if f.item_id == ITEM_COINS {
+        count >= 0
             && eco.change_money(
                 ctx.server,
                 player,
                 i64::from(count),
                 item_task::DEPOSIT_MONEY,
-            );
-    } else if eco.is_auto_equip_trade_pack(ctx.server, f.item_id) {
-        if eco.takeoff_backpack(ctx.server, player, item_task::RECOVER_DOODAD_ITEM, true) {
-            res = eco.create_item_in_backpack_slot(
-                ctx.server,
-                player,
-                item_task::RECOVER_DOODAD_ITEM,
-                f.item_id,
-                count,
-            );
-        }
+            )
     } else {
-        res = eco.acquire_item(
+        // The economy bridge handles trade packs in one item transaction, including slot
+        // validation and glider replacement. Failure must leave this doodad lootable.
+        eco.acquire_item(
             ctx.server,
             player,
             item_task::RECOVER_DOODAD_ITEM,
             f.item_id,
             count,
             -1,
-        );
-    }
+        )
+    };
     if !res {
         send_error(player, err::BAG_INVALID_ITEM);
     }
@@ -427,9 +416,7 @@ pub fn consume_changer(
         return;
     }
     let (template_id, owner_id) = {
-        let mut d = ctx.doodad.data();
-        d.item_id = source_id;
-        d.item_template_id = source_template;
+        let d = ctx.doodad.data();
         (d.template_id, d.owner_id)
     };
     // TODO (C#): if this item count would be different from 1, this would cause issues
@@ -444,11 +431,20 @@ pub fn consume_changer(
         );
     }
     // Move the actual item to the owner's SystemContainer
-    economy(ctx.server).move_item_to_system_container(
+    if !economy(ctx.server).move_item_to_system_container(
         ctx.server,
         player,
         item_task::DOODAD_ITEM_CHANGER,
         source_id,
-    );
+    ) {
+        set_to_next_phase(ctx, false);
+        send_error(player, err::STORE_INVALID_ITEM);
+        return;
+    }
+    {
+        let mut d = ctx.doodad.data();
+        d.item_id = source_id;
+        d.item_template_id = source_template;
+    }
     set_to_next_phase(ctx, true);
 }

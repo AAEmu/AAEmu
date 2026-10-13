@@ -364,13 +364,30 @@ pub fn raycast(
     objtypes: u32,
     flags: u32,
 ) -> Option<Option<Hit>> {
+    raycast_ignoring_objects(server, instance_id, from, to, objtypes, flags, &[])
+}
+
+/// A ray query excluding the colliders of selected live objects, such as its interaction target.
+pub fn raycast_ignoring_objects(
+    server: &GameServer,
+    instance_id: u32,
+    from: [f32; 3],
+    to: [f32; 3],
+    objtypes: u32,
+    flags: u32,
+    ignored: &[(world::ObjKind, u32)],
+) -> Option<Option<Hit>> {
     let pw = phys_world(server, instance_id)?;
     let (a, b) = (v(from), v(to));
     let min = Vec3::new(a.x.min(b.x), a.y.min(b.y), a.z.min(b.z));
     let max = Vec3::new(a.x.max(b.x), a.y.max(b.y), a.z.max(b.z));
     ensure_box(server, &pw, min, max);
     let mut st = pw.lock();
-    Some(st.raycast(a, b, objtypes, flags, &[]))
+    let skip: Vec<_> = ignored
+        .iter()
+        .filter_map(|key| st.objects.get(key).map(|c| c.ent))
+        .collect();
+    Some(st.raycast(a, b, objtypes, flags, &skip))
 }
 
 /// The highest solid surface (static geometry or terrain, mask 0x101) under `(x, y)` between

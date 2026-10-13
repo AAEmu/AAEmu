@@ -315,6 +315,14 @@ impl BaseUnitData for Doodad {
 /// timers work with (`systems::npcs::doodad`).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct DoodadPhaseState {
+    /// Active phase operation (nested calls on the same thread are allowed).
+    pub operation_thread: Option<std::thread::ThreadId>,
+    pub operation_depth: usize,
+    /// Completed interactions toward the current phase's authored act_count thresholds.
+    pub interaction_counts: std::collections::HashMap<u32, u32>,
+    pub logic_links: std::collections::HashMap<u32, usize>,
+    pub logic_inputs: std::collections::HashMap<usize, bool>,
+    pub logic_output: Option<bool>,
     /// `ToNextPhase`.
     pub to_next_phase: bool,
     /// `OverridePhase`.

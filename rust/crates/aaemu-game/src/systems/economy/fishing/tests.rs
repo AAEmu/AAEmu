@@ -888,10 +888,13 @@ async fn normal_chum_skill_hit_activates_only_matching_school_and_replaces_expir
             .items
             .iter()
             .all(|item| item.id != bait_id));
-        assert!(fixture
-            .client
-            .drain_ops()
-            .contains(&sc::SCDoodadPhaseChangedPacket));
+        assert_eq!(
+            fixture
+                .client
+                .drain_ops()
+                .contains(&sc::SCDoodadPhaseChangedPacket),
+            expected_phase == 17245
+        );
     }
     let fish_spawner = |group| {
         fixture

@@ -7,6 +7,7 @@ pub mod data;
 pub mod db;
 pub mod funcs;
 pub mod interactions;
+pub mod logic;
 pub mod manager;
 pub mod packets;
 pub mod phase;
@@ -41,12 +42,14 @@ pub fn register(reg: &mut PacketRegistry) {
     coffer::register(reg);
 }
 
-/// Doodad part of `SaveManager.DoSave`: nothing (C# doodads save themselves on every change,
-/// see [`db`]).
+/// Drain on-change doodad writes before `SaveManager.DoSave` persists item state.
 pub async fn save(
-    _server: &GameServer,
+    server: &GameServer,
     _tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
-    _stage: SaveStage,
+    stage: SaveStage,
 ) -> crate::Result<usize> {
+    if stage == SaveStage::BeforeItems {
+        server.systems.npcs.doodads.persistence.flush().await?;
+    }
     Ok(0)
 }

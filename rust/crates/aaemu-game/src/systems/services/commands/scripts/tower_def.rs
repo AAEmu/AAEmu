@@ -1,18 +1,8 @@
-//! `Scripts/Commands/TowerDef.cs`.
+//! Tower defense operator controls (extends the old packet-only `TowerDef.cs` command).
 
 use super::prelude::*;
-use crate::systems::instances::packets::{
-    SCTowerDefEndPacket, SCTowerDefStartPacket, SCTowerDefWaveStartPacket, TowerDefKey,
-};
+use crate::systems::instances::tower_def::{self, EventKey};
 
-/// `args[i]` (an `IndexOutOfRangeException` past the end).
-fn arg(args: &[String], i: usize) -> anyhow::Result<&str> {
-    args.get(i)
-        .map(String::as_str)
-        .ok_or_else(|| anyhow::anyhow!("Index was outside the bounds of the array."))
-}
-
-/// `TowerDef`.
 pub struct TowerDef;
 
 impl TowerDef {
@@ -32,137 +22,120 @@ impl Command for TowerDef {
         args: &[String],
         out: &mut dyn MessageOutput,
     ) -> anyhow::Result<()> {
-        if args.is_empty() {
+        let Some(action) = args.first() else {
             CommandManager::send_default_help_text(self, out);
             return Ok(());
-        }
-        let key = |id: u32| TowerDefKey {
-            tower_def_id: id,
-            zone_group_id: 5,
         };
-        match args[0].to_lowercase().as_str() {
-            "list" => CommandManager::send_normal_text(self, out, "Not implemented"),
-            "start" => {
-                // C#: `args[1]` without a length check (IndexOutOfRangeException).
-                let Some(start_id) = try_parse::<u32>(arg(args, 1)?) else {
-                    return Ok(());
-                };
-                let player = ctx.player()?;
-                let zone_id = player.data().unit.transform.zone_id;
-                player.send(SCTowerDefStartPacket {
-                    key: key(start_id),
-                    event_zone_id: zone_id,
-                });
+        let server = ctx.server()?;
+        let player = ctx.player()?;
+        let zone_id = player.data().unit.transform.zone_id;
+        let result = (|| -> anyhow::Result<()> {
+            match action.to_lowercase().as_str() {
+                "list" | "status" => {
+                    if args.len() != 1 {
+                        anyhow::bail!("Usage: /towerdef list");
+                    }
+                    let mut ids: Vec<_> = server
+                        .game_data
+                        .systems
+                        .instances
+                        .tower_defs
+                        .tower_defs
+                        .keys()
+                        .copied()
+                        .collect();
+                    ids.sort_unstable();
+                    let world_id = player.data().unit.transform.instance_id;
+                    let location = EventKey::at_player(server, &player, 0)?;
+                    CommandManager::send_normal_text(
+                        self,
+                        out,
+                        &format!(
+                            "World {world_id}, zone {zone_id}, zone group {}",
+                            location.zone_group_id
+                        ),
+                    );
+                    let active = tower_def::infos(server, world_id);
+                    tower_def::send_list(server, &player);
+                    for id in ids {
+                        let key = EventKey::at_player(server, &player, id)?;
+                        let status = if let Some(info) = active.iter().find(|i| {
+                            i.key.tower_def_id == id && i.key.zone_group_id == key.zone_group_id
+                        }) {
+                            format!("running, wave {}", info.current_step)
+                        } else {
+                            match tower_def::validate(server, key, zone_id) {
+                                Ok(()) => "ready".to_string(),
+                                Err(error) => format!("unavailable: {error}"),
+                            }
+                        };
+                        CommandManager::send_normal_text(self, out, &format!("{id}: {status}"));
+                    }
+                }
+                "start" | "end" | "next" => {
+                    let expected = if action.eq_ignore_ascii_case("next") {
+                        3
+                    } else {
+                        2
+                    };
+                    if args.len() != expected {
+                        anyhow::bail!("Usage: /towerdef start <id>, end <id>, next <id> <wave>");
+                    }
+                    let id = try_parse::<u32>(&args[1])
+                        .ok_or_else(|| anyhow::anyhow!("Invalid tower defense id {}", args[1]))?;
+                    let key = EventKey::at_player(server, &player, id)?;
+                    match action.to_lowercase().as_str() {
+                        "start" => tower_def::start(server, key, zone_id)?,
+                        "end" => tower_def::end(server, key)?,
+                        _ => {
+                            let step = try_parse::<u32>(&args[2])
+                                .ok_or_else(|| anyhow::anyhow!("Invalid wave {}", args[2]))?;
+                            tower_def::next_wave(server, key, step)?;
+                        }
+                    }
+                    CommandManager::send_normal_text(
+                        self,
+                        out,
+                        &format!("Tower defense {id}: {}", action.to_lowercase()),
+                    );
+                }
+                _ => anyhow::bail!("Unknown tower defense action {action}"),
             }
-            "end" => {
-                let Some(end_id) = try_parse::<u32>(arg(args, 1)?) else {
-                    return Ok(());
-                };
-                let player = ctx.player()?;
-                let zone_id = player.data().unit.transform.zone_id;
-                player.send(SCTowerDefEndPacket {
-                    key: key(end_id),
-                    event_zone_id: zone_id,
-                });
-            }
-            "next" => {
-                let Some(next_id) = try_parse::<u32>(arg(args, 1)?) else {
-                    return Ok(());
-                };
-                let Some(step) = try_parse::<u32>(arg(args, 2)?) else {
-                    return Ok(());
-                };
-                let player = ctx.player()?;
-                let zone_id = player.data().unit.transform.zone_id;
-                player.send(SCTowerDefWaveStartPacket {
-                    key: key(next_id),
-                    event_zone_id: zone_id,
-                    step,
-                });
-            }
-            _ => CommandManager::send_error_text(
-                self,
-                out,
-                &format!("Unknown tower defense action {}", args[0]),
-            ),
+            Ok(())
+        })();
+        if let Err(error) = result {
+            CommandManager::send_error_text(self, out, &error.to_string());
         }
         Ok(())
     }
 
     fn get_command_line_help(&self) -> String {
-        "<action> <params>".into()
+        "list | start <id> | end <id> | next <id> <wave>".into()
     }
-
     fn get_command_help_text(&self) -> String {
-        "Actions are: list, start, end, next".into()
+        "Control events in your world and zone group; waves start at 1. Automatic schedules use Dungeons.TowerDefense.".into()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use aaemu_commons::PacketStream;
-
     use super::super::harness;
-    use crate::opcodes::sc;
-
-    fn body(id: u32, zone: u32, step: Option<u32>) -> Vec<u8> {
-        let mut s = PacketStream::new();
-        s.write_u32(id).write_u16(5).write_u32(zone);
-        if let Some(step) = step {
-            s.write_u32(step);
-        }
-        s.into_bytes()
-    }
 
     #[tokio::test]
-    async fn tower_def_actions() {
+    async fn tower_def_rejects_bad_arguments_without_sending_event_packets() {
         let server = harness::server();
         let mut gm = harness::pc(&server, 1, "Gm", 100.0, 100.0);
-        gm.p.data().unit.transform.zone_id = 77;
-
-        let (_, out) = harness::run(&server, &gm.p, "towerdef start 12").await;
-        assert!(out.is_empty());
-        assert_eq!(
-            gm.packets(),
-            vec![(sc::SCTowerDefStartPacket, body(12, 77, None))]
-        );
-        harness::run(&server, &gm.p, "tower_def END 3").await;
-        assert_eq!(
-            gm.packets(),
-            vec![(sc::SCTowerDefEndPacket, body(3, 77, None))]
-        );
-        harness::run(&server, &gm.p, "towerdef next 4 2").await;
-        assert_eq!(
-            gm.packets(),
-            vec![(sc::SCTowerDefWaveStartPacket, body(4, 77, Some(2)))]
-        );
-        // Unparsable id: nothing.
-        let (_, out) = harness::run(&server, &gm.p, "towerdef start x").await;
-        assert!(out.is_empty());
-        assert!(gm.packets().is_empty());
-
-        let (_, out) = harness::run(&server, &gm.p, "towerdef list").await;
-        assert_eq!(out, [harness::normal("towerdef", "Not implemented")]);
-        let (_, out) = harness::run(&server, &gm.p, "towerdef Foo").await;
-        assert_eq!(
-            out,
-            [harness::error(
-                "towerdef",
-                "Unknown tower defense action Foo"
-            )]
-        );
-        let (_, out) = harness::run(&server, &gm.p, "towerdef").await;
-        assert_eq!(
-            out,
-            ["Help for |cFFFFFFFF/towerdef|r |cFFEEEEAA<action> <params>|r\n|cFF888888Actions are: list, start, end, next|r"]
-        );
-        // C#: `args[1]` without a length check throws.
-        gm.chat();
-        let (_, out) = harness::run(&server, &gm.p, "towerdef start").await;
-        assert!(out.is_empty());
-        assert_eq!(
-            gm.chat(),
-            ["|cFFFF0000Index was outside the bounds of the array.|r"]
-        );
+        for command in [
+            "towerdef start",
+            "towerdef next 12",
+            "towerdef start x",
+            "towerdef next 12 x",
+            "towerdef Foo",
+        ] {
+            let (_, out) = harness::run(&server, &gm.p, command).await;
+            assert_eq!(out.len(), 1, "{command}");
+            assert!(out[0].contains("|cFFFF0000"), "{out:?}");
+            assert!(gm.packets().is_empty());
+        }
     }
 }

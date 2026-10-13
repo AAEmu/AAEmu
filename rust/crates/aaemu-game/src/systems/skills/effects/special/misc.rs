@@ -12,7 +12,6 @@ use crate::data::formulas::FormulaKind;
 use crate::managers::chat::chat_type;
 use crate::models::transform::PositionAndRotation;
 use crate::packets::world::SCErrorMsgPacket;
-use crate::packets::world_objects::SCDoodadRemovedPacket;
 use crate::server::GameServer;
 use crate::world::WorldObject;
 
@@ -182,9 +181,8 @@ pub fn save_portal(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
 /// `SpawnDoodad`: doodad `value1` one metre in front of the caster (or the target for
 /// `TargetSelection.Target` skills), facing like the target, spawned after `value2` ms.
 ///
-/// Mirrored C# quirks: the position is moved along `target yaw + 90°` (not the caster's), and
-/// the rotation passed to `SetPosition` is in degrees (`ToRollPitchYawDegrees`) although
-/// `SetPosition` takes radians. `value3` (create trade pack) is unused, as in the C#. The
+/// Position and orientation use the selected source/target frame, in radians.
+/// `value3` (create trade pack) is unused, as in the C#. The
 /// doodad itself (`DoodadManager.Create`, `GeoData.GetHeight`, `InitDoodad`, `Spawn`) is the
 /// npc subsystem's.
 pub fn spawn_doodad(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
@@ -202,11 +200,6 @@ pub fn spawn_doodad(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     }
     let caster_t = Target::Obj(caster.clone());
     let target_pos = world_pos(server, &args.target);
-    let rpy = (
-        rad_to_deg(target_pos.rot_x),
-        rad_to_deg(target_pos.rot_y),
-        rad_to_deg(target_pos.rot_z),
-    );
     let selection = args
         .source
         .skill()
@@ -215,8 +208,8 @@ pub fn spawn_doodad(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
         Some(SkillTargetSelection::Target) => (target_pos, instance_and_zone(&args.target).1),
         _ => (world_pos(server, &caster_t), instance_and_zone(&caster_t).1),
     };
-    let (xx, yy) = add_distance_to_front_deg(1.0, base.x, base.y, rpy.2 + 90.0);
-    let pos = PositionAndRotation::new(xx, yy, base.z, rpy.0, rpy.1, rpy.2);
+    let (xx, yy) = add_distance_to_front_deg(1.0, base.x, base.y, rad_to_deg(base.rot_z) + 90.0);
+    let pos = PositionAndRotation::new(xx, yy, base.z, base.rot_x, base.rot_y, base.rot_z);
     server.systems.skills.ext.npcs().spawn_doodad(
         server,
         caster,
@@ -227,9 +220,7 @@ pub fn spawn_doodad(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     );
 }
 
-/// `RemoveDoodad`: every doodad of template `value1` within 10 m of the caster is deleted and
-/// `SCDoodadRemovedPacket` is broadcast from it (after the delete, as the C#: a deleted doodad
-/// has no region left, so that broadcast reaches nobody).
+/// Delete matching doodads through their manager; world visibility sends the removal once.
 pub fn remove_doodad(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     log_values(args, "RemoveDoodad", v);
     let Some(caster) = &args.caster else {
@@ -244,12 +235,6 @@ pub fn remove_doodad(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
         let template_id = d.data().template_id;
         if i64::from(template_id) == i64::from(v[0]) {
             npcs.delete_doodad(server, o.obj_id());
-            broadcast(
-                server,
-                &o,
-                &SCDoodadRemovedPacket { obj_id: o.obj_id() },
-                false,
-            );
         }
     }
 }

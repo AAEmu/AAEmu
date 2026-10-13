@@ -658,6 +658,8 @@ impl SkillHitType {
                 | SkillHitType::RangedParry
                 | SkillHitType::RangedBlock
                 | SkillHitType::RangedMiss
+                | SkillHitType::SpellMiss
+                | SkillHitType::SpellResist
                 | SkillHitType::Immune
         )
     }

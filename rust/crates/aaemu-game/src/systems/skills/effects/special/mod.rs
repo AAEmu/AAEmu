@@ -17,6 +17,7 @@ pub mod combat;
 pub mod items;
 pub mod misc;
 pub mod movement;
+mod unit_actions;
 
 use crate::server::GameServer;
 
@@ -194,11 +195,29 @@ pub fn apply(server: &GameServer, e: &SpecialEffect, args: &EffectArgs<'_>) {
             .source
             .skill()
             .map_or(0, |s| s.template.effect_repeat_tick);
+        let generation = args.source.skill().map(|s| s.state().generation);
         execute(server, e.special_effect_type_id, args, values);
         for i in 1..repeat {
             let owned = OwnedArgs::from(args);
             let kind = e.special_effect_type_id;
             super::super::tasks::schedule(server, i64::from(i) * i64::from(tick), move |srv| {
+                if owned.source.skill().is_some_and(|skill| {
+                    let state = skill.state();
+                    state.cancelled || Some(state.generation) != generation
+                }) {
+                    return;
+                }
+                if owned
+                    .caster
+                    .as_ref()
+                    .is_some_and(|caster| !super::super::geometry::is_live_object(&srv, caster))
+                    || owned
+                        .target
+                        .as_obj()
+                        .is_some_and(|target| !super::super::geometry::is_live_object(&srv, target))
+                {
+                    return;
+                }
                 let so = owned.skill_object.clone();
                 let a = owned.to_args(&so);
                 execute(&srv, kind, &a, values);
@@ -284,9 +303,12 @@ pub fn execute(server: &GameServer, kind: i32, args: &EffectArgs<'_>, values: [i
     match kind {
         1 => combat::charge(s, a, v),
         5 => combat::disturb_casting(s, a, v),
+        8 => unit_actions::lose_target(s, a, v),
         11 => movement::blink(s, a, v),
         13 => movement::knock_back(s, a, v),
         15 => misc::spawn_doodad(s, a, v),
+        16 => unit_actions::buff_steal(s, a, v),
+        18 => unit_actions::fake_death(s, a, v),
         22 => combat::resurrection(s, a, v),
         23 => items::capture_pet(s, a, v),
         24 => misc::spawn_pet(s, a, v),
@@ -307,9 +329,11 @@ pub fn execute(server: &GameServer, kind: i32, args: &EffectArgs<'_>, values: [i
         52 => combat::stop_mana_regen(s, a, v),
         53 => misc::attach_to(s, a, v),
         54 => combat::add_breath(s, a, v),
+        56 => unit_actions::heal_pet(s, a, v),
         58 => misc::remove_doodad(s, a, v),
         59 => combat::cancel_stealth(s, a, v),
         60 => misc::spawn_slave(s, a, v),
+        61 => unit_actions::cancel_ongoing_buff(s, a, v),
         66 => combat::auto_attack(s, a, v),
         68 => items::apply_reagents(s, a, v),
         74 => movement::escape(s, a, v),
@@ -331,8 +355,11 @@ pub fn execute(server: &GameServer, kind: i32, args: &EffectArgs<'_>, values: [i
         101 => misc::enter_beautyshop(s, a, v),
         102 => misc::give_crime_point(s, a, v),
         103 => items::cleanup_look_convert(s, a, v),
+        104 => unit_actions::aggro_copy(s, a, v),
+        105 => unit_actions::aggro_reset(s, a, v),
         106 => items::item_socketing(s, a, v),
         108 => items::skinize(s, a, v),
+        109 => unit_actions::npc_despawn(s, a, v),
         111 => items::item_cap_scale_reset(s, a, v),
         112 => items::item_cap_scale(s, a, v),
         114 => misc::give_appellation(s, a, v),

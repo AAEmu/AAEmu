@@ -223,7 +223,16 @@ pub fn validate(
         ),
         0x09 => ret(
             "skill_urk_equip_item",
-            player.is_some_and(|p| items.item_count(server, p, v1) > 0),
+            player.is_some_and(|p| {
+                let equipment = p.data().inventory.equipment().clone();
+                let equipped = !equipment
+                    .lock()
+                    .expect("equipment poisoned")
+                    .items_by_template(v1, -1)
+                    .0
+                    .is_empty();
+                equipped
+            }),
         ),
         0x0A => ret_value(
             "skill_urk_own_item",
@@ -304,6 +313,13 @@ pub fn validate(
             }),
         ),
         0x1C => {
+            if let Some(target) = target {
+                return ret(
+                    "skill_urk_target_doodad",
+                    target.as_doodad().is_some()
+                        && target.with_base_unit(|b| b.template_id()) == v1,
+                );
+            }
             let current = unit
                 .and_then(|u| u.with_unit(|x| x.unit().current_target))
                 .unwrap_or(0);
@@ -365,7 +381,15 @@ pub fn validate(
         ),
         0x22 => ret(
             "skill_urk_target_npc_group",
-            target_unit.is_some_and(|t| t.as_npc().is_some()),
+            target_unit.is_some_and(|t| {
+                t.as_npc().is_some()
+                    && server
+                        .game_data
+                        .systems
+                        .quests
+                        .group_npcs
+                        .contains(v1, t.with_base_unit(|b| b.template_id()))
+            }),
         ),
         0x23 => {
             let p =
@@ -408,7 +432,14 @@ pub fn validate(
         ),
         0x29 => {
             let t = (f64::from(server.time.get_time()) * 100.0).floor() as u32;
-            ret("skill_urk_tod", t >= v1 && t <= v2)
+            ret(
+                "skill_urk_tod",
+                if v1 <= v2 {
+                    t >= v1 && t <= v2
+                } else {
+                    t >= v1 || t <= v2
+                },
+            )
         }
         0x2A | 0x38 => {
             let mother = unit
@@ -436,7 +467,14 @@ pub fn validate(
                     .is_some_and(|a| a.point >= v2 as i32)
             }),
         ),
-        0x2C | 0x2E | 0x44 => ret("skill_failure", true),
+        0x2C => ret(
+            "skill_urk_crime_point",
+            player.is_some_and(|p| {
+                let points = i32::from(p.data().crime_point);
+                points >= v1 as i32 && points <= v2 as i32
+            }),
+        ),
+        0x2E | 0x44 => ret("skill_failure", true),
         0x2D => ret(
             "skill_urk_honor_point",
             player.is_some_and(|p| {
@@ -482,6 +520,27 @@ pub fn validate(
                 let mother = server.game_data.factions.get(f).map_or(0, |x| x.mother_id);
                 ret("skill_urk_mother_faction_only_not", mother != v1)
             }
+        }
+        0x41 | 0x42 => {
+            let remaining = unit.and_then(|u| {
+                u.with_unit(|u| {
+                    let u = u.unit();
+                    if req.kind == 0x41 {
+                        i64::from(u.max_hp) - i64::from(u.hp)
+                    } else {
+                        i64::from(u.max_mp) - i64::from(u.mp)
+                    }
+                })
+            });
+            ret_value(
+                if req.kind == 0x41 {
+                    "skill_urk_health_margin"
+                } else {
+                    "skill_urk_mana_margin"
+                },
+                v1,
+                remaining.is_some_and(|remaining| i64::from(v1) <= remaining),
+            )
         }
         0x43 => {
             // TimedRewardsManager.GetMaxLabor(premium) - LaborPower
@@ -544,7 +603,24 @@ pub fn can_use_skill(
     server: &GameServer,
     template: &SkillTemplate,
     owner: &WorldObject,
+    skill_caster: &SkillCaster,
+) -> ReqResult {
+    let target = if template.target_type == 0 {
+        Some(owner.clone())
+    } else {
+        let current = owner.with_unit(|u| u.unit().current_target).unwrap_or(0);
+        server.world.object(current)
+    };
+    can_use_skill_on_target(server, template, owner, skill_caster, target.as_ref())
+}
+
+/// Validate the resolved cast target, which may differ from the selected unit.
+pub fn can_use_skill_on_target(
+    server: &GameServer,
+    template: &SkillTemplate,
+    owner: &WorldObject,
     _skill_caster: &SkillCaster,
+    target: Option<&WorldObject>,
 ) -> ReqResult {
     // Buried Treasure check (no table carries this requirement).
     if template.id == super::skill::DIG_UP_TREASURE_SKILL
@@ -566,34 +642,25 @@ pub fn can_use_skill(
     if reqs.is_empty() {
         return ReqResult::OK;
     }
-    let target = if template.target_type == 0 {
-        Some(owner.clone())
-    } else {
-        let current = owner.with_unit(|u| u.unit().current_target).unwrap_or(0);
-        Some(
-            (current != 0)
-                .then(|| server.world.object(current))
-                .flatten()
-                .unwrap_or_else(|| owner.clone()),
-        )
-    };
     let mut res = !template.or_unit_reqs;
     let mut last_failed = ReqResult {
         key: "skill_failure",
         value: 0,
     };
     for req in &reqs {
-        let r = validate(server, req, owner, target.as_ref());
+        let r = validate(server, req, owner, target);
         let ok = r.is_ok();
         if !ok {
             last_failed = r;
         }
         if template.or_unit_reqs {
-            // The C# stops at the first requirement and passes, whatever its result.
-            res = true;
-            break;
+            res |= ok;
+            if res {
+                break;
+            }
+        } else {
+            res &= ok;
         }
-        res &= ok;
     }
     if res {
         ReqResult::OK

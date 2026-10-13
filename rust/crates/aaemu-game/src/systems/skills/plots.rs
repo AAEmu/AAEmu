@@ -557,8 +557,7 @@ pub fn condition_check(
             .is_some_and(|_| weapon_wield_kind(server, caster.as_obj().expect("player")) == p1),
         7 => match caster_unit {
             Some(u) => {
-                let roll = rand::thread_rng().gen_range(0..100);
-                let ok = roll <= p1;
+                let ok = super::effects::chance_succeeds(p1);
                 u.with_unit(|x| x.unit_mut().skill_state.condition_chance = ok);
                 ok
             }

@@ -1,10 +1,8 @@
 //! `DoodadPhaseFuncTemplate.Use` of every phase func (the 42 `FuncTemplate` variants with
 //! [`FuncTemplate::is_phase_func`]).
 //!
-//! `DoodadPhaseFunc.PulseTriggered` lives on the shared `DoodadPhaseFunc` row objects of
-//! `DoodadManager._phaseFuncs` in C#, i.e. it is shared by every doodad whose phase uses that row.
-//! It is kept in `DoodadManager::pulse_triggered` keyed by (func group id, row index) with the
-//! same sharing.
+//! Pulse state is per live doodad, so copies of one template and different instances do not
+//! suppress each other's triggers.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -123,15 +121,27 @@ pub fn use_phase_func(t: &FuncTemplate, ctx: &DoodadCtx<'_>, caster: Option<&Wor
                     tasks::ms(f64::from(after_delay)),
                 );
             } else {
-                super::manager::delete(server, &ctx.world, &ctx.doodad);
+                let spawner = server
+                    .systems
+                    .npcs
+                    .spawns
+                    .doodad_spawner_of(ctx.doodad.obj_id);
+                phase::despawn_or_delete(ctx);
                 if !f.respawn {
                     return false;
                 }
+                let Some(spawner) = spawner else {
+                    return false;
+                };
                 tasks::start_func_task(
                     server,
                     &ctx.doodad,
                     caster,
-                    kind,
+                    FuncTaskKind::Final {
+                        respawn: true,
+                        delay,
+                        respawn_stage: Some(spawner),
+                    },
                     tasks::ms(f64::from(delay)),
                 );
             }
@@ -241,37 +251,17 @@ pub fn use_phase_func(t: &FuncTemplate, ctx: &DoodadCtx<'_>, caster: Option<&Wor
             None => false, // caster is not a player, allow execution as we can't check
         },
         FuncTemplate::Pulse(f) => {
-            use_pulse(ctx, caster, f.flag);
+            super::logic::emit(ctx, caster, f.flag);
             false
         }
-        FuncTemplate::PulseTrigger(f) => {
-            if DoodadCtx::as_player(caster).is_none() {
-                return true;
-            }
-            // Grab the calling PhaseFunc (CurrentPhaseFuncs.FirstOrDefault(x => x.FuncId == Id))
-            let group = ctx.doodad.data().func_group_id;
-            let Some(index) = ctx
-                .data()
-                .phase_funcs(group)
-                .iter()
-                .position(|pf| pf.func_id == f.id)
-            else {
-                tracing::warn!(
-                    "DoodadFuncPulseTrigger Flag={}, NextPhase={} was not triggered from a DoodadFuncPulseTrigger",
-                    f.flag,
-                    f.next_phase
-                );
-                return false;
-            };
-            let manager = &server.systems.npcs.doodads;
-            let triggered = manager.pulse_triggered(group, index);
-            if f.flag && !triggered {
-                manager.set_pulse_triggered(group, index, true); // Prevent loops
-                ctx.doodad.data().phase.override_phase = f.next_phase;
-                return true;
-            }
-            false
-        }
+        // These describe routing/operations; a trigger runs only on a received signal.
+        FuncTemplate::PulseTrigger(_)
+        | FuncTemplate::Logic(_)
+        | FuncTemplate::LogicFamilyProvider(_) => false,
+        FuncTemplate::LogicFamilySubscriber(f) => super::logic::subscribe(ctx, caster, f.family_id),
+        // PrefabDoodadModel::PlayFlowGraph is client-owned; the phase and visibility packets
+        // already cause the 1.2 client to execute these events from its own compact data.
+        FuncTemplate::PlayFlowGraph(_) => false,
         FuncTemplate::Respawn(f) => {
             tracing::trace!(
                 "DoodadFuncRespawn: MinTime {}, MaxTime {}",
@@ -298,12 +288,37 @@ pub fn use_phase_func(t: &FuncTemplate, ctx: &DoodadCtx<'_>, caster: Option<&Wor
         // groups. Explicit GM HQ phases/bindings remain usable without guessing a calendar.
         FuncTemplate::SiegePeriod(_) => false,
         FuncTemplate::SpawnGimmick(f) => {
-            tracing::info!(
-                "DoodadFuncSpawnGimmick GimmickId={}, scale={}",
-                f.gimmick_id,
-                f.scale
-            );
-            override_if_character(ctx, caster, f.next_phase)
+            if crate::systems::npcs::gimmick::manager::spawn_from_doodad(
+                server,
+                &ctx.world,
+                &ctx.obj(),
+                f,
+            )
+            .is_some()
+            {
+                if f.next_phase > 0 {
+                    ctx.doodad.data().phase.override_phase = f.next_phase;
+                    return true;
+                }
+                if f.next_phase == -1 {
+                    phase::despawn_or_delete(ctx);
+                    return true;
+                }
+            }
+            false
+        }
+        FuncTemplate::SpawnMgmt(f) => {
+            if let Some(spawns) = server.systems.npcs.spawns.get(ctx.world.id) {
+                if spawns.set_management_group(server, f.zone_id, f.group_id, f.spawn) == 0 {
+                    tracing::warn!(
+                        doodad = ctx.doodad.obj_id,
+                        group = f.group_id,
+                        zone = f.zone_id,
+                        "Doodad spawn management group has no authored SpawnGroupId positions"
+                    );
+                }
+            }
+            false
         }
         FuncTemplate::ZoneReact(f) => {
             let zone_id = ctx.doodad.data().transform.zone_id;
@@ -356,66 +371,16 @@ pub fn use_phase_func(t: &FuncTemplate, ctx: &DoodadCtx<'_>, caster: Option<&Wor
         | FuncTemplate::Exchange(_)
         | FuncTemplate::FishSchool(_)
         | FuncTemplate::HouseFarm(_)
-        | FuncTemplate::Logic(_)
-        | FuncTemplate::LogicFamilyProvider(_)
-        | FuncTemplate::LogicFamilySubscriber(_)
         | FuncTemplate::NaviRemoveTimer(_)
         | FuncTemplate::Parrot(_)
-        | FuncTemplate::PlayFlowGraph(_)
         | FuncTemplate::PuzzleIn(_)
         | FuncTemplate::Sign(_)
-        | FuncTemplate::SpawnMgmt(_)
         | FuncTemplate::WaterVolume(_) => {
             tracing::trace!("{}", t.func_type());
             false
         }
         // Not a DoodadPhaseFuncTemplate (never returned by GetPhaseFuncTemplate).
         _ => false,
-    }
-}
-
-/// `DoodadFuncPulse.Use`.
-fn use_pulse(ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>, flag: bool) {
-    tracing::trace!("DoodadFuncPulse: Flag {flag}");
-    let Some(caster) = caster else {
-        return;
-    };
-    let server = ctx.server;
-    let Some(spawner) = server
-        .systems
-        .npcs
-        .spawns
-        .doodad_spawner_of(ctx.doodad.obj_id)
-    else {
-        return;
-    };
-    let around: Vec<_> = ctx.world.around(caster, |o| o.as_doodad().cloned());
-    let mut doodads = Vec::new();
-    if let Some(related) = &spawner.related_ids {
-        for &related_id in related {
-            doodads.extend(
-                around
-                    .iter()
-                    .filter(|d| d.data().template_id == related_id)
-                    .cloned(),
-            );
-        }
-    }
-    for doodad in doodads {
-        let group = doodad.data().func_group_id;
-        let funcs = ctx.data().phase_funcs(group);
-        for (index, func) in funcs.iter().enumerate() {
-            if func.func_type == "DoodadFuncPulseTrigger" && flag {
-                server
-                    .systems
-                    .npcs
-                    .doodads
-                    .set_pulse_triggered(group, index, false); // Allow one-time execution
-                let other = DoodadCtx::new(server, ctx.world.clone(), doodad.clone());
-                let fg = doodad.data().func_group_id;
-                phase::do_change_phase(&other, Some(caster), fg as i32);
-            }
-        }
     }
 }
 

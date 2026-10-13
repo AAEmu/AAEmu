@@ -159,6 +159,11 @@ impl Buff {
             return true;
         }
         if self.template.save_rule_id == save_rule::NORMAL {
+            // The 1.2 prisoner buffs are bad, normal-save buffs. Preserve their remaining
+            // online sentence, including the final seconds, across disconnects.
+            if matches!(self.template.id, 631 | 2028) {
+                return true;
+            }
             if self.template.kind == BuffKind::Bad {
                 return false;
             }
@@ -442,6 +447,20 @@ impl Buffs {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn prison_sentences_persist_until_the_last_second() {
+        for id in [631, 2028] {
+            let mut template = BuffTemplate::simple(id, BuffKind::Bad);
+            template.save_rule_id = save_rule::NORMAL;
+            let mut buff = Buff::new(template, SkillCaster::default(), None, 1_000);
+            buff.duration = 10_000;
+            assert!(buff.should_persist(10_999));
+            assert!(!buff.should_persist(11_000));
+            buff.template.id = 999;
+            assert!(!buff.should_persist(10_999));
+        }
+    }
 
     #[test]
     fn indices_and_refresh_rule() {

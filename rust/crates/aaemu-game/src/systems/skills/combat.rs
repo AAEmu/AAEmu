@@ -273,7 +273,7 @@ pub fn do_die(
     crate::systems::housing::on_unit_died(server, victim);
     crate::systems::vehicles::on_death_event(server, victim);
     // Abusers that died leave the aggro tables they are in (OnAbuserDied).
-    on_abuser_died(server, victim);
+    clear_incoming_aggro(server, victim);
     buffs::remove_effects_on_death(server, victim);
 
     let mut lost_exp = 0;
@@ -1152,16 +1152,17 @@ pub fn on_abuser_healed(
     }
 }
 
-/// `OnAbuserDied`: the dead unit leaves every aggro table it is in.
-fn on_abuser_died(server: &GameServer, victim: &WorldObject) {
+/// Remove the unit from every aggro table watching it. Death and FakeDeath share
+/// this operation (native WZFakeDeath handler 0x3936F060).
+pub(crate) fn clear_incoming_aggro(server: &GameServer, victim: &WorldObject) {
     let holders: Vec<u32> = server
         .systems
         .skills
         .aggro_watch
         .lock()
         .expect("aggro watch poisoned")
-        .get(&victim.obj_id())
-        .map(|s| s.iter().copied().collect())
+        .remove(&victim.obj_id())
+        .map(|s| s.into_iter().collect())
         .unwrap_or_default();
     for h in holders {
         if let Some(holder) = server.world.object(h) {

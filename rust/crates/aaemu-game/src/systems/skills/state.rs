@@ -40,13 +40,15 @@ impl PartialEq for CancelToken {
 #[derive(Debug, Default)]
 pub struct SkillRunState {
     pub tl_id: u16,
-    /// Accepted casts, independent of reusable timeline IDs.
+    /// Accepted casts of a reused SkillRun, independent of timeline ID release.
     pub generation: u64,
     pub cancelled: bool,
     /// `HitTypes` (target obj id -> hit type, `TryAdd` semantics where the C# uses it).
     pub hit_types: HashMap<u32, SkillHitType>,
     /// `InitialTarget?.ObjId` (`u32::MAX` = a position unit).
     pub initial_target: u32,
+    /// The channel target's object ID and retained handle identity, for buff cleanup.
+    pub channel_target: Option<(u32, usize)>,
     pub bypass_gcd: bool,
     /// `CastTimeMultiplier`.
     pub cast_time_multiplier: f32,
@@ -192,12 +194,15 @@ pub enum AggroKind {
 pub struct Aggro {
     pub damage_aggro: i32,
     pub heal_aggro: i32,
+    pub etc_aggro: i32,
 }
 
 impl Aggro {
     /// `TotalAggro`.
     pub fn total(&self) -> i32 {
-        self.damage_aggro.wrapping_add(self.heal_aggro)
+        self.damage_aggro
+            .wrapping_add(self.heal_aggro)
+            .wrapping_add(self.etc_aggro)
     }
 
     /// `AddAggro(kind, amount)` (heal aggro counts 60 %).
@@ -209,7 +214,7 @@ impl Aggro {
                     .heal_aggro
                     .wrapping_add((amount as f32 * 0.6f32) as i32)
             }
-            AggroKind::Etc => {}
+            AggroKind::Etc => self.etc_aggro = self.etc_aggro.wrapping_add(amount),
         }
     }
 }
@@ -237,6 +242,10 @@ pub struct ToleranceCounter {
 /// Per-unit skill / combat state (`UnitBase.skill_state`).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct UnitSkillState {
+    /// Last movement request has nonzero velocity.
+    pub moving: bool,
+    /// Last authenticated movement reported a jump or an airborne actor.
+    pub airborne: bool,
     /// `SkillTask`.
     pub skill_task: Option<SkillTaskSlot>,
     /// `AutoAttackTask`.

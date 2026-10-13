@@ -262,7 +262,7 @@ impl ClientPacket for CSChangeDoodadPhasePacket {
     }
 }
 
-/// `CSSetLogicDoodadPacket` (logged only, as in C#).
+/// `CSSetLogicDoodadPacket`: provider and subscriber object IDs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CSSetLogicDoodadPacket {
     pub obj_id: u32,
@@ -278,11 +278,15 @@ impl ClientPacket for CSSetLogicDoodadPacket {
     }
     fn handle<'a>(
         self,
-        _server: &'a GameServer,
-        _conn: &'a mut GameConnection,
+        server: &'a GameServer,
+        conn: &'a mut GameConnection,
     ) -> BoxFuture<'a, Result<()>> {
         Box::pin(async move {
-            tracing::warn!("SetLogicDoodad, ObjId: {}, {}", self.obj_id, self.obj2_id);
+            if let Some(player) = &conn.active_char {
+                if !super::logic::link(server, player, self.obj_id, self.obj2_id) {
+                    player.send(error_msg(error_message::NO_INTERACTION_AVAILABLE));
+                }
+            }
             Ok(())
         })
     }

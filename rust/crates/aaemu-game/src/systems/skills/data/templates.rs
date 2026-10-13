@@ -62,6 +62,7 @@ pub struct SkillTemplate {
     pub target_area_count: i32,
     pub target_area_radius: i32,
     pub target_siege: bool,
+    pub check_obstacle: bool,
     pub weapon_slot_for_angle_id: i32,
     pub target_angle: i32,
     pub weapon_slot_for_range_id: i32,
@@ -86,6 +87,7 @@ pub struct SkillTemplate {
     pub channeling_buff_id: u32,
     pub reagent_corpse_status_id: i32,
     pub source_dead: bool,
+    pub source_alive: bool,
     pub level_step: i32,
     pub valid_height: f32,
     pub target_valid_height: f32,
@@ -196,6 +198,11 @@ fn read_skill(
         target_area_count: r.i32("target_area_count")?,
         target_area_radius: r.i32("target_area_radius")?,
         target_siege: r.bool_str("target_siege")?,
+        check_obstacle: if r.has("check_obstacle") {
+            r.bool_str("check_obstacle")?
+        } else {
+            false
+        },
         weapon_slot_for_angle_id: r.i32("weapon_slot_for_angle_id")?,
         target_angle: r.i32("target_angle")?,
         weapon_slot_for_range_id: r.i32("weapon_slot_for_range_id")?,
@@ -224,6 +231,11 @@ fn read_skill(
         channeling_buff_id: r.u32_or("channeling_buff_id", 0)?,
         reagent_corpse_status_id: r.i32("reagent_corpse_status_id")?,
         source_dead: r.bool_str("source_dead")?,
+        source_alive: if r.has("source_alive") {
+            r.bool_str("source_alive")?
+        } else {
+            true
+        },
         level_step: r.i32("level_step")?,
         valid_height: r.f32("valid_height")?,
         target_valid_height: r.f32("target_valid_height")?,
@@ -541,8 +553,7 @@ fn read_buff(r: &SqlRow<'_, '_>) -> rusqlite::Result<BuffTemplate> {
         level_duration: r.i32("level_duration")?,
         reflection_ratio: r.i32("reflection_ratio")?,
         reflection_target_ratio: r.i32("reflection_target_ratio")?,
-        // GetBoolean(column) without fromString
-        knockback_immune: r.bool("knockback_immune")?,
+        knockback_immune: r.bool_str("knockback_immune")?,
         immune_buff_tag_id: r.u32_or("immune_buff_tag_id", 0)?,
         aura_relation_id: r.u32("aura_relation_id")?,
         group_id: r.u32_or("group_id", 0)?,

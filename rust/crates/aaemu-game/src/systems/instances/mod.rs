@@ -1,5 +1,5 @@
 //! Phase-4 subsystem: instances — dungeons (`Indun`), system instances (Mirage Island,
-//! Library), instant games (battlefields / arenas), tower defense data and packets, and the
+//! Library), instant games (battlefields / arenas), tower defense events, and the
 //! world-instance lifecycle they need.
 //!
 //! C# scope: `IndunManager` (+ `Models/Game/Indun/**`, `GameData/IndunGameData`),
@@ -15,8 +15,7 @@
 //! (character / world events, indun events and actions), [`instant_game`]
 //! (`InstantGameManager`, `InstantGame`), [`packets`], [`config`] (`Dungeons` section).
 //!
-//! Tower defense: the C# only loads `TowerDefGameData` and has packets (sent by the
-//! `towerdef` GM command, not ported with the command system); there is no runtime manager.
+//! Tower defense: [`tower_def`] extends the C# data/packet port with an opt-in runtime.
 
 pub mod config;
 pub mod data;
@@ -25,6 +24,7 @@ pub mod events;
 pub mod indun;
 pub mod instant_game;
 pub mod packets;
+pub mod tower_def;
 pub mod worlds;
 
 #[cfg(test)]
@@ -79,6 +79,7 @@ pub struct System {
     pub events: events::Events,
     /// `InstantGameManager`.
     pub instant_games: instant_game::InstantGameManager,
+    pub tower_defs: tower_def::TowerDefenseManager,
     next_uid: AtomicU64,
     ticks_started: AtomicBool,
 }
@@ -100,6 +101,7 @@ impl System {
             let _ =
                 indun::create_system_instance(server, None, zone_key, cfg.channel, true, cfg.id);
         }
+        tower_def::initialize(server)?;
         start_ticks(server);
         Ok(())
     }
@@ -139,6 +141,7 @@ impl System {
 /// One second of the instance ticks: `AreaClearTick` (1 s) of every dungeon,
 /// `LeaveDungeonTick` (5 s), `IndunInfoTick` (30 s), `BattlefieldTick` (15 s).
 pub fn tick(server: &GameServer, second: u64) {
+    tower_def::tick(server);
     for d in server.systems.instances.all_dungeons() {
         if d.st().area_clear_tick {
             dungeon::area_clear_tick(server, &d);

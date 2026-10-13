@@ -366,8 +366,6 @@ pub fn knock_back(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
 /// `Escape`: a character is "resurrected" (`SCCharacterResurrectedPacket`) at the instance's
 /// spawn position or, in the main world, at the closest return point.
 ///
-/// Mirrored C# quirk: in an instance the rotation sent is the spawn position's `Roll`, not its
-/// yaw.
 pub fn escape(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     let Some(caster) = &args.caster else {
         return;
@@ -388,7 +386,7 @@ pub fn escape(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
             return;
         };
         let sp = w.template.spawn_position;
-        (sp.x, sp.y, sp.z, sp.roll)
+        (sp.x, sp.y, sp.z, sp.yaw)
     } else {
         match server
             .systems
@@ -417,6 +415,16 @@ pub fn escape(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
         },
         true,
     );
+}
+
+/// The Escape buff4840 Timeout trigger moves its owner to the closest resurrection point.
+pub fn move_to_rez_point(server: &GameServer, args: &EffectArgs<'_>) {
+    let Some(target) = args.target.as_obj().filter(|u| u.as_player().is_some()) else {
+        return;
+    };
+    let mut args = args.clone();
+    args.caster = Some(target.clone());
+    escape(server, &args, [0; 4]);
 }
 
 /// `PortalManager.GetRecallById(returnPointId)`.
@@ -448,10 +456,7 @@ fn set_character_transform(
 
 /// `Return` (recall / world gate return): `SCLoadInstancePacket` + `SCTeleportUnitPacket`.
 ///
-/// Mirrored C# quirks: `SCLoadInstancePacket` always names instance 1 for a return point while
-/// the new transform uses instance 0; with a `MainWorldPosition` (and no return point) its
-/// rotation, already in radians, goes through `DegToRad` again, and the trailing
-/// `SCTeleportUnitPacket` is only sent when a return point was found.
+/// The instance and rotation in both notifications match the resulting transform.
 pub fn return_(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     if super::caster_is_player(args) {
         tracing::info!(
@@ -492,7 +497,7 @@ pub fn return_(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     if let Some(t) = &trp {
         p.data().disabled_set_position = true;
         p.send(SCLoadInstancePacket {
-            instance_id: 1,
+            instance_id: DEFAULT_INSTANCE_ID,
             zone_id: t.zone_id,
             x: t.x,
             y: t.y,
@@ -515,11 +520,20 @@ pub fn return_(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
             x: m.pos.x,
             y: m.pos.y,
             z: m.pos.z,
-            ang_x: deg_to_rad(m.pos.rot_x),
-            ang_y: deg_to_rad(m.pos.rot_y),
-            ang_z: deg_to_rad(m.pos.rot_z),
+            ang_x: m.pos.rot_x,
+            ang_y: m.pos.rot_y,
+            ang_z: m.pos.rot_z,
         });
         set_character_transform(p, m.instance_id, m.zone_id, m.pos);
+        p.send(SCTeleportUnitPacket {
+            reason: TELEPORT_REASON_MOVE_TO_LOCATION,
+            error_message: 0,
+            x: m.pos.x,
+            y: m.pos.y,
+            z: m.pos.z,
+            z2: m.pos.rot_z,
+        });
+        return;
     }
     let Some(t) = trp else {
         let tr = p.data().unit.transform;

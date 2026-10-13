@@ -586,6 +586,18 @@ pub enum Behavior {
     Leap(LinearMove),
     BallisticLeap(LeapArc),
     Dash(LinearMove),
+    Rotate(RotateMove),
+}
+
+/// Native RotateSkillController (0x3924E1D0 / tick 0x392315C0).
+/// Values 1..3 are total yaw degrees, start delay and end time in milliseconds.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RotateMove {
+    pub initial_yaw: f32,
+    pub angle: f32,
+    pub start_ms: f32,
+    pub end_ms: f32,
+    pub elapsed_ms: f32,
 }
 
 #[derive(Debug)]
@@ -751,6 +763,18 @@ pub fn create(
             clip_linear_move(server, owner, o, &mut d);
             Some(new_ref(Some(template), owner, target, Behavior::Dash(d)))
         }
+        Some(SkillControllerKind::Rotate) => Some(new_ref(
+            Some(template),
+            owner,
+            target,
+            Behavior::Rotate(RotateMove {
+                initial_yaw: owner.transform().rot_z,
+                angle: (template.value[0] as f32).to_radians(),
+                start_ms: template.value[1].max(0) as f32,
+                end_ms: template.value[2].max(template.value[1]).max(0) as f32,
+                elapsed_ms: 0.0,
+            }),
+        )),
         _ => {
             tracing::trace!(
                 "SkillController: create defaultSkillController kind={}",
@@ -923,9 +947,10 @@ impl SkillControllerRef {
                 }
                 self.subscribe(server);
             }
-            Behavior::Leap(_) | Behavior::BallisticLeap(_) | Behavior::Dash(_) => {
-                self.subscribe(server)
-            }
+            Behavior::Leap(_)
+            | Behavior::BallisticLeap(_)
+            | Behavior::Dash(_)
+            | Behavior::Rotate(_) => self.subscribe(server),
         }
     }
 
@@ -1039,6 +1064,51 @@ impl SkillControllerRef {
                     self.wandering_tick(server, w, dt)
                 }
             }
+            Behavior::Rotate(mut rotation) => {
+                if !present || self.owner_dead() || rotation.angle == 0.0 {
+                    Next::End
+                } else {
+                    rotation.elapsed_ms += dt * 1000.0;
+                    if let Behavior::Rotate(saved) = &mut self.lock().behavior {
+                        *saved = rotation;
+                    }
+                    if rotation.elapsed_ms >= rotation.start_ms {
+                        let span = rotation.end_ms - rotation.start_ms;
+                        let progress = if span > 0.0 {
+                            ((rotation.elapsed_ms - rotation.start_ms) / span).clamp(0.0, 1.0)
+                        } else {
+                            1.0
+                        };
+                        let transform = self.owner.with_transform(|t| {
+                            t.rot_z = rotation.initial_yaw + rotation.angle * progress;
+                            *t
+                        });
+                        let (rx, ry, rz) = roll_pitch_yaw_sbytes_movement(
+                            transform.rot_x,
+                            transform.rot_y,
+                            transform.rot_z,
+                        );
+                        self.send_move(
+                            server,
+                            UnitMove {
+                                x: transform.x,
+                                y: transform.y,
+                                z: transform.z,
+                                rotation_x: rx,
+                                rotation_y: ry,
+                                rotation_z: rz,
+                                ..UnitMove::default()
+                            },
+                            MoveTypeFlags::NONE,
+                        );
+                    }
+                    if rotation.elapsed_ms >= rotation.end_ms {
+                        Next::End
+                    } else {
+                        Next::Continue
+                    }
+                }
+            }
         };
         match next {
             Next::Continue => {}
@@ -1137,6 +1207,7 @@ impl SkillController {
             Behavior::Leap(_) => SkillControllerKind::Leap,
             Behavior::BallisticLeap(_) => SkillControllerKind::Leap,
             Behavior::Dash(_) => SkillControllerKind::Dash,
+            Behavior::Rotate(_) => SkillControllerKind::Rotate,
         }
     }
 
@@ -1147,7 +1218,7 @@ impl SkillController {
             .world
             .object(id)
             .or_else(|| server.world.character_by_obj_id(id).map(WorldObject::from))
-            .is_some_and(|o| o.same(&self.owner))
+            .is_some_and(|o| std::ptr::eq(o.core(), self.owner.core()))
     }
 
     fn owner_dead(&self) -> bool {
@@ -1188,6 +1259,7 @@ impl SkillController {
         let Some((mut next, mut velocity, mut ended)) = arc.advance(current, dt) else {
             return Next::End;
         };
+        let mut landed = ended && velocity.z <= 0.0;
         // Native predicts contacts on its active living actor. This server has inactive
         // proxies: sweep each actual 3D step instead of preclipping the ground chord.
         // Stop at a solid contact; no terrain snap may erase the airborne part of the arc.
@@ -1211,6 +1283,7 @@ impl SkillController {
             crate::systems::ai::collision::displacement::ENT_TYPES_SOLID,
         );
         if let Some(Some(contact)) = hit {
+            landed = contact.normal.z > 0.5;
             let distance = calculate_distance(current, next, true);
             if distance > f32::EPSILON {
                 next = add_distance_to_front_between(
@@ -1263,6 +1336,9 @@ impl SkillController {
             MoveTypeFlags::MOVING,
         );
         if ended {
+            if landed {
+                super::on_landed(server, &self.owner);
+            }
             Next::End
         } else {
             Next::Continue
@@ -1447,6 +1523,7 @@ impl SkillController {
             self.owner.with_transform(|t| t.set_height(ground_z));
             // End the controller before StopMovement (the Npc.MoveTowards guard).
             self.final_end(true);
+            super::on_landed(server, &self.owner);
             if self.owner.as_npc().is_some() {
                 npc_stop_movement(server, &self.owner);
             }
@@ -1609,6 +1686,9 @@ pub fn npc_stop_movement(server: &GameServer, npc: &WorldObject) {
 #[cfg(test)]
 #[path = "leap_arc_tests.rs"]
 mod leap_arc_tests;
+#[cfg(test)]
+#[path = "rotate_controller_tests.rs"]
+mod rotate_controller_tests;
 
 #[cfg(test)]
 mod tests {

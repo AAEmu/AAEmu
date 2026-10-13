@@ -152,6 +152,7 @@ pub fn handle_zone_changes(server: &GameServer, changes: Vec<crate::world::ZoneC
 
 /// `Character.OnZoneChange(lastZoneKey, newZoneKey)`.
 pub fn on_zone_change(server: &GameServer, p: &PlayerRef, last_zone: u32, new_zone: u32) {
+    crate::systems::instances::tower_def::send_zone_list(server, p);
     // base.OnZoneChange (Unit: zone group buffs) -> the skills subsystem's hook.
     if let Some(h) = server.systems.hooks.unit.get() {
         h.on_unit_zone_change(server, &WorldObject::from(p), last_zone, new_zone);
@@ -859,6 +860,7 @@ pub async fn move_unit(server: &GameServer, conn: &mut GameConnection, obj_id: u
             let fall_vel = crate::systems::ai::collision::movement::on_unit_moved(
                 server, &world, &target, mt.time, u,
             );
+            crate::systems::skills::on_actor_move(server, &target, u.actor_flags, fall_vel);
             match target.as_player() {
                 // Character.SetPosition (BuffRemoveOn.Move when moved) + DoFallDamage(FallVel).
                 Some(player) => crate::systems::skills::on_moved(server, player, old_pos, fall_vel),

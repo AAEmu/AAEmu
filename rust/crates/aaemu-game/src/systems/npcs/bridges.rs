@@ -241,8 +241,12 @@ impl NpcSkillHooks for NpcSkills {
                 true
             }
             T::NpcSpawnerDespawn { spawner_id, .. } => {
-                // The C# body only logs (the despawn is commented out).
-                tracing::info!("NpcSpawnerDespawnEffect: SpawnerId={spawner_id}");
+                if let Some(world) = args.caster.as_ref().and_then(|c| server.world.world_of(c)) {
+                    let manager = server.systems.npcs.spawns.get_or_create(&world);
+                    for spawner in manager.get_npc_spawner(*spawner_id) {
+                        spawner.despawn_npcs_now(server);
+                    }
+                }
                 true
             }
             T::KillNpcWithoutCorpse(e) => {
@@ -760,6 +764,7 @@ fn npc_spawner_spawn_effect(
     e: &crate::systems::skills::data::effects::NpcSpawnerSpawnEffect,
     args: &EffectArgs<'_>,
 ) {
+    let _serial = server.systems.npcs.spawns.spawn_lock();
     tracing::info!(
         "NpcSpawnerSpawnEffect: SpawnerId={}, LifeTime={}, UseSummonerAggroTarget={}, ActivationState={}",
         e.spawner_id,
@@ -788,9 +793,17 @@ fn npc_spawner_spawn_effect(
         let mut position = spawner.position();
         position.world_id = world_id;
         spawner.set_position(position);
+        let existing: Vec<_> = spawner.spawned_npcs().into_values().flatten().collect();
         let Some(npc) = spawner.force_spawn(server, 0) else {
             continue;
         };
+        let spawned: Vec<_> = spawner
+            .spawned_npcs()
+            .into_values()
+            .flatten()
+            .filter(|n| !existing.iter().any(|old| std::sync::Arc::ptr_eq(old, n)))
+            .collect();
+        crate::systems::instances::tower_def::on_summoned(server, caster, &spawned);
         if let Some(s) = server.systems.npcs.spawns.npc_spawner_of(npc.obj_id) {
             s.set_respawn_time(0);
         }

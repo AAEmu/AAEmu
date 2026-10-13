@@ -38,12 +38,7 @@ fn unit_caster<'a>(args: &'a EffectArgs<'_>, action: &str) -> Option<&'a WorldOb
 
 /// `Charge`: adds charges to a buff on the caster.
 ///
-/// Mirrored C# quirks: the new buff is created with the *target* as owner but added to the
-/// caster's buffs (at the index of the existing buff, if any); its charge is first
-/// `min(delta, MaxCharge)` and only afterwards set to `min(old + delta, MaxCharge)`, which only
-/// reaches the stored buff when `AddBuff` kept the new object (a refresh / overwrite of an
-/// existing buff keeps the first value). `caster.ChargeLock` is not needed (single lock per
-/// buff list).
+/// Compute the accumulated charge before AddBuff so refreshes and their packets keep it.
 pub fn charge(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     let [buff_id, min_charge, max_charge, unused] = v;
     if caster_is_player(args) {
@@ -83,8 +78,9 @@ pub fn charge(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
         args.source.skill(),
         now_ms(),
     );
-    new_effect.charge = charge_delta.min(template.max_charge);
-    let before = caster.with_base_unit(|b| b.buffs().effects.len());
+    new_effect.charge = old_charge
+        .saturating_add(charge_delta)
+        .clamp(0, template.max_charge.max(0));
     buffs::add_buff(
         server,
         caster,
@@ -92,18 +88,10 @@ pub fn charge(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
         buff.as_ref().map_or(0, |b| b.index),
         0,
     );
-    let new_charge = (old_charge + charge_delta).min(template.max_charge);
-    caster.with_base_unit(|b| {
-        if let Some(e) = b.buffs_mut().effects.get_mut(before) {
-            if e.template.id == template.id {
-                e.charge = new_charge;
-            }
-        }
-    });
 }
 
-/// `DisturbCasting`: `unit.ActivePlotState?.RequestCancellation()`.
-pub fn disturb_casting(_server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
+/// Interrupt both plot and direct casts, using the configured percentage and delay.
+pub fn disturb_casting(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     if caster_is_player(args) {
         tracing::debug!(
             "Special effects: DisturbCasting chance {}, delay {}, value3 {}, value4 {}",
@@ -113,10 +101,20 @@ pub fn disturb_casting(_server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4])
             v[3]
         );
     }
-    if let Some(t) = args.target.as_obj() {
-        if let Some(Some(plot)) = t.with_unit(|u| u.unit().skill_state.active_plot.clone()) {
-            plot.0.request_cancellation();
-        }
+    if !super::super::chance_succeeds(v[0]) {
+        return;
+    }
+    let Some(target) = args.target.as_obj().filter(|t| t.is_unit()).cloned() else {
+        return;
+    };
+    if v[1] > 0 {
+        super::super::super::tasks::schedule(server, i64::from(v[1]), move |server| {
+            if super::super::super::geometry::is_live_object(&server, &target) {
+                super::super::super::skill::interrupt_skills(&server, &target);
+            }
+        });
+    } else {
+        super::super::super::skill::interrupt_skills(server, &target);
     }
 }
 
@@ -149,8 +147,7 @@ pub fn skill_use(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     let Some(caster) = unit_caster(args, "SkillUse") else {
         return;
     };
-    let roll = rand_int(0, 100).unwrap_or(0);
-    if roll > chance && chance != 0 {
+    if chance != 0 && !super::super::chance_succeeds(chance) {
         caster.with_unit(|u| u.unit_mut().skill_state.condition_chance = false);
         return;
     }
@@ -171,9 +168,31 @@ pub fn skill_use(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     let target_caster = SkillCastTarget::Unit(args.target.obj_id());
     buffs::trigger_remove_on(server, caster, BuffRemoveOn::UseSkill, 0);
     let caster = caster.clone();
+    let target = args.target.as_obj().cloned();
+    let originating_cast = args
+        .source
+        .skill
+        .as_ref()
+        .map(|skill| (skill.clone(), skill.state().generation));
     let caster_caster = args.caster_caster;
     let skill_object = args.skill_object.clone();
     super::super::super::tasks::schedule(server, i64::from(delay), move |srv| {
+        if !super::super::super::geometry::is_live_object(&srv, &caster)
+            || target
+                .as_ref()
+                .is_some_and(|target| !super::super::super::geometry::is_live_object(&srv, target))
+        {
+            return;
+        }
+        if originating_cast
+            .as_ref()
+            .is_some_and(|(skill, generation)| {
+                let state = skill.state();
+                state.cancelled || state.generation != *generation
+            })
+        {
+            return;
+        }
         let mut tc = target_caster;
         use_skill(
             &srv,
@@ -260,7 +279,7 @@ pub fn global_cooldown(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) 
 
 /// `ResetCooldown`: `SCSkillCooldownResetPacket` for skill `value1` and / or tag `value2`
 /// (characters only).
-pub fn reset_cooldown(_server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
+pub fn reset_cooldown(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     if caster_is_player(args) {
         tracing::debug!(
             "Special effects: ResetCooldown skillId {}, tagId {}, gcd {}, value4 {}",
@@ -274,6 +293,18 @@ pub fn reset_cooldown(_server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) 
     let Some(p) = args.caster.as_ref().and_then(WorldObject::as_player) else {
         return;
     };
+    {
+        let mut player = p.data();
+        if gcd {
+            player.unit.global_cooldown_ms = 0;
+        }
+        if v[0] > 0 {
+            player.unit.cooldowns.remove_cooldown(v[0] as u32);
+        }
+        for id in server.game_data.systems.skills.skills_by_tag(v[1] as u32) {
+            player.unit.cooldowns.remove_cooldown(*id);
+        }
+    }
     if v[0] != 0 {
         // Character.ResetSkillCooldown(skillId, gcd)
         p.send(SCSkillCooldownResetPacket {
@@ -304,7 +335,7 @@ pub fn stop_mana_regen(_server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4])
 }
 
 /// `AddBreath`: under water, `Breath = min(LungCapacity, Breath + value1)` (no packet, as the
-/// C#; the `uint + int` sum is a `long` truncated back to `uint`).
+/// C#). Negative changes clamp at zero.
 pub fn add_breath(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     log_values(args, "AddBreath", v);
     let Some(caster) = args.caster.as_ref() else {
@@ -319,7 +350,7 @@ pub fn add_breath(server: &GameServer, args: &EffectArgs<'_>, v: [i32; 4]) {
     let lung = stat(server, caster, StatKind::LungCapacity) as u32;
     let mut c = p.data();
     let sum = i64::from(c.breath) + i64::from(v[0]);
-    c.breath = i64::from(lung).min(sum) as u32;
+    c.breath = sum.clamp(0, i64::from(lung)) as u32;
 }
 
 /// `CancelStealth`: `caster.Buffs.RemoveStealth()`.

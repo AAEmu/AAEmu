@@ -40,6 +40,8 @@ pub fn time_of_day_ms(now_ms: i64) -> u32 {
 /// The C# `Gimmick` runtime members.
 #[derive(Debug, Clone, Default)]
 pub struct GimmickState {
+    /// Kinematic velocities supplied by a doodad's SpawnGimmick phase function.
+    pub authored_motion: bool,
     /// `Time`.
     pub time: u32,
     /// `MoveDown`.
@@ -418,6 +420,43 @@ pub fn spawn_from_effect(
     Some(gimmick)
 }
 
+/// Doodad phase spawns use the doodad's world transform and the authored world offsets,
+/// faction, linear velocity and angular velocity (WZGimmickSetMovement semantics).
+pub fn spawn_from_doodad(
+    server: &GameServer,
+    world: &Arc<WorldInstance>,
+    source: &WorldObject,
+    f: &crate::systems::npcs::doodad::templates::DoodadFuncSpawnGimmick,
+) -> Option<GimmickRef> {
+    let params = SpawnGimmickParams {
+        gimmick_id: f.gimmick_id,
+        offset_from_source: true,
+        offset_coordinate_id: 2,
+        offset_x: f.offset_x,
+        offset_y: f.offset_y,
+        offset_z: f.offset_z,
+        scale: f.scale,
+        ..Default::default()
+    };
+    let gimmick = spawn_from_effect(server, world, &params, source)?;
+    {
+        let mut g = gimmick.data();
+        g.unit.faction_id = f.faction_id;
+        g.vel = [f.velocity_x, f.velocity_y, f.velocity_z];
+        g.ang_vel = [f.angle_x, f.angle_y, f.angle_z];
+    }
+    if let Some(active) = server
+        .systems
+        .npcs
+        .gimmicks
+        .for_world(world.id)
+        .get(gimmick.obj_id)
+    {
+        active.state().authored_motion = true;
+    }
+    Some(gimmick)
+}
+
 /// `GimmickSpawner.Despawn(gimmick)`: removes it from the manager and the world; releases its
 /// ids unless a respawn is pending.
 pub fn despawn(server: &GameServer, active: &ActiveGimmick) {
@@ -550,7 +589,20 @@ pub fn gimmick_tick(
                 g.unit.transform.set_height(z + dz);
             }
         }
-        None => {}
+        None => {
+            if active.state().authored_motion {
+                let mut g = active.gimmick.data();
+                let vel = g.vel;
+                let ang = g.ang_vel;
+                let t = &mut g.unit.transform;
+                t.x += vel[0] * delta_time;
+                t.y += vel[1] * delta_time;
+                t.z += vel[2] * delta_time;
+                t.rot_x += ang[0] * delta_time;
+                t.rot_y += ang[1] * delta_time;
+                t.rot_z += ang[2] * delta_time;
+            }
+        }
     }
 
     // Handle Delayed Skills
@@ -568,6 +620,7 @@ pub fn gimmick_tick(
     // TODO (C#): skill on collision (requires a physics engine).
 
     let time = time_of_day_ms(now_ms);
+    let authored_motion = active.state().authored_motion;
     let (packet, pos, rot) = {
         let last_pos = active.state().last_pos;
         let mut g = active.gimmick.data();
@@ -579,12 +632,14 @@ pub fn gimmick_tick(
             pos[2] - last_pos[2],
         ];
         // C#: `Vel = deltaPosition * deltaTime` (multiplied, not divided)
-        g.vel = [
-            delta_position[0] * delta_time,
-            delta_position[1] * delta_time,
-            delta_position[2] * delta_time,
-        ];
-        g.ang_vel = [0.0; 3];
+        if !authored_motion {
+            g.vel = [
+                delta_position[0] * delta_time,
+                delta_position[1] * delta_time,
+                delta_position[2] * delta_time,
+            ];
+            g.ang_vel = [0.0; 3];
+        }
         (
             SCGimmickMovementPacket::new(active.gimmick.obj_id, time, &g),
             pos,
@@ -692,6 +747,49 @@ mod tests {
             entity_guid: 0x4a0d_a1f4_d842_0a38,
             ..GimmickSpawner::default()
         }
+    }
+
+    #[tokio::test]
+    async fn doodad_gimmick_uses_authored_offset_faction_and_motion() {
+        let mut data = crate::data::GameData::empty();
+        data.systems.npcs.gimmick.templates.insert(
+            48,
+            GimmickTemplate {
+                id: 48,
+                life_time: 1000,
+                ..Default::default()
+            },
+        );
+        let server = crate::test_support::test_server_with(data);
+        let world = test_world(&server);
+        let mut source = crate::models::doodad::Doodad::new(100);
+        source.transform.set_xyz(100.0, 200.0, 10.0);
+        let source = Entity::new(0x500, source);
+        let g = spawn_from_doodad(
+            &server,
+            &world,
+            &WorldObject::from(&source),
+            &crate::systems::npcs::doodad::templates::DoodadFuncSpawnGimmick {
+                gimmick_id: 48,
+                faction_id: 115,
+                scale: 0.4,
+                offset_z: -2.0,
+                velocity_z: 5.0,
+                angle_x: 3.0,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(g.data().unit.transform.z, 8.0);
+        assert_eq!(g.data().unit.faction_id, 115);
+        assert_eq!(g.data().unit.scale, 0.4);
+        let active = server.systems.npcs.gimmicks.find(g.obj_id).unwrap();
+        gimmick_tick(&server, &world, &active, Duration::from_millis(100), 1000);
+        assert_eq!(g.data().unit.transform.z, 8.5);
+        assert!((g.data().unit.transform.rot_x - 0.3).abs() < 1e-6);
+        assert_eq!(g.data().vel, [0.0, 0.0, 5.0]);
+        gimmick_tick(&server, &world, &active, Duration::from_millis(900), 1900);
+        assert!(world.gimmick(g.obj_id).is_none());
     }
 
     fn test_world(server: &GameServer) -> Arc<WorldInstance> {

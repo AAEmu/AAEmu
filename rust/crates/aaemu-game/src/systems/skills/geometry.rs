@@ -72,6 +72,14 @@ impl From<&WorldObject> for Target {
     }
 }
 
+/// A retained handle must still identify the object in the world, even after ID recycling.
+pub(crate) fn is_live_object(server: &GameServer, obj: &WorldObject) -> bool {
+    server
+        .world
+        .object(obj.obj_id())
+        .is_some_and(|current| std::ptr::eq(current.core(), obj.core()))
+}
+
 /// The world instance an object lives in (`ParentWorld`), falling back to its transform's
 /// instance id.
 pub fn world_of(server: &GameServer, obj: &WorldObject) -> Option<Arc<WorldInstance>> {
@@ -127,9 +135,7 @@ pub fn raw_distance(a: &PositionAndRotation, b: &PositionAndRotation, include_z:
     }
 }
 
-/// `BaseUnit.GetDistanceTo(target, includeZ)`. House / shipyard radii (templates of other
-/// subsystems) count as 0. The C# `?? 0 * unit.Scale` precedence slip is mirrored: the target's
-/// radius is not scaled.
+/// Edge-to-edge distance uses both scaled actor radii (or the housing radius).
 pub fn distance_to(server: &GameServer, from: &Target, to: &Target, include_z: bool) -> f32 {
     let a = world_pos(server, from);
     let b = world_pos(server, to);
@@ -141,8 +147,8 @@ pub fn distance_to(server: &GameServer, from: &Target, to: &Target, include_z: b
         if let Some(r) = crate::systems::housing::house_radius(server, o) {
             // Subtract house radius (GardenRadius * Scale)
             d -= r;
-        } else if let Some(m) = o.with_unit(|u| u.unit().model_id) {
-            d -= server.game_data.systems.skills.model_radius(m);
+        } else {
+            d -= model_size(server, to);
         }
     }
     d -= model_size(server, from);
@@ -168,6 +174,18 @@ pub fn is_front(a: &PositionAndRotation, b: &PositionAndRotation) -> bool {
         % 360.0;
     let deg = clamp_deg(angle - 90.0 - f64::from(a.rot_z).to_degrees());
     (-90.0..=90.0).contains(&deg)
+}
+
+/// A full cone angle in degrees around the engine's +Y forward axis.
+pub fn in_angle(a: &PositionAndRotation, b: &PositionAndRotation, angle: f32) -> bool {
+    if angle <= 0.0 || angle >= 360.0 || (a.x == b.x && a.y == b.y) {
+        return true;
+    }
+    let heading = f64::from(b.y - a.y)
+        .atan2(f64::from(b.x - a.x))
+        .to_degrees();
+    let relative = clamp_deg(heading - 90.0 - f64::from(a.rot_z).to_degrees());
+    relative.abs() <= f64::from(angle) / 2.0
 }
 
 /// `RadiusFitsCurrentRegion`.

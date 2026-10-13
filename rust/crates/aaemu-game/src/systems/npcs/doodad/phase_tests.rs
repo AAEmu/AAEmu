@@ -9,6 +9,7 @@ use crate::data::GameData;
 use crate::opcodes::sc;
 use crate::server::GameServer;
 use crate::systems::npcs::doodad::data::DoodadData;
+use crate::systems::npcs::doodad::logic;
 use crate::systems::npcs::doodad::manager;
 use crate::systems::npcs::doodad::templates::*;
 use crate::test_support::*;
@@ -112,11 +113,12 @@ struct Fx {
 fn fx(b: Builder) -> Fx {
     let server = b.server();
     let mut client = TestClient::new(&server, 1, 1001);
+    let player_obj_id = server.ids.object.get_next_id().unwrap();
     let player = spawn_player(
         &server,
         &client,
         test_character(1, "Alpha", 100.0, 100.0),
-        0x100,
+        player_obj_id,
     );
     client.drain();
     let world = server.world.world(0).unwrap();
@@ -195,6 +197,104 @@ fn group(d: &DoodadRef) -> u32 {
 }
 
 #[tokio::test]
+async fn loaded_player_doodad_is_spawned_before_its_immediate_final_phase() {
+    let b = Builder::default()
+        .template(TEMPLATE, &[(10, 1)])
+        .phase_func(
+            10,
+            FuncTemplate::Final(DoodadFuncFinal {
+                id: 1,
+                after: 0,
+                respawn: false,
+                ..Default::default()
+            }),
+        );
+    let f = fx(b);
+    let doodad = manager::create(&f.server, &f.world, 0, TEMPLATE, None, true).unwrap();
+    doodad.data().is_persistent = true;
+    let spawns = f.server.systems.npcs.spawns.get_or_create(&f.world);
+    spawns.add_player_doodad(doodad.clone());
+    spawns.spawn_player_doodads(&f.server);
+    assert!(doodad.data().phase.deleted);
+    assert!(f.world.doodad(doodad.obj_id).is_none());
+    assert!(spawns.get_all_player_doodads().is_empty());
+}
+
+#[tokio::test]
+async fn family_pulses_follow_flags_and_owner_scope_in_both_load_orders() {
+    let b = Builder::default()
+        .template(100, &[(10, 1)])
+        .template(101, &[(20, 1), (21, 2)])
+        .phase_func(
+            10,
+            FuncTemplate::LogicFamilyProvider(DoodadFuncLogicFamilyProvider {
+                id: 1,
+                family_id: 7,
+            }),
+        )
+        .phase_func(
+            20,
+            FuncTemplate::LogicFamilySubscriber(DoodadFuncLogicFamilySubscriber {
+                id: 2,
+                family_id: 7,
+            }),
+        )
+        .phase_func(
+            21,
+            FuncTemplate::LogicFamilySubscriber(DoodadFuncLogicFamilySubscriber {
+                id: 2,
+                family_id: 7,
+            }),
+        )
+        .phase_func(
+            20,
+            FuncTemplate::PulseTrigger(DoodadFuncPulseTrigger {
+                id: 3,
+                flag: true,
+                next_phase: 21,
+            }),
+        )
+        .phase_func(
+            21,
+            FuncTemplate::PulseTrigger(DoodadFuncPulseTrigger {
+                id: 4,
+                flag: false,
+                next_phase: 20,
+            }),
+        );
+    let f = fx(b);
+    let make = |template| {
+        let d = manager::create(&f.server, &f.world, 0, template, None, true).unwrap();
+        d.data().transform.set_xyz(101.0, 100.0, 100.0);
+        manager::spawn(&f.server, &f.world, &d);
+        manager::init_doodad(&f.server, &f.world, &d);
+        d
+    };
+    let subscriber = make(101);
+    let other_owner = make(101);
+    other_owner.data().owner_id = 99;
+    let provider = make(100);
+    let ctx = DoodadCtx::new(&f.server, f.world.clone(), provider.clone());
+    assert_eq!(
+        group(&subscriber),
+        20,
+        "registration alone must not activate a trigger"
+    );
+    logic::emit(&ctx, None, true);
+    assert_eq!(group(&subscriber), 21);
+    assert_eq!(group(&other_owner), 20);
+    let late_subscriber = make(101);
+    assert_eq!(
+        group(&late_subscriber),
+        21,
+        "subscriber must adopt an existing provider"
+    );
+    logic::emit(&ctx, None, false);
+    assert_eq!(group(&subscriber), 20);
+    assert_eq!(group(&late_subscriber), 20);
+}
+
+#[tokio::test]
 async fn use_then_timer_returns_to_start_phase() {
     let b = Builder::default()
         .template(TEMPLATE, &[(10, 1), (11, 2)])
@@ -238,9 +338,8 @@ async fn phase_change_cancels_pending_timer() {
     f.use_(&d); // back to 10 by hand: the timer is cancelled
     assert_eq!(group(&d), 10);
     f.phase_packets();
-    // Two timers were started (the Use loop runs DoChangePhase(11) twice, as in C#); both fire
-    // cancelled.
-    assert_eq!(f.advance(30_000), 2);
+    // The phase is entered once, and its canceled timer cannot change the new phase.
+    assert_eq!(f.advance(30_000), 1);
     assert_eq!(group(&d), 10);
     assert!(f.phase_packets().is_empty());
 }
@@ -267,10 +366,11 @@ async fn tod_overrides_phase_and_registers_triggers() {
     assert_eq!(f.phase_packets(), vec![12]);
     assert_eq!(d.data().phase.tod_triggers, vec![(20.0, 10)]);
 
-    // TimeManager.OnTimeOfDayChange: 19:59 -> 20:01 fires the trigger without phase funcs.
+    // Enter the triggered phase, including its functions, on the scheduled task.
     manager::on_time_of_day_change(&f.server, 20.02, 19.98);
-    assert_eq!(group(&d), 10);
-    assert_eq!(f.phase_packets(), vec![10]);
+    f.advance(0);
+    assert_eq!(group(&d), 12); // the synthetic server is still at 12:00
+    assert_eq!(f.phase_packets(), vec![12]);
 }
 
 #[tokio::test]
@@ -423,7 +523,7 @@ async fn growth_waits_then_changes_phase() {
 }
 
 #[tokio::test]
-async fn pulse_trigger_is_one_shot_per_shared_row() {
+async fn pulse_triggers_require_matching_signal_and_do_not_affect_other_objects() {
     let b = Builder::default()
         .template(TEMPLATE, &[(10, 1), (11, 2)])
         .fake_use(11, 1, 10)
@@ -437,15 +537,130 @@ async fn pulse_trigger_is_one_shot_per_shared_row() {
         );
     let mut f = fx(b);
     let d = f.doodad(TEMPLATE);
-    // InitDoodad has no caster: PulseTrigger stops without changing the phase.
+    // Entering a phase registers a listener; a character's presence is not a pulse.
     assert_eq!(group(&d), 10);
     let caster = f.caster();
     let ctx = DoodadCtx::new(&f.server, f.world.clone(), d.clone());
     do_change_phase(&ctx, Some(&caster), 10);
+    assert_eq!(group(&d), 10);
+    super::super::logic::receive(&ctx, &d, Some(&caster), true);
     assert_eq!(group(&d), 11);
-    assert!(f.server.systems.npcs.doodads.pulse_triggered(10, 0));
     f.use_(&d); // 11 -> 10: the row was triggered already, stays in 10
     assert_eq!(group(&d), 10);
+    let other = manager::create(&f.server, &f.world, 0x501, TEMPLATE, None, true).unwrap();
+    let other_ctx = DoodadCtx::new(&f.server, f.world.clone(), other.clone());
+    do_change_phase(&other_ctx, Some(&caster), 10);
+    assert_eq!(group(&other), 10);
+    super::super::logic::receive(&ctx, &other, Some(&caster), true);
+    assert_eq!(group(&other), 11);
+}
+
+#[tokio::test]
+async fn tod_enters_phase_functions_cancels_old_timer_and_crosses_midnight() {
+    let b = Builder::default()
+        .template(TEMPLATE, &[(10, 1), (11, 2), (12, 2), (13, 2)])
+        .phase_func(
+            10,
+            FuncTemplate::Timer(DoodadFuncTimer {
+                id: 1,
+                delay: 5000,
+                next_phase: 13,
+                ..Default::default()
+            }),
+        )
+        .phase_func(
+            11,
+            FuncTemplate::Timer(DoodadFuncTimer {
+                id: 2,
+                delay: 1000,
+                next_phase: 12,
+                ..Default::default()
+            }),
+        );
+    let mut f = fx(b);
+    let d = f.doodad(TEMPLATE);
+    d.data().phase.tod_triggers.push((23.99, 11));
+    manager::on_time_of_day_change(&f.server, 0.01, 23.98);
+    f.advance(0);
+    assert_eq!(group(&d), 11);
+    f.advance(1000);
+    assert_eq!(group(&d), 12);
+    f.advance(4000);
+    assert_eq!(group(&d), 12);
+}
+
+#[tokio::test]
+async fn interaction_count_waits_without_restarting_phase_timer() {
+    let mut b = Builder::default()
+        .template(TEMPLATE, &[(10, 1), (11, 2), (12, 2)])
+        .fake_use(10, 1, 11)
+        .phase_func(
+            10,
+            FuncTemplate::Timer(DoodadFuncTimer {
+                id: 1,
+                delay: 5000,
+                next_phase: 12,
+                ..Default::default()
+            }),
+        );
+    b.data.funcs_by_groups.get_mut(&10).unwrap()[0].count = 2;
+    let mut f = fx(b);
+    let d = f.doodad(TEMPLATE);
+    let timer = d.data().phase.func_task;
+    f.use_(&d);
+    assert_eq!(group(&d), 10);
+    assert_eq!(d.data().phase.func_task, timer);
+    f.use_(&d);
+    assert_eq!(group(&d), 11);
+    f.advance(5000);
+    assert_eq!(group(&d), 11);
+}
+
+#[tokio::test]
+async fn old_timer_and_delete_do_not_mutate_replacement_object() {
+    let b = Builder::default()
+        .template(TEMPLATE, &[(10, 1), (11, 2)])
+        .phase_func(
+            10,
+            FuncTemplate::Timer(DoodadFuncTimer {
+                id: 1,
+                delay: 1000,
+                next_phase: 11,
+                ..Default::default()
+            }),
+        );
+    let mut f = fx(b);
+    let old = f.doodad(TEMPLATE);
+    tasks::schedule_delete(&f.server, &old);
+    f.world.delete(&old);
+    let replacement =
+        manager::create(&f.server, &f.world, old.obj_id, TEMPLATE, None, true).unwrap();
+    manager::spawn(&f.server, &f.world, &replacement);
+    f.advance(1000);
+    assert_eq!(group(&replacement), 10);
+    assert!(f
+        .world
+        .doodad(replacement.obj_id)
+        .is_some_and(|d| Arc::ptr_eq(&d, &replacement)));
+    manager::delete(&f.server, &f.world, &old);
+    assert!(f.world.doodad(replacement.obj_id).is_some());
+}
+
+#[tokio::test]
+async fn phase_reservation_rejects_concurrent_use_but_allows_nested_calls() {
+    let mut f = fx(Builder::default()
+        .template(TEMPLATE, &[(10, 1), (11, 2)])
+        .fake_use(10, 1, 11));
+    let d = f.doodad(TEMPLATE);
+    let guard = Operation::enter(&d).unwrap();
+    assert!(Operation::enter(&d).is_some());
+    std::thread::scope(|scope| {
+        scope.spawn(|| f.use_(&d)).join().unwrap();
+    });
+    assert_eq!(group(&d), 10);
+    drop(guard);
+    f.use_(&d);
+    assert_eq!(group(&d), 11);
 }
 
 /// Template 2336 (water the flowerbed, see the header of `Doodad.cs`) from the real DB.

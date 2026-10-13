@@ -163,8 +163,8 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 | `Models/Game/Units/Buffs` behaviour, `Skills/Buff`, `Skills/Effects/{Buff,Damage,Heal,Dispel,RestoreMana,ManaBurn,Aggro,FlyingStateChange,SkillController,...}`, `CombatBuffs`, `BuffTriggers` | `systems/skills/{buffs,effects/*}.rs` | done | Start / dispel / tick tasks, tolerance, stack rules, charges, `TriggerRemoveOn`, tag removal, absorption, triggers, area ticks. Explicit dispel emits Dispelled without Timeout; natural expiry retains Timeout. This corrects the mirrored C# removal path, which invoked the FISH escape trigger when catch plot 792 dispelled FISH before lethal damage. Queued CREATED handling and existing removal packet order are retained. Refreshing permanent non-ticking buffs invalidates old timers without treating GetTimeLeft=-1 as expiry; finite expiration and permanent tick cadence remain scheduled. This corrects the mirrored C# refresh timer path. Special effects routed through `ExtHooks::route_special` where they belong to another subsystem. |
 | `Units/Unit` combat (`ReduceCurrentHp`, `DoDie`, aggro / tagging, `SetInBattle`, criminal / force attack, invisibility, `DoFallDamage`), `BaseUnit.CanAttack` / relations, regen, `UpdateGearBonuses`, all `Character` stat getters | `systems/skills/{combat,relation,stats,regen}.rs` | done | MaxHp / MaxMp etc. with buffs, passives and gear (`GearStats` hook). NPC death side effects through `NpcSkillHooks`. |
 | Learning / progression (`LearnSkill`, `LearnBuff`, `ResetSkills`, `SwapAbility`, `AddExp`, labor, game points) | `systems/skills/progress.rs` | done | Labor accrual uses zero-based actability steps into ordered `expert_limits`, matching inventory / regrade; step 4 caps at 50,000 (row id 5), avoiding the former row-id lookup that reduced it to 40,000. Capped gains and packet deltas have regression coverage. |
-| `Skills/Effects/SpecialEffects/*` (all 141 `SpecialType` actions), `BubbleEffect`, `ImpulseEffect`, `PhysicalExplosionEffect` | `systems/skills/effects/{special/*,unit_fx}.rs`, `packets_special.rs` | done | Actions owned by other subsystems (doodads, mates, slaves, items, portals, quests, teams) call the `ext` hooks. 13 extra S->C packets, byte-exact tests. |
-| `Skills/SkillControllers/{Floating,Wandering,Leap,Dash}` | `systems/skills/controllers.rs` | done | `ShipHarpoonRopeController` is the slaves owner's. |
+| `Skills/Effects/SpecialEffects/*` (141 named `SpecialType` actions), `BubbleEffect`, `ImpulseEffect`, `PhysicalExplosionEffect` | `systems/skills/effects/{special/*,unit_fx}.rs`, `packets_special.rs` | partial | Ported actions and subsystem hooks are present, but historical logging placeholders do not establish gameplay completeness. Buff stealing, component-selective aggro copy/reset, target loss, NPC despawn, ongoing-buff cancellation and pet recovery now execute. RedeemBuff and ExplodeBuff still need verified formulas. Client visuals use the existing skill/plot notifications. 13 extra S->C packets, byte-exact tests. |
+| `Skills/SkillControllers/{Floating,Wandering,Leap,Dash,Rotate}` | `systems/skills/controllers.rs` | partial | Rotate uses native constructor/tick timing (`0x3924E1D0` / `0x392315C0`) with 1.2 controller7678 regression coverage. Generic Anchor and Flowgraph remain unverified; native 10.x Anchor parameter kinds1001..1039 differ from the 1.2 data kinds1..3. Harpoon ropes have a separate vehicles implementation. |
 | Movement hooks (`CSMoveUnit.RemoveEffects`, `Character.SetPosition` Move removal, fall damage) | `systems/skills/mod.rs` (`on_move_request`, `on_moved`) | done | Called from `world::session::move_unit`. |
 
 ### systems::npcs
@@ -179,7 +179,7 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 | `NpcSpawner`, `NpcSpawnerNpc`, `DoodadSpawner`, `Spawner<T>` | `npc/spawner.rs`, `doodad/spawner.rs` | done | Schedules / time windows / population caches, respawn + despawn timing. AI home position / follow path / simulation through `server.systems.hooks.ai` (`systems::ai`). |
 | `SpawnManager` (one per instance) + `WorldManager.ActiveRegionTick` spawner part | `spawn_manager.rs` | done | main_world: 25 118 NPC entries -> 38 166 spawner clones, 42 649 doodads, 69 transfers, 14 gimmicks, 5 slaves, 0 parse errors. Persistent doodads from MySQL. Transfers / slaves: `systems::vehicles`; houses and their doodads: `systems::housing`; trial court doodads / NPCs linked after the spawns (`TrialManager.Initialize*`). |
 | `DoodadManager.Load` (templates, func groups, funcs, phase funcs, all 121 func template tables) | `doodad/data.rs`, `doodad/templates.rs` | done | 7 124 templates, 13 974 funcs, 24 465 phase funcs (counts match the DB). |
-| `Doodad` phase machine (`Use`, `DoFunc`, `DoPhaseFuncs`, `DoChangePhase`, `InitDoodad`, `OnSkillHit`, `FuncGroupId` setter, ToD triggers), 42 phase funcs, func tasks, `DoodadManager` runtime (Create, CreatePlayerDoodad, ChangeDoodadData, coffers), persistence (`doodads` table) | `doodad/{phase,phase_funcs,tasks,manager,db}.rs` | done | Timers are tokio tasks cancelled through a generation counter (`DoodadPhaseState::func_task`). `Task.Run(InitDoodad)` in Create is a spawned task. |
+| `Doodad` phase machine (`Use`, `DoFunc`, `DoPhaseFuncs`, `DoChangePhase`, `InitDoodad`, `OnSkillHit`, `FuncGroupId` setter, ToD triggers), 42 phase funcs, func tasks, `DoodadManager` runtime (Create, CreatePlayerDoodad, ChangeDoodadData, coffers), persistence (`doodads` table) | `doodad/{phase,phase_funcs,tasks,manager,db,logic}.rs` | partial | Serialized interactions, per-object counters, generation and handle guards for timers, ToD transitions, ordered MySQL persistence. Authored immediate logic/family pulses, spawn management groups and moving gimmicks are implemented. FlowGraph runs in the client. Logic delay descriptors 2/3 lack timing semantics; spawn groups 73–76 lack authored membership in shipped data. |
 | 79 non-phase funcs, 41 world interactions (`execute_interaction` for the skills InteractionEffect), coffers, bond / seats | `doodad/funcs/`, `doodad/interactions.rs`, `doodad/coffer.rs` | done | Items, loot, coffers through the economy `EconomyBridge`; skills, quests, housing through the bridges; instance funcs (`systems::instances`), `BindSlave` (`systems::vehicles`). Sticky parents are not modelled. |
 | SCDoodad* packets, doodad C->S packets (CSChangeDoodadData/Phase, CSCreateDoodad, CSSetLogicDoodad, CSSaveDoodadUccString, CSUnbondDoodad, CSCofferInteraction) | `doodad/packets.rs`, `doodad/coffer.rs` | done | Byte-exact tests. |
 | Heightmaps (`WorldCell` heightmap.dat, `GetHeight`, `GetReferenceHeight`), NPC reference height in `SCUnitStatePacket` | `heightmap.rs`, `world/unit_state.rs` | done | Lazy per cell (`PreLoadTerrain`); with `GeoDataMode` the navmesh height of `systems::ai::geodata` comes first. Median error 0.098 m vs 4 002 real spawn Z values. Used by the skill controllers / displacements, plots and NPC spawns. |
@@ -229,7 +229,7 @@ connected by `systems::economy::wiring`).
 | `FactionManager` relations, `SystemFaction.GetRelationState`, `Unit/Character.SetFaction` | `systems/social/faction.rs`, `packets/faction.rs` | done | Relation table validated against compact.sqlite3 (gated test). Faction CS packets are log-only as in C#; every SCFaction* struct ported. |
 | `GameData/AchievementGameData` (`achievements`, `achievement_objectives`, `pre_completed_achievements`, `char_records`), `Models/Game/Achievement` | `systems/social/achievement.rs` (`server.game_data.systems.social.achievements`) | done | Loader + port of `AchievementGameDataTests`; gated real-DB test `achievement_game_data_real_compact_db`. The C# has no accessors / manager, so nothing reads the tables yet. |
 | `DuelManager`, `Models/Game/Duels`, duel tasks | `systems/social/duel.rs`, `packets/duel.rs` | done | Request / accept (flag via hook) / start / stop / cancel, distance + HP checks, end timer (tokio tasks; `set_delays` test hook). |
-| `CrimeManager`, `TrialManager`, `Models/Game/Crime`, `TrialUpdateTask` | `systems/social/{crime,trial}.rs`, `packets/trial.rs` | done | Crime table load / save (`AfterItems`), report / evidence (hooks), bot reports, full trial / jury flow with 5 s tick, audience, bounty board (empty list as C#). |
+| `CrimeManager`, `TrialManager`, `Models/Game/Crime`, `TrialUpdateTask` | `systems/social/{crime,trial}.rs`, `packets/trial.rs` | done | Crime table load / save (`AfterItems`), report / evidence (hooks), bot reports, trial / jury flow with 5 s tick, audience, bounty board (empty list as C#). Arrests, authenticated jury choices, guilty pleas, acquittals, court cleanup and reconnect jail enforcement have packet-flow regressions; prisoner buffs persist remaining online time. |
 | `DominionData`, `Models/Game/Achievement`, rename / chat bubble / NPC chat / spam packets | `systems/social/{dominion,achievement}.rs`, `packets/misc.rs` | done (data + packets) | No C# manager drives them in 1.2. |
 | `RadarManager` | – | not social | Telescope / fish school registration from buff templates: skills / npcs. |
 
@@ -267,7 +267,7 @@ Economy hooks (`server.systems.housing.hooks`): installed by `economy::bridges::
 | Area (C#) | Rust | Status | Notes |
 |---|---|---|---|
 | `IndunGameData` (actions, events, zones, rooms), `Models/Game/Indun/{IndunZone, IndunRoom}` | `systems/instances/data.rs` | done | Same six event queries / four action queries in C# order; `EnterCount` hack (1000 for group 49 / channel dungeons, else 3); localized names. Real DB: 104 actions, 70 events, 20 zones, 13 rooms. |
-| `BattlefieldGameData` + `Data/battlefields.json`, `TowerDefGameData`, `Models/Game/{InstantGame, TowerDefs}` data | `data.rs` | done | 7 battlefields (last `game_rule_sets` row wins), 24 tower defs / 11 progs. Loader quirks mirrored (see bugs). |
+| `BattlefieldGameData` + `Data/battlefields.json`, `TowerDefGameData`, `Models/Game/{InstantGame, TowerDefs}` data | `data.rs` | done | 7 battlefields (last `game_rule_sets` row wins), 24 tower defs / 89 valid progs. Tower defense skips orphan parents and orders waves by id. |
 | `WorldManager.CreateWorldInstance` / `RemoveWorld` / `CreateStaticInstances` (AutoCreate) / `WorldIdManager`, `WorldInstance.CleanupInstance` / `ChannelId` / `HasCharacter` / `GetCharacterCount` / `ListPlayerNames` | `worlds.rs`, `mod.rs` (start), `world/mod.rs` (`has_world`, `remove_world`, `leave_other_instance`, `WorldInstance::transfer_out`), `npcs::spawn_manager::SpawnManagers::remove` | done | Non-instanceable templates reuse their instance; fixed ids <= 100; per-instance `SpawnManager` created with the world and loaded by the dungeon loader / a background task. The cross-instance region switch happens on the player's next move (as the C# `AddVisibleObject` region change). |
 | `Character.MainWorldPosition`, `Transform.CloneDetached` / `ApplyWorldSpawnPosition` / `MainWorldPosition.Clone()` | `worlds.rs`, `models/character.rs` (`main_world_position: Option<Transform>`), `db_character.rs` (save rule) | done | Saved inside an instance: the return point is written (C# `saveFromInstanceReturn`). |
 | `IndunManager` (requests, requirements, entry history, system instances, deletion, leave, `DoIndunActions`, info tick) | `indun.rs` | done | |
@@ -276,7 +276,7 @@ Economy hooks (`server.systems.housing.hooks`): installed by `economy::bridges::
 | `InstantGameManager`, `InstantGame` (+ `InstantGameEvents`, team members / results) | `instant_game.rs` | done | Queue / matchmaking / invite / join / enter / start / kills / scores / end / leave; `Character.SetFaction` override (housing hook, guild kick, party kick); `ResetAllSkillCooldowns`. |
 | Packets: `CSInstanceLoaded`, `CSUnknownInstance`, `CSApplyToInstantGame`, `CSCancelInstantGame`, `CSJoinInstantGame`, `CSEnteredInstantGameWorld`, `CSLeaveInstantGame`; `SCProcessingInstance`, `SCAppliedToInstantGame`, `SCInviteToInstantGame`, `SCInstantGameJoined/Start/End/AddPoint/Kill/Killstreak`, `SCInstantGameRemainTime` (`SCInstantGameUnkPacket` opcode), `SCTowerDefList/Start/End/WaveStart`, `SCSkillCooldownReset` | `packets.rs` | done | Byte-exact tests. `SCLoadInstancePacket` is the npcs portal one. |
 | Doodad funcs `EnterInstance`, `EnterSysInstance`, `ExitIndun`, `RemoveInstance`; skills hooks `leave_instance` (`ExitArchemall`) / `main_world_position` (`Return`); portal `UsePortal` court check | `npcs/doodad/funcs/world.rs`, `skills/ext.rs` (default bodies), `npcs/portal/mod.rs` | done | |
-| Tower defense runtime, `TowerDefenseAttackerAiCharacter` | – | todo | The C# has no tower defense manager (only data + the GM command, ported in `scripts/tower_def.rs`). |
+| Tower defense runtime, `TowerDefenseAttackerAiCharacter` | `tower_def.rs`, `config.rs`, `scripts/tower_def.rs`, `ai/framework.rs` | extended | Rust adds event start/end, first-wave delay, timed/kill AND/OR progression, NPC controller/summon cleanup preserving normal corpse timers, client lists, GM controls and opt-in game-time/war schedules. The attacker's C# behavior graph already matches `AiKind::TowerDefenseAttacker`. Unsupported target kinds and absent spawn positions fail preflight; rewards/victory event chains are not added. |
 
 Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` checks the summoned vehicle (`systems::vehicles`); the entry item goes through `npcs::portal::check_item_and_remove` (economy `EconomyBridge::consume_item`); `SetFaction` updates the owned houses (`SocialHooks::update_owned_housing_faction`, housing). Instant games have no rewards in C#.
 
@@ -684,6 +684,22 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   only changed memory. Team risky actions require membership and known actions, with owner
   authorization for kick/dismiss and a self target for leave before any side effects.
 
+* systems::social: justice repairs intentionally differ from C#: crime/infamy accumulation and
+  sentence durations saturate instead of wrapping; a live evidence doodad can be reported once.
+  Arrests cannot create duplicate cases, and the holding-cell offender buff is applied. Jury
+  acceptance requires an actual invitation, current eligibility and the court's faction; only
+  the occupied seat's player can confirm records or submit a valid, final vote. Repeated pleas
+  and terminal-case cancellation cannot resentence the defendant. Justice teleports update
+  server transforms, instance membership and visibility, and yaw is consistently in radians.
+  Every exit path cleans jurors and removes trial buffs; returns respect `AllowJuryEscape`,
+  and cleanup releases only its own court.
+  Disconnects vacate jury seats or close the defendant's abandoned case while retaining the
+  pending sentence (minimum one stored minute) and court region. Login enforces it independently of jury
+  eligibility. The normal-save bad buffs 631/2028 persist even their final seconds; their
+  non-real-time duration resumes on reconnect. The existing 1.2 plurality sentencing choices
+  and first-seat tie ordering remain. Tests cover all six verdicts, default sentencing,
+  invalid/duplicate votes, occupied courts, disconnects and real compact prisoner definitions.
+
 * systems::quests: rewards, items, money, exp, skills, NPC faction, teams, mails go through
   `quests::hooks::QuestHooks` (`GameQuestHooks`; the item / money / mail part is the economy's).
   World effects (component skills, NPC faction, team-shared events) run after the character
@@ -711,6 +727,52 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   blocks; the client accepts any valid deflate stream.
 * systems::skills: the radar scans of `SkillTargetingUtil` are not ported.
 * systems::skills: `SpecialEffect` repeats are scheduled tasks instead of `Thread.Sleep` loops.
+* systems::skills (2026-10-12 audit): OR requirements now require one success and use the resolved
+  packet target, including doodads. Equipped-item and NPC-group requirements check their actual
+  membership; crime-point limits and overnight time windows are enforced. Source/target life,
+  swimming, stun, walking, angle, range and optional physics
+  obstruction checks run before GCD/buff/resource changes and again at cast completion. Missing
+  mana preserves ongoing buffs and cast timing, including mana drained during a cast. Labor and
+  reagent availability are checked before starting and firing, including alternative reagents.
+  Active direct casts cannot be overwritten; a
+  new cast either stops a channel under its configured policy or is rejected.
+* systems::skills (2026-10-12 audit): channel buffs have distinct caster/target owners. Direct
+  channel ticks spend mana and apply effects; channels without ticks apply their effects once
+  at completion. Cancellation invalidates timers, cleans up both buffs and emits one end
+  notification without clearing a newer task. Repeated stops cannot complete a timeline twice;
+  canceled delayed effects are suppressed, and a reused skill resets its per-cast state.
+  Repeated special actions carry their cast generation, so canceled or reused casts cannot
+  act through old callbacks after their timeline ID has been released.
+  Delayed effects and repeated actions require the captured world handles to remain live;
+  despawned or recycled objects are skipped, and an abandoned delayed cast releases its timeline.
+  Channels also stop on despawn; target buff cleanup compares the original handle identity
+  before removing anything from a reused object ID.
+  Delayed SkillUse actions retain both entity handles and their originating cast generation;
+  canceled or reused casts cannot launch a child skill. Delayed disturbance, buff timers and
+  controllers also reject removed or recycled entity handles.
+  Auto-attack callbacks require the current skill and cancellation token, so a stale loop
+  cannot attack through a replacement character or clear a newer auto-attack slot.
+* systems::skills (2026-10-12 audit): direct AoE respects cone angles; individual guaranteed-hit
+  effects bypass miss results without changing other effects' cached rolls. Magic miss/resist
+  joins the miss set. Percentage rolls use the exact 0/100 endpoints, retaining SkillUse's
+  explicit 0 sentinel. Buff unit events follow the owner; Landing, Attacked, ChannelingCancel,
+  RemoveOnMove and RemoveOnDamage execute, including short jump landings without fall damage.
+  NPC AI faces a non-self target before cast angle validation; turning only after a successful
+  cast prevented sideways melee attacks. Self-targeted skills retain their heading.
+* systems::skills (2026-10-12 audit): Create Mana/resource conversions, percentage health/mana
+  restoration, server cooldown resets, direct-cast interrupts, spawner despawn and Escape's
+  MoveToRezPoint timeout now execute. Charges accumulate before refresh/notification; target
+  charges use their own buff and multiplier; both actor radii scale. Explicit buff removal
+  dispels once, knockback immunity reads text booleans, doodad summons keep radians and the
+  selected frame, Return keeps radians in its fallback and sends both notifications, and
+  negative breath changes clamp at zero. FakeDeath clears incoming aggro without killing the
+  target (native WZFakeDeath handler 0x3936F060). PlayLogEffect is recognized as telemetry.
+* systems::skills (2026-10-12 audit): the extracted 1.2 client database and server database have
+  the same 15126 skill IDs and 9816 buff IDs. Both lack 33 unique buff templates referenced by 35
+  BuffEffect definitions. The loader warns with both IDs; replacement templates are not
+  fabricated. Historical RedeemBuff/ExplodeBuff formulas, recipe/account/cinema placeholders,
+  several other special actions and generic Anchor/Flowgraph still need authoritative behavior
+  or protocol evidence. Passing covered tests does not certify every data-defined skill.
 * systems::skills: the labor margin requirement uses `GetMaxLabor(Payment.PremiumState)`; every
   connection has the default C# `AccountPayment` (premium until 2030), so the cap is 5000.
 * systems::skills: `Character.DoDie` is complete (exp / durability loss, escalating respawn timer,
@@ -744,6 +806,7 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   operation is aborted and logged.
 
 * systems::instances: the dungeon loader awaits the spawn tasks before registering the indun events again (C# does not await `Task.WhenAll`, a race) and reads the spawn files there instead of in `CreateWorldInstance`; `DestroyInstantGame` cleans the instance up and releases its id right away (C#: the finalizer, later); `Environment.TickCount` is a process-relative monotonic clock; the `World.Template.SpawnPosition` mutation in `MoveCharacterTo*` is a local value; paths that throw in C# (missing action / room / zone / rule set, `_members[x]` of a non-member, a destroyed dungeon's `World`) log and return, keeping the side effects done before the throw; `EndGame().Start()` throwing after a victory is modelled as "the rest of `OnKill` (respawn) does not run"; the cross-instance region switch removes the object from every old neighbour once (no double notification of its own sector).
+* systems::instances (tower defense): the C# command only sent packets to its caller and hard-coded zone group 5. The Rust runtime reserves controller positions from the existing NPC JSON by compact spawner membership; these controllers no longer spawn permanently. Manual controls affect the caller's instance/group. Automatic schedules are disabled by default and validate every selected event at startup. Orphan waves/targets no longer truncate later valid rows. Kill notifications use only `DoDie`, deduplicate the NPC handle and retain id-reuse semantics. Timers use monotonic real seconds; `tod` uses the accelerated game clock and day intervals count from scheduler startup. Spawn effects carry explicit event ownership for cleanup even when Unit.OwnerId is zero. Unsupported `DoodadAlmighty` targets, NPC groups without authored controller positions and reward/victory chains remain unavailable rather than being synthesized.
 
 * systems::vehicles: supersedes the phase-2 `CSMoveUnit` and `LeaveWorldTask` bullets above:
   slave / vehicle / mate moves, riding, standing on objects, the mate / slave logout handling
@@ -857,8 +920,7 @@ and in NPC wandering / buff remaining times.
   `ExpeditionManager.ChangeOwner` does not update `OwnerName`; `ReplyInvite` does not check an
   existing guild; `ChangeExpeditionRolePolicy` requires the Expel right; disbanded guilds stay in
   the list; family invitations always carry family id 1; hard disconnects keep the family member's
-  character set; `Character.AddCrime` wraps on
-  overflow; `GetTrialChat` throws when the faction has no court and the player is in no trial;
+  character set; `GetTrialChat` throws when the faction has no court and the player is in no trial;
   `CSAddFriend` accepts yourself.
 
 * `WorldManager.RemoveVisibleObject` calls `RemoveFromCharacters` on the object's own region and
@@ -918,27 +980,9 @@ and in NPC wandering / buff remaining times.
   quest time above 59 s (`LeftTime` then saturates to `int.MaxValue`).
 * systems::quests: `SphereGameData` reads `spheres.enter_or_leave` / `or_unit_reqs` with
   `GetBoolean(name)` (int conversion of 't'): always false.
-* systems::skills: `Buffs.RemoveBuff` path sends `SCBuffRemoved` twice (Exit + Dispel).
-* systems::skills: a target-charged buff uses the caster template's `ChargedBuffId`.
-* systems::skills: `UnitRequirements` with `OrUnitReqs` pass as soon as the first requirement is
-  evaluated (the C# loop returns early).
-* systems::skills: `GetDistanceTo` radius precedence (`a - b + c` instead of `a - (b + c)`).
-* systems::skills: buff triggers subscribe to the caster's events, not the owner's.
-* systems::skills: `knockback_immune` is read with `GetBoolean` on a `'t'/'f'` column (always false).
-* systems::skills: special `Charge` creates the buff with the target as owner but adds it to the
-  caster, and its final charge only reaches a newly added buff (a refresh keeps the first value).
-* systems::skills: special `SpawnDoodad` moves along `target yaw + 90°` and passes degrees to
-  `SetPosition` (which takes radians).
-* systems::skills: special `Escape` in an instance sends the spawn position's roll as the yaw.
-* systems::skills: special `Return` sends `SCLoadInstance` for instance 1 while the transform uses
-  instance 0, converts an already-radian `MainWorldPosition` rotation with `DegToRad` again, and
-  only sends `SCTeleportUnit` when a return point was found.
-* systems::skills: special `RemoveDoodad` broadcasts `SCDoodadRemoved` after deleting the doodad
-  (it reaches nobody).
-* systems::skills: special `AddBreath` adds `uint + int` as `long` and truncates back to `uint`.
 * `systems::npcs`: a generated (fake) spawner's first member never spawns; the "spawn all" schedule check is inverted; `DoRandomSpawn` leaks an obj id and spawns twice; a doodad despawn may release its obj id twice; gimmick spawn rotations are not converted from degrees; scheduled doodad spawns stack cron tasks; the player-in-radius check scans every player; NPCs are not despawned when players leave.
 * `systems::npcs`: dated game schedules compare `StartTime` / `EndTime` (usually 0) instead of the start / end hours (a one-day event counts as ended at 00:00); the cron builder tests the captured day of week instead of its parameter, and undated schedules produce day / month 0 (rejected by the cron parser); `VendorExist` reads the `id` column; deleting a portal sends no packet; `NotifySubZone` re-sends the portal book once per recall portal of the sub zone; the exit portal's yaw is the book rotation in degrees.
-* `systems::npcs`: `DoodadFuncLootItem` with coins (item 500) and `DoodadFuncBuyFish` add the money twice; a trade pack whose backpack take-off fails still counts as looted; `CheckGrowth` runs funcs with `nextPhase = 0`; some `doodad_func_*` loaders store templates in the phase dictionary (e.g. `DoodadFuncBuyFishItem`), mirrored; `DoodadPhaseFunc.PulseTriggered` is state shared by every doodad of the group.
+* `systems::npcs`: corrected coin double credit and failed trade-pack acquisition; `BuyFish` uses the checked economy sale. Phase operations reserve live object identity, honor interaction counts, enter functions on time-of-day changes, and cancel superseded timers. Saves/deletes use a FIFO writer drained by the save lifecycle; partial interaction counts use the doodad-interactions SQL update. Scheduled spawns recreate deleted doodads, deduplicate cron callbacks, and retain original world identity. Logic links/families route matching true/false pulses with per-object state and cycle guards; client-created wires require ownership and reach. Immediate gates are supported; delay descriptors 2/3 need reference behavior. `SpawnGimmick` creates the authored object with offsets/faction/kinematic motion; `SpawnMgmt` requires explicit authored `SpawnGroupId` membership. Prefab flow graphs are client-owned. `CheckGrowth` still runs funcs with `nextPhase = 0`; child metadata templates (e.g. `DoodadFuncBuyFishItem`) remain in the phase dictionary.
 * systems::economy: `AddOrMoveExistingItem` merging an item from another container into a stack
   removes it from the source without releasing it (the DB row stays); it is kept as a loose item.
   The mail branch of the acquire / consume events reads `item.SlotType` after it was overwritten,
@@ -966,7 +1010,7 @@ and in NPC wandering / buff remaining times.
   released, the owner's `ItemRemove` in `SCTradeMade` names the receiver's slot.
 * systems::economy: cash shop — loyalty is charged at the undiscounted price, the max-level check
   sends the low-level error, page 0 behaves like page 1.
-* `systems::instances`: `RegisterIndunEvents` runs in the `Dungeon` constructor and again in the loader, so every indun event handler is subscribed twice; a dungeon kill raises `OnUnitKilled` (and the victim's `OnDeath`) in `PostUpdateCurrentHp` and again in `DoDie` — NPC-killed action chains run four times; `IndunEventDoodadSpawneds.UnSubscribe` adds the handler (`+=`); `AreaClearTick` stops at the first cleared room (`return`); a new dungeon verifies the requirements twice (the entry item is consumed twice) and the creator gets `SCProcessingInstancePacket` twice; `Transform.CloneDetached(character)` / `MainWorldPosition.Clone()` fire `OnZoneChange(0, zone)` (the instance zone chat is never left); `ApplyWorldSpawnPosition` stores the spawn rotation in degrees; leaving an instance sends the (radian) return rotation through `DegToRad` again and `SCLoadInstancePacket` names `MainWorldPosition.WorldId`; `DestroyDungeon` removes the players from the instance without moving them out; `InstantGame.RemovePlayer` looks the corps lists up by 0 / 1 instead of the faction ids (never cleaned); `AddScore` always sends `Corps1` / `score2 = 0`; the kill packet's victim count is the victim corps' kills; entering a battlefield sets the corps faction, so `Character.SetFaction` kicks guild members of another mother faction from their guild and party; offline queue applicants are never pruned (`CharObj` is never null); `RemoveGame` leaves the game in the queue list; `TowerDefGameData` / battlefields.json loops stop (`return`) at the first orphan row.
+* `systems::instances`: `RegisterIndunEvents` runs in the `Dungeon` constructor and again in the loader, so every indun event handler is subscribed twice; a dungeon kill raises `OnUnitKilled` (and the victim's `OnDeath`) in `PostUpdateCurrentHp` and again in `DoDie` — NPC-killed action chains run four times; `IndunEventDoodadSpawneds.UnSubscribe` adds the handler (`+=`); `AreaClearTick` stops at the first cleared room (`return`); a new dungeon verifies the requirements twice (the entry item is consumed twice) and the creator gets `SCProcessingInstancePacket` twice; `Transform.CloneDetached(character)` / `MainWorldPosition.Clone()` fire `OnZoneChange(0, zone)` (the instance zone chat is never left); `ApplyWorldSpawnPosition` stores the spawn rotation in degrees; leaving an instance sends the (radian) return rotation through `DegToRad` again and `SCLoadInstancePacket` names `MainWorldPosition.WorldId`; `DestroyDungeon` removes the players from the instance without moving them out; `InstantGame.RemovePlayer` looks the corps lists up by 0 / 1 instead of the faction ids (never cleaned); `AddScore` always sends `Corps1` / `score2 = 0`; the kill packet's victim count is the victim corps' kills; entering a battlefield sets the corps faction, so `Character.SetFaction` kicks guild members of another mother faction from their guild and party; offline queue applicants are never pruned (`CharObj` is never null); `RemoveGame` leaves the game in the queue list; battlefields.json loops stop (`return`) at the first orphan row.
 * systems::housing: abandoned-house removal buff 2250 now applies its original effect
   1876 through the normal damage path. C# rejected the house attacking itself, so the
   building never decayed. Only the active server-owned removal tick on that same unowned
@@ -977,7 +1021,13 @@ and in NPC wandering / buff remaining times.
   siege_plans and siege_zones, preserving stage order and naive reference dates. These
   records remain read-only; persisted Dominion authority now handles claim, retained-tower
   damage, roster membership and the original five-minute engraving capture. Schedules are
-  explicit GM operations using authored zone durations. Any registered current attacker may
+  explicit GM operations using authored zone durations, with self-registration through
+  `/joinsiege [zoneGroupId]` and `/leavesiege [zoneGroupId]`. The zone defaults to the caller's
+  province; the scheduled guilds determine the side, and the current guild rank's JoinSiege
+  policy controls enrollment. All shipped ranks allow it. Players cannot enroll another
+  character or change the schedule; leaving also cancels the caller's engraving. GM scheduling
+  with player registration is the chosen server policy rather than historical auction calendars.
+  Any registered current attacker may
   engrave; initial claim requires the current guild leader and exact Purified Archeum pack.
   Capture transfers the nine independently itemized fort designs to the new guild leader,
   preserves ordinary property owners, and applies authored fort-count protection stages.
@@ -1246,7 +1296,7 @@ the C# `GameNetwork`. Deviations of the audit ports:
   `/doodad`); `GoldCmd` hides `AddGold` and `gold set` adds like `add`; `SetFaction` changes the
   caller's faction; `AddPortals` uses the caller's position and roll; `Heal` without a target does
   nothing; the `Fly` cache toggles off when set to true twice; `TestChatChannel list` never
-  resets its name buffer; `ItemUnwrap` passes the Secure flag twice; `TowerDef` / `QuestCmd
+  resets its name buffer; `ItemUnwrap` passes the Secure flag twice; `QuestCmd
   objective|progress` index missing arguments (IndexOutOfRange); `QuestCmd template` /
   `SphereCommandUtil.GetQuestSphere` read the never-set `DetailType`; `GetSphereList` filters on
   the quest object id; `CrimeCreate` stores degrees as radians and throws without `source=`;

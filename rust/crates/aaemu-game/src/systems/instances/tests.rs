@@ -508,7 +508,7 @@ fn battlefield_data_loads_with_json_quirks() {
 }
 
 #[test]
-fn tower_def_data_loads_and_stops_on_orphans() {
+fn tower_def_data_loads_past_orphans_in_wave_order() {
     let c = Connection::open_in_memory().unwrap();
     c.execute_batch(
         "CREATE TABLE tower_defs (id INT, tod REAL, first_wave_after REAL, target_npc_spawner_id INT, kill_npc_id INT, kill_npc_count INT, force_end_time REAL, tod_day_interval INT);
@@ -530,15 +530,13 @@ fn tower_def_data_loads_and_stops_on_orphans() {
     assert_eq!(t.target_npc_spawn_id, 13638);
     assert_eq!(t.kill_npc_id, 0);
     assert_eq!(t.force_end_time, 4800.0);
-    // Note (C#): the orphan prog 14 ends the loop: 15 is not loaded.
-    assert_eq!(t.progs, vec![13]);
+    assert_eq!(t.progs, vec![13, 15]);
     let p = &d.progs[&13];
     assert!(p.cond_comp_by_and);
     assert_eq!(p.spawn_targets.len(), 1);
     assert_eq!(p.spawn_targets[0].spawn_target_id, 9893);
     assert!(!p.spawn_targets[0].despawn_on_next_step);
-    // The orphan kill target 11 ends that loop too.
-    assert_eq!(p.kill_targets.len(), 1);
+    assert_eq!(p.kill_targets.len(), 2);
     assert_eq!(p.kill_targets[0].kill_target_id, 8181);
 }
 

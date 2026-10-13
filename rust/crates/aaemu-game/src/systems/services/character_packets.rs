@@ -204,9 +204,41 @@ macro_rules! log_only_packet {
     };
 }
 
-log_only_packet!(CSCleanupLogicLinkPacket, warn, |s| {
-    format!(", ObjId: {}", s.read_bc()?)
-});
+#[derive(Debug, Clone, Copy)]
+pub struct CSCleanupLogicLinkPacket {
+    pub obj_id: u32,
+}
+impl ClientPacket for CSCleanupLogicLinkPacket {
+    const NAME: &'static str = "CSCleanupLogicLinkPacket";
+    fn read(s: &mut PacketStream) -> Result<Self> {
+        Ok(Self {
+            obj_id: s.read_bc()?,
+        })
+    }
+    fn handle<'a>(
+        self,
+        server: &'a GameServer,
+        conn: &'a mut GameConnection,
+    ) -> BoxFuture<'a, Result<()>> {
+        Box::pin(async move {
+            if let Some(player) = &conn.active_char {
+                if let Some(world) = server.world.world_of(&WorldObject::from(player)) {
+                    if let Some(doodad) = world.doodad(self.obj_id) {
+                        if doodad.data().owner_id == player.character_id {
+                            let ctx = crate::systems::npcs::doodad::runtime::DoodadCtx::new(
+                                server,
+                                world.clone(),
+                                doodad,
+                            );
+                            crate::systems::npcs::doodad::logic::clear_links(&ctx);
+                        }
+                    }
+                }
+            }
+            Ok(())
+        })
+    }
+}
 log_only_packet!(CSConsoleCmdUsedPacket, debug, |s| {
     format!(", Cmd: {}", s.read_string()?)
 });

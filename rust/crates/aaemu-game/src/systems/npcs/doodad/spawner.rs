@@ -44,6 +44,8 @@ pub fn parse_position(obj: &Map<String, Value>) -> Result<WorldSpawnPosition, St
 /// The `Spawner<T>` members.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SpawnerBase {
+    /// Authored management group, independent of the NPC spawner template ID (0 = unmanaged).
+    pub spawn_group_id: u32,
     /// `Id` (index; overwritten by `SpawnManager`).
     pub id: u32,
     /// `SpawnerId` (spawner template id).
@@ -64,6 +66,7 @@ pub struct SpawnerBase {
 impl Default for SpawnerBase {
     fn default() -> Self {
         Self {
+            spawn_group_id: 0,
             id: 0,
             spawner_id: 0,
             unit_id: 0,
@@ -89,6 +92,7 @@ pub fn parse_spawner_base(obj: &Map<String, Value>) -> Result<SpawnerBase, Strin
         Some(o) => return Err(format!("Position: expected an object, got {o}")),
     };
     Ok(SpawnerBase {
+        spawn_group_id: json::u32_or(obj, "SpawnGroupId", 0)?,
         id: json::u32_or(obj, "Id", 0)?,
         spawner_id: json::u32_or(obj, "SpawnerId", 0)?,
         unit_id: json::u32_or(obj, "UnitId", 0)?,
@@ -211,6 +215,7 @@ struct State {
     respawn_doodad_template_id: u32,
     /// `NotFoundInScheduler`.
     not_found_in_scheduler: bool,
+    cron_jobs: std::collections::HashSet<(bool, String)>,
 }
 
 /// `DoodadSpawner`.
@@ -245,7 +250,7 @@ fn doodad_cron_remaining_time(server: &GameServer, template_id: u32, start: bool
 fn cron_schedule(
     server: &GameServer,
     expr: &str,
-    task: impl Fn(&GameServer) + Send + Sync + 'static,
+    task: impl Fn(&GameServer) -> bool + Send + Sync + 'static,
 ) -> Result<(), String> {
     let cron = CronSchedule::parse(expr).map_err(|e| format!("{e:?}"))?;
     let (Some(server), Ok(rt)) = (server.self_arc(), tokio::runtime::Handle::try_current()) else {
@@ -267,25 +272,13 @@ fn cron_schedule(
             let Some(server) = weak.upgrade() else {
                 break;
             };
-            task(&server);
+            if !task(&server) {
+                break;
+            }
             base = chrono::Utc::now().naive_utc().max(next);
         }
     });
     Ok(())
-}
-
-/// `new DoodadSpawnerDoDespawnTask(doodad)`: `doodad.DoDespawn()` (`Spawner.DoDespawn(this)`).
-fn do_despawn_task(doodad: DoodadRef) -> impl Fn(&GameServer) + Send + Sync + 'static {
-    move |server: &GameServer| {
-        if let Some(s) = server.systems.npcs.spawns.doodad_spawner_of(doodad.obj_id) {
-            s.do_despawn(server, &doodad);
-        }
-    }
-}
-
-/// `new DoodadSpawnerDoSpawnTask(spawner)`: `spawner.DoSpawn()`.
-fn do_spawn_task(spawner: Arc<DoodadSpawner>) -> impl Fn(&GameServer) + Send + Sync + 'static {
-    move |server: &GameServer| spawner.do_spawn(server)
 }
 
 fn cron_unusable(expr: &str) -> bool {
@@ -293,6 +286,72 @@ fn cron_unusable(expr: &str) -> bool {
 }
 
 impl DoodadSpawner {
+    /// Fresh state for an event; reuse only the authored template and placement.
+    pub fn event_copy(&self, world_id: u32) -> Arc<Self> {
+        Arc::new(Self::new(
+            DoodadSpawnerDef {
+                base: SpawnerBase {
+                    id: self.id,
+                    spawner_id: self.spawner_id,
+                    unit_id: self.unit_id,
+                    position: self.position,
+                    respawn_time: 0,
+                    despawn_time: 0,
+                    ..Default::default()
+                },
+                scale: self.scale(),
+                count: 1,
+                related_ids: self.related_ids.clone(),
+                respawn_doodad_template_id: 0,
+            },
+            Some(world_id),
+        ))
+    }
+    /// Install each recurring schedule once, retaining neither an old doodad nor its world.
+    fn schedule_cron(
+        self: &Arc<Self>,
+        server: &GameServer,
+        expr: &str,
+        spawn: bool,
+    ) -> Result<(), String> {
+        let Some(world) = self.parent_world().and_then(|id| server.world.world(id)) else {
+            return Err("no spawner world".into());
+        };
+        let key = (spawn, expr.to_owned());
+        if !self.st().cron_jobs.insert(key.clone()) {
+            return Ok(());
+        }
+        let world = Arc::downgrade(&world);
+        let spawner = Arc::downgrade(self);
+        let result = cron_schedule(server, expr, move |server| {
+            let (Some(world), Some(spawner)) = (world.upgrade(), spawner.upgrade()) else {
+                return false;
+            };
+            if !server
+                .world
+                .world(world.id)
+                .is_some_and(|current| Arc::ptr_eq(&current, &world))
+            {
+                return false;
+            }
+            let _serial = server.systems.npcs.spawns.spawn_lock();
+            if spawn {
+                if spawner.last().is_none() {
+                    spawner.spawn(server, 0);
+                } else {
+                    spawner.do_spawn(server);
+                }
+            } else if let Some(doodad) = spawner.last() {
+                spawner.do_despawn(server, &doodad);
+            }
+            true
+        });
+        if result.is_err() {
+            self.st().cron_jobs.remove(&key);
+        }
+        result
+    }
+
     /// A spawner from its JSON entry (`ParentWorld` / `Id` / position fix-ups are applied by
     /// `SpawnManager.Load`).
     pub fn new(def: DoodadSpawnerDef, parent_world: Option<u32>) -> Self {
@@ -318,6 +377,7 @@ impl DoodadSpawner {
                 permanent: true,
                 respawn_doodad_template_id: def.respawn_doodad_template_id,
                 not_found_in_scheduler: false,
+                cron_jobs: Default::default(),
             }),
         }
     }
@@ -413,13 +473,14 @@ impl DoodadSpawner {
         item_id: u64,
         char_obj_id: u32,
     ) -> Option<DoodadRef> {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         self.reset_for_spawn();
         // C#: WorldManager.GetCharacterByObjId(charId).ParentWorld (null -> exception).
         let character = server.world.character_by_obj_id(char_obj_id)?;
         let owner = WorldObject::from(&character);
         let world = server.world.world_of(&owner)?;
         let Some(doodad) =
-            backend::doodad_create(server, &world, obj_id, self.unit_id, Some(&owner), false)
+            backend::doodad_create(server, &world, obj_id, self.unit_id, Some(&owner), true)
         else {
             tracing::warn!("Doodad {}, from spawn not exist at db", self.unit_id);
             return None;
@@ -437,6 +498,7 @@ impl DoodadSpawner {
 
     /// `Spawn(objId)` (initial spawn and respawns). Only `objId == 0` creates a doodad.
     pub fn spawn(self: &Arc<Self>, server: &GameServer, obj_id: u32) -> Option<DoodadRef> {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         // TODO (C#): clean up each doodad using the same call
         self.reset_for_spawn();
         if obj_id != 0 {
@@ -457,7 +519,7 @@ impl DoodadSpawner {
             tracing::error!("Can't spawn doodad {new_unit_id} from spawn {}", self.id);
             return None;
         };
-        let Some(doodad) = backend::doodad_create(server, &world, obj_id, new_unit_id, None, false)
+        let Some(doodad) = backend::doodad_create(server, &world, obj_id, new_unit_id, None, true)
         else {
             tracing::warn!("Doodad Temaplte {new_unit_id}, used in Spawn() does not exist in db");
             return None;
@@ -475,9 +537,37 @@ impl DoodadSpawner {
 
     /// `Despawn(doodad)`.
     pub fn despawn(&self, server: &GameServer, doodad: &DoodadRef) {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
+        let spawns = &server.systems.npcs.spawns;
+        // Spawn replaces the local list, but the world can still contain older linked spawns.
+        let linked = spawns
+            .doodad_spawner_of(doodad.obj_id)
+            .is_some_and(|s| std::ptr::eq(s.as_ref(), self));
+        let instance = doodad.data().transform.instance_id;
+        if server
+            .world
+            .world(instance)
+            .and_then(|world| world.object(doodad.obj_id))
+            .is_some_and(
+                |current| !matches!(current, WorldObject::Doodad(ref d) if Arc::ptr_eq(d, doodad)),
+            )
+        {
+            return;
+        }
+        {
+            let mut st = self.st();
+            let owns = st.spawned.iter().any(|d| Arc::ptr_eq(d, doodad))
+                || st.last.as_ref().is_some_and(|d| Arc::ptr_eq(d, doodad));
+            if !owns && !linked {
+                return;
+            }
+            st.spawned.retain(|d| !Arc::ptr_eq(d, doodad));
+            if st.last.as_ref().is_some_and(|d| Arc::ptr_eq(d, doodad)) {
+                st.last = None;
+            }
+        }
         // doodad.FuncTask?.Cancel(): the doodad manager cancels the func task on delete.
         delete_doodad(server, doodad, self.parent_world());
-        let spawns = &server.systems.npcs.spawns;
         if spawns.respawn_field(doodad.obj_id).is_none() {
             server.ids.object.release_id(doodad.obj_id);
             spawns.forget_object(doodad.obj_id);
@@ -549,6 +639,7 @@ impl DoodadSpawner {
 
     /// `DoDespawn(doodad)` (`Doodad.DoDespawn` / `DoodadSpawnerDoDespawnTask`).
     pub fn do_despawn(self: &Arc<Self>, server: &GameServer, doodad: &DoodadRef) {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         let (template_id, obj_id, func_group_id) = {
             let d = doodad.data();
             (d.template_id, doodad.obj_id, d.func_group_id)
@@ -572,7 +663,7 @@ impl DoodadSpawner {
                         tracing::trace!("DoDespawn: Can't schedule despawn Doodad templateId={template_id} objId={obj_id} cronExpression {cron}");
                         return;
                     }
-                    match cron_schedule(server, &cron, do_despawn_task(doodad.clone())) {
+                    match self.schedule_cron(server, &cron, false) {
                         Ok(()) => tracing::trace!("DoDespawn: Schedule the despawn of Doodad templateId={template_id} objId={obj_id} cronExpression {cron}"),
                         Err(e) => tracing::trace!("DoDespawn: Can't schedule despawn Doodad templateId={template_id} objId={obj_id} cronExpression {cron}: {e}"),
                     }
@@ -592,7 +683,7 @@ impl DoodadSpawner {
                 tracing::trace!("DoDespawn: Can't schedule spawn Doodad templateId={template_id} objId={obj_id} cronExpression {cron}");
             } else {
                 tracing::debug!("DoDespawn: Doodad TemplateId {template_id}, objId {obj_id} FuncGroupId {func_group_id}, cronExpression={cron} spawn reschedule next time...");
-                if let Err(e) = cron_schedule(server, &cron, do_spawn_task(self.clone())) {
+                if let Err(e) = self.schedule_cron(server, &cron, true) {
                     tracing::trace!("DoDespawn: Can't schedule spawn Doodad templateId={template_id} objId={obj_id} cronExpression {cron}: {e}");
                 }
             }
@@ -601,6 +692,7 @@ impl DoodadSpawner {
 
     /// `DoSpawn()`: spawns `Last` (with the game schedule checks).
     pub fn do_spawn(self: &Arc<Self>, server: &GameServer) {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         let schedule = &server.game_data.systems.npcs.schedule;
         let last_obj_id = self.last().map_or(0, |l| l.obj_id);
         let unit_id = self.unit_id;
@@ -609,8 +701,7 @@ impl DoodadSpawner {
         {
             self.st().permanent = false; // Doodad on the schedule.
             if last_obj_id == 0 {
-                // C#: every branch below logs `Last.ObjId` (NullReferenceException when a cron
-                // DoSpawn task runs after Despawn cleared `Last`).
+                self.spawn(server, 0);
                 return;
             }
             match schedule.period_status_doodad(unit_id as i32, spawn_manager::unix_now()) {
@@ -626,7 +717,7 @@ impl DoodadSpawner {
                         self.st().permanent = true;
                         return;
                     }
-                    if let Err(e) = cron_schedule(server, &cron, do_spawn_task(self.clone())) {
+                    if let Err(e) = self.schedule_cron(server, &cron, true) {
                         tracing::trace!("DoSpawnSchedule: Can't schedule spawn Doodad templateId={unit_id} objId={last_obj_id} cronExpression {cron}: {e}");
                         self.st().permanent = true;
                     }
@@ -647,6 +738,9 @@ impl DoodadSpawner {
         let Some(last) = self.last() else {
             return;
         };
+        if last.core().is_visible() || last.data().phase.deleted {
+            return;
+        }
         let obj = WorldObject::from(&last);
         let world = server
             .world
@@ -660,8 +754,6 @@ impl DoodadSpawner {
             return;
         };
         backend::doodad_spawn(server, &world, &last);
-        // Dungeon instances: `Last.ParentWorld.Events.OnDoodadSpawn` (systems::instances).
-        crate::systems::instances::events::on_doodad_spawned(server, &world, &last);
 
         let (template_id, reschedule) = {
             let mut st = self.st();
@@ -678,11 +770,17 @@ impl DoodadSpawner {
                 !st.permanent && !st.not_found_in_scheduler,
             )
         };
+        super::manager::init_doodad(server, &world, &last);
+        if last.data().phase.deleted {
+            return;
+        }
+        // Entry functions may delete a doodad; announce only a surviving spawn.
+        crate::systems::instances::events::on_doodad_spawned(server, &world, &last);
         if reschedule {
             let cron = doodad_cron_remaining_time(server, template_id, false);
             if cron_unusable(&cron) {
                 tracing::trace!("DoSpawnSchedule: Can't reschedule despawn Doodad templateId={template_id} objId={} cronExpression {cron}", last.obj_id);
-            } else if let Err(e) = cron_schedule(server, &cron, do_despawn_task(last.clone())) {
+            } else if let Err(e) = self.schedule_cron(server, &cron, false) {
                 tracing::trace!("DoSpawnSchedule: Can't reschedule despawn Doodad templateId={template_id} objId={} cronExpression {cron}: {e}", last.obj_id);
             }
         }

@@ -205,6 +205,11 @@ fox, which fights back; logout then takes the 5-minute in-combat timer), `load` 
 create, select, spawn, move, chat, leave). `parity` exits with 2 when there are findings,
 `load` when a bot failed.
 
+The combat step selects its NPC through `CSChangeTargetPacket` and faces it in movement
+packets so auto attacks and angle restrictions use the intended target. It matches skill responses to the player's object and skill IDs and reads
+the 1.2 `SkillResult` extra field before optional integer data. Missing combat NPCs and
+rejected casts fail the step; an NPC's own cast notification cannot count as a player cast.
+
 Run `login` last in a parity session: a world cookie that is never used leaves a pending entry
 on the game server, which makes the C# game server stop answering the login server (fixed in
 the Rust server, see `aaemu-game/PORTING.md`).

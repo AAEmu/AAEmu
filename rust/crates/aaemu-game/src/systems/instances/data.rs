@@ -649,7 +649,7 @@ pub struct TowerDefProgSpawnTarget {
 }
 
 /// `TowerDefProg` (`TowerDef` is the owning [`TowerDef`]).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct TowerDefProg {
     pub id: u32,
     pub tower_def_id: u32,
@@ -660,7 +660,7 @@ pub struct TowerDefProg {
 }
 
 /// `TowerDef`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct TowerDef {
     pub id: u32,
     pub time_of_day: f32,
@@ -682,8 +682,7 @@ pub struct TowerDefData {
 }
 
 impl TowerDefData {
-    /// `TowerDefGameData.Load`. Note (C#): a prog (or prog target) row whose parent does not
-    /// exist ends that table's loop (`return`) — the rows after it are skipped. Mirrored.
+    /// `TowerDefGameData.Load`. Unused parents are skipped without dropping later valid waves.
     pub fn load(conn: &Connection) -> Result<Self, GameDataError> {
         let mut d = TowerDefData::default();
         let mut defs = Vec::new();
@@ -710,15 +709,11 @@ impl TowerDefData {
             }
         }
 
-        let mut stop = false;
         let mut progs = Vec::new();
-        for_each_row(conn, "SELECT * FROM tower_def_progs", [], |r| {
-            if stop {
-                return Ok(());
-            }
+        for_each_row(conn, "SELECT * FROM tower_def_progs ORDER BY id", [], |r| {
             let tower_def_id = r.u32("tower_def_id")?;
             if !d.tower_defs.contains_key(&tower_def_id) {
-                stop = true;
+                tracing::warn!(tower_def_id, "Skipping orphan tower defense wave");
                 return Ok(());
             }
             progs.push(TowerDefProg {
@@ -743,18 +738,13 @@ impl TowerDefData {
             }
         }
 
-        let mut stop = false;
         for_each_row(
             conn,
-            "SELECT * FROM tower_def_prog_spawn_targets",
+            "SELECT * FROM tower_def_prog_spawn_targets ORDER BY id",
             [],
             |r| {
-                if stop {
-                    return Ok(());
-                }
                 let prog_id = r.u32("tower_def_prog_id")?;
                 let Some(prog) = d.progs.get_mut(&prog_id) else {
-                    stop = true;
                     return Ok(());
                 };
                 prog.spawn_targets.push(TowerDefProgSpawnTarget {
@@ -767,30 +757,46 @@ impl TowerDefData {
             },
         )?;
 
-        let mut stop = false;
-        for_each_row(conn, "SELECT * FROM tower_def_prog_kill_targets", [], |r| {
-            if stop {
-                return Ok(());
-            }
-            let prog_id = r.u32("tower_def_prog_id")?;
-            let Some(prog) = d.progs.get_mut(&prog_id) else {
-                stop = true;
-                return Ok(());
-            };
-            prog.kill_targets.push(TowerDefProgKillTarget {
-                id: r.u32("id")?,
-                kill_target_id: r.u32("kill_target_id")?,
-                kill_target_type: r.string("kill_target_type")?,
-                kill_count: r.u32("kill_count")?,
-            });
-            Ok(())
-        })?;
+        for_each_row(
+            conn,
+            "SELECT * FROM tower_def_prog_kill_targets ORDER BY id",
+            [],
+            |r| {
+                let prog_id = r.u32("tower_def_prog_id")?;
+                let Some(prog) = d.progs.get_mut(&prog_id) else {
+                    return Ok(());
+                };
+                prog.kill_targets.push(TowerDefProgKillTarget {
+                    id: r.u32("id")?,
+                    kill_target_id: r.u32("kill_target_id")?,
+                    kill_target_type: r.string("kill_target_type")?,
+                    kill_count: r.u32("kill_count")?,
+                });
+                Ok(())
+            },
+        )?;
         tracing::info!(
             "Loaded {} tower defs, {} tower def progs",
             d.tower_defs.len(),
             d.progs.len()
         );
         Ok(d)
+    }
+
+    /// Controller spawner templates used at event start and by its waves. These must not
+    /// run as ordinary permanent world spawns.
+    pub fn npc_spawner_ids(&self) -> std::collections::HashSet<u32> {
+        self.tower_defs
+            .values()
+            .map(|d| d.target_npc_spawn_id)
+            .filter(|id| *id != 0)
+            .chain(self.progs.values().flat_map(|p| {
+                p.spawn_targets
+                    .iter()
+                    .filter(|t| t.spawn_target_type == "NpcSpawner")
+                    .map(|t| t.spawn_target_id)
+            }))
+            .collect()
     }
 }
 

@@ -1915,6 +1915,11 @@ impl DoodadData {
 
     /// `GetFuncTemplate(funcId, funcType)`: only classes deriving from `DoodadFuncTemplate`.
     pub fn func_template(&self, func_id: u32, func_type: &str) -> Option<&FuncTemplate> {
+        let func_type = if func_type == "DoodadFuncTreeByproductsCollect" {
+            "DoodadFuncTreeByProductsCollect"
+        } else {
+            func_type
+        };
         self.func_templates.get(func_type)?.get(&func_id)
     }
 

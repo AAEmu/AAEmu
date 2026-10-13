@@ -160,6 +160,8 @@ pub fn world_name(world: &WorldInstance) -> String {
 
 /// `WorldManager.RemoveWorld(worldInstanceId)`.
 pub fn remove_world(server: &GameServer, world_id: u32) {
+    let _serial = server.systems.npcs.spawns.spawn_lock();
+    super::tower_def::cleanup_world(server, world_id);
     if !server.world.remove_world(world_id) {
         tracing::info!("[Dungeon] couldn't remove the dungeon id={world_id}!");
     }
@@ -174,6 +176,8 @@ pub fn release_world_id(server: &GameServer, world_id: u32) {
 /// `WorldInstance.CleanupInstance()`: stops the respawn loop, removes the spawners and what they
 /// spawned, then despawns whatever is left; the instance's `SpawnManager` is dropped.
 pub fn cleanup_instance(server: &GameServer, world_id: u32) {
+    let _serial = server.systems.npcs.spawns.spawn_lock();
+    super::tower_def::cleanup_world(server, world_id);
     let spawns = &server.systems.npcs.spawns;
     let Some(manager) = spawns.get(world_id) else {
         return;

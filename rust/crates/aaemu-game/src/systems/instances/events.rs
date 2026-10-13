@@ -486,6 +486,7 @@ fn fire_area_clear(server: &GameServer, world: &WorldInstance) {
 /// `world.Events.OnUnitSpawn(world, { Npc })` (`NpcSpawner` after `npc.Spawn()`):
 /// `IndunEventNpcSpawneds` runs its start action (not the chain).
 pub fn on_unit_spawn(server: &GameServer, world: &Arc<WorldInstance>, npc: &NpcRef) {
+    super::tower_def::on_spawn(server, npc);
     let regs = server.systems.instances.events.regs(world.id);
     if regs.unit_spawn.is_empty() {
         return;
@@ -619,6 +620,7 @@ pub fn on_kill_in_reduce_hp(server: &GameServer, victim: &WorldObject) {
 /// `Unit.DoDie`: `ParentWorld.Events.OnUnitKilled(...)` and `killerUnit?.Events.OnKill(this,
 /// { Killer, Victim })` (instant game scores).
 pub fn on_do_die(server: &GameServer, victim: &WorldObject, killer: Option<&WorldObject>) {
+    super::tower_def::on_death(server, victim);
     let instance = victim.transform().instance_id;
     if let Some(world) = server.world.worlds().into_iter().find(|w| w.id == instance) {
         fire_unit_killed(server, &world, victim);

@@ -1776,13 +1776,14 @@ impl crate::systems::npcs::hooks::EconomyBridge for EconomyForNpcs {
         grade: i32,
     ) -> bool {
         let mut txn = ItemTxn::begin(server);
-        lock(&Inv::of(player).bag()).acquire_default_item(
+        inventory::try_add_new_item(
+            &mut txn,
+            &Inv::of(player),
             task,
             template_id,
             count,
             grade,
             0,
-            &mut txn.env,
         )
     }
 
@@ -2255,6 +2256,75 @@ impl crate::systems::npcs::hooks::EconomyBridge for EconomyForNpcs {
         let mut g = lock(&c);
         g.set_container_size(coffer.capacity);
         coffer.container_id = g.container_id;
+    }
+
+    fn try_consume_doodad_source_item(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        doodad_template_id: u32,
+        item_id: u64,
+        labor_cost: i16,
+    ) -> bool {
+        let mut txn = ItemTxn::begin(server);
+        let inv = Inv::of(player);
+        let bag = inv.bag();
+        let mut bag = lock(&bag);
+        let Some(item) = bag.get_item_by_id(item_id).cloned() else {
+            return false;
+        };
+        if item.count < 1
+            || labor_cost < 0
+            || !server
+                .game_data
+                .items
+                .item_ids_from_doodad(doodad_template_id)
+                .contains(&item.template_id)
+            || player.data().labor_power < labor_cost
+        {
+            return false;
+        }
+        let preserve = server
+            .game_data
+            .items
+            .template(item.template_id)
+            .is_some_and(|t| t.max_count == 1);
+        if preserve {
+            if item.count != 1 {
+                return false;
+            }
+            drop(bag);
+            let Some(system) = inv.get(slot_type::SYSTEM) else {
+                return false;
+            };
+            if !super::mail::add_or_move_existing_item(
+                &mut txn,
+                &system,
+                task_type::DOODAD_CREATE,
+                item_id,
+                -1,
+            ) {
+                return false;
+            }
+        } else {
+            if bag.consume_item(
+                task_type::DOODAD_CREATE,
+                item.template_id,
+                1,
+                Some(item_id),
+                &mut txn.env,
+            ) != 1
+            {
+                return false;
+            }
+            drop(bag);
+        }
+        if labor_cost > 0 {
+            inventory::change_labor(&mut txn.out(), server, player, -labor_cost, 0);
+        }
+        drop(txn);
+        crate::systems::quests::events::on_item_use(server, player, item.template_id);
+        true
     }
 
     fn remove_expired_doodad_item(&self, server: &GameServer, item_id: u64) {

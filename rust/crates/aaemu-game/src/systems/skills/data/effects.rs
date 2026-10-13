@@ -55,6 +55,7 @@ effect_kinds!(
     NpcSpawnerSpawnEffect => "NpcSpawnerSpawnEffect",
     OpenPortalEffect => "OpenPortalEffect",
     PhysicalExplosionEffect => "PhysicalExplosionEffect",
+    PlayLogEffect => "PlayLogEffect",
     PutDownBackpackEffect => "PutDownBackpackEffect",
     RecoverExpEffect => "RecoverExpEffect",
     RepairSlaveEffect => "RepairSlaveEffect",
@@ -383,6 +384,10 @@ pub enum EffectTemplate {
         distance: f32,
     },
     PhysicalExplosion(PhysicalExplosionEffect),
+    PlayLog {
+        id: u32,
+        message: String,
+    },
     PutDownBackpack {
         id: u32,
         backpack_doodad_id: u32,
@@ -447,6 +452,7 @@ impl EffectTemplate {
             | Interaction { id, .. }
             | MoveToRezPoint { id }
             | OpenPortal { id, .. }
+            | PlayLog { id, .. }
             | PutDownBackpack { id, .. }
             | RepairSlave { id, .. }
             | ReportCrime { id, .. }
@@ -526,6 +532,13 @@ pub fn load_effect_tables(
 
     for_each_row(conn, "SELECT * FROM buff_effects", [], |r| {
         let buff_id = r.u32("buff_id")?;
+        if !buff_exists(buff_id) {
+            tracing::warn!(
+                effect_id = r.u32("id")?,
+                buff_id,
+                "BuffEffect references a missing buff template"
+            );
+        }
         add(
             K::BuffEffect,
             T::Buff(BuffEffect {
@@ -537,6 +550,21 @@ pub fn load_effect_tables(
             }),
         )
     })?;
+    if conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='play_log_effects')",
+        [],
+        |r| r.get::<_, bool>(0),
+    )? {
+        for_each_row(conn, "SELECT * FROM play_log_effects", [], |r| {
+            add(
+                K::PlayLogEffect,
+                T::PlayLog {
+                    id: r.u32("id")?,
+                    message: r.string("message")?,
+                },
+            )
+        })?;
+    }
     for_each_row(conn, "SELECT * FROM skill_controllers", [], |r| {
         add(
             K::SkillController,

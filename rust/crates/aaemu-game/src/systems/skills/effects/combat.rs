@@ -159,7 +159,7 @@ pub fn damage(
     let skill = args.source.skill();
     if let Some(s) = skill {
         if let Some(hit) = s.hit_type(trg.obj_id()) {
-            if s.skill_missed(trg.obj_id()) {
+            if !args.source.always_hit && s.skill_missed(trg.obj_id()) {
                 let mut p = SCUnitDamagedPacket::new(
                     args.cast,
                     args.caster_caster,
@@ -343,24 +343,23 @@ pub fn damage(
         }
     }
     if let Some(s) = skill {
-        let per = |charges: i32| {
-            charges as f32 * (e.charged_mul + f32::from(s.level) * e.charged_level_mul)
+        let per = |charges: i32, multiplier: f32| {
+            charges as f32 * (multiplier + f32::from(s.level) * e.charged_level_mul)
         };
         if e.use_charged_buff {
             let effect = unit_combat::buff_of(&caster, e.charged_buff_id);
             let charges = effect.as_ref().map_or(0, |b| b.charge);
-            min += per(charges);
-            max += per(charges);
+            min += per(charges, e.charged_mul);
+            max += per(charges, e.charged_mul);
             if let Some(b) = effect {
                 buffs::exit(server, &caster, b.index, false);
             }
         }
         if e.use_target_charged_buff {
-            // The C# reads ChargedBuffId (not TargetChargedBuffId) here.
-            let effect = unit_combat::buff_of(&trg, e.charged_buff_id);
+            let effect = unit_combat::buff_of(&trg, e.target_charged_buff_id);
             let charges = effect.as_ref().map_or(0, |b| b.charge);
-            min += per(charges);
-            max += per(charges);
+            min += per(charges, e.target_charged_mul);
+            max += per(charges, e.target_charged_mul);
             if let Some(b) = effect {
                 buffs::exit(server, &trg, b.index, false);
             }
@@ -517,6 +516,7 @@ pub fn damage(
             .npc_damage_received(server, n, &caster, value);
     }
     buffs::fire_unit_event(server, caster.obj_id(), BuffEventTriggerKind::Attack, 0);
+    buffs::fire_unit_event(server, trg.obj_id(), BuffEventTriggerKind::Attacked, value);
     if value > 0 {
         buffs::fire_unit_event(server, caster.obj_id(), BuffEventTriggerKind::Damage, value);
         buffs::trigger_remove_on(server, &caster, BuffRemoveOn::DamageEtc, 0);
@@ -568,6 +568,9 @@ pub fn heal(
     let Some(trg) = args.target.as_obj().filter(|o| o.is_unit()).cloned() else {
         return;
     };
+    if trg.as_slave().is_some() && !e.slave_applicable {
+        return;
+    }
     if trg.with_unit(|u| u.unit().hp).unwrap_or(0) <= 0 {
         return;
     }
@@ -684,6 +687,10 @@ pub fn heal(
             }
         }
     }
+    if e.percent && !args.source.is_trigger {
+        let maximum = trg.with_unit(|u| u.unit().max_hp).unwrap_or(0).max(0);
+        value = (i64::from(value) * i64::from(maximum) / 1000).clamp(0, i64::from(i32::MAX)) as i32;
+    }
     let hit = if critical {
         HealHitType::CriticalHealHit
     } else {
@@ -726,7 +733,9 @@ pub fn heal(
             unit_combat::record_pvp_heal_from(target, healer.character_id);
         }
     }
-    unit_combat::on_abuser_healed(server, &trg, &caster, value);
+    if !e.ignore_heal_aggro {
+        unit_combat::on_abuser_healed(server, &trg, &caster, value);
+    }
     unit_combat::post_update_current_hp(server, &trg, Some(&trg), old, hp, KillReason::Unknown);
 }
 
@@ -747,18 +756,20 @@ pub fn buff_effect(server: &GameServer, e: &BuffEffect, args: &EffectArgs<'_>) {
     };
     if target.is_unit() {
         if let Some(s) = args.source.skill() {
-            if s.hit_type(target.obj_id()).is_some() && s.skill_missed(target.obj_id()) {
+            if !args.source.always_hit
+                && s.hit_type(target.obj_id()).is_some()
+                && s.skill_missed(target.obj_id())
+            {
                 return;
             }
         }
     }
+    let ok = super::chance_succeeds(e.chance);
     if let Some(c) = &args.caster {
-        let roll = rand::Rng::gen_range(&mut rand::thread_rng(), 0..101);
-        let ok = roll <= e.chance;
         c.with_unit(|u| u.unit_mut().skill_state.condition_chance = ok);
-        if !ok {
-            return;
-        }
+    }
+    if !ok {
+        return;
     }
     if t.require_buff_id > 0 && !target.with_base_unit(|b| b.buffs().check_buff(t.require_buff_id))
     {
@@ -854,13 +865,17 @@ pub fn restore_mana(server: &GameServer, e: &RestoreManaEffect, args: &EffectArg
             * level_md
             + 0.5) as i32;
     }
-    let Some(value) = rand_int(min, max) else {
+    let Some(mut value) = rand_int(min, max) else {
         tracing::error!(
             "RestoreManaEffect {}: min > max (ArgumentOutOfRangeException)",
             e.id
         );
         return;
     };
+    if e.percent {
+        let maximum = trg.with_unit(|u| u.unit().max_mp).unwrap_or(0).max(0);
+        value = (i64::from(value) * i64::from(maximum) / 1000).clamp(0, i64::from(i32::MAX)) as i32;
+    }
     broadcast(
         server,
         &trg,

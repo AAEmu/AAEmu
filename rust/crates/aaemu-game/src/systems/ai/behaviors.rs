@@ -417,15 +417,15 @@ pub fn use_skill(
     } else {
         SkillCastTarget::Unit(target.obj_id())
     };
+    // Face the target before the skill validates its cone. Turning only after a
+    // successful cast would leave an NPC permanently unable to attack to its side.
+    if !ai_skills::is_self_target(&skill.template) {
+        let position = npc::world_pos(c.server, target);
+        npc::look_towards(c.server, &c.npc, position, 4);
+    }
     // skill.Callback = OnSkillEnded
     ai_skills::set_skill_ended_callback(c, &skill, k);
-    let result = ai_skills::use_skill(c, &skill, caster, &mut cast_target, false);
-    // fix the eastward turn when using SelfSkill
-    if !ai_skills::is_self_target(&skill.template) && result == skill_result::SUCCESS {
-        let tp = npc::world_pos(c.server, target);
-        npc::look_towards(c.server, &c.npc, tp, 4);
-    }
-    result
+    ai_skills::use_skill(c, &skill, caster, &mut cast_target, false)
 }
 
 /// `Behavior.OnSkillEnded()` (`_delayEnd = now + _nextTimeToDelay`).
@@ -2412,6 +2412,67 @@ fn wild_boar_attack_tick(c: &mut AiCtx<'_>, k: BehaviorKind, delta_ms: i64) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn npc_faces_its_attack_target_before_angle_validation_and_keeps_self_skill_heading() {
+        use super::super::framework::{AiKind, NpcAi};
+        use crate::data::GameData;
+        use crate::models::npc::Npc;
+        use crate::systems::skills::data::SkillTemplate;
+        use crate::systems::skills::state::SkillRun;
+        use crate::test_support::test_server_with;
+        use crate::world::Entity;
+
+        for target_type in [5, 0] {
+            let server = Arc::new(test_server_with(GameData::empty()));
+            server.set_self();
+            crate::systems::skills::bind(&server);
+            let mut caster = Npc::new(1);
+            caster.unit.hp = 1000;
+            caster.unit.transform.set_xyz(100.0, 100.0, 100.0);
+            let caster = Entity::new(0x300, caster);
+            let mut target = Npc::new(2);
+            target.unit.hp = 1000;
+            target.unit.transform.set_xyz(105.0, 100.0, 100.0);
+            let target = WorldObject::from(Entity::new(0x301, target));
+            let world = server.world.world(0).unwrap();
+            world.spawn(&caster, &server.view_ctx());
+            world.spawn(&target, &server.view_ctx());
+            let mut ai = NpcAi::new(AiKind::AlmightyNpc, &caster);
+            let mut context = AiCtx {
+                server: &server,
+                npc: caster.clone(),
+                obj: WorldObject::from(&caster),
+                ai: &mut ai,
+            };
+            let skill = SkillRun::new(
+                Arc::new(SkillTemplate {
+                    id: 100,
+                    target_type,
+                    target_angle: 90,
+                    max_range: 30,
+                    ..Default::default()
+                }),
+                1,
+            );
+            assert_eq!(
+                use_skill(
+                    &mut context,
+                    BehaviorKind::AlmightyAttack,
+                    skill,
+                    Some(&target),
+                    0.0
+                ),
+                skill_result::SUCCESS
+            );
+            let yaw = caster.data().unit.transform.rot_z;
+            if target_type == 5 {
+                assert!((yaw + std::f32::consts::FRAC_PI_2).abs() < 0.001);
+            } else {
+                assert_eq!(yaw, 0.0);
+            }
+        }
+    }
 
     #[test]
     fn skill_list_health_and_time_windows() {

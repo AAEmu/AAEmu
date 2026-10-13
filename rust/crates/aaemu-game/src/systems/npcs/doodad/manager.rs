@@ -16,8 +16,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 
 use super::packets::{
-    error_message, error_msg, CSCreateDoodadPacket, SCDoodadChangedPacket,
-    SCDoodadPhaseChangedPacket, SCUnbondDoodadPacket,
+    error_message, error_msg, CSCreateDoodadPacket, SCDoodadChangedPacket, SCUnbondDoodadPacket,
 };
 use super::phase;
 use super::runtime::DoodadCtx;
@@ -26,6 +25,10 @@ use crate::models::doodad::{doodad_owner_type, Doodad};
 use crate::server::GameServer;
 use crate::systems::npcs::{area_trigger, public_farm};
 use crate::world::{now_ms, DoodadRef, Entity, PlayerRef, WorldInstance, WorldObject};
+
+#[cfg(test)]
+#[path = "placement_tests.rs"]
+mod placement_tests;
 
 /// `HousingPermission` values `ChangeDoodadData` checks.
 mod housing_permission {
@@ -40,8 +43,8 @@ mod housing_permission {
 pub struct DoodadManager {
     /// Doodad func timers (`TaskManager` for `DoodadFunc*Task`).
     pub tasks: TaskScheduler,
-    /// `DoodadPhaseFunc.PulseTriggered` of the shared phase-func rows: (group id, row index).
-    pulse_triggered: Mutex<HashMap<(u32, usize), bool>>,
+    /// Ordered on-change doodad writes, drained by the save lifecycle.
+    pub persistence: super::db::Persistence,
     /// `AppConfiguration.World.GrowthRate` (runtime-changeable, `Unit.SetGrowthRate`).
     growth_rate: Mutex<f64>,
     /// `ZoneManager._climateElem`: zone climate id -> climates.
@@ -54,7 +57,7 @@ impl Default for DoodadManager {
     fn default() -> Self {
         Self {
             tasks: TaskScheduler::default(),
-            pulse_triggered: Mutex::new(HashMap::new()),
+            persistence: super::db::Persistence::default(),
             growth_rate: Mutex::new(1.0),
             climates: RwLock::new(HashMap::new()),
             forced_phase_ratio: Mutex::new(None),
@@ -63,23 +66,6 @@ impl Default for DoodadManager {
 }
 
 impl DoodadManager {
-    /// `DoodadPhaseFunc.PulseTriggered` of row `index` of phase group `group`.
-    pub fn pulse_triggered(&self, group: u32, index: usize) -> bool {
-        self.pulse_triggered
-            .lock()
-            .expect("doodads poisoned")
-            .get(&(group, index))
-            .copied()
-            .unwrap_or(false)
-    }
-
-    pub fn set_pulse_triggered(&self, group: u32, index: usize, value: bool) {
-        self.pulse_triggered
-            .lock()
-            .expect("doodads poisoned")
-            .insert((group, index), value);
-    }
-
     /// `World.GrowthRate`.
     pub fn growth_rate(&self) -> f64 {
         *self.growth_rate.lock().expect("doodads poisoned")
@@ -221,6 +207,11 @@ pub fn spawn(server: &GameServer, world: &Arc<WorldInstance>, doodad: &DoodadRef
 /// `Doodad.Delete()`: hide + remove, attached area triggers, the expired source item, and the
 /// DB row of a persistent doodad (`SpawnManager.RemovePlayerDoodad`).
 pub fn delete(server: &GameServer, world: &Arc<WorldInstance>, doodad: &DoodadRef) {
+    if world.object(doodad.obj_id).is_some_and(
+        |current| !matches!(current, WorldObject::Doodad(ref d) if Arc::ptr_eq(d, doodad)),
+    ) {
+        return;
+    }
     {
         let mut d = doodad.data();
         if d.phase.deleted {
@@ -230,6 +221,7 @@ pub fn delete(server: &GameServer, world: &Arc<WorldInstance>, doodad: &DoodadRe
         d.phase.deleted = true;
         d.phase.func_task = 0; // deviation: cancel the FuncTask (see the module docs)
     }
+    super::logic::clear_links(&DoodadCtx::new(server, world.clone(), doodad.clone()));
     world.delete(doodad);
     area_trigger::remove_doodad_area_triggers(server, doodad.obj_id);
 
@@ -243,13 +235,13 @@ pub fn delete(server: &GameServer, world: &Arc<WorldInstance>, doodad: &DoodadRe
             h.remove_expired_doodad_item(server, item_id);
         }
     }
+    if let Some(spawns) = server.systems.npcs.spawns.get(world.id) {
+        spawns.remove_player_doodad(doodad);
+    }
     if !persistent {
         return;
     }
     super::db::delete_row(server, db_id);
-    if let Some(spawns) = server.systems.npcs.spawns.get(world.id) {
-        spawns.remove_player_doodad(doodad);
-    }
     doodad.data().is_persistent = false;
 }
 
@@ -331,6 +323,37 @@ pub fn create_player_doodad(
     custom_data: i32,
     ignore_houses: bool,
 ) -> Option<DoodadRef> {
+    create_player_doodad_with_labor(
+        server,
+        player,
+        id,
+        pos,
+        z_rot,
+        scale,
+        item_id,
+        farm_type,
+        item_template_id,
+        custom_data,
+        ignore_houses,
+        0,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn create_player_doodad_with_labor(
+    server: &GameServer,
+    player: &PlayerRef,
+    id: u32,
+    pos: (f32, f32, f32),
+    z_rot: f32,
+    scale: f32,
+    item_id: u64,
+    farm_type: u8,
+    item_template_id: u32,
+    custom_data: i32,
+    ignore_houses: bool,
+    labor_cost: i16,
+) -> Option<DoodadRef> {
     let (x, y, z) = pos;
     let pobj = WorldObject::from(player);
     let (char_id, char_name, zone_id) = {
@@ -358,7 +381,7 @@ pub fn create_player_doodad(
     let doodad = create(server, &world, 0, id, Some(&pobj), true)?;
     {
         let mut d = doodad.data();
-        d.is_persistent = true;
+        // Persist only after the placement item has been successfully consumed.
         // Transform = character.Transform.CloneDetached(doodad)
         d.transform.instance_id = world.id;
         d.transform.zone_id = zone_id;
@@ -368,7 +391,7 @@ pub fn create_player_doodad(
         d.farm_type = farm_type;
         d.item_template_id = item_template_id;
     }
-    phase::set_data(server, &doodad, custom_data);
+    doodad.data().data = custom_data;
     match &target_house {
         Some(house) => {
             let house_id = house.data().id;
@@ -431,29 +454,46 @@ pub fn create_player_doodad(
                 "Unable to create doodad because source item (Id: {item_id}) does not exist in {char_name}'s bag inventory."
             );
             delete(server, &world, &doodad);
+            server.ids.object.release_id(doodad.obj_id);
             return None;
         };
+        if !items.contains(&preferred.template_id) {
+            delete(server, &world, &doodad);
+            server.ids.object.release_id(doodad.obj_id);
+            return None;
+        }
+        let ucc = economy
+            .as_ref()
+            .and_then(|h| h.item_template_and_ucc(server, item_id))
+            .map_or(0, |(_, ucc)| ucc);
         let mut d = doodad.data();
         d.item_template_id = preferred.template_id;
+        d.ucc_id = ucc;
         if preferred.max_count > 1 {
             d.item_id = 0; // stackable: only keep the template id
         }
     }
     let is_coffer = doodad.data().coffer.is_some();
     if let Some(h) = &economy {
+        if item_id > 0 && !h.try_consume_doodad_source_item(server, player, id, item_id, labor_cost)
+        {
+            delete(server, &world, &doodad);
+            server.ids.object.release_id(doodad.obj_id);
+            return None;
+        }
         if is_coffer {
             h.initialize_coffer(server, &doodad, char_id);
         }
-        for item in items {
-            h.consume_doodad_source_item(server, player, item, preferred.map(|p| p.item_id));
-        }
     }
 
-    init_doodad(server, &world, &doodad);
+    doodad.data().is_persistent = true;
     spawn(server, &world, &doodad);
+    init_doodad(server, &world, &doodad);
     super::db::save(server, &doodad);
-    if let Some(spawns) = server.systems.npcs.spawns.get(world.id) {
-        spawns.add_player_doodad(doodad.clone());
+    if !doodad.data().phase.deleted {
+        if let Some(spawns) = server.systems.npcs.spawns.get(world.id) {
+            spawns.add_player_doodad(doodad.clone());
+        }
     }
     Some(doodad)
 }
@@ -475,14 +515,47 @@ pub fn handle_create_doodad(server: &GameServer, player: &PlayerRef, p: &CSCreat
     let pos = (p.x, p.y, p.z);
     let economy = server.systems.npcs.hooks.economy.get();
 
+    if ![p.x, p.y, p.z, p.z_rot, p.scale]
+        .iter()
+        .all(|v| v.is_finite())
+        || !(0.0..=10.0).contains(&p.scale)
+    {
+        return;
+    }
+
     // Verify actual item
     let Some(item) = economy
         .as_ref()
-        .and_then(|h| h.doodad_source_item(server, player, p.item_id, false))
+        .and_then(|h| h.doodad_source_item(server, player, p.item_id, true))
     else {
         tracing::warn!("CreateDoodad, provided an invalid ItemId: {}", p.item_id);
         return;
     };
+    if !economy.as_ref().is_some_and(|h| {
+        h.item_ids_from_doodad(server, p.id)
+            .contains(&item.template_id)
+    }) {
+        return;
+    }
+    let Some(template) = server.game_data.systems.npcs.doodad.template(p.id) else {
+        return;
+    };
+    let player_pos = world.world_pos_rot(&WorldObject::from(player));
+    let range = server
+        .game_data
+        .systems
+        .skills
+        .skill(item.use_skill_id)
+        .map_or(10.0, |skill| skill.max_range.max(10) as f32);
+    let distance_squared =
+        (p.x - player_pos.x).powi(2) + (p.y - player_pos.y).powi(2) + (p.z - player_pos.z).powi(2);
+    if distance_squared > range * range {
+        return;
+    }
+    let target_zone = world.template.zone_id_at(p.x, p.y);
+    if template.restrict_zone_id != 0 && template.restrict_zone_id != target_zone {
+        return;
+    }
     // Get cost from related skill
     let mut labor_cost = server.systems.npcs.hooks.skills.get().map_or(0, |h| {
         h.skill_consume_labor_power(server, item.use_skill_id)
@@ -522,14 +595,11 @@ pub fn handle_create_doodad(server: &GameServer, player: &PlayerRef, p: &CSCreat
         player.send(error_msg(error_message::LABOR_POWER_NEEDED));
         return;
     }
-    if labor_cost != 0 {
-        if let Some(h) = &economy {
-            h.change_labor(server, player, -(labor_cost as i16), 0);
-        }
-    }
-
-    create_player_doodad(
-        server, player, p.id, pos, p.z_rot, p.scale, p.item_id, farm_type, 0, 0, false,
+    let Ok(labor_cost) = i16::try_from(labor_cost) else {
+        return;
+    };
+    create_player_doodad_with_labor(
+        server, player, p.id, pos, p.z_rot, p.scale, p.item_id, farm_type, 0, 0, false, labor_cost,
     );
 }
 
@@ -655,7 +725,7 @@ pub fn loot_open_bag_doodad(
 }
 
 /// `TimeManager.OnTimeOfDayChange(newTime, oldTime)`, doodad part: runs the ToD triggers of
-/// every doodad (`FuncGroupId = nextPhase` + `SCDoodadPhaseChangedPacket`, without phase funcs).
+/// every doodad, including phase entry functions and replacement of the previous timer.
 pub fn on_time_of_day_change(server: &GameServer, new_time: f32, old_time: f32) {
     let mut old_time = old_time;
     if old_time > new_time {
@@ -706,12 +776,19 @@ pub fn on_time_of_day_change(server: &GameServer, new_time: f32, old_time: f32) 
         for doodad in world.all_doodads() {
             let triggers = doodad.data().phase.tod_triggers.clone();
             for (tod, next_phase) in triggers {
-                if new_time >= tod && old_time < tod && next_phase > 0 {
-                    // doodad.DoChangePhase(doodad, nextPhase) is commented out in C#
-                    phase::set_func_group_id(server, &doodad, next_phase as u32);
-                    let p =
-                        SCDoodadPhaseChangedPacket::new(doodad.obj_id, &doodad.data(), now_ms());
-                    crate::world::broadcast(&world, &doodad, &p, false);
+                let crossed = if old_time < 0.0 {
+                    tod > old_time + 24.0 || tod <= new_time
+                } else {
+                    tod > old_time && tod <= new_time
+                };
+                if crossed && next_phase > 0 {
+                    tasks::start_func_task(
+                        server,
+                        &doodad,
+                        Some(&WorldObject::from(&doodad)),
+                        tasks::FuncTaskKind::Tod { next_phase },
+                        std::time::Duration::ZERO,
+                    );
                     break;
                 }
             }

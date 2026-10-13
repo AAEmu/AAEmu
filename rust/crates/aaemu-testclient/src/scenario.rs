@@ -4,10 +4,11 @@ use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
 
 use aaemu_game::opcodes::{pp, sc};
+use aaemu_game::systems::skills::types::{SkillCastTarget, SkillCaster, SkillObject};
 use anyhow::{bail, ensure, Context};
 use serde::{Deserialize, Serialize};
 
-use crate::game::{GameClient, LEVEL_PROXY};
+use crate::game::{GameClient, Packet, LEVEL_PROXY};
 use crate::login::LoginClient;
 use crate::record::Recorder;
 use crate::stream::StreamClient;
@@ -361,10 +362,9 @@ async fn run_inner(kind: Kind, cfg: &BotConfig, r: &mut Runner<'_>) -> anyhow::R
                 game.drain(Duration::from_millis(300), Duration::from_secs(1))
                     .await?;
                 game.start_skill(cfg.skill_id, npc.obj_id).await?;
+                let caster = game.state.self_obj;
                 game.wait_for("skill response", |p| {
-                    p.is_sc(sc::SCSkillStartedPacket)
-                        || p.is_sc(sc::SCSkillFiredPacket)
-                        || p.is_sc(sc::SCErrorMsgPacket)
+                    own_skill_response(p, cfg.skill_id, caster) || p.is_sc(sc::SCErrorMsgPacket)
                 })
                 .await?;
                 game.drain(QUIET, Duration::from_secs(5)).await?;
@@ -467,9 +467,9 @@ async fn combat(game: &mut GameClient, cfg: &BotConfig) -> anyhow::Result<String
             })
             .cloned()
     };
-    let Some(target) = pick(game) else {
-        return Ok(format!("no npc {} in sight", cfg.combat_npc_template));
-    };
+    let target = pick(game)
+        .with_context(|| format!("no combat NPC {} in sight", cfg.combat_npc_template))?;
+    game.change_target(target.obj_id).await?;
     let mut started = 0;
     let mut results = Vec::new();
     for attempt in 0..3u32 {
@@ -478,32 +478,102 @@ async fn combat(game: &mut GameClient, cfg: &BotConfig) -> anyhow::Result<String
             .units
             .get(&target.obj_id)
             .map_or(target.pos, |u| u.pos);
-        game.move_to((pos.0 + 0.8, pos.1, pos.2), 10000 + attempt * 1000)
+        game.move_to_facing((pos.0 + 0.8, pos.1, pos.2), pos, 10000 + attempt * 1000)
             .await?;
         game.drain(Duration::from_millis(300), Duration::from_secs(1))
             .await?;
         game.start_skill(cfg.skill_id, target.obj_id).await?;
-        // Instant skills answer with SCSkillFired, cast-time skills and failures with
-        // SCSkillStarted (a failure carries the SkillResult as its last byte).
+        // NPC attacks also broadcast these opcodes. Wait for our own cast.
+        let caster = game.state.self_obj;
         let p = game
             .wait_for("skill response", |p| {
-                p.is_sc(sc::SCSkillStartedPacket)
-                    || p.is_sc(sc::SCSkillFiredPacket)
-                    || p.is_sc(sc::SCErrorMsgPacket)
+                own_skill_response(p, cfg.skill_id, caster) || p.is_sc(sc::SCErrorMsgPacket)
             })
             .await?;
-        let result = if p.is_sc(sc::SCSkillFiredPacket) {
-            0
-        } else {
-            p.body.last().copied().unwrap_or(0)
-        };
+        let result = skill_response_result(&p)?;
+        ensure!(
+            result == 0,
+            "combat skill {} rejected with SkillResult {result}",
+            cfg.skill_id
+        );
         results.push(result);
         started += 1;
         game.drain(Duration::from_millis(800), Duration::from_secs(3))
             .await?;
     }
     Ok(format!(
-        "{started} casts of skill {} on npc {} ({}), last bytes {results:?}",
+        "{started} player casts of skill {} on npc {} ({}), SkillResults {results:?}",
         cfg.skill_id, target.obj_id, target.id
     ))
+}
+
+fn own_skill_response(packet: &Packet, skill_id: u32, caster: u32) -> bool {
+    if !packet.is_sc(sc::SCSkillStartedPacket) && !packet.is_sc(sc::SCSkillFiredPacket) {
+        return false;
+    }
+    let mut stream = packet.stream();
+    stream.read_u32().ok() == Some(skill_id)
+        && stream.read_u16().is_ok()
+        && stream.read_u8().is_ok()
+        && stream.read_bc().ok() == Some(caster)
+}
+
+fn skill_response_result(packet: &Packet) -> anyhow::Result<u8> {
+    if packet.is_sc(sc::SCSkillFiredPacket) {
+        return Ok(0);
+    }
+    ensure!(
+        packet.is_sc(sc::SCSkillStartedPacket),
+        "server reported an error instead of a skill response"
+    );
+    let mut stream = packet.stream();
+    stream.read_u32()?;
+    stream.read_u16()?;
+    let caster_kind = stream.read_u8()?;
+    SkillCaster::read(caster_kind, &mut stream)?;
+    let target_kind = stream.read_u8()?;
+    SkillCastTarget::read(target_kind, &mut stream)?;
+    let object_kind = stream.read_u8()?;
+    SkillObject::read(object_kind, &mut stream)?;
+    stream.read_u16()?;
+    stream.read_u16()?;
+    stream.read_u8()?;
+    let flags = stream.read_u8()?;
+    Ok(if flags & 1 != 0 { stream.read_u8()? } else { 0 })
+}
+
+#[cfg(test)]
+mod skill_response_tests {
+    use super::*;
+    use crate::game::LEVEL_GAME;
+
+    #[test]
+    fn npc_casts_and_other_skills_cannot_satisfy_a_player_response() {
+        let packet = Packet {
+            level: LEVEL_GAME,
+            opcode: sc::SCSkillFiredPacket,
+            body: vec![2, 0, 0, 0, 10, 0, 0, 1, 0, 0],
+        };
+        assert!(own_skill_response(&packet, 2, 1));
+        assert!(!own_skill_response(&packet, 2, 2));
+        assert!(!own_skill_response(&packet, 3, 1));
+    }
+
+    #[test]
+    fn skill_result_precedes_the_optional_uint_in_the_1_2_packet() {
+        let packet = Packet {
+            level: LEVEL_GAME,
+            opcode: sc::SCSkillStartedPacket,
+            body: vec![
+                2, 0, 0, 0, 10, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 5, 15, 0x34, 0x12, 0,
+                0,
+            ],
+        };
+        assert_eq!(skill_response_result(&packet).unwrap(), 15);
+        let truncated = Packet {
+            body: vec![2, 0, 0],
+            ..packet
+        };
+        assert!(skill_response_result(&truncated).is_err());
+    }
 }

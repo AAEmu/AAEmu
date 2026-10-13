@@ -13,6 +13,7 @@ use crate::world::PlayerRef;
 /// `Character.IsOnline` setter, after the flag changed (`if (!value) SetOffline(this)`).
 pub fn on_online_changed(server: &GameServer, p: &PlayerRef, value: bool) {
     if !value {
+        server.systems.social.trials.handle_player_logout(server, p);
         server.chat.leave_user_channels(p, &server.ids.chat);
         server.systems.social.teams.set_offline(server, p);
     }

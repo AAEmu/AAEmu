@@ -8,7 +8,7 @@
 //! manager may take this mutex while holding its own (order: trials -> crimes -> player data).
 
 use std::collections::{BTreeMap, HashMap};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex, Weak};
 
 use aaemu_commons::PacketStream;
 use sqlx::Row;
@@ -248,9 +248,7 @@ pub fn crime_state(c: &Character) -> i16 {
     0
 }
 
-/// `Character.AddCrime(amount)`: returns the `SCCrimeChangedPacket` to send. Mirrors the C#
-/// overflow bug: above `short.MaxValue` the value is first clamped, then the `else` branch
-/// assigns the wrapped `(short)newAmount`.
+/// Add crime and infamy points without wrapping away the wanted status.
 pub fn add_crime(
     server: &GameServer,
     c: &mut Character,
@@ -258,15 +256,13 @@ pub fn add_crime(
     now_ms: i64,
 ) -> SCCrimeChangedPacket {
     let new_amount = i32::from(c.crime_point) + i32::from(amount);
-    if new_amount > i32::from(i16::MAX) {
-        set_crime_point(server, c, i16::MAX, now_ms);
-    }
-    if new_amount < 0 {
-        set_crime_point(server, c, 0, now_ms);
-    } else {
-        set_crime_point(server, c, new_amount as i16, now_ms);
-    }
-    let infamy = c.infamy_point.wrapping_add(i32::from(amount));
+    set_crime_point(
+        server,
+        c,
+        new_amount.clamp(0, i32::from(i16::MAX)) as i16,
+        now_ms,
+    );
+    let infamy = c.infamy_point.saturating_add(i32::from(amount));
     set_infamy_point(server, c, infamy, now_ms);
     if c.infamy_point < 0 {
         set_infamy_point(server, c, 0, now_ms);
@@ -282,7 +278,8 @@ pub fn add_crime(
 /// `CharacterManager.AddOfflineCrimePoints(playerId, crimePointsToAdd)`.
 pub async fn add_offline_crime_points(server: &GameServer, player_id: u32, points: i16) {
     let res = sqlx::query(
-        "UPDATE characters SET `crime_point` = `crime_point` + ? , `crime_record` = `crime_record` + ? WHERE `id` = ?",
+        "UPDATE characters SET `crime_point` = LEAST(32767, GREATEST(0, CAST(`crime_point` AS SIGNED) + ?)), \
+         `crime_record` = LEAST(2147483647, GREATEST(0, CAST(`crime_record` AS SIGNED) + ?)) WHERE `id` = ?",
     )
     .bind(points)
     .bind(points)
@@ -342,6 +339,8 @@ struct State {
     reported_suspects: HashMap<u32, Vec<u32>>,
     /// Offline victims (see [`VictimInfo`]).
     victims: HashMap<u32, VictimInfo>,
+    /// Claims are tied to the live evidence handle, so reused object ids remain reportable.
+    reported_evidence: Vec<Weak<crate::world::Entity<crate::models::doodad::Doodad>>>,
 }
 
 /// `CrimeManager`.
@@ -663,8 +662,18 @@ impl CrimeManager {
         let hooks = server.systems.social.hooks.get();
         let (crime_type, crime_value, next_phase) = match hooks.evidence_func(server, evidence) {
             Some(f) => (f.crime_kind, f.crime_value, f.next_phase),
-            None => (crime_kind::INVALID, 0, 0),
+            None => return None,
         };
+        if owner_type != doodad_owner_type::CHARACTER
+            || owner_id == 0
+            || !matches!(
+                crime_type,
+                crime_kind::ASSAULT | crime_kind::MURDER | crime_kind::THEFT
+            )
+            || crime_value <= 0
+        {
+            return None;
+        }
         // `ZoneManager.GetZoneByKey(evidence.Transform.ZoneId)?.Id`.
         let zone_key = server
             .game_data
@@ -697,6 +706,16 @@ impl CrimeManager {
         };
         {
             let mut st = self.st();
+            st.reported_evidence.retain(|d| d.strong_count() > 0);
+            if st
+                .reported_evidence
+                .iter()
+                .filter_map(Weak::upgrade)
+                .any(|d| Arc::ptr_eq(&d, evidence))
+            {
+                server.ids.crime.release_id(new_id);
+                return None;
+            }
             if st.events.contains_key(&new_id) {
                 drop(st);
                 server.ids.crime.release_id(new_id);
@@ -709,6 +728,7 @@ impl CrimeManager {
             }
             st.events.insert(new_id, new_event.clone());
             st.updated.push(new_id);
+            st.reported_evidence.push(Arc::downgrade(evidence));
         }
         // Add crime points to the criminal.
         self.add_crime_points(server, new_event.criminal, crime_type, crime_value)
@@ -1030,7 +1050,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn add_crime_mirrors_overflow_and_wanted_threshold() {
+    async fn add_crime_saturates_and_keeps_wanted_threshold() {
         let s = server();
         let mut c = crate::test_support::test_character(1, "Crook", 0.0, 0.0);
         let p = add_crime(&s, &mut c, 30, 0);
@@ -1049,17 +1069,53 @@ mod tests {
                 crime_state: 1
             }
         );
-        // Overflow: clamp, then the else branch wraps.
+        // Overflow keeps the criminal wanted.
         c.crime_point = i16::MAX - 1;
         let p = add_crime(&s, &mut c, 10, 0);
-        // (short)32776 = -32760, which the setter then clamps to 0.
-        assert_eq!(c.crime_point, 0);
-        assert_eq!(p.crime_points, 0);
+        assert_eq!(c.crime_point, i16::MAX);
+        assert_eq!(p.crime_points, i16::MAX);
+        assert_eq!(p.crime_state, 1);
         // Negative amounts clamp at 0.
         c.crime_point = 5;
         c.infamy_point = 5;
         add_crime(&s, &mut c, -10, 0);
         assert_eq!((c.crime_point, c.infamy_point), (0, 0));
+    }
+
+    #[tokio::test]
+    #[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; uses only a temporary table"]
+    async fn private_mysql_offline_crime_points_saturate() {
+        use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
+        use std::str::FromStr;
+        let Ok(url) = std::env::var("AAEMU_TEST_MYSQL") else {
+            return;
+        };
+        let options = MySqlConnectOptions::from_str(&url).expect("private MySQL URL");
+        assert_eq!(
+            options.get_port(),
+            3317,
+            "only private MySQL3317 is allowed"
+        );
+        let pool = MySqlPoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::query("CREATE TEMPORARY TABLE characters (id INT PRIMARY KEY, crime_point SMALLINT UNSIGNED, crime_record INT UNSIGNED)")
+            .execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO characters VALUES (1, 32766, 2147483646), (2, 5, 5)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let mut server = server();
+        server.db = pool.clone();
+        for (id, points, expected) in [(1, 10, (32767i64, 2147483647i64)), (2, -10, (0, 0))] {
+            add_offline_crime_points(&server, id, points).await;
+            let saved: (i64, i64) = sqlx::query_as("SELECT CAST(crime_point AS SIGNED), CAST(crime_record AS SIGNED) FROM characters WHERE id = ?")
+                .bind(id).fetch_one(&pool).await.unwrap();
+            assert_eq!(saved, expected);
+        }
+        pool.close().await;
     }
 
     #[test]

@@ -591,6 +591,19 @@ pub trait EconomyBridge: Send + Sync {
     ) {
     }
 
+    /// Consume exactly the owned placement item and its labor cost, after checking that the
+    /// item creates this doodad. Failure leaves both inventory and labor unchanged.
+    fn try_consume_doodad_source_item(
+        &self,
+        _server: &GameServer,
+        _player: &PlayerRef,
+        _doodad_template_id: u32,
+        _item_id: u64,
+        _labor_cost: i16,
+    ) -> bool {
+        false
+    }
+
     /// `DoodadCoffer.InitializeCoffer(ownerId)`: creates the coffer container and stores its id
     /// in `doodad.coffer.container_id`. Default: nothing.
     fn initialize_coffer(

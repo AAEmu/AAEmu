@@ -437,6 +437,8 @@ pub fn all_commands(env: &ScriptEnv) -> Vec<(&'static [&'static str], Arc<dyn Co
             &["collectdominion"],
             Arc::new(dominion::CollectDominion::new(env)),
         ),
+        (&["joinsiege"], Arc::new(dominion::JoinSiege::new(env))),
+        (&["leavesiege"], Arc::new(dominion::LeaveSiege::new(env))),
         // TestHouse.cs
         (
             &["house", "test_house", "testhouse"],

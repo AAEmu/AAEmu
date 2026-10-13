@@ -72,6 +72,9 @@ pub fn use_func(
     skill_id: u32,
     next_phase: i32,
 ) {
+    let Some(_operation) = super::phase::Operation::enter(&ctx.doodad) else {
+        return;
+    };
     use FuncTemplate as F;
     match t {
         // --- items / loot ---
@@ -82,6 +85,10 @@ pub fn use_func(
         F::Purchase(f) => items::purchase(f, ctx, caster),
         F::BuyFish(f) => items::buy_fish(f, ctx, caster),
         F::ConvertFish(f) => items::convert_fish_with_id(ctx, caster, f.id),
+        F::CleanupLogicLink(_) => {
+            super::logic::clear_links(ctx);
+            set_to_next_phase(ctx, true);
+        }
         F::ConsumeChanger(f) => items::consume_changer(f, ctx, caster),
         // --- skills / quests ---
         F::Use(f) => skills::use_(f, ctx, caster, skill_id, next_phase),
@@ -155,7 +162,6 @@ pub fn use_func(
         | F::Butcher(_)
         | F::Catch(_)
         | F::CerealHarvest(_)
-        | F::CleanupLogicLink(_)
         | F::Climb(_)
         | F::CofferPerm(_)
         | F::CraftAct(_)

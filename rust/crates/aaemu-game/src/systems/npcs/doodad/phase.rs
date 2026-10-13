@@ -6,8 +6,8 @@
 //! Locking: every function takes the doodad's lock only for short reads / writes and never holds
 //! it while calling funcs, phase funcs, the world or another doodad.
 //!
-//! Concurrency (as in C#): `Use` / timers of one doodad are not serialised; two concurrent uses
-//! interleave at the lock granularity like the C# threads do.
+//! Phase operations reserve one doodad for their duration. Nested calls on the same thread
+//! are allowed; timers retry when an interaction is already running.
 
 use rand::Rng;
 
@@ -22,6 +22,35 @@ use crate::world::{now_ms, DoodadRef, PlayerRef, WorldInstance, WorldObject};
 
 /// `Climate.Any`.
 const CLIMATE_ANY: i32 = 1;
+
+/// A phase reservation, without holding object data while calling other systems.
+pub(crate) struct Operation(DoodadRef);
+
+impl Operation {
+    pub(crate) fn enter(doodad: &DoodadRef) -> Option<Self> {
+        let thread = std::thread::current().id();
+        let mut d = doodad.data();
+        if d.phase.deleted || d.phase.operation_thread.is_some_and(|t| t != thread) {
+            return None;
+        }
+        d.phase.operation_thread = Some(thread);
+        if d.phase.operation_depth == 0 {
+            d.phase.list_group_id.clear();
+        }
+        d.phase.operation_depth += 1;
+        Some(Self(doodad.clone()))
+    }
+}
+
+impl Drop for Operation {
+    fn drop(&mut self) {
+        let mut d = self.0.data();
+        d.phase.operation_depth -= 1;
+        if d.phase.operation_depth == 0 {
+            d.phase.operation_thread = None;
+        }
+    }
+}
 
 /// The `CurrentFuncs` / `CurrentPhaseFuncs` / `CurrentToDTriggers` / `TimeLeft` caches of the
 /// current `FuncGroupId` (the second half of the `FuncGroupId` setter).
@@ -71,6 +100,7 @@ pub fn set_func_group_id(server: &GameServer, doodad: &DoodadRef, value: u32) {
             return;
         }
         d.func_group_id = value;
+        d.phase.interaction_counts.clear();
         d.phase_time_ms = now_ms(); // Save PhaseTime at start of new phase (group)
         let persistent = d.is_persistent;
         refresh_phase_caches(&server.game_data.systems.npcs.doodad, &mut d);
@@ -96,11 +126,17 @@ pub fn set_data(server: &GameServer, doodad: &DoodadRef, value: i32) {
     }
 }
 
-/// `GetFuncGroupId()`: the first `Start` func group of the template (0 when none).
+/// The authored Start group, or first Normal group for world models such as shipwreck 6906
+/// whose initial waiting phase is mislabeled Normal in the target 1.2 compact data.
 pub fn get_func_group_id(data: &DoodadData, template_id: u32) -> u32 {
     data.doodad_func_groups(template_id)
         .iter()
         .find(|g| g.group_kind_id == doodad_func_group_kind::START)
+        .or_else(|| {
+            data.doodad_func_groups(template_id)
+                .iter()
+                .find(|g| g.group_kind_id == doodad_func_group_kind::NORMAL)
+        })
         .map_or(0, |g| g.id)
 }
 
@@ -225,6 +261,9 @@ pub fn use_doodad(
     started_skill_id: u32,
     func_group_id: i32,
 ) {
+    let Some(_operation) = Operation::enter(&ctx.doodad) else {
+        return;
+    };
     let server = ctx.server;
     let mut skill_id = started_skill_id;
     let Some(caster) = caster else {
@@ -292,7 +331,9 @@ pub fn use_doodad(
         ) {
             // FuncGroupId is the current phase, func.NextPhase or OverridePhase
             let fg = ctx.doodad.data().func_group_id;
-            do_change_phase(ctx, Some(caster), fg as i32);
+            if fg != current {
+                do_change_phase(ctx, Some(caster), fg as i32);
+            }
             return;
         }
 
@@ -300,6 +341,9 @@ pub fn use_doodad(
 
         // then execute the phase functions (the FuncGroupId may have changed)
         let fg = ctx.doodad.data().func_group_id;
+        if fg == current && !ctx.doodad.data().phase.to_next_phase {
+            return;
+        }
         let stop = do_change_phase(ctx, Some(caster), fg as i32);
         if stop || !ctx.doodad.data().phase.to_next_phase {
             tracing::trace!("Use: Did not pass the conditions check! TemplateId {template_id}");
@@ -346,6 +390,9 @@ pub fn do_func(
     skill_id: u32,
     func: Option<&DoodadFunc>,
 ) -> bool {
+    if ctx.doodad.data().phase.deleted {
+        return true;
+    }
     let Some(func) = func else {
         tracing::trace!("DoFunc: Finished execution with func = null");
         return true;
@@ -370,6 +417,19 @@ pub fn do_func(
         tracing::trace!("DoFunc Finished execution without ToNextPhase");
         // DoodadFuncLootItem sets ToNextPhase=false when loot fails; let Use() try the next one.
         return func.func_type != "DoodadFuncLootItem";
+    }
+    if func.count > 1 {
+        let complete = {
+            let mut d = ctx.doodad.data();
+            let count = d.phase.interaction_counts.entry(func.func_key).or_default();
+            *count += 1;
+            *count >= func.count as u32
+        };
+        if !complete {
+            ctx.doodad.data().phase.to_next_phase = false;
+            db::save(ctx.server, &ctx.doodad);
+            return true;
+        }
     }
     if func.next_phase == -1 {
         // We stay in the current phase; the check is needed for Windstone id=1473
@@ -424,7 +484,7 @@ fn do_phase_funcs(ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>, next_phase:
         }
     };
     if recursed {
-        // Phase-only groups can cycle too (the original defender HQ 3410 has no use funcs).
+        // e.g. ID=2231, Target: break the recursion (ID=898, Prison Gate has no funcs: continue)
         tracing::trace!("DoPhase: Finished execution with recurse: phase {group}");
         return true;
     }
@@ -478,12 +538,12 @@ fn do_phase_funcs(ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>, next_phase:
 /// `DoChangePhase(caster, nextPhase)`: phase funcs of `next_phase`, then
 /// `SCDoodadPhaseChangedPacket` (unless deleted). `true` = aborted.
 pub fn do_change_phase(ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>, next_phase: i32) -> bool {
+    let Some(_operation) = Operation::enter(&ctx.doodad) else {
+        return true;
+    };
     if next_phase <= 0 {
         return false;
     }
-    // A new operation may legitimately re-enter the last phase. Only the private
-    // do_phase_funcs recursion below shares the current operation's visited groups.
-    ctx.doodad.data().phase.list_group_id.clear();
     tracing::trace!(
         "DoChangePhase: ObjId {}, nextPhase {next_phase}",
         ctx.doodad.obj_id

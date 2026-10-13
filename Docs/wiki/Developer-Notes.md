@@ -39,15 +39,20 @@ guild, while ordinary properties retain their owners. Fort designs are limited t
 original independently itemized designs; native slope/mirror variant selection is unverified.
 
 Sieges are explicitly scheduled with `/dominion schedule <zoneGroupId> <attackerExpeditionId>
-<startDelaySeconds>`, using the original zone's duration. `/dominion register` enrolls attacker
-or defender characters, and `/dominion cancel` ends the schedule. These commands require GM
-access. Participant buffs expose the original five-second headquarters teleport skills.
+<startDelaySeconds>`, using the original zone's duration. `/dominion cancel` ends the schedule,
+and `/dominion register` remains a GM roster override. Players use `/joinsiege [zoneGroupId]`
+and `/leavesiege [zoneGroupId]`; omitting the zone uses their current province. Registration
+assigns the side from the scheduled guilds and requires the current guild rank's Siege
+Participation Open (`JoinSiege`) permission. All shipped ranks permit joining by default.
+Players cannot enroll another character or administer the schedule. Participant buffs expose
+the original five-second headquarters teleport skills.
 Bind an already spawned original headquarters with `/dominion headquarters <zoneGroupId>
 attacker|defender <doodadObjectId>`; offense template 4307 must be at least 250 meters from the
 lodestone, and defense uses template 3410. Bindings require restoration after server restart.
 Temple revival for registered participants uses a validated current headquarters when present.
-The original SiegePeriod doodad predicate is unresolved and fails closed; automatic auctions,
-commander appointments and reinforcement eligibility are not inferred from dated calendars.
+The original SiegePeriod doodad predicate is unresolved and fails closed. GM scheduling and
+player registration are the chosen server policy; historical auction calendars are not used.
+Commander appointments and reinforcement eligibility are not inferred from dated calendars.
 
 Property, treasury, mail, certificates and wallets share a prepared save snapshot and database
 transaction. Logout writes the same financial state, and failed departures remain available for
@@ -113,6 +118,84 @@ Owned vehicle renames, priest purchases and trade refusals use existing 1.2 pack
 audit also adds ownership/permission checks to equipment, mail, containers, auctions,
 housing and movement, and prevents duplicate battlefield enrollment. These changes require
 no separate zone process or database migration.
+
+Combat casts also enforce life, swimming, stun, walking, range and angle restrictions before
+changing cast state. Configured obstruction checks use the collision service. Direct channel
+skills spend periodic mana, apply their configured effects and clean up on interruption;
+buff events follow the affected unit. Cone targeting, guaranteed-hit effects, buff stealing,
+aggro changes, percentage recovery and server cooldown resets have regression coverage.
+The skills section of `rust/crates/aaemu-game/PORTING.md` distinguishes these tested repairs
+from remaining placeholders and missing buff definitions in the original 1.2 data.
+
+## Crime, trials and prison
+
+Reported crime evidence adds crime and infamy points. At 50 crime points a character becomes
+wanted; the combat arrest path sends a defeated wanted character to the faction's court
+holding cell. The defendant can accept the default sentence or request a trial. Court seats
+and judges are linked by the `justice.<court>.*` spawn entries, and court/prison destinations
+come from `rust/crates/aaemu-game/app/Configurations/Justice.json`.
+
+Eligible players with jury points receive invitations for their faction's court. Jurors
+review the criminal record, hear the defendant's closing statement and choose acquittal or
+20%, 50%, 80%, 100% or 120% of the calculated sentence. The most common choice wins; tied
+choices follow jury seat order. A verdict timeout without votes uses the 50% choice, while
+a trial without any active jurors uses the default sentence. Guilty verdicts send the
+defendant to prison; acquittal clears the current crime points and reduces infamy.
+
+Disconnecting during a trial closes the abandoned case and retains the pending default
+sentence for the next login (at least one minute, the pending-sentence field's precision).
+Prisoner buffs save the remaining sentence, including the final
+seconds, and resume it on reconnect; offline time does not serve the sentence. The normal
+buff timer ends the prisoner state. Jurors return to their saved location when the case
+closes; escaped jurors follow `Justice.AllowJuryEscape`. Only jurors who submit a verdict
+receive attendance credit. These repairs reuse
+the existing character and active-buff tables and require no database migration.
+
+## Doodad interactions and event content
+
+Placement validates the owned source item against the requested doodad, checks its
+position and zone restrictions, and spends labor only after placement succeeds.
+Stackable items consume one unit. Single items move to the system container so
+recovery retains their item identity and custom data. Coin loot credits once.
+
+Doodad phase operations are serialized per object. Timers retain the original
+object and world identity, and time-of-day changes execute the new phase's functions
+and replace its old timer. The first Normal phase is used when a template has no
+Start phase; this restores the authored waiting phase of Castaway Shipwreck 6906.
+Successful interactions honor `act_count`; partial counts persist through the
+`2026-10-12_aaemu_game_doodad_interactions.sql` update. On-change saves and deletes
+use an ordered writer, which the regular save lifecycle drains. Loading restores
+the position and counters before enabling saves, and initializes phases after
+spawning. Harvesting and recovery test line of sight above the ground anchor and
+exclude the target's own collider; intervening walls still block interaction.
+
+Logic families route true and false pulses within the same instance, zone and
+ownership domain. Client-created wires require owned nearby doodads. Immediate
+logic gates, family subscribers and pulse transitions run on the server; delayed
+logic descriptors 2 and 3 remain unsupported. The placed 1.2 logic templates use
+descriptor 1. Prefab flow graphs run on the client from phase and visibility packets.
+Doodad gimmick functions create the authored gimmick with its offsets and motion.
+
+`DoodadFuncSpawnMgmt` uses an explicit `SpawnGroupId` on NPC spawn entries, scoped
+by its authored zone key. This group is separate from `NpcSpawnerIds`. Tagged
+entries stay inactive until enabled by their management doodad. The shipped spawn
+files omit memberships for groups 73–76, so those management functions report
+missing content. Restore authored memberships before relying on those sequences.
+
+The 1.2 catalog lacks templates 8314, 8324, 9908, 9909, 9910, 9929, 9930 and 11934,
+referenced by 39 Howling Abyss/Nachashgar spawn entries. These entries are skipped
+with diagnostics; supplying newer client definitions does not establish 1.2
+compatibility. Tower defense preflight also requires authored positions for every
+NPC and doodad wave target.
+
+The 1.2 client verification covered Hasla's automatic 18:00 start, all thirteen
+wave announcements and operator cleanup. Later waves were advanced with operator
+commands to exercise each authored stage. Public-farm planting consumed one seed
+from a stack, retained the planted crop across server restarts, and harvesting
+produced four Potatoes and a Yellow Potato for one labor point. Separate coin
+interactions increased the displayed wallet by exactly the announced payout.
+The isolated verification stack used accelerated crop growth and god mode for
+the low-level test character; these are not production requirements.
 
 ## Related
 

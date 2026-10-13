@@ -1,7 +1,7 @@
 # Working with Config Files and Server Listings
 
 - Audience: Contributors, players, and testers
-- Last verified against: `develop` on October 10, 2026
+- Last verified against: `rust-rewrite` on October 12, 2026
 - Prerequisites: Basic JSON editing and AAEmu project structure familiarity
 
 ## Overview
@@ -92,6 +92,77 @@ place for passwords you do not want in a file. (A user-secrets file left over
 from the C# version is still read between `Config.Local.json` and the
 environment variables, but it can no longer be managed with a tool; move those
 values to `Config.Local.json` or environment variables.)
+
+## Tower defense event schedules
+
+Tower defense controllers are reserved for events instead of spawning permanently.
+Automatic events are disabled by default. A level-100 GM can use `/towerdef list`
+in the event's zone to see its world/zone/group identity, which definitions are ready,
+and why others are unavailable.
+`/towerdef start <id>` starts the event in the GM's current world instance and zone
+group; `/towerdef next <id> <wave>` advances exactly one wave (numbered from 1),
+and `/towerdef end <id>` stops it and removes its active controllers and summons.
+Dead NPCs keep their normal corpse timers so wave changes and event completion do
+not remove loot before players can collect it. Removing an instance clears its corpses too.
+The `tower_def` spelling is also supported. Players entering a zone receive the
+active event list, including the current wave.
+
+To schedule a verified definition, add this section to the game's `Config.Local.json`
+and replace the event identity with the values for its zone:
+
+```json
+{
+  "Dungeons": {
+    "TowerDefense": {
+      "Enabled": true,
+      "Events": [
+        { "Id": 12, "WorldId": 0, "ZoneGroupId": 23, "ZoneId": 274 }
+      ]
+    }
+  }
+}
+```
+
+The example enables Hasla (12) at game time 18:00 using the shipped 1.2 data.
+For other events use the identity printed by `/towerdef list` in their zone.
+The current read-only audit of the shipped 1.2 compact and main_world spawn data
+passes preflight for these identities (`WorldId: 0`):
+
+| Definition ids | ZoneGroupId | ZoneId |
+| --- | --- | --- |
+| 3, 13 | 20 | 257 |
+| 5, 15 | 17 | 139 |
+| 6 | 56 | 275 |
+| 12 (Hasla) | 23 | 274 |
+| 18, 19, 20 | 22 | 206 |
+| 27 | 63 | 288 |
+
+Events sharing NPC controllers cannot run together. Select the definitions you
+intend to test; this preflight checks content availability, not live client gameplay.
+Mistmerrow's conflict configuration references definition 33, which is absent from
+the shipped compact and still needs its event content restored.
+
+`WorldId` is the server instance id (0 for main_world),
+`ZoneId` is the zone key, and `ZoneGroupId` is its compact zone group. The server
+validates every selected definition, wave, target and controller position before
+starting the scheduler. Use an empty `Events` list or `Enabled: false` to leave
+automatic scheduling off. Disabling the scheduler does not cancel a running event;
+use `/towerdef end` for that.
+
+Schedules follow compact `tod` / `tod_day_interval` on the accelerated game clock;
+day intervals restart from day 0 when the scheduler starts. Wave delays and force-end
+times use real seconds. A configured event matching a conflict zone's
+`war_tower_def_id` starts on entering War and ends on leaving War, instead of using
+`tod`. Events do not replay during the same clock crossing or War period.
+
+The runtime supports NPC spawner waves, NPC kill targets and `DoodadAlmighty` waves.
+Doodad waves use authored doodad positions in the event's zone group and are removed
+according to `despawn_on_next_step` or when the event ends. Missing authored NPC or
+doodad positions are rejected before the event starts. Definition 26 is a developer
+test in the 1.2 compact; its doodad 7297 and NPC controller lack authored positions.
+Victory reward event chains are not implemented. Existing NPC skills, AI and quests
+handle controller behavior and ordinary drops; confirm the event's gameplay with
+the target 1.2 client before exposing it to players.
 
 ## Logging
 

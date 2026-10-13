@@ -45,6 +45,16 @@ pub struct CastCtx {
     pub skill_object: SkillObject,
 }
 
+impl CastCtx {
+    fn has_live_handles(&self, server: &GameServer) -> bool {
+        super::geometry::is_live_object(server, &self.caster)
+            && !self
+                .target
+                .as_obj()
+                .is_some_and(|target| !super::geometry::is_live_object(server, target))
+    }
+}
+
 /// `GetAbLevel(ability)`: characters from their ability exp, other units their level (or the
 /// owner-provided override).
 pub fn ab_level(server: &GameServer, unit: &WorldObject, ability: u8) -> i32 {
@@ -329,6 +339,21 @@ pub fn use_skill(
         return (skill_result::INVALID_SOURCE, 0);
     }
     let template = skill.template.clone();
+    let resolved_target = initial_target(server, skill, caster, &caster_caster, target_caster);
+    let Some(target) = &resolved_target else {
+        if let Some(npc) = caster.as_npc() {
+            server
+                .systems
+                .skills
+                .ext
+                .npcs()
+                .npc_no_aggro_target(server, npc);
+        }
+        return (skill_result::NO_TARGET, 0);
+    };
+    if let Err(result) = super::validation::check(server, skill, caster, target) {
+        return result;
+    }
     // The 1.2 fishing reactions require the caster's own spawned NPC. OwnerId is
     // the character id; using an object id here would accept unrelated NPCs or
     // reject the fisherman. Resolve this before cast state, GCD or buff mutations.
@@ -336,7 +361,7 @@ pub fn use_skill(
         let Some(player) = caster.as_player() else {
             return (unit_reqs::skill_result_for_key("skill_not_my_npc"), 0);
         };
-        let target = initial_target(server, skill, caster, &caster_caster, target_caster);
+        let target = resolved_target.clone();
         let owner = target
             .as_ref()
             .and_then(Target::as_obj)
@@ -347,7 +372,7 @@ pub fn use_skill(
         }
         target
     } else {
-        None
+        resolved_target
     };
     let housing_target = (template.target_type == SkillTargetType::Building as i32)
         .then(|| initial_target(server, skill, caster, &caster_caster, target_caster))
@@ -365,17 +390,13 @@ pub fn use_skill(
     let cooldown_owner = character
         .clone()
         .or_else(|| owner_character(server, caster));
-    if let Some(c) = &character {
-        c.data().skill_char.skill_cancelled = false;
-    }
-    {
-        let mut state = skill.state();
-        state.generation = state.generation.wrapping_add(1);
-        state.cancelled = false;
-    }
-    caster.with_unit(|u| u.unit_mut().skill_state.condition_chance = true);
-
-    let req = unit_reqs::can_use_skill(server, &template, caster, &caster_caster);
+    let req = unit_reqs::can_use_skill_on_target(
+        server,
+        &template,
+        caster,
+        &caster_caster,
+        owned_target.as_ref().and_then(Target::as_obj),
+    );
     if !req.is_ok() {
         if let Some(c) = &character {
             let c = c.data();
@@ -414,6 +435,31 @@ pub fn use_skill(
     } else {
         owned_target
     };
+    let active_task = caster
+        .with_unit(|u| u.unit().skill_state.skill_task.clone())
+        .flatten();
+    if let Some(task) = &active_task {
+        match task.kind {
+            SkillTaskKind::Cast => return (unit_reqs::skill_result_for_key("skill_on_casting"), 0),
+            SkillTaskKind::EndChanneling { .. }
+                if !task.skill.template.stop_channeling_on_start_skill =>
+            {
+                return (
+                    unit_reqs::skill_result_for_key("skill_cannot_cast_in_channeling"),
+                    0,
+                );
+            }
+            _ => {}
+        }
+    }
+    if let Err(result) = super::validation::check_resources(server, skill, caster) {
+        return result;
+    }
+    if let Some(c) = &character {
+        if let Some(result) = portal_zone_check(server, &template, c) {
+            return (result, 0);
+        }
+    }
     let now = now_ms();
     if template.cooldown_time > 0 {
         if let Some(o) = &cooldown_owner {
@@ -449,8 +495,25 @@ pub fn use_skill(
         {
             return (skill_result::COOLDOWN_TIME, 0);
         }
+    }
+    if let Some(task) = active_task {
+        if let SkillTaskKind::EndChanneling { channel_doodad } = task.kind {
+            stop(server, &task.skill, caster, channel_doodad);
+        }
+    }
+    if !bypass_gcd {
         caster.with_unit(|u| u.unit_mut().skill_last_used_ms = now);
     }
+    if let Some(c) = &character {
+        c.data().skill_char.skill_cancelled = false;
+    }
+    {
+        let mut state = skill.state();
+        state.generation = state.generation.wrapping_add(1);
+        state.cancelled = false;
+        state.hit_types.clear();
+    }
+    caster.with_unit(|u| u.unit_mut().skill_state.condition_chance = true);
     if template.cancel_ongoing_buffs {
         if caster.as_mate().is_some() {
             buffs::trigger_remove_on(
@@ -494,10 +557,6 @@ pub fn use_skill(
             crate::systems::vehicles::mates::unmount_riding_character(server, p, true);
         }
     }
-    let mp = caster.with_unit(|u| u.unit().mp).unwrap_or(0);
-    if mana_cost(server, skill, caster) > mp {
-        return (skill_result::LACK_MANA, 0);
-    }
     let tl = server.systems.skills.tl_ids.next_id();
     skill.state().tl_id = tl;
     tracing::debug!(
@@ -517,52 +576,6 @@ pub fn use_skill(
         super::plots::run_plot(server, plot_id, ctx.clone(), skill.clone());
         if template.plot_only {
             return (skill_result::SUCCESS, 0);
-        }
-    }
-    // Range checks
-    let skill_range = apply_skill_modifiers(
-        server,
-        skill,
-        caster,
-        SkillAttribute::Range,
-        f64::from(template.max_range),
-    );
-    let caster_t = Target::Obj(caster.clone());
-    let target_dist = f64::from(distance_to(server, &caster_t, &target, true));
-    let mut min_range = f64::from(template.min_range);
-    let mut max_range = skill_range;
-    if template.target_type == SkillTargetType::Doodad as i32 && template.min_range >= 100 {
-        min_range = f64::from(template.min_range) / 100.0;
-    }
-    if template.weapon_slot_for_range_id > 0 {
-        let (mn, mx) = server
-            .systems
-            .skills
-            .ext
-            .items()
-            .weapon_holdable(server, caster, template.weapon_slot_for_range_id)
-            .map_or((0.0, 3.0), |h| (h.min_range, h.max_range));
-        min_range = f64::from(mn);
-        max_range = f64::from(mx);
-    }
-    if target_dist < min_range {
-        server.systems.skills.tl_ids.release(tl);
-        skill.state().tl_id = 0;
-        tracing::info!("TooCloseRange targetDist={target_dist}, minRangeCheck={min_range}");
-        return (skill_result::TOO_CLOSE_RANGE, 0);
-    }
-    let target_is_doodad_or_slave = target
-        .as_obj()
-        .is_some_and(|o| o.as_doodad().is_some() || o.as_slave().is_some());
-    if target_dist > max_range && !target_is_doodad_or_slave {
-        server.systems.skills.tl_ids.release(tl);
-        skill.state().tl_id = 0;
-        tracing::info!("TooFarRange targetDist={target_dist}, maxRangeCheck={max_range}");
-        return (skill_result::TOO_FAR_RANGE, 0);
-    }
-    if let Some(c) = &character {
-        if let Some(r) = portal_zone_check(server, &template, c) {
-            return (r, 0);
         }
     }
     // Casting time
@@ -674,6 +687,27 @@ pub fn cast(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
     if !caster.is_unit() {
         return;
     }
+    if skill.cancelled() {
+        return;
+    }
+    // Source, target and resources may change while the cast timer is running.
+    let ready = super::validation::check(server, skill, caster, &ctx.target)
+        .and_then(|()| super::validation::check_resources(server, skill, caster));
+    if let Err((result, value)) = ready {
+        if let Some(player) = caster.as_player() {
+            let mut packet = SCSkillStartedPacket::new(
+                skill.id,
+                skill.tl_id(),
+                ctx.caster_caster,
+                ctx.target_caster,
+                ctx.skill_object.clone(),
+            );
+            packet.set_skill_result(result).set_result_uint(value);
+            player.send(packet);
+        }
+        stop(server, skill, caster, 0);
+        return;
+    }
     let t = &skill.template;
     let now = now_ms();
     if !skill.state().bypass_gcd {
@@ -754,21 +788,23 @@ pub fn cast(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
 
 /// `Skill.StartChanneling`.
 pub fn start_channeling(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
+    skill.state().channel_target = ctx
+        .target
+        .as_obj()
+        .map(|target| (target.obj_id(), target.core() as *const _ as usize));
     let caster = &ctx.caster;
     let t = &skill.template;
     let data = &server.game_data.systems.skills;
     if t.channeling_buff_id != 0 {
         if let Some(b) = data.buff(t.channeling_buff_id).cloned() {
-            if let Some(target) = ctx.target.as_obj() {
-                buffs::apply_template(
-                    server,
-                    &b,
-                    Some(caster),
-                    &ctx.caster_caster,
-                    target,
-                    Some(skill),
-                );
-            }
+            buffs::apply_template(
+                server,
+                &b,
+                Some(caster),
+                &ctx.caster_caster,
+                caster,
+                Some(skill),
+            );
         }
     }
     if t.channeling_target_buff_id != 0 {
@@ -822,13 +858,93 @@ pub fn start_channeling(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
             cancel: cancel.clone(),
         })
     });
+    if t.channeling_tick > 0 {
+        schedule_channel_tick(
+            server,
+            skill.clone(),
+            ctx.clone(),
+            cancel.clone(),
+            t.channeling_tick,
+        );
+    }
     let skill2 = skill.clone();
     let ctx2 = ctx.clone();
     super::tasks::schedule(server, i64::from(t.channeling_time), move |srv| {
         if cancel.is_cancelled() {
             return;
         }
+        if !ctx2.has_live_handles(&srv) {
+            stop(&srv, &skill2, &ctx2.caster, doodad);
+            return;
+        }
+        if skill2.template.channeling_tick <= 0 {
+            apply_effects(&srv, &skill2, &ctx2);
+        }
         end_channeling(&srv, &skill2, &ctx2.caster, doodad, &ctx2.caster_caster);
+    });
+}
+
+fn schedule_channel_tick(
+    server: &GameServer,
+    skill: SkillRef,
+    ctx: CastCtx,
+    cancel: CancelToken,
+    elapsed: i32,
+) {
+    let interval = skill.template.channeling_tick;
+    if interval <= 0 || elapsed >= skill.template.channeling_time {
+        return;
+    }
+    super::tasks::schedule(server, i64::from(interval), move |server| {
+        if cancel.is_cancelled() || skill.cancelled() {
+            return;
+        }
+        let active = ctx
+            .caster
+            .with_unit(|u| u.unit().skill_state.skill_task.clone())
+            .flatten();
+        if !active.is_some_and(|task| std::sync::Arc::ptr_eq(&task.skill, &skill)) {
+            return;
+        }
+        if !ctx.has_live_handles(&server) {
+            let doodad = ctx
+                .caster
+                .with_unit(|u| u.unit().skill_state.skill_task.clone())
+                .flatten()
+                .and_then(|task| match task.kind {
+                    SkillTaskKind::EndChanneling { channel_doodad } => Some(channel_doodad),
+                    _ => None,
+                })
+                .unwrap_or(0);
+            stop(&server, &skill, &ctx.caster, doodad);
+            return;
+        }
+        let cost = skill.template.channeling_mana.max(0);
+        let mp = ctx.caster.with_unit(|u| u.unit().mp).unwrap_or(0);
+        if cost > mp {
+            let doodad = ctx
+                .caster
+                .with_unit(|u| u.unit().skill_state.skill_task.clone())
+                .flatten()
+                .and_then(|task| match task.kind {
+                    SkillTaskKind::EndChanneling { channel_doodad } => Some(channel_doodad),
+                    _ => None,
+                })
+                .unwrap_or(0);
+            stop(&server, &skill, &ctx.caster, doodad);
+            return;
+        }
+        if cost > 0 {
+            unit_combat::reduce_current_mp(&server, &ctx.caster, cost);
+        }
+        apply_effects(&server, &skill, &ctx);
+        schedule_channel_tick(
+            &server,
+            skill.clone(),
+            ctx.clone(),
+            cancel,
+            elapsed.saturating_add(interval),
+        );
     });
 }
 
@@ -843,20 +959,35 @@ pub fn end_channeling(
     if !caster.is_unit() {
         return;
     }
-    caster.with_unit(|u| u.unit_mut().skill_state.skill_task = None);
+    let active = caster
+        .with_unit(|u| {
+            let slot = &mut u.unit_mut().skill_state.skill_task;
+            if slot
+                .as_ref()
+                .is_some_and(|task| Arc::ptr_eq(&task.skill, skill))
+            {
+                slot.take()
+            } else {
+                None
+            }
+        })
+        .flatten();
+    if let Some(task) = active {
+        task.cancel.cancel();
+    }
     let t = &skill.template;
-    if t.channeling_buff_id != 0 {
+    if t.channeling_buff_id != 0 && super::geometry::is_live_object(server, caster) {
         buffs::remove_effect_by_skill(server, caster, t.channeling_buff_id, t.id);
     }
+    let channel_target = skill.state().channel_target.take();
     if t.channeling_target_buff_id != 0 {
-        let initial = skill.state().initial_target;
-        match server.world.object(initial) {
-            Some(target) => {
-                buffs::remove_effect_by_skill(server, &target, t.channeling_target_buff_id, t.id)
-            }
-            None => tracing::error!(
-                "EndChanneling: InitialTarget {initial} is gone (NullReferenceException in C#)"
-            ),
+        if let Some(target) = channel_target.and_then(|(id, identity)| {
+            server
+                .world
+                .object(id)
+                .filter(|target| target.core() as *const _ as usize == identity)
+        }) {
+            buffs::remove_effect_by_skill(server, &target, t.channeling_target_buff_id, t.id)
         }
     }
     if channel_doodad != 0 {
@@ -888,7 +1019,6 @@ pub fn end_channeling(
             }
         }
     }
-    // Events.OnChannelingCancel: no listeners in the ported code.
 }
 
 /// `Skill.ScheduleEffects`.
@@ -941,8 +1071,17 @@ pub fn schedule_effects(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
     if total_delay > 0 {
         let skill2 = skill.clone();
         let ctx2 = ctx.clone();
+        let timeline = fired.tl;
         super::tasks::schedule(server, i64::from(total_delay), move |srv| {
             // ApplySkillTask
+            if skill2.tl_id() != timeline || skill2.cancelled() {
+                return;
+            }
+            if !ctx2.has_live_handles(&srv) {
+                skill2.state().cancelled = true;
+                end_skill(&srv, &skill2, &ctx2.caster);
+                return;
+            }
             apply_effects(&srv, &skill2, &ctx2);
             end_skill(&srv, &skill2, &ctx2.caster);
         });
@@ -1158,7 +1297,7 @@ fn append_hostile_ships_hit_by_siege_hull_aoe(
 /// `Skill.ApplyEffects(caster, casterCaster, targetSelf, targetCaster, skillObject)`.
 pub fn apply_effects(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
     let caster = &ctx.caster;
-    if !caster.is_unit() {
+    if !caster.is_unit() || skill.cancelled() {
         return;
     }
     let t = skill.template.clone();
@@ -1207,6 +1346,16 @@ pub fn apply_effects(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
         }
     }
     let mut possible = distinct;
+    if t.target_area_radius > 0 && t.target_area_angle > 0 && t.target_area_angle < 360 {
+        let origin = world_pos(server, target_self);
+        possible.retain(|target| {
+            super::geometry::in_angle(
+                &origin,
+                &world_pos(server, target),
+                t.target_area_angle as f32,
+            )
+        });
+    }
     if possible.is_empty() && matches!(ctx.target_caster, SkillCastTarget::Position { .. }) {
         possible.push(caster_t.clone());
     }
@@ -1341,7 +1490,7 @@ pub fn apply_effects(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
                     continue;
                 }
             }
-            if effect.chance < 100 && rand::thread_rng().gen_range(0..100) > effect.chance {
+            if !effects::chance_succeeds(effect.chance) {
                 continue;
             }
             if let (Some(last), Some((EffectKind::NpcSpawnerSpawnEffect, id))) =
@@ -1467,6 +1616,7 @@ pub fn apply_effects(server: &GameServer, skill: &SkillRef, ctx: &CastCtx) {
             source: EffectSource::from_skill(skill.clone()),
             skill_object: &ctx.skill_object,
         };
+        args.source.always_hit = effect.always_hit;
         if let EffectTemplate::KillNpcWithoutCorpse(k) = template {
             let npc = world_of(server, caster).and_then(|w| w.npc_by_template_id(k.npc_id));
             let effective = npc
@@ -1557,25 +1707,14 @@ pub fn end_skill(server: &GameServer, skill: &SkillRef, caster: &WorldObject) {
     if !caster.is_unit() {
         return;
     }
+    let tl = std::mem::take(&mut skill.state().tl_id);
+    if tl == 0 {
+        return;
+    }
     let t = &skill.template;
     if let Some(p) = caster.as_player() {
         let cancelled = skill.cancelled();
-        let labor = t.consume_labor_power;
-        let mut cost = labor;
-        let step = p
-            .data()
-            .actability
-            .actabilities
-            .iter()
-            .find(|a| a.id == t.actability_group_id as u8 as u32)
-            .map(|a| a.step);
-        if let Some(step) = step {
-            cost = (f64::from(cost) * f64::from(super::progress::labor_cost_multiplier(step)))
-                .round_ties_even() as i32;
-        }
-        if labor > 0 && cost < 1 {
-            cost = 1;
-        }
+        let cost = super::validation::labor_cost(skill, p);
         let have = i32::from(p.data().labor_power);
         if cost > 0 && !cancelled && have >= cost {
             super::progress::change_labor(server, p, -(cost as i16), t.actability_group_id);
@@ -1592,10 +1731,8 @@ pub fn end_skill(server: &GameServer, skill: &SkillRef, caster: &WorldObject) {
     }
     skill.invoke_callback();
     // Unit.OnSkillEnd: no-op for every ported kind (npc AI hooks it).
-    let tl = skill.tl_id();
     broadcast(server, caster, &SCSkillEndedPacket { tl }, true);
     server.systems.skills.tl_ids.release(tl);
-    skill.state().tl_id = 0;
     reset_cooldown_if_ignored(server, skill, caster);
 }
 
@@ -1615,21 +1752,26 @@ fn reset_cooldown_if_ignored(server: &GameServer, skill: &SkillRun, caster: &Wor
 
 /// `Skill.Stop(caster, channelDoodad, casterCaster)`.
 pub fn stop(server: &GameServer, skill: &SkillRef, caster: &WorldObject, channel_doodad: u32) {
-    if !caster.is_unit() {
+    if !caster.is_unit() || skill.tl_id() == 0 {
         return;
     }
     let t = &skill.template;
-    if t.channeling_time > 0 {
-        end_channeling(
-            server,
-            skill,
-            caster,
-            channel_doodad,
-            &SkillCaster::Unit(caster.obj_id()),
-        );
-    }
-    if t.toggle_buff_id != 0 {
-        buffs::remove_effect_by_skill(server, caster, t.toggle_buff_id, t.id);
+    skill.state().cancelled = true;
+    let task = caster
+        .with_unit(|u| {
+            let slot = &mut u.unit_mut().skill_state.skill_task;
+            if slot
+                .as_ref()
+                .is_some_and(|task| Arc::ptr_eq(&task.skill, skill))
+            {
+                slot.take()
+            } else {
+                None
+            }
+        })
+        .flatten();
+    if let Some(task) = task {
+        task.cancel.cancel();
     }
     let tl = skill.tl_id();
     broadcast(
@@ -1638,13 +1780,26 @@ pub fn stop(server: &GameServer, skill: &SkillRef, caster: &WorldObject, channel
         &SCCastingStoppedPacket { tl, duration: 0 },
         true,
     );
-    broadcast(server, caster, &SCSkillEndedPacket { tl }, true);
-    skill.invoke_callback();
-    caster.with_unit(|u| u.unit_mut().skill_state.skill_task = None);
-    skill.state().cancelled = true;
-    server.systems.skills.tl_ids.release(tl);
-    skill.state().tl_id = 0;
-    reset_cooldown_if_ignored(server, skill, caster);
+    if t.toggle_buff_id != 0 {
+        buffs::remove_effect_by_skill(server, caster, t.toggle_buff_id, t.id);
+    }
+    if t.channeling_time > 0 {
+        buffs::fire_unit_event(
+            server,
+            caster.obj_id(),
+            super::types::BuffEventTriggerKind::ChannelingCancel,
+            0,
+        );
+        end_channeling(
+            server,
+            skill,
+            caster,
+            channel_doodad,
+            &SkillCaster::Unit(caster.obj_id()),
+        );
+    } else {
+        end_skill(server, skill, caster);
+    }
 }
 
 /// `Skill.StopSkill(caster)` (base melee / ranged skills).
@@ -1818,6 +1973,17 @@ fn auto_attack_tick(
     skill: &SkillRef,
     cancel: &CancelToken,
 ) -> Option<i64> {
+    let owns_slot = p
+        .data()
+        .unit
+        .skill_state
+        .auto_attack
+        .as_ref()
+        .is_some_and(|slot| slot.cancel == *cancel && Arc::ptr_eq(&slot.skill, skill));
+    if !owns_slot {
+        cancel.cancel();
+        return None;
+    }
     let me = WorldObject::from(p);
     let (hp, target_id, has_task, gcd) = {
         let c = p.data();
@@ -1918,6 +2084,46 @@ pub fn pos(server: &GameServer, t: &Target) -> PositionAndRotation {
 /// A position unit target (for callers outside the module).
 pub fn pos_target(p: PosUnit) -> Target {
     Target::Pos(p)
+}
+
+#[cfg(test)]
+mod auto_attack_lifecycle_tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn stale_auto_attack_callback_cannot_clear_a_replacements_slot() {
+        for current_callback in [false, true] {
+            let (server, _client, player, npc) =
+                super::super::cast_validation_tests::fixture(crate::data::GameData::empty());
+            let skill = SkillRun::new(Arc::new(super::super::tests::skill_template(1)), 1);
+            let current = CancelToken::new();
+            let scheduled = if current_callback {
+                current.clone()
+            } else {
+                CancelToken::new()
+            };
+            npc.data().unit.hp = 0;
+            {
+                let mut p = player.data();
+                p.unit.current_target = npc.obj_id;
+                p.unit.is_auto_attack = true;
+                p.unit.skill_state.auto_attack = Some(AutoAttackSlot {
+                    skill: skill.clone(),
+                    cancel: current.clone(),
+                });
+            }
+            schedule_auto_attack(&server, player.obj_id, skill, scheduled.clone(), 10);
+            tokio::time::sleep(Duration::from_millis(40)).await;
+            assert!(scheduled.is_cancelled());
+            assert_eq!(current.is_cancelled(), current_callback);
+            assert_eq!(
+                player.data().unit.skill_state.auto_attack.is_some(),
+                !current_callback
+            );
+            assert_eq!(player.data().unit.is_auto_attack, !current_callback);
+        }
+    }
 }
 
 #[cfg(test)]

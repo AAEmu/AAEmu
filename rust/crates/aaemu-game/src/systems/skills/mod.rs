@@ -43,10 +43,15 @@ pub mod stats;
 pub mod tasks;
 pub mod types;
 pub mod unit_reqs;
+mod validation;
 pub mod water;
 
 #[cfg(test)]
+mod action_event_tests;
+#[cfg(test)]
 mod buff_tests;
+#[cfg(test)]
+mod cast_validation_tests;
 #[cfg(test)]
 mod effect_task_manager_tests;
 #[cfg(test)]
@@ -219,6 +224,7 @@ pub fn send_to_players(_server: &GameServer, units: &[WorldObject], packet: &dyn
 /// `CSMoveUnitPacket.RemoveEffects`: a moving velocity removes `RemoveOnMove` buffs
 /// (called by `world::session::move_unit` before the position update).
 pub fn on_move_request(server: &GameServer, unit: &PlayerRef, vel_x: i16, vel_y: i16, vel_z: i16) {
+    unit.data().unit.skill_state.moving = vel_x != 0 || vel_y != 0 || vel_z != 0;
     if vel_x != 0 || vel_y != 0 || vel_z != 0 {
         let obj = WorldObject::from(unit);
         buffs::trigger_remove_on(server, &obj, types::BuffRemoveOn::Move, 0);
@@ -245,6 +251,39 @@ pub fn on_moved(server: &GameServer, unit: &PlayerRef, old_pos: (f32, f32, f32),
     if fall_vel > 0 {
         combat::do_fall_damage(server, &obj, fall_vel);
     }
+}
+
+/// Track landing independently of fall damage: short jumps also trigger landing buffs.
+pub fn on_actor_move(
+    server: &GameServer,
+    unit: &WorldObject,
+    flags: crate::models::movement::MoveTypeActorFlags,
+    fall_vel: u16,
+) {
+    use crate::models::movement::MoveTypeActorFlags as F;
+    let airborne = flags.contains(F::JUMPING)
+        || (!flags.contains(F::STANDING_ON_SOLID) && !flags.contains(F::STANDING_ON_OBJECT));
+    let landed = unit
+        .with_unit(|u| {
+            let state = &mut u.unit_mut().skill_state;
+            let landed = (state.airborne && !airborne) || fall_vel > 0;
+            state.airborne = airborne;
+            landed
+        })
+        .unwrap_or(false);
+    if landed {
+        on_landed(server, unit);
+    }
+}
+
+pub(super) fn on_landed(server: &GameServer, unit: &WorldObject) {
+    buffs::fire_unit_event(
+        server,
+        unit.obj_id(),
+        types::BuffEventTriggerKind::Landing,
+        0,
+    );
+    buffs::trigger_remove_on(server, unit, types::BuffRemoveOn::Land, 0);
 }
 
 pub fn on_character_loaded(server: &GameServer, player: &PlayerRef) {
