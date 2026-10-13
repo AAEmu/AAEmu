@@ -423,8 +423,8 @@ fn do_phase_funcs(ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>, next_phase:
             false
         }
     };
-    if recursed && !ctx.data().funcs_for_group(group).is_empty() {
-        // e.g. ID=2231, Target: break the recursion (ID=898, Prison Gate has no funcs: continue)
+    if recursed {
+        // Phase-only groups can cycle too (the original defender HQ 3410 has no use funcs).
         tracing::trace!("DoPhase: Finished execution with recurse: phase {group}");
         return true;
     }
@@ -481,6 +481,9 @@ pub fn do_change_phase(ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>, next_p
     if next_phase <= 0 {
         return false;
     }
+    // A new operation may legitimately re-enter the last phase. Only the private
+    // do_phase_funcs recursion below shares the current operation's visited groups.
+    ctx.doodad.data().phase.list_group_id.clear();
     tracing::trace!(
         "DoChangePhase: ObjId {}, nextPhase {next_phase}",
         ctx.doodad.obj_id

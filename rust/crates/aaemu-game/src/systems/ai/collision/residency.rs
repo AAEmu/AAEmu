@@ -109,6 +109,7 @@ pub fn tick(server: &GameServer) {
             }
         }
         super::objects::sync_world(server, &pw);
+        pw.lock().update_animated_houses_at(Instant::now());
         super::sync_water(server, &pw);
         super::living::sync_world(server, &pw);
         pw.lock().collect_garbage();

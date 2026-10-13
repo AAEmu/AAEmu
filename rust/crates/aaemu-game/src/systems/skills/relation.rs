@@ -123,6 +123,11 @@ pub fn is_actively_hostile(me: &PlayerRef, target_obj_id: u32) -> bool {
 
 /// `BaseUnit.CanAttack(target)`.
 pub fn can_attack(server: &GameServer, me: &Target, target: &Target) -> bool {
+    if let Some(allowed) =
+        crate::systems::housing::dominion::runtime::can_attack_tower(server, me, target)
+    {
+        return allowed;
+    }
     let my_faction = faction_of(me);
     let target_faction = faction_of(target);
     let factions = &server.game_data.factions;

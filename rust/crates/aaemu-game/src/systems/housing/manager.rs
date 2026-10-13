@@ -73,7 +73,7 @@ struct Inner {
 }
 
 #[derive(Debug, Default)]
-struct HousingSaveBatch {
+pub struct HousingSaveBatch {
     removed: Vec<u32>,
     rows: Vec<(HouseRef, HouseRow)>,
 }
@@ -295,6 +295,14 @@ pub fn set_permission(h: &mut House, template: Option<&HousingTemplate>, value: 
 
 /// `House.Expedition` (always the owner's guild): refreshes the stored expedition id.
 pub fn refresh_expedition(server: &GameServer, house: &HouseRef) {
+    if super::dominion::fort::is_fort(server, house) {
+        if house.data().unit.owner_id == 0 {
+            house.data().unit.expedition_id = 0;
+        } else {
+            super::dominion::fort::refresh_owner(server, house);
+        }
+        return;
+    }
     let owner = house.data().unit.owner_id;
     let guild = if owner == 0 {
         0
@@ -465,6 +473,7 @@ pub fn set_current_step(server: &GameServer, house: &HouseRef, value: i32, loadi
         h.is_dirty = true;
     }
     crate::systems::ai::collision::objects::sync_house(server, house);
+    super::dominion::fort::refresh_for_house(server, house);
 }
 
 /// One `HousingBindingDoodad` of a finished house: `DoodadManager.Create(ParentWorld, 0,
@@ -567,6 +576,7 @@ pub fn spawn_house(server: &GameServer, house: &HouseRef) {
         crate::systems::npcs::doodad::manager::spawn(server, &world, d);
     }
     crate::systems::ai::collision::objects::sync_house(server, house);
+    super::dominion::fort::refresh_for_house(server, house);
 }
 
 /// `House.Delete()`: persistent attached doodads are deleted (DB row included), the others
@@ -612,6 +622,9 @@ pub fn delete_house(server: &GameServer, house: &HouseRef) {
 
 /// `House.AllowedToInteract(player)`.
 pub fn allowed_to_interact(server: &GameServer, house: &HouseRef, player: &PlayerRef) -> bool {
+    if super::dominion::fort::is_fort(server, house) {
+        return super::dominion::fort::allowed_to_interact(server, house, player);
+    }
     let always_public = template_of(server, house).is_some_and(|t| t.always_public);
     let (step, permission, owner) = {
         let h = house.data();
@@ -838,8 +851,14 @@ pub fn calculate_building_tax_info(
     building_new_house: bool,
 ) -> Result<(bool, TaxInfo), String> {
     let mut info = TaxInfo::default();
+    if super::dominion::fort::design(template).is_some() {
+        return Ok((true, info));
+    }
     let user_houses = server.systems.housing.manager.by_account(account_id);
     for h in &user_houses {
+        if super::dominion::fort::is_fort(server, h) {
+            continue;
+        }
         let heavy = template_of(server, h).is_some_and(|t| t.heavy_tax);
         if heavy {
             info.heavy_house_count += 1;
@@ -907,10 +926,10 @@ pub fn tax_mail_update(server: &GameServer, house: &HouseRef) -> TaxMailUpdate {
     else {
         return u;
     };
-    let Ok((true, info)) = calculate_building_tax_info(server, h.account_id, template, false)
-    else {
+    let Ok(quote) = super::dominion::tax::quote_house(server, house) else {
         return u;
     };
+    let info = quote.info;
     let now = now();
     let mut late_fees = 0;
     let mut deadline = tax_due_date(&h);
@@ -974,6 +993,34 @@ pub fn new_tax_mail(server: &GameServer, house: &HouseRef) -> HouseMail {
 
 /// `UpdateTaxInfo(house)`: untouchable / removal buffs, then the tax mails of an owned house.
 pub fn update_tax_info(server: &GameServer, house: &HouseRef) {
+    if template_of(server, house).is_some_and(|template| template.guard_tower_setting_id != 0) {
+        let snapshot = house.data().clone();
+        let active = claimed_lodestone_state(server, house, &snapshot)
+            .and_then(|state| state.siege)
+            .is_some_and(|siege| siege.active_at(now()));
+        // Lodestones are territory infrastructure, not weekly-tax properties. Unknown,
+        // unclaimed or stale authority fails closed even when a legacy date has expired.
+        set_untouchable(server, house, !active);
+        set_removal_debuff(server, house, false);
+        server
+            .systems
+            .housing
+            .hooks
+            .get()
+            .delete_house_mails(server, snapshot.id);
+        return;
+    }
+    if super::dominion::fort::is_fort(server, house) && house.data().unit.owner_id != 0 {
+        let hooks = server.systems.housing.hooks.get();
+        let id = house.data().id;
+        hooks.delete_house_mails(server, id);
+        set_removal_debuff(server, house, false);
+        let active = super::dominion::fort::state_for_house(server, house)
+            .and_then(|state| state.siege)
+            .is_some_and(|siege| siege.active_at(now()));
+        set_untouchable(server, house, !active);
+        return;
+    }
     let now = now();
     let (is_demolished, is_tax_due, owner, id) = {
         let h = house.data();
@@ -1017,7 +1064,10 @@ pub fn pay_weekly_tax(server: &GameServer, house: &HouseRef) -> bool {
 /// Validation and the protection change share one house lock, so a stale bill cannot be
 /// applied after demolition or an ownership change.
 pub fn pay_weekly_tax_for(server: &GameServer, house: &HouseRef, payer_id: Option<u32>) -> bool {
-    if !super::placement::can_extend_house(server, house) {
+    if template_of(server, house).is_some_and(|template| template.guard_tower_setting_id != 0)
+        || super::dominion::fort::is_fort(server, house)
+        || !super::placement::can_extend_house(server, house)
+    {
         return false;
     }
     let days = i64::from(server.config.world.days_for_tax_payment);
@@ -1044,9 +1094,25 @@ pub fn check_housing_taxes(server: &GameServer) {
     if manager.checking_tax.swap(true, Ordering::SeqCst) {
         return;
     }
+    resume_dead_houses(server);
     let now = now();
     let mut expired = Vec::new();
     for house in manager.all() {
+        if super::dominion::fort::is_fort(server, &house)
+            || template_of(server, &house)
+                .is_some_and(|template| template.guard_tower_setting_id != 0)
+        {
+            // Stage changes/capture already hold this lock. Serialize this timer's read and
+            // buff publication too, so an old active snapshot cannot unprotect a new peace.
+            let _operation = server
+                .systems
+                .housing
+                .operation_lock
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            update_tax_info(server, &house);
+            continue;
+        }
         let (end, owner) = {
             let h = house.data();
             (h.protection_end_date, h.unit.owner_id)
@@ -1054,6 +1120,12 @@ pub fn check_housing_taxes(server: &GameServer) {
         if end <= now && owner > 0 {
             expired.push(house.clone());
         }
+        let _operation = server
+            .systems
+            .housing
+            .operation_lock
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         update_tax_info(server, &house);
     }
     for house in expired {
@@ -1110,6 +1182,8 @@ pub struct HouseRow {
     pub sell_to: u32,
     pub sell_price: u32,
     pub allow_recover: bool,
+    /// None is a pre-health-persistence row; restore the authored construction maximum.
+    pub hp: Option<i32>,
 }
 
 /// The per-row part of `LoadPlayerHousing`: creates and registers the house (not spawned).
@@ -1152,6 +1226,8 @@ pub fn load_house_row(
         h.sell_to_player_id = r.sell_to;
         h.sell_price = r.sell_price;
         h.allow_recover = r.allow_recover;
+        let max_hp = crate::systems::ai::collision::objects::house_collision_max_hp(&h).max(0);
+        h.unit.hp = r.hp.unwrap_or(max_hp).clamp(0, max_hp);
     }
     if !server.systems.housing.manager.insert(&house) {
         tracing::error!(
@@ -1316,11 +1392,29 @@ pub fn reconcile_bound_doodads(server: &GameServer) -> (usize, usize) {
 
 /// `RemoveDeadHouse(house)` (`House.OnDeath`).
 pub fn remove_dead_house(server: &GameServer, house: &HouseRef) {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let (id, tl) = {
         let h = house.data();
         (h.id, h.unit.tl_id)
     };
     let manager = &server.systems.housing.manager;
+    if manager
+        .by_id(id)
+        .is_none_or(|current| !Arc::ptr_eq(&current, house))
+    {
+        return;
+    }
+    if super::dominion::fort::is_fort(server, house) && house.data().unit.owner_id != 0 {
+        if let Err(e) = super::ops::return_house_items_to_owner(server, house, false, false, None) {
+            tracing::error!("Destroyed fort {id}: {e}");
+            return;
+        }
+    }
     if !manager.remove(id, tl, house) {
         return;
     }
@@ -1329,6 +1423,31 @@ pub fn remove_dead_house(server: &GameServer, house: &HouseRef) {
     server.ids.housing.release_id(id);
     // TODO (C#): not sure how to handle this, just instant delete it for now
     delete_house(server, house);
+    super::dominion::fort::refresh_for_house(server, house);
+}
+
+/// Complete interrupted destruction after mail/items and Dominion authority have loaded.
+/// An HP0 lodestone remains available for its persisted siege's engraving interaction.
+/// Fort returns are staged by remove_dead_house; failures retain the object and IDs for
+/// the next tax tick rather than duplicating mail or healing the structure.
+pub fn resume_dead_houses(server: &GameServer) {
+    for house in server.systems.housing.manager.all() {
+        let dead = house.data().unit.hp == 0;
+        if dead
+            && template_of(server, &house)
+                .is_some_and(|template| template.hp > 0 && template.guard_tower_setting_id == 0)
+        {
+            // Ordinary property retains its original owner and normal staged demolition
+            // returns. Fort death resolves the current expedition lord in remove_dead_house.
+            if !super::dominion::fort::is_fort(server, &house) && house.data().unit.owner_id != 0 {
+                super::ops::demolish(server, None, &house, false, false);
+                if house.data().unit.owner_id != 0 {
+                    continue;
+                }
+            }
+            remove_dead_house(server, &house);
+        }
+    }
 }
 
 /// `HousingManager.Save(connection, transaction)`: (updated, deleted).
@@ -1336,25 +1455,41 @@ pub async fn save(
     server: &GameServer,
     tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
 ) -> crate::Result<(usize, usize)> {
+    let batch = prepare_save(server);
+    write_prepared(server, tx, batch).await
+}
+
+/// The housing system captures this batch together with Dominion's batch under its short
+/// operation lock. The guard must be released before write_prepared awaits MySQL.
+pub fn prepare_save(server: &GameServer) -> HousingSaveBatch {
     let manager = &server.systems.housing.manager;
     manager.lock().pending_save = None;
-    let mut delete_count = 0;
     let removed = manager.removed_ids();
-    if !removed.is_empty() {
-        super::db::delete_rows(tx, &removed).await?;
-        delete_count += 1;
-    }
-    let mut update_count = 0;
     let mut rows = Vec::new();
     for house in manager.all() {
-        let Some(row) = save_row(&house) else {
+        let Some(row) = save_row_for(server, &house) else {
             continue;
         };
-        super::db::write_row(tx, &row).await?;
         rows.push((house, row));
-        update_count += 1;
     }
-    manager.lock().pending_save = Some(HousingSaveBatch { removed, rows });
+    HousingSaveBatch { removed, rows }
+}
+
+pub async fn write_prepared(
+    server: &GameServer,
+    tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+    batch: HousingSaveBatch,
+) -> crate::Result<(usize, usize)> {
+    server.systems.housing.manager.lock().pending_save = None;
+    let delete_count = usize::from(!batch.removed.is_empty());
+    if !batch.removed.is_empty() {
+        super::db::delete_rows(tx, &batch.removed).await?;
+    }
+    for (_, row) in &batch.rows {
+        super::db::write_row(tx, row).await?;
+    }
+    let update_count = batch.rows.len();
+    server.systems.housing.manager.lock().pending_save = Some(batch);
     Ok((update_count, delete_count))
 }
 
@@ -1371,10 +1506,25 @@ pub fn commit_save(server: &GameServer) {
         batch
     };
     for (house, row) in batch.rows {
+        let snapshot = house.data().clone();
+        // Legacy tower rows may still have a character owner. They must not fall
+        // through to ordinary-property acknowledgement after authority disappears
+        // or the retained tower handle is replaced while SQL is in flight.
+        if server
+            .game_data
+            .systems
+            .housing
+            .template(snapshot.unit.template_id)
+            .is_some_and(|template| template.guard_tower_setting_id != 0)
+            && claimed_lodestone_state(server, &house, &snapshot).is_none()
+        {
+            continue;
+        }
+        let allow_infrastructure = can_save_claimed_lodestone(server, &house, &snapshot);
         let mut h = house.data();
         // Compare the persisted fields while holding the lock: changes made during the
         // database await must remain dirty for the next save.
-        if row_from_house(&h).as_ref() == Some(&row) {
+        if row_from_house(&h, allow_infrastructure).as_ref() == Some(&row) {
             h.is_dirty = false;
         }
     }
@@ -1383,14 +1533,82 @@ pub fn commit_save(server: &GameServer) {
 /// The `House.Save` row (`None` = not dirty, or a recently destroyed / expired house).
 pub fn save_row(house: &HouseRef) -> Option<HouseRow> {
     let h = house.data();
-    row_from_house(&h)
+    row_from_house(&h, false)
 }
 
-fn row_from_house(h: &House) -> Option<HouseRow> {
+/// A registered, claimed lodestone is persistent world infrastructure with no character
+/// owner. Its construction state/health commits in the same transaction as Dominion state.
+/// Unclaimed seeds and ordinary abandoned properties retain the generic exclusion.
+pub fn save_row_for(server: &GameServer, house: &HouseRef) -> Option<HouseRow> {
+    let h = house.data().clone();
+    let authority = claimed_lodestone_state(server, house, &h);
+    let allow_infrastructure = h.unit.owner_id == 0 && h.account_id == 0 && authority.is_some();
+    let mut row = row_from_house(&h, allow_infrastructure)?;
+    // Combat changes House.hp before its Dominion callback obtains operation_lock.
+    // Use the authority HP captured under that lock so the two SQL rows describe
+    // the same state. commit_save compares the raw live House HP, keeping a newer
+    // combat mutation dirty until its callback and a later paired save catch up.
+    if let Some(authority) = authority {
+        // None is a claimed/reset tower's full-health state, matching apply_tower_state.
+        row.hp = Some(authority.tower_hp.unwrap_or(h.unit.max_hp).max(0));
+    }
+    Some(row)
+}
+
+fn can_save_claimed_lodestone(server: &GameServer, house: &HouseRef, h: &House) -> bool {
+    h.unit.owner_id == 0 && h.account_id == 0 && claimed_lodestone_state(server, house, h).is_some()
+}
+
+fn claimed_lodestone_state(
+    server: &GameServer,
+    house: &HouseRef,
+    h: &House,
+) -> Option<super::dominion::DominionState> {
+    let template = server
+        .game_data
+        .systems
+        .housing
+        .template(h.unit.template_id)?;
+    if template.guard_tower_setting_id == 0
+        || !server
+            .game_data
+            .systems
+            .housing
+            .castles
+            .guard_tower_settings
+            .contains_key(&template.guard_tower_setting_id)
+        || server
+            .systems
+            .housing
+            .manager
+            .by_id(h.id)
+            .is_none_or(|live| !Arc::ptr_eq(&live, house))
+        || !super::dominion::runtime::is_live_object(server, &WorldObject::from(house))
+    {
+        return None;
+    }
+    let zone = server
+        .game_data
+        .zones
+        .zone_by_key(h.unit.transform.zone_id)?;
+    let expected = super::dominion::TowerIdentity {
+        house_id: h.id,
+        instance_id: h.unit.transform.instance_id,
+        guard_tower_setting_id: template.guard_tower_setting_id,
+    };
+    server
+        .systems
+        .housing
+        .dominions
+        .get(zone.group_id)
+        .filter(|state| state.owner_expedition_id != 0 && state.tower == expected)
+}
+
+fn row_from_house(h: &House, allow_infrastructure: bool) -> Option<HouseRow> {
     if !h.is_dirty {
         return None;
     }
-    if h.account_id == 0 || h.unit.owner_id == 0 {
+    if !allow_infrastructure && (h.account_id == 0 || h.unit.owner_id == 0) {
         return None;
     }
     let t = &h.unit.transform;
@@ -1416,7 +1634,16 @@ fn row_from_house(h: &House) -> Option<HouseRow> {
         sell_to: h.sell_to_player_id,
         sell_price: h.sell_price,
         allow_recover: h.allow_recover,
+        hp: Some(h.unit.hp.max(0)),
     })
+}
+
+/// Called after a real health update, outside the unit's data lock. Repeated notifications
+/// do not dirty a clean house; repairs/damage remain pending until a world save commits.
+pub fn mark_hp_changed(house: &HouseRef, old_hp: i32, new_hp: i32) {
+    if old_hp != new_hp {
+        house.data().is_dirty = true;
+    }
 }
 
 /// `doodad_owner_type::HOUSING` doodads of a house (`GetDoodadByHouseDbId`).

@@ -120,6 +120,7 @@ pub fn prefab_buoys(files: &Files, models: &ModelCache, reference: &str) -> Vec<
             let model = models.get(&path)?;
             model.slot(phys_slot::DEFAULT)?;
             Some(ShapePart {
+                animation: None,
                 model,
                 pos,
                 q,
@@ -780,6 +781,7 @@ mod tests {
         ship.buoys = [-3.0, 2.7]
             .into_iter()
             .map(|y| ShapePart {
+                animation: None,
                 model: model_phys.clone(),
                 pos: PVec3::new(0.0, y, 0.15),
                 q,

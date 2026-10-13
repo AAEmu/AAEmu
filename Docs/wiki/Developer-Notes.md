@@ -25,6 +25,34 @@ prefab geometry supplies server collision for construction stages and completed 
 and roofs, including authored static animated objects in castle lodestones. Original client
 checks still govern model-specific placement slopes and footprints.
 
+Building damage persists in `housings.hp`; legacy NULL values retain authored construction
+health. Damage stages use the original prefab geometry. Lodestone CGA/ANM root animation also
+updates its collision proxies, including the settled static geometry after destruction.
+Server and client animation phases are initialized independently; absolute phase synchronization
+has not been established.
+
+Castle ownership belongs to the expedition in `dominions`, separate from ordinary house owners.
+Initial claim uses the original Purified Archeum pack and guild-leader entitlement. A registered
+attacker may capture a destroyed lodestone through the original five-minute Convert channel;
+movement, death, disconnect or changed authority cancels it. Castle forts follow the ruling
+guild, while ordinary properties retain their owners. Fort designs are limited to the nine
+original independently itemized designs; native slope/mirror variant selection is unverified.
+
+Sieges are explicitly scheduled with `/dominion schedule <zoneGroupId> <attackerExpeditionId>
+<startDelaySeconds>`, using the original zone's duration. `/dominion register` enrolls attacker
+or defender characters, and `/dominion cancel` ends the schedule. These commands require GM
+access. Participant buffs expose the original five-second headquarters teleport skills.
+Bind an already spawned original headquarters with `/dominion headquarters <zoneGroupId>
+attacker|defender <doodadObjectId>`; offense template 4307 must be at least 250 meters from the
+lodestone, and defense uses template 3410. Bindings require restoration after server restart.
+Temple revival for registered participants uses a validated current headquarters when present.
+The original SiegePeriod doodad predicate is unresolved and fails closed; automatic auctions,
+commander appointments and reinforcement eligibility are not inferred from dated calendars.
+
+Property, treasury, mail, certificates and wallets share a prepared save snapshot and database
+transaction. Logout writes the same financial state, and failed departures remain available for
+retry before character selection. Shutdown waits for ongoing saves before its final flush.
+
 ## Architecture note: the Rust port
 
 The login server, game server and tools were ported from C# (.NET) to Rust,

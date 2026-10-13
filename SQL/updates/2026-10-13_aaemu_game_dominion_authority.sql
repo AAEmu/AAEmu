@@ -1,0 +1,45 @@
+-- Static 2014 siege_plans are deliberately not imported as runtime schedules.
+CREATE TABLE IF NOT EXISTS `dominions` (
+  `zone_group_id` int unsigned NOT NULL,
+  `tower_house_id` int unsigned NOT NULL,
+  `instance_id` int unsigned NOT NULL,
+  `guard_tower_setting_id` int unsigned NOT NULL,
+  `owner_expedition_id` int unsigned NOT NULL DEFAULT 0,
+  `ownership_generation` bigint unsigned NOT NULL DEFAULT 0,
+  `reign_start_at` bigint NOT NULL DEFAULT 0,
+  `last_siege_end_at` bigint NOT NULL DEFAULT 0,
+  `tax_rate` int NOT NULL DEFAULT 0,
+  `national_tax_rate` smallint unsigned NOT NULL DEFAULT 0,
+  `last_paid_at` bigint NOT NULL DEFAULT 0,
+  `last_tax_rate_changed_at` bigint NOT NULL DEFAULT 0,
+  `last_national_tax_rate_changed_at` bigint NOT NULL DEFAULT 0,
+  `cur_house_tax_money` int NOT NULL DEFAULT 0,
+  `cur_hunt_tax_money` int NOT NULL DEFAULT 0,
+  `peace_tax_money` int NOT NULL DEFAULT 0,
+  `cur_house_tax_aa_point` int NOT NULL DEFAULT 0,
+  `peace_tax_aa_point` int NOT NULL DEFAULT 0,
+  `tower_destroyed` tinyint(1) NOT NULL DEFAULT 0,
+  `tower_hp` int DEFAULT NULL,
+  `last_siege_id` bigint unsigned NOT NULL DEFAULT 0,
+  `siege_id` bigint unsigned NOT NULL DEFAULT 0,
+  `attacker_expedition_id` int unsigned NOT NULL DEFAULT 0,
+  `defender_expedition_id` int unsigned NOT NULL DEFAULT 0,
+  `siege_ownership_generation` bigint unsigned NOT NULL DEFAULT 0,
+  `siege_status` tinyint unsigned NOT NULL DEFAULT 0,
+  `siege_outcome` tinyint unsigned NOT NULL DEFAULT 0,
+  `siege_scheduled_at` bigint NOT NULL DEFAULT 0,
+  `siege_starts_at` bigint NOT NULL DEFAULT 0,
+  `siege_ends_at` bigint NOT NULL DEFAULT 0,
+  `siege_ended_at` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`zone_group_id`),
+  UNIQUE KEY `dominions_tower` (`tower_house_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `dominion_siege_participants` (
+  `zone_group_id` int unsigned NOT NULL,
+  `siege_id` bigint unsigned NOT NULL,
+  `character_id` int unsigned NOT NULL,
+  `expedition_id` int unsigned NOT NULL,
+  `side` tinyint unsigned NOT NULL,
+  PRIMARY KEY (`zone_group_id`, `siege_id`, `character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -139,6 +139,34 @@ the heightmap. Lower `Geometry` or `LoadRadiusCells` to save memory on small
 machines. Background:
 [`rust/docs/physics/`](https://github.com/AAEmu/AAEmu/tree/develop/rust/docs/physics).
 
+## Territory property tax
+
+Claimed Dominion provinces apply their current territory tax rate to ordinary taxable housing
+in the same zone and world instance. Heavy-tax-exempt buildings also remain exempt from territory
+tax. The refundable construction deposit remains twice the template's base tax.
+
+The default world rule applies territory tax after the multiple-property surcharge. To apply it
+only to the template's base tax, add this game-server override to `Config.Local.json`:
+
+```json
+{
+  "Housing": {
+    "DominionPropertyTaxBase": "Base"
+  }
+}
+```
+
+`AfterHeavy` is the default. The order is configurable; nominal surcharge-to-gold credit is an
+explicit server rule because the available 1.2 client does not establish the original world calculation.
+Certificate bill totals round up to whole certificates, and the client displays the amount
+actually charged. Refunded deposits do not generate territory revenue.
+
+The owning guild's current leader can collect actual property revenue through the player
+command `/collectdominion <zoneGroupId>`. Collection sends a system tax receipt with gold;
+If staging the receipt fails, the balance stays available. Repeated empty collection sends nothing.
+It leaves Peace Fund untouched. Hunting tax, AA Points, nation splits, and automatic historical
+payout schedules are not added. Territory tax changes have the original one-hour cooldown.
+
 ## Migration note from old setup docs
 
 Older instructions referenced `aaemu_login.game_servers` and SQL inserts.

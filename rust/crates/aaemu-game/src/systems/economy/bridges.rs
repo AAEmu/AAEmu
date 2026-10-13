@@ -2575,6 +2575,25 @@ impl crate::systems::housing::hooks::HousingEconomyHooks for EconomyForHousing {
         total: i32,
         tax_item: bool,
     ) -> Result<(), crate::systems::housing::hooks::HouseConstructionError> {
+        if let Some(effects) =
+            self.pay_house_construction_deferred(server, player, design, total, tax_item)?
+        {
+            super::fx::flush(server, effects);
+        }
+        Ok(())
+    }
+
+    fn pay_house_construction_deferred(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        design: crate::systems::housing::hooks::HouseItem,
+        total: i32,
+        tax_item: bool,
+    ) -> Result<
+        Option<crate::models::item_task::ItemFxList>,
+        crate::systems::housing::hooks::HouseConstructionError,
+    > {
         use crate::systems::housing::hooks::{
             construction_certificates, item_task, HouseConstructionError,
         };
@@ -2653,7 +2672,8 @@ impl crate::systems::housing::hooks::HousingEconomyHooks for EconomyForHousing {
             Some(design.item_id),
             &mut txn.env,
         );
-        Ok(())
+        drop(bag);
+        Ok(Some(txn.into_fx()))
     }
 
     fn inventory_item(
@@ -3038,7 +3058,7 @@ impl crate::systems::housing::hooks::HousingEconomyHooks for EconomyForHousing {
         }
         for (mail, name) in prepared {
             let id = mail.id;
-            state.deleted.retain(|deleted| *deleted != id);
+            state.clear_deletion(id);
             let added = state.all.add(id, mail);
             debug_assert!(added, "mail IDs were reserved and checked before commit");
             if let Some(mail) = state.all.get_mut(id) {

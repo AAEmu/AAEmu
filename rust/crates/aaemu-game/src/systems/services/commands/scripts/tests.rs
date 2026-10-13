@@ -330,7 +330,10 @@ const CSHARP_COMMANDS: &[(&str, &[&str], &[&str])] = &[
 
 #[test]
 fn registered_commands_match_the_csharp_scripts() {
-    let commands = super::all_commands(&ScriptEnv::default());
+    let commands: Vec<_> = super::all_commands(&ScriptEnv::default())
+        .into_iter()
+        .filter(|(names, _)| *names != ["dominion"] && *names != ["collectdominion"])
+        .collect();
     assert_eq!(commands.len(), CSHARP_COMMANDS.len());
     for ((registered, command), (file, names, onload)) in commands.iter().zip(CSHARP_COMMANDS) {
         assert_eq!(registered, onload, "{file}: OnLoad names");
@@ -376,8 +379,8 @@ fn load_resolves_collisions_like_csharp() {
     let m = CommandManager::default();
     assert!(super::load(&m, &ScriptEnv::default()));
     let keys = m.get_command_keys();
-    // 92 command files, `gold` registered twice.
-    assert_eq!(keys.len(), 91);
+    // Original commands plus the Rust Dominion administration and collection commands.
+    assert_eq!(keys.len(), 93);
     // `GoldCmd` (registered after `AddGold`) owns `gold`, and `AddGold`'s aliases lead to it.
     for alias in ["gold", "addgold", "add_gold"] {
         let c = m.get_command_interface_by_name(alias).expect(alias);

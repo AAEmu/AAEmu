@@ -101,6 +101,39 @@ pub struct ShapePart {
     pub pos: Vec3,
     pub q: Quat,
     pub scale: f32,
+    /// Original root animation of a physicalized housing CGA, parsed once with the shape.
+    pub animation: Option<ShapeAnimation>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ShapeAnimation {
+    pub track: Arc<super::cga::RootAnimation>,
+    pub looped: bool,
+    pub speed: f32,
+    pub rigid: bool,
+}
+
+#[derive(Debug)]
+struct PrefabAnimation {
+    clip: String,
+    looped: bool,
+    speed: f32,
+    rigid: bool,
+}
+
+#[derive(Debug)]
+struct PrefabGeometry {
+    model: String,
+    pos: Vec3,
+    q: Quat,
+    scale: f32,
+    animation: Option<PrefabAnimation>,
+}
+
+impl PrefabGeometry {
+    fn placement(self) -> (String, Vec3, Quat, f32) {
+        (self.model, self.pos, self.q, self.scale)
+    }
 }
 
 /// The models of an object collider (one for brushes / vegetation, the brushes of a prefab).
@@ -126,6 +159,9 @@ pub fn prefab_brushes_with_prefix(
     prefix: &str,
 ) -> Vec<(String, Vec3, Quat, f32)> {
     prefab_geometry(xml, name, prefix, false)
+        .into_iter()
+        .map(PrefabGeometry::placement)
+        .collect()
 }
 
 /// Housing prefabs also contain static AnimObject geometry (the 1.2 origin guard towers).
@@ -133,6 +169,9 @@ pub fn prefab_brushes_with_prefix(
 /// density; animated rigid bodies with dynamics keep their owning subsystem's physics.
 pub fn prefab_house_geometry(xml: &str, name: &str) -> Vec<(String, Vec3, Quat, f32)> {
     prefab_geometry(xml, name, "", true)
+        .into_iter()
+        .map(PrefabGeometry::placement)
+        .collect()
 }
 
 fn prefab_geometry(
@@ -140,7 +179,7 @@ fn prefab_geometry(
     name: &str,
     prefix: &str,
     static_anim_objects: bool,
-) -> Vec<(String, Vec3, Quat, f32)> {
+) -> Vec<PrefabGeometry> {
     let Ok(doc) = roxmltree::Document::parse(xml) else {
         return Vec::new();
     };
@@ -154,6 +193,7 @@ fn prefab_geometry(
     let mut out = Vec::new();
     let prefix = prefix.to_ascii_lowercase();
     for o in prefab.descendants().filter(|n| n.has_tag_name("Object")) {
+        let mut animation = None;
         let model = if o.attribute("Type") == Some("Brush") {
             o.attribute("Prefab")
         } else if static_anim_objects
@@ -183,6 +223,30 @@ fn prefab_geometry(
             if !static_body || delayed {
                 continue;
             }
+            if let Some(authored) = properties.children().find(|n| n.has_tag_name("Animation")) {
+                let clip = authored.attribute("Animation").unwrap_or("");
+                let speed = authored
+                    .attribute("Speed")
+                    .and_then(|v| v.parse::<f32>().ok())
+                    .unwrap_or(1.0);
+                if authored.attribute("bPlaying") == Some("1")
+                    && !clip.is_empty()
+                    && clip.len() <= 64
+                    && clip
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+                    && speed.is_finite()
+                    && speed > 0.0
+                    && speed <= 8.0
+                {
+                    animation = Some(PrefabAnimation {
+                        clip: clip.to_string(),
+                        looped: authored.attribute("bLoop") == Some("1"),
+                        speed,
+                        rigid: physics.attribute("bRigidBody") == Some("1"),
+                    });
+                }
+            }
             properties.attribute("object_Model")
         } else {
             continue;
@@ -211,12 +275,13 @@ fn prefab_geometry(
         } else {
             Quat::IDENTITY
         };
-        out.push((
-            normalize_model_path(model),
+        out.push(PrefabGeometry {
+            model: normalize_model_path(model),
             pos,
             q,
-            s.first().copied().unwrap_or(1.0),
-        ));
+            scale: s.first().copied().unwrap_or(1.0),
+            animation,
+        });
     }
     out
 }
@@ -236,6 +301,7 @@ pub fn resolve_shape(
                 pos: Vec3::ZERO,
                 q: Quat::IDENTITY,
                 scale: 1.0,
+                animation: None,
             }],
         })
     };
@@ -258,6 +324,7 @@ pub fn resolve_shape(
                         pos,
                         q,
                         scale,
+                        animation: None,
                     })
                 })
                 .collect();
@@ -390,10 +457,40 @@ pub fn apply_doodads(
     (added, stale.len())
 }
 
-/// Housing uses the model of the current construction step. Normal prefab state 1 can
-/// contain several elements; all of them are needed for the walls, roof and floor. The zone
-/// swaps the unit model in Housing::SetBuildStep (10.x 0x3933ABD0), and records completion in
-/// Housing::SetBuildDone (0x3933AB50).
+/// Native 1.2 x2game 0x3989F8B0 selects prefab states using a truncated integer HP percent.
+/// The actual PrefabUnitModel initializer (0x390EA790) and HP refresh (0x390EB610) both
+/// use this helper; each state can contain separately authored walls, roofs and floors.
+pub fn house_model_state(hp: i32, max_hp: i32) -> u32 {
+    if hp <= 0 || max_hp <= 0 {
+        return 6;
+    }
+    let percent = i64::from(hp) * 100 / i64::from(max_hp);
+    if percent > 75 {
+        1
+    } else if percent > 50 {
+        2
+    } else if percent > 25 {
+        3
+    } else {
+        4
+    }
+}
+
+/// Native 1.2 housing MaxHealth (0x398B47F0) scales an unfinished unit's maximum using
+/// its signed wire build step and the sum of construction actions. Division precedes
+/// multiplication; using a constant percentage or multiplying first changes the boundaries.
+pub fn house_collision_max_hp(house: &crate::models::house::House) -> i32 {
+    let build_step = house.net_build_step();
+    if build_step >= 0 || house.all_action <= 0 {
+        return house.unit.max_hp;
+    }
+    let denominator = i64::from(house.all_action) + 1;
+    let maximum =
+        i64::from(house.unit.max_hp) / denominator * (denominator + i64::from(build_step));
+    maximum.clamp(0, i64::from(i32::MAX)) as i32
+}
+
+/// Housing uses the model of the current construction step with its current HP state.
 #[derive(Debug, Clone)]
 pub struct HouseInfo {
     pub obj_id: u32,
@@ -405,17 +502,20 @@ pub struct HouseInfo {
 
 fn house_info(server: &GameServer, world: &WorldInstance, obj: &WorldObject) -> Option<HouseInfo> {
     let house = obj.as_house()?;
-    let (model_id, scale) = {
+    let (model_id, state, scale) = {
         let h = house.data();
-        (h.unit.model_id, h.unit.scale)
+        (
+            h.unit.model_id,
+            house_model_state(h.unit.hp, house_collision_max_hp(&h)),
+            h.unit.scale,
+        )
     };
     let refs = server
         .game_data
         .systems
         .ai
         .collision
-        .prefab_models
-        .get(&model_id)?;
+        .house_prefabs(model_id, state)?;
     let (pos, q, scale) = object_placement(world, obj, scale);
     Some(HouseInfo {
         obj_id: obj.obj_id(),
@@ -443,14 +543,34 @@ pub fn resolve_house_shape(
                 .map(|bytes| crate::data::client_files::decode_text(&bytes))
         })
         .clone()?;
-    let parts = prefab_house_geometry(&xml, name)
+    let parts = prefab_geometry(&xml, name, "", true)
         .into_iter()
-        .filter_map(|(path, pos, q, scale)| {
+        .filter_map(|part| {
+            let animation = part.animation.and_then(|animation| {
+                let stem = part.model.strip_suffix(".cga")?;
+                let path = format!("{stem}_{}.anm", animation.clip);
+                let model_data = files.read(&part.model)?;
+                let animation_data = files.read(&path)?;
+                let track = match super::cga::RootAnimation::read(&model_data, &animation_data) {
+                    Ok(track) => Arc::new(track),
+                    Err(error) => {
+                        tracing::warn!("collision: housing animation {path}: {error}");
+                        return None;
+                    }
+                };
+                Some(ShapeAnimation {
+                    track,
+                    looped: animation.looped,
+                    speed: animation.speed,
+                    rigid: animation.rigid,
+                })
+            });
             Some(ShapePart {
-                model: models.get(&path)?,
-                pos,
-                q,
-                scale,
+                model: models.get(&part.model)?,
+                pos: part.pos,
+                q: part.q,
+                scale: part.scale,
+                animation,
             })
         })
         .collect::<Vec<_>>();
@@ -492,10 +612,18 @@ fn apply_house(
             (!parts.is_empty()).then_some(ColliderShape { parts })
         })
         .clone();
-    // Houses are static brushes and keep the authored collision-slot flags.
+    // Ordinary houses are static brushes. Native physicalized guard AnimObjects use
+    // active rigid bodies while standing, then static bodies for their down animation.
+    let rigid = shape.as_ref().is_some_and(|shape| {
+        !shape.parts.is_empty()
+            && shape
+                .parts
+                .iter()
+                .all(|part| part.animation.as_ref().is_some_and(|a| a.rigid))
+    });
     let key = shape_key(&model, house.pos, house.q, house.scale, (0, u32::MAX));
     pw.lock()
-        .set_object_shape(ObjKind::House, house.obj_id, key, shape.as_ref(), false)
+        .set_object_shape(ObjKind::House, house.obj_id, key, shape.as_ref(), rigid)
 }
 
 /// Applies every house in the loaded cells and removes colliders of deleted/unloaded houses.

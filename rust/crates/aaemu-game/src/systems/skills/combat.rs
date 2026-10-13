@@ -181,6 +181,22 @@ pub fn post_update_current_hp(
             }
         }
     }
+    if old_hp != new_hp {
+        crate::systems::housing::dominion::runtime::on_hp_changed(
+            server, target, attacker, old_hp, new_hp,
+        );
+    }
+    if let Some(house) = target.as_house() {
+        crate::systems::housing::manager::mark_hp_changed(house, old_hp, new_hp);
+        let model_max_hp = {
+            let h = house.data();
+            crate::systems::ai::collision::objects::house_collision_max_hp(&h)
+        };
+        let objects = crate::systems::ai::collision::objects::house_model_state;
+        if objects(old_hp, model_max_hp) != objects(new_hp, model_max_hp) {
+            crate::systems::ai::collision::objects::sync_house(server, house);
+        }
+    }
     if hp > 0 {
         return;
     }
@@ -231,6 +247,9 @@ pub fn do_die(
     killer: Option<&WorldObject>,
     kill_reason: KillReason,
 ) {
+    if crate::systems::housing::dominion::runtime::handle_tower_death(server, victim) {
+        return;
+    }
     // `Slave.DoDie` replaces the base implementation (vehicles subsystem).
     if crate::systems::vehicles::on_do_die(server, victim, killer, kill_reason) {
         return;

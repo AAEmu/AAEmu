@@ -293,7 +293,10 @@ pub fn use_phase_func(t: &FuncTemplate, ctx: &DoodadCtx<'_>, caster: Option<&Wor
         FuncTemplate::CraftDirect(f) => override_if_character(ctx, caster, f.next_phase),
         FuncTemplate::Hunger(f) => override_if_character(ctx, caster, f.next_phase),
         FuncTemplate::PuzzleOut(f) => override_if_character(ctx, caster, f.next_phase),
-        FuncTemplate::SiegePeriod(f) => override_if_character(ctx, caster, f.next_phase),
+        // The original period enter/leave predicate is not yet verified. Following every
+        // authored destination on a character caster loops 3410's phase-only 8173/8238
+        // groups. Explicit GM HQ phases/bindings remain usable without guessing a calendar.
+        FuncTemplate::SiegePeriod(_) => false,
         FuncTemplate::SpawnGimmick(f) => {
             tracing::info!(
                 "DoodadFuncSpawnGimmick GimmickId={}, scale={}",

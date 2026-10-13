@@ -65,6 +65,10 @@ impl ClientPacket for CSResurrectCharacterPacket {
 
 /// The respawn point of `CSResurrectCharacterPacket` (`new Portal()` = X 0 when none).
 fn respawn_portal(server: &GameServer, p: &PlayerRef) -> Portal {
+    if let Some(portal) = crate::systems::housing::dominion::headquarters::respawn_portal(server, p)
+    {
+        return portal;
+    }
     let mut portal = Portal::default();
     let (instance_id, world_id, zone_key, faction_id) = {
         let c = p.data();
@@ -123,7 +127,14 @@ fn respawn_portal(server: &GameServer, p: &PlayerRef) -> Portal {
 
 /// `CSResurrectCharacterPacket.Read` for the active character.
 pub fn resurrect_character(server: &GameServer, p: &PlayerRef, in_place: bool) {
-    let portal = respawn_portal(server, p);
+    if p.data().unit.hp > 0 {
+        return;
+    }
+    let portal = if in_place {
+        Portal::default()
+    } else {
+        respawn_portal(server, p)
+    };
     let me = WorldObject::from(p);
     let hp = {
         let mut c = p.data();

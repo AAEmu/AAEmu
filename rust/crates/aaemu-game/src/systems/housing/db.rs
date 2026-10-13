@@ -19,7 +19,7 @@ pub async fn load_rows(pool: &MySqlPool) -> anyhow::Result<Vec<HouseRow>> {
          CAST(permission AS SIGNED) AS permission, place_date, protected_until, \
          CAST(faction_id AS SIGNED) AS faction_id, CAST(sell_to AS SIGNED) AS sell_to, \
          CAST(sell_price AS SIGNED) AS sell_price, \
-         CAST(allow_recover AS SIGNED) AS allow_recover FROM housings",
+         CAST(allow_recover AS SIGNED) AS allow_recover, CAST(hp AS SIGNED) AS hp FROM housings",
     )
     .fetch_all(pool)
     .await?;
@@ -48,6 +48,11 @@ pub async fn load_rows(pool: &MySqlPool) -> anyhow::Result<Vec<HouseRow>> {
             sell_to: int(&r, "sell_to")? as u32,
             sell_price: int(&r, "sell_price")? as u32,
             allow_recover: int(&r, "allow_recover")? != 0,
+            hp: r
+                .try_get::<Option<i64>, _>("hp")?
+                .map(i32::try_from)
+                .transpose()
+                .map_err(|_| anyhow::anyhow!("housing health does not fit i32"))?,
         });
     }
     Ok(out)
@@ -68,8 +73,8 @@ pub async fn write_row(tx: &mut sqlx::Transaction<'_, MySql>, r: &HouseRow) -> s
         "REPLACE INTO `housings` \
          (`id`,`account_id`,`owner`,`co_owner`,`template_id`,`name`,`x`,`y`,`z`,`yaw`,`pitch`,`roll`,\
          `current_step`,`current_action`,`permission`,`place_date`,`protected_until`,`faction_id`,\
-         `sell_to`,`sell_price`, `allow_recover`) \
-         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+         `sell_to`,`sell_price`, `allow_recover`,`hp`) \
+         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
     )
     .bind(r.id)
     .bind(r.account_id)
@@ -92,6 +97,7 @@ pub async fn write_row(tx: &mut sqlx::Transaction<'_, MySql>, r: &HouseRow) -> s
     .bind(r.sell_to)
     .bind(r.sell_price)
     .bind(r.allow_recover)
+    .bind(r.hp)
     .execute(&mut **tx)
     .await?;
     Ok(())

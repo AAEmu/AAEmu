@@ -137,14 +137,20 @@ impl SocialSkillHooks for SocialForSkills {
             .report_bot_expired(server, player)
     }
 
-    fn declare_dominion(
+    fn apply_special_effect(
         &self,
         server: &GameServer,
-        caster: &WorldObject,
-        expedition_id: u32,
-        lodestone: &WorldObject,
-    ) {
-        declare_dominion(server, caster, expedition_id, lodestone);
+        special_type: i32,
+        args: &EffectArgs<'_>,
+        _values: [i32; 4],
+    ) -> bool {
+        match special_type {
+            50 => super::dominion::declare_effect(server, args),
+            65 => crate::systems::housing::dominion::headquarters::teleport_effect(server, args),
+            85 => crate::systems::housing::dominion::runtime::complete_effect(server, args),
+            _ => return false,
+        }
+        true
     }
 
     fn give_appellation(&self, _server: &GameServer, player: &PlayerRef, appellation_id: u32) {
@@ -163,111 +169,6 @@ impl SocialSkillHooks for SocialForSkills {
             player.send(crate::systems::quests::packets::SCAppellationGainedPacket {
                 appellation_id,
             });
-        }
-    }
-}
-
-/// `DeclareDominion` after the expedition / lodestone checks: the new `DominionData`, the
-/// server-wide `SCDominionDataPacket(dominion, true, true)` and the caster's backpack consumed
-/// (`Equipment.ConsumeItem(SkillReagents, backpack.TemplateId, 1, backpack)`, items hook).
-fn declare_dominion(
-    server: &GameServer,
-    caster: &WorldObject,
-    expedition_id: u32,
-    lodestone: &WorldObject,
-) {
-    use super::dominion::{
-        DominionData, DominionSiegeTimers, DominionTerritoryData, DominionUnkData,
-    };
-    let Some(house) = lodestone.as_house() else {
-        return;
-    };
-    let now = chrono::Utc::now();
-    let min = chrono::DateTime::<chrono::Utc>::MIN_UTC;
-    let pos = match server.world.world_of(lodestone) {
-        Some(w) => w.world_pos_rot(lodestone),
-        None => lodestone.transform().local(),
-    };
-    let zone_key = lodestone.transform().zone_id;
-    let zone_group = server
-        .game_data
-        .zones
-        .zone_by_key(zone_key)
-        .map_or(0, |z| z.group_id);
-    let dominion = DominionData {
-        house: house.data().id,
-        x: pos.x,
-        y: pos.y,
-        z: pos.z,
-        tax_rate: 50,
-        reign_start_time: now,
-        expedition_id,
-        cur_house_tax_money: 500_000,
-        cur_hunt_tax_money: 9000,
-        peace_tax_money: 300_000,
-        cur_house_tax_aa_point: 0,
-        peace_tax_aa_point: 0,
-        last_paid_time: now,
-        last_siege_end_time: now,
-        last_tax_rate_changed_time: now,
-        last_national_tax_rate_changed_time: now,
-        national_tax_rate: 500,
-        national_monument_db_id: 0,
-        national_monument_x: 0.0,
-        national_monument_y: 0.0,
-        national_monument_z: 0.0,
-        territory_data: DominionTerritoryData {
-            id: 6,
-            id2: 4771,
-            max_gates: 1,
-            max_walls: 50,
-            radius_declare: 250,
-            radius_dominion: 110,
-            radius_siege: 250,
-            radius_offense_hq: 100,
-        },
-        siege_timers: DominionSiegeTimers {
-            bdm: 0,
-            durations: [0; 5],
-            fixed: min,
-            started: min,
-            siege_period: 1,
-            unk_data: DominionUnkData {
-                obj_id: 4,
-                ..DominionUnkData::default()
-            },
-            unk2_data: DominionUnkData::default(),
-        },
-        non_pvp_duration: 0,
-        non_pvp_start: now,
-        zone_id: zone_group as u16,
-        obj_id: 0,
-    };
-    let packet = super::packets::misc::SCDominionDataPacket {
-        dominion,
-        newly_declared: true,
-        final_data_by_request: true,
-    };
-    server.world.broadcast_to_server(&packet);
-    if let Some(p) = caster.as_player() {
-        let backpack = p
-            .data()
-            .inventory
-            .equipment()
-            .lock()
-            .expect("container poisoned")
-            .get_item_by_slot(crate::models::container::equip_slot::BACKPACK)
-            .map(|i| i.id);
-        match backpack {
-            Some(item_id) => server
-                .systems
-                .skills
-                .ext
-                .items()
-                .consume_item_by_id(server, p, item_id, 1),
-            None => {
-                tracing::error!("DeclareDominion: no backpack equipped (NullReferenceException)")
-            }
         }
     }
 }

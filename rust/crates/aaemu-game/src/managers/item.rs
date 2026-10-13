@@ -38,7 +38,7 @@ pub struct ItemManager {
 }
 
 #[derive(Debug, Default)]
-struct ItemSaveBatch {
+pub(crate) struct ItemSaveBatch {
     removed: Vec<u64>,
     containers: Vec<(ContainerRef, ContainerSaveRow)>,
     items: Vec<(Option<ContainerRef>, u64, Item)>,
@@ -475,17 +475,49 @@ impl ItemManager {
         Ok(())
     }
 
+    /// Capture before database awaits, while the caller serializes economy operations.
+    pub(crate) fn prepare_save(&self) -> ItemSaveBatch {
+        let mut batch = ItemSaveBatch {
+            removed: lock(&self.removed).clone(),
+            ..Default::default()
+        };
+        for container in self.all_containers() {
+            let snapshot = container.lock().expect("container poisoned").clone();
+            if snapshot.slot_type != slot_type::NONE && snapshot.container_id > 0 && snapshot.dirty
+            {
+                batch
+                    .containers
+                    .push((container.clone(), ContainerSaveRow::of(&snapshot)));
+            }
+            for item in snapshot.items {
+                if item.slot_type != slot_type::NONE && item.dirty {
+                    batch
+                        .items
+                        .push((Some(container.clone()), snapshot.container_id, item));
+                }
+            }
+        }
+        for item in lock(&self.loose).iter() {
+            if item.slot_type != slot_type::NONE && item.dirty {
+                batch.items.push((None, 0, item.clone()));
+            }
+        }
+        batch
+    }
+
     /// `ItemManager.Save`: deletes queued rows, writes dirty containers and items. Returns
     /// `(updated items, deleted items, updated containers)`.
     pub async fn save(&self, tx: &mut Transaction<'_, MySql>) -> Result<(usize, usize, usize)> {
+        self.write_prepared(tx, self.prepare_save()).await
+    }
+
+    pub(crate) async fn write_prepared(
+        &self,
+        tx: &mut Transaction<'_, MySql>,
+        batch: ItemSaveBatch,
+    ) -> Result<(usize, usize, usize)> {
         *lock(&self.pending_save) = None;
-        let removed = lock(&self.removed).clone();
-        let mut batch = ItemSaveBatch {
-            removed: removed.clone(),
-            ..Default::default()
-        };
-        let containers = self.all_containers();
-        let loose = lock(&self.loose).clone();
+        let removed = &batch.removed;
         let mut deleted = 0;
         if !removed.is_empty() {
             let list = removed
@@ -507,44 +539,23 @@ impl ItemManager {
 
         let mut container_updates = 0;
         let mut updated = 0;
-        for c in &containers {
-            let snapshot = c.lock().expect("container poisoned").clone();
-            if snapshot.slot_type != slot_type::NONE && snapshot.container_id > 0 && snapshot.dirty
-            {
-                let res = sqlx::query(
+        for (_, snapshot) in &batch.containers {
+            let res = sqlx::query(
                     "REPLACE INTO item_containers (`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`,`mate_id`) VALUES (?, ?, ?, ?, ?, ?)",
                 )
                 .bind(snapshot.container_id)
                 .bind(snapshot.kind.type_name())
                 .bind(i32::from(snapshot.slot_type))
-                .bind(snapshot.container_size())
+                .bind(snapshot.size)
                 .bind(snapshot.owner_id)
                 .bind(snapshot.mate_id)
                 .execute(&mut **tx)
                 .await?;
-                container_updates += res.rows_affected() as usize;
-                batch
-                    .containers
-                    .push((c.clone(), ContainerSaveRow::of(&snapshot)));
-            }
-            for item in &snapshot.items {
-                if item.slot_type == slot_type::NONE || !item.dirty {
-                    continue;
-                }
-                save_item(tx, item, snapshot.container_id).await?;
-                updated += 1;
-                batch
-                    .items
-                    .push((Some(c.clone()), snapshot.container_id, item.clone()));
-            }
+            container_updates += res.rows_affected() as usize;
         }
-        for item in &loose {
-            if item.slot_type == slot_type::NONE || !item.dirty {
-                continue;
-            }
-            save_item(tx, item, 0).await?;
+        for (_, container_id, item) in &batch.items {
+            save_item(tx, item, *container_id).await?;
             updated += 1;
-            batch.items.push((None, 0, item.clone()));
         }
         *lock(&self.pending_save) = Some(batch);
         Ok((updated, deleted, container_updates))

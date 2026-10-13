@@ -23,6 +23,7 @@
 //! and the callers keep their previous (heightmap / C#) behaviour.
 
 pub mod cells;
+pub mod cga;
 pub mod cgf;
 pub mod config;
 pub mod data;
@@ -328,6 +329,8 @@ pub fn ensure_box(server: &GameServer, pw: &PhysWorld, min: Vec3, max: Vec3) {
             }
         }
     }
+    pw.lock()
+        .update_animated_houses_at(std::time::Instant::now());
 }
 
 fn v(p: [f32; 3]) -> Vec3 {

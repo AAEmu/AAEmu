@@ -26,6 +26,8 @@ pub fn on_notify_in_game_team(server: &GameServer, p: &PlayerRef) {
 /// `CSNotifyInGamePacket`: `TrialManager.HandlePlayerLogin` (after the guild login).
 pub fn on_notify_in_game_trial(server: &GameServer, p: &PlayerRef) {
     crate::systems::social::trial::handle_player_login(server, p);
+    crate::systems::social::dominion::send_snapshots(server, p);
+    crate::systems::housing::dominion::participants::sync_player(server, p);
 }
 
 /// `WorldManager.OnPlayerJoin`: `FamilyManager.OnCharacterLogin` when in a family.

@@ -5,7 +5,7 @@
 //! * `actor_models.physics_living_*` — the living-entity parameters of characters / NPCs /
 //!   mounts (`X2::UnitModel` → `pe_player_dynamics` / `pe_player_dimensions`), plus the model
 //!   radius / height used for the collider capsule.
-//! * `models` / `prefab_elements` — the normal-state elements of construction and finished
+//! * `models` / `prefab_elements` — the elements of construction and damaged/finished
 //!   housing models, including separately authored floors, walls and roofs.
 
 use std::collections::HashMap;
@@ -44,7 +44,15 @@ mod tests {
               (2, 4, 1, 'wall'), (4, 4, 3, 'damaged'), (5, 4, 1, '');").unwrap();
         let data = CollisionData::load(&db).unwrap();
         assert_eq!(data.prefab_models[&10], vec!["floor", "wall", "roof"]);
+        assert_eq!(
+            data.house_prefabs(10, 2).unwrap().as_slice(),
+            ["floor", "wall", "roof"]
+        );
+        assert_eq!(data.house_prefabs(10, 3).unwrap().as_slice(), ["damaged"]);
+        // Native 1.2 GetModelFiles (0x397A7980) falls back through earlier states.
+        assert_eq!(data.house_prefabs(10, 6).unwrap().as_slice(), ["damaged"]);
         assert!(!data.prefab_models.contains_key(&11));
+        assert!(data.house_prefabs(11, 3).is_none());
     }
 }
 
@@ -76,6 +84,8 @@ pub struct CollisionData {
     pub living: HashMap<u32, LivingParams>,
     /// General model ID → all normal-state prefab elements (walls, floor, roof).
     pub prefab_models: HashMap<u32, Vec<String>>,
+    /// (General model ID, state) → non-normal prefab elements in authored order.
+    pub prefab_model_states: HashMap<(u32, u32), Vec<String>>,
 }
 
 impl CollisionData {
@@ -117,12 +127,18 @@ impl CollisionData {
             Ok(())
         });
         let _ = for_each_row(conn,
-            "SELECT m.id AS model_id, p.file_path FROM models m JOIN prefab_elements p \
-             ON p.prefab_model_id = m.sub_id WHERE m.sub_type = 'PrefabModel' AND p.state_id = 1 ORDER BY p.id",
+            "SELECT m.id AS model_id, p.state_id, p.file_path FROM models m JOIN prefab_elements p \
+             ON p.prefab_model_id = m.sub_id WHERE m.sub_type = 'PrefabModel' ORDER BY p.id",
             [], |r| {
                 let path = r.string_or("file_path", "")?;
                 if !path.trim().is_empty() {
-                    d.prefab_models.entry(r.u32("model_id")?).or_default().push(path);
+                    let model = r.u32("model_id")?;
+                    let state = r.u32("state_id")?;
+                    if state == 1 {
+                        d.prefab_models.entry(model).or_default().push(path);
+                    } else {
+                        d.prefab_model_states.entry((model, state)).or_default().push(path);
+                    }
                 }
                 Ok(())
             });
@@ -134,5 +150,17 @@ impl CollisionData {
         self.func_group_models
             .get(&func_group_id)
             .map(String::as_str)
+    }
+
+    /// 1.2 prefab selection falls back to the nearest earlier populated state. For example,
+    /// guard towers omit state 4, so their state 3 geometry remains below 26% health.
+    pub fn house_prefabs(&self, model_id: u32, state: u32) -> Option<&Vec<String>> {
+        (1..=state).rev().find_map(|state| {
+            if state == 1 {
+                self.prefab_models.get(&model_id)
+            } else {
+                self.prefab_model_states.get(&(model_id, state))
+            }
+        })
     }
 }

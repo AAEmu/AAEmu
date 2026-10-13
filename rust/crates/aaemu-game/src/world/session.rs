@@ -12,7 +12,7 @@ use chrono::Utc;
 
 use crate::db_character::{
     add_buff_by_id, apply_active_buffs, fetch_active_buffs, load_character_details,
-    offline_blocked_infos, offline_friend_infos, save_directly_to_database, SavedBuffRow,
+    offline_blocked_infos, offline_friend_infos, SavedBuffRow,
 };
 use crate::error::Result;
 use crate::managers::chat::chat_type;
@@ -279,7 +279,24 @@ pub async fn select_character(
         );
         return Ok(());
     };
-    let mut c = conn.characters[idx].clone();
+    let _transaction = server.save.transaction_lock().await;
+    if let Some(departing) = server.save.pending_departure(character_id) {
+        if !server.save.save_departing_locked(server, &departing).await
+            || server.save.pending_departure(character_id).is_some()
+        {
+            return Err(crate::GameError::Protocol(
+                "Previous character save is pending".into(),
+            ));
+        }
+    }
+    // Character selection may follow a logout that committed after the lobby list loaded.
+    // Read its current wallet/core row inside the same save transaction ordering barrier.
+    let Some((mut c, _)) =
+        crate::db_character::load_character(server, character_id, conn.account_id()).await?
+    else {
+        return Ok(());
+    };
+    conn.characters[idx] = c.clone();
     // Force player into main_world when coming from character select
     c.unit.transform.instance_id = DEFAULT_INSTANCE_ID;
     load_character_details(server, &mut c).await?;
@@ -1118,6 +1135,7 @@ pub async fn leave_world_task(
         for sub in p.subscribers().drain(..) {
             server.time.unsubscribe(sub);
         }
+        server.save.remember_departing(p);
         server.world.try_remove_character(p.obj_id);
     }
     save_and_remove_from_world(server, active.as_ref()).await;
@@ -1141,22 +1159,21 @@ pub async fn save_and_remove_from_world(server: &GameServer, active: Option<&Pla
     let Some(p) = active else {
         return;
     };
+    server.save.remember_departing(p);
+    let _transaction = server.save.transaction_lock().await;
     // Remove Radars (buff effect tasks: skills subsystem).
     server.systems.services.radar.unregister(p.character_id);
     delete(server, p);
     if server
         .world
         .character_by_obj_id(p.obj_id)
-        .is_some_and(|x| Arc::ptr_eq(&x, p))
+        .is_some_and(|live| Arc::ptr_eq(&live, p))
     {
         server.world.try_remove_character(p.obj_id);
     }
-    let mut c = p.data().clone();
-    if save_directly_to_database(&server.db, &mut c).await {
-        p.data().updated = c.updated;
-    }
+    server.save.save_departing_locked(server, p).await;
     // Character.Save: Mates.Save
-    crate::systems::vehicles::save_character(server, c.id).await;
+    crate::systems::vehicles::save_character(server, p.character_id).await;
 }
 
 /// The `ActiveChar` part of `GameConnection.OnDisconnect`.
@@ -1164,6 +1181,8 @@ pub async fn on_disconnect(server: &GameServer, conn: &mut GameConnection) {
     let Some(p) = conn.active_char.clone() else {
         return;
     };
+    crate::systems::housing::dominion::runtime::abort_character(server, p.character_id);
+    crate::systems::housing::dominion::participants::clear_player(server, &p);
     crate::systems::economy::on_disconnect(server, &p);
     server.chat.leave_user_channels(&p, &server.ids.chat);
     if p.data().is_online {

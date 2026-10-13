@@ -64,6 +64,397 @@ fn test_housing_server() -> GameServer {
     test_server_with(test_housing_data())
 }
 
+fn health_housing_server() -> GameServer {
+    let mut data = test_housing_data();
+    let mut template = data.systems.housing.template(300).unwrap().clone();
+    template.hp = 1000;
+    data.systems.housing.add_template(template);
+    test_server_with(data)
+}
+
+fn unowned_lodestone_fixture() -> (GameServer, HouseRef, super::dominion::TowerIdentity) {
+    use crate::data::world_data::Zone;
+    use crate::test_support::TEST_ZONE;
+    let mut data = GameData::empty();
+    data.zones.zones.insert(
+        TEST_ZONE,
+        Zone {
+            zone_key: TEST_ZONE,
+            group_id: 25,
+            ..Default::default()
+        },
+    );
+    data.systems
+        .housing
+        .add_template(super::data::HousingTemplate {
+            id: 139,
+            guard_tower_setting_id: 6,
+            hp: 1000,
+            build_steps: [(
+                0,
+                super::data::HousingBuildStep {
+                    step: 0,
+                    skill_id: 13661,
+                    num_actions: 1,
+                    ..Default::default()
+                },
+            )]
+            .into(),
+            ..Default::default()
+        });
+    data.systems.housing.castles.guard_tower_settings.insert(
+        6,
+        super::data::GuardTowerSetting {
+            id: 6,
+            ..Default::default()
+        },
+    );
+    for id in [manager::BUFF_UNTOUCHABLE, manager::BUFF_REMOVAL_DEBUFF] {
+        data.systems
+            .skills
+            .add_buff(crate::systems::skills::data::BuffTemplate {
+                id,
+                max_stack: 1,
+                system: true,
+                ..Default::default()
+            });
+    }
+    let server = test_server_with(data);
+    let world = server.world.world(0).unwrap();
+    let house = manager::create(&server, 139, 0, &world, 0, 0).unwrap();
+    {
+        let mut h = house.data();
+        h.id = 61;
+        h.unit.transform.zone_id = TEST_ZONE;
+        h.unit.transform.set_xyz(100.0, 100.0, 100.0);
+        h.place_date = 1_700_000_000;
+        h.protection_end_date = h.place_date + 14 * 24 * 3600;
+    }
+    assert!(server.systems.housing.manager.insert(&house));
+    manager::spawn_house(&server, &house);
+    let (_, identity) = super::dominion::runtime::tower_identity(&server, &house).unwrap();
+    (server, house, identity)
+}
+
+#[tokio::test]
+async fn tax_timer_keeps_active_lodestone_attackable_and_protects_peace_unclaimed_or_stale_authority(
+) {
+    let (server, house, identity) = unowned_lodestone_fixture();
+    house.data().protection_end_date = 0; // infrastructure must not inherit ordinary deadlines
+    manager::check_housing_taxes(&server);
+    assert!(house
+        .data()
+        .unit
+        .buffs
+        .check_buff(manager::BUFF_UNTOUCHABLE));
+    assert!(!house
+        .data()
+        .unit
+        .buffs
+        .check_buff(manager::BUFF_REMOVAL_DEBUFF));
+    assert_eq!(house.data().current_step, 0);
+    let now = manager::now();
+    let authority = &server.systems.housing.dominions;
+    authority.register_tower(25, identity).unwrap();
+    manager::check_housing_taxes(&server);
+    assert!(house
+        .data()
+        .unit
+        .buffs
+        .check_buff(manager::BUFF_UNTOUCHABLE));
+    authority
+        .declare_unowned_with(25, identity, 10, now - 1000, || true)
+        .unwrap();
+    manager::set_current_step(&server, &house, -1, false);
+    authority
+        .schedule_siege(25, 20, now - 20, now + 1000, now - 30)
+        .unwrap();
+    authority.tick(now).unwrap();
+    manager::set_untouchable(&server, &house, false);
+    for _ in 0..2 {
+        manager::check_housing_taxes(&server);
+        assert!(!house
+            .data()
+            .unit
+            .buffs
+            .check_buff(manager::BUFF_UNTOUCHABLE));
+        assert!(!house
+            .data()
+            .unit
+            .buffs
+            .check_buff(manager::BUFF_REMOVAL_DEBUFF));
+    }
+    assert!(!manager::pay_weekly_tax(&server, &house));
+    assert!(server.systems.economy.mail.state().all.is_empty());
+    let active = authority.get(25).unwrap();
+    let mut ended = active.clone();
+    ended.siege.as_mut().unwrap().ends_at = now - 1;
+    authority.restore(vec![ended]).unwrap();
+    authority.tick(now).unwrap();
+    manager::check_housing_taxes(&server);
+    assert!(house
+        .data()
+        .unit
+        .buffs
+        .check_buff(manager::BUFF_UNTOUCHABLE));
+    let mut wrong = active.clone();
+    wrong.tower.house_id = 62;
+    authority.restore(vec![wrong]).unwrap();
+    manager::set_untouchable(&server, &house, false);
+    manager::check_housing_taxes(&server);
+    assert!(house
+        .data()
+        .unit
+        .buffs
+        .check_buff(manager::BUFF_UNTOUCHABLE));
+    authority.restore(vec![active]).unwrap();
+    server.world.world(0).unwrap().delete(&house);
+    manager::set_untouchable(&server, &house, false);
+    manager::check_housing_taxes(&server);
+    assert!(house
+        .data()
+        .unit
+        .buffs
+        .check_buff(manager::BUFF_UNTOUCHABLE));
+    authority.restore(Vec::new()).unwrap();
+    manager::set_untouchable(&server, &house, false);
+    manager::check_housing_taxes(&server);
+    assert!(house
+        .data()
+        .unit
+        .buffs
+        .check_buff(manager::BUFF_UNTOUCHABLE));
+}
+
+#[tokio::test]
+async fn claimed_lodestone_context_persists_construction_without_character_owner_and_rejects_stale_identity(
+) {
+    let (server, house, identity) = unowned_lodestone_fixture();
+    assert_eq!(house.data().current_step, 0);
+    assert!(manager::save_row(&house).is_none());
+    server
+        .systems
+        .housing
+        .dominions
+        .register_tower(25, identity)
+        .unwrap();
+    assert!(manager::save_row_for(&server, &house).is_none());
+    server
+        .systems
+        .housing
+        .dominions
+        .declare_unowned_with(25, identity, 10, manager::now(), || true)
+        .unwrap();
+    manager::set_current_step(&server, &house, -1, false);
+    assert!(manager::save_row(&house).is_none()); // generic abandoned-property behavior remains
+    let row = manager::save_row_for(&server, &house).unwrap();
+    assert_eq!((row.owner, row.account_id, row.current_step), (0, 0, -1));
+    let state = server.systems.housing.dominions.get(25).unwrap();
+    let (restarted, seed, _) = unowned_lodestone_fixture();
+    // Replace the seeded retained handle with a saved row without normalizing unowned seeds.
+    manager::remove_dead_house(&restarted, &seed);
+    let world = restarted.world.world(0).unwrap();
+    let restored = manager::load_house_row(&restarted, &world, &row).unwrap();
+    manager::spawn_house(&restarted, &restored);
+    restarted
+        .systems
+        .housing
+        .dominions
+        .restore(vec![state.clone()])
+        .unwrap();
+    restored.data().is_dirty = true;
+    assert_eq!(restored.data().current_step, -1);
+    assert!(manager::save_row_for(&restarted, &restored).is_some());
+    let mut stale = state;
+    stale.tower.house_id = 62;
+    restarted
+        .systems
+        .housing
+        .dominions
+        .restore(vec![stale])
+        .unwrap();
+    assert!(manager::save_row_for(&restarted, &restored).is_none());
+    assert!(manager::save_row_for(&restarted, &seed).is_none());
+    restarted
+        .systems
+        .housing
+        .dominions
+        .restore(server.systems.housing.dominions.snapshots())
+        .unwrap();
+    world.delete(&restored);
+    assert!(manager::save_row_for(&restarted, &restored).is_none());
+    restarted
+        .systems
+        .housing
+        .dominions
+        .restore(Vec::new())
+        .unwrap();
+    assert!(manager::save_row_for(&restarted, &restored).is_none());
+    assert!(restored.data().is_dirty);
+}
+
+fn claimed_lodestone_hp_fixture() -> (GameServer, HouseRef, super::dominion::TowerIdentity) {
+    let (server, house, identity) = unowned_lodestone_fixture();
+    let authority = &server.systems.housing.dominions;
+    let now = manager::now();
+    authority.register_tower(25, identity).unwrap();
+    authority
+        .declare_unowned_with(25, identity, 10, now, || true)
+        .unwrap();
+    manager::set_current_step(&server, &house, -1, false);
+    authority
+        .schedule_siege(25, 20, now, now + 1000, now)
+        .unwrap();
+    authority
+        .update_tower_hp_at(25, identity, 870, now)
+        .unwrap();
+    house.data().unit.hp = 870;
+    (server, house, identity)
+}
+
+#[tokio::test]
+async fn claimed_lodestone_first_hit_snapshot_uses_full_health_until_authority_callback() {
+    let (server, house, identity) = unowned_lodestone_fixture();
+    let authority = &server.systems.housing.dominions;
+    let now = manager::now();
+    authority.register_tower(25, identity).unwrap();
+    authority
+        .declare_unowned_with(25, identity, 10, now, || true)
+        .unwrap();
+    manager::set_current_step(&server, &house, -1, false);
+    authority
+        .schedule_siege(25, 20, now, now + 1000, now)
+        .unwrap();
+    house.data().unit.hp = 700;
+    {
+        let _operation = server.systems.housing.operation_lock.lock().unwrap();
+        let row = manager::save_row_for(&server, &house).unwrap();
+        let batch = authority.prepare_save();
+        assert_eq!(batch.rows[0].state.tower_hp, None);
+        assert_eq!(row.hp, Some(1000)); // None restores the authoritative maximum
+        assert_eq!(row.hp, Some(house.data().unit.max_hp));
+        assert_eq!(house.data().unit.hp, 700);
+        assert!(house.data().is_dirty);
+    }
+    authority
+        .update_tower_hp_at(25, identity, 700, now + 1)
+        .unwrap();
+    assert_eq!(
+        manager::save_row_for(&server, &house).unwrap().hp,
+        Some(700)
+    );
+}
+
+#[tokio::test]
+async fn claimed_lodestone_snapshots_authority_health_while_combat_callback_waits() {
+    let (server, house, identity) = claimed_lodestone_hp_fixture();
+    // This is the real combat interleaving: the house data changed, but its callback
+    // has not acquired operation_lock to update Dominion yet.
+    house.data().unit.hp = 700;
+    let _operation = server.systems.housing.operation_lock.lock().unwrap();
+    let row = manager::save_row_for(&server, &house).unwrap();
+    let authority = server.systems.housing.dominions.prepare_save();
+    assert_eq!(row.hp, Some(870));
+    assert_eq!(authority.rows[0].state.tower_hp, row.hp);
+    assert_eq!(house.data().unit.hp, 700); // snapshots never roll live combat back
+    assert!(house.data().is_dirty);
+    assert!(manager::save_row(&house).is_none());
+    drop(_operation);
+    server
+        .systems
+        .housing
+        .dominions
+        .update_tower_hp(25, identity, 700)
+        .unwrap();
+    assert_eq!(
+        manager::save_row_for(&server, &house).unwrap().hp,
+        Some(700)
+    );
+
+    // Complete a real authority capture and damage it in the new owner's next siege.
+    // Partial HP belongs to an active siege, so a fabricated no-siege HP row is invalid.
+    let authority = &server.systems.housing.dominions;
+    let now = manager::now();
+    let generation = authority.get(25).unwrap().ownership_generation;
+    authority
+        .register_participant(25, 3, 20, super::dominion::SiegeSide::Attacker, now)
+        .unwrap();
+    authority.mark_tower_destroyed(25, identity, now).unwrap();
+    let channel = authority
+        .begin_engraving(25, identity, 3, 20, now * 1000)
+        .unwrap();
+    let captured = authority
+        .complete_engraving(&channel, 20, channel.ready_at_ms)
+        .unwrap();
+    assert_eq!(captured.ownership_generation, generation + 1);
+    let next = channel.ready_at_ms / 1000 + 1;
+    authority
+        .schedule_siege(25, 10, next, next + 1000, next)
+        .unwrap();
+    authority
+        .update_tower_hp_at(25, identity, 450, next)
+        .unwrap();
+    assert_eq!(
+        manager::save_row_for(&server, &house).unwrap().hp,
+        Some(450)
+    );
+    server.world.world(0).unwrap().delete(&house);
+    assert!(manager::save_row_for(&server, &house).is_none());
+    assert!(house.data().is_dirty);
+}
+
+#[tokio::test]
+async fn saved_health_restores_damage_and_dead_state_and_legacy_rows_use_construction_maximum() {
+    for (step, saved, expected) in [
+        (0, None, 664),
+        (-1, None, 1000),
+        (0, Some(201), 201),
+        (1, Some(201), 201),
+        (-1, Some(0), 0),
+        (0, Some(9999), 664),
+        (0, Some(-2), 0),
+    ] {
+        let server = health_housing_server();
+        let world = server.world.world(0).unwrap();
+        let row = manager::HouseRow {
+            id: 61,
+            account_id: 1001,
+            owner: 1,
+            template_id: 300,
+            name: "Cottage".into(),
+            x: 200.0,
+            y: 200.0,
+            z: 50.0,
+            current_step: step,
+            hp: saved,
+            place_date: 1_700_000_000,
+            protected_until: 1_700_000_000 + 14 * 24 * 3600,
+            ..Default::default()
+        };
+        let house = manager::load_house_row(&server, &world, &row).unwrap();
+        assert_eq!(house.data().unit.hp, expected);
+        manager::spawn_house(&server, &house);
+        assert_eq!(house.data().unit.hp, expected); // visibility never refills damage
+        house.data().is_dirty = false;
+        manager::mark_hp_changed(&house, expected, expected);
+        assert!(!house.data().is_dirty);
+        let changed = expected.saturating_sub(1).max(0);
+        house.data().unit.hp = changed;
+        manager::mark_hp_changed(&house, expected, changed);
+        assert_eq!(house.data().is_dirty, expected != changed);
+        if expected != changed {
+            let persisted = manager::save_row(&house).unwrap();
+            assert_eq!(persisted.hp, Some(changed));
+            let restarted = health_housing_server();
+            let restored =
+                manager::load_house_row(&restarted, &restarted.world.world(0).unwrap(), &persisted)
+                    .unwrap();
+            assert_eq!(restored.data().unit.hp, changed);
+            assert!(!restored.data().is_dirty);
+        }
+    }
+}
+
 fn house(server: &GameServer, id: u32) -> HouseRef {
     let world = server.world.world(0).unwrap();
     let h = manager::create(server, 300, 0, &world, 0, 0).unwrap();
@@ -553,6 +944,433 @@ async fn failed_house_creation_releases_allocated_tl_id() {
     assert_eq!(server.ids.housing_tl.get_next_id().unwrap(), first_tl);
 }
 
+async fn ensure_temporary_housing_health_column(pool: &sqlx::MySqlPool) {
+    // Both callers have just created a connection-local temporary housings table.
+    // This also lets the gate run before the new migration is applied to the private DB.
+    let health = sqlx::query("SHOW COLUMNS FROM housings LIKE 'hp'")
+        .fetch_optional(pool)
+        .await
+        .unwrap();
+    if health.is_none() {
+        sqlx::query("ALTER TABLE housings ADD COLUMN hp INT NULL DEFAULT NULL")
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+}
+
+#[tokio::test]
+#[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; shadows housing and Dominion tables on one connection"]
+async fn private_mysql_claimed_lodestone_and_authority_commit_together_and_ack_only_current_context(
+) {
+    use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
+    use std::str::FromStr;
+    let Ok(url) = std::env::var("AAEMU_TEST_MYSQL") else {
+        return;
+    };
+    let options = MySqlConnectOptions::from_str(&url).unwrap();
+    assert_eq!(
+        options.get_port(),
+        3317,
+        "Only private MySQL3317 is allowed"
+    );
+    let pool = MySqlPoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await
+        .unwrap();
+    for table in ["housings", "dominions", "dominion_siege_participants"] {
+        let (_, ddl): (String, String) = sqlx::query_as(&format!("SHOW CREATE TABLE `{table}`"))
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert!(ddl.starts_with("CREATE TABLE"));
+        sqlx::query(&ddl.replacen("CREATE TABLE", "CREATE TEMPORARY TABLE", 1))
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
+    ensure_temporary_housing_health_column(&pool).await;
+    let (mut server, house, identity) = unowned_lodestone_fixture();
+    server.db = pool.clone();
+    // A real seed exists before declaration; its zero-owner row remains unchanged while
+    // unclaimed and cannot be accidentally paired with a later claimed authority snapshot.
+    let seed = manager::HouseRow {
+        id: 61,
+        template_id: 139,
+        name: "Archeum Lodestone".into(),
+        x: 100.0,
+        y: 100.0,
+        z: 100.0,
+        current_step: 0,
+        place_date: 1_700_000_000,
+        protected_until: 1_700_000_000 + 14 * 24 * 3600,
+        ..Default::default()
+    };
+    let mut tx = pool.begin().await.unwrap();
+    super::db::write_row(&mut tx, &seed).await.unwrap();
+    tx.commit().await.unwrap();
+    server
+        .systems
+        .housing
+        .dominions
+        .register_tower(25, identity)
+        .unwrap();
+    let (before_house, before_authority) = {
+        let _operation = server.systems.housing.operation_lock.lock().unwrap();
+        (
+            manager::prepare_save(&server),
+            server.systems.housing.dominions.prepare_save(),
+        )
+    };
+    server
+        .systems
+        .housing
+        .dominions
+        .declare_unowned_with(25, identity, 10, manager::now(), || true)
+        .unwrap();
+    manager::set_current_step(&server, &house, -1, false);
+    // The claim arrived after both snapshots but before any DB write. The older save must
+    // persist the old pair, leave BOTH claim changes dirty, then retry the newer pair.
+    let mut tx = pool.begin().await.unwrap();
+    assert_eq!(
+        manager::write_prepared(&server, &mut tx, before_house)
+            .await
+            .unwrap(),
+        (0, 0)
+    );
+    server
+        .systems
+        .housing
+        .dominions
+        .save_prepared(&mut tx, before_authority)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    manager::commit_save(&server);
+    server.systems.housing.dominions.commit_save();
+    assert!(house.data().is_dirty);
+    assert_eq!(
+        server
+            .systems
+            .housing
+            .dominions
+            .prepare_save()
+            .changed_count(),
+        1
+    );
+    assert_eq!(
+        super::db::load_rows(&pool).await.unwrap()[0].current_step,
+        0
+    );
+    assert_eq!(
+        super::dominion::db::load_rows(&pool).await.unwrap()[0].owner_expedition_id,
+        0
+    );
+    let mut tx = pool.begin().await.unwrap();
+    assert_eq!(manager::save(&server, &mut tx).await.unwrap(), (1, 0));
+    server
+        .systems
+        .housing
+        .dominions
+        .save(&mut tx)
+        .await
+        .unwrap();
+    tx.rollback().await.unwrap();
+    assert!(house.data().is_dirty);
+    assert_eq!(
+        super::db::load_rows(&pool).await.unwrap()[0].current_step,
+        0
+    );
+    assert_eq!(
+        super::dominion::db::load_rows(&pool).await.unwrap()[0].owner_expedition_id,
+        0
+    );
+    let mut tx = pool.begin().await.unwrap();
+    manager::save(&server, &mut tx).await.unwrap();
+    server
+        .systems
+        .housing
+        .dominions
+        .save(&mut tx)
+        .await
+        .unwrap();
+    house.data().unit.name = "Newer world mutation".into();
+    tx.commit().await.unwrap();
+    manager::commit_save(&server);
+    server.systems.housing.dominions.commit_save();
+    assert!(house.data().is_dirty);
+    let rows = super::db::load_rows(&pool).await.unwrap();
+    let states = super::dominion::db::load_rows(&pool).await.unwrap();
+    assert_eq!(
+        (rows[0].owner, rows[0].account_id, rows[0].current_step),
+        (0, 0, -1)
+    );
+    assert_eq!(states[0].owner_expedition_id, 10);
+    // Combat mutates House.hp before the authority callback can enter the operation
+    // lock. A save in this window must commit the older coherent HP pair, not the
+    // newer house HP beside older Dominion HP, and must leave the live house dirty.
+    let now = manager::now();
+    server
+        .systems
+        .housing
+        .dominions
+        .schedule_siege(25, 20, now, now + 1000, now)
+        .unwrap();
+    server
+        .systems
+        .housing
+        .dominions
+        .update_tower_hp_at(25, identity, 870, now)
+        .unwrap();
+    house.data().unit.hp = 870;
+    house.data().is_dirty = true;
+    let (houses, dominions) = {
+        let _operation = server.systems.housing.operation_lock.lock().unwrap();
+        house.data().unit.hp = 700;
+        (
+            manager::prepare_save(&server),
+            server.systems.housing.dominions.prepare_save(),
+        )
+    };
+    let mut tx = pool.begin().await.unwrap();
+    manager::write_prepared(&server, &mut tx, houses)
+        .await
+        .unwrap();
+    server
+        .systems
+        .housing
+        .dominions
+        .save_prepared(&mut tx, dominions)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    manager::commit_save(&server);
+    server.systems.housing.dominions.commit_save();
+    assert_eq!(house.data().unit.hp, 700);
+    assert!(house.data().is_dirty);
+    assert_eq!(super::db::load_rows(&pool).await.unwrap()[0].hp, Some(870));
+    assert_eq!(
+        super::dominion::db::load_rows(&pool).await.unwrap()[0].tower_hp,
+        Some(870)
+    );
+    assert_eq!(
+        server
+            .systems
+            .housing
+            .dominions
+            .prepare_save()
+            .changed_count(),
+        0
+    );
+    {
+        let _operation = server.systems.housing.operation_lock.lock().unwrap();
+        server
+            .systems
+            .housing
+            .dominions
+            .update_tower_hp_at(25, identity, 700, now + 1)
+            .unwrap();
+        manager::mark_hp_changed(&house, 870, 700);
+    }
+    let mut tx = pool.begin().await.unwrap();
+    server
+        .systems
+        .housing
+        .save(&server, &mut tx, crate::systems::SaveStage::BeforeItems)
+        .await
+        .unwrap();
+    tx.rollback().await.unwrap();
+    assert!(house.data().is_dirty);
+    assert_eq!(
+        server
+            .systems
+            .housing
+            .dominions
+            .prepare_save()
+            .changed_count(),
+        1
+    );
+    assert_eq!(super::db::load_rows(&pool).await.unwrap()[0].hp, Some(870));
+    assert_eq!(
+        super::dominion::db::load_rows(&pool).await.unwrap()[0].tower_hp,
+        Some(870)
+    );
+    let mut tx = pool.begin().await.unwrap();
+    server
+        .systems
+        .housing
+        .save(&server, &mut tx, crate::systems::SaveStage::BeforeItems)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    manager::commit_save(&server);
+    server.systems.housing.dominions.commit_save();
+    assert!(!house.data().is_dirty);
+    assert_eq!(
+        server
+            .systems
+            .housing
+            .dominions
+            .prepare_save()
+            .changed_count(),
+        0
+    );
+    let rows = super::db::load_rows(&pool).await.unwrap();
+    let states = super::dominion::db::load_rows(&pool).await.unwrap();
+    assert_eq!(rows[0].hp, Some(700));
+    assert_eq!(states[0].tower_hp, rows[0].hp);
+    let (restarted, seed, _) = unowned_lodestone_fixture();
+    manager::remove_dead_house(&restarted, &seed);
+    let world = restarted.world.world(0).unwrap();
+    let restored = manager::load_house_row(&restarted, &world, &rows[0]).unwrap();
+    manager::spawn_house(&restarted, &restored);
+    restarted.systems.housing.dominions.restore(states).unwrap();
+    assert_eq!(restored.data().current_step, -1);
+    assert_eq!(restored.data().unit.hp, 700);
+    assert_eq!(
+        restarted
+            .systems
+            .housing
+            .dominions
+            .get(25)
+            .unwrap()
+            .tower_hp,
+        Some(700)
+    );
+    assert!(manager::save_row_for(&restarted, &restored).is_some());
+    // Dirty legacy character-owned tower rows still require current authority at ACK.
+    // The preceding complete retry intentionally made the house clean, so create a
+    // real pending snapshot rather than asserting on an empty save batch.
+    {
+        let mut h = house.data();
+        h.unit.owner_id = 1;
+        h.account_id = 1001;
+        h.is_dirty = true;
+    }
+    let mut tx = pool.begin().await.unwrap();
+    assert_eq!(manager::save(&server, &mut tx).await.unwrap(), (1, 0));
+    tx.commit().await.unwrap();
+    server
+        .systems
+        .housing
+        .dominions
+        .restore(Vec::new())
+        .unwrap();
+    manager::commit_save(&server);
+    assert!(house.data().is_dirty);
+    for table in ["dominion_siege_participants", "dominions", "housings"] {
+        sqlx::query(&format!("DROP TEMPORARY TABLE `{table}`"))
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
+    pool.close().await;
+}
+
+#[tokio::test]
+#[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; shadows only housings on one connection"]
+async fn private_mysql_housing_health_rollback_retry_and_restart_preserve_damage() {
+    use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
+    use std::str::FromStr;
+    let Ok(url) = std::env::var("AAEMU_TEST_MYSQL") else {
+        return;
+    };
+    let options = MySqlConnectOptions::from_str(&url).unwrap();
+    assert_eq!(
+        options.get_port(),
+        3317,
+        "Only private MySQL3317 is allowed"
+    );
+    let pool = MySqlPoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await
+        .unwrap();
+    let (_, ddl): (String, String) = sqlx::query_as("SHOW CREATE TABLE housings")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert!(ddl.starts_with("CREATE TABLE"));
+    sqlx::query(&ddl.replacen("CREATE TABLE", "CREATE TEMPORARY TABLE", 1))
+        .execute(&pool)
+        .await
+        .unwrap();
+    ensure_temporary_housing_health_column(&pool).await;
+    let mut server = health_housing_server();
+    server.db = pool.clone();
+    let house = house(&server, 61);
+    house.data().unit.hp = 321;
+    let mut tx = pool.begin().await.unwrap();
+    manager::save(&server, &mut tx).await.unwrap();
+    tx.commit().await.unwrap();
+    manager::commit_save(&server);
+    assert!(!house.data().is_dirty);
+    assert_eq!(super::db::load_rows(&pool).await.unwrap()[0].hp, Some(321));
+    house.data().unit.hp = 201;
+    manager::mark_hp_changed(&house, 321, 201);
+    let mut tx = pool.begin().await.unwrap();
+    manager::save(&server, &mut tx).await.unwrap();
+    tx.rollback().await.unwrap();
+    assert!(house.data().is_dirty);
+    assert_eq!(super::db::load_rows(&pool).await.unwrap()[0].hp, Some(321));
+    // A later failed save must replace, never acknowledge, the rolled-back receipt.
+    sqlx::query("ALTER TABLE housings CHANGE hp failed_hp INT NULL DEFAULT NULL")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut tx = pool.begin().await.unwrap();
+    assert!(manager::save(&server, &mut tx).await.is_err());
+    tx.rollback().await.unwrap();
+    manager::commit_save(&server);
+    assert!(house.data().is_dirty);
+    sqlx::query("ALTER TABLE housings CHANGE failed_hp hp INT NULL DEFAULT NULL")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut tx = pool.begin().await.unwrap();
+    manager::save(&server, &mut tx).await.unwrap();
+    house.data().unit.hp = 123;
+    manager::mark_hp_changed(&house, 201, 123);
+    tx.commit().await.unwrap();
+    manager::commit_save(&server);
+    assert!(house.data().is_dirty);
+    assert_eq!(super::db::load_rows(&pool).await.unwrap()[0].hp, Some(201));
+    let mut tx = pool.begin().await.unwrap();
+    manager::save(&server, &mut tx).await.unwrap();
+    tx.commit().await.unwrap();
+    manager::commit_save(&server);
+    assert!(!house.data().is_dirty);
+    let rows = super::db::load_rows(&pool).await.unwrap();
+    assert_eq!(rows[0].hp, Some(123));
+    let restarted = health_housing_server();
+    let world = restarted.world.world(0).unwrap();
+    let loaded = manager::load_house_row(&restarted, &world, &rows[0]).unwrap();
+    manager::spawn_house(&restarted, &loaded);
+    assert_eq!(loaded.data().unit.hp, 123);
+    assert!(!loaded.data().is_dirty);
+    sqlx::query("UPDATE housings SET hp=NULL")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let legacy = super::db::load_rows(&pool).await.unwrap();
+    assert_eq!(legacy[0].hp, None);
+    let legacy_server = health_housing_server();
+    let loaded = manager::load_house_row(
+        &legacy_server,
+        &legacy_server.world.world(0).unwrap(),
+        &legacy[0],
+    )
+    .unwrap();
+    assert_eq!(loaded.data().unit.hp, 664);
+    assert!(loaded.data().is_dirty);
+    sqlx::query("DROP TEMPORARY TABLE housings")
+        .execute(&pool)
+        .await
+        .unwrap();
+    pool.close().await;
+}
+
 #[tokio::test]
 #[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; shadows housings with a connection-local temporary table"]
 async fn private_mysql_housing_rollback_retry_and_concurrent_mutation_preserve_state() {
@@ -581,6 +1399,7 @@ async fn private_mysql_housing_rollback_retry_and_concurrent_mutation_preserve_s
         .execute(&pool)
         .await
         .unwrap();
+    ensure_temporary_housing_health_column(&pool).await;
     let mut server = test_housing_server();
     server.db = pool.clone();
     let first = house(&server, 61);
@@ -676,6 +1495,7 @@ async fn private_mysql_housing_related_world_save_aborts_character_failure_and_r
         .execute(&pool)
         .await
         .unwrap();
+    ensure_temporary_housing_health_column(&pool).await;
     let mut server = test_housing_server();
     server.db = pool.clone();
     let house = house(&server, 61);

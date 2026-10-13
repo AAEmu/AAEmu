@@ -975,7 +975,24 @@ and in NPC wandering / buff remaining times.
   compact.sqlite3 gate. Demolition still clears ownership before the later decay death.
 * systems::housing: Castle reference loading now includes guard_tower_settings, guard_tower_steps,
   siege_plans and siege_zones, preserving stage order and naive reference dates. These
-  records do not schedule sieges or implement Dominion ownership/capture authority.
+  records remain read-only; persisted Dominion authority now handles claim, retained-tower
+  damage, roster membership and the original five-minute engraving capture. Schedules are
+  explicit GM operations using authored zone durations. Any registered current attacker may
+  engrave; initial claim requires the current guild leader and exact Purified Archeum pack.
+  Capture transfers the nine independently itemized fort designs to the new guild leader,
+  preserves ordinary property owners, and applies authored fort-count protection stages.
+  Guild-owned fort limits, leader-only construction, sale rejection and design returns are
+  world policies inferred from original 1.2 data and contemporary guides, not recovered world
+  binary rules. Native wall slope/mirror variant selection remains unverified.
+  Participant buffs grant the original headquarters teleport skills. Headquarters bind to
+  retained original doodads for the current siege and require explicit GM rebind after restart;
+  registered dead participants can revive there. The SiegePeriod doodad predicate fails closed
+  because its transition semantics are unresolved; phase cycles are bounded for all groups.
+  Historical automatic auctions, reinforcement/commander eligibility and payout calendars are
+  not inferred. Building HP persists through restart and lodestone collisions follow the native
+  CGA/ANM root curves and settled static damage proxies. Absolute render/collider animation
+  phase synchronization remains unverified. Property, authority, mail, items and wallets use
+  one short prepared snapshot before SQL awaits; logout and shutdown serialize the same saves.
 * systems::housing: sale buyer names retain the original case-sensitive lookup. The housing
   audit fixes the first-house tax/deposit omission, reversed paid flag (confirmed against the
   1.2 housing UI bytecode), overdue counter, finished-house construction, duplicate signs,
@@ -993,6 +1010,25 @@ and in NPC wandering / buff remaining times.
   world-server code. The C# starts protection at seven days, immediately marks that prepaid
   period unpaid and removes it at its first week's end. Nonrenewable beginner plots keep
   their authored seven-day lifetime. Exact original bill dispatch/late-fee timing is unverified.
+    Dominion property tax is now collected only against current retained live claimed-tower
+    authority in the property's zone and instance. Heavy-tax-exempt properties are also
+    territory-tax exempt (original `ui_texts` 5896/5897). The configurable world rule
+    `Housing.DominionPropertyTaxBase` defaults to `AfterHeavy`; `Base` applies the territory
+    percentage only to the template tax. The available 1.2 client proves its displayed
+    base-rate calculation but does not recover the world server's heavy-tax ordering or gold
+    distribution. This is an explicit server policy: floor the nominal copper surcharge,
+    exclude the refundable two-base-tax deposit, and credit only the collected nominal
+    surcharge as property gold. The existing certificate ceil charging rule is preserved;
+    bill/quote totals are quantized to whole 10,000-copper certificates so the original native
+    nearest-half-up formatter (content_configs61 and verified runtime) displays the actual cost.
+    Construction/payment and ledger preflight share authority/economy locking; failed or stale
+    payments cannot credit revenue. A current owning guild leader may collect with
+    `/collectdominion <zoneGroupId>` (ordinary-player access, current guild leader only),
+    receiving the original eleven-argument balance-receipt
+    mail. Repeated empty collection creates no mail, failed staged delivery retains revenue,
+    and Peace Fund remains untouched. Hunting tax was removed by Trion's 1.2 notes; AA Points,
+    Peace Fund percentages, nation splits and historical automatic payout scheduling are not
+    invented. Original one-hour territory tax change cooldown uses wire error488/UI3544.
   Floors/walls/roofs use every normal-state prefab element and are synchronized when
   construction, residency or demolition changes. Model-specific placement slope/height/footprint
   checks and the developer-only

@@ -4,8 +4,9 @@
 //!
 //! Every item operation runs inside an [`ItemTxn`]: it takes the economy's operation lock (so
 //! the multi-step C# operations cannot interleave), collects the effects in its [`ItemEnv`]
-//! and flushes them through [`super::fx::flush`] when it is dropped, after the lock is
-//! released. Lock order inside a transaction: character data (one at a time, short) and
+//! and applies item-manager persistence effects before releasing that lock. It flushes
+//! notifications and callbacks through [`super::fx::flush`] afterwards. Lock order inside
+//! a transaction: character data (one at a time, short) and
 //! container locks (leaf; two at most through [`lock_pair`]). Never start a transaction while
 //! holding a character or container lock.
 
@@ -84,10 +85,12 @@ impl<'a> ItemTxn<'a> {
         }
     }
 
-    /// Ends the operation without flushing: the recorded effects are returned (flush them with
-    /// [`super::fx::flush`] once every lock is released).
+    /// Ends the operation after applying persistence effects. Notifications and callbacks are
+    /// returned for [`super::fx::flush`] once every character and container lock is released.
     pub fn into_fx(mut self) -> ItemFxList {
-        self.env.take_fx()
+        let mut fx = self.env.take_fx();
+        super::fx::flush_persistence(self.server, &mut fx);
+        fx
     }
 
     pub fn data(&self) -> &'a ItemData {
@@ -105,7 +108,8 @@ impl<'a> ItemTxn<'a> {
 
 impl Drop for ItemTxn<'_> {
     fn drop(&mut self) {
-        let fx = self.env.take_fx();
+        let mut fx = self.env.take_fx();
+        super::fx::flush_persistence(self.server, &mut fx);
         self.guard.take();
         super::fx::flush(self.server, fx);
     }

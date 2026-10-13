@@ -307,21 +307,23 @@ impl ClientPacket for CSRequestCharBriefPacket {
             if conn.active_char.is_none() {
                 return Ok(());
             }
-            let Some(target) = server.world.character_by_id(self.id) else {
-                return Ok(());
-            };
-            let packet = {
+            let online_packet = server.world.character_by_id(self.id).and_then(|target| {
                 let character = target.data();
-                if !character.is_online {
-                    return Ok(());
-                }
-                crate::packets::g2c_misc::SCCharBriefPacket {
-                    char_id: character.id,
-                    name: character.unit.name.clone(),
-                    race: character.race,
-                }
+                character
+                    .is_online
+                    .then(|| crate::packets::g2c_misc::SCCharBriefPacket {
+                        char_id: character.id,
+                        name: character.unit.name.clone(),
+                        race: character.race,
+                    })
+            });
+            let packet = match online_packet {
+                Some(packet) => Some(packet),
+                None => crate::systems::housing::dominion::brief::lookup(server, self.id).await?,
             };
-            conn.send(&packet);
+            if let Some(packet) = packet {
+                conn.send(&packet);
+            }
             Ok(())
         })
     }

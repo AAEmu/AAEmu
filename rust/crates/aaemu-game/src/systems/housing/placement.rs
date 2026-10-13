@@ -64,7 +64,18 @@ pub fn validate_house(
         return Err(err::HOUSE_CANNOT_LOCATE_INVALID_AREA);
     }
     let data = &server.game_data.systems.housing;
-    if !data.areas.is_empty() {
+    let fort = super::dominion::fort::placement_owner(server, player, template, x, y)?;
+    if fort.is_none() {
+        super::dominion::rights::placement_allowed(
+            server,
+            player,
+            instance,
+            x,
+            y,
+            template.garden_radius,
+        )?;
+    }
+    if fort.is_none() && !data.areas.is_empty() {
         let areas = subzone::get_housing_zone_by_position(&server.game_data, &world.template, x, y)
             .map_err(|_| err::HOUSE_CANNOT_LOCATE_INVALID_AREA)?;
         if areas.is_empty() {

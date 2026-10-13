@@ -1,7 +1,8 @@
 //! Executes the [`ItemFx`] effects recorded by container operations, in order, once every
 //! container / character lock is released: the packets the C# sends to `Container.Owner`
 //! (resolved like the C# `Owner` getter: the character with that id in the world, nothing when
-//! offline), the quest events, `EquipmentContainer.OnEnter/LeaveContainer` and `ReleaseId`.
+//! offline), the quest events and `EquipmentContainer.OnEnter/LeaveContainer`. Persistence
+//! effects are applied before the item-operation lock is released; callbacks run afterwards.
 
 use std::collections::HashMap;
 
@@ -12,6 +13,28 @@ use crate::world::{PlayerRef, WorldObject};
 use super::item_packets::{
     SCItemTaskSuccessPacket, SCSyncItemLifespanPacket, SCUnitEquipmentsChangedPacket,
 };
+
+/// Applies item-manager mutations while the item-operation lock is still held. These are
+/// leaf operations; unlike notifications and hooks, they never access characters or the world.
+/// Their original order is retained, and only the remaining callbacks stay in `fx`.
+pub fn flush_persistence(server: &GameServer, fx: &mut ItemFxList) {
+    if !fx
+        .0
+        .iter()
+        .any(|e| matches!(e, ItemFx::ReleaseId(_) | ItemFx::Orphaned(_)))
+    {
+        return;
+    }
+    let mut callbacks = Vec::with_capacity(fx.len());
+    for effect in fx.0.drain(..) {
+        match effect {
+            ItemFx::ReleaseId(id) => server.items.release_id(id, &server.ids.item),
+            ItemFx::Orphaned(item) => server.items.add_loose(*item),
+            callback => callbacks.push(callback),
+        }
+    }
+    fx.0 = callbacks;
+}
 
 /// Runs `fx` (see the module docs).
 pub fn flush(server: &GameServer, fx: ItemFxList) {
@@ -146,3 +169,7 @@ fn broadcast_equipment(
     };
     crate::world::broadcast(&world, obj, &packet, false);
 }
+
+#[cfg(test)]
+#[path = "fx_tests.rs"]
+mod tests;

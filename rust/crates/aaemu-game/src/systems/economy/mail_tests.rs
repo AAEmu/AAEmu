@@ -1157,6 +1157,41 @@ async fn delete_unread_mail_updates_counter() {
 }
 
 #[tokio::test]
+async fn old_save_ack_preserves_new_deletion_of_recycled_mail_id() {
+    let mut w = mail_world();
+    w.pa.data().money = 1000;
+    assert_eq!(
+        send_p2p(&w, mail_type::EXPRESS, "Bob", 0, &[]),
+        mail_result::SUCCESS
+    );
+    let id = bob_mail_ids(&w.server)[0];
+    let mut request = PacketStream::new();
+    request.write_i64(id).write_bool(false);
+    run::<CSDeleteMailPacket>(&mut w, 1, request.as_bytes());
+    assert_eq!(w.server.systems.economy.mail.state().deleted, vec![id]);
+    let old = w.server.systems.economy.mail.prepare_save();
+
+    // A new message reuses the deleted ID before the old SQL transaction commits.
+    assert_eq!(
+        send_p2p(&w, mail_type::EXPRESS, "Bob", 0, &[]),
+        mail_result::SUCCESS
+    );
+    assert_eq!(bob_mail_ids(&w.server), vec![id]);
+    assert!(w.server.systems.economy.mail.state().deleted.is_empty());
+    run::<CSDeleteMailPacket>(&mut w, 1, request.as_bytes());
+    assert!(w.server.systems.economy.mail.get_mail_by_id(id).is_none());
+
+    w.server.systems.economy.mail.acknowledge_committed(old);
+    assert_eq!(w.server.systems.economy.mail.state().deleted, vec![id]);
+    // A failed/retried newer save must retain the deletion until that version commits.
+    drop(w.server.systems.economy.mail.prepare_save());
+    assert_eq!(w.server.systems.economy.mail.state().deleted, vec![id]);
+    let latest = w.server.systems.economy.mail.prepare_save();
+    w.server.systems.economy.mail.acknowledge_committed(latest);
+    assert!(w.server.systems.economy.mail.state().deleted.is_empty());
+}
+
+#[tokio::test]
 async fn system_mails_auction_commercial_speciality() {
     let w = mail_world();
     let mut b = w.b;
@@ -1411,22 +1446,56 @@ async fn quest_reward_mails_split_by_ten() {
     assert_eq!(f.iter().filter(|o| **o == sc::SCGotMailPacket).count(), 2);
 }
 
-struct Housing;
-impl MailHousingHooks for Housing {
-    fn house_exists(&self, _s: &GameServer, house_id: u32) -> bool {
-        house_id == 77
-    }
-    fn house_owner_id(&self, _s: &GameServer, house_id: u32) -> Option<u32> {
-        (house_id == 77).then_some(2)
-    }
-    fn pay_weekly_tax(&self, _s: &GameServer, _house_id: u32) -> bool {
-        true
-    }
+fn tax_property_data(data: &mut crate::data::GameData, tax: u32) {
+    data.zones.zones.insert(
+        crate::test_support::TEST_ZONE,
+        crate::data::world_data::Zone {
+            id: 1,
+            zone_key: crate::test_support::TEST_ZONE,
+            group_id: 25,
+            ..Default::default()
+        },
+    );
+    data.systems
+        .housing
+        .add_template(crate::systems::housing::data::HousingTemplate {
+            id: 77,
+            hp: 100,
+            taxation: Some(crate::systems::housing::data::Taxation {
+                id: 1,
+                tax,
+                show: true,
+            }),
+            ..Default::default()
+        });
+}
+
+fn spawn_tax_property(w: &mut World) {
+    let mut house = crate::models::house::House::new(77, 77);
+    house.account_id = 1002;
+    house.unit.owner_id = 2;
+    house.unit.hp = 100;
+    house.unit.max_hp = 100;
+    house.unit.transform.set_xyz(101.0, 100.0, 100.0);
+    house.unit.transform.zone_id = crate::test_support::TEST_ZONE;
+    house.place_date = mail::now() - 4 * 86400;
+    house.protection_end_date = mail::now() + 3 * 86400;
+    house.current_step = -1;
+    let house = Entity::new(0x102, house);
+    assert!(w.server.systems.housing.manager.insert(&house));
+    w.server
+        .world
+        .world(0)
+        .unwrap()
+        .spawn(&house, &w.server.view_ctx());
+    w.a.drain();
+    w.b.drain();
 }
 
 #[tokio::test]
 async fn tax_mail_and_pay_charge_money() {
     let mut w = mail_world_with(|d| {
+        tax_property_data(d, 20_000);
         for t in [mail::ITEM_TAX_CERTIFICATE, mail::ITEM_BOUND_TAX_CERTIFICATE] {
             d.items
                 .templates
@@ -1486,19 +1555,20 @@ async fn tax_mail_and_pay_charge_money() {
     // No housing hook -> invalid house info.
     run::<CSPayChargeMoneyPacket>(&mut w, 1, &pay(id));
     assert_eq!(w.b.drain_ops(), vec![sc::SCErrorMsgPacket]);
+    spawn_tax_property(&mut w);
     w.server
         .systems
         .economy
         .mail
         .hooks
         .housing
-        .install(Arc::new(Housing));
-    // Tax certificates (FeatureSet default): 15000 -> 2 certificates, none in the bag.
+        .install(Arc::new(crate::systems::economy::bridges::EconomyComposite));
+    // A current property quote charges two certificates, none in the bag.
     w.server
         .systems
         .economy
         .mail
-        .with_mail_mut(id, |m| m.body.billing_amount = 15_000);
+        .with_mail_mut(id, |m| m.body.billing_amount = 20_000);
     run::<CSPayChargeMoneyPacket>(&mut w, 1, &pay(id));
     let f = w.b.drain();
     assert_eq!(
@@ -1569,14 +1639,16 @@ async fn tax_mail_and_pay_charge_money() {
 async fn tax_paid_with_gold_without_tax_item_feature() {
     let mut w = mail_world_with(|d| {
         d.features.set(crate::data::Feature::TaxItem, false);
+        tax_property_data(d, 500);
     });
+    spawn_tax_property(&mut w);
     w.server
         .systems
         .economy
         .mail
         .hooks
         .housing
-        .install(Arc::new(Housing));
+        .install(Arc::new(crate::systems::economy::bridges::EconomyComposite));
     let mut m = BaseMail {
         mail_type: mail_type::BILLING,
         receiver_name: "Bob".into(),
@@ -1639,14 +1711,16 @@ fn send_bob_tax_bill(w: &World, amount: i32) -> i64 {
 async fn tax_bill_rejects_other_recipient_negative_or_read_bill_and_replay() {
     let mut w = mail_world_with(|d| {
         d.features.set(crate::data::Feature::TaxItem, false);
+        tax_property_data(d, 500);
     });
+    spawn_tax_property(&mut w);
     w.server
         .systems
         .economy
         .mail
         .hooks
         .housing
-        .install(Arc::new(Housing));
+        .install(Arc::new(crate::systems::economy::bridges::EconomyComposite));
     let id = send_bob_tax_bill(&w, 500);
     w.a.drain();
     w.b.drain();
@@ -1727,7 +1801,10 @@ async fn players_cannot_forge_system_housing_bill_sale_or_demolition_mail() {
     }
 }
 
-struct RefusedHousing;
+#[derive(Default)]
+struct RefusedHousing {
+    attempts: std::sync::atomic::AtomicUsize,
+}
 impl MailHousingHooks for RefusedHousing {
     fn house_exists(&self, _s: &GameServer, id: u32) -> bool {
         id == 77
@@ -1736,6 +1813,8 @@ impl MailHousingHooks for RefusedHousing {
         (id == 77).then_some(2)
     }
     fn pay_weekly_tax(&self, _s: &GameServer, _id: u32) -> bool {
+        self.attempts
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         false
     }
 }
@@ -1745,19 +1824,22 @@ async fn rejected_house_payment_keeps_both_gold_and_certificates_and_unpaid_bill
     for certificates in [false, true] {
         let mut w = mail_world_with(|d| {
             d.features.set(crate::data::Feature::TaxItem, certificates);
+            tax_property_data(d, 500);
             d.items.templates.insert(
                 mail::ITEM_TAX_CERTIFICATE,
                 crate::data::items::ItemTemplate::plain(mail::ITEM_TAX_CERTIFICATE, 1000),
             );
         });
+        spawn_tax_property(&mut w);
+        let housing = Arc::new(RefusedHousing::default());
         w.server
             .systems
             .economy
             .mail
             .hooks
             .housing
-            .install(Arc::new(RefusedHousing));
-        let id = send_bob_tax_bill(&w, 500);
+            .install(housing.clone());
+        let id = send_bob_tax_bill(&w, if certificates { 10_000 } else { 500 });
         let bob = w.pb.clone();
         give(
             &w,
@@ -1773,6 +1855,10 @@ async fn rejected_house_payment_keeps_both_gold_and_certificates_and_unpaid_bill
         let mut body = PacketStream::new();
         body.write_i64(id).write_bool(false);
         run::<CSPayChargeMoneyPacket>(&mut w, 1, body.as_bytes());
+        assert_eq!(
+            housing.attempts.load(std::sync::atomic::Ordering::SeqCst),
+            1
+        );
         assert_eq!(w.b.drain_ops(), vec![sc::SCErrorMsgPacket]);
         assert_eq!(w.pb.data().money, 1000);
         assert_eq!(item_at(&w.pb, slot_type::INVENTORY, 0).unwrap().count, 3);
@@ -1794,19 +1880,21 @@ async fn rejected_house_payment_keeps_both_gold_and_certificates_and_unpaid_bill
 #[tokio::test]
 async fn large_tax_certificate_cost_rounds_up_without_f32_precision_loss() {
     let mut w = mail_world_with(|d| {
+        tax_property_data(d, 1_000_000_001);
         d.items.templates.insert(
             mail::ITEM_TAX_CERTIFICATE,
             crate::data::items::ItemTemplate::plain(mail::ITEM_TAX_CERTIFICATE, 1_000_000),
         );
     });
+    spawn_tax_property(&mut w);
     w.server
         .systems
         .economy
         .mail
         .hooks
         .housing
-        .install(Arc::new(Housing));
-    let id = send_bob_tax_bill(&w, 1_000_000_001);
+        .install(Arc::new(crate::systems::economy::bridges::EconomyComposite));
+    let id = send_bob_tax_bill(&w, 1_000_010_000);
     let bob = w.pb.clone();
     give(
         &w,

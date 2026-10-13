@@ -546,6 +546,17 @@ pub struct MailState {
     pub all: DotNetDict<BaseMail>,
     /// `_deletedMailIds`.
     pub deleted: Vec<i64>,
+    // A recycled ID can be deleted again while an older save is pending. Keep the
+    // deletion identity alive in that batch so its acknowledgment cannot clear a
+    // later deletion of the same ID.
+    deletion_versions: HashMap<i64, Arc<()>>,
+}
+
+impl MailState {
+    pub(crate) fn clear_deletion(&mut self, id: i64) {
+        self.deleted.retain(|deleted| *deleted != id);
+        self.deletion_versions.remove(&id);
+    }
 }
 
 /// `MailManager` (`server.systems.economy.mail`).
@@ -559,8 +570,8 @@ pub struct MailManager {
 }
 
 #[derive(Debug)]
-struct MailSaveBatch {
-    deleted: Vec<i64>,
+pub(crate) struct MailSaveBatch {
+    deleted: Vec<(i64, Arc<()>)>,
     dirty: Vec<BaseMail>,
 }
 
@@ -680,6 +691,7 @@ impl MailManager {
         let mut st = self.state();
         st.all = DotNetDict::default();
         st.deleted.clear();
+        st.deletion_versions.clear();
         for r in rows {
             let mut m = BaseMail {
                 id: i64::from(r.id as i32),
@@ -748,7 +760,7 @@ impl MailManager {
             m.is_dirty = false;
             // Remove from delete list if it's a recycled Id
             let id = m.id;
-            st.deleted.retain(|&d| d != id);
+            st.clear_deletion(id);
             if !st.all.add(id, m) {
                 // C#: Dictionary.Add throws (the load aborts).
                 tracing::error!("Duplicate mail id {id} in mails table");
@@ -761,10 +773,25 @@ impl MailManager {
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
     ) -> crate::Result<(usize, usize)> {
-        *self.pending_save.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        self.write_prepared(tx, self.prepare_save()).await
+    }
+
+    pub(crate) fn prepare_save(&self) -> MailSaveBatch {
         let (deleted, dirty) = {
-            let st = self.state();
-            let deleted = st.deleted.clone();
+            let mut st = self.state();
+            let deleted = st
+                .deleted
+                .clone()
+                .into_iter()
+                .map(|id| {
+                    let version = st
+                        .deletion_versions
+                        .entry(id)
+                        .or_insert_with(|| Arc::new(()))
+                        .clone();
+                    (id, version)
+                })
+                .collect();
             let mut dirty = Vec::new();
             for (_, m) in st.all.iter() {
                 if m.is_dirty {
@@ -773,11 +800,21 @@ impl MailManager {
             }
             (deleted, dirty)
         };
+        MailSaveBatch { deleted, dirty }
+    }
+
+    pub(crate) async fn write_prepared(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        batch: MailSaveBatch,
+    ) -> crate::Result<(usize, usize)> {
+        *self.pending_save.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        let MailSaveBatch { deleted, dirty } = batch;
         let deleted_count = deleted.len();
         if !deleted.is_empty() {
             let list = deleted
                 .iter()
-                .map(i64::to_string)
+                .map(|(id, _)| id.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
             sqlx::query(&format!("DELETE FROM mails WHERE `id` IN({list})"))
@@ -825,8 +862,20 @@ impl MailManager {
             .unwrap_or_else(|e| e.into_inner())
             .take();
         let Some(batch) = batch else { return };
+        self.acknowledge_committed(batch);
+    }
+
+    pub(crate) fn acknowledge_committed(&self, batch: MailSaveBatch) {
         let mut st = self.state();
-        st.deleted.retain(|id| !batch.deleted.contains(id));
+        for (id, version) in batch.deleted {
+            if st
+                .deletion_versions
+                .get(&id)
+                .is_some_and(|current| Arc::ptr_eq(current, &version))
+            {
+                st.clear_deletion(id);
+            }
+        }
         for snapshot in batch.dirty {
             if let Some(live) = st.all.get_mut(snapshot.id) {
                 if *live == snapshot {
@@ -891,7 +940,7 @@ fn new_mail_id(server: &GameServer, st: &mut MailState) -> u32 {
             0
         }
     };
-    st.deleted.retain(|&d| d != i64::from(id));
+    st.clear_deletion(i64::from(id));
     id
 }
 
@@ -899,6 +948,7 @@ fn new_mail_id(server: &GameServer, st: &mut MailState) -> u32 {
 pub fn delete_mail_in(server: &GameServer, st: &mut MailState, id: i64) -> bool {
     if !st.deleted.contains(&id) {
         st.deleted.push(id);
+        st.deletion_versions.insert(id, Arc::new(()));
     }
     server.ids.mail.release_id(id as u32);
     st.all.remove(id).is_some()
@@ -1244,7 +1294,87 @@ pub fn delete_mail_trash(txn: &mut ItemTxn<'_>, mail_id: i64, trash_items: bool)
     server.systems.economy.mail.delete_mail(server, mail_id)
 }
 
-/// `PayChargeMoney(character, mailId, autoUseAAPoint)`.
+/// Production tax-payment edge. Capture the current property/territory before ItemTxn and
+/// serialize sales, captures and rate changes before the authority -> economy debit.
+pub fn pay_housing_tax(
+    server: &GameServer,
+    character: &PlayerRef,
+    mail_id: i64,
+    auto_use_aa_point: bool,
+) -> bool {
+    let operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let Some(mail) = server.systems.economy.mail.get_mail_by_id(mail_id) else {
+        crate::systems::social::util::send_error(character, error_message::MAIL_INVALID);
+        return false;
+    };
+    if mail.mail_type != mail_type::BILLING
+        || mail.header.sender_id != 0
+        || mail.header.sender_name != ".houseTax"
+        || mail.header.receiver_id != character.character_id
+        || mail.header.status != mail_status::UNPAID
+        || mail.body.billing_amount < 0
+        || mail.body.recv_date > now()
+    {
+        crate::systems::social::util::send_error(character, error_message::MAIL_INVALID);
+        return false;
+    }
+    let (_, house_id) = extract_extra_for_house(mail.header.extra);
+    let Some(house) = server.systems.housing.manager.by_id(house_id) else {
+        crate::systems::social::util::send_error(character, error_message::INVALID_HOUSE_INFO);
+        return false;
+    };
+    if !crate::systems::housing::dominion::runtime::is_live_object(
+        server,
+        &crate::world::WorldObject::from(&house),
+    ) || {
+        let house = house.data();
+        house.unit.hp <= 0 || house.unit.owner_id != character.character_id
+    } {
+        crate::systems::social::util::send_error(character, error_message::INVALID_HOUSE_INFO);
+        return false;
+    }
+    let Ok(quote) = crate::systems::housing::dominion::tax::quote_house(server, &house) else {
+        crate::systems::social::util::send_error(character, error_message::INVALID_TAXATION);
+        return false;
+    };
+    if mail.body.billing_amount != quote.info.total_tax_to_pay {
+        crate::systems::housing::manager::update_tax_info(server, &house);
+        crate::systems::social::util::send_error(character, error_message::INVALID_TAXATION);
+        return false;
+    }
+    let mut effects = None;
+    let result = crate::systems::housing::dominion::tax::charge_with(server, &quote, || {
+        let mut txn = ItemTxn::begin(server);
+        let paid = pay_charge_money(&mut txn, character, mail_id, auto_use_aa_point);
+        effects = Some(txn.into_fx());
+        paid
+    });
+    drop(operation);
+    if let Some(effects) = effects {
+        super::fx::flush(server, effects);
+    }
+    match result {
+        Ok(state) => {
+            if let Some(state) = state {
+                crate::systems::social::dominion::broadcast_snapshot(server, &state, false);
+            }
+            true
+        }
+        Err(crate::systems::housing::dominion::DominionError::Resources) => false,
+        Err(_) => {
+            crate::systems::social::util::send_error(character, error_message::INVALID_TAXATION);
+            false
+        }
+    }
+}
+
+/// `PayChargeMoney(character, mailId, autoUseAAPoint)` debit primitive. Production callers
+/// use pay_housing_tax so territory context is captured before the economy lock is acquired.
 pub fn pay_charge_money(
     txn: &mut ItemTxn<'_>,
     character: &PlayerRef,

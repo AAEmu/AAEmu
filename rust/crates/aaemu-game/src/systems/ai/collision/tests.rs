@@ -176,6 +176,7 @@ fn no_collision_doodads_are_ray_only() {
             pos: Vec3::ZERO,
             q: Quat::IDENTITY,
             scale: 1.0,
+            animation: None,
         }],
     };
     let mut st = pw.lock();

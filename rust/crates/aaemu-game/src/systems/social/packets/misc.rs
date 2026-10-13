@@ -4,13 +4,15 @@
 
 use chrono::{DateTime, Utc};
 
-use super::{cs_packet, sc_packet};
+use super::{active_char, cs_packet, sc_packet};
 use crate::models::char_data::CountUnreadMail;
 use crate::net::packet::LEVEL_PLAIN;
 use crate::net::registry::PacketRegistry;
 use crate::opcodes::cs;
 use crate::systems::social::achievement::AchievementInfo;
-use crate::systems::social::dominion::DominionData;
+use crate::systems::social::dominion::{
+    DominionData, DominionSiegeTimers, DominionTerritoryData, DominionUnkData,
+};
 use aaemu_commons::helpers::convert_coord_to_long;
 
 // ---- Dominion ----
@@ -26,6 +28,59 @@ sc_packet!(
 );
 
 sc_packet!(
+    /// Original 1.2 opcode 0xe9. Native Deserialize 0x397B4840 reads the reign timestamp
+    /// only when `new_owner` is nonzero; zero is a phase/team update without an owner change.
+    SCSiegeStatePacket {
+        id: u16,
+        territory_data: DominionTerritoryData,
+        siege_timers: DominionSiegeTimers,
+        new_owner: u32,
+        reign_start_time: DateTime<Utc>
+    } |self, s| {
+        s.write_u16(self.id)
+            .write(&self.territory_data)
+            .write(&self.siege_timers)
+            .write_u32(self.new_owner);
+        if self.new_owner != 0 {
+            s.write_date_time(self.reign_start_time);
+        }
+    }
+);
+
+sc_packet!(
+    /// Native 1.2 Deserialize 0x397B48C0: declaration of the offense expedition/team.
+    SCSiegeDeclaredPacket { id: u16, offense: DominionUnkData } |self, s| {
+        s.write_u16(self.id).write(&self.offense);
+    }
+);
+
+sc_packet!(
+    /// Native 1.2 Deserialize 0x397B48F0. The client sets defender.limit to defender.nr.
+    SCSiegeReinforcePacket { id: u16 } |self, s| {
+        s.write_u16(self.id);
+    }
+);
+
+sc_packet!(
+    /// Native 1.2 Deserialize 0x397B4910. Names are resolved through CSRequestCharBrief.
+    SCSiegeMemberPacket { id: u16, expedition_id: u32, character_id: u32, added: bool } |self, s| {
+        s.write_u16(self.id).write_u32(self.expedition_id)
+            .write_u32(self.character_id).write_bool(self.added);
+    }
+);
+
+sc_packet!(
+    /// Native 1.2 Deserialize 0x397B4970: seven tower-alert indices (0..6). A character-zero
+    /// alert omits the name entirely; otherwise this uses the native CharBrief name encoding.
+    SCSiegeAlertPacket { id: u16, alert: u8, character_id: u32, name: String } |self, s| {
+        s.write_u16(self.id).write_u8(self.alert).write_u32(self.character_id);
+        if self.character_id != 0 {
+            s.write_str(&self.name);
+        }
+    }
+);
+
+sc_packet!(
     /// `SCDominionDeletedPacket(id)` (not sent by the 1.2 C#).
     SCDominionDeletedPacket { id: u16 } |self, s| {
         s.write_u16(self.id);
@@ -33,7 +88,8 @@ sc_packet!(
 );
 
 sc_packet!(
-    /// `SCDominionOwnerChangedPacket(id, unkId, rst, bestowed)` (not sent by the 1.2 C#).
+    /// Native 1.2: zone group, new expedition, reign-start Unix seconds and the
+    /// announcement choice (`true` = bestowed, `false` = declared).
     SCDominionOwnerChangedPacket { id: u16, unk_id: u32, rst: u64, bestowed: bool } |self, s| {
         s.write_u16(self.id)
             .write_u32(self.unk_id)
@@ -82,12 +138,13 @@ sc_packet!(
 );
 
 cs_packet!(
-    /// `CSUpdateDominionTaxRatePacket` (logged only, as in C#). `CSUpdateNationalTaxRatePacket`
+    /// `CSUpdateDominionTaxRatePacket`. `CSUpdateNationalTaxRatePacket`
     /// has no 1.2 opcode (0xfff) and is not registered.
     CSUpdateDominionTaxRatePacket { id: u16, tax_rate: i32 }
     read |s| { Ok(Self { id: s.read_u16()?, tax_rate: s.read_i32()? }) }
     handle |self, server, conn| {
-        tracing::debug!("UpdateDominionTaxRate, Id: {}, TaxRate: {}", self.id, self.tax_rate);
+        let player = active_char!(conn);
+        crate::systems::social::dominion::update_tax_rate(server, &player, self.id, self.tax_rate);
         Ok(())
     }
 );
@@ -272,6 +329,138 @@ mod tests {
 
     fn t(secs: i64) -> DateTime<Utc> {
         Utc.timestamp_opt(secs, 0).unwrap()
+    }
+
+    #[test]
+    fn original_siege_team_and_alert_packets_are_byte_exact() {
+        assert_eq!(body(&SCSiegeReinforcePacket { id: 25 }), vec![25, 0]);
+        assert_eq!(
+            body(&SCSiegeMemberPacket {
+                id: 25,
+                expedition_id: 77,
+                character_id: 0x01020304,
+                added: true,
+            }),
+            vec![25, 0, 77, 0, 0, 0, 4, 3, 2, 1, 1]
+        );
+        assert_eq!(
+            body(&SCSiegeMemberPacket {
+                id: 25,
+                expedition_id: 88,
+                character_id: 0x01020304,
+                added: false,
+            }),
+            vec![25, 0, 88, 0, 0, 0, 4, 3, 2, 1, 0]
+        );
+        let mut expected = vec![25, 0, 88, 0, 0, 0, 3, 2, 1];
+        expected.extend_from_slice(&((4096i64) << 32).to_le_bytes());
+        expected.extend_from_slice(&((8192i64) << 32).to_le_bytes());
+        expected.extend_from_slice(&3.0f32.to_le_bytes());
+        expected.extend_from_slice(&[100, 100, 100, 1, 0x44, 0x33, 0x22, 0x11]);
+        assert_eq!(
+            body(&SCSiegeDeclaredPacket {
+                id: 25,
+                offense: DominionUnkData {
+                    id: 88,
+                    obj_id: 0x010203,
+                    x: 1.0,
+                    y: 2.0,
+                    z: 3.0,
+                    ni: 100,
+                    nr: 100,
+                    limit: 100,
+                    unk_ids: vec![0x11223344],
+                },
+            }),
+            expected
+        );
+        assert_eq!(
+            body(&SCSiegeAlertPacket {
+                id: 25,
+                alert: 6,
+                character_id: 0,
+                name: "omitted".into(),
+            }),
+            vec![25, 0, 6, 0, 0, 0, 0]
+        );
+        assert_eq!(
+            body(&SCSiegeAlertPacket {
+                id: 25,
+                alert: 4,
+                character_id: 0x01020304,
+                name: "Zoë".into(),
+            }),
+            vec![25, 0, 4, 4, 3, 2, 1, 4, 0, b'Z', b'o', 0xC3, 0xAB]
+        );
+    }
+
+    #[test]
+    fn original_siege_state_has_variable_teams_and_conditional_reign_timestamp() {
+        let mut packet = SCSiegeStatePacket {
+            id: 25,
+            territory_data: DominionTerritoryData {
+                id: 7,
+                id2: 4771,
+                max_gates: 2,
+                max_walls: 100,
+                radius_declare: 450,
+                radius_dominion: 200,
+                radius_offense_hq: 120,
+                radius_siege: 450,
+            },
+            siege_timers: DominionSiegeTimers {
+                durations: [0, 0, 20, 300, 0],
+                started: t(100),
+                fixed: t(0),
+                siege_period: 3,
+                unk_data: dominion::DominionUnkData {
+                    id: 77,
+                    limit: 100,
+                    unk_ids: vec![0x01020304, 0x05060708],
+                    ..Default::default()
+                },
+                unk2_data: dominion::DominionUnkData {
+                    id: 88,
+                    limit: 100,
+                    unk_ids: vec![0x090A0B0C],
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            new_owner: 0,
+            reign_start_time: t(90),
+        };
+        // Independent offsets derived from native Deserialize 0x397B4840, nested
+        // serializers 0x3962A5B0/0x39839F40/0x39839C80/0x39839C10.
+        let mut expected = vec![0; 127];
+        expected[0..2].copy_from_slice(&25u16.to_le_bytes());
+        expected[2..6].copy_from_slice(&7u32.to_le_bytes());
+        expected[6..10].copy_from_slice(&4771u32.to_le_bytes());
+        expected[10] = 2;
+        expected[11] = 100;
+        expected[12..14].copy_from_slice(&450i16.to_le_bytes());
+        expected[14..16].copy_from_slice(&200u16.to_le_bytes());
+        expected[16..18].copy_from_slice(&120i16.to_le_bytes());
+        expected[18..20].copy_from_slice(&450i16.to_le_bytes());
+        expected[28..32].copy_from_slice(&20i32.to_le_bytes());
+        expected[32..36].copy_from_slice(&300i32.to_le_bytes());
+        expected[40..48].copy_from_slice(&100i64.to_le_bytes());
+        expected[60] = 3;
+        expected[61..65].copy_from_slice(&77u32.to_le_bytes());
+        expected[90] = 100;
+        expected[91] = 2;
+        expected[92..96].copy_from_slice(&88u32.to_le_bytes());
+        expected[121] = 100;
+        expected[122] = 1;
+        expected.splice(123..123, 0x090A0B0Cu32.to_le_bytes());
+        expected.splice(92..92, [4, 3, 2, 1, 8, 7, 6, 5]);
+        assert_eq!(body(&packet), expected);
+        assert_eq!(expected.len(), 139);
+        packet.new_owner = 77;
+        expected[135..139].copy_from_slice(&77u32.to_le_bytes());
+        expected.extend_from_slice(&90u64.to_le_bytes());
+        assert_eq!(body(&packet), expected);
+        assert_eq!(expected.len(), 147);
     }
 
     #[test]

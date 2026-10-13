@@ -24,7 +24,7 @@
 //! * The zone's `gEnv` byte 289 is set on the server, so RWI's "DrawRayOnGrid" ray-extent limit
 //!   does not apply.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
 
@@ -32,7 +32,7 @@ use aaemu_physics::entities::base::add_geometry;
 use aaemu_physics::geometry::primitives::HeightfieldPrim;
 use aaemu_physics::geometry::PhysGeometry;
 use aaemu_physics::math::{Mat33, Quat, Vec3};
-use aaemu_physics::params::{GeomParams, ParamsFlags, ParamsPos};
+use aaemu_physics::params::{GeomParams, ParamsFlags, ParamsPart, ParamsPos, PeStruct};
 use aaemu_physics::world::{EntIdx, World};
 
 use super::cells::{self, BrushRecord, VegetationGroup};
@@ -128,6 +128,41 @@ pub struct ObjCollider {
     pub key: ColliderKey,
     /// Keeps the models referenced (cache eviction).
     pub models: Vec<Arc<ModelPhys>>,
+    animation_started: Instant,
+    animated_parts: Vec<AnimatedPart>,
+}
+
+#[derive(Debug, Clone)]
+struct AnimatedPart {
+    part_id: i32,
+    animation: super::objects::ShapeAnimation,
+    pos: Vec3,
+    q: Quat,
+    scale: f32,
+    last: super::cga::RootPose,
+}
+
+impl AnimatedPart {
+    fn sample(&self, elapsed: f64) -> Option<super::cga::RootPose> {
+        let duration = self.animation.track.clip.duration_seconds() as f64;
+        let elapsed = elapsed * self.animation.speed as f64;
+        let elapsed = if self.animation.looped && duration > 0.0 {
+            elapsed % duration
+        } else {
+            elapsed.min(duration)
+        };
+        let pose = self.animation.track.sample(elapsed as f32, false, 1.0)?;
+        Some(super::cga::RootPose {
+            position: self.pos + self.q.rotate(pose.position * self.scale),
+            quaternion: self.q * pose.quaternion,
+        })
+    }
+
+    fn finished(&self, elapsed: f64) -> bool {
+        !self.animation.looped
+            && elapsed * self.animation.speed as f64
+                >= self.animation.track.clip.duration_seconds() as f64
+    }
 }
 
 /// The inputs of an object collider.
@@ -320,6 +355,8 @@ pub struct WorldState {
     pub cells: HashMap<(i32, i32), LoadedCell>,
     pub owners: HashMap<EntIdx, Owner>,
     pub objects: HashMap<(ObjKind, u32), ObjCollider>,
+    /// Only moving housing CGAs; ordinary house/doodad queries skip them immediately.
+    animated_houses: HashSet<u32>,
     pub stats: WorldStats,
     /// Entities destroyed since the last step (freed by the next `TimeStep`).
     pub pending_deletes: usize,
@@ -449,6 +486,20 @@ impl WorldState {
         shape: Option<&super::objects::ColliderShape>,
         rigid: bool,
     ) -> bool {
+        self.set_object_shape_at(kind, obj_id, key, shape, rigid, Instant::now())
+    }
+
+    /// The supplied clock makes animation transitions reproducible without sleeping.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn set_object_shape_at(
+        &mut self,
+        kind: ObjKind,
+        obj_id: u32,
+        key: ColliderKey,
+        shape: Option<&super::objects::ColliderShape>,
+        rigid: bool,
+        now: Instant,
+    ) -> bool {
         if let Some(old) = self.objects.get(&(kind, obj_id)) {
             if old.key == key {
                 return false;
@@ -471,6 +522,7 @@ impl WorldState {
         else {
             return false;
         };
+        let mut animated_parts = Vec::new();
         for sp in &shape.parts {
             let m = &sp.model;
             for part in &m.parts {
@@ -482,18 +534,46 @@ impl WorldState {
                 };
                 // _UpdateCollisionParams (x2game sub_39451190): flagsOR / flagsAND on every part.
                 let flags = (base & key.flags_and) | key.flags_or;
+                let pose = sp
+                    .animation
+                    .as_ref()
+                    .and_then(|a| a.track.sample(0.0, a.looped, a.speed))
+                    .map(|pose| super::cga::RootPose {
+                        position: sp.pos + sp.q.rotate(pose.position * sp.scale),
+                        quaternion: sp.q * pose.quaternion,
+                    })
+                    .unwrap_or(super::cga::RootPose {
+                        position: sp.pos,
+                        quaternion: sp.q,
+                    });
                 let gp = GeomParams {
                     density: 0.0,
                     mass: 0.0,
-                    pos: sp.pos,
-                    q: sp.q,
+                    pos: pose.position,
+                    q: pose.quaternion,
                     scale: sp.scale,
                     flags,
                     flags_collider: 1,
                     ..GeomParams::default()
                 };
-                add_geometry(&mut self.world, e, &part.geom, &gp, -1);
+                let part_id = add_geometry(&mut self.world, e, &part.geom, &gp, -1);
+                if let Some(animation) = sp.animation.as_ref().filter(|a| a.track.clip.has_motion())
+                {
+                    if part_id >= 0 {
+                        animated_parts.push(AnimatedPart {
+                            part_id,
+                            animation: animation.clone(),
+                            pos: sp.pos,
+                            q: sp.q,
+                            scale: sp.scale,
+                            last: pose,
+                        });
+                    }
+                }
             }
+        }
+        if kind == ObjKind::House && !animated_parts.is_empty() {
+            self.animated_houses.insert(obj_id);
         }
         self.owners.insert(e, Owner::Object { kind, obj_id });
         self.stats.object_colliders += 1;
@@ -504,9 +584,64 @@ impl WorldState {
                 kind,
                 key,
                 models: shape.parts.iter().map(|p| p.model.clone()).collect(),
+                animation_started: now,
+                animated_parts,
             },
         );
         true
+    }
+
+    /// Original 1.2 UpdatePhysicsCGA updates each animated proxy through pe_params_part.
+    /// Asset decoding happens once in the cached shape, and entities/geometries stay alive.
+    pub fn update_animated_houses_at(&mut self, now: Instant) -> usize {
+        let mut updates = 0;
+        let mut finished = Vec::new();
+        for &id in &self.animated_houses {
+            let Some(collider) = self.objects.get_mut(&(ObjKind::House, id)) else {
+                finished.push(id);
+                continue;
+            };
+            let elapsed = now
+                .saturating_duration_since(collider.animation_started)
+                .as_secs_f64();
+            for part in &mut collider.animated_parts {
+                let Some(pose) = part.sample(elapsed) else {
+                    continue;
+                };
+                if pose == part.last {
+                    continue;
+                }
+                let params = ParamsPart {
+                    part_id: part.part_id,
+                    pos: pose.position,
+                    q: pose.quaternion,
+                    ..ParamsPart::default()
+                };
+                let mut bytes = [0u8; ParamsPart::SIZE];
+                params.write(&mut bytes);
+                if aaemu_physics::entities::interface::set_params(
+                    &mut self.world,
+                    collider.ent,
+                    &mut bytes,
+                    1,
+                ) != 0
+                {
+                    part.last = pose;
+                    updates += 1;
+                }
+            }
+            if collider
+                .animated_parts
+                .iter()
+                .all(|part| part.finished(elapsed) && part.sample(elapsed) == Some(part.last))
+            {
+                finished.push(id);
+            }
+        }
+        for id in finished {
+            self.animated_houses.remove(&id);
+        }
+        updates
     }
 
     /// Removes a world object's collider.
@@ -518,6 +653,9 @@ impl WorldState {
         self.owners.remove(&c.ent);
         self.stats.object_colliders -= 1;
         self.pending_deletes += 1;
+        if kind == ObjKind::House {
+            self.animated_houses.remove(&obj_id);
+        }
         true
     }
 
@@ -620,6 +758,7 @@ impl PhysWorld {
             cells: HashMap::new(),
             owners: HashMap::new(),
             objects: HashMap::new(),
+            animated_houses: HashSet::new(),
             stats: WorldStats::default(),
             pending_deletes: 0,
             water_areas: HashMap::new(),

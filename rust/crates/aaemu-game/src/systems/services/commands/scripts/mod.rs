@@ -39,6 +39,7 @@ pub mod de_spawn_all;
 pub mod despawn;
 pub mod disconnect_me;
 pub mod dist;
+pub mod dominion;
 pub mod doodad_location_cmd;
 pub mod fail_skill;
 pub mod find_object;
@@ -430,6 +431,11 @@ pub fn all_commands(env: &ScriptEnv) -> Vec<(&'static [&'static str], Arc<dyn Co
         (
             &["testheightvisualizer", "test_height_visualizer"],
             Arc::new(test_height::TestHeight::new(env)),
+        ),
+        (&["dominion"], Arc::new(dominion::Dominion::new(env))),
+        (
+            &["collectdominion"],
+            Arc::new(dominion::CollectDominion::new(env)),
         ),
         // TestHouse.cs
         (

@@ -19,8 +19,10 @@
 //! | [`db`] | the `housings` table |
 //! | [`hooks`] | items / money / mail services from the economy subsystem |
 
+pub mod config;
 pub mod data;
 pub mod db;
+pub mod dominion;
 pub mod hooks;
 pub mod manager;
 pub mod ops;
@@ -56,6 +58,9 @@ pub struct System {
     pub(crate) operation_lock: std::sync::Mutex<()>,
     /// `HousingManager`.
     pub manager: manager::HousingManager,
+    pub dominions: dominion::DominionManager,
+    pub engraving_runtime: dominion::runtime::EngravingRuntime,
+    pub headquarters: dominion::headquarters::Headquarters,
     /// Items / money / mail (installed by the economy subsystem).
     pub hooks: hooks::HousingHookSlot,
 }
@@ -67,6 +72,13 @@ impl System {
     pub async fn start(server: &Arc<GameServer>) -> anyhow::Result<()> {
         // Housing rows are loaded with NPC spawns, before economy hooks and persisted mail.
         // Start billing only after those subsystems have finished loading their state.
+        dominion::db::load(server).await?;
+        dominion::fort::reconcile_all(server);
+        for state in server.systems.housing.dominions.all() {
+            dominion::runtime::apply_tower_state(server, &state);
+        }
+        manager::resume_dead_houses(server);
+        dominion::runtime::start_tick(server);
         manager::start_tax_task(server);
         Ok(())
     }
@@ -81,11 +93,17 @@ impl System {
         if stage != SaveStage::BeforeItems {
             return Ok(0);
         }
-        let (updated, deleted) = manager::save(server, tx).await?;
+        // Claim/capture must not straddle the house and territory snapshots. Database
+        // awaits happen after dropping the housing operation guard.
+        let (houses, dominions) = {
+            let _operation = self.operation_lock.lock().expect("housing poisoned");
+            (manager::prepare_save(server), self.dominions.prepare_save())
+        };
+        let (updated, deleted) = manager::write_prepared(server, tx, houses).await?;
         if updated + deleted > 0 {
             tracing::debug!("Updated {updated} and deleted {deleted} houses ...");
         }
-        Ok(updated + deleted)
+        Ok(updated + deleted + self.dominions.save_prepared(tx, dominions).await?)
     }
 }
 

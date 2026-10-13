@@ -86,6 +86,8 @@ pub struct AppConfig {
     pub loyalty: CurrencyValuesConfig,
     #[serde(rename = "world")]
     pub world: WorldConfig,
+    #[serde(rename = "housing")]
+    pub housing: crate::systems::housing::config::HousingConfig,
     #[serde(rename = "clientdata")]
     pub client_data: ClientDataConfig,
     /// `Specialty`.
@@ -142,6 +144,7 @@ impl Default for AppConfig {
             credits: CurrencyValuesConfig::default(),
             loyalty: CurrencyValuesConfig::default(),
             world: WorldConfig::default(),
+            housing: Default::default(),
             client_data: ClientDataConfig::default(),
             specialty: SpecialtyConfig::default(),
             scripts: ScriptsConfig::default(),

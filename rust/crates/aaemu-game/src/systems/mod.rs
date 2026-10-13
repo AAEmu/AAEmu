@@ -189,13 +189,33 @@ pub async fn save_stage(
     tx: &mut sqlx::Transaction<'_, MySql>,
     stage: SaveStage,
 ) -> crate::Result<usize> {
+    save_stage_inner(server, tx, stage, false).await
+}
+
+/// World saves already captured housing, territory authority and mail with item/wallet
+/// snapshots. Their prepared batches are written by SaveManager, so do not recapture them.
+pub(crate) async fn save_before_prepared_financials(
+    server: &GameServer,
+    tx: &mut sqlx::Transaction<'_, MySql>,
+) -> crate::Result<usize> {
+    save_stage_inner(server, tx, SaveStage::BeforeItems, true).await
+}
+
+async fn save_stage_inner(
+    server: &GameServer,
+    tx: &mut sqlx::Transaction<'_, MySql>,
+    stage: SaveStage,
+    prepared_financials: bool,
+) -> crate::Result<usize> {
     let s = &server.systems;
     let mut n = 0;
     n += s.skills.save(server, tx, stage).await?;
     n += s.npcs.save(server, tx, stage).await?;
     // C# DoSave order: houses before mails.
-    n += s.housing.save(server, tx, stage).await?;
-    n += s.economy.save(server, tx, stage).await?;
+    if !prepared_financials {
+        n += s.housing.save(server, tx, stage).await?;
+        n += s.economy.save(server, tx, stage).await?;
+    }
     n += s.social.save(server, tx, stage).await?;
     n += s.quests.save(server, tx, stage).await?;
     n += s.instances.save(server, tx, stage).await?;

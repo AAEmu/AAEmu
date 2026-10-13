@@ -305,24 +305,25 @@ CREATE TABLE IF NOT EXISTS `housings` (
   `sell_to` int unsigned NOT NULL DEFAULT '0',
   `sell_price` bigint NOT NULL DEFAULT '0',
   `allow_recover` tinyint unsigned NOT NULL DEFAULT '1',
+  `hp` int DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Player buildings';
 
 -- ----------------------------
 -- Records of housings
 -- ----------------------------
-INSERT IGNORE INTO `housings` VALUES (1, 0, 0, 0, 139, 'Archeum Lodestone', 19643., 24385.4, 168.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (2, 0, 0, 0, 184, 'Archeum Lodestone', 19952.6, 24275.5, 140.4, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (3, 0, 0, 0, 185, 'Archeum Lodestone', 20379.4, 24126.2, 123.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (4, 0, 0, 0, 186, 'Archeum Lodestone', 21235.7, 23918.5, 165.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (5, 0, 0, 0, 187, 'Archeum Lodestone', 21441.7, 24211.7, 154.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (6, 0, 0, 0, 188, 'Archeum Lodestone', 22048.2, 24241.1, 154.8, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (7, 0, 0, 0, 189, 'Archeum Lodestone', 19644.0, 25077.6, 164.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (8, 0, 0, 0, 190, 'Archeum Lodestone', 20325.6, 25174.6, 172.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (9, 0, 0, 0, 191, 'Archeum Lodestone', 20890.8, 25238.5, 193.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (10, 0, 0, 0, 192, 'Archeum Lodestone', 21956, 24881.7, 206.3, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (11, 0, 0, 0, 271, 'Archeum Lodestone', 23060.8, 25148.3, 142.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (12, 0, 0, 0, 272, 'Archeum Lodestone', 21800.3, 26893.9, 137.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (1, 0, 0, 0, 139, 'Archeum Lodestone', 19643., 24385.4, 168.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (2, 0, 0, 0, 184, 'Archeum Lodestone', 19952.6, 24275.5, 140.4, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (3, 0, 0, 0, 185, 'Archeum Lodestone', 20379.4, 24126.2, 123.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (4, 0, 0, 0, 186, 'Archeum Lodestone', 21235.7, 23918.5, 165.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (5, 0, 0, 0, 187, 'Archeum Lodestone', 21441.7, 24211.7, 154.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (6, 0, 0, 0, 188, 'Archeum Lodestone', 22048.2, 24241.1, 154.8, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (7, 0, 0, 0, 189, 'Archeum Lodestone', 19644.0, 25077.6, 164.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (8, 0, 0, 0, 190, 'Archeum Lodestone', 20325.6, 25174.6, 172.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (9, 0, 0, 0, 191, 'Archeum Lodestone', 20890.8, 25238.5, 193.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (10, 0, 0, 0, 192, 'Archeum Lodestone', 21956, 24881.7, 206.3, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (11, 0, 0, 0, 271, 'Archeum Lodestone', 23060.8, 25148.3, 142.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
+INSERT IGNORE INTO `housings` VALUES (12, 0, 0, 0, 272, 'Archeum Lodestone', 21800.3, 26893.9, 137.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, NULL);
 
 CREATE TABLE IF NOT EXISTS `items` (
   `id` bigint unsigned NOT NULL,
@@ -643,3 +644,48 @@ COMMENT='Keeps track of the crime events'
 COLLATE='utf8mb4_general_ci'
 ENGINE=InnoDB
 ;
+-- Static 2014 siege_plans are deliberately not imported as runtime schedules.
+CREATE TABLE IF NOT EXISTS `dominions` (
+  `zone_group_id` int unsigned NOT NULL,
+  `tower_house_id` int unsigned NOT NULL,
+  `instance_id` int unsigned NOT NULL,
+  `guard_tower_setting_id` int unsigned NOT NULL,
+  `owner_expedition_id` int unsigned NOT NULL DEFAULT 0,
+  `ownership_generation` bigint unsigned NOT NULL DEFAULT 0,
+  `reign_start_at` bigint NOT NULL DEFAULT 0,
+  `last_siege_end_at` bigint NOT NULL DEFAULT 0,
+  `tax_rate` int NOT NULL DEFAULT 0,
+  `national_tax_rate` smallint unsigned NOT NULL DEFAULT 0,
+  `last_paid_at` bigint NOT NULL DEFAULT 0,
+  `last_tax_rate_changed_at` bigint NOT NULL DEFAULT 0,
+  `last_national_tax_rate_changed_at` bigint NOT NULL DEFAULT 0,
+  `cur_house_tax_money` int NOT NULL DEFAULT 0,
+  `cur_hunt_tax_money` int NOT NULL DEFAULT 0,
+  `peace_tax_money` int NOT NULL DEFAULT 0,
+  `cur_house_tax_aa_point` int NOT NULL DEFAULT 0,
+  `peace_tax_aa_point` int NOT NULL DEFAULT 0,
+  `tower_destroyed` tinyint(1) NOT NULL DEFAULT 0,
+  `tower_hp` int DEFAULT NULL,
+  `last_siege_id` bigint unsigned NOT NULL DEFAULT 0,
+  `siege_id` bigint unsigned NOT NULL DEFAULT 0,
+  `attacker_expedition_id` int unsigned NOT NULL DEFAULT 0,
+  `defender_expedition_id` int unsigned NOT NULL DEFAULT 0,
+  `siege_ownership_generation` bigint unsigned NOT NULL DEFAULT 0,
+  `siege_status` tinyint unsigned NOT NULL DEFAULT 0,
+  `siege_outcome` tinyint unsigned NOT NULL DEFAULT 0,
+  `siege_scheduled_at` bigint NOT NULL DEFAULT 0,
+  `siege_starts_at` bigint NOT NULL DEFAULT 0,
+  `siege_ends_at` bigint NOT NULL DEFAULT 0,
+  `siege_ended_at` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`zone_group_id`),
+  UNIQUE KEY `dominions_tower` (`tower_house_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `dominion_siege_participants` (
+  `zone_group_id` int unsigned NOT NULL,
+  `siege_id` bigint unsigned NOT NULL,
+  `character_id` int unsigned NOT NULL,
+  `expedition_id` int unsigned NOT NULL,
+  `side` tinyint unsigned NOT NULL,
+  PRIMARY KEY (`zone_group_id`, `siege_id`, `character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -859,6 +859,7 @@ async fn temple_resurrection_applies_the_death_debuffs() {
     let c = pc(&server, 3, "C", 104.0);
     {
         let mut d = c.p.data();
+        d.unit.hp = 0;
         d.died_in_pvp = true;
         d.died_in_pvp_war_zone = true;
     }
@@ -872,6 +873,7 @@ async fn temple_resurrection_applies_the_death_debuffs() {
 
     // Plain PvP death: Respawn-CD only.
     let d = pc(&server, 4, "D", 106.0);
+    d.p.data().unit.hp = 0;
     d.p.data().died_in_pvp = true;
     resurrect_character(&server, &d.p, false);
     assert_eq!(buff_ids(&d.p), [RESPAWN_COOLDOWN]);
@@ -881,6 +883,7 @@ async fn temple_resurrection_applies_the_death_debuffs() {
     let e = pc(&server, 5, "E", 108.0);
     {
         let mut x = e.p.data();
+        x.unit.hp = 0;
         x.died_in_pvp = true;
         x.skill_char.resurrect_hp_percent = 50;
         x.skill_char.resurrect_mp_percent = 20;

@@ -13,10 +13,10 @@ use super::hooks::{
     item_task, mail_type, slot_type, HouseConstructionError, HouseItem, HouseMail, MailAttachment,
 };
 use super::manager::{
-    self, broadcast, calculate_building_tax_info, error_message as err, now, send_error,
-    set_permission, tax_due_date, template_of, update_house_faction, update_tax_info, world_of,
-    APPRAISAL_CERTIFICATE, BOUND_TAX_CERTIFICATE, COPPER_PER_CERTIFICATE, FACTION_MONSTROSITY,
-    FOR_SALE_MARKER_DOODAD_ID, HOURS_FOR_FAILED_TAX_TO_RETURN_HOUSE,
+    self, broadcast, error_message as err, now, send_error, set_permission, tax_due_date,
+    template_of, update_house_faction, update_tax_info, world_of, APPRAISAL_CERTIFICATE,
+    BOUND_TAX_CERTIFICATE, COPPER_PER_CERTIFICATE, FACTION_MONSTROSITY, FOR_SALE_MARKER_DOODAD_ID,
+    HOURS_FOR_FAILED_TAX_TO_RETURN_HOUSE,
 };
 use super::packets::{
     CSCreateHousePacket, CSDecorateHousePacket, SCConstructHouseTaxPacket,
@@ -75,18 +75,25 @@ pub fn construct_house_tax(
     server: &GameServer,
     player: &PlayerRef,
     design_id: u32,
-    _x: f32,
-    _y: f32,
+    x: f32,
+    y: f32,
     _z: f32,
 ) {
-    // TODO (C#): validation position and some range...
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let Some(template) = server.game_data.systems.housing.template(design_id) else {
         tracing::error!("ConstructHouseTax: unknown design {design_id} (NullReferenceException)");
         return;
     };
     let account = player.data().account_id;
-    let info = match calculate_building_tax_info(server, account, template, true) {
-        Ok((_, info)) => info,
+    let instance = player.data().unit.transform.instance_id;
+    let info = match super::dominion::tax::quote_at(server, account, template, true, instance, x, y)
+    {
+        Ok(quote) => quote.info,
         Err(e) => {
             tracing::error!("ConstructHouseTax: {e}");
             return;
@@ -107,15 +114,20 @@ pub fn construct_house_tax(
 
 /// `HouseTaxInfo(connection, tlId)` (name plaque).
 pub fn house_tax_info(server: &GameServer, player: &PlayerRef, tl: u16) {
+    let _operation = server
+        .systems
+        .housing
+        .operation_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let Some(house) = server.systems.housing.manager.by_tl(tl) else {
         return;
     };
     let Some(template) = template_of(server, &house) else {
         return;
     };
-    let account = house.data().account_id;
-    let info = match calculate_building_tax_info(server, account, template, false) {
-        Ok((_, info)) => info,
+    let info = match super::dominion::tax::quote_house(server, &house) {
+        Ok(quote) => quote.info,
         Err(e) => {
             tracing::error!("HouseTaxInfo: {e}");
             return;
@@ -134,7 +146,7 @@ pub fn house_tax_info(server: &GameServer, player: &PlayerRef, tl: u16) {
     };
     player.send(SCHouseTaxInfoPacket {
         tl: h.unit.tl_id,
-        dominion_tax_rate: 0, // TODO (C#): implement when castles are added
+        dominion_tax_rate: info.hostile_tax_rate,
         money_amount: deposit_tax,
         money_amount2: info.total_tax_to_pay,
         due: h.protection_end_date,
@@ -192,17 +204,34 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
         send_error(player, e);
         return;
     }
+    let fort_owner =
+        match super::dominion::fort::placement_owner(server, player, template, p.x, p.y) {
+            Ok(owner) => owner,
+            Err(e) => {
+                send_error(player, e);
+                return;
+            }
+        };
     let Some(world) = server.world.world_of(&WorldObject::from(player)) else {
         send_error(player, err::INVALID_HOUSE_INFO);
         return;
     };
-    let total = match calculate_building_tax_info(server, char_account, template, true) {
-        Ok((_, info)) => info.total_tax_to_pay,
+    let quote = match super::dominion::tax::quote_at(
+        server,
+        char_account,
+        template,
+        true,
+        world.id,
+        p.x,
+        p.y,
+    ) {
+        Ok(quote) => quote,
         Err(e) => {
             tracing::error!("Build: {e}");
             return;
         }
     };
+    let total = quote.info.total_tax_to_pay;
 
     let tax_item = server
         .game_data
@@ -220,16 +249,31 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
         return;
     };
     house.data().id = house_id;
-    if let Err(e) = hooks.pay_house_construction(server, player, source, total, tax_item) {
+    let mut payment_error = None;
+    let mut payment_effects = None;
+    let revenue = super::dominion::tax::charge_with(server, &quote, || {
+        match hooks.pay_house_construction_deferred(server, player, source, total, tax_item) {
+            Ok(effects) => {
+                payment_effects = effects;
+                true
+            }
+            Err(error) => {
+                payment_error = Some(error);
+                false
+            }
+        }
+    });
+    if revenue.is_err() {
         manager::discard_created_house(server, &house);
         server.ids.housing.release_id(house_id);
         send_error(
             player,
-            match e {
-                HouseConstructionError::InvalidDesign => err::BAG_INVALID_ITEM,
-                HouseConstructionError::InsufficientPayment => {
+            match payment_error {
+                Some(HouseConstructionError::InvalidDesign) => err::BAG_INVALID_ITEM,
+                Some(HouseConstructionError::InsufficientPayment) => {
                     err::MAIL_NOT_ENOUGH_MONEY_TO_PAY_TAXES
                 }
+                None => crate::systems::economy::error_message::INVALID_TAXATION,
             },
         );
         return;
@@ -276,6 +320,9 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
         h.protection_end_date = place_date + initial_days * DAY;
         h.is_dirty = true;
     }
+    if let Some(owner) = fort_owner {
+        super::dominion::fort::apply_owner(server, &house, owner);
+    }
     let step = if template.build_steps.is_empty() {
         -1
     } else {
@@ -287,9 +334,18 @@ pub fn build(server: &GameServer, player: &PlayerRef, account_id: u32, p: &CSCre
         tracing::error!("Build: house id / tl already in use (ArgumentException)");
         return;
     }
-    player.send(my_house_packet(server, &house));
+    if fort_owner.is_none_or(|owner| owner.character_id == char_id) {
+        player.send(my_house_packet(server, &house));
+    }
     manager::spawn_house(server, &house);
     update_tax_info(server, &house);
+    if let Ok(Some(state)) = revenue {
+        crate::systems::social::dominion::broadcast_snapshot(server, &state, false);
+    }
+    drop(_operation);
+    if let Some(effects) = payment_effects {
+        crate::systems::economy::fx::flush(server, effects);
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -316,6 +372,10 @@ pub fn change_house_permission(server: &GameServer, player: &PlayerRef, tl: u16,
     let Some(house) = server.systems.housing.manager.by_tl(tl) else {
         return; // invalid house
     };
+    super::dominion::fort::refresh_owner(server, &house);
+    if super::dominion::fort::is_fort(server, &house) && permission != housing_permission::GUILD {
+        return;
+    }
     let char_id = player.data().id;
     if house.data().unit.owner_id != char_id {
         return; // not the owner
@@ -353,6 +413,7 @@ pub fn change_house_name(
     let Some(house) = server.systems.housing.manager.by_tl(tl) else {
         return;
     };
+    super::dominion::fort::refresh_owner(server, &house);
     let char_id = player.data().id;
     if house.data().unit.owner_id != char_id {
         return;
@@ -396,6 +457,7 @@ pub fn toggle_allow_recover(server: &GameServer, player: &PlayerRef, tl: u16) {
     let Some(house) = server.systems.housing.manager.by_tl(tl) else {
         return;
     };
+    super::dominion::fort::refresh_owner(server, &house);
     let char_id = player.data().id;
     let allow = {
         let mut h = house.data();
@@ -436,6 +498,7 @@ pub fn demolish(
         .lock()
         .unwrap_or_else(|e| e.into_inner());
     let manager = &server.systems.housing.manager;
+    super::dominion::fort::refresh_owner(server, house);
     let (id, owner, tl) = {
         let h = house.data();
         (h.id, h.unit.owner_id, h.unit.tl_id)
@@ -446,7 +509,9 @@ pub fn demolish(
         }
         return;
     }
-    let is_owner = player.is_none_or(|p| p.data().id == owner);
+    let is_owner = player.is_none_or(|p| {
+        p.data().id == owner || super::dominion::rights::can_demolish_ordinary(server, p, house)
+    });
     if !is_owner {
         // Non-owner should not be able to press demolish
         if let Some(p) = player {
@@ -496,6 +561,7 @@ pub fn demolish(
     house.data().is_dirty = true;
     // TODO (C#): better house killing handling
     manager.mark_removed(id);
+    super::dominion::fort::refresh_for_house(server, house);
 }
 
 /// One entry of `returnedItems`.
@@ -590,14 +656,22 @@ pub fn return_house_items_with_payment(
     mut mails: Vec<HouseMail>,
     payment: Option<(&PlayerRef, i32)>,
 ) -> Result<(), String> {
-    let (owner, house_id) = {
+    let (previous_owner, house_id) = {
         let h = house.data();
         (h.unit.owner_id, h.id)
     };
-    if owner == 0 {
+    if previous_owner == 0 {
         return Ok(());
     }
     let template = template_of(server, house).ok_or("house without template")?;
+    let owner = if super::dominion::fort::design(template).is_some() {
+        super::dominion::fort::state_for_house(server, house)
+            .and_then(|state| super::dominion::fort::owner(server, &state))
+            .ok_or("fort without a current expedition leader")?
+            .character_id
+    } else {
+        previous_owner
+    };
     let data = &server.game_data.systems.housing;
     let hooks = server.systems.housing.hooks.get();
     let mut returned: Vec<Returned> = Vec::new();
@@ -935,6 +1009,17 @@ pub fn set_for_sale(
         .operation_lock
         .lock()
         .unwrap_or_else(|e| e.into_inner());
+    if template_of(server, house)
+        .is_some_and(|template| super::dominion::fort::castle_category(template.category_id))
+    {
+        if let Some(player) = seller {
+            send_error(
+                player,
+                crate::systems::economy::error_message::HOUSE_CANNOT_SELL_AS_CASTLE,
+            );
+        }
+        return false;
+    }
     if price == 0 || i32::try_from(price).is_err() {
         return false;
     }
@@ -1140,6 +1225,15 @@ pub fn buy_house(server: &GameServer, tl: u16, money: u32, player: &PlayerRef) -
         send_error(player, err::INVALID_HOUSE_INFO);
         return false;
     };
+    if template_of(server, &house)
+        .is_some_and(|template| super::dominion::fort::castle_category(template.category_id))
+    {
+        send_error(
+            player,
+            crate::systems::economy::error_message::HOUSE_CANNOT_SELL_AS_CASTLE,
+        );
+        return false;
+    }
     let (char_id, char_account, char_faction, char_name) = player_ids(player);
     let h = house.data().clone();
     if h.unit.owner_id == 0 || h.protection_end_date <= now() {
@@ -1478,6 +1572,11 @@ pub fn craft_building(
     let Some(template) = template_of(server, house) else {
         return false;
     };
+    if super::dominion::fort::is_fort(server, house)
+        && !super::dominion::fort::allowed_to_interact(server, house, player)
+    {
+        return false;
+    }
     let char_name = player.data().unit.name.clone();
     let (current_action, current_step, owner, house_instance) = {
         let h = house.data();

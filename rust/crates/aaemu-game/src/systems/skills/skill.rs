@@ -349,12 +349,29 @@ pub fn use_skill(
     } else {
         None
     };
+    let housing_target = (template.target_type == SkillTargetType::Building as i32)
+        .then(|| initial_target(server, skill, caster, &caster_caster, target_caster))
+        .flatten();
+    if owned_target
+        .as_ref()
+        .or(housing_target.as_ref())
+        .is_some_and(|target| {
+            !crate::systems::housing::dominion::runtime::check_skill(server, skill, caster, target)
+        })
+    {
+        return (skill_result::INVALID_TARGET, 0);
+    }
     let character = caster.as_player().cloned();
     let cooldown_owner = character
         .clone()
         .or_else(|| owner_character(server, caster));
     if let Some(c) = &character {
         c.data().skill_char.skill_cancelled = false;
+    }
+    {
+        let mut state = skill.state();
+        state.generation = state.generation.wrapping_add(1);
+        state.cancelled = false;
     }
     caster.with_unit(|u| u.unit_mut().skill_state.condition_chance = true);
 

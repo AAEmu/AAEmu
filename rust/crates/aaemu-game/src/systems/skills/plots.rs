@@ -134,6 +134,10 @@ pub fn run_plot(server: &GameServer, plot_id: u32, ctx: CastCtx, skill: SkillRef
     let caster = state.ctx.caster.clone();
     caster.with_unit(|u| u.unit_mut().skill_state.active_plot = Some(PlotStateRef(state.clone())));
     skill.state().active_plot = Some(state.clone());
+    if !crate::systems::housing::dominion::runtime::begin_plot(server, &state) {
+        state.request_cancellation();
+        return;
+    }
     let Some(srv) = server.systems.skills.server() else {
         tracing::debug!("skills: no bound server, plot {plot_id} not run");
         return;
@@ -325,7 +329,11 @@ fn flush_execution_queue(
 fn end_plot_channel(server: &GameServer, state: &PlotState) {
     let buffs: Vec<(WorldObject, u32)> = state.inner().channeled_buffs.clone();
     for (unit, buff_id) in buffs {
-        super::buffs::remove_buff(server, &unit, buff_id);
+        if !crate::systems::housing::dominion::runtime::cleanup_plot_buff(
+            server, state, &unit, buff_id,
+        ) {
+            super::buffs::remove_buff(server, &unit, buff_id);
+        }
     }
 }
 

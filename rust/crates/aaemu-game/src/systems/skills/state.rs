@@ -40,6 +40,8 @@ impl PartialEq for CancelToken {
 #[derive(Debug, Default)]
 pub struct SkillRunState {
     pub tl_id: u16,
+    /// Accepted casts, independent of reusable timeline IDs.
+    pub generation: u64,
     pub cancelled: bool,
     /// `HitTypes` (target obj id -> hit type, `TryAdd` semantics where the C# uses it).
     pub hit_types: HashMap<u32, SkillHitType>,

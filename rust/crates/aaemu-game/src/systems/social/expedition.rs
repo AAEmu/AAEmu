@@ -1053,30 +1053,54 @@ pub async fn change_owner(server: &GameServer, owner: &PlayerRef, new_owner_id: 
 /// `ExpeditionManager.Disband(owner)`. The guild stays in the list (renamed
 /// `$deleted-guild-<id>`, owner 0) as in C#.
 pub async fn disband(server: &GameServer, owner: &PlayerRef) -> bool {
-    let Some(e) = expedition_of(server, owner) else {
-        send_error(owner, error::ONLY_EXPEDITION_MEMBER);
-        return false;
-    };
-    if e.faction.owner_id != owner.character_id {
-        send_error(owner, error::ONLY_EXPEDITION_OWNER);
-        return false;
-    }
-    let id = e.id();
-    for m in e.members.iter().rev() {
-        if let Some(c) = server.world.character_by_id(m.character_id) {
-            let online = c.data().is_online;
-            if online {
-                c.send(SCExpeditionDismissedPacket { id, success: true });
-            }
-            c.data().unit.expedition_id = 0;
+    let id = {
+        let _housing_operation = server
+            .systems
+            .housing
+            .operation_lock
+            .lock()
+            .expect("housing poisoned");
+        let Some(e) = expedition_of(server, owner) else {
+            send_error(owner, error::ONLY_EXPEDITION_MEMBER);
+            return false;
+        };
+        if e.faction.owner_id != owner.character_id {
+            send_error(owner, error::ONLY_EXPEDITION_OWNER);
+            return false;
         }
-        remove_member(server, id, m.character_id);
-    }
-    server.expeditions.with_mut(id, |e| {
-        e.faction.name = format!("$deleted-guild-{id}");
-        e.faction.owner_id = 0;
-        e.is_disbanded = true;
-    });
+        let id = e.id();
+        if server.systems.housing.dominions.all().iter().any(|d| {
+            d.owner_expedition_id == id
+                || d.siege.as_ref().is_some_and(|siege| {
+                    siege.status != crate::systems::housing::dominion::SiegeStatus::Finished
+                        && (siege.attacker_expedition_id == id
+                            || siege.defender_expedition_id == id)
+                })
+        }) {
+            crate::world::session::send_message(
+                owner,
+                crate::systems::social::chat::chat_type::SYSTEM,
+                "An expedition that owns territory or is registered for a siege cannot disband.",
+            );
+            return false;
+        }
+        for m in e.members.iter().rev() {
+            if let Some(c) = server.world.character_by_id(m.character_id) {
+                let online = c.data().is_online;
+                if online {
+                    c.send(SCExpeditionDismissedPacket { id, success: true });
+                }
+                c.data().unit.expedition_id = 0;
+            }
+            remove_member(server, id, m.character_id);
+        }
+        server.expeditions.with_mut(id, |e| {
+            e.faction.name = format!("$deleted-guild-{id}");
+            e.faction.owner_id = 0;
+            e.is_disbanded = true;
+        });
+        id
+    };
     save(server, id).await;
     true
 }

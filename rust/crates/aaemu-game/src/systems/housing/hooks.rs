@@ -152,6 +152,21 @@ pub trait HousingEconomyHooks: Send + Sync {
         Err(HouseConstructionError::InvalidDesign)
     }
 
+    /// The production economy bridge returns queued effects so a territory charge can defer
+    /// callbacks until authority/housing locks are released. Existing hook providers remain
+    /// compatible through their atomic construction payment implementation.
+    fn pay_house_construction_deferred(
+        &self,
+        server: &GameServer,
+        player: &PlayerRef,
+        design: HouseItem,
+        total: i32,
+        tax_item: bool,
+    ) -> Result<Option<crate::models::item_task::ItemFxList>, HouseConstructionError> {
+        self.pay_house_construction(server, player, design, total, tax_item)?;
+        Ok(None)
+    }
+
     /// `character.Inventory.GetItemById(itemId)` (any of the character's containers).
     fn inventory_item(
         &self,

@@ -685,8 +685,7 @@ impl CSPayChargeMoneyPacket {
             self.mail_id,
             self.auto_use_aa_point
         );
-        let mut txn = ItemTxn::begin(server);
-        if !mail::pay_charge_money(&mut txn, &p, self.mail_id, self.auto_use_aa_point) {
+        if !mail::pay_housing_tax(server, &p, self.mail_id, self.auto_use_aa_point) {
             tracing::warn!(
                 "PayChargeMoney failed, mailId: {}, autoUseAAPoint: {}",
                 self.mail_id,
