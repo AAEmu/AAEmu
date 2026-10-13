@@ -10,6 +10,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 using NLog;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
@@ -296,8 +297,18 @@ public class FloatingSkillController : SkillController
 
     private float GetGroundHeight()
     {
-        var geoZ = Owner.ParentWorld.Template.GeoData.GetHeight(Owner.Transform.World.Position);
-        return geoZ > 0 ? geoZ : _startZ;
+        // Hint with the pre-lift ground. An airborne Z past the floor window makes a cave
+        // floor lose to surface terrain (above the NPC), and a miss returns that hint
+        // unchanged, which would also cancel the fall.
+        var hit = Owner.ParentWorld.Template.Floor.QueryFloor(
+            Owner.Transform.World.Position.X,
+            Owner.Transform.World.Position.Y,
+            _startZ,
+            FloorContext.Skill);
+        if (hit.Provider == FloorProvider.Unchanged || hit.Z <= 0f)
+            return _startZ;
+
+        return hit.Z;
     }
 
     private void PullTick(TimeSpan delta)
@@ -331,7 +342,7 @@ public class FloatingSkillController : SkillController
             travelDist, targetDist, currentPos, _endPosition);
         Owner.Transform.Local.SetPosition(newX, newY, newZ);
 
-        var updZ = Owner.ParentWorld.Template.GeoData.GetHeight(Owner.Transform.World.Position);
+        var updZ = Owner.ParentWorld.Template.Floor.GetFloor(Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y, Owner.Transform.World.Position.Z, FloorContext.Skill);
         if (Math.Abs(newZ - updZ) < 1f)
             Owner.Transform.Local.SetHeight(updZ);
 

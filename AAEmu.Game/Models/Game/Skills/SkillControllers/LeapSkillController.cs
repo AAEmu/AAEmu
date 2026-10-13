@@ -11,6 +11,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 using NLog;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
@@ -178,7 +179,7 @@ public class LeapSkillController : SkillController
         var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(travelDist, targetDist, Owner.Transform.Local.Position, _endPosition);
         Owner.Transform.Local.SetPosition(newX, newY, newZ);
 
-        var updZ = Owner.ParentWorld.Template.GeoData.GetHeight(Owner.Transform.World.Position);
+        var updZ = Owner.ParentWorld.Template.Floor.GetFloor(Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y, Owner.Transform.World.Position.Z, FloorContext.Skill);
         if (Math.Abs(newZ - updZ) < 1f)
             Owner.Transform.Local.SetHeight(updZ);
 

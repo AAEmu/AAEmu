@@ -76,9 +76,10 @@ public class TestNavMesh : ICommand
         }
         messageOutput.SendMessage($"Reduced:");
         var reducedPath = world.Template.GeoData.ReducePath(foundPath.ToList(), 10).ToList();
+        var surfacePath = world.Template.Floor.ApplyPathWaypointZ(reducedPath).ToList();
         //reducedPath.Insert(0, npc.Transform.World.Position);
         //reducedPath.Add(character.Transform.World.Position);
-        foreach (var v3 in reducedPath)
+        foreach (var v3 in surfacePath)
         {
             messageOutput.SendMessage($"=> {v3}");
             AddDoodadMarker(world, v3, crescentThroneFlagDoodad);

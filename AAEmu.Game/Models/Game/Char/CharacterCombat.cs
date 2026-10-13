@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
@@ -366,7 +367,7 @@ public partial class Character
 
                 doodad.IsPersistent = true;
                 doodad.Transform = Transform.CloneDetached(doodad);
-                doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position));
+                doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.Floor.GetFloor(doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, doodad.Transform.World.Position.Z, FloorContext.Spawn));
                 doodad.AttachPoint = AttachPointKind.None;
                 doodad.ItemId = item.Id;
                 doodad.ItemTemplateId = item.Template.Id;

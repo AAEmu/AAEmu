@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -54,7 +55,7 @@ public class Blink : SpecialEffectAction
             var endY = newPos.Local.Position.Y;
             var endZ = newPos.Local.Position.Z;
 
-            var groundZ = npc.ParentWorld.Template.GeoData.GetHeight(new Vector3(endX, endY, endZ));
+            var groundZ = npc.ParentWorld.Template.Floor.GetFloor(endX, endY, endZ, FloorContext.Skill);
             if (groundZ > 0 && Math.Abs(endZ - groundZ) < 5f)
                 endZ = groundZ;
 

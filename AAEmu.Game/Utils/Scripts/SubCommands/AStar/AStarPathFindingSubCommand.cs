@@ -35,7 +35,7 @@ public class AStarPathFindingSubCommand : SubCommandBase
             if (resList.Count > 0 && npc.Ai.PathNode.StartPointPos != resList[0]) // Skip the first node in this list if not on it
                 resList.RemoveAt(0);
             var reducedList = npc.ParentWorld.Template.GeoData.ReducePath(resList, 10);
-            npc.Ai.PathNode.FoundPath = reducedList;
+            npc.Ai.PathNode.FoundPath = npc.ParentWorld.Template.Floor.ApplyPathWaypointZ(reducedList);
 
             character.SendMessage($"AStar: points found Total: {resList?.Count ?? 0}");
             for (var i = 0; i < resList.Count; i++)
