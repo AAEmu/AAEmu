@@ -167,19 +167,39 @@ public sealed class House : Unit
     /// <summary>10.x public-listing flag (sale dialog checkbox); only public sales feed the property listing.</summary>
     public bool SellPublic { get => _sellPublic; set { _sellPublic = value; _isDirty = true; } }
 
-    // House always gets its guild from its owner
+    /// <summary>
+    /// Guild residences belong to the expedition that still names this house
+    /// (<c>ResidenceHouseId</c>). Ordinary houses follow the owner's current membership.
+    /// Using the owner alone reassigns a clubhouse after the placer leaves or joins another guild,
+    /// which also poisons the "Current Guild" wire name on house packets.
+    /// </summary>
     public override Expedition Expedition
     {
         get
         {
+            Expedition residenceNamed = null;
+            if (Id != 0 && HousingGameData.Instance.IsExpeditionResidenceTemplate(TemplateId))
+            {
+                foreach (var expedition in ExpeditionManager.Instance.Expeditions)
+                {
+                    if (expedition.ResidenceHouseId == Id)
+                    {
+                        residenceNamed = expedition;
+                        break;
+                    }
+                }
+            }
+
+            Expedition ownerGuild = null;
             var guildId = ExpeditionManager.Instance.GetExpeditionOfCharacter(OwnerId);
-            if (guildId == 0)
-                return null;
-            return ExpeditionManager.Instance.GetExpedition(guildId);
+            if (guildId != 0)
+                ownerGuild = ExpeditionManager.Instance.GetExpedition(guildId);
+
+            return HousingResidenceRules.ResolveOwningExpedition(residenceNamed, ownerGuild) as Expedition;
         }
         set
         {
-            // Ignored, we always get the guild from its owner
+            // Ignored: resolved from ResidenceHouseId / owner membership above.
         }
     }
 

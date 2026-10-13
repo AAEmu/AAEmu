@@ -58,6 +58,8 @@ public class HousingResidenceRulesTests
         var named = new SystemFaction { Id = (FactionsEnum)100 };
         var current = new SystemFaction { Id = (FactionsEnum)200 };
 
+        // Placer left / joined another guild: ResidenceHouseId guild still wins for Faction and
+        // House.Expedition (packet "Current Guild" name).
         await Assert.That(HousingResidenceRules.ResolveOwningExpedition(named, current).Id)
             .IsEqualTo(named.Id);
         await Assert.That(HousingResidenceRules.ResolveOwningExpedition(null, current).Id)
