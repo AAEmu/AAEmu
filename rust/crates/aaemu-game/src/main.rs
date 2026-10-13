@@ -68,18 +68,28 @@ async fn wait_for_ctrl_c() -> anyhow::Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // NLog.config: console, Logs/Server.log and Logs/Error.log next to the executable.
-    aaemu_commons::logging::init(&aaemu_commons::helpers::base_directory());
+    let result = run().await;
+    if let Err(e) = &result {
+        tracing::error!("Fatal: {e:#}");
+    }
+    result
+}
+
+async fn run() -> anyhow::Result<()> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let (app_path, config_args) = split_args(args.clone());
+    // NLog.config: console, Logs/Server.log and Logs/Error.log. Under the application
+    // directory (the executable's directory in the published layout), so login and game
+    // servers built into one target directory do not share (and delete) each other's logs.
+    aaemu_commons::logging::init(&app_path);
     initialization();
 
-    let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("compiler-check") {
         tracing::info!("Check compilation");
         tracing::info!("Compilation successful");
         return Ok(());
     }
 
-    let (app_path, config_args) = split_args(args);
     aaemu_commons::file_manager::remember_app_dir(&app_path);
     tracing::info!("Application directory: {}", app_path.display());
     // BuildConfiguration: JSON files, user secrets, environment, command line.

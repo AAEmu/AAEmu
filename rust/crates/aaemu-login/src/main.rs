@@ -18,8 +18,18 @@ fn config_dir() -> PathBuf {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // NLog.config: console, Logs/Server.log and Logs/Error.log next to the executable.
-    aaemu_commons::logging::init(&aaemu_commons::helpers::base_directory());
+    let result = run().await;
+    if let Err(e) = &result {
+        tracing::error!("Fatal: {e:#}");
+    }
+    result
+}
+
+async fn run() -> anyhow::Result<()> {
+    let dir = config_dir();
+    // NLog.config: console, Logs/Server.log and Logs/Error.log under the application directory
+    // (the executable's directory in the published layout).
+    aaemu_commons::logging::init(&dir);
 
     let start = Instant::now();
     tracing::info!(
@@ -38,7 +48,6 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let dir = config_dir();
     let config = AppConfig::load(&dir, &args)?;
     tracing::info!("Loaded configuration from {}", dir.display());
 

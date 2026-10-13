@@ -67,14 +67,19 @@ cmd_db_reset() {
   done
 }
 
+# Keeps the previous run's console log as <name>.prev.log (a crashed run's tail is in there).
+keep_prev() { [ -s "$1" ] && mv -f "$1" "${1%.log}.prev.log" || true; }
+
 cmd_start() {
   cmd_mysql
   if ! running aaemu-login.exe; then
+    keep_prev "$LIVE/logs/rs-login.log"
     (cd "$LIVE/rs-login" && NO_COLOR=1 RUST_LOG=${RUST_LOG:-info} "$BIN/aaemu-login.exe" \
       > "$LIVE/logs/rs-login.log" 2>&1 &)
     sleep 3
   fi
   if ! running aaemu-game.exe; then
+    keep_prev "$LIVE/logs/rs-game.log"
     (cd "$LIVE/rs-game" && NO_COLOR=1 RUST_LOG=${RUST_LOG:-info} "$BIN/aaemu-game.exe" "$LIVE/rs-game" \
       > "$LIVE/logs/rs-game.log" 2>&1 &)
   fi
@@ -110,6 +115,10 @@ cmd_status() {
     if running "$p"; then echo "UP    $p"; else echo "down  $p"; fi
   done
   for f in rs-login rs-game; do echo "--- $f.log"; tail -3 "$LIVE/logs/$f.log" 2>/dev/null | cut -c1-160; done
+  for d in rs-login rs-game; do
+    [ -s "$LIVE/$d/Logs/Crash.log" ] && echo "!!! crash reports: $LIVE/$d/Logs/Crash.log"
+  done
+  true
 }
 
 cmd_shot() {

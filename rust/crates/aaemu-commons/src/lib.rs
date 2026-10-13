@@ -6,6 +6,7 @@
 
 pub mod aapak;
 pub mod client_files;
+pub mod crash;
 pub mod dotnet_fmt;
 pub mod error;
 pub mod file_manager;

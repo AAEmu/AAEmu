@@ -4,10 +4,14 @@
 //! * `${basedir}/Logs/Server.log`: `Trace` through `Warn`;
 //! * `${basedir}/Logs/Error.log`: `Error`.
 //!
-//! Both files are deleted on startup (`deleteOldFileOnStartup`) and archived daily as
-//! `Server.yyyy-MM-dd.log` / `Error.yyyy-MM-dd.log`, keeping the newest 9 archives
-//! (`archiveEvery="Day"`, `maxArchiveFiles="9"`). `RUST_LOG`, when set, replaces the level
-//! rules (it filters every target).
+//! Both files are archived daily as `Server.yyyy-MM-dd.log` / `Error.yyyy-MM-dd.log`, keeping
+//! the newest 9 archives (`archiveEvery="Day"`, `maxArchiveFiles="9"`). `RUST_LOG`, when set,
+//! replaces the level rules (it filters every target; `Error.log` still only gets errors).
+//!
+//! Deviation: NLog deletes both files on startup (`deleteOldFileOnStartup`); here the previous
+//! run's files move to `Logs/Previous/Server.<last write time>.log` (newest 9 kept), so the log
+//! of a crashed run survives the restart. Panics and native crashes are also reported to
+//! `Logs/Crash.log` ([`crate::crash`]).
 
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
@@ -65,12 +69,12 @@ pub struct DailyFile {
 }
 
 impl DailyFile {
-    /// Opens `dir/name.log`, deleting a previous one (`deleteOldFileOnStartup`).
+    /// Opens `dir/name.log`, moving a previous one to `dir/Previous/` (see the module docs).
     pub fn new(dir: &Path, name: &str) -> io::Result<Self> {
         fs::create_dir_all(dir)?;
         let path = dir.join(format!("{name}.log"));
         if path.exists() {
-            fs::remove_file(&path)?;
+            keep_previous(dir, name, &path)?;
         }
         Ok(Self {
             dir: dir.to_path_buf(),
@@ -127,6 +131,44 @@ impl DailyFile {
     }
 }
 
+/// Moves the previous run's `path` to `dir/Previous/name.<last write time>.log` and keeps the
+/// newest [`MAX_ARCHIVE_FILES`] of them.
+fn keep_previous(dir: &Path, name: &str, path: &Path) -> io::Result<()> {
+    let previous = dir.join("Previous");
+    fs::create_dir_all(&previous)?;
+    let written: chrono::DateTime<Local> = fs::metadata(path)?
+        .modified()
+        .map(Into::into)
+        .unwrap_or_else(|_| Local::now());
+    let stamp = written.format("%Y-%m-%d_%H-%M-%S");
+    let mut target = previous.join(format!("{name}.{stamp}.log"));
+    let mut n = 1;
+    while target.exists() {
+        target = previous.join(format!("{name}.{stamp}-{n}.log"));
+        n += 1;
+    }
+    if fs::rename(path, &target).is_err() {
+        // Still open elsewhere (another server sharing the directory): copy, then truncate.
+        fs::copy(path, &target)?;
+        OpenOptions::new().write(true).truncate(true).open(path)?;
+    }
+    let prefix = format!("{name}.");
+    let mut kept: Vec<PathBuf> = fs::read_dir(&previous)?
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with(&prefix) && n.ends_with(".log"))
+        })
+        .collect();
+    kept.sort();
+    while kept.len() > MAX_ARCHIVE_FILES {
+        let _ = fs::remove_file(kept.remove(0));
+    }
+    Ok(())
+}
+
 /// `MakeWriter` handle over a shared [`DailyFile`].
 #[derive(Clone)]
 pub struct DailyWriter(Arc<DailyFile>);
@@ -150,8 +192,9 @@ impl<'a> MakeWriter<'a> for DailyWriter {
     }
 }
 
-/// Installs the global subscriber with the NLog targets under `base_dir/Logs`. If the log
-/// directory cannot be created, only the console target is installed (and a warning logged).
+/// Installs the global subscriber with the NLog targets under `base_dir/Logs`, and the crash
+/// reporter ([`crate::crash`]). If the log directory cannot be created, only the console
+/// target is installed (and a warning logged).
 pub fn init(base_dir: &Path) {
     let env = std::env::var("RUST_LOG").ok().filter(|s| !s.is_empty());
     let filter = |default: LevelFilter| match &env {
@@ -178,7 +221,8 @@ pub fn init(base_dir: &Path) {
                 .event_format(NlogFormat)
                 .with_ansi(false)
                 .with_writer(DailyWriter(Arc::new(error)))
-                .with_filter(filter(LevelFilter::ERROR));
+                .with_filter(filter(LevelFilter::ERROR))
+                .with_filter(LevelFilter::ERROR);
             let _ = tracing_subscriber::registry()
                 .with(console)
                 .with(server_layer)
@@ -190,6 +234,8 @@ pub fn init(base_dir: &Path) {
             tracing::warn!("File logging disabled ({}): {e}", logs.display());
         }
     }
+    crate::crash::install(&logs);
+    tracing::info!("Logging to {}", logs.display());
 }
 
 #[cfg(test)]
@@ -197,7 +243,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn startup_deletes_old_file_and_roll_keeps_nine_archives() {
+    fn startup_keeps_previous_file_and_roll_keeps_nine_archives() {
         let dir = std::env::temp_dir().join(format!("aaemu-log-test-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
@@ -206,7 +252,14 @@ mod tests {
             fs::write(dir.join(format!("Server.2026-01-{d:02}.log")), "a").unwrap();
         }
         let f = DailyFile::new(&dir, "Server").unwrap();
-        assert!(!dir.join("Server.log").exists(), "deleteOldFileOnStartup");
+        assert!(!dir.join("Server.log").exists(), "previous run moved away");
+        let previous: Vec<_> = fs::read_dir(dir.join("Previous"))
+            .unwrap()
+            .flatten()
+            .collect();
+        assert_eq!(previous.len(), 1);
+        assert_eq!(fs::read_to_string(previous[0].path()).unwrap(), "old");
+        fs::remove_dir_all(dir.join("Previous")).unwrap();
         f.write_all(b"line\n").unwrap();
         f.roll(NaiveDate::from_ymd_opt(2026, 2, 1).unwrap());
         let mut names: Vec<String> = fs::read_dir(&dir)

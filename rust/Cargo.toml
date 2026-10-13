@@ -59,3 +59,8 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.aes]
 opt-level = 3
+
+# Line tables in release builds (into the .pdb on Windows), so panic backtraces and the native
+# crash reports in Logs/Crash.log name file:line. Code generation is unchanged.
+[profile.release]
+debug = "line-tables-only"

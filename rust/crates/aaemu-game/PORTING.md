@@ -613,6 +613,14 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 
 ## Known deviations from the C#
 
+* Logging (`aaemu_commons::logging`, login and game): `Logs/` lives under the application
+  directory instead of the executable's directory, so servers built into one target directory no
+  longer share (and delete) each other's files. NLog's `deleteOldFileOnStartup` became "move the
+  previous run's `Server.log` / `Error.log` to `Logs/Previous/`" (newest 9 kept). Additionally,
+  `aaemu_commons::crash` logs every panic with a backtrace and appends it to `Logs/Crash.log`.
+  On Windows x64 it also catches fatal native exceptions (stack overflow, access violation) and
+  writes the unwound, symbolized stack and a minidump (`Logs/Crash/`). Release builds carry line
+  tables (`[profile.release] debug = "line-tables-only"`) for those traces.
 * systems::skills (character creation): the chosen ability's first starting spell occupies
   hotbar slot 1. The shared action originally assigned there moves to the starter's free slot,
   retaining the other authored utility and supply shortcuts. Further starting spells skip
