@@ -1,8 +1,21 @@
 # Developer Notes
 
 - Audience: Contributors
-- Last verified against: `develop` on October 13, 2026
+- Last verified against: `rust-rewrite` on October 13, 2026
 - Prerequisites: None
+
+## New character skills and hotbar
+
+Character creation uses the selected ability from `CSCreateCharacterPacket`. Starting spells
+come from `compact.sqlite3`'s `skills` rows marked visible, auto-learned, requiring learning,
+and available at ability level 1. Shared shortcuts come from `default_skills` entries whose
+`add_to_slot` flag is set; starting supplies use `character_supplies`.
+
+The selected ability's first starting spell appears on key 1. Its displaced shared action moves
+to a free slot, preserving the other utility and supply shortcuts. Sorcery starts with Flamebolt
+(10752); Battlerage starts with Triple Slash (18132). Melee Attack, Shoot Arrow and Kick are
+shared general skills, even though Kick uses a Battlerage-style icon. Saved hotbars retain the
+player's arrangement when logging in.
 
 ## NPC movement and respawn
 

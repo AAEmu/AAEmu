@@ -12,8 +12,8 @@ use crate::data::character_templates::EquipItemsTemplate;
 use crate::data::items::{bind_type, ItemTemplate};
 use crate::db::get_account_details;
 use crate::db_character::{
-    check_for_deleted_characters, is_character_pending_deletion, learn_skill,
-    save_directly_to_database, set_delete_times,
+    check_for_deleted_characters, is_character_pending_deletion, save_directly_to_database,
+    set_delete_times,
 };
 use crate::error::{GameError, Result};
 use crate::managers::name::{normalize_name, CharacterCreateError};
@@ -397,43 +397,7 @@ pub async fn create(
     c.abilities.set_ability(c.ability1, 0);
     c.actability = CharacterActability::for_new_character(&data.characters);
 
-    for ds in &data.skills.default_skills {
-        if !ds.add_to_slot {
-            continue;
-        }
-        c.set_action(
-            usize::from(ds.slot),
-            ActionSlotType::Spell,
-            u64::from(ds.skill_id),
-        );
-    }
-    let mut slot = 1usize;
-    while c
-        .slots
-        .get(slot)
-        .is_some_and(|s| s.kind != ActionSlotType::None)
-    {
-        slot += 1;
-    }
-    let start = data
-        .skills
-        .start_ability_skills(c.ability1)
-        .map(<[u32]>::to_vec)
-        .ok_or_else(|| {
-            GameError::Protocol(format!("no start skills for ability {}", c.ability1))
-        })?;
-    for skill_id in start {
-        // Skills.AddSkill(template, 1, false): the level comes from the ability level.
-        let ab = crate::db_character::ab_level(
-            server,
-            &c,
-            data.skills.skill(skill_id).map_or(0, |t| t.ability_id),
-        );
-        c.skills.add_skill_template(&data.skills, skill_id, ab);
-        c.set_action(slot, ActionSlotType::Spell, u64::from(skill_id));
-        slot += 1;
-    }
-    let _ = learn_skill;
+    initialize_starting_skills(server, &mut c)?;
 
     // character.Hp = character.MaxHp (the getters include the gear bonuses and buffs).
     let player = crate::world::Player::new(c, detached);
@@ -464,6 +428,55 @@ pub async fn create(
         tracing::warn!(
             "DeleteCharacterAssets - fullWipe is currently not implemented yet, charId: {id}"
         );
+    }
+    Ok(())
+}
+
+/// Learn the selected ability's starters and make its first spell the primary shortcut.
+fn initialize_starting_skills(server: &GameServer, c: &mut Character) -> Result<()> {
+    let data = &server.game_data;
+    for ds in &data.skills.default_skills {
+        if !ds.add_to_slot {
+            continue;
+        }
+        c.set_action(
+            usize::from(ds.slot),
+            ActionSlotType::Spell,
+            u64::from(ds.skill_id),
+        );
+    }
+    let mut slot = 1usize;
+    let start = data
+        .skills
+        .start_ability_skills(c.ability1)
+        .ok_or_else(|| {
+            GameError::Protocol(format!("no start skills for ability {}", c.ability1))
+        })?;
+    for (index, &skill_id) in start.iter().enumerate() {
+        while c
+            .slots
+            .get(slot)
+            .is_some_and(|s| s.kind != ActionSlotType::None)
+        {
+            slot += 1;
+        }
+        if slot >= c.slots.len() {
+            return Err(GameError::Protocol("no free starting skill slot".into()));
+        }
+        // Skills.AddSkill(template, 1, false): the level comes from the ability level.
+        let ab = crate::db_character::ab_level(
+            server,
+            c,
+            data.skills.skill(skill_id).map_or(0, |t| t.ability_id),
+        );
+        c.skills.add_skill_template(&data.skills, skill_id, ab);
+        c.set_action(slot, ActionSlotType::Spell, u64::from(skill_id));
+        // Shared attacks keep their shortcuts, except the action on key 1 moves to the
+        // starter's free slot. This also works when authored defaults fill the first bar.
+        if index == 0 {
+            c.slots.swap(1, slot);
+        }
+        slot += 1;
     }
     Ok(())
 }

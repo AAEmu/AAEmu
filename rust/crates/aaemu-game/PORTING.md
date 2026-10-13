@@ -613,6 +613,11 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 
 ## Known deviations from the C#
 
+* systems::skills (character creation): the chosen ability's first starting spell occupies
+  hotbar slot 1. The shared action originally assigned there moves to the starter's free slot,
+  retaining the other authored utility and supply shortcuts. Further starting spells skip
+  occupied slots. This replaces the C# layout that puts all shared defaults ahead of the
+  chosen starter; saved hotbars are only loaded, not rebuilt.
 * `LGPlayerEnter` for an already registered connection id: C# `Dictionary.Add` throws inside the
   login handler, which has no catch (the exception escapes into the network client, the world is
   shown inactive afterwards). Rust replaces the stale entry and replies 0 (see "Live testing").
