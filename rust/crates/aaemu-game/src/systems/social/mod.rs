@@ -13,6 +13,11 @@
 //! re-export the moved phase-2 managers (`server.chat`, `server.expeditions`, `server.friends`).
 
 pub mod achievement;
+pub mod achievement_hooks;
+pub mod achievement_manager;
+pub mod achievement_persistence;
+pub mod achievement_rewards;
+pub mod achievement_runtime;
 pub mod bridges;
 pub mod chat;
 pub mod config;
@@ -25,6 +30,9 @@ pub mod family;
 pub mod friend;
 pub mod hooks;
 pub mod packets;
+pub mod ranking_data;
+pub mod ranking_packets;
+pub mod ranking_runtime;
 pub mod session;
 pub mod team;
 pub mod trial;
@@ -53,6 +61,8 @@ pub struct Data {
     pub relations: faction::FactionRelations,
     /// `AchievementGameData.Load`.
     pub achievements: achievement::AchievementGameData,
+    /// `ranks` / `rank_scopes` / `rank_rewards` and their links (`RankingGameData.Load`).
+    pub ranking: ranking_data::RankingGameData,
 }
 
 impl Data {
@@ -61,6 +71,7 @@ impl Data {
         Ok(Self {
             relations: faction::FactionRelations::load(ctx)?,
             achievements: achievement::AchievementGameData::load(ctx.conn)?,
+            ranking: ranking_data::RankingGameData::load(ctx)?,
         })
     }
 }

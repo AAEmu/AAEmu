@@ -288,7 +288,8 @@ impl BaseMail {
 
     /// `CanReturnMail()`.
     pub fn can_return_mail(&self) -> bool {
-        !self.is_delivered
+        !self.header.returned
+            && self.header.status == mail_status::UNREAD
             && self.header.sender_id != self.header.receiver_id
             && self.header.sender_id > 0
             && (self.mail_type == mail_type::NORMAL || self.mail_type == mail_type::EXPRESS)
@@ -688,6 +689,7 @@ impl MailManager {
 
     /// The row handling of `Load()` (DB-free).
     pub fn load_rows(&self, server: &GameServer, rows: Vec<MailRow>, now: UnixTime) {
+        let mut txn = ItemTxn::begin(server);
         let mut st = self.state();
         st.all = DotNetDict::default();
         st.deleted.clear();
@@ -736,6 +738,9 @@ impl MailManager {
                         m.id
                     );
                 }
+            }
+            if !relocate_attachments(&mut txn, &m) {
+                tracing::error!("Unable to restore attachments for mail {}", m.id);
             }
             let mut attachment_count = m.body.attachments.len() as i32;
             if m.body.copper_coins > 0 {
@@ -1061,6 +1066,56 @@ pub fn send_mail(txn: &mut ItemTxn<'_>, mut mail: BaseMail) -> Option<i64> {
 
 /// `MailManager.Send(mail)`: verifies the receiver, assigns an id, stores the mail and notifies
 /// the receiver when online. Returns the mail id (`None` = `false`).
+pub(crate) fn store_quest_rewards_locked(
+    txn: &mut ItemTxn<'_>,
+    c: &mut crate::models::character::Character,
+    mut mails: Vec<BaseMail>,
+) -> bool {
+    let mut st = txn.server.systems.economy.mail.state();
+    for m in &mut mails {
+        m.id = i64::from(new_mail_id(txn.server, &mut st));
+        if m.id <= 0 {
+            for allocated in &mails {
+                if allocated.id > 0 {
+                    txn.server.ids.mail.release_id(allocated.id as u32);
+                }
+            }
+            drop(st);
+            if let Some((_, container)) = c
+                .inventory
+                .containers
+                .iter()
+                .find(|(kind, _)| *kind == slot_type::MAIL)
+            {
+                let mut container = container.lock().expect("container poisoned");
+                for m in mails {
+                    for id in m.body.attachments {
+                        container.remove_item_task(task_type::INVALID, id, true, &mut txn.env);
+                    }
+                }
+            }
+            return false;
+        }
+    }
+    for mut m in mails {
+        m.is_dirty = true;
+        m.is_delivered = true;
+        c.unread_mail.update_received(m.mail_type, 1);
+        txn.env.fx.send(
+            c.id,
+            SCGotMailPacket {
+                mail: m.header_wire(),
+                count: c.unread_mail,
+                is_cancel: false,
+                body: None,
+            },
+        );
+        renumber_slots(txn.server, &m);
+        st.all.add(m.id, m);
+    }
+    true
+}
+
 pub fn manager_send(txn: &mut ItemTxn<'_>, mut mail: BaseMail) -> Option<i64> {
     let server = txn.server;
     // Verify Receiver
@@ -1095,6 +1150,9 @@ pub fn manager_send(txn: &mut ItemTxn<'_>, mut mail: BaseMail) -> Option<i64> {
         mail.is_dirty = true;
     }
     let id = mail.id;
+    if id <= 0 || st.all.contains_key(id) || !relocate_attachments(txn, &mail) {
+        return None;
+    }
     if !st.all.add(id, mail) {
         // C#: Dictionary.Add throws ArgumentException.
         tracing::error!("Send() - mail {id} is already stored");
@@ -1103,6 +1161,44 @@ pub fn manager_send(txn: &mut ItemTxn<'_>, mut mail: BaseMail) -> Option<i64> {
     let m = st.all.get_mut(id).expect("just added");
     notify_new_mail_by_name_if_online(server, &mut txn.env.fx, m, &target_name);
     Some(id)
+}
+
+/// Put every attached item in the receiver's persistent mail escrow. This also repairs
+/// legacy rows whose item container still belonged to the sender or auction seller.
+fn relocate_attachments(txn: &mut ItemTxn<'_>, mail: &BaseMail) -> bool {
+    let mut seen = std::collections::HashSet::new();
+    if mail.body.attachments.len() > MAX_MAIL_ATTACHMENTS
+        || mail
+            .body
+            .attachments
+            .iter()
+            .any(|id| !seen.insert(*id) || txn.server.items.item_by_id(*id).is_none())
+    {
+        return false;
+    }
+    if mail.body.attachments.is_empty() {
+        return true;
+    }
+    let server = txn.server;
+    let target = server
+        .world
+        .character_by_id(mail.header.receiver_id)
+        .and_then(|p| mail_container(&p))
+        .unwrap_or_else(|| {
+            server.items.container_for_character(
+                mail.header.receiver_id,
+                slot_type::MAIL,
+                0,
+                &server.ids.container,
+            )
+        });
+    for &id in &mail.body.attachments {
+        if !add_or_move_existing_item(txn, &target, task_type::INVALID, id, -1) {
+            return false;
+        }
+    }
+    renumber_slots(server, mail);
+    true
 }
 
 /// `NotifyNewMailByNameIfOnline(m, receiverName)`.
@@ -1192,7 +1288,7 @@ pub fn get_current_mail_list(txn: &mut ItemTxn<'_>, character_id: u32) -> Vec<i6
     }
     for id in &ids {
         let m = st.all.get_mut(*id).expect("listed");
-        if m.header.status != mail_status::READ {
+        if m.header.status != mail_status::READ && m.header.receiver_id == character_id {
             if let Some(p) = &character {
                 let count = {
                     let mut c = p.data();
@@ -1560,9 +1656,7 @@ pub fn delete_house_mails(txn: &mut ItemTxn<'_>, house_id: u32) {
     }
 }
 
-/// `BaseMail.ReturnToSender()` for the stored mail `mail_id`. The C# re-`Send`s a mail that is
-/// already in `_allPlayerMails`, so `Dictionary.Add` throws after the swap: the swap and the
-/// `SCMailReturnedPacket` happen, the final notify does not (mirrored, returns `false`).
+/// Return the existing mail once, preserving its item IDs and attached money.
 pub fn return_to_sender(txn: &mut ItemTxn<'_>, mail_id: i64) -> bool {
     let server = txn.server;
     let mails = &server.systems.economy.mail;
@@ -1572,6 +1666,9 @@ pub fn return_to_sender(txn: &mut ItemTxn<'_>, mail_id: i64) -> bool {
     if !mail.can_return_mail() {
         return false;
     }
+    let Some(original_sender) = server.names.get_character_name(mail.header.sender_id) else {
+        return false;
+    };
     if let Some(r) = server.world.character_by_id(mail.header.receiver_id) {
         txn.env.fx.send(
             r.character_id,
@@ -1585,19 +1682,37 @@ pub fn return_to_sender(txn: &mut ItemTxn<'_>, mail_id: i64) -> bool {
         let original_receiver_id = m.header.receiver_id;
         let original_receiver_name = m.receiver_name.clone();
         m.header.receiver_id = m.header.sender_id;
-        m.receiver_name = m.header.sender_name.clone();
+        m.receiver_name = original_sender.clone();
         m.is_dirty = true;
         m.header.sender_id = original_receiver_id;
         m.header.sender_name = original_receiver_name;
+        m.header.returned = true;
+        m.header.status = mail_status::UNREAD;
+        m.open_date = 0;
+        m.body.recv_date = now();
+        m.is_delivered = false;
         // Send(): recount + renumber before MailManager.Send
         m.header.attachments = m.get_total_attachment_count();
         m.clone()
     });
     let Some(swapped) = swapped else { return false };
     renumber_slots(server, &swapped);
-    // MailManager.Send: the receiver checks pass, then `_allPlayerMails.Add` throws.
-    tracing::error!("ReturnToSender() - mail {mail_id} is already stored (C# ArgumentException)");
-    false
+    if !relocate_attachments(txn, &swapped) {
+        return false;
+    }
+    if mail.is_delivered && mail.header.status == mail_status::UNREAD {
+        if let Some(receiver) = server.world.character_by_id(mail.header.receiver_id) {
+            receiver
+                .data()
+                .unread_mail
+                .update_received(mail.mail_type, -1);
+            super::mail_character::send_unread_mail_count(&mut txn.env.fx, &receiver);
+        }
+    }
+    mails.with_mail_mut(mail_id, |m| {
+        notify_new_mail_by_name_if_online(server, &mut txn.env.fx, m, &original_sender)
+    });
+    true
 }
 
 /// The money / item part `send_system_mail` callers commonly need: a ready-to-send system mail

@@ -1,7 +1,7 @@
 # Client Downloads
 
 - Audience: Contributors, players, and testers
-- Last verified against: working tree on October 11, 2026
+- Last verified against: working tree on October 13, 2026
 - Prerequisites: Internet access and enough disk space for client files
 
 Our current `develop` branch requires client version 1.2 (revision `208022`).
@@ -90,6 +90,15 @@ optimizations for comparison. The startup audio policy still requires the DLL wh
 all three optimizations are disabled. A missing or outdated driver causes launch
 to fail before the client resumes.
 The normal launcher keeps the game window visible.
+
+The left of the three large buttons above the bottom-right menu opens the Auction
+House. The original Trion 1.2 UI samples its icon twenty pixels below the top of
+the mail artwork, clipping the chest, and hardcodes the Korean hover label
+`경매장` (Auction House). The driver replaces it with a gold gavel on a blue
+medallion and the English tooltip
+**Auction House — Buy and sell items with other players.** The existing click
+action and position are preserved. The artwork is drawn through the client's UI
+API and embedded in both driver builds; no client files need to be patched.
 
 Add `--hidden` to render with a hidden window. The driver can capture the client's
 DX10/DX11 back buffer as a PNG while hidden, and expose launch, Lua, status,
@@ -187,6 +196,43 @@ This preserves every logical byte and keeps untraced chunks compressed. It adds 
 raw blob while retaining the old compressed blob for rollback, so budget additional
 disk space. Trace coverage depends on the character, area and actions exercised;
 measure startup and world loading before choosing it for a distribution.
+
+### Player distribution ZIP
+
+`Scripts/build-client-distribution.ps1` clones a client into a new output folder,
+copies an already built compressed pack, and produces a verified ZIP64 archive:
+
+```powershell
+Scripts/build-client-distribution.ps1 -ClientDirectory D:\ArcheAge12 `
+  -PackDirectory D:\ArcheAgeCompressed -OutputDirectory D:\Distributions\AAEmu-Client `
+  -LoginServer play.example.com:1237
+```
+
+The source client is unchanged. The script needs Rust, MSVC x86 build tools and
+7-Zip. It checks the original pack's SHA-256, verifies the copied compressed
+stream, tests the ZIP and writes a SHA-256 sidecar. Existing output paths are
+refused. The pack directory must contain exactly the manifest's required blobs.
+
+Pass `-LauncherExe PATH` to include the supplied `AAEmuLauncher.exe` GUI. Its
+embedded driver is replaced with the player build and its launch arguments enable
+the optimizations and compressed-pack discovery. The original launcher file is
+unchanged. The supported unsigned launcher uses a separate helper/settings folder
+for the distribution. Other launcher builds are refused when the patch targets
+do not match.
+
+Players extract the whole ZIP and open `AAEmuLauncher.exe`, browse to the extracted
+`bin32/archeage.exe`, and enter their server and account. The console alternative
+is to edit `server.json` if needed and run `Play.cmd`.
+Password input is masked and not saved. Sound and music are enabled and the game
+window uses its normal settings. Fast startup, 64 KB read-ahead and smooth CPU
+calibration remain enabled. The dedicated player driver excludes the command
+pipe, MCP server, input automation, capture hooks, hidden-window handling and
+audio session policy. The archive includes the helper source and AAEmu license;
+no server binaries, test credentials or original `game_pak` are included.
+
+`Scripts/build-client-pak.ps1 -Player -OutputDirectory PATH` also builds this
+driver separately. Keep its `aadriver.dll` and `aaemu_pak.dll` together; the
+existing diagnostic build remains available without `-Player`.
 
 ### Extra client archives
 

@@ -194,11 +194,12 @@ pub async fn save_stage(
 
 /// World saves already captured housing, territory authority and mail with item/wallet
 /// snapshots. Their prepared batches are written by SaveManager, so do not recapture them.
-pub(crate) async fn save_before_prepared_financials(
+pub(crate) async fn save_prepared_financial_stage(
     server: &GameServer,
     tx: &mut sqlx::Transaction<'_, MySql>,
+    stage: SaveStage,
 ) -> crate::Result<usize> {
-    save_stage_inner(server, tx, SaveStage::BeforeItems, true).await
+    save_stage_inner(server, tx, stage, true).await
 }
 
 async fn save_stage_inner(

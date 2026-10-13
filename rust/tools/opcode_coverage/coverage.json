@@ -1,0 +1,1502 @@
+{
+  "cs_symbols": 258,
+  "cs_wire_values": 244,
+  "cs_no_opcode_0xfff": [
+    "CSAcceptCheatQuestContextPacket",
+    "CSBuySpecialtyItemPacket",
+    "CSChangeExpeditionSponsorPacket",
+    "CSChangeHousePayPacket",
+    "CSChangeItemLookPacket",
+    "CSChangeSlaveTargetPacket",
+    "CSResetQuestContextPacket",
+    "CSReturnMailPacket",
+    "CSSaveDoodadUccStringPacket",
+    "CSSearchListPacket",
+    "CSSetCraftingPayPacket",
+    "CSSetTeamOfficerPacket",
+    "CSSpecialtyRecordLoadPacket",
+    "CSUpdateNationalTaxRatePacket"
+  ],
+  "registered_cs_constants": 245,
+  "registered_unknown_constants": [],
+  "handled_wire_values": 244,
+  "duplicate_registrations": [],
+  "unhandled": [],
+  "unhandled_count": 0,
+  "registrations": [
+    {
+      "struct": "X2EnterWorldPacket",
+      "opcode": "X2EnterWorldPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g.rs",
+      "line": "252"
+    },
+    {
+      "struct": "CSLeaveWorldPacket",
+      "opcode": "CSLeaveWorldPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g.rs",
+      "line": "253"
+    },
+    {
+      "struct": "CSListCharacterPacket",
+      "opcode": "CSListCharacterPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g.rs",
+      "line": "254"
+    },
+    {
+      "struct": "CSEditCharacterPacket",
+      "opcode": "CSEditCharacterPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_misc.rs",
+      "line": "114"
+    },
+    {
+      "struct": "CSTurretStatePacket",
+      "opcode": "CSTurretStatePacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_misc.rs",
+      "line": "115"
+    },
+    {
+      "struct": "CSCancelLeaveWorldPacket",
+      "opcode": "CSCancelLeaveWorldPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "327"
+    },
+    {
+      "struct": "CSCreateCharacterPacket",
+      "opcode": "CSCreateCharacterPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "328"
+    },
+    {
+      "struct": "CSDeleteCharacterPacket",
+      "opcode": "CSDeleteCharacterPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "329"
+    },
+    {
+      "struct": "CSCancelCharacterDeletePacket",
+      "opcode": "CSCancelCharacterDeletePacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "330"
+    },
+    {
+      "struct": "CSSelectCharacterPacket",
+      "opcode": "CSSelectCharacterPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "331"
+    },
+    {
+      "struct": "CSSpawnCharacterPacket",
+      "opcode": "CSSpawnCharacterPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "332"
+    },
+    {
+      "struct": "CSNotifyInGamePacket",
+      "opcode": "CSNotifyInGamePacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "333"
+    },
+    {
+      "struct": "CSNotifyInGameCompletedPacket",
+      "opcode": "CSNotifyInGameCompletedPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "334"
+    },
+    {
+      "struct": "CSMoveUnitPacket",
+      "opcode": "CSMoveUnitPacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "335"
+    },
+    {
+      "struct": "CSSendChatMessagePacket",
+      "opcode": "CSSendChatMessagePacket",
+      "file": "rust/crates/aaemu-game/src/packets/c2g_world.rs",
+      "line": "336"
+    },
+    {
+      "struct": "CSAuctionPostPacket",
+      "opcode": "CSAuctionPostPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/auction_packets.rs",
+      "line": "21"
+    },
+    {
+      "struct": "CSAuctionSearchPacket",
+      "opcode": "CSAuctionSearchPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/auction_packets.rs",
+      "line": "22"
+    },
+    {
+      "struct": "CSBidAuctionPacket",
+      "opcode": "CSBidAuctionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/auction_packets.rs",
+      "line": "23"
+    },
+    {
+      "struct": "CSCancelAuctionPacket",
+      "opcode": "CSCancelAuctionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/auction_packets.rs",
+      "line": "24"
+    },
+    {
+      "struct": "CSAuctionMyBidListPacket",
+      "opcode": "CSAuctionMyBidListPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/auction_packets.rs",
+      "line": "25"
+    },
+    {
+      "struct": "CSAuctionLowestPricePacket",
+      "opcode": "CSAuctionLowestPricePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/auction_packets.rs",
+      "line": "26"
+    },
+    {
+      "struct": "CSICSMenuListPacket",
+      "opcode": "CSICSMenuListPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/cash_shop.rs",
+      "line": "1752"
+    },
+    {
+      "struct": "CSICSGoodsListPacket",
+      "opcode": "CSICSGoodsListPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/cash_shop.rs",
+      "line": "1753"
+    },
+    {
+      "struct": "CSICSBuyGoodPacket",
+      "opcode": "CSICSBuyGoodPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/cash_shop.rs",
+      "line": "1754"
+    },
+    {
+      "struct": "CSICSMoneyRequestPacket",
+      "opcode": "CSICSMoneyRequestPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/cash_shop.rs",
+      "line": "1755"
+    },
+    {
+      "struct": "CSPremiumServiceBuyPacket",
+      "opcode": "CSPremiumServiceBuyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/cash_shop.rs",
+      "line": "1756"
+    },
+    {
+      "struct": "CSPremiumServiceListPacket",
+      "opcode": "CSPremiumServiceListPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/cash_shop.rs",
+      "line": "1757"
+    },
+    {
+      "struct": "CSPremiumServiceMsgPacket",
+      "opcode": "CSPremiumServiceMsgPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/cash_shop.rs",
+      "line": "1758"
+    },
+    {
+      "struct": "CSExecuteCraft",
+      "opcode": "CSExecuteCraft",
+      "file": "rust/crates/aaemu-game/src/systems/economy/craft.rs",
+      "line": "826"
+    },
+    {
+      "struct": "CSSwapItemsPacket",
+      "opcode": "CSSwapItemsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "65"
+    },
+    {
+      "struct": "CSSplitBagItemPacket",
+      "opcode": "CSSplitBagItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "66"
+    },
+    {
+      "struct": "CSDestroyItemPacket",
+      "opcode": "CSDestroyItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "67"
+    },
+    {
+      "struct": "CSExpandSlotsPacket",
+      "opcode": "CSExpandSlotsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "68"
+    },
+    {
+      "struct": "CSDepositMoneyPacket",
+      "opcode": "CSDepositMoneyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "69"
+    },
+    {
+      "struct": "CSWithdrawMoneyPacket",
+      "opcode": "CSWithdrawMoneyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "70"
+    },
+    {
+      "struct": "CSSplitCofferItemPacket",
+      "opcode": "CSSplitCofferItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "71"
+    },
+    {
+      "struct": "CSSwapCofferItemsPacket",
+      "opcode": "CSSwapCofferItemsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "72"
+    },
+    {
+      "struct": "CSItemSecurePacket",
+      "opcode": "CSItemSecurePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "73"
+    },
+    {
+      "struct": "CSItemUnsecurePacket",
+      "opcode": "CSItemUnsecurePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "74"
+    },
+    {
+      "struct": "CSEquipmentsSecurePacket",
+      "opcode": "CSEquipmentsSecurePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "75"
+    },
+    {
+      "struct": "CSEquipmentsUnsecurePacket",
+      "opcode": "CSEquipmentsUnsecurePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "76"
+    },
+    {
+      "struct": "CSThisTimeUnpackItemPacket",
+      "opcode": "CSThisTimeUnpackItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/item_handlers.rs",
+      "line": "77"
+    },
+    {
+      "struct": "CSLootOpenBagPacket",
+      "opcode": "CSLootOpenBagPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/looting.rs",
+      "line": "1354"
+    },
+    {
+      "struct": "CSLootItemPacket",
+      "opcode": "CSLootItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/looting.rs",
+      "line": "1355"
+    },
+    {
+      "struct": "CSLootCloseBagPacket",
+      "opcode": "CSLootCloseBagPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/looting.rs",
+      "line": "1356"
+    },
+    {
+      "struct": "CSLootDicePacket",
+      "opcode": "CSLootDicePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/looting.rs",
+      "line": "1357"
+    },
+    {
+      "struct": "CSSendMailPacket",
+      "opcode": "CSSendMailPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "33"
+    },
+    {
+      "struct": "CSListMailPacket",
+      "opcode": "CSListMailPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "34"
+    },
+    {
+      "struct": "CSListMailContinuePacket",
+      "opcode": "CSListMailContinuePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "35"
+    },
+    {
+      "struct": "CSReadMailPacket",
+      "opcode": "CSReadMailPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "36"
+    },
+    {
+      "struct": "CSTakeAttachmentItemPacket",
+      "opcode": "CSTakeAttachmentItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "37"
+    },
+    {
+      "struct": "CSTakeAttachmentMoneyPacket",
+      "opcode": "CSTakeAttachmentMoneyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "38"
+    },
+    {
+      "struct": "CSTakeAttachmentSequentially",
+      "opcode": "CSTakeAttachmentSequentially",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "39"
+    },
+    {
+      "struct": "CSPayChargeMoneyPacket",
+      "opcode": "CSPayChargeMoneyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "40"
+    },
+    {
+      "struct": "CSDeleteMailPacket",
+      "opcode": "CSDeleteMailPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "41"
+    },
+    {
+      "struct": "CSReturnMailPacket",
+      "opcode": "CSReturnMailPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "42"
+    },
+    {
+      "struct": "CSTakeAllAttachmentItemPacket",
+      "opcode": "CSTakeAllAttachmentItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mail_packets.rs",
+      "line": "43"
+    },
+    {
+      "struct": "CSChangeMateEquipmentPacket",
+      "opcode": "CSChangeMateEquipmentPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mate_equipment.rs",
+      "line": "455"
+    },
+    {
+      "struct": "CSChangeSlaveEquipmentPacket",
+      "opcode": "CSChangeSlaveEquipmentPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mate_equipment.rs",
+      "line": "456"
+    },
+    {
+      "struct": "CSRepairPetItemsPacket",
+      "opcode": "CSRepairPetItemsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mate_equipment.rs",
+      "line": "457"
+    },
+    {
+      "struct": "CSRepairSlaveItemsPacket",
+      "opcode": "CSRepairSlaveItemsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/mate_equipment.rs",
+      "line": "458"
+    },
+    {
+      "struct": "CSRepairSingleEquipmentPacket",
+      "opcode": "CSRepairSingleEquipmentPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/repair.rs",
+      "line": "490"
+    },
+    {
+      "struct": "CSRepairAllEquipmentsPacket",
+      "opcode": "CSRepairAllEquipmentsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/repair.rs",
+      "line": "491"
+    },
+    {
+      "struct": "CSSpecialtyRatioPacket",
+      "opcode": "CSSpecialtyRatioPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/specialty.rs",
+      "line": "417"
+    },
+    {
+      "struct": "CSRequestSpecialtyCurrentPacket",
+      "opcode": "CSRequestSpecialtyCurrentPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/specialty.rs",
+      "line": "418"
+    },
+    {
+      "struct": "CSListSpecialtyGoodsPacket",
+      "opcode": "CSListSpecialtyGoodsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/specialty.rs",
+      "line": "422"
+    },
+    {
+      "struct": "CSBuyItemsPacket",
+      "opcode": "CSBuyItemsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/store.rs",
+      "line": "179"
+    },
+    {
+      "struct": "CSSellItemsPacket",
+      "opcode": "CSSellItemsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/store.rs",
+      "line": "180"
+    },
+    {
+      "struct": "CSListSoldItemPacket",
+      "opcode": "CSListSoldItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/store.rs",
+      "line": "181"
+    },
+    {
+      "struct": "CSBuyPriestBuffPacket",
+      "opcode": "CSBuyPriestBuffPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/store.rs",
+      "line": "182"
+    },
+    {
+      "struct": "CSBuyCoinItemPacket",
+      "opcode": "CSBuyCoinItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/store.rs",
+      "line": "183"
+    },
+    {
+      "struct": "CSSellBackpackGoodsPacket",
+      "opcode": "CSSellBackpackGoodsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/store.rs",
+      "line": "184"
+    },
+    {
+      "struct": "CSExpandExpertPacket",
+      "opcode": "CSExpandExpertPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/store.rs",
+      "line": "185"
+    },
+    {
+      "struct": "CSConvertItemLookPacket",
+      "opcode": "CSConvertItemLookPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/store.rs",
+      "line": "186"
+    },
+    {
+      "struct": "CSStartTradePacket",
+      "opcode": "CSStartTradePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/trade.rs",
+      "line": "956"
+    },
+    {
+      "struct": "CSCanStartTradePacket",
+      "opcode": "CSCanStartTradePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/trade.rs",
+      "line": "957"
+    },
+    {
+      "struct": "CSCannotStartTradePacket",
+      "opcode": "CSCannotStartTradePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/trade.rs",
+      "line": "958"
+    },
+    {
+      "struct": "CSCancelTradePacket",
+      "opcode": "CSCancelTradePacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/trade.rs",
+      "line": "959"
+    },
+    {
+      "struct": "CSPutupTradeItemPacket",
+      "opcode": "CSPutupTradeItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/trade.rs",
+      "line": "960"
+    },
+    {
+      "struct": "CSPutupTradeMoneyPacket",
+      "opcode": "CSPutupTradeMoneyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/trade.rs",
+      "line": "961"
+    },
+    {
+      "struct": "CSTakedownTradeItemPacket",
+      "opcode": "CSTakedownTradeItemPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/trade.rs",
+      "line": "962"
+    },
+    {
+      "struct": "CSTradeLockPacket",
+      "opcode": "CSTradeLockPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/trade.rs",
+      "line": "963"
+    },
+    {
+      "struct": "CSTradeOkPacket",
+      "opcode": "CSTradeOkPacket",
+      "file": "rust/crates/aaemu-game/src/systems/economy/trade.rs",
+      "line": "964"
+    },
+    {
+      "struct": "CSConstructHouseTaxPacket",
+      "opcode": "CSConstructHouseTaxPacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "451"
+    },
+    {
+      "struct": "CSCreateHousePacket",
+      "opcode": "CSCreateHousePacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "452"
+    },
+    {
+      "struct": "CSDecorateHousePacket",
+      "opcode": "CSDecorateHousePacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "453"
+    },
+    {
+      "struct": "CSChangeHouseNamePacket",
+      "opcode": "CSChangeHouseNamePacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "454"
+    },
+    {
+      "struct": "CSChangeHousePermissionPacket",
+      "opcode": "CSChangeHousePermissionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "455"
+    },
+    {
+      "struct": "CSRequestHouseTaxPacket",
+      "opcode": "CSRequestHouseTaxPacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "456"
+    },
+    {
+      "struct": "CSAllowHousingRecoverPacket",
+      "opcode": "CSAllowHousingRecoverPacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "457"
+    },
+    {
+      "struct": "CSSellHousePacket",
+      "opcode": "CSSellHousePacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "458"
+    },
+    {
+      "struct": "CSSellHouseCancelPacket",
+      "opcode": "CSSellHouseCancelPacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "459"
+    },
+    {
+      "struct": "CSBuyHousePacket",
+      "opcode": "CSBuyHousePacket",
+      "file": "rust/crates/aaemu-game/src/systems/housing/packets.rs",
+      "line": "460"
+    },
+    {
+      "struct": "CSInstanceLoadedPacket",
+      "opcode": "CSInstanceLoadedPacket",
+      "file": "rust/crates/aaemu-game/src/systems/instances/packets.rs",
+      "line": "371"
+    },
+    {
+      "struct": "CSApplyToInstantGamePacket",
+      "opcode": "CSApplyToInstantGamePacket",
+      "file": "rust/crates/aaemu-game/src/systems/instances/packets.rs",
+      "line": "372"
+    },
+    {
+      "struct": "CSCancelInstantGamePacket",
+      "opcode": "CSCancelInstantGamePacket",
+      "file": "rust/crates/aaemu-game/src/systems/instances/packets.rs",
+      "line": "373"
+    },
+    {
+      "struct": "CSJoinInstantGamePacket",
+      "opcode": "CSJoinInstantGamePacket",
+      "file": "rust/crates/aaemu-game/src/systems/instances/packets.rs",
+      "line": "374"
+    },
+    {
+      "struct": "CSEnteredInstantGameWorldPacket",
+      "opcode": "CSEnteredInstantGameWorldPacket",
+      "file": "rust/crates/aaemu-game/src/systems/instances/packets.rs",
+      "line": "375"
+    },
+    {
+      "struct": "CSLeaveInstantGamePacket",
+      "opcode": "CSLeaveInstantGamePacket",
+      "file": "rust/crates/aaemu-game/src/systems/instances/packets.rs",
+      "line": "379"
+    },
+    {
+      "struct": "CSUnknownInstancePacket",
+      "opcode": "CSUnknownInstancePacket",
+      "file": "rust/crates/aaemu-game/src/systems/instances/packets.rs",
+      "line": "380"
+    },
+    {
+      "struct": "CSCofferInteractionPacket",
+      "opcode": "CSCofferInteractionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/doodad/coffer.rs",
+      "line": "342"
+    },
+    {
+      "struct": "CSUnbondDoodadPacket",
+      "opcode": "CSUnbondDoodadPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/doodad/packets.rs",
+      "line": "179"
+    },
+    {
+      "struct": "CSCreateDoodadPacket",
+      "opcode": "CSCreateDoodadPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/doodad/packets.rs",
+      "line": "180"
+    },
+    {
+      "struct": "CSChangeDoodadPhasePacket",
+      "opcode": "CSChangeDoodadPhasePacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/doodad/packets.rs",
+      "line": "181"
+    },
+    {
+      "struct": "CSChangeDoodadDataPacket",
+      "opcode": "CSChangeDoodadDataPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/doodad/packets.rs",
+      "line": "182"
+    },
+    {
+      "struct": "CSSetLogicDoodadPacket",
+      "opcode": "CSSetLogicDoodadPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/doodad/packets.rs",
+      "line": "183"
+    },
+    {
+      "struct": "CSStartInteractionPacket",
+      "opcode": "CSStartInteractionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/npc/packets.rs",
+      "line": "426"
+    },
+    {
+      "struct": "CSInteractNPCPacket",
+      "opcode": "CSInteractNPCPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/npc/packets.rs",
+      "line": "427"
+    },
+    {
+      "struct": "CSInteractNPCEndPacket",
+      "opcode": "CSInteractNPCEndPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/npc/packets.rs",
+      "line": "428"
+    },
+    {
+      "struct": "CSSelectInteractionExPacket",
+      "opcode": "CSSelectInteractionExPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/npc/packets.rs",
+      "line": "429"
+    },
+    {
+      "struct": "CSUseTeleportPacket",
+      "opcode": "CSUseTeleportPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/portal/packets.rs",
+      "line": "225"
+    },
+    {
+      "struct": "CSTeleportEndedPacket",
+      "opcode": "CSTeleportEndedPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/portal/packets.rs",
+      "line": "226"
+    },
+    {
+      "struct": "CSUsePortalPacket",
+      "opcode": "CSUsePortalPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/portal/packets.rs",
+      "line": "227"
+    },
+    {
+      "struct": "CSDeletePortalPacket",
+      "opcode": "CSDeletePortalPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/portal/packets.rs",
+      "line": "228"
+    },
+    {
+      "struct": "CSNaviTeleportPacket",
+      "opcode": "CSNaviTeleportPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/portal/packets.rs",
+      "line": "229"
+    },
+    {
+      "struct": "CSNaviOpenPortalPacket",
+      "opcode": "CSNaviOpenPortalPacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/portal/packets.rs",
+      "line": "230"
+    },
+    {
+      "struct": "CSRequestCommonFarmList",
+      "opcode": "CSRequestCommonFarmList",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/public_farm.rs",
+      "line": "443"
+    },
+    {
+      "struct": "CSNotifySubZonePacket",
+      "opcode": "CSNotifySubZonePacket",
+      "file": "rust/crates/aaemu-game/src/systems/npcs/subzone.rs",
+      "line": "458"
+    },
+    {
+      "struct": "CSStartQuestContextPacket",
+      "opcode": "CSStartQuestContextPacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "358"
+    },
+    {
+      "struct": "CSCompleteQuestContextPacket",
+      "opcode": "CSCompleteQuestContextPacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "359"
+    },
+    {
+      "struct": "CSDropQuestContextPacket",
+      "opcode": "CSDropQuestContextPacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "360"
+    },
+    {
+      "struct": "CSQuestTalkMadePacket",
+      "opcode": "CSQuestTalkMadePacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "361"
+    },
+    {
+      "struct": "CSQuestStartWithPacket",
+      "opcode": "CSQuestStartWithPacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "362"
+    },
+    {
+      "struct": "CSTryQuestCompleteAsLetItDonePacket",
+      "opcode": "CSTryQuestCompleteAsLetItDonePacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "363"
+    },
+    {
+      "struct": "CSRestartMainQuestPacket",
+      "opcode": "CSRestartMainQuestPacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "367"
+    },
+    {
+      "struct": "CSSaveTutorialPacket",
+      "opcode": "CSSaveTutorialPacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "368"
+    },
+    {
+      "struct": "CSStartedCinemaPacket",
+      "opcode": "CSStartedCinemaPacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "369"
+    },
+    {
+      "struct": "CSCompletedCinemaPacket",
+      "opcode": "CSCompletedCinemaPacket",
+      "file": "rust/crates/aaemu-game/src/systems/quests/mod.rs",
+      "line": "370"
+    },
+    {
+      "struct": "CSActiveWeaponChangedPacket",
+      "opcode": "CSActiveWeaponChangedPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "802"
+    },
+    {
+      "struct": "CSBroadcastVisualOptionPacket",
+      "opcode": "CSBroadcastVisualOptionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "803"
+    },
+    {
+      "struct": "CSChangeAppellationPacket",
+      "opcode": "CSChangeAppellationPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "804"
+    },
+    {
+      "struct": "CSIdleStatusPacket",
+      "opcode": "CSIdleStatusPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "805"
+    },
+    {
+      "struct": "CSRefreshInCharacterListPacket",
+      "opcode": "CSRefreshInCharacterListPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "806"
+    },
+    {
+      "struct": "CSRequestUIDataPacket",
+      "opcode": "CSRequestUIDataPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "807"
+    },
+    {
+      "struct": "CSSaveUIDataPacket",
+      "opcode": "CSSaveUIDataPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "808"
+    },
+    {
+      "struct": "CSUpdateActionSlotPacket",
+      "opcode": "CSUpdateActionSlotPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "809"
+    },
+    {
+      "struct": "CSRestrictCheckPacket",
+      "opcode": "CSRestrictCheckPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "810"
+    },
+    {
+      "struct": "CSSetLpManageCharacterPacket",
+      "opcode": "CSSetLpManageCharacterPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "811"
+    },
+    {
+      "struct": "CSCharDetailPacket",
+      "opcode": "CSCharDetailPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "812"
+    },
+    {
+      "struct": "CSCleanupLogicLinkPacket",
+      "opcode": "CSCleanupLogicLinkPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "813"
+    },
+    {
+      "struct": "CSConsoleCmdUsedPacket",
+      "opcode": "CSConsoleCmdUsedPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "814"
+    },
+    {
+      "struct": "CSCriminalLockedPacket",
+      "opcode": "CSCriminalLockedPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "815"
+    },
+    {
+      "struct": "CSEditorGameModePacket",
+      "opcode": "CSEditorGameModePacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "816"
+    },
+    {
+      "struct": "CSRankCharacterPacket",
+      "opcode": "CSRankCharacterPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "817"
+    },
+    {
+      "struct": "CSRequestCharBriefPacket",
+      "opcode": "CSRequestCharBriefPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "818"
+    },
+    {
+      "struct": "CSRequestPermissionToPlayCinemaForDirectingMode",
+      "opcode": "CSRequestPermissionToPlayCinemaForDirectingMode",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "819"
+    },
+    {
+      "struct": "CSRequestSecondPasswordKeyTablesPacket",
+      "opcode": "CSRequestSecondPasswordKeyTablesPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "823"
+    },
+    {
+      "struct": "CSSetupSecondPassword",
+      "opcode": "CSSetupSecondPassword",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "827"
+    },
+    {
+      "struct": "CSResturnAddrsPacket",
+      "opcode": "CSResturnAddrsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/character_packets.rs",
+      "line": "828"
+    },
+    {
+      "struct": "CSUpgradeExpertLimitPacket",
+      "opcode": "CSUpgradeExpertLimitPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/expands.rs",
+      "line": "427"
+    },
+    {
+      "struct": "CSDowngradeExpertLimitPacket",
+      "opcode": "CSDowngradeExpertLimitPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/expands.rs",
+      "line": "428"
+    },
+    {
+      "struct": "CSRollDicePacket",
+      "opcode": "CSRollDicePacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/mod.rs",
+      "line": "199"
+    },
+    {
+      "struct": "CSEnterBeautySalonPacket",
+      "opcode": "CSEnterBeautySalonPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/mod.rs",
+      "line": "200"
+    },
+    {
+      "struct": "CSExitBeautySalonPacket",
+      "opcode": "CSExitBeautySalonPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/mod.rs",
+      "line": "204"
+    },
+    {
+      "struct": "CSBeautyshopDataPacket",
+      "opcode": "CSBeautyshopDataPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/mod.rs",
+      "line": "205"
+    },
+    {
+      "struct": "CSExpressEmotionPacket",
+      "opcode": "CSExpressEmotionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/mod.rs",
+      "line": "206"
+    },
+    {
+      "struct": "CSSaveUserMusicNotesPacket",
+      "opcode": "CSSaveUserMusicNotesPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/mod.rs",
+      "line": "207"
+    },
+    {
+      "struct": "CSSendUserMusicPacket",
+      "opcode": "CSSendUserMusicPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/mod.rs",
+      "line": "208"
+    },
+    {
+      "struct": "CSRequestMusicNotesPacket",
+      "opcode": "CSRequestMusicNotesPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/mod.rs",
+      "line": "209"
+    },
+    {
+      "struct": "CSEndMusicPacket",
+      "opcode": "CSEndMusicPacket",
+      "file": "rust/crates/aaemu-game/src/systems/services/mod.rs",
+      "line": "210"
+    },
+    {
+      "struct": "CSStartSkillPacket",
+      "opcode": "CSStartSkillPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "302"
+    },
+    {
+      "struct": "CSStopCastingPacket",
+      "opcode": "CSStopCastingPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "303"
+    },
+    {
+      "struct": "CSRemoveBuffPacket",
+      "opcode": "CSRemoveBuffPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "304"
+    },
+    {
+      "struct": "CSLearnSkillPacket",
+      "opcode": "CSLearnSkillPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "305"
+    },
+    {
+      "struct": "CSLearnBuffPacket",
+      "opcode": "CSLearnBuffPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "306"
+    },
+    {
+      "struct": "CSResetSkillsPacket",
+      "opcode": "CSResetSkillsPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "307"
+    },
+    {
+      "struct": "CSSwapAbilityPacket",
+      "opcode": "CSSwapAbilityPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "308"
+    },
+    {
+      "struct": "CSSkillControllerStatePacket",
+      "opcode": "CSSkillControllerStatePacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "309"
+    },
+    {
+      "struct": "CSCreateSkillControllerPacket",
+      "opcode": "CSCreateSkillControllerPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "310"
+    },
+    {
+      "struct": "CSSetForceAttackPacket",
+      "opcode": "CSSetForceAttackPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "311"
+    },
+    {
+      "struct": "CSChangeTargetPacket",
+      "opcode": "CSChangeTargetPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "312"
+    },
+    {
+      "struct": "CSResurrectCharacterPacket",
+      "opcode": "CSResurrectCharacterPacket",
+      "file": "rust/crates/aaemu-game/src/systems/skills/mod.rs",
+      "line": "313"
+    },
+    {
+      "struct": "CSJoinUserChatChannelPacket",
+      "opcode": "CSJoinUserChatChannelPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/chat.rs",
+      "line": "109"
+    },
+    {
+      "struct": "CSLeaveChatChannelPacket",
+      "opcode": "CSLeaveChatChannelPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/chat.rs",
+      "line": "110"
+    },
+    {
+      "struct": "CSChallengeDuelPacket",
+      "opcode": "CSChallengeDuelPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/duel.rs",
+      "line": "99"
+    },
+    {
+      "struct": "CSStartDuelPacket",
+      "opcode": "CSStartDuelPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/duel.rs",
+      "line": "100"
+    },
+    {
+      "struct": "CSCreateExpeditionPacket",
+      "opcode": "CSCreateExpeditionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "244"
+    },
+    {
+      "struct": "CSChangeExpeditionRolePolicyPacket",
+      "opcode": "CSChangeExpeditionRolePolicyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "246"
+    },
+    {
+      "struct": "CSChangeExpeditionMemberRolePacket",
+      "opcode": "CSChangeExpeditionMemberRolePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "250"
+    },
+    {
+      "struct": "CSChangeExpeditionOwnerPacket",
+      "opcode": "CSChangeExpeditionOwnerPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "254"
+    },
+    {
+      "struct": "CSRenameExpeditionPacket",
+      "opcode": "CSRenameExpeditionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "255"
+    },
+    {
+      "struct": "CSDismissExpeditionPacket",
+      "opcode": "CSDismissExpeditionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "256"
+    },
+    {
+      "struct": "CSInviteToExpeditionPacket",
+      "opcode": "CSInviteToExpeditionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "257"
+    },
+    {
+      "struct": "CSReplyExpeditionInvitationPacket",
+      "opcode": "CSReplyExpeditionInvitationPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "258"
+    },
+    {
+      "struct": "CSLeaveExpeditionPacket",
+      "opcode": "CSLeaveExpeditionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "262"
+    },
+    {
+      "struct": "CSKickFromExpeditionPacket",
+      "opcode": "CSKickFromExpeditionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/expedition.rs",
+      "line": "263"
+    },
+    {
+      "struct": "CSFactionImmigrationInvitePacket",
+      "opcode": "CSFactionImmigrationInvitePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/faction.rs",
+      "line": "174"
+    },
+    {
+      "struct": "CSFactionImmigrationInviteReplyPacket",
+      "opcode": "CSFactionImmigrationInviteReplyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/faction.rs",
+      "line": "178"
+    },
+    {
+      "struct": "CSFactionImmigrateToOriginPacket",
+      "opcode": "CSFactionImmigrateToOriginPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/faction.rs",
+      "line": "182"
+    },
+    {
+      "struct": "CSFactionKickToOriginPacket",
+      "opcode": "CSFactionKickToOriginPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/faction.rs",
+      "line": "186"
+    },
+    {
+      "struct": "CSFactionDeclareHostilePacket",
+      "opcode": "CSFactionDeclareHostilePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/faction.rs",
+      "line": "187"
+    },
+    {
+      "struct": "CSFamilyInviteMemberPacket",
+      "opcode": "CSFamilyInviteMemberPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/family.rs",
+      "line": "177"
+    },
+    {
+      "struct": "CSFamilyReplyInvitationPacket",
+      "opcode": "CSFamilyReplyInvitationPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/family.rs",
+      "line": "178"
+    },
+    {
+      "struct": "CSFamilyLeavePacket",
+      "opcode": "CSFamilyLeavePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/family.rs",
+      "line": "179"
+    },
+    {
+      "struct": "CSFamilyKickPacket",
+      "opcode": "CSFamilyKickPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/family.rs",
+      "line": "180"
+    },
+    {
+      "struct": "CSFamilyChangeTitlePacket",
+      "opcode": "CSFamilyChangeTitlePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/family.rs",
+      "line": "181"
+    },
+    {
+      "struct": "CSFamilyChangeOwnerPacket",
+      "opcode": "CSFamilyChangeOwnerPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/family.rs",
+      "line": "182"
+    },
+    {
+      "struct": "CSAddFriendPacket",
+      "opcode": "CSAddFriendPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/friend.rs",
+      "line": "113"
+    },
+    {
+      "struct": "CSDeleteFriendPacket",
+      "opcode": "CSDeleteFriendPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/friend.rs",
+      "line": "114"
+    },
+    {
+      "struct": "CSAddBlockedUserPacket",
+      "opcode": "CSAddBlockedUserPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/friend.rs",
+      "line": "115"
+    },
+    {
+      "struct": "CSDeleteBlockedUserPacket",
+      "opcode": "CSDeleteBlockedUserPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/friend.rs",
+      "line": "116"
+    },
+    {
+      "struct": "CSUpdateDominionTaxRatePacket",
+      "opcode": "CSUpdateDominionTaxRatePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/misc.rs",
+      "line": "317"
+    },
+    {
+      "struct": "CSReportSpamPacket",
+      "opcode": "CSReportSpamPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/misc.rs",
+      "line": "318"
+    },
+    {
+      "struct": "CSInviteToTeamPacket",
+      "opcode": "CSInviteToTeamPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "527"
+    },
+    {
+      "struct": "CSInviteAreaToTeamPacket",
+      "opcode": "CSInviteAreaToTeamPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "528"
+    },
+    {
+      "struct": "CSReplyToJoinTeamPacket",
+      "opcode": "CSReplyToJoinTeamPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "529"
+    },
+    {
+      "struct": "CSLeaveTeamPacket",
+      "opcode": "CSLeaveTeamPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "530"
+    },
+    {
+      "struct": "CSKickTeamMemberPacket",
+      "opcode": "CSKickTeamMemberPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "531"
+    },
+    {
+      "struct": "CSMakeTeamOwnerPacket",
+      "opcode": "CSMakeTeamOwnerPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "532"
+    },
+    {
+      "struct": "CSConvertToRaidTeamPacket",
+      "opcode": "CSConvertToRaidTeamPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "534"
+    },
+    {
+      "struct": "CSMoveTeamMemberPacket",
+      "opcode": "CSMoveTeamMemberPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "535"
+    },
+    {
+      "struct": "CSChangeLootingRulePacket",
+      "opcode": "CSChangeLootingRulePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "536"
+    },
+    {
+      "struct": "CSDismissTeamPacket",
+      "opcode": "CSDismissTeamPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "537"
+    },
+    {
+      "struct": "CSSetTeamMemberRolePacket",
+      "opcode": "CSSetTeamMemberRolePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "538"
+    },
+    {
+      "struct": "CSSetOverHeadMarkerPacket",
+      "opcode": "CSSetOverHeadMarkerPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "539"
+    },
+    {
+      "struct": "CSSetPingPosPacket",
+      "opcode": "CSSetPingPosPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "540"
+    },
+    {
+      "struct": "CSAskRiskyTeamActionPacket",
+      "opcode": "CSAskRiskyTeamActionPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/team.rs",
+      "line": "541"
+    },
+    {
+      "struct": "CSReplyImprisonOrTrialPacket",
+      "opcode": "CSReplyImprisonOrTrialPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "557"
+    },
+    {
+      "struct": "CSSkipFinalStatementPacket",
+      "opcode": "CSSkipFinalStatementPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "558"
+    },
+    {
+      "struct": "CSReplyInviteJuryPacket",
+      "opcode": "CSReplyInviteJuryPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "559"
+    },
+    {
+      "struct": "CSJurySummonedPacket",
+      "opcode": "CSJurySummonedPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "560"
+    },
+    {
+      "struct": "CSJuryEndTestimonyPacket",
+      "opcode": "CSJuryEndTestimonyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "561"
+    },
+    {
+      "struct": "CSCancelTrialPacket",
+      "opcode": "CSCancelTrialPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "562"
+    },
+    {
+      "struct": "CSJuryVerdictPacket",
+      "opcode": "CSJuryVerdictPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "563"
+    },
+    {
+      "struct": "CSReportCrimePacket",
+      "opcode": "CSReportCrimePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "564"
+    },
+    {
+      "struct": "CSJoinTrialAudiencePacket",
+      "opcode": "CSJoinTrialAudiencePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "565"
+    },
+    {
+      "struct": "CSLeaveTrialAudiencePacket",
+      "opcode": "CSLeaveTrialAudiencePacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "566"
+    },
+    {
+      "struct": "CSRequestJuryWaitingNumberPacket",
+      "opcode": "CSRequestJuryWaitingNumberPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "567"
+    },
+    {
+      "struct": "CSNaviOpenBountyPacket",
+      "opcode": "CSNaviOpenBountyPacket",
+      "file": "rust/crates/aaemu-game/src/systems/social/packets/trial.rs",
+      "line": "571"
+    },
+    {
+      "struct": "CSMountMatePacket",
+      "opcode": "CSMountMatePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "450"
+    },
+    {
+      "struct": "CSUnMountMatePacket",
+      "opcode": "CSUnMountMatePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "451"
+    },
+    {
+      "struct": "CSChangeMateNamePacket",
+      "opcode": "CSChangeMateNamePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "452"
+    },
+    {
+      "struct": "CSChangeMateTargetPacket",
+      "opcode": "CSChangeMateTargetPacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "453"
+    },
+    {
+      "struct": "CSChangeMateUserStatePacket",
+      "opcode": "CSChangeMateUserStatePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "454"
+    },
+    {
+      "struct": "CSRemoveMatePacket",
+      "opcode": "CSRemoveMatePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "455"
+    },
+    {
+      "struct": "CSBindSlavePacket",
+      "opcode": "CSBindSlavePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "456"
+    },
+    {
+      "struct": "CSChangeSlaveNamePacket",
+      "opcode": "CSChangeSlaveNamePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "457"
+    },
+    {
+      "struct": "CSDespawnSlavePacket",
+      "opcode": "CSDespawnSlavePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "458"
+    },
+    {
+      "struct": "CSDestroySlavePacket",
+      "opcode": "CSDestroySlavePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "459"
+    },
+    {
+      "struct": "CSDiscardSlavePacket",
+      "opcode": "CSDiscardSlavePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "460"
+    },
+    {
+      "struct": "CSSpawnSlavePacket",
+      "opcode": "CSSpawnSlavePacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "461"
+    },
+    {
+      "struct": "CSBoardingTransferPacket",
+      "opcode": "CSBoardingTransferPacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "462"
+    },
+    {
+      "struct": "CSCreateShipyardPacket",
+      "opcode": "CSCreateShipyardPacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "463"
+    },
+    {
+      "struct": "CSUnhangPacket",
+      "opcode": "CSUnhangPacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "464"
+    },
+    {
+      "struct": "CSHangPacket",
+      "opcode": "CSHangPacket",
+      "file": "rust/crates/aaemu-game/src/systems/vehicles/packets.rs",
+      "line": "465"
+    }
+  ],
+  "registrations_by_module": {
+    "cs": 245,
+    "pp": 22
+  }
+}

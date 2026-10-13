@@ -9,7 +9,7 @@
 //! `world::session::move_unit` leaves the old instance's region grid first
 //! (`WorldManager::leave_other_instance`, the cross-world branch of the C# region change).
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use dashmap::DashMap;
 
@@ -36,6 +36,7 @@ pub struct WorldInfo {
 #[derive(Debug, Default)]
 pub struct InstanceWorlds {
     info: DashMap<u32, WorldInfo>,
+    creation: Mutex<()>,
 }
 
 impl InstanceWorlds {
@@ -88,6 +89,13 @@ pub fn create_world_instance(
     fixed_instance_id: u32,
     notify: Option<&PlayerRef>,
 ) -> Result<Arc<WorldInstance>, String> {
+    let _creation = server
+        .systems
+        .instances
+        .worlds
+        .creation
+        .lock()
+        .expect("world creation poisoned");
     // If it's marked as an instance or if it only has 1 zone defined, then it's a "dungeon"
     let can_be_instanced =
         template.xml_world.is_instance > 0 || template.xml_world.zones.len() <= 1;
@@ -105,6 +113,9 @@ pub fn create_world_instance(
     }
     if fixed_instance_id > 100 {
         return Err("Fixed Instance ID is too large".into());
+    }
+    if server.world.worlds().len() as u64 >= u64::from(server.config.world.max_instances) {
+        return Err("Maximum number of world instances reached".into());
     }
     let id = if override_instance_id {
         fixed_instance_id

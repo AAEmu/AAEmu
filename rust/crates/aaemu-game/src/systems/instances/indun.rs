@@ -18,6 +18,9 @@ use super::worlds::{self, error_message as err, send_error};
 pub struct IndunManager {
     /// `EntryHistory`: character id -> zone group id -> entry times (unix ms).
     entry_history: Mutex<HashMap<u32, HashMap<u32, Vec<i64>>>>,
+    /// Serialize selecting/creating a party run and resetting its bindings.
+    requests: Mutex<()>,
+    charges: Mutex<()>,
 }
 
 fn now_ms() -> i64 {
@@ -25,6 +28,37 @@ fn now_ms() -> i64 {
 }
 
 impl IndunManager {
+    pub(super) fn charge_entry(
+        &self,
+        server: &GameServer,
+        p: &PlayerRef,
+        zone: &IndunZone,
+    ) -> bool {
+        let _charge = self
+            .charges
+            .lock()
+            .expect("instance entry charges poisoned");
+        if !self.check_entry_attempt_count(p.character_id, zone.zone_group_id, zone, false) {
+            send_error(p, err::INSTANCE_VISIT_LIMIT, 0);
+            return false;
+        }
+        if zone.item_id > 0
+            && !server.systems.npcs.hooks.economy.get().is_some_and(|h| {
+                h.bag_consume_item(
+                    server,
+                    p,
+                    crate::systems::npcs::portal::ITEM_TASK_TELEPORT,
+                    zone.item_id,
+                    1,
+                ) == 1
+            })
+        {
+            send_error(p, err::ENTER_INST_REQ_ITEM, zone.item_id);
+            return false;
+        }
+        self.check_entry_attempt_count(p.character_id, zone.zone_group_id, zone, true)
+    }
+
     /// `CheckEntryAttemptCount(characterId, zoneGroupId, indunZone, addAsNewEntry)`: at most
     /// `EnterCount` entries within the last 4 hours.
     pub fn check_entry_attempt_count(
@@ -42,7 +76,8 @@ impl IndunManager {
             .or_default();
         // Can customize this to your start of the day to make this daily entry count
         let threshold = now_ms() - 4 * 3600 * 1000;
-        let recent = entries.iter().filter(|t| **t >= threshold).count();
+        entries.retain(|t| *t >= threshold);
+        let recent = entries.len();
         if recent as u64 >= u64::from(indun_zone.enter_count) {
             tracing::warn!(
                 "Requesting instance too many daily entries ({recent} / {}), characterId: {character_id}, zoneGroupId: {zone_group_id}",
@@ -208,6 +243,13 @@ pub fn request_dungeon_instance(
     zone_id: u32,
     channel_id: u32,
 ) -> bool {
+    let _request = server
+        .systems
+        .instances
+        .indun
+        .requests
+        .lock()
+        .expect("instance requests poisoned");
     let team = server.systems.social.teams.team_by_obj_id(p.obj_id);
     // `zone.ZoneKey` on a missing zone is a NullReferenceException in C#.
     let Some(zone) = zone_by_id(server, zone_id) else {
@@ -240,6 +282,9 @@ pub fn request_dungeon_instance(
     // 1 - Re-enter an active dungeon of this zone the player is a member of
     let possible = existing_dungeons_by_zone_key(server, zone.zone_key);
     for d in &possible {
+        if d.is_system || d.is_expired() {
+            continue;
+        }
         if d.is_queued(p) {
             // Already queued, please wait
             send_error(p, err::TRY_LATER_INSTANCE, 0);
@@ -248,14 +293,11 @@ pub fn request_dungeon_instance(
         if d.world(server)
             .is_some_and(|w| worlds::has_character(&w, p.character_id))
         {
-            dungeon::add_player(server, d, p);
             return true;
         }
         if d.has_access(p.character_id) {
-            let count = d.world(server).map_or(0, |w| worlds::character_count(&w));
-            if count as u64 > u64::from(d.indun_zone.max_players) {
-                send_error(p, err::INSTANCE_QUOTA, 0);
-                return false;
+            if d.is_team_owned() && !dungeon::player_in_same_team(server, d, p) {
+                continue;
             }
             return dungeon::queue_player(server, d, p);
         }
@@ -264,6 +306,9 @@ pub fn request_dungeon_instance(
     // 2 - Party required dungeons: join the team's dungeon
     if dungeon_zone.party_only {
         for d in &possible {
+            if d.is_system || d.is_expired() {
+                continue;
+            }
             if !dungeon::player_in_same_team(server, d, p) {
                 continue;
             }
@@ -287,6 +332,12 @@ pub fn request_dungeon_instance(
         }
         for member in &check {
             for d in &possible {
+                if d.is_system || d.is_expired() {
+                    continue;
+                }
+                if d.is_team_owned() && !dungeon::player_in_same_team(server, d, p) {
+                    continue;
+                }
                 if !d.has_access(member.character_id) {
                     continue;
                 }
@@ -314,13 +365,16 @@ pub fn request_dungeon_instance(
         );
         return false;
     };
-    dungeon::queue_player(server, &d, p)
+    // The constructor admitted the creator once.
+    d.is_queued(p)
+        || d.world(server)
+            .is_some_and(|w| worlds::has_character(&w, p.character_id))
 }
 
-/// `VerifyDungeonEnterRequirements(dungeonZone, character, team)`: entry count, level, party and
-/// the entry item (consumed here).
+/// Checks level and party. Entry limits and items are charged by QueuePlayer only on the
+/// first admission to a run, after capacity has been reserved.
 pub fn verify_dungeon_enter_requirements(
-    server: &GameServer,
+    _server: &GameServer,
     zone: &IndunZone,
     p: &PlayerRef,
     team: Option<&Team>,
@@ -329,15 +383,6 @@ pub fn verify_dungeon_enter_requirements(
         let c = p.data();
         (c.id, u32::from(c.unit.level))
     };
-    if !server.systems.instances.indun.check_entry_attempt_count(
-        id,
-        zone.zone_group_id,
-        zone,
-        false,
-    ) {
-        send_error(p, err::INSTANCE_VISIT_LIMIT, 0);
-        return false;
-    }
     if level < zone.level_min {
         tracing::warn!(
             "Requesting instance level too low ({level} < {}), characterId: {id}, zoneGroupId: {}",
@@ -364,30 +409,18 @@ pub fn verify_dungeon_enter_requirements(
         send_error(p, err::NEED_PARTY, 0);
         return false;
     }
-    if zone.item_id > 0
-        && !crate::systems::npcs::portal::check_item_and_remove(server, p, zone.item_id, 1)
-    {
-        tracing::info!(
-            "[IndunManager] Player does not have the required item to create a new dungeon, characterId: {id}, zoneGroupId: {}, item: {}",
-            zone.zone_group_id,
-            zone.item_id
-        );
-        send_error(p, err::ENTER_INST_REQ_ITEM, zone.item_id);
-        return false;
-    }
     true
 }
 
 /// `CreateDungeonInstance(dungeonZone, character, channelId, out dungeon)`.
 ///
-/// Note (C#): the requirements are verified again (the entry item is consumed a second time).
 fn create_dungeon_instance(
     server: &GameServer,
     zone: &IndunZone,
     p: &PlayerRef,
     channel_id: u32,
 ) -> Option<Arc<Dungeon>> {
-    if server.world.worlds().len() as u64 > u64::from(server.config.world.max_instances) {
+    if server.world.worlds().len() as u64 >= u64::from(server.config.world.max_instances) {
         tracing::warn!(
             "Requesting a new instance would exceeds the allowed ammount, characterId: {}, zoneGroupId: {}",
             p.character_id,
@@ -406,11 +439,67 @@ fn create_dungeon_instance(
         return None;
     }
     let d = dungeon::create(server, zone, Some(p), channel_id, team, false, 0, false)?;
-    // `return dungeon.QueuePlayer(character)` (already queued by the constructor).
-    if !dungeon::queue_player(server, &d, p) {
-        return None;
-    }
     Some(d)
+}
+
+/// Reset the caller's run. A party leader resets the whole party binding so the next entrance
+/// creates a fresh copy; occupied or loading runs cannot be reset.
+pub fn reset_dungeon_instance(
+    server: &GameServer,
+    p: &PlayerRef,
+    zone_id: u32,
+) -> anyhow::Result<()> {
+    let _request = server
+        .systems
+        .instances
+        .indun
+        .requests
+        .lock()
+        .expect("instance requests poisoned");
+    let zone =
+        zone_by_id(server, zone_id).ok_or_else(|| anyhow::anyhow!("Unknown dungeon zone"))?;
+    let team = server.systems.social.teams.team_by_obj_id(p.obj_id);
+    let runs: Vec<_> = existing_dungeons_by_zone_key(server, zone.zone_key)
+        .into_iter()
+        .filter(|d| {
+            !d.is_system
+                && (d.has_access(p.character_id) || dungeon::player_in_same_team(server, d, p))
+        })
+        .collect();
+    anyhow::ensure!(!runs.is_empty(), "You are not bound to this dungeon");
+    for d in &runs {
+        let st = d.st();
+        if st.is_team_owned {
+            anyhow::ensure!(
+                team.as_ref().is_some_and(|t| t.owner_id == p.character_id
+                    && st.owner_team.as_ref().is_some_and(|o| o.id == t.id)),
+                "Only the owning party leader can reset this dungeon"
+            );
+        } else {
+            anyhow::ensure!(
+                st.character_owner
+                    .as_ref()
+                    .is_some_and(|o| o.character_id == p.character_id),
+                "Only the dungeon owner can reset this dungeon"
+            );
+        }
+        anyhow::ensure!(
+            st.finished_loading && st.enter_requests.is_empty(),
+            "Wait for dungeon loading and entry to finish"
+        );
+        anyhow::ensure!(st.world_id.is_some(), "Dungeon is unavailable");
+    }
+    for d in &runs {
+        anyhow::ensure!(
+            d.world(server)
+                .is_some_and(|w| worlds::character_count(&w) == 0),
+            "Everyone must leave the dungeon before resetting it"
+        );
+    }
+    for d in runs {
+        dungeon::reset_empty_dungeon(server, &d)?;
+    }
+    Ok(())
 }
 
 /// `CreateSystemInstance(character, zoneKey, channelId, overrideInstanceId, fixedInstanceId)`.
@@ -422,6 +511,13 @@ pub fn create_system_instance(
     override_instance_id: bool,
     fixed_instance_id: u32,
 ) -> Option<Arc<Dungeon>> {
+    let _request = server
+        .systems
+        .instances
+        .indun
+        .requests
+        .lock()
+        .expect("instance requests poisoned");
     let who = character.map_or_else(|| "[SYSTEM]".to_string(), |p| p.data().unit.name.clone());
     let ov = if override_instance_id {
         fixed_instance_id.to_string()

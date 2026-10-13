@@ -227,6 +227,31 @@ impl System {
 
     /// `AddQuestTimer` (registry part): false when the quest already has a timer.
     pub fn add_quest_timer(&self, character_id: u32, quest_id: u32, limit_time_ms: i32) -> bool {
+        self.add_timer(character_id, quest_id, limit_time_ms, None)
+    }
+
+    /// A selected character can receive a timeout before it has spawned into the world.
+    pub fn add_player_quest_timer(
+        &self,
+        player: &PlayerRef,
+        quest_id: u32,
+        limit_time_ms: i32,
+    ) -> bool {
+        self.add_timer(
+            player.character_id,
+            quest_id,
+            limit_time_ms,
+            Some(Arc::downgrade(player)),
+        )
+    }
+
+    fn add_timer(
+        &self,
+        character_id: u32,
+        quest_id: u32,
+        limit_time_ms: i32,
+        player: Option<Weak<Player>>,
+    ) -> bool {
         let mut timers = self.timers.lock().expect("timers poisoned");
         let list = timers.entry(character_id).or_default();
         if list.iter().any(|t| t.quest_id == quest_id) {
@@ -242,7 +267,11 @@ impl System {
                     rt.spawn(async move {
                         tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
                         if let Some(server) = weak.upgrade() {
-                            if let Some(p) = server.world.character_by_id(character_id) {
+                            let owner = match player {
+                                Some(p) => p.upgrade(),
+                                None => server.world.character_by_id(character_id),
+                            };
+                            if let Some(p) = owner {
                                 events::on_timer_expired(&server, &p, quest_id);
                             }
                         }

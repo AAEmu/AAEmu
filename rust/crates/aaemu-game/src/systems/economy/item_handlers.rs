@@ -197,6 +197,9 @@ impl CSDestroyItemPacket {
 
     fn run(self, server: &GameServer, conn: &mut GameConnection) {
         let Some(p) = active(conn) else { return };
+        if matches!(self.slot_type, slot_type::MAIL | slot_type::AUCTION) {
+            return;
+        }
         let inv = Inv::of(&p);
         let destroyed = {
             let mut txn = ItemTxn::begin(server);

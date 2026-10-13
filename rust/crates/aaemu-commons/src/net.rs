@@ -28,11 +28,12 @@ impl Decoder for FrameCodec {
     }
 }
 
-impl Encoder<Vec<u8>> for FrameCodec {
+impl<T: AsRef<[u8]>> Encoder<T> for FrameCodec {
     type Error = std::io::Error;
 
-    /// Prepends the `u16` length to `payload`.
-    fn encode(&mut self, payload: Vec<u8>, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    /// Prepends the `u16` length to `payload` (a `Vec<u8>`, or a shared `Bytes` frame).
+    fn encode(&mut self, payload: T, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        let payload = payload.as_ref();
         let len = u16::try_from(payload.len()).map_err(|_| {
             std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
@@ -41,7 +42,7 @@ impl Encoder<Vec<u8>> for FrameCodec {
         })?;
         dst.reserve(2 + payload.len());
         dst.put_u16_le(len);
-        dst.extend_from_slice(&payload);
+        dst.extend_from_slice(payload);
         Ok(())
     }
 }

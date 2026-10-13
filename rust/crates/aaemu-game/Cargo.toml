@@ -21,6 +21,7 @@ thiserror.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true
 futures.workspace = true
+bytes.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 serde.workspace = true

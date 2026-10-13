@@ -33,6 +33,10 @@ pub mod npc;
 pub mod portal;
 pub mod public_farm;
 pub mod schedule;
+pub mod schedule_item_manager;
+pub mod schedule_item_persistence;
+pub mod schedule_item_runtime;
+pub mod schedule_items;
 pub mod spawn_manager;
 pub mod specialty;
 pub mod sphere_quest;
@@ -71,6 +75,8 @@ pub struct Data {
     pub fish_school: fish_school::FishSchoolData,
     /// `GameScheduleManager` / `SchedulesGameData`.
     pub schedule: schedule::ScheduleData,
+    /// `ScheduleItemGameData` (`schedule_items`).
+    pub schedule_items: schedule_items::ScheduleItemData,
 }
 
 impl Data {
@@ -89,6 +95,7 @@ impl Data {
             public_farm: public_farm::PublicFarmData::load(ctx)?,
             fish_school: fish_school::FishSchoolData::load(ctx)?,
             schedule: schedule::ScheduleData::load(ctx)?,
+            schedule_items: schedule_items::ScheduleItemData::load(ctx)?,
         })
     }
 }
@@ -118,6 +125,8 @@ pub struct System {
     pub public_farms: public_farm::PublicFarmManager,
     /// `FishSchoolManager`.
     pub fish_schools: fish_school::FishSchoolManager,
+    /// `ScheduleItemManager` (account-wide schedule-item progress and its prepared save).
+    pub schedule_items: schedule_item_manager::ScheduleItemManager,
     /// Behaviour of other subsystems this one calls (installed by them at start).
     pub hooks: hooks::NpcsHooks,
 }

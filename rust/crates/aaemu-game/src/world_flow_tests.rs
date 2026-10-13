@@ -50,13 +50,13 @@ fn server() -> GameServer {
 
 struct Client {
     conn: GameConnection,
-    out: mpsc::UnboundedReceiver<Vec<u8>>,
+    out: crate::net::outbox::OutboxReceiver,
     _cmd: mpsc::UnboundedReceiver<ConnCommand>,
 }
 
 impl Client {
     fn new(server: &GameServer, id: u32, account: u32) -> Self {
-        let (out_tx, out) = mpsc::unbounded_channel();
+        let (out_tx, out) = crate::net::outbox::outbox();
         let (cmd_tx, cmd) = mpsc::unbounded_channel();
         let peer: SocketAddr = "127.0.0.1:50000".parse().unwrap();
         let (mut conn, handle) = GameConnection::new(id, peer, out_tx, cmd_tx);
@@ -370,8 +370,8 @@ async fn two_players_see_each_other_move_talk_and_leave() {
         .await;
     let mut want = PacketStream::new();
     want.write_i16(0)
-        .write_i16(101)
-        .write_u32(101)
+        .write_i16(0)
+        .write_u32(0)
         .write_bc(pb.obj_id)
         .write_u32(2)
         .write_u8(0)

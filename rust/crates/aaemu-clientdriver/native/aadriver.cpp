@@ -33,12 +33,14 @@
 #include <string.h>
 #include <string>
 #include <deque>
-#include "visuals.h"
 #include "pakio.h"
 #include "virtualpak.h"
 #include "startup.h"
+#ifndef AADRIVER_PLAYER
+#include "visuals.h"
 #include "input.h"
 #include "audio.h"
+#endif
 
 // ---- client build constants (CryScriptSystem.dll, preferred base 0x35500000) -----------
 // All addresses are RVAs; the DLL is relocated at run time (seen at 0x27E70000).
@@ -82,13 +84,19 @@ static volatile LONG g_inHook;
 static volatile LONG g_unloading;
 static DWORD     g_mainTid;
 static char      g_logPath[MAX_PATH];
-static CRITICAL_SECTION g_lock;
 static bool g_fastStart;
 static bool g_fastApplied;
 static bool g_fastCVarApplied;
+static std::string g_auctionUiScript;
+static bool g_auctionUiApplied;
+static bool g_auctionUiFailed;
+static ULONGLONG g_auctionUiNextCheck;
+#ifndef AADRIVER_PLAYER
+static CRITICAL_SECTION g_lock;
 static bool g_hideOnStart;
 static bool g_silent;
 static bool g_sound;
+#endif
 
 // ---- logging ---------------------------------------------------------------------------
 static void logf(const char* fmt, ...) {
@@ -110,6 +118,7 @@ static void logf(const char* fmt, ...) {
 }
 
 // ---- request queue (pipe thread -> main thread) -----------------------------------------
+#ifndef AADRIVER_PLAYER
 struct Request {
     char        op;       // 'S' / 'U' / 'T' / 'B'
     char        target;   // for 'B'
@@ -118,6 +127,7 @@ struct Request {
     HANDLE      done;
 };
 static std::deque<Request*> g_queue;
+#endif
 
 // ---- Lua execution (main thread only) ---------------------------------------------------
 static const char* kPrelude =
@@ -188,6 +198,7 @@ static std::string runLua(char target, const std::string& code) {
     return out;
 }
 
+#ifndef AADRIVER_PLAYER
 static std::string runExecuteBuffer(char target, const std::string& code) {
     void* ss = scriptSystemFor(target);
     if (!ss) return std::string("2script system '") + target + "' not available";
@@ -218,17 +229,22 @@ static void drainQueue() {
         SetEvent(r->done);
     }
 }
+#endif
+
+static bool setSlot(void** slot, void* value);
 
 static void __fastcall HookUpdate(void* self, void* /*edx*/) {
     InterlockedIncrement(&g_inHook);
     if (!g_unloading) {
         if (!g_mainTid) g_mainTid = GetCurrentThreadId();
         if (GetCurrentThreadId() == g_mainTid) {
+#ifndef AADRIVER_PLAYER
             if (g_silent) runLua('S',
                 "if System and System.GetCVar and System.SetCVar then "
                 "local a,b=System.GetCVar('s_SoundEnable'),System.GetCVar('s_MusicEnable') "
                 "if a~=nil and a~=0 then System.SetCVar('s_SoundEnable',0) end "
                 "if b~=nil and b~=0 then System.SetCVar('s_MusicEnable',0) end end");
+#endif
             // The game registers this CVar after command-line processing. Apply it at the
             // first script tick, on the Lua owner thread, before the logo stages advance.
             if (g_fastStart && !g_fastCVarApplied) {
@@ -249,12 +265,38 @@ static void __fastcall HookUpdate(void* self, void* /*edx*/) {
                     g_fastApplied = true; logf("fast start: login logo transition %s", reply.c_str() + 1);
                 }
             }
+#ifndef AADRIVER_PLAYER
             if (g_hideOnStart) {
                 if (visuals::window(false)[0] == '0') { g_hideOnStart = false; logf("hidden window ready"); }
             }
+#endif
         }
     }
     g_origUpdate(self);
+    if (!g_unloading && GetCurrentThreadId() == g_mainTid &&
+        self == scriptSystemFor('U') && !g_auctionUiFailed) {
+        ULONGLONG now = GetTickCount64();
+        if (now >= g_auctionUiNextCheck) {
+            g_auctionUiNextCheck = now + 250;
+            // Login/world transitions can clear globals in the same script system.
+            // Check the actual installed functions, rather than a native one-shot flag.
+            std::string state = runLua('U',
+                "local p=AAEmuAuctionUiInstalled return type(p)=='table' and "
+                "p.apply==ApplyButtonSkin and p.tooltip==SetTooltip and p.hide==HideTooltip");
+            if (state != "0true") {
+                g_auctionUiApplied = false;
+                std::string reply = runLua('U', g_auctionUiScript);
+                if (reply == "0ready") {
+                    g_auctionUiApplied = true;
+                    logf("auction UI: gavel artwork and English tooltip installed");
+                } else if (!reply.empty() && reply[0] == '1') {
+                    g_auctionUiFailed = true;
+                    logf("auction UI unavailable: %s", reply.c_str() + 1);
+                }
+            }
+        }
+    }
+#ifndef AADRIVER_PLAYER
     if (!g_unloading && GetCurrentThreadId() == g_mainTid) {
         // Profile/UI scripts can reset audio during Update. The process session
         // is already muted before startup; keep engine telemetry consistent too.
@@ -266,6 +308,7 @@ static void __fastcall HookUpdate(void* self, void* /*edx*/) {
         input::tick(*(void**)(g_css + RVA_gEnv));
         drainQueue();
     }
+#endif
     InterlockedDecrement(&g_inHook);
 }
 
@@ -280,9 +323,12 @@ static bool setSlot(void** slot, void* value) {
 
 static bool waitForClient() {
     bool smooth = wcsstr(GetCommandLineW(), L"-aaemu-smooth-start") != NULL;
+#ifndef AADRIVER_PLAYER
     bool multiClient = wcsstr(GetCommandLineW(), L"-aaemu-multi-client") != NULL;
+#endif
     bool applied = false;
     for (int i = 0; i < 6000; ++i) {  // up to 10 minutes
+#ifndef AADRIVER_PLAYER
         // The loader explicitly offers Yes/No to a second instance. Accept only this
         // process's known r208022 dialog when the launcher requested multiplayer.
         // No mutex, executable bytes or client files are changed.
@@ -306,6 +352,7 @@ static bool waitForClient() {
             logf("multi-client: accepted this process's additional-instance confirmation");
             return FALSE;
         }, 0);
+#endif
         // Clock calibration runs before the script environment exists. Apply its
         // narrow priority fix as soon as CrySystem is loaded, ahead of Lua hooks.
         if (smooth && !applied && startup::install()) {
@@ -331,6 +378,12 @@ static bool waitForClient() {
 }
 
 static bool installHook() {
+    HRSRC resource = FindResourceW(g_self, MAKEINTRESOURCEW(201), MAKEINTRESOURCEW(10));
+    HGLOBAL loaded = resource ? LoadResource(g_self, resource) : NULL;
+    const char* script = loaded ? static_cast<const char*>(LockResource(loaded)) : NULL;
+    DWORD scriptSize = resource ? SizeofResource(g_self, resource) : 0;
+    if (!script || !scriptSize) { logf("auction UI script resource missing"); return false; }
+    g_auctionUiScript.assign(script, scriptSize);
     g_vtbl = (void**)(g_css + RVA_vtbl);
     p_loadbuffer = (luaL_loadbuffer_t)(g_css + RVA_luaL_loadbuffer);
     p_pcall      = (lua_pcall_t)(g_css + RVA_lua_pcall);
@@ -350,6 +403,7 @@ static bool installHook() {
     return true;
 }
 
+#ifndef AADRIVER_PLAYER
 static void removeHook() {
     if (InterlockedExchange(&g_hooked, 0)) {
         setSlot(&g_vtbl[SLOT_Update], (void*)g_origUpdate);
@@ -382,7 +436,9 @@ static std::string pingInfo() {
                 env ? *(void**)(env + OFF_gEnv_SSystem) : NULL,
                 env ? *(void**)(env + OFF_gEnv_SSUI) : NULL,
                 env ? *(void**)(env + OFF_gEnv_SSThird) : NULL, g_hooked, g_mainTid);
-    return std::string(buf) + visuals::info() + startup::info() + virtualpak::info() + " fast=" + (g_fastApplied ? "1" : "0") + " silent=" + (g_silent ? "1" : "0");
+    return std::string(buf) + visuals::info() + startup::info() + virtualpak::info() +
+        " fast=" + (g_fastApplied ? "1" : "0") + " silent=" + (g_silent ? "1" : "0") +
+        " auction_ui=" + (g_auctionUiApplied ? "1" : "0");
 }
 
 static std::string submit(char op, char target, const std::string& code, DWORD timeoutMs) {
@@ -495,20 +551,57 @@ static DWORD WINAPI serverThread(LPVOID) {
         if (unload) { CreateThread(NULL, 0, unloadThread, NULL, 0, NULL); return 0; }
     }
 }
+#else
+// Player build: pack mounting, startup optimizations and auction UI repair. No command pipe,
+// input automation, capture hooks, hidden window handling or audio session policy.
+static DWORD WINAPI serverThread(LPVOID) {
+    if (!virtualpak::prepare_start()) {
+        logf("compressed pak startup failed: %s", virtualpak::error().c_str());
+        return 1;
+    }
+    if (wcsstr(GetCommandLineW(), L"-aaemu-smooth-start") && !startup::install()) {
+        logf("unsupported CPU calibration instructions; refusing player startup");
+        return 1;
+    }
+    if (wcsstr(GetCommandLineW(), L"-aaemu-fast-pak")) {
+        std::string result = pakio::control("optimize");
+        if (result.empty() || result[0] != '0') { logf("fast pak: %s", result.c_str()); return 1; }
+        logf("fast pak: %s", result.c_str());
+    }
+    logf("player startup:%s%s; normal client audio", virtualpak::info().c_str(), startup::info().c_str());
+    // Reuse the launcher's startup-readiness handshake. The player build has no
+    // audio policy; this event confirms the compressed pack is ready before resume.
+    wchar_t name[96];
+    _snwprintf_s(name, _countof(name), _TRUNCATE, L"Local\\aaemu-client-audio-ready-%lu", GetCurrentProcessId());
+    HANDLE ready = CreateEventW(nullptr, TRUE, FALSE, name);
+    if (!ready || !SetEvent(ready)) { logf("player readiness event failed"); return 1; }
+    // Keep the event open until process exit, as in the diagnostic build.
+    if (!waitForClient() || !installHook()) { logf("player startup/UI hook unavailable"); return 1; }
+    return 0;
+}
+#endif
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = hModule;
         g_fastStart = wcsstr(GetCommandLineW(), L"-aaemu-fast-start") != NULL;
+#ifndef AADRIVER_PLAYER
         g_hideOnStart = wcsstr(GetCommandLineW(), L"-aaemu-hidden") != NULL;
         g_silent = wcsstr(GetCommandLineW(), L"-aaemu-silent") != NULL;
         g_sound = wcsstr(GetCommandLineW(), L"-aaemu-sound") != NULL;
+#endif
         DisableThreadLibraryCalls(hModule);
+#ifndef AADRIVER_PLAYER
         InitializeCriticalSection(&g_lock);
+#endif
         GetModuleFileNameA(hModule, g_logPath, sizeof(g_logPath));
         char* slash = strrchr(g_logPath, '\\');
         if (slash) strcpy_s(slash + 1, g_logPath + sizeof(g_logPath) - (slash + 1), "aadriver.log");
+#ifdef AADRIVER_PLAYER
+        logf("player runtime loaded into pid %lu", GetCurrentProcessId());
+#else
         logf("aadriver loaded into pid %lu", GetCurrentProcessId());
+#endif
         CreateThread(NULL, 0, serverThread, NULL, 0, NULL);
     }
     return TRUE;

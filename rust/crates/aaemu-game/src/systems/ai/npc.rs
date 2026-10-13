@@ -370,6 +370,11 @@ pub fn move_towards(
         // Native bUnderwaterCreature uses 3D movement. Keep the authored step height;
         // projecting onto the seabed would move a surface fish away from its angler.
         underwater_step(server, obj.transform().instance_id, model_id, pos, new)
+    } else if can_fly {
+        // Flying NPCs keep the interpolated 3D step: taking their reference height like a
+        // walker would snap every step back to the spawner's altitude and discard the climb
+        // or descent that `AddDistanceToFrontBetween` just computed.
+        new
     } else {
         let target_z = reference_height_in(
             server,

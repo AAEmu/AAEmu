@@ -56,13 +56,13 @@ pub fn test_server() -> GameServer {
 /// A connection whose outgoing frames can be inspected.
 pub struct TestClient {
     pub conn: GameConnection,
-    out: mpsc::UnboundedReceiver<Vec<u8>>,
+    out: crate::net::outbox::OutboxReceiver,
     _cmd: mpsc::UnboundedReceiver<ConnCommand>,
 }
 
 impl TestClient {
     pub fn new(server: &GameServer, id: u32, account: u32) -> Self {
-        let (out_tx, out) = mpsc::unbounded_channel();
+        let (out_tx, out) = crate::net::outbox::outbox();
         let (cmd_tx, cmd) = mpsc::unbounded_channel();
         let peer: SocketAddr = "127.0.0.1:50000".parse().expect("addr");
         let (mut conn, handle) = GameConnection::new(id, peer, out_tx, cmd_tx);

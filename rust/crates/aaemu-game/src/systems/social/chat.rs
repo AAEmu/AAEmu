@@ -130,7 +130,8 @@ impl ChatChannel {
         removed
     }
 
-    /// `SendMessage(origin, msg, ability, languageType)`: `origin ?? member` as sender.
+    /// `SendMessage(origin, msg, ability, languageType)`: `origin ?? member` as sender. The
+    /// channel's sub type / faction select the chat identity of every copy.
     pub fn send_message(
         &self,
         origin: Option<&ChatSender>,
@@ -141,22 +142,31 @@ impl ChatChannel {
     ) -> usize {
         let members = self.members();
         for m in &members {
-            m.send(SCChatMessagePacket {
+            let message = SCChatMessagePacket {
                 chat_type: self.chat_type,
                 sender: Some(origin.cloned().unwrap_or_else(|| member_sender(m))),
                 message: msg.to_string(),
                 ability,
                 language_type,
-            });
+            };
+            m.send(super::packets::chat::channel_message(self, &message));
         }
         members.len()
+    }
+
+    /// `SendPacket` for a chat message: the channel identity is wrapped once and the generic
+    /// `send_packet` fan-out is reused.
+    pub fn send_chat_packet(&self, message: &SCChatMessagePacket) -> usize {
+        let packet = super::packets::chat::channel_message(self, message);
+        self.send_packet(&packet)
     }
 
     /// `SendPacket(packet)`.
     pub fn send_packet(&self, packet: &dyn ServerPacket) -> usize {
         let members = self.members();
+        let mut out = crate::net::connection::Fanout::new(packet);
         for m in &members {
-            m.send_dyn(packet);
+            out.send(&m.conn);
         }
         members.len()
     }

@@ -23,6 +23,7 @@ pub mod dungeon;
 pub mod events;
 pub mod indun;
 pub mod instant_game;
+pub mod mentoring;
 pub mod packets;
 pub mod tower_def;
 pub mod worlds;

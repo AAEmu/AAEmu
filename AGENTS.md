@@ -2,6 +2,25 @@
 
 Guidance for coding agents working in this repository.
 
+## Coding workflow: Codex orchestrates, DeepSeek implements
+
+- For coding work in this repository, Codex scopes and orchestrates the work, and uses the **OpenCode CLI** for implementation with the human's **OpenCode Go subscription**: provider `opencode-go` (the Go subscription, not the paid standalone `opencode` provider), model `deepseek-v4.1-flash`, variant `max` (**DeepSeek V4.1 Flash, MAX reasoning**).
+- Run **one small coding task per worker at a time**. Codex may launch as many **OpenCode workers in parallel** as useful for independent work; there is no user-imposed worker limit. Give each worker one independently reviewable objective with the relevant files, repository constraints, and acceptance checks. Scale concurrency to task independence, machine resources, and Codex's ability to review and validate the results.
+- Give parallel workers non-overlapping file ownership. Serialize tasks that edit the same files or depend on each other's changes, or use isolated worktrees and integrate them under Codex's supervision. Codex owns task assignment, coordination, and integration.
+- **Reuse the same OpenCode session (`--session <id>`) for sequential small tasks within one subject** to preserve context and improve cache reuse. Assign only one task per worker at a time and validate it before giving that worker the next task. Start a fresh session with a concise handoff when the subject changes or the accumulated context/corrections become lengthy. Do not accumulate unrelated tasks in one chat.
+- Keep follow-up prompts and worker completion summaries brief. Send the validation outcome and the next bounded objective; reuse already inspected context and read only the relevant sections. Worker summaries should report the actual changes, commands run, and unresolved issues without repeating code or the full task checklist.
+- The OpenCode worker implements only its assigned task, follows the repository guidance below, and does not spawn additional agents or choose further tasks. These orchestration rules apply to Codex; the worker should implement directly rather than recursively delegate.
+- Codex independently reviews each diff, checks scope and correctness, and runs focused validation before assigning that worker its next task. Run required workspace checks after the related batch is integrated and its workers have finished editing, and repeat them when new changes or failures justify it. Required repository checks must pass before claiming the overall coding change is complete.
+- Verify the actual OpenCode assistant message/session records show providerID `opencode-go`, modelID `deepseek-v4.1-flash`, and variant `max`; do not silently substitute another provider, model, or variant.
+
+On this Windows machine, `opencode` is installed on PATH (`C:\Users\messe\AppData\Roaming\npm\opencode.ps1`; from PowerShell use `opencode.cmd`). Invoke it from the repository with `opencode run --dir <repository> --model opencode-go/deepseek-v4.1-flash --variant max --format json --auto`, supplying the bounded task on stdin — verified PowerShell form:
+
+```powershell
+Get-Content -Raw <task.txt> | opencode run --dir <repository> --model opencode-go/deepseek-v4.1-flash --variant max --format json --auto
+```
+
+For the next related task in the same subject, add `--session <id>` and keep the same working directory. If the provider returns privacy/global region or subscription errors, report them without changing account privacy or credentials.
+
 > **Starting the servers or the real client?** Read [`AGENT-QUICKSTART.md`](AGENT-QUICKSTART.md)
 > first: `Scripts/live-stack.sh build|sync|start|client|status|shot|stop`, machine paths, ports and
 > the rules that bite (C: is full, MySQL 3306 is off-limits, client folders are read-only).

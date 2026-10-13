@@ -599,6 +599,10 @@ pub async fn load_character_details(server: &GameServer, c: &mut Character) -> R
         c.quests.active.push(q);
     }
 
+    // Achievements (records + progress rows; the gameplay events that report into them are a
+    // later phase).
+    crate::systems::social::achievement_persistence::load_character_achievements(pool, c).await?;
+
     // LoadActionSlots(connection)
     if let Ok(Some(r)) =
         sqlx::query("SELECT slots FROM `characters` WHERE `id` = ? AND `account_id` = ?")
@@ -1044,6 +1048,9 @@ pub async fn save_character(
         .execute(&mut **tx)
         .await?;
     }
+    // Achievements (records + progress). Written after the `characters` REPLACE above, so its
+    // ON DELETE CASCADE cannot drop the rows this snapshot re-inserts.
+    crate::systems::social::achievement_persistence::save_character_achievements(tx, c).await?;
     // Later phase: Mates.Save.
     Ok(())
 }
@@ -1130,28 +1137,40 @@ async fn save_active_buffs(tx: &mut Transaction<'_, MySql>, c: &Character) {
     }
 }
 
-/// `Character.SaveDirectlyToDatabase`.
+/// `Character.SaveDirectlyToDatabase`. All-or-nothing: the transaction is committed only when
+/// every statement succeeded; any statement error rolls it back and the caller's character keeps
+/// the state it had before the call (`save_character` advances `updated` and clears the removed
+/// lists while it works, so it runs on a clone that is applied only after the commit).
 pub async fn save_directly_to_database(pool: &MySqlPool, c: &mut Character) -> bool {
+    let mut saved = c.clone();
     let res: Result<()> = async {
         let mut tx = pool.begin().await?;
         let now = Utc::now().timestamp();
-        match save_character(&mut tx, c, now).await {
+        match save_character(&mut tx, &mut saved, now).await {
             Ok(()) => {
                 tx.commit().await?;
                 Ok(())
             }
             Err(e) => {
-                // Character.Save logs and returns false; the transaction is still committed by
-                // SaveDirectlyToDatabase (only exceptions roll back).
-                tracing::error!("{e}");
-                tx.commit().await?;
+                // The C# committed the partial transaction here; that can lose achievement
+                // receipts the `characters` REPLACE already cascaded away.
+                if let Err(rollback) = tx.rollback().await {
+                    tracing::error!(
+                        "Character save rollback failed for {} - {}: {rollback}",
+                        saved.id,
+                        saved.unit.name
+                    );
+                }
                 Err(e)
             }
         }
     }
     .await;
     match res {
-        Ok(()) => true,
+        Ok(()) => {
+            *c = saved;
+            true
+        }
         Err(e) => {
             tracing::error!("Character save failed for {} - {}: {e}", c.id, c.unit.name);
             false
@@ -1256,6 +1275,8 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; uses only temporary tables"]
     async fn private_mysql_character_save_preserves_both_bot_report_counters() {
+        use crate::systems::social::achievement_persistence::temporary_shadow_definition;
+
         let Ok(url) = std::env::var("AAEMU_TEST_MYSQL") else {
             return;
         };
@@ -1271,15 +1292,22 @@ mod tests {
             .await
             .expect("private MySQL");
         // MySQL rejects an unqualified same-name CREATE ... LIKE as a duplicate alias.
-        // Shadow the live names with connection-local copies of their actual schemas.
-        for table in ["characters", "character_active_buffs"] {
+        // Shadow the live names with connection-local copies of their actual schemas, including
+        // the achievement tables `save_character` writes. Temporary tables cannot carry foreign
+        // keys, so the copied `FOREIGN KEY` constraints are dropped.
+        for table in [
+            "characters",
+            "character_active_buffs",
+            "character_records",
+            "character_achievements",
+        ] {
             let (_, definition): (String, String) =
                 sqlx::query_as(&format!("SHOW CREATE TABLE `{table}`"))
                     .fetch_one(&pool)
                     .await
                     .unwrap();
             assert!(definition.starts_with("CREATE TABLE "));
-            let temporary = definition.replacen("CREATE TABLE ", "CREATE TEMPORARY TABLE ", 1);
+            let temporary = temporary_shadow_definition(&definition);
             sqlx::query(&temporary).execute(&pool).await.unwrap();
         }
         let mut character = Character::new(1, 1, UnitCustomModelParams::default());
@@ -1305,6 +1333,152 @@ mod tests {
             .unwrap();
             assert_eq!(saved, (i64::from(expected.0), i64::from(expected.1), 6));
         }
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    #[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; uses only temporary tables"]
+    async fn private_mysql_direct_save_failure_keeps_receipts_and_bookkeeping() {
+        use crate::systems::social::achievement_persistence::{
+            load_achievement_state, temporary_shadow_definition,
+        };
+
+        let Ok(url) = std::env::var("AAEMU_TEST_MYSQL") else {
+            return;
+        };
+        let options = MySqlConnectOptions::from_str(&url).expect("valid private MySQL URL");
+        assert_eq!(
+            options.get_port(),
+            3317,
+            "only private MySQL3317 is allowed"
+        );
+        let pool = MySqlPoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .expect("private MySQL");
+        // Shadow every table the save writes with connection-local copies of their actual
+        // schemas, so no live row is touched. Temporary tables cannot carry foreign keys, so the
+        // copied constraints are dropped.
+        for table in [
+            "characters",
+            "character_active_buffs",
+            "character_records",
+            "character_achievements",
+            "friends",
+            "blocked",
+            "skills",
+            "quests",
+        ] {
+            let (_, definition): (String, String) =
+                sqlx::query_as(&format!("SHOW CREATE TABLE `{table}`"))
+                    .fetch_one(&pool)
+                    .await
+                    .unwrap();
+            assert!(definition.starts_with("CREATE TABLE "));
+            sqlx::query(&temporary_shadow_definition(&definition))
+                .execute(&pool)
+                .await
+                .unwrap();
+        }
+
+        // The previously saved character: one paid completion (achievement 1) and one record.
+        let earned = chrono::DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp");
+        let mut character = Character::new(1, 1, UnitCustomModelParams::default());
+        character.unit.name = "DirectSaveRollback".into();
+        character.created = Utc::now().timestamp();
+        character.money = 100;
+        character.achievement_state.restore_record(10, 50);
+        character
+            .achievement_state
+            .restore_progress(1, 50, Some(earned));
+        assert!(character.achievement_state.mark_reward_delivered(1));
+        assert!(save_directly_to_database(&pool, &mut character).await);
+        let saved_updated = character.updated;
+
+        // The next snapshot moves the wallet, the record and the amount and queues removed
+        // entries, while the completion (and its receipt) stays as it is.
+        character.money = 200;
+        character.removed_friends = vec![7];
+        character.removed_blocked = vec![8];
+        character.skills.removed = vec![9];
+        character.quests.removed = vec![10];
+        character.achievement_state.restore_record(10, 60);
+        character
+            .achievement_state
+            .restore_progress(1, 60, Some(earned));
+        assert!(character
+            .achievement_state
+            .progress(1)
+            .expect("row")
+            .reward_delivered());
+
+        // The snapshot's amount violates this constraint, so the achievement INSERT fails after
+        // the `characters` REPLACE and the achievement DELETEs ran in the transaction.
+        sqlx::query(
+            "ALTER TABLE `character_achievements` \
+             ADD CONSTRAINT `chk_direct_save_rollback` CHECK (`amount` <= 50)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert!(!save_directly_to_database(&pool, &mut character).await);
+
+        // The failed transaction is rolled back: the rows are still the ones the previous save
+        // wrote, and the paid completion keeps its receipt.
+        let money: i64 =
+            sqlx::query_scalar("SELECT CAST(money AS SIGNED) FROM `characters` WHERE `id` = 1")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(money, 100);
+        let state = load_achievement_state(&pool, 1).await.unwrap();
+        assert_eq!(state.record_value(10), 50);
+        assert_eq!(state.progress_snapshot().len(), 1);
+        assert_eq!(state.amount(1), 50);
+        assert_eq!(state.completed_at(1), Some(earned));
+        assert!(state.progress(1).expect("row").reward_delivered());
+        assert!(!state.has_pending_reward(1));
+        // The passed character keeps its bookkeeping: the failed save neither advanced `updated`
+        // nor cleared the removed lists on it.
+        assert_eq!(character.updated, saved_updated);
+        assert_eq!(character.removed_friends, [7]);
+        assert_eq!(character.removed_blocked, [8]);
+        assert_eq!(character.skills.removed, [9]);
+        assert_eq!(character.quests.removed, [10]);
+
+        // The retry saves the same snapshot and applies it to the character: `updated` moves on,
+        // the removed lists are cleared and the paid completion is rewritten exactly once.
+        while Utc::now().timestamp() <= saved_updated {
+            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+        }
+        sqlx::query("ALTER TABLE `character_achievements` DROP CHECK `chk_direct_save_rollback`")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(save_directly_to_database(&pool, &mut character).await);
+        assert!(character.updated > saved_updated);
+        assert!(character.removed_friends.is_empty());
+        assert!(character.removed_blocked.is_empty());
+        assert!(character.skills.removed.is_empty());
+        assert!(character.quests.removed.is_empty());
+
+        let money: i64 =
+            sqlx::query_scalar("SELECT CAST(money AS SIGNED) FROM `characters` WHERE `id` = 1")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(money, 200);
+        let state = load_achievement_state(&pool, 1).await.unwrap();
+        assert_eq!(state.record_value(10), 60);
+        assert_eq!(
+            state.progress_snapshot().len(),
+            1,
+            "no duplicate receipt row"
+        );
+        assert_eq!(state.amount(1), 60);
+        assert_eq!(state.completed_at(1), Some(earned));
+        assert!(state.progress(1).expect("row").reward_delivered());
         pool.close().await;
     }
 }

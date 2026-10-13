@@ -621,6 +621,7 @@ pub fn on_kill_in_reduce_hp(server: &GameServer, victim: &WorldObject) {
 /// { Killer, Victim })` (instant game scores).
 pub fn on_do_die(server: &GameServer, victim: &WorldObject, killer: Option<&WorldObject>) {
     super::tower_def::on_death(server, victim);
+    super::mentoring::on_death(server, victim);
     let instance = victim.transform().instance_id;
     if let Some(world) = server.world.worlds().into_iter().find(|w| w.id == instance) {
         fire_unit_killed(server, &world, victim);

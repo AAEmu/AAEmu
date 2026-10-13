@@ -34,17 +34,36 @@ sc_packet!(
     |self, s| { s.write_str(&self.reporter).write_str(&self.suspect); }
 );
 
+/// The most entries the client's bounty list holds (its record array cap).
+pub const MAX_BOUNTY_LIST_ENTRIES: usize = 20;
+
+/// The client reads the bounty name strings into fixed 0x80-byte buffers (`push 0x80` before the
+/// string accessor in the `SCSetBountyPermittedPacket` reader, `0x397c7018`), so a longer name
+/// must be cut or the client's `len <= cap` check fails and drops the packet.
+pub const BOUNTY_NAME_MAX_BYTES: usize = 128;
+
+/// Writes a bounty name as a `u16`-length-prefixed UTF-8 string cut to [`BOUNTY_NAME_MAX_BYTES`].
+/// The cut never splits a UTF-8 sequence: a multi-byte character that would straddle the limit is
+/// dropped whole.
+fn write_bounty_name(s: &mut PacketStream, name: &str) {
+    let mut end = name.len().min(BOUNTY_NAME_MAX_BYTES);
+    while !name.is_char_boundary(end) {
+        end -= 1;
+    }
+    s.write_str(&name[..end]);
+}
+
 sc_packet!(
-    /// `SCBountyListPacket(total, count, bounties)`: at most `count` entries are written.
+    /// `SCBountyListPacket(total, count, bounties)`: the serialized `count` is the number of
+    /// entries actually written — `min(count, bounties.len(), MAX_BOUNTY_LIST_ENTRIES)` — so a
+    /// declared count larger than the list cannot make the client read past the body.
     SCBountyListPacket { total: i32, count: u8, bounties: Vec<BountyDescription> }
     |self, s| {
-        s.write_i32(self.total).write_u8(self.count);
-        let mut c = 0;
-        for b in &self.bounties {
-            c += 1;
-            if c > i32::from(self.count) {
-                break;
-            }
+        let count = usize::from(self.count)
+            .min(self.bounties.len())
+            .min(MAX_BOUNTY_LIST_ENTRIES);
+        s.write_i32(self.total).write_u8(count as u8);
+        for b in self.bounties.iter().take(count) {
             b.write(s);
         }
     }
@@ -349,6 +368,45 @@ sc_packet!(
     /// `SCUnitBountyMoneyPacket(objId, moneyAmount)`.
     SCUnitBountyMoneyPacket { obj_id: u32, money_amount: i64 }
     |self, s| { s.write_bc(self.obj_id).write_i64(self.money_amount); }
+);
+
+// The three bounty placement / payout packets below have no C# packet class (the 1.2 opcodes
+// existed without one); their bodies were recovered from the live 1.2 readers. Every field is
+// mandatory: the readers' `BeginGroup`/`EndGroup` calls add no wire bytes, so no presence flag may
+// be inserted.
+
+sc_packet!(
+    /// `SCSetBountyPermittedPacket(type, name, moneyAmount, allowed)`: whether the client may
+    /// place the bounty (`allowed == false` makes it show error 584). Reader `0x397c6fc0`:
+    /// `u32`, name (128-byte buffer), mandatory `i64`, `u8`.
+    SCSetBountyPermittedPacket { kind: u32, name: String, money_amount: i64, allowed: bool }
+    |self, s| {
+        s.write_u32(self.kind);
+        write_bounty_name(s, &self.name);
+        s.write_i64(self.money_amount).write_bool(self.allowed);
+    }
+);
+
+sc_packet!(
+    /// `SCSetBountyDonePacket(type, name, moneyAmount, errorMessage)`: the placement result
+    /// (`0` = placed, `585` = name refused). Reader `0x397c7080`; the error is a plain `i16`.
+    SCSetBountyDonePacket { kind: u32, name: String, money_amount: i64, error_message: i16 }
+    |self, s| {
+        s.write_u32(self.kind);
+        write_bounty_name(s, &self.name);
+        s.write_i64(self.money_amount).write_i16(self.error_message);
+    }
+);
+
+sc_packet!(
+    /// `SCBountyPaidPacket(hunter, arrested, moneyAmount)`: the hunter was paid for the arrest.
+    /// Reader `0x397c7180`.
+    SCBountyPaidPacket { hunter: String, arrested: String, money_amount: i64 }
+    |self, s| {
+        write_bounty_name(s, &self.hunter);
+        write_bounty_name(s, &self.arrested);
+        s.write_i64(self.money_amount);
+    }
 );
 
 // ---------------------------------------------------------------------------------------------
@@ -875,6 +933,204 @@ mod tests {
             }),
             vec![0, 0, 0, 0, 0]
         );
+    }
+
+    #[test]
+    fn bounty_list_count_covers_only_written_entries() {
+        // The live-verified single "Test" row body is 80 bytes: 5 header + 75 row.
+        let test_row = BountyDescription {
+            player_name: "Test".into(),
+            ..BountyDescription::default()
+        };
+        assert_eq!(
+            body(&SCBountyListPacket {
+                total: 1,
+                count: 1,
+                bounties: vec![test_row]
+            })
+            .len(),
+            80
+        );
+
+        let b = BountyDescription {
+            player_id: 5,
+            player_name: "Wanted".into(),
+            ..BountyDescription::default()
+        };
+        let one = body(&SCBountyListPacket {
+            total: 7,
+            count: 1,
+            bounties: vec![b.clone()],
+        });
+        // A declared count above the number of rows is clamped to the rows written.
+        assert_eq!(
+            body(&SCBountyListPacket {
+                total: 7,
+                count: 9,
+                bounties: vec![b.clone()],
+            }),
+            one
+        );
+        // count 0 writes no rows even when the list is not empty.
+        assert_eq!(
+            body(&SCBountyListPacket {
+                total: 0,
+                count: 0,
+                bounties: vec![b.clone()],
+            }),
+            vec![0, 0, 0, 0, 0]
+        );
+        // At most MAX_BOUNTY_LIST_ENTRIES rows are written.
+        let rows = vec![b; MAX_BOUNTY_LIST_ENTRIES + 5];
+        let p = body(&SCBountyListPacket {
+            total: 100,
+            count: 200,
+            bounties: rows,
+        });
+        assert_eq!(&p[..5], &[100, 0, 0, 0, MAX_BOUNTY_LIST_ENTRIES as u8]);
+        assert_eq!(p.len(), 5 + MAX_BOUNTY_LIST_ENTRIES * (one.len() - 5));
+    }
+
+    #[test]
+    fn bounty_update_packets_match_client_readers() {
+        // Byte layouts verified against the live 1.2 readers (`SCSetBountyPermittedPacket`
+        // `0x397c6fc0`, `SCSetBountyDonePacket` `0x397c7080`, `SCBountyPaidPacket` `0x397c7180`);
+        // no group/optional-flag byte may appear anywhere.
+        assert_eq!(
+            body(&SCSetBountyPermittedPacket {
+                kind: 0x11223344,
+                name: "Test".into(),
+                money_amount: 1_000_000,
+                allowed: true,
+            }),
+            vec![
+                0x44, 0x33, 0x22, 0x11, //
+                0x04, 0x00, b'T', b'e', b's', b't', //
+                0x40, 0x42, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, //
+                0x01,
+            ]
+        );
+        // allowed=false is the client's error-584 branch.
+        assert_eq!(
+            body(&SCSetBountyPermittedPacket {
+                kind: 0x11223344,
+                name: "Test".into(),
+                money_amount: 1_000_000,
+                allowed: false,
+            }),
+            vec![
+                0x44, 0x33, 0x22, 0x11, //
+                0x04, 0x00, b'T', b'e', b's', b't', //
+                0x40, 0x42, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, //
+                0x00,
+            ]
+        );
+        // The money is mandatory even when zero.
+        assert_eq!(
+            body(&SCSetBountyPermittedPacket {
+                kind: 1,
+                name: "T".into(),
+                money_amount: 0,
+                allowed: true,
+            }),
+            vec![1, 0, 0, 0, 1, 0, b'T', 0, 0, 0, 0, 0, 0, 0, 0, 1]
+        );
+
+        // ErrorMessage 0 (placed) and the client's rejection ids 584 / 585.
+        assert_eq!(
+            body(&SCSetBountyDonePacket {
+                kind: 0x11223344,
+                name: "Test".into(),
+                money_amount: 1_000_000,
+                error_message: 0,
+            }),
+            vec![
+                0x44, 0x33, 0x22, 0x11, //
+                0x04, 0x00, b'T', b'e', b's', b't', //
+                0x40, 0x42, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, //
+                0x00, 0x00,
+            ]
+        );
+        assert_eq!(
+            body(&SCSetBountyDonePacket {
+                kind: 0x11223344,
+                name: "Test".into(),
+                money_amount: 1_000_000,
+                error_message: 585,
+            }),
+            vec![
+                0x44, 0x33, 0x22, 0x11, //
+                0x04, 0x00, b'T', b'e', b's', b't', //
+                0x40, 0x42, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, //
+                0x49, 0x02,
+            ]
+        );
+        assert_eq!(
+            body(&SCSetBountyDonePacket {
+                kind: 0x11223344,
+                name: "Test".into(),
+                money_amount: 1_000_000,
+                error_message: 584,
+            }),
+            vec![
+                0x44, 0x33, 0x22, 0x11, //
+                0x04, 0x00, b'T', b'e', b's', b't', //
+                0x40, 0x42, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, //
+                0x48, 0x02,
+            ]
+        );
+
+        assert_eq!(
+            body(&SCBountyPaidPacket {
+                hunter: "hunter".into(),
+                arrested: "arrested".into(),
+                money_amount: 1_000_000,
+            }),
+            vec![
+                0x06, 0x00, b'h', b'u', b'n', b't', b'e', b'r', //
+                // The RE sample's hex line for "arrested" shows the name bytes with a `07 00`
+                // prefix; the length is the 8 bytes actually shown below.
+                0x08, 0x00, b'a', b'r', b'r', b'e', b's', b't', b'e', b'd', //
+                0x40, 0x42, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00,
+            ]
+        );
+        // Zero money is still a mandatory 8-byte field.
+        assert_eq!(
+            body(&SCBountyPaidPacket {
+                hunter: String::new(),
+                arrested: String::new(),
+                money_amount: 0,
+            }),
+            vec![0; 12]
+        );
+    }
+
+    #[test]
+    fn bounty_names_are_cut_to_the_client_buffer_on_utf8_boundaries() {
+        let long = body(&SCBountyPaidPacket {
+            hunter: "a".repeat(200),
+            arrested: String::new(),
+            money_amount: 0,
+        });
+        assert_eq!(&long[..2], &[128, 0]);
+        assert_eq!(long.len(), 2 + BOUNTY_NAME_MAX_BYTES + 2 + 8);
+
+        let permitted = body(&SCSetBountyPermittedPacket {
+            kind: 1,
+            name: "a".repeat(200),
+            money_amount: 0,
+            allowed: true,
+        });
+        assert_eq!(permitted.len(), 4 + 2 + BOUNTY_NAME_MAX_BYTES + 8 + 1);
+
+        // A multi-byte character straddling the 128-byte limit is dropped whole.
+        let straddling = body(&SCBountyPaidPacket {
+            hunter: format!("{}é", "a".repeat(127)),
+            arrested: String::new(),
+            money_amount: 0,
+        });
+        assert_eq!(&straddling[..2], &[127, 0]);
+        assert_eq!(straddling.len(), 2 + 127 + 2 + 8);
     }
 
     fn entry() -> CrimeRecordEntry {

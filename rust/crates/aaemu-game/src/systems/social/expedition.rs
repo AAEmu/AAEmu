@@ -393,9 +393,10 @@ pub fn send_to_members(
     members: &[u32],
     packet: &dyn crate::net::packet::ServerPacket,
 ) {
+    let mut out = crate::net::connection::Fanout::new(packet);
     for id in members {
         if let Some(p) = server.world.character_by_id(*id) {
-            p.send_dyn(packet);
+            out.send(&p.conn);
         }
     }
 }

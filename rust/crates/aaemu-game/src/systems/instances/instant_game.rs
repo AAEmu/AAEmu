@@ -250,8 +250,9 @@ impl InstantGame {
     /// `BroadcastPacket(packet)` (every player of the game).
     fn broadcast(&self, packet: &dyn crate::net::packet::ServerPacket) {
         let players = self.st().players.clone();
+        let mut out = crate::net::connection::Fanout::new(packet);
         for p in players {
-            p.send_dyn(packet);
+            out.send(&p.conn);
         }
     }
 }

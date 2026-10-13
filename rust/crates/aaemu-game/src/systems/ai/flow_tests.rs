@@ -240,7 +240,12 @@ struct Fixture {
 }
 
 fn server() -> Arc<GameServer> {
-    let server = Arc::new(test_server_with(data()));
+    server_with_data(data())
+}
+
+/// [`data`]'s server setup (shared by [`server`]).
+fn server_with_data(data: GameData) -> Arc<GameServer> {
+    let server = Arc::new(test_server_with(data));
     server.set_self();
     crate::systems::skills::bind(&server);
     // The AI parts of the npcs NpcSkillHooks (`npcs::bridges::NpcSkills` at startup; its npc
@@ -248,6 +253,30 @@ fn server() -> Arc<GameServer> {
     server.systems.skills.ext.npcs.install(Arc::new(AiParts));
     super::hooks::install(&server);
     server
+}
+
+/// [`data`] plus skill 2 (the melee hack's id) with max range 25; `PASSIVE_TEMPLATE` uses it
+/// so the melee guard has to see the 3D distance of a flying NPC.
+fn data_with_melee_skill() -> GameData {
+    let mut data = data();
+    let mut melee = data
+        .systems
+        .skills
+        .skill(HIT_SKILL)
+        .expect("hit skill")
+        .as_ref()
+        .clone();
+    melee.id = 2;
+    melee.max_range = 25;
+    data.systems.skills.add_skill(melee);
+    data.systems
+        .npcs
+        .npc
+        .templates
+        .get_mut(&PASSIVE_TEMPLATE)
+        .expect("passive template")
+        .base_skill_id = 2;
+    data
 }
 
 /// Creates an NPC with an AI and spawns it like `NpcSpawnerNpc.Spawn` (home position, Spawning).
@@ -800,4 +829,342 @@ async fn npc_delete_detaches_its_ai() {
     assert!(f.server.systems.ai.ais.get(NPC_OBJ).is_none());
     assert!(!f.npc.data().has_ai);
     assert!(world.npc(NPC_OBJ).is_none());
+}
+
+#[tokio::test]
+async fn npc_deleting_itself_from_an_ai_call_does_not_stall_other_enemies() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::mpsc;
+
+    let f = fixture(115.0);
+    let server = f.server.clone();
+    let queued_ran = Arc::new(AtomicBool::new(false));
+    let queued = queued_ran.clone();
+    let (finished, completion) = mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        // NPC skills such as KillNpcWithoutCorpse can delete their caster during
+        // an AI step. Callbacks already queued for that AI must be discarded.
+        post(&server, NPC_OBJ, move |c| {
+            post(c.server, NPC_OBJ, move |_| {
+                queued.store(true, Ordering::SeqCst);
+            });
+            let world = c.server.world.world(0).expect("world");
+            crate::systems::npcs::npc::manager::delete(c.server, &world, &c.npc);
+        });
+        finished.send(()).unwrap();
+    });
+    completion
+        .recv_timeout(Duration::from_secs(2))
+        .expect("NPC deletion deadlocked inside its own AI call");
+    worker.join().unwrap();
+    assert!(!queued_ran.load(Ordering::SeqCst));
+    assert!(!super::manager::has_ai(&f.server, NPC_OBJ));
+    assert!(f.server.world.world(0).unwrap().npc(NPC_OBJ).is_none());
+
+    spawn_npc(
+        &f.server,
+        HELPER_OBJ,
+        NPC_TEMPLATE,
+        100.0,
+        100.0,
+        AiKind::HoldPosition,
+    );
+    let player = f.player.clone();
+    assert!(
+        tick_until(&f.server, 500, 160, 60, || player.data().unit.hp < 1000).await,
+        "another enemy did not chase and attack after NPC deletion"
+    );
+}
+
+#[tokio::test]
+async fn busy_npc_ai_does_not_stop_other_enemies_chasing_and_attacking() {
+    use std::sync::mpsc;
+
+    let f = fixture(115.0);
+    // The busy NPC stays registered in the AI manager (the global tick still has to reach
+    // it), but is parked outside the healthy enemy's neighbourhood: without faction
+    // templates `can_attack` is true for the collocated NPC, and the enemy would attack it
+    // instead of chasing the player.
+    {
+        let npc = &f.npc;
+        npc.data().unit.transform.set_xyz(1000.0, 1000.0, 100.0);
+    }
+    let world = f.server.world.world(0).expect("world");
+    world.add_visible_object(&f.npc, &f.server.view_ctx());
+    let other = spawn_npc(
+        &f.server,
+        HELPER_OBJ,
+        NPC_TEMPLATE,
+        100.0,
+        100.0,
+        AiKind::HoldPosition,
+    );
+    let (entered, ready) = mpsc::channel();
+    let (release, resume) = mpsc::channel();
+    let server = f.server.clone();
+    let holder = std::thread::spawn(move || {
+        post(&server, NPC_OBJ, move |_| {
+            entered.send(()).unwrap();
+            resume.recv().unwrap();
+        });
+    });
+    ready.recv_timeout(Duration::from_secs(2)).unwrap();
+
+    let server = f.server.clone();
+    let runtime = tokio::runtime::Handle::current();
+    let (finished, completion) = mpsc::channel();
+    let ticker = std::thread::spawn(move || {
+        let _runtime = runtime.enter();
+        for _ in 0..10 {
+            tick_all(&server, 500);
+            std::thread::sleep(Duration::from_millis(160));
+        }
+        finished.send(()).unwrap();
+    });
+    let result = completion.recv_timeout(Duration::from_secs(5));
+    // Always release the holder, including when checking the old blocking tick.
+    release.send(()).unwrap();
+    holder.join().unwrap();
+    ticker.join().unwrap();
+    result.expect("one busy NPC blocked the global AI tick");
+    assert!(npc_pos(&other).x > 100.0, "another enemy stopped moving");
+    assert!(
+        f.player.data().unit.hp < 1000,
+        "another enemy stopped attacking"
+    );
+}
+
+/// A damaged flying NPC descends onto its attacker in 3D and, once the aggro is gone, climbs
+/// back to its spawn altitude; the return must not end at the home XY while still below it.
+#[tokio::test]
+async fn flying_npc_descends_to_its_attacker_and_returns_to_spawn_altitude() {
+    // The ranged base skill (max 4) and the melee-id skill (id 2, max 25, built on the same
+    // effect, but with the 4 m guard) in both geodata modes.
+    for (geo_data_mode, melee_skill) in [(false, false), (true, false), (false, true), (true, true)]
+    {
+        let data = if melee_skill {
+            data_with_melee_skill()
+        } else {
+            data()
+        };
+        let server = server_with_data(data);
+        server
+            .config
+            .update(|cfg| cfg.world.geo_data_mode = geo_data_mode);
+        let client = TestClient::new(&server, 1, 1);
+        let mut c = test_character(1, "Hunter", 100.0, 100.0);
+        // Survive the base skill for the whole descent.
+        c.unit.hp = 100_000;
+        c.unit.max_hp = 100_000;
+        let player = spawn_player(&server, &client, c, PLAYER_OBJ);
+        // The attacker stands straight below the flying NPC's spawn position.
+        player.data().unit.transform.set_xyz(100.0, 100.0, 80.0);
+        let world = server.world.world(0).expect("world");
+        world.add_visible_object(&player, &server.view_ctx());
+
+        let npc = spawn_npc(
+            &server,
+            NPC_OBJ,
+            PASSIVE_TEMPLATE,
+            100.0,
+            100.0,
+            AiKind::HoldPosition,
+        );
+        npc.data().can_fly = true;
+        // Settle to HoldPosition before the damage aggro (like the passive-help pattern).
+        let settled = tick_until(&server, 100, 20, 10, || {
+            behavior(&server, NPC_OBJ) == Some(B::HoldPosition)
+        })
+        .await;
+        assert!(
+            settled,
+            "never settled: {:?} (geo_data_mode={geo_data_mode})",
+            behavior(&server, NPC_OBJ)
+        );
+        assert_eq!(npc_pos(&npc), Vec3::new(100.0, 100.0, 100.0));
+        assert_eq!(npc.data().current_game_stance, GameStanceType::FLY);
+
+        // Npc.OnDamageReceived, as passive_npc_fights_back_and_calls_for_help.
+        let attacker = WorldObject::from(&player);
+        super::combat::add_unit_aggro(
+            &server,
+            &WorldObject::from(&npc),
+            AggroKind::Damage,
+            &attacker,
+            50,
+        );
+        server
+            .systems
+            .skills
+            .ext
+            .npcs()
+            .npc_damage_received(&server, &npc, &attacker, 50);
+        assert_eq!(behavior(&server, NPC_OBJ), Some(B::Attack));
+
+        // Bounded descent: 0.5 m per 500 ms tick (no FLY stance in the model, so
+        // BaseMoveSpeed falls back to 1) until the 2 m attack range; edge distance subtracts
+        // the 0.5 m model radius, so the raw 3D distance stops at 2.5 m.
+        let mut in_range = false;
+        let mut last_z = 100.0;
+        for tick in 0..80 {
+            tick_all(&server, 500);
+            // Let async skill casts and their strafe gates finish between simulated ticks.
+            tokio::time::sleep(Duration::from_millis(2)).await;
+            let (current_target, aggro_target, stance, pos) = {
+                let n = npc.data();
+                let t = n.unit.transform;
+                (
+                    n.unit.current_target,
+                    n.current_aggro_target,
+                    n.current_game_stance,
+                    Vec3::new(t.x, t.y, t.z),
+                )
+            };
+            assert_eq!(
+                current_target, PLAYER_OBJ,
+                "lost the attacker at tick {tick}: {pos:?} (geo_data_mode={geo_data_mode})"
+            );
+            assert_eq!(aggro_target, PLAYER_OBJ, "aggro lost at tick {tick}");
+            assert_eq!(
+                stance,
+                GameStanceType::FLY,
+                "stance left FLY at tick {tick}"
+            );
+            assert!(
+                pos.z <= 100.0 && pos.z > 80.0,
+                "flew past the attacker at tick {tick}: {pos:?}"
+            );
+            assert!(
+                (last_z - pos.z) <= 0.5 + 0.001 && pos.z <= last_z + 0.001,
+                "unbounded descent step at tick {tick}: {last_z} -> {pos:?}"
+            );
+            last_z = pos.z;
+            // Outside the 4 m 3D edge distance (raw distance minus the 0.5 m model radius):
+            // neither the height-aware skill range nor the melee skill-2 guard may let the
+            // flyer cast. With the old 2D caller distance the melee fixture hits from here.
+            if pos.z - 80.0 > 4.5 + 0.001 {
+                assert_eq!(
+                    player.data().unit.hp,
+                    100_000,
+                    "cast at a victim out of 3D range at tick {tick}: {pos:?} \
+                     (geo_data_mode={geo_data_mode}, melee_skill={melee_skill})"
+                );
+            }
+            if pos.z <= 82.5 {
+                in_range = true;
+                break;
+            }
+        }
+        assert!(
+            in_range,
+            "never descended into attack range: {:?} (geo_data_mode={geo_data_mode})",
+            npc_pos(&npc)
+        );
+        assert!(npc
+            .data()
+            .unit
+            .skill_state
+            .aggro_table
+            .contains_key(&PLAYER_OBJ));
+
+        // Inside the 4 m 3D range the base skill reaches the attacker (real sleep lets the
+        // real-time skill interval and any async cast complete).
+        let damaged = tick_until(&server, 500, 20, 30, || player.data().unit.hp < 100_000).await;
+        assert!(
+            damaged,
+            "never hit the attacker after closing range: {:?} (geo_data_mode={geo_data_mode})",
+            npc_pos(&npc)
+        );
+
+        // Losing aggro (the player stays for AI activity): the flyer climbs straight up while
+        // still in ReturnState and only leaves it within MoveTowards's 1 m arrival tolerance
+        // of the home z.
+        post(&server, NPC_OBJ, |c| c.on_no_aggro_target());
+        assert_eq!(behavior(&server, NPC_OBJ), Some(B::ReturnState));
+        assert_eq!(npc.data().current_game_stance, GameStanceType::FLY);
+        let mut zs = Vec::new();
+        let mut left_return = false;
+        for _ in 0..80 {
+            tick_all(&server, 500);
+            tokio::time::sleep(Duration::from_millis(2)).await;
+            if behavior(&server, NPC_OBJ) != Some(B::ReturnState) {
+                left_return = true;
+                break;
+            }
+            zs.push(npc_pos(&npc).z);
+        }
+        assert!(
+            left_return,
+            "stuck in ReturnState at {:?} (geo_data_mode={geo_data_mode})",
+            npc_pos(&npc)
+        );
+        assert!(zs.len() > 2, "no gradual climb: {zs:?}");
+        assert!(
+            zs.windows(2).all(|w| w[1] >= w[0]),
+            "descended during the return: {zs:?} (geo_data_mode={geo_data_mode})"
+        );
+        assert!(
+            zs.first() < zs.last(),
+            "did not climb back: {zs:?} (geo_data_mode={geo_data_mode})"
+        );
+        assert!(
+            zs.iter().all(|z| *z <= 100.0 + 0.001),
+            "climbed past home: {zs:?}"
+        );
+        assert!(
+            (zs.last().copied().unwrap_or(0.0) - 100.0).abs() <= 1.0 + 0.001,
+            "left ReturnState outside the arrival tolerance: {zs:?}"
+        );
+        let home = npc_pos(&npc);
+        assert!(
+            (home.x - 100.0).abs() < 0.01 && (home.y - 100.0).abs() < 0.01,
+            "return drifted in XY: {home:?} (geo_data_mode={geo_data_mode})"
+        );
+        assert!(
+            (home.z - 100.0).abs() <= 1.0 + 0.001,
+            "return stopped outside the arrival tolerance: {home:?} (geo_data_mode={geo_data_mode})"
+        );
+    }
+}
+
+/// The ReturnState timeout teleport must count vertical displacement: the same XY as home but
+/// 20 m below is not home for a flyer.
+#[tokio::test]
+async fn flying_npc_timeout_return_counts_vertical_displacement() {
+    let server = server();
+    // The player keeps the NPC's region active so `tick_all` advances its AI.
+    let client = TestClient::new(&server, 1, 1);
+    let c = test_character(1, "Watcher", 150.0, 100.0);
+    let _player = spawn_player(&server, &client, c, PLAYER_OBJ);
+    let npc = spawn_npc(
+        &server,
+        NPC_OBJ,
+        PASSIVE_TEMPLATE,
+        100.0,
+        100.0,
+        AiKind::HoldPosition,
+    );
+    npc.data().can_fly = true;
+    let settled = tick_until(&server, 100, 20, 10, || {
+        behavior(&server, NPC_OBJ) == Some(B::HoldPosition)
+    })
+    .await;
+    assert!(settled, "{:?}", behavior(&server, NPC_OBJ));
+
+    npc.data().unit.transform.set_xyz(100.0, 100.0, 80.0);
+    post(&server, NPC_OBJ, |c| {
+        c.go_to_return();
+        c.st(B::ReturnState).timeout_time = 0;
+    });
+    assert_eq!(behavior(&server, NPC_OBJ), Some(B::ReturnState));
+    tick_all(&server, 500);
+    let home = npc_pos(&npc);
+    assert!(
+        (home.z - 100.0).abs() < 0.01,
+        "timeout did not restore the home altitude: {home:?}"
+    );
+    assert!(
+        (home.x - 100.0).abs() < 0.01 && (home.y - 100.0).abs() < 0.01,
+        "{home:?}"
+    );
 }

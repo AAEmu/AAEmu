@@ -24,6 +24,13 @@ target moves. Walking NPCs reach path corners using horizontal distance and stan
 collision floor, so differences between navigation heights and terrain do not stall them.
 Attack range is checked against the target separately from waypoint arrival.
 
+Flying NPCs (`CanFly`) fight and return in 3D: an attacked flyer descends toward its attacker
+down to attack range, and after it loses the target it climbs back to its spawn altitude
+before leaving the return state. Skill min / max range is measured in 3D too, so a flyer
+cannot cast at a victim far below it. Return completion and the return timeout teleport
+measure the full 3D distance, so a flyer directly above or below its home is not treated as
+arrived.
+
 NPC respawn uses the spawner's authored delay and counts living NPCs towards population
 limits. A lootable corpse can remain while its replacement spawns. Unlooted items extend
 corpse lifetime by five minutes; taking the final item restores the normal corpse deadline

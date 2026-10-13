@@ -227,6 +227,12 @@ pub struct Character {
     /// a player returns to when leaving an instance): a detached world transform (instance id,
     /// world template id, zone id, world position / rotation).
     pub main_world_position: Option<crate::models::transform::Transform>,
+    /// The character's achievement record values and progress (`CharacterRecords` +
+    /// `CharacterAchievements`); persisted by `systems::social::achievement_persistence`.
+    pub achievement_state: crate::systems::social::achievement_runtime::AchievementState,
+    /// The character's ranking scores, every board and period kept
+    /// (`systems::social::ranking_runtime`).
+    pub ranking_state: crate::systems::social::ranking_runtime::RankingState,
     // ---- phase 3 / quests: add this subsystem's Character fields below ----
     /// The live quest objects (`Quests.ActiveQuests`, quest event subscriptions,
     /// `CurrentlyPlayingCinemaId`); `quests` holds their DB / wire rows.
@@ -348,6 +354,8 @@ impl Character {
             local_ping_position: (0.0, 0.0, 0.0),
             origin_faction_name: String::new(),
             main_world_position: None,
+            achievement_state: Default::default(),
+            ranking_state: Default::default(),
             // ---- phase 3 / quests ----
             quest_state: Default::default(),
             // ---- phase 3 / vehicles ----

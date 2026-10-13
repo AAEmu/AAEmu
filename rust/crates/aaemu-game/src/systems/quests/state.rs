@@ -110,6 +110,9 @@ pub struct QuestActState {
     pub template: ActRef,
     /// `_overrideObjectiveCompleted`.
     pub override_completed: bool,
+    /// CheckSphere has no wire objective slot; presence is local runtime state.
+    pub sphere_inside: bool,
+    pub supplied: bool,
 }
 
 /// `QuestComponent`.
@@ -159,6 +162,7 @@ pub struct Quest {
     pub reward_ratio: f64,
     /// `_questInitializationFinished`.
     pub init_finished: bool,
+    pub forced_start: bool,
     /// `_requestEvaluationFlag`.
     pub request_evaluation: bool,
     /// `_skipUpdatePacket`.
@@ -212,6 +216,7 @@ impl Quest {
             allow_item_rewards: true,
             reward_ratio: 1.0,
             init_finished: false,
+            forced_start: false,
             request_evaluation: false,
             skip_update: false,
             selected_reward_index: 0,
@@ -248,6 +253,7 @@ pub enum EventKind {
     ReportDoodad,
     ReportJournal,
     QuestComplete,
+    GuardNpcDied,
     Kill,
     TimerExpired,
     QuestStepChanged,

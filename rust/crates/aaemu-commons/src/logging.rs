@@ -1,7 +1,7 @@
 //! Port of the servers' `NLog.config` (AAEmu.Game / AAEmu.Login).
 //!
-//! * console: `Debug` and above, `HH:mm:ss [LEVEL] logger - message`;
-//! * `${basedir}/Logs/Server.log`: `Trace` through `Warn`;
+//! * console: `Info` and above, `HH:mm:ss [LEVEL] logger - message`;
+//! * `${basedir}/Logs/Server.log`: `Info` through `Warn`;
 //! * `${basedir}/Logs/Error.log`: `Error`.
 //!
 //! Both files are archived daily as `Server.yyyy-MM-dd.log` / `Error.yyyy-MM-dd.log`, keeping
@@ -12,12 +12,22 @@
 //! run's files move to `Logs/Previous/Server.<last write time>.log` (newest 9 kept), so the log
 //! of a crashed run survives the restart. Panics and native crashes are also reported to
 //! `Logs/Crash.log` ([`crate::crash`]).
+//!
+//! Deviation: NLog logs `Debug` to the console and `Trace` to `Server.log`. Both default to
+//! `Info` here, because the game server logs every packet at `Debug` / `Trace` and that
+//! formatting and I/O dominate the send path with many players in view
+//! (`RUST_LOG=info,aaemu_game::net=trace` brings the packet log back). File targets are
+//! written by a background thread ([`AsyncFile`]), so logging never blocks a tokio worker on
+//! disk I/O; call [`flush`] before the process exits.
 
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Duration;
 
 use chrono::{Local, NaiveDate};
 use tracing::{Event, Level, Subscriber};
@@ -169,13 +179,107 @@ fn keep_previous(dir: &Path, name: &str, path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-/// `MakeWriter` handle over a shared [`DailyFile`].
+/// Lines queued per file before new ones are dropped (and counted) instead of blocking.
+const QUEUED_LINES: usize = 65_536;
+/// Bytes collected from the queue into one file write.
+const WRITE_BATCH_BYTES: usize = 64 * 1024;
+
+enum LogMsg {
+    Line(Vec<u8>),
+    Flush(SyncSender<()>),
+}
+
+/// A [`DailyFile`] written by its own thread: events are queued (bounded, lossy when full) and
+/// written in batches, so the logging thread never waits for the disk.
+pub struct AsyncFile {
+    tx: SyncSender<LogMsg>,
+    dropped: Arc<AtomicU64>,
+}
+
+/// Every [`AsyncFile`], for [`flush`].
+static FILES: OnceLock<Mutex<Vec<SyncSender<LogMsg>>>> = OnceLock::new();
+
+impl AsyncFile {
+    pub fn new(file: DailyFile) -> io::Result<Self> {
+        let (tx, rx) = mpsc::sync_channel(QUEUED_LINES);
+        let dropped = Arc::new(AtomicU64::new(0));
+        let worker_dropped = dropped.clone();
+        let name = format!("log-{}", file.name);
+        std::thread::Builder::new()
+            .name(name)
+            .spawn(move || write_loop(file, rx, worker_dropped))?;
+        FILES
+            .get_or_init(Default::default)
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(tx.clone());
+        Ok(Self { tx, dropped })
+    }
+
+    fn queue(&self, buf: &[u8]) {
+        match self.tx.try_send(LogMsg::Line(buf.to_vec())) {
+            Ok(()) | Err(TrySendError::Disconnected(_)) => {}
+            Err(TrySendError::Full(_)) => {
+                self.dropped.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    }
+}
+
+fn write_loop(file: DailyFile, rx: Receiver<LogMsg>, dropped: Arc<AtomicU64>) {
+    let mut batch = Vec::with_capacity(WRITE_BATCH_BYTES);
+    let mut acks = Vec::new();
+    while let Ok(first) = rx.recv() {
+        let mut next = Some(first);
+        while let Some(msg) = next.take() {
+            match msg {
+                LogMsg::Line(line) => batch.extend_from_slice(&line),
+                LogMsg::Flush(ack) => acks.push(ack),
+            }
+            if batch.len() < WRITE_BATCH_BYTES {
+                next = rx.try_recv().ok();
+            }
+        }
+        let lost = dropped.swap(0, Ordering::Relaxed);
+        if lost > 0 {
+            batch.extend_from_slice(
+                format!(
+                    "{} [WARN] logging - {lost} log lines dropped (log queue full)
+",
+                    Local::now().format("%H:%M:%S")
+                )
+                .as_bytes(),
+            );
+        }
+        if !batch.is_empty() {
+            let _ = file.write_all(&batch);
+            batch.clear();
+        }
+        for ack in acks.drain(..) {
+            let _ = ack.send(());
+        }
+    }
+}
+
+/// Waits (up to 2 s) until every line queued so far is written to the log files.
+pub fn flush() {
+    let Some(files) = FILES.get() else { return };
+    let senders = files.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    for tx in senders {
+        let (ack_tx, ack_rx) = mpsc::sync_channel(1);
+        if tx.send(LogMsg::Flush(ack_tx)).is_ok() {
+            let _ = ack_rx.recv_timeout(Duration::from_secs(2));
+        }
+    }
+}
+
+/// `MakeWriter` handle over a shared [`AsyncFile`].
 #[derive(Clone)]
-pub struct DailyWriter(Arc<DailyFile>);
+pub struct DailyWriter(Arc<AsyncFile>);
 
 impl Write for DailyWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0.write_all(buf)?;
+        self.0.queue(buf);
         Ok(buf.len())
     }
 
@@ -204,18 +308,23 @@ pub fn init(base_dir: &Path) {
 
     let console = tracing_subscriber::fmt::layer()
         .event_format(NlogFormat)
-        .with_filter(filter(LevelFilter::DEBUG));
+        .with_filter(filter(LevelFilter::INFO));
 
     let logs = base_dir.join("Logs");
     let files = DailyFile::new(&logs, "Server")
-        .and_then(|server| DailyFile::new(&logs, "Error").map(|error| (server, error)));
+        .and_then(AsyncFile::new)
+        .and_then(|server| {
+            DailyFile::new(&logs, "Error")
+                .and_then(AsyncFile::new)
+                .map(|error| (server, error))
+        });
     match files {
         Ok((server, error)) => {
             let server_layer = tracing_subscriber::fmt::layer()
                 .event_format(NlogFormat)
                 .with_ansi(false)
                 .with_writer(DailyWriter(Arc::new(server)))
-                .with_filter(filter(LevelFilter::TRACE))
+                .with_filter(filter(LevelFilter::INFO))
                 .with_filter(filter_fn(|m| *m.level() != Level::ERROR));
             let error_layer = tracing_subscriber::fmt::layer()
                 .event_format(NlogFormat)

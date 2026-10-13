@@ -80,7 +80,7 @@ pub fn route_chat(
                     if chat == chat_type::RAID_LEADER && team.owner_id != me.character_id {
                         send_error(me, error::CHAT_NOT_RAID_OWNER);
                     } else {
-                        crate::systems::social::team::raid_chat(server, &team).send_packet(
+                        crate::systems::social::team::raid_chat(server, &team).send_chat_packet(
                             &SCChatMessagePacket {
                                 chat_type: chat,
                                 sender: Some(sender.clone()),

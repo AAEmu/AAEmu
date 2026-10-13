@@ -305,8 +305,8 @@ impl UnitReqsData {
             .map_or(&[], Vec::as_slice)
     }
 
-    /// `CanComponentRun` / `CanTriggerSphere` (same body): with `OrUnitReqs` the C# stops at
-    /// the first requirement and returns true whatever its result.
+    /// `CanComponentRun` / `CanTriggerSphere`: OR requires one matching requirement;
+    /// AND requires all requirements to match.
     pub fn check_all(
         &self,
         owner_type: &str,
@@ -324,11 +324,12 @@ impl UnitReqsData {
         for req in reqs {
             let ok = validate(req, owner, target, env);
             if or_unit_reqs {
-                // If OrUnitReqs is set, stop checking at the first hit
-                res = true;
-                break;
+                if ok {
+                    return true;
+                }
+            } else {
+                res &= ok;
             }
-            res &= ok;
         }
         res
     }

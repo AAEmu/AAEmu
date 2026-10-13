@@ -79,6 +79,9 @@ pub fn read_mail(txn: &mut ItemTxn<'_>, player: &PlayerRef, is_sent: bool, id: i
     if owner != player.character_id {
         return;
     }
+    if !is_sent && (!m.is_delivered || m.body.recv_date > mail::now()) {
+        return;
+    }
     if m.header.status == mail_status::UNREAD && !is_sent {
         player.data().unread_mail.update_received(m.mail_type, -1);
         m.open_date = mail::now();
@@ -130,6 +133,12 @@ pub fn send_mail_to_player(
     item_slots: &[(u8, u8)],
 ) -> u8 {
     let server = txn.server;
+    if money0 < 0 || money1 != 0 || money2 != 0 {
+        return mail_result::INVALID_LETTER_FORMAT;
+    }
+    if item_slots.len() > MAX_MAIL_ATTACHMENTS {
+        return mail_result::INCORRECT_ITEM_INFORMATION;
+    }
     if !matches!(
         mail_type,
         mail_type::NORMAL | mail_type::EXPRESS | mail_type::REGISTERED
@@ -138,6 +147,23 @@ pub fn send_mail_to_player(
     }
     if receiver_name.trim().is_empty() || server.names.get_character_id(receiver_name) == 0 {
         return mail_result::UNABLE_TO_FIND_RECIPIENT;
+    }
+
+    let inv = Inv::of(player);
+    let mut seen = std::collections::HashSet::new();
+    for &(st, slot) in item_slots {
+        if st == slot_type::NONE {
+            continue;
+        }
+        let Some(item) = inv.item_at(st, slot) else {
+            return mail_result::INVALID_SLOT;
+        };
+        if st != slot_type::INVENTORY || item.count <= 0 || !seen.insert(item.id) {
+            return mail_result::INVALID_SLOT;
+        }
+        if item.flags & crate::models::item::ITEM_FLAG_SOUL_BOUND != 0 {
+            return mail_result::BOUND_ITEM;
+        }
     }
 
     let mut mail = MailPlayerToPlayer::new(server, player, receiver_name);
@@ -159,7 +185,10 @@ pub fn send_mail_to_player(
 
     // With attachments in place, we can calculate the send fee
     let mail_fee = mail.get_mail_fee();
-    if i64::from(mail_fee + money0) > player.data().money {
+    let Some(total_cost) = mail_fee.checked_add(money0) else {
+        return mail_result::INSUFFICIENT_COINS;
+    };
+    if i64::from(total_cost) > player.data().money {
         return mail_result::INSUFFICIENT_COINS;
     }
 
@@ -197,7 +226,7 @@ pub fn send_mail_to_player(
         &mut txn.out(),
         player,
         slot_type::INVENTORY,
-        mail_fee + money0,
+        total_cost,
         task_type::DEPOSIT_MONEY,
     );
     mail_result::SUCCESS
@@ -227,6 +256,9 @@ pub fn get_attached(
     };
     let cid = player.character_id;
     if this_mail.header.receiver_id != cid {
+        return Ok(false);
+    }
+    if !this_mail.is_delivered || this_mail.body.recv_date > mail::now() {
         return Ok(false);
     }
     let mut took_money = false;
@@ -425,7 +457,12 @@ pub fn delete_mail(txn: &mut ItemTxn<'_>, player: &PlayerRef, id: i64, is_sent: 
     let mails = &server.systems.economy.mail;
     let mut st = mails.state();
     let Some(m) = st.all.get(id) else { return };
-    if is_sent || m.header.receiver_id != player.character_id || m.header.attachments > 0 {
+    if is_sent
+        || m.header.receiver_id != player.character_id
+        || m.header.attachments > 0
+        || !m.is_delivered
+        || m.body.recv_date > mail::now()
+    {
         return;
     }
     let modified = m.header.status != mail_status::READ;
@@ -445,47 +482,17 @@ pub fn delete_mail(txn: &mut ItemTxn<'_>, player: &PlayerRef, id: i64, is_sent: 
     mail::delete_mail_in(server, &mut st, id);
 }
 
-/// `ReturnMail(id)`. The C# indexes `Body.Attachments[i]` for i in 0..10, which throws
-/// `ArgumentOutOfRangeException` unless the mail has 10 attachments (mirrored: nothing happens).
+/// Return an unopened player mail without copying its attachments or charging postage again.
 pub fn return_mail(txn: &mut ItemTxn<'_>, player: &PlayerRef, id: i64) {
     let server = txn.server;
     let Some(this_mail) = server.systems.economy.mail.get_mail_by_id(id) else {
         return;
     };
-    if this_mail.header.receiver_id != player.character_id {
+    if this_mail.header.receiver_id != player.character_id
+        || !this_mail.is_delivered
+        || this_mail.body.recv_date > mail::now()
+    {
         return;
     }
-    if this_mail.body.attachments.len() < MAX_MAIL_ATTACHMENTS {
-        tracing::error!(
-            "ReturnMail({id}): ArgumentOutOfRangeException (fewer than 10 attachments)"
-        );
-        return;
-    }
-    let mut item_slots = Vec::with_capacity(MAX_MAIL_ATTACHMENTS);
-    for item_id in this_mail.body.attachments.iter().take(MAX_MAIL_ATTACHMENTS) {
-        let Some(item) = server.items.item_by_id(*item_id) else {
-            tracing::error!("ReturnMail({id}): NullReferenceException (item {item_id})");
-            return;
-        };
-        item_slots.push(if item.slot_type == slot_type::NONE {
-            (0, 0)
-        } else {
-            (item.slot_type, item.slot as u8)
-        });
-    }
-    send_mail_to_player(
-        txn,
-        player,
-        this_mail.mail_type,
-        &this_mail.header.sender_name,
-        &this_mail.title,
-        &this_mail.body.text,
-        this_mail.header.attachments,
-        this_mail.body.copper_coins,
-        this_mail.body.billing_amount,
-        this_mail.body.money_amount2,
-        this_mail.header.extra,
-        &item_slots,
-    );
-    delete_mail(txn, player, id, false);
+    mail::return_to_sender(txn, id);
 }

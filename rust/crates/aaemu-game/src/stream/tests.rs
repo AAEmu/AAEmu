@@ -114,12 +114,12 @@ impl StreamClient {
 /// returned receivers must be kept alive for its sends to succeed.
 type GameClient = (
     GameConnection,
-    mpsc::UnboundedReceiver<Vec<u8>>,
+    crate::net::outbox::OutboxReceiver,
     mpsc::UnboundedReceiver<crate::net::connection::ConnCommand>,
 );
 
 fn game_connection(server: &GameServer, id: u32) -> GameClient {
-    let (out_tx, out) = mpsc::unbounded_channel();
+    let (out_tx, out) = crate::net::outbox::outbox();
     let (cmd_tx, cmd) = mpsc::unbounded_channel();
     let peer: SocketAddr = "127.0.0.1:50000".parse().unwrap();
     let (conn, handle) = GameConnection::new(id, peer, out_tx, cmd_tx);

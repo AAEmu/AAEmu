@@ -392,6 +392,11 @@ bool prepare_start() {
         trace_line("startup manifest=" + trace_utf8(manifestPath.c_str()));
     }
     std::wstring bridgePath = std::wstring(driver) + L"aaemu_pak.dll";
+#ifdef AADRIVER_PLAYER
+    // The GUI launcher extracts its embedded runtime into a private helper
+    // directory. The compressed bridge ships beside the client root instead.
+    bridgePath = std::wstring(client) + L"..\\aaemu_pak.dll";
+#endif
     HMODULE bridge = LoadLibraryExW(bridgePath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
     if (!bridge) return false;
     auto abi = reinterpret_cast<Abi>(GetProcAddress(bridge, "aaemu_pak_abi"));

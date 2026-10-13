@@ -38,13 +38,13 @@ fn test_server() -> GameServer {
 
 struct Client {
     conn: GameConnection,
-    out: mpsc::UnboundedReceiver<Vec<u8>>,
+    out: crate::net::outbox::OutboxReceiver,
     cmd: mpsc::UnboundedReceiver<ConnCommand>,
 }
 
 /// A connection registered in the server's connection table (like `GameProtocolHandler.OnConnect`).
 fn client(server: &GameServer, id: u32) -> Client {
-    let (out_tx, out) = mpsc::unbounded_channel();
+    let (out_tx, out) = crate::net::outbox::outbox();
     let (cmd_tx, cmd) = mpsc::unbounded_channel();
     let peer: SocketAddr = "127.0.0.1:50000".parse().unwrap();
     let (conn, handle) = GameConnection::new(id, peer, out_tx, cmd_tx);
@@ -56,7 +56,7 @@ impl Client {
     fn drain(&mut self) -> Vec<Vec<u8>> {
         let mut v = Vec::new();
         while let Ok(f) = self.out.try_recv() {
-            v.push(f);
+            v.push(f.to_vec());
         }
         v
     }

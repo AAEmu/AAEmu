@@ -186,6 +186,30 @@ CREATE TABLE IF NOT EXISTS `characters` (
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 
 
+-- Achievement runtime state (`systems::social::achievement_runtime`): the record values the
+-- engine has reported for the character and how far it has got with each achievement.
+-- `completed_at` is Unix seconds UTC, NULL while in progress; `reward_delivered` is the
+-- completion's reward receipt (1 = delivered, 0 = still owed).
+CREATE TABLE IF NOT EXISTS `character_records` (
+  `owner`     int unsigned NOT NULL COMMENT 'Character whose record this is',
+  `record_id` int unsigned NOT NULL COMMENT 'CharRecords.Id from game data',
+  `value`     bigint NOT NULL DEFAULT 0 COMMENT 'Highest value the engine reported for this record',
+  PRIMARY KEY (`owner`, `record_id`),
+  CONSTRAINT `fk_character_records_owner` FOREIGN KEY (`owner`) REFERENCES `characters` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-character achievement record values';
+
+
+CREATE TABLE IF NOT EXISTS `character_achievements` (
+  `owner`            int unsigned NOT NULL COMMENT 'Character whose progress this is',
+  `achievement_id`   int unsigned NOT NULL COMMENT 'Achievements.Id from game data',
+  `amount`           int NOT NULL DEFAULT 0 COMMENT 'How far the character has got (packet amount)',
+  `completed_at`     bigint DEFAULT NULL COMMENT 'Unix seconds UTC when it was earned; NULL while in progress',
+  `reward_delivered` tinyint NOT NULL DEFAULT 0 COMMENT '1 = the completion reward has been delivered, 0 = pending',
+  PRIMARY KEY (`owner`, `achievement_id`),
+  CONSTRAINT `fk_character_achievements_owner` FOREIGN KEY (`owner`) REFERENCES `characters` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-character achievement progress';
+
+
 CREATE TABLE IF NOT EXISTS `completed_quests` (
   `id` int unsigned NOT NULL,
   `data` tinyblob NOT NULL,
@@ -690,3 +714,20 @@ CREATE TABLE IF NOT EXISTS `dominion_siege_participants` (
   `side` tinyint unsigned NOT NULL,
   PRIMARY KEY (`zone_group_id`, `siege_id`, `character_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Account-wide schedule-item progress (`systems::npcs::schedule_item_runtime` and
+-- `schedule_item_manager`): the claim counters of the 1.2 HUD timer rows (`schedule_items`).
+-- `account_id` is a login account, not a character: every character of the account shares one row
+-- per `schedule_id`, and there is deliberately no foreign key to `characters` (the row is not
+-- owned by a character) or to `accounts` (the game database does not own the login accounts).
+-- `gave` is the u8 receipt counter, `cumulated` the accrued online seconds and `updated` the UTC
+-- Unix seconds of the last accrual / receipt / reset (also the row's UTC day key). Session clocks
+-- and per-character baselines are transient and are never stored.
+CREATE TABLE IF NOT EXISTS `account_schedule_items` (
+  `account_id`  int unsigned NOT NULL COMMENT 'Login account id (not a character)',
+  `schedule_id` int NOT NULL COMMENT 'schedule_items.id',
+  `gave`        tinyint unsigned NOT NULL DEFAULT 0 COMMENT 'Receipts already delivered (u8)',
+  `cumulated`   bigint NOT NULL DEFAULT 0 COMMENT 'Accrued online seconds toward the current term',
+  `updated`     bigint NOT NULL DEFAULT 0 COMMENT 'Unix seconds UTC of the last accrual / receipt / reset',
+  PRIMARY KEY (`account_id`, `schedule_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Account-wide schedule-item claim progress';

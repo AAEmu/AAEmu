@@ -127,6 +127,31 @@ fn expect_chat_error(p: &mut Pc, error: i16) {
     );
 }
 
+/// The full expected `SCChatMessagePacket` body: literal identity bytes, then the sender block
+/// `(obj id, character id, language, race, faction, name)`, message and ability. Built from
+/// `PacketStream` primitives, never from the chat encoder.
+fn chat_body(
+    identity: [u8; 8],
+    obj_id: u32,
+    character_id: u32,
+    faction: u32,
+    name: &str,
+    msg: &str,
+) -> Vec<u8> {
+    let mut s = PacketStream::new();
+    s.write_raw(&identity)
+        .write_bc(obj_id)
+        .write_u32(character_id)
+        .write_u8(0)
+        .write_u8(1)
+        .write_u32(faction)
+        .write_str(name)
+        .write_str(msg)
+        .write_i32(0)
+        .write_i32(0);
+    s.into_bytes()
+}
+
 #[tokio::test]
 async fn user_chat_input_budgets_count_utf8_bytes_and_session_membership() {
     use crate::systems::social::chat::user_channel_identity;
@@ -548,6 +573,68 @@ async fn user_chat_requires_active_session_and_cleans_departing_members() {
     assert_eq!(server.chat.clean_up_channels(&server.ids.chat), 0);
 }
 
+#[tokio::test]
+async fn faction_and_zone_chat_identity_and_membership() {
+    use crate::data::world_data::SystemFaction;
+    use crate::data::GameData;
+    use crate::test_support::test_server_with;
+    let mut data = GameData::empty();
+    for (id, mother) in [(101, 148), (102, 148), (107, 149)] {
+        data.factions.add(SystemFaction {
+            id,
+            mother_id: mother,
+            ..Default::default()
+        });
+    }
+    let server = test_server_with(data);
+    let mut a = pc(&server, 1, "Al", 100.0, 100.0);
+    let mut b = pc(&server, 2, "Bob", 110.0, 100.0);
+    let mut c = pc(&server, 3, "Cy", 120.0, 100.0);
+    b.p.data().unit.faction_id = 102;
+    c.p.data().unit.faction_id = 107;
+    settle(&mut [&mut a, &mut b, &mut c]);
+    for x in [&mut a, &mut b, &mut c] {
+        x.send(&server, cs::CSNotifyInGamePacket, PacketStream::new())
+            .await;
+    }
+    settle(&mut [&mut a, &mut b, &mut c]);
+
+    // ALLY (14): the faction channel of mother 148. The sender and the other ally faction
+    // receive; the hostile mother 149 is excluded.
+    a.send(
+        &server,
+        cs::CSSendChatMessagePacket,
+        chat(chat_type::ALLY, "ally"),
+    )
+    .await;
+    let ally = chat_body(
+        [14, 0, 0, 0, 148, 0, 0, 0],
+        a.p.obj_id,
+        a.p.character_id,
+        101,
+        "Al",
+        "ally",
+    );
+    assert_eq!(a.frames(), vec![(sc::SCChatMessagePacket, ally.clone())]);
+    assert_eq!(b.frames(), vec![(sc::SCChatMessagePacket, ally)]);
+    assert!(c.frames().is_empty());
+
+    // Zone Shout / Trade / LFG (synthetic group 0): the identity is `(type, 0, 0)`, never the
+    // sender faction; every zone member (including the hostile faction) receives them.
+    for (t, identity, msg) in [
+        (chat_type::SHOUT, [1, 0, 0, 0, 0, 0, 0, 0], "shout"),
+        (chat_type::TRADE, [2, 0, 0, 0, 0, 0, 0, 0], "trade"),
+        (chat_type::GROUP_FIND, [3, 0, 0, 0, 0, 0, 0, 0], "lfg"),
+    ] {
+        a.send(&server, cs::CSSendChatMessagePacket, chat(t, msg))
+            .await;
+        let want = chat_body(identity, a.p.obj_id, a.p.character_id, 101, "Al", msg);
+        assert_eq!(a.frames(), vec![(sc::SCChatMessagePacket, want.clone())]);
+        assert_eq!(b.frames(), vec![(sc::SCChatMessagePacket, want.clone())]);
+        assert_eq!(c.frames(), vec![(sc::SCChatMessagePacket, want)]);
+    }
+}
+
 /// A forms a party with B (invite + accept). Returns the team id.
 async fn form_party(server: &GameServer, a: &mut Pc, b: &mut Pc) -> u32 {
     a.send(server, cs::CSInviteToTeamPacket, invite(0, "Bob"))
@@ -804,15 +891,29 @@ async fn team_invite_accept_chat_owner_kick_leave() {
         ]
     );
 
-    // Party chat reaches both members.
+    // Party chat reaches both members; the identity is `(party, team_id << 6, 0)`.
     a.send(
         &server,
         cs::CSSendChatMessagePacket,
         chat(chat_type::PARTY, "hi"),
     )
     .await;
-    assert_eq!(a.ops(), vec![sc::SCChatMessagePacket]);
-    assert_eq!(b.ops(), vec![sc::SCChatMessagePacket]);
+    let mut party_identity = [0u8; 8];
+    party_identity[..2].copy_from_slice(&chat_type::PARTY.to_le_bytes());
+    party_identity[2..4].copy_from_slice(&((team_id << 6) as i16).to_le_bytes());
+    let party_body = chat_body(
+        party_identity,
+        a.p.obj_id,
+        a.p.character_id,
+        101,
+        "Al",
+        "hi",
+    );
+    assert_eq!(
+        a.frames(),
+        vec![(sc::SCChatMessagePacket, party_body.clone())]
+    );
+    assert_eq!(b.frames(), vec![(sc::SCChatMessagePacket, party_body)]);
     // C is not in a party -> error.
     c.send(
         &server,
@@ -1016,8 +1117,15 @@ async fn team_rejection_raid_conversion_offline_and_reconnect() {
         chat(chat_type::RAID, "r"),
     )
     .await;
-    assert_eq!(a.ops(), vec![sc::SCChatMessagePacket]);
-    assert_eq!(b.ops(), vec![sc::SCChatMessagePacket]);
+    let mut raid_identity = [0u8; 8];
+    raid_identity[..2].copy_from_slice(&chat_type::RAID.to_le_bytes());
+    raid_identity[2..4].copy_from_slice(&(team_id as i16).to_le_bytes());
+    let raid_body = chat_body(raid_identity, b.p.obj_id, b.p.character_id, 101, "Bob", "r");
+    assert_eq!(
+        a.frames(),
+        vec![(sc::SCChatMessagePacket, raid_body.clone())]
+    );
+    assert_eq!(b.frames(), vec![(sc::SCChatMessagePacket, raid_body)]);
 
     // Role / marker / looting rule / ping.
     let mut s = PacketStream::new();

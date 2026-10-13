@@ -271,11 +271,12 @@ impl Team {
 
     /// `BroadcastPacket(packet, id)`: every online member except `exclude`.
     pub fn broadcast(&self, packet: &dyn crate::net::packet::ServerPacket, exclude: u32) {
+        let mut out = crate::net::connection::Fanout::new(packet);
         for m in self.members.iter().flatten() {
             if m.character.character_id == exclude || !m.character.data().is_online {
                 continue;
             }
-            m.character.send_dyn(packet);
+            out.send(&m.character.conn);
         }
     }
 

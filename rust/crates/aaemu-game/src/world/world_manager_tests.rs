@@ -53,7 +53,7 @@ fn character(obj_id: u32, id: u32, name: &str) -> PlayerRef {
     let mut c = Character::new(id, 1, Default::default());
     c.obj_id = obj_id;
     c.unit.name = name.into();
-    let (out_tx, _out) = mpsc::unbounded_channel();
+    let (out_tx, _out) = crate::net::outbox::outbox();
     let (cmd_tx, _cmd) = mpsc::unbounded_channel();
     let peer: SocketAddr = "127.0.0.1:50000".parse().expect("addr");
     let (_conn, handle) = GameConnection::new(obj_id, peer, out_tx, cmd_tx);

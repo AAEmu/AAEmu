@@ -305,6 +305,13 @@ pub fn pick_skill_and_use_it(
     target: &WorldObject,
     target_dist: f32,
 ) -> u8 {
+    // The callers pass the 2D attack-range distance. Flying NPCs fight at altitude, so the
+    // skill selection below and the melee skill-2 guard need the 3D distance instead.
+    let target_dist = if c.npc.data().can_fly {
+        npc::distance_to(c.server, &c.obj, target, true)
+    } else {
+        target_dist
+    };
     let mut res = skill_result::INVALID_SKILL;
     let t = template_scalars(c);
     let mut skills = ai_skills::template_skills(c, kind);
@@ -391,7 +398,10 @@ pub fn use_skill(
     if ai_skills::on_cooldown(c, skill.id) {
         return skill_result::COOLDOWN_TIME;
     }
-    let target_dist = npc::distance_to(c.server, &c.obj, target, false);
+    let can_fly = c.npc.data().can_fly;
+    // Flying NPCs check the template's min / max range in 3D: a victim far below is out of
+    // range even when it is directly under the NPC (ground NPCs keep the 2D range).
+    let target_dist = npc::distance_to(c.server, &c.obj, target, can_fly);
     if target_dist < skill.template.min_range as f32 {
         return skill_result::TOO_CLOSE_RANGE;
     }
@@ -1545,9 +1555,14 @@ fn return_state_tick(c: &mut AiCtx<'_>, k: BehaviorKind, delta_ms: i64) {
     let move_flags = npc::real_movement_flags(move_speed);
     move_speed *= delta_seconds(delta_ms);
     let idle = c.ai.idle_position;
-    npc_move_towards(c, idle, move_speed as f32, move_flags, 1.0);
-    let distance_to_idle = calculate_distance(idle, owner_pos(c), false);
-    if distance_to_idle < 1.0 {
+    let arrived = npc_move_towards(c, idle, move_speed as f32, move_flags, 1.0);
+    let can_fly = c.npc.data().can_fly;
+    // Flyers return through the air: the ground 2D distance would end the return while the
+    // NPC is still below its home altitude at the same XY.
+    let distance_to_idle = calculate_distance(idle, owner_pos(c), can_fly);
+    // MoveTowards reports arrival at its 1 m tolerance; completing only below 1 m would leave
+    // a flyer that stopped exactly 1 m above its home stuck in ReturnState.
+    if arrived || distance_to_idle < 1.0 {
         on_completed_return_no_teleport(c);
         return;
     }
@@ -1558,7 +1573,10 @@ fn return_state_tick(c: &mut AiCtx<'_>, k: BehaviorKind, delta_ms: i64) {
 
 fn on_completed_return(c: &mut AiCtx<'_>) {
     let idle = c.ai.idle_position;
-    let distance_to_idle = calculate_distance(idle, owner_pos(c), false);
+    let can_fly = c.npc.data().can_fly;
+    // The timeout teleport counts vertical displacement: a flyer below its home at the same
+    // XY is still far away and must be lifted back to the idle position.
+    let distance_to_idle = calculate_distance(idle, owner_pos(c), can_fly);
     if distance_to_idle > 2.0 * 2.0 {
         npc_move_towards(c, idle, 1_000_000.0, 4, 1.0);
         npc::stop_movement(c.server, &c.npc);

@@ -1,0 +1,2 @@
+#include <windows.h>
+201 RCDATA "auction_ui.lua"

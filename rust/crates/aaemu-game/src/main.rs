@@ -72,6 +72,7 @@ async fn main() -> anyhow::Result<()> {
     if let Err(e) = &result {
         tracing::error!("Fatal: {e:#}");
     }
+    aaemu_commons::logging::flush();
     result
 }
 

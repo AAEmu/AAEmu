@@ -1,7 +1,7 @@
 //! Per-connection state (`GameConnection`) and the connection table (`GameConnectionTable`).
 //!
 //! Each client connection is driven by one tokio task that owns its [`GameConnection`] (so its
-//! state needs no locking) plus a writer task fed through an mpsc channel. Other tasks (e.g. the
+//! state needs no locking) plus a writer task fed through its [`Outbox`]. Other tasks (e.g. the
 //! login-server link) reach a connection through its [`ConnectionHandle`].
 
 use std::net::SocketAddr;
@@ -9,11 +9,13 @@ use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
+use bytes::Bytes;
 use dashmap::DashMap;
 use tokio::sync::mpsc;
 
 use crate::models::character::Character;
 use crate::models::item::UnixTime;
+use crate::net::outbox::{outbox, Outbox, Push, MAX_QUEUED_BYTES};
 use crate::net::packet::{encode, ServerPacket, INVALID_OPCODE};
 
 /// `GameState`.
@@ -84,7 +86,7 @@ pub struct ConnectionHandle {
     /// `LastPing` as unix milliseconds (`i64::MIN` = `DateTime.MinValue`, never pinged).
     last_ping_ms: Arc<AtomicI64>,
     tx: mpsc::UnboundedSender<ConnCommand>,
-    writer: mpsc::UnboundedSender<Vec<u8>>,
+    writer: Outbox,
 }
 
 impl ConnectionHandle {
@@ -92,7 +94,7 @@ impl ConnectionHandle {
     /// characters that exist before anyone plays them (character creation).
     pub fn detached(id: u32, ip: SocketAddr, account_id: u32) -> Self {
         let (tx, _) = mpsc::unbounded_channel();
-        let (writer, _) = mpsc::unbounded_channel();
+        let (writer, _) = outbox();
         Self {
             id,
             ip,
@@ -125,7 +127,21 @@ impl ConnectionHandle {
     /// [`ConnectionHandle::send`] for a borrowed / type-erased packet.
     pub fn send_dyn(&self, packet: &dyn ServerPacket) {
         if let Some(bytes) = encode_for_send(packet) {
-            let _ = self.writer.send(bytes);
+            self.send_frame(bytes);
+        }
+    }
+
+    /// Queues an already encoded frame (see [`encode_for_send`] / [`Fanout`]). A client whose
+    /// queue is over [`MAX_QUEUED_BYTES`] stopped reading: the frame is dropped and the
+    /// connection closed.
+    pub fn send_frame(&self, frame: Bytes) {
+        if let Push::Overflow { first: true } = self.writer.push(frame) {
+            tracing::warn!(
+                "session {}: more than {} MiB queued for the client, closing the connection",
+                self.id,
+                MAX_QUEUED_BYTES / (1024 * 1024)
+            );
+            self.close();
         }
     }
 
@@ -141,7 +157,7 @@ impl ConnectionHandle {
 
 /// `GameConnection.SendPacket(GamePacket)`: packets with the placeholder opcode `0xFFF` (no
 /// 1.2 opcode) are dropped (`None`); everything else is encoded (`GamePacket.Encode`).
-pub fn encode_for_send(packet: &dyn ServerPacket) -> Option<Vec<u8>> {
+pub fn encode_for_send(packet: &dyn ServerPacket) -> Option<Bytes> {
     if packet.opcode() == INVALID_OPCODE {
         tracing::error!("Dropping invalid game packet with opcode 0xFFF.");
         return None;
@@ -154,7 +170,30 @@ pub fn encode_for_send(packet: &dyn ServerPacket) -> Option<Vec<u8>> {
         bytes.len()
     );
     tracing::trace!("{:?}", packet);
-    Some(bytes)
+    Some(Bytes::from(bytes))
+}
+
+/// One packet sent to many connections (`BroadcastPacket` and friends): encoded once, on the
+/// first recipient, and the same frame queued for every connection.
+pub struct Fanout<'a> {
+    packet: &'a dyn ServerPacket,
+    frame: Option<Option<Bytes>>,
+}
+
+impl<'a> Fanout<'a> {
+    pub fn new(packet: &'a dyn ServerPacket) -> Self {
+        Self {
+            packet,
+            frame: None,
+        }
+    }
+
+    pub fn send(&mut self, conn: &ConnectionHandle) {
+        let packet = self.packet;
+        if let Some(frame) = self.frame.get_or_insert_with(|| encode_for_send(packet)) {
+            conn.send_frame(frame.clone());
+        }
+    }
 }
 
 /// `GameConnectionTable`: connections keyed by session id.
@@ -213,7 +252,7 @@ pub struct GameConnection {
     /// `LeaveTask` (+ its `CancelTokenSource`): the pending logout timer.
     pub leave_task: Option<tokio::task::JoinHandle<()>>,
     pub last_ping: Instant,
-    writer: mpsc::UnboundedSender<Vec<u8>>,
+    writer: Outbox,
     commands: mpsc::UnboundedSender<ConnCommand>,
     closing: bool,
 }
@@ -236,7 +275,7 @@ impl GameConnection {
     pub fn new(
         id: u32,
         ip: SocketAddr,
-        writer: mpsc::UnboundedSender<Vec<u8>>,
+        writer: Outbox,
         commands: mpsc::UnboundedSender<ConnCommand>,
     ) -> (Self, ConnectionHandle) {
         let account_id = Arc::new(AtomicU32::new(0));
@@ -288,8 +327,19 @@ impl GameConnection {
         let Some(bytes) = encode_for_send(packet) else {
             return;
         };
-        if self.writer.send(bytes).is_err() {
-            self.closing = true;
+        match self.writer.push(bytes) {
+            Push::Queued => {}
+            Push::Closed => self.closing = true,
+            Push::Overflow { first } => {
+                if first {
+                    tracing::warn!(
+                        "session {}: more than {} MiB queued for the client, closing the connection",
+                        self.id,
+                        MAX_QUEUED_BYTES / (1024 * 1024)
+                    );
+                }
+                self.closing = true;
+            }
         }
     }
 

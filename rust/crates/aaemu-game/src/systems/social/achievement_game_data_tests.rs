@@ -56,7 +56,7 @@ fn load_reads_and_groups_the_tables() {
          INSERT INTO achievements VALUES (10, 'dup', '', '', 9, 9, 9, 1, 1, 9, 1, 1, 9, 9, 9);
          INSERT INTO achievements VALUES (11, 'n', '', '', NULL, NULL, NULL, 1, 0, NULL, 1, 0,
             NULL, NULL, NULL);
-         INSERT INTO achievement_objectives VALUES (1, 10, 'f', 100), (2, 10, 1, 101),
+         INSERT INTO achievement_objectives VALUES (5, 10, 'f', 100), (2, 10, 1, 101),
             (3, 11, 0, 102);
          INSERT INTO pre_completed_achievements VALUES (1, 11, 10), (2, 12, 10);
          INSERT INTO char_records VALUES (100, 3, 7, 8);",
@@ -74,16 +74,30 @@ fn load_reads_and_groups_the_tables() {
         (a.priority, a.complete_num, a.item_id, a.icon_id),
         (4, 5, 6, 7)
     );
-    // Text 't' read with GetBoolean (GetInt64 != 0) is false, as in the C#.
-    assert!(!a.is_active && !a.complete_or && !a.is_hidden && !a.or_unit_reqs);
+    // The text 't' / 'f' columns load as text booleans (not as the C# `GetInt64 != 0`, which
+    // would make every one of them false).
+    assert!(a.is_active && a.complete_or && !a.is_hidden && !a.or_unit_reqs);
     // NULL columns fall back to 0; integer booleans read normally.
     let b = &d.achievements[&11];
     assert_eq!((b.category_id, b.priority, b.item_id), (0, 0, 0));
     assert!(b.is_active && b.or_unit_reqs && !b.is_hidden && !b.complete_or);
 
-    assert_eq!(d.achievement_objectives[&10].len(), 2);
-    assert!(d.achievement_objectives[&10][1].or_unit_reqs);
+    // Objectives are grouped by achievement_id and ordered by objective id (the table has no
+    // ORDER BY).
+    assert_eq!(
+        d.achievement_objectives[&10]
+            .iter()
+            .map(|o| o.id)
+            .collect::<Vec<_>>(),
+        [2, 5]
+    );
+    assert!(d.achievement_objectives[&10][0].or_unit_reqs);
+    assert!(!d.achievement_objectives[&10][1].or_unit_reqs);
     assert_eq!(d.achievement_objectives[&11][0].record_id, 102);
+    // ... and linked onto the achievement itself in that same order.
+    assert_eq!(a.achievement_objectives, d.achievement_objectives[&10]);
+    assert_eq!(b.achievement_objectives, d.achievement_objectives[&11]);
+
     let pre = &d.pre_completed_achievements[&10];
     assert_eq!(
         pre.iter().map(|p| p.my_achievement_id).collect::<Vec<_>>(),
@@ -97,6 +111,63 @@ fn load_reads_and_groups_the_tables() {
             value1: 7,
             value2: 8
         }
+    );
+}
+
+#[test]
+fn load_links_objectives_in_id_order_and_keeps_orphans_grouped() {
+    let c = Connection::open_in_memory().unwrap();
+    schema(&c);
+    c.execute_batch(
+        "INSERT INTO achievements VALUES (20, 'n', '', '', 1, 1, 0, 't', 'f', 0, 'f', 'f', 0, 0, 0);
+         INSERT INTO achievement_objectives VALUES
+            (9, 20, 'f', 100), (4, 20, 't', 101), (7, 20, 'f', 102), (1, 99, 'f', 103);",
+    )
+    .unwrap();
+    let d = AchievementGameData::load(&c).unwrap();
+
+    let linked = &d.achievements[&20].achievement_objectives;
+    assert_eq!(linked.iter().map(|o| o.id).collect::<Vec<_>>(), [4, 7, 9]);
+    assert!(linked[0].or_unit_reqs);
+    assert!(linked.iter().all(|o| o.achievement_id == 20));
+    assert_eq!(linked, &d.achievement_objectives[&20]);
+
+    // An objective whose achievement row is missing stays in the grouped map only.
+    assert_eq!(d.achievement_objectives[&99].len(), 1);
+    assert!(!d.achievements.contains_key(&99));
+}
+
+#[test]
+fn text_boolean_columns_follow_get_boolean_from_string() {
+    let c = Connection::open_in_memory().unwrap();
+    schema(&c);
+    c.execute_batch(
+        "INSERT INTO achievements VALUES (1, 'n', '', '', 0, 0, 0, 't', 'f', 0, 'f', 't', 0, 0, 0);
+         INSERT INTO achievements VALUES (2, 'n', '', '', 0, 0, 0, '1', '0', 0, '1', '0', 0, 0, 0);
+         INSERT INTO achievements VALUES (3, 'n', '', '', 0, 0, 0, 'f', 't', 0, 't', 'f', 0, 0, 0);
+         INSERT INTO achievements VALUES (4, 'n', '', '', 0, 0, 0, NULL, NULL, 0, NULL, NULL, 0, 0, 0);
+         INSERT INTO achievement_objectives VALUES (1, 1, 't', 1), (2, 1, 'f', 1),
+            (3, 1, '1', 1), (4, 1, NULL, 1);",
+    )
+    .unwrap();
+    let d = AchievementGameData::load(&c).unwrap();
+
+    assert!(d.achievements[&1].is_active && d.achievements[&1].complete_or);
+    assert!(!d.achievements[&1].is_hidden && !d.achievements[&1].or_unit_reqs);
+    assert!(d.achievements[&2].is_active && d.achievements[&2].or_unit_reqs);
+    assert!(!d.achievements[&2].complete_or && !d.achievements[&2].is_hidden);
+    assert!(!d.achievements[&3].is_active && d.achievements[&3].is_hidden);
+    assert!(d.achievements[&3].or_unit_reqs && !d.achievements[&3].complete_or);
+    let nulls = &d.achievements[&4];
+    assert!(!nulls.is_active && !nulls.is_hidden && !nulls.or_unit_reqs && !nulls.complete_or);
+
+    let objectives = &d.achievements[&1].achievement_objectives;
+    assert_eq!(
+        objectives
+            .iter()
+            .map(|o| o.or_unit_reqs)
+            .collect::<Vec<_>>(),
+        [true, false, true, false]
     );
 }
 
@@ -142,6 +213,75 @@ fn achievement_game_data_real_compact_db() {
         d.char_records.len(),
         count("SELECT COUNT(*) FROM char_records")
     );
-    // The 't' / 'f' text booleans all load as false (mirrored C# quirk).
-    assert!(d.achievements.values().all(|a| !a.is_active));
+
+    // The shipped table stores these booleans as the text 't' / 'f' (`is_active` is 't' on every
+    // row, `complete_or` is 't' on 184). Reading them as text booleans is what makes them visible.
+    assert_eq!(
+        d.achievements.values().filter(|a| a.is_active).count(),
+        count("SELECT COUNT(*) FROM achievements WHERE is_active = 't'")
+    );
+    assert_eq!(
+        d.achievements.values().filter(|a| a.complete_or).count(),
+        count("SELECT COUNT(*) FROM achievements WHERE complete_or = 't'")
+    );
+    assert_eq!(
+        d.achievements.values().filter(|a| a.is_hidden).count(),
+        count("SELECT COUNT(*) FROM achievements WHERE is_hidden = 't'")
+    );
+    assert!(d.achievements.values().any(|a| a.complete_or));
+
+    // Every objective is linked onto its achievement, in ascending objective-id order, and the
+    // grouped map holds exactly the same lists (no `achievement_objectives` row dangles).
+    assert_eq!(
+        count(
+            "SELECT COUNT(*) FROM achievements a
+             LEFT JOIN achievement_objectives o ON o.achievement_id = a.id WHERE o.id IS NULL"
+        ),
+        0
+    );
+    assert_eq!(
+        d.achievements
+            .values()
+            .map(|a| a.achievement_objectives.len())
+            .sum::<usize>(),
+        d.achievement_objectives
+            .values()
+            .map(Vec::len)
+            .sum::<usize>()
+    );
+    for (id, a) in &d.achievements {
+        assert_eq!(
+            &a.achievement_objectives, &d.achievement_objectives[id],
+            "achievement {id}"
+        );
+        assert!(a
+            .achievement_objectives
+            .windows(2)
+            .all(|w| w[0].id < w[1].id));
+        assert!(a
+            .achievement_objectives
+            .iter()
+            .all(|o| o.achievement_id == *id));
+    }
+
+    // `record_id` resolves for every objective, and the `COMPLETE_ACHIEVEMENT` (kind 9) records —
+    // the largest group — always name a real achievement in `value1`.
+    assert_eq!(
+        count(
+            "SELECT COUNT(*) FROM achievement_objectives o
+             LEFT JOIN char_records r ON r.id = o.record_id WHERE r.id IS NULL"
+        ),
+        0
+    );
+    assert_eq!(
+        count(
+            "SELECT COUNT(*) FROM char_records r
+             LEFT JOIN achievements a ON a.id = r.value1 WHERE r.kind_id = 9 AND a.id IS NULL"
+        ),
+        0
+    );
+    assert!(
+        count("SELECT COUNT(*) FROM char_records WHERE kind_id = 9")
+            > count("SELECT COUNT(*) FROM char_records WHERE kind_id = 30")
+    );
 }

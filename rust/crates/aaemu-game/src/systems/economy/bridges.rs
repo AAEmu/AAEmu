@@ -2514,14 +2514,19 @@ impl crate::systems::quests::hooks::QuestHooks for EconomyForQuests {
         items: &[crate::systems::quests::model::ItemCreationDefinition],
         copper: i32,
     ) -> usize {
-        // The mails need the character (name, mail container): they are created and sent once
-        // the lock is released. Deviation: a failed `Send()` is reported then (error message
-        // per failed mail) instead of through the return value.
-        let Some(player) = player.cloned() else {
-            tracing::error!("CreateQuestRewardMails: character {} is not online", c.id);
-            return 0;
+        let Some(container) = c
+            .inventory
+            .containers
+            .iter()
+            .find(|(kind, _)| *kind == slot_type::MAIL)
+            .map(|(_, v)| v.clone())
+        else {
+            return 1;
         };
-        let defs: Vec<super::mail_kinds::ItemCreationDefinition> = items
+        if player.is_none() {
+            return 1;
+        }
+        let defs: Vec<_> = items
             .iter()
             .map(|i| {
                 super::mail_kinds::ItemCreationDefinition::new(
@@ -2531,26 +2536,22 @@ impl crate::systems::quests::hooks::QuestHooks for EconomyForQuests {
                 )
             })
             .collect();
-        crate::systems::quests::events::after_unlock(server, c.id, move |s| {
-            let mut txn = ItemTxn::begin(s);
-            let mails = super::mail_kinds::create_quest_reward_mails(
-                &mut txn,
-                &player,
-                quest_template_id,
-                &defs,
-                copper,
-            );
-            for m in mails {
-                if !m.send(&mut txn) {
-                    send_error_message_to(
-                        &mut txn.out(),
-                        &player,
-                        error_message::MAIL_UNKNOWN_FAILURE,
-                    );
-                }
-            }
-        });
-        0
+        let mut txn = ItemTxn::unlocked(server);
+        let Some(mails) = super::mail_kinds::create_quest_reward_mail_bodies(
+            &mut txn,
+            c.id,
+            &c.unit.name,
+            &container,
+            quest_template_id,
+            &defs,
+            copper,
+        ) else {
+            Self::defer(server, c.id, txn.into_fx());
+            return 1;
+        };
+        let ok = super::mail::store_quest_rewards_locked(&mut txn, c, mails);
+        Self::defer(server, c.id, txn.into_fx());
+        usize::from(!ok)
     }
 
     fn is_auto_equip_trade_pack(&self, server: &GameServer, template_id: u32) -> bool {

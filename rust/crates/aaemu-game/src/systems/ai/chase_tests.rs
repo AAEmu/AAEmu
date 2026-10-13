@@ -199,3 +199,98 @@ async fn landing_on_a_waypoint_keeps_the_travelled_heading() {
     assert_eq!(pos.y, 102.0);
     assert!(pos.rot_z.abs() < 0.001, "arrival turned sideways: {pos:?}");
 }
+
+fn geo_mode_fixture(geo_data_mode: bool, can_fly: bool) -> (crate::server::GameServer, NpcRef) {
+    let (server, npc, _) = fixture();
+    server
+        .config
+        .update(|cfg| cfg.world.geo_data_mode = geo_data_mode);
+    {
+        let mut n = npc.data();
+        n.can_fly = can_fly;
+    }
+    (server, npc)
+}
+
+fn step_towards(server: &crate::server::GameServer, npc: &NpcRef, target: Vec3, distance: f32) {
+    npc::move_towards(
+        server,
+        npc,
+        Some(npc::MoveAi {
+            hold_or_idle: false,
+        }),
+        target,
+        distance,
+        4,
+        0.0,
+    );
+}
+
+#[tokio::test]
+async fn flying_npc_keeps_the_interpolated_vertical_step() {
+    for geo_data_mode in [false, true] {
+        let (server, npc) = geo_mode_fixture(geo_data_mode, true);
+        step_towards(&server, &npc, Vec3::new(100.0, 100.0, 80.0), 2.0);
+        let pos = npc.data().unit.transform;
+        assert_eq!(pos.x, 100.0, "{pos:?} (geo_data_mode={geo_data_mode})");
+        assert_eq!(pos.y, 100.0, "{pos:?} (geo_data_mode={geo_data_mode})");
+        assert!(
+            (pos.z - 98.0).abs() < 0.001,
+            "flying NPC lost its vertical step: {pos:?} (geo_data_mode={geo_data_mode})"
+        );
+    }
+}
+
+#[tokio::test]
+async fn flying_npc_keeps_the_interpolated_diagonal_step_while_walkers_lock_to_spawner_z() {
+    for geo_data_mode in [false, true] {
+        // (6, 0, -8): 3D distance 10, so a step of 2 covers 1/5 of it.
+        let target = Vec3::new(106.0, 100.0, 92.0);
+        let (server, flyer) = geo_mode_fixture(geo_data_mode, true);
+        step_towards(&server, &flyer, target, 2.0);
+        let pos = flyer.data().unit.transform;
+        assert!(
+            (pos.x - 101.2).abs() < 0.001,
+            "flying NPC x should follow the 3D step: {pos:?} (geo_data_mode={geo_data_mode})"
+        );
+        assert_eq!(pos.y, 100.0, "{pos:?} (geo_data_mode={geo_data_mode})");
+        assert!(
+            (pos.z - 98.4).abs() < 0.001,
+            "flying NPC lost its descent: {pos:?} (geo_data_mode={geo_data_mode})"
+        );
+
+        // The old altitude lock: the same step for a walker is projected back to the
+        // spawner Z (spawner_z = 100), so the descent of the interpolation is discarded.
+        let (server, walker) = geo_mode_fixture(geo_data_mode, false);
+        step_towards(&server, &walker, target, 2.0);
+        let pos = walker.data().unit.transform;
+        assert!(
+            (pos.x - 102.0).abs() < 0.001,
+            "walker x should stay on the 2D step: {pos:?} (geo_data_mode={geo_data_mode})"
+        );
+        assert!(
+            (pos.z - 100.0).abs() < 0.001,
+            "walker must stay on the spawner height: {pos:?} (geo_data_mode={geo_data_mode})"
+        );
+    }
+}
+
+#[tokio::test]
+async fn flying_npc_large_step_reaches_the_destination_without_overshoot() {
+    for geo_data_mode in [false, true] {
+        let (server, npc) = geo_mode_fixture(geo_data_mode, true);
+        let target = Vec3::new(100.0, 100.0, 80.0);
+        step_towards(&server, &npc, target, 1000.0);
+        let pos = npc.data().unit.transform;
+        assert!(
+            (pos.z - 80.0).abs() < 0.001,
+            "large step missed the destination: {pos:?} (geo_data_mode={geo_data_mode})"
+        );
+        step_towards(&server, &npc, target, 1000.0);
+        let pos = npc.data().unit.transform;
+        assert!(
+            (pos.z - 80.0).abs() < 0.001,
+            "flying NPC overshot the destination: {pos:?} (geo_data_mode={geo_data_mode})"
+        );
+    }
+}

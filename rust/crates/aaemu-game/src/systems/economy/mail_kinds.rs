@@ -69,7 +69,10 @@ impl MailPlayerToPlayer {
         if self.mail.body.copper_coins > 0 {
             attachment_count_for_fee += 1;
         }
-        if self.mail.mail_type == mail_type::NORMAL {
+        if matches!(
+            self.mail.mail_type,
+            mail_type::NORMAL | mail_type::REGISTERED
+        ) {
             mail_fee += COST_NORMAL;
             attachment_cost = COST_NORMAL_ATTACHMENT;
         } else if self.mail.mail_type == mail_type::EXPRESS {
@@ -897,82 +900,136 @@ pub fn create_quest_reward_mails(
     character: &PlayerRef,
     quest_template_id: u32,
     item_creation_definitions: &[ItemCreationDefinition],
-    mut mail_copper: i32,
+    mail_copper: i32,
 ) -> Vec<MailPlayerToPlayer> {
-    let server = txn.server;
-    let mut result_list: Vec<MailPlayerToPlayer> = Vec::new();
-    let quest_name = server
-        .game_data
-        .systems
-        .economy
-        .mail
-        .quest_name(quest_template_id, &quest_template_id.to_string());
-    let Some(mail_container) = mail::mail_container(character) else {
-        tracing::error!("CreateQuestRewardMails: character has no mail container");
-        return result_list;
+    let (id, name, container) = {
+        let c = character.data();
+        (
+            c.id,
+            c.unit.name.clone(),
+            c.inventory
+                .containers
+                .iter()
+                .find(|(kind, _)| *kind == slot_type::MAIL)
+                .map(|(_, v)| v.clone()),
+        )
     };
-    // Generate a finalized list of all reward items in the mail attachments container
-    let mut total_rewards_items_list = Vec::new();
-    for item in item_creation_definitions {
-        let Some(template) = server.game_data.items.template(item.template_id) else {
-            // C#: NullReferenceException on itemTemplate.FixedGrade
-            tracing::error!(
-                "CreateQuestRewardMails: unknown item template {}",
-                item.template_id
-            );
-            continue;
+    let Some(container) = container else {
+        return Vec::new();
+    };
+    create_quest_reward_mail_bodies(
+        txn,
+        id,
+        &name,
+        &container,
+        quest_template_id,
+        item_creation_definitions,
+        mail_copper,
+    )
+    .unwrap_or_default()
+    .into_iter()
+    .map(|mail| MailPlayerToPlayer {
+        mail,
+        sender: character.clone(),
+    })
+    .collect()
+}
+
+/// Create every reward before exposing any mail. Invalid definitions leave no partial items.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn create_quest_reward_mail_bodies(
+    txn: &mut ItemTxn<'_>,
+    receiver: u32,
+    name: &str,
+    container: &crate::models::container::ContainerRef,
+    quest: u32,
+    definitions: &[ItemCreationDefinition],
+    mut copper: i32,
+) -> Option<Vec<BaseMail>> {
+    if copper < 0
+        || definitions.iter().any(|d| {
+            d.count <= 0
+                || txn
+                    .server
+                    .game_data
+                    .items
+                    .template(d.template_id)
+                    .is_none_or(|t| t.max_count <= 0)
+        })
+    {
+        return None;
+    }
+    let before: std::collections::HashSet<_> = container
+        .lock()
+        .expect("container poisoned")
+        .items
+        .iter()
+        .map(|i| i.id)
+        .collect();
+    for d in definitions {
+        let template = txn.server.game_data.items.template(d.template_id)?;
+        let grade = if d.grade_id > 0 {
+            d.grade_id
+        } else {
+            template.fixed_grade.max(0)
         };
-        let mut item_grade = template.fixed_grade;
-        if item_grade <= 0 {
-            item_grade = 0;
-        }
-        if item.grade_id > 0 {
-            item_grade = item.grade_id;
-        }
-        let res = mail_container
+        let ok = container
             .lock()
             .expect("container poisoned")
             .acquire_default_item_ex(
                 task_type::INVALID,
-                item.template_id,
-                item.count,
-                item_grade,
+                d.template_id,
+                d.count,
+                grade,
                 0,
                 -1,
                 &mut txn.env,
-            );
-        if let Some(r) = res {
-            total_rewards_items_list.extend(r.new);
+            )
+            .is_some();
+        if !ok {
+            let mut c = container.lock().expect("container poisoned");
+            let created: Vec<_> = c
+                .items
+                .iter()
+                .filter(|i| !before.contains(&i.id))
+                .map(|i| i.id)
+                .collect();
+            for id in created {
+                c.remove_item_task(task_type::INVALID, id, true, &mut txn.env);
+            }
+            return None;
         }
     }
-    // Distribute the quest rewards
-    let char_name = character.data().unit.name.clone();
-    for item_id in total_rewards_items_list {
-        let need_new = result_list
-            .last()
-            .is_none_or(|m| m.mail.body.attachments.len() >= 10);
-        if need_new {
-            let mut m = MailPlayerToPlayer::new(server, character, &char_name);
-            m.mail.header.sender_id = 0;
-            m.mail.header.sender_name = ".questReward".to_string();
-            // NOTE: newer versions use the .title / .body format, which doesn't work on 1.2
-            m.mail.mail_type = mail_type::SYS_EXPRESS;
-            m.mail.title = quest_name.clone();
-            m.mail.body.text = format!("Reward for quest {quest_name}.");
-            m.mail.body.copper_coins = mail_copper;
-            mail_copper = 0;
-            result_list.push(m);
-        }
-        result_list
-            .last_mut()
-            .expect("pushed above")
-            .mail
-            .body
-            .attachments
-            .push(item_id);
+    let ids: Vec<_> = container
+        .lock()
+        .expect("container poisoned")
+        .items
+        .iter()
+        .rev()
+        .filter(|i| !before.contains(&i.id))
+        .map(|i| i.id)
+        .collect();
+    let quest_name = txn
+        .server
+        .game_data
+        .systems
+        .economy
+        .mail
+        .quest_name(quest, &quest.to_string());
+    let mut result = Vec::new();
+    for chunk in ids.chunks(10) {
+        let mut m = BaseMail::new();
+        m.header.sender_name = ".questReward".into();
+        m.header.receiver_id = receiver;
+        m.receiver_name = name.into();
+        m.mail_type = mail_type::SYS_EXPRESS;
+        m.title = quest_name.clone();
+        m.body.text = format!("Reward for quest {quest_name}.");
+        m.body.copper_coins = copper;
+        copper = 0;
+        m.body.attachments = chunk.to_vec();
+        m.header.attachments = m.get_total_attachment_count();
+        result.push(m);
     }
-    for m in &mut result_list {
-        m.finalize_attachments(txn);
-    }
-    result_list
+    Some(result)
 }

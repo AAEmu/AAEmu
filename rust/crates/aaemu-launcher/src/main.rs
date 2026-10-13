@@ -257,7 +257,11 @@ fn main() -> anyhow::Result<()> {
                 .and_then(|dll| dll.parent())
                 .context("compressed pak requires an early client driver")?
                 .join("aaemu_pak.dll");
-            if !bridge.is_file() {
+            let client_bridge = client
+                .parent()
+                .and_then(std::path::Path::parent)
+                .map(|root| root.join("aaemu_pak.dll"));
+            if !bridge.is_file() && !client_bridge.is_some_and(|path| path.is_file()) {
                 bail!("compressed pak bridge {} not found; build the i686 aaemu-pak library next to aadriver.dll", bridge.display());
             }
         }

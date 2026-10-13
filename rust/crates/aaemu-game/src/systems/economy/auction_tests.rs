@@ -178,7 +178,7 @@ fn lot_bytes(lot: &AuctionLot) -> Vec<u8> {
 fn post(w: &mut World, template: u32, slot: i32, buyout: i32, duration: u8) -> (u64, AuctionLot) {
     let pa = w.pa.clone();
     let item_id = give(w, &pa, slot_type::INVENTORY, template, 1, slot);
-    run::<CSAuctionPostPacket>(w, 0, &post_body(item_id, 100, buyout, duration));
+    run::<CSAuctionPostPacket>(w, 0, &post_body(item_id, 0, buyout, duration));
     let lot = w
         .server
         .systems
@@ -442,7 +442,7 @@ async fn post_moves_item_charges_fee_and_sends_lot() {
     );
     assert_eq!(
         (lot.start_money, lot.direct_money, lot.duration),
-        (100, 1000, 1)
+        (0, 1000, 1)
     );
     assert_eq!((lot.bid_world_id, lot.bidder_id), (255, 0));
     assert_eq!(lot.end_time - lot.post_date, Duration::hours(12));
@@ -460,11 +460,11 @@ async fn post_moves_item_charges_fee_and_sends_lot() {
         ]
     );
     assert_eq!(
-        frames[0].1,
+        frames[2].1,
         task_body(task_type::DEPOSIT_MONEY, vec![ItemTask::MoneyChange(-20)])
     );
     assert_eq!(
-        frames[1].1,
+        frames[0].1,
         task_body(task_type::AUCTION, vec![ItemTask::add(&placed)])
     );
     assert_eq!(frames[3].1, lot_bytes(&lot));
@@ -474,9 +474,13 @@ async fn post_moves_item_charges_fee_and_sends_lot() {
     let (_, lot) = post(&mut w, POTION, 1, 1_000_000_000, 3);
     assert_eq!(lot.end_time - lot.post_date, Duration::hours(48));
     assert_eq!(money(&w.pa), 5_000_000 - i64::from(MAX_LISTING_FEE));
-    // Unknown duration: 6 hours.
-    let (_, lot) = post(&mut w, POTION, 2, 0, 9);
-    assert_eq!(lot.end_time - lot.post_date, Duration::hours(6));
+    // Invalid duration leaves the item and wallet unchanged.
+    let pa = w.pa.clone();
+    let id = give(&w, &pa, slot_type::INVENTORY, POTION, 1, 2);
+    let before = w.server.systems.economy.auction.all_lots().len();
+    run::<CSAuctionPostPacket>(&mut w, 0, &post_body(id, 0, 1000, 9));
+    assert_eq!(w.server.systems.economy.auction.all_lots().len(), before);
+    assert!(Inv::of(&w.pa).item_at(slot_type::INVENTORY, 2).is_some());
 }
 
 #[tokio::test]
@@ -665,8 +669,8 @@ async fn bid_outbid_buyout_moves_money_and_mails() {
     want.write_i16(0);
     assert_eq!(&frames[0].1[..frames[0].1.len() - 8], want.as_bytes());
 
-    // Alice outbids with 600: Bob gets his 500 back by mail.
-    run::<CSBidAuctionPacket>(&mut w, 0, &bid_body(lot.id, 600));
+    // Bob raises his bid; the previous escrow is refunded by mail.
+    run::<CSBidAuctionPacket>(&mut w, 1, &bid_body(lot.id, 600));
     assert_eq!(
         log.take(),
         vec![AuctionMail::BidFail {
@@ -678,12 +682,13 @@ async fn bid_outbid_buyout_moves_money_and_mails() {
             previous_bid: 500,
         }]
     );
-    assert_eq!(money(&w.pa), 100_000 - 20 - 600);
+    assert_eq!(money(&w.pa), 100_000 - 20);
+    w.b.drain();
     w.a.drain();
 
     // Bob buys it out (any bid >= DirectMoney pays DirectMoney).
     run::<CSBidAuctionPacket>(&mut w, 1, &bid_body(lot.id, 5000));
-    assert_eq!(money(&w.pb), 100_000 - 500 - 1000);
+    assert_eq!(money(&w.pb), 100_000 - 500 - 600 - 1000);
     let frames = w.b.drain();
     assert_eq!(frames.len(), 1);
     assert_eq!(
@@ -699,7 +704,7 @@ async fn bid_outbid_buyout_moves_money_and_mails() {
                 seller_id: 1,
                 buyout_price: 1000,
                 listing_fee: 0,
-                previous_buyer_id: 1,
+                previous_buyer_id: 2,
                 previous_bid: 600,
             },
             AuctionMail::SaleSeller {
@@ -743,12 +748,14 @@ async fn buyout_without_previous_bid_and_no_buyout_price() {
     let (_, lot) = post(&mut w, SWORD, 0, 0, 0);
     // DirectMoney 0: never a buyout, any higher bid is a bid.
     run::<CSBidAuctionPacket>(&mut w, 1, &bid_body(lot.id, 999_999));
+    assert_eq!(money(&w.pb), 100_000);
+    run::<CSBidAuctionPacket>(&mut w, 1, &bid_body(lot.id, 999));
     assert!(w.server.systems.economy.auction.lot(lot.id).is_some());
-    assert_eq!(money(&w.pb), 100_000 - 999_999);
+    assert_eq!(money(&w.pb), 100_000 - 999);
     assert!(log.take().is_empty());
 
     let (_, lot) = post(&mut w, POTION, 1, 300, 0);
-    run::<CSBidAuctionPacket>(&mut w, 0, &bid_body(lot.id, 300));
+    run::<CSBidAuctionPacket>(&mut w, 1, &bid_body(lot.id, 300));
     let mails = log.take();
     assert_eq!(mails.len(), 2);
     assert!(matches!(
@@ -762,12 +769,12 @@ async fn buyout_without_previous_bid_and_no_buyout_price() {
     ));
     assert!(matches!(
         mails[1],
-        AuctionMail::SaleBuyer { buyer_id: 1, .. }
+        AuctionMail::SaleBuyer { buyer_id: 2, .. }
     ));
 }
 
 #[tokio::test]
-async fn cancel_mails_a_new_copy_and_keeps_bid_lots() {
+async fn cancel_returns_the_original_item_and_keeps_bid_lots() {
     let (mut w, log) = auction_world();
     let (item_id, lot) = post(&mut w, SWORD, 0, 1000, 2);
     w.a.drain();
@@ -798,7 +805,7 @@ async fn cancel_mails_a_new_copy_and_keeps_bid_lots() {
         panic!("{mails:?}")
     };
     assert_eq!((*seller_id, *buyout_price, *listing_fee), (1, 1000, 30));
-    assert_ne!(item.id, item_id);
+    assert_eq!(item.id, item_id);
     assert_eq!((item.template_id, item.count), (SWORD, 1));
     // The new item is registered (loose), the listed one stays in the auction container.
     assert!(w.server.items.item_by_id(item.id).is_some());

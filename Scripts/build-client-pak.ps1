@@ -1,12 +1,14 @@
 param(
     [string]$OutputDirectory,
-    [switch]$SkipNative
+    [switch]$SkipNative,
+    [switch]$Player
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $previousRustFlags = $env:RUSTFLAGS
 $previousDriverOutput = $env:AADRIVER_OUT
+$previousPlayer = $env:AADRIVER_PLAYER
 Push-Location (Join-Path $repoRoot 'rust')
 try {
     $metadataText = & cargo metadata --no-deps --format-version 1
@@ -33,6 +35,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Pak tool and client tools build failed; close running client tools first' }
     if (-not $SkipNative) {
         $env:AADRIVER_OUT = $OutputDirectory
+        $env:AADRIVER_PLAYER = if ($Player) { '1' } else { '0' }
         & (Join-Path $repoRoot 'rust/crates/aaemu-clientdriver/native/build.bat')
         if ($LASTEXITCODE -ne 0) { throw 'Native client driver build/tests failed' }
     }
@@ -41,5 +44,6 @@ try {
 finally {
     $env:RUSTFLAGS = $previousRustFlags
     $env:AADRIVER_OUT = $previousDriverOutput
+    $env:AADRIVER_PLAYER = $previousPlayer
     Pop-Location
 }

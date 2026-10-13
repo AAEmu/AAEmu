@@ -3,5 +3,6 @@
 
 pub mod connection;
 pub mod listener;
+pub mod outbox;
 pub mod packet;
 pub mod registry;

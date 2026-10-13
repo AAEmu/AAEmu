@@ -1288,6 +1288,12 @@ pub async fn execute_buy(
                         send_error(buyer, error_message::INGAME_SHOP_BUY_FAIL);
                         continue;
                     }
+                    // The debit went through and the reduced count is persisted: tell the buyer's
+                    // limited-stock page the committed count (`SCICSSyncGoodPacket`).
+                    buyer.send(SCICSSyncGoodPacket {
+                        cash_shop_id: shop_item.shop_id as i32,
+                        remain_count: r,
+                    });
                 }
                 None => {
                     refund_checkout_price(

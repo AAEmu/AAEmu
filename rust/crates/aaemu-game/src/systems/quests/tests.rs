@@ -560,9 +560,7 @@ async fn full_quest_lifecycle_on_data() {
     };
     with_ctx(&server, &mut c, env, |ctx| {
         assert!(ctx.add_quest(100, false, acceptor::NPC, 500));
-        // Still targeting NPC 500 would turn the quest in as soon as it is Ready
-        // (QuestActConReportNpc.RunAct checks the current target)
-        ctx.env.target = None;
+        // Keep targeting the giver: reaching Ready must still wait for an explicit report.
         let h = active(ctx, 100);
         // AddQuest: SCQuestContextStarted (StartQuest), then RunCurrentStep: Start -> None ->
         // Supply (step changes request an evaluation that is queued after QuestInitialized)
@@ -621,7 +619,6 @@ async fn full_quest_lifecycle_on_data() {
                 "money 202",
                 // DropQuest after the reward: QuestCleanup (cleanup) and QuestDropped
                 // (destroy_when_drop) both consume the supply item
-                "consume 39 7000 1",
                 "consume 39 7000 1"
             ]
         );
@@ -689,7 +686,7 @@ async fn add_quest_rules() {
                                                                 // forcibly: re-adds; C# calls DropQuest(questId, true) (update, not forcibly), so the
                                                                 // completed flag stays set
         assert!(ctx.add_quest(100, true, acceptor::NPC, 500));
-        assert!(ctx.has_quest_completed(100));
+        assert!(!ctx.has_quest_completed(100));
     });
     rec.take();
 }
@@ -713,7 +710,7 @@ async fn drop_quest_runs_cleanup_and_drop_components() {
         ctx.drop_quest(100, true, false);
         assert!(!ctx.has_quest(100));
         // Cleanup (SupplyItem cleanup) then Drop (destroy_when_drop) consume the supply item
-        assert_eq!(rec.take(), vec!["consume 39 7000 1", "consume 39 7000 1"]);
+        assert_eq!(rec.take(), vec!["consume 39 7000 1"]);
         // Drop(update): one update packet with component 0
         assert_eq!(ops(ctx), vec![sc::SCQuestContextUpdatedPacket]);
         // Drop component skill (UseSkill of the first Drop component)
@@ -1168,7 +1165,7 @@ async fn zone_kill_faction_and_level_rules() {
 }
 
 #[tokio::test]
-async fn aggro_act_only_reacts_to_kill_target() {
+async fn aggro_act_credits_the_killed_victim() {
     let (server, _rec) = server_with(|d| {
         single_act_quest(
             d,
@@ -1201,14 +1198,14 @@ async fn aggro_act_only_reacts_to_kill_target() {
             aggro_percent: 40.0,
             ..Default::default()
         };
-        // DoDie's OnKill carries Killer / Victim only: ignored (mirrored C# behaviour)
+        // The live death event carries Killer / Victim, rather than a target NPC.
         ctx.dispatch(&QuestEvent::Kill {
             target: None,
             killer: None,
             victim: Some(npc.clone()),
         })
         .unwrap();
-        assert_eq!(ctx.st.quest(h).unwrap().objectives[0], 0);
+        assert_eq!(ctx.st.quest(h).unwrap().objectives[0], 2);
         ctx.dispatch(&QuestEvent::Kill {
             target: Some(npc),
             killer: None,
@@ -1223,7 +1220,7 @@ async fn aggro_act_only_reacts_to_kill_target() {
 }
 
 #[tokio::test]
-async fn check_sphere_throws_obj_sphere_progresses() {
+async fn check_sphere_tracks_presence_without_using_a_wire_objective_slot() {
     let (server, _rec) = server_with(|d| {
         single_act_quest(
             d,
@@ -1266,13 +1263,30 @@ async fn check_sphere_throws_obj_sphere_progresses() {
         })
         .unwrap();
         assert_eq!(ctx.st.quest(h).unwrap().objectives[0], 0);
-        // QuestActCheckSphere is not an objective: SetObjective(Objectives[255]) throws and
-        // the invocation list stops there.
-        let _h12 = start(ctx, 12);
-        let r = ctx.dispatch(&QuestEvent::EnterSphere {
-            sphere: sphere(12, 0),
-        });
-        assert!(r.is_err());
+        let h12 = start(ctx, 12);
+        ctx.dispatch(&QuestEvent::EnterSphere {
+            sphere: sphere(12, 999),
+        })
+        .unwrap();
+        drain(ctx);
+        assert_eq!(step_of(ctx, h12), kind::PROGRESS);
+        ctx.dispatch(&QuestEvent::EnterSphere {
+            sphere: sphere(12, 122),
+        })
+        .unwrap();
+        assert_eq!(ctx.st.quest(h12).unwrap().objectives, [0; 5]);
+        ctx.dispatch(&QuestEvent::ExitSphere {
+            sphere: sphere(12, 122),
+        })
+        .unwrap();
+        drain(ctx);
+        assert_eq!(step_of(ctx, h12), kind::PROGRESS);
+        ctx.dispatch(&QuestEvent::EnterSphere {
+            sphere: sphere(12, 122),
+        })
+        .unwrap();
+        drain(ctx);
+        assert_eq!(step_of(ctx, h12), kind::READY);
     });
 }
 
@@ -1335,13 +1349,14 @@ async fn check_timer_registers_and_fails() {
             .unwrap();
         let q = ctx.st.quest(h).unwrap();
         assert_eq!(q.step, kind::FAIL);
+        assert_eq!(q.status, status::FAILED);
         // Step change to Fail removed the timer
         assert!(!server.systems.quests.has_quest_timer(1, 13));
         drain(ctx);
-        // No Fail component: RunCurrentStep finds no step, GoToNextStep never sets Failed
-        assert_eq!(ctx.st.quest(h).unwrap().status, status::PROGRESS);
+        // Failure is immediate even when no authored Fail component exists.
+        assert_eq!(ctx.st.quest(h).unwrap().status, status::FAILED);
     });
-    // Any quest's end-state step change removes the timer (C# does not check args.QuestId)
+    // Another quest's end-state step change must not cancel this quest's timer.
     let mut c = character();
     with_ctx(&server, &mut c, QuestEnv::default(), |ctx| {
         start(ctx, 13);
@@ -1350,6 +1365,14 @@ async fn check_timer_registers_and_fails() {
         ctx.dispatch(&QuestEvent::ItemUse { item_id: 1 }).unwrap();
         drain(ctx);
         assert_eq!(step_of(ctx, other), kind::READY);
+        assert!(server.systems.quests.has_quest_timer(1, 13));
+        ctx.dispatch(&QuestEvent::TimerExpired { quest_id: 14 })
+            .unwrap();
+        assert_eq!(step_of(ctx, active(ctx, 13)), kind::PROGRESS);
+        assert!(server.systems.quests.has_quest_timer(1, 13));
+        ctx.dispatch(&QuestEvent::TimerExpired { quest_id: 13 })
+            .unwrap();
+        assert_eq!(step_of(ctx, active(ctx, 13)), kind::FAIL);
         assert!(!server.systems.quests.has_quest_timer(1, 13));
     });
 }
@@ -1503,8 +1526,10 @@ async fn report_doodad_and_complete_quest_acts() {
         drain(ctx);
         assert!(!ctx.has_quest(30));
         assert!(ctx.has_quest_completed(30));
-        // ConReportDoodad.FinalizeQuest re-subscribes (`+=`): the handler stays registered
-        // on the finalized quest, which is collected at the end of the operation.
+        assert!(ctx
+            .st
+            .subscribers(super::state::EventKind::ReportDoodad)
+            .is_empty());
     });
 }
 
@@ -1560,6 +1585,108 @@ async fn selective_rewards_and_mail_when_bag_full() {
         assert!(o.contains(&sc::SCQuestRewardedByMailPacket));
     });
     assert_eq!(rec.take(), vec!["mail 40 1 0"]);
+}
+
+#[tokio::test]
+async fn reporting_only_completes_the_requested_quest_and_preserves_reward_selection() {
+    for doodad in [false, true] {
+        let (server, _) = server_with(|d| {
+            for qid in [91, 92] {
+                single_act_quest(
+                    d,
+                    qid,
+                    1,
+                    ActKind::ObjItemUse {
+                        item_id: 1,
+                        highlight_doodad_id: 0,
+                        highlight_doodad_phase: -1,
+                        use_alias: false,
+                        alias_id: 0,
+                        drop_when_destroy: false,
+                    },
+                );
+                if doodad {
+                    let a = d.components[&(qid * 10 + 3)].acts[0];
+                    d.acts[a].kind = ActKind::ConReportDoodad {
+                        doodad_id: 1,
+                        use_alias: false,
+                        alias_id: 0,
+                    };
+                }
+            }
+        });
+        let mut c = character();
+        with_ctx(&server, &mut c, QuestEnv::default(), |ctx| {
+            let first = start(ctx, 91);
+            let second = start(ctx, 92);
+            ctx.dispatch(&QuestEvent::ItemUse { item_id: 1 }).unwrap();
+            drain(ctx);
+            assert_eq!(step_of(ctx, first), kind::READY);
+            assert_eq!(step_of(ctx, second), kind::READY);
+            let event = if doodad {
+                QuestEvent::ReportDoodad {
+                    quest_id: 91,
+                    doodad_id: 1,
+                    selected: 2,
+                }
+            } else {
+                QuestEvent::ReportNpc {
+                    quest_id: 91,
+                    npc_id: 1,
+                    selected: 2,
+                }
+            };
+            ctx.dispatch(&event).unwrap();
+            assert_eq!(ctx.st.quest(first).unwrap().selected_reward_index, 2);
+            assert_eq!(ctx.st.quest(second).unwrap().selected_reward_index, 0);
+            drain(ctx);
+            assert!(ctx.has_quest_completed(91));
+            assert!(!ctx.has_quest(91));
+            assert!(ctx.has_quest(92));
+            assert!(!ctx.has_quest_completed(92));
+            assert_eq!(step_of(ctx, second), kind::READY);
+        });
+    }
+}
+
+#[tokio::test]
+async fn component_and_sphere_or_requirements_need_a_matching_alternative() {
+    use super::unit_reqs::{req_kind, UnitReq};
+    let (server, _) = server_with(|d| {
+        main_quest(d);
+        d.components.get_mut(&1001).unwrap().or_unit_reqs = true;
+        for owner_type in ["QuestComponent", "Sphere"] {
+            d.unit_reqs
+                .by_owner
+                .entry(owner_type.into())
+                .or_default()
+                .insert(
+                    1001,
+                    vec![
+                        UnitReq {
+                            kind: req_kind::LEVEL,
+                            value1: 20,
+                            ..Default::default()
+                        },
+                        UnitReq {
+                            kind: req_kind::MAX_LEVEL,
+                            value1: 5,
+                            ..Default::default()
+                        },
+                    ],
+                );
+        }
+    });
+    let mut c = character();
+    with_ctx(&server, &mut c, QuestEnv::default(), |ctx| {
+        for (level, expected) in [(10, false), (1, true), (30, true)] {
+            ctx.c.unit.level = level;
+            assert_eq!(ctx.can_component_run(1001), expected);
+            assert_eq!(ctx.can_trigger_sphere(1001, true), expected);
+            assert!(!ctx.can_trigger_sphere(1001, false));
+        }
+        assert!(ctx.can_trigger_sphere(9999, true), "no requirements");
+    });
 }
 
 #[tokio::test]
@@ -1630,6 +1757,87 @@ async fn load_from_rows_restores_quests() {
     });
     assert_eq!(c.quests.active.len(), 1);
     assert_eq!(c.quests.active[0].step, kind::READY);
+}
+
+fn timer_act(limit_time: i32) -> ActKind {
+    ActKind::CheckTimer {
+        limit_time,
+        force_change_component: false,
+        next_component: 0,
+        play_skill: false,
+        skill_id: 0,
+        check_buff: false,
+        buff_id: 0,
+        sustain_buff: false,
+        timer_npc_id: 0,
+        is_skill_player: false,
+    }
+}
+
+#[tokio::test]
+async fn timed_quest_reload_preserves_remaining_time_and_fails_if_expired_offline() {
+    for timer_step in [kind::START, kind::PROGRESS] {
+        let (server, _) = server_with(|d| {
+            single_act_quest(
+                d,
+                90,
+                2,
+                ActKind::ObjMonsterHunt {
+                    npc_id: 600,
+                    use_alias: false,
+                    alias_id: 0,
+                    highlight_doodad_id: 0,
+                    highlight_doodad_phase: -1,
+                },
+            );
+            d.add_act(
+                if timer_step == kind::START { 901 } else { 902 },
+                910,
+                910,
+                0,
+                timer_act(60_000),
+            );
+            d.add_component(component(905, 90, kind::FAIL));
+            d.add_act(905, 911, 911, 0, ActKind::ConAutoComplete);
+        });
+        let mut before = character();
+        with_ctx(&server, &mut before, QuestEnv::default(), |ctx| {
+            let h = start(ctx, 90);
+            ctx.dispatch(&QuestEvent::MonsterHunt {
+                npc_id: 600,
+                count: 1,
+            })
+            .unwrap();
+            drain(ctx);
+            assert_eq!(ctx.st.quest(h).unwrap().time_ms, 1_060_000);
+        });
+        let mut saved = before.quests.active[0].clone();
+        saved.read_data(&saved.write_data()).unwrap();
+        assert_eq!(saved.time_ms, 1_060_000);
+        for reconnect_time in [1_055_000, 1_070_000] {
+            server.systems.quests.remove_quest_timer(1, 0);
+            let mut after = character();
+            after.quests.active.push(saved.clone());
+            with_ctx(&server, &mut after, QuestEnv::default(), |ctx| {
+                ctx.now_ms = reconnect_time;
+                ctx.load_from_rows();
+                drain(ctx);
+                let h = active(ctx, 90);
+                let q = ctx.st.quest(h).unwrap();
+                assert_eq!(q.time_ms, saved.time_ms);
+                assert_eq!(q.objectives[0], 1);
+                if reconnect_time < saved.time_ms {
+                    assert_eq!(q.row().left_time(ctx.now_ms), 5000);
+                    assert_eq!(q.step, kind::PROGRESS);
+                    assert!(server.systems.quests.has_quest_timer(1, 90));
+                } else {
+                    assert_eq!(q.step, kind::FAIL);
+                    assert_eq!(q.status, status::FAILED);
+                    assert!(!server.systems.quests.has_quest_timer(1, 90));
+                }
+            });
+        }
+    }
 }
 
 // ----- flow test through the packet handlers and the event API -----
@@ -1922,7 +2130,6 @@ async fn npc_quest_flow_through_packets_and_events() {
             "item 38 9000 1 1",
             "exp 980 true",
             "money 202",
-            "consume 39 7000 1",
             "consume 39 7000 1"
         ]
     );
@@ -2358,6 +2565,93 @@ async fn real_compact_db_quest_tables() {
 
 // ----- AAEmu.IntegrationTests/Models/Game/Quests/QuestTests.cs -----
 
+#[tokio::test]
+#[ignore = "needs AAEMU_COMPACT_DB; optional AAEMU_GAME_PAK and AAEMU_QUEST_SPHERE_AUDIT"]
+async fn real_compact_db_quest_accounting() {
+    let Some(conn) = real_db() else {
+        return;
+    };
+    let mut files = crate::data::client_files::ClientFileManager::new();
+    if let Ok(path) = std::env::var("AAEMU_GAME_PAK") {
+        assert!(files.add_source(&path, std::path::Path::new(".")));
+    }
+    let d = QuestData::load_from(&conn, &files).expect("load real quest data");
+    let mut stmt = conn
+        .prepare("SELECT id, category_id FROM quest_contexts ORDER BY id")
+        .unwrap();
+    for row in stmt
+        .query_map([], |r| Ok((r.get::<_, u32>(0)?, r.get::<_, u32>(1)?)))
+        .unwrap()
+    {
+        let (id, category) = row.unwrap();
+        assert_eq!(
+            d.template(id).is_some(),
+            category != super::data::QUEST_CATEGORY_TUTORIAL,
+            "quest {id}"
+        );
+    }
+    // An aggregate count alone can hide one missing act and one extra act.
+    for base in &d.base_acts {
+        let act = d
+            .act_template(base.detail_id, &base.detail_type)
+            .expect("every base act has a loaded detail");
+        assert_eq!(act.act_id, base.id);
+        assert_eq!(act.component_id, base.component_id);
+        assert!(act.objective_index == 0xFF || act.objective_index < 5);
+    }
+    let mut no_start = Vec::new();
+    for &id in &d.template_order {
+        let quest = &d.templates[&id];
+        if quest.first_component(&d.components, kind::START).is_none() {
+            no_start.push(id);
+        }
+        for &cid in &quest.components {
+            assert_eq!(d.components[&cid].quest_id, id);
+            for &a in &d.components[&cid].acts {
+                assert_eq!(d.acts[a].quest_id, id);
+            }
+        }
+    }
+    let sphere_acts: Vec<_> = d
+        .acts
+        .iter()
+        .filter(|a| {
+            matches!(
+                a.kind,
+                ActKind::CheckSphere { .. }
+                    | ActKind::ObjSphere { .. }
+                    | ActKind::ConAcceptSphere { .. }
+            )
+        })
+        .collect();
+    let missing_sphere_components: Vec<_> = sphere_acts.iter().filter(|a| {
+        !d.sign_spheres.iter().any(|s| s.component_id == a.component_id && s.quest_id == a.quest_id)
+    }).map(|a| serde_json::json!({"quest_id": a.quest_id, "component_id": a.component_id, "class": a.kind.class_name()})).collect();
+    if !files.sources().is_empty() {
+        assert!(
+            !d.sign_spheres.is_empty(),
+            "client pack must contain quest sign spheres"
+        );
+    }
+    let raw: Vec<_> = d.sign_spheres.iter().map(|s| serde_json::json!({
+        "quest_id": s.quest_id, "component_id": s.component_id, "zone_id": s.zone_id,
+        "local": s.local, "radius": s.radius,
+        "loaded_component": d.components.contains_key(&s.component_id),
+        "matching_component": d.component(s.component_id).is_some_and(|c| c.quest_id == s.quest_id),
+    })).collect();
+    let summary = serde_json::json!({
+        "loaded_quests": d.templates.len(), "no_start_ids": no_start,
+        "loaded_acts": d.acts.len(), "sphere_act_count": sphere_acts.len(),
+        "client_sources": files.sources().len(), "sign_sphere_count": raw.len(),
+        "missing_sphere_components": missing_sphere_components,
+    });
+    eprintln!("quest accounting: {summary}");
+    if let Ok(path) = std::env::var("AAEMU_QUEST_SPHERE_AUDIT") {
+        let artifact = serde_json::json!({"summary": summary, "sign_spheres": raw});
+        std::fs::write(path, serde_json::to_vec_pretty(&artifact).unwrap()).unwrap();
+    }
+}
+
 /// `GetQuestIdsWithComponentKindContainingActDetailType(params QuestCondition[])`.
 fn quest_ids_with(
     conn: &rusqlite::Connection,
@@ -2727,4 +3021,57 @@ async fn use_skill_and_buff_when_quest_use_buff() {
             assert!(ctx.buffs_changed, "quest {qid}: buff added");
         });
     }
+}
+
+#[tokio::test]
+async fn invalid_starters_leave_no_active_quest_or_subscriptions() {
+    let (server, _) = server_with(main_quest);
+    let mut c = character();
+    with_ctx(&server, &mut c, QuestEnv::default(), |ctx| {
+        for (source, id) in [
+            (acceptor::NPC, 501),
+            (acceptor::ITEM, 500),
+            (acceptor::UNKNOWN, 0),
+        ] {
+            assert!(!ctx.add_quest(100, false, source, id));
+            assert!(!ctx.has_quest(100));
+            assert!(ctx.st.quests.is_empty());
+        }
+        assert!(ctx.add_quest(100, false, acceptor::NPC, 500));
+    });
+}
+
+#[tokio::test]
+async fn escort_failure_only_follows_the_guarded_npc_death() {
+    let (server, _) = server_with(|d| {
+        single_act_quest(
+            d,
+            91,
+            2,
+            ActKind::ObjMonsterHunt {
+                npc_id: 600,
+                use_alias: false,
+                alias_id: 0,
+                highlight_doodad_id: 0,
+                highlight_doodad_phase: -1,
+            },
+        );
+        d.add_act(912, 913, 913, 0, ActKind::CheckGuard { npc_id: 700 });
+        d.add_component(component(915, 91, kind::FAIL));
+    });
+    let mut c = character();
+    with_ctx(&server, &mut c, QuestEnv::default(), |ctx| {
+        let h = start(ctx, 91);
+        ctx.dispatch(&QuestEvent::GuardNpcDied { npc_id: 701 })
+            .unwrap();
+        assert_eq!(step_of(ctx, h), kind::PROGRESS);
+        ctx.dispatch(&QuestEvent::GuardNpcDied { npc_id: 700 })
+            .unwrap();
+        assert_eq!(ctx.st.quest(h).unwrap().status, status::FAILED);
+        assert_eq!(step_of(ctx, h), kind::FAIL);
+        assert!(ctx
+            .st
+            .subscribers(super::state::EventKind::GuardNpcDied)
+            .is_empty());
+    });
 }

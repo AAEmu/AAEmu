@@ -252,7 +252,7 @@ Economy hooks (`server.systems.housing.hooks`): installed by `economy::bridges::
 
 | Area (C#) | Rust | Status | Notes |
 |---|---|---|---|
-| `QuestManager.Load` (contexts, components, base acts, all 65 `quest_act_*` detail tables, supplies, item / NPC groups, `UpdateQuestComponentActs`) | `systems/quests/data.rs`, `templates.rs` | done | Same table order (act order inside a component = objective indices), first-base-act linking, tutorial category skipped. Validated against compact.sqlite3 (`real_compact_db_quest_tables`: 4775 quests, 17720 components, 19047 acts, per-type counts). |
+| `QuestManager.Load` (contexts, components, base acts, all 64 `quest_act_*` detail tables, supplies, item / NPC groups, `UpdateQuestComponentActs`) | `systems/quests/data.rs`, `templates.rs` | done | Same table order (act order inside a component = objective indices), first-base-act linking, tutorial category skipped. Validated against compact.sqlite3 (`real_compact_db_quest_tables`: 4775 quests, 17720 components, 19047 acts, per-type counts). Exhaustive record accounting and outstanding gameplay failures: `Docs/wiki/Quest-Audit.md`, `rust/tools/quest_audit/audit.py`; port coverage does not certify every quest as playable. |
 | `Models/Game/Quests` (`Quest`, `NewQuestCode`, `QuestStep`, `QuestComponent`, `QuestAct`, all `Acts/*` + `UnusedActs/*`) | `state.rs`, `engine.rs`, `acts.rs` | done | Live quests on `Character::quest_state` (handles + act paths instead of object references); `c.quests` rows re-derived after every operation. Step machine, objective status / percent, rewards, drop / cleanup, event subscriptions in invocation-list order (`-=` removes the last occurrence). |
 | `CharacterQuests` (AddQuest*, DropQuest, completed flags, reset / daily reset, LetItDone, item destroy, `GetActiveActsWithUseItem`, Load) | `engine.rs`, `events.rs` | done | Save = existing `Character.Save` rows. |
 | `QuestManagerEvents` + other C# entry points (OnItemUse, OnKill, cinema, mate level) | `events.rs` | done | Public event API; nested calls from hooks are queued. |
@@ -272,13 +272,14 @@ Economy hooks (`server.systems.housing.hooks`): installed by `economy::bridges::
 | `Character.MainWorldPosition`, `Transform.CloneDetached` / `ApplyWorldSpawnPosition` / `MainWorldPosition.Clone()` | `worlds.rs`, `models/character.rs` (`main_world_position: Option<Transform>`), `db_character.rs` (save rule) | done | Saved inside an instance: the return point is written (C# `saveFromInstanceReturn`). |
 | `IndunManager` (requests, requirements, entry history, system instances, deletion, leave, `DoIndunActions`, info tick) | `indun.rs` | done | |
 | `Dungeon` + `DungeonLoaderTask` (queue, add / move, leave, team / disconnect handlers, `LeaveDungeonTick`, `AreaClearTick`, destroy) | `dungeon.rs` | done | `DestroyTeamDungeon` (never called in C#) not ported. |
+| Party dungeon admission/reset and 1.2 mentor/mentee sealed chest quests | `indun.rs`, `dungeon.rs`, `mentoring.rs`, `scripts/dungeon.rs` | extended | Serialized run selection, pending-entry capacity, one charge per character/run, owner/leader-only empty resets, safe destruction; four paired daily quests use actual chest phases/seal items and existing inventory/quest rewards. See `Docs/wiki/Dungeons.md`. |
 | `Models/Game/Indun/Events/*`, `Actions/*`, `WorldInstance.Events` (`OnUnitSpawn`, `OnDoodadSpawn`, `OnUnitKilled`, `OnUnitCombatStart/End`, `OnAreaClear`), `CharacterEvents` (`OnTeamJoin/Leave/Kick`, `OnDungeonLeave`, `OnDisconnect`), `UnitEvents.OnKill` | `events.rs` | done | Raised from `npcs` spawners, `skills::combat` (`PostUpdateCurrentHp` / `DoDie`), `social::team`, `world::session::on_disconnect`. |
 | `InstantGameManager`, `InstantGame` (+ `InstantGameEvents`, team members / results) | `instant_game.rs` | done | Queue / matchmaking / invite / join / enter / start / kills / scores / end / leave; `Character.SetFaction` override (housing hook, guild kick, party kick); `ResetAllSkillCooldowns`. |
 | Packets: `CSInstanceLoaded`, `CSUnknownInstance`, `CSApplyToInstantGame`, `CSCancelInstantGame`, `CSJoinInstantGame`, `CSEnteredInstantGameWorld`, `CSLeaveInstantGame`; `SCProcessingInstance`, `SCAppliedToInstantGame`, `SCInviteToInstantGame`, `SCInstantGameJoined/Start/End/AddPoint/Kill/Killstreak`, `SCInstantGameRemainTime` (`SCInstantGameUnkPacket` opcode), `SCTowerDefList/Start/End/WaveStart`, `SCSkillCooldownReset` | `packets.rs` | done | Byte-exact tests. `SCLoadInstancePacket` is the npcs portal one. |
 | Doodad funcs `EnterInstance`, `EnterSysInstance`, `ExitIndun`, `RemoveInstance`; skills hooks `leave_instance` (`ExitArchemall`) / `main_world_position` (`Return`); portal `UsePortal` court check | `npcs/doodad/funcs/world.rs`, `skills/ext.rs` (default bodies), `npcs/portal/mod.rs` | done | |
 | Tower defense runtime, `TowerDefenseAttackerAiCharacter` | `tower_def.rs`, `config.rs`, `scripts/tower_def.rs`, `ai/framework.rs` | extended | Rust adds event start/end, first-wave delay, timed/kill AND/OR progression, NPC controller/summon cleanup preserving normal corpse timers, client lists, GM controls and opt-in game-time/war schedules. The attacker's C# behavior graph already matches `AiKind::TowerDefenseAttacker`. Unsupported target kinds and absent spawn positions fail preflight; rewards/victory event chains are not added. |
 
-Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` checks the summoned vehicle (`systems::vehicles`); the entry item goes through `npcs::portal::check_item_and_remove` (economy `EconomyBridge::consume_item`); `SetFaction` updates the owned houses (`SocialHooks::update_owned_housing_faction`, housing). Instant games have no rewards in C#.
+Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` checks the summoned vehicle (`systems::vehicles`); dungeon entry items use the economy's checked `EconomyBridge::bag_consume_item`; `SetFaction` updates the owned houses (`SocialHooks::update_owned_housing_faction`, housing). Instant games have no rewards in C#.
 
 ### systems::vehicles
 
@@ -621,6 +622,13 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   On Windows x64 it also catches fatal native exceptions (stack overflow, access violation) and
   writes the unwound, symbolized stack and a minidump (`Logs/Crash/`). Release builds carry line
   tables (`[profile.release] debug = "line-tables-only"`) for those traces.
+  The default levels are `Info` for the console and `Server.log` (NLog: `Debug` / `Trace`), since
+  the per-packet `Debug` / `Trace` lines dominated the send path with many players in view
+  (`RUST_LOG=info,aaemu_game::net=trace` restores the packet log); the log files are written by
+  a background thread.
+* net (game connections): sending never blocks and C# had no limit; here a client with more than
+  16 MiB queued, or one that accepts no data for 20 s, is disconnected (`net::outbox`,
+  `net::listener`). Broadcasts encode a packet once for all recipients.
 * systems::skills (character creation): the chosen ability's first starting spell occupies
   hotbar slot 1. The shared action originally assigned there moves to the starter's free slot,
   retaining the other authored utility and supply shortcuts. Further starting spells skip
@@ -708,6 +716,11 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   Authorized packet changes call the existing family snapshot save immediately; the C# handlers
   only changed memory. Team risky actions require membership and known actions, with owner
   authorization for kick/dismiss and a self target for leave before any side effects.
+* systems::social: `SCChatMessagePacket` writes the packed 64-bit chat identity `(type, sub type,
+  faction)` in its first eight bytes (direct Say / whisper / system text uses `(type, 0, 0)`); the
+  sender faction stays in the sender block. Channel copies substitute the actual `ChatChannel` sub
+  type / faction while keeping the requested chat type (zone Shout / Trade / LFG and raid /
+  raid-leader included).
 
 * systems::social: justice repairs intentionally differ from C#: crime/infamy accumulation and
   sentence durations saturate instead of wrapping; a live evidence doodad can be reported once.
@@ -738,6 +751,10 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   switch): they abort the event invocation list / sphere tick. Out-of-range objective reads
   that would throw in RunAct / score sums read 0 (no 1.2 quest triggers them).
 * systems::quests: the daily reset runs at 00:00 UTC (C# cron in server local time).
+* systems::quests: the October 2026 quest audit corrects timer event isolation, explicit NPC
+  reporting, per-quest NPC/doodad reporting, doodad reward selection/finalization, and OR
+  requirement evaluation. Timed saved deadlines, aggro credit, CheckSphere, and authored
+  content gaps remain tracked in `Docs/wiki/Quest-Audit.md`.
 * systems::social: saves of guilds / families run inline in the handler (C# synchronous); a
   failed guild save keeps the removed-member ids for the next attempt. `ExpeditionConfig`
   defaults to the shipped `Expedition.json` (C# throws without the section). Player names /
@@ -839,6 +856,7 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 
 * systems::instances: the dungeon loader awaits the spawn tasks before registering the indun events again (C# does not await `Task.WhenAll`, a race) and reads the spawn files there instead of in `CreateWorldInstance`; `DestroyInstantGame` cleans the instance up and releases its id right away (C#: the finalizer, later); `Environment.TickCount` is a process-relative monotonic clock; the `World.Template.SpawnPosition` mutation in `MoveCharacterTo*` is a local value; paths that throw in C# (missing action / room / zone / rule set, `_members[x]` of a non-member, a destroyed dungeon's `World`) log and return, keeping the side effects done before the throw; `EndGame().Start()` throwing after a victory is modelled as "the rest of `OnKill` (respawn) does not run"; the cross-instance region switch removes the object from every old neighbour once (no double notification of its own sector).
 * systems::instances (tower defense): the C# command only sent packets to its caller and hard-coded zone group 5. The Rust runtime reserves controller positions from the existing NPC JSON by compact spawner membership; these controllers no longer spawn permanently. Manual controls affect the caller's instance/group. Automatic schedules are disabled by default and validate every selected event at startup. Orphan waves/targets no longer truncate later valid rows. Kill notifications use only `DoDie`, deduplicate the NPC handle and retain id-reuse semantics. Timers use monotonic real seconds; `tod` uses the accelerated game clock and day intervals count from scheduler startup. Spawn effects carry explicit event ownership for cleanup even when Unit.OwnerId is zero. Unsupported `DoodadAlmighty` targets, NPC groups without authored controller positions and reward/victory chains remain unavailable rather than being synthesized.
+* systems::instances (dungeons/mentoring): replaces the mirrored double entry-item charge and unsafe dungeon destruction below. Each character pays once per run; re-entry is free, capacity counts pending admissions, and creation obeys `World.MaxInstances` including concurrent requests. Empty owner/leader resets remove the whole run binding; destruction cancels its loader and returns occupants before removing their world. Party join grants access without inserting a player into another world's object table. Mentor eligibility is captured at boss death for nearby living party members with complementary active quests, rechecked during interactions, and bound to selected chest participants. Four explicit 1.2 quest/chest bindings are verified by a gated real-data test. Missing reward chests use the authored templates at the boss position (two metres apart for the two-chest dungeons); this placement fallback and qualification policy are emulator extensions, not claimed native-server execution parity. Authored phases grant seal items through existing inventory/quest hooks and daily persistence; Gilda is not issued directly by mentoring.
 
 * systems::vehicles: supersedes the phase-2 `CSMoveUnit` and `LeaveWorldTask` bullets above:
   slave / vehicle / mate moves, riding, standing on objects, the mate / slave logout handling
@@ -891,6 +909,7 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 * systems::services: the Discord bot runs in the background (the C# `StartAsync` never returns
   when a token is set, blocking the host start).
 * systems::ai: calls into an NPC's AI from outside its tick (skills, aggro, npcs hooks) are queued and run right after the current AI step instead of re-entering it (`manager::post`); the AI tick runs on a blocking thread every ~100 ms; behaviour instances are kept per AI and accessed by kind. `UpdateAggroHelp` reaching a helper NPC without an AI logs and continues (the C# throws a `NullReferenceException` that cuts the whole behaviour tick short). `Npc.OnDamageReceived` on an AI-less NPC does nothing (C# NRE).
+* systems::ai: deletion marks an AI removed without waiting for its state mutex; the current holder detaches its owner and discards queued callbacks. This permits an NPC skill to delete its own caster and avoids the spawn-lock / AI-lock inversion during despawn. The global tick skips an AI whose state mutex is busy and retries on the next tick, so one external AI call cannot freeze movement and combat for every NPC.
 * systems::ai physics: Jitter's narrow phase (`MprEpa`) and contact solver are replaced by a box-vs-heightmap-triangle SAT with one contact per triangle and sequential impulses (Jitter's default friction / bias); the integration itself is exact. One physics world per instance is created with the first ship (C# starts a thread per instance at boot). Add / remove / helm / driver changes go through the pending queue (next tick); hull damage, movement packets and transform writes are applied after the tick; readers use per-tick snapshots. Water is kept per world template and a cell's `object.dat` is ingested when the physics or a water query sees the cell loaded. A height lookup error counts as height 0 (the C# exception skips the rest of that ship's tick). A ship whose game object is gone is skipped. Ship–ship harpoon tow resolves an explicit hook basis among the ships simulated this tick.
 * `WorldManager.Initialize` (`ActiveRegionTick`, 1 s, `useAsync`) and `IndunManager.Initialize`
   (`IndunInfoTick`, 30 s, `useAsync`) do not subscribe to `TickManager.OnTick`: they run as 1 s
@@ -901,6 +920,7 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   `game_data.systems.npcs.area_trigger`, the rest on `world::WorldManager` (`GetTargetOrSelf` is
   `target_or_self`, `None` = the C# `null` name). Unit tests: `world/world_manager_tests.rs`.
 * systems::npcs: `Doodad.PlantTime` is unix seconds and the guard-time checks (`IsProtectedByPublicFarm`, `IsPublicPropertyByAge`) take `now` in unix milliseconds, so their deadlines resolve to the millisecond instead of the 100 ns `DateTime` tick (the comparisons themselves are the C# ones).
+* systems::ai: flying NPCs (`CanFly`) keep the interpolated 3D movement step of `MoveTowards` instead of being pinned to the spawner's Z, and skill min / max range is a 3D check for them (ground NPCs keep the 2D range; the melee skill-2 four-meter guard and the skill selection use the same 3D distance), so a flyer cannot cast at a victim far below before closing in; `ReturnState` completes on the 3D distance to the idle position (arrival at `MoveTowards`'s 1 m tolerance; the timeout teleport counts vertical displacement), so a flyer that fought below its spawn altitude climbs back to it instead of stopping at the home XY.
 
 ## Live testing (phase 5): fixes and deliberate deviations
 
@@ -987,31 +1007,8 @@ and in NPC wandering / buff remaining times.
   `PacketStream.Write(PacketMarshaler)` swallows it. Both reproduced.
 * `SCUnitMovementsPacket` writes no move-type byte per entry (unlike `SCOneUnitMovementPacket`).
 * Hard disconnects do not leave chat channels (only `LeaveWorldTask` does).
-* systems::quests: `QuestActConReportDoodad.FinalizeQuest` subscribes again (`+=`) instead of
-  unsubscribing; `QuestActCheckSphere.FinalizeAction` removes sphere triggers by the quest's DB
-  id instead of its template id; `QuestActCheckSphere` is not an objective, so its sphere
-  handlers throw on `Objectives[255]` (aborting the sphere tick).
-* systems::quests: `QuestActCheckTimer.OnQuestStepChanged` does not check `args.QuestId`: any
-  quest reaching Fail / Ready / Drop / Reward cancels every running quest timer of the owner;
-  `OnTimerExpired` fails its own quest whatever quest's timer expired.
-* systems::quests: `QuestActObjAggro` reads `OnKillArgs.Target`, which the C# only fills with
-  the attacker itself: aggro quests never progress for players.
 * systems::quests: `QuestActObjZoneMonsterHunt` (non-score) needs `count > Count` but the
   objective is capped at `Count`: never completes.
-* systems::quests: `AddQuest(forcibly)` drops a completed quest with `DropQuest(id, true)` (not
-  forcibly): the completed flag stays set. `AddQuest` removes a running timer entry without
-  cancelling its task. A quest that fails `StartQuest` leaks its quest id.
-* systems::quests: a completed quest is removed through `DropQuest`, so `QuestCleanup` and
-  `QuestDropped` both consume its supply items.
-* systems::quests: `QuestActConReportNpc.RunAct` is true while the giver NPC is targeted, so a
-  quest accepted at an NPC is turned in as soon as it is Ready while still targeting it.
-* systems::quests: the shared `_questStartingLastPositionChecks` is updated per starter
-  sphere, so only the first starter near a player can trigger; `SphereQuestManager.Tick`
-  adds a trigger even when it already exists (the duplicate check's `break` is a no-op).
-* systems::quests: `PacketStream.ReadDateTime` returns `DateTime.MaxValue` for any stored
-  quest time above 59 s (`LeftTime` then saturates to `int.MaxValue`).
-* systems::quests: `SphereGameData` reads `spheres.enter_or_leave` / `or_unit_reqs` with
-  `GetBoolean(name)` (int conversion of 't'): always false.
 * `systems::npcs`: a generated (fake) spawner's first member never spawns; the "spawn all" schedule check is inverted; `DoRandomSpawn` leaks an obj id and spawns twice; a doodad despawn may release its obj id twice; gimmick spawn rotations are not converted from degrees; scheduled doodad spawns stack cron tasks; the player-in-radius check scans every player; NPCs are not despawned when players leave.
 * `systems::npcs`: dated game schedules compare `StartTime` / `EndTime` (usually 0) instead of the start / end hours (a one-day event counts as ended at 00:00); the cron builder tests the captured day of week instead of its parameter, and undated schedules produce day / month 0 (rejected by the cron parser); `VendorExist` reads the `id` column; deleting a portal sends no packet; `NotifySubZone` re-sends the portal book once per recall portal of the sub zone; the exit portal's yaw is the book rotation in degrees.
 * `systems::npcs`: corrected coin double credit and failed trade-pack acquisition; `BuyFish` uses the checked economy sale. Phase operations reserve live object identity, honor interaction counts, enter functions on time-of-day changes, and cancel superseded timers. Saves/deletes use a FIFO writer drained by the save lifecycle; partial interaction counts use the doodad-interactions SQL update. Scheduled spawns recreate deleted doodads, deduplicate cron callbacks, and retain original world identity. Logic links/families route matching true/false pulses with per-object state and cycle guards; client-created wires require ownership and reach. Immediate gates are supported; delay descriptors 2/3 need reference behavior. `SpawnGimmick` creates the authored object with offsets/faction/kinematic motion; `SpawnMgmt` requires explicit authored `SpawnGroupId` membership. Prefab flow graphs are client-owned. `CheckGrowth` still runs funcs with `nextPhase = 0`; child metadata templates (e.g. `DoodadFuncBuyFishItem`) remain in the phase dictionary.
@@ -1031,12 +1028,12 @@ and in NPC wandering / buff remaining times.
 * systems::economy: loot dice pick the lowest positive roll; looting allocates a new item id that
   is never released; `ItemProc` `ignoreRoll` never procs; `HDps` uses the magic DPS grade value;
   fish conversion only uses the first pack.
-* systems::economy: auction — cancel mails a new copy while
-  the listed item stays in the auction container, posting fees / bids do not check the balance,
-  the "ExpireDate" sort uses `PostDate`, a buyout sends no `SCAuctionBidPacket`.
-* systems::economy: mail — opening the mailbox re-sends a "got mail" per unread mail,
-  `ReturnMail` fails on mails with fewer than 10 attachments, `FinalizeForBidFail` uses
-  `AucOffFail`, receiver lookup is case-sensitive.
+* systems::economy: auction — the "ExpireDate" sort still uses PostDate and a buyout
+  sends no SCAuctionBidPacket. Original cancellation-copy and missing balance checks
+  are corrected in the quest/mail audit below.
+* systems::economy: mail — opening a mailbox re-sends a "got mail" per unread received
+  mail; FinalizeForBidFail still uses AucOffFail; receiver lookup is case-sensitive.
+  The old return failure and sender unread-count bug are corrected below.
 * systems::economy: trade — `OkTrade` proceeds when only one side locked, the put-up amount is only
   checked (the whole item changes hands), negative money put-ups are accepted, trade ids are never
   released, the owner's `ItemRemove` in `SCTradeMade` names the receiver's slot.
@@ -1334,3 +1331,27 @@ the C# `GameNetwork`. Deviations of the audit ports:
   the quest object id; `CrimeCreate` stores degrees as radians and throws without `source=`;
   `TestHouse setforsale` does not normalise the buyer name; `Kick` throws on a non-byte reason;
   `SendPacket` throws on a one-byte payload; `Scripts shutdown now` prints `-0` minutes.
+
+
+### Quest and mail audit follow-up (October 13, 2026)
+
+The quest/mail audit deliberately corrects C# failures rather than preserving
+them. Quest Unix deadlines round-trip, timers are reconstructed from earlier
+components on reload, and expired quests become Failed during initialization.
+Aggro credit uses the killed NPC; CheckSphere uses local presence and template-ID
+cleanup. Completion consumes supplies once. Ability/prerequisite-completion
+events, zone filters, guarded NPC death, authored NPC actions, acceptor checks,
+ID cleanup and sphere trigger/flag handling are wired and covered by regressions.
+
+Quest overflow reward mail is stored before completion under the economy
+operation boundary. Recipient Mail escrow is persistent and legacy ownership is
+repaired on load. Player mail validates currency/slots/bind state and rejects
+early access; returns keep original IDs and do not charge postage again. Ordinary
+item packets cannot withdraw or destroy Mail/Auction escrow. Cancellation returns
+the actual listed item and bids reserve only affordable funds.
+
+Auction snapshots join mail/items/wallets in the prepared MySQL save transaction;
+commit acknowledgement preserves newer dirty rows/deletions. The wiki audits
+record targeted tests, MySQL rollback/reload and the real 1.2 client evidence,
+including GM fixture setup and remaining authored content/review limitations.
+See Docs/wiki/Quest-Audit.md and Docs/wiki/Mail-Audit.md.

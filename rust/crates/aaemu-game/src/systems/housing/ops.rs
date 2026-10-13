@@ -438,9 +438,10 @@ pub fn change_house_name(
     // Reply once to the requester and also refresh the nearby viewers' name plaques.
     conn.send(&packet);
     if let Some(world) = world_of(server, &house) {
+        let mut out = crate::net::connection::Fanout::new(&packet);
         for viewer in world.players_around(WorldObject::from(&house)) {
             if viewer.obj_id != player.obj_id {
-                viewer.send_dyn(&packet);
+                out.send(&viewer.conn);
             }
         }
     }

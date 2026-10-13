@@ -702,9 +702,11 @@ impl Marshal for SCChatMessagePacket {
     fn write(&self, s: &mut PacketStream) {
         let c = self.sender.as_ref();
         let faction = c.map_or(0, |c| c.faction_id);
+        // The first eight bytes are the packed chat identity `(type, sub type, faction)`; direct
+        // Say / whisper / system text has no channel (`0, 0`) and the sender faction stays below.
         s.write_i16(self.chat_type)
-            .write_i16(faction as i16)
-            .write_u32(faction)
+            .write_i16(0)
+            .write_u32(0)
             .write_bc(c.map_or(0, |c| c.obj_id))
             .write_u32(c.map_or(0, |c| c.id))
             .write_u8(0) // TODO (C#): languageType
@@ -975,8 +977,8 @@ mod tests {
         };
         let mut want = PacketStream::new();
         want.write_i16(0)
-            .write_i16(101)
-            .write_u32(101)
+            .write_i16(0)
+            .write_u32(0)
             .write_bc(0x100)
             .write_u32(5)
             .write_u8(0)

@@ -33,6 +33,8 @@ pub struct Dungeon {
     pub is_system: bool,
     /// `_createTime` (unix ms).
     pub create_time_ms: i64,
+    /// Admission and destruction must not overlap. Never held across an await.
+    pub(super) operations: Mutex<()>,
     st: Mutex<DungeonState>,
 }
 
@@ -43,6 +45,10 @@ pub struct DungeonState {
     pub world_id: Option<u32>,
     /// `PlayersWithAccess`.
     pub players_with_access: HashSet<u32>,
+    /// First admissions, separate from party members who merely have access.
+    pub admitted_players: HashSet<u32>,
+    /// Boss qualification and sealed chest participants for this run only.
+    pub mentoring: super::mentoring::MentorState,
     /// `_leaveRequests` (character id -> kick time, unix ms; insertion order).
     pub leave_requests: Vec<(u32, i64)>,
     /// `_characterOwner`.
@@ -106,9 +112,15 @@ impl Dungeon {
 
     /// `IsFull` (`World?.GetCharacterCount() ?? 0) >= MaxPlayers`).
     pub fn is_full(&self, server: &GameServer) -> bool {
-        let count = self
-            .world(server)
-            .map_or(0, |w| worlds::character_count(&w));
+        let st = self.st();
+        let world = st
+            .world_id
+            .and_then(|id| server.world.worlds().into_iter().find(|w| w.id == id));
+        let mut ids: HashSet<_> = world.map_or_else(HashSet::new, |w| {
+            w.all_characters().iter().map(|p| p.character_id).collect()
+        });
+        ids.extend(st.enter_requests.iter().map(|p| p.character_id));
+        let count = ids.len();
         count as u64 >= u64::from(self.indun_zone.max_players)
     }
 
@@ -200,6 +212,7 @@ pub fn create(
         },
         is_system,
         create_time_ms: now_ms(),
+        operations: Mutex::new(()),
         st: Mutex::new(DungeonState {
             world_id: Some(world.id),
             is_team_owned: team.is_some(),
@@ -214,7 +227,10 @@ pub fn create(
     // If started by a character, enter them into queue
     if let Some(c) = character {
         dungeon.st().players_with_access.insert(c.character_id);
-        queue_player(server, &dungeon, c);
+        if !queue_player(server, &dungeon, c) {
+            destroy_dungeon(server, &dungeon);
+            return None;
+        }
     }
     // Add team members to allow access
     if let Some(team) = &team {
@@ -267,25 +283,59 @@ pub async fn run_loader(
     tracing::debug!("[{name})] Finished spawning game objects Npc, Doodad, Slave, Gimmick...");
     register_indun_events(server, dungeon);
     tracing::info!("[{name})] Dungeon instance ready!");
-    dungeon.st().finished_loading = true;
     tokio::time::sleep(settle).await;
-    let requests: Vec<PlayerRef> = dungeon.st().enter_requests.clone();
+    let requests = {
+        let mut st = dungeon.st();
+        if st.world_id.is_none() {
+            return;
+        }
+        st.finished_loading = true;
+        st.enter_requests.clone()
+    };
     if !requests.is_empty() {
         tracing::info!("[{name})] Moving players to dungeon instance ...");
         for p in &requests {
             if p.data().is_online {
                 add_player(server, dungeon, p);
+            } else {
+                dungeon
+                    .st()
+                    .enter_requests
+                    .retain(|r| r.character_id != p.character_id);
             }
         }
-        dungeon.st().enter_requests.clear();
     }
 }
 
 /// `QueuePlayer(character)`: adds a player to the queue while the dungeon is loading (or adds
 /// them directly once it is loaded).
 pub fn queue_player(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef) -> bool {
+    let _operation = dungeon
+        .operations
+        .lock()
+        .expect("dungeon operations poisoned");
+    let Some(world) = dungeon.world(server) else {
+        return false;
+    };
+    if !sync_party_access(server, dungeon, p) {
+        send_error(p, err::INSTANCE_LEAVE_PARTY, 0);
+        return false;
+    }
+    if worlds::has_character(&world, p.character_id) {
+        return true;
+    }
     if dungeon.is_queued(p) {
         return true;
+    }
+    if dungeon.is_full(server) {
+        send_error(p, err::INSTANCE_QUOTA, 0);
+        return false;
+    }
+    if worlds::zone_spawn_position(server, &world.template, dungeon.zone_instance_id.zone_id)
+        .is_none()
+    {
+        send_error(p, err::NO_SERVER_INSTANCE_RESOURCE, 0);
+        return false;
     }
     // Block players who are part of a court case
     if server
@@ -297,38 +347,55 @@ pub fn queue_player(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef) 
         send_error(p, err::CANNOT_USE_PORTAL_IN_TRIAL, 0);
         return false;
     }
-    if !server.systems.instances.indun.check_entry_attempt_count(
-        p.character_id,
-        dungeon.zone_group_id(),
-        &dungeon.indun_zone,
-        true,
-    ) {
-        tracing::info!(
-            "[{}] Player {} did too many dungeon attempts.",
-            dungeon.world_id().unwrap_or(0),
-            p.data().unit.name
-        );
-        send_error(p, err::INSTANCE_VISIT_LIMIT, 0);
+    let fresh = !dungeon.st().admitted_players.contains(&p.character_id);
+    if fresh
+        && !server
+            .systems
+            .instances
+            .indun
+            .charge_entry(server, p, &dungeon.indun_zone)
+    {
         return false;
     }
     let finished = {
         let mut st = dungeon.st();
         st.players_with_access.insert(p.character_id);
+        st.admitted_players.insert(p.character_id);
+        st.enter_requests.push(p.clone());
         st.finished_loading
     };
     if finished {
-        add_player(server, dungeon, p);
+        add_player_inner(server, dungeon, p);
     } else {
         p.send(SCProcessingInstancePacket {
             zone_id: dungeon.zone_instance_id.zone_id as i32,
         });
-        dungeon.st().enter_requests.push(p.clone());
     }
     true
 }
 
 /// `AddPlayer(character)`.
 pub fn add_player(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef) {
+    let _operation = dungeon
+        .operations
+        .lock()
+        .expect("dungeon operations poisoned");
+    add_player_inner(server, dungeon, p);
+}
+
+fn add_player_inner(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef) {
+    if !dungeon.has_access(p.character_id) || !dungeon.is_queued(p) {
+        return;
+    }
+    if !sync_party_access(server, dungeon, p) {
+        let mut st = dungeon.st();
+        st.enter_requests
+            .retain(|r| r.character_id != p.character_id);
+        st.players_with_access.remove(&p.character_id);
+        drop(st);
+        send_error(p, err::INSTANCE_LEAVE_PARTY, 0);
+        return;
+    }
     let zid = dungeon.zone_instance_id;
     tracing::info!(
         "[Dungeon] Adding player {} to dungeon {}, {}",
@@ -343,6 +410,10 @@ pub fn add_player(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef) {
     };
     // `character.ParentWorld` (the world the character comes from)
     let old_instance = p.data().unit.transform.instance_id;
+    if p.data().main_world_position.is_none() {
+        let return_point = worlds::clone_detached(server, p);
+        p.data().main_world_position = Some(return_point);
+    }
     if !worlds::has_character(&world, p.character_id) {
         world.add_object(p);
     } else {
@@ -360,6 +431,37 @@ pub fn add_player(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef) {
         p.character_id,
     );
     move_character(server, dungeon, &world, p);
+    dungeon
+        .st()
+        .enter_requests
+        .retain(|r| r.character_id != p.character_id);
+}
+
+/// A solo run follows its owner's party even when the party forms during loading. An
+/// existing party binding cannot be used by someone who left or was kicked while queued.
+fn sync_party_access(server: &GameServer, dungeon: &Dungeon, p: &PlayerRef) -> bool {
+    if dungeon.is_system {
+        return true;
+    }
+    let team = server.systems.social.teams.team_by_obj_id(p.obj_id);
+    let mut st = dungeon.st();
+    if !st.is_team_owned {
+        if let Some(t) = team.as_ref().filter(|t| {
+            st.character_owner
+                .as_ref()
+                .is_some_and(|owner| t.is_member(owner.character_id))
+        }) {
+            st.is_team_owned = true;
+            st.owner_team = Some(t.clone());
+            st.character_owner = None;
+            st.players_with_access
+                .extend(t.members.iter().flatten().map(|m| m.character.character_id));
+        }
+    }
+    !st.is_team_owned
+        || team
+            .as_ref()
+            .is_some_and(|t| st.owner_team.as_ref().is_some_and(|owner| owner.id == t.id))
 }
 
 /// `MoveCharacterToSystemInstance` / `MoveCharacterToDungeon` (they differ in the team event
@@ -483,7 +585,7 @@ pub fn on_dungeon_leave(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerR
 }
 
 /// `OnTeamJoin(sender, args)` (`team` is `args.Team`, the team the player just joined).
-pub fn on_team_join(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef, team: &Team) {
+pub fn on_team_join(_server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef, team: &Team) {
     tracing::info!("Player {} has joined a party!", p.data().unit.name);
     let converted = {
         let mut st = dungeon.st();
@@ -511,11 +613,7 @@ pub fn on_team_join(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef, 
     // `PlayerInSameTeam(character)`: GetTeamByObjId(player) is `team` here.
     let same = dungeon.st().owner_team.as_ref().map(|t| t.id) == Some(team.id);
     if same {
-        if let Some(world) = dungeon.world(server) {
-            if !worlds::has_character(&world, p.character_id) {
-                world.add_object(p);
-            }
-        }
+        dungeon.st().players_with_access.insert(p.character_id);
     }
 }
 
@@ -549,6 +647,10 @@ pub fn on_team_leave(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef,
 
 /// `OnDisconnect(sender, args)`.
 pub fn on_disconnect(server: &GameServer, dungeon: &Arc<Dungeon>, p: &PlayerRef) {
+    dungeon
+        .st()
+        .enter_requests
+        .retain(|r| r.character_id != p.character_id);
     tracing::info!(
         "[Dungeon] instanceId={}, zoneId={} player={} disconnected!",
         dungeon.zone_instance_id.instance_id,
@@ -632,6 +734,22 @@ fn owner_team_online_count(server: &GameServer, dungeon: &Dungeon) -> Option<usi
 /// `LeaveDungeonTick`: kicks players whose leave request expired; removes a team dungeon whose
 /// team is completely offline.
 pub fn leave_dungeon_tick(server: &GameServer, dungeon: &Arc<Dungeon>) {
+    let orphaned_team = {
+        let st = dungeon.st();
+        if !dungeon.is_system && st.finished_loading && st.enter_requests.is_empty() {
+            st.owner_team.as_ref().map(|team| team.id)
+        } else {
+            None
+        }
+    };
+    if orphaned_team.is_some_and(|id| server.systems.social.teams.active_team(id).is_none())
+        && dungeon
+            .world(server)
+            .is_some_and(|w| worlds::character_count(&w) == 0)
+    {
+        destroy_dungeon(server, dungeon);
+        return;
+    }
     let online = owner_team_online_count(server, dungeon);
     let empty = dungeon.st().leave_requests.is_empty();
     match online {
@@ -735,9 +853,41 @@ fn unregister_indun_events(server: &GameServer, dungeon: &Dungeon, world_id: u32
     }
 }
 
-/// `DestroyDungeon()`: removes every player from the instance (they are not moved out — C#),
-/// unregisters the events, cleans the instance up and removes it.
+/// Return players before destroying their world and cancel its outstanding loader.
 pub fn destroy_dungeon(server: &GameServer, dungeon: &Arc<Dungeon>) -> bool {
+    let _operation = dungeon
+        .operations
+        .lock()
+        .expect("dungeon operations poisoned");
+    destroy_dungeon_inner(server, dungeon)
+}
+
+pub(super) fn reset_empty_dungeon(
+    server: &GameServer,
+    dungeon: &Arc<Dungeon>,
+) -> anyhow::Result<()> {
+    let _operation = dungeon
+        .operations
+        .lock()
+        .expect("dungeon operations poisoned");
+    let world = dungeon
+        .world(server)
+        .ok_or_else(|| anyhow::anyhow!("Dungeon is unavailable"))?;
+    let st = dungeon.st();
+    anyhow::ensure!(
+        st.finished_loading && st.enter_requests.is_empty(),
+        "Wait for dungeon loading and entry to finish"
+    );
+    anyhow::ensure!(
+        worlds::character_count(&world) == 0,
+        "Everyone must leave the dungeon before resetting it"
+    );
+    drop(st);
+    destroy_dungeon_inner(server, dungeon);
+    Ok(())
+}
+
+fn destroy_dungeon_inner(server: &GameServer, dungeon: &Arc<Dungeon>) -> bool {
     let zid = dungeon.zone_instance_id;
     tracing::info!(
         "[Dungeon] instanceId={}, zoneId={}: Destroying dungeon...",
@@ -750,17 +900,31 @@ pub fn destroy_dungeon(server: &GameServer, dungeon: &Arc<Dungeon>) -> bool {
         return true;
     };
     for p in world.all_characters() {
-        let _ = remove_player(server, dungeon, &p);
+        leave_instance(server, dungeon, &p, dungeon.is_system);
     }
     unregister_indun_events(server, dungeon, world.id);
     {
         let mut st = dungeon.st();
         st.leave_tick = false;
         st.area_clear_tick = false;
+        st.enter_requests.clear();
+        st.players_with_access.clear();
+        st.admitted_players.clear();
+        if let Some(loader) = st.loader.take() {
+            loader.abort();
+        }
     }
     worlds::cleanup_instance(server, world.id);
+    let fixed = server
+        .systems
+        .instances
+        .worlds
+        .info(world.id)
+        .is_some_and(|i| i.fixed_id);
     worlds::remove_world(server, world.id);
-    worlds::release_world_id(server, world.id);
+    if !fixed {
+        worlds::release_world_id(server, world.id);
+    }
     server.systems.instances.dungeons.remove(&world.id);
     server.systems.instances.events.remove_world(world.id);
     dungeon.st().world_id = None;

@@ -700,6 +700,9 @@ pub trait QuestsBridge: Send + Sync {
     ) {
     }
 
+    /// Escort quest failure, including NPC deaths without a player killer.
+    fn on_npc_died(&self, _server: &GameServer, _npc: &NpcRef) {}
+
     /// `QuestManager` kill objective counting (`Npc.DoDie` → `OnKill`).
     fn on_npc_killed(&self, _server: &GameServer, _player: &PlayerRef, _npc: &NpcRef) {}
 

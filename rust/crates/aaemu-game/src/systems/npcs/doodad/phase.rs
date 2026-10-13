@@ -290,6 +290,9 @@ pub fn use_doodad(
     }
 
     if func_group_id > 0 {
+        if !crate::systems::instances::mentoring::allows_phase_request(ctx, func_group_id) {
+            return;
+        }
         set_func_group_id(server, &ctx.doodad, func_group_id as u32);
     }
 
@@ -400,6 +403,9 @@ pub fn do_func(
 
     // then perform the function (DoodadFunc.Use -> template?.Use)
     if let Some(t) = ctx.data().func_template(func.func_id, &func.func_type) {
+        if !crate::systems::instances::mentoring::authorize(ctx, caster, skill_id, t) {
+            return true;
+        }
         funcs::use_func(t, ctx, caster, skill_id, func.next_phase);
     }
     if func.sound_id > 0 {
@@ -418,6 +424,7 @@ pub fn do_func(
         // DoodadFuncLootItem sets ToNextPhase=false when loot fails; let Use() try the next one.
         return func.func_type != "DoodadFuncLootItem";
     }
+    crate::systems::instances::mentoring::succeeded(ctx, caster);
     if func.count > 1 {
         let complete = {
             let mut d = ctx.doodad.data();

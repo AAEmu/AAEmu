@@ -12,7 +12,13 @@ use tokio::sync::mpsc;
 use tokio_util::codec::{FramedRead, FramedWrite};
 
 use crate::net::connection::{ConnCommand, GameConnection};
+use crate::net::outbox::{outbox, OutboxReceiver};
 use crate::server::GameServer;
+
+/// Frames written to the socket buffer before one flush.
+const WRITE_BATCH_FRAMES: usize = 256;
+/// A batch the client does not accept within this time means it stopped reading.
+const WRITE_STALL_TIMEOUT: Duration = Duration::from_secs(20);
 
 /// Binds `Network.Host:Port` (`"*"` = any) and serves connections until the task is dropped.
 pub async fn run(server: Arc<GameServer>) -> std::io::Result<()> {
@@ -32,7 +38,7 @@ pub async fn run(server: Arc<GameServer>) -> std::io::Result<()> {
 }
 
 /// Drives one client connection: a reader/dispatcher loop owning the [`GameConnection`] plus a
-/// writer task fed by an mpsc channel.
+/// writer task fed by its outbox ([`write_frames`]).
 pub async fn serve(server: Arc<GameServer>, socket: TcpStream, peer: SocketAddr) {
     let id = server.next_connection_id();
     tracing::info!("Connect from {} established, session id: {id}", peer.ip());
@@ -40,18 +46,15 @@ pub async fn serve(server: Arc<GameServer>, socket: TcpStream, peer: SocketAddr)
     let (rd, wr) = socket.into_split();
     let mut reader = FramedRead::new(rd, FrameCodec);
 
-    let (out_tx, mut out_rx) = mpsc::unbounded_channel::<Vec<u8>>();
-    let writer = tokio::spawn(async move {
-        let mut sink = FramedWrite::new(wr, FrameCodec);
-        while let Some(frame) = out_rx.recv().await {
-            if let Err(e) = sink.send(frame).await {
-                tracing::debug!("write to session {id} failed: {e}");
-                break;
-            }
-        }
-    });
-
+    let (out_tx, out_rx) = outbox();
     let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<ConnCommand>();
+    let mut writer = tokio::spawn(write_frames(
+        id,
+        FramedWrite::new(wr, FrameCodec),
+        out_rx,
+        cmd_tx.clone(),
+    ));
+
     let (mut conn, handle) = GameConnection::new(id, peer, out_tx, cmd_tx);
     server.connections.add(handle);
 
@@ -88,8 +91,50 @@ pub async fn serve(server: Arc<GameServer>, socket: TcpStream, peer: SocketAddr)
 
     on_disconnect(&server, &mut conn).await;
     drop(conn); // closes the writer channel; queued frames are flushed first
-    let _ = tokio::time::timeout(Duration::from_secs(5), writer).await;
+    if tokio::time::timeout(Duration::from_secs(5), &mut writer)
+        .await
+        .is_err()
+    {
+        // The client is not reading: drop what is still queued with the task.
+        writer.abort();
+    }
     tracing::info!("Client from {} disconnected", peer.ip());
+}
+
+/// The writer task: drains the outbox into the socket, up to [`WRITE_BATCH_FRAMES`] frames per
+/// flush (one write for many small packets instead of one per packet). A write error or a batch
+/// stuck for [`WRITE_STALL_TIMEOUT`] closes the connection.
+async fn write_frames(
+    id: u32,
+    mut sink: FramedWrite<tokio::net::tcp::OwnedWriteHalf, FrameCodec>,
+    mut frames: OutboxReceiver,
+    commands: mpsc::UnboundedSender<ConnCommand>,
+) {
+    while let Some(first) = frames.recv().await {
+        let batch = async {
+            sink.feed(first).await?;
+            for _ in 1..WRITE_BATCH_FRAMES {
+                let Ok(frame) = frames.try_recv() else { break };
+                sink.feed(frame).await?;
+            }
+            SinkExt::<bytes::Bytes>::flush(&mut sink).await
+        };
+        match tokio::time::timeout(WRITE_STALL_TIMEOUT, batch).await {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => {
+                tracing::debug!("write to session {id} failed: {e}");
+                break;
+            }
+            Err(_) => {
+                tracing::warn!(
+                    "session {id}: client accepted no data for {} s, closing the connection",
+                    WRITE_STALL_TIMEOUT.as_secs()
+                );
+                break;
+            }
+        }
+    }
+    let _ = commands.send(ConnCommand::Close);
 }
 
 /// `GameProtocolHandler.OnDisconnect` + `GameConnection.OnDisconnect`.

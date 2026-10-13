@@ -95,18 +95,30 @@ impl QuestEnv {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Deferred {
     /// `Owner.UseSkill(skillId, Owner)`.
-    UseSkillSelf { skill_id: u32 },
+    UseSkillSelf {
+        skill_id: u32,
+    },
     /// `ParentWorld.GetNpcByTemplateId(npcId)?.UseSkill(skillId, npc)`.
-    NpcUseSkill { npc_template_id: u32, skill_id: u32 },
+    NpcUseSkill {
+        npc_template_id: u32,
+        skill_id: u32,
+    },
     /// `ParentWorld.GetNpcByTemplateId(npcId)?.SetFaction(faction)`.
     NpcSetFaction {
         npc_template_id: u32,
         faction_id: u32,
     },
+    NpcComponent {
+        component_id: u32,
+    },
     /// `teamMember.Character.Events.OnX(sender, args)` for team-shared acts.
-    TeamEvent { event: super::events::QuestEvent },
+    TeamEvent {
+        event: super::events::QuestEvent,
+    },
     /// `SendDebugMessage` / system chat line.
-    SystemMessage { text: String },
+    SystemMessage {
+        text: String,
+    },
 }
 
 /// One quest operation on one locked character (`Quest.Owner` + `CharacterQuests`).
@@ -215,6 +227,8 @@ impl<'a> Ctx<'a> {
                         .map(|&a| QuestActState {
                             template: a,
                             override_completed: false,
+                            sphere_inside: false,
+                            supplied: false,
                         })
                         .collect(),
                 });
@@ -285,6 +299,9 @@ impl<'a> Ctx<'a> {
             );
             return false;
         };
+        if !q.forced_start && !self.starter_accepts(q.template_id, q.acceptor_type, q.acceptor_id) {
+            return false;
+        }
         self.set_step(h, kind::START);
         // Send the first components, or the one that's used to start this ?
         let first = self
@@ -309,6 +326,64 @@ impl<'a> Ctx<'a> {
             self.c.id
         );
         true
+    }
+
+    fn starter_accepts(&self, quest_id: u32, source: u8, id: u32) -> bool {
+        let Some(template) = self.data.template(quest_id) else {
+            return false;
+        };
+        template
+            .components_of(&self.data.components, kind::START)
+            .into_iter()
+            .filter(|component| self.can_component_run(component.id))
+            .any(|component| {
+                let conditions: Vec<_> = component
+                    .acts
+                    .iter()
+                    .filter_map(|&a| {
+                        let at = &self.data.acts[a];
+                        use ActKind::*;
+                        Some(match at.kind {
+                            ConAcceptNpc { npc_id }
+                            | ConAcceptNpcKill { npc_id }
+                            | ConAcceptNpcEmotion { npc_id, .. } => {
+                                source == super::model::acceptor::NPC && id == npc_id
+                            }
+                            ConAcceptDoodad { doodad_id } => {
+                                source == super::model::acceptor::DOODAD && id == doodad_id
+                            }
+                            ConAcceptItem { item_id, .. } => {
+                                source == super::model::acceptor::ITEM
+                                    && id == item_id
+                                    && check_items(self.c, item_id, 1)
+                            }
+                            ConAcceptItemGain { item_id } => {
+                                source == super::model::acceptor::ITEM
+                                    && id == item_id
+                                    && check_items(self.c, item_id, at.count)
+                            }
+                            ConAcceptItemEquip { item_id } => {
+                                source == super::model::acceptor::ITEM
+                                    && id == item_id
+                                    && items_by_template(self.c, &[slot_type::EQUIPMENT], item_id).0
+                            }
+                            ConAcceptSkill { skill_id } => {
+                                source == super::model::acceptor::SKILL && id == skill_id
+                            }
+                            ConAcceptBuff { buff_id } => {
+                                source == super::model::acceptor::BUFF && id == buff_id
+                            }
+                            ConAcceptSphere { sphere_id } => {
+                                source == super::model::acceptor::SPHERE && id == sphere_id
+                            }
+                            ConAcceptLevelUp { level } => self.c.unit.level >= level,
+                            ConAutoComplete | ConAcceptComponent { .. } => true,
+                            _ => return None,
+                        })
+                    })
+                    .collect();
+                conditions.is_empty() || conditions.iter().any(|valid| *valid)
+            })
     }
 
     /// `RunCurrentStep`.
@@ -398,6 +473,9 @@ impl<'a> Ctx<'a> {
                     // Mark quest as completed
                     let block = self.set_completed_quest_flag(template_id, true);
                     self.drop_quest(template_id, false, false);
+                    let _ = self.dispatch(&super::events::QuestEvent::QuestComplete {
+                        quest_id: template_id,
+                    });
                     self.send(SCQuestContextCompletedPacket {
                         quest_id: template_id,
                         body: block.body8(),
@@ -424,7 +502,7 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    fn set_status(&mut self, h: QuestHandle, s: u8) {
+    pub(super) fn set_status(&mut self, h: QuestHandle, s: u8) {
         if let Some(q) = self.quest_mut(h) {
             q.status = s;
         }
@@ -693,11 +771,22 @@ impl<'a> Ctx<'a> {
                 faction_id: FACTION_MONSTROSITY,
             });
         }
+        if ct.npc_spawner_id > 0
+            || matches!(
+                ct.npc_ai_id,
+                npc_ai::FOLLOW_UNIT
+                    | npc_ai::FOLLOW_PATH
+                    | npc_ai::GO_AWAY
+                    | npc_ai::RUN_COMMAND_SET
+            )
+        {
+            self.deferred.push(Deferred::NpcComponent { component_id });
+        }
     }
 
     /// `DistributeRewards(addBaseQuestReward)`.
     pub fn distribute_rewards(&mut self, h: QuestHandle, add_base: bool) -> bool {
-        let mut res = true;
+        let res = true;
         let hooks = self.hooks.clone();
         let player = self.player.clone();
         let Some(q) = self.quest(h) else {
@@ -724,13 +813,13 @@ impl<'a> Ctx<'a> {
                     &pool,
                     coins,
                 );
+                if failed > 0 {
+                    self.send_error(error_msg::MAIL_UNKNOWN_FAILURE);
+                    return false;
+                }
                 // Coins will be distributed in mail if any mail needed to be sent
                 if let Some(q) = self.quest_mut(h) {
                     q.reward_coins = 0;
-                }
-                for _ in 0..failed {
-                    self.send_error(error_msg::MAIL_UNKNOWN_FAILURE);
-                    res = false;
                 }
                 self.send(SCQuestRewardedByMailPacket {
                     quests: vec![template_id],
@@ -738,7 +827,7 @@ impl<'a> Ctx<'a> {
             } else {
                 for item in &pool {
                     if hooks.is_auto_equip_trade_pack(self.server, item.template_id) {
-                        hooks.try_equip_new_backpack(
+                        if !hooks.try_equip_new_backpack(
                             self.server,
                             player.as_ref(),
                             self.c,
@@ -746,9 +835,11 @@ impl<'a> Ctx<'a> {
                             item.template_id,
                             item.count,
                             item.grade_id,
-                        );
+                        ) {
+                            return false;
+                        }
                     } else {
-                        hooks.acquire_default_item(
+                        if !hooks.acquire_default_item(
                             self.server,
                             player.as_ref(),
                             self.c,
@@ -756,7 +847,9 @@ impl<'a> Ctx<'a> {
                             item.template_id,
                             item.count,
                             item.grade_id,
-                        );
+                        ) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -842,6 +935,7 @@ impl<'a> Ctx<'a> {
 
     /// `Quest.Drop(update)`.
     pub fn quest_drop(&mut self, h: QuestHandle, update: bool) {
+        let completing = self.quest(h).is_some_and(|q| q.status == status::COMPLETED);
         self.set_status(h, status::DROPPED);
         self.set_step(h, kind::DROP);
         let data = self.data;
@@ -861,10 +955,12 @@ impl<'a> Ctx<'a> {
                 self.send(SCQuestContextUpdatedPacket::new(row, 0, now));
             }
         }
-        for cid in &t.components {
-            if let Some(c) = data.component(*cid) {
-                for &a in &c.acts {
-                    self.act_quest_dropped(h, a);
+        if !completing {
+            for cid in &t.components {
+                if let Some(c) = data.component(*cid) {
+                    for &a in &c.acts {
+                        self.act_quest_dropped(h, a);
+                    }
                 }
             }
         }
@@ -1137,7 +1233,20 @@ impl<'a> Ctx<'a> {
             }
             _ => 0,
         };
+        let supply = at.kind.class_name().starts_with("QuestActSupply");
+        if supply
+            && self
+                .quest(h)
+                .is_some_and(|q| q.steps[p.step].components[p.component].acts[p.act].supplied)
+        {
+            return true;
+        }
         let r = self.act_run(h, p, count);
+        if r && supply {
+            if let Some(q) = self.quest_mut(h) {
+                q.steps[p.step].components[p.component].acts[p.act].supplied = true;
+            }
+        }
         r || self.act_override(h, p)
     }
 
@@ -1347,7 +1456,7 @@ impl<'a> Ctx<'a> {
         if self.has_quest_completed(quest_id) {
             if forcibly {
                 tracing::info!("[GM] quest {quest_id}, added!");
-                self.drop_quest(quest_id, true, false);
+                self.set_completed_quest_flag(quest_id, false);
             } else if !template.repeatable {
                 tracing::warn!(
                     "Quest {quest_id} already completed for {}, not added!",
@@ -1364,7 +1473,8 @@ impl<'a> Ctx<'a> {
             Ok(id) => id,
             Err(e) => {
                 tracing::error!("QuestIdManager: {e}");
-                0
+                self.st.quests.remove(&h);
+                return false;
             }
         };
         if let Some(q) = self.quest_mut(h) {
@@ -1373,19 +1483,20 @@ impl<'a> Ctx<'a> {
             q.condition = condition::PROGRESS;
             q.acceptor_type = acceptor_type;
             q.acceptor_id = acceptor_id;
+            q.forced_start = forcibly;
         }
 
-        // If there's still a timer running for this quest, remove it (the dictionary entry
-        // only: the scheduled task is not cancelled)
+        // Cancel stale work before starting another instance of this quest.
         self.server
             .systems
             .quests
-            .forget_quest_timer(self.c.id, quest_id);
+            .remove_quest_timer(self.c.id, quest_id);
 
         // Actually start the quest by setting step to Start and send the quest start packets
         if !self.start_quest(h) {
-            // If it failed to start, drop the quest here
-            self.drop_quest(quest_id, true, false);
+            self.finalize_quest_acts(h);
+            self.st.quests.remove(&h);
+            self.server.ids.quest.release_id(id);
             return false;
         }
 
@@ -1409,7 +1520,9 @@ impl<'a> Ctx<'a> {
         if let Some(q) = self.quest_mut(h) {
             q.skip_update = true;
         }
-        self.quest_cleanup(h);
+        if self.quest(h).is_some_and(|q| q.status == status::COMPLETED) {
+            self.quest_cleanup(h);
+        }
         self.quest_drop(h, update);
         self.finalize_quest_acts(h);
         self.st.active.remove(quest_id);
@@ -1442,6 +1555,7 @@ impl<'a> Ctx<'a> {
             );
             return;
         };
+        self.set_status(h, status::FAILED);
         self.set_step(h, kind::FAIL);
         tracing::debug!("[Quest] {}, quest {quest_id} failed.", self.c.unit.name);
     }
@@ -1547,27 +1661,59 @@ impl<'a> Ctx<'a> {
                 );
                 continue;
             }
-            let h = self.new_quest(row.template_id, row.id);
-            if let Some(q) = self.quest_mut(h) {
-                q.status = row.status;
-            }
-            // ReadData: objectives are restored only after the step (and its initializers)
-            self.set_step(h, row.step);
-            if let Some(q) = self.quest_mut(h) {
-                q.objectives = row.objectives;
-                q.acceptor_type = row.acceptor_type;
-                q.component_id = row.component_id;
-                q.acceptor_id = row.acceptor_id;
-                q.time_ms = row.time_ms;
-                q.status = row.status;
-            }
-            if !self.st.active.add(row.template_id, h) {
+            if self.st.has_quest(row.template_id) {
                 tracing::error!(
                     "Quest {} of {} is in the quests table twice",
                     row.template_id,
                     self.c.unit.name
                 );
                 continue;
+            }
+            let h = self.new_quest(row.template_id, row.id);
+            if let Some(q) = self.quest_mut(h) {
+                q.status = row.status;
+                q.acceptor_type = row.acceptor_type;
+                q.acceptor_id = row.acceptor_id;
+                q.time_ms = row.time_ms;
+            }
+            self.st.active.add(row.template_id, h);
+            // Initializers need the saved deadline, acceptor and active quest identity.
+            self.set_step(h, row.step);
+            if let Some(q) = self.quest_mut(h) {
+                q.objectives = row.objectives;
+                q.acceptor_type = row.acceptor_type;
+                q.component_id = row.component_id;
+                q.acceptor_id = row.acceptor_id;
+                q.status = row.status;
+            }
+            // Timers in earlier components must also resume at a saved Progress step.
+            if matches!(row.step, kind::START | kind::SUPPLY | kind::PROGRESS) {
+                for path in self.all_paths(h) {
+                    let Some(a) = self.act_ref(h, path) else {
+                        continue;
+                    };
+                    if matches!(self.data.acts[a].kind, ActKind::CheckTimer { .. })
+                        && self.data.acts[a].component_kind <= row.step
+                        && !self
+                            .server
+                            .systems
+                            .quests
+                            .has_quest_timer(self.c.id, row.template_id)
+                    {
+                        self.act_initialize_action(h, path);
+                    }
+                }
+                if self
+                    .server
+                    .systems
+                    .quests
+                    .has_quest_timer(self.c.id, row.template_id)
+                    && self.quest(h).is_some_and(|q| q.time_ms <= self.now_ms)
+                {
+                    let _ = self.dispatch(&super::events::QuestEvent::TimerExpired {
+                        quest_id: row.template_id,
+                    });
+                }
             }
             self.quest_initialized(h);
             self.request_evaluation(h);
@@ -1685,17 +1831,36 @@ impl<'a> Ctx<'a> {
     /// `AddQuestTimer(owner, quest, limitTime)`.
     pub fn add_quest_timer(&mut self, h: QuestHandle, limit_time: i32) -> bool {
         let template_id = self.template_id_of(h);
-        let ok = self
-            .server
-            .systems
-            .quests
-            .add_quest_timer(self.c.id, template_id, limit_time);
+        let saved = self
+            .quest(h)
+            .map_or(super::state::DATETIME_MIN_MS, |q| q.time_ms);
+        let deadline =
+            if saved <= super::state::DATETIME_MIN_MS || saved >= super::state::DATETIME_MAX_MS {
+                self.now_ms.saturating_add(i64::from(limit_time.max(0)))
+            } else {
+                saved
+            };
+        let remaining = deadline
+            .saturating_sub(self.now_ms)
+            .clamp(0, i64::from(limit_time.max(0))) as i32;
+        let ok = match &self.player {
+            Some(player) => {
+                self.server
+                    .systems
+                    .quests
+                    .add_player_quest_timer(player, template_id, remaining)
+            }
+            None => self
+                .server
+                .systems
+                .quests
+                .add_quest_timer(self.c.id, template_id, remaining),
+        };
         if !ok {
             return false;
         }
-        let now = self.now_ms;
         if let Some(q) = self.quest_mut(h) {
-            q.time_ms = now + i64::from(limit_time);
+            q.time_ms = deadline;
         }
         let id = self.quest(h).map_or(0, |q| q.id);
         self.send_debug_message(format!(

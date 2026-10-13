@@ -3,6 +3,7 @@
 //! shapes); the S->C packets live in `packets::misc`.
 
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
@@ -13,21 +14,50 @@ use crate::data::GameDataError;
 /// `AchievementGameData` (`[GameData]`, `Load(SqliteConnection)`). The C# keeps the tables in
 /// private dictionaries without accessors; they are public fields here.
 ///
-/// C# quirk mirrored: the boolean columns (`complete_or`, `is_active`, `is_hidden`,
-/// `or_unit_reqs`) hold the text `'t'` / `'f'` in compact.sqlite3 and are read with
-/// `GetBoolean(column)` (Microsoft.Data.Sqlite `GetInt64 != 0`), so they always load as `false`.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+/// Deviation from the 1.2 C#: the boolean columns (`complete_or`, `is_active`, `is_hidden`,
+/// `or_unit_reqs`) hold the SQLite text `'t'` / `'f'` in the shipped compact.sqlite3. The C# reads
+/// them with `GetBoolean(column)` (Microsoft.Data.Sqlite: `GetInt64 != 0`), which coerces the text
+/// to 0 and loads every row as `false`; this loader reads them with the
+/// `SQLiteWrapperReader.GetBoolean(column, fromString: true)` semantics of
+/// `data::sqlite::SqlRow::bool_str` instead, like the 10.x zone loader
+/// (`x2game-dev_dedicate.c` `LoadAchievementDescs`, which accepts `'T' | 't' | '1'`). The shared
+/// `SqlRow::bool` accessor keeps the faithful `GetInt64 != 0` port untouched.
+///
+/// `Achievements::achievement_objectives` is filled from the `achievement_objectives` table
+/// (the C# never populates its `AchievementObjectives` set) in ascending objective-id order; the
+/// grouped [`Self::achievement_objectives`] map is kept as well.
+#[derive(Debug, Clone, Default)]
 pub struct AchievementGameData {
     /// `_charRecords` (`char_records` by id; `Dictionary.Add`, a duplicate id fails the load).
     pub char_records: HashMap<u32, CharRecords>,
     /// `_achievements` (`achievements` by id; `TryAdd`, the first row of an id wins).
     pub achievements: HashMap<u32, Achievements>,
-    /// `_achievementObjectives` (`achievement_objectives` grouped by `achievement_id`).
+    /// `_achievementObjectives` (`achievement_objectives` grouped by `achievement_id`, ascending
+    /// objective `id`; the same lists as [`Achievements::achievement_objectives`]).
     pub achievement_objectives: HashMap<u32, Vec<AchievementObjectives>>,
     /// `_preCompletedAchievements` (`pre_completed_achievements` grouped by
     /// `completed_achievement_id`).
     pub pre_completed_achievements: HashMap<u32, Vec<PreCompletedAchievements>>,
+    /// The derived lookups an [`AchievementIndex`](super::achievement_runtime::AchievementIndex)
+    /// serves, built once on first use by [`Self::derived`] and cached for the lifetime of this
+    /// value. It takes no part in equality or in the semantic meaning of a value (see the manual
+    /// [`PartialEq`] below), and the tables are immutable once an index has been built over them.
+    pub(crate) derived: OnceLock<AchievementDerived>,
 }
+
+impl PartialEq for AchievementGameData {
+    /// Compares the loaded tables only. The derived cache is a pure function of them, so it must
+    /// not make two equal values unequal: a value whose cache is warm still equals an equal clone
+    /// whose cache was never built (and both still differ from any changed table).
+    fn eq(&self, other: &Self) -> bool {
+        self.char_records == other.char_records
+            && self.achievements == other.achievements
+            && self.achievement_objectives == other.achievement_objectives
+            && self.pre_completed_achievements == other.pre_completed_achievements
+    }
+}
+
+impl Eq for AchievementGameData {}
 
 impl AchievementGameData {
     /// `AchievementGameData.Load(connection)`.
@@ -38,12 +68,12 @@ impl AchievementGameData {
                 id: r.u32("id")?,
                 category_id: r.u32_or("category_id", 0)?,
                 complete_num: r.u32_or("complete_num", 0)?,
-                complete_or: r.bool("complete_or")?,
+                complete_or: r.bool_str("complete_or")?,
                 icon_id: r.u32_or("icon_id", 0)?,
-                is_active: r.bool("is_active")?,
-                is_hidden: r.bool("is_hidden")?,
+                is_active: r.bool_str("is_active")?,
+                is_hidden: r.bool_str("is_hidden")?,
                 item_id: r.u32_or("item_id", 0)?,
-                or_unit_reqs: r.bool("or_unit_reqs")?,
+                or_unit_reqs: r.bool_str("or_unit_reqs")?,
                 parent_achievement_id: r.u32_or("parent_achievement_id", 0)?,
                 priority: r.u32_or("priority", 0)?,
                 sub_category_id: r.u32_or("sub_category_id", 0)?,
@@ -56,7 +86,7 @@ impl AchievementGameData {
             let t = AchievementObjectives {
                 id: r.u32("id")?,
                 achievement_id: r.u32("achievement_id")?,
-                or_unit_reqs: r.bool("or_unit_reqs")?,
+                or_unit_reqs: r.bool_str("or_unit_reqs")?,
                 record_id: r.u32("record_id")?,
             };
             d.achievement_objectives
@@ -65,6 +95,14 @@ impl AchievementGameData {
                 .push(t);
             Ok(())
         })?;
+        // Link the objectives onto their `Achievements` entry and order every list by objective id:
+        // `SELECT *` has no ORDER BY, so the row order of the table is not a stable order.
+        for (achievement_id, objectives) in d.achievement_objectives.iter_mut() {
+            objectives.sort_by_key(|o| o.id);
+            if let Some(a) = d.achievements.get_mut(achievement_id) {
+                a.achievement_objectives = objectives.clone();
+            }
+        }
         for_each_row(conn, "SELECT * FROM pre_completed_achievements", [], |r| {
             let t = PreCompletedAchievements {
                 id: r.u32("id")?,
@@ -100,6 +138,162 @@ impl AchievementGameData {
 
     /// `PostLoad()` (empty in the C#).
     pub fn post_load(&mut self) {}
+
+    /// The objective list one achievement is evaluated against: the grouped table when the loader
+    /// filled it, the copy linked onto the row otherwise (hand-built data may have only one).
+    pub(crate) fn objectives_for(&self, achievement_id: u32) -> &[AchievementObjectives] {
+        let Some(achievement) = self.achievements.get(&achievement_id) else {
+            return &[];
+        };
+        self.achievement_objectives
+            .get(&achievement_id)
+            .map(Vec::as_slice)
+            .unwrap_or(achievement.achievement_objectives.as_slice())
+    }
+
+    /// The derived lookups, built once on first use and then shared by every
+    /// [`AchievementIndex`](super::achievement_runtime::AchievementIndex) over this value.
+    ///
+    /// The cache is only valid while the tables are not mutated: build an index after the loader
+    /// (or a test fixture) has finished filling the value, and do not change a value an index has
+    /// been built over.
+    pub(crate) fn derived(&self) -> &AchievementDerived {
+        self.derived.get_or_init(|| AchievementDerived::new(self))
+    }
+}
+
+/// The reverse lookups every [`AchievementIndex`](super::achievement_runtime::AchievementIndex)
+/// serves, derived once from an [`AchievementGameData`] and cached on it.
+///
+/// Everything here is **owned**: no lookup refers to the value it was built from, so the cache is
+/// not a self-referential struct and an index can hold the data reference and the cached lookups
+/// side by side. The lists are in the same order and with the same contents the index built
+/// per call before: ascending ids, sorted and deduplicated where the same id can be reached twice.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct AchievementDerived {
+    /// The active achievements, ascending, which is the order the client list and a full refresh
+    /// walk.
+    active_ids: Vec<u32>,
+    /// The achievements whose objectives watch a record, ascending.
+    watching_record: HashMap<u32, Vec<u32>>,
+    /// What an achievement requires first: `pre_completed_achievements.my_achievement_id` rows,
+    /// ascending.
+    prerequisites: HashMap<u32, Vec<u32>>,
+    /// What completing an achievement unlocks: `pre_completed_achievements.completed_achievement_id`
+    /// rows, ascending.
+    gated_by_prerequisite: HashMap<u32, Vec<u32>>,
+    /// The record counting an achievement's completion, by achievement id.
+    completion_record: HashMap<u32, u32>,
+    /// The achievement a kind-9 record counts, by record id (the reset path reads it).
+    achievement_for_completion_record: HashMap<u32, u32>,
+}
+
+impl AchievementDerived {
+    /// `AchievementGameData.PostLoad`: builds the lookups from the loaded tables.
+    pub(crate) fn new(data: &AchievementGameData) -> Self {
+        let mut active_ids: Vec<u32> = data
+            .achievements
+            .values()
+            .filter(|achievement| achievement.is_active)
+            .map(|achievement| achievement.id)
+            .collect();
+        active_ids.sort_unstable();
+
+        let mut watching_record: HashMap<u32, Vec<u32>> = HashMap::new();
+        for achievement_id in data.achievements.keys() {
+            for objective in data.objectives_for(*achievement_id) {
+                watching_record
+                    .entry(objective.record_id)
+                    .or_default()
+                    .push(*achievement_id);
+            }
+        }
+
+        // `my_achievement_id` is the gated row; `completed_achievement_id` is what it requires
+        // first (compact row 474 is workbench 2074 requiring the level-30 row 2052, not a credit
+        // back onto the level row).
+        let mut prerequisites: HashMap<u32, Vec<u32>> = HashMap::new();
+        let mut gated_by_prerequisite: HashMap<u32, Vec<u32>> = HashMap::new();
+        for rules in data.pre_completed_achievements.values() {
+            for rule in rules {
+                prerequisites
+                    .entry(rule.my_achievement_id)
+                    .or_default()
+                    .push(rule.completed_achievement_id);
+                gated_by_prerequisite
+                    .entry(rule.completed_achievement_id)
+                    .or_default()
+                    .push(rule.my_achievement_id);
+            }
+        }
+
+        for list in watching_record
+            .values_mut()
+            .chain(prerequisites.values_mut())
+            .chain(gated_by_prerequisite.values_mut())
+        {
+            list.sort_unstable();
+            list.dedup();
+        }
+
+        // The record that counts an achievement's completion: `COMPLETE_ACHIEVEMENT` (kind 9) with
+        // the achievement in `value1`. The C# `TryAdd`s in row order, so the first record id wins;
+        // sorting by record id makes that first-wins deterministic.
+        let mut records: Vec<&CharRecords> = data.char_records.values().collect();
+        records.sort_unstable_by_key(|record| record.id);
+        let mut completion_record: HashMap<u32, u32> = HashMap::new();
+        let mut achievement_for_completion_record: HashMap<u32, u32> = HashMap::new();
+        for record in records {
+            if record.kind_id != char_record_kind::COMPLETE_ACHIEVEMENT || record.value1 == 0 {
+                continue;
+            }
+            completion_record.entry(record.value1).or_insert(record.id);
+            achievement_for_completion_record
+                .entry(record.id)
+                .or_insert(record.value1);
+        }
+
+        Self {
+            active_ids,
+            watching_record,
+            prerequisites,
+            gated_by_prerequisite,
+            completion_record,
+            achievement_for_completion_record,
+        }
+    }
+
+    pub(crate) fn active_ids(&self) -> &[u32] {
+        &self.active_ids
+    }
+
+    pub(crate) fn watching_record(&self, record_id: u32) -> &[u32] {
+        self.watching_record
+            .get(&record_id)
+            .map_or(&[], Vec::as_slice)
+    }
+
+    pub(crate) fn prerequisites(&self, achievement_id: u32) -> &[u32] {
+        self.prerequisites
+            .get(&achievement_id)
+            .map_or(&[], Vec::as_slice)
+    }
+
+    pub(crate) fn gated_by_prerequisite(&self, prerequisite_id: u32) -> &[u32] {
+        self.gated_by_prerequisite
+            .get(&prerequisite_id)
+            .map_or(&[], Vec::as_slice)
+    }
+
+    pub(crate) fn completion_record(&self, achievement_id: u32) -> Option<u32> {
+        self.completion_record.get(&achievement_id).copied()
+    }
+
+    pub(crate) fn achievement_for_completion_record(&self, record_id: u32) -> Option<u32> {
+        self.achievement_for_completion_record
+            .get(&record_id)
+            .copied()
+    }
 }
 
 /// `AchievementInfo` (one entry of `SCAchievementsPacket`).
@@ -129,7 +323,7 @@ pub struct Achievements {
     pub priority: u32,
     pub sub_category_id: u32,
     pub summary: String,
-    /// `AchievementObjectives`.
+    /// `AchievementObjectives` (linked by [`AchievementGameData::load`], ascending objective `id`).
     pub achievement_objectives: Vec<AchievementObjectives>,
 }
 

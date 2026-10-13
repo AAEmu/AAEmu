@@ -102,6 +102,12 @@ pub enum QuestEvent {
         selected: i32,
     },
     ReportJournal,
+    QuestComplete {
+        quest_id: u32,
+    },
+    GuardNpcDied {
+        npc_id: u32,
+    },
     /// `OnKillArgs` (`Target`, `Killer`, `Victim`; the C# fills either `Target` or the pair).
     Kill {
         target: Option<KillUnit>,
@@ -142,6 +148,8 @@ impl QuestEvent {
             QuestEvent::ReportNpc { .. } => EventKind::ReportNpc,
             QuestEvent::ReportDoodad { .. } => EventKind::ReportDoodad,
             QuestEvent::ReportJournal => EventKind::ReportJournal,
+            QuestEvent::QuestComplete { .. } => EventKind::QuestComplete,
+            QuestEvent::GuardNpcDied { .. } => EventKind::GuardNpcDied,
             QuestEvent::Kill { .. } => EventKind::Kill,
             QuestEvent::TimerExpired { .. } => EventKind::TimerExpired,
             QuestEvent::QuestStepChanged { .. } => EventKind::QuestStepChanged,
@@ -331,6 +339,8 @@ pub fn with_quests<R>(
         return None;
     }
     let env = env.unwrap_or_else(|| capture_env(server, player));
+    // Quest rewards and the saved quest row must share the item/wallet snapshot boundary.
+    let economy = server.systems.economy.ops_lock();
     ACTIVE.with(|a| a.borrow_mut().push((character_id, Vec::new())));
     let system = &server.systems.quests;
     let hooks = system.hooks();
@@ -379,6 +389,7 @@ pub fn with_quests<R>(
             a.remove(i);
         }
     });
+    drop(economy);
     if buffs_changed {
         crate::systems::dispatch_buff_events(server, &WorldObject::from(player.clone()));
     }
@@ -448,6 +459,11 @@ fn run_deferred(server: &GameServer, player: &PlayerRef, deferred: Vec<Deferred>
                     with_quests(server, &member, None, move |ctx| {
                         let _ = ctx.dispatch(&ev);
                     });
+                }
+            }
+            Deferred::NpcComponent { component_id } => {
+                if let Some(component) = server.game_data.systems.quests.component(component_id) {
+                    super::bridges::run_npc_component(server, player, component);
                 }
             }
         }
@@ -671,8 +687,17 @@ pub fn on_npc_killed(server: &GameServer, player: &PlayerRef, npc: &NpcRef) {
         .zone_by_key(zone_key)
         .map_or(0, |z| z.group_id);
     let killer = kill_unit(server, &WorldObject::from(player.clone()), None);
-    let victim = kill_unit(server, &WorldObject::from(npc.clone()), None);
+    let victim = kill_unit(server, &WorldObject::from(npc.clone()), Some(player.obj_id));
     run_or_queue(server, player, move |ctx| {
+        // Credit every eligible contributor while the NPC's aggro table still exists.
+        dispatch_logged(
+            ctx,
+            &QuestEvent::Kill {
+                target: None,
+                killer: Some(killer.clone()),
+                victim: Some(victim.clone()),
+            },
+        );
         // Individual monster kill
         dispatch_logged(ctx, &QuestEvent::MonsterHunt { npc_id, count: 1 });
         // Trigger NPC Group kills

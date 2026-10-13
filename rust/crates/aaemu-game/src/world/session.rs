@@ -960,7 +960,7 @@ pub async fn send_chat_message(
         }
         chat_type::TRADE | chat_type::GROUP_FIND | chat_type::SHOUT => {
             let zone = me.data().unit.transform.zone_id;
-            zone_chat(server, zone).send_packet(&msg(chat, &sender));
+            zone_chat(server, zone).send_chat_packet(&msg(chat, &sender));
         }
         chat_type::CLAN => {
             let exp = me.data().unit.expedition_id;

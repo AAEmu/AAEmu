@@ -85,9 +85,11 @@ All four listeners follow the same pattern:
 2. The socket is split (`into_split`). The **reader / dispatcher** runs in the connection task:
    it reads frames from `FramedRead`, decodes the opcode and awaits the handler, so the packets of
    one connection are handled strictly in order.
-3. A separate **writer task** owns `FramedWrite` and drains an unbounded `mpsc` channel of encoded
+3. A separate **writer task** owns `FramedWrite` and drains an `mpsc` channel of encoded
    payloads. Sending a packet from anywhere means encoding it and pushing the bytes into that
-   channel; it never blocks on the socket, and the channel keeps the global send order.
+   channel; it never blocks on the socket, and the channel keeps the global send order. The
+   game writer feeds up to 256 queued frames before one flush (one socket write for many small
+   packets).
 4. The connection is registered in a table (`DashMap`) under its id, so other tasks can reach it.
 5. When the reader ends (EOF, read error, a close request or server shutdown) the connection is
    removed from the table, the writer is allowed to flush what was queued, and session clean-up
@@ -198,6 +200,7 @@ their ports for orchestrators and container health checks.
 | File | Content |
 | --- | --- |
 | `listener.rs` | Accept loop and `serve`: the per-connection reader / dispatcher, the writer task, `on_disconnect` |
+| `outbox.rs` | Per-connection outgoing frame queue with its byte limit |
 | `connection.rs` | `GameConnection` (state owned by the connection task), `ConnectionHandle`, `ConnectionTable`, `ConnCommand` |
 | `packet.rs` | Frame header (`0xDD`, level, hash, count, opcode), `encode` / `decode_frame`, `ServerPacket` |
 | `registry.rs` | Packet registry keyed by `(level, opcode)`; `ClientPacket` (`read` + `handle`) |
@@ -214,12 +217,18 @@ their ports for orchestrators and container health checks.
   that take longer than 250 ms. A handler error closes the connection, like the C#
   `OnReceive` catch-all.
 - Packets with the placeholder opcode `0xFFF` (no 1.2 equivalent) are dropped when sent.
+- Frames are `Bytes`: a broadcast (`world::broadcast`, chat channels, teams, …) encodes the
+  packet once through `connection::Fanout` and queues the same buffer for every recipient.
+- `net/outbox.rs` counts the bytes queued per connection. A client with more than 16 MiB queued,
+  or one whose socket accepts no data for 20 s, stopped reading and is disconnected, so a stalled
+  client cannot grow the server's memory without bound.
 - `systems::services::accounts` closes account connections that sent no `PingPacket` for 30 s
   (the real client pings on its own).
 - On disconnect: the account is removed, the character leaves the world
   (`world::session::on_disconnect`), the stream token is removed and the account's login time is
   updated.
-- `RUST_LOG=aaemu_game::net=debug` logs every packet (`GamePacket: C->S ...` / `S->C ...`).
+- `RUST_LOG=info,aaemu_game::net=debug` logs every packet (`GamePacket: C->S ...` / `S->C ...`;
+  `trace` adds the packet contents). The default level is `info`.
 
 ### Stream connections (`src/stream/`)
 

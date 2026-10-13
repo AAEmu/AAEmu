@@ -405,9 +405,7 @@ impl ActiveQuest {
     pub const DATETIME_MAX_MS: i64 = 253_402_300_799_999;
 
     /// `ReadData` (the step / objectives part; `Quest.ReadData` also runs the step change).
-    /// `Time` goes through `PacketStream.ReadDateTime` -> `Helpers.UnixTime(long)`, which
-    /// compares against `DateTime.MaxValue.Second` (59): any stored time above 59 s reads back
-    /// as `DateTime.MaxValue`, a negative one as `DateTime.MinValue` (mirrored C# bug).
+    /// Stored quest deadlines are Unix seconds, independent of the network datetime helper.
     pub fn read_data(&mut self, data: &[u8]) -> Result<(), MarshalError> {
         let mut s = PacketStream::from_bytes(data.to_vec());
         for o in self.objectives.iter_mut() {
@@ -418,12 +416,10 @@ impl ActiveQuest {
         self.component_id = s.read_u32()?;
         self.acceptor_id = s.read_u32()?;
         let t = s.read_i64()?;
-        self.time_ms = if t > 59 {
-            Self::DATETIME_MAX_MS
-        } else if t < 0 {
+        self.time_ms = if t < 0 {
             Self::DATETIME_MIN_MS
         } else {
-            t * 1000
+            t.saturating_mul(1000).min(Self::DATETIME_MAX_MS)
         };
         Ok(())
     }
@@ -616,13 +612,13 @@ mod tests {
         let b = s.as_bytes();
         assert_eq!(b[47..51], (-1i32).to_le_bytes());
         assert_eq!(b[51..55], [0, 0, 0, 0]);
-        // ReadDateTime: stored seconds above 59 read back as DateTime.MaxValue.
+        // A saved deadline survives reload without becoming an unlimited timer.
         q.time_ms = 120_000;
         let mut r = q.clone();
         r.read_data(&q.write_data()).unwrap();
-        assert_eq!(r.time_ms, ActiveQuest::DATETIME_MAX_MS);
-        assert_eq!(r.left_time(5_000), i32::MAX);
-        assert_eq!(r.time_seconds(), 253_402_300_799);
+        assert_eq!(r.time_ms, 120_000);
+        assert_eq!(r.left_time(5_000), 115_000);
+        assert_eq!(r.time_seconds(), 120);
     }
 
     #[test]

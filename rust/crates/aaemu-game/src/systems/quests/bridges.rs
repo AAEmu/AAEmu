@@ -230,6 +230,26 @@ impl QuestsBridge for QuestsForNpcs {
         }
     }
 
+    fn on_npc_died(&self, server: &GameServer, npc: &NpcRef) {
+        let npc_id = npc.data().unit.template_id;
+        let instance = WorldObject::from(npc).transform().instance_id;
+        for player in server.world.all_characters() {
+            if WorldObject::from(&player).transform().instance_id != instance {
+                continue;
+            }
+            let subscribed = !player
+                .data()
+                .quest_state
+                .subscribers(super::state::EventKind::GuardNpcDied)
+                .is_empty();
+            if subscribed {
+                super::events::with_quests(server, &player, None, |ctx| {
+                    let _ = ctx.dispatch(&super::events::QuestEvent::GuardNpcDied { npc_id });
+                });
+            }
+        }
+    }
+
     fn on_npc_killed(&self, server: &GameServer, player: &PlayerRef, npc: &NpcRef) {
         super::events::on_npc_killed(server, player, npc);
     }
@@ -329,8 +349,8 @@ impl QuestsBridge for QuestsForNpcs {
 }
 
 /// `Npc.GetAggroRatingInPercent(objId)`: the position of `obj_id` in the NPC's aggro table
-/// sorted by ascending total aggro, as `1 / count * position` (C#: despite the name a 0..1
-/// fraction, and the *lowest* aggro comes first); 100 when not in the table.
+/// sorted by descending total aggro, expressed as a percentile (best contributor = 0).
+/// Authored quest rank thresholds are percentages; 100 means absent from the table.
 pub fn aggro_rating_percent(npc: &NpcRef, obj_id: u32) -> f32 {
     let mut sorted: Vec<(u32, i32)> = npc
         .data()
@@ -340,9 +360,9 @@ pub fn aggro_rating_percent(npc: &NpcRef, obj_id: u32) -> f32 {
         .iter()
         .map(|(id, a)| (*id, a.total()))
         .collect();
-    sorted.sort_by_key(|&(id, total)| (total, id));
+    sorted.sort_by_key(|&(id, total)| (std::cmp::Reverse(total), id));
     match sorted.iter().position(|(id, _)| *id == obj_id) {
-        Some(pos) => 1.0 / sorted.len() as f32 * pos as f32,
+        Some(pos) => 100.0 / sorted.len() as f32 * pos as f32,
         None => 100.0,
     }
 }
@@ -649,4 +669,54 @@ impl crate::systems::economy::cash_shop::CashShopQuestHooks for QuestsForEconomy
     fn has_quest_completed(&self, _server: &GameServer, player: &PlayerRef, quest_id: u32) -> bool {
         super::events::has_quest_completed_in(&player.data(), quest_id)
     }
+}
+
+/// Execute authored component NPC behavior after releasing the quest owner's lock.
+pub(crate) fn run_npc_component(
+    server: &GameServer,
+    player: &PlayerRef,
+    component: &super::templates::QuestComponentTemplate,
+) {
+    use super::model::npc_ai;
+    let me = WorldObject::from(player.clone());
+    let Some(world) = server.world.world_of(&me) else {
+        return;
+    };
+    if component.npc_spawner_id > 0 {
+        let manager = server.systems.npcs.spawns.get_or_create(&world);
+        for spawner in manager.get_npc_spawner(component.npc_spawner_id) {
+            if spawner.spawned_npcs().values().all(|v| v.is_empty()) {
+                spawner.force_spawn(server, 0);
+            }
+        }
+    }
+    let Some(npc) = world.npc_by_template_id(component.npc_id) else {
+        return;
+    };
+    let kind = component.npc_ai_id;
+    let path = component.ai_path_name.clone();
+    let commands = server
+        .game_data
+        .systems
+        .ai
+        .ai
+        .ai_commands(component.ai_command_set_id)
+        .unwrap_or(&[])
+        .to_vec();
+    crate::systems::ai::manager::post(server, npc.obj_id, move |ctx| match kind {
+        npc_ai::FOLLOW_UNIT => {
+            ctx.ai.follow_unit = Some(me);
+            ctx.go_to_follow_unit();
+        }
+        npc_ai::FOLLOW_PATH => {
+            if ctx.load_ai_path_points(&path, false) {
+                ctx.go_to_follow_path();
+            } else {
+                tracing::error!("Quest NPC path unavailable: {path}");
+            }
+        }
+        npc_ai::GO_AWAY => ctx.go_to_despawn(),
+        npc_ai::RUN_COMMAND_SET => ctx.enqueue_ai_commands(&commands, false),
+        _ => {}
+    });
 }

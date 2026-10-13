@@ -280,6 +280,9 @@ pub fn after_death(server: &GameServer, npc: &NpcRef, _killer: Option<&WorldObje
         n.tagger_obj_id = 0;
         n.current_aggro_target = 0;
     }
+    if let Some(quests) = server.systems.npcs.hooks.quests.get() {
+        quests.on_npc_died(server, npc);
+    }
     super::super::spawn_manager::on_npc_died(server, npc);
     // ClearAllAggroTargetsAndCheckCombatState() + Ai?.GoToDead() (systems::ai)
     if let Some(ai) = server.systems.hooks.ai.get() {

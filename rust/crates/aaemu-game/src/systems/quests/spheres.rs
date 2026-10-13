@@ -237,6 +237,15 @@ impl SphereQuestManager {
         let spheres = self.quest_spheres(component_id);
         let mut t = self.triggers.lock().expect("triggers poisoned");
         for sphere in &spheres {
+            if t.list.iter().chain(&t.add_queue).any(|x| {
+                x.character_id == character_id
+                    && x.quest_template_id == quest_template_id
+                    && x.sphere == *sphere
+                    && x.npc_template == npc_template
+                    && !t.remove_queue.contains(&x.id)
+            }) {
+                continue;
+            }
             t.next_id += 1;
             let id = t.next_id;
             t.add_queue.push(SphereQuestTrigger {
@@ -257,6 +266,9 @@ impl SphereQuestManager {
     /// matching triggers of the *live* list (triggers still in the add queue are not found).
     pub fn remove_triggers(&self, character_id: u32, quest_id: u32) {
         let mut t = self.triggers.lock().expect("triggers poisoned");
+        t.add_queue.retain(|x| {
+            !(x.character_id == character_id && (quest_id == 0 || x.quest_template_id == quest_id))
+        });
         let ids: Vec<u64> = t
             .list
             .iter()
@@ -285,6 +297,8 @@ impl SphereQuestManager {
         // Add new player specific triggers
         let list = {
             let mut t = self.triggers.lock().expect("triggers poisoned");
+            let remove = std::mem::take(&mut t.remove_queue);
+            t.list.retain(|x| !remove.contains(&x.id));
             let added = std::mem::take(&mut t.add_queue);
             t.list.extend(added);
             t.list.clone()
@@ -326,6 +340,7 @@ impl SphereQuestManager {
         let Some(world) = server.world.world(0) else {
             return;
         };
+        let mut current_positions = HashMap::new();
         for starter in self.starters() {
             let (sx, sy, _) = starter.sphere.xyz;
             let Some(region) = world.region_by_pos(sx, sy) else {
@@ -387,12 +402,13 @@ impl SphereQuestManager {
                         );
                     }
                 }
-                self.last_positions
-                    .lock()
-                    .expect("positions poisoned")
-                    .insert(p.character_id, pos);
+                current_positions.insert(p.character_id, pos);
             }
         }
+        self.last_positions
+            .lock()
+            .expect("positions poisoned")
+            .extend(current_positions);
     }
 }
 
@@ -438,7 +454,10 @@ fn tick_trigger(
                 let r = sphere.radius * 1.5;
                 let mut old_inside = false;
                 let mut new_inside = false;
-                for &(_, x, y, z) in &ctx.env.nearby_npcs {
+                for &(tid, x, y, z) in &ctx.env.nearby_npcs {
+                    if tid != npc_template {
+                        continue;
+                    }
                     let (dx, dy) = (x - pos.0, y - pos.1);
                     if dx * dx + dy * dy >= r * r {
                         continue;

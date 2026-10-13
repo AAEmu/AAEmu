@@ -507,6 +507,18 @@ pub fn split_or_move_item(
         inv.holder_of_any(id)
     };
     let from_holder = holder(from_item_id);
+    if matches!(from_type, slot_type::MAIL | slot_type::AUCTION)
+        || matches!(to_type, slot_type::MAIL | slot_type::AUCTION)
+        || from_holder.as_ref().is_some_and(|c| {
+            matches!(
+                c.lock().expect("container poisoned").slot_type,
+                slot_type::MAIL | slot_type::AUCTION
+            )
+        })
+    {
+        // Escrow is released through the mail/auction operations, not generic item moves.
+        return false;
+    }
     if from_holder.is_none() && from_item_id != 0 {
         tracing::error!(
             "SplitOrMoveItem - ItemId {from_item_id} no longer exists, possibly a phantom item."
@@ -514,6 +526,14 @@ pub fn split_or_move_item(
         return false;
     }
     let to_holder = holder(to_item_id);
+    if to_holder.as_ref().is_some_and(|c| {
+        matches!(
+            c.lock().expect("container poisoned").slot_type,
+            slot_type::MAIL | slot_type::AUCTION
+        )
+    }) {
+        return false;
+    }
     if to_holder.is_none() && to_item_id != 0 {
         tracing::error!(
             "SplitOrMoveItem - ItemId {to_item_id} no longer exists, possibly a phantom item."

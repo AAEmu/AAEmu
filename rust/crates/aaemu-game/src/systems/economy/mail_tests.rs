@@ -481,10 +481,22 @@ fn mail_world() -> World {
 
 /// [`mail_world`] on modified test data.
 fn mail_world_with(f: impl FnOnce(&mut crate::data::GameData)) -> World {
+    mail_world_on(f, None)
+}
+
+fn mail_world_on(
+    f: impl FnOnce(&mut crate::data::GameData),
+    pool: Option<sqlx::MySqlPool>,
+) -> World {
     let w = {
         let mut data = crate::systems::economy::tests::test_data();
         f(&mut data);
-        let server = Arc::new(crate::test_support::test_server_with(data));
+        let real = pool.is_some();
+        let mut server = crate::test_support::test_server_with(data);
+        if let Some(pool) = pool {
+            server.db = pool;
+        }
+        let server = Arc::new(server);
         server.set_self();
         let mut a = crate::test_support::TestClient::new(&server, 1, 1001);
         let mut b = crate::test_support::TestClient::new(&server, 2, 1002);
@@ -500,6 +512,17 @@ fn mail_world_with(f: impl FnOnce(&mut crate::data::GameData)) -> World {
             crate::test_support::test_character(2, "Bob", 101.0, 100.0),
             0x101,
         );
+        if real {
+            for p in [&pa, &pb] {
+                p.data().inventory = crate::models::character::Inventory::new(
+                    p.character_id,
+                    50,
+                    50,
+                    &server.items,
+                    &server.ids.container,
+                );
+            }
+        }
         a.conn.active_char = Some(pa.clone());
         b.conn.active_char = Some(pb.clone());
         a.drain();
@@ -575,9 +598,9 @@ async fn send_take_all_and_delete() {
         send_p2p(&w, mail_type::EXPRESS, "Bob", 100, &[(2, 0), (2, 1)]),
         mail_result::SUCCESS
     );
-    // Items left Alice's bag for her mail container (renumbered 0, 1).
+    // Items left Alice's bag for Bob's persistent mail container (renumbered 0, 1).
     assert!(item_at(&w.pa, 2, 0).is_none() && item_at(&w.pa, 2, 1).is_none());
-    let mc = Inv::of(&w.pa).get(slot_type::MAIL).unwrap();
+    let mc = Inv::of(&w.pb).get(slot_type::MAIL).unwrap();
     {
         let g = mc.lock().unwrap();
         assert_eq!(
@@ -664,20 +687,15 @@ async fn send_take_all_and_delete() {
             total_bodies: 0
         })
     );
-    // Alice's view: sent tab
+    // Sent headers do not increment the sender's received count or emit received-mail notices.
     run::<CSListMailPacket>(&mut w, 0, &[]);
     let fa = w.a.drain();
     assert_eq!(
         ops(&fa),
-        vec![
-            sc::SCGotMailPacket,
-            sc::SCMailListPacket,
-            sc::SCMailListEndPacket
-        ]
+        vec![sc::SCMailListPacket, sc::SCMailListEndPacket]
     );
-    // The sender counts the unread mail as "received" too (C# quirk).
-    assert_eq!(w.pa.data().unread_mail.received, 1);
-    assert_eq!(&fa[1].1[..1], &[1]); // isSent
+    assert_eq!(w.pa.data().unread_mail.received, 0);
+    assert_eq!(&fa[0].1[..1], &[1]);
 
     // Bob reads it.
     let mut s = PacketStream::new();
@@ -783,6 +801,15 @@ async fn normal_mail_is_delayed_then_delivered() {
     let m = mails.get_mail_by_id(id).unwrap();
     assert!(m.body.recv_date >= mail::now() + mail::NORMAL_MAIL_DELAY_SECS - 2);
     assert!(!m.is_delivered);
+    {
+        let mut txn = ItemTxn::begin(&w.server);
+        assert_eq!(
+            mail_character::get_attached(&mut txn, &w.pb, id, true, true, true, 0),
+            Ok(false)
+        );
+        mail_character::delete_mail(&mut txn, &w.pb, id, false);
+        assert!(mails.get_mail_by_id(id).is_some());
+    }
     assert_eq!(m.receiver_name, "Bob");
     // The receiver name must match exactly (NameManager key).
     assert_eq!(
@@ -816,6 +843,18 @@ async fn send_errors() {
     let mut w = mail_world();
     w.pa.data().money = 120;
     give(&w, &w.pa.clone(), slot_type::INVENTORY, STACK, 5, 0);
+    assert_eq!(
+        send_p2p(&w, mail_type::EXPRESS, "Bob", -1, &[]),
+        mail_result::INVALID_LETTER_FORMAT
+    );
+    assert_eq!(
+        send_p2p(&w, mail_type::EXPRESS, "Bob", i32::MAX, &[]),
+        mail_result::INSUFFICIENT_COINS
+    );
+    assert_eq!(
+        send_p2p(&w, mail_type::EXPRESS, "Bob", 0, &[(2, 0), (2, 0)]),
+        mail_result::INVALID_SLOT
+    );
     assert_eq!(
         send_p2p(&w, mail_type::EXPRESS, "Nobody", 0, &[]),
         mail_result::UNABLE_TO_FIND_RECIPIENT
@@ -1436,12 +1475,12 @@ async fn quest_reward_mails_split_by_ten() {
     assert_eq!(bob_mail_ids(&w.server).len(), 2);
     let mut b = w.b;
     let f = b.drain_ops();
-    // 14 ItemRemove packets (FinalizeAttachments) then the 2 notifications.
+    // Items are created directly in mail escrow; only the two received-mail notifications.
     assert_eq!(
         f.iter()
             .filter(|o| **o == sc::SCItemTaskSuccessPacket)
             .count(),
-        14
+        0
     );
     assert_eq!(f.iter().filter(|o| **o == sc::SCGotMailPacket).count(), 2);
 }
@@ -1945,7 +1984,7 @@ async fn delete_house_mails_notifies_receiver() {
 }
 
 #[tokio::test]
-async fn send_rejects_name_mismatch_and_returns_to_sender_fails() {
+async fn send_rejects_name_mismatch_and_return_preserves_the_original_mail() {
     let w = mail_world();
     let mut m = BaseMail {
         mail_type: mail_type::EXPRESS,
@@ -1958,10 +1997,11 @@ async fn send_rejects_name_mismatch_and_returns_to_sender_fails() {
     // A deliverable player mail can't be "returned" once delivered.
     w.pa.data().money = 1000;
     drop(txn);
-    send_p2p(&w, mail_type::NORMAL, "Bob", 0, &[]);
+    send_p2p(&w, mail_type::EXPRESS, "Bob", 0, &[]);
     let id = bob_mail_ids(&w.server)[0];
     let mut txn = ItemTxn::begin(&w.server);
     // Undelivered normal mail: the swap happens, then the C# Dictionary.Add throws.
+    assert!(mail::return_to_sender(&mut txn, id));
     assert!(!mail::return_to_sender(&mut txn, id));
     drop(txn);
     let m = w.server.systems.economy.mail.get_mail_by_id(id).unwrap();
@@ -2054,4 +2094,455 @@ fn real_compact_db_mail_localization() {
     assert_eq!(d.item_name(u32::MAX, "Item:1"), "Item:1");
     assert!(d.item_names.len() > 30_000);
     assert!(d.quest_names.len() > 4_000);
+}
+
+#[tokio::test]
+#[ignore = "requires private MySQL3317 via AAEMU_TEST_MYSQL; connection-local financial tables only"]
+async fn private_mysql_quest_mail_auction_rollback_retry_and_reconnect() {
+    use crate::managers::save::{
+        capture_financial_snapshot, commit_financial_snapshot, write_financial_snapshot,
+    };
+    use crate::models::char_data::ActiveQuest;
+    use crate::models::character::Inventory;
+    use crate::systems::quests::{
+        events,
+        model::{kind, status},
+        templates::{ActKind, QuestComponentTemplate, QuestTemplate},
+    };
+    use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
+    use std::str::FromStr;
+    let url = std::env::var("AAEMU_TEST_MYSQL").expect("AAEMU_TEST_MYSQL");
+    let options = MySqlConnectOptions::from_str(&url).unwrap();
+    assert_eq!(
+        options.get_port(),
+        3317,
+        "Only private MySQL3317 is allowed"
+    );
+    assert!(matches!(options.get_host(), "127.0.0.1" | "localhost"));
+    let pool = MySqlPoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await
+        .unwrap();
+    for table in [
+        "housings",
+        "dominions",
+        "dominion_siege_participants",
+        "mails",
+        "items",
+        "item_containers",
+        "auction_house",
+        "characters",
+        "options",
+        "abilities",
+        "actabilities",
+        "appellations",
+        "character_active_buffs",
+        "portal_book_coords",
+        "portal_visited_district",
+        "friends",
+        "blocked",
+        "skills",
+        "quests",
+        "completed_quests",
+    ] {
+        let (_, ddl): (String, String) = sqlx::query_as(&format!("SHOW CREATE TABLE `{table}`"))
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        sqlx::query(&ddl.replacen("CREATE TABLE", "CREATE TEMPORARY TABLE", 1))
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
+    fn quest_data(d: &mut crate::data::GameData) {
+        d.characters.templates.insert(
+            17,
+            crate::data::character_templates::CharacterTemplate {
+                race: 1,
+                gender: 1,
+                ..Default::default()
+            },
+        );
+        let q = &mut d.systems.quests;
+        q.add_template(QuestTemplate {
+            id: 9000,
+            detail_id: 1,
+            ..Default::default()
+        });
+        for (id, step) in [
+            (90001, kind::START),
+            (90002, kind::PROGRESS),
+            (90003, kind::READY),
+            (90004, kind::FAIL),
+        ] {
+            q.add_component(QuestComponentTemplate {
+                id,
+                quest_id: 9000,
+                kind_id: step,
+                npc_ai_id: 1,
+                ..Default::default()
+            });
+        }
+        q.add_act(90001, 1, 1, 0, ActKind::ConAutoComplete);
+        q.add_act(
+            90002,
+            2,
+            2,
+            5,
+            ActKind::ObjMonsterHunt {
+                npc_id: 600,
+                use_alias: false,
+                alias_id: 0,
+                highlight_doodad_id: 0,
+                highlight_doodad_phase: -1,
+            },
+        );
+        q.add_act(
+            90002,
+            3,
+            3,
+            0,
+            ActKind::CheckTimer {
+                limit_time: 60_000,
+                force_change_component: false,
+                next_component: 0,
+                play_skill: false,
+                skill_id: 0,
+                check_buff: false,
+                buff_id: 0,
+                sustain_buff: false,
+                timer_npc_id: 0,
+                is_skill_player: false,
+            },
+        );
+        q.add_act(90003, 4, 4, 0, ActKind::ConReportJournal);
+        q.finish();
+    }
+    let mut w = mail_world_on(quest_data, Some(pool.clone()));
+    crate::systems::economy::wiring::install(&w.server);
+    let deadline = chrono::Utc::now().timestamp_millis() / 1000 * 1000 + 60_000;
+    w.pa.data().quests.active.push(ActiveQuest {
+        id: 9000,
+        template_id: 9000,
+        status: status::PROGRESS,
+        objectives: [2, 0, 0, 0, 0],
+        step: kind::PROGRESS,
+        acceptor_type: 0,
+        component_id: 90002,
+        acceptor_id: 0,
+        time_ms: deadline,
+    });
+    w.pa.data().money = 10_000;
+    w.pb.data().money = 1000;
+    let attached = give(&w, &w.pa, slot_type::INVENTORY, STACK, 5, 0);
+    assert_eq!(
+        send_p2p(&w, mail_type::EXPRESS, "Bob", 200, &[(2, 0)]),
+        mail_result::SUCCESS
+    );
+    let p2p = bob_mail_ids(&w.server)[0];
+    let reward_id = {
+        let mut txn = ItemTxn::begin(&w.server);
+        let reward = mail_kinds::create_quest_reward_mails(
+            &mut txn,
+            &w.pb,
+            9001,
+            &[ItemCreationDefinition::new(SINGLE, 1, 0)],
+            0,
+        )
+        .remove(0);
+        mail::send_mail(&mut txn, reward.mail).unwrap()
+    };
+    let reward_item = w
+        .server
+        .systems
+        .economy
+        .mail
+        .get_mail_by_id(reward_id)
+        .unwrap()
+        .body
+        .attachments[0];
+    let listed = give(&w, &w.pa, slot_type::INVENTORY, SINGLE, 1, 1);
+    w.server
+        .systems
+        .economy
+        .auction
+        .post_lot_on_auction(&w.server, &w.pa, listed, 10, 1000, 0);
+    let lot = w.server.systems.economy.auction.all_lots().remove(0);
+    let snapshot = capture_financial_snapshot(&w.server);
+    let mut tx = pool.begin().await.unwrap();
+    let receipt = write_financial_snapshot(&w.server, &mut tx, snapshot)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    commit_financial_snapshot(&w.server, receipt);
+    let saved: (Vec<u8>,) =
+        sqlx::query_as("SELECT data FROM quests WHERE owner=1 AND template_id=9000")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let mut decoded = w.pa.data().quests.active[0].clone();
+    decoded.read_data(&saved.0).unwrap();
+    assert_eq!((decoded.time_ms, decoded.objectives[0]), (deadline, 2));
+    {
+        let mut txn = ItemTxn::begin(&w.server);
+        assert_eq!(
+            mail_character::get_attached(&mut txn, &w.pb, p2p, true, true, true, 0),
+            Ok(true)
+        );
+        assert_eq!(
+            mail_character::get_attached(&mut txn, &w.pb, reward_id, true, true, true, 0),
+            Ok(true)
+        );
+    }
+    let money = w.pb.data().money;
+    assert_eq!(money, 1200);
+    let snapshot = capture_financial_snapshot(&w.server);
+    let mut tx = pool.begin().await.unwrap();
+    write_financial_snapshot(&w.server, &mut tx, snapshot)
+        .await
+        .unwrap();
+    tx.rollback().await.unwrap();
+    let db_attachment: u64 =
+        sqlx::query_scalar("SELECT CAST(attachment0 AS UNSIGNED) FROM mails WHERE id=?")
+            .bind(p2p)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(db_attachment, attached);
+    assert!(
+        w.server
+            .systems
+            .economy
+            .mail
+            .get_mail_by_id(p2p)
+            .unwrap()
+            .is_dirty
+    );
+    let snapshot = capture_financial_snapshot(&w.server);
+    let mut tx = pool.begin().await.unwrap();
+    let receipt = write_financial_snapshot(&w.server, &mut tx, snapshot)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    commit_financial_snapshot(&w.server, receipt);
+    // A fresh server reloads the same SQL connection's tables through production loaders.
+    let mut data = crate::systems::economy::tests::test_data();
+    quest_data(&mut data);
+    let mut restarted = crate::test_support::test_server_with(data);
+    restarted.db = pool.clone();
+    let restarted = Arc::new(restarted);
+    restarted.set_self();
+    restarted
+        .items
+        .load_user_items(
+            &pool,
+            &restarted.game_data.items,
+            1,
+            &restarted.ids.container,
+        )
+        .await
+        .unwrap();
+    restarted.names.add_character(1, "Alice", 1001);
+    restarted.names.add_character(2, "Bob", 1002);
+    restarted
+        .systems
+        .economy
+        .mail
+        .load(&restarted)
+        .await
+        .unwrap();
+    assert!(restarted.systems.economy.auction.load(&restarted).await);
+    assert_eq!(
+        restarted
+            .systems
+            .economy
+            .auction
+            .lot(lot.id)
+            .unwrap()
+            .item
+            .unwrap()
+            .id,
+        listed
+    );
+    for id in [attached, reward_item] {
+        let item = restarted.items.item_by_id(id).unwrap();
+        assert_eq!((item.owner_id, item.slot_type), (2, slot_type::INVENTORY));
+    }
+    let mut client = crate::test_support::TestClient::new(&restarted, 2, 1002);
+    let mut c = crate::test_support::test_character(2, "Bob", 100.0, 100.0);
+    c.money = sqlx::query_scalar("SELECT money FROM characters WHERE id=2")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    c.inventory = Inventory::new(2, 50, 50, &restarted.items, &restarted.ids.container);
+    let bob = crate::test_support::spawn_player(&restarted, &client, c, 0x201);
+    client.conn.active_char = Some(bob.clone());
+    {
+        let mut txn = ItemTxn::begin(&restarted);
+        assert_eq!(
+            mail_character::get_attached(&mut txn, &bob, p2p, true, true, true, 0),
+            Ok(true)
+        );
+    }
+    assert_eq!(bob.data().money, money);
+    assert!(restarted
+        .systems
+        .economy
+        .mail
+        .get_mail_by_id(p2p)
+        .unwrap()
+        .body
+        .attachments
+        .is_empty());
+    let alice_client = crate::test_support::TestClient::new(&restarted, 1, 1001);
+    let mut c = crate::test_support::test_character(1, "Alice", 100.0, 100.0);
+    c.inventory = Inventory::new(1, 50, 50, &restarted.items, &restarted.ids.container);
+    crate::db_character::load_character_details(&restarted, &mut c)
+        .await
+        .unwrap();
+    assert_eq!(c.quests.active[0].time_ms, deadline);
+    let alice = crate::test_support::spawn_player(&restarted, &alice_client, c, 0x200);
+    events::with_quests(&restarted, &alice, None, |ctx| {
+        let q = ctx.st.active_quest(9000).unwrap();
+        assert_eq!(
+            (q.time_ms, q.objectives[0], q.step),
+            (deadline, 2, kind::PROGRESS)
+        );
+        assert!(restarted.systems.quests.has_quest_timer(1, 9000));
+    });
+    // Offline expiry goes through the database decoder and normal reconnect initialization.
+    restarted.systems.quests.remove_quest_timer(1, 0);
+    let mut row = alice.data().quests.active[0].clone();
+    row.time_ms = chrono::Utc::now().timestamp_millis() - 2000;
+    sqlx::query("UPDATE quests SET data=? WHERE owner=1 AND template_id=9000")
+        .bind(row.write_data())
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut c = crate::test_support::test_character(1, "Alice", 100.0, 100.0);
+    crate::db_character::load_character_details(&restarted, &mut c)
+        .await
+        .unwrap();
+    {
+        let mut live = alice.data();
+        live.quests = c.quests;
+        live.quest_state = Default::default();
+    }
+    events::with_quests(&restarted, &alice, None, |ctx| {
+        let q = ctx.st.active_quest(9000).unwrap();
+        assert_eq!((q.step, q.status), (kind::FAIL, status::FAILED));
+    });
+    w.a.drain();
+}
+
+#[tokio::test]
+async fn quest_reward_mail_is_present_when_full_bag_quest_completes() {
+    use crate::systems::quests::{
+        events,
+        model::kind,
+        templates::{ActKind, QuestComponentTemplate, QuestTemplate},
+    };
+    let w = mail_world_with(|d| {
+        let q = &mut d.systems.quests;
+        q.add_template(QuestTemplate {
+            id: 9001,
+            detail_id: 1,
+            ..Default::default()
+        });
+        for (id, step) in [(90011, kind::START), (90012, kind::REWARD)] {
+            q.add_component(QuestComponentTemplate {
+                id,
+                quest_id: 9001,
+                kind_id: step,
+                npc_ai_id: 1,
+                ..Default::default()
+            });
+        }
+        q.add_act(90011, 1, 1, 0, ActKind::ConAutoComplete);
+        q.add_act(
+            90012,
+            2,
+            2,
+            1,
+            ActKind::SupplyItem {
+                item_id: SINGLE,
+                grade_id: 0,
+                show_action_bar: false,
+                cleanup: false,
+                drop_when_destroy: false,
+                destroy_when_drop: false,
+            },
+        );
+        q.add_act(90012, 3, 3, 0, ActKind::SupplyCopper { amount: 50 });
+        q.finish();
+    });
+    crate::systems::economy::wiring::install(&w.server);
+    crate::systems::economy::bridges::install(&w.server);
+    crate::systems::quests::bridges::install(&w.server);
+    Inv::of(&w.pb).bag().lock().unwrap().set_container_size(0);
+    events::with_quests(&w.server, &w.pb, None, |ctx| {
+        assert!(ctx.add_quest(9001, false, 0, 0));
+        let h = ctx.st.active_handle(9001).unwrap();
+        for _ in 0..5 {
+            if !ctx.has_quest(9001) {
+                break;
+            }
+            ctx.run_current_step(h);
+        }
+        assert!(ctx.has_quest_completed(9001));
+        assert_eq!(ctx.server.systems.economy.mail.count(), 1);
+    });
+    let ids = bob_mail_ids(&w.server);
+    let reward = w
+        .server
+        .systems
+        .economy
+        .mail
+        .get_mail_by_id(ids[0])
+        .unwrap();
+    assert_eq!(reward.body.copper_coins, 50);
+    assert_eq!(reward.body.attachments.len(), 1);
+    assert_eq!(
+        w.server
+            .items
+            .item_by_id(reward.body.attachments[0])
+            .unwrap()
+            .owner_id,
+        2
+    );
+}
+
+#[tokio::test]
+async fn return_preserves_zero_one_and_ten_attachments_without_charging_a_fee() {
+    for count in [0, 1, 10] {
+        let w = mail_world();
+        w.pa.data().money = 10000;
+        let mut ids = Vec::new();
+        let mut slots = Vec::new();
+        for slot in 0..count {
+            ids.push(give(&w, &w.pa, slot_type::INVENTORY, SINGLE, 1, slot));
+            slots.push((slot_type::INVENTORY, slot as u8));
+        }
+        assert_eq!(
+            send_p2p(&w, mail_type::EXPRESS, "Bob", 50, &slots),
+            mail_result::SUCCESS
+        );
+        let id = bob_mail_ids(&w.server)[0];
+        let before = w.pa.data().money;
+        {
+            let mut txn = ItemTxn::begin(&w.server);
+            mail_character::return_mail(&mut txn, &w.pb, id);
+        }
+        let returned = w.server.systems.economy.mail.get_mail_by_id(id).unwrap();
+        assert!(returned.header.returned);
+        assert_eq!(returned.header.receiver_id, 1);
+        assert_eq!(returned.body.attachments, ids);
+        assert_eq!(returned.body.copper_coins, 50);
+        assert_eq!(w.pa.data().money, before);
+        assert_eq!(w.pb.data().unread_mail.received, 0);
+        for item in ids {
+            assert_eq!(w.server.items.item_by_id(item).unwrap().owner_id, 1);
+        }
+    }
 }

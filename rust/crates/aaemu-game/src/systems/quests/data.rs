@@ -1378,18 +1378,18 @@ impl QuestData {
             let t = DbSphere {
                 id: r.u32("id")?,
                 name: r.string("name")?,
-                enter_or_leave: r.bool("enter_or_leave")?,
+                enter_or_leave: r.bool_str("enter_or_leave")?,
                 sphere_detail_id: r.u32("sphere_detail_id")?,
                 sphere_detail_type: r.string("sphere_detail_type")?,
                 trigger_condition_id: r.u32("trigger_condition_id")?,
                 trigger_condition_time: r.u32_or("trigger_condition_time", 0)?,
                 team_msg: r.string("team_msg")?,
                 category_id: r.u32("category_id")?,
-                or_unit_reqs: r.bool("or_unit_reqs")?,
-                is_personal_msg: r.bool("is_personal_msg")?,
+                or_unit_reqs: r.bool_str("or_unit_reqs")?,
+                is_personal_msg: r.bool_str("is_personal_msg")?,
                 milestone_id: r.u32("milestone_id")?,
-                name_tr: r.bool("name_tr")?,
-                team_msg_tr: r.bool("team_msg_tr")?,
+                name_tr: r.bool_str("name_tr")?,
+                team_msg_tr: r.bool_str("team_msg_tr")?,
             };
             let id = t.id;
             if self.spheres.insert(id, t).is_some() {

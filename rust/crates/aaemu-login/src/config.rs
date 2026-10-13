@@ -420,7 +420,8 @@ pub fn parse_timespan(s: &str) -> Option<Duration> {
         return s
             .parse::<u64>()
             .ok()
-            .map(|d| Duration::from_secs(d * 86_400));
+            .and_then(|d| d.checked_mul(86_400))
+            .map(Duration::from_secs);
     }
     let (days, rest) = match s.split_once('.') {
         Some((d, r)) if !d.contains(':') => (d.parse::<u64>().ok()?, r),
@@ -435,6 +436,9 @@ pub fn parse_timespan(s: &str) -> Option<Duration> {
     let (secs, nanos) = if parts.len() == 3 {
         match parts[2].split_once('.') {
             Some((sec, frac)) => {
+                if !frac.bytes().all(|b| b.is_ascii_digit()) {
+                    return None;
+                }
                 let digits: String = frac.chars().take(9).collect();
                 let nanos = format!("{digits:0<9}").parse::<u32>().ok()?;
                 (sec.parse::<u64>().ok()?, nanos)
@@ -447,10 +451,11 @@ pub fn parse_timespan(s: &str) -> Option<Duration> {
     if hours > 23 || minutes > 59 || secs > 59 {
         return None;
     }
-    Some(Duration::new(
-        days * 86_400 + hours * 3600 + minutes * 60 + secs,
-        nanos,
-    ))
+    // `hours`, `minutes` and `secs` are range-checked above, so only the day scaling
+    // and the final addition can overflow.
+    let time_of_day = hours * 3600 + minutes * 60 + secs;
+    let total_secs = days.checked_mul(86_400)?.checked_add(time_of_day)?;
+    Some(Duration::new(total_secs, nanos))
 }
 
 // ---- lenient scalar deserializers (the .NET binder converts strings) ---------------------------
@@ -587,6 +592,55 @@ mod tests {
     }
 
     #[test]
+    fn timespan_plain_day_count_overflow_is_rejected() {
+        // A plain number is a day count, so it is multiplied by 86_400 before it becomes
+        // Duration seconds. u64::MAX / 86_400 (213_503_982_334_601) is the largest
+        // whole-day value that still fits; larger ones must yield None, not wrap or panic.
+        const MAX_DAYS: u64 = 213_503_982_334_601;
+        assert_eq!(
+            parse_timespan(&MAX_DAYS.to_string()),
+            Some(Duration::from_secs(MAX_DAYS * 86_400))
+        );
+        assert_eq!(parse_timespan(&(MAX_DAYS + 1).to_string()), None);
+        assert_eq!(parse_timespan(&u64::MAX.to_string()), None);
+        assert_eq!(parse_timespan("2"), Some(Duration::from_secs(172_800)));
+    }
+
+    #[test]
+    fn timespan_day_and_time_of_day_overflow_is_rejected() {
+        // The largest representable value is u64::MAX seconds, i.e. 213_503_982_334_601
+        // days plus 25_215 seconds (07:00:15); one more second overflows the addition,
+        // and one more day overflows the day-to-seconds multiplication on its own.
+        assert_eq!(
+            parse_timespan("213503982334601.07:00:15"),
+            Some(Duration::from_secs(u64::MAX))
+        );
+        assert_eq!(parse_timespan("213503982334601.07:00:16"), None);
+        assert_eq!(parse_timespan("213503982334602.00:00:00"), None);
+        assert_eq!(parse_timespan("18446744073709551615.00:00:00"), None);
+        // An ordinary day-plus-time value is unchanged.
+        assert_eq!(
+            parse_timespan("2.03:04:05"),
+            Some(Duration::from_secs(183_845))
+        );
+    }
+
+    #[test]
+    fn timespan_fraction_must_be_all_digits() {
+        assert_eq!(parse_timespan("00:00:01.123456789oops"), None);
+        assert_eq!(parse_timespan("00:00:01.123456789\u{e9}"), None);
+        // A valid long numeric fraction keeps the existing 9-digit truncation.
+        assert_eq!(
+            parse_timespan("00:00:01.1234567899"),
+            Some(Duration::new(1, 123_456_789))
+        );
+        assert_eq!(
+            parse_timespan("00:00:02.25"),
+            Some(Duration::new(2, 250_000_000))
+        );
+    }
+
+    #[test]
     fn validation() {
         let mut root = base();
         set_path(&mut root, "Connections:MySQLProvider:Port", "3306");
@@ -594,6 +648,17 @@ mod tests {
         assert!(matches!(
             AppConfig::from_value(root),
             Err(ConfigError::Validation(_))
+        ));
+    }
+
+    #[test]
+    fn malformed_enter_world_timeout_fails_binding() {
+        let mut root = base();
+        set_path(&mut root, "Connections:MySQLProvider:Port", "3306");
+        set_path(&mut root, "EnterWorldTimeout", "00:00:01.123456789oops");
+        assert!(matches!(
+            AppConfig::from_value(root),
+            Err(ConfigError::Bind(_))
         ));
     }
 }

@@ -105,10 +105,11 @@ impl Family {
 
     /// `SendPacket(packet, exclude)`: every logged-in member except `exclude`.
     pub fn send_packet(&self, packet: &dyn ServerPacket, exclude: u32) {
+        let mut out = crate::net::connection::Fanout::new(packet);
         for m in &self.members {
             if m.id != exclude {
                 if let Some(c) = &m.character {
-                    c.send_dyn(packet);
+                    out.send(&c.conn);
                 }
             }
         }

@@ -211,9 +211,10 @@ pub fn broadcast(
 
 /// `SendPacketToPlayers(units, packet)`: the packet goes to every player among `units`.
 pub fn send_to_players(_server: &GameServer, units: &[WorldObject], packet: &dyn ServerPacket) {
+    let mut out = crate::net::connection::Fanout::new(packet);
     for u in units {
         if let Some(p) = u.as_player() {
-            p.send_dyn(packet);
+            out.send(&p.conn);
         }
     }
 }

@@ -12,7 +12,7 @@
 use std::collections::{HashSet, VecDeque};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 use std::time::{Duration, Instant};
 
 use dashmap::DashMap;
@@ -30,6 +30,7 @@ pub struct AiHandle {
     pub obj_id: u32,
     state: Mutex<NpcAi>,
     pending: Mutex<VecDeque<AiFn>>,
+    removed: AtomicBool,
 }
 
 impl std::fmt::Debug for AiHandle {
@@ -44,10 +45,28 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+fn try_lock<T>(m: &Mutex<T>) -> Option<MutexGuard<'_, T>> {
+    match m.try_lock() {
+        Ok(guard) => Some(guard),
+        Err(TryLockError::Poisoned(e)) => Some(e.into_inner()),
+        Err(TryLockError::WouldBlock) => None,
+    }
+}
+
 impl AiHandle {
+    fn detach_locked(&self, st: &mut NpcAi) {
+        st.owner = None;
+        st.should_tick = false;
+        lock(&self.pending).clear();
+    }
+
     /// Runs the queued calls while holding the state (the holder's duty).
     fn drain_locked(&self, server: &GameServer, st: &mut NpcAi) {
         loop {
+            if self.removed.load(Ordering::Acquire) {
+                self.detach_locked(st);
+                return;
+            }
             let next = lock(&self.pending).pop_front();
             let Some(f) = next else { return };
             let Some(npc) = st.owner() else {
@@ -71,7 +90,7 @@ impl AiHandle {
     fn try_drain(&self, server: &GameServer) {
         loop {
             {
-                let Ok(mut st) = self.state.try_lock() else {
+                let Some(mut st) = try_lock(&self.state) else {
                     return; // the holder runs the queue
                 };
                 self.drain_locked(server, &mut st);
@@ -99,6 +118,7 @@ impl AiManager {
             obj_id: npc.obj_id,
             state: Mutex::new(NpcAi::new(kind, npc)),
             pending: Mutex::new(VecDeque::new()),
+            removed: AtomicBool::new(false),
         });
         self.ais.insert(npc.obj_id, h.clone());
         lock(&self.order).push(npc.obj_id);
@@ -114,9 +134,14 @@ impl AiManager {
     /// `Npc.Delete()`: `Ai.Owner = null; Ai = null` (the AI stops ticking and is forgotten).
     pub fn remove(&self, obj_id: u32) {
         if let Some((_, h)) = self.ais.remove(&obj_id) {
-            let mut st = lock(&h.state);
-            st.owner = None;
-            st.should_tick = false;
+            // A skill can delete its own caster while its AI holds this mutex.
+            // Despawn callers may also hold the spawn lock needed by an AI skill.
+            // Mark removal immediately; a busy holder detaches when it drains.
+            h.removed.store(true, Ordering::Release);
+            lock(&h.pending).clear();
+            if let Some(mut st) = try_lock(&h.state) {
+                h.detach_locked(&mut st);
+            }
         }
         lock(&self.order).retain(|id| *id != obj_id);
     }
@@ -163,6 +188,9 @@ pub fn run_now<R>(
     let h = server.systems.ai.ais.get(obj_id)?;
     let res = {
         let mut st = lock(&h.state);
+        if h.removed.load(Ordering::Acquire) {
+            return None;
+        }
         let npc = st.owner()?;
         let obj = WorldObject::from(&npc);
         let r = {
@@ -207,7 +235,15 @@ pub fn tick_all(server: &GameServer, delta_ms: i64) {
         let Some(h) = manager.get(id) else { continue };
         let mut gone = false;
         {
-            let mut st = lock(&h.state);
+            // External skill/aggro calls also run under this lock. Leave a busy
+            // NPC for the next tick instead of stopping every other NPC's AI.
+            let Some(mut st) = try_lock(&h.state) else {
+                continue;
+            };
+            if h.removed.load(Ordering::Acquire) {
+                h.detach_locked(&mut st);
+                continue;
+            }
             match st.owner() {
                 None => gone = true,
                 Some(npc) => {

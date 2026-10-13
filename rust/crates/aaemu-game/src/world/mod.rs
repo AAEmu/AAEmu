@@ -1072,8 +1072,9 @@ impl WorldManager {
 
     /// `BroadcastPacketToServer`.
     pub fn broadcast_to_server(&self, packet: &dyn ServerPacket) {
+        let mut out = crate::net::connection::Fanout::new(packet);
         for p in self.all_characters() {
-            p.send_dyn(packet);
+            out.send(&p.conn);
         }
     }
 }
@@ -1087,12 +1088,14 @@ pub fn broadcast(
     include_self: bool,
 ) {
     let obj = obj.into();
+    // Encoded once for every viewer.
+    let mut out = crate::net::connection::Fanout::new(packet);
     for p in world.players_around(&obj) {
-        p.send_dyn(packet);
+        out.send(&p.conn);
     }
     if include_self {
         if let Some(p) = obj.as_player() {
-            p.send_dyn(packet);
+            out.send(&p.conn);
         }
     }
 }

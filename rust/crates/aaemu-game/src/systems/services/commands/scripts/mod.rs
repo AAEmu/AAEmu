@@ -41,6 +41,7 @@ pub mod disconnect_me;
 pub mod dist;
 pub mod dominion;
 pub mod doodad_location_cmd;
+pub mod dungeon;
 pub mod fail_skill;
 pub mod find_object;
 pub mod fly;
@@ -137,6 +138,7 @@ pub mod prelude {
 /// Every command with the names its `OnLoad` registers, in C# type order.
 pub fn all_commands(env: &ScriptEnv) -> Vec<(&'static [&'static str], Arc<dyn Command>)> {
     vec![
+        (&["dungeon"], Arc::new(dungeon::DungeonCommand)),
         // AddBadges.cs
         (
             &["vocation", "vocationpoints", "add_vp", "add_vb"],

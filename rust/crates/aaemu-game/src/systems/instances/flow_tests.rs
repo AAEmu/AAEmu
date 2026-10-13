@@ -146,7 +146,9 @@ impl Pc {
         let mut c = TestClient::new(server, id, 1000 + id);
         let mut ch = test_character(id, name, x, y);
         ch.is_online = true;
-        ch.obj_id = 0x100 * id;
+        ch.unit.hp = 100;
+        ch.unit.max_hp = 100;
+        ch.obj_id = server.ids.object.get_next_id().unwrap();
         let p = Player::new(ch, c.conn.handle());
         server.world.try_add_character(&p);
         let world = server.world.world(0).expect("main_world");
@@ -330,6 +332,10 @@ fn dungeon_data() -> GameData {
 }
 
 fn dungeon_server() -> Arc<GameServer> {
+    dungeon_server_with(dungeon_data())
+}
+
+fn dungeon_server_with(data: GameData) -> Arc<GameServer> {
     let mirage_spawn = WorldSpawnPosition {
         world_id: 2,
         zone_id: MIRAGE_ZONE,
@@ -340,7 +346,7 @@ fn dungeon_server() -> Arc<GameServer> {
         ..WorldSpawnPosition::default()
     };
     build_server(
-        dungeon_data(),
+        data,
         vec![
             instance_template(1, "instance_test", DUNGEON_ZONE, DUNGEON_SPAWN),
             instance_template(2, "arche_mall_world", MIRAGE_ZONE, mirage_spawn),
@@ -356,6 +362,620 @@ fn dungeon_server() -> Arc<GameServer> {
 async fn await_loader(d: &Arc<dungeon::Dungeon>) {
     let h = d.st().loader.take().expect("loader scheduled");
     h.await.expect("loader");
+}
+
+fn form_party(server: &GameServer, a: &Pc, b: &Pc) {
+    let teams = &server.systems.social.teams;
+    let name = b.p.data().unit.name.clone();
+    teams.ask_to_join(server, &a.p, &name, 0, true, Some(&b.p));
+    teams.reply_to_join_team(server, &b.p, 0, true, a.p.character_id, false, "", false);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn simultaneous_party_entries_share_one_run_and_loading_reserves_capacity() {
+    let mut data = dungeon_data();
+    data.systems
+        .instances
+        .indun
+        .zones
+        .get_mut(&DUNGEON_GROUP)
+        .unwrap()
+        .max_players = 2;
+    let server = dungeon_server_with(data);
+    let a = Pc::new(&server, 1, "Alpha", 100.0, 100.0);
+    let b = Pc::new(&server, 2, "Beta", 100.0, 100.0);
+    let c = Pc::new(&server, 3, "Gamma", 100.0, 100.0);
+    form_party(&server, &a, &b);
+    let sa = server.clone();
+    let pa = a.p.clone();
+    let sb = server.clone();
+    let pb = b.p.clone();
+    let first = tokio::task::spawn_blocking(move || {
+        indun::request_dungeon_instance(&sa, &pa, DUNGEON_ZONE, 0)
+    });
+    let second = tokio::task::spawn_blocking(move || {
+        indun::request_dungeon_instance(&sb, &pb, DUNGEON_ZONE, 0)
+    });
+    assert!(first.await.unwrap() && second.await.unwrap());
+    assert_eq!(server.systems.instances.all_dungeons().len(), 1);
+    let d = server.systems.instances.all_dungeons()[0].clone();
+    assert!(d.is_full(&server));
+    form_party(&server, &a, &c);
+    assert!(!dungeon::queue_player(&server, &d, &c.p));
+    assert_eq!(
+        server.systems.instances.indun.entry_count(3, DUNGEON_GROUP),
+        0
+    );
+    await_loader(&d).await;
+    assert_eq!(a.instance(), b.instance());
+    assert_eq!(worlds::character_count(&d.world(&server).unwrap()), 2);
+    dungeon::destroy_dungeon(&server, &d);
+    assert_eq!((a.instance(), b.instance()), (0, 0));
+}
+
+#[tokio::test]
+async fn party_kick_during_loading_cancels_entry_and_solo_run_can_become_party_owned() {
+    let server = dungeon_server();
+    let a = Pc::new(&server, 1, "Alpha", 100.0, 100.0);
+    let b = Pc::new(&server, 2, "Beta", 100.0, 100.0);
+    use_enter_func(&server, &a.p, DUNGEON_ZONE);
+    let d = server.systems.instances.all_dungeons()[0].clone();
+    assert!(!d.is_team_owned());
+    form_party(&server, &a, &b);
+    use_enter_func(&server, &b.p, DUNGEON_ZONE);
+    assert!(d.is_team_owned());
+    let team = server
+        .systems
+        .social
+        .teams
+        .team_by_obj_id(a.p.obj_id)
+        .unwrap();
+    server.systems.social.teams.ask_risky_team(
+        &server,
+        &a.p,
+        team.id,
+        b.p.character_id,
+        crate::systems::social::team::risky_action::KICK,
+    );
+    await_loader(&d).await;
+    assert_eq!(b.instance(), 0);
+    assert!(!d.has_access(b.p.character_id));
+    assert!(d.st().enter_requests.is_empty());
+    dungeon::leave_dungeon_tick(&server, &d);
+    assert!(d.world_id().is_none());
+    assert!(server.systems.instances.all_dungeons().is_empty());
+}
+
+#[tokio::test]
+async fn separate_parties_are_isolated_and_leader_reset_creates_fresh_progress() {
+    let server = dungeon_server();
+    let a = Pc::new(&server, 1, "Alpha", 100.0, 100.0);
+    let b = Pc::new(&server, 2, "Beta", 100.0, 100.0);
+    let c = Pc::new(&server, 3, "Gamma", 100.0, 100.0);
+    let e = Pc::new(&server, 4, "Delta", 100.0, 100.0);
+    form_party(&server, &a, &b);
+    form_party(&server, &c, &e);
+    use_enter_func(&server, &a.p, DUNGEON_ZONE);
+    use_enter_func(&server, &c.p, DUNGEON_ZONE);
+    let d1 = server.systems.instances.all_dungeons()[0].clone();
+    let d2 = server.systems.instances.all_dungeons()[1].clone();
+    assert!(indun::reset_dungeon_instance(&server, &a.p, DUNGEON_ZONE).is_err());
+    await_loader(&d1).await;
+    await_loader(&d2).await;
+    use_enter_func(&server, &b.p, DUNGEON_ZONE);
+    assert_eq!(a.instance(), b.instance());
+    assert_ne!(a.instance(), c.instance());
+    d1.set_room_cleared(5);
+    assert!(!d2.is_room_cleared(5));
+    assert!(indun::reset_dungeon_instance(&server, &a.p, DUNGEON_ZONE).is_err());
+    use_exit_func(&server, &a.p);
+    use_exit_func(&server, &b.p);
+    assert!(indun::reset_dungeon_instance(&server, &b.p, DUNGEON_ZONE).is_err());
+    indun::reset_dungeon_instance(&server, &a.p, DUNGEON_ZONE).unwrap();
+    assert!(d1.world_id().is_none());
+    assert!(d2.world_id().is_some());
+    use_enter_func(&server, &a.p, DUNGEON_ZONE);
+    let fresh = server
+        .systems
+        .instances
+        .all_dungeons()
+        .into_iter()
+        .find(|d| d.has_access(1))
+        .unwrap();
+    assert_ne!(fresh.uid, d1.uid); // world ids can be recycled, run identities cannot
+    assert!(!fresh.is_room_cleared(5));
+    await_loader(&fresh).await;
+    use_enter_func(&server, &b.p, DUNGEON_ZONE);
+    assert_eq!(b.instance(), a.instance());
+    assert_eq!(
+        server.systems.instances.indun.entry_count(1, DUNGEON_GROUP),
+        2
+    );
+    dungeon::destroy_dungeon(&server, &fresh);
+    dungeon::destroy_dungeon(&server, &d2);
+}
+
+#[tokio::test]
+async fn same_run_reentry_does_not_charge_another_entry_and_destroy_cancels_loader() {
+    let mut data = dungeon_data();
+    data.systems
+        .instances
+        .indun
+        .zones
+        .get_mut(&DUNGEON_GROUP)
+        .unwrap()
+        .enter_count = 1;
+    let server = dungeon_server_with(data);
+    let a = Pc::new(&server, 1, "Alpha", 100.0, 100.0);
+    use_enter_func(&server, &a.p, DUNGEON_ZONE);
+    let d = server.systems.instances.all_dungeons()[0].clone();
+    await_loader(&d).await;
+    use_exit_func(&server, &a.p);
+    use_enter_func(&server, &a.p, DUNGEON_ZONE);
+    assert_eq!(a.instance(), d.world_id().unwrap());
+    assert_eq!(
+        server.systems.instances.indun.entry_count(1, DUNGEON_GROUP),
+        1
+    );
+    use_exit_func(&server, &a.p);
+    indun::reset_dungeon_instance(&server, &a.p, DUNGEON_ZONE).unwrap();
+    assert!(!indun::request_dungeon_instance(
+        &server,
+        &a.p,
+        DUNGEON_ZONE,
+        0
+    ));
+    assert!(server.systems.instances.all_dungeons().is_empty());
+    let b = Pc::new(&server, 2, "Beta", 100.0, 100.0);
+    use_enter_func(&server, &b.p, DUNGEON_ZONE);
+    let d = server.systems.instances.all_dungeons()[0].clone();
+    dungeon::destroy_dungeon(&server, &d);
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    assert_eq!(b.instance(), 0);
+    assert!(server.systems.instances.all_dungeons().is_empty());
+    assert!(d.st().enter_requests.is_empty());
+}
+
+#[derive(Default)]
+struct DungeonItems {
+    items: std::sync::Mutex<Vec<(u32, u32)>>,
+    fail: std::sync::atomic::AtomicBool,
+    charges: std::sync::atomic::AtomicUsize,
+}
+
+impl crate::systems::npcs::hooks::EconomyBridge for DungeonItems {
+    fn acquire_item(
+        &self,
+        _server: &GameServer,
+        p: &PlayerRef,
+        _task: u8,
+        item: u32,
+        _count: i32,
+        _grade: i32,
+    ) -> bool {
+        if self.fail.load(std::sync::atomic::Ordering::Relaxed) {
+            return false;
+        }
+        self.items.lock().unwrap().push((p.character_id, item));
+        true
+    }
+    fn bag_consume_item(
+        &self,
+        _server: &GameServer,
+        _p: &PlayerRef,
+        _task: u8,
+        _item: u32,
+        count: i32,
+    ) -> i32 {
+        self.charges
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        count
+    }
+}
+
+#[tokio::test]
+async fn dungeon_admission_consumes_one_ticket_and_failed_admission_leaves_no_run() {
+    let mut data = dungeon_data();
+    data.systems
+        .instances
+        .indun
+        .zones
+        .get_mut(&DUNGEON_GROUP)
+        .unwrap()
+        .item_id = 123;
+    let server = dungeon_server_with(data);
+    let a = Pc::new(&server, 1, "Alpha", 100.0, 100.0);
+    // Without an item transaction hook, entry must fail closed.
+    assert!(!indun::request_dungeon_instance(
+        &server,
+        &a.p,
+        DUNGEON_ZONE,
+        0
+    ));
+    assert!(server.systems.instances.all_dungeons().is_empty());
+    assert_eq!(
+        server.systems.instances.indun.entry_count(1, DUNGEON_GROUP),
+        0
+    );
+    let items = Arc::new(DungeonItems::default());
+    server.systems.npcs.hooks.economy.install(items.clone());
+    use_enter_func(&server, &a.p, DUNGEON_ZONE);
+    let d = server.systems.instances.all_dungeons()[0].clone();
+    await_loader(&d).await;
+    use_exit_func(&server, &a.p);
+    use_enter_func(&server, &a.p, DUNGEON_ZONE);
+    assert_eq!(items.charges.load(std::sync::atomic::Ordering::Relaxed), 1);
+    dungeon::destroy_dungeon(&server, &d);
+}
+
+fn active_mentor_quest(p: &PlayerRef, quest_id: u32) {
+    use crate::systems::quests::{model::kind, state::Quest};
+    let mut c = p.data();
+    let mut quest = Quest::new_blank(quest_id, quest_id);
+    quest.step = kind::PROGRESS;
+    let h = c.quest_state.alloc(quest);
+    c.quest_state.active.add(quest_id, h);
+}
+
+fn mentor_chest_fixture(data: &mut GameData) {
+    use crate::systems::npcs::doodad::templates::*;
+    let def = &super::mentoring::DUNGEONS[1]; // Burnt Castle: two pairs
+    let dd = &mut data.systems.npcs.doodad;
+    let groups: Vec<_> = def
+        .phases
+        .iter()
+        .map(|&id| DoodadFuncGroups {
+            id,
+            almighty: def.chest_id,
+            group_kind_id: doodad_func_group_kind::NORMAL,
+            ..Default::default()
+        })
+        .collect();
+    dd.templates.insert(
+        def.chest_id,
+        DoodadTemplate {
+            id: def.chest_id,
+            func_groups: groups,
+            ..Default::default()
+        },
+    );
+    for (stage, &phase) in def.phases.iter().enumerate() {
+        let (name, func) = if matches!(stage, 2 | 4) {
+            (
+                "DoodadFuncLootItem",
+                FuncTemplate::LootItem(DoodadFuncLootItem {
+                    id: phase,
+                    item_id: if stage == 2 { 31589 } else { 31590 },
+                    count_min: 1,
+                    count_max: 1,
+                    percent: 10000,
+                    ..Default::default()
+                }),
+            )
+        } else {
+            (
+                "DoodadFuncFakeUse",
+                FuncTemplate::FakeUse(DoodadFuncFakeUse {
+                    id: phase,
+                    fake_skill_id: if stage == 1 { 24656 } else { 24657 },
+                    ..Default::default()
+                }),
+            )
+        };
+        dd.func_templates
+            .entry(name)
+            .or_default()
+            .insert(phase, func);
+        dd.funcs_by_groups.insert(
+            phase,
+            vec![DoodadFunc {
+                group_id: phase,
+                func_id: phase,
+                func_key: phase,
+                func_type: name.into(),
+                next_phase: def.phases.get(stage + 1).copied().unwrap_or(20858) as i32,
+                ..Default::default()
+            }],
+        );
+    }
+}
+
+#[tokio::test]
+async fn mentor_chests_require_boss_party_quests_levels_and_seal_order() {
+    use crate::systems::npcs::doodad::manager;
+    let mut data = dungeon_data();
+    mentor_chest_fixture(&mut data);
+    let server = dungeon_server_with(data);
+    let mentor = Pc::new(&server, 1, "Mentor", 100.0, 100.0);
+    let mentee = Pc::new(&server, 2, "Mentee", 100.0, 100.0);
+    let late = Pc::new(&server, 3, "Late", 100.0, 100.0);
+    mentor.p.data().unit.level = 40;
+    mentee.p.data().unit.level = 39;
+    late.p.data().unit.level = 39;
+    active_mentor_quest(&mentor.p, 6088);
+    active_mentor_quest(&mentee.p, 6087);
+    active_mentor_quest(&late.p, 6087);
+    form_party(&server, &mentor, &mentee);
+    use_enter_func(&server, &mentor.p, DUNGEON_ZONE);
+    let d = server.systems.instances.all_dungeons()[0].clone();
+    await_loader(&d).await;
+    use_enter_func(&server, &mentee.p, DUNGEON_ZONE);
+    let world = d.world(&server).unwrap();
+    let items = Arc::new(DungeonItems::default());
+    server.systems.npcs.hooks.economy.install(items.clone());
+    let mut boss = Npc::new(10518);
+    boss.unit.transform.set_xyz(200.0, 200.0, 20.0);
+    let boss = Entity::new(0x8000, boss);
+    world.spawn(&boss, &server.view_ctx());
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&boss),
+        Some(&WorldObject::from(&mentor.p)),
+    );
+    let mut chests = world.all_doodads();
+    chests.sort_by_key(|d| d.obj_id);
+    assert_eq!(chests.len(), 2);
+    // Duplicate death signals never generate extra rewards.
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&boss),
+        Some(&WorldObject::from(&mentor.p)),
+    );
+    assert_eq!(world.all_doodads().len(), 2);
+    let chest = &chests[0];
+    let use_chest = |p: &PlayerRef, skill, phase| {
+        manager::use_doodad(
+            &server,
+            &world,
+            chest,
+            Some(&WorldObject::from(p)),
+            skill,
+            phase,
+        )
+    };
+    use_chest(&mentee.p, 24656, 0);
+    assert_eq!(chest.data().func_group_id, 21051);
+    use_chest(&mentor.p, 9999, 0);
+    assert_eq!(chest.data().func_group_id, 21051);
+    use_chest(&mentor.p, 24657, 20857);
+    assert_eq!(chest.data().func_group_id, 21051);
+    use_chest(&mentor.p, 24657, 0);
+    assert_eq!(chest.data().func_group_id, 20854);
+    // A qualified late arrival was absent at the kill, and cannot take the second seal.
+    form_party(&server, &mentor, &late);
+    use_enter_func(&server, &late.p, DUNGEON_ZONE);
+    use_chest(&late.p, 24656, 0);
+    assert_eq!(chest.data().func_group_id, 20854);
+    mentee.p.data().unit.level = 40;
+    use_chest(&mentee.p, 24656, 0);
+    assert_eq!(chest.data().func_group_id, 20854);
+    mentee.p.data().unit.level = 39;
+    items.fail.store(true, std::sync::atomic::Ordering::Relaxed);
+    use_chest(&mentee.p, 24656, 0);
+    assert_eq!(chest.data().func_group_id, 20855);
+    assert!(items.items.lock().unwrap().is_empty());
+    items
+        .fail
+        .store(false, std::sync::atomic::Ordering::Relaxed);
+    use_chest(&mentee.p, 0, 0);
+    assert_eq!(chest.data().func_group_id, 20856);
+    // The mentee quest may already have completed when the mentor collects their seal.
+    mentee.p.data().quest_state.active.remove(6087);
+    use_chest(&mentor.p, 24657, 0);
+    assert_eq!(chest.data().func_group_id, 20858);
+    use_chest(&mentor.p, 24657, 0);
+    use_chest(&mentee.p, 24656, 0);
+    assert_eq!(*items.items.lock().unwrap(), vec![(2, 31589), (1, 31590)]);
+    dungeon::destroy_dungeon(&server, &d);
+    // Recycled world ids cannot carry a delayed boss death into a fresh run.
+    active_mentor_quest(&mentee.p, 6087);
+    use_enter_func(&server, &mentor.p, DUNGEON_ZONE);
+    let fresh = server.systems.instances.all_dungeons()[0].clone();
+    await_loader(&fresh).await;
+    use_enter_func(&server, &mentee.p, DUNGEON_ZONE);
+    let fresh_world = fresh.world(&server).unwrap();
+    assert_eq!(fresh_world.id, world.id);
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&boss),
+        Some(&WorldObject::from(&mentor.p)),
+    );
+    assert!(fresh_world.all_doodads().is_empty());
+    let mut replacement = Npc::new(10518);
+    replacement.unit.transform.set_xyz(200.0, 200.0, 20.0);
+    let replacement = Entity::new(boss.obj_id, replacement);
+    fresh_world.spawn(&replacement, &server.view_ctx());
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&boss),
+        Some(&WorldObject::from(&mentor.p)),
+    );
+    assert!(fresh_world.all_doodads().is_empty());
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&replacement),
+        Some(&WorldObject::from(&mentor.p)),
+    );
+    assert_eq!(fresh_world.all_doodads().len(), 2);
+    dungeon::destroy_dungeon(&server, &fresh);
+}
+
+#[tokio::test]
+async fn mentor_boss_kill_without_both_quests_cannot_be_qualified_afterwards() {
+    let mut data = dungeon_data();
+    mentor_chest_fixture(&mut data);
+    let server = dungeon_server_with(data);
+    let a = Pc::new(&server, 1, "Mentor", 100.0, 100.0);
+    let b = Pc::new(&server, 2, "Mentee", 100.0, 100.0);
+    a.p.data().unit.level = 40;
+    b.p.data().unit.level = 31;
+    active_mentor_quest(&a.p, 6088);
+    form_party(&server, &a, &b);
+    use_enter_func(&server, &a.p, DUNGEON_ZONE);
+    let d = server.systems.instances.all_dungeons()[0].clone();
+    await_loader(&d).await;
+    use_enter_func(&server, &b.p, DUNGEON_ZONE);
+    let world = d.world(&server).unwrap();
+    let mut boss = Npc::new(10518);
+    boss.unit.transform.set_xyz(200.0, 200.0, 20.0);
+    let boss = Entity::new(0x8000, boss);
+    world.spawn(&boss, &server.view_ctx());
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&boss),
+        Some(&WorldObject::from(&a.p)),
+    );
+    assert!(world.all_doodads().is_empty());
+    active_mentor_quest(&b.p, 6087);
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&boss),
+        Some(&WorldObject::from(&a.p)),
+    );
+    assert!(world.all_doodads().is_empty());
+    dungeon::destroy_dungeon(&server, &d);
+}
+
+#[tokio::test]
+#[ignore = "needs AAEMU_COMPACT_DB"]
+async fn real_mentor_chest_seals_complete_daily_quests_and_award_gilda() {
+    use crate::systems::{npcs::doodad, quests};
+    let Ok(db) = std::env::var("AAEMU_COMPACT_DB") else {
+        return;
+    };
+    let conn =
+        rusqlite::Connection::open_with_flags(db, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .unwrap();
+    let app = Path::new(env!("CARGO_MANIFEST_DIR")).join("app");
+    let files = crate::data::client_files::ClientFileManager::from_sources(&[], &app);
+    let mut data = dungeon_data();
+    data.items = crate::data::items::ItemData::load(&conn).unwrap();
+    data.systems.npcs.doodad = doodad::data::DoodadData::load_from(&conn).unwrap();
+    data.systems.quests = quests::Data::load_from(&conn, &files).unwrap();
+    // Verify every version-specific binding against the real tables, including level ranges
+    // and all five chest phases, rather than accepting constants without data evidence.
+    for def in super::mentoring::DUNGEONS {
+        let dd = &data.systems.npcs.doodad;
+        assert!(dd.template(def.chest_id).is_some());
+        for phase in def.phases {
+            assert!(!dd.funcs_for_group(phase).is_empty());
+        }
+        for (quest, range) in [
+            (def.mentor_quest, def.mentor_levels),
+            (def.mentee_quest, def.mentee_levels),
+        ] {
+            let template = data.systems.quests.template(quest).unwrap();
+            let components: Vec<_> = template
+                .components
+                .iter()
+                .filter_map(|c| data.systems.quests.component(*c))
+                .filter(|c| c.kind_id == quests::model::kind::START)
+                .collect();
+            assert!(!components.is_empty());
+            let reqs = data
+                .systems
+                .quests
+                .unit_reqs
+                .requirements("QuestComponent", components[0].id);
+            assert!(reqs
+                .iter()
+                .any(|r| r.kind == quests::unit_reqs::req_kind::LEVEL
+                    && r.value1 == u32::from(range.0)));
+            assert!(reqs
+                .iter()
+                .any(|r| r.kind == quests::unit_reqs::req_kind::MAX_LEVEL
+                    && r.value1 == u32::from(range.1)));
+        }
+    }
+    let server = dungeon_server_with(data);
+    crate::systems::economy::bridges::install(&server);
+    quests::bridges::install(&server);
+    let mentor = Pc::new(&server, 1, "Mentor", 100.0, 100.0);
+    let mentee = Pc::new(&server, 2, "Mentee", 100.0, 100.0);
+    mentor.p.data().unit.level = 40;
+    mentee.p.data().unit.level = 31;
+    form_party(&server, &mentor, &mentee);
+    let mut lucius = Npc::new(14422);
+    lucius.unit.transform.set_xyz(100.0, 100.0, 100.0);
+    let lucius = Entity::new(0x8001, lucius);
+    server
+        .world
+        .world(0)
+        .unwrap()
+        .spawn(&lucius, &server.view_ctx());
+    assert_eq!(
+        quests::events::add_quest_from_npc(&server, &mentor.p, 6088, lucius.obj_id),
+        Some(true)
+    );
+    assert_eq!(
+        quests::events::add_quest_from_npc(&server, &mentee.p, 6087, lucius.obj_id),
+        Some(true)
+    );
+    server.systems.quests.run_queued_evaluations(&server);
+    use_enter_func(&server, &mentor.p, DUNGEON_ZONE);
+    let d = server.systems.instances.all_dungeons()[0].clone();
+    await_loader(&d).await;
+    use_enter_func(&server, &mentee.p, DUNGEON_ZONE);
+    let world = d.world(&server).unwrap();
+    let mut boss = Npc::new(10518);
+    boss.unit.transform.set_xyz(200.0, 200.0, 20.0);
+    let boss = Entity::new(0x8000, boss);
+    world.spawn(&boss, &server.view_ctx());
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&boss),
+        Some(&WorldObject::from(&mentor.p)),
+    );
+    let chest = world
+        .all_doodads()
+        .into_iter()
+        .find(|d| d.data().template_id == 7659)
+        .expect("mentor chest");
+    for (p, skill) in [(&mentor.p, 24657), (&mentee.p, 24656), (&mentor.p, 24657)] {
+        doodad::manager::use_doodad(
+            &server,
+            &world,
+            &chest,
+            Some(&WorldObject::from(p)),
+            skill,
+            0,
+        );
+        server.systems.quests.run_queued_evaluations(&server);
+    }
+    let gilda = |p: &PlayerRef| {
+        let bag = p.data().inventory.bag().clone();
+        let count = bag.lock().unwrap().items_by_template(23633, -1).1;
+        count
+    };
+    assert_eq!(gilda(&mentor.p), 3);
+    assert_eq!(gilda(&mentee.p), 1);
+    assert!(quests::events::has_quest_completed_in(
+        &mentor.p.data(),
+        6088
+    ));
+    assert!(quests::events::has_quest_completed_in(
+        &mentee.p.data(),
+        6087
+    ));
+    doodad::manager::use_doodad(
+        &server,
+        &world,
+        &chest,
+        Some(&WorldObject::from(&mentor.p)),
+        24657,
+        0,
+    );
+    assert_eq!(gilda(&mentor.p), 3);
+    quests::daily_reset(&server);
+    assert!(!quests::events::has_quest_completed_in(
+        &mentor.p.data(),
+        6088
+    ));
+    assert!(!quests::events::has_quest_completed_in(
+        &mentee.p.data(),
+        6087
+    ));
+    dungeon::destroy_dungeon(&server, &d);
 }
 
 /// Uses an `EnterInstance` doodad func (`DoodadFuncEnterInstance.Use`).

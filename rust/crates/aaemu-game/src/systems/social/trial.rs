@@ -186,10 +186,11 @@ impl TrialData {
 
     /// `SendPackets(packet)`: the defendant and every jury member.
     pub fn send_packets(&self, packet: &dyn ServerPacket) {
-        self.defendant.send_dyn(packet);
+        let mut out = crate::net::connection::Fanout::new(packet);
+        out.send(&self.defendant.conn);
         for j in self.jury.values() {
             if let Some(m) = &j.jury_member {
-                m.send_dyn(packet);
+                out.send(&m.conn);
             }
         }
     }

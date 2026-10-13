@@ -258,6 +258,13 @@ fn result_body(success: bool, name: &str, aa: i32) -> Vec<u8> {
     })
 }
 
+fn sync_body(shop_id: u32, remaining: i32) -> Vec<u8> {
+    body_of(&SCICSSyncGoodPacket {
+        cash_shop_id: shop_id as i32,
+        remain_count: remaining,
+    })
+}
+
 fn error_body(err: i16) -> Vec<u8> {
     let mut s = PacketStream::new();
     s.write_i16(err)
@@ -855,6 +862,7 @@ async fn buy_with_credits_as_gift() {
     assert_eq!(
         f,
         vec![
+            (sc::SCICSSyncGoodPacket, sync_body(200, 2)),
             (sc::SCICSCashPointPacket, 60i32.to_le_bytes().to_vec()),
             (sc::SCBmPointPacket, 7i64.to_le_bytes().to_vec()),
             (sc::SCICSBuyResultPacket, result_body(true, "Bob", 0)),
@@ -938,6 +946,137 @@ async fn buy_with_coins_stock_and_level() {
         s.w.a.drain()[0].1,
         error_body(error_message::NOT_ENOUGH_COIN)
     );
+}
+
+#[tokio::test]
+async fn limited_stock_purchase_syncs_committed_count() {
+    let mut s = shop();
+    let st = shop_state();
+    let pa = s.w.pa.clone();
+    s.db.accounts.lock().unwrap().insert(1001, (100, 0));
+    // Shop 200 starts at 3; SKU 2000 is 1 x STACK for 40 credits.
+    let one = cart(&st, &[(200, 0)]);
+    execute_buy(&s.w.server, 1, &pa, &pa, &one).await;
+    assert_eq!(*s.db.stock.lock().unwrap(), vec![(200, 2)]);
+    assert_eq!(
+        s.w.server.systems.economy.cash_shop.state().shop_items[&200].remaining,
+        2
+    );
+    assert_eq!(
+        s.w.a.drain(),
+        vec![
+            (sc::SCICSSyncGoodPacket, sync_body(200, 2)),
+            (sc::SCICSCashPointPacket, 60i32.to_le_bytes().to_vec()),
+            (sc::SCBmPointPacket, 0i64.to_le_bytes().to_vec()),
+            (sc::SCICSBuyResultPacket, result_body(true, "Alice", 0)),
+        ]
+    );
+    // The next purchase syncs the next committed count (2 -> 1).
+    execute_buy(&s.w.server, 1, &pa, &pa, &one).await;
+    assert_eq!(*s.db.stock.lock().unwrap(), vec![(200, 2), (200, 1)]);
+    assert_eq!(
+        s.w.a.drain(),
+        vec![
+            (sc::SCICSSyncGoodPacket, sync_body(200, 1)),
+            (sc::SCICSCashPointPacket, 20i32.to_le_bytes().to_vec()),
+            (sc::SCBmPointPacket, 0i64.to_le_bytes().to_vec()),
+            (sc::SCICSBuyResultPacket, result_body(true, "Alice", 0)),
+        ]
+    );
+    // Two entries of the same good commit one after the other (5 -> 4 -> 3), each synced.
+    s.w.server
+        .systems
+        .economy
+        .cash_shop
+        .state()
+        .shop_items
+        .get_mut(&200)
+        .unwrap()
+        .remaining = 5;
+    s.db.accounts.lock().unwrap().insert(1001, (100, 0));
+    execute_buy(&s.w.server, 1, &pa, &pa, &[one[0].clone(), one[0].clone()]).await;
+    assert_eq!(
+        *s.db.stock.lock().unwrap(),
+        vec![(200, 2), (200, 1), (200, 4), (200, 3)]
+    );
+    assert_eq!(s.db.accounts.lock().unwrap()[&1001], (20, 0));
+    assert_eq!(s.db.sales.lock().unwrap().len(), 4);
+    assert_eq!(
+        s.w.a.drain(),
+        vec![
+            (sc::SCICSSyncGoodPacket, sync_body(200, 4)),
+            (sc::SCICSSyncGoodPacket, sync_body(200, 3)),
+            (sc::SCICSCashPointPacket, 20i32.to_le_bytes().to_vec()),
+            (sc::SCBmPointPacket, 0i64.to_le_bytes().to_vec()),
+            (sc::SCICSBuyResultPacket, result_body(true, "Alice", 0)),
+        ]
+    );
+}
+
+#[tokio::test]
+async fn limited_stock_failure_paths_never_sync_stock() {
+    // Failed debit: nothing was persisted, so nothing may be synced.
+    let mut s = shop();
+    let pa = s.w.pa.clone();
+    s.db.accounts.lock().unwrap().insert(1001, (100, 0));
+    *s.db.fail_debits.lock().unwrap() = true;
+    execute_buy(&s.w.server, 1, &pa, &pa, &cart(&shop_state(), &[(200, 0)])).await;
+    let f = s.w.a.drain();
+    assert!(!f.iter().any(|(op, _)| *op == sc::SCICSSyncGoodPacket));
+    assert_eq!(
+        s.w.server.systems.economy.cash_shop.state().shop_items[&200].remaining,
+        3
+    );
+    assert!(s.db.stock.lock().unwrap().is_empty());
+    assert_eq!(s.db.accounts.lock().unwrap()[&1001], (100, 0));
+
+    // Failed persistence: rollback + refund, and no false stock decrease is synced.
+    let mut s = shop();
+    let pa = s.w.pa.clone();
+    s.db.accounts.lock().unwrap().insert(1001, (100, 0));
+    *s.db.fail_stock_updates.lock().unwrap() = true;
+    execute_buy(&s.w.server, 1, &pa, &pa, &cart(&shop_state(), &[(200, 0)])).await;
+    let f = s.w.a.drain();
+    assert!(!f.iter().any(|(op, _)| *op == sc::SCICSSyncGoodPacket));
+    assert_eq!(
+        s.w.server.systems.economy.cash_shop.state().shop_items[&200].remaining,
+        3
+    );
+    assert!(s.db.stock.lock().unwrap().is_empty());
+    assert_eq!(s.db.accounts.lock().unwrap()[&1001], (100, 0));
+    assert!(s.mail.0.lock().unwrap().is_empty());
+
+    // Sold out before any mutation (SKU 2001 needs 2 of the remaining 1): no sync.
+    let mut s = shop();
+    let pa = s.w.pa.clone();
+    pa.data().money = 100;
+    s.w.server
+        .systems
+        .economy
+        .cash_shop
+        .state()
+        .shop_items
+        .get_mut(&200)
+        .unwrap()
+        .remaining = 1;
+    execute_buy(&s.w.server, 1, &pa, &pa, &cart(&shop_state(), &[(200, 1)])).await;
+    let f = s.w.a.drain();
+    assert_eq!(f[0].1, error_body(error_message::INGAME_SHOP_SOLD_OUT));
+    assert!(!f.iter().any(|(op, _)| *op == sc::SCICSSyncGoodPacket));
+    assert!(s.db.stock.lock().unwrap().is_empty());
+    assert_eq!(pa.data().money, 100);
+
+    // Unlimited stock (remaining < 0): the purchase succeeds but there is nothing to sync.
+    let mut s = shop();
+    let st = shop_state();
+    let pa = s.w.pa.clone();
+    s.db.accounts.lock().unwrap().insert(1001, (0, 100));
+    execute_buy(&s.w.server, 1, &pa, &pa, &cart(&st, &[(300, 0)])).await;
+    assert_eq!(s.db.accounts.lock().unwrap()[&1001], (0, 95));
+    let f = s.w.a.drain();
+    assert!(!f.iter().any(|(op, _)| *op == sc::SCICSSyncGoodPacket));
+    assert_eq!(f.last().unwrap().1, result_body(true, "Alice", 0));
+    assert!(s.db.stock.lock().unwrap().is_empty());
 }
 
 #[tokio::test]

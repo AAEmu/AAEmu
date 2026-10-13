@@ -142,7 +142,13 @@ impl Ctx<'_> {
                 );
                 true
             }
-            CheckSphere { .. } => count > 0,
+            CheckSphere { .. } => self
+                .st
+                .quest(h)
+                .and_then(|q| q.steps.get(p.step))
+                .and_then(|s| s.components.get(p.component))
+                .and_then(|c| c.acts.get(p.act))
+                .is_some_and(|a| a.sphere_inside),
             CheckTimer { .. } => true,
             ConAcceptBuff { buff_id } => acc_type == acceptor::BUFF && acc_id == *buff_id,
             ConAcceptComponent { .. } => true,
@@ -165,10 +171,7 @@ impl Ctx<'_> {
             ConAutoComplete => true,
             ConReportDoodad { .. } => self.act_override(h, p),
             ConReportJournal => true,
-            ConReportNpc { npc_id, .. } => {
-                // TODO Verify: Does it actually have to be targeted?
-                self.act_override(h, p) || self.env.target_npc_template() == Some(*npc_id)
-            }
+            ConReportNpc { .. } => self.act_override(h, p),
             EtcItemObtain { .. } => true,
             ObjAbilityLevel {
                 ability_id, level, ..
@@ -187,13 +190,16 @@ impl Ctx<'_> {
                                 .map_or(0, |(l, _)| l)
                         })
                 };
-                if *ability_id > 0 {
+                let ready = if *ability_id > 0 {
                     // Single Ability check (a missing key throws KeyNotFoundException)
                     ab_level(*ability_id).is_some_and(|l| l >= *level)
                 } else {
                     // All abilities check
                     (1..11u8).all(|i| ab_level(i).is_some_and(|l| l >= *level))
-                }
+                };
+                let r = self.set_objective(h, a, i32::from(ready));
+                self.log_throw(r, "QuestActObjAbilityLevel.RunAct");
+                ready
             }
             ObjAggro { .. } => count > 0,
             ObjCinema { .. } => count >= 1,
@@ -309,7 +315,7 @@ impl Ctx<'_> {
                         to_add = to_add.wrapping_sub(units);
                     }
                 }
-                if to_add < 0 {
+                if to_add <= 0 {
                     return true;
                 }
                 // If a backpack, directly handle it, otherwise use the reward pool
@@ -504,6 +510,7 @@ impl Ctx<'_> {
         );
         use ActKind::*;
         match &at.kind {
+            CheckGuard { .. } => self.st.subscribe(EventKind::GuardNpcDied, h, p),
             CheckSphere { .. } => {
                 let component_id = at.component_id;
                 self.add_sphere_triggers(h, component_id, 0);
@@ -527,6 +534,8 @@ impl Ctx<'_> {
             ConReportJournal => self.st.subscribe(EventKind::ReportJournal, h, p),
             EtcItemObtain { .. } => self.st.subscribe(EventKind::ItemGather, h, p),
             ObjAggro { .. } => self.st.subscribe(EventKind::Kill, h, p),
+            ObjAbilityLevel { .. } => self.st.subscribe(EventKind::AbilityLevelUp, h, p),
+            ObjCompleteQuest { .. } => self.st.subscribe(EventKind::QuestComplete, h, p),
             ObjCinema { .. } => {
                 self.st.subscribe(EventKind::CinemaStarted, h, p);
                 self.st.subscribe(EventKind::CinemaEnded, h, p);
@@ -577,14 +586,14 @@ impl Ctx<'_> {
         let at = &data.acts[a];
         use ActKind::*;
         match &at.kind {
+            CheckGuard { .. } => self.st.unsubscribe(EventKind::GuardNpcDied, h, p),
             CheckSphere { .. } => {
-                // C# bug: removes by the quest's DB id instead of its template id
-                let db_id = self.st.quest(h).map_or(0, |q| q.id);
+                let template_id = self.template_id_of(h);
                 self.server
                     .systems
                     .quests
                     .spheres
-                    .remove_triggers(self.c.id, db_id);
+                    .remove_triggers(self.c.id, template_id);
                 self.st.unsubscribe(EventKind::EnterSphere, h, p);
                 self.st.unsubscribe(EventKind::ExitSphere, h, p);
             }
@@ -595,6 +604,8 @@ impl Ctx<'_> {
             }
             ObjItemGroupGather { .. } => self.st.unsubscribe(EventKind::ItemGroupGather, h, p),
             ObjAggro { .. } => self.st.unsubscribe(EventKind::Kill, h, p),
+            ObjAbilityLevel { .. } => self.st.unsubscribe(EventKind::AbilityLevelUp, h, p),
+            ObjCompleteQuest { .. } => self.st.unsubscribe(EventKind::QuestComplete, h, p),
             ObjCinema { .. } => {
                 self.st.unsubscribe(EventKind::CinemaEnded, h, p);
                 self.st.unsubscribe(EventKind::CinemaStarted, h, p);
@@ -653,8 +664,7 @@ impl Ctx<'_> {
             return;
         };
         match self.data.acts[a].kind {
-            // C# bug: `+=` instead of `-=` (the handler is registered a second time)
-            ActKind::ConReportDoodad { .. } => self.st.subscribe(EventKind::ReportDoodad, h, p),
+            ActKind::ConReportDoodad { .. } => self.st.unsubscribe(EventKind::ReportDoodad, h, p),
             ActKind::ConReportNpc { .. } => self.st.unsubscribe(EventKind::ReportNpc, h, p),
             _ => {}
         }
@@ -796,6 +806,26 @@ impl Ctx<'_> {
         let quest_template = at.quest_id;
         use ActKind::*;
         match (&at.kind, ev) {
+            (CheckGuard { npc_id }, QuestEvent::GuardNpcDied { npc_id: dead }) => {
+                if dead == npc_id {
+                    self.set_status(h, super::model::status::FAILED);
+                    self.set_step(h, kind::FAIL);
+                }
+            }
+
+            (
+                ObjCompleteQuest { quest_id, .. },
+                QuestEvent::QuestComplete {
+                    quest_id: completed,
+                },
+            ) => {
+                if quest_id == completed {
+                    self.set_objective(h, a, 1)?;
+                }
+            }
+            (ObjAbilityLevel { .. }, QuestEvent::AbilityLevelUp) => {
+                self.act_run(h, p, self.get_objective(h, a));
+            }
             (ObjMonsterHunt { npc_id, .. }, QuestEvent::MonsterHunt { npc_id: n, count }) => {
                 if n != npc_id {
                     return Ok(());
@@ -922,16 +952,16 @@ impl Ctx<'_> {
                 self.mate_level_objective(h, a);
             }
             (CheckSphere { .. }, QuestEvent::EnterSphere { sphere }) => {
-                if sphere.quest_id != quest_template {
+                if sphere.quest_id != quest_template || sphere.component_id != at.component_id {
                     return Ok(());
                 }
-                self.set_objective(h, a, 1)?;
+                self.set_sphere_presence(h, p, true);
             }
             (CheckSphere { .. }, QuestEvent::ExitSphere { sphere }) => {
-                if sphere.quest_id != quest_template {
+                if sphere.quest_id != quest_template || sphere.component_id != at.component_id {
                     return Ok(());
                 }
-                self.set_objective(h, a, 0)?;
+                self.set_sphere_presence(h, p, false);
             }
             (ObjSphere { .. }, QuestEvent::EnterSphere { sphere }) => {
                 if sphere.component_id != self.component_template_of(h, p) {
@@ -957,6 +987,7 @@ impl Ctx<'_> {
             }
             (
                 ObjZoneKill {
+                    zone_id,
                     count_player_kill,
                     count_npc,
                     team_share,
@@ -971,8 +1002,15 @@ impl Ctx<'_> {
                     npc_faction_exclusive,
                     ..
                 },
-                QuestEvent::ZoneKill { killer, victim, .. },
+                QuestEvent::ZoneKill {
+                    zone_group_id,
+                    killer,
+                    victim,
+                },
             ) => {
+                if *zone_id != 0 && zone_id != zone_group_id {
+                    return Ok(());
+                }
                 // If Party kills is not allowed, only allow kills from self
                 if !*is_party && killer.character_id != Some(self.c.id) {
                     return Ok(());
@@ -983,6 +1021,7 @@ impl Ctx<'_> {
                 }
                 let mut valid = false;
                 if *count_npc > 0 && victim.npc_template_id.is_some() {
+                    valid = *npc_faction_id == 0;
                     if *npc_faction_id > 0 {
                         if *npc_faction_exclusive && victim.faction_id != *npc_faction_id {
                             valid = true;
@@ -998,6 +1037,7 @@ impl Ctx<'_> {
                     }
                 }
                 if *count_player_kill > 0 && victim.character_id.is_some() {
+                    valid = *pc_faction_id == 0;
                     if *pc_faction_id > 0 {
                         if *pc_faction_exclusive && victim.faction_id != *pc_faction_id {
                             valid = true;
@@ -1047,12 +1087,12 @@ impl Ctx<'_> {
             (
                 ConReportNpc { npc_id, .. },
                 QuestEvent::ReportNpc {
+                    quest_id,
                     npc_id: n,
                     selected,
-                    ..
                 },
             ) => {
-                if npc_id != n {
+                if *quest_id != quest_template || npc_id != n {
                     return Ok(());
                 }
                 if !self.report_ready(h, quest_template) {
@@ -1067,12 +1107,22 @@ impl Ctx<'_> {
                 }
                 self.request_evaluation(h);
             }
-            (ConReportDoodad { doodad_id, .. }, QuestEvent::ReportDoodad { doodad_id: d, .. }) => {
-                if d != doodad_id {
+            (
+                ConReportDoodad { doodad_id, .. },
+                QuestEvent::ReportDoodad {
+                    quest_id,
+                    doodad_id: d,
+                    selected,
+                },
+            ) => {
+                if *quest_id != quest_template || d != doodad_id {
                     return Ok(());
                 }
                 if !self.report_ready(h, quest_template) {
                     return Ok(());
+                }
+                if let Some(q) = self.st.quest_mut(h) {
+                    q.selected_reward_index = *selected;
                 }
                 self.set_act_override(h, p, true);
                 if self.st.quest(h).is_some_and(|q| q.step == kind::PROGRESS) {
@@ -1100,13 +1150,13 @@ impl Ctx<'_> {
                     rank3_item,
                     ..
                 },
-                QuestEvent::Kill { target, .. },
+                QuestEvent::Kill { target, victim, .. },
             ) => {
                 let Some(q) = self.st.quest(h) else {
                     return Ok(());
                 };
                 let (acc_type, acc_id) = (q.acceptor_type, q.acceptor_id);
-                let Some(t) = target else {
+                let Some(t) = victim.as_ref().or(target.as_ref()) else {
                     return Ok(());
                 };
                 let Some(npc_template) = t.npc_template_id else {
@@ -1138,18 +1188,20 @@ impl Ctx<'_> {
                     return set(self, 3, *rank3_ratio, *rank3_item);
                 }
             }
-            (CheckTimer { .. }, QuestEvent::TimerExpired { .. }) => {
-                // All the still active quests make the quest fail as a result (the handler
-                // fails its own quest, whatever quest's timer expired)
+            (CheckTimer { .. }, QuestEvent::TimerExpired { quest_id }) => {
+                if *quest_id != quest_template {
+                    return Ok(());
+                }
                 tracing::debug!(
                     "QuestActCheckTimer({}).OnTimerExpired Quest {quest_template}",
                     at.detail_id
                 );
                 self.fail_quest(self.template_id_of(h));
             }
-            (CheckTimer { .. }, QuestEvent::QuestStepChanged { step, .. }) => {
-                // Reacts to the step change of *any* quest of the owner (C# does not check
-                // args.QuestId)
+            (CheckTimer { .. }, QuestEvent::QuestStepChanged { quest_id, step }) => {
+                if *quest_id != quest_template {
+                    return Ok(());
+                }
                 match *step {
                     kind::NONE | kind::START | kind::SUPPLY | kind::PROGRESS => {}
                     kind::FAIL | kind::READY | kind::DROP | kind::REWARD => {
@@ -1171,6 +1223,22 @@ impl Ctx<'_> {
             _ => {}
         }
         Ok(())
+    }
+
+    fn set_sphere_presence(&mut self, h: QuestHandle, p: ActPath, inside: bool) {
+        let Some(act) = self
+            .st
+            .quest_mut(h)
+            .and_then(|q| q.steps.get_mut(p.step))
+            .and_then(|s| s.components.get_mut(p.component))
+            .and_then(|c| c.acts.get_mut(p.act))
+        else {
+            return;
+        };
+        if act.sphere_inside != inside {
+            act.sphere_inside = inside;
+            self.request_evaluation(h);
+        }
     }
 
     /// The "is the quest ready to be turned in" check of the report acts.

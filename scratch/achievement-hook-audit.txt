@@ -1,0 +1,298 @@
+ACHIEVEMENT HOOK AUDIT - 1.2 authored record kinds -> real Rust gameplay events
+Read-only audit (no repo source edited). Workspace: rust-rewrite @ 8c37cb528, achievement
+runtime/persistence/manager are UNTRACKED WIP files under systems/social/.
+Scope: the 55 char_records kinds referenced by achievement_objectives in
+rust/crates/aaemu-game/app/Data/compact.sqlite3 (kinds 1-8, 13, 15, 24, 31, 56 exist in the
+table with 0 objectives; 61+ are post-1.2 enum entries and absent).
+
+EVIDENCE
+* git 7851f67cc ("Merge PR #1624 feat/achievement-back-credit") is a later C# tree (ancestor of
+  the C# removal a2ab80abd). Its AchievementManager has live producers ONLY for CharLevel +
+  AbilityLevel and the entry-path ReportCharacterProgress; CharacterRecords.Report keeps the
+  high-water mark; PayReward/Complete/RefreshQueue are manager-side. No other kind has a C#
+  producer or a documented v1/v2 meaning, so per-kind semantics below are proven from the 1.2
+  content itself: char_records.value1/value2 cross-referenced against npcs/items/skills/
+  housings/slaves/system_factions/zone_groups/siege_zones/express_texts + the Korean
+  achievement name/summary/description and complete_num.
+* Rust runtime semantics: systems/social/achievement_runtime.rs + achievement_manager.rs
+  (untracked): records are high-water (report_record_value keeps max); evaluation reads
+  value>0; increment_matching(kind, amount, matches(row)) is for event counters;
+  report_values([(record_id, absolute)]) is for state values; kind-9 completion cascade is
+  already pure inside refresh_queue (no producer needed).
+* Units below are proven by complete_num on the achievements watching the record.
+
+CREDIT SHAPE LEGEND
+  abs   = report the character's current absolute value (state-like; high-water is the meaning)
+  +N    = increment_matching(kind, N, |r| <match>) at a success-only event
+  flag  = increment/abs 1 at a one-shot success event (complete_num 0, objective satisfied by >0)
+
+=== TABLE: kind -> semantics -> producer ===
+k9  COMPLETE_ACHIEVEMENT  v1=achievement id, v2=0. Done in runtime (refresh_queue reports its
+    kind-9 record). No gameplay producer.
+-- already backfilled (back_credit_values, achievement_manager.rs:343) --
+k10 CHAR_LEVEL      v1/v2=0            abs  level                       back_credit_values
+k12 PLAY_TIME       v1/v2=0            abs  online_time/3600 (HOURS)    back_credit_values
+k14 MY_GOLD         v1/v2=0            abs  money/10000 (GOLD)          back_credit_values
+k18 GET_ACTABILITY  v1=actability_groups.id (1..23), v2=0
+                    abs  actability row point (proficiency)            back_credit_values
+k21 ABILITY_LEVEL   v1=ability id (1..10, same numbering), v2=0
+                    abs  level from shared exp table                   back_credit_values
+k27 COMPLETE_QUEST_CATEGORY v1=quest_categories.id, v2=0
+                    abs  DISTINCT known completed quests in category   back_credit_values
+k28 COMPLETE_QUEST_TYPE     v1=quest id, v2=0
+                    abs  unique completion bit                   back_credit_values (see Q3)
+k52/53/54/55 ENROLL_PARTY / RAID_GROUP / FAMILY / GUILD  v1/v2=0
+                    abs  1 while in party/raid/family/expedition       back_credit_values
+-- live producers --
+k11 PET_LEVEL       v1=mate npc template id (npcs.id, e.g. 4944), v2=0
+                    abs  mate level (high-water)                       vehicles/mates.rs::add_exp
+                    level-up tail (~L1023-1035) has `mate`, `level`, owner; report after the
+                    SCLevelChanged broadcast, no mate lock held.
+k16 CHANGE_LOOK     v1/v2=0, count; +1 per completed appearance change
+                    services/beauty_salon.rs::apply_beauty_salon (L52) after model applied and
+                    SALON_CERTIFICATE consumed; no container lock held there.
+k17 GET_LIFE_POINT  v1/v2=0, points; +N per positive vocation/living-point gain
+                    skills/effects/special/misc.rs::give_living_point (L95) and
+                    skills/skill.rs::end_skill gain_life_point branch (L1722). Central fallback:
+                    skills/progress.rs::change_game_points_locked (L317) when
+                    kind==GAME_POINT_VOCATION && change>0 (never credit store spends).
+k19 GET_HONOR_POINT v1=1 siege / v1=0 zone-conflict; v2=0 or zone_groups.id
+                    points; +N per honor GAINED with context (spends never credit)
+                    zone-conflict: skills/combat.rs::award_pvp_honor (L746, private) has
+                    victim_zone_group + killer/assist amounts; match v1==0 && v2==zone group.
+                    siege honor: no Rust producer (siege rewards unimplemented, see Q1).
+k20 SPEND_LABOR     v1/v2=0, labor; +(-change) whenever labor is consumed
+                    skills/progress.rs::change_labor_locked (L229) is the single ChangeLabor
+                    body (fired with change<0); economy/inventory.rs::change_labor (L1347) is
+                    the ItemTxn variant used by craft/store/specialty. Report after the caller's
+                    character/ItemTxn locks are dropped.
+k22 ABILITY_CHANGE  v1/v2=0, count; +1 per successful ability swap
+                    skills/progress.rs::swap_ability (L543) after the swap + broadcast.
+k23 DEAD_BY_PVP     v1=zone group id (0 = any zone), v2=0, count
+                    +1 matching (v1==0 || v1==victim zone group)
+                    skills/combat.rs::character_death_tail (L545); the died_in_pvp block
+                    (L583-589) already computes victim_zone_group/zone_state. Credit after the
+                    `let mut c = victim_p.data()` guard is dropped.
+k25 KILL_NPC        v1=npc template id, v2=party-member level cap
+                    count; +1 when v1==npc && (v2==0 || a party/raid member has level<=v2)
+                    Proof for v2: rec 1465 v1=11364(v2=20) = "20레벨 이하 파티원과 오카페 10회
+                    처치"; 35/45/50 alike; 92 of 102 records are v2=0. Canonical point:
+                    npcs/npc/death.rs::before_death (L101) which calls the
+                    NpcHooks::on_npc_killed hook per eligible player (L144/170/190); implement in
+                    quests/bridges.rs::on_npc_killed (L253) or a new hook. No object lock.
+k26 KILL_SLAVE      v1=slaves.id (2 = siege catapult), v2=1 (single authored row, meaning
+                    unresolved), count; +1 when a player destroys that slave
+                    vehicles/mod.rs::on_do_die (L348) -> vehicles/slaves.rs::do_die.
+k29 GET_ITEM_TYPE   v1=items.id, v2=grade id or -1 (ANY). All 216 rows are -1 in 1.2.
+                    count; +count of acquired items matching template (+grade if v2>=0)
+                    economy/fx.rs::flush ItemFx::Acquired (L87-97) -> QuestItemHooks::
+                    on_items_acquired; runs AFTER ItemTxn drop (guard released in
+                    ItemTxn::drop L109-115), and only for count>0.
+                    DANGER - the same ItemFx::Acquired fires for container MOVES
+                    (models/container.rs L611-616: !same_container, count=final_count) and for
+                    stack MERGES (L924-929: count=item.count = new total, not the delta), so a
+                    naive credit double-counts warehouse<->bag moves and over-counts merges.
+                    Credit from a source-tagged/delta-carrying acquisition site (add a
+                    source/added field to ItemFx::Acquired or use the explicit
+                    acquire_default_item/try_add_new_item returns) - do not wire k29 to
+                    on_items_acquired as-is.
+k30 MAKE_ITEM_TYPE  v1=items.id, v2=grade id or -1 (all 581 rows -1)
+                    count; +count crafted with matching template (+grade)
+                    economy/craft.rs::end_craft (L505); hand_out_products (L605) has the
+                    grade_to_use per product but runs inside ItemTxn -> return the produced
+                    (item_id, grade, count) list and report after the txn/housing op are dropped
+                    (the existing CraftHooks::on_craft at L592 has the right timing but only
+                    carries craft_id -> additive hook or bounded return).
+k32 MAKE_ITEM_IMPL  v1=items.impl_id (21 = all 초승돌/crescent stones),
+                    v2=grade id (0 일반/2 고급/3 희귀), count
+                    +count crafted items whose template impl_id==v1 && grade==v2
+                    Same site as k30 (needs impl_id from ItemData::template).
+k33 GET_LOOTPACK    v1=loot pack id (6217), v2=0, count
+                    +1 per loot pack successfully handed out with that pack id
+                    economy/bridges.rs::give_doodad_loot_pack (L2045) on Some(true) (doodad
+                    DoodadFuncLootPack path); NPC loot packs: npcs/npc/death.rs::generate_loot
+                    (L240). Report after the ItemTxn drops.
+k34 GET_LOOTITEM    v1=items.id (milk/ore/etc), v2=0, count
+                    +count of items actually granted by a loot roll (loot source only)
+                    economy/loot.rs::give_loot_pack (L389) success list (inside ItemTxn ->
+                    bounded return) / npcs/doodad/funcs/items.rs::loot_item (L38) on res==true.
+                    Distinct from k29 only by source: k29 = any acquisition, k34 = loot roll.
+k35 USE_ITEM        v1=items.id, v2=0, count; +1 per successful use
+                    live call sites: skills/skill.rs L1018/L1664 -> skills::ext::quests()::
+                    item_use -> quests/bridges.rs::item_use (L75) -> events::on_item_use, and
+                    economy/bridges.rs L2233/L2326 (item handlers) -> events::on_item_use.
+                    economy/inventory.rs::item_use (L1434) is a wrapper with NO callers today.
+k36 ITEM_FIX        v1/v2=0, count; +number of items actually repaired
+                    economy/repair.rs::do_repair (L34); repair_in_containers (L106) has the
+                    repaired Vec but holds ItemTxn -> bounded return, report after drop.
+k37 SELL_ITEM       v1=sold trade-pack items.id, v2=destination npc template id
+                    (10817 펠루루 / 10818 릴리로로 / 4478 이로로), count
+                    +1 per completed specialty sale
+                    economy/specialty.rs::sell_specialty (L293; this is the registered
+                    CSSellBackpackGoodsPacket path via economy/store.rs:184+815), report after
+                    the ItemTxn block (L383-399) that consumes the pack and 60 labor.
+                    Deviations: systems/npcs/specialty.rs::sell_specialty (L662) is a second
+                    unregistered implementation - do not double-credit both.
+k38 MAKE_HOUSING    v1=housings.id (design id), v2=0, count
+                    +1 when a house reaches its finished step
+                    housing/manager.rs::set_current_step (L395) when value==-1 && !loading &&
+                    changed (final `base_action` model); uses `template.id` = housings.id.
+k39 AUCTION_BUY     v1/v2=0, count; +1 per lot won (immediate buyout OR expired with a bid)
+                    economy/auction.rs::remove_auction_lot_sold (L609) is the shared sold tail
+                    (buyer = `buyer` name); callers hold the auction op guard -> report from the
+                    caller after the guard drops (buyout L793, expiry L953).
+k40 AUCTION_SOLD    v1/v2=0, count; +1 per lot sold to a buyer
+                    Same tail, seller = lot.client_id.
+k41 USE_SKILL       v1=skills.id, v2=0, count; +1 per completed, non-cancelled cast
+                    skills/skill.rs::end_skill (L1706); it already reads `skill.cancelled()`
+                    (L1716) and the template id; credit after the SCSkillEnded broadcast (L1734).
+                    Note stop() also calls end_skill for cancelled casts -> guard on !cancelled.
+k42 GET_JURY_POINT  v1/v2=0, points; +N per jury points awarded to a juror
+                    social/trial.rs juror reward (L2288-2289: +1 per finished trial via
+                    set_jury_point). Quest SupplyJuryPoint (quests/acts.rs L343) is a second
+                    source; prefer one report at the setter (crime.rs::set_jury_point L232 has
+                    old/new but no context; pass the delta from callers).
+k43 REPORT_CRIME    v1=crime_kind (2 assault=핏자국, 3 murder=큰 핏자국, 4 theft=발자국), v2=0
+                    count; +1 per accepted report BY THE REPORTER
+                    social/crime.rs::CrimeManager::report_crime (L611) success tail (events
+                    insert + add_crime_points + phase advance, returns Some(new_event) L747);
+                    report at the packet caller after it returns Some.
+k44 JUDGEMENT       v1=0 not-guilty / 1 guilty, v2=0, count; +1 per verdict for the defendant
+                    social/trial.rs::finalize_verdict (L1048) is_guilty; or
+                    result_is_guilty/result_is_not_guilty (L988) where not_guilty_count++.
+k45 WIN_DUEL        v1/v2=0, count; +1 for the winner
+                    social/duel.rs::duel_stop (L509), lose_id!=0 branch (draw credits nothing).
+k46 KILL_WANTED     v1/v2=0, count; +1 to the killer of a WANTED victim
+                    skills/combat.rs::character_death_tail: the existing
+                    buffs::check_buff_tag(WANTED) check (L656) is the success gate; credit the
+                    arrestor player before/independent of the arrest.
+k47 NPC_EMOTION     v1=npc template id, v2=express_texts.id (12 = /안녕 hello), count
+                    +1 when a player expresses emotion v2 at NPC v1
+                    services/express_text.rs CSExpressEmotionPacket::handle (L92); raw
+                    emotion_id + npc_obj_id are here. WARNING: on_express_fire (L126) is passed
+                    get_express_anim_id(emotion_id), so the raw emotion id is lost in the quest
+                    event - match on the packet handler, resolve npc template id via world.
+k48 GET_FACTION     v1=system_factions.id (161 해적/pirate), v2=0; flag (report 1 on becoming it)
+                    db_character.rs::Character::check_wanted_threshold (L69) sets
+                    faction_id = FACTION_PIRATE at infamy >= 3000. Takes &mut Character under the
+                    character lock -> return a bounded `became_pirate` bool and report after the
+                    caller drops the lock (callers: crime.rs::set_infamy_point L223, load path).
+k49 MY_DISHONORABLE_POINT v1/v2=0; flag (report 1 on LEAVING the outlaw faction) - inferred
+                    trial.rs::result_is_not_guilty (L988, infamy<=0 && faction==PIRATE ->
+                    restore original faction via Effect::SetFaction; also the dishonor-quest
+                    path). See Q2: the literal "current infamy" reading conflicts with the only
+                    authored objective (참회자 = leave the outlaw faction).
+k50 ENCHANT_ITEM    v1=resulting item_grades.id (5 영웅 .. 11 신화), v2=0, count
+                    +1 per successful enchant producing grade v1
+                    economy/item_effects.rs::grade_enchant (L335); result from roll_regrade
+                    (L505: SUCCESS/GREAT_SUCCESS vs BREAK/DOWNGRADE/FAIL); report after
+                    `drop(txn)` (L482) and use `after.grade`.
+k51 ENCHANT_FAILURE v1/v2=0, count; +1 per failed enchant
+                    Same site; membership of DOWNGRADE/BREAK in "failure" is unproven (Q4).
+k57-60 SIEGE win-attack / win-defence / lose-attack / lose-defence
+                    v1=siege_zones.zone_group_id (33/34/43/44 = the four castles), v2=0, count
+                    +1 per siege outcome to the participants of the winning/losing side.
+                    UNIMPLEMENTED producer; the state does exist:
+                    housing/dominion/state.rs::complete_engraving (L966) -> AttackerCaptured,
+                    tick (L1026) -> DefenderHeld on period end, cancel_siege -> Cancelled.
+                    Consumers are dominion/runtime.rs::complete_effect (L385) and start_tick
+                    (L701); neither credits characters. Participants are tracked per character
+                    (dominion/participants.rs, SiegeSide Attacker/Defender) so a producer can
+                    enumerate the roster at outcome time; offline participants are an open
+                    question. Do NOT fabricate a win/lose credit before this is decided.
+
+=== LOCK / INTEGRATION RULES ===
+* achievement_manager.rs::report_values (L102), increment_matching (L144), initial_snapshot
+  (L215) internally take `server.systems.economy.ops_lock()` AND `player.data()`.
+  ItemTxn::begin (economy/inventory.rs L67) takes the SAME ops_lock -> calling a report while
+  an ItemTxn guard, the economy gate, a container lock or the character lock is held
+  self-deadlocks. Always report after the locks are dropped.
+* Existing callbacks that already run outside locks (preferred surfaces):
+  - economy/fx.rs::flush (L40) item Acquired/Consumed (after ItemTxn guard release).
+  - npcs/npc/death.rs::before_death -> NpcHooks::on_npc_killed per eligible player (no locks).
+  - quests/events.rs public API: documented "must be called without the player data lock";
+    nested calls from quest hooks are queued and run before the op ends (run_or_queue).
+  - skills/combat.rs::character_death_tail: drop the `victim_p.data()` guard first.
+  - cast/craft/loot/repair/specialty/enchant handlers: their ItemTxn blocks are explicit and
+    end (or can be closed) before the report.
+* Where the success data is born inside a lock/ItemTxn, use a bounded operation return:
+  craft products+grades, loot granted list, repaired items list, auction sold (buyer/seller),
+  check_wanted_threshold faction change. Additive alternative: a new no-op default hook
+  method on the owning subsystem's hook trait, called at the same tail point.
+* Entry path: AchievementContent::initial_snapshot is implemented but has NO caller yet (only
+  manager tests). Wire it into world/session entry (see CSNotifyInGame in later C#) - this is
+  the surface that must run before/with the list push and after the character lock is free.
+
+=== MINIMAL ADDITIVE INTEGRATION SURFACES (for later workers) ===
+1. A single achievements facade next to the manager (systems/social/), exposing
+   report_records(player, [(record_id, abs)]) and report_kind(player, kind, amount, matches),
+   resolving AchievementContent::new(&server.game_data.systems.social.achievements) and doing
+   nothing when the state/record is absent. All producers call only this facade; it owns the
+   ops_lock/character-lock rule in one place.
+2. Entry-path wiring in world/session (initial_snapshot + send_list) - one call site.
+3. Per-subsystem tail calls / bounded returns listed in the table.
+4. New hook slots only if a producer has no existing callback (kind 11 mate level has the
+   existing vehicles->quests call; kind 25/35/29 have hooks; kinds 39/40/36/30/34 need
+   bounded returns, not new hooks).
+
+=== SUGGESTED NON-OVERLAPPING FILE OWNERSHIP (later workers) ===
+W0 (achievement core/facade): systems/social/achievement_manager.rs, achievement_runtime.rs,
+   achievement_persistence.rs, and one new systems/social/achievement_hooks.rs. Owns the only
+   calls into report_values/increment_matching.
+W1 (combat/PvP): systems/skills/combat.rs (k19 zone honor, k23, k46),
+   systems/npcs/npc/death.rs or systems/quests/bridges.rs::on_npc_killed (k25),
+   systems/vehicles/slaves.rs (k26).
+W2 (economy): systems/economy/{fx.rs, craft.rs, loot.rs, repair.rs, auction.rs, specialty.rs,
+   item_effects.rs, bridges.rs} (k29,30,32,33,34,36,37,39,40,50,51) + npcs/doodad/funcs/items.rs.
+W3 (social/crime/trial/duel): systems/social/{crime.rs, trial.rs, duel.rs} (k42,43,44,45;
+   dishonor/faction exit k49) - exclude achievement_* owned by W0.
+W4 (services/vehicles): systems/services/{beauty_salon.rs, express_text.rs} (k16, k47),
+   systems/vehicles/mates.rs (k11).
+W5 (progression/housing/siege): systems/skills/progress.rs + skills/skill.rs +
+   skills/effects/special/misc.rs (k17,20,22,35,41), systems/housing/manager.rs (k38),
+   systems/housing/dominion/* + systems/social/dominion.rs (k57-60), db_character.rs (k48).
+W6 (entry path): world/session.rs + db_character load/save touchpoints (initial_snapshot +
+   list push). No producer files.
+Overlaps: every worker only edits its own files above; the W0 facade is the single integration
+point and must be frozen before W1-W6 start. W7 (not listed) would be the siege producer
+(dominion files) once Q1 is decided - keep it out until then.
+
+=== UNRESOLVED / UNPROVEN (do not fabricate) ===
+Q1 siege k57-60: no per-character credit consumer exists; outcome state + participant roster do.
+Q2 k49 MY_DISHONORABLE_POINT: kind name says "current dishonor/infamy", the only achievement
+   (참회자, complete_num 0, 1 objective) says "leave the outlaw faction via dishonor-reduction
+   quests". Under the high-water store a "current infamy" report completes the achievement on
+   the first infamy point, contradicting the text. Recommended: report a success flag at the
+   faction exit; needs a product decision (and the dishonor-quest path, quest_act_supply_crime_
+   points, appears to have no act handler yet).
+Q3 k28 quest repeats: the entry back-credit can only prove UNIQUE completions (completed
+   bitset, no per-run count), while achievements like 831-833 ask for 100 repeats of quests
+   2941-2943. Live quest completion should +1 per run; initial back-credit stays 1. Same
+   asymmetry applies to k27 category counts.
+Q4 k51 ENCHANT_FAILURE membership: FAIL is certain; DOWNGRADE and BREAK are not proven to be
+   "failure" for the record; k50 credits only SUCCESS/GREAT_SUCCESS (resulting grade) by text.
+Q5 k26 KILL_SLAVE v2=1 has a single authored row; no evidence what 1 means (side? count?).
+Q6 k33 GET_LOOTPACK for NPC loot packs: the authored record is a doodad loot pack (6217 is in
+   doodad_func_loot_packs and loots); decide whether NPC loot packs also credit.
+Q7 k29/k34 double credit: an item looted is both Acquired (k29) and a loot roll (k34). The
+   kinds are separate authored records; credit each record once per event from its own site,
+   never re-report the same event through two paths. k29 additionally must not count container
+   moves/merges (see the k29 row), or warehouse shuffling would complete collection
+   achievements.
+Q8 k48 GET_FACTION: only pirate (161) is authored; other faction changes (GM/trial restore)
+   must not credit.
+Q9 k11 PET_LEVEL: authored value1 rows cover only 38 specific pets; report the absolute level
+   of the active mate only (summoned mate's template id), not every owned mate.
+Q10 Live-vs-backfill: k20 labor spent is not reconstructible from state (consumed_labor_power
+   tracks a similar total - verify before any back-credit; not in back_credit_values today).
+
+=== COMMANDS USED (evidence, read-only) ===
+* git show/ls-tree 7851f67cc:AAEmu.Game/{Core/Managers/AchievementManager.cs,
+  Models/Game/Char/CharacterRecords.cs,Models/Game/Achievement/Enums/CharRecordKind.cs,
+  GameData/AchievementGameData.cs}
+* git grep -n "CharRecordKind\.|Records.Report|AchievementManager.Instance" 7851f67cc (and a2ab80abd^)
+* python sqlite3 (mode=ro uri) on rust/crates/aaemu-game/app/Data/compact.sqlite3:
+  char_records kind distribution, achievement_objectives joins, achievement
+  name/summary/description, complete_num ranges, id lookups in npcs/items/skills/housings/
+  slaves/system_factions/zone_groups/siege_zones/express_texts/report_crime_effects
+* grep/read of the Rust sites listed above (aaemu-game/src)

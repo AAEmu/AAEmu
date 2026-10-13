@@ -33,7 +33,7 @@ use super::auction_packets::{
     SCAuctionSearchedPacket,
 };
 use super::error_message;
-use super::inventory::{self, Inv, ItemTxn, Out};
+use super::inventory::{self, Inv, ItemTxn};
 
 /// `AuctionManager.MaxListingFee` (100g; 100 copper = 1 silver, 100 silver = 1 gold).
 pub const MAX_LISTING_FEE: i32 = 1_000_000;
@@ -417,10 +417,18 @@ pub struct AuctionManager {
     lots: Mutex<BTreeMap<u64, AuctionLot>>,
     /// `DeletedAuctionItemIds`.
     deleted: Mutex<Vec<u64>>,
+    deletion_versions: Mutex<BTreeMap<u64, Arc<()>>>,
+    pending_save: Mutex<Option<AuctionSaveBatch>>,
     /// `MailForAuction` delivery (mail port).
     pub mail: HookSlot<dyn AuctionMailHooks>,
     /// Auction operation lock (taken before any `ItemTxn`).
     op: Mutex<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct AuctionSaveBatch {
+    deleted: Vec<(u64, Arc<()>)>,
+    dirty: Vec<AuctionLot>,
 }
 
 /// `lot.DirectMoney * .01 * ((int)duration + 1)`, capped at `MaxListingFee`.
@@ -518,6 +526,10 @@ impl AuctionManager {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .push(id);
+        self.deletion_versions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id, Arc::new(()));
         lots.remove(&id);
     }
 
@@ -534,6 +546,63 @@ impl AuctionManager {
     /// Serialises the auction operations (outermost lock; mails are sent while it is held).
     fn op(&self) -> MutexGuard<'_, ()> {
         self.op.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    pub(crate) fn operation_lock(&self) -> MutexGuard<'_, ()> {
+        self.op()
+    }
+
+    pub(crate) fn prepare_save(&self, server: &GameServer) -> AuctionSaveBatch {
+        let ids = self.deleted_ids();
+        let versions = self
+            .deletion_versions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone();
+        AuctionSaveBatch {
+            deleted: ids
+                .into_iter()
+                .filter_map(|id| versions.get(&id).cloned().map(|v| (id, v)))
+                .collect(),
+            dirty: self
+                .lots()
+                .values()
+                .filter(|lot| lot.dirty)
+                .map(|lot| lot.with_live_item(server))
+                .collect(),
+        }
+    }
+
+    pub fn commit_save(&self) {
+        let Some(batch) = self
+            .pending_save
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take()
+        else {
+            return;
+        };
+        let mut versions = self
+            .deletion_versions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let mut deleted = self.deleted.lock().unwrap_or_else(|e| e.into_inner());
+        for (id, version) in batch.deleted {
+            if versions.get(&id).is_some_and(|v| Arc::ptr_eq(v, &version)) {
+                versions.remove(&id);
+                deleted.retain(|pending| *pending != id);
+            }
+        }
+        drop(deleted);
+        drop(versions);
+        let mut lots = self.lots();
+        for snapshot in batch.dirty {
+            if let Some(live) = lots.get_mut(&snapshot.id) {
+                if *live == snapshot {
+                    live.dirty = false;
+                }
+            }
+        }
     }
 
     /// `RemoveAuctionLotSold(itemToRemove, buyer, soldAmount)`.
@@ -615,7 +684,7 @@ impl AuctionManager {
     }
 
     /// `CancelAuctionLot(player, auctionId)`: only the seller may cancel a lot without bids.
-    /// The mailed item is a new copy and the listed item stays in the auction container.
+    /// Return the original escrow item, preserving its ID and details.
     pub fn cancel_auction_lot(&self, server: &GameServer, player: &PlayerRef, auction_id: u64) {
         let _op = self.op();
         let Some(lot) = self.lot(auction_id) else {
@@ -633,10 +702,8 @@ impl AuctionManager {
         let created = lot
             .item
             .as_ref()
-            .and_then(|i| inventory::server_env(server).create(i.template_id, i.count, i.grade));
+            .and_then(|i| server.items.item_by_id(i.id));
         if let Some(new_item) = created {
-            // `ItemManager.Create` registers the item in `_allItems`.
-            server.items.add_loose(new_item.clone());
             let recalculated_fee = listing_fee(lot.direct_money, lot.duration);
             self.send_mail(
                 server,
@@ -672,6 +739,40 @@ impl AuctionManager {
             let c = player.data();
             (c.id, c.unit.name.clone(), c.unit.transform.world_id as u8)
         };
+        let required = if lot.direct_money > 0 && bid.money >= lot.direct_money {
+            lot.direct_money
+        } else {
+            bid.money
+        };
+        if player_id == lot.client_id
+            || bid.money <= 0
+            || bid.money < lot.start_money
+            || lot.end_time <= Utc::now()
+            || bid.money <= lot.bid_money
+        {
+            return;
+        }
+
+        {
+            let mut txn = ItemTxn::begin(server);
+            let task = if lot.direct_money > 0 && bid.money >= lot.direct_money {
+                task_type::DEPOSIT_MONEY
+            } else {
+                task_type::AUCTION
+            };
+            if player.data().money < i64::from(required) {
+                return;
+            }
+            if !inventory::subtract_money(
+                &mut txn.out(),
+                player,
+                slot_type::INVENTORY,
+                required,
+                task,
+            ) {
+                return;
+            }
+        }
 
         if bid.money >= lot.direct_money && lot.direct_money != 0 {
             // Buy now
@@ -689,13 +790,6 @@ impl AuctionManager {
                     },
                 );
             }
-            inventory::subtract_money(
-                &mut Out::Direct,
-                player,
-                slot_type::INVENTORY,
-                lot.direct_money,
-                task_type::DEPOSIT_MONEY,
-            );
             self.remove_auction_lot_sold(server, &lot, &player_name, lot.direct_money);
         } else if bid.money > lot.bid_money {
             // Bid
@@ -725,13 +819,6 @@ impl AuctionManager {
             bid.bidder_id = player_id;
             bid.world_id = world_id;
 
-            inventory::subtract_money(
-                &mut Out::Direct,
-                player,
-                slot_type::INVENTORY,
-                bid.money,
-                task_type::AUCTION,
-            );
             player.send(SCAuctionBidPacket {
                 bid,
                 is_buyout: false,
@@ -928,7 +1015,7 @@ impl AuctionManager {
     ) {
         let _op = self.op();
         let mut txn = ItemTxn::begin(server);
-        // ItemManager.GetItemByItemId (any item of any owner, as in C#).
+        // Only the player's own unbound inventory item can enter auction escrow.
         let Some(item) = server.items.item_by_id(item_id) else {
             return;
         };
@@ -936,6 +1023,16 @@ impl AuctionManager {
             let c = player.data();
             (c.id, c.unit.name.clone())
         };
+        if item.owner_id != u64::from(player_id)
+            || item.slot_type != slot_type::INVENTORY
+            || item.flags & crate::models::item::ITEM_FLAG_SOUL_BOUND != 0
+            || start_price < 0
+            || buyout_price < 0
+            || (buyout_price > 0 && buyout_price < start_price)
+            || duration > auction_duration::HOURS_48
+        {
+            return;
+        }
         let Some(mut lot) = Self::create_auction_lot(
             server,
             player_id,
@@ -951,14 +1048,20 @@ impl AuctionManager {
 
         let auction_fee = listing_fee(lot.direct_money, duration);
 
-        // Deduct AH fee
-        if !inventory::change_money_at(
-            &mut txn.out(),
-            player,
-            slot_type::INVENTORY,
-            -(auction_fee as i32),
-            task_type::DEPOSIT_MONEY,
-        ) {
+        let Some(auction) = Inv::of(player).get(slot_type::AUCTION) else {
+            server.ids.auction.release_id(lot.id as u32);
+            return;
+        };
+        if player.data().money < auction_fee as i64
+            || !super::mail::add_or_move_existing_item(
+                &mut txn,
+                &auction,
+                task_type::AUCTION,
+                item_id,
+                -1,
+            )
+        {
+            server.ids.auction.release_id(lot.id as u32);
             inventory::send_error_message_to(
                 &mut txn.out(),
                 player,
@@ -966,19 +1069,18 @@ impl AuctionManager {
             );
             return;
         }
-
-        // Inventory.AuctionAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, item)
-        // (the result is ignored by the C#).
-        if let Some(auction) = Inv::of(player).get(slot_type::AUCTION) {
-            move_into(&mut txn, &auction, item_id);
-            if let Some(placed) = auction
-                .lock()
-                .expect("container poisoned")
-                .get_item_by_id(item_id)
-            {
-                lot.item = Some(placed.clone());
-            }
-        }
+        inventory::change_money_at(
+            &mut txn.out(),
+            player,
+            slot_type::INVENTORY,
+            -(auction_fee as i32),
+            task_type::DEPOSIT_MONEY,
+        );
+        lot.item = auction
+            .lock()
+            .expect("container poisoned")
+            .get_item_by_id(item_id)
+            .cloned();
 
         let packet = SCAuctionPostedPacket { lot: lot.clone() };
         self.add_auction_lot(lot);
@@ -1051,6 +1153,11 @@ impl AuctionManager {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clear();
+        self.deletion_versions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
+        *self.pending_save.lock().unwrap_or_else(|e| e.into_inner()) = None;
         match self.try_load(server).await {
             Ok(()) => true,
             Err(e) => {
@@ -1128,50 +1235,37 @@ impl AuctionManager {
         server: &GameServer,
         tx: &mut Transaction<'_, MySql>,
     ) -> Result<(usize, usize)> {
+        let batch = {
+            let _op = self.op();
+            self.prepare_save(server)
+        };
+        self.write_prepared(tx, batch).await
+    }
+
+    pub(crate) async fn write_prepared(
+        &self,
+        tx: &mut Transaction<'_, MySql>,
+        batch: AuctionSaveBatch,
+    ) -> Result<(usize, usize)> {
+        *self.pending_save.lock().unwrap_or_else(|e| e.into_inner()) = None;
         let mut deleted_count = 0;
-        let deleted = self.deleted_ids();
+        let deleted = &batch.deleted;
         if !deleted.is_empty() {
             let list = deleted
                 .iter()
-                .map(u64::to_string)
+                .map(|(id, _)| id.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
             deleted_count = sqlx::query(&format!("DELETE FROM auction_house WHERE `id` IN({list})"))
                 .execute(&mut **tx)
                 .await?
                 .rows_affected() as usize;
-            self.deleted
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .retain(|id| !deleted.contains(id));
         }
 
         let mut updated_count = 0;
-        let dirty: Vec<AuctionLot> = self.lots().values().filter(|l| l.dirty).cloned().collect();
-        for lot in dirty {
-            let Some(snapshot) = &lot.item else { continue };
-            let item = server
-                .items
-                .item_by_id(snapshot.id)
-                .unwrap_or_else(|| snapshot.clone());
-            let mut item_slot_type = item.slot_type;
-            if item_slot_type == slot_type::NONE {
-                if item.owner_id == 0 {
-                    continue;
-                }
-                if let Some(c) = server.items.holding_container(item.id) {
-                    let cid = c.lock().expect("container poisoned").container_id;
-                    item_slot_type = server.items.container_slot_type(cid);
-                }
-                if item_slot_type != slot_type::NONE {
-                    tracing::warn!(
-                        "Slot type for {} was None, changing to {item_slot_type}",
-                        item.id
-                    );
-                } else {
-                    continue;
-                }
-            }
+        for lot in &batch.dirty {
+            let Some(item) = &lot.item else { continue };
+            let item_slot_type = item.slot_type;
             if !slot_type::ALL.contains(&item_slot_type) {
                 tracing::warn!(
                     "Found SlotType.{item_slot_type} in itemslist, skipping ID:{} - Template:{}",
@@ -1206,45 +1300,8 @@ impl AuctionManager {
             .execute(&mut **tx)
             .await?;
             updated_count += r.rows_affected() as usize;
-            if let Some(l) = self.lots().get_mut(&lot.id) {
-                l.dirty = false;
-            }
         }
+        *self.pending_save.lock().unwrap_or_else(|e| e.into_inner()) = Some(batch);
         Ok((updated_count, deleted_count))
-    }
-}
-
-/// `container.AddOrMoveExistingItem(ItemTaskType.Auction, item)` for an item anywhere in the
-/// item manager (`item._holdingContainer` may be any container, or none).
-fn move_into(txn: &mut ItemTxn<'_>, target: &crate::models::container::ContainerRef, item_id: u64) {
-    let data = txn.data();
-    let server = txn.server;
-    match server.items.holding_container(item_id) {
-        Some(src) if Arc::ptr_eq(&src, target) => {
-            let mut t = target.lock().expect("container poisoned");
-            t.relocate_item(task_type::AUCTION, item_id, -1, data, &mut txn.env.fx);
-        }
-        Some(src) => {
-            let (mut a, b) = inventory::lock_pair(target, &src);
-            let mut b = b.expect("different containers");
-            // lock_pair returns (target, src) guards.
-            a.move_item_from(
-                &mut b,
-                task_type::AUCTION,
-                item_id,
-                -1,
-                data,
-                &mut txn.env.fx,
-            );
-        }
-        None => {
-            if let Some(item) = server.items.take_loose(item_id) {
-                let mut t = target.lock().expect("container poisoned");
-                if let Err(item) = t.add_item(task_type::AUCTION, item, -1, data, &mut txn.env.fx) {
-                    drop(t);
-                    server.items.add_loose(item);
-                }
-            }
-        }
     }
 }

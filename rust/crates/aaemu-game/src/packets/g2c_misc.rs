@@ -10,6 +10,7 @@ use crate::models::character::{convert_long, Character};
 use crate::models::item::UnixTime;
 use crate::net::packet::{ServerPacket, LEVEL_PLAIN};
 use crate::opcodes::sc;
+use crate::systems::npcs::schedule_items::MAX_ITEMS_IN_PACKET;
 
 /// Declares a level-1 packet whose fields are written in declaration order.
 macro_rules! simple_packet {
@@ -282,7 +283,9 @@ impl Marshal for SCFvFCombatRelationshipPacket {
     }
 }
 
-/// `Models/Game/ScheduleItem` (a `PacketMarshaler`; the 1.2 C# never builds one).
+/// `Models/Game/ScheduleItem` (a `PacketMarshaler`; the 1.2 C# never builds one). The client
+/// treats `item_template_id` as the schedule row id (`scheduleType`), which is why the 10.x
+/// upstream renamed it `Type`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ScheduleItem {
     pub item_template_id: u32,
@@ -299,7 +302,10 @@ impl Marshal for ScheduleItem {
     }
 }
 
-/// `SCScheduleItemUpdatePacket(List<ScheduleItem>)`.
+/// `SCScheduleItemUpdatePacket(List<ScheduleItem>)`. The 1.2 C# wrote the count as an `int` and
+/// never built the packet; the client reads one byte, so the serializer writes a `u8` and caps the
+/// list at [`MAX_ITEMS_IN_PACKET`] rows like the 10.x `ScheduleItemRules` helper (verified against
+/// the real client through a local proxy).
 #[derive(Debug, Clone, PartialEq)]
 pub struct SCScheduleItemUpdatePacket {
     pub schedule_items: Vec<ScheduleItem>,
@@ -311,8 +317,9 @@ packet_def!(
 );
 impl Marshal for SCScheduleItemUpdatePacket {
     fn write(&self, s: &mut PacketStream) {
-        s.write_i32(self.schedule_items.len() as i32);
-        for item in &self.schedule_items {
+        let count = self.schedule_items.len().min(MAX_ITEMS_IN_PACKET);
+        s.write_u8(count as u8);
+        for item in &self.schedule_items[..count] {
             item.write(s);
         }
     }
@@ -586,20 +593,6 @@ mod tests {
             want
         );
 
-        let p = SCScheduleItemUpdatePacket {
-            schedule_items: vec![ScheduleItem {
-                item_template_id: 8000,
-                gave: 1,
-                acumulated: 2,
-                updated: 100,
-            }],
-        };
-        let mut want = vec![1, 0, 0, 0];
-        want.extend(8000u32.to_le_bytes());
-        want.extend([1, 2, 0, 0, 0]);
-        want.extend(100i64.to_le_bytes());
-        assert_eq!(body(&p), want);
-
         let f = FriendInfo {
             character_id: 1,
             name: "f".into(),
@@ -614,6 +607,61 @@ mod tests {
         want.extend(body(&f));
         want.push(1);
         assert_eq!(body(&p), want);
+    }
+
+    #[test]
+    fn schedule_item_update_packet_is_byte_exact() {
+        // Empty list: the u8 count alone (the 1.2 C# wrote an i32 zero here; the client reads one
+        // byte).
+        assert_eq!(
+            body(&SCScheduleItemUpdatePacket {
+                schedule_items: vec![]
+            }),
+            [0]
+        );
+
+        // One row: count + <u32 type, u8 gave, i32 cumulated, i64 updated unix seconds> = 17
+        // bytes, on opcode 0x1eb (verified against the real client as `<BIbiq`).
+        let packet = SCScheduleItemUpdatePacket {
+            schedule_items: vec![ScheduleItem {
+                item_template_id: 28,
+                gave: 0,
+                acumulated: 0,
+                updated: 1_385_528_340,
+            }],
+        };
+        let mut want = vec![1u8];
+        want.extend(28u32.to_le_bytes());
+        want.extend([0, 0, 0, 0, 0]);
+        want.extend(1_385_528_340i64.to_le_bytes());
+        assert_eq!(body(&packet), want);
+        assert_eq!(want.len(), 18);
+        let mut frame = vec![0xdd, 1, 0, 0, 0xeb, 0x01];
+        frame.extend(&want);
+        assert_eq!(encode(&packet), frame);
+
+        // The historical cap: 40 rows serialize as the first 32 (1 + 32 * 17 bytes).
+        let rows: Vec<ScheduleItem> = (1..=40)
+            .map(|id| ScheduleItem {
+                item_template_id: id,
+                gave: 0,
+                acumulated: 0,
+                updated: 0,
+            })
+            .collect();
+        let capped = body(&SCScheduleItemUpdatePacket {
+            schedule_items: rows,
+        });
+        assert_eq!(capped.len(), 1 + MAX_ITEMS_IN_PACKET * 17);
+        assert_eq!(capped[0], 32);
+        let first = 1;
+        assert_eq!(&capped[first..first + 4], 1u32.to_le_bytes());
+        let last = 1 + 31 * 17;
+        let mut last_row = Vec::new();
+        last_row.extend(32u32.to_le_bytes());
+        last_row.extend([0u8; 5]);
+        last_row.extend(0i64.to_le_bytes());
+        assert_eq!(&capped[last..last + last_row.len()], last_row.as_slice());
     }
 
     #[test]

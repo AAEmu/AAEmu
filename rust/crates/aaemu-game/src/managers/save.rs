@@ -20,6 +20,7 @@ pub(crate) struct FinancialSnapshot {
     pub(crate) houses: crate::systems::housing::manager::HousingSaveBatch,
     pub(crate) dominions: crate::systems::housing::dominion::state::SaveBatch,
     pub(crate) mails: crate::systems::economy::mail::MailSaveBatch,
+    pub(crate) auctions: crate::systems::economy::auction::AuctionSaveBatch,
     pub(crate) items: super::item::ItemSaveBatch,
     pub(crate) characters: Vec<(PlayerRef, Character)>,
 }
@@ -27,6 +28,7 @@ pub(crate) struct FinancialSnapshot {
 /// Capture property transactions before any database await. Claim/capture, tax payments,
 /// certificates, receipts and wallets must describe the same logical operation boundary.
 pub(crate) fn capture_financial_snapshot(server: &GameServer) -> FinancialSnapshot {
+    let _auction = server.systems.economy.auction.operation_lock();
     let _housing = server
         .systems
         .housing
@@ -55,6 +57,7 @@ pub(crate) fn capture_financial_snapshot(server: &GameServer) -> FinancialSnapsh
         houses,
         dominions,
         mails: server.systems.economy.mail.prepare_save(),
+        auctions: server.systems.economy.auction.prepare_save(server),
         items: server.items.prepare_save(),
         characters: players
             .into_iter()
@@ -83,7 +86,8 @@ pub(crate) async fn write_financial_snapshot(
     tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
     snapshot: FinancialSnapshot,
 ) -> crate::Result<FinancialSaveReceipt> {
-    let mut systems = crate::systems::save_before_prepared_financials(server, tx).await?;
+    let mut systems =
+        crate::systems::save_prepared_financial_stage(server, tx, SaveStage::BeforeItems).await?;
     let (updated, deleted) =
         crate::systems::housing::manager::write_prepared(server, tx, snapshot.houses).await?;
     systems += updated + deleted;
@@ -101,7 +105,15 @@ pub(crate) async fn write_financial_snapshot(
         .await?;
     systems += updated + deleted;
     let (items, deleted, containers) = server.items.write_prepared(tx, snapshot.items).await?;
-    systems += save_stage(server, tx, SaveStage::AfterItems).await?;
+    let (auction_updated, auction_deleted) = server
+        .systems
+        .economy
+        .auction
+        .write_prepared(tx, snapshot.auctions)
+        .await?;
+    systems += auction_updated + auction_deleted;
+    systems +=
+        crate::systems::save_prepared_financial_stage(server, tx, SaveStage::AfterItems).await?;
     let mut characters = Vec::new();
     for (player, mut character) in snapshot.characters {
         let removed = [
@@ -136,6 +148,7 @@ pub(crate) fn commit_financial_snapshot(server: &GameServer, receipt: FinancialS
     crate::systems::housing::manager::commit_save(server);
     server.systems.housing.dominions.commit_save();
     server.systems.economy.mail.commit_save();
+    server.systems.economy.auction.commit_save();
     server.items.commit_save();
     for ack in receipt.characters {
         let mut live = ack.player.data();
