@@ -411,7 +411,9 @@ pub fn damage(
     let caster_t = Target::Obj(caster.clone());
     let trg_t = Target::Obj(trg.clone());
     let test_drive = matches!(args.cast, CastAction::Buff { buff_id: 6151, .. });
-    if !test_drive && !can_attack(server, &caster_t, &trg_t) {
+    let house_removal =
+        crate::systems::housing::is_abandoned_house_removal_damage(server, e.id, args);
+    if !test_drive && !house_removal && !can_attack(server, &caster_t, &trg_t) {
         return;
     }
     unit_combat::reduce_current_hp(server, &trg, Some(&caster), value, KillReason::Damage);

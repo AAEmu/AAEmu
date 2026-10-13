@@ -170,6 +170,67 @@ pub fn demolish_by_player(server: &GameServer, player: &PlayerRef, house: &House
     ops::demolish(server, Some(player), house, false, false);
 }
 
+/// The original 1.2 removal debuff damages its abandoned house every 15 seconds.
+/// Authorize that server-owned tick without allowing ordinary self attacks.
+pub fn is_abandoned_house_removal_damage(
+    server: &GameServer,
+    effect_id: u32,
+    args: &EffectArgs<'_>,
+) -> bool {
+    use crate::models::buff::effect_state;
+    use crate::systems::skills::types::{CastAction, SkillCastTarget, SkillCaster};
+
+    if effect_id != 1876 || args.source.skill.is_some() || args.source.is_trigger {
+        return false;
+    }
+    let (Some(source), Some(template)) = (
+        args.source.buff.as_ref(),
+        server
+            .game_data
+            .systems
+            .skills
+            .buff(manager::BUFF_REMOVAL_DEBUFF),
+    ) else {
+        return false;
+    };
+    if !source.system || !Arc::ptr_eq(source, template) {
+        return false;
+    }
+    let Some(house) = args.target.as_obj().and_then(WorldObject::as_house) else {
+        return false;
+    };
+    let Some(caster) = args.caster.as_ref().and_then(WorldObject::as_house) else {
+        return false;
+    };
+    if !Arc::ptr_eq(house, caster)
+        || args.caster_caster != SkillCaster::Unit(house.obj_id)
+        || args.target_caster != SkillCastTarget::Unit(house.obj_id)
+    {
+        return false;
+    }
+    let CastAction::Buff {
+        buff_id: manager::BUFF_REMOVAL_DEBUFF,
+        owner_obj_id,
+        index,
+    } = args.cast
+    else {
+        return false;
+    };
+    if owner_obj_id != house.obj_id {
+        return false;
+    }
+    let h = house.data();
+    h.unit.owner_id == 0
+        && h.unit.buffs.effect_by_index(index).is_some_and(|b| {
+            b.template.id == manager::BUFF_REMOVAL_DEBUFF
+                && b.in_use
+                && b.state == effect_state::ACTING
+                && b.skill_id == 0
+                && b.caster_obj_id == house.obj_id
+                && b.skill_caster == SkillCaster::Unit(house.obj_id).to_net()
+        })
+}
+
 /// `HousingManager.UpdateOwnedHousingFaction(characterId, factionId)`.
 pub fn update_owned_housing_faction(server: &GameServer, character_id: u32, faction_id: u32) {
     manager::update_owned_housing_faction(server, character_id, faction_id);
