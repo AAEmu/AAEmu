@@ -441,7 +441,8 @@ character and does not select a target or cast a skill.
 It also reports effective `take_all_bounds` for the existing Take All widget. Inspect a
 screenshot before clicking: the button may be hidden during timed loot notifications.
 The tool does not open a corpse or take items; use normal interaction and pointer input.
-`client_pointer` moves or left-clicks in client pixels through the guarded 1.2 mouse handler.
+`client_pointer` moves or clicks in client pixels through the guarded 1.2 mouse handler:
+`action: "click"` remains a left-click and `action: "right_click"` sends a right-click.
 The mouse-lock mode is rejected before position events because that native path can move the
 desktop cursor. Clicks position first and wait at least 50 ms for the native Update before
 pressing, then hold for 100 ms and release on the driver's independent tick; repeated

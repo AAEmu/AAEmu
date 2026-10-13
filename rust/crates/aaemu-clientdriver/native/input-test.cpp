@@ -26,9 +26,9 @@ bool record_mouse(const Event& event) {
     // The native mouse device stores state before dispatching to listeners.
     if(event.id==269) { assert(!mouse_locked_flag);mouse_x=event.value; }
     else if(event.id==270) { assert(!mouse_locked_flag);mouse_y=event.value; }
-    else { assert(event.id==256);mouse_button_down=event.state==1; }
+    else { assert(event.id==256 || event.id==257);mouse_button_down=event.state==1; }
     bool accepted=record(event);
-    if((event.id==269 && lock_after_x) || (event.id==256 && event.state==1 && lock_after_down))
+    if((event.id==269 && lock_after_x) || ((event.id==256 || event.id==257) && event.state==1 && lock_after_down))
         mouse_locked_flag=true;
     return accepted;
 }
@@ -44,7 +44,7 @@ static void event(size_t i,int id,bool down,int mask) {
 }
 static void mouse_event(size_t i,int id,int state,float value,int mask=0x200) {
     const input::Event& actual=events.at(i);
-    const char* name=id==269?"pos_x":id==270?"pos_y":"mouse1";
+    const char* name=id==269?"pos_x":id==270?"pos_y":id==257?"mouse2":"mouse1";
     assert(actual.device==1 && actual.state==state && actual.id==id);
     assert(actual.unicode==0 && actual.symbol==NULL && actual.modifiers==mask);
     assert(actual.value==value && !strcmp(actual.name,name));
@@ -291,5 +291,68 @@ int main() {
     input::tick_at(env,5974);assert(events.size()==3 && input::mouse_button_down);
     input::tick_at(env,5975);
     assert(events.size()==4 && !input::mouse_held && !input::mouse_button_down);
+    // Mouse2 follows the same render gap, exact event bytes and independent release.
+    // Native r208022 handles both button IDs before its position-lock/cursor branch.
+    events.clear();input::lock_after_down=true;
+    assert(input::control_at(env,"mouse_right_click 88 99",6000)[0]=='0');
+    assert(events.size()==2 && input::mouse_pending && !input::mouse_button_down);
+    mouse_event(0,269,8,88);mouse_event(1,270,8,99);
+    assert(input::control_at(env,"mouse_click 1 2",6001)[0]=='2');
+    assert(input::control_at(env,"mouse_right_click 1 2",6001)[0]=='2');
+    assert(events.size()==2 && input::mouse_x==88 && input::mouse_y==99);
+    input::tick_at(env,6049);assert(events.size()==2);
+    input::tick_at(env,6050);
+    assert(events.size()==3 && input::mouse_button_down && input::mouse_locked_flag);
+    mouse_event(2,257,1,1);
+    input::tick_at(env,6149);assert(events.size()==3);
+    input::tick_at(env,6150);
+    assert(events.size()==4 && !input::mouse_held && !input::mouse_button_down);
+    mouse_event(3,257,2,0);
+    input::lock_after_down=input::mouse_locked_flag=false;
+    // A locked cursor prevents every position event, before the right-button queue exists.
+    events.clear();saved_attempts=attempts;input::mouse_locked_flag=true;
+    assert(input::control_at(env,"mouse_right_click 1 2",6200)[0]=='2');
+    assert(events.empty() && attempts==saved_attempts && !input::mouse_held);
+    assert(input::mouse_x==88 && input::mouse_y==99);
+    input::mouse_locked_flag=false;
+    // Mid-position lock: stop before pos_y, never queue a button and never reposition desktop.
+    input::lock_after_x=true;
+    assert(input::control_at(env,"mouse_right_click 12 34",6200)[0]=='2');
+    assert(events.size()==1 && !input::mouse_held && !input::mouse_button_down);
+    mouse_event(0,269,8,12);
+    input::lock_after_x=input::mouse_locked_flag=false;
+    // Cancellation or a lock during the render gap emits no unmatched Mouse2 release.
+    for(bool locked: {false,true}) {
+        events.clear();
+        assert(input::control_at(env,"mouse_right_click 12 34",6300)[0]=='0');
+        if(locked) { input::mouse_locked_flag=true;input::tick_at(env,6350); }
+        else assert(input::control_at(env,"release",6310)=="0released");
+        input::tick_at(env,6450);
+        assert(events.size()==2 && !input::mouse_held && !input::mouse_pending && !input::mouse_button_down);
+        input::mouse_locked_flag=false;
+    }
+    // Failed/throwing Mouse2 presses release Mouse2; a failed release is retried.
+    for(int failure: {0,1,2}) {
+        events.clear();
+        if(failure==0) fail_at=attempts+3;
+        else if(failure==1) throw_at=attempts+3;
+        else fail_at=attempts+4;
+        assert(input::control_at(env,"mouse_right_click 12 34",6500)[0]=='0');
+        input::tick_at(env,6550);
+        if(failure==2) input::tick_at(env,6650);
+        assert(!input::mouse_held && !input::mouse_button_down && input::physical==0x200);
+        mouse_event(events.size()-1,257,2,0);
+        fail_at=throw_at=0;
+    }
+    // Unknown commands and unsupported native slots cannot emit Mouse2 events.
+    events.clear();saved_attempts=attempts;
+    for(const char* bad: {"mouse_right_click", "mouse_right_click 1", "mouse_right_click 1 2 extra",
+        "mouse_right_click -1 0", "mouse_right_click 4096 0", "mouse_right_click 1.5 0",
+        "mouse_right_clickfoo 1 2", "mouse_right_click 4294967296 0"})
+        assert(input::control_at(env,bad,6700)[0]=='2');
+    void* saved_slot=input::mouse_slots[26];input::mouse_slots[26]=NULL;
+    assert(input::control_at(env,"mouse_right_click 1 2",6700)[0]=='2');
+    input::mouse_slots[26]=saved_slot;
+    assert(events.empty() && attempts==saved_attempts && !input::mouse_held);
     puts("input event bytes, synchronous modifier shadow/restoration, shared holds, bounds, rollback and deadline release passed");
 }

@@ -32,6 +32,8 @@ static std::vector<Held> held;
 static bool mouse_held=false;
 static bool mouse_pending=false;
 static ULONGLONG mouse_until=0;
+static int mouse_button=256;
+static const char* mouse_button_name() { return mouse_button==257?"mouse2":"mouse1"; }
 // SInputEvent from CryInput.dll sub_3350439C: 32 bytes, value at +24.
 struct Event { int device, state; const char* name; int id, unicode, modifiers;
     float value; void* symbol; };
@@ -178,8 +180,10 @@ static bool mouse_event(void* env,int id,int state,const char* name,float value)
     } catch(...) { return false; }
 }
 static void mouse_up(void* env) {
-    // Mouse1 bypasses the position-lock branch, including after a listener locks it.
-    if(!mouse_event(env,256,2,"mouse1",0.f)) mouse_event(env,256,2,"mouse1",0.f);
+    // r208022 sub_335049E7 dispatches both Mouse1 (256) and Mouse2 (257) before
+    // the position-lock / SetCursorPos branch, including after a listener locks it.
+    if(!mouse_event(env,mouse_button,2,mouse_button_name(),0.f))
+        mouse_event(env,mouse_button,2,mouse_button_name(),0.f);
 }
 static void release_mouse(void* env) {
     if(!mouse_held) return;
@@ -197,15 +201,17 @@ static void tick_mouse(void* env,ULONGLONG now) {
         return;
     }
     mouse_pending=false;
-    if(!mouse_event(env,256,1,"mouse1",1.f)) { release_mouse(env);return; }
+    if(!mouse_event(env,mouse_button,1,mouse_button_name(),1.f)) { release_mouse(env);return; }
     mouse_until=now+100;
 }
-static std::string mouse_control(void* env,const std::string& command,bool click,ULONGLONG now) {
+static std::string mouse_control(void* env,const std::string& command,int button,ULONGLONG now) {
+    bool click=button!=0;
+    const char* expected_name=button==257?"mouse_right_click":click?"mouse_click":"mouse_move";
     std::istringstream words(command);
     std::string name,x_text,y_text,extra;
     unsigned coords[2]={0,0};
     if(!(words>>name>>x_text>>y_text) || (words>>extra)
-        || name!=(click?"mouse_click":"mouse_move"))
+        || name!=expected_name)
         return "2mouse input expects client-pixel x y within 0..4095";
     const std::string* texts[2]={&x_text,&y_text};
     for(int i=0;i<2;++i) for(char digit:*texts[i]) {
@@ -226,6 +232,8 @@ static std::string mouse_control(void* env,const std::string& command,bool click
     if(mouse_locked(env)) return "2mouse input became locked";
     mouse_held=true;
     mouse_pending=true;
+    // Exact native constructor sub_3350465A registers Mouse1=256 and Mouse2=257.
+    mouse_button=button;
     // The driver ticks after native Update and before draining new requests. A queued
     // position therefore receives at least one Update before the next eligible press.
     mouse_until=now+50;
@@ -265,8 +273,9 @@ static void tick_at(void* env,ULONGLONG now) {
 void tick(void* env) { tick_at(env,GetTickCount64()); }
 static std::string control_at(void* env,const std::string& command,ULONGLONG now) {
     if(command=="release") { release(env);return "0released"; }
-    if(command.compare(0,10,"mouse_move")==0) return mouse_control(env,command,false,now);
-    if(command.compare(0,11,"mouse_click")==0) return mouse_control(env,command,true,now);
+    if(command.compare(0,10,"mouse_move")==0) return mouse_control(env,command,0,now);
+    if(command.compare(0,11,"mouse_click")==0) return mouse_control(env,command,256,now);
+    if(command.compare(0,17,"mouse_right_click")==0) return mouse_control(env,command,257,now);
     char name[32]={0},extra=0;unsigned duration=0;
     if(sscanf_s(command.c_str(),"%31s %u %c",name,(unsigned)sizeof(name),&duration,&extra,1)!=2
         || duration<1 || duration>10000) return "2input expects a supported key and duration 1..10000 ms";
