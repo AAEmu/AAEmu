@@ -486,7 +486,10 @@ public sealed class House : Unit
         if (CurrentStep != -1) // unfinished houses can't be used to private store, so always true
             return base.AllowedToInteract(player);
 
-        return HousingPermissionRules.CanAccess(player, OwnerId, Permission) &&
+        // Guild residences: Expedition already prefers ResidenceHouseId over the placer's current guild.
+        return HousingPermissionRules.CanAccess(
+                   player, OwnerId, Permission,
+                   guildIdForAccess: Expedition?.Id ?? 0) &&
                base.AllowedToInteract(player);
     }
 

@@ -21,14 +21,6 @@ public static class DoodadSkillLessUseRules
     }
 
     /// <summary>
-    /// Inactive guild worldgate (and similar): the compact row is <c>DoodadFuncUse</c> with a
-    /// <c>func_skill_id</c>. F often arrives as skill 0; running that Use once schedules the real
-    /// skill so the phase can advance. Bare Uses with no skill stay off this path.
-    /// </summary>
-    public static bool KickoffUseOnSkillLess(string funcType, uint funcSkillId) =>
-        funcSkillId > 0 && funcType is "DoodadFuncUse" or nameof(DoodadFuncUse);
-
-    /// <summary>
     /// Some doodad funcs name a <c>func_skill_id</c> whose skill row has zero
     /// <c>skill_effects</c> (guild worldgate list open). The client still casts that skill at the
     /// doodad; without a bridge the cast applies nothing and never calls <see cref="Doodad.Use"/>.

@@ -63,6 +63,18 @@ public sealed class HousingPermissionRulesTests
         await Assert.That(HousingPermissionRules.CanSelect(actor, HousingPermission.Guild)).IsTrue();
     }
 
+    [Test]
+    public async Task GuildAccess_PrefersExplicitResidenceGuildId()
+    {
+        // Without a live ExpeditionManager, guildIdForAccess is the only way Guild permission can pass.
+        var member = Character(OwnerId + 1, AccountId + 1);
+        member.Expedition = new Expedition { Id = (FactionsEnum)77 };
+        await Assert.That(HousingPermissionRules.CanAccess(
+            member, OwnerId, HousingPermission.Guild, guildIdForAccess: (FactionsEnum)77)).IsTrue();
+        await Assert.That(HousingPermissionRules.CanAccess(
+            member, OwnerId, HousingPermission.Guild, guildIdForAccess: (FactionsEnum)88)).IsFalse();
+    }
+
     private static Character Character(uint id, uint accountId) =>
         new(new UnitCustomModelParams()) { Id = id, AccountId = accountId };
 }

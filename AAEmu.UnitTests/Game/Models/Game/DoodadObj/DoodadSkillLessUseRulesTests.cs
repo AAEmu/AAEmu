@@ -35,14 +35,6 @@ public class DoodadSkillLessUseRulesTests
     }
 
     [Test]
-    public async Task KickoffUse_OnlyWhenFuncCarriesASkill()
-    {
-        await Assert.That(DoodadSkillLessUseRules.KickoffUseOnSkillLess("DoodadFuncUse", 48612)).IsTrue();
-        await Assert.That(DoodadSkillLessUseRules.KickoffUseOnSkillLess("DoodadFuncUse", 0)).IsFalse();
-        await Assert.That(DoodadSkillLessUseRules.KickoffUseOnSkillLess("DoodadFuncQuest", 48612)).IsFalse();
-    }
-
-    [Test]
     public async Task EffectlessSkill_DrivesDoodadUseWhenFuncSkillMatches()
     {
         // Worldgate list-open skill has zero skill_effects; func_skill_id must match.

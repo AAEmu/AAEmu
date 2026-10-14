@@ -1859,6 +1859,9 @@ public class HousingManager(
     /// </summary>
     public bool CompleteHouseTaxPayment(Character character, House house, HousingTaxCharge charge)
     {
+        // Enter the persistence gate before guild/member/inventory locks inside PersistHouseWithTaxPayment.
+        using var persistenceOperation = PersistenceOperationScope.Enter();
+
         if (house == null)
             return false;
         charge ??= HousingTaxCharge.Empty;
@@ -2159,6 +2162,9 @@ public class HousingManager(
     /// </summary>
     public bool PrepayHouseTax(GameConnection connection, ushort tlId, bool useAaPoint)
     {
+        // Enter the persistence gate before guild/member/inventory locks inside PersistHouseWithTaxPayment.
+        using var persistenceOperation = PersistenceOperationScope.Enter();
+
         var character = connection.ActiveChar;
         if (character == null || !_housesTl.TryGetValue(tlId, out var house) || house.OwnerId != character.Id)
             return false;
