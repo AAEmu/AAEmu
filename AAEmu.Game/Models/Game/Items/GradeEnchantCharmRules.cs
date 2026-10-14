@@ -66,6 +66,19 @@ public static class GradeEnchantCharmRules
     }
 
     /// <summary>
+    /// Regrade support slot: only charms with no scale gate. Temper additives share the same
+    /// table but must not sit here (their scale band would skip the grade check and inflate odds).
+    /// </summary>
+    public static bool IsRegradeSupport(ItemGradeEnchantingSupport charm) =>
+        charm != null && !HasScaleRequirement(charm);
+
+    /// <summary>
+    /// Tempering support slot: only scale-gated additives. Regrade charms (31/31) must not sit here.
+    /// </summary>
+    public static bool IsTemperSupport(ItemGradeEnchantingSupport charm) =>
+        HasScaleRequirement(charm);
+
+    /// <summary>
     /// Flat and proportional adjustment to one chance (per 10000). Both are optional and signed —
     /// break-suppressing charms ship a multiplier of -100.
     /// </summary>

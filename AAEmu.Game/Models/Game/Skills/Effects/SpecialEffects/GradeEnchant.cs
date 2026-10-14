@@ -141,20 +141,19 @@ public class GradeEnchant : SpecialEffectAction
         Item charmItem = null;
         if (skillObject is SkillObjectItemGradeEnchantingSupport { SupportItemId: not 0 } charmObject)
         {
-            charmItem = character.Inventory.GetItemById(charmObject.SupportItemId);
+            charmItem = character.Inventory.Bag.GetItemByItemId(charmObject.SupportItemId);
             if (charmItem == null)
             {
-                Logger.Warn("GradeEnchant: charm {0} not found", charmObject.SupportItemId);
+                Logger.Warn("GradeEnchant: charm {0} not found in bag", charmObject.SupportItemId);
                 skill.Cancelled = true;
                 return;
             }
 
             charmInfo = ItemManager.Instance.GetItemGradEnchantingSupportByItemId(charmItem.TemplateId);
-            if (charmInfo == null)
+            if (charmInfo == null || !GradeEnchantCharmRules.IsRegradeSupport(charmInfo))
             {
-                // An item was placed in the support slot that is not a charm at all. Previously this
-                // dereferenced null one line later and took the whole cast down with it.
-                Logger.Warn("GradeEnchant: item {0} (tpl {1}) is not an enchanting support",
+                // Not a charm at all, or a temper additive (scale-gated) — refuse the regrade slot.
+                Logger.Warn("GradeEnchant: item {0} (tpl {1}) is not a regrade charm",
                     charmItem.Id, charmItem.TemplateId);
                 character.SendErrorMessage(ErrorMessageType.ItemCannotUse);
                 skill.Cancelled = true;

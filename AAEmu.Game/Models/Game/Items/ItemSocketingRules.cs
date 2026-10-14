@@ -16,6 +16,13 @@ public static class ItemSocketingRules
     public const int ModeExtract = 2;
 
     /// <summary>
+    /// Extract (and other socketing) stones must grant the cast skill. A BindOnPickup item that
+    /// starts a mismatched skill must not pay the stone cost.
+    /// </summary>
+    public static bool IsStoneForSkill(uint itemUseSkillId, uint castSkillId) =>
+        itemUseSkillId != 0 && castSkillId != 0 && itemUseSkillId == castSkillId;
+
+    /// <summary>
     /// Whether the bag can take every returned gem type together. Per-template
     /// <c>SpaceLeftForItem</c> double-counts the same empty slots, so extract-all could clear
     /// the sockets and then fail halfway through the returns.

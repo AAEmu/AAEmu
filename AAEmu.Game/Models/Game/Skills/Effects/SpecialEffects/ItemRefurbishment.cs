@@ -124,18 +124,19 @@ public class ItemRefurbishment : SpecialEffectAction
         Item charmItem = null;
         if (skillObject is SkillObjectItemGradeEnchantingSupport { SupportItemId: not 0 } charmObject)
         {
-            charmItem = owner.Inventory.GetItemById(charmObject.SupportItemId);
+            charmItem = owner.Inventory.Bag.GetItemByItemId(charmObject.SupportItemId);
             if (charmItem == null)
             {
-                Logger.Warn("ItemRefurbishment: support {0} not found", charmObject.SupportItemId);
+                Logger.Warn("ItemRefurbishment: support {0} not found in bag", charmObject.SupportItemId);
                 skill.Cancelled = true;
                 return;
             }
 
             charmInfo = ItemManager.Instance.GetItemGradEnchantingSupportByItemId(charmItem.TemplateId);
-            if (charmInfo == null)
+            if (charmInfo == null || !GradeEnchantCharmRules.IsTemperSupport(charmInfo))
             {
-                Logger.Warn("ItemRefurbishment: item {0} (tpl {1}) is not an enchanting support",
+                // Not a support at all, or a regrade charm (no scale gate) — refuse the temper slot.
+                Logger.Warn("ItemRefurbishment: item {0} (tpl {1}) is not a tempering additive",
                     charmItem.Id, charmItem.TemplateId);
                 owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
                 skill.Cancelled = true;

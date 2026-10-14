@@ -102,6 +102,20 @@ public class GradeEnchantCharmRulesTests
     }
 
     [Test]
+    public async Task SlotSplit_RegradeRefusesScaleGated_TemperRequiresScaleGate()
+    {
+        var regradeCharm = Charm(scaleMin: 31, scaleMax: 31);
+        var temperAdditive = Charm(scaleMin: 10, scaleMax: 30);
+
+        await Assert.That(GradeEnchantCharmRules.IsRegradeSupport(regradeCharm)).IsTrue();
+        await Assert.That(GradeEnchantCharmRules.IsRegradeSupport(temperAdditive)).IsFalse();
+        await Assert.That(GradeEnchantCharmRules.IsTemperSupport(temperAdditive)).IsTrue();
+        await Assert.That(GradeEnchantCharmRules.IsTemperSupport(regradeCharm)).IsFalse();
+        await Assert.That(GradeEnchantCharmRules.IsRegradeSupport(null)).IsFalse();
+        await Assert.That(GradeEnchantCharmRules.IsTemperSupport(null)).IsFalse();
+    }
+
+    [Test]
     public async Task AdjustChance_AppliesFlatAndMulThenClamps()
     {
         await Assert.That(GradeEnchantCharmRules.AdjustChance(2000, null, null)).IsEqualTo(2000);

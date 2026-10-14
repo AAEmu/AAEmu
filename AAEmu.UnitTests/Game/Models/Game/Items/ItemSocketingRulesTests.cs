@@ -5,6 +5,15 @@ namespace AAEmu.UnitTests.Game.Models.Game.Items;
 public class ItemSocketingRulesTests
 {
     [Test]
+    public async Task IsStoneForSkill_RequiresMatchingUseSkillId()
+    {
+        await Assert.That(ItemSocketingRules.IsStoneForSkill(100, 100)).IsTrue();
+        await Assert.That(ItemSocketingRules.IsStoneForSkill(100, 200)).IsFalse();
+        await Assert.That(ItemSocketingRules.IsStoneForSkill(0, 100)).IsFalse();
+        await Assert.That(ItemSocketingRules.IsStoneForSkill(100, 0)).IsFalse();
+    }
+
+    [Test]
     public async Task ResolveExtractSlots_SingleIndex_ReturnsOnlyThatFilledSocket()
     {
         uint[] gems = [10, 20, 30, 0, 0, 0, 0, 0, 0];

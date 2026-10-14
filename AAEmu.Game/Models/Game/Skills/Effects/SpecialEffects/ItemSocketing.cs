@@ -52,12 +52,13 @@ public class ItemSocketing : SpecialEffectAction
             return;
         }
 
-        var targetItem = owner.Inventory.GetItemById(skillTargetItem.Id);
-        var gemItem = owner.Inventory.GetItemById(gemSkillItem.ItemId);
+        var targetItem = owner.Inventory.Bag.GetItemByItemId(skillTargetItem.Id)
+            ?? owner.Inventory.Equipment.GetItemByItemId(skillTargetItem.Id);
+        var gemItem = owner.Inventory.Bag.GetItemByItemId(gemSkillItem.ItemId);
 
         if (targetItem is null || gemItem is null)
         {
-            Logger.Warn($"Special effects: ItemSocketing targetItem {skillTargetItem.Id} or gemItem {gemSkillItem.ItemId} not found");
+            Logger.Warn($"Special effects: ItemSocketing targetItem {skillTargetItem.Id} or gemItem {gemSkillItem.ItemId} not found in bag/equipment");
             return;
         }
 
@@ -172,6 +173,16 @@ public class ItemSocketing : SpecialEffectAction
     private void ExtractGems(Character owner, EquipItem equipItem, Item stone, Skill skill,
         SkillObject skillObject)
     {
+        if (!ItemSocketingRules.IsStoneForSkill(stone.Template?.UseSkillId ?? 0, skill?.Template?.Id ?? 0))
+        {
+            Logger.Warn(
+                "ItemSocketing extract: {0} item tpl {1} UseSkillId {2} is not stone for skill {3}",
+                owner.Name, stone.TemplateId, stone.Template?.UseSkillId ?? 0, skill?.Template?.Id ?? 0);
+            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+            skill.Cancelled = true;
+            return;
+        }
+
         if (!TryReadExtractSelection(skillObject, out var socketIndex, out var isAll))
         {
             Logger.Info("ItemSocketing extract: {0} item {1} had no extract selection",
