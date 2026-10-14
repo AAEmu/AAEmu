@@ -22,7 +22,7 @@
 //!
 //! # Record shapes
 //!
-//! The audited semantics of the authored `char_records` (see `achievement-hook-audit.txt`):
+//! The audited semantics of the authored `char_records` (see `rust/docs/achievement-hook-audit.txt`):
 //!
 //! * `value2 == 0` usually means "no sub-context" (any zone, no party cap).
 //! * `u32::MAX` is the table's `-1` and is the any-grade wildcard ([`GRADE_WILDCARD`]).
