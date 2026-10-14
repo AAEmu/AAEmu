@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
@@ -22,15 +22,9 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
     /// <remarks>
     /// Both variants let the player choose the line: the replace window puts a radio button on every
     /// effect and the cast carries that index either way. What the selectable variant adds is the
-    /// list of possible results to pick from, which rides one field further along.
+    /// group id of the result to pick, immediately after the slot index.
     /// </remarks>
     protected abstract bool PlayerSelects { get; }
-
-    /// <summary>Position of the chosen line inside the cast's extra values.</summary>
-    private const int SlotIndexValue = 0;
-
-    /// <summary>Position of the chosen replacement, sent only by the selectable variant.</summary>
-    private const int ChosenGroupValue = 2;
 
     public override void Execute(BaseUnit caster,
         SkillCaster casterObj,
@@ -53,15 +47,33 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
             return;
         }
 
+        // Payment is either a luck / lucid stone (SkillItem source) or one of the piece's change
+        // attempts. Stones are not use_skill_as_reagent and the skill_effect does not
+        // consume_source_item, so a stone spend lands here on success only. Lucid swaps always
+        // need a stone; basic swaps may spend an attempt with no stone at all.
+        Item stone = null;
+        if (casterObj is SkillItem stoneCaster)
+        {
+            stone = owner.Inventory.GetItemById(stoneCaster.ItemId);
+            if (stone == null || stone.Count < 1)
+            {
+                owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+                skill.Cancelled = true;
+                return;
+            }
+        }
+
         if (targetObj is not SkillCastItemTarget itemTarget)
         {
             Logger.Warn("{0}: target {1} is not an item", effectName, targetObj);
+            skill.Cancelled = true;
             return;
         }
 
         if (owner.Inventory.GetItemById(itemTarget.Id) is not EquipItem equipItem)
         {
             Logger.Warn("{0}: item {1} not found or not equipment", effectName, itemTarget.Id);
+            skill.Cancelled = true;
             return;
         }
 
@@ -73,10 +85,15 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
             return;
         }
 
-        // Swapping an effect spends one of the change attempts the item earned by gaining grades.
-        // Without any left the piece has to be synthesised further before it can be re-rolled again.
-        if (equipItem.EvolveChance == 0)
+        var payment = ItemEvolvingReRollRules.ResolvePayment(stone != null, equipItem.EvolveChance,
+            requiresStone: PlayerSelects);
+        if (payment == ItemEvolvingReRollPayment.None)
         {
+            Logger.Info("{0}: {1} item {2} refused — attempts={3} stone={4} lucid={5}",
+                effectName, owner.Name, equipItem.Id, equipItem.EvolveChance, stone != null,
+                PlayerSelects);
+            // Do not send SCItemReRollEvolvingResult here: even Fail with empty modifiers opens
+            // DLG_TASK_ITEM_EVOLVING_CONFIRM ("replace effect" with 0/0). Toast + cancel only.
             owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
             skill.Cancelled = true;
             return;
@@ -100,19 +117,42 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
 
         // The replacement comes out of the same bundle as the line being replaced - that bundle owns
         // this slot, and its choices are the only ones the window offers for it.
-        var afterGroupId = ResolveChosenGroup(categoryId, skillObject, held, beforeGroupId)
-                           ?? ItemEnchantGameData.Instance.RollRndAttrGroup(categoryId, equipItem.Grade,
-                               held, beforeGroupId);
-        if (afterGroupId == 0)
+        // Lucid stones name the result: a missing or rejected pick must not fall back to a roll.
+        uint afterGroupId;
+        if (PlayerSelects)
         {
-            Logger.Warn("{0}: pool {1} rolled nothing at grade {2}", effectName, categoryId, equipItem.Grade);
-            skill.Cancelled = true;
-            return;
+            var named = ResolveChosenGroup(categoryId, skillObject, held, beforeGroupId);
+            if (named is not uint picked)
+            {
+                Logger.Info("{0}: {1} named pick rejected for item {2} slot {3}",
+                    effectName, owner.Name, equipItem.Id, index);
+                owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+                skill.Cancelled = true;
+                return;
+            }
+
+            afterGroupId = picked;
+        }
+        else
+        {
+            afterGroupId = ItemEnchantGameData.Instance.RollRndAttrGroup(categoryId, equipItem.Grade,
+                held, beforeGroupId);
+            if (afterGroupId == 0)
+            {
+                Logger.Warn("{0}: pool {1} rolled nothing at grade {2}", effectName, categoryId, equipItem.Grade);
+                skill.Cancelled = true;
+                return;
+            }
         }
 
         equipItem.RndAttrGroupIds[index] = afterGroupId;
+        // Every successful swap spends one remaining change — stone or free. Leaving the
+        // counter alone on a stone pay stuck pieces at 1 forever.
         equipItem.EvolveChance--;
         equipItem.IsDirty = true;
+
+        if (payment == ItemEvolvingReRollPayment.LuckStone)
+            stone._holdingContainer?.ConsumeItem(ItemTaskType.Evolving, stone.TemplateId, 1, stone);
 
         // The dialog spells both lines out, so the magnitudes are looked up here the same way the
         // client does it. A swap that lands on the same group is a re-roll of the value, not a change.
@@ -136,8 +176,10 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
         owner.SendPacket(new SCItemReRollEvolvingResultPacket(equipItem.Id,
             (byte)ItemGradeEnchantResult.Success, changedAttribute, before, after));
 
-        Logger.Debug("{0}: {1} re-rolled slot {2} of item {3}: group {4} -> {5}",
-            effectName, owner.Name, index, equipItem.Id, beforeGroupId, afterGroupId);
+        Logger.Info(
+            "{0}: {1} re-rolled slot {2} of item {3}: group {4} -> {5}, payment {6}, stone {7}, attempts left {8}",
+            effectName, owner.Name, index, equipItem.Id, beforeGroupId, afterGroupId, payment,
+            stone?.TemplateId ?? 0, equipItem.EvolveChance);
     }
 
     /// <summary>
@@ -154,12 +196,9 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
     {
         var used = equipItem.UsedRndAttrGroupIds.Count();
 
-        if (skillObject is SkillObjectExtraValues extras && extras.Values.Length > SlotIndexValue)
-        {
-            var chosen = extras.Values[SlotIndexValue];
-            if (chosen >= 0 && chosen < used)
-                return chosen;
-        }
+        if (skillObject is SkillObjectExtraValues extras &&
+            ItemEvolvingReRollRules.TryReadSlotIndex(extras.Values, extras.ReadCount, used, out var index))
+            return index;
 
         return Random.Shared.Next(used);
     }
@@ -171,20 +210,16 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
     /// <remarks>
     /// Treated as a request rather than an instruction: the named group has to belong to this item's
     /// pool and may not duplicate an attribute the piece already wears, so a hand-built cast cannot
-    /// name an effect from somewhere else.
+    /// name an effect from somewhere else. The group id is the second of the two extras the lucid
+    /// stone sends (after the slot index).
     /// </remarks>
     private uint? ResolveChosenGroup(uint categoryId, SkillObject skillObject, List<short> held,
         uint bundleAnchor)
     {
         if (!PlayerSelects || skillObject is not SkillObjectExtraValues extras ||
-            extras.Values.Length <= ChosenGroupValue)
+            !ItemEvolvingReRollRules.TryReadChosenGroupId(extras.Values, extras.ReadCount, out var groupId))
             return null;
 
-        var chosen = extras.Values[ChosenGroupValue];
-        if (chosen <= 0)
-            return null;
-
-        var groupId = (uint)chosen;
         // A named replacement still has to belong to the bundle that owns the slot, or a hand-built
         // request could pull the other bundle's effect into it.
         if (!ItemEnchantGameData.Instance.IsGroupInSameBundle(categoryId, bundleAnchor, groupId))

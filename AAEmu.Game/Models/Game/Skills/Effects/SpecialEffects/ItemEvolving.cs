@@ -307,23 +307,15 @@ public class ItemEvolving : SpecialEffectAction
             if (next == null)
                 break;
 
-            // A rung is priced by the grade it leads into, not by the one it leaves. A grade the pool
-            // never priced is a grade the pool does not offer, and that is where its ladder ends -
-            // which is how one pool stops at Celestial and the next carries on to Eternal.
-            var needed = ItemEnchantGameData.Instance.GetGradeExp(categoryId, next.Value);
-            if (needed == 0)
-            {
-                // Unless the pool's own ceiling reaches past its priced rungs, which is how the
-                // story-quest sets are built: their last step carries no price of its own and is
-                // paid for by filling the grade below it. That is the jump those pieces make from a
-                // full bar, and it is the only way an unpriced rung can be entered.
-                if (!AllowsFreeStep(category, next.Value))
-                    break;
-
-                needed = ItemEnchantGameData.Instance.GetGradeExp(categoryId, equipItem.Grade);
-                if (needed == 0)
-                    break;
-            }
+            // The bar the client draws is grade_exp of the grade the piece is in. Spending the
+            // *next* grade's cost instead is what left weapons stuck at 100–170% before a step:
+            // shipped pools climb ~1.7× per rung. An unpriced next is only enterable when the
+            // pool's ceiling allows that free step (story-quest sets), still paid by filling here.
+            var currentCost = ItemEnchantGameData.Instance.GetGradeExp(categoryId, equipItem.Grade);
+            var nextCost = ItemEnchantGameData.Instance.GetGradeExp(categoryId, next.Value);
+            if (!ItemEvolvingRules.TryGetStepCost(currentCost, nextCost, AllowsFreeStep(category, next.Value),
+                    out var needed))
+                break;
 
             if (equipItem.EvolvingExp < needed)
                 break;

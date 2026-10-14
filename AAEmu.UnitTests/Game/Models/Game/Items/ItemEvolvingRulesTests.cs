@@ -51,4 +51,35 @@ public class ItemEvolvingRulesTests
         await Assert.That(purchased).IsEqualTo(0u);
         await Assert.That(takeCount).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task StepCost_IsTheCurrentGradesBarNotTheNext()
+    {
+        // Typical weapon pool: current 9494, next 16139 (~1.7×). Spending the next cost is what
+        // left a full bar stuck until ~170%.
+        await Assert.That(ItemEvolvingRules.TryGetStepCost(9494, 16139, false, out var needed)).IsTrue();
+        await Assert.That(needed).IsEqualTo(9494u);
+    }
+
+    [Test]
+    public async Task StepCost_FreeStepStillPaysByFillingTheGradeBelow()
+    {
+        await Assert.That(ItemEvolvingRules.TryGetStepCost(10000, 0, allowsFreeStepIntoNext: true, out var needed))
+            .IsTrue();
+        await Assert.That(needed).IsEqualTo(10000u);
+    }
+
+    [Test]
+    public async Task StepCost_StopsAtAnUnpricedNextWithoutAFreeStep()
+    {
+        await Assert.That(ItemEvolvingRules.TryGetStepCost(10000, 0, allowsFreeStepIntoNext: false, out _))
+            .IsFalse();
+    }
+
+    [Test]
+    public async Task StepCost_RejectsAnUnpricedCurrentGrade()
+    {
+        await Assert.That(ItemEvolvingRules.TryGetStepCost(0, 1624, false, out _))
+            .IsFalse();
+    }
 }

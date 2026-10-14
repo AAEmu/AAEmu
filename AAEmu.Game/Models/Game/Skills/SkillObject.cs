@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -11,11 +11,25 @@ public enum SkillObjectType
     Unk3 = 3,
     Unk4 = 4,
     Unk5 = 5,
-    Unk6 = 6,
-    ItemGradeEnchantingSupport = 7,
+
+    /// <summary>
+    /// Regrade charm slot: <c>u64 supportItemId</c> + <c>bool autoUseAAPoint</c>.
+    /// Remodel Confirm also uses flag byte 7 (housing template u32) — that path is handled
+    /// separately and is not this type.
+    /// </summary>
+    ItemGradeEnchantingSupport = 6,
+
+    /// <summary>House remodel Confirm payload is a bare u32 housing template id.</summary>
+    HouseRemodel = 7,
 
     /// <summary>Synthesis material slots. See <see cref="SkillObjectItemEvolvingMaterials"/>.</summary>
     ItemEvolvingMaterials = 8,
+
+    /// <summary>
+    /// Socket extract tab: zero-based socket <c>index</c> then <c>isAll</c>. Extract-all sends
+    /// index 0 with <c>isAll</c> true — not a second int in the ExtraValues blob.
+    /// </summary>
+    ItemSocketExtract = 11,
 
     /// <summary>10.0.2.13 <c>ActiveAbilitySet</c> — payload is skillsaver slot index (i32).</summary>
     AbilitySet = 15,
@@ -52,15 +66,14 @@ public class SkillObject : PacketMarshaler
     /// Whether the low bits of a cast's flag byte name a shape this server can read back.
     /// </summary>
     /// <remarks>
-    /// Six is excluded. The flag is a bit mask, and only bit 3 carries a payload, so a cast setting
-    /// bits 1 and 2 arrives as "6" without a body behind it - tempering is one. Read as a type it
-    /// pulled a string out of the next field and echoed that back into the cast packet, which cost
-    /// the cast its animation the same way an announced-but-missing body did for synthesis. Nothing
-    /// in this build sends a genuine one.
+    /// Type 7 (<see cref="SkillObjectType.HouseRemodel"/>) is parsed only for rebuild skills in
+    /// <c>CSStartSkillPacket</c> (one u32). Accepting it here for every cast would steal that u32
+    /// from unrelated skills that share the same flag value.
     /// </remarks>
     public static bool IsKnownType(int flagType) =>
-        flagType is >= (int)SkillObjectType.Unk1 and <= (int)SkillObjectType.ItemEvolvingMaterials
-            and not (int)SkillObjectType.Unk6
+        flagType is (>= (int)SkillObjectType.Unk1 and <= (int)SkillObjectType.ItemEvolvingMaterials
+                and not (int)SkillObjectType.HouseRemodel)
+            or (int)SkillObjectType.ItemSocketExtract
             or (int)SkillObjectType.AbilitySet
             or (int)SkillObjectType.HouseDemolish
             or (int)SkillObjectType.BlessUthstinPage
@@ -87,14 +100,14 @@ public class SkillObject : PacketMarshaler
             case SkillObjectType.Unk5:
                 obj = new SkillObjectUnk5();
                 break;
-            case SkillObjectType.Unk6:
-                obj = new SkillObjectUnk6();
-                break;
             case SkillObjectType.ItemGradeEnchantingSupport:
                 obj = new SkillObjectItemGradeEnchantingSupport();
                 break;
             case SkillObjectType.ItemEvolvingMaterials:
                 obj = new SkillObjectItemEvolvingMaterials();
+                break;
+            case SkillObjectType.ItemSocketExtract:
+                obj = new SkillObjectItemSocketExtract();
                 break;
             case SkillObjectType.AbilitySet:
                 obj = new SkillObjectAbilitySet();
@@ -228,42 +241,25 @@ public class SkillObjectUnk5 : SkillObject
     }
 }
 
-public class SkillObjectUnk6 : SkillObject
-{
-    public string Name { get; set; }
-
-    public override void Read(PacketStream stream)
-    {
-        Name = stream.ReadString();
-    }
-
-    public override PacketStream Write(PacketStream stream)
-    {
-        base.Write(stream);
-        stream.Write(Name);
-        return stream;
-    }
-}
-
 /// <summary>
-/// Remodel Confirm's extra: the housing template the house becomes. The CS flag byte is 7, which
-/// is also <see cref="SkillObjectType.ItemGradeEnchantingSupport"/>, so a rebuild skill reads only
-/// this u32 and keeps <see cref="SkillObjectType.None"/> for SkillStarted.
+/// Remodel Confirm's extra: the housing template the house becomes. CS flag byte 7
+/// (<see cref="SkillObjectType.HouseRemodel"/>); SkillStarted keeps <see cref="SkillObjectType.None"/>.
 /// </summary>
 public sealed class SkillObjectHousingRebuild : SkillObject
 {
     public uint HousingId { get; set; }
 }
 
+/// <summary>
+/// Regrade charm on CS/SC SkillCastExtra type 6: item id of the support stone, then AA-point auto-use.
+/// </summary>
 public class SkillObjectItemGradeEnchantingSupport : SkillObject
 {
-    public uint Id { get; set; }
     public ulong SupportItemId { get; set; }
     public bool AutoUseAaPoint { get; set; }
 
     public override void Read(PacketStream stream)
     {
-        Id = stream.ReadUInt32();
         SupportItemId = stream.ReadUInt64();
         AutoUseAaPoint = stream.ReadBoolean();
     }
@@ -271,9 +267,31 @@ public class SkillObjectItemGradeEnchantingSupport : SkillObject
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-        stream.Write(Id);
         stream.Write(SupportItemId);
         stream.Write(AutoUseAaPoint);
+        return stream;
+    }
+}
+
+/// <summary>
+/// Socket extract tab on CS SkillCastExtra type 11: which socket to pull, or every filled socket.
+/// </summary>
+public class SkillObjectItemSocketExtract : SkillObject
+{
+    public int Index { get; set; }
+    public bool IsAll { get; set; }
+
+    public override void Read(PacketStream stream)
+    {
+        Index = stream.ReadInt32();
+        IsAll = stream.ReadBoolean();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(Index);
+        stream.Write(IsAll);
         return stream;
     }
 }

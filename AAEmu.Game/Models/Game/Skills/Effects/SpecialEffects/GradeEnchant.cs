@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 
@@ -173,6 +174,18 @@ public class GradeEnchant : SpecialEffectAction
                 skill.Cancelled = true;
                 return;
             }
+
+            var enchantScale = item is EquipItem equipItem ? equipItem.EnchantScale : 0;
+            var hasRestrictTag = charmInfo.RestrictItemTagId != 0
+                && ItemManager.Instance.HasItemTag(item.TemplateId, charmInfo.RestrictItemTagId);
+            var hasExclusiveTag = charmInfo.ExclusiveItemTagId != 0
+                && ItemManager.Instance.HasItemTag(item.TemplateId, charmInfo.ExclusiveItemTagId);
+            if (!GradeEnchantCharmRules.IsAllowed(charmInfo, hasRestrictTag, hasExclusiveTag, enchantScale))
+            {
+                character.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+                skill.Cancelled = true;
+                return;
+            }
         }
 
         if (!character.Inventory.CheckItems(SlotType.Inventory, scroll.ItemTemplateId, 1))
@@ -192,6 +205,7 @@ public class GradeEnchant : SpecialEffectAction
         }
 
         var initialGrade = item.Grade;
+        var brokenTemplateId = item.TemplateId;
         var result = Roll(ratio, item, maxGradeOrder, gradeTemplate, charmInfo, value1 != 0, out var itemBroken);
 
         if (itemBroken)
@@ -230,7 +244,19 @@ public class GradeEnchant : SpecialEffectAction
         if (charmItem != null)
             charmItem._holdingContainer?.ConsumeItem(ItemTaskType.GradeEnchant, charmItem.TemplateId, 1, charmItem);
 
-        character.SendPacket(new SCGradeEnchantResultPacket(result, item, initialGrade, item.Grade));
+        // Compensation is paid after the break frees the bag slot, and the result packet carries
+        // whatever actually landed so the client can show it (or the "sent by mail" line).
+        var breakRewardItemType = 0;
+        var breakRewardItemCount = 0u;
+        var breakRewardByMail = false;
+        if (itemBroken)
+        {
+            TryPayBreakReward(character, item, brokenTemplateId, initialGrade,
+                out breakRewardItemType, out breakRewardItemCount, out breakRewardByMail);
+        }
+
+        character.SendPacket(new SCGradeEnchantResultPacket(result, item, initialGrade, item.Grade,
+            breakRewardItemType, breakRewardItemCount, breakRewardByMail));
         character.BroadcastPacket(new SCSkillEndedPacket(skill.TlId), true);
 
         if (!itemBroken && item.Grade >= BroadcastFromGrade &&
@@ -432,4 +458,110 @@ public class GradeEnchant : SpecialEffectAction
         var adjusted = baseChance + (addRatio ?? 0) + (int)(baseChance * ((addMul ?? 0) / 100.0));
         return Math.Clamp(adjusted, 0, 10000);
     }
+
+    /// <summary>
+    /// Pays the fail-break compensation for a destroyed item into the bag, or by mail when the bag
+    /// cannot hold the stack. Reports what the result packet should advertise.
+    /// </summary>
+    private static void TryPayBreakReward(
+        Character character,
+        Item brokenItem,
+        uint brokenTemplateId,
+        byte brokenGrade,
+        out int rewardItemType,
+        out uint rewardItemCount,
+        out bool byMail)
+    {
+        rewardItemType = 0;
+        rewardItemCount = 0;
+        byMail = false;
+
+        var slotTypeId = WearableSlotOf(brokenItem);
+        var category = ItemEnchantGameData.Instance.GetFailBreakRewardCategory(
+            brokenItem.Template.CategoryId, brokenItem.Template.Level, slotTypeId);
+        if (category == null)
+            return;
+
+        var reward = ItemEnchantGameData.Instance.GetFailBreakReward(category.RewardId);
+        var multiple = GradeEnchantBreakRewardRules.MultipleForGrade(category, brokenGrade);
+        var payout = GradeEnchantBreakRewardRules.Roll(
+            reward, multiple, Random.Shared.Next, (min, max) => Random.Shared.Next(min, max + 1));
+        if (payout is not { HasItem: true } paid)
+            return;
+
+        var bag = character.Inventory?.Bag;
+        if (bag == null)
+            return;
+
+        if (!GradeEnchantBreakRewardRules.GoesToMail(bag.SpaceLeftForItem(paid.ItemId), paid.Count))
+        {
+            if (!bag.AcquireDefaultItem(ItemTaskType.SkillEffectGainItem, paid.ItemId, paid.Count))
+            {
+                Logger.Warn("GradeEnchant: break reward {0} x{1} failed to enter the bag for {2}",
+                    paid.ItemId, paid.Count, character.Name);
+                return;
+            }
+
+            rewardItemType = (int)paid.ItemId;
+            rewardItemCount = (uint)paid.Count;
+            return;
+        }
+
+        if (!TryMailBreakReward(character, brokenTemplateId, brokenGrade, paid))
+        {
+            Logger.Warn("GradeEnchant: break reward {0} x{1} failed to mail for {2}",
+                paid.ItemId, paid.Count, character.Name);
+            return;
+        }
+
+        rewardItemType = (int)paid.ItemId;
+        rewardItemCount = (uint)paid.Count;
+        byMail = true;
+    }
+
+    private static bool TryMailBreakReward(
+        Character character, uint brokenTemplateId, byte brokenGrade, GradeEnchantBreakRewardPayout paid)
+    {
+        var attachments = character.Inventory?.MailAttachments;
+        if (attachments == null)
+            return false;
+
+        if (!attachments.AcquireDefaultItemEx(ItemTaskType.Invalid, paid.ItemId, paid.Count, -1,
+                out var staged, out _, character.Id))
+            return false;
+
+        var mail = new BaseMail
+        {
+            MailType = MailType.SysExpress,
+            Title = GradeEnchantBreakRewardRules.OverflowMailTitle(brokenTemplateId),
+            ReceiverName = character.Name,
+            Header =
+            {
+                SenderName = GradeEnchantBreakRewardRules.OverflowMailSender,
+                ReceiverId = character.Id
+            },
+            Body =
+            {
+                Text = GradeEnchantBreakRewardRules.OverflowMailBody(
+                    brokenTemplateId, paid.ItemId, brokenGrade, paid.Count),
+                SendDate = DateTime.UtcNow,
+                RecvDate = DateTime.UtcNow
+            }
+        };
+
+        mail.Body.Attachments.AddRange(staged);
+        if (mail.Send())
+            return true;
+
+        MailDeliveryRules.TryDiscardStagedAttachments(attachments, staged);
+        return false;
+    }
+
+    private static uint WearableSlotOf(Item item) => item.Template switch
+    {
+        WeaponTemplate weapon => weapon.HoldableTemplate?.SlotTypeId ?? 0,
+        ArmorTemplate armor => armor.SlotTemplate?.SlotTypeId ?? 0,
+        AccessoryTemplate accessory => accessory.SlotTemplate?.SlotTypeId ?? 0,
+        _ => 0u
+    };
 }
