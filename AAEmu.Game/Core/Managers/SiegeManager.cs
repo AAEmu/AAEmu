@@ -197,16 +197,6 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
             [new SiegeRaidRegisterZone((int)zoneGroupId, rows)]));
     }
 
-    /// <summary>
-    /// One faction's raid team for a zone group's siege, as the member list shows it: the members that faction
-    /// registered, with what each of them is and how well they are geared.
-    /// </summary>
-    /// <remarks>
-    /// A member who is in the world is read live. A member who is not is read from the database: their heir
-    /// level is their stored heir experience, and their gear score is their stored equipment scored the same way
-    /// a live character's is — the loader is the one an inventory load uses, so an offline member is listed with
-    /// the gear they logged out in rather than as a zero.
-    /// </remarks>
     /// <summary>Whether the character is registered in the raid team of a territory whose siege is about to start or running.</summary>
     public bool IsInSiegeMode(Character character)
     {
@@ -235,6 +225,16 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         return false;
     }
 
+    /// <summary>
+    /// One faction's raid team for a zone group's siege, as the member list shows it: the members that faction
+    /// registered, with what each of them is and how well they are geared.
+    /// </summary>
+    /// <remarks>
+    /// A member who is in the world is read live. A member who is not is read from the database: their heir
+    /// level is their stored heir experience, and their gear score is their stored equipment scored the same way
+    /// a live character's is — the loader is the one an inventory load uses, so an offline member is listed with
+    /// the gear they logged out in rather than as a zero.
+    /// </remarks>
     public List<SiegeRaidTeamMemberInfo> GetRaidTeamMembers(ushort zoneId, uint factionId)
     {
         var members = new List<SiegeRaidTeamMemberInfo>();

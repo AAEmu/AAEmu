@@ -41,11 +41,13 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
     private readonly Dictionary<uint, FactionPowerStanding> _overrides = [];
     private readonly Dictionary<(uint Week, uint FactionId), FactionPowerScore> _dirty = [];
     private readonly List<SiegeAward> _pendingSiegeAwards = [];
+    private readonly List<(uint FactionId, ushort ZoneGroupId, DateTime CycleWeekStart)> _unscoredSiegeWins = [];
     private bool _reclassified;
     private HashSet<uint> _superiors = [];
     private HashSet<uint> _inferiors = [];
     private uint _week;
     private int _started;
+    private int _subscribed;
 
     /// <summary>Raised after the standings were published (week rollover or a GM change).</summary>
     public event Action StandingsChanged;
@@ -98,36 +100,56 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
         return PowerFactions().Contains(rootId) ? rootId : 0;
     }
 
-    /// <summary>Loads this and last week and starts scoring. Called once the main world exists.</summary>
+    /// <summary>
+    /// Starts scoring once the main world exists. Nothing is scored or saved before this and last week are
+    /// loaded; a load that fails is retried every minute rather than starting empty over the stored scores.
+    /// </summary>
     public void Start()
     {
-        if (Interlocked.Exchange(ref _started, 1) != 0)
+        if (Interlocked.Exchange(ref _subscribed, 1) != 0)
             return;
-
-        try
-        {
-            lock (_sync)
-            {
-                _week = FactionPowerRules.WeekNumber(DateTime.UtcNow);
-                foreach (var score in LoadWeek(_week - 1))
-                    _previous[score.FactionId] = score;
-                foreach (var score in LoadWeek(_week))
-                    _current[score.FactionId] = score;
-                LoadOverrides();
-                ClassifyNoLock();
-            }
-        }
-        catch (Exception exception)
-        {
-            Logger.Error(exception, "Faction power: could not load the weekly scores, starting empty");
-        }
 
         TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMinutes(1));
         var mainWorld = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
         if (mainWorld != null)
             mainWorld.Events.OnUnitKilled += OnUnitKilled;
-        Logger.Info("Faction power: week {0}, superior [{1}], inferior [{2}]",
-            _week, string.Join(",", _superiors), string.Join(",", _inferiors));
+        TryLoad();
+    }
+
+    private bool TryLoad()
+    {
+        lock (_sync)
+        {
+            if (IsStarted)
+                return true;
+            try
+            {
+                var week = FactionPowerRules.WeekNumber(DateTime.UtcNow);
+                var previous = LoadWeek(week - 1);
+                var current = LoadWeek(week);
+                var overrides = LoadOverrides();
+
+                _week = week;
+                foreach (var score in previous)
+                    _previous[score.FactionId] = score;
+                foreach (var score in current)
+                    _current[score.FactionId] = score;
+                foreach (var (factionId, standing) in overrides)
+                    _overrides[factionId] = standing;
+                ClassifyNoLock();
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Faction power: could not load the weekly scores, retrying in a minute");
+                return false;
+            }
+
+            Volatile.Write(ref _started, 1);
+            Logger.Info("Faction power: week {0}, superior [{1}], inferior [{2}]",
+                _week, string.Join(",", _superiors), string.Join(",", _inferiors));
+        }
+
+        return true;
     }
 
     /// <summary>This week's row for a faction, created with last week's carry-over on first use.</summary>
@@ -136,13 +158,8 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
         if (_current.TryGetValue(factionId, out var score))
             return score;
 
-        score = new FactionPowerScore { WeekNum = _week, FactionId = factionId };
-        if (_previous.TryGetValue(factionId, out var last))
-        {
-            score.SiegeMaintainPoint = FactionPowerRules.Maintain(last.SiegePoint, last.SiegeMaintainPoint, SiegeMaintainPercent);
-            score.RaidMaintainPoint = FactionPowerRules.Maintain(last.RaidPoint, last.RaidMaintainPoint, RaidMaintainPercent);
-        }
-
+        score = FactionPowerRules.NewWeekRow(_week, factionId, _previous.GetValueOrDefault(factionId),
+            SiegeMaintainPercent, RaidMaintainPercent);
         _current[factionId] = score;
         _dirty[(score.WeekNum, factionId)] = score;
         return score;
@@ -167,21 +184,45 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
     /// <summary>
     /// Scores a siege win once per settled cycle: the award marker and the new points are committed together,
     /// so a replayed settlement does not score twice. An award that cannot be saved is retried on the next tick.
+    /// A win settled before the scores are loaded (a siege that ended while the server was down) is scored
+    /// once they are, for the week it was fought in.
     /// </summary>
     public void AddSiegeWin(uint factionId, ushort zoneGroupId, DateTime cycleWeekStart)
     {
-        if (!IsStarted || !PowerFactions().Contains(factionId))
+        if (!IsStarted)
+        {
+            lock (_sync)
+                _unscoredSiegeWins.Add((factionId, zoneGroupId, cycleWeekStart));
+            return;
+        }
+
+        if (!PowerFactions().Contains(factionId))
             return;
         var record = Data.GetRecord(FactionPowerRecordType.Siege);
         var members = Math.Max(1, SiegeManager.Instance.GetRaidTeamMembers(zoneGroupId, factionId)?.Count ?? 0);
         var points = Round(Data.Points(record, members));
+        var siegeEnd = SiegeGameData.Instance.GetSiegeZoneSchedule(zoneGroupId)?.SiegeEnd(cycleWeekStart);
+        var award = new SiegeAward(factionId, zoneGroupId, cycleWeekStart, points,
+            FactionPowerRules.SiegeAwardWeek(siegeEnd, DateTime.UtcNow));
 
         lock (_sync)
         {
-            var award = new SiegeAward(factionId, zoneGroupId, cycleWeekStart, points, _week);
             if (!TryRecordSiegeAwardNoLock(award))
                 _pendingSiegeAwards.Add(award);
         }
+    }
+
+    private void ScoreUnscoredSiegeWins()
+    {
+        List<(uint FactionId, ushort ZoneGroupId, DateTime CycleWeekStart)> wins;
+        lock (_sync)
+        {
+            wins = _unscoredSiegeWins.ToList();
+            _unscoredSiegeWins.Clear();
+        }
+
+        foreach (var (factionId, zoneGroupId, cycleWeekStart) in wins)
+            AddSiegeWin(factionId, zoneGroupId, cycleWeekStart);
     }
 
     /// <summary>
@@ -191,15 +232,10 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
     /// <returns>False when the award could not be saved and should be tried again.</returns>
     private bool TryRecordSiegeAwardNoLock(SiegeAward award)
     {
-        // A win from last week changes what this week carries over; that row is saved in the same transaction.
-        FactionPowerScore carried = null;
-        if (award.Week + 1 == _week)
-        {
-            var last = _previous.GetValueOrDefault(award.FactionId);
-            carried = RowNoLock(award.FactionId).Clone();
-            carried.SiegeMaintainPoint = FactionPowerRules.Maintain((last?.SiegePoint ?? 0) + award.Points,
-                last?.SiegeMaintainPoint ?? 0, SiegeMaintainPercent);
-        }
+        var (defer, won, carried) = FactionPowerRules.PlanSiegeAward(award.Week, award.Points, _week,
+            _previous.GetValueOrDefault(award.FactionId), RowNoLock(award.FactionId), SiegeMaintainPercent);
+        if (defer)
+            return false;
 
         try
         {
@@ -224,14 +260,21 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
             using (var command = connection.CreateCommand())
             {
                 command.Transaction = transaction;
-                command.CommandText = """
-                    INSERT INTO faction_power_scores (week_num, faction_id, siege_point) VALUES (@week, @faction, @points)
-                    ON DUPLICATE KEY UPDATE siege_point = siege_point + @points
-                    """;
-                command.Parameters.AddWithValue("@week", award.Week);
-                command.Parameters.AddWithValue("@faction", award.FactionId);
-                command.Parameters.AddWithValue("@points", award.Points);
-                command.ExecuteNonQuery();
+                if (won != null)
+                {
+                    WriteRow(command, won);
+                }
+                else
+                {
+                    command.CommandText = """
+                        INSERT INTO faction_power_scores (week_num, faction_id, siege_point) VALUES (@week, @faction, @points)
+                        ON DUPLICATE KEY UPDATE siege_point = siege_point + @points
+                        """;
+                    command.Parameters.AddWithValue("@week", award.Week);
+                    command.Parameters.AddWithValue("@faction", award.FactionId);
+                    command.Parameters.AddWithValue("@points", award.Points);
+                    command.ExecuteNonQuery();
+                }
             }
 
             if (carried != null)
@@ -369,6 +412,8 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
 
     public void SetOverride(uint factionId, FactionPowerStanding standing)
     {
+        if (!IsStarted)
+            return;
         lock (_sync)
         {
             if (standing == FactionPowerStanding.Automatic)
@@ -457,15 +502,21 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
 
     private void Tick(TimeSpan delta)
     {
+        var loaded = false;
+        if (!IsStarted)
+        {
+            if (!TryLoad())
+                return;
+            loaded = true;
+        }
+
+        ScoreUnscoredSiegeWins();
         var week = FactionPowerRules.WeekNumber(DateTime.UtcNow);
         var rolledOver = false;
         bool changed;
         bool reclassified;
         lock (_sync)
         {
-            if (_pendingSiegeAwards.Count > 0)
-                _pendingSiegeAwards.RemoveAll(TryRecordSiegeAwardNoLock);
-            changed = _dirty.Count > 0;
             if (week != _week)
             {
                 foreach (var factionId in PowerFactions())
@@ -479,40 +530,64 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
                 ClassifyNoLock();
                 rolledOver = true;
             }
-            else
-            {
-                SaveNoLock();
-            }
+
+            if (_pendingSiegeAwards.Count > 0)
+                _pendingSiegeAwards.RemoveAll(TryRecordSiegeAwardNoLock);
+            changed = _dirty.Count > 0;
+            SaveNoLock();
 
             reclassified = _reclassified;
             _reclassified = false;
         }
 
-        if (!rolledOver && !reclassified)
+        if (!rolledOver && !reclassified && !loaded)
         {
             if (changed)
                 WorldManager.Instance.BroadcastPacketToServer(BuildPacket());
             return;
         }
 
-        if (!rolledOver)
+        if (rolledOver)
         {
-            Broadcast();
-            return;
+            Logger.Info("Faction power: week {0} started, superior [{1}], inferior [{2}]",
+                week, string.Join(",", Superiors), string.Join(",", Inferiors));
         }
 
-        Logger.Info("Faction power: week {0} started, superior [{1}], inferior [{2}]",
-            week, string.Join(",", Superiors), string.Join(",", Inferiors));
         Broadcast();
     }
 
     /// <summary>Writes the changed scores now, e.g. before the server stops.</summary>
     public void Save()
     {
-        if (!IsStarted)
+        if (!TryLoad())
+        {
+            lock (_sync)
+                LogLostSiegeAwardsNoLock();
             return;
+        }
+
+        ScoreUnscoredSiegeWins();
         lock (_sync)
+        {
+            _pendingSiegeAwards.RemoveAll(TryRecordSiegeAwardNoLock);
+            LogLostSiegeAwardsNoLock();
             SaveNoLock();
+        }
+    }
+
+    private void LogLostSiegeAwardsNoLock()
+    {
+        foreach (var (factionId, zoneGroupId, cycleWeekStart) in _unscoredSiegeWins)
+        {
+            Logger.Error("Faction power: siege win of faction {0} in zone group {1} (cycle {2:yyyy-MM-dd}) was not scored",
+                factionId, zoneGroupId, cycleWeekStart);
+        }
+
+        foreach (var award in _pendingSiegeAwards)
+        {
+            Logger.Error("Faction power: siege win of faction {0} in zone group {1} (cycle {2:yyyy-MM-dd}, week {3}, {4} points) was not saved",
+                award.FactionId, award.ZoneGroupId, award.CycleWeekStart, award.Week, award.Points);
+        }
     }
 
     /// <summary>Writes every changed row, of this week or an earlier one; rows that fail stay queued for the next tick.</summary>
@@ -556,15 +631,16 @@ public class FactionPowerManager : Singleton<FactionPowerManager>
         command.ExecuteNonQuery();
     }
 
-    private void LoadOverrides()
+    private static Dictionary<uint, FactionPowerStanding> LoadOverrides()
     {
-        _overrides.Clear();
+        var overrides = new Dictionary<uint, FactionPowerStanding>();
         using var connection = MySQL.CreateConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT faction_id, status FROM faction_power_overrides";
         using var reader = command.ExecuteReader();
         while (reader.Read())
-            _overrides[reader.GetUInt32("faction_id")] = (FactionPowerStanding)reader.GetByte("status");
+            overrides[reader.GetUInt32("faction_id")] = (FactionPowerStanding)reader.GetByte("status");
+        return overrides;
     }
 
     private void SaveOverrides()

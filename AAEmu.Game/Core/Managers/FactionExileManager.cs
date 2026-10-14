@@ -36,6 +36,7 @@ public class FactionExileManager : Singleton<FactionExileManager>
     private bool _enabled = true;
     private uint _week;
     private int _started;
+    private int _subscribed;
 
     public bool IsStarted => Volatile.Read(ref _started) != 0;
 
@@ -49,16 +50,34 @@ public class FactionExileManager : Singleton<FactionExileManager>
     /// </summary>
     public static bool IsExileFaction(uint factionId) => FactionPowerManager.PowerFactions().Contains(factionId);
 
+    /// <summary>
+    /// Starts the exile system once faction power has loaded. Nothing is changed or saved before the exile
+    /// state is loaded; a load that fails is retried every minute rather than starting from defaults.
+    /// </summary>
     public void Start()
     {
-        if (Interlocked.Exchange(ref _started, 1) != 0)
+        if (Interlocked.Exchange(ref _subscribed, 1) != 0)
             return;
 
-        try
+        FactionPowerManager.Instance.StandingsChanged += Refresh;
+        TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMinutes(1));
+        if (TryLoad())
+            Refresh();
+    }
+
+    private bool TryLoad()
+    {
+        if (IsStarted)
+            return true;
+        if (!FactionPowerManager.Instance.IsStarted)
+            return false;
+
+        lock (_sync)
         {
-            lock (_sync)
+            try
             {
                 _week = FactionPowerManager.Instance.Week;
+                _routes.Clear();
                 foreach (var template in FactionPowerGameData.Instance.ExileRoutes)
                 {
                     _routes.Add(new ExileRoute
@@ -69,18 +88,22 @@ public class FactionExileManager : Singleton<FactionExileManager>
                     });
                 }
 
+                _enabled = true;
+                _suspended.Clear();
+                _lastExile.Clear();
                 LoadState();
             }
-        }
-        catch (Exception exception)
-        {
-            Logger.Error(exception, "Exile: could not load the exile state, starting with defaults");
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Exile: could not load the exile state, retrying in a minute");
+                return false;
+            }
+
+            Volatile.Write(ref _started, 1);
         }
 
-        FactionPowerManager.Instance.StandingsChanged += Refresh;
-        TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMinutes(1));
-        Refresh();
         Logger.Info("Exile: {0} route(s), {1}", _routes.Count, _enabled ? "enabled" : "disabled");
+        return true;
     }
 
     #region state
@@ -148,6 +171,13 @@ public class FactionExileManager : Singleton<FactionExileManager>
 
     private void Tick(TimeSpan delta)
     {
+        if (!IsStarted)
+        {
+            if (TryLoad())
+                Refresh();
+            return;
+        }
+
         var week = FactionPowerManager.Instance.Week;
         lock (_sync)
         {
@@ -233,14 +263,36 @@ public class FactionExileManager : Singleton<FactionExileManager>
     #region exile
 
     /// <summary>
-    /// Moves a character into a faction (a system faction such as 161, 199, 200 or 148; 0 = back to the faction it
-    /// had before its first exile). Quest rewards respect the route, its slots and the cooldown unless
-    /// <paramref name="ignoreLimit"/>; <paramref name="inferiorEscape"/> lets a member of an inferior faction
-    /// leave on a full route. <paramref name="force"/> is the GM path: no route, slot or cooldown checks and
-    /// no slot used.
+    /// Why a quest's faction change cannot be made now, or null: checked when the quest is accepted and again
+    /// when it is turned in, so a quest is not used up by a faction change that would fail.
     /// </summary>
-    public string Exile(Character character, uint targetFactionId, bool ignoreLimit, bool inferiorEscape, bool force)
+    public string ExileQuestChangeBlock(Character character, IQuestTemplate template)
     {
+        if (character == null || template == null)
+            return null;
+        foreach (var act in template.Components.Values.SelectMany(c => c.ActTemplates).OfType<QuestActSupplyFactionChange>())
+        {
+            if (ExileBlock(character, act.SystemFactionId, act.IgnoreLimit, act.InferiorEscape) is { } blocked)
+                return blocked;
+        }
+
+        return null;
+    }
+
+    /// <summary>Why this faction change cannot be made now, or null. <see cref="Exile"/> checks the route again as it takes the slot.</summary>
+    public string ExileBlock(Character character, uint targetFactionId, bool ignoreLimit, bool inferiorEscape)
+    {
+        if (Validate(character, targetFactionId, ignoreLimit, inferiorEscape, false, out _, out var from, out var to) is { } blocked)
+            return blocked;
+        lock (_sync)
+            return RouteBlockNoLock(from, to, ignoreLimit, inferiorEscape, out _);
+    }
+
+    private string Validate(Character character, uint targetFactionId, bool ignoreLimit, bool inferiorEscape, bool force,
+        out SystemFaction targetFaction, out uint from, out uint to)
+    {
+        targetFaction = null;
+        from = to = 0;
         if (character == null)
             return "no character";
         if (!IsStarted)
@@ -256,12 +308,12 @@ public class FactionExileManager : Singleton<FactionExileManager>
                 : _lastExile.TryGetValue(character.Id, out var last) ? last.Original : 0;
         }
 
-        var targetFaction = FactionManager.Instance.GetFaction((FactionsEnum)target);
+        targetFaction = FactionManager.Instance.GetFaction((FactionsEnum)target);
         if (targetFaction == null)
             return targetFactionId == 0 ? $"{character.Name} has no faction to return to" : $"unknown faction {target}";
 
-        var from = FactionPowerManager.RootFactionOf(character);
-        var to = RootOf(targetFaction);
+        from = FactionPowerManager.RootFactionOf(character);
+        to = RootOf(targetFaction);
         if (from == to && character.Faction?.Id == targetFaction.Id)
             return $"{character.Name} is already in {targetFaction.Name}";
         if (!force && (!IsExileFaction(from) || !IsExileFaction(to)))
@@ -273,6 +325,33 @@ public class FactionExileManager : Singleton<FactionExileManager>
             return blocked;
         if (character.Expedition != null && character.Expedition.OwnerId == character.Id)
             return "a guild leader must hand over the guild first";
+        return null;
+    }
+
+    private string RouteBlockNoLock(uint from, uint to, bool ignoreLimit, bool inferiorEscape, out ExileRoute route)
+    {
+        route = FindRouteNoLock(from, to);
+        if (route == null && from != to)
+            return $"there is no exile route from {from} to {to}";
+        var escaping = inferiorEscape && FactionPowerManager.Instance.IsInferior(from);
+        if (route != null && !ignoreLimit && !escaping && !IsActiveNoLock(route))
+            return "this exile route is closed";
+        if (_suspended.Contains(from) || _suspended.Contains(to))
+            return "one of the factions is suspended from exile";
+        return null;
+    }
+
+    /// <summary>
+    /// Moves a character into a faction (a system faction such as 161, 199, 200 or 148; 0 = back to the faction it
+    /// had before its first exile). Quest rewards respect the route, its slots and the cooldown unless
+    /// <paramref name="ignoreLimit"/>; <paramref name="inferiorEscape"/> lets a member of an inferior faction
+    /// leave on a full route. <paramref name="force"/> is the GM path: no route, slot or cooldown checks and
+    /// no slot used.
+    /// </summary>
+    public string Exile(Character character, uint targetFactionId, bool ignoreLimit, bool inferiorEscape, bool force)
+    {
+        if (Validate(character, targetFactionId, ignoreLimit, inferiorEscape, force, out var targetFaction, out var from, out var to) is { } blocked)
+            return blocked;
 
         ExileRoute route = null;
         var now = DateTime.UtcNow;
@@ -283,14 +362,8 @@ public class FactionExileManager : Singleton<FactionExileManager>
         {
             if (!force)
             {
-                route = FindRouteNoLock(from, to);
-                if (route == null && from != to)
-                    return $"there is no exile route from {from} to {to}";
-                var escaping = inferiorEscape && FactionPowerManager.Instance.IsInferior(from);
-                if (route != null && !ignoreLimit && !escaping && !IsActiveNoLock(route))
-                    return "this exile route is closed";
-                if (_suspended.Contains(from) || _suspended.Contains(to))
-                    return "one of the factions is suspended from exile";
+                if (RouteBlockNoLock(from, to, ignoreLimit, inferiorEscape, out route) is { } closed)
+                    return closed;
                 // The slot is taken before the lock is released so two exiles cannot share the last one.
                 if (route != null)
                     route.Used++;

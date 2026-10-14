@@ -20,10 +20,10 @@ public static class GameSpawnerGate
 
     private static volatile HashSet<uint> _closed = [];
 
-    public static bool IsClosed(uint spawnerId, uint spawnerType)
+    public static bool IsClosed(uint spawnerType)
     {
         var closed = _closed;
-        return closed.Count != 0 && (closed.Contains(spawnerId) || closed.Contains(spawnerType));
+        return closed.Count != 0 && closed.Contains(spawnerType);
     }
 
     public static void Apply(IReadOnlyCollection<uint> closedIds)
@@ -59,7 +59,7 @@ public static class GameSpawnerGate
         foreach (var (bcId, raw) in zone.Units.Snapshot())
         {
             var parsed = ZwSpawnNpcParser.TryParse(raw);
-            if (parsed == null || (!spawnerIds.Contains(parsed.SpawnerId) && !spawnerIds.Contains(parsed.SpawnerType)))
+            if (parsed == null || !spawnerIds.Contains(parsed.SpawnerType))
                 continue;
 
             WorldIntegration.OnZoneNpcRemove?.Invoke(bcId);

@@ -385,6 +385,16 @@ public class CharacterQuests(Character owner)
             }
         }
 
+        if (!forcibly && FactionExileManager.Instance.ExileQuestChangeBlock(Owner, template) is { } exileChangeBlock)
+        {
+            LogAcceptRefused(answerClient, "User {0} ({1}) cannot accept exile quest {2}: {3}",
+                Owner.Name, Owner.Id, questId, exileChangeBlock);
+            NotifyAcceptFailed(questId, QuestAcceptFailRules.RequirementNotMet, answerClient);
+            if (answerClient)
+                Owner.SendMessage($"You cannot change faction now: {exileChangeBlock}.");
+            return false;
+        }
+
         if (HasQuestCompleted(questId))
         {
             if (forcibly)

@@ -20,6 +20,102 @@ public class FactionPowerRulesTests
     }
 
     [Test]
+    public async Task SiegeAwardWeek_IsTheWeekTheSiegeEnded()
+    {
+        var saturdayEnd = new DateTime(2026, 10, 10, 22, 0, 0, DateTimeKind.Utc);
+        var saturdayWeek = FactionPowerRules.WeekNumber(saturdayEnd);
+        var settledMonday = new DateTime(2026, 10, 12, 9, 0, 0, DateTimeKind.Utc);
+        var midnightEnd = new DateTime(2026, 10, 11, 0, 0, 0, DateTimeKind.Utc);
+
+        // Server down over the rollover: the win still belongs to the week it was fought in.
+        await Assert.That(FactionPowerRules.SiegeAwardWeek(saturdayEnd, settledMonday)).IsEqualTo(saturdayWeek);
+        // A siege ending exactly at the rollover belongs to the week before it.
+        await Assert.That(FactionPowerRules.SiegeAwardWeek(midnightEnd, settledMonday)).IsEqualTo(saturdayWeek);
+        // Unknown or future end: the current week.
+        await Assert.That(FactionPowerRules.SiegeAwardWeek(null, settledMonday)).IsEqualTo(saturdayWeek + 1);
+        await Assert.That(FactionPowerRules.SiegeAwardWeek(settledMonday.AddDays(1), settledMonday)).IsEqualTo(saturdayWeek + 1);
+    }
+
+    [Test]
+    public async Task NewWeekRow_CarriesTheMaintainShareOfLastWeek()
+    {
+        var last = new FactionPowerScore { WeekNum = 9, FactionId = Nuia, SiegePoint = 600, SiegeMaintainPoint = 200, RaidPoint = 100, RaidMaintainPoint = 0, QuestPoint = 50 };
+
+        var row = FactionPowerRules.NewWeekRow(10, Nuia, last, 50, 70);
+        var empty = FactionPowerRules.NewWeekRow(10, Haranya, null, 50, 70);
+
+        await Assert.That(row.WeekNum).IsEqualTo(10u);
+        await Assert.That(row.SiegeMaintainPoint).IsEqualTo(400u);
+        await Assert.That(row.RaidMaintainPoint).IsEqualTo(70u);
+        await Assert.That(row.SiegePoint).IsEqualTo(0u);
+        await Assert.That(row.QuestPoint).IsEqualTo(0f);
+        await Assert.That(FactionPowerRules.Total(empty)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task PlanSiegeAward_ThisWeek_WritesTheWholeRowWithItsCarriedPoints()
+    {
+        var thisWeek = new FactionPowerScore { WeekNum = 10, FactionId = Nuia, SiegePoint = 100, SiegeMaintainPoint = 300, RaidMaintainPoint = 70 };
+
+        var (defer, won, carried) = FactionPowerRules.PlanSiegeAward(10, 600, 10, null, thisWeek, 50);
+
+        await Assert.That(defer).IsFalse();
+        await Assert.That(carried).IsNull();
+        await Assert.That(won.SiegePoint).IsEqualTo(700u);
+        await Assert.That(won.SiegeMaintainPoint).IsEqualTo(300u);
+        await Assert.That(won.RaidMaintainPoint).IsEqualTo(70u);
+        // The live row is only changed once the award is saved.
+        await Assert.That(thisWeek.SiegePoint).IsEqualTo(100u);
+    }
+
+    [Test]
+    public async Task PlanSiegeAward_RetriedAfterTheRollover_CreditsLastWeekAndItsCarryOver()
+    {
+        var lastWeek = new FactionPowerScore { WeekNum = 9, FactionId = Nuia, SiegePoint = 200, SiegeMaintainPoint = 100, QuestPoint = 5 };
+        var thisWeek = FactionPowerRules.NewWeekRow(10, Nuia, lastWeek, 50, 70);
+        thisWeek.QuestPoint = 3;
+
+        var (defer, won, carried) = FactionPowerRules.PlanSiegeAward(9, 600, 10, lastWeek, thisWeek, 50);
+
+        await Assert.That(defer).IsFalse();
+        await Assert.That(won.WeekNum).IsEqualTo(9u);
+        await Assert.That(won.SiegePoint).IsEqualTo(800u);
+        await Assert.That(won.QuestPoint).IsEqualTo(5f);
+        await Assert.That(thisWeek.SiegeMaintainPoint).IsEqualTo(150u);
+        await Assert.That(carried.WeekNum).IsEqualTo(10u);
+        await Assert.That(carried.SiegeMaintainPoint).IsEqualTo(450u);
+        await Assert.That(carried.QuestPoint).IsEqualTo(3f);
+    }
+
+    [Test]
+    public async Task PlanSiegeAward_LastWeekWithoutARow_StartsOneFromZero()
+    {
+        var thisWeek = new FactionPowerScore { WeekNum = 10, FactionId = Haranya };
+
+        var (_, won, carried) = FactionPowerRules.PlanSiegeAward(9, 600, 10, null, thisWeek, 50);
+
+        await Assert.That(won.FactionId).IsEqualTo(Haranya);
+        await Assert.That(won.WeekNum).IsEqualTo(9u);
+        await Assert.That(won.SiegePoint).IsEqualTo(600u);
+        await Assert.That(carried.SiegeMaintainPoint).IsEqualTo(300u);
+    }
+
+    [Test]
+    public async Task PlanSiegeAward_DefersAWeekNotRolledOverToAndLeavesOlderWeeksToTheDatabase()
+    {
+        var thisWeek = new FactionPowerScore { WeekNum = 10, FactionId = Nuia };
+
+        var ahead = FactionPowerRules.PlanSiegeAward(11, 600, 10, null, thisWeek, 50);
+        var older = FactionPowerRules.PlanSiegeAward(7, 600, 10, null, thisWeek, 50);
+
+        await Assert.That(ahead.Defer).IsTrue();
+        await Assert.That(ahead.Won).IsNull();
+        await Assert.That(older.Defer).IsFalse();
+        await Assert.That(older.Won).IsNull();
+        await Assert.That(older.Carried).IsNull();
+    }
+
+    [Test]
     public async Task Total_AddsTheCountersLikeTheClient()
     {
         var score = new FactionPowerScore

@@ -73,4 +73,56 @@ public static class FactionPowerRules
     /// <summary>Share of last week's points a faction keeps into the new week (faction_power_*_maintain percent).</summary>
     public static uint Maintain(uint points, uint carried, int percent) =>
         (uint)Math.Round(((double)points + carried) * Math.Max(0, percent) / 100.0);
+
+    /// <summary>A faction's first row of a week: only what it carries over from last week.</summary>
+    public static FactionPowerScore NewWeekRow(uint week, uint factionId, FactionPowerScore lastWeek,
+        int siegeMaintainPercent, int raidMaintainPercent)
+    {
+        var score = new FactionPowerScore { WeekNum = week, FactionId = factionId };
+        if (lastWeek != null)
+        {
+            score.SiegeMaintainPoint = Maintain(lastWeek.SiegePoint, lastWeek.SiegeMaintainPoint, siegeMaintainPercent);
+            score.RaidMaintainPoint = Maintain(lastWeek.RaidPoint, lastWeek.RaidMaintainPoint, raidMaintainPercent);
+        }
+
+        return score;
+    }
+
+    /// <summary>
+    /// The week a siege win counts for: the week its fight ended, which is not the week it is settled in when
+    /// the server was down at the end. Without a known end, or one still ahead, the current week.
+    /// </summary>
+    public static uint SiegeAwardWeek(DateTime? siegeEndUtc, DateTime nowUtc) =>
+        WeekNumber(siegeEndUtc is { } end && end <= nowUtc ? end.AddSeconds(-1) : nowUtc);
+
+    /// <summary>
+    /// The rows a siege award writes, whole, together with its award marker. A win of the current week adds to
+    /// this week's row. A win of last week adds to last week's row and changes what this week carries over.
+    /// An older win has no rows in memory (both null, the points are only added in the database). A win of a
+    /// week that has not been rolled over to yet is deferred, or the rollover would save over it.
+    /// </summary>
+    public static (bool Defer, FactionPowerScore Won, FactionPowerScore Carried) PlanSiegeAward(uint awardWeek,
+        uint points, uint currentWeek, FactionPowerScore lastWeek, FactionPowerScore thisWeek, int siegeMaintainPercent)
+    {
+        if (awardWeek > currentWeek)
+            return (true, null, null);
+
+        if (awardWeek == currentWeek)
+        {
+            var won = thisWeek.Clone();
+            won.SiegePoint += points;
+            return (false, won, null);
+        }
+
+        if (awardWeek + 1 == currentWeek)
+        {
+            var won = lastWeek?.Clone() ?? new FactionPowerScore { WeekNum = awardWeek, FactionId = thisWeek.FactionId };
+            won.SiegePoint += points;
+            var carried = thisWeek.Clone();
+            carried.SiegeMaintainPoint = Maintain(won.SiegePoint, won.SiegeMaintainPoint, siegeMaintainPercent);
+            return (false, won, carried);
+        }
+
+        return (false, null, null);
+    }
 }

@@ -22,6 +22,14 @@ public partial class QuestManager
     /// <param name="selected">Selected reward (if any)</param>
     public void DoReportEvents(ICharacter owner, uint questContextId, uint npcObjId, uint doodadObjId, int selected)
     {
+        // An exile quest whose faction change cannot be made now stays open instead of being used up.
+        if (owner is Character character && owner.Quests.ActiveQuests.TryGetValue(questContextId, out var reported) &&
+            FactionExileManager.Instance.ExileQuestChangeBlock(character, reported.Template) is { } exileBlock)
+        {
+            character.SendMessage($"You cannot change faction now: {exileBlock}.");
+            return;
+        }
+
         if (npcObjId > 0)
         {
             // Turning in at a NPC?
