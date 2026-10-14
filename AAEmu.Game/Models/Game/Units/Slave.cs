@@ -1521,9 +1521,8 @@ public class Slave : Unit
     {
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
-        // WZ traffic (impulse turns, control changes) is routed by the hull's current zone key, and a
-        // announce belongs to the summon path, which sends the fully built state body. Every
-        // announced vehicle hands off, not just boats — cars are zone-simulated too (fset bit 177).
+        // WZ traffic is routed by the hull's current zone key. Sea hulls run the boat seam/sim-arm
+        // machine; land vehicles only re-Create in the new zone and stay client-driven (control=0).
         if (ZoneAnnouncedTo != 0 && ZoneAnnouncedTo != newZoneKey)
             SlaveManager.CommitBoatZoneHandoff(this, lastZoneKey, newZoneKey);
 

@@ -52,10 +52,8 @@ public class SlaveTemplate
                SlaveKind == SlaveKind.BigSailingShip || SlaveKind == SlaveKind.SmallSailingShip;
     }
 
-    public bool IsClientDrivenLandVehicle()
-    {
-        return SlaveKind is SlaveKind.Tank or SlaveKind.Machine or SlaveKind.SiegeWeapon;
-    }
+    public bool IsClientDrivenLandVehicle() =>
+        SlaveVehicleSimRules.IsClientDrivenLandVehicle(SlaveKind);
 
     /// <summary>
     /// Whether a zone may be handed this slave's simulation.
@@ -67,10 +65,8 @@ public class SlaveTemplate
     /// simulator. <see cref="IsABoat"/> is too narrow to use here — it omits Leviathan, and the data
     /// also carries sea-gimmick and gubuk kinds this enum does not name.
     /// </remarks>
-    public bool IsZoneSimulatedHull()
-    {
-        return !IsClientDrivenLandVehicle() && SlaveKind != SlaveKind.SlaveEquipment;
-    }
+    public bool IsZoneSimulatedHull() =>
+        SlaveVehicleSimRules.ShouldArmZoneSimulation(SlaveKind);
 
     /// <summary>
     /// Hulls use Ship. Equipment slaves (sails/cannons) are Part — they must not Ambient-cull

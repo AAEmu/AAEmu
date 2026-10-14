@@ -846,15 +846,14 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                     return null;
                 }
 
-                // Land vehicle: prefer the summoner's floor. HeightMapsEnable is often false under
-                // ZoneAuthority, and GeoData/.bai nearest-node samples can sit ~1–2 m above the
-                // dirt the player is standing on — that is exactly the "hovering car" look.
+                // Land vehicle: plant on the heightmap / owner's feet. GeoData/.bai nearest-node
+                // samples sit ~1–2 m above dirt and kill wheeled contact (short susp strokes).
                 var ownerZ = owner?.Transform.World.Position.Z ?? spawnPos.World.Position.Z;
-                var h = World.Template.GeoData.GetHeight(spawnPos.World.Position);
-                if (h > 0f && MathF.Abs(h - ownerZ) <= 2f)
-                    spawnPos.Local.SetHeight(h);
-                else
-                    spawnPos.Local.SetHeight(ownerZ);
+                var pos = spawnPos.World.Position;
+                var heightmapZ = TerrainFloor.SampleHeightmap(World, pos.X, pos.Y);
+                var geoZ = World.Template.GeoData?.GetHeight(pos) ?? 0f;
+                spawnPos.Local.SetHeight(
+                    SlaveLandVehiclePlantRules.ChoosePlantZ(ownerZ, heightmapZ, geoZ));
             }
 
             // Always spawn horizontal(level) and 90° CCW of the player
@@ -862,6 +861,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         }
         else
         {
+            // Client seed is the client's own terrain probe at the stand — keep its Z as-is.
             Logger.Info(
                 "SlaveSpawn used client seed tpl={0} at ({1:0.0},{2:0.0},{3:0.0})",
                 slaveTemplate.Id,
@@ -1010,17 +1010,10 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         // Move it to target location, and call spawn packet
         summonedSlave.Transform = spawnPos.CloneDetached(summonedSlave);
 
-        // CSSpawnSlave (and any other positionOverride) skips the IsOrigin ground snap above —
-        // still pin land vehicles to the owner's floor so client SummonPos Z offsets cannot hover.
-        if (owner != null && !summonedSlave.Template.IsABoat() && positionOverride != null)
-        {
-            var ownerZ = owner.Transform.World.Position.Z;
-            var h = World.Template.GeoData.GetHeight(summonedSlave.Transform.World.Position);
-            if (h > 0f && MathF.Abs(h - ownerZ) <= 2f)
-                summonedSlave.Transform.Local.SetHeight(h);
-            else
-                summonedSlave.Transform.Local.SetHeight(ownerZ);
-        }
+        // Client SummonPos / skill seed already sits on the client's own terrain mesh. Rewriting
+        // that Z with World heightmap or GeoData fights the local PE (planted high → spin with no
+        // bite; planted low → chassis grinding). Server-authored stands are floored in the
+        // IsOrigin land branch above via SlaveLandVehiclePlantRules.
 
         // Retail: CSSpawnSlave.hideSpawnEffect=false (and skill summons that skip that CS)
         // → UnitState flags bit 11 → client portal_spawn_fx. hideSpawnEffect was previously unused.
@@ -1518,6 +1511,64 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     }
 
     /// <summary>
+    /// Creates a land vehicle in the dedicate with zone sim off (<c>control=0</c>).
+    /// </summary>
+    /// <remarks>
+    /// Driven carts are client-authored (type 2 → zone net controller). Arming <c>control=1</c>
+    /// parks them and drops inbound moves — that path stays on ships only. This is a plain Create
+    /// / re-Create on zone change, not the boat seam plant.
+    /// </remarks>
+    internal static void AnnounceLandVehicleToZone(Slave slave, uint oldZoneKey, uint newZoneKey)
+    {
+        if (!WorldIntegration.ZoneAuthority || slave?.Template == null || newZoneKey == 0)
+            return;
+
+        if (!SlaveVehicleSimRules.ShouldAnnounceToZone(slave.Template.SlaveKind))
+            return;
+
+        if (newZoneKey == slave.ZoneAnnouncedTo)
+            return;
+
+        if (!BoatZoneHostGate.HasHost(
+                newZoneKey,
+                slave.Transform?.InstanceId ?? 0,
+                WorldIntegration.IsZoneLoaded,
+                WorldIntegration.IsZoneInstanceLoaded))
+        {
+            Logger.Warn(
+                "No zone host for zone {0}; land vehicle obj={1} was not announced",
+                newZoneKey, slave.ObjId);
+            return;
+        }
+
+        var previous = slave.ZoneAnnouncedTo != 0 ? slave.ZoneAnnouncedTo : oldZoneKey;
+        if (previous != 0 && previous != newZoneKey)
+            DropHullFromZone(slave, previous, detachPassengers: false);
+
+        // Never leave a parked-sim arm pending from an older buggy path.
+        slave.ZoneSimPendingFor = 0;
+        slave.ZoneSimEnabledFor = 0;
+        slave.SeamHandoff = null;
+
+        var slaveStateBody = WorldIntegration.BuildWzUnitStateBody(slave);
+        if (slaveStateBody is not { Length: > 0 })
+            return;
+
+        WorldIntegration.RelayUnitStateToZone?.Invoke(newZoneKey, slave.ObjId, slaveStateBody);
+        ReplaySlaveBuffsToZone(slave, newZoneKey, (int)(slave.Transform?.InstanceId ?? 0));
+        AnnounceBoatAttachmentsToZone(slave, newZoneKey);
+
+        // Driven land vehicles must stay control=0 so type-2 relays reach the net controller.
+        WorldIntegration.RelayShipControlChangeToZoneId?.Invoke(newZoneKey, slave.ObjId, false);
+
+        slave.ZoneAnnouncedTo = newZoneKey;
+
+        Logger.Info(
+            "Land vehicle announced to zone slave obj={0} {1}→{2} bodyLen={3} control=0",
+            slave.ObjId, previous, newZoneKey, slaveStateBody.Length);
+    }
+
+    /// <summary>
     /// Moves a hull to the zone that will simulate it. Zone A keeps simulating and is what
     /// the client rides; Zone B is Created at A's live pose and armed in the background.
     /// </summary>
@@ -1535,6 +1586,14 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
         if (newZoneKey == 0)
             return;
+
+        // Land vehicles must not run the ship seam plant or sim-arm path: that seeds type-4 and
+        // can arm control=1, which parks a cart and drops its VehicleMoveType relays.
+        if (!SlaveVehicleSimRules.ShouldUseBoatSeamHandoff(slave.Template.SlaveKind))
+        {
+            AnnounceLandVehicleToZone(slave, oldZoneKey, newZoneKey);
+            return;
+        }
 
         if (newZoneKey == slave.ZoneAnnouncedTo)
         {
@@ -2234,8 +2293,8 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         // and a land vehicle's simulator has no steering or throttle input at all — it holds the
         // handbrake and drives both to zero, and while it is armed the zone discards the movement
         // World relays for that unit. Arming a cart therefore parks it and deafens it to its driver.
-        // Land vehicles stay client-driven (see SlaveTemplate.IsClientDrivenLandVehicle).
-        if (!slave.Template.IsZoneSimulatedHull())
+        // Land vehicles stay client-driven (see SlaveVehicleSimRules).
+        if (!SlaveVehicleSimRules.ShouldArmZoneSimulation(slave.Template.SlaveKind))
             return;
 
         if (zoneKey == 0 || slave.ZoneSimPendingFor == zoneKey)
