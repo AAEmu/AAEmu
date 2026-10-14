@@ -96,6 +96,17 @@ pub fn create_ai(server: &GameServer, npc: &NpcRef, ai_file_id: i32) -> bool {
         return false;
     };
     server.systems.ai.ais.add_ai(npc, kind);
+    // `NpcTemplate.ActivateAiAlways`: tick this AI even without player activity nearby.
+    let always = server
+        .game_data
+        .systems
+        .npcs
+        .npc
+        .template(npc.data().unit.template_id)
+        .is_some_and(|t| t.activate_ai_always);
+    if always {
+        server.systems.ai.ais.mark_always_active(npc.obj_id);
+    }
     true
 }
 

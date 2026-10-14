@@ -8,23 +8,30 @@ use std::time::Duration;
 
 use sqlx::mysql::MySqlPoolOptions;
 
-use crate::config::AppConfig;
+use crate::config::{AppConfig, WorldConfig};
 use crate::data::skills::{BuffKind, BuffTemplate};
 use crate::data::world_templates::{WorldTemplate, WorldTemplates};
 use crate::data::GameData;
 use crate::models::doodad::Doodad;
 use crate::models::npc::Npc;
+use crate::opcodes::sc;
 use crate::server::GameServer;
+use crate::systems::ai::framework::AiKind;
 use crate::systems::npcs::doodad::spawner::{NpcSpawnerDef, SpawnerBase};
+use crate::systems::npcs::npc::data::NpcTemplate;
+use crate::systems::npcs::npc::spawner::NpcSpawner;
 use crate::systems::npcs::npc::spawner_data::{
     npc_spawner_category, NpcSpawnerData, NpcSpawnerNpc, NpcSpawnerTemplate,
 };
 use crate::systems::npcs::spawn_manager::{
     self, backend::TestBackend, SpawnManager, TemplateExists, FIRST_FAKE_SPAWNER_ID,
 };
+use crate::systems::quests::model::kind;
+use crate::systems::quests::templates::{ActKind, QuestComponentTemplate, QuestTemplate};
+use crate::systems::skills::state::{Aggro, CancelToken, SkillRun, SkillTaskKind, SkillTaskSlot};
 use crate::test_support::{spawn_player, test_character, test_server_with, TestClient};
 use crate::world::unit_state::UNIT_STATE_FORCED_BUFFS;
-use crate::world::{DoodadRef, Entity, NpcRef, WorldInstance, WorldObject};
+use crate::world::{DoodadRef, Entity, NpcRef, Player, PlayerRef, WorldInstance, WorldObject};
 
 struct Backend;
 
@@ -180,6 +187,60 @@ fn advance(secs: u64) {
     spawn_manager::advance_test_clock(Duration::from_secs(secs));
 }
 
+// ---------------------------------------------------------------------------------------------
+// activation (bounded region prewarming)
+// ---------------------------------------------------------------------------------------------
+
+/// [`test_server_with`] whose spawner data is replaced by one authored template + member (NPC
+/// 500) for activation settings the shared [`server`] templates do not cover.
+fn activation_server(template: NpcSpawnerTemplate) -> Arc<GameServer> {
+    let mut game = GameData::empty();
+    game.systems.npcs.npc_spawners =
+        NpcSpawnerData::from_parts(vec![template], vec![member(100, 10, 500)]).unwrap();
+    let s = Arc::new(test_server_with(game));
+    s.set_self();
+    *s.systems.npcs.spawns.test_backend.lock().unwrap() = Some(Arc::new(Backend));
+    s
+}
+
+/// [`activation_server`] with static `NpcTemplate`s inserted (the resident classification and
+/// the AI leash read them).
+fn activation_server_with_npcs(
+    template: NpcSpawnerTemplate,
+    npcs: Vec<NpcTemplate>,
+) -> Arc<GameServer> {
+    let mut game = GameData::empty();
+    for npc in npcs {
+        game.systems.npcs.npc.templates.insert(npc.id, npc);
+    }
+    game.systems.npcs.npc_spawners =
+        NpcSpawnerData::from_parts(vec![template], vec![member(100, 10, 500)]).unwrap();
+    let s = Arc::new(test_server_with(game));
+    s.set_self();
+    *s.systems.npcs.spawns.test_backend.lock().unwrap() = Some(Arc::new(Backend));
+    s
+}
+
+/// [`activation_server_with_npcs`] with exactly one `NpcTemplate`.
+fn activation_server_with_npc(template: NpcSpawnerTemplate, npc: NpcTemplate) -> Arc<GameServer> {
+    activation_server_with_npcs(template, vec![npc])
+}
+
+/// One activation pass with its structured stats.
+fn activate(server: &Arc<GameServer>) -> spawn_manager::ActivationStats {
+    spawn_manager::active_region_tick_stats(server)
+}
+
+/// The single loaded ordinary spawner of the manager (test helper).
+fn only_spawner(manager: &Arc<SpawnManager>) -> Arc<NpcSpawner> {
+    manager
+        .get_all_spawners()
+        .into_values()
+        .flatten()
+        .next()
+        .expect("one ordinary spawner")
+}
+
 #[tokio::test]
 async fn authored_management_groups_gate_population_and_preserve_other_groups() {
     let server = server();
@@ -238,20 +299,14 @@ async fn npc_spawn_death_despawn_respawn_timing() {
     assert_eq!(spawner.npc_spawner_ids, vec![10]);
     assert_eq!(spawner.respawn_time(), 15);
 
-    // No player: nothing happens (and "no player" is cached for 10 s).
+    // No player: nothing happens.
     spawn_manager::active_region_tick(&server);
     assert_eq!(server.world.world(0).unwrap().all_npcs().len(), 0);
 
+    // The player arrives: the very next pass sees it. Player presence invalidates the cached
+    // "no player" answer immediately (no 10 s cache wait).
     let client = TestClient::new(&server, 1, 1);
     let player = spawn_player(&server, &client, test_character(1, "P", 510.0, 500.0), 5000);
-    spawn_manager::active_region_tick(&server);
-    assert_eq!(
-        spawner.current_spawn_count(),
-        0,
-        "radius cache still says no player"
-    );
-
-    advance(10);
     spawn_manager::active_region_tick(&server);
     let world = server.world.world(0).unwrap();
     let npcs = world.all_npcs();
@@ -1062,6 +1117,1437 @@ async fn spawn_lock_is_reentrant() {
     std::thread::spawn(move || drop(s2.systems.npcs.spawns.spawn_lock()))
         .join()
         .unwrap();
+}
+
+#[tokio::test]
+async fn activation_sees_player_arrival_on_the_first_pass() {
+    let server = server();
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 500.0, 500.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+
+    // A pass without players caches the "no player" answer.
+    let stats = activate(&server);
+    assert_eq!(stats.created, 0);
+    assert_eq!(spawner.current_spawn_count(), 0);
+
+    // The player arrives at the authored position; the very next pass activates it (player
+    // presence invalidates the cached answer immediately, no 10 s wait).
+    let client = TestClient::new(&server, 1, 1);
+    let _p = spawn_player(&server, &client, test_character(1, "P", 510.0, 500.0), 5000);
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1, "arrival is visible to the same pass");
+    assert_eq!(spawner.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn radius_cache_follows_same_region_movement_immediately() {
+    let mut t = template(10, 1);
+    t.test_radius_npc = 1.0; // 50 m
+    let server = activation_server(t);
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 110.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    // Inside the authored radius: `Update` spawns.
+    spawner.update(&server);
+    assert_eq!(spawner.current_spawn_count(), 1);
+
+    // Within the same 64 m region but outside the authored radius (50.9 m): the movement
+    // itself invalidates the cached proximity, so the despawn happens immediately.
+    player.data().unit.transform.set_xyz(64.0, 64.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    assert_eq!(player.region(), Some((0, 1, 1)), "still the same region");
+    spawner.update(&server);
+    m.check_respawns_tick(&server);
+    assert_eq!(
+        spawner.current_spawn_count(),
+        0,
+        "no stale in-radius result"
+    );
+    assert!(world.all_npcs().is_empty());
+
+    // Moving back within the region re-spawns just as immediately.
+    player.data().unit.transform.set_xyz(110.0, 100.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    spawner.update(&server);
+    assert_eq!(spawner.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn activation_leave_retains_warm_mobs_until_the_retention_window_ends() {
+    let server = server(); // World.NpcWarmRetentionSeconds defaults to 60
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(spawner.current_spawn_count(), 1);
+    let original = spawner
+        .spawned_npcs()
+        .into_values()
+        .flatten()
+        .next()
+        .unwrap();
+
+    // Leaving the prewarm ring starts the stable retention countdown; the mob is not despawned.
+    player.data().unit.transform.set_xyz(1200.0, 1200.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    activate(&server);
+    m.check_respawns_tick(&server);
+    assert_eq!(
+        spawner.current_spawn_count(),
+        1,
+        "warm mob retained after the player left"
+    );
+
+    // Re-entering before the expiry keeps the very same instance (no despawn, no refill).
+    player.data().unit.transform.set_xyz(100.0, 100.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    let stats = activate(&server);
+    assert_eq!(stats.created, 0);
+    assert_eq!(stats.reclaimed, 0);
+    assert_eq!(spawner.current_spawn_count(), 1);
+    let returned = spawner
+        .spawned_npcs()
+        .into_values()
+        .flatten()
+        .next()
+        .unwrap();
+    assert!(Arc::ptr_eq(&original, &returned), "same identity and state");
+
+    // Leave again; once the retention interval passed, the warm mob is reclaimed (no respawn
+    // delay is synthesized) and a later return refills normally.
+    player.data().unit.transform.set_xyz(1200.0, 1200.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    activate(&server);
+    advance(60);
+    let stats = activate(&server);
+    assert_eq!(stats.reclaimed, 1);
+    m.check_respawns_tick(&server);
+    assert_eq!(spawner.current_spawn_count(), 0);
+    assert!(world.all_npcs().is_empty());
+    assert!(
+        m.pending_respawns().is_empty(),
+        "a healthy distance reclaim must not synthesize a respawn"
+    );
+
+    player.data().unit.transform.set_xyz(100.0, 100.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+
+    assert_eq!(spawner.current_spawn_count(), 1);
+}
+
+/// A nonaggressive service-role template (merchant): resident under the default configuration.
+fn merchant_template(id: u32) -> NpcTemplate {
+    NpcTemplate {
+        id,
+        merchant: true,
+        ..NpcTemplate::default()
+    }
+}
+
+/// Production movement of `player` far outside every warm ring (visibility updates dispatched).
+fn leave_world(server: &Arc<GameServer>, player: &PlayerRef) {
+    player.data().unit.transform.set_xyz(1200.0, 1200.0, 100.0);
+    server
+        .world
+        .world(0)
+        .unwrap()
+        .add_visible_object(player, &server.view_ctx());
+}
+
+#[tokio::test]
+async fn activation_retention_zero_reclaims_on_departure() {
+    let server = server();
+    server
+        .config
+        .update(|c| c.world.npc_warm_retention_seconds = 0);
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    assert_eq!(activate(&server).created, 1);
+    leave_world(&server, &player);
+    let stats = activate(&server);
+    assert_eq!(
+        stats.reclaimed, 1,
+        "retention 0 reclaims on the leaving pass"
+    );
+    m.check_respawns_tick(&server);
+    assert_eq!(spawner.current_spawn_count(), 0);
+    assert!(m.pending_respawns().is_empty());
+}
+
+#[tokio::test]
+async fn activation_resident_service_npcs_false_honors_config() {
+    let server = activation_server_with_npc(template(10, 1), merchant_template(500));
+    server
+        .config
+        .update(|c| c.world.npc_resident_service_npcs = false);
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    assert_eq!(activate(&server).created, 1);
+    leave_world(&server, &player);
+    activate(&server); // books the stable countdown (default retention 60)
+    advance(60);
+    let stats = activate(&server);
+    assert_eq!(
+        stats.reclaimed, 1,
+        "resident disabled: ordinary retention applies to the vendor"
+    );
+    m.check_respawns_tick(&server);
+    assert_eq!(spawner.current_spawn_count(), 0);
+}
+
+#[tokio::test]
+async fn activation_resident_service_npc_stays_resident_with_dormant_ai() {
+    let server = activation_server_with_npc(template(10, 1), merchant_template(500));
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let mut client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    assert_eq!(activate(&server).created, 1);
+    let vendor = spawner
+        .spawned_npcs()
+        .into_values()
+        .flatten()
+        .next()
+        .unwrap();
+    let vendor_id = vendor.obj_id;
+    client.drain();
+
+    // The vendor AI exists and ticks while the player is in its region; age out the
+    // initialization grace first so only the region selection can keep it a candidate.
+    server.systems.ai.ais.add_ai(&vendor, AiKind::Dummy);
+    for _ in 0..21 {
+        crate::systems::ai::manager::tick_all(&server, 100);
+    }
+    let visits = server.systems.ai.ais.visits(vendor_id).unwrap();
+    assert!(visits > 0, "the vendor is ticked while a player is nearby");
+
+    // Leaving does not reclaim the vendor, even far beyond the retention interval; its AI falls
+    // out of the region candidate selection (no blanket always-active).
+    leave_world(&server, &player);
+    for _ in 0..5 {
+        let stats = activate(&server);
+        assert_eq!(stats.reclaimed, 0);
+    }
+    advance(600);
+    for _ in 0..5 {
+        let stats = activate(&server);
+        assert_eq!(stats.reclaimed, 0);
+        crate::systems::ai::manager::tick_all(&server, 100);
+        m.check_respawns_tick(&server);
+    }
+    assert_eq!(
+        server.systems.ai.ais.visits(vendor_id),
+        Some(visits),
+        "a far dormant resident AI is not a tick candidate"
+    );
+    assert_eq!(spawner.current_spawn_count(), 1);
+    let still = spawner
+        .spawned_npcs()
+        .into_values()
+        .flatten()
+        .next()
+        .unwrap();
+    assert!(Arc::ptr_eq(&still, &vendor), "same resident identity");
+    assert!(world.npc(vendor_id).is_some());
+}
+
+#[tokio::test]
+async fn activation_reclaim_protects_activity_and_stale_targets_expire() {
+    let server = server();
+    let m = manager(&server);
+    for x in [100.0, 104.0, 108.0] {
+        m.add_npc_spawner(&server, npc_def(500, x, 100.0)).unwrap();
+    }
+    let spawners: Vec<Arc<NpcSpawner>> = m.get_all_spawners().into_values().flatten().collect();
+    assert_eq!(spawners.len(), 3);
+    let (combat, caster, escort) = (
+        spawners[0].clone(),
+        spawners[1].clone(),
+        spawners[2].clone(),
+    );
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    assert_eq!(activate(&server).created, 3);
+    let npc_of = |s: &Arc<NpcSpawner>| s.spawned_npcs().into_values().flatten().next().unwrap();
+    let fighter = npc_of(&combat);
+    let casting = npc_of(&caster);
+    let escorting = npc_of(&escort);
+
+    // Actual combat: a live opponent inside the authored leash.
+    let foe = Entity::new(90_001, {
+        let mut n = Npc::new(600);
+        n.unit.hp = 100;
+        n.unit.max_hp = 100;
+        n.unit.transform.set_xyz(110.0, 100.0, 100.0);
+        n
+    });
+    world.spawn(&foe, &server.view_ctx());
+    {
+        let mut d = fighter.data();
+        d.unit.is_in_battle = true;
+        d.unit.current_target = foe.obj_id;
+        d.unit
+            .skill_state
+            .aggro_table
+            .insert(foe.obj_id, Aggro::default());
+    }
+    // Casting.
+    casting.data().unit.skill_state.skill_task = Some(SkillTaskSlot {
+        kind: SkillTaskKind::Cast,
+        skill: SkillRun::new(
+            Arc::new(crate::systems::skills::tests::skill_template(1)),
+            1,
+        ),
+        cancel: CancelToken::new(),
+    });
+    // Persistent escort work (follow target).
+    server.systems.ai.ais.add_ai(&escorting, AiKind::Dummy);
+    let follow = WorldObject::from(&player);
+    crate::systems::ai::manager::post(&server, escorting.obj_id, move |c| {
+        c.ai.follow_unit = Some(follow);
+    });
+
+    leave_world(&server, &player);
+    activate(&server); // books the countdown
+    advance(60);
+    let stats = activate(&server);
+    assert_eq!(stats.reclaimed, 0, "combat / cast / escort are protected");
+    m.check_respawns_tick(&server);
+    assert_eq!(world.all_npcs().len(), 4, "nothing was removed");
+
+    // The opponent is deleted: the stale aggro target no longer protects the fighter.
+    world.delete(WorldObject::from(&foe));
+    casting.data().unit.skill_state.skill_task = None;
+    crate::systems::ai::manager::post(&server, escorting.obj_id, |c| c.ai.follow_unit = None);
+
+    let stats = activate(&server);
+    assert_eq!(stats.reclaimed, 3);
+    m.check_respawns_tick(&server);
+    assert!(world.all_npcs().is_empty());
+}
+
+#[tokio::test]
+async fn activation_reclaim_preserves_authored_always_active_ai() {
+    let server = activation_server_with_npc(
+        template(10, 1),
+        NpcTemplate {
+            id: 500,
+            activate_ai_always: true,
+            ..NpcTemplate::default()
+        },
+    );
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    assert_eq!(activate(&server).created, 1);
+    let npc = spawner
+        .spawned_npcs()
+        .into_values()
+        .flatten()
+        .next()
+        .unwrap();
+    let npc_id = npc.obj_id;
+    server.systems.ai.ais.add_ai(&npc, AiKind::Dummy);
+
+    leave_world(&server, &player);
+    activate(&server); // books the countdown
+    advance(60);
+    let stats = activate(&server);
+    assert_eq!(
+        stats.reclaimed, 0,
+        "an authored ActivateAiAlways AI is an important actor"
+    );
+    m.check_respawns_tick(&server);
+    assert_eq!(spawner.current_spawn_count(), 1);
+
+    // Without its AI the placement follows the ordinary retention again.
+    server.systems.ai.ais.remove(npc_id);
+    let stats = activate(&server);
+    assert_eq!(stats.reclaimed, 1);
+    m.check_respawns_tick(&server);
+    assert_eq!(spawner.current_spawn_count(), 0);
+}
+
+#[tokio::test]
+async fn activation_reclaims_a_large_population_in_budgeted_steps() {
+    let mut t = template(10, 5);
+    t.min_population = 5;
+    let server = activation_server(t);
+    server.config.update(|c| c.world.npc_spawns_per_tick = 2);
+    let m = manager(&server);
+    let mut def = npc_def(500, 100.0, 100.0);
+    def.count = 5;
+    assert_eq!(m.add_npc_spawner(&server, def), Ok(1));
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    // The authored population fills over the budgeted passes (2 NPCs per pass).
+    for _ in 0..3 {
+        activate(&server);
+    }
+    assert_eq!(spawner.current_spawn_count(), 5);
+
+    // Leaving starts the countdown; the reclaim removes a few NPCs per pass, never the whole
+    // placement at once, and the limit counts removed NPCs.
+    leave_world(&server, &player);
+    activate(&server);
+    advance(60);
+    for (reclaimed, remaining) in [(2usize, 3i32), (2, 1), (1, 0)] {
+        let stats = activate(&server);
+        assert_eq!(stats.reclaimed, reclaimed, "budgeted drain step");
+        assert_eq!(
+            spawner.current_spawn_count(),
+            remaining,
+            "healthy removals complete in the reclamation pass"
+        );
+        m.check_respawns_tick(&server);
+        assert_eq!(
+            spawner.current_spawn_count(),
+            remaining,
+            "nothing is left queued for the respawn tick"
+        );
+    }
+    assert_eq!(spawner.current_spawn_count(), 0);
+    assert!(m.pending_respawns().is_empty());
+    assert!(
+        m.pending_despawns().is_empty(),
+        "an immediate reclaim leaves no queued despawn"
+    );
+}
+
+/// A placement mixing a resident member (merchant 500), a plain hostile member (600) and an
+/// authored `ActivateAiAlways` member (700) is reclaimed per live NPC: only the nonresident,
+/// idle members expire and the resident / always-active ones keep their identity.
+#[tokio::test]
+async fn activation_mixed_placement_reclaims_nonresidents_and_keeps_residents() {
+    let mut game = GameData::empty();
+    game.systems
+        .npcs
+        .npc
+        .templates
+        .insert(500, merchant_template(500));
+    game.systems.npcs.npc.templates.insert(
+        600,
+        NpcTemplate {
+            id: 600,
+            aggression: true,
+            ..NpcTemplate::default()
+        },
+    );
+    game.systems.npcs.npc.templates.insert(
+        700,
+        NpcTemplate {
+            id: 700,
+            activate_ai_always: true,
+            ..NpcTemplate::default()
+        },
+    );
+    game.systems.npcs.npc_spawners = NpcSpawnerData::from_parts(
+        vec![template(10, 3)],
+        vec![
+            member(100, 10, 500),
+            member(110, 10, 600),
+            member(120, 10, 700),
+        ],
+    )
+    .unwrap();
+    let server = Arc::new(test_server_with(game));
+    server.set_self();
+    *server.systems.npcs.spawns.test_backend.lock().unwrap() = Some(Arc::new(Backend));
+
+    let m = manager(&server);
+    let mut def = npc_def(500, 100.0, 100.0);
+    def.count = 3;
+    assert_eq!(m.add_npc_spawner(&server, def), Ok(1));
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    assert_eq!(activate(&server).created, 3);
+    let by_template = |template_id: u32| {
+        spawner
+            .spawned_npcs()
+            .into_values()
+            .flatten()
+            .find(|n| n.data().unit.template_id == template_id)
+            .expect("member spawned")
+    };
+    let vendor = by_template(500);
+    let hostile = by_template(600);
+    let always = by_template(700);
+    let (vendor_id, hostile_id, always_id) = (vendor.obj_id, hostile.obj_id, always.obj_id);
+    drop(hostile);
+    // The authored ActivateAiAlways member has an actual AI (the test backend creates none).
+    server.systems.ai.ais.add_ai(&always, AiKind::Dummy);
+
+    leave_world(&server, &player);
+    activate(&server); // books the stable countdown
+    advance(60);
+    let stats = activate(&server);
+    assert_eq!(
+        stats.reclaimed, 1,
+        "only the idle nonresident member expires"
+    );
+    m.check_respawns_tick(&server);
+    assert!(world.npc(hostile_id).is_none(), "hostile reclaimed");
+    assert!(
+        world.npc(always_id).is_some(),
+        "an authored ActivateAiAlways AI is protected"
+    );
+    let vendor_now = world.npc(vendor_id).expect("resident kept");
+    assert!(
+        Arc::ptr_eq(&vendor_now, &vendor),
+        "the resident keeps its identity"
+    );
+    assert_eq!(spawner.current_spawn_count(), 2);
+
+    // Without its AI the always-active member follows the ordinary lifecycle again.
+    server.systems.ai.ais.remove(always_id);
+    let stats = activate(&server);
+    assert_eq!(stats.reclaimed, 1);
+    m.check_respawns_tick(&server);
+    assert!(world.npc(always_id).is_none());
+    assert_eq!(
+        spawner.current_spawn_count(),
+        1,
+        "the resident vendor stays"
+    );
+    assert!(world.npc(vendor_id).is_some());
+
+    // Returning refills the reclaimed members while the vendor stays the very same NPC.
+    player.data().unit.transform.set_xyz(100.0, 100.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    let stats = activate(&server);
+    assert_eq!(stats.created, 2, "the reclaimed members refill");
+    assert_eq!(spawner.current_spawn_count(), 3);
+    let vendor_now = world.npc(vendor_id).expect("resident kept through rewarm");
+    assert!(Arc::ptr_eq(&vendor_now, &vendor), "same vendor identity");
+}
+
+/// Runtime ownership excludes an NPC from residency even when its actual template fills a
+/// residency role: a spawn owned by a player / creator follows its owner's lifecycle and is
+/// eligible for distance reclamation like any nonresident.
+#[tokio::test]
+async fn activation_runtime_owned_resident_template_is_not_kept() {
+    let server = activation_server_with_npc(template(10, 1), merchant_template(500));
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    assert_eq!(activate(&server).created, 1);
+    let vendor = spawner
+        .spawned_npcs()
+        .into_values()
+        .flatten()
+        .next()
+        .unwrap();
+    vendor.data().unit.owner_id = player.data().id;
+    let vendor_id = vendor.obj_id;
+
+    leave_world(&server, &player);
+    activate(&server); // books the stable countdown
+    advance(60);
+    let stats = activate(&server);
+    assert_eq!(
+        stats.reclaimed, 1,
+        "a runtime-owned NPC is never a resident"
+    );
+    m.check_respawns_tick(&server);
+    assert!(server.world.world(0).unwrap().npc(vendor_id).is_none());
+}
+
+/// A player returning after the retention expiry but before the 1 s respawn tick ran must not
+/// lose the refilled NPC to a stale queued despawn: distance reclamation completes in its own
+/// pass, so the rewarm refills and the refill survives the next respawn tick.
+#[tokio::test]
+async fn activation_expiry_rewarm_before_respawn_tick_keeps_the_refilled_npc() {
+    let server = server();
+    server
+        .config
+        .update(|c| c.world.npc_warm_retention_seconds = 0);
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    assert_eq!(activate(&server).created, 1);
+    leave_world(&server, &player);
+    assert_eq!(
+        activate(&server).reclaimed,
+        1,
+        "retention 0 reclaims on the departure pass"
+    );
+
+    // Return after the expiry pass but before any respawn tick: the reclaim already completed
+    // (no queued booking), so the placement simply refills for the returning player.
+    player.data().unit.transform.set_xyz(100.0, 100.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1, "the placement refills in the same window");
+    m.check_respawns_tick(&server);
+    assert_eq!(
+        spawner.current_spawn_count(),
+        1,
+        "no stale booking deletes the refilled NPC"
+    );
+    assert_eq!(world.all_npcs().len(), 1);
+}
+
+#[tokio::test]
+async fn activation_dormancy_preserves_corpse_and_respawn_deadlines() {
+    let server = activation_server(template(10, 1));
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    assert_eq!(activate(&server).created, 1);
+    // The spawn overwrites `RespawnTime` with `random(SpawnDelayMin, SpawnDelayMax)`, so the
+    // authored 30 s deadline is set after the first spawn (corpse despawn_time is the fixture's
+    // 20 s).
+    spawner.set_respawn_time(30);
+    let victim = spawner
+        .spawned_npcs()
+        .into_values()
+        .flatten()
+        .next()
+        .unwrap();
+    let victim_id = victim.obj_id;
+    {
+        let mut d = victim.data();
+        d.unit.hp = 0;
+        d.dead_time_ms = crate::world::now_ms();
+    }
+    spawn_manager::on_npc_died(&server, &victim);
+    let pending = m.pending_respawns();
+    assert_eq!(pending.len(), 1);
+    let deadline = pending[0].1.expect("authored respawn deadline");
+
+    // The player leaves; the corpse despawns on its own deadline and the respawn reservation
+    // (and with it the object ID) survives dormancy.
+    leave_world(&server, &player);
+    advance(20);
+    m.check_respawns_tick(&server);
+    assert!(world.npc(victim_id).is_none(), "corpse removed on schedule");
+    assert_eq!(
+        m.pending_respawns(),
+        vec![(victim_id, Some(deadline))],
+        "the respawn reservation keeps its deadline and ID"
+    );
+
+    // The retention window expires: the empty cold placement is still tracked, nothing is
+    // reclaimed (a pending timer is never a distance-reclamation target) and no untracked NPC
+    // appears from the timer.
+    activate(&server); // books the countdown
+    advance(60);
+    let stats = activate(&server);
+    assert_eq!(stats.reclaimed, 0);
+    assert!(world.all_npcs().is_empty());
+
+    // The respawn deadline fires on its own schedule while the player is still away.
+    m.check_respawns_tick(&server);
+    assert!(m.pending_respawns().is_empty());
+    assert!(world.all_npcs().is_empty());
+
+    // Returning refills normally.
+    player.data().unit.transform.set_xyz(100.0, 100.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(spawner.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn activation_authored_schedule_wins_over_residency_and_retention() {
+    let mut t = template(10, 1);
+    t.start_time = 1.0;
+    t.end_time = 2.0;
+    let server = activation_server_with_npc(t, merchant_template(500));
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    server.time.set(1.5);
+    assert_eq!(activate(&server).created, 1);
+    leave_world(&server, &player);
+
+    // Outside the authored window the resident vendor is still despawned as prescribed:
+    // authored removal has priority over residency and the retention window.
+    server.time.set(5.0);
+    let stats = activate(&server);
+    assert_eq!(
+        stats.reclaimed, 0,
+        "authored despawn, not a distance reclaim"
+    );
+    advance(20); // the authored corpse despawn time
+    m.check_respawns_tick(&server);
+    assert_eq!(spawner.current_spawn_count(), 0);
+    assert!(world.all_npcs().is_empty());
+}
+
+/// Quest fixture: NPC 500 accepts quest 100 (which then waits in PROGRESS on an unfinished hunt
+/// objective), NPC 501 reports quest 110 (both nonaggressive).
+fn quest_server() -> Arc<GameServer> {
+    let mut game = GameData::empty();
+    for id in [500u32, 501] {
+        game.systems.npcs.npc.templates.insert(
+            id,
+            NpcTemplate {
+                id,
+                ..NpcTemplate::default()
+            },
+        );
+    }
+    {
+        let q = &mut game.systems.quests;
+        q.add_template(QuestTemplate {
+            id: 100,
+            ..QuestTemplate::default()
+        });
+        q.add_component(QuestComponentTemplate {
+            id: 100,
+            quest_id: 100,
+            kind_id: kind::START,
+            ..QuestComponentTemplate::default()
+        });
+        q.add_act(100, 100, 100, 0, ActKind::ConAcceptNpc { npc_id: 500 });
+        q.add_component(QuestComponentTemplate {
+            id: 101,
+            quest_id: 100,
+            kind_id: kind::PROGRESS,
+            ..QuestComponentTemplate::default()
+        });
+        q.add_act(
+            101,
+            101,
+            101,
+            1,
+            ActKind::ObjMonsterHunt {
+                npc_id: 600,
+                use_alias: false,
+                alias_id: 0,
+                highlight_doodad_id: 0,
+                highlight_doodad_phase: -1,
+            },
+        );
+        q.add_template(QuestTemplate {
+            id: 110,
+            ..QuestTemplate::default()
+        });
+        q.add_component(QuestComponentTemplate {
+            id: 110,
+            quest_id: 110,
+            kind_id: kind::READY,
+            ..QuestComponentTemplate::default()
+        });
+        q.add_act(
+            110,
+            110,
+            110,
+            0,
+            ActKind::ConReportNpc {
+                npc_id: 501,
+                use_alias: false,
+                alias_id: 0,
+            },
+        );
+        q.finish();
+    }
+    game.systems.npcs.npc_spawners = NpcSpawnerData::from_parts(
+        vec![template(10, 1), template(20, 1)],
+        vec![member(100, 10, 500), member(200, 20, 501)],
+    )
+    .unwrap();
+    let s = Arc::new(test_server_with(game));
+    s.set_self();
+    *s.systems.npcs.spawns.test_backend.lock().unwrap() = Some(Arc::new(Backend));
+    s
+}
+
+#[tokio::test]
+async fn activation_quest_giver_and_reporter_stay_resident_and_resend_state() {
+    let server = quest_server();
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    m.add_npc_spawner(&server, npc_def(501, 104.0, 100.0))
+        .unwrap();
+    let spawners: Vec<Arc<NpcSpawner>> = m.get_all_spawners().into_values().flatten().collect();
+    assert_eq!(spawners.len(), 2);
+    let mut client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    assert_eq!(activate(&server).created, 2);
+    let mut ids: Vec<u32> = world.all_npcs().iter().map(|n| n.obj_id).collect();
+    ids.sort_unstable();
+    assert_eq!(ids.len(), 2);
+    client.drain();
+
+    // Accept quest 100 at the quest giver through the client packet path; it then waits in
+    // PROGRESS on its unfinished hunt objective.
+    use crate::net::registry::ClientPacket;
+    use crate::systems::quests::packets::CSStartQuestContextPacket;
+    client.conn.active_char = Some(player.clone());
+    let giver_id = world
+        .all_npcs()
+        .iter()
+        .find(|n| n.data().unit.template_id == 500)
+        .expect("quest giver")
+        .obj_id;
+    CSStartQuestContextPacket {
+        quest_context_id: 100,
+        npc_obj_id: giver_id,
+        doodad_obj_id: 0,
+        sphere_id: 0,
+    }
+    .handle(&server, &mut client.conn)
+    .await
+    .unwrap();
+    server.systems.quests.run_queued_evaluations(&server);
+    {
+        let c = player.data();
+        assert_eq!(c.quests.active.len(), 1, "quest accepted");
+        let active = &c.quests.active[0];
+        assert_eq!(active.template_id, 100);
+        assert_eq!(active.step, kind::PROGRESS, "active quest in progress");
+        assert_eq!(active.objectives[0], 0);
+    }
+    let ops = client.drain_ops();
+    assert!(
+        ops.contains(&sc::SCQuestContextStartedPacket),
+        "the accepted quest started: {ops:?}"
+    );
+    assert!(
+        ops.contains(&sc::SCQuestContextUpdatedPacket),
+        "the quest update reached the client: {ops:?}"
+    );
+
+    // Leaving beyond the warm horizon and the retention interval keeps both placements and the
+    // accepted quest state.
+    leave_world(&server, &player);
+    activate(&server);
+    advance(600);
+    let stats = activate(&server);
+    assert_eq!(stats.reclaimed, 0);
+    m.check_respawns_tick(&server);
+    let mut still: Vec<u32> = world.all_npcs().iter().map(|n| n.obj_id).collect();
+    still.sort_unstable();
+    assert_eq!(still, ids, "same quest giver and reporter");
+    {
+        let c = player.data();
+        let active = &c.quests.active[0];
+        assert_eq!(
+            (active.template_id, active.step, active.objectives[0]),
+            (100, kind::PROGRESS, 0),
+            "the active quest and its progress survive retention"
+        );
+    }
+
+    // Returning re-announces the very same NPCs through the normal visibility path.
+    player.data().unit.transform.set_xyz(100.0, 100.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    let ops = client.drain_ops();
+    assert!(
+        ops.contains(&sc::SCUnitStatePacket),
+        "state packets resent for the resident quest NPCs: {ops:?}"
+    );
+    let mut returned: Vec<u32> = world.all_npcs().iter().map(|n| n.obj_id).collect();
+    returned.sort_unstable();
+    assert_eq!(returned, ids);
+    {
+        let c = player.data();
+        let active = &c.quests.active[0];
+        assert_eq!(
+            (active.template_id, active.step, active.objectives[0]),
+            (100, kind::PROGRESS, 0),
+            "the quest is still in progress after the return"
+        );
+    }
+}
+
+#[tokio::test]
+async fn activation_ignores_other_instance_players_at_the_same_position() {
+    let server = server();
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let world = server.world.world(0).unwrap();
+    let w1 = server
+        .world
+        .create_world_instance(world.template.clone(), 1);
+
+    // A player in instance 1 at the spawner's exact coordinates must not activate it.
+    let client1 = TestClient::new(&server, 1, 1);
+    let p1 = Player::new(
+        test_character(1, "Other", 100.0, 100.0),
+        client1.conn.handle(),
+    );
+    server.world.try_add_character(&p1);
+    w1.spawn(&p1, &server.view_ctx());
+    let stats = activate(&server);
+    assert_eq!(stats.created, 0, "another instance's player does not count");
+    assert_eq!(spawner.current_spawn_count(), 0);
+
+    // Sanity: a player of the owning instance does activate it.
+    let client0 = TestClient::new(&server, 2, 2);
+    let _p0 = spawn_player(
+        &server,
+        &client0,
+        test_character(2, "Mine", 100.0, 100.0),
+        5001,
+    );
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(spawner.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn activation_prewarms_one_ring_beyond_client_visibility_without_sending_state() {
+    let server = server();
+    let m = manager(&server);
+    // The player region is (1, 1); the spawner sits three regions away (region (4, 1)): outside
+    // the client visibility neighbourhood (radius 2) and outside the authored 150 m radius
+    // (192 m), but inside the default prewarm ring (2 + NpcPrewarmRegionMargin 1).
+    m.add_npc_spawner(&server, npc_def(500, 292.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let mut client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    client.drain();
+
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1, "baseline NPC prepared beyond visibility");
+    assert_eq!(spawner.current_spawn_count(), 1);
+    assert!(
+        !spawner.is_player_in_spawn_radius(&server),
+        "the player is outside the authored radius"
+    );
+    assert!(
+        client.drain().is_empty(),
+        "a prewarmed NPC sends no state before the player can see it"
+    );
+
+    // Entering the visible neighbourhood announces the prepared NPC through the normal
+    // visibility path.
+    player.data().unit.transform.set_xyz(250.0, 100.0, 100.0);
+    server
+        .world
+        .world(0)
+        .unwrap()
+        .add_visible_object(&player, &server.view_ctx());
+    assert!(
+        client.drain_ops().contains(&sc::SCUnitStatePacket),
+        "the prepared NPC is shown once the player sees its region"
+    );
+}
+
+#[tokio::test]
+async fn activation_budget_limits_created_npcs_per_pass_nearest_first() {
+    let server = server();
+    server.config.update(|c| c.world.npc_spawns_per_tick = 2);
+    let m = manager(&server);
+    for x in [100.0, 104.0, 108.0, 112.0, 116.0] {
+        assert_eq!(m.add_npc_spawner(&server, npc_def(500, x, 100.0)), Ok(1));
+    }
+    let spawners: Vec<Arc<NpcSpawner>> = m.get_all_spawners().into_values().flatten().collect();
+    assert_eq!(spawners.len(), 5);
+    let client = TestClient::new(&server, 1, 1);
+    let _p = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    // Pass 1: two creations, and they are the two nearest spawners to the player.
+    let stats = activate(&server);
+    assert!(stats.created <= 2, "budget respected: {stats:?}");
+    assert_eq!(stats.created, 2);
+    assert_eq!(spawners[0].current_spawn_count(), 1);
+    assert_eq!(spawners[1].current_spawn_count(), 1);
+    assert_eq!(
+        spawners[2].current_spawn_count(),
+        0,
+        "nearer spawners are created first"
+    );
+    let mut total = stats.created;
+
+    // Unfilled targets continue over the next passes.
+    for expected in [2usize, 1, 0] {
+        let stats = activate(&server);
+        assert!(stats.created <= 2, "budget respected: {stats:?}");
+        assert_eq!(stats.created, expected, "unfilled targets continue later");
+        total += stats.created;
+    }
+    assert_eq!(total, 5);
+    assert_eq!(
+        server.world.world(0).unwrap().all_npcs().len(),
+        5,
+        "all targets fill over passes"
+    );
+}
+
+#[tokio::test]
+async fn activation_prioritizes_visible_neighbourhoods_and_rotates_instances() {
+    let server = server();
+    server.config.update(|c| c.world.npc_spawns_per_tick = 1);
+    let m0 = manager(&server);
+    // Visible ring of the player: one region away (region (2, 1)).
+    m0.add_npc_spawner(&server, npc_def(500, 160.0, 100.0))
+        .unwrap();
+    // Prewarm-only: three regions away (region (4, 1)).
+    m0.add_npc_spawner(&server, npc_def(500, 292.0, 100.0))
+        .unwrap();
+    let spawners: Vec<_> = m0.get_all_spawners().into_values().flatten().collect();
+    let visible = spawners
+        .iter()
+        .find(|s| s.position().x == 160.0)
+        .expect("visible spawner")
+        .clone();
+    let prewarm = spawners
+        .iter()
+        .find(|s| s.position().x == 292.0)
+        .expect("prewarm spawner")
+        .clone();
+
+    let client0 = TestClient::new(&server, 1, 1);
+    let _p0 = spawn_player(
+        &server,
+        &client0,
+        test_character(1, "P", 100.0, 100.0),
+        5000,
+    );
+
+    // Instance 1 with its own player and ordinary spawner.
+    let world0 = server.world.world(0).unwrap();
+    let w1 = server
+        .world
+        .create_world_instance(world0.template.clone(), 1);
+    let m1 = server.systems.npcs.spawns.get_or_create(&w1);
+    m1.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let other = only_spawner(&m1);
+    let client1 = TestClient::new(&server, 2, 2);
+    let p1 = Player::new(test_character(2, "Q", 100.0, 100.0), client1.conn.handle());
+    server.world.try_add_character(&p1);
+    w1.spawn(&p1, &server.view_ctx());
+
+    // Pass 1: the visible candidate wins over the prewarm ring.
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(visible.current_spawn_count(), 1);
+    assert_eq!(prewarm.current_spawn_count(), 0, "prewarm waits");
+    assert_eq!(other.current_spawn_count(), 0);
+
+    // Pass 2: the rotation starts with instance 1, so it progresses too.
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(other.current_spawn_count(), 1, "second instance progresses");
+    assert_eq!(prewarm.current_spawn_count(), 0, "visible still first");
+
+    // Pass 3: nothing visible is left to fill, so the prewarm ring follows.
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(prewarm.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn activation_respects_management_gates_and_event_triggers() {
+    let server = server();
+    let m = manager(&server);
+    let mut managed = npc_def(500, 100.0, 100.0);
+    managed.base.spawn_group_id = 73;
+    assert_eq!(m.add_npc_spawner(&server, managed), Ok(1));
+    let managed = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let _p = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    let stats = activate(&server);
+    assert_eq!(stats.created, 0, "authored management group not enabled");
+    assert_eq!(managed.current_spawn_count(), 0);
+
+    managed.shared().set_management_enabled(true);
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(managed.current_spawn_count(), 1);
+
+    // Event spawners are indexed nowhere: only their own trigger spawns them.
+    let mut ev = npc_def(500, 100.0, 100.0);
+    ev.npc_spawner_ids = vec![5, 6];
+    assert_eq!(m.add_npc_spawner(&server, ev), Ok(0));
+    let event = m.get_npc_spawner(6).remove(0);
+    activate(&server);
+    assert_eq!(
+        event.current_spawn_count(),
+        0,
+        "event entry waits for its trigger"
+    );
+    event.do_event_spawn(&server);
+    assert_eq!(event.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn activation_respects_authored_spawn_windows_and_respawn_delays() {
+    let mut t = template(10, 1);
+    t.start_time = 1.0;
+    t.end_time = 2.0;
+    let server = activation_server(t);
+    let m = manager(&server);
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let _p = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    server.time.set(5.0);
+    let stats = activate(&server);
+    assert_eq!(stats.created, 0, "outside the authored window");
+    assert_eq!(spawner.current_spawn_count(), 0);
+
+    server.time.set(1.5);
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+
+    // The killed NPC's own respawn deadline is not bypassed by the pass.
+    let victim = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+    spawner.set_respawn_time(30);
+    {
+        let mut d = victim.data();
+        d.unit.hp = 0;
+        d.dead_time_ms = crate::world::now_ms();
+    }
+    spawn_manager::on_npc_died(&server, &victim);
+    activate(&server);
+    assert_eq!(
+        spawner.current_spawn_count(),
+        0,
+        "respawn deadline still pending"
+    );
+    spawn_manager::advance_test_clock(Duration::from_secs(31));
+    m.check_respawns_tick(&server);
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(spawner.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn activation_index_follows_added_spawners_and_delete_all() {
+    let server = server();
+    let m = manager(&server);
+    let client = TestClient::new(&server, 1, 1);
+    let _p = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    // Build the (empty) index with no ordinary spawner yet.
+    assert_eq!(activate(&server).created, 0);
+
+    // A newly added ordinary spawner enters the index without a player move (the membership
+    // generation invalidates the index).
+    m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0))
+        .unwrap();
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1, "new spawner entered the index");
+    assert_eq!(world.all_npcs().len(), 1);
+
+    // Delete-all drops it and invalidates the index again.
+    m.delete_all_spawners(&server);
+    assert_eq!(activate(&server).created, 0);
+    assert!(world.all_npcs().is_empty());
+
+    // Re-adding after the teardown still lands in the index.
+    m.add_npc_spawner(&server, npc_def(500, 120.0, 100.0))
+        .unwrap();
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(world.all_npcs().len(), 1);
+}
+
+#[tokio::test]
+async fn activation_authored_radius_beyond_the_ring_and_exact_sphere() {
+    let mut t = template(10, 1);
+    t.test_radius_npc = 7.0; // 350 m
+    let server = activation_server(t);
+    // Retention 0 keeps this test focused on the far-authored sphere: leaving the exact sphere
+    // reclaims on the same pass.
+    server
+        .config
+        .update(|c| c.world.npc_warm_retention_seconds = 0);
+    let m = manager(&server);
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    // The index (far-authored part included) is built before the placement exists: a
+    // runtime-added large-radius spawner still enters it without a player move.
+    assert_eq!(activate(&server).created, 0);
+    assert_eq!(
+        m.add_npc_spawner(&server, npc_def(500, 100.0, 420.0)),
+        Ok(1)
+    );
+    let spawner = only_spawner(&m);
+
+    // Region (1, 6) is five regions away: outside the default 2 + 1 ring, but the player is
+    // inside the authored 350 m 3D sphere.
+    let stats = activate(&server);
+    assert_eq!(
+        stats.created, 1,
+        "authored radius beyond the configured ring"
+    );
+    assert_eq!(spawner.current_spawn_count(), 1);
+    assert!(spawner.is_player_in_spawn_radius(&server));
+
+    // Same horizontal position but far above: outside the exact 3D sphere, so the authored-only
+    // candidate leaves the warm set again (and its NPC is despawned).
+    player.data().unit.transform.set_xyz(100.0, 100.0, 400.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    assert_eq!(player.region(), Some((0, 1, 1)), "still region (1, 1)");
+    assert!(!spawner.is_player_in_spawn_radius(&server));
+    assert_eq!(activate(&server).created, 0);
+    m.check_respawns_tick(&server);
+    assert_eq!(spawner.current_spawn_count(), 0);
+    assert!(world.all_npcs().is_empty());
+
+    // Returning into the sphere refills on the first pass.
+    player.data().unit.transform.set_xyz(100.0, 100.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(spawner.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn activation_authored_radius_is_honored_with_margin_zero() {
+    let mut t = template(10, 1);
+    t.test_radius_npc = 4.0; // 200 m
+    let server = activation_server(t);
+    server
+        .config
+        .update(|c| c.world.npc_prewarm_region_margin = 0);
+    let m = manager(&server);
+    // Region (1, 4): three regions away, outside the margin-0 ring (2), 160 m from the player.
+    assert_eq!(
+        m.add_npc_spawner(&server, npc_def(500, 100.0, 260.0)),
+        Ok(1)
+    );
+    // Region (1, 5): 220 m away, outside the authored 200 m sphere.
+    assert_eq!(
+        m.add_npc_spawner(&server, npc_def(500, 100.0, 320.0)),
+        Ok(1)
+    );
+    let spawners: Vec<Arc<NpcSpawner>> = m.get_all_spawners().into_values().flatten().collect();
+    let inside = spawners
+        .iter()
+        .find(|s| s.position().y == 260.0)
+        .unwrap()
+        .clone();
+    let outside = spawners
+        .iter()
+        .find(|s| s.position().y == 320.0)
+        .unwrap()
+        .clone();
+    let client = TestClient::new(&server, 1, 1);
+    let _p = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    let stats = activate(&server);
+    assert_eq!(
+        stats.created, 1,
+        "margin 0 still honors the authored radius"
+    );
+    assert_eq!(inside.current_spawn_count(), 1);
+    assert_eq!(
+        outside.current_spawn_count(),
+        0,
+        "outside the exact 3D sphere"
+    );
+}
+
+#[tokio::test]
+async fn activation_visible_beats_far_authored_within_the_budget() {
+    let mut t = template(10, 1);
+    t.test_radius_npc = 7.0; // 350 m
+    let server = activation_server(t);
+    server.config.update(|c| c.world.npc_spawns_per_tick = 1);
+    let m = manager(&server);
+    // Visible neighbourhood (region (2, 1)).
+    assert_eq!(
+        m.add_npc_spawner(&server, npc_def(500, 160.0, 100.0)),
+        Ok(1)
+    );
+    // Far-authored only: region (1, 6), 320 m away, inside the 350 m sphere.
+    assert_eq!(
+        m.add_npc_spawner(&server, npc_def(500, 100.0, 420.0)),
+        Ok(1)
+    );
+    let spawners: Vec<Arc<NpcSpawner>> = m.get_all_spawners().into_values().flatten().collect();
+    let visible = spawners
+        .iter()
+        .find(|s| s.position().x == 160.0)
+        .unwrap()
+        .clone();
+    let far = spawners
+        .iter()
+        .find(|s| s.position().y == 420.0)
+        .unwrap()
+        .clone();
+    let client = TestClient::new(&server, 1, 1);
+    let _p = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(visible.current_spawn_count(), 1);
+    assert_eq!(
+        far.current_spawn_count(),
+        0,
+        "far-authored waits below visible"
+    );
+
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(far.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn activation_far_authored_ignores_other_instance_players() {
+    let mut t = template(10, 1);
+    t.test_radius_npc = 7.0; // 350 m
+    let server = activation_server(t);
+    let m = manager(&server);
+    assert_eq!(
+        m.add_npc_spawner(&server, npc_def(500, 100.0, 420.0)),
+        Ok(1)
+    );
+    let spawner = only_spawner(&m);
+    let world = server.world.world(0).unwrap();
+    let w1 = server
+        .world
+        .create_world_instance(world.template.clone(), 1);
+
+    // A player of another instance at the placement's exact position must not activate it.
+    let client1 = TestClient::new(&server, 1, 1);
+    let p1 = Player::new(
+        test_character(1, "Other", 100.0, 420.0),
+        client1.conn.handle(),
+    );
+    server.world.try_add_character(&p1);
+    w1.spawn(&p1, &server.view_ctx());
+    assert_eq!(
+        activate(&server).created,
+        0,
+        "another instance's player does not count"
+    );
+    assert_eq!(spawner.current_spawn_count(), 0);
+
+    // A player of the owning instance within the authored sphere activates it.
+    let client0 = TestClient::new(&server, 2, 2);
+    let _p0 = spawn_player(
+        &server,
+        &client0,
+        test_character(2, "Mine", 100.0, 100.0),
+        5001,
+    );
+    assert_eq!(activate(&server).created, 1);
+    assert_eq!(spawner.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn activation_retries_placements_whose_members_are_initialized_later() {
+    let server = activation_server(template(10, 1));
+    let m = manager(&server);
+    assert_eq!(
+        m.add_npc_spawner(&server, npc_def(500, 100.0, 100.0)),
+        Ok(1)
+    );
+    let spawner = only_spawner(&m);
+    let client = TestClient::new(&server, 1, 1);
+    let _p = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+    let world = server.world.world(0).unwrap();
+
+    // A temporarily empty member list must not drop the placement from the cached queue.
+    let mut cleared = (*spawner.template().unwrap()).clone();
+    cleared.npcs.clear();
+    spawner.initialize_spawnable_npcs(Some(&cleared));
+    assert!(spawner.spawnable_npcs().is_empty());
+    assert_eq!(activate(&server).created, 0);
+
+    // The members are initialized later: with players standing still (no movement, reload or
+    // clock advance) the next pass creates the NPC from the same cached queue.
+    let template = spawner.template().unwrap();
+    spawner.initialize_spawnable_npcs(Some(template.as_ref()));
+    let stats = activate(&server);
+    assert_eq!(stats.created, 1);
+    assert_eq!(spawner.current_spawn_count(), 1);
+    assert_eq!(world.all_npcs().len(), 1);
+}
+
+#[test]
+fn prewarm_margin_and_tick_interval_are_clamped() {
+    let mut w = WorldConfig::default();
+    assert_eq!(spawn_manager::prewarm_region_margin(&w), 1);
+    w.npc_prewarm_region_margin = 100;
+    assert_eq!(spawn_manager::prewarm_region_margin(&w), 4);
+    w.npc_spawn_tick_ms = 0;
+    assert_eq!(
+        spawn_manager::spawn_tick_interval(&w),
+        Duration::from_millis(250),
+        "0 never spins"
+    );
+    w.npc_spawn_tick_ms = 1;
+    assert_eq!(
+        spawn_manager::spawn_tick_interval(&w),
+        Duration::from_millis(50)
+    );
+    w.npc_spawn_tick_ms = u64::MAX;
+    assert_eq!(
+        spawn_manager::spawn_tick_interval(&w),
+        Duration::from_millis(60_000)
+    );
 }
 
 // ---------------------------------------------------------------------------------------------

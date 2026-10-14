@@ -71,6 +71,96 @@ in screenshots; telemetry reported all six Mistfiend entities at cave heights be
 terrain, plus a Mist Skeleton. This does not establish retail population density or
 validate every cave.
 
+Directly deleting an NPC (`manager::delete`, used by skill effects, dungeon actions and spawn
+cleanup) releases the exact NPC's shared spawner membership under the spawners' reentrant
+serialization lock, so the population gates stop counting the deleted object and no replacement
+can be filled while the removal is still in progress. Membership is matched by object identity:
+a recycled object id in any instance, or an identical member of another placement, is never
+touched, and deleting an already removed NPC is harmless. `despawn_with_respawn` performs the
+delete, the reserved respawn slot and its population credit as one atomic step. The authored
+corpse lifetime and each pending slot's individual respawn deadline are unchanged.
+
+Ordinary NPC spawners are indexed per world instance and 64 m region and queried only around
+present players. The client's 2-region visibility radius is unchanged;
+`World.NpcPrewarmRegionMargin` (default `1`, clamped to 0–4) adds that many rings beyond it for
+prewarming, so the default prepares the 7×7 regions around each player. Spawners whose authored
+3D `TestRadiusPc` / `TestRadiusNpc` reaches further keep their full trigger through a grouped
+coarse index (radius-sized cells, nine probed around a player, then the exact sphere), so
+prewarming never narrows them. `World.NpcSpawnTickMs` (default 250, `0` falls back to 250,
+clamped to 50–60 000 ms) sets the pass interval, and `World.NpcSpawnsPerTick` (default 64, `0`
+treated as 1) bounds how many NPCs one pass creates across all instances. A pass fills
+client-visible neighbourhoods before prewarm candidates, nearest first; each queue continues
+from its cursor next pass and the starting instance rotates, so a small budget cannot starve
+later candidates.
+
+The candidate queues are rebuilt only when the instance's player-activity revision, the spawner
+membership or the margin changes: the revision is published on player arrival, movement
+(including within one region) and departure, so proximity caches follow immediately, and an
+unchanged pass reuses the cached queues instead of walking the full spawner table. Membership
+changes also clear the count cache anchored to a spawner's first NPC. A player of another
+instance at the same coordinates never activates a spawner, and a placement whose member list is
+still empty stays queued and is retried once it is initialized, without waiting for movement or
+a reload.
+
+Prepared placements are tracked in a warmed registry. When the last player leaves their warm
+set, the existing NPCs keep their state while `World.NpcWarmRetentionSeconds` (default 60
+seconds; `0` permits reclaiming on the first eligible pass) counts down, and a returning player
+restarts the countdown. After it expires, cold NPCs are reclaimed per live NPC under a separate
+bounded per-pass budget; corpses and queued respawn deadlines keep their own timers, and the
+population reservation credit is unchanged. Ordinary nonhostile quest givers / reporters and
+service roles (merchant, banker, skill trainer, auctioneer, priest, blacksmith, teleporter,
+ability changer, stabler, trader, repairman, specialty, expedition, look converter) stay
+resident after their first preparation while `World.NpcResidentServiceNpcs` (default true) is
+enabled. A mixed placement decides per live NPC, so its residents stay while the other members
+expire, and runtime-owned or creator-only actors are never residents. Authored spawn schedules
+and management despawns still win. Casting, plots and skill controllers, persistent or
+`ActivateAiAlways` AI work and actual combat against a live opponent inside the authored return
+leash protect an NPC from reclamation; the persistent-work check includes the same finite work
+(an active command after its queue drained, spawn settling, return home).
+
+The AI manager's ~100 ms tick visits only the AIs selected for it: NPCs in the 2-region
+neighborhood around active players (their region plus two rings), plus AIs with persistent
+paths, follow targets, queued commands or finite work still to finish (an active command even
+after its queue drained, spawn settling on the way to Idle, returning home, or a combat
+behavior with aggro entries still to clear), AIs with calls pending, newly added AIs for a
+20-tick initialization grace, and NPCs whose template sets the authored `ActivateAiAlways`
+flag. A settled Idle / Roaming / DoNothing / Alert AI without such work sleeps after that
+grace. The selection is deduplicated and visited in monotonic `AddAi` order, so a replaced
+object id cannot mix a stale handle into it, and distant idle AIs are neither locked nor
+visited. The manager's wake / maintenance classification, the tick guard and the cold-NPC
+reclamation check share this predicate, so a selected AI is never skipped and a
+mid-initialization / mid-return / mid-command NPC is never distance-reclaimed. A maintenance
+sweep every 50 ticks drops stale owners and NPCs deleted without the normal hook.
+`World.AiWorkerThreads` (default `1`, clamped to 1–4) runs one tick's plan as at most that many
+contiguous chunk jobs on the existing Tokio blocking pool: the default keeps the strict global
+`AddAi` execution order, while higher values let the chunks run in parallel. Batches are awaited
+and serialized under their own supervisor, so a cancelled caller cannot release a batch early;
+no separate process or thread pool is used.
+
+Focused back-end tests cover the activation / retention pass and the player-activity revision
+(`spawn_tests.rs`, `world/player_activity_tests.rs`); from `rust/`, the
+`cargo test -p aaemu-game activation_` filter runs the activation tests.
+
+The NPC residency round-trip has a `testclient` scenario (`rust/crates/aaemu-testclient`). It
+needs a fresh disposable character whose configured `quest_id` / `quest_npc_template` (for
+example the Nuian starter 330 / 3597) can accept the quest: the bot starts it at the giver,
+moves the default 2048 m away for 70 s, returns to the same giver, and checks the re-announced
+NPC and the active-quest snapshot after a character re-select. From `rust/`:
+
+```sh
+cargo run --release -p aaemu-testclient -- run --config testclient.local.json --scenario npc-return --out npc-return.jsonl
+```
+
+`npc_return_distance` and `npc_return_away_secs` come from `testclient.local.json`, or use the
+`--npc-return-distance` / `--npc-return-away-secs` flags. The scenario's behavior and wire
+format are covered by focused `testclient` tests. A live run on a fresh disposable character
+(`Npcbeta`) exited 0: quest 330 was accepted from giver template 3597, the character stayed
+2048 m away for 70 s, returned to the same giver object and re-selected with the quest still
+active (`SCQuests` status 3) before a clean logout. The natural cave `load` scenario also exited
+0 (character `Recentcheck`, world 0 / zone 156 at 22848.135, 9444.387, 592.701): six natural
+template-4227 Mistfiends at their authored positions with 2381 HP and 17 nearby NPCs, with no
+force-spawned or manually placed NPCs.
+
 ## Housing behavior
 
 Housing uses the original 1.2 placement polygons and database category rules. Plot ownership is

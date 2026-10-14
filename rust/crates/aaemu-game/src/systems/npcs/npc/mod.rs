@@ -6,6 +6,7 @@ pub mod data;
 pub mod death;
 pub mod manager;
 pub mod packets;
+pub mod residency;
 pub mod spawner;
 pub mod spawner_data;
 pub mod stats;

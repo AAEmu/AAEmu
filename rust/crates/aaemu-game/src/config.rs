@@ -334,6 +334,32 @@ pub struct WorldConfig {
     pub pvp_durability_loss_rate: f32,
     #[serde(rename = "minimumexplosslevel", deserialize_with = "lenient")]
     pub minimum_exp_loss_level: i32,
+    /// `NpcPrewarmRegionMargin`: how many extra regions beyond the current player visibility
+    /// neighborhoods are prewarmed as players move, so nearby NPCs are already prepared before
+    /// a player reaches them. Server-side prewarming only; client-side NPC visibility is still
+    /// decided per player by the usual region/view distance.
+    #[serde(rename = "npcprewarmregionmargin", deserialize_with = "lenient")]
+    pub npc_prewarm_region_margin: u32,
+    /// `NpcSpawnTickMs`: how often (milliseconds) the proximity spawn/despawn pass runs.
+    #[serde(rename = "npcspawntickms", deserialize_with = "lenient")]
+    pub npc_spawn_tick_ms: u64,
+    /// `NpcSpawnsPerTick`: maximum number of NPCs activated per proximity pass, budgeting
+    /// work on busy ticks.
+    #[serde(rename = "npcspawnspertick", deserialize_with = "lenient")]
+    pub npc_spawns_per_tick: u32,
+    /// `NpcWarmRetentionSeconds`: how long ordinary NPC instances stay warm after the last
+    /// player leaves before they are reclaimed; their AI may already sleep during this time.
+    #[serde(rename = "npcwarmretentionseconds", deserialize_with = "lenient")]
+    pub npc_warm_retention_seconds: u64,
+    /// `NpcResidentServiceNpcs`: when true, ordinary service NPCs (quest givers, vendors, ...)
+    /// are retained after being visited/prepared; this does not mean their AI never sleeps.
+    #[serde(rename = "npcresidentservicenpcs", deserialize_with = "lenient")]
+    pub npc_resident_service_npcs: bool,
+    /// `AiWorkerThreads`: worker threads used to run AI update batches. `1` (the default)
+    /// runs AI updates sequentially in order; values above `1` enable bounded concurrency
+    /// over independent NPC AI updates and relax strict ordering.
+    #[serde(rename = "aiworkerthreads", deserialize_with = "lenient")]
+    pub ai_worker_threads: u32,
 }
 
 impl Default for WorldConfig {
@@ -365,6 +391,12 @@ impl Default for WorldConfig {
             pve_durability_loss_rate: 1.0,
             pvp_durability_loss_rate: 1.0,
             minimum_exp_loss_level: 10,
+            npc_prewarm_region_margin: 1,
+            npc_spawn_tick_ms: 250,
+            npc_spawns_per_tick: 64,
+            npc_warm_retention_seconds: 60,
+            npc_resident_service_npcs: true,
+            ai_worker_threads: 1,
         }
     }
 }
@@ -1152,6 +1184,36 @@ mod tests {
             vec![("alpha".to_string(), 1), ("Zeta".to_string(), 5)]
         );
         assert!(AppConfig::from_value(json!({ "World": { "WindModel": "Nope" } })).is_err());
+    }
+
+    #[test]
+    fn world_npc_settings_default_and_bind_leniently() {
+        // Missing settings keep their documented defaults.
+        let cfg = AppConfig::from_value(json!({ "World": {} })).unwrap();
+        assert_eq!(cfg.world.npc_prewarm_region_margin, 1);
+        assert_eq!(cfg.world.npc_spawn_tick_ms, 250);
+        assert_eq!(cfg.world.npc_spawns_per_tick, 64);
+        assert_eq!(cfg.world.npc_warm_retention_seconds, 60);
+        assert!(cfg.world.npc_resident_service_npcs);
+        assert_eq!(cfg.world.ai_worker_threads, 1);
+        // Binding is case-insensitive and accepts string values.
+        let cfg = AppConfig::from_value(json!({
+            "world": {
+                "npcprewarmregionmargin": "2",
+                "NPCSpawnTickMs": "500",
+                "NpcSpawnsPerTick": 8,
+                "npcwarmretentionseconds": "300",
+                "NpcResidentServiceNpcs": "False",
+                "AIWorkerThreads": "4"
+            }
+        }))
+        .unwrap();
+        assert_eq!(cfg.world.npc_prewarm_region_margin, 2);
+        assert_eq!(cfg.world.npc_spawn_tick_ms, 500);
+        assert_eq!(cfg.world.npc_spawns_per_tick, 8);
+        assert_eq!(cfg.world.npc_warm_retention_seconds, 300);
+        assert!(!cfg.world.npc_resident_service_npcs);
+        assert_eq!(cfg.world.ai_worker_threads, 4);
     }
 
     #[test]

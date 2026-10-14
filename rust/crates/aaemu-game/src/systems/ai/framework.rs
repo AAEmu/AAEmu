@@ -47,6 +47,22 @@ pub enum BehaviorKind {
     WildBoarAttack,
 }
 
+impl BehaviorKind {
+    /// A combat behavior: its tick clears stale targets and `OnNoAggroTarget` returns the NPC
+    /// home (the 1.2 Flytrap trap attack clears its stale aggro without a return transition).
+    fn is_combat(self) -> bool {
+        matches!(
+            self,
+            Self::AlmightyAttack
+                | Self::ArcherAttack
+                | Self::Attack
+                | Self::BigMonsterAttack
+                | Self::FlytrapAttack
+                | Self::WildBoarAttack
+        )
+    }
+}
+
 /// `TransitionEvent`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TransitionEvent {
@@ -424,12 +440,52 @@ impl NpcAi {
         self.behaviors.contains_key(&kind)
     }
 
-    /// `HasPersistentAi()`.
+    /// `HasPersistentAi()` widened by the finite ongoing work that must finish even after the
+    /// last player leaves the region:
+    ///
+    /// - an in-progress AI command (`CurrentCommand`: the queue entry was already popped and its
+    ///   `Timeout` / cooldown wait is still running),
+    /// - the spawn initialization (`Spawning` and the `RunCommandSet` settle step on the way to
+    ///   `Idle`), so the manager initialization grace actually runs the state machine,
+    /// - `ReturnState` (return home / to the talk position),
+    /// - a combat behavior with live aggro entries (the tick clears the stale targets once the
+    ///   player is gone and `OnNoAggroTarget` returns the NPC home).
+    ///
+    /// Settled `Idle` / `Roaming` / `DoNothing` / `Alert` without such work stays dormant. The
+    /// manager's wake / maintenance classification and the [`AiCtx::tick`] guard share this one
+    /// predicate, so selection and can-tick cannot disagree; the cold-NPC distance reclamation
+    /// reads it too and thus never deletes an NPC mid-initialization / mid-return / mid-command.
     pub fn has_persistent_ai(&self) -> bool {
         !self.path_handler.ai_path_points.is_empty()
             || !self.path_handler.ai_path_points_remaining.is_empty()
             || self.follow_unit.is_some()
             || !self.commands_queue.is_empty()
+            || self.has_finite_work()
+    }
+
+    /// The finite ongoing work of [`Self::has_persistent_ai`].
+    fn has_finite_work(&self) -> bool {
+        self.current_command.is_some()
+            || matches!(
+                self.current,
+                Some(
+                    BehaviorKind::Spawning
+                        | BehaviorKind::RunCommandSet
+                        | BehaviorKind::ReturnState
+                )
+            )
+            || self.has_actual_combat_work()
+    }
+
+    /// A combat behavior with opponents still in the aggro table: the tick clears the stale
+    /// targets and returns the NPC home. Without opponents the combat behavior is dormant (a
+    /// Flytrap trap whose aggro was cleared has no `OnNoAggroTarget` return transition).
+    fn has_actual_combat_work(&self) -> bool {
+        if !self.current.is_some_and(BehaviorKind::is_combat) {
+            return false;
+        }
+        self.owner()
+            .is_some_and(|npc| !npc.data().unit.skill_state.aggro_table.is_empty())
     }
 
     /// The owner, while it exists.
@@ -662,7 +718,9 @@ impl<'a> AiCtx<'a> {
         true
     }
 
-    /// `NpcAi.Tick(delta)` (`region_activity` = `Owner.Region.HasPlayerActivity()`).
+    /// `NpcAi.Tick(delta)` (`region_activity` = `Owner.Region.HasPlayerActivity()`). The guard
+    /// shares [`NpcAi::has_persistent_ai`] with the manager's candidate classification, so an AI
+    /// selected for its finite work (or initialization grace) can never be skipped here.
     pub fn tick(&mut self, delta_ms: i64, region_activity: bool) {
         if !(self.ai.has_persistent_ai() || region_activity) {
             return;
@@ -789,6 +847,59 @@ mod tests {
         assert_eq!(
             AiKind::by_type(AiParamType::from_u32(27)),
             Some(AiKind::AlmightyNpc)
+        );
+    }
+
+    /// The finite ongoing work widens `HasPersistentAi()`: spawn initialization, return, an
+    /// in-progress command and combat with live aggro keep the AI awake; the settled states and
+    /// combat without opponents sleep, so the manager selection and the tick guard agree.
+    #[test]
+    fn persistent_ai_includes_finite_ongoing_work() {
+        use super::BehaviorKind as B;
+
+        let npc = Entity::new(0x100, Npc::new(1));
+        let mut a = NpcAi::new(AiKind::Default, &npc);
+        assert!(!a.has_persistent_ai(), "no work at all");
+
+        for settled in [B::Idle, B::Roaming, B::DoNothing, B::Alert, B::Dead] {
+            a.current = Some(settled);
+            assert!(!a.has_persistent_ai(), "{settled:?} must stay dormant");
+        }
+        for step in [B::Spawning, B::RunCommandSet, B::ReturnState] {
+            a.current = Some(step);
+            assert!(a.has_persistent_ai(), "{step:?} must keep ticking");
+        }
+
+        a.current = Some(B::DoNothing);
+        a.current_command = Some(AiCommands {
+            id: 0,
+            cmd_set_id: 0,
+            cmd_id: crate::systems::ai::params::AiCommandCategory::Timeout,
+            param1: 100,
+            param2: String::new(),
+        });
+        assert!(a.has_persistent_ai(), "an in-progress command");
+        a.current_command = None;
+
+        a.current = Some(B::Attack);
+        assert!(!a.has_persistent_ai(), "combat without opponents sleeps");
+        npc.data().unit.skill_state.aggro_table.insert(
+            0x200,
+            crate::systems::skills::state::Aggro {
+                damage_aggro: 10,
+                ..Default::default()
+            },
+        );
+        assert!(
+            a.has_persistent_ai(),
+            "live aggro keeps the cleanup running"
+        );
+        a.current = Some(B::FlytrapAttack);
+        assert!(a.has_persistent_ai(), "the trap clears its stale aggro too");
+        npc.data().unit.skill_state.aggro_table.clear();
+        assert!(
+            !a.has_persistent_ai(),
+            "opponent-less combat is dormant again"
         );
     }
 }

@@ -176,8 +176,8 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 | `Npc.DoDie` | `npc/death.rs` | done | Kill exp (team eligibility, `PlayerExpModifier`, mate exp, TagShare contributors), quest kill events, loot (`LootManager.GenerateLoot` through the economy), aggro / tagger clean-up, spawner despawn, `Ai.GoToDead()` (`systems::ai`). |
 | NPC interaction packets (CSStartInteraction, CSInteractNPC(End), CSSelectInteractionEx; SCNpcInteractionSkillList, SCAiAggro, SCNpcChatMessage, SCUnitModelPostureChanged, SCAggroTargetChanged) | `npc/packets.rs` | done | Byte-exact tests. Merchant / bank / auction UIs are economy's. |
 | `NpcGameData` (npc_spawners, npc_spawner_npcs, member index, generated spawners) | `npc/spawner_data.rs` | done | |
-| `NpcSpawner`, `NpcSpawnerNpc`, `DoodadSpawner`, `Spawner<T>` | `npc/spawner.rs`, `doodad/spawner.rs` | done | Schedules / time windows / population caches, respawn + despawn timing. Ordinary populations keep the authored `Count` / `min_population` baseline (default 1) and per-slot respawn deadlines (see deviations). AI home position / follow path / simulation through `server.systems.hooks.ai` (`systems::ai`). |
-| `SpawnManager` (one per instance) + `WorldManager.ActiveRegionTick` spawner part | `spawn_manager.rs` | done | main_world: 25 118 NPC entries -> 24 047 ordinary placements / 38 174 spawner clones (1 011 duplicates and 60 event entries filtered, 0 missing templates), 42 649 doodads, 69 transfers, 14 gimmicks, 5 slaves, 0 parse errors. Persistent doodads from MySQL. Transfers / slaves: `systems::vehicles`; houses and their doodads: `systems::housing`; trial court doodads / NPCs linked after the spawns (`TrialManager.Initialize*`). |
+| `NpcSpawner`, `NpcSpawnerNpc`, `DoodadSpawner`, `Spawner<T>` | `npc/spawner.rs`, `doodad/spawner.rs` | done | Schedules / time windows / population caches, respawn + despawn timing, exact-identity reconciliation of direct deletes (see deviations). Ordinary populations keep the authored `Count` / `min_population` baseline (default 1) and per-slot respawn deadlines (see deviations). AI home position / follow path / simulation through `server.systems.hooks.ai` (`systems::ai`). |
+| `SpawnManager` (one per instance) + `WorldManager.ActiveRegionTick` spawner part | `spawn_manager.rs` | done | main_world: 25 118 NPC entries -> 24 047 ordinary placements / 38 174 spawner clones (1 011 duplicates and 60 event entries filtered, 0 missing templates), 42 649 doodads, 69 transfers, 14 gimmicks, 5 slaves, 0 parse errors. Ordinary spawning is a bounded per-instance 64 m region-index activation pass (`World.NpcPrewarmRegionMargin` / `World.NpcSpawnTickMs` / `World.NpcSpawnsPerTick`) with warm retention and resident-service retention (`World.NpcWarmRetentionSeconds` / `World.NpcResidentServiceNpcs`; see deviations). Persistent doodads from MySQL. Transfers / slaves: `systems::vehicles`; houses and their doodads: `systems::housing`; trial court doodads / NPCs linked after the spawns (`TrialManager.Initialize*`). |
 | `DoodadManager.Load` (templates, func groups, funcs, phase funcs, all 121 func template tables) | `doodad/data.rs`, `doodad/templates.rs` | done | 7 124 templates, 13 974 funcs, 24 465 phase funcs (counts match the DB). |
 | `Doodad` phase machine (`Use`, `DoFunc`, `DoPhaseFuncs`, `DoChangePhase`, `InitDoodad`, `OnSkillHit`, `FuncGroupId` setter, ToD triggers), 42 phase funcs, func tasks, `DoodadManager` runtime (Create, CreatePlayerDoodad, ChangeDoodadData, coffers), persistence (`doodads` table) | `doodad/{phase,phase_funcs,tasks,manager,db,logic}.rs` | partial | Serialized interactions, per-object counters, generation and handle guards for timers, ToD transitions, ordered MySQL persistence. Authored immediate logic/family pulses, spawn management groups and moving gimmicks are implemented. FlowGraph runs in the client. Logic delay descriptors 2/3 lack timing semantics; spawn groups 73–76 lack authored membership in shipped data. |
 | 79 non-phase funcs, 41 world interactions (`execute_interaction` for the skills InteractionEffect), coffers, bond / seats | `doodad/funcs/`, `doodad/interactions.rs`, `doodad/coffer.rs` | done | Items, loot, coffers through the economy `EconomyBridge`; skills, quests, housing through the bridges; instance funcs (`systems::instances`), `BindSlave` (`systems::vehicles`). Sticky parents are not modelled. |
@@ -326,7 +326,7 @@ Cross-subsystem: mates are despawned on dungeon entry and `PlayerCanEnter` check
 |---|---|---|---|
 | `NpcManager.LoadAiParams` (NLua), `Models/Game/AI/v2/Params/**`, `AiGameData` (commands, command sets, chat bubbles, events), `ModelManager` (actor models + game stances, ship models) | `systems/ai/{lua,params,data}.rs` | done | A Lua 5.4 subset evaluator with `System.Convert` semantics; all 2 489 `npc_ai_params` rows produce the same values as NLua (differential harness, gated test `real_compact_db_params_match_nlua`; rows 443 / 835 / 1975 fail to parse in both). |
 | `NpcAi` framework, `AiUtils.GetAiByType`, all `AiCharacters/**`, every `Behavior` (incl. Archer / BigMonster / Flytrap / WildBoar / AlmightyAttack / Talk / FollowPath / Return / Dead / Despawning / Spawning / Hold / Idle / Roaming / Alert / RunCommandSet / DoNothing) | `systems/ai/{framework,behaviors}.rs` | done | State machine, GoTo overrides, transitions, check intervals, skill queue / selection, aggression / alert / help, return, follow path, greetings (`SCNpcChatMessage` + `SCPlaySound`). |
-| `AIManager` (100 ms tick, `AddAi`, region activity) | `systems/ai/manager.rs` | done | Per-AI mutex + queued calls (see deviations). |
+| `AIManager` (100 ms tick, `AddAi`, region activity) | `systems/ai/manager.rs` | done | Per-AI mutex + queued calls; activity-based candidate selection and bounded `World.AiWorkerThreads` chunk batches (see deviations). |
 | AI members of `Npc` / `Unit` (`MoveTowards`, `LookTowards`, `StopMovement`, `SetTarget`, `CurrentAggroTarget`, `CurrentGameStance`, `BaseMoveSpeed`, `OnDamageReceived`, `CheckIfEmptyAggroToReturn`, `ClearAllAggro`, `FindPath`), `NpcEvents` | `systems/ai/{npc,combat,skills,npc_events}.rs` | done | `SCOneUnitMovementPacket` movement, aggro tables through the skills API. |
 | `AiPathsManager` (`Data/Path`), `AiPathHandler`, `Units/Route/Simulation` | `systems/ai/{path_handler,simulation}.rs` | done | Every `Data/Path/*.path` file loads (test). |
 | `AiGeoDataManager`, CryEngine `.bai` readers (net / areas / verts missions), A* `PathNode`, `GetHeight`, `ReducePath` | `systems/ai/geodata/` | done | `GeoDataMode` only. Engine-faithful readers and a merged cross-sector graph (see "geodata deviations" below). 1.2 pak: 9 447 net (2 299 of them v54) + 9 447 verts (2 299 v1) + 3 265 areas files parse with 0 trailing bytes; 279 path areas files below v21 are rejected by version like the engine (they do not fit the v21 layout either), the 7 399 `hidemission` files are not read. The areas reader matched the C# reader on every dumped file (differential harness; path areas < v21 now excluded on purpose). Gated tests: `real_ai_*`, `real_nav_*` (`AAEMU_GAME_PAK`, `AAEMU_BAI_SAMPLES=D:\aa-re\zone\agent_geom\data`). |
@@ -930,9 +930,11 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 * systems::ai: deletion marks an AI removed without waiting for its state mutex; the current holder detaches its owner and discards queued callbacks. This permits an NPC skill to delete its own caster and avoids the spawn-lock / AI-lock inversion during despawn. The global tick skips an AI whose state mutex is busy and retries on the next tick, so one external AI call cannot freeze movement and combat for every NPC.
 * systems::ai physics: Jitter's narrow phase (`MprEpa`) and contact solver are replaced by a box-vs-heightmap-triangle SAT with one contact per triangle and sequential impulses (Jitter's default friction / bias); the integration itself is exact. One physics world per instance is created with the first ship (C# starts a thread per instance at boot). Add / remove / helm / driver changes go through the pending queue (next tick); hull damage, movement packets and transform writes are applied after the tick; readers use per-tick snapshots. Water is kept per world template and a cell's `object.dat` is ingested when the physics or a water query sees the cell loaded. A height lookup error counts as height 0 (the C# exception skips the rest of that ship's tick). A ship whose game object is gone is skipped. Ship–ship harpoon tow resolves an explicit hook basis among the ships simulated this tick.
 * `WorldManager.Initialize` (`ActiveRegionTick`, 1 s, `useAsync`) and `IndunManager.Initialize`
-  (`IndunInfoTick`, 30 s, `useAsync`) do not subscribe to `TickManager.OnTick`: they run as 1 s
-  Tokio interval tasks started once per server (`npcs::spawn_manager::start_active_region_tick`,
-  `instances::start_ticks`), which never overlap themselves (the async subscriber's busy skip).
+  (`IndunInfoTick`, 30 s, `useAsync`) do not subscribe to `TickManager.OnTick`: they run as
+  non-overlapping Tokio interval tasks started once per server
+  (`npcs::spawn_manager::start_active_region_tick`, `instances::start_ticks`); the spawner
+  interval is `World.NpcSpawnTickMs` (default 250 ms, see the systems::npcs entry below) and the
+  indun interval stays 30 s.
   The C# `WorldManager` query API is split by data owner: template / zone-key lookups are on
   `game_data.worlds` (`WorldTemplates`), `GetAreaShapeById` / `GetWorldInteractionGroup` on
   `game_data.systems.npcs.area_trigger`, the rest on `world::WorldManager` (`GetTargetOrSelf` is
@@ -953,6 +955,82 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   restored (109 placements, one-to-one marker matches within 0.03 m). Authored rotations are
   retained; restored records use the default zero rotation because the markers carry only
   positions.
+
+* systems::npcs (2026-10-14): a direct `Npc.Delete` (`manager::delete`) reconciles the exact
+  `NpcRef` out of the shared `SpawnedNpcs` membership before the world removal, so a deleted
+  object no longer counts against the population caps and blocks its replacement (the C#
+  `Npc.Delete` detaches only the AI and leaves the stale entry). The reconciliation takes the
+  spawners' reentrant spawn lock like every spawner entry point, so an activation tick cannot
+  interleave with the membership change. Removal matches the whole `Arc` identity: a recycled
+  object id in any instance, or an identical member of another placement, is never touched, and
+  deleting an already removed NPC stays idempotent. `despawn_with_respawn` keeps the delete, its
+  reserved respawn slot and the population credit as one step. Authored corpse lifetimes and
+  each pending slot's individual respawn deadline are preserved. Focused tests in
+  `spawner_population_tests.rs` cover the limits, deadlines and direct-delete reconciliation.
+
+* systems::npcs (2026-10-14): the active-region spawner tick is a bounded activation pass
+  instead of the per-second sweep that updated every spawner whose authored player radius was
+  entered. Ordinary spawners are indexed per instance and authored 64 m region and queried
+  around present players from cached candidate queues, rebuilt only when the instance's
+  player-activity revision, the spawner membership or the prewarm margin changed. The client
+  visibility radius (2 regions) is unchanged; `World.NpcPrewarmRegionMargin` (default `1`,
+  clamped to `0..=4`) adds that many rings beyond it as deliberate prewarming (default 7x7
+  regions around a player), and `World.NpcSpawnTickMs` (default `250`, `0` -> `250`, clamped to
+  50..=60 000 ms) is the pass interval. Placements whose authored 3D `TestRadiusPc` /
+  `TestRadiusNpc` (x 50) reaches beyond the rings keep their full reach through a grouped coarse
+  index (radius-sized cells; the nine cells around a player are probed, then the exact 3D
+  sphere), so prewarming never narrows an authored trigger. `World.NpcSpawnsPerTick` (default
+  `64`, `0` -> `1`) is the global budget of NPCs actually created per pass: a pass fills
+  client-visible neighbourhoods before prewarm candidates, nearest first; each queue continues
+  from its cursor and the starting instance rotates, so a small budget cannot starve later
+  candidates. The player-activity revision is published on player arrival, movement (within one
+  region included) and departure, so proximity caches follow immediately while an unchanged pass
+  reuses the cached queues (the full spawner table is not walked per pass); a membership change
+  also clears the count cache anchored to a spawner's first NPC. A player of another instance at
+  the same coordinates never activates a spawner, and a placement whose member list is still
+  empty stays queued and is retried once it is initialized, without movement or a reload.
+
+* systems::npcs (2026-10-14): prepared ordinary placements are kept in the warmed registry after
+  their warm set loses its last player: the existing NPCs keep their state for
+  `World.NpcWarmRetentionSeconds` (default `60`; `0` permits reclaiming on the first eligible
+  pass) and a return clears the stable countdown. Expired placements are reclaimed per live NPC
+  under its own bounded per-pass budget (`World.NpcSpawnsPerTick` again), completing the removal
+  in the pass instead of a queued despawn (which could delete a re-shown NPC), keeping the
+  population reservation credit and leaving corpses / pending corpse / respawn deadlines to
+  their own timers; only the warmed registry is swept. Nonaggressive ordinary quest givers /
+  reporters (static `ConAcceptNpc` / `ConAcceptNpcEmotion` / `ConReportNpc` acts) and service
+  roles (merchant, banker, skill trainer, auctioneer, priest, blacksmith, teleporter, ability
+  changer, stabler, trader, repairman, specialty, expedition, look converter; `npc/residency.rs`)
+  stay resident after their first preparation while `World.NpcResidentServiceNpcs` (default
+  `true`) is enabled; a mixed placement decides per live NPC, and runtime-owned (`Unit.OwnerId
+  != 0`) or creator-only actors are never residents. Authored schedule / management despawns
+  keep priority. A cast / plot / skill controller, persistent or `ActivateAiAlways` AI work
+  (including the same finite work: an active command after its queue drained, spawn settling,
+  return home) and actual combat against a live opponent inside the authored return leash
+  protect an NPC from reclamation.
+
+* systems::ai (2026-10-14): the 100 ms tick does not visit every registered AI (the C#
+  `AIManager.Tick` walks the whole `_npcAis` list). Candidates are the NPCs of the 2-region
+  neighborhoods around active players (their region plus two rings) plus the explicitly
+  maintained sets: persistent paths / follow targets / queued commands and other finite work
+  still to finish (`NpcAi::has_persistent_ai`: an active command even after its queue drained,
+  `Spawning` / `RunCommandSet` settling to `Idle`, `ReturnState`, or a combat behavior with
+  aggro entries to clear) / pending calls (`woken`), newly added AIs for a 20-tick initialization
+  grace, and `NpcTemplate.ActivateAiAlways`. The predicate widens the C# `HasPersistentAi`; a
+  settled `Idle` / `Roaming` / `DoNothing` / `Alert` stays dormant, and the manager's wake /
+  maintenance sweep, the framework tick guard and cold-NPC reclamation share it, so the
+  initialization → `Idle` settle, return-home and empty-queue command work keep ticking.
+  Candidates are deduplicated and ordered by their monotonic `AddAi` ordinal, so a replaced
+  handle can never mix into the selection and a dormant AI far from every player is neither
+  locked nor visited. A maintenance sweep every 50 ticks drops stale owners and NPCs deleted
+  without the `npc_deleted` hook. `World.AiWorkerThreads` (default `1`, clamped to `1..=4`) runs
+  one tick batch as at most that many contiguous chunk jobs on the existing Tokio blocking pool:
+  `1` performs the single sequential pass and keeps the strict global `AddAi` execution order,
+  higher values let the chunks run in parallel. The chunk jobs are awaited and their diagnostics
+  aggregated once per batch; the serialized batch runs under its own supervisor, so a cancelled
+  caller cannot release the batch lock while its jobs are still running. No separate process or
+  thread pool is created. Focused tests in `systems/ai/manager.rs` cover the candidate selection
+  and batching.
 
 ## Live testing (phase 5): fixes and deliberate deviations
 

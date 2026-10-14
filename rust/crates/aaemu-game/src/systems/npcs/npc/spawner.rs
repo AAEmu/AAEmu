@@ -23,17 +23,21 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use tokio::time::Instant;
 
+use super::residency::ResidentNpcTemplates;
 use super::spawner_data::{npc_spawner_category, NpcSpawnerNpc, NpcSpawnerTemplate};
 use crate::data::world_templates::WorldSpawnPosition;
 use crate::server::GameServer;
+use crate::systems::ai::npc as ai_npc;
 use crate::systems::npcs::schedule::PeriodStatus;
 use crate::systems::npcs::spawn_manager::{self, backend};
+use crate::systems::skills::controllers::calculate_distance;
 use crate::world::{NpcRef, WorldInstance, WorldObject};
 
 /// `LootingContainer.LootDespawnExtensionTime` (seconds).
 pub const LOOT_DESPAWN_EXTENSION_TIME: f32 = 300.0;
 
-/// Seconds the player / population caches stay valid.
+/// Seconds the NPC-membership `_npcsInZoneCache` stays valid (it is invalidated eagerly on
+/// membership changes).
 const CACHE_SECONDS: f64 = 10.0;
 
 /// The reference-type members shared by memberwise clones of one spawner entry.
@@ -45,11 +49,15 @@ pub struct NpcSpawnerShared {
     position: Mutex<WorldSpawnPosition>,
     /// `SpawnedNpcs` (`<SpawnerId, List<Npc>>`).
     spawned: Mutex<BTreeMap<u32, Vec<NpcRef>>>,
-    /// `_playerCountCache`.
-    player_count_cache: Mutex<HashMap<u32, (i32, Instant)>>,
-    /// `_playerInRadiusCache`.
-    player_in_radius_cache: Mutex<HashMap<u32, (bool, Instant)>>,
-    /// `_npcsInZoneCache` (count, areNpcsInZone).
+    /// `_playerCountCache`: `(instance id, spawner id)` -> (count, instance activity revision).
+    /// Stamped with [`WorldInstance::player_activity_revision`], so a player arrival, move
+    /// (including within-region movement) or departure invalidates it at once; the C# 10 s
+    /// staleness is deliberately not replicated (it reported stale proximity as fact).
+    player_count_cache: Mutex<HashMap<(u32, u32), (i32, u64)>>,
+    /// `_playerInRadiusCache`: `(instance id, spawner id)` -> (found, instance activity
+    /// revision), invalidated the same way.
+    player_in_radius_cache: Mutex<HashMap<(u32, u32), (bool, u64)>>,
+    /// `_npcsInZoneCache` (count, areNpcsInZone); invalidated on membership changes.
     npcs_in_zone_cache: Mutex<HashMap<u32, (i32, bool, Instant)>>,
 }
 
@@ -320,17 +328,39 @@ impl NpcSpawner {
     /// `SpawnedNpcs.Clear()`.
     /// `SpawnedNpcs.TryAdd(key, list)`: `false` (unchanged) when `key` is already present.
     pub fn try_add_spawned(&self, key: u32, npcs: Vec<NpcRef>) -> bool {
-        match self.spawned_map().entry(key) {
+        let added = match self.spawned_map().entry(key) {
             std::collections::btree_map::Entry::Occupied(_) => false,
             std::collections::btree_map::Entry::Vacant(v) => {
                 v.insert(npcs);
                 true
             }
+        };
+        if added {
+            self.invalidate_membership_caches();
         }
+        added
     }
 
     pub fn clear_spawned_npcs(&self) {
         self.spawned_map().clear();
+        self.invalidate_membership_caches();
+    }
+
+    /// Drops the caches computed from the `SpawnedNpcs` membership: `_playerCountCache` anchors
+    /// on the map's first NPC and `_npcsInZoneCache` counts the other keys, so a membership
+    /// change makes both stale. The player-proximity caches are revision-stamped instead and
+    /// need no invalidation here.
+    fn invalidate_membership_caches(&self) {
+        self.shared
+            .player_count_cache
+            .lock()
+            .expect("npc spawner poisoned")
+            .clear();
+        self.shared
+            .npcs_in_zone_cache
+            .lock()
+            .expect("npc spawner poisoned")
+            .clear();
     }
 
     /// Living population. Native Npc::OnDeath (10.x x2game 0x393452D0 ->
@@ -393,12 +423,41 @@ impl NpcSpawner {
         }
     }
 
+    /// The activation-path [`Self::update`] with an explicit warm presence: while a player is
+    /// in the instance's prewarm ring (the client-visible neighbourhood or
+    /// `World.NpcPrewarmRegionMargin` regions beyond it), NPCs prepared by the activation pass
+    /// are not despawned merely for sitting outside the authored `TestRadiusPc` /
+    /// `TestRadiusNpc`; without warm presence they follow the normal no-player despawn. The
+    /// authored despawn schedules, management gates, population caps / weights and individual
+    /// pending respawn deadlines are unchanged, and spawning only happens while warm. Returns
+    /// the number of NPCs actually created (at most `budget`).
+    pub fn update_warm(
+        self: &Arc<Self>,
+        server: &GameServer,
+        warm_present: bool,
+        budget: i64,
+    ) -> usize {
+        let _lock = server.systems.npcs.spawns.spawn_lock();
+        let mut did_action = false;
+        if self.can_despawn_npcs(server) {
+            self.despawn_npcs(server);
+            did_action = true;
+        } else if !warm_present && self.current_spawn_count() > 0 {
+            self.despawn_npcs_now(server);
+            did_action = true;
+        }
+        if !did_action && warm_present && self.can_spawn_npcs(server) {
+            return self.do_spawn_bounded(server, budget);
+        }
+        0
+    }
+
     /// `CanDespawnNpcs()`.
     pub fn can_despawn_npcs(&self, server: &GameServer) -> bool {
         self.is_despawning_schedule_enabled(server, self.spawner_id)
     }
 
-    fn despawn_npcs(self: &Arc<Self>, server: &GameServer) {
+    pub(crate) fn despawn_npcs(self: &Arc<Self>, server: &GameServer) {
         if self.is_despawn_scheduled() {
             tracing::debug!(
                 "[Despawn] is already at the stage of removal for SpawnerId={}.",
@@ -423,6 +482,76 @@ impl NpcSpawner {
         if let Some(npcs) = self.spawned_of(self.spawner_id) {
             self.do_despawns_now(server, &npcs);
         }
+    }
+
+    /// Distance reclamation of a cold ordinary placement (no nearby players for
+    /// `World.NpcWarmRetentionSeconds`): removes up to `budget` living NPCs of *this* clone in
+    /// place and returns how many were removed. Removal is completed in this pass (never a
+    /// synthesized respawn delay, never a queued `DoDespawnNow` that could delete a refilled /
+    /// re-shown NPC on the next respawn tick) and keeps the same `_scheduledCount` reservation
+    /// credit as `DespawnNpcsNow`. NPCs already waiting for a queued despawn, corpses with their
+    /// own corpse / respawn timers, stale slots (reused object ids) and NPCs with ongoing
+    /// activity ([`reclaimable_npc`]: casting / plots / controllers, persistent or authored
+    /// always-active AI, actual combat against a live in-leash opponent) are left alone, as are
+    /// live residents ([`npc_is_resident`] under the `World.NpcResidentServiceNpcs` gate), so a
+    /// mixed service / hostile placement keeps its resident members and expires its nonresident
+    /// ones. The caller holds the activation pass's serialization.
+    pub fn reclaim_cold_npcs(
+        self: &Arc<Self>,
+        server: &GameServer,
+        budget: i64,
+        residents: &ResidentNpcTemplates,
+        resident_gate: bool,
+    ) -> usize {
+        if budget <= 0 {
+            return 0;
+        }
+        let _lock = server.systems.npcs.spawns.spawn_lock();
+        let Some(npcs) = self.spawned_of(self.spawner_id) else {
+            return 0;
+        };
+        let mut reclaimed = 0usize;
+        self.st().is_despawn_scheduled = true;
+        for npc in npcs {
+            if reclaimed as i64 >= budget {
+                break;
+            }
+            let obj = WorldObject::from(&npc);
+            // Exact current world identity: a stale slot entry (the id was reused) leaves the
+            // list without touching the replacement or releasing an id it does not own.
+            if !server
+                .world
+                .object(npc.obj_id)
+                .and_then(|o| o.as_npc().cloned())
+                .is_some_and(|current| Arc::ptr_eq(&current, &npc))
+            {
+                self.remove_spawned_npc_exact(self.spawner_id, &npc);
+                continue;
+            }
+            if npc.data().unit.is_dead() {
+                continue; // the corpse keeps its own despawn / respawn deadlines
+            }
+            // An NPC already scheduled for despawn stays scheduled; re-reclaiming it would not
+            // drain the placement faster and would consume the budget twice.
+            if spawn_manager::manager_of(server, &obj, self.parent_world())
+                .is_some_and(|m| m.has_pending_despawn(npc.obj_id))
+            {
+                continue;
+            }
+            if !reclaimable_npc(server, &npc) {
+                continue;
+            }
+            // Per-live-NPC residency: the placement may mix resident members (kept) with
+            // hostile / nonresident members (removed), and a runtime-owned NPC follows its
+            // owner's lifecycle instead of the residency of its template.
+            if resident_gate && npc_is_resident(server, residents, &npc) {
+                continue;
+            }
+            self.despawn_reclaimed_now(server, &npc);
+            reclaimed += 1;
+        }
+        self.st().is_despawn_scheduled = false;
+        reclaimed
     }
 
     fn can_spawn_npcs(&self, server: &GameServer) -> bool {
@@ -637,34 +766,58 @@ impl NpcSpawner {
             < self.target_population(server)
     }
 
-    /// `IsPlayerInSpawnRadius()` (cached for 10 s per `SpawnerId`): any player of the server
-    /// within `TestRadiusPc` (or `TestRadiusNpc`) * 50 of the spawn position (3D).
+    /// The authored activation radius of `template` in world units: `TestRadiusPc` when nonzero,
+    /// else `TestRadiusNpc`, times 50.
+    fn authored_radius(template: &NpcSpawnerTemplate) -> f32 {
+        let r = if template.test_radius_pc == 0.0 {
+            template.test_radius_npc
+        } else {
+            template.test_radius_pc
+        };
+        r * 50.0
+    }
+
+    /// The spawner's authored 3D activation radius in world units (`0` without a template).
+    pub fn authored_spawn_radius(&self) -> f32 {
+        self.template().map_or(0.0, |t| Self::authored_radius(&t))
+    }
+
+    /// `IsPlayerInSpawnRadius()`: any player *present in the spawner's owning instance* within
+    /// `TestRadiusPc` (or `TestRadiusNpc`) * 50 of the spawn position (3D). The answer is cached
+    /// per instance with the instance's [`WorldInstance::player_activity_revision`], so player
+    /// arrival, movement (including within one region) and departure invalidate it immediately
+    /// instead of the stale C# 10 s window.
     pub fn is_player_in_spawn_radius(&self, server: &GameServer) -> bool {
         let Some(t) = self.template() else {
             return false;
         };
-        let r = if t.test_radius_pc == 0.0 {
-            t.test_radius_npc
-        } else {
-            t.test_radius_pc
+        let test_radius = Self::authored_radius(&t);
+        let test_radius = test_radius * test_radius;
+        let Some(world) = spawn_manager::owning_world(server, self) else {
+            return false;
         };
-        let test_radius = r * 50.0 * r * 50.0;
-        let now = spawn_manager::now();
+        let revision = world.player_activity_revision();
+        let key = (world.id, self.spawner_id);
         {
             let cache = self
                 .shared
                 .player_in_radius_cache
                 .lock()
                 .expect("npc spawner poisoned");
-            if let Some(&(v, at)) = cache.get(&self.spawner_id) {
-                if now.saturating_duration_since(at).as_secs_f64() < CACHE_SECONDS {
+            if let Some(&(v, at)) = cache.get(&key) {
+                if at == revision {
                     return v;
                 }
             }
         }
         let pos = self.position();
         let mut found = false;
-        for p in server.world.all_characters() {
+        for p in world.all_characters() {
+            // Only players actually present in this instance (a server-wide alias or another
+            // instance's player at the same coordinates must not count).
+            if !p.region().is_some_and(|(inst, _, _)| inst == world.id) {
+                continue;
+            }
             let (x, y, z) = player_world_pos(server, &p);
             let (dx, dy, dz) = (x - pos.x, y - pos.y, z - pos.z);
             if dx * dx + dy * dy + dz * dz <= test_radius {
@@ -676,27 +829,33 @@ impl NpcSpawner {
             .player_in_radius_cache
             .lock()
             .expect("npc spawner poisoned")
-            .insert(self.spawner_id, (found, now));
+            .insert(key, (found, revision));
         found
     }
 
-    /// `GetNumberOfPlayerInSpawnRadius(template)` (cached for 10 s): players within
-    /// `TestRadiusNpc * 50` (2D, `GetAround<Character>`) of the first NPC of the first
-    /// `SpawnedNpcs` list (lowest key here; the C# takes the `ConcurrentDictionary` order).
+    /// `GetNumberOfPlayerInSpawnRadius(template)`: players within `TestRadiusNpc * 50` (2D,
+    /// `GetAround<Character>` in the owning instance) of the first NPC of the first
+    /// `SpawnedNpcs` list (lowest key here; the C# takes the `ConcurrentDictionary` order),
+    /// cached per instance with the instance's activity revision. Membership changes clear it
+    /// (the anchor NPC may change).
     fn get_number_of_player_in_spawn_radius(
         &self,
         server: &GameServer,
         template: &NpcSpawnerTemplate,
     ) -> i32 {
-        let now = spawn_manager::now();
+        let Some(world) = spawn_manager::owning_world(server, self) else {
+            return 0;
+        };
+        let revision = world.player_activity_revision();
+        let key = (world.id, self.spawner_id);
         {
             let cache = self
                 .shared
                 .player_count_cache
                 .lock()
                 .expect("npc spawner poisoned");
-            if let Some(&(v, at)) = cache.get(&self.spawner_id) {
-                if now.saturating_duration_since(at).as_secs_f64() < CACHE_SECONDS {
+            if let Some(&(v, at)) = cache.get(&key) {
+                if at == revision {
                     return v;
                 }
             }
@@ -720,7 +879,7 @@ impl NpcSpawner {
             .player_count_cache
             .lock()
             .expect("npc spawner poisoned")
-            .insert(self.spawner_id, (player_count, now));
+            .insert(key, (player_count, revision));
         player_count
     }
 
@@ -837,24 +996,52 @@ impl NpcSpawner {
             return;
         };
         let id = spawner.spawner_id;
-        let mut map = self.spawned_map();
-        match map.get_mut(&id) {
-            Some(list) => {
-                match list.iter().position(|n| Arc::ptr_eq(n, npc)) {
-                    Some(i) => {
-                        list.remove(i);
-                    }
-                    None => tracing::warn!(
-                        "NPC {} not found in SpawnedNpcs for SpawnerId={id}.",
-                        npc.obj_id
-                    ),
-                }
-                if list.is_empty() {
-                    map.remove(&id);
-                }
-            }
-            None => tracing::warn!("SpawnerId={id} not found in SpawnedNpcs."),
+        if !self.remove_spawned_npc_exact(id, npc) {
+            tracing::warn!(
+                "NPC {} not found in SpawnedNpcs for SpawnerId={id}.",
+                npc.obj_id
+            );
         }
+    }
+
+    /// Reconciliation of a direct delete (`Npc.Delete`): the object is gone from the world, so
+    /// its exact entry (`Arc` identity) leaves the shared `SpawnedNpcs` map and the population
+    /// caches computed from the old membership are dropped. Without this, an alive deleted
+    /// `NpcRef` keeps counting against the spawn caps and blocks every replacement. Quiet and
+    /// idempotent: the despawn paths already removed the entry before deleting the object.
+    /// Returns whether this exact NPC was in the list.
+    pub fn reconcile_deleted_npc(&self, server: &GameServer, npc: &NpcRef) -> bool {
+        let Some(spawner) = self.npc_spawner(server, npc) else {
+            return false;
+        };
+        self.remove_spawned_npc_exact(spawner.spawner_id, npc)
+    }
+
+    /// Exact-identity removal from the shared map: only the `Arc` equal to `npc` is removed, so
+    /// a reused object id or an identical member of another placement is untouched. An emptied
+    /// list drops its key. A successful removal invalidates the population caches
+    /// (`_playerCountCache` anchors on the map's first NPC, `_npcsInZoneCache` counts the other
+    /// keys), which are leaf locks taken after the map guard is released.
+    fn remove_spawned_npc_exact(&self, key: u32, npc: &NpcRef) -> bool {
+        let removed = {
+            let mut map = self.spawned_map();
+            match map.get_mut(&key) {
+                Some(list) => {
+                    let before = list.len();
+                    list.retain(|n| !Arc::ptr_eq(n, npc));
+                    let removed = list.len() < before;
+                    if list.is_empty() {
+                        map.remove(&key);
+                    }
+                    removed
+                }
+                None => false,
+            }
+        };
+        if removed {
+            self.invalidate_membership_caches();
+        }
+        removed
     }
 
     /// `DoDespawn(npc)` (`Npc.DoDie`, `NpcSpawnerDoDespawnTask`, `SpawnManager.DeSpawnAll`):
@@ -926,7 +1113,9 @@ impl NpcSpawner {
             < max
         {
             self.increment_count(true);
-            tracing::info!(
+            // Routine during a player departure / retention reclaim (the activation sweep
+            // schedules whole cold neighbourhoods), so not an info event.
+            tracing::debug!(
                 "Immediate despawn scheduled for NPC {}:{}:{}.",
                 self.unit_id,
                 self.spawner_id,
@@ -946,8 +1135,38 @@ impl NpcSpawner {
         }
     }
 
+    /// Immediate healthy removal of one distance-reclaimed NPC, completing in the reclaim pass
+    /// instead of a queued `DoDespawnNow`: the queued variant deletes only on the next 1 s
+    /// respawn tick, so an NPC re-shown by a returning player in that window would still be
+    /// removed. A living reclaimable NPC owns no corpse / respawn deadline (both are protected
+    /// by [`reclaimable_npc`] and the dead check), so its exact slot entry, world object and
+    /// object id are released here like the respawn tick does after a queued despawn;
+    /// `_scheduledCount` keeps the same reservation credit as `DoDespawnNow`.
+    fn despawn_reclaimed_now(&self, server: &GameServer, npc: &NpcRef) {
+        let _lock = server.systems.npcs.spawns.spawn_lock();
+        let max = self.template().map_or(0, |t| i64::from(t.max_population));
+        if i64::from(self.are_other_npcs_in_spawn_zone().1) + i64::from(self.scheduled_count())
+            < max
+        {
+            self.increment_count(true);
+        }
+        self.remove_npc_from_spawned_list(server, npc);
+        spawn_manager::delete_object(server, &WorldObject::from(npc), self.parent_world());
+        server.ids.object.release_id(npc.obj_id);
+        spawn_manager::forget_object(server, npc.obj_id);
+        tracing::debug!(
+            "Reclaimed cold NPC {}:{}:{}.",
+            self.unit_id,
+            self.spawner_id,
+            npc.obj_id
+        );
+    }
+
     /// `DespawnWithRespawn(npc)` (`KillNpcWithoutCorpseEffect`, `NpcDeleteTask`, simulation).
+    /// The delete, the reserved respawn slot and its `_scheduledCount` credit are one step for
+    /// the activation tick (reentrant with callers that already hold the lock).
     pub fn despawn_with_respawn(&self, server: &GameServer, npc: &NpcRef) {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         let obj = WorldObject::from(npc);
         let manager = spawn_manager::manager_of(server, &obj, self.parent_world());
         spawn_manager::delete_object(server, &obj, self.parent_world());
@@ -1006,13 +1225,27 @@ impl NpcSpawner {
     /// live shared population and the still-reserved respawn deadlines, full passes spawn every
     /// member, and a capped pass selects weighted members (later members stay eligible).
     pub fn do_spawn(self: &Arc<Self>, server: &GameServer) {
+        let _ = self.do_spawn_bounded(server, i64::MAX);
+    }
+
+    /// Bounded variant of [`Self::do_spawn`]: creates at most `budget` NPCs and returns the
+    /// number actually created. The activation pass budgets real creations across instances
+    /// (`SpawnGroup` delegates to `SpawnNpc` and yields one NPC per member), and a partial fill
+    /// simply leaves the rest of the target for a later pass. Everything else about the fill is
+    /// unchanged: authored population caps / weights, management and schedule gates, the shared
+    /// living population and the still-reserved respawn deadlines all still apply, and a failed
+    /// pass leaves the spawner unscheduled so it is retried.
+    pub fn do_spawn_bounded(self: &Arc<Self>, server: &GameServer, budget: i64) -> usize {
+        if budget <= 0 {
+            return 0;
+        }
         let Some(t) = self.template() else {
             tracing::error!(
                 "[Spawn] Can't spawn npc {} from spawnerId {} - Template is null",
                 self.unit_id,
                 self.id
             );
-            return;
+            return 0;
         };
         tracing::debug!(
             "[Spawn] Starting spawn process for SpawnerId={}, UnitId={}, Template={}",
@@ -1029,9 +1262,9 @@ impl NpcSpawner {
         let live = self.live_population_direct();
         // Respawn slots with their own future deadline are reserved for their own refill.
         let reserved = self.future_pending_respawn_slots(server);
-        let mut remaining = target - live - reserved;
+        let mut remaining = (target - live - reserved).min(budget);
         if remaining <= 0 {
-            return;
+            return 0;
         }
         let spawnable = self.spawnable_npcs();
         if spawnable.is_empty() {
@@ -1039,7 +1272,7 @@ impl NpcSpawner {
                 "[Spawn] No spawnable NPCs available for SpawnerId={}",
                 self.spawner_id
             );
-            return;
+            return 0;
         }
         let mut spawned_npcs = Vec::new();
         while remaining > 0 {
@@ -1075,7 +1308,8 @@ impl NpcSpawner {
                 break;
             }
         }
-        if spawned_npcs.is_empty() {
+        let created = spawned_npcs.len();
+        if created == 0 {
             tracing::error!(
                 "[Spawn] Failed to spawn any NPCs for {}:{}",
                 self.unit_id,
@@ -1083,11 +1317,12 @@ impl NpcSpawner {
             );
             // No spawn at all: stay unscheduled so the next active tick retries.
             self.set_spawn_scheduled(false);
-            return;
+            return 0;
         }
-        self.consume_spawn_credits(spawned_npcs.len(), server);
+        self.consume_spawn_credits(created, server);
         // The capacity check passed and the fill happened; only now is the spawner scheduled.
         self.set_spawn_scheduled(true);
+        created
     }
 
     /// One member's batch, capped at the remaining slots: the survivors are tracked in
@@ -1421,6 +1656,8 @@ impl NpcSpawner {
 
     fn add_npc_to_spawned(&self, key: u32, npc: NpcRef) {
         self.spawned_map().entry(key).or_default().push(npc);
+        // The first-NPC anchor of `_playerCountCache` can change with every add.
+        self.invalidate_membership_caches();
     }
 }
 
@@ -1463,6 +1700,127 @@ fn count_players_around(server: &GameServer, npc: &NpcRef, radius: f32) -> i32 {
             dx + dy < sq
         })
         .count() as i32
+}
+
+/// Whether a distance reclamation may remove `npc` now: no cast / plot / controller, no
+/// persistent AI work (path / escort / follow / command queue), no authored
+/// `NpcTemplate.ActivateAiAlways` AI and no actual combat (a live opponent inside the authored
+/// leash). A busy or retired AI handle counts as active: the inspection never blocks, so the AI
+/// tick may keep holding its state while it enters the spawn lifecycle without this check
+/// deadlocking.
+fn reclaimable_npc(server: &GameServer, npc: &NpcRef) -> bool {
+    {
+        let n = npc.data();
+        let s = &n.unit.skill_state;
+        if s.skill_task.is_some() || s.active_plot.is_some() || s.active_skill_controller.is_some()
+        {
+            return false;
+        }
+    }
+    let ais = &server.systems.ai.ais;
+    if ais.get(npc.obj_id).is_some() {
+        // Authored always-active NPCs are important actors while their AI exists; deleting them
+        // by distance would break the authored `ActivateAiAlways` behaviour.
+        if ai_npc::template(server, npc).is_some_and(|t| t.activate_ai_always) {
+            return false;
+        }
+        match ais.try_inspect(npc.obj_id, |ai| {
+            ai.has_persistent_ai() || ai.current_command.is_some()
+        }) {
+            Some(false) => {}
+            Some(true) | None => return false,
+        }
+    }
+    !has_live_leash_opponent(server, npc)
+}
+
+/// Whether a live NPC counts as a resident actor for distance retention: its actual template
+/// ([`ai_npc::template`]) is an ordinary quest giver / reporter or service role of the immutable
+/// [`ResidentNpcTemplates`] set and it is not runtime-owned (spawned for a player / creator,
+/// `Unit.OwnerId != 0`). A runtime-owned NPC follows its owner's lifecycle, never the residency
+/// of its template. The caller applies the `World.NpcResidentServiceNpcs` gate.
+pub(crate) fn npc_is_resident(
+    server: &GameServer,
+    residents: &ResidentNpcTemplates,
+    npc: &NpcRef,
+) -> bool {
+    npc.data().unit.owner_id == 0
+        && ai_npc::template(server, npc).is_some_and(|t| residents.is_resident(t))
+}
+
+/// Actual ongoing combat evidence: a live opponent (`CurrentTarget` / `AggroTable`) inside the
+/// NPC's authored return distance. Mirrors `BaseCombatBehavior.ShouldReturn`: an opponent
+/// outside the leash, or the NPC itself far beyond the absolute return distance, means the NPC
+/// is returning / stale - a deleted or out-of-leash aggro target must not make a departed NPC
+/// immortal.
+fn has_live_leash_opponent(server: &GameServer, npc: &NpcRef) -> bool {
+    let (engaged, target, aggro) = {
+        let n = npc.data();
+        let u = &n.unit;
+        (
+            u.is_in_battle || u.current_target != 0,
+            u.current_target,
+            u.skill_state
+                .aggro_table
+                .keys()
+                .copied()
+                .collect::<Vec<u32>>(),
+        )
+    };
+    if !engaged && aggro.is_empty() {
+        return false;
+    }
+    let (return_distance, absolute_return_distance) = ai_npc::template(server, npc)
+        .map_or((0.0, 0.0), |t| {
+            (t.return_distance, t.absolute_return_distance)
+        });
+    let return_distance = if return_distance > 0.0 {
+        return_distance
+    } else {
+        50.0
+    };
+    let absolute_return_distance = if absolute_return_distance > 0.0 {
+        absolute_return_distance
+    } else {
+        200.0
+    };
+    let me_obj = WorldObject::from(npc);
+    let me = ai_npc::world_pos(server, &me_obj);
+    // A busy AI already counts as active in `reclaimable_npc`; a free one tells the NPC's idle
+    // position for the return-distance half of the leash check.
+    let idle = server
+        .systems
+        .ai
+        .ais
+        .try_inspect(npc.obj_id, |ai| ai.idle_position);
+    let mut opponents = aggro;
+    if target != 0 && !opponents.contains(&target) {
+        opponents.push(target);
+    }
+    for id in opponents {
+        if id == 0 || id == npc.obj_id {
+            continue;
+        }
+        let Some(opponent) = server.world.object(id) else {
+            continue; // deleted / never materialized: stale aggro
+        };
+        if !opponent.is_unit() || ai_npc::is_dead(&opponent) {
+            continue;
+        }
+        let opponent_pos = ai_npc::world_pos(server, &opponent);
+        let mut should_return = calculate_distance(me, opponent_pos, true) > return_distance;
+        if let Some(idle) = idle {
+            let distance_to_idle = calculate_distance(me, idle, true);
+            should_return |= distance_to_idle > return_distance;
+            if should_return {
+                should_return = distance_to_idle <= absolute_return_distance;
+            }
+        }
+        if !should_return {
+            return true;
+        }
+    }
+    false
 }
 
 /// `GameObject.Spawn()` of an NPC + the zone-change dispatch.

@@ -8,34 +8,70 @@
 //!   [`SpawnManager::add_respawn`] / [`SpawnManager::add_despawn`]; `None` = `MinValue`);
 //! * the static `NpcSpawner._spawnLock` ([`SpawnManagers::spawn_lock`], reentrant like C# `lock`).
 //!
+//! The active-region tick is the bounded activation pass (`active_region_tick_stats`): ordinary
+//! spawners are indexed per instance and 64 m region and queried only around present players, on
+//! player activity / membership / config changes; each pass creates at most
+//! `World.NpcSpawnsPerTick` NPCs (`visible neighbourhoods before prewarm rings, nearest first`,
+//! rotating fairly across instances). A prepared placement is tracked in the warmed registry:
+//! when it drops out of every player's warm set it keeps its NPCs for
+//! `World.NpcWarmRetentionSeconds` and is then reclaimed gradually within the same per-tick
+//! budget; ordinary quest givers / reporters and service roles stay resident per live member
+//! after their first preparation (`World.NpcResidentServiceNpcs`), so a mixed placement still
+//! expires its nonresident members. Event / tower / dynamic spawners keep their own
+//! triggers and are not indexed.
+//!
 //! Object ids are reused after `ObjectIdManager.ReleaseId`, so the links / fields of an id are
 //! dropped when this module releases it ([`forget_object`]) and when a spawner creates a new
 //! object with it. Other modules that release spawned objects' ids call [`forget_object`].
 //!
 //! Times use `tokio::time::Instant` (`DateTime.UtcNow` in C#) so tests can drive them.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
-use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock};
 use std::thread::ThreadId;
 use std::time::Duration;
 
 use dashmap::DashMap;
 use tokio::time::Instant;
 
+use crate::config::WorldConfig;
+use crate::data::world_templates::REGION_SIZE;
 use crate::models::doodad::doodad_owner_type;
 use crate::server::GameServer;
 use crate::systems::npcs::doodad::spawner::{
     parse_list, DoodadSpawner, DoodadSpawnerDef, NpcSpawnerDef, SimpleSpawnerDef,
 };
 use crate::systems::npcs::gimmick::spawner::{parse_gimmick_spawners, GimmickSpawner};
-use crate::systems::npcs::npc::spawner::{NpcSpawner, NpcSpawnerInit, NpcSpawnerShared};
+use crate::systems::npcs::npc::residency::ResidentNpcTemplates;
+use crate::systems::npcs::npc::spawner::{
+    npc_is_resident, NpcSpawner, NpcSpawnerInit, NpcSpawnerShared,
+};
 use crate::systems::npcs::npc::spawner_data::{NpcSpawnerNpc, NpcSpawnerTemplate};
 use crate::world::{DoodadRef, NpcRef, ObjectKind, WorldInstance, WorldObject};
 
 /// `s_fakeSpawnerId` start value.
 pub const FIRST_FAKE_SPAWNER_ID: u32 = 9_000_001;
+
+/// Upper bound of `World.NpcPrewarmRegionMargin`: each extra ring adds regions (and candidate
+/// spawners) quadratically, so a pathological configuration is clamped to a modest ring.
+pub const MAX_PREWARM_REGION_MARGIN: u32 = 4;
+
+/// The configured prewarm margin, clamped to [`MAX_PREWARM_REGION_MARGIN`].
+pub fn prewarm_region_margin(config: &WorldConfig) -> u32 {
+    config
+        .npc_prewarm_region_margin
+        .min(MAX_PREWARM_REGION_MARGIN)
+}
+
+/// The activation tick interval from `World.NpcSpawnTickMs`: `0` falls back to the 250 ms
+/// default (never a busy spin) and extreme values are clamped to a safe range.
+pub fn spawn_tick_interval(config: &WorldConfig) -> Duration {
+    let ms = config.npc_spawn_tick_ms;
+    let ms = if ms == 0 { 250 } else { ms.clamp(50, 60_000) };
+    Duration::from_millis(ms)
+}
 
 // ---------------------------------------------------------------------------------------------
 // time helpers
@@ -244,7 +280,13 @@ pub struct SpawnManagers {
     despawn_fields: DashMap<u32, Instant>,
     /// `SpawnManager.s_fakeSpawnerId` (static, shared by all instances).
     fake_spawner_id: AtomicU32,
+    /// Immutable quest-giver / reporter + service-role template snapshot, built once from the
+    /// static game data (`ResidentNpcTemplates`; never rescanned per tick).
+    resident_npcs: OnceLock<ResidentNpcTemplates>,
     active_tick_started: AtomicBool,
+    /// Fairness cursor of the activation pass: the instance it starts with rotates every pass so
+    /// a small `World.NpcSpawnsPerTick` budget cannot starve later instances.
+    activation_rotation: AtomicU32,
     #[cfg(test)]
     pub(crate) test_backend: Mutex<Option<Arc<dyn backend::TestBackend>>>,
 }
@@ -269,7 +311,9 @@ impl Default for SpawnManagers {
             respawn_fields: DashMap::new(),
             despawn_fields: DashMap::new(),
             fake_spawner_id: AtomicU32::new(FIRST_FAKE_SPAWNER_ID),
+            resident_npcs: OnceLock::new(),
             active_tick_started: AtomicBool::new(false),
+            activation_rotation: AtomicU32::new(0),
             #[cfg(test)]
             test_backend: Mutex::new(None),
         }
@@ -360,6 +404,14 @@ impl SpawnManagers {
     pub fn peek_fake_spawner_id(&self) -> u32 {
         self.fake_spawner_id.load(Ordering::SeqCst)
     }
+
+    /// The immutable resident-template snapshot (ordinary quest givers / reporters and service
+    /// roles), derived once from the static game data; the activation client code calls this
+    /// instead of rescanning the quest acts.
+    pub fn resident_npcs(&self, server: &GameServer) -> &ResidentNpcTemplates {
+        self.resident_npcs
+            .get_or_init(|| ResidentNpcTemplates::from_game_data(&server.game_data))
+    }
 }
 
 /// [`SpawnManagers::forget_object`] on the server's managers.
@@ -386,6 +438,16 @@ pub fn manager_of(
         .map(|w| w.id)
         .or(fallback_world)?;
     server.systems.npcs.spawns.get(id)
+}
+
+/// The instance a spawner belongs to (`ParentWorld`). Unlike [`crate::world::WorldManager::world`]
+/// this stays quiet for a since-removed dungeon; `None` for a detached spawner.
+pub fn owning_world(server: &GameServer, spawner: &NpcSpawner) -> Option<Arc<WorldInstance>> {
+    let id = spawner.parent_world()?;
+    if let Some(m) = server.systems.npcs.spawns.get(id) {
+        return Some(m.world.clone());
+    }
+    server.world.worlds().into_iter().find(|w| w.id == id)
 }
 
 /// `GameObject.Delete()` in the object's world (or `fallback_world`). Doodads go through the
@@ -479,6 +541,86 @@ pub struct TemplateExists<'a> {
     pub slave: &'a dyn Fn(u32) -> bool,
 }
 
+/// Structured stats of one activation pass (tests / diagnostics; no per-NPC log lines).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ActivationStats {
+    /// Candidate spawners examined this pass.
+    pub candidates: usize,
+    /// NPCs actually created this pass across all instances (never above
+    /// `World.NpcSpawnsPerTick`).
+    pub created: usize,
+    /// Candidate spawners not examined this pass; the next rotated pass continues with them.
+    pub queued: usize,
+    /// Living NPCs of expired warm placements actually scheduled for reclamation this pass
+    /// (never above `World.NpcSpawnsPerTick`; a large placement drains over several passes).
+    pub reclaimed: usize,
+}
+
+/// A player's captured activation input: the owning region and the world position (Z included
+/// for the far-authored 3D sphere).
+type PlayerSnapshot = ((i32, i32), (f32, f32, f32));
+
+/// A far-authored activation candidate: a placement whose authored `TestRadiusPc` /
+/// `TestRadiusNpc` reaches beyond the configured prewarm ring. `radius` is the authored 3D
+/// trigger in world units (`r * 50`, the rule of `NpcSpawner::is_player_in_spawn_radius`).
+#[derive(Debug, Clone)]
+struct AuthoredCandidate {
+    spawner: Arc<NpcSpawner>,
+    radius: f32,
+}
+
+/// One tracked warm placement of the activation registry.
+#[derive(Debug, Clone)]
+struct WarmEntry {
+    spawner: Arc<NpcSpawner>,
+    /// `true` only for a homogeneously resident placement: every authored member is an
+    /// ordinary quest giver / reporter or service role **and** no live member is runtime-owned.
+    /// Such a placement is kept after the first preparation instead of being distance-reclaimed;
+    /// a mixed placement still expires its nonresident members per live NPC. Gated by
+    /// `World.NpcResidentServiceNpcs` at booking and at reclamation time.
+    resident: bool,
+    /// Stable retention deadline, booked once when the placement dropped out of the warm set
+    /// (`None` while it is warm or resident). Independent of later queue rebuilds / unchanged
+    /// player revisions.
+    expires_at: Option<Instant>,
+}
+
+/// One instance's activation index: every ordinary spawner filed under its authored 64 m region
+/// (`WorldManager.REGION_SIZE`). Rebuilt only when the ordinary spawner membership changes
+/// (load / add / delete-all), never on the fast tick itself.
+#[derive(Debug, Default)]
+struct ActivationState {
+    /// `NpcSpawners` membership generation the region index was built from.
+    index_built: bool,
+    index_generation: u64,
+    index: HashMap<(i32, i32), Vec<Arc<NpcSpawner>>>,
+    /// Far-authored candidates (authored radius beyond the client-visible neighbourhood),
+    /// grouped by their required radius in regions (`ceil(radius / REGION_SIZE)`); each group
+    /// buckets centers into `g * REGION_SIZE` cells, so a player probes only the nine cells
+    /// around it before the exact 3D sphere test. Groups the configured ring already covers are
+    /// skipped at lookup, never at build (the margin is runtime-configurable).
+    authored_index: HashMap<u32, HashMap<(i32, i32), Vec<AuthoredCandidate>>>,
+    /// Whether the candidate queues below were built at least once.
+    built: bool,
+    /// Activity revision / generation / margin the queues were built for.
+    revision: u64,
+    queue_generation: u64,
+    margin: u32,
+    /// Spawners whose client-visible neighbourhood contains a player, nearest first.
+    visible: Vec<Arc<NpcSpawner>>,
+    /// Spawners in the prewarm ring (but not a visible neighbourhood), nearest first.
+    prewarm: Vec<Arc<NpcSpawner>>,
+    /// Ids of every queued spawner (the currently warm set).
+    warm_ids: HashSet<u32>,
+    /// Rotation / continuation cursors into the two queues.
+    visible_cursor: usize,
+    prewarm_cursor: usize,
+    /// Placements prepared at least once while warm, with their residency and stable retention
+    /// booking. Only this registry is swept for maintenance; the full spawner table is never
+    /// scanned per tick.
+    warmed: HashMap<u32, WarmEntry>,
+}
+
 /// `SpawnManager`.
 #[derive(Debug)]
 pub struct SpawnManager {
@@ -496,6 +638,11 @@ pub struct SpawnManager {
     lock_spawner: Mutex<()>,
     /// `SpawnTasks`.
     spawn_tasks: Mutex<Vec<tokio::task::JoinHandle<usize>>>,
+    /// The activation region index, candidate queues and warmed registry (see [`ActivationState`]).
+    activation: Mutex<ActivationState>,
+    /// Bumped whenever the ordinary `NpcSpawners` membership changes; invalidates the index and
+    /// the candidate queues without rebuilding them per tick.
+    activation_generation: AtomicU64,
 }
 
 /// `Directory.GetFiles(dir, "<prefix>*.json")` (file-name order, case-insensitive match);
@@ -548,6 +695,8 @@ impl SpawnManager {
             loaded: AtomicBool::new(false),
             lock_spawner: Mutex::new(()),
             spawn_tasks: Mutex::new(Vec::new()),
+            activation: Mutex::new(ActivationState::default()),
+            activation_generation: AtomicU64::new(0),
         }
     }
 
@@ -697,6 +846,7 @@ impl SpawnManager {
             }
             let key = inner.next_id;
             inner.npc_spawners.entry(key).or_insert(spawners);
+            self.invalidate_activation_index();
             Ok(added)
         } else {
             // NPC spawns for events.
@@ -784,6 +934,9 @@ impl SpawnManager {
         world_path: &Path,
         exists: &TemplateExists<'_>,
     ) -> Result<LoadStats, String> {
+        // Serialize the replacement with the activation pass, creation and despawn paths (the
+        // reentrant lock; this function is sync and never held across an await).
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         self.respawns.lock().expect("poisoned").clear();
         self.despawns.lock().expect("poisoned").clear();
         {
@@ -797,6 +950,10 @@ impl SpawnManager {
             inner.slave_spawners.clear();
             inner.player_doodads.clear();
         }
+        // Reload: the ordinary spawner table was emptied and is refilled below; both steps
+        // invalidate the activation index/queues.
+        self.invalidate_activation_index();
+        self.reset_activation();
         let mut stats = LoadStats::default();
         self.load_npc_spawns(server, world_path, exists, &mut stats)?;
         self.load_doodad_spawns(server, world_path, exists, &mut stats)?;
@@ -1542,6 +1699,36 @@ impl SpawnManager {
         v.into_iter().map(|e| (e.obj.obj_id(), e.at)).collect()
     }
 
+    /// Whether `obj_id` already waits for a queued corpse / immediate despawn in this instance.
+    pub fn has_pending_despawn(&self, obj_id: u32) -> bool {
+        self.despawns
+            .lock()
+            .expect("poisoned")
+            .contains_key(&obj_id)
+    }
+
+    /// Whether the placement (`shared` entry of one JSON line, shared by its memberwise clones)
+    /// still owns queued respawn / despawn deadlines in this instance. The activation sweep uses
+    /// it to keep an emptied cold placement tracked until its timers drain (every deadline is
+    /// processed by [`Self::check_respawns_tick`], so the set cannot grow forever).
+    fn placement_has_pending_timers(&self, shared: &Arc<NpcSpawnerShared>) -> bool {
+        let linked = |e: &Scheduled| matches!(&e.link, SpawnerLink::Npc(s) if Arc::ptr_eq(s.shared(), shared));
+        if self
+            .respawns
+            .lock()
+            .expect("poisoned")
+            .values()
+            .any(&linked)
+        {
+            return true;
+        }
+        self.despawns
+            .lock()
+            .expect("poisoned")
+            .values()
+            .any(&linked)
+    }
+
     fn ready(
         set: &Mutex<HashMap<u32, Scheduled>>,
         fields: &DashMap<u32, Instant>,
@@ -1986,7 +2173,11 @@ impl SpawnManager {
     // ----- teardown -----
 
     /// `DeSpawnAll()`: every NPC / doodad / mate / slave of the instance; returns the count.
+    /// Serialized with the activation pass; the warm registry is dropped afterwards (nothing of
+    /// the instance is left to track, so a deliberately emptied instance cannot leave a growing
+    /// set of placements whose 9 999 999 s respawn timers never drain).
     pub fn despawn_all(&self, server: &GameServer) -> usize {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         let spawns = &server.systems.npcs.spawns;
         let mut res = 0;
         for npc in self.world.all_npcs() {
@@ -2020,11 +2211,15 @@ impl SpawnManager {
                 res += 1;
             }
         }
+        self.reset_activation();
         res
     }
 
     /// `DeleteAllSpawners()`: removes every spawner and what they spawned.
     pub fn delete_all_spawners(&self, server: &GameServer) {
+        // Serialized with the activation pass so a stale queue cannot create NPCs between
+        // despawning a placement's old members and detaching / resetting it.
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         let npc_spawners: Vec<_> = self
             .inner()
             .npc_spawners
@@ -2042,6 +2237,8 @@ impl SpawnManager {
             s.set_parent_world(None);
         }
         self.inner().npc_spawners.clear();
+        self.invalidate_activation_index();
+        self.reset_activation();
         let doodad_spawners: Vec<_> = self.inner().doodad_spawners.values().cloned().collect();
         for s in doodad_spawners {
             for d in s.spawned() {
@@ -2057,33 +2254,475 @@ impl SpawnManager {
             self.world.delete(g);
         }
     }
+
+    // ----- activation -----
+
+    /// The ordinary `NpcSpawners` membership changed: the region index and the candidate queues
+    /// are stale. Only the atomic generation is touched here, so callers may hold the inner lock.
+    fn invalidate_activation_index(&self) {
+        self.activation_generation.fetch_add(1, Ordering::SeqCst);
+    }
+
+    /// Drops the activation index, queues and warmed registry (the spawner lists were replaced
+    /// wholesale: load / reload / delete-all). The caller must not hold the inner lock.
+    fn reset_activation(&self) {
+        let mut state = self.activation.lock().expect("spawn manager poisoned");
+        state.index_built = false;
+        state.index.clear();
+        state.authored_index.clear();
+        state.built = false;
+        state.visible.clear();
+        state.prewarm.clear();
+        state.warm_ids.clear();
+        state.visible_cursor = 0;
+        state.prewarm_cursor = 0;
+        state.warmed.clear();
+    }
+
+    /// Rebuilds the per-region index and the candidate queues when the world's player activity
+    /// revision, the spawner membership generation or the prewarm margin changed. An unchanged
+    /// revision/generation/margin keeps the cached queues (unfilled targets continue there).
+    /// Candidates are the configured visible / prewarm rings plus placements whose authored 3D
+    /// trigger sphere contains a player (far-authored, prewarm tier).
+    fn refresh_activation(&self, margin: u32) {
+        // Capture the revision *before* the player snapshot: a movement / arrival during the
+        // collection bumps the revision afterwards, so the captured value stays behind and the
+        // next pass rebuilds instead of stamping the stale snapshot with the new revision (which
+        // would keep a false queue until the next activity change).
+        let revision = self.world.player_activity_revision();
+        // The client packet visibility radius is `WorldManager.REGION_NEIGHBORHOOD_SIZE` (2
+        // regions) and stays unchanged; the prewarm ring adds the configured margin beyond it.
+        const CLIENT_NEIGHBOURHOOD: i32 = 2;
+        // Player regions / positions (with Z for the far-authored 3D sphere) are read before the
+        // activation lock (object data locks are leaves, the activation lock is not held here
+        // yet).
+        let players: Vec<PlayerSnapshot> = self
+            .world
+            .all_characters()
+            .into_iter()
+            .filter_map(|p| {
+                let (inst, rx, ry) = p.region()?;
+                if inst != self.world.id {
+                    return None;
+                }
+                let pr = self.world.world_pos_rot(&WorldObject::from(&p));
+                Some(((rx, ry), (pr.x, pr.y, pr.z)))
+            })
+            .collect();
+        let generation = self.activation_generation.load(Ordering::SeqCst);
+        let mut state = self.activation.lock().expect("spawn manager poisoned");
+        if !state.index_built || state.index_generation != generation {
+            let mut index: HashMap<(i32, i32), Vec<Arc<NpcSpawner>>> = HashMap::new();
+            let mut authored: HashMap<u32, HashMap<(i32, i32), Vec<AuthoredCandidate>>> =
+                HashMap::new();
+            for spawner in self.inner().npc_spawners.values().flatten() {
+                let p = spawner.position();
+                if let Some(region) = self.world.region_by_pos(p.x, p.y) {
+                    index.entry(region).or_default().push(spawner.clone());
+                }
+                // An authored trigger never reachable through the visible ring is bucketed by
+                // its required radius (the ring already covers everything up to radius 2).
+                let radius = spawner.authored_spawn_radius();
+                if radius.is_finite() && radius > 0.0 {
+                    let g = (radius / REGION_SIZE as f32).ceil() as u32;
+                    if g > CLIENT_NEIGHBOURHOOD as u32 {
+                        let cell = g as f32 * REGION_SIZE as f32;
+                        let key = ((p.x / cell).floor() as i32, (p.y / cell).floor() as i32);
+                        authored.entry(g).or_default().entry(key).or_default().push(
+                            AuthoredCandidate {
+                                spawner: spawner.clone(),
+                                radius,
+                            },
+                        );
+                    }
+                }
+            }
+            state.index = index;
+            state.authored_index = authored;
+            state.index_generation = generation;
+            state.index_built = true;
+            state.built = false;
+        }
+        if state.built
+            && state.revision == revision
+            && state.queue_generation == generation
+            && state.margin == margin
+        {
+            return;
+        }
+        state.revision = revision;
+        state.queue_generation = generation;
+        state.margin = margin;
+        state.built = true;
+        state.visible.clear();
+        state.prewarm.clear();
+        state.warm_ids.clear();
+        state.visible_cursor = 0;
+        state.prewarm_cursor = 0;
+        if players.is_empty() {
+            // Keep `warmed`: the sweep still books the retention countdown of prepared
+            // placements (and keeps residents) after the last player left.
+            return;
+        }
+        let warm_radius = CLIENT_NEIGHBOURHOOD + margin as i32;
+        // Deduplicate across players, ring overlaps and far-authored candidates: visible wins,
+        // nearest horizontal distance wins.
+        let mut found: HashMap<u32, (bool, f32, Arc<NpcSpawner>)> = HashMap::new();
+        for &((rx, ry), (px, py, _pz)) in &players {
+            for dx in -warm_radius..=warm_radius {
+                for dy in -warm_radius..=warm_radius {
+                    let region = (rx + dx, ry + dy);
+                    if !self.world.template.valid_region(region.0, region.1) {
+                        continue;
+                    }
+                    let Some(spawners) = state.index.get(&region) else {
+                        continue;
+                    };
+                    let visible = dx.abs().max(dy.abs()) <= CLIENT_NEIGHBOURHOOD;
+                    for spawner in spawners {
+                        // A template-less spawner cannot ever spawn. An empty member list is not
+                        // filtered here: `initialize_spawnable_npcs` may fill it later while this
+                        // cached queue lives on, so the fill stays retryable.
+                        if spawner.template().is_none() {
+                            continue;
+                        }
+                        let p = spawner.position();
+                        let d = (p.x - px) * (p.x - px) + (p.y - py) * (p.y - py);
+                        found
+                            .entry(spawner.id)
+                            .and_modify(|e| {
+                                e.0 |= visible;
+                                if d < e.1 {
+                                    e.1 = d;
+                                }
+                            })
+                            .or_insert((visible, d, spawner.clone()));
+                    }
+                }
+            }
+        }
+        // Far-authored eligibility beyond the configured ring: a player inside a placement's
+        // authored 3D sphere queues it even when its region sits outside the visible / prewarm
+        // rings. Each radius group probes only the nine buckets around the player (the cell size
+        // equals the group's required radius), then the exact 3D sphere decides; a group the
+        // configured ring already covers is skipped, as the queues above hold those placements.
+        for &((_rx, _ry), (px, py, pz)) in &players {
+            for (&g, cells) in &state.authored_index {
+                if g <= warm_radius as u32 {
+                    continue;
+                }
+                let cell = g as f32 * REGION_SIZE as f32;
+                let (cx, cy) = ((px / cell).floor() as i32, (py / cell).floor() as i32);
+                for dx in -1..=1 {
+                    for dy in -1..=1 {
+                        let Some(bucket) = cells.get(&(cx + dx, cy + dy)) else {
+                            continue;
+                        };
+                        for candidate in bucket {
+                            // Same template gate as the ring queues; an empty member list stays
+                            // queued and is retried once it is initialized later.
+                            if candidate.spawner.template().is_none() {
+                                continue;
+                            }
+                            let p = candidate.spawner.position();
+                            let (ox, oy, oz) = (p.x - px, p.y - py, p.z - pz);
+                            if ox * ox + oy * oy + oz * oz > candidate.radius * candidate.radius {
+                                continue;
+                            }
+                            let d = ox * ox + oy * oy;
+                            found
+                                .entry(candidate.spawner.id)
+                                .and_modify(|e| {
+                                    if d < e.1 {
+                                        e.1 = d;
+                                    }
+                                })
+                                .or_insert((false, d, candidate.spawner.clone()));
+                        }
+                    }
+                }
+            }
+        }
+        let mut visible: Vec<(f32, Arc<NpcSpawner>)> = Vec::new();
+        let mut prewarm: Vec<(f32, Arc<NpcSpawner>)> = Vec::new();
+        for (is_visible, d, spawner) in found.into_values() {
+            if is_visible {
+                visible.push((d, spawner));
+            } else {
+                prewarm.push((d, spawner));
+            }
+        }
+        visible.sort_by(|a, b| a.0.total_cmp(&b.0));
+        prewarm.sort_by(|a, b| a.0.total_cmp(&b.0));
+        state.visible = visible.into_iter().map(|(_, s)| s).collect();
+        state.prewarm = prewarm.into_iter().map(|(_, s)| s).collect();
+        let mut warm_ids = HashSet::new();
+        for spawner in state.visible.iter().chain(state.prewarm.iter()) {
+            warm_ids.insert(spawner.id);
+        }
+        state.warm_ids = warm_ids;
+    }
+
+    /// Processes one of this instance's candidate queues from its rotation cursor within the
+    /// remaining global creation budget. Unvisited candidates are left `queued` for the next
+    /// pass; a completed sweep wraps the cursor so the next pass starts at the queue head again.
+    fn activation_phase(
+        &self,
+        server: &GameServer,
+        margin: u32,
+        visible_phase: bool,
+        budget: &mut i64,
+        stats: &mut ActivationStats,
+    ) {
+        self.refresh_activation(margin);
+        let (queue, mut cursor) = {
+            let state = self.activation.lock().expect("spawn manager poisoned");
+            if visible_phase {
+                (state.visible.clone(), state.visible_cursor)
+            } else {
+                (state.prewarm.clone(), state.prewarm_cursor)
+            }
+        };
+        let len = queue.len();
+        if len == 0 {
+            return;
+        }
+        let mut examined: Vec<Arc<NpcSpawner>> = Vec::new();
+        let mut swept = false;
+        if *budget > 0 {
+            let mut i = cursor;
+            while i < len && *budget > 0 {
+                let spawner = &queue[i];
+                let created = spawner.update_warm(server, true, *budget);
+                i += 1;
+                if created > 0 {
+                    *budget -= created as i64;
+                    stats.created += created;
+                }
+                examined.push(spawner.clone());
+                stats.candidates += 1;
+            }
+            cursor = i;
+            if cursor >= len {
+                cursor = 0;
+                swept = true;
+            }
+        }
+        // The resident classification (static game data) and the live-population reads
+        // (object-data leaves) happen before taking the activation guard; only the registry is
+        // mutated under it. Every examined placement becomes tracked - also the currently empty
+        // ones (e.g. corpse / respawn timers pending) so a later refill stays reclaimable.
+        let residents = server.systems.npcs.spawns.resident_npcs(server);
+        let resident_gate = server.config.world.npc_resident_service_npcs;
+        let prepared: Vec<(Arc<NpcSpawner>, bool)> = examined
+            .into_iter()
+            .map(|spawner| {
+                let resident = resident_gate && spawner_is_resident(server, residents, &spawner);
+                (spawner, resident)
+            })
+            .collect();
+        let mut state = self.activation.lock().expect("spawn manager poisoned");
+        for (spawner, resident) in prepared {
+            state.warmed.insert(
+                spawner.id,
+                WarmEntry {
+                    spawner,
+                    resident,
+                    expires_at: None,
+                },
+            );
+        }
+        if visible_phase {
+            state.visible_cursor = cursor;
+        } else {
+            state.prewarm_cursor = cursor;
+        }
+        if !swept {
+            stats.queued += len - cursor;
+        }
+    }
+
+    /// Maintenance pass over the warmed registry: clears the retention booking of placements
+    /// inside the warm set, starts the stable countdown of the ones that dropped out, reclaims
+    /// expired ordinary placements under the shared NPC budget and drops tracking once nothing
+    /// (living NPCs or queued corpse / respawn deadlines) is left. Authored schedule /
+    /// management despawns keep priority over residency and retention. Only the warmed registry
+    /// is walked, never the full spawner table.
+    fn activation_sweep(&self, server: &GameServer, budget: &mut i64, stats: &mut ActivationStats) {
+        let now = now();
+        let retention = Duration::from_secs(server.config.world.npc_warm_retention_seconds);
+        // Snapshot the two halves before taking the activation guard; the object-data /
+        // population reads below happen without it.
+        let mut cold: Vec<(Option<Instant>, u32, Arc<NpcSpawner>, bool)> = Vec::new();
+        let mut warm: Vec<u32> = Vec::new();
+        {
+            let state = self.activation.lock().expect("spawn manager poisoned");
+            for (id, entry) in state.warmed.iter() {
+                if state.warm_ids.contains(id) {
+                    warm.push(*id);
+                } else {
+                    cold.push((entry.expires_at, *id, entry.spawner.clone(), entry.resident));
+                }
+            }
+        }
+        if !warm.is_empty() {
+            let mut state = self.activation.lock().expect("spawn manager poisoned");
+            for id in warm {
+                if let Some(entry) = state.warmed.get_mut(&id) {
+                    entry.expires_at = None;
+                }
+            }
+        }
+        if cold.is_empty() {
+            return;
+        }
+        // Oldest booking first: a placement that dropped out never loses its stable deadline,
+        // and budget-starved passes continue with the same oldest entrants next time.
+        cold.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+        let resident_gate = server.config.world.npc_resident_service_npcs;
+        let residents = server.systems.npcs.spawns.resident_npcs(server);
+        let mut bookings: Vec<(u32, Instant)> = Vec::new();
+        let mut drop_entries: Vec<u32> = Vec::new();
+        for (expires_at, id, spawner, resident) in cold {
+            // The homogeneous residency fast path is re-validated against the live members: a
+            // placement whose classification is cached from an earlier pass must not stay
+            // skipped once a runtime-owned (never resident) member appears.
+            let resident_skip = resident
+                && resident_gate
+                && !spawner_has_nonresident_live_npc(server, residents, &spawner);
+            if spawner.can_despawn_npcs(server) {
+                // Authored schedule / management removal keeps its own lifecycle: it wins over
+                // residency and retention.
+                spawner.despawn_npcs(server);
+            } else if !resident_skip {
+                let deadline = match expires_at {
+                    Some(t) => t,
+                    None => {
+                        let t = now + retention;
+                        bookings.push((id, t));
+                        t
+                    }
+                };
+                if now >= deadline && *budget > 0 {
+                    let removed =
+                        spawner.reclaim_cold_npcs(server, *budget, residents, resident_gate);
+                    *budget -= removed as i64;
+                    stats.reclaimed += removed;
+                }
+            }
+            // Stop tracking a placement with nothing left: no living NPCs and no queued
+            // corpse / respawn deadlines (kept ones drain through the 1 s respawn tick, so the
+            // registry cannot grow forever).
+            if spawner.spawned_npcs().is_empty()
+                && !self.placement_has_pending_timers(spawner.shared())
+            {
+                drop_entries.push(id);
+            }
+        }
+        let mut state = self.activation.lock().expect("spawn manager poisoned");
+        for (id, deadline) in bookings {
+            if let Some(entry) = state.warmed.get_mut(&id) {
+                entry.expires_at = Some(deadline);
+            }
+        }
+        for id in drop_entries {
+            state.warmed.remove(&id);
+        }
+    }
+}
+
+/// Whether an ordinary placement is homogeneously resident: every authored member (or the
+/// `UnitId` fallback without a member list) is a quest giver / reporter or service role of the
+/// immutable [`ResidentNpcTemplates`] set. Only such a placement may skip distance reclamation
+/// as a whole, and only while no live member diverges from that classification (runtime
+/// ownership, see [`spawner_has_nonresident_live_npc`]); a mixed placement is reclaimed per live
+/// NPC ([`npc_is_resident`]), so its nonresident members expire while its residents stay.
+/// Hostile quest kill / accept-kill targets and ordinary neutral NPCs are not residents.
+fn spawner_is_resident(
+    server: &GameServer,
+    residents: &ResidentNpcTemplates,
+    spawner: &NpcSpawner,
+) -> bool {
+    let npcs = &server.game_data.systems.npcs.npc;
+    let is_resident = |id: u32| npcs.template(id).is_some_and(|t| residents.is_resident(t));
+    let members = spawner.spawnable_npcs();
+    if members.is_empty() {
+        is_resident(spawner.unit_id)
+    } else {
+        members.iter().all(|member| is_resident(member.member_id))
+    }
+}
+
+/// Whether any live NPC of an otherwise resident placement is not resident per the
+/// authoritative live decision ([`npc_is_resident`], which excludes runtime-owned NPCs). A
+/// cached homogeneous classification must not skip reclamation while such a member exists - it
+/// follows its owner's lifecycle like any nonresident.
+fn spawner_has_nonresident_live_npc(
+    server: &GameServer,
+    residents: &ResidentNpcTemplates,
+    spawner: &NpcSpawner,
+) -> bool {
+    spawner
+        .spawned_npcs()
+        .values()
+        .flatten()
+        .any(|npc| !npc_is_resident(server, residents, npc))
 }
 
 // ---------------------------------------------------------------------------------------------
 // startup, active-region tick, NPC death
 // ---------------------------------------------------------------------------------------------
 
-/// `WorldManager.ActiveRegionTick` spawner part: `Update()` of every spawner (with a template)
-/// that has a player in its radius.
-pub fn active_region_tick(server: &GameServer) {
-    for world in server.world.worlds() {
-        let Some(m) = server.systems.npcs.spawns.get(world.id) else {
-            continue;
-        };
-        let spawners = m.get_all_spawners();
-        let active: Vec<_> = spawners
-            .values()
-            .flatten()
-            .filter(|s| s.template().is_some() && s.is_player_in_spawn_radius(server))
-            .cloned()
-            .collect();
-        for s in active {
-            s.update(server);
-        }
+/// One bounded activation pass over every instance with a spawn manager (tests / diagnostics
+/// call this; production goes through [`active_region_tick`]).
+///
+/// Each instance's candidate queues are refreshed only when its player activity revision, its
+/// ordinary spawner membership or the prewarm margin changed, so an unchanged pass never scans
+/// the full spawner table. Candidates fill within the global `World.NpcSpawnsPerTick` created-NPC
+/// budget: client-visible neighbourhoods before prewarm rings, nearest first, and the starting
+/// instance rotates every pass so small budgets cannot starve later instances. Afterwards the
+/// warmed registry is swept: placements that dropped out of the warm set keep their NPCs for
+/// `World.NpcWarmRetentionSeconds` (residents stay after their first preparation) and expired
+/// ordinary ones are reclaimed within the same per-tick budget, counted in actual NPCs.
+pub fn active_region_tick_stats(server: &GameServer) -> ActivationStats {
+    // The whole pass holds the spawners' reentrant lock: creation, despawn, placement reload and
+    // delete-all serialize against the queued candidates (sync fn, never held across an await).
+    let _serial = server.systems.npcs.spawns.spawn_lock();
+    let margin = prewarm_region_margin(&server.config.world);
+    let mut budget = i64::from(server.config.world.npc_spawns_per_tick.max(1));
+    let worlds = server.systems.npcs.spawns.all();
+    let mut stats = ActivationStats::default();
+    if worlds.is_empty() {
+        return stats;
     }
+    let n = worlds.len();
+    let start = server
+        .systems
+        .npcs
+        .spawns
+        .activation_rotation
+        .fetch_add(1, Ordering::Relaxed) as usize
+        % n;
+    for i in 0..n {
+        worlds[(start + i) % n].activation_phase(server, margin, true, &mut budget, &mut stats);
+    }
+    for i in 0..n {
+        worlds[(start + i) % n].activation_phase(server, margin, false, &mut budget, &mut stats);
+    }
+    let mut reclaim_budget = i64::from(server.config.world.npc_spawns_per_tick.max(1));
+    for i in 0..n {
+        worlds[(start + i) % n].activation_sweep(server, &mut reclaim_budget, &mut stats);
+    }
+    stats
 }
 
-/// Starts the 1 s active-region tick (once per server).
+/// `WorldManager.ActiveRegionTick` spawner part (the production entry point; the structured
+/// result is [`active_region_tick_stats`]).
+pub fn active_region_tick(server: &GameServer) {
+    let _ = active_region_tick_stats(server);
+}
+
+/// Starts the active-region tick (once per server) at `World.NpcSpawnTickMs`.
 pub fn start_active_region_tick(server: &Arc<GameServer>) {
     if server
         .systems
@@ -2097,16 +2736,27 @@ pub fn start_active_region_tick(server: &Arc<GameServer>) {
     let Ok(rt) = tokio::runtime::Handle::try_current() else {
         return;
     };
+    // Build the immutable resident-template snapshot once, before the first pass, instead of
+    // lazily inside it (it scans the static quest acts).
+    let _ = server.systems.npcs.spawns.resident_npcs(server);
     let weak = Arc::downgrade(server);
     rt.spawn(async move {
-        let mut iv = tokio::time::interval(Duration::from_secs(1));
         loop {
-            iv.tick().await;
+            // Re-read the interval every pass so a config reload applies without a restart;
+            // `0` never spins (see [`spawn_tick_interval`]).
+            let wait = match weak.upgrade() {
+                Some(s) => spawn_tick_interval(&s.config.world),
+                None => break,
+            };
+            tokio::time::sleep(wait).await;
             let Some(server) = weak.upgrade() else {
                 break;
             };
             let start = std::time::Instant::now();
-            crate::systems::run_blocking(&server, active_region_tick).await;
+            crate::systems::run_blocking(&server, |s| {
+                let _ = active_region_tick_stats(s);
+            })
+            .await;
             if start.elapsed() > Duration::from_millis(100) {
                 tracing::warn!("ActiveRegionTick took {} ms", start.elapsed().as_millis());
             }

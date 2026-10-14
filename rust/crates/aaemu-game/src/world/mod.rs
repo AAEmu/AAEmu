@@ -7,6 +7,8 @@
 //! object's data lock must never call into the grid. Full rules: [`object`].
 
 pub mod object;
+#[cfg(test)]
+mod player_activity_tests;
 pub mod session;
 pub mod unit_state;
 #[cfg(test)]
@@ -17,7 +19,7 @@ mod world_manager_tests;
 pub mod zone_conflicts;
 
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use dashmap::DashMap;
@@ -146,6 +148,9 @@ pub struct WorldInstance {
     objects: DashMap<u32, WorldObject>,
     /// `_characters` (instance players by obj id).
     characters: DashMap<u32, PlayerRef>,
+    /// Monotonic invalidation token for player presence / proximity-relevant player movement in
+    /// this instance (see [`Self::player_activity_revision`]).
+    player_activity_revision: AtomicU64,
 }
 
 impl WorldInstance {
@@ -156,6 +161,7 @@ impl WorldInstance {
             grid: Mutex::new(Grid::default()),
             objects: DashMap::new(),
             characters: DashMap::new(),
+            player_activity_revision: AtomicU64::new(0),
         }
     }
 
@@ -192,8 +198,17 @@ impl WorldInstance {
 
     /// `WorldInstance.RemoveObject`.
     pub fn remove_object(&self, obj_id: u32) -> bool {
-        let a = self.objects.remove(&obj_id).is_some();
+        let removed = self.objects.remove(&obj_id);
+        let a = removed.is_some();
         let b = self.characters.remove(&obj_id).is_some();
+        // A player removed directly while it still sat in this instance's grid is a presence
+        // change (dungeon `RemovePlayer`); the standard delete path hides first, which already
+        // bumped. Re-removing a missing id stays a no-op.
+        if let Some((_, WorldObject::Player(p))) = &removed {
+            if p.region().is_some_and(|(inst, _, _)| inst == self.id) {
+                self.bump_player_activity();
+            }
+        }
         a | b
     }
 
@@ -314,6 +329,26 @@ impl WorldInstance {
 
     pub fn player_count(&self) -> usize {
         self.characters.len()
+    }
+
+    /// Monotonic revision of player presence / proximity in this instance: it changes on player
+    /// spawn / show, on a player's `add_visible_object` position update (including within one
+    /// region, where nothing is notified), on player hide / removal / delete and on
+    /// `transfer_out` (leaving the instance). NPC, doodad and other object movement never change
+    /// it, and revisions are per instance.
+    ///
+    /// Invalidation token, not a clock: compare snapshots (an unchanged value means no player
+    /// proximity change in between); the exact delta between two loads is not guaranteed.
+    pub fn player_activity_revision(&self) -> u64 {
+        self.player_activity_revision.load(Ordering::Acquire)
+    }
+
+    /// Bumps [`Self::player_activity_revision`]. `Release` pairs with the `Acquire` load so a
+    /// reader that observes the new value can rely on the grid state written before the bump;
+    /// the counter itself would only need `Relaxed`.
+    fn bump_player_activity(&self) {
+        self.player_activity_revision
+            .fetch_add(1, Ordering::Release);
     }
 
     // ----- transforms -----
@@ -608,6 +643,11 @@ impl WorldInstance {
             .filter(|(inst, _, _)| *inst == self.id)
             .map(|(_, x, y)| (x, y));
         if current == Some(region) {
+            // Player movement within one region: the caller already moved the transform, but
+            // nothing in the grid changes; publish the bump before this early return.
+            if let WorldObject::Player(_) = obj {
+                self.bump_player_activity();
+            }
             return;
         }
         match current {
@@ -640,6 +680,11 @@ impl WorldInstance {
         // "Ensure children are added on initial spawn" (runs after a move too, as in C#).
         for child in obj.core().children() {
             self.add_visible_locked(grid, &child, ctx, out, depth + 1);
+        }
+        // Publish a player presence / position change only after the grid and `ObjectCore`
+        // updates above (new arrival and cross-region move); never for NPC / doodad movement.
+        if let WorldObject::Player(_) = obj {
+            self.bump_player_activity();
         }
     }
 
@@ -731,6 +776,10 @@ impl WorldInstance {
         for child in obj.core().children() {
             self.remove_visible_locked(grid, &child, depth + 1);
         }
+        // Publish the player departure after it left the grid (children followed).
+        if let WorldObject::Player(_) = obj {
+            self.bump_player_activity();
+        }
     }
 
     /// The old-instance half of the C# region change to a region of another instance
@@ -759,6 +808,10 @@ impl WorldInstance {
         obj.core().set_region(None);
         for child in obj.core().children() {
             self.transfer_out_locked(grid, &child, depth + 1);
+        }
+        // Publish the player leaving the instance after it left the grid (children followed).
+        if let WorldObject::Player(_) = obj {
+            self.bump_player_activity();
         }
     }
 

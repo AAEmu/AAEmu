@@ -7,5 +7,7 @@
   "skill_id": 2,
   "quest_id": 330,
   "quest_npc_template": 3597,
-  "wait_leave_granted": true
+  "wait_leave_granted": true,
+  "npc_return_distance": 2048,
+  "npc_return_away_secs": 70
 }

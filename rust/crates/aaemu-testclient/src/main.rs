@@ -2,7 +2,8 @@
 //!
 //! ```text
 //! aaemu-testclient run    [--config F] [--login H:P] [--user U] [--password P] [--character C]
-//!                         [--scenario login|lobby|full|load] [--out capture.jsonl]
+//!                         [--scenario login|lobby|full|combat|npc-return|load] [--out capture.jsonl]
+//!                         [--npc-return-distance M] [--npc-return-away-secs S]
 //! aaemu-testclient parity [--config F] --a H:P --b H:P [--a-label cs] [--b-label rs]
 //!                         [--user U] [--scenario full] [--masks masks.json] [--out-dir D]
 //!                         [--rounds N]
@@ -75,6 +76,12 @@ fn bot_config(args: &Args) -> anyhow::Result<BotConfig> {
         if let Some(x) = args.get(flag) {
             obj.insert(key.into(), x.parse::<u64>()?.into());
         }
+    }
+    if let Some(x) = args.get("npc-return-distance") {
+        obj.insert("npc_return_distance".into(), x.parse::<f64>()?.into());
+    }
+    if let Some(x) = args.get("npc-return-away-secs") {
+        obj.insert("npc_return_away_secs".into(), x.parse::<u64>()?.into());
     }
     obj.entry("login").or_insert("127.0.0.1:1237".into());
     obj.entry("password").or_insert("testpass".into());

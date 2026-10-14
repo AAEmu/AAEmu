@@ -11,7 +11,8 @@ use crate::data::world_templates::WorldSpawnPosition;
 use crate::data::GameData;
 use crate::models::npc::Npc;
 use crate::server::GameServer;
-use crate::systems::npcs::npc::spawner_data::{NpcSpawnerNpc, NpcSpawnerTemplate};
+use crate::systems::npcs::doodad::spawner::{NpcSpawnerDef, SpawnerBase};
+use crate::systems::npcs::npc::spawner_data::{NpcSpawnerData, NpcSpawnerNpc, NpcSpawnerTemplate};
 use crate::systems::npcs::spawn_manager::{self, backend::TestBackend};
 use crate::test_support::{spawn_player, test_character, test_server_with, TestClient, TEST_ZONE};
 use crate::world::{DoodadRef, Entity, NpcRef, WorldInstance};
@@ -50,6 +51,19 @@ impl TestBackend for Backend {
 
 fn server() -> Arc<GameServer> {
     let s = Arc::new(test_server_with(GameData::empty()));
+    s.set_self();
+    *s.systems.npcs.spawns.test_backend.lock().unwrap() = Some(Arc::new(Backend));
+    s
+}
+
+/// [`server`] with one authored spawner template (id 10, member NPC 500), so a spawner created
+/// through `SpawnManager::add_npc_spawner` is visible to `active_region_tick`.
+fn server_with_authored_spawner() -> Arc<GameServer> {
+    let mut data = GameData::empty();
+    data.systems.npcs.npc_spawners =
+        NpcSpawnerData::from_parts(vec![template(10, Vec::new())], vec![member(100, 10, 500)])
+            .unwrap();
+    let s = Arc::new(test_server_with(data));
     s.set_self();
     *s.systems.npcs.spawns.test_backend.lock().unwrap() = Some(Arc::new(Backend));
     s
@@ -725,4 +739,384 @@ async fn force_spawn_resets_each_cancelled_clone_credit_by_shared_placement() {
     assert_eq!(pending[0].0, c_victim.obj_id);
     assert_eq!(pending[0].1, c_deadline, "the other deadline is unchanged");
     assert_eq!(forced.data().unit.template_id, 501);
+}
+
+#[tokio::test]
+async fn direct_delete_reconciles_membership_and_refills_after_leave_return() {
+    let server = server_with_authored_spawner();
+    let world = server.world.world(0).unwrap();
+    let manager = server.systems.npcs.spawns.get_or_create(&world);
+    let mut def = NpcSpawnerDef {
+        base: SpawnerBase {
+            unit_id: 500,
+            ..SpawnerBase::default()
+        },
+        count: 1,
+        npc_spawner_ids: Vec::new(),
+    };
+    def.base.position.x = 100.0;
+    def.base.position.y = 100.0;
+    def.base.position.z = 100.0;
+    assert_eq!(manager.add_npc_spawner(&server, def), Ok(1));
+    let spawner = manager
+        .get_all_spawners()
+        .values()
+        .flatten()
+        .next()
+        .unwrap()
+        .clone();
+    let client = TestClient::new(&server, 1, 1);
+    let player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    spawner.update(&server);
+    let npc = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+    assert_eq!(spawner.current_spawn_count(), 1);
+
+    // A quest script removes the alive static NPC without its spawner's despawn path.
+    crate::systems::npcs::npc::manager::delete(&server, &world, &npc);
+    assert!(world.npc(npc.obj_id).is_none());
+    assert_eq!(
+        spawner.spawned_npcs().values().flatten().count(),
+        0,
+        "the exact NPC left the shared membership"
+    );
+    assert_eq!(spawner.current_spawn_count(), 0);
+
+    // The player leaves (production movement: transform + `add_visible_object`), which
+    // invalidates the proximity caches immediately; the placement is not ticked while away.
+    player.data().unit.transform.set_xyz(1200.0, 1200.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    spawn_manager::active_region_tick(&server);
+    assert_eq!(world.all_npcs().len(), 0, "nothing spawns without a player");
+
+    // Returning refills the placement through the normal active-region tick (no 10 s wait).
+    player.data().unit.transform.set_xyz(100.0, 100.0, 100.0);
+    world.add_visible_object(&player, &server.view_ctx());
+    spawn_manager::active_region_tick(&server);
+    assert_eq!(
+        spawner.current_spawn_count(),
+        1,
+        "replacement spawned after the player returned"
+    );
+    let replacement = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+    assert!(!Arc::ptr_eq(&replacement, &npc));
+    assert!(world.npc(replacement.obj_id).is_some());
+}
+
+#[tokio::test]
+async fn despawn_with_respawn_reserves_the_slot_until_its_deadline() {
+    let server = server();
+    let world = server.world.world(0).unwrap();
+    let manager = server.systems.npcs.spawns.get_or_create(&world);
+    let spawner = make_spawner(template(120, vec![member(1200, 120, 500)]), 500, 1);
+
+    spawner.update(&server);
+    let npc = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+    spawner.set_respawn_time(30);
+    spawner.despawn_with_respawn(&server, &npc);
+    assert!(world.npc(npc.obj_id).is_none(), "deleted immediately");
+    assert_eq!(
+        spawner.spawned_npcs().values().flatten().count(),
+        0,
+        "membership reconciled before the respawn was queued"
+    );
+    assert_eq!(spawner.scheduled_count(), 1, "slot credit queued");
+    assert_eq!(manager.pending_respawns().len(), 1);
+
+    // Before the deadline the reserved slot must not refill.
+    spawner.update(&server);
+    assert_eq!(spawner.current_spawn_count(), 0, "no early fill");
+    assert_eq!(world.all_npcs().len(), 0);
+
+    // The pending respawn owns the id until it fires.
+    let probe = server.ids.object.get_next_id().unwrap();
+    assert_ne!(probe, npc.obj_id, "id reserved by the pending respawn");
+    server.ids.object.release_id(probe);
+
+    spawn_manager::advance_test_clock(Duration::from_secs(31));
+    manager.check_respawns_tick(&server);
+    assert!(manager.pending_respawns().is_empty());
+    let recycled = server.ids.object.get_next_id().unwrap();
+    assert_eq!(
+        recycled, npc.obj_id,
+        "id released when the respawn timer finished"
+    );
+    server.ids.object.release_id(recycled);
+
+    spawner.update(&server);
+    assert_eq!(
+        spawner.current_spawn_count(),
+        1,
+        "refilled after the deadline"
+    );
+    assert_eq!(
+        spawner.scheduled_count(),
+        0,
+        "the queued credit is consumed by the refill"
+    );
+}
+
+#[tokio::test]
+async fn delete_isolates_shared_clones_and_same_template_placements() {
+    let server = server();
+    let world = server.world.world(0).unwrap();
+    let mut a_template = template(130, vec![member(1300, 130, 500)]);
+    a_template.min_population = 2;
+    a_template.max_population = 2;
+    let b_template = template(131, vec![member(1310, 131, 501)]);
+    let shared = NpcSpawnerShared::new(position(100.0, 100.0));
+    let a = make_spawner_shared(shared.clone(), a_template, 500, 1);
+    let b = make_spawner_shared(shared.clone(), b_template, 501, 1);
+    // The same spawner template id and member at another position: its own shared placement.
+    let other = make_spawner_shared(
+        NpcSpawnerShared::new(position(300.0, 300.0)),
+        template(131, vec![member(1320, 131, 501)]),
+        501,
+        1,
+    );
+    assert_eq!(b.spawner_id, other.spawner_id);
+    assert!(!Arc::ptr_eq(b.shared(), other.shared()));
+    let client = TestClient::new(&server, 1, 1);
+    let _player = spawn_player(&server, &client, test_character(1, "P", 100.0, 100.0), 5000);
+
+    b.do_spawn(&server);
+    a.do_spawn(&server);
+    other.do_spawn(&server);
+    assert_eq!((b.current_spawn_count(), a.current_spawn_count()), (1, 1));
+    assert_eq!(other.current_spawn_count(), 1);
+
+    // Populate a's "other populations" cache while b's NPC is alive, then delete b's NPC.
+    assert_eq!(a.are_other_npcs_in_spawn_zone(), (true, 1));
+    let b_npc = b.spawned_npcs().get(&b.spawner_id).unwrap()[0].clone();
+    crate::systems::npcs::npc::manager::delete(&server, &world, &b_npc);
+
+    assert!(world.npc(b_npc.obj_id).is_none());
+    assert_eq!(
+        b.current_spawn_count(),
+        0,
+        "only the deleted clone lost its NPC"
+    );
+    assert_eq!(
+        a.current_spawn_count(),
+        1,
+        "the shared clone keeps its own NPC"
+    );
+    assert_eq!(
+        other.current_spawn_count(),
+        1,
+        "the other placement keeps its own NPC"
+    );
+    assert_eq!(
+        a.are_other_npcs_in_spawn_zone(),
+        (false, 0),
+        "the population cache was invalidated by the removal"
+    );
+    let a_npc = a.spawned_npcs().get(&a.spawner_id).unwrap()[0].clone();
+    let other_npc = other.spawned_npcs().get(&other.spawner_id).unwrap()[0].clone();
+    assert!(world.npc(a_npc.obj_id).is_some());
+    assert!(world.npc(other_npc.obj_id).is_some());
+
+    // The freed shared slot refills through the surviving clone, not the other placement.
+    a.update(&server);
+    assert_eq!(a.current_spawn_count(), 2, "the shared placement refills");
+    assert_eq!(other.current_spawn_count(), 1);
+}
+
+#[tokio::test]
+async fn direct_delete_keeps_pending_corpse_and_id_ownership() {
+    let server = server();
+    let world = server.world.world(0).unwrap();
+    let manager = server.systems.npcs.spawns.get_or_create(&world);
+    let spawner = make_spawner(template(140, vec![member(1400, 140, 500)]), 500, 1);
+
+    spawner.update(&server);
+    let npc = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+    {
+        let mut d = npc.data();
+        d.unit.hp = 0;
+        d.dead_time_ms = crate::world::now_ms();
+    }
+    spawn_manager::on_npc_died(&server, &npc);
+    assert_eq!(manager.pending_respawns().len(), 1);
+    assert_eq!(manager.pending_despawns().len(), 1);
+
+    // The corpse is deleted directly (script) before its timers finish.
+    crate::systems::npcs::npc::manager::delete(&server, &world, &npc);
+    assert!(world.npc(npc.obj_id).is_none());
+    assert_eq!(spawner.spawned_npcs().values().flatten().count(), 0);
+
+    // Both timers still own the id.
+    let probe = server.ids.object.get_next_id().unwrap();
+    assert_ne!(
+        probe, npc.obj_id,
+        "id owned while corpse/respawn timers run"
+    );
+    server.ids.object.release_id(probe);
+
+    // The respawn deadline passes first; the corpse timer keeps owning the id.
+    spawn_manager::advance_test_clock(Duration::from_secs(11));
+    manager.check_respawns_tick(&server);
+    assert!(manager.pending_respawns().is_empty());
+    assert_eq!(manager.pending_despawns().len(), 1);
+    let probe = server.ids.object.get_next_id().unwrap();
+    assert_ne!(probe, npc.obj_id, "corpse timer still owns the id");
+    server.ids.object.release_id(probe);
+
+    // The corpse deadline releases the id; the next fill reuses it for a fresh NPC.
+    spawn_manager::advance_test_clock(Duration::from_secs(10));
+    manager.check_respawns_tick(&server);
+    assert!(manager.pending_despawns().is_empty());
+    let recycled = server.ids.object.get_next_id().unwrap();
+    assert_eq!(
+        recycled, npc.obj_id,
+        "id released when both timers finished"
+    );
+    server.ids.object.release_id(recycled);
+
+    spawner.update(&server);
+    assert_eq!(spawner.current_spawn_count(), 1);
+    let replacement = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+    assert_eq!(replacement.obj_id, npc.obj_id);
+    assert!(world.npc(replacement.obj_id).is_some());
+    assert!(!Arc::ptr_eq(&replacement, &npc));
+}
+
+#[tokio::test]
+async fn stale_delete_of_a_reused_id_leaves_the_replacement_untouched() {
+    let server = server();
+    // The AI hook is installed so a stale call would really detach the registered AI if the
+    // Arc-identity guard were missing.
+    crate::systems::ai::hooks::install(&server);
+    let world = server.world.world(0).unwrap();
+    let spawner = make_spawner(template(150, vec![member(1500, 150, 500)]), 500, 1);
+
+    spawner.update(&server);
+    let stale = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+    crate::systems::npcs::npc::manager::delete(&server, &world, &stale);
+    assert!(world.npc(stale.obj_id).is_none());
+
+    // Repeating the deletion of the same already removed NPC stays harmless.
+    crate::systems::npcs::npc::manager::delete(&server, &world, &stale);
+    assert!(world.npc(stale.obj_id).is_none());
+    assert_eq!(spawner.spawned_npcs().values().flatten().count(), 0);
+
+    // Release the id and refill: the replacement reuses the object id with a new Arc.
+    server.ids.object.release_id(stale.obj_id);
+    spawn_manager::forget_object(&server, stale.obj_id);
+    spawner.update(&server);
+    let replacement = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+    assert_eq!(replacement.obj_id, stale.obj_id);
+    assert!(!Arc::ptr_eq(&replacement, &stale));
+    server.systems.ai.ais.add_ai(
+        &replacement,
+        crate::systems::ai::framework::AiKind::HoldPosition,
+    );
+
+    // The stale Arc must not detach the replacement's AI (nor its simulation) or remove its
+    // world object / membership entry.
+    crate::systems::npcs::npc::manager::delete(&server, &world, &stale);
+    assert!(
+        world
+            .npc(stale.obj_id)
+            .is_some_and(|n| Arc::ptr_eq(&n, &replacement)),
+        "the replacement's world object is untouched"
+    );
+    assert!(
+        server.systems.ai.ais.get(stale.obj_id).is_some(),
+        "the replacement keeps its AI"
+    );
+    assert!(
+        server.systems.ai.simulations.contains_key(&stale.obj_id),
+        "the replacement keeps its simulation"
+    );
+    assert_eq!(
+        spawner.current_spawn_count(),
+        1,
+        "the replacement keeps its population slot"
+    );
+    assert_eq!(
+        spawner
+            .spawned_npcs()
+            .values()
+            .flatten()
+            .filter(|n| Arc::ptr_eq(n, &replacement))
+            .count(),
+        1,
+        "the replacement keeps its membership entry"
+    );
+
+    // Object ids are global: the replacement can live in another instance while the stale ref
+    // is deleted through its old world (the passed world stays the removal target).
+    crate::systems::npcs::npc::manager::delete(&server, &world, &replacement);
+    assert!(world.npc(stale.obj_id).is_none());
+    server.ids.object.release_id(stale.obj_id);
+    spawn_manager::forget_object(&server, stale.obj_id);
+    let other_world = server
+        .world
+        .create_world_instance(world.template.clone(), 1);
+    let cross = Entity::new(stale.obj_id, Npc::new(500));
+    other_world.spawn(&cross, &server.view_ctx());
+    server
+        .systems
+        .ai
+        .ais
+        .add_ai(&cross, crate::systems::ai::framework::AiKind::HoldPosition);
+
+    crate::systems::npcs::npc::manager::delete(&server, &world, &stale);
+    assert!(
+        server
+            .world
+            .object(stale.obj_id)
+            .is_some_and(|o| o.as_npc().is_some_and(|n| Arc::ptr_eq(n, &cross))),
+        "the replacement in the other instance is untouched"
+    );
+    assert!(
+        server.systems.ai.ais.get(stale.obj_id).is_some(),
+        "the other instance's AI is not detached"
+    );
+    assert!(world.object(stale.obj_id).is_none());
+}
+
+#[tokio::test]
+async fn direct_delete_serializes_with_the_spawn_lock() {
+    let server = server();
+    let world = server.world.world(0).unwrap();
+    let spawner = make_spawner(template(160, vec![member(1600, 160, 500)]), 500, 1);
+    spawner.update(&server);
+    let npc = spawner.spawned_npcs().values().next().unwrap()[0].clone();
+
+    // Hold the spawners' reentrant lock like an activation tick in progress.
+    let guard = server.systems.npcs.spawns.spawn_lock();
+    let (started_tx, started_rx) = std::sync::mpsc::channel();
+    let (done_tx, done_rx) = std::sync::mpsc::channel();
+    let deleter = {
+        let server = Arc::clone(&server);
+        let world = Arc::clone(&world);
+        let npc = npc.clone();
+        std::thread::spawn(move || {
+            started_tx.send(()).unwrap();
+            crate::systems::npcs::npc::manager::delete(&server, &world, &npc);
+            done_tx.send(()).unwrap();
+        })
+    };
+    started_rx.recv().expect("deleter started");
+    // Completion requires the lock this thread holds, so neither the population slot nor the
+    // world object may change yet (not a timing assertion: the lock makes it impossible).
+    assert!(
+        matches!(
+            done_rx.try_recv(),
+            Err(std::sync::mpsc::TryRecvError::Empty)
+        ),
+        "the deletion ran while the spawn lock was held"
+    );
+    assert!(world.npc(npc.obj_id).is_some());
+    assert_eq!(spawner.current_spawn_count(), 1);
+
+    drop(guard);
+    done_rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("the deletion resumed after the spawn lock was released");
+    deleter.join().unwrap();
+    assert!(world.npc(npc.obj_id).is_none());
+    assert_eq!(spawner.spawned_npcs().values().flatten().count(), 0);
 }

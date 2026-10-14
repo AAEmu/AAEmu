@@ -17,7 +17,7 @@
 //! NPC with `AiFileId > 0` gets `has_ai = true`.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::data::items::TemplateKind;
 use crate::data::GameData;
@@ -556,16 +556,51 @@ pub fn initialize_spawn_buffs(server: &GameServer, npc: &NpcRef, template: &NpcT
     }
 }
 
-/// `Npc.Delete()`: detaches the AI (`Ai.ShouldTick = false; Ai.Owner = null; Ai = null`: the AI
-/// is forgotten by the AI manager), then `GameObject.Delete()`.
+/// `Npc.Delete()`: detaches the AI (`Ai.ShouldTick = false; Ai.Owner = null; Ai = null`: the
+/// AI is forgotten by the AI manager), releases the spawner's shared population slot and then
+/// `GameObject.Delete()`.
+///
+/// The population-slot release and the world removal hold the spawners' reentrant `_spawnLock`
+/// like every `NpcSpawner` entry point, so the two steps are atomic from an activation tick's
+/// point of view: no replacement can be filled into the freed slot while the old NPC is still
+/// present, and no tick can interleave with the membership bookkeeping. Arc identity is
+/// authoritative ([`NpcRef`] is the slot handle): when the object id now belongs to a different
+/// live object (a replacement NPC after id reuse, in any instance - object ids are global), the
+/// stale call is inert - it must not detach the replacement's AI or remove its world object.
+/// Deleting an already removed NPC again stays harmless: the AI detach is ignored by the retired
+/// handle, the exact-identity slot removal is idempotent and the world removal is a no-op.
 pub fn delete(server: &GameServer, world: &crate::world::WorldInstance, npc: &NpcRef) {
+    // Reentrant `_spawnLock`: direct deletes serialize with `NpcSpawner::update` / `do_spawn` /
+    // `despawn` (and nest freely inside them).
+    let _serial = server.systems.npcs.spawns.spawn_lock();
+    // Stale handle: its obj id belongs to a different live object now. Ids are global across
+    // instances, so the lookup is global too; the passed `world` stays the removal target. An
+    // id without an object (already removed, timer-owned) falls through to the idempotent
+    // clean-up below.
+    if server
+        .world
+        .object(npc.obj_id)
+        .is_some_and(|o| !o.as_npc().is_some_and(|n| Arc::ptr_eq(n, npc)))
+    {
+        return;
+    }
     {
         let mut n = npc.data();
         n.ai_should_tick = false;
         n.has_ai = false;
     }
     if let Some(ai) = server.systems.hooks.ai.get() {
+        // Nonblocking by design: the AI manager marks a busy AI removed instead of waiting.
         ai.npc_deleted(server, npc.obj_id);
+    }
+    // A direct delete must not leave an alive reference in `SpawnedNpcs`: the population gates
+    // would keep counting it and block a replacement (e.g. after a quest-script deletion, even
+    // after the player leaves and returns). The removal is exact-identity, so a reused object id
+    // or an identical member of another placement is untouched, and idempotent for
+    // `NpcSpawner.Despawn`, which already removed the NPC before calling this. Pending corpse /
+    // respawn timers, their credits and the id ownership are left to the spawn manager.
+    if let Some(s) = server.systems.npcs.spawns.npc_spawner_of(npc.obj_id) {
+        s.reconcile_deleted_npc(server, npc);
     }
     world.delete(npc);
 }
