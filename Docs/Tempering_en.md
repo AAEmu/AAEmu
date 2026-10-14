@@ -78,20 +78,27 @@ piece out of the whole enchant window until a restore item clears it.
 
 `ItemRefurbishment.Execute`:
 
-1. **Validate** - character, item target, `EquipItem`, not `EnchantDisabled`.
-2. **Two gates on what may be tempered at all**, and both have to be asked:
+1. **Cast flag** - tempering sets SkillCastExtra bits 1+2 (= flag **6**). With **no**
+   support additive the body is empty; with one, it is the same `u64`+`bool` support
+   payload as regrade (`item_grade_enchanting_supports`). Reading a body that is not
+   there steals `inputDirection` and leaves the piece drawn as invalid — only read when
+   enough bytes remain. The additive shifts the rung odds (`AddSuccessMul` etc.) and is
+   consumed on every attempt; scale-gated rows skip the regrade grade band (`1/1` is not
+   a grade filter for temper additives).
+2. **Validate** - character, item target, `EquipItem`, not `EnchantDisabled`.
+3. **Two gates on what may be tempered at all**, and both have to be asked:
    - `MaxEnchantScaleId == 0` or the piece is already at it, **and**
    - `IsCapScaleForbidden(templateId)` - `item_cap_scale_forbids` is its own rule, not a
      restatement of the ceiling. Most items on it carry no ceiling anyway, but a couple do.
 
    Failing either sends `ErrorMessageType.GradeEnchantMax`. The client greys its own button
    here, so this only catches a stale window or a hand-built request.
-3. **Read the rung** the item is currently on (`GetEnchantScaleRatio(beforeScale)`).
-4. **Charge** (section 5) - before the roll, so a player who cannot cover it keeps both
+4. **Read the rung** the item is currently on (`GetEnchantScaleRatio(beforeScale)`).
+5. **Charge** (section 5) - before the roll, so a player who cannot cover it keeps both
    their coin and their polish.
-5. **Roll** (section 6).
-6. **Publish** (section 7).
-7. **Quest hook** - `OnEnchantScale` fires with `Count = 1` on *every* outcome:
+6. **Roll** (section 6).
+7. **Publish** (section 7).
+8. **Quest hook** - `OnEnchantScale` fires with `Count = 1` on *every* outcome:
    `QuestActObjEnchantScaleCount` asks for a temper to be *used* ("Use a Temper x3"), and a
    failed or breaking attempt consumed the temper just the same.
 

@@ -28,12 +28,13 @@ public class MagicalEnchant : IWorldInteraction
             return;
 
         equipItem.RuneId = skillItem.ItemTemplateId;
+        equipItem.IsDirty = true;
 
+        // Same publish as socket install / lure charge: the detail packet is what the client
+        // redraws from. An ItemUpdate task hands the same blob as a length-prefixed array the
+        // client does not treat as a detail, which leaves the piece drawn as broken in the bag.
+        character.SendPacket(new SCItemDetailUpdatedPacket(equipItem));
         character.SendPacket(new SCItemSocketingLunastoneResultPacket(true, targetItem.Id, skillItem.ItemTemplateId));
-        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantMagical,
-            [
-                new ItemUpdate(equipItem)
-            ],
-            []));
+        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantMagical, [], []));
     }
 }

@@ -24,4 +24,24 @@ public class ItemGradeEnchantingSupport
     public int AddDisableMul { get; set; }
 
     public int AddGreatSuccessGrade { get; set; }
+
+    /// <summary>
+    /// Tag the target gear must <em>not</em> carry. Zero = no blacklist.
+    /// </summary>
+    public uint RestrictItemTagId { get; set; }
+
+    /// <summary>
+    /// Tag the target gear must carry. Zero = no whitelist.
+    /// </summary>
+    public uint ExclusiveItemTagId { get; set; }
+
+    /// <summary>
+    /// Lowest tempering step (<c>enchant_scale_ratios.id</c>) the gear may sit at. Paired with
+    /// <see cref="ReqScaleMaxId"/>; both equal to
+    /// <see cref="GradeEnchantCharmRules.NoScaleRequirementId"/> means no scale gate.
+    /// </summary>
+    public int ReqScaleMinId { get; set; }
+
+    /// <summary>Highest tempering step the gear may sit at. See <see cref="ReqScaleMinId"/>.</summary>
+    public int ReqScaleMaxId { get; set; }
 }

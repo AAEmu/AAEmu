@@ -83,16 +83,20 @@ clamped like one.
 
 ## 4. One socketing attempt, start to finish
 
-`ItemSocketing.Execute`. The cast carries the **gem as the caster item** (`SkillItem`) and
-the **gear as the target** (`SkillCastItemTarget`).
+`ItemSocketing.Execute`. The cast carries the **stone/gem as the caster item** (`SkillItem`)
+and the **gear as the target** (`SkillCastItemTarget`).
 
-The very first branch splits on the gem's template id:
+The mode is the special effect's **`value1`**, not the caster's template id. Branching on
+"is this Dawnstone 327?" treated the extract stone as a lunagem: it had no chance row, so
+`GetSocketFailBreaks` defaulted to true and a failed "install" wiped every socket.
 
-```csharp
-if (gemItem.TemplateId != Item.DawnStone)   // 327
-```
+| `value1` | Skill (en) | Item | Behaviour |
+| --- | --- | --- | --- |
+| 1 | Socket Lunagem | the lunagem | seat (section 4.1) |
+| 0 | Remove Lunagem | Dawnstone wipe | destroy every gem (section 4.2) |
+| 2 | Salvage Lunagem | extract stone | return selected gem(s) (section 4.3) |
 
-### 4.1 Seating a lunagem
+### 4.1 Seating a lunagem (`value1 = 1`)
 
 1. **Count the filled sockets** - the number of non-zero entries in `GemIds`.
 2. **Check the limit** - `GetSocketNumLimit(slotTypeId, grade)`, with the slot id taken off
@@ -112,21 +116,33 @@ if (gemItem.TemplateId != Item.DawnStone)   // 327
    ```
 
    A failure on a non-breaking row costs nothing but the gem and the fee.
-5. `installed = true` either way - the flag says an install was *attempted*, not that it
-   worked.
+5. The result packet's `kind` is the install kind; a multi-press run may get a second
+   close packet (section 7).
 
-### 4.2 Clearing with a Dawnstone
+### 4.2 Clearing with a Dawnstone (`value1 = 0`)
 
-Item template **327**. Wipes every entry in `GemIds` and reports `result = 1`. No cost, no
-roll, no limit check.
+Wipes every entry in `GemIds` and reports `result = 1`. No cost, no roll, no gems returned.
+The remove tab sends no extra values (flag 0).
 
-### 4.3 After either branch
+### 4.3 Extract / salvage (`value1 = 2`)
+
+The extract tab's `X2ItemEnchant:Execute(index, isAll)` packs flag **11** with:
+
+- `values[0]` = zero-based socket index (`selectIndex - 1`), or `0` when extracting all
+- `values[1]` low byte = `isAll` (omitted when false — a single-socket cast is one int)
+
+One extract stone is spent per gem pulled (the tab's own use count). Each pulled gem is
+returned to the bag, then the remaining gems are **packed left** so the next install still
+lands on `GemIds[filledCount]`. A cast that names an empty socket, or that cannot cover the
+stones / bag room, is refused and leaves the piece alone.
+
+### 4.4 After any branch
 
 - `IsDirty = true`.
 - `SCItemDetailUpdatedPacket` - and **nothing else carrying the piece** (section 6).
 - `UpdateGearBonuses(null, null)` if the piece is currently worn, since gear bonuses are
   otherwise only summed at equip time.
-- The result packet, plus the run-closing second one (section 7).
+- The result packet, plus the run-closing second one on multi-install (section 7).
 - `SCSkillEndedPacket` broadcast.
 
 ---

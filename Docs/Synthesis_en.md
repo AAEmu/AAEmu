@@ -211,10 +211,10 @@ become a free ride.
 ```
 while true:
     next = NextGrade(item.Grade)                  // by item_grades.grade_order
-    needed = grade_exp[category, next]            // a rung is priced by the grade it LEADS INTO
-    if needed == 0:
-        if not AllowsFreeStep(category, next): break     // unpriced rung = end of this pool
-        needed = grade_exp[category, item.Grade]         // free step: pay by filling the grade below
+    needed = grade_exp[category, item.Grade]      // bar cost = grade the piece is IN (leave cost)
+    if next's grade_exp == 0 and not AllowsFreeStep(category, next):
+        break                                     // unpriced next = end of this pool
+    if needed == 0: break
     if item.EvolvingExp < needed: break
 
     item.EvolvingExp -= needed                    // subtract, carry the remainder up
@@ -222,6 +222,10 @@ while true:
     if item.EvolveChance < 5: item.EvolveChance++ // one change attempt per grade gained
     TopUpAttributes(item)
 ```
+
+Pricing the step by the *next* grade's `grade_exp` was wrong: the client bar is the current
+rung, and typical weapon pools rise ~1.7× per grade, so a full bar sat at 100% and kept
+climbing to ~170% before the grade moved. Leave-cost matches the tooltip and tips at 100%+.
 
 Then, at the top of the ladder, the bar still fills but cannot tip over: experience past
 the last rung's own cost is clamped to that cost, so a maxed piece reads 100% instead of
@@ -323,9 +327,16 @@ Two variants share one body: `ItemEvolvingReRoll` (the swap is rolled) and
 `ItemEvolvingSelectReRoll` (the player may also name the *result*). Both let the player
 choose *which line* is replaced.
 
-- **Costs one change attempt.** `EvolveChance` is earned one per grade gained, capped at 5
-  (the tooltip tops out there however far a piece is pushed). At zero the piece must be
-  synthesised further first.
+- **Free swaps need remaining changes; stones do not.** `EvolveChance` is earned one per
+  grade gained, capped at 5 (content_config 247; the tooltip tops out there). A free
+  replace (skill 39836, no stone) is refused at **0** (toast only — no result packet, that
+  packet opens the confirm dialog). Serendipity / Lucent / lucid stones ignore the counter
+  entirely: they work at 0 and never spend a change. Lucid always needs its stone. A free
+  success decrements `EvolveChance`; a stone success consumes the stone only.
+- **Stone spend is local.** Neither stone family is `use_skill_as_reagent` and the
+  skill_effect does not `consume_source_item`, so the special effect consumes the
+  `SkillItem` itself (`ItemTaskType.Evolving`) on a stone-paid success only. A refused cast
+  leaves the stone in the bag.
 - **Which line** - the radio button's zero-based index arrives as
   `SkillObjectExtraValues.Values[0]` from *both* variants. Out of range falls back to a
   random line so a stale window cannot wedge the cast.
@@ -334,9 +345,11 @@ choose *which line* is replaced.
   the only ones the window offers for that line. Excluded are *all* attributes the piece
   wears, the line being replaced included - a swap is meant to trade the effect away, so
   handing the same one back is not a valid outcome.
-- **A named pick** (`Values[2]`, selectable variant only) is a *request*: it must belong to
-  the same bundle, belong to the pool, and not duplicate a held attribute - otherwise the
-  swap falls back to rolling. A hand-built cast cannot pull in an effect from elsewhere.
+- **A named pick** (`Values[1]`, selectable / lucid variant only) is required: it must
+  belong to the same bundle, belong to the pool, and not duplicate a held attribute -
+  otherwise the cast is refused (no silent roll). Live casts send exactly two ints
+  (`[slotIndex, groupId]` under flag 9); reading a third field left the pick as zero and
+  always rolled. A hand-built cast cannot pull in an effect from elsewhere.
 - **Both magnitudes are read at the piece's own progress** for the before/after dialog.
   Asking without it returns the floor of the range, which is 0 for percentage effects -
   the dialog then offers to trade "0.0%" for "0.0%".

@@ -42,8 +42,11 @@ The awakening scroll's skill names the group through its special effect's **`val
 GetChangeMappings(groupId, itemId, grade):
     every mapping with this source item
     filtered to this group
-    filtered to source_grade_id == grade  (or -1)
+    filtered to source_grade_id < 0 OR grade >= source_grade_id
 ```
+
+`source_grade_id` is a **minimum**, not an exact grade. The awaken tab still offers a piece
+that has been regraded past the recipe's floor (live: Unique recipe + grade-8 dagger).
 
 **More than one candidate is normal** - that is exactly what the awaken tab's radio buttons
 pick between.
