@@ -176,8 +176,8 @@ Each subsystem records its status here, in its own section only (see `CONTRIBUTI
 | `Npc.DoDie` | `npc/death.rs` | done | Kill exp (team eligibility, `PlayerExpModifier`, mate exp, TagShare contributors), quest kill events, loot (`LootManager.GenerateLoot` through the economy), aggro / tagger clean-up, spawner despawn, `Ai.GoToDead()` (`systems::ai`). |
 | NPC interaction packets (CSStartInteraction, CSInteractNPC(End), CSSelectInteractionEx; SCNpcInteractionSkillList, SCAiAggro, SCNpcChatMessage, SCUnitModelPostureChanged, SCAggroTargetChanged) | `npc/packets.rs` | done | Byte-exact tests. Merchant / bank / auction UIs are economy's. |
 | `NpcGameData` (npc_spawners, npc_spawner_npcs, member index, generated spawners) | `npc/spawner_data.rs` | done | |
-| `NpcSpawner`, `NpcSpawnerNpc`, `DoodadSpawner`, `Spawner<T>` | `npc/spawner.rs`, `doodad/spawner.rs` | done | Schedules / time windows / population caches, respawn + despawn timing. AI home position / follow path / simulation through `server.systems.hooks.ai` (`systems::ai`). |
-| `SpawnManager` (one per instance) + `WorldManager.ActiveRegionTick` spawner part | `spawn_manager.rs` | done | main_world: 25 118 NPC entries -> 38 166 spawner clones, 42 649 doodads, 69 transfers, 14 gimmicks, 5 slaves, 0 parse errors. Persistent doodads from MySQL. Transfers / slaves: `systems::vehicles`; houses and their doodads: `systems::housing`; trial court doodads / NPCs linked after the spawns (`TrialManager.Initialize*`). |
+| `NpcSpawner`, `NpcSpawnerNpc`, `DoodadSpawner`, `Spawner<T>` | `npc/spawner.rs`, `doodad/spawner.rs` | done | Schedules / time windows / population caches, respawn + despawn timing. Ordinary populations keep the authored `Count` / `min_population` baseline (default 1) and per-slot respawn deadlines (see deviations). AI home position / follow path / simulation through `server.systems.hooks.ai` (`systems::ai`). |
+| `SpawnManager` (one per instance) + `WorldManager.ActiveRegionTick` spawner part | `spawn_manager.rs` | done | main_world: 25 118 NPC entries -> 24 047 ordinary placements / 38 174 spawner clones (1 011 duplicates and 60 event entries filtered, 0 missing templates), 42 649 doodads, 69 transfers, 14 gimmicks, 5 slaves, 0 parse errors. Persistent doodads from MySQL. Transfers / slaves: `systems::vehicles`; houses and their doodads: `systems::housing`; trial court doodads / NPCs linked after the spawns (`TrialManager.Initialize*`). |
 | `DoodadManager.Load` (templates, func groups, funcs, phase funcs, all 121 func template tables) | `doodad/data.rs`, `doodad/templates.rs` | done | 7 124 templates, 13 974 funcs, 24 465 phase funcs (counts match the DB). |
 | `Doodad` phase machine (`Use`, `DoFunc`, `DoPhaseFuncs`, `DoChangePhase`, `InitDoodad`, `OnSkillHit`, `FuncGroupId` setter, ToD triggers), 42 phase funcs, func tasks, `DoodadManager` runtime (Create, CreatePlayerDoodad, ChangeDoodadData, coffers), persistence (`doodads` table) | `doodad/{phase,phase_funcs,tasks,manager,db,logic}.rs` | partial | Serialized interactions, per-object counters, generation and handle guards for timers, ToD transitions, ordered MySQL persistence. Authored immediate logic/family pulses, spawn management groups and moving gimmicks are implemented. FlowGraph runs in the client. Logic delay descriptors 2/3 lack timing semantics; spawn groups 73–76 lack authored membership in shipped data. |
 | 79 non-phase funcs, 41 world interactions (`execute_interaction` for the skills InteractionEffect), coffers, bond / seats | `doodad/funcs/`, `doodad/interactions.rs`, `doodad/coffer.rs` | done | Items, loot, coffers through the economy `EconomyBridge`; skills, quests, housing through the bridges; instance funcs (`systems::instances`), `BindSlave` (`systems::vehicles`). Sticky parents are not modelled. |
@@ -842,6 +842,24 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   delay. Native `Npc::OnDeath` (`x2game-dev_dedicate` `0x393452D0` -> `0x39345220` ->
   `0x39344AA0`) releases its population slot at death. This intentionally replaces the
   C# `HasCorpse` gate; spawn scheduling and corpse expiry remain separate timers.
+* systems::npcs (2026-10-13): generated fallback spawners are kept for the entry that created
+  them, so an NPC without authored spawner IDs retains its first placement; this intentionally
+  fixes the mirrored C# omission that never spawned a generated spawner's first member.
+  Duplicate filtering compares the authored position including Z (< 2 m on each coordinate),
+  so identical entries collapse while cave / building floors stay distinct. Real main_world
+  recount: 25 118 raw entries, 1 011 true duplicates, 0 missing templates, 24 047 ordinary
+  retained placements, 38 174 ordinary spawner clones and 60 event entries (six placements /
+  eight clones more than the earlier 38 166). Ordinary populations target the authored
+  `Count` / `min_population` baseline (default 1), grow with nearby players and stop at
+  `max_population` or a positive `suspend_spawn_count`; capped member selection uses the
+  authored weights. Living populations exclude corpses and include the NPCs of alternate
+  spawners sharing the caps; each pending respawn slot keeps its own authored deadline, so
+  staggered deaths respawn independently. Back-end tests cover the limits and deadlines
+  (including a 55 s authored respawn); a freshly built release server and a real 1.2 client
+  entered the Bleakbreath Cave interior (GM teleports to the lower cave and upper passage,
+  no spawn commands): screenshots show the Mistfiend and Wisp, and telemetry reported all
+  six `npc_fogmonster` Mistfiend entities at cave heights below the terrain, plus a Mist
+  Skeleton. This does not establish retail population density or validate every cave.
 * `systems::npcs`: doodad func timers are tokio tasks (cancel = generation bump); `DoodadManager.Create`'s `Task.Run(InitDoodad)` is a spawned task; `TimeManager.OnTimeOfDayChange` runs from a 10 s poller. `GetNpcSpawner` template rewrites do not propagate to already loaded spawners; the "first" concurrent-dictionary entry is the lowest key; spawn files are processed in sorted name order (C# `Directory.GetFiles` order is unspecified). Portal book deletions are written at the next periodic save. Debug messages check only the character's access level. Coffer slot counting stops at 255 (C# loops forever). Where the C# would throw on a null / failed cast the Rust code returns quietly. Sticky parents are not modelled.
 * systems::housing: dates are stored with second precision (unix seconds); `DateTime.MinValue`
   rows load as 0, so a manually inserted house with both dates at MinValue gets 1970-01-15 as
@@ -921,6 +939,13 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   `target_or_self`, `None` = the C# `null` name). Unit tests: `world/world_manager_tests.rs`.
 * systems::npcs: `Doodad.PlantTime` is unix seconds and the guard-time checks (`IsProtectedByPublicFarm`, `IsPublicPropertyByAge`) take `now` in unix milliseconds, so their deadlines resolve to the millisecond instead of the 100 ns `DateTime` tick (the comparisons themselves are the C# ones).
 * systems::ai: flying NPCs (`CanFly`) keep the interpolated 3D movement step of `MoveTowards` instead of being pinned to the spawner's Z, and skill min / max range is a 3D check for them (ground NPCs keep the 2D range; the melee skill-2 four-meter guard and the skill selection use the same 3D distance), so a flyer cannot cast at a victim far below before closing in; `ReturnState` completes on the 3D distance to the idle position (arrival at `MoveTowards`'s 1 m tolerance; the timeout teleport counts vertical displacement), so a flyer that fought below its spawn altitude climbs back to it instead of stopping at the home XY.
+* systems::ai (2026-10-13): walking floor queries (`reference_height_in`) start at the walker's
+  current level and accept only a collision floor within the 2 m upward allowance; a valid
+  Z = 0 floor is accepted, terrain above a cave roof is not, and the current height is kept
+  when no reachable floor exists. Flying / holding / idle NPCs keep the documented height
+  behavior. Real 1.2 data: the six Mistfiend (NPC 4227) points in Bleakbreath Cave have
+  terrain 91–145 m above the authored positions, no downward probe reaches a floor and the
+  corrected walking height stays at the authored cavity level (556.25–593 m).
 
 ## Live testing (phase 5): fixes and deliberate deviations
 
@@ -1009,7 +1034,7 @@ and in NPC wandering / buff remaining times.
 * Hard disconnects do not leave chat channels (only `LeaveWorldTask` does).
 * systems::quests: `QuestActObjZoneMonsterHunt` (non-score) needs `count > Count` but the
   objective is capped at `Count`: never completes.
-* `systems::npcs`: a generated (fake) spawner's first member never spawns; the "spawn all" schedule check is inverted; `DoRandomSpawn` leaks an obj id and spawns twice; a doodad despawn may release its obj id twice; gimmick spawn rotations are not converted from degrees; scheduled doodad spawns stack cron tasks; the player-in-radius check scans every player; NPCs are not despawned when players leave.
+* `systems::npcs`: the "spawn all" schedule check is inverted; `DoRandomSpawn` leaks an obj id and spawns twice; a doodad despawn may release its obj id twice; gimmick spawn rotations are not converted from degrees; scheduled doodad spawns stack cron tasks; the player-in-radius check scans every player; NPCs are not despawned when players leave.
 * `systems::npcs`: dated game schedules compare `StartTime` / `EndTime` (usually 0) instead of the start / end hours (a one-day event counts as ended at 00:00); the cron builder tests the captured day of week instead of its parameter, and undated schedules produce day / month 0 (rejected by the cron parser); `VendorExist` reads the `id` column; deleting a portal sends no packet; `NotifySubZone` re-sends the portal book once per recall portal of the sub zone; the exit portal's yaw is the book rotation in degrees.
 * `systems::npcs`: corrected coin double credit and failed trade-pack acquisition; `BuyFish` uses the checked economy sale. Phase operations reserve live object identity, honor interaction counts, enter functions on time-of-day changes, and cancel superseded timers. Saves/deletes use a FIFO writer drained by the save lifecycle; partial interaction counts use the doodad-interactions SQL update. Scheduled spawns recreate deleted doodads, deduplicate cron callbacks, and retain original world identity. Logic links/families route matching true/false pulses with per-object state and cycle guards; client-created wires require ownership and reach. Immediate gates are supported; delay descriptors 2/3 need reference behavior. `SpawnGimmick` creates the authored object with offsets/faction/kinematic motion; `SpawnMgmt` requires explicit authored `SpawnGroupId` membership. Prefab flow graphs are client-owned. `CheckGrowth` still runs funcs with `nextPhase = 0`; child metadata templates (e.g. `DoodadFuncBuyFishItem`) remain in the phase dictionary.
 * systems::economy: `AddOrMoveExistingItem` merging an item from another container into a stack

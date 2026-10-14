@@ -180,6 +180,19 @@ pub fn random_element_by_weight<T>(items: &[T], weight: impl Fn(&T) -> f32) -> O
     None
 }
 
+/// The authored weighted member selection for a capped spawn list: zero-weight members are
+/// skipped while a positive-weight one exists, so a cap cannot pin the choice to the list
+/// prefix and later members stay eligible. All-zero weights fall back to a uniform pick.
+fn select_weighted_member<'a>(members: &[&'a NpcSpawnerNpc]) -> Option<&'a NpcSpawnerNpc> {
+    if members.iter().any(|n| n.weight > 0.0) {
+        let positive: Vec<&NpcSpawnerNpc> =
+            members.iter().copied().filter(|n| n.weight > 0.0).collect();
+        random_element_by_weight(&positive, |n| n.weight).copied()
+    } else {
+        random_element_by_weight(members, |_| 1.0).copied()
+    }
+}
+
 fn period_status_npc(server: &GameServer, id: u32) -> PeriodStatus {
     server
         .game_data
@@ -436,9 +449,10 @@ impl NpcSpawner {
         if self.is_despawn_scheduled() {
             return false;
         }
-        if self.is_spawn_scheduled() {
-            return false;
-        }
+        // `IsSpawnScheduled` is deliberately not a gate here: it used to be set for every
+        // ordinary spawner by `IsSpawningScheduleEnabled`, which froze adaptive growth and left
+        // clones blocked by the shared caps permanently unscheduled. The authoritative live +
+        // future-slot check below guards `Update`; the flag is only set when a fill happens.
         if !self.is_optimal_spawner(server) {
             return false;
         }
@@ -521,37 +535,106 @@ impl NpcSpawner {
         period_status_npc(server, t.id) != PeriodStatus::NotFound
     }
 
-    /// `CheckSpawnCountCanSpawn()`.
-    fn check_spawn_count_can_spawn(&self, server: &GameServer) -> bool {
+    /// The population this spawner keeps alive: at least the authored `Count` and
+    /// `min_population` (default baseline 1), raised to the nearby player count when the players
+    /// exceed the baseline, and clamped by `max_population` and a positive `suspend_spawn_count`
+    /// (the hard living-population caps).
+    fn target_population(&self, server: &GameServer) -> i64 {
         let Some(t) = self.template() else {
-            return false;
+            return 0;
         };
-        let mut min_population = i64::from(t.min_population);
-        let mut max_population = i64::from(t.max_population);
-        if min_population == 0 {
-            min_population = 1;
+        let baseline = i64::from(self.count).max(if t.min_population == 0 {
+            1
+        } else {
+            i64::from(t.min_population)
+        });
+        let players = i64::from(self.get_number_of_player_in_spawn_radius(server, &t));
+        let mut cap = i64::from(t.max_population);
+        if t.suspend_spawn_count > 0 {
+            cap = cap.min(i64::from(t.suspend_spawn_count));
         }
-        let mut player_count = i64::from(self.get_number_of_player_in_spawn_radius(server, &t));
-        if player_count == 0 {
-            player_count = 1;
-        }
-        if player_count < min_population {
-            max_population = i64::from(player_count as u32);
-        }
-        if player_count >= min_population && player_count <= max_population {
-            max_population = i64::from(player_count as u32);
-        }
-        let current = i64::from(self.current_spawn_count());
-        if t.suspend_spawn_count > 0
-            && current + i64::from(self.are_other_npcs_in_spawn_zone().1)
-                >= i64::from(t.suspend_spawn_count)
-        {
+        baseline.max(players).min(cap)
+    }
+
+    /// Living NPCs across the shared `SpawnedNpcs` map (all memberwise clones), read directly
+    /// without the 10 s `AreOtherNpcsInSpawnZone` cache. Handles are copied out first so no leaf
+    /// lock is held while object data locks are taken.
+    fn live_population_direct(&self) -> i64 {
+        let lists: Vec<Vec<NpcRef>> = self.spawned_map().values().cloned().collect();
+        lists
+            .iter()
+            .flatten()
+            .filter(|n| !n.data().unit.is_dead())
+            .count() as i64
+    }
+
+    /// Future respawns already scheduled for this placement (any clone sharing the
+    /// `SpawnedNpcs` map): each keeps its own authored deadline, so one fill cannot consume
+    /// another slot's reservation. Ids are matched through `npc_spawner_of` and the shared
+    /// `Arc` (a spawner template id can be reused at different positions, the `Arc` cannot).
+    fn future_pending_respawn_slots(&self, server: &GameServer) -> i64 {
+        let Some(manager) = self
+            .parent_world()
+            .and_then(|id| server.systems.npcs.spawns.get(id))
+        else {
+            return 0;
+        };
+        let now = spawn_manager::now();
+        manager
+            .pending_respawns()
+            .into_iter()
+            .filter(|(_, at)| at.is_some_and(|t| t > now))
+            .filter(|(obj_id, _)| {
+                server
+                    .systems
+                    .npcs
+                    .spawns
+                    .npc_spawner_of(*obj_id)
+                    .is_some_and(|spawner| Arc::ptr_eq(spawner.shared(), self.shared()))
+            })
+            .count() as i64
+    }
+
+    /// THIS clone's own future respawns (its exact `Arc`, not the whole shared placement):
+    /// these are the timers its `_scheduledCount` credits back. Shared placement futures
+    /// constrain capacity ([`Self::future_pending_respawn_slots`]); own futures do not constrain
+    /// this clone's fill beyond their shared reservation, but a fill must never consume them.
+    fn own_pending_respawn_slots(self: &Arc<Self>, server: &GameServer) -> i64 {
+        let Some(manager) = self
+            .parent_world()
+            .and_then(|id| server.systems.npcs.spawns.get(id))
+        else {
+            return 0;
+        };
+        let now = spawn_manager::now();
+        let me = Arc::clone(self);
+        manager
+            .pending_respawns()
+            .into_iter()
+            .filter(|(_, at)| at.is_some_and(|t| t > now))
+            .filter(|(obj_id, _)| {
+                server
+                    .systems
+                    .npcs
+                    .spawns
+                    .npc_spawner_of(*obj_id)
+                    .is_some_and(|spawner| Arc::ptr_eq(&spawner, &me))
+            })
+            .count() as i64
+    }
+
+    /// `CheckSpawnCountCanSpawn()`. The C# caps the *live* population by a soft `maxPopulation`
+    /// that it replaces with the nearby player count, which drops an authored group to one NPC
+    /// as soon as a single player is near. The corrected check keeps the authored baseline
+    /// ([`Self::target_population`]) and guards `Update` with the authoritative availability:
+    /// the living NPCs of the whole shared map plus the slots still reserved by future respawn
+    /// deadlines must stay below the target.
+    fn check_spawn_count_can_spawn(&self, server: &GameServer) -> bool {
+        if self.template().is_none() {
             return false;
         }
-        if current + i64::from(self.are_other_npcs_in_spawn_zone().1) >= max_population {
-            return false;
-        }
-        true
+        self.live_population_direct() + self.future_pending_respawn_slots(server)
+            < self.target_population(server)
     }
 
     /// `IsPlayerInSpawnRadius()` (cached for 10 s per `SpawnerId`): any player of the server
@@ -641,8 +724,10 @@ impl NpcSpawner {
         player_count
     }
 
-    /// `AreOtherNpcsInSpawnZone()` (cached for 10 s). Mirrors the C# bug: every other non-empty
-    /// spawner adds *this* spawner's `CurrentSpawnCount + _scheduledCount`.
+    /// `AreOtherNpcsInSpawnZone()` (cached for 10 s): the living NPCs of the other spawner ids
+    /// sharing this entry's `SpawnedNpcs` map. The C# adds *this* spawner's
+    /// `CurrentSpawnCount + _scheduledCount` for every other non-empty list, so the shared-map
+    /// port counts each alternate population's own living NPCs (corpses excluded).
     fn are_other_npcs_in_spawn_zone(&self) -> (bool, i32) {
         let now = spawn_manager::now();
         {
@@ -664,13 +749,10 @@ impl NpcSpawner {
             .map(|(_, l)| l.clone())
             .collect();
         let mut count = 0;
-        let mut are = false;
         for npcs in others {
-            if npcs.iter().any(|n| !n.data().unit.is_dead()) {
-                count += self.current_spawn_count() + self.scheduled_count();
-                are = true;
-            }
+            count += npcs.iter().filter(|n| !n.data().unit.is_dead()).count() as i32;
         }
+        let are = count > 0;
         self.shared
             .npcs_in_zone_cache
             .lock()
@@ -701,15 +783,38 @@ impl NpcSpawner {
             .and_then(|l| l.into_iter().find(|n| !n.data().unit.is_dead()))
     }
 
-    /// `ForceSpawn(objId)`.
+    /// `ForceSpawn(objId)`: an explicit timing override that repopulates the placement now.
+    /// Queued NPC respawns of the same shared placement (`SpawnedNpcs` / `Position` entry) are
+    /// obsolete once the forced fill happens; they are cancelled first so their reservations
+    /// cannot block or duplicate it. Corpse despawn timers, other placements and other instances
+    /// stay intact; a cancelled id is released only when no world object or corpse timer owns it.
     pub fn force_spawn(self: &Arc<Self>, server: &GameServer, _obj_id: u32) -> Option<NpcRef> {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
         if self.spawned_map().is_empty() {
             let t = self.template();
             self.initialize_spawnable_npcs(t.as_deref());
         }
+        if let Some(manager) = self
+            .parent_world()
+            .and_then(|id| server.systems.npcs.spawns.get(id))
+        {
+            manager.cancel_placement_npc_respawns(server, self.shared());
+            // The cancelled deadlines no longer back these `_scheduledCount` credits.
+            self.reconcile_scheduled_count(self.own_pending_respawn_slots(server));
+        }
         self.do_spawn(server);
         self.spawned_of(self.spawner_id)
             .and_then(|l| l.into_iter().find(|n| !n.data().unit.is_dead()))
+    }
+
+    /// Reconciles `_scheduledCount` with the pending respawn timers that remain after
+    /// [`Self::force_spawn`] cancelled the obsolete ones; never below zero.
+    pub fn reconcile_scheduled_count(&self, remaining: i64) {
+        let mut st = self.st();
+        st.scheduled_count = st
+            .scheduled_count
+            .min(remaining.clamp(0, i64::from(i32::MAX)) as i32)
+            .max(0);
     }
 
     // ----- despawn -----
@@ -893,7 +998,13 @@ impl NpcSpawner {
 
     // ----- spawning -----
 
-    /// `DoSpawn()`: spawns every `SpawnableNpcs` member.
+    /// `DoSpawn()`: fills [`Self::target_population`] from the supported member templates.
+    ///
+    /// The C# iterates `SpawnableNpcs` exactly once and only caps the result afterwards, so a
+    /// single-member template cannot replenish an authored `Count` / `min_population` > 1 while
+    /// a member list larger than the cap overshoots it. Here the target is computed from the
+    /// live shared population and the still-reserved respawn deadlines, full passes spawn every
+    /// member, and a capped pass selects weighted members (later members stay eligible).
     pub fn do_spawn(self: &Arc<Self>, server: &GameServer) {
         let Some(t) = self.template() else {
             tracing::error!(
@@ -909,11 +1020,17 @@ impl NpcSpawner {
             self.unit_id,
             t.id
         );
-        let current = self.current_spawn_count() as i64;
-        if current >= i64::from(t.max_population) {
-            return;
-        }
-        if t.suspend_spawn_count > 0 && current > i64::from(t.suspend_spawn_count) {
+        // Hold the reentrant spawn lock for the whole calculation and creation so direct calls
+        // (`SpawnAll`, `Spawn`, `ForceSpawn`) serialize like `Update`.
+        let _serial = server.systems.npcs.spawns.spawn_lock();
+        let target = self.target_population(server);
+        // Direct read: the cached other-population count may still be a stale zero after
+        // another clone spawned, despawned or died.
+        let live = self.live_population_direct();
+        // Respawn slots with their own future deadline are reserved for their own refill.
+        let reserved = self.future_pending_respawn_slots(server);
+        let mut remaining = target - live - reserved;
+        if remaining <= 0 {
             return;
         }
         let spawnable = self.spawnable_npcs();
@@ -925,30 +1042,37 @@ impl NpcSpawner {
             return;
         }
         let mut spawned_npcs = Vec::new();
-        for nsn in &spawnable {
-            let _lock = server.systems.npcs.spawns.spawn_lock();
-            match spawn_member(server, nsn, self, 0) {
-                Ok(Some(spawned)) if !spawned.is_empty() => {
-                    for npc in &spawned {
-                        let key = self
-                            .npc_spawner(server, npc)
-                            .map_or(self.spawner_id, |s| s.spawner_id);
-                        self.add_npc_to_spawned(key, npc.clone());
+        while remaining > 0 {
+            let mut pass_spawned = 0usize;
+            if remaining >= spawnable.len() as i64 {
+                // Full pass: every member once (the C# `DoSpawn` order); further passes reuse
+                // them when the target is larger than the member list.
+                for nsn in &spawnable {
+                    if remaining <= 0 {
+                        break;
                     }
-                    spawned_npcs.extend(spawned);
+                    pass_spawned +=
+                        self.spawn_member_capped(server, nsn, &mut remaining, &mut spawned_npcs);
                 }
-                Ok(_) => tracing::warn!(
-                    "[Spawn] Failed to spawn NPC from template {}:{} for SpawnerId={}",
-                    nsn.npc_spawner_template_id,
-                    nsn.member_id,
-                    self.spawner_id
-                ),
-                Err(e) => tracing::error!(
-                    "[Spawn] Failed to spawn NPC from template {}:{} for SpawnerId={}: {e}",
-                    nsn.npc_spawner_template_id,
-                    nsn.member_id,
-                    self.spawner_id
-                ),
+            } else {
+                // Capped pass: weighted sampling without replacement so the cap does not always
+                // take the list prefix and later members stay eligible.
+                let mut pool: Vec<&NpcSpawnerNpc> = spawnable.iter().collect();
+                while remaining > 0 && !pool.is_empty() {
+                    let Some(pick) = select_weighted_member(&pool) else {
+                        break;
+                    };
+                    let idx = pool
+                        .iter()
+                        .position(|n| std::ptr::eq(*n, pick))
+                        .expect("weighted pick comes from the pool");
+                    let nsn = pool.remove(idx);
+                    pass_spawned +=
+                        self.spawn_member_capped(server, nsn, &mut remaining, &mut spawned_npcs);
+                }
+            }
+            if pass_spawned == 0 {
+                break;
             }
         }
         if spawned_npcs.is_empty() {
@@ -957,13 +1081,71 @@ impl NpcSpawner {
                 self.unit_id,
                 self.spawner_id
             );
+            // No spawn at all: stay unscheduled so the next active tick retries.
+            self.set_spawn_scheduled(false);
             return;
         }
-        self.decrement_count(spawned_npcs.len());
+        self.consume_spawn_credits(spawned_npcs.len(), server);
+        // The capacity check passed and the fill happened; only now is the spawner scheduled.
+        self.set_spawn_scheduled(true);
+    }
+
+    /// One member's batch, capped at the remaining slots: the survivors are tracked in
+    /// `spawned_npcs`, a surplus batch is deleted again so the hard caps hold. Returns the
+    /// number of NPCs added (0 when the member failed).
+    fn spawn_member_capped(
+        self: &Arc<Self>,
+        server: &GameServer,
+        nsn: &NpcSpawnerNpc,
+        remaining: &mut i64,
+        spawned_npcs: &mut Vec<NpcRef>,
+    ) -> usize {
+        match spawn_member(server, nsn, self, 0) {
+            Ok(Some(spawned)) if !spawned.is_empty() => {
+                let keep = spawned.len().min(*remaining as usize);
+                for npc in spawned.iter().take(keep) {
+                    let key = self
+                        .npc_spawner(server, npc)
+                        .map_or(self.spawner_id, |s| s.spawner_id);
+                    self.add_npc_to_spawned(key, npc.clone());
+                    spawned_npcs.push(npc.clone());
+                }
+                for npc in spawned.iter().skip(keep) {
+                    spawn_manager::delete_object(
+                        server,
+                        &WorldObject::from(npc),
+                        self.parent_world(),
+                    );
+                    server.ids.object.release_id(npc.obj_id);
+                    spawn_manager::forget_object(server, npc.obj_id);
+                }
+                *remaining -= keep as i64;
+                keep
+            }
+            Ok(_) => {
+                tracing::warn!(
+                    "[Spawn] Failed to spawn NPC from template {}:{} for SpawnerId={}",
+                    nsn.npc_spawner_template_id,
+                    nsn.member_id,
+                    self.spawner_id
+                );
+                0
+            }
+            Err(e) => {
+                tracing::error!(
+                    "[Spawn] Failed to spawn NPC from template {}:{} for SpawnerId={}: {e}",
+                    nsn.npc_spawner_template_id,
+                    nsn.member_id,
+                    self.spawner_id
+                );
+                0
+            }
+        }
     }
 
     /// `IsSpawningScheduleEnabled()`: the game schedule, else the spawn time window (no window =
-    /// enabled). Sets `IsSpawnScheduled` when enabled.
+    /// enabled). Only a successful [`Self::do_spawn`] sets `IsSpawnScheduled`, so a capacity
+    /// check can never leave the clone marked scheduled while it spawned nothing.
     pub fn is_spawning_schedule_enabled(&self, server: &GameServer) -> bool {
         if self.template().is_none() {
             tracing::warn!(
@@ -974,21 +1156,16 @@ impl NpcSpawner {
             );
             return false;
         }
-        self.st().is_spawn_scheduled = false;
         match period_status_npc(server, self.spawner_id) {
             PeriodStatus::InProgress => {
-                let mut st = self.st();
-                st.respawn_denied = true;
-                st.is_spawn_scheduled = true;
+                self.st().respawn_denied = true;
                 return true;
             }
             PeriodStatus::NotFound => {}
             PeriodStatus::NotStarted | PeriodStatus::Ended => return false,
         }
         if self.is_within_spawn_time(server) {
-            let mut st = self.st();
-            st.respawn_denied = true;
-            st.is_spawn_scheduled = true;
+            self.st().respawn_denied = true;
             return true;
         }
         false
@@ -1062,6 +1239,24 @@ impl NpcSpawner {
             return;
         }
         self.decrement_count(n.len());
+    }
+
+    /// Consumes `_scheduledCount` for a normal fill, but only the credits that are not backed by
+    /// one of this clone's own future respawn timers: due/free credits are consumed up to the
+    /// number spawned, own future deadlines keep their reservations, and the count never drops
+    /// below zero. Shared placement futures are capacity reservations, not this clone's credits,
+    /// and [`Self::do_spawn`] already excluded them from the fill.
+    fn consume_spawn_credits(self: &Arc<Self>, spawned: usize, server: &GameServer) {
+        let own_future = self
+            .own_pending_respawn_slots(server)
+            .clamp(0, i64::from(i32::MAX)) as i32;
+        let spawned = spawned.min(i32::MAX as usize) as i32;
+        let mut st = self.st();
+        let take = (st.scheduled_count - own_future).max(0).min(spawned);
+        st.scheduled_count -= take;
+        if st.scheduled_count < 0 {
+            st.scheduled_count = 0;
+        }
     }
 
     fn decrement_count(&self, n: usize) {
@@ -1457,3 +1652,7 @@ mod tests {
         assert!(random_element_by_weight(&empty, |i| i.1).is_none());
     }
 }
+
+#[cfg(test)]
+#[path = "spawner_population_tests.rs"]
+mod spawner_population_tests;

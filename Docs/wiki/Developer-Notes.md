@@ -24,6 +24,13 @@ target moves. Walking NPCs reach path corners using horizontal distance and stan
 collision floor, so differences between navigation heights and terrain do not stall them.
 Attack range is checked against the target separately from waypoint arrival.
 
+Walking floor queries start from the NPC's current level and accept only a surface within
+the 2 m step-up allowance; a collision floor at Z = 0 is valid, while terrain above a cave
+roof is not. When nothing reachable is found the current height is kept, so cave and
+building NPCs stay in their cavity instead of snapping to the surface above them. Real 1.2
+asset checks cover the Bleakbreath Cave Mistfiend points (terrain 91–145 m above the
+authored positions). Flying and idle NPCs keep their documented behavior.
+
 Flying NPCs (`CanFly`) fight and return in 3D: an attacked flyer descends toward its attacker
 down to attack range, and after it loses the target it climbs back to its spawn altitude
 before leaving the return state. Skill min / max range is measured in 3D too, so a flyer
@@ -32,10 +39,24 @@ measure the full 3D distance, so a flyer directly above or below its home is not
 arrived.
 
 NPC respawn uses the spawner's authored delay and counts living NPCs towards population
-limits. A lootable corpse can remain while its replacement spawns. Unlooted items extend
+limits. Ordinary spawners keep the authored `Count` / `min_population` baseline (default 1)
+and grow with nearby players up to `max_population` or a positive `suspend_spawn_count`;
+capped member selection uses the authored weights. Corpses do not count, and alternate
+spawners sharing the same caps are included, so hard limits hold across clones. Pending
+slots keep their individual respawn deadlines, so staggered deaths respawn on their own
+schedule. A lootable corpse can remain while its replacement spawns. Unlooted items extend
 corpse lifetime by five minutes; taking the final item restores the normal corpse deadline
 or, if that deadline already passed, allows two more seconds before removal. The one-second
 cleanup tick reads this updated deadline.
+
+Spawn entries are deduplicated per NPC template and position including Z (2 m per
+coordinate), so cave and building floors remain distinct. A fallback spawner generated for
+an NPC without authored spawner IDs keeps its first authored placement instead of dropping
+it. Focused back-end tests cover these corrections, and a real 1.2 client logged into the
+Bleakbreath Cave interior (GM teleports, no spawn commands) showed the Mistfiend and Wisp
+in screenshots; telemetry reported all six Mistfiend entities at cave heights below the
+terrain, plus a Mist Skeleton. This does not establish retail population density or
+validate every cave.
 
 ## Housing behavior
 

@@ -418,3 +418,93 @@ fn real_collision_doodad_models_resolve() {
         0
     );
 }
+
+/// Walking height resolution for the six Mistfiend (NPC 4227) spawns of Blackbreath Cave
+/// (`Data/Worlds/main_world/npc_spawns.json`): their authored Z sits below the heightmap
+/// surface, so the production `systems::ai::npc::reference_height_in` must never lift a
+/// walker above its level plus the 2 m step-up probe, and must prefer a collision floor when
+/// the probe finds one. Prints independent terrain / probe / production diagnostics.
+#[tokio::test]
+#[ignore = "needs AAEMU_GAME_PAK"]
+async fn real_collision_mistfiend_cave_walking_height() {
+    use crate::systems::npcs::json;
+    let Some(e) = env() else { return };
+    let text = std::fs::read_to_string(app_path().join("Data/Worlds/main_world/npc_spawns.json"))
+        .expect("npc_spawns.json");
+    let doc = json::parse(&text).expect("spawns parse");
+    let mut spawns = Vec::new();
+    for entry in json::array(&doc).expect("spawn array") {
+        let Some(o) = entry.as_object() else { continue };
+        if json::u32_or(o, "UnitId", 0).unwrap_or(0) != 4227 {
+            continue;
+        }
+        let Some(p) = json::prop(o, "Position").and_then(|p| p.as_object()) else {
+            continue;
+        };
+        spawns.push([
+            json::f32_or(p, "X", 0.0).unwrap_or(0.0),
+            json::f32_or(p, "Y", 0.0).unwrap_or(0.0),
+            json::f32_or(p, "Z", 0.0).unwrap_or(0.0),
+        ]);
+    }
+    assert_eq!(spawns.len(), 6, "NPC 4227 spawns: {spawns:?}");
+
+    // A real server: main_world as instance 0 (`WorldManager.CreateStaticInstances`) with the
+    // client heightmaps and the collision service (lazy pool, never used).
+    let worlds = WorldTemplates::load(&e.files, &app_path()).expect("world templates");
+    let mut config = crate::config::AppConfig {
+        id: 1,
+        ..Default::default()
+    };
+    config.connections.mysql_provider.host = "127.0.0.1".into();
+    config.connections.mysql_provider.port = 1;
+    let db = sqlx::mysql::MySqlPoolOptions::new()
+        .acquire_timeout(std::time::Duration::from_millis(200))
+        .connect_lazy_with(config.connections.mysql_provider.connect_options());
+    let mut data = crate::data::GameData::empty();
+    data.worlds = worlds;
+    let server = crate::server::GameServer::new(config, db, data);
+    server.systems.npcs.heightmaps.install(e.hm.clone());
+
+    let mut above = 0;
+    for s in &spawns {
+        let (x, y, z) = (s[0], s[1], s[2]);
+        let worlds = &server.game_data.worlds;
+        let zone = worlds.get_zone_id(worlds.get_world_template_by_name("main_world"), x, y);
+        let ai = crate::systems::npcs::heightmap::ReferenceHeightAi {
+            can_fly: false,
+            hold_or_idle: false,
+            spawner_z: Some(z),
+            world_z: z,
+        };
+        let resolved =
+            crate::systems::ai::npc::reference_height_in(&server, 0, Some(ai), x, y, z, zone);
+        let probe = super::ground_height_probe(
+            &server,
+            0,
+            x,
+            y,
+            z,
+            super::GROUND_PROBE_UP,
+            super::GROUND_PROBE_DOWN,
+        );
+        let terrain = super::terrain_height(&server, 0, x, y);
+        above += usize::from(terrain.is_some_and(|t| t > z + super::GROUND_PROBE_UP));
+        println!(
+            "Mistfiend ({x:.2}, {y:.2}, {z:.3}): probe {probe:?}, terrain {terrain:?}, resolved {resolved:.3}"
+        );
+        // A probe hit is the preferred collision floor (a hit at Z = 0 included).
+        if let Some(h) = probe.flatten() {
+            assert!(
+                (resolved - h).abs() < 1e-3,
+                "walking must stand on the collision floor {h:.3} at ({x:.2}, {y:.2}, {z:.3}), got {resolved:.3}"
+            );
+        }
+        assert!(
+            resolved <= z + super::GROUND_PROBE_UP + 1e-3,
+            "walking must not elevate ({x:.2}, {y:.2}, {z:.3}) to {resolved:.3}"
+        );
+    }
+    println!("{above}/6 columns have the heightmap surface above the step range");
+    assert!(above > 0, "the cave fixture must cover a surface above");
+}

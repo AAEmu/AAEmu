@@ -497,6 +497,11 @@ pub fn reference_height(
 /// idling at its spawner) stands on the physics ground (static geometry + terrain, the
 /// collision service) under its position, like the zone's NPC living entities; the C#
 /// reference height without the service.
+///
+/// A walker is never resolved above its current level plus the collision service's step-up
+/// allowance ([`crate::systems::ai::collision::GROUND_PROBE_UP`], 2 m): a cave's heightmap
+/// column is the surface above its roof, so accepting that (or the spawner Z) would teleport
+/// the walker out of the cave. With no reachable floor the current level is kept.
 #[allow(clippy::too_many_arguments)]
 pub fn reference_height_in(
     server: &GameServer,
@@ -507,16 +512,38 @@ pub fn reference_height_in(
     z: f32,
     zone_id: u32,
 ) -> f32 {
-    let walks = ai.is_some_and(|a| !a.can_fly && !a.hold_or_idle);
-    if walks {
-        if let Some(g) = crate::systems::ai::collision::ground_height(server, instance_id, x, y, z)
-        {
-            if g != 0.0 {
-                return g;
-            }
+    let Some(a) = ai else {
+        return reference_height(server, None, x, y, z, zone_id);
+    };
+    if a.can_fly || a.hold_or_idle {
+        return reference_height(server, Some(a), x, y, z, zone_id);
+    }
+    let step_limit = a.world_z + crate::systems::ai::collision::GROUND_PROBE_UP;
+    // Prefer the actual collision floor below / within the step range: the probe starts at
+    // the current level + 2 m, so a hit is always reachable, and a hit at Z = 0 is a valid
+    // surface. A missed probe is not a floor; its terrain fallback (in a cave the surface
+    // above the walker) is only usable through the heightmap query below.
+    if let Some(Some(g)) = crate::systems::ai::collision::ground_height_probe(
+        server,
+        instance_id,
+        x,
+        y,
+        a.world_z,
+        crate::systems::ai::collision::GROUND_PROBE_UP,
+        crate::systems::ai::collision::GROUND_PROBE_DOWN,
+    ) {
+        if g <= step_limit {
+            return g;
         }
     }
-    reference_height(server, ai, x, y, z, zone_id)
+    // Terrain / navigation fallback (heightmap or navmesh): only a known, reachable floor
+    // (0 = unknown, as in `GetHeight`).
+    let terrain = crate::systems::npcs::heightmap::get_height(server, zone_id, x, y, z);
+    if terrain != 0.0 && terrain <= step_limit {
+        return terrain;
+    }
+    // No reachable floor: keep the walker at its current level instead of the spawner Z.
+    a.world_z
 }
 
 /// `Npc.LookTowards(other, flags)`.
@@ -855,3 +882,7 @@ mod tests {
         assert!((position.z - 113.7).abs() < 0.001);
     }
 }
+
+#[cfg(test)]
+#[path = "npc_height_tests.rs"]
+mod npc_height_tests;

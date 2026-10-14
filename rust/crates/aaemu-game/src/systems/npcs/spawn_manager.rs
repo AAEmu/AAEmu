@@ -453,7 +453,7 @@ pub struct LoadStats {
     pub npc_entries_with_spawners: usize,
     /// `NpcSpawner` clones in `NpcSpawners`.
     pub npc_spawners: usize,
-    /// Generated ("fake") spawner templates; their entries are not added (C# bug).
+    /// Generated ("fake") spawner templates (the generated spawner is stored too, unlike the C#).
     pub npc_fake_spawners: usize,
     pub npc_event_spawners: usize,
     pub tower_def_spawners: usize,
@@ -558,8 +558,8 @@ impl SpawnManager {
     // ----- AddNpcSpawner -----
 
     /// `AddNpcSpawner(npcSpawner)` (the JSON entry). Returns the number of spawners added to
-    /// `NpcSpawners` (0 for a generated "fake" spawner, which the C# never stores, and for event
-    /// spawners). `Err` where the C# throws (missing spawner template 1, duplicate fake ids).
+    /// `NpcSpawners` (0 for event spawners). `Err` where the C# throws (missing spawner template
+    /// 1, duplicate fake ids).
     pub fn add_npc_spawner(
         &self,
         server: &GameServer,
@@ -664,12 +664,22 @@ impl SpawnManager {
                     return Err(format!("AddNpcSpawnerNpc: duplicate id {id}"));
                 }
                 data.add_member_and_spawner_template_ids(&tmp_npc);
-                if !data.add_npc_spawner(template) {
+                let template = Arc::new(template);
+                if !data.add_npc_spawner((*template).clone()) {
                     return Err(format!("AddNpcSpawner: duplicate id {id}"));
                 }
                 spawns.fake_spawner_id.fetch_add(1, Ordering::SeqCst);
-                // C# bug mirrored: the entry itself is not stored (`spawners` stays empty); later
-                // entries of the same NPC find the generated template through GetSpawnerIds.
+                // Deviation from the C#: the generated spawner is kept for this entry too. The C#
+                // dropped it (`spawners` stayed empty), losing the first placement of every NPC
+                // without game-data spawners; later entries cloned the generated template.
+                let spawner = NpcSpawner::new(
+                    init(inner.next_id, id, vec![id], Some(template.clone())),
+                    new_shared(),
+                );
+                spawner.initialize_spawnable_npcs(Some(template.as_ref()));
+                spawners.push(Arc::new(spawner));
+                inner.next_id += 1;
+                added += 1;
             } else {
                 // Memberwise clones sharing Position / SpawnedNpcs / caches / NpcSpawnerIds.
                 let shared = new_shared();
@@ -834,8 +844,9 @@ impl SpawnManager {
             return Ok(());
         };
         files.reverse(); // ReverseSpawnFiles
-                         // Positions of the entries stored in NpcSpawners, by UnitId (the duplicate filter).
-        let mut stored: HashMap<u32, Vec<(f32, f32)>> = HashMap::new();
+                         // Positions of the entries stored in NpcSpawners, by UnitId (the duplicate
+                         // filter; Z is part of the position, so cave / building floors do not collide).
+        let mut stored: HashMap<u32, Vec<(f32, f32, f32)>> = HashMap::new();
         for path in files {
             let Some(text) = read_spawn_file(&self.world, &path) else {
                 continue;
@@ -845,10 +856,16 @@ impl SpawnManager {
                 .map_err(|e| format!("SpawnManager: Parse {} file: {e}", path.display()))?;
             for (entry, mut def) in defs.into_iter().enumerate() {
                 stats.npc_entries += 1;
-                let (unit_id, x, y) = (def.base.unit_id, def.base.position.x, def.base.position.y);
+                let (unit_id, x, y, z) = (
+                    def.base.unit_id,
+                    def.base.position.x,
+                    def.base.position.y,
+                    def.base.position.z,
+                );
                 if stored.get(&unit_id).is_some_and(|v| {
-                    v.iter()
-                        .any(|&(sx, sy)| (sx - x).abs() < 2.0 && (sy - y).abs() < 2.0)
+                    v.iter().any(|&(sx, sy, sz)| {
+                        (sx - x).abs() < 2.0 && (sy - y).abs() < 2.0 && (sz - z).abs() < 2.0
+                    })
                 }) {
                     tracing::trace!(
                         "Duplicate NPC spawner found in {} (UnitId: {unit_id})",
@@ -878,7 +895,7 @@ impl SpawnManager {
                 if added > 0 {
                     stats.npc_entries_with_spawners += 1;
                     stats.npc_spawners += added;
-                    stored.entry(unit_id).or_default().push((x, y));
+                    stored.entry(unit_id).or_default().push((x, y, z));
                 }
             }
         }
@@ -1729,6 +1746,46 @@ impl SpawnManager {
     /// Stop an event NPC from respawning while leaving its normal loot corpse timer intact.
     pub fn cancel_npc_respawn(&self, npc: &NpcRef) {
         Self::cancel_npc_timer(&self.respawns, npc);
+    }
+
+    /// `NpcSpawner.ForceSpawn` repopulates a placement immediately, so its queued respawn
+    /// deadlines are obsolete. Cancels only the respawns of spawners sharing `shared` (one
+    /// authored placement across its memberwise clones); corpse despawn timers, other placements
+    /// and other instances stay intact. An id is released only when neither the corpse despawn
+    /// entry nor a live world object still owns it, mirroring `check_respawns_tick`. Every
+    /// cancelled clone's `_scheduledCount` credits are reconciled too (its future timers are
+    /// gone), not just the `ForceSpawn` caller's. Returns the number of cancelled respawns.
+    pub fn cancel_placement_npc_respawns(
+        &self,
+        server: &GameServer,
+        shared: &Arc<NpcSpawnerShared>,
+    ) -> usize {
+        let _serial = server.systems.npcs.spawns.spawn_lock();
+        let entries: Vec<Scheduled> = {
+            let set = self.respawns.lock().expect("poisoned");
+            set.values()
+                .filter(|e| match &e.link {
+                    SpawnerLink::Npc(s) => Arc::ptr_eq(s.shared(), shared),
+                    _ => false,
+                })
+                .cloned()
+                .collect()
+        };
+        for e in &entries {
+            Self::remove_entry(&self.respawns, e);
+            let id = e.obj.obj_id();
+            // Drop the queue locks before the world / object locks (as `check_respawns_tick`).
+            let corpse_pending = self.despawns.lock().expect("poisoned").contains_key(&id);
+            if !corpse_pending && self.world.object(id).is_none() {
+                server.ids.object.release_id(id);
+                forget_object(server, id);
+            }
+            // All same-placement deadlines are gone, so each linked clone's credits are stale.
+            if let SpawnerLink::Npc(s) = &e.link {
+                s.reconcile_scheduled_count(0);
+            }
+        }
+        entries.len()
     }
 
     fn cancel_npc_timer(set: &Mutex<HashMap<u32, Scheduled>>, npc: &NpcRef) {

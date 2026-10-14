@@ -6,6 +6,11 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
+use sqlx::mysql::MySqlPoolOptions;
+
+use crate::config::AppConfig;
+use crate::data::skills::{BuffKind, BuffTemplate};
+use crate::data::world_templates::{WorldTemplate, WorldTemplates};
 use crate::data::GameData;
 use crate::models::doodad::Doodad;
 use crate::models::npc::Npc;
@@ -18,6 +23,7 @@ use crate::systems::npcs::spawn_manager::{
     self, backend::TestBackend, SpawnManager, TemplateExists, FIRST_FAKE_SPAWNER_ID,
 };
 use crate::test_support::{spawn_player, test_character, test_server_with, TestClient};
+use crate::world::unit_state::UNIT_STATE_FORCED_BUFFS;
 use crate::world::{DoodadRef, Entity, NpcRef, WorldInstance, WorldObject};
 
 struct Backend;
@@ -120,6 +126,39 @@ fn server() -> Arc<GameServer> {
 fn manager(server: &Arc<GameServer>) -> Arc<SpawnManager> {
     let world = server.world.world(0).unwrap();
     server.systems.npcs.spawns.get_or_create(&world)
+}
+
+/// [`test_server_with`] with a synthetic `main_world` of `cell_x` x `cell_y` cells: authored
+/// positions far outside the default 2x2-cell grid (the Mistfiend cave points at x ~ 22900,
+/// y ~ 9400) need a world that covers them. Lazy DB / no network, forced buffs included.
+fn server_with_world(data: GameData, cell_x: i32, cell_y: i32) -> Arc<GameServer> {
+    let mut config = AppConfig {
+        id: 1,
+        ..AppConfig::default()
+    };
+    config.connections.mysql_provider.host = "127.0.0.1".into();
+    config.connections.mysql_provider.port = 1; // nothing listens here
+    let db = MySqlPoolOptions::new()
+        .acquire_timeout(Duration::from_millis(200))
+        .connect_lazy_with(config.connections.mysql_provider.connect_options());
+    let mut data = data;
+    data.worlds = WorldTemplates::from_templates(
+        vec![WorldTemplate::synthetic(
+            0,
+            "main_world",
+            cell_x,
+            cell_y,
+            crate::test_support::TEST_ZONE,
+        )],
+        Vec::new(),
+    )
+    .expect("synthetic world");
+    for id in UNIT_STATE_FORCED_BUFFS {
+        let mut t = BuffTemplate::simple(id, BuffKind::Good);
+        t.duration = 0;
+        data.skills.buffs.insert(id, t);
+    }
+    Arc::new(GameServer::new(config, db, data))
 }
 
 fn npc_def(unit_id: u32, x: f32, y: f32) -> NpcSpawnerDef {
@@ -531,8 +570,8 @@ async fn multi_spawner_npc_and_unsupported_member() {
 async fn fake_and_event_spawners() {
     let server = server();
     let m = manager(&server);
-    // NPC 777 has no game-data spawner: a fake template is generated, the entry is dropped.
-    assert_eq!(m.add_npc_spawner(&server, npc_def(777, 1.0, 1.0)), Ok(0));
+    // NPC 777 has no game-data spawner: a fake template is generated and the entry is kept.
+    assert_eq!(m.add_npc_spawner(&server, npc_def(777, 1.0, 1.0)), Ok(1));
     let data = &server.game_data.systems.npcs.npc_spawners;
     assert_eq!(data.get_spawner_ids(777), Some(vec![FIRST_FAKE_SPAWNER_ID]));
     let fake = data
@@ -550,9 +589,7 @@ async fn fake_and_event_spawners() {
             unit_id: 0,
         }]
     );
-    assert_eq!(m.counts()[0], 0);
-    // The next entry of the same NPC uses the generated template.
-    assert_eq!(m.add_npc_spawner(&server, npc_def(777, 50.0, 1.0)), Ok(1));
+    assert_eq!(m.counts()[0], 1);
     let s = m
         .get_all_spawners()
         .values()
@@ -562,6 +599,20 @@ async fn fake_and_event_spawners() {
         .clone();
     assert_eq!(s.spawner_id, FIRST_FAKE_SPAWNER_ID);
     assert_eq!(s.id, 1);
+    assert_eq!(s.npc_spawner_ids, vec![FIRST_FAKE_SPAWNER_ID]);
+    assert_eq!(s.spawnable_npcs()[0].member_id, 777);
+    // The next entry of the same NPC uses the generated template.
+    assert_eq!(m.add_npc_spawner(&server, npc_def(777, 50.0, 1.0)), Ok(1));
+    assert_eq!(m.counts()[0], 2);
+    let s2 = m
+        .get_all_spawners()
+        .values()
+        .flatten()
+        .find(|s| s.id == 2)
+        .unwrap()
+        .clone();
+    assert_eq!(s2.spawner_id, FIRST_FAKE_SPAWNER_ID);
+    assert_eq!(s2.spawnable_npcs()[0].member_id, 777);
     assert_eq!(
         server.systems.npcs.spawns.peek_fake_spawner_id(),
         FIRST_FAKE_SPAWNER_ID + 1
@@ -588,6 +639,105 @@ async fn fake_and_event_spawners() {
     assert_eq!(m.add_npc_spawner(&server, zero), Ok(1));
     assert!(m.clone_npc_event_spawners(4, 9));
     assert!(m.remove_npc_event_spawners(9));
+}
+
+#[tokio::test]
+async fn fake_spawner_first_and_repeated_placements_spawn_and_respawn() {
+    let server = server();
+    let m = manager(&server);
+    // First placement: no game-data spawner, so the generated template gets a real spawner.
+    assert_eq!(
+        m.add_npc_spawner(&server, npc_def(777, 100.0, 100.0)),
+        Ok(1)
+    );
+    // A repeated placement of the same NPC clones the generated template.
+    assert_eq!(
+        m.add_npc_spawner(&server, npc_def(777, 900.0, 900.0)),
+        Ok(1)
+    );
+    let spawners: Vec<_> = m.get_all_spawners().into_values().flatten().collect();
+    assert_eq!(spawners.len(), 2);
+    let (first, repeated) = (spawners[0].clone(), spawners[1].clone());
+    assert_eq!((first.id, repeated.id), (1, 2));
+    assert_eq!(first.spawner_id, FIRST_FAKE_SPAWNER_ID);
+    assert_eq!(repeated.spawner_id, FIRST_FAKE_SPAWNER_ID);
+    assert!(!Arc::ptr_eq(first.shared(), repeated.shared()));
+    for s in [&first, &repeated] {
+        assert_eq!(s.npc_spawner_ids, vec![FIRST_FAKE_SPAWNER_ID]);
+        assert_eq!(s.template().unwrap().npcs[0].member_id, 777);
+        assert_eq!(s.spawnable_npcs()[0].member_id, 777);
+    }
+
+    let _p1 = spawn_player(
+        &server,
+        &TestClient::new(&server, 1, 1),
+        test_character(1, "P", 100.0, 100.0),
+        5000,
+    );
+    let _p2 = spawn_player(
+        &server,
+        &TestClient::new(&server, 2, 2),
+        test_character(2, "Q", 900.0, 900.0),
+        5001,
+    );
+    spawn_manager::active_region_tick(&server);
+    let world = server.world.world(0).unwrap();
+    assert_eq!(world.all_npcs().len(), 2, "both placements spawn");
+    let first_npc = first.spawned_npcs().values().next().unwrap()[0].clone();
+    let repeated_npc = repeated.spawned_npcs().values().next().unwrap()[0].clone();
+    {
+        let d = first_npc.data();
+        assert_eq!((d.unit.transform.x, d.unit.transform.y), (100.0, 100.0));
+        assert_eq!(d.spawner_id, first.id);
+    }
+    {
+        let d = repeated_npc.data();
+        assert_eq!((d.unit.transform.x, d.unit.transform.y), (900.0, 900.0));
+        assert_eq!(d.spawner_id, repeated.id);
+    }
+    assert!(Arc::ptr_eq(
+        &server
+            .systems
+            .npcs
+            .spawns
+            .npc_spawner_of(first_npc.obj_id)
+            .unwrap(),
+        &first
+    ));
+    assert!(Arc::ptr_eq(
+        &server
+            .systems
+            .npcs
+            .spawns
+            .npc_spawner_of(repeated_npc.obj_id)
+            .unwrap(),
+        &repeated
+    ));
+
+    // The first placement dies and respawns on its own timer.
+    first_npc.data().unit.hp = 0;
+    spawn_manager::on_npc_died(&server, &first_npc);
+    assert_eq!(m.pending_respawns().len(), 1);
+    advance(11);
+    m.check_respawns_tick(&server);
+    assert!(m.pending_respawns().is_empty());
+    spawn_manager::active_region_tick(&server);
+    assert_eq!(first.current_spawn_count(), 1, "first placement respawned");
+    assert_eq!(world.all_npcs().len(), 3);
+
+    // The repeated placement keeps its spawner link and respawns too.
+    repeated_npc.data().unit.hp = 0;
+    spawn_manager::on_npc_died(&server, &repeated_npc);
+    assert_eq!(m.pending_respawns().len(), 1);
+    advance(11);
+    m.check_respawns_tick(&server);
+    assert!(m.pending_respawns().is_empty());
+    spawn_manager::active_region_tick(&server);
+    assert_eq!(
+        repeated.current_spawn_count(),
+        1,
+        "repeated placement respawned"
+    );
 }
 
 #[tokio::test]
@@ -770,6 +920,62 @@ async fn load_spawn_files_order_filters_and_positions() {
 }
 
 #[tokio::test]
+async fn npc_spawn_duplicate_filter_includes_z() {
+    let server = server();
+    let m = manager(&server);
+    let dir = crate::data::pak::test_util::temp_path("npc_spawns_z");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join("npc_spawns.json"),
+        r#"[ { "UnitId": 500, "Position": { "X": 100, "Y": 100, "Z": 50 } },
+             { "UnitId": 500, "Position": { "X": 100.5, "Y": 100.5, "Z": 50.5 } },
+             { "UnitId": 500, "Position": { "X": 100.5, "Y": 100.5, "Z": 90 } },
+             { "UnitId": 500, "Position": { "X": 300, "Y": 300, "Z": 50 } } ]"#,
+    )
+    .unwrap();
+    let npc = |id: u32| id < 90_000;
+    let yes = |_| true;
+    let exists = TemplateExists {
+        npc: &npc,
+        doodad: &yes,
+        transfer: &yes,
+        gimmick: &yes,
+        slave: &yes,
+    };
+    let stats = m.load_spawn_files(&server, &dir, &exists).unwrap();
+    assert_eq!(
+        (
+            stats.npc_entries,
+            stats.npc_duplicates,
+            stats.npc_entries_with_spawners,
+            stats.npc_spawners
+        ),
+        (4, 1, 3, 3)
+    );
+    let mut positions: Vec<(f32, f32, f32)> = m
+        .get_all_spawners()
+        .into_values()
+        .flatten()
+        .filter(|s| s.unit_id == 500)
+        .map(|s| {
+            let p = s.position();
+            (p.x, p.y, p.z)
+        })
+        .collect();
+    positions.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    assert_eq!(
+        positions,
+        vec![
+            (100.0, 100.0, 50.0),
+            (100.5, 100.5, 90.0),
+            (300.0, 300.0, 50.0),
+        ],
+        "same XY on another floor survives; the same-floor neighbour is a duplicate"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
 async fn despawn_all_and_delete_all_spawners() {
     let server = server();
     let m = manager(&server);
@@ -796,8 +1002,11 @@ async fn despawn_all_and_delete_all_spawners() {
     m.check_respawns_tick(&server);
     assert!(world.all_npcs().is_empty());
 
-    s.set_spawn_scheduled(false);
-    s.do_spawn(&server);
+    let forced = s.force_spawn(&server, 0);
+    assert!(
+        forced.is_some(),
+        "ForceSpawn repopulates after the teardown"
+    );
     assert_eq!(world.all_npcs().len(), 1);
     m.delete_all_spawners(&server);
     assert!(world.all_npcs().is_empty());
@@ -922,8 +1131,8 @@ async fn real_data_main_world_spawn_files() {
         v.get(k).and_then(serde_json::Value::as_f64).unwrap_or(0.0)
     };
     let npc_raw = raw("npc_spawns.json");
-    let mut kept: std::collections::HashMap<(u32, i64, i64), Vec<(f32, f32)>> =
-        std::collections::HashMap::new();
+    type NpcGrid = std::collections::HashMap<(u32, i64, i64, i64), Vec<(f32, f32, f32)>>;
+    let mut kept: NpcGrid = std::collections::HashMap::new();
     let mut fake_seen: HashSet<u32> = HashSet::new();
     let (mut dup, mut missing, mut entries_with_spawners, mut fake, mut event) = (0, 0, 0, 0, 0);
     let mut clones = 0usize;
@@ -931,15 +1140,22 @@ async fn real_data_main_world_spawn_files() {
     for e in &npc_raw {
         let unit = num(e, "UnitId") as u32;
         let pos = e.get("Position").unwrap();
-        let (x, y) = (num(pos, "X") as f32, num(pos, "Y") as f32);
+        let (x, y, z) = (
+            num(pos, "X") as f32,
+            num(pos, "Y") as f32,
+            num(pos, "Z") as f32,
+        );
         let mut is_dup = false;
         for dx in -1..=1 {
             for dy in -1..=1 {
-                if let Some(v) = kept.get(&(unit, cell2(x) + dx, cell2(y) + dy)) {
-                    if v.iter()
-                        .any(|&(kx, ky)| (kx - x).abs() < 2.0 && (ky - y).abs() < 2.0)
+                for dz in -1..=1 {
+                    if let Some(v) = kept.get(&(unit, cell2(x) + dx, cell2(y) + dy, cell2(z) + dz))
                     {
-                        is_dup = true;
+                        if v.iter().any(|&(kx, ky, kz)| {
+                            (kx - x).abs() < 2.0 && (ky - y).abs() < 2.0 && (kz - z).abs() < 2.0
+                        }) {
+                            is_dup = true;
+                        }
                     }
                 }
             }
@@ -969,18 +1185,20 @@ async fn real_data_main_world_spawn_files() {
         };
         let n = if static_ids > 0 {
             static_ids
-        } else if fake_seen.insert(unit) {
-            fake += 1;
-            0
         } else {
+            // Every placement keeps a spawner now: the first generates the template, later
+            // ones clone it.
+            if fake_seen.insert(unit) {
+                fake += 1;
+            }
             1
         };
         if n > 0 {
             entries_with_spawners += 1;
             clones += n;
-            kept.entry((unit, cell2(x), cell2(y)))
+            kept.entry((unit, cell2(x), cell2(y), cell2(z)))
                 .or_default()
-                .push((x, y));
+                .push((x, y, z));
         }
     }
     assert_eq!(stats.npc_entries, npc_raw.len());
@@ -1050,4 +1268,152 @@ async fn real_data_main_world_spawn_files() {
             stats.slave_spawners
         ]
     );
+}
+
+/// The authored Mistfiend (NPC 4227) cave placements of the shipped `main_world` files with the
+/// real compact DB: all six load (template 4323, 55 s delay), a player at the first authored
+/// point activates them through the normal `active_region_tick`, they spawn at their authored Z,
+/// and a killed one respawns after 55 s at the same cave position. NPCs are created by the test
+/// backend (the managers are stubs); activation is the real runtime path.
+#[tokio::test]
+#[ignore]
+async fn real_data_mistfiend_cave_activation_and_respawn() {
+    let Ok(db) = std::env::var("AAEMU_COMPACT_DB") else {
+        return;
+    };
+    let world_path =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("app/Data/Worlds/main_world");
+    if !world_path.exists() {
+        return;
+    }
+    let conn = rusqlite::Connection::open(&db).unwrap();
+    let mut data = GameData::empty();
+    data.systems.npcs.npc_spawners = NpcSpawnerData::load_from(&conn).unwrap();
+    let npcs = id_set(&conn, "npcs");
+    let doodads = id_set(&conn, "doodad_almighties");
+    let sd = &data.systems.npcs.npc_spawners;
+    let (transfers, gimmicks, slaves) = (
+        sd.transfer_template_ids.clone(),
+        id_set(&conn, "gimmicks"),
+        sd.slave_template_ids.clone(),
+    );
+    // The authored cave positions sit at x ~ 22900 / y ~ 9400, far outside the default 2x2-cell
+    // test world: 32x16 cells (32768 m x 16384 m) cover them so the NPCs get real regions.
+    let server = server_with_world(data, 32, 16);
+    server.set_self();
+    *server.systems.npcs.spawns.test_backend.lock().unwrap() = Some(Arc::new(Backend));
+    let m = manager(&server);
+    let npc = |id: u32| npcs.contains(&id);
+    let doodad = |id: u32| doodads.contains(&id);
+    let transfer = |id: u32| transfers.contains(&id);
+    let gimmick = |id: u32| gimmicks.contains(&id);
+    let slave = |id: u32| slaves.contains(&id);
+    let exists = TemplateExists {
+        npc: &npc,
+        doodad: &doodad,
+        transfer: &transfer,
+        gimmick: &gimmick,
+        slave: &slave,
+    };
+    m.load_spawn_files(&server, &world_path, &exists).unwrap();
+
+    // Exactly the six authored Mistfiend placements survive the load.
+    let authored = [
+        (22932.89f32, 9428.54f32, 556.25f32),
+        (22948.07, 9426.05, 557.12),
+        (22846.81, 9448.47, 593.0),
+        (22905.03, 9428.53, 572.36),
+        (22883.19, 9434.90, 585.6),
+        (22859.00, 9434.70, 591.6),
+    ];
+    let mistfiends: Vec<_> = m
+        .get_all_spawners()
+        .into_values()
+        .flatten()
+        .filter(|s| s.unit_id == 4227)
+        .collect();
+    assert_eq!(mistfiends.len(), 6, "six authored Mistfiend placements");
+    let mut loaded: Vec<(f32, f32, f32)> = mistfiends
+        .iter()
+        .map(|s| {
+            let p = s.position();
+            (p.x, p.y, p.z)
+        })
+        .collect();
+    loaded.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut expected = authored;
+    expected.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    assert_eq!(loaded, expected);
+
+    // A player inside the cave at the known Mistfiend point activates them.
+    let client = TestClient::new(&server, 1, 1);
+    let mut character = test_character(1, "Cave", authored[0].0, authored[0].1);
+    character
+        .unit
+        .transform
+        .set_xyz(authored[0].0, authored[0].1, authored[0].2);
+    let _p = spawn_player(&server, &client, character, 5000);
+    spawn_manager::active_region_tick(&server);
+
+    let world = server.world.world(0).unwrap();
+    for s in &mistfiends {
+        let spawned = s.spawned_npcs();
+        let list = spawned
+            .get(&s.spawner_id)
+            .unwrap_or_else(|| panic!("spawner {} spawned nothing", s.id));
+        assert_eq!(list.len(), 1, "spawner {}", s.id);
+        let npc = list[0].clone();
+        {
+            let d = npc.data();
+            let p = s.position();
+            assert_eq!((d.unit.transform.x, d.unit.transform.y), (p.x, p.y));
+            assert_eq!(d.unit.transform.z, p.z, "spawns at the authored Z");
+            assert_eq!(d.spawner_id, s.id);
+        }
+        assert!(
+            world.npc(npc.obj_id).is_some(),
+            "spawner {} NPC is not in the world",
+            s.id
+        );
+        assert!(
+            npc.region().is_some(),
+            "spawner {} NPC has no world region (authored position outside the grid?)",
+            s.id
+        );
+        assert!(npc.is_visible(), "spawner {} NPC is not visible", s.id);
+    }
+
+    // Kill one: template 4323's 55 s delay, respawn keeping the cave position.
+    let spawner = &mistfiends[0];
+    let victim = spawner.spawned_npcs().get(&spawner.spawner_id).unwrap()[0].clone();
+    victim.data().unit.hp = 0;
+    spawn_manager::on_npc_died(&server, &victim);
+    assert_eq!(m.pending_respawns().len(), 1);
+    assert_eq!(spawner.respawn_time(), 55);
+    advance(54);
+    m.check_respawns_tick(&server);
+    spawn_manager::active_region_tick(&server);
+    assert_eq!(
+        spawner.current_spawn_count(),
+        0,
+        "respawn waits the full 55 s"
+    );
+    advance(1);
+    m.check_respawns_tick(&server);
+    spawn_manager::active_region_tick(&server);
+    assert_eq!(spawner.current_spawn_count(), 1, "respawned after 55 s");
+    let replacement = spawner
+        .spawned_npcs()
+        .get(&spawner.spawner_id)
+        .and_then(|l| l.iter().find(|n| !n.data().unit.is_dead()).cloned())
+        .unwrap();
+    let p = spawner.position();
+    let d = replacement.data();
+    assert_eq!(
+        (d.unit.transform.x, d.unit.transform.y, d.unit.transform.z),
+        (p.x, p.y, p.z),
+        "cave position retained"
+    );
+    assert!(world.npc(replacement.obj_id).is_some());
+    drop(_p);
 }
