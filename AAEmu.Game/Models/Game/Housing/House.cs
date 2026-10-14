@@ -486,10 +486,15 @@ public sealed class House : Unit
         if (CurrentStep != -1) // unfinished houses can't be used to private store, so always true
             return base.AllowedToInteract(player);
 
+        // Only Guild mode needs the owning expedition. Always reading Expedition here pulls
+        // ExpeditionManager for Private/Public/Family checks and breaks unit hosts with no DI.
         // Guild residences: Expedition already prefers ResidenceHouseId over the placer's current guild.
+        var guildIdForAccess = Permission == HousingPermission.Guild
+            ? Expedition?.Id ?? 0
+            : default;
         return HousingPermissionRules.CanAccess(
                    player, OwnerId, Permission,
-                   guildIdForAccess: Expedition?.Id ?? 0) &&
+                   guildIdForAccess: guildIdForAccess) &&
                base.AllowedToInteract(player);
     }
 
