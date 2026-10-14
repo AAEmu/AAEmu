@@ -906,7 +906,8 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         RestoreItemTime = reader.GetUInt32("restore_item_time"),
                         PartyOnly = reader.GetBoolean("party_only", true),
                         ClientDriven = reader.GetBoolean("client_driven", true),
-                        SelectChannel = reader.GetBoolean("select_channel", true)
+                        SelectChannel = reader.GetBoolean("select_channel", true),
+                        Option = IndunZoneOption.Parse(reader.GetString("option", string.Empty))
                     };
 
                     indunZone.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", indunZone.ZoneGroupId, string.Empty);

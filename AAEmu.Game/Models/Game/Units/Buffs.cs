@@ -1204,6 +1204,36 @@ public class Buffs : IBuffs
             }
     }
 
+    /// <summary>
+    /// Takes <paramref name="applications"/> off the buffs carrying <paramref name="buffTagId"/>: an
+    /// accumulating instance loses stacks, and only one with none left ends.
+    /// </summary>
+    public void RemoveTaggedApplications(uint buffTagId, int applications)
+    {
+        if (applications <= 0 || GetOwner() == null || _effects == null)
+            return;
+
+        var taggedBuffs = SkillManager.Instance.GetBuffsByTagId(buffTagId);
+        if (taggedBuffs == null)
+            return;
+
+        Buff[] effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        foreach (var buff in effects)
+        {
+            if (buff?.Template == null || !taggedBuffs.Contains(buff.Template.Id))
+                continue;
+
+            applications -= buff.TakeStacks(applications);
+            if (applications <= 0)
+                return;
+        }
+    }
+
     public void RemoveBuffs(uint buffTagId, int count)
     {
         var own = GetOwner();

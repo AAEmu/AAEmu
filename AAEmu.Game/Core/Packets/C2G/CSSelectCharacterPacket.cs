@@ -134,6 +134,9 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             Connection.SendPacket(new SCPlayerGameDataPacket(character));
             Connection.SendPacket(new SCInstanceVisitCountsPacket(
                 IndunManager.Instance.GetVisitCountRecords(character.Id)));
+            // The instance window's own list: the portals of the world the character just entered. The client
+            // fills that window from this packet and never asks for it.
+            IndunManager.Instance.SendPortalList(character);
             Connection.SendPacket(new SCBattleFieldRecordsPacket());
             Connection.SendPacket(new SCFavoriteCraftsPacket(character.FavoriteCrafts.GetWireCraftTypes()));
             Connection.SendPacket(new SCCharacterPrivacyStatusUpdatePacket(true, character.PrivacyStatus));

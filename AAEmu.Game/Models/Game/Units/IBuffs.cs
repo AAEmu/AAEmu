@@ -39,6 +39,7 @@ public interface IBuffs
     void RemoveBuff(uint buffId, bool notifyZone = true);
     void RemoveBuffs(BuffKind kind, int count, uint buffTagId = 0);
     void RemoveBuffs(uint buffTagId, int count);
+    void RemoveTaggedApplications(uint buffTagId, int applications);
     void RemoveEffect(Buff buff);
     void RemoveEffect(uint index, bool notifyZone = true);
     void RemoveEffect(uint templateId, uint skillId);

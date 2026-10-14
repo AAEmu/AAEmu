@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Sagas;
 using AAEmu.Game.Models.Spheres;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -1361,6 +1362,9 @@ public class CharacterQuests(Character owner)
         if (db?.SphereDetailType == "SphereBuff")
             ApplySphereBuff(db.SphereDetailId, enter: true);
 
+        if (db?.SphereDetailType == "SphereSkill")
+            FireSphereSkill(db, entering: true);
+
         // SphereAcceptQuest detail → auto-add listed quests
         if (db?.SphereDetailType == "SphereAcceptQuest")
         {
@@ -1440,6 +1444,10 @@ public class CharacterQuests(Character owner)
         if (db?.SphereDetailType == "SphereBuff")
             ApplySphereBuff(db.SphereDetailId, enter: false);
 
+        if (db?.SphereDetailType == "SphereSkill" &&
+            UnitRequirementsGameData.Instance.CanTriggerSphere(db, Owner))
+            FireSphereSkill(db, entering: false);
+
         if (db?.SphereDetailType == "SphereQuest")
         {
             var detail = SphereGameData.Instance.GetSphereQuestDetail(db.SphereDetailId);
@@ -1468,6 +1476,36 @@ public class CharacterQuests(Character owner)
             };
             QuestManager.Instance.DoOnExitSphereEvents(Owner, eventSphere, pos);
         }
+    }
+
+    /// <summary>
+    /// A SphereSkill sphere casts its <c>sphere_skills</c> skill as the player who crossed it, at most as
+    /// often as the sphere's trigger condition allows in this world instance (the area scenes of a dungeon
+    /// copy - the netherworld watchdog's entrance - are cast this way).
+    /// </summary>
+    private void FireSphereSkill(Spheres.Spheres db, bool entering)
+    {
+        if (!AreaSphereTriggerRules.FiresOn(db.EnterOrLeave, entering))
+            return;
+
+        var detail = SphereGameData.Instance.GetSphereSkill(db.SphereDetailId);
+        if (detail == null || SkillManager.Instance.GetSkillTemplate(detail.SkillId) == null)
+        {
+            Logger.Warn("SphereSkill: sphere {0} names sphere_skills {1}, which has no castable skill",
+                db.Id, db.SphereDetailId);
+            return;
+        }
+
+        var spheres = Owner.ParentWorld?.SphereQuestManager;
+        var now = DateTime.UtcNow;
+        if (spheres == null || !spheres.TryClaimAreaSphereTrigger(db, now, Owner.Id))
+            return;
+
+        var result = Owner.UseSkill(detail.SkillId, Owner);
+        if (result != SkillResult.Success)
+            spheres.ReleaseAreaSphereTrigger(db, now, Owner.Id);
+
+        Logger.Info("SphereSkill char={0} sphere={1} skill={2} result={3}", Owner.Name, db.Id, detail.SkillId, result);
     }
 
     private void ApplySphereBuff(uint sphereBuffDetailId, bool enter)

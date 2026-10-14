@@ -286,6 +286,8 @@ public class PlotTree(uint plotId)
     private static void DoPlotEnd(PlotState state)
     {
         state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.CastTlId), true);
+        if (PlotEndRules.RelaysPlotEndToZone(state.ZoneEventsRelayed, state.CastTlId))
+            WorldIntegration.RelayPlotEndedToZone?.Invoke(state.CastTlId, state.Caster?.ObjId ?? 0);
         EndPlotChannel(state);
 
         if (state.ActiveSkill.PlayerAuthoredPlotCast)

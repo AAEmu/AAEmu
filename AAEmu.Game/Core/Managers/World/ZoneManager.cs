@@ -138,6 +138,10 @@ public class ZoneManager(
         return _groups.TryGetValue(zoneId, out var group) ? group : null;
     }
 
+    /// <summary>Every buff a zone group grants to whoever stands in it (<c>zone_groups.buff_id</c>).</summary>
+    public IReadOnlySet<uint> GetZoneGroupBuffIds() =>
+        _groups?.Values.Where(g => g.BuffId != 0).Select(g => g.BuffId).ToHashSet() ?? [];
+
     public List<uint> GetZoneKeysInZoneGroupById(uint zoneGroupId)
     {
         var res = new List<uint>();

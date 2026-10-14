@@ -24,6 +24,13 @@ public static class DispelRules
     }
 
     /// <summary>
+    /// Whether a tagged row counts stacks rather than buffs. An authored <c>stack</c> takes that many
+    /// applications, so an accumulating instance (rule Multiple) loses stacks instead of ending; a row
+    /// without one keeps removing whole buffs by its dispel/cure count.
+    /// </summary>
+    public static bool TakesApplications(int stack) => stack > 0;
+
+    /// <summary>
     /// The buff kind a tagged removal targets, from the relation the caster has with the victim.
     /// </summary>
     /// <remarks>

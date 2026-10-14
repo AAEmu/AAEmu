@@ -475,6 +475,37 @@ public class Buff
         return true;
     }
 
+    /// <summary>
+    /// Takes applications off this instance, ending it when none are left.
+    /// </summary>
+    /// <returns>How many applications were taken.</returns>
+    public int TakeStacks(int applications)
+    {
+        int taken;
+        bool ends;
+        lock (_lock)
+        {
+            (taken, ends) = BuffStackRules.TakeApplications(Stack, applications);
+            if (taken > 0 && !ends)
+                Stack -= taken;
+        }
+
+        if (taken == 0)
+            return 0;
+
+        if (ends)
+        {
+            Exit();
+            return taken;
+        }
+
+        if (InUse)
+            Template.Start(Caster, Owner, this);
+
+        NotifyUpdated(reason: 1);
+        return taken;
+    }
+
     public void OverwriteWith(Buff newBuff)
     {
         lock (_lock)

@@ -1,4 +1,6 @@
+using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Utils;
+using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 
@@ -55,4 +57,78 @@ public static class PlotTargetRules
     /// their effects to nobody. A row that names a relation gets that relation's answer.
     /// </remarks>
     public static bool AllowsNeutral(SkillTargetRelation relation) => relation != SkillTargetRelation.Any;
+
+    /// <summary>
+    /// <see cref="AllowsNeutral(SkillTargetRelation)"/>, widened for a search whose
+    /// <c>plot_aoe_conditions</c> require the candidate to carry a named buff tag.
+    /// </summary>
+    /// <remarks>
+    /// Such a search names its target by a marker the data put on it, and the marker NPCs are usually
+    /// neutral: the Hereafter soul gathering point (tag 4181), the souls themselves, cannon and spawn
+    /// reference points. Dropping Neutrals there emptied the search, so a soul rescue found no gathering
+    /// point and credited nothing. A tag requirement is already the narrowest filter the event can state,
+    /// so the blanket Neutral drop adds nothing but the miss.
+    /// </remarks>
+    public static bool AllowsNeutral(SkillTargetRelation relation, IEnumerable<PlotCondition> aoeConditions) =>
+        AllowsNeutral(relation) || RequiresTaggedTarget(aoeConditions);
+
+    /// <summary>
+    /// <see cref="AllowsNeutral(SkillTargetRelation, IEnumerable{PlotCondition})"/>, also widened for a
+    /// unit_reqs condition whose rows name a marker on the candidate.
+    /// </summary>
+    /// <remarks>
+    /// A unit_reqs condition (kind 20) marks its target through rows of its own: the Hereafter hellhound's
+    /// "find the defenders hunting the hellhound" search requires buff 25741 of that exact name, and the
+    /// hellhound is itself Neutral, so dropping Neutrals emptied every one of its searches.
+    /// </remarks>
+    /// <param name="requirementKinds">The unit_reqs kinds a plot condition owns, by condition id.</param>
+    public static bool AllowsNeutral(SkillTargetRelation relation, IEnumerable<PlotCondition> aoeConditions,
+        Func<uint, IEnumerable<UnitReqsKindType>> requirementKinds) =>
+        AllowsNeutral(relation, aoeConditions) || RequiresMarkedTarget(aoeConditions, requirementKinds);
+
+    /// <summary>
+    /// Whether a search names its victims rather than looks for enemies: it accepts any relation and its
+    /// conditions demand a marker the data put on the candidate.
+    /// </summary>
+    /// <remarks>
+    /// The Hereafter hellhound leaps on the defenders "hunting the hellhound" (buff 25741) and kills them
+    /// with a fixed 99,999 hit. They share its faction, so the relation test refused every hit. A search
+    /// that picks units by name has already decided they are the victims.
+    /// </remarks>
+    public static bool SelectsMarkedVictims(SkillTargetRelation relation, IEnumerable<PlotCondition> aoeConditions,
+        Func<uint, IEnumerable<UnitReqsKindType>> requirementKinds) =>
+        relation == SkillTargetRelation.Any &&
+        (RequiresTaggedTarget(aoeConditions) || RequiresMarkedTarget(aoeConditions, requirementKinds));
+
+    /// <summary>True when one of <paramref name="aoeConditions"/> demands a buff tag on the candidate.</summary>
+    public static bool RequiresTaggedTarget(IEnumerable<PlotCondition> aoeConditions) =>
+        aoeConditions?.Any(c => c is { Kind: PlotConditionType.BuffTag, NotCondition: false }) ?? false;
+
+    /// <summary>
+    /// True when a unit_reqs condition among <paramref name="aoeConditions"/> demands a buff, buff tag or
+    /// template on the candidate.
+    /// </summary>
+    public static bool RequiresMarkedTarget(IEnumerable<PlotCondition> aoeConditions,
+        Func<uint, IEnumerable<UnitReqsKindType>> requirementKinds) =>
+        requirementKinds != null &&
+        (aoeConditions?.Any(c => c is { Kind: PlotConditionType.UnitReqs, NotCondition: false } &&
+                                 (requirementKinds(c.Id)?.Any(IsMarkerRequirement) ?? false)) ?? false);
+
+    private static bool IsMarkerRequirement(UnitReqsKindType kind) => kind is
+        UnitReqsKindType.Buff or UnitReqsKindType.TargetBuff or UnitReqsKindType.BuffTag or
+        UnitReqsKindType.TargetBuffTag or UnitReqsKindType.TargetNpc;
+
+    /// <summary>
+    /// The unit a plot_aoe_conditions row is judged as the owner of: the candidate for a unit_reqs
+    /// condition, the caster for every other kind.
+    /// </summary>
+    /// <remarks>
+    /// An area condition filters candidates, and its unit_reqs rows describe the candidate whether the
+    /// row is spelled as a target kind or not: "find the defenders hunting the hellhound" is buff 25741,
+    /// "PC and summons within 40m" is a mother-faction row, "not Michaela's autocannon" is no-buff 24926.
+    /// Judged on the caster, those asked whether the caster carried the marker and passed or failed every
+    /// candidate at once. The other condition kinds already take the candidate as their target.
+    /// </remarks>
+    public static T AoeConditionOwner<T>(PlotConditionType kind, T caster, T candidate) =>
+        kind == PlotConditionType.UnitReqs ? candidate : caster;
 }

@@ -749,6 +749,9 @@ public static class SCOffsets
     public const ushort SCIgnoreMinimumGameSizeNotifyPacket = 0x20E;
     public const ushort SCIndunDirectTelPacket = 0x29A;
     public const ushort SCIndunInitialRoundInfoPacket = 0x2D9;
+    public const ushort SCIndunUpdateRoundInfoPacket = 0x2DA; // the round's own time limit (curRound/limit/play/isTimeLimit/boss)
+    public const ushort SCIndunPlayingInfoBroadcastingPacket = 0x2D8; // instance HUD readouts (npcInfo / gainRuleInfo)
+    public const ushort SCIndunPortalsPacket = 0x29B; // instance portal list sent as the world-entry burst opens
     public const ushort SCIndunPortalSpawnPacket = 0x29C;
     public const ushort SCIndunRoundPlayStatusPacket = 0x2DB;
     public const ushort SCInstantGameCountDownPacket = 0x1D8; // 10.0.2.13

@@ -78,6 +78,7 @@ public class DungeonLoaderTask(WorldTemplate worldTemplate, Dungeon dungeon, uin
         var spawnTasks = world.SpawnManager.SpawnTasks;
         if (spawnTasks is { Count: > 0 })
             System.Threading.Tasks.Task.WhenAll(spawnTasks).GetAwaiter().GetResult();
+        WorldIntegration.PlantInstanceLevelDoodads?.Invoke(world);
         world.DungeonContentSpawned = true;
     }
 

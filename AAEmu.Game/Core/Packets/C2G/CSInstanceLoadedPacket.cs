@@ -1,8 +1,9 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.InstantGame;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -25,25 +26,32 @@ public class CSInstanceLoadedPacket() : GamePacket(CSOffsets.CSInstanceLoadedPac
             Connection.SendPacket(new SCUnitFactionChangedPacket(
                 me.ObjId, me.Name ?? "", FactionsEnum.Invalid, me.Faction.Id, false));
         Connection.SendPacket(new SCCooldownsPacket(me.Cooldowns));
-        Connection.SendPacket(TimeOfDayClientPackets.Hour(TimeManager.Instance.GetTime));
+        // The shared world clock belongs to the open world. An instance ships its own static time-of-day and
+        // owns its own clock (the zone reports that one), so pushing the open-world hour here fought both and
+        // left the instance lit wrong. Main-world loads still take the shared hour.
+        if (TimeManager.ZoneUsesSharedGameDay(me.Transform.ZoneId))
+            Connection.SendPacket(TimeOfDayClientPackets.Hour(TimeManager.Instance.GetTime));
 
-        me.DisabledSetPosition = false;
-
-        // A zone load empties the client's world, and the arrival itself could not re-register the
-        // character: SetPosition is a no-op while DisabledSetPosition is set, so they were still filed
-        // under the region they left and the new zone streamed nothing into the empty client — a bare
-        // room with no NPCs and no doodads until the player relogged. Re-file them at the arrival
-        // coordinates and repaint everything the load dropped (mirror NPCs and doodads included).
-        me.Transform.FinalizeTransform();
-        WorldManager.ResendVisibleObjectsToCharacter(me, clientDroppedVisibility: true);
+        // Stream the neighbourhood now so a cold load paints the room under the loading screen.
+        // A dungeon copy keeps movement locked: unlocking here lets a client that already cached
+        // the level start falling through a floor that has no collision yet. That unlock waits
+        // for the re-entry check that follows the closed loading screen. Leave-to-overworld
+        // and non-copy loads still finish here.
+        if (InstantGameHandoverRules.CompletesArrivalOnInstanceLoaded(me.ParentWorld?.DungeonInstance != null))
+            InstanceArrival.Complete(me, snapClient: false);
+        else
+            InstanceArrival.StreamNeighbourhood(me);
 
         // The mentoring accept sources removed in 4.0 are restored only after the client confirms a
         // successful dungeon load. Re-entry and reconnect are harmless: active and same-day completed
         // quests are rejected by the restoration gate.
         me.Quests.TryStartRestoredMentoringQuestOnDungeonEntry();
 
-        // Zone groups with indun_rounds rows show their counter on load and again after a relog.
-        me.ParentWorld?.DungeonInstance?.SendInitialRoundInfo(me);
+        // A dungeon copy is handed over (which copy, its rounds and its HUD readouts) once the loading
+        // screen has closed, in answer to the client's re-entry check: the client drops the UI events it
+        // raises while the loading screen is up, so a hand-over sent from here never reaches its UI.
+        if (me.ParentWorld?.DungeonInstance != null)
+            me.MarkInstantGameHandoverPending();
 
         // The load just confirmed is the battle field copy this character was invited into: this
         // is the join event that seats them in the match (idempotent inside the match).

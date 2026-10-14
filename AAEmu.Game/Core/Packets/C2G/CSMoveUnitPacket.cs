@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
@@ -62,7 +62,8 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
         if (character == null) return;
         character.LastPacketActivityTime = DateTime.UtcNow;
 
-        // Locked while a teleport or instance load waits for CSTeleportEnded / CSInstanceLoaded, or by a GM freeze.
+        // Locked while a teleport or instance load waits for CSTeleportEnded / CSInstanceLoaded
+        // (overworld) or the dungeon re-entry check, or by a GM freeze.
         if (character.DisabledSetPosition)
         {
             // Debug, not Warn: every move sent during a teleport lands here. A client that never sends

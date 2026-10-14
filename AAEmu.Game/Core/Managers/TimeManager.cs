@@ -26,12 +26,6 @@ public class TimeManager : Singleton<TimeManager>, ITimeManager
     public const float DefaultGameHourSpeed = 0.0016666f;
 
     /// <summary>
-    /// Typical instance start hour (dungeons begin near noon then progress).
-    /// Fixed-noon places snap themselves via dedicate speed=0 afterward.
-    /// </summary>
-    public const float InstanceDefaultStartHour = 12.0f;
-
-    /// <summary>
     /// Max forward game-hours allowed in one tick before world-effect cascades and Game-Time
     /// tower arms are skipped. Shared by <c>TowerDefScheduler</c>.
     /// </summary>
