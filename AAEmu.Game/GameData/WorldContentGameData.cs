@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -72,6 +72,9 @@ public class WorldContentGameData : Singleton<WorldContentGameData>, IGameDataLo
                     _groups.Add(group);
                     namesPerGroup[categoryId.Value] = new HashSet<string>(StringComparer.Ordinal);
                 }
+
+                if (!WorldContentFilterRules.IncludeFilterName(name))
+                    continue;
 
                 if (namesPerGroup[categoryId.Value].Add(name))
                     group.Names.Add(name);

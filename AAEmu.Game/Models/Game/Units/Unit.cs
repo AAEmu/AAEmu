@@ -1771,9 +1771,12 @@ public class Unit : BaseUnit, IUnit
         ApplyEquipEffects(itemAdded, itemRemoved);
 
         // Compute gear buff
-        ApplyWeaponWieldBuff();
-        ApplyArmorGradeBuff(itemAdded, itemRemoved);
-        ApplyEquipItemSetBonuses();
+        if (PlayerBuffRules.GrantsLoadoutBuffs(this))
+        {
+            ApplyWeaponWieldBuff();
+            ApplyArmorGradeBuff(itemAdded, itemRemoved);
+            ApplyEquipItemSetBonuses();
+        }
         Procs?.SyncItemProcs(itemProcIds);
 
         // Gear that raises MaxHp/MaxMp left current points on the old ceiling (pet armor: 8194/9423).
@@ -2141,7 +2144,9 @@ public class Unit : BaseUnit, IUnit
 
     public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
     {
-        // We switched zone keys, we need to do some checks
+        if (!PlayerBuffRules.ReceivesZoneGroupBuffs(this))
+            return;
+
         var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
         var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
         var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
@@ -2149,33 +2154,26 @@ public class Unit : BaseUnit, IUnit
         if (lastZoneGroupId == newZoneGroupId)
             return;
 
-        // Handle Zone Buffs
-        if (lastZone != null)
+        // The previous key does not say which zone buff is held: leaving a copy swaps in a fresh transform,
+        // which reports the change as coming from zone 0. Reconcile against the zone buffs actually carried.
+        var newZoneGroup = newZone != null ? ZoneManager.Instance.GetZoneGroupById(newZone.GroupId) : null;
+        var newBuffId = newZoneGroup?.BuffId ?? 0;
+        var held = ZoneManager.Instance.GetZoneGroupBuffIds().Where(Buffs.CheckBuff).ToList();
+
+        foreach (var buffId in PlayerBuffRules.ZoneBuffsToRemove(held, newBuffId))
+            Buffs.RemoveBuff(buffId);
+
+        if (!PlayerBuffRules.ShouldAddZoneBuff(held, newBuffId))
+            return;
+
+        var buffTemplate = SkillManager.Instance.GetBuffTemplate(newBuffId);
+        if (buffTemplate == null)
         {
-            // Remove the old zone buff if needed
-            var lastZoneGroup = ZoneManager.Instance.GetZoneGroupById(lastZone.GroupId);
-            if (lastZoneGroup != null && lastZoneGroup.BuffId != 0)
-            {
-                // Remove the applied buff from last zoneGroup
-                Buffs.RemoveBuff(lastZoneGroup.BuffId);
-            }
+            Logger.Warn("Zone group {0} names buff {1}, which does not exist", newZoneGroup?.Id, newBuffId);
+            return;
         }
-        if (newZone != null)
-        {
-            // Apply the new zone buff if needed
-            var newZoneGroup = ZoneManager.Instance.GetZoneGroupById(newZone.GroupId);
-            if (newZoneGroup != null && newZoneGroup.BuffId != 0)
-            {
-                // Add buff from new zoneGroup
-                var buffTemplate = SkillManager.Instance.GetBuffTemplate(newZoneGroup.BuffId);
-                if (buffTemplate != null)
-                {
-                    var casterObj = new SkillCasterUnit(ObjId);
-                    var newZoneBuff = new Buff(this, this, casterObj, buffTemplate, null, DateTime.UtcNow);
-                    Buffs.AddBuff(newZoneBuff);
-                }
-            }
-        }
+
+        Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow));
     }
 
     private readonly Dictionary<uint, int> _triggerCounts = new();

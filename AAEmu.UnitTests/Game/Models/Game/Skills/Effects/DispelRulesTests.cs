@@ -31,6 +31,16 @@ public class DispelRulesTests
     }
 
     [Test]
+    public async Task TakesApplications_OnlyWhenTheRowAuthorsAStack()
+    {
+        // 영혼의 힘 spend (dispel 4091: tag 4056, stack 1) takes one application; a row without a stack
+        // keeps removing whole buffs by its dispel/cure count.
+        await Assert.That(DispelRules.TakesApplications(stack: 1)).IsTrue();
+        await Assert.That(DispelRules.TakesApplications(stack: 10)).IsTrue();
+        await Assert.That(DispelRules.TakesApplications(stack: 0)).IsFalse();
+    }
+
+    [Test]
     public async Task TargetsGoodBuffs_FollowsTheDispelCureSplit()
     {
         // A hostile cast dispels Good, a friendly one cures Bad - the rule the untagged path already used.

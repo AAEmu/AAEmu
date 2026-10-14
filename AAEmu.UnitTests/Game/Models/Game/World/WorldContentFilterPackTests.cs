@@ -1,4 +1,8 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Text;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.UnitTests.Game.Models.Game.World;
@@ -121,5 +125,61 @@ public class WorldContentFilterPackTests
 
         await Assert.That(data.Length).IsEqualTo(2);
         await Assert.That((ushort)(data[0] | (data[1] << 8))).IsEqualTo((ushort)0);
+    }
+
+    [Test]
+    public async Task Deserialize_ReadsBackWhatSerializeWrote()
+    {
+        var craft = new WorldContentGroup { CategoryId = 0, CategoryName = "craft" };
+        craft.Names.Add("Open_1");
+        craft.Names.Add("epherium");
+        var instance = new WorldContentGroup { CategoryId = 13, CategoryName = "instance" };
+        instance.Names.Add("instance_kadum");
+
+        var groups = WorldContentFilterPack.Deserialize(WorldContentFilterPack.Serialize([craft, instance]));
+
+        await Assert.That(groups.Count).IsEqualTo(2);
+        await Assert.That(groups[0].CategoryName).IsEqualTo("craft");
+        await Assert.That(string.Join(",", groups[0].Names)).IsEqualTo("Open_1,epherium");
+        await Assert.That(groups[1].CategoryName).IsEqualTo("instance");
+        await Assert.That(string.Join(",", groups[1].Names)).IsEqualTo("instance_kadum");
+    }
+
+    /// <summary>
+    /// An absent payload must leave the filter empty, never fall back to the world_contents catalog. A
+    /// received name is content the client BLOCKS, so cataloguing the table would hide every group it
+    /// names - which is exactly how the instance window lost nearly all of its entries.
+    /// </summary>
+    [Test]
+    public async Task ResolveFilterBuffer_WithoutAPayloadFileBlocksNothing()
+    {
+        var missing = Path.Combine(AppContext.BaseDirectory, "no_such_world_content_filter.bin");
+        await Assert.That(File.Exists(missing)).IsFalse();
+
+        var groups = WorldContentFilterPack.Deserialize(SCWorldContentPacket.ResolveFilterBuffer(missing));
+
+        await Assert.That(groups.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ResolveFilterBuffer_UsesThePayloadFileWhenPresent()
+    {
+        var group = new WorldContentGroup { CategoryId = 13, CategoryName = "instance" };
+        group.Names.Add("instance_kadum");
+        var path = Path.Combine(Path.GetTempPath(), $"wc_filter_{Guid.NewGuid():N}.bin");
+        File.WriteAllBytes(path, WorldContentFilterPack.Serialize([group]));
+
+        try
+        {
+            var groups = WorldContentFilterPack.Deserialize(SCWorldContentPacket.ResolveFilterBuffer(path));
+
+            await Assert.That(groups.Count).IsEqualTo(1);
+            await Assert.That(groups[0].CategoryName).IsEqualTo("instance");
+            await Assert.That(groups[0].Names.Contains("instance_kadum")).IsTrue();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 }

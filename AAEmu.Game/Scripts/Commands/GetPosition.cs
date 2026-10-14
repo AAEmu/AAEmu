@@ -35,8 +35,11 @@ public class GetPosition : ICommand
 
             if (character.CurrentTarget is Npc npc)
             {
+                // An instance / event NPC is a zone mirror and has no spawner; the id is reported as
+                // absent instead of crashing the command (the raw exception used to land in chat).
+                var spawnerId = npc.Spawner?.Id.ToString() ?? "-";
                 CommandManager.SendNormalText(this, messageOutput,
-                    $"Id: {npc.Spawner.Id}, ObjId: {character.CurrentTarget.ObjId}, TemplateId: {npc.TemplateId} X: |cFFFFFFFF{pos.X}|r  Y: |cFFFFFFFF{pos.Y}|r  Z: |cFFFFFFFF{pos.Z}|r");
+                    $"Id: {spawnerId}, ObjId: {character.CurrentTarget.ObjId}, TemplateId: {npc.TemplateId} X: |cFFFFFFFF{pos.X}|r  Y: |cFFFFFFFF{pos.Y}|r  Z: |cFFFFFFFF{pos.Z}|r");
             }
         }
         else

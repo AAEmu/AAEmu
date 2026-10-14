@@ -1,6 +1,8 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
+using NLog;
+
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
@@ -15,11 +17,27 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// </remarks>
 public static class TimeOfDayClientPackets
 {
-    public static SCTimeOfDayPacket Hour(float hour) => new(hour);
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public static SCTimeOfDayPacket Periodic(float hour) => Hour(hour);
+    // Which hour the client is handed, and from which path, is logged: the first hour packet force-applies
+    // the lighting, so this is what decides whether a map is lit the way its level authors it.
+    public static SCTimeOfDayPacket Hour(float hour)
+    {
+        Logger.Debug("SCTimeOfDay → client hour={0:F3} (hour)", hour);
+        return new SCTimeOfDayPacket(hour);
+    }
 
-    public static SCTimeOfDayPacket FromZoneReport(float hour) => Hour(hour);
+    public static SCTimeOfDayPacket Periodic(float hour)
+    {
+        Logger.Debug("SCTimeOfDay → client hour={0:F3} (shared-day tick)", hour);
+        return new SCTimeOfDayPacket(hour);
+    }
+
+    public static SCTimeOfDayPacket FromZoneReport(float hour)
+    {
+        Logger.Debug("SCTimeOfDay → client hour={0:F3} (zone report)", hour);
+        return new SCTimeOfDayPacket(hour);
+    }
 
     public static SCDetailedTimeOfDayPacket EnvironmentSeed(float hour) =>
         new(hour, TimeManager.DefaultGameHourSpeed, 0f, 24f);
@@ -31,7 +49,8 @@ public static class TimeOfDayClientPackets
     public static void BindBeforeWorldLoad(Action<GamePacket> send, float hour)
     {
         ArgumentNullException.ThrowIfNull(send);
-        send(Hour(hour));
+        Logger.Debug("SCTimeOfDay → client hour={0:F3} (before world load)", hour);
+        send(new SCTimeOfDayPacket(hour));
     }
 
     /// <summary>
@@ -41,6 +60,7 @@ public static class TimeOfDayClientPackets
     public static void SendEnterWorld(Action<GamePacket> send, float hour)
     {
         ArgumentNullException.ThrowIfNull(send);
-        send(Hour(hour));
+        Logger.Debug("SCTimeOfDay → client hour={0:F3} (enter world)", hour);
+        send(new SCTimeOfDayPacket(hour));
     }
 }

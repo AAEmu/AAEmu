@@ -396,29 +396,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         Logger.Info("Loaded {0} return_point.g destinations", added);
     }
 
-    private static List<string> EnumerateZoneGameDataRoots()
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Offer(string candidate)
-        {
-            if (string.IsNullOrWhiteSpace(candidate))
-                return;
-            try
-            {
-                var full = Path.GetFullPath(candidate.Trim());
-                if (Directory.Exists(full))
-                    seen.Add(full);
-            }
-            catch (Exception)
-            {
-                // bad path
-            }
-        }
-
-        Offer(Environment.GetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT"));
-        Offer(AppConfiguration.Instance.ZoneGameDataRoot);
-        return [.. seen];
-    }
+    private static List<string> EnumerateZoneGameDataRoots() => ZoneGameDataRoots.Enumerate();
 
     public static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
     {

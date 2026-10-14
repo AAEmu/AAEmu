@@ -88,4 +88,26 @@ public class SquadLoginTests
             singleton.SetValue(null, previous);
         }
     }
+
+    [Test]
+    public async Task LoadInsideAnInstance_DoesNotResetTheInstantGameManager()
+    {
+        var session = new RecordingSession();
+        var character = new Character(new AAEmu.Game.Models.Game.Units.UnitCustomModelParams())
+            { Id = 1007, Name = "Test" };
+        character.Connection = new GameConnection(session) { ActiveChar = character };
+        var manager = new SquadManager();
+
+        // This runs on the instance load too (CSNotifyInGameCompleted). The enter already handed the
+        // client SCInstantGameReentry (playing); a queue-clear cancel here would drop it back to the
+        // standby screen for the whole run. The transform is placed in copy 102 (its setter needs a
+        // live WorldManager, so the private instance id is written directly).
+        const System.Reflection.BindingFlags fields =
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        typeof(AAEmu.Game.Models.Game.World.Transform.Transform)
+            .GetField("_instanceId", fields)!.SetValue(character.Transform, 102u);
+        manager.SyncClientSquadAfterLogin(character);
+
+        await Assert.That(session.Packets).IsEmpty();
+    }
 }

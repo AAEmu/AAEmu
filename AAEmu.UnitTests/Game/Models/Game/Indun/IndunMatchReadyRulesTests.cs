@@ -61,7 +61,7 @@ public class IndunMatchReadyRulesTests
     public async Task Preparing_HoldsPlayersUntilTheCopyIsBuilt()
     {
         await Assert.That(IndunMatchReadyRules.NextAfterPreparing(instanceReady: false,
-                MatchingInvitationType.Perfect, T0, T0.AddSeconds(25)))
+                T0, T0.AddSeconds(25)))
             .IsEqualTo(IndunPrepareOutcome.KeepWaiting);
     }
 
@@ -69,16 +69,18 @@ public class IndunMatchReadyRulesTests
     public async Task Preparing_OffersTheDialogOnceTheCopyIsReady()
     {
         await Assert.That(IndunMatchReadyRules.NextAfterPreparing(instanceReady: true,
-                MatchingInvitationType.Perfect, T0, T0.AddSeconds(25)))
+                T0, T0.AddSeconds(25)))
             .IsEqualTo(IndunPrepareOutcome.Offer);
     }
 
     [Test]
-    public async Task Preparing_DirectInvitationSkipsTheDialog()
+    public async Task Preparing_DirectDungeonAlsoOffersTheDialog()
     {
+        // A Direct dungeon (instances.matching_invitation_type_id = 0) only skips waiting for
+        // strangers; it still raises the "Enter Instance" prompt once its copy is ready.
         await Assert.That(IndunMatchReadyRules.NextAfterPreparing(instanceReady: true,
-                MatchingInvitationType.Direct, T0, T0.AddSeconds(25)))
-            .IsEqualTo(IndunPrepareOutcome.Enter);
+                T0, T0.AddSeconds(25)))
+            .IsEqualTo(IndunPrepareOutcome.Offer);
     }
 
     [Test]
@@ -88,7 +90,7 @@ public class IndunMatchReadyRulesTests
         await Assert.That(IndunMatchReadyRules.IsPrepareExpired(T0, timeout.AddMilliseconds(-1))).IsFalse();
         await Assert.That(IndunMatchReadyRules.IsPrepareExpired(T0, timeout)).IsTrue();
         await Assert.That(IndunMatchReadyRules.NextAfterPreparing(instanceReady: false,
-                MatchingInvitationType.Perfect, T0, timeout))
+                T0, timeout))
             .IsEqualTo(IndunPrepareOutcome.GiveUp);
     }
 
@@ -97,7 +99,7 @@ public class IndunMatchReadyRulesTests
     {
         var late = T0.AddMilliseconds(IndunMatchReadyRules.PrepareTimeoutMs + 1);
         await Assert.That(IndunMatchReadyRules.NextAfterPreparing(instanceReady: true,
-                MatchingInvitationType.Perfect, T0, late))
+                T0, late))
             .IsEqualTo(IndunPrepareOutcome.Offer);
     }
 

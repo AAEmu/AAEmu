@@ -127,14 +127,24 @@ roll.
 Grade 12 has a success ratio of 0. That is the top of the ladder and is reported as
 `GradeEnchantMax` rather than as a failed attempt, so it costs nothing.
 
-## Not covered yet
+## Fail-break compensation
 
-- `item_grade_enchant_fail_break_rewards` is not read. The result packet's compensation fields go out
-  as zero, so a broken item pays nothing back.
-- The charm restrictions `restrict_item_tag_id`, `exclusive_item_tag_id` and
-  `req_scale_min_id`/`_max_id` are loaded nowhere and unenforced. The scale range needs care before
-  it is turned into a gate: 74 of the 100 rows carry 31/31 against a tempering ladder that tops out
-  at 30, which reads as a sentinel for "no requirement", but genuine ranges such as 18–30 also exist.
-- `SkillObjectType.ItemGradeEnchantingSupport` (7) reads 13 bytes off the wire. Whether this client
-  really sends that shape, rather than treating the flag byte as a bit mask, is unverified. A cast
-  *with* a charm that logs "Attempted to read beyond the end of the stream" would be this.
+A Break looks up `item_grade_enchant_fail_break_reward_categories` by the gear's `category_id`,
+level band and wearable slot (slot `0` = any), then rolls the linked
+`item_grade_enchant_fail_break_rewards` row. Chance is the row's `ratio` per 10000; count is
+`random(min..max) × gradeMultiple / 100`, where the five `item_grade_*_multiple` columns cover
+Artifact..Mythic (grade ids 7..11). Grades below Artifact pay nothing. The stack goes to the bag
+when it fits and otherwise by mail under `.itemGradeEnchantFailBreakReward`; the result packet
+carries the item type, count and `byMail` flag so the client can show them.
+
+## Charm gates
+
+Beyond the grade min/max the charm already enforced:
+
+- `restrict_item_tag_id` — blacklist (shipped tag 6059 on the Ipnysh earring set).
+- `exclusive_item_tag_id` — whitelist (none shipped here, still enforced).
+- `req_scale_min_id` / `req_scale_max_id` — tempering step (`enchant_scale_ratios.id`) the gear must
+  sit in. `31/31` is the shipped "no scale gate" sentinel (the ladder tops out at 30).
+
+The client already refuses a mismatched charm in the window; the server mirrors that so a crafted
+packet cannot bypass it. `SkillObjectType.ItemGradeEnchantingSupport` is wire type **6**.

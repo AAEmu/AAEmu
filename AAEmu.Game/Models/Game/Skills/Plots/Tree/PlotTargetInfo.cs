@@ -1,10 +1,12 @@
 ﻿using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Skills.Plots.UpdateTargetMethods;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
@@ -210,6 +212,7 @@ public class PlotTargetInfo
         if (AreaDebug)
             LogAreaSearch(plotEvent, args, searchOrigin, state, candidates.Count, trace, unitsInRange.Count, args.MaxTargets);
 
+        RememberMarkedVictims(state, args, plotEvent, unitsInRange);
         EffectedTargets.AddRange(unitsInRange);
         if (state.HitObjects.TryGetValue(plotEvent.Id, out var o))
         {
@@ -222,6 +225,20 @@ public class PlotTargetInfo
 
         return posUnit;
     }
+
+    private static void RememberMarkedVictims(PlotState state, IPlotTargetParams args, PlotEventTemplate plotEvent,
+        IEnumerable<Unit> picked)
+    {
+        if (state.ActiveSkill == null ||
+            !PlotTargetRules.SelectsMarkedVictims(args.UnitRelationType, plotEvent.AoeConditions?.Select(a => a.Condition),
+                PlotConditionRequirementKinds))
+            return;
+        foreach (var unit in picked)
+            state.ActiveSkill.MarkPlotTarget(unit.ObjId);
+    }
+
+    private static IEnumerable<UnitReqsKindType> PlotConditionRequirementKinds(uint conditionId) =>
+        UnitRequirementsGameData.Instance.GetPlotConditionRequirements(conditionId).Select(r => r.KindType);
 
     private Unit UpdateRandomUnitTarget(PlotTargetRandomUnitParams args, PlotState state, PlotEventTemplate plotEvent)
     {
@@ -242,6 +259,7 @@ public class PlotTargetInfo
 
         var randomUnit = filteredUnits[Random.Shared.Next(0, filteredUnits.Count)];
 
+        RememberMarkedVictims(state, args, plotEvent, [randomUnit]);
         EffectedTargets.Add(randomUnit);
         if (state.HitObjects.TryGetValue(plotEvent.Id, out var o))
         {
@@ -302,6 +320,7 @@ public class PlotTargetInfo
         // TODO : Compute Unit Flag
         // unitsInRange = unitsInRange.Where(u => u.);
 
+        RememberMarkedVictims(state, args, plotEvent, unitsInRange);
         EffectedTargets.AddRange(unitsInRange);
         if (state.HitObjects.TryGetValue(plotEvent.Id, out var o))
         {
@@ -494,12 +513,15 @@ public class PlotTargetInfo
             Step("hitOnce");
         }
 
+        var allowsNeutral = PlotTargetRules.AllowsNeutral(
+            args.UnitRelationType, plotEvent.AoeConditions?.Select(a => a.Condition),
+            conditionId => UnitRequirementsGameData.Instance.GetPlotConditionRequirements(conditionId)
+                .Select(r => r.KindType));
         filtered = filtered
             .Where(o =>
             {
                 var relationState = state.Caster.GetRelationStateTo(o);
-                if (relationState == RelationState.Neutral &&
-                    !PlotTargetRules.AllowsNeutral(args.UnitRelationType))
+                if (relationState == RelationState.Neutral && !allowsNeutral)
                     return false;
                 return true;
             });
@@ -532,7 +554,7 @@ public class PlotTargetInfo
                 foreach (var aoe in plotEvent.AoeConditions)
                 {
                     if (!aoe.Condition.Check(
-                            state.Caster,
+                            PlotTargetRules.AoeConditionOwner<BaseUnit>(aoe.Condition.Kind, state.Caster, unit),
                             state.CasterCaster,
                             unit,
                             state.TargetCaster,

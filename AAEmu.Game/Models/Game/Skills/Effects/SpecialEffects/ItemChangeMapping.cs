@@ -85,8 +85,10 @@ public class ItemChangeMapping : SpecialEffectAction
         var candidates = ItemEnchantGameData.Instance.GetChangeMappings(group.Id, equipItem.TemplateId, equipItem.Grade);
         if (candidates.Count == 0)
         {
-            // The scroll does not apply to this piece. The client filters this out itself, so this
-            // only fires on a stale window.
+            // No recipe for this template/group at this grade (or above the mapping minimum).
+            Logger.Warn(
+                "ItemChangeMapping: no candidates for group {0} item tpl={1} grade={2} (item {3})",
+                group.Id, equipItem.TemplateId, equipItem.Grade, equipItem.Id);
             owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
             skill.Cancelled = true;
             return;

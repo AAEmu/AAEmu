@@ -141,6 +141,52 @@ public static class WorldContentFilterPack
         return body.ToArray();
     }
 
+    /// <summary>
+    /// Reads a pack back into groups, in the order the wire carried them. No id is reconstructed from
+    /// the wire - the client matches a group by its name - so the client's own id is filled in only
+    /// where the name is one it knows.
+    /// </summary>
+    public static List<WorldContentGroup> Deserialize(byte[] pack)
+    {
+        var groups = new List<WorldContentGroup>();
+        if (pack is not { Length: >= 2 })
+            return groups;
+
+        var offset = 0;
+        var count = ReadUInt16(pack, ref offset);
+        for (var i = 0; i < count && offset < pack.Length; i++)
+        {
+            var group = new WorldContentGroup
+            {
+                CategoryName = ReadString(pack, ref offset)
+            };
+            group.CategoryId = CategoryIdOf(group.CategoryName) ?? 0;
+
+            var entries = ReadUInt16(pack, ref offset);
+            for (var j = 0; j < entries && offset < pack.Length; j++)
+                group.Names.Add(ReadString(pack, ref offset));
+
+            groups.Add(group);
+        }
+
+        return groups;
+    }
+
+    private static ushort ReadUInt16(byte[] data, ref int offset)
+    {
+        var value = (ushort)(data[offset] | (data[offset + 1] << 8));
+        offset += 2;
+        return value;
+    }
+
+    private static string ReadString(byte[] data, ref int offset)
+    {
+        var length = data[offset++];
+        var value = Encoding.UTF8.GetString(data, offset, length);
+        offset += length;
+        return value;
+    }
+
     private static void WriteUInt16(MemoryStream stream, ushort value)
     {
         stream.WriteByte((byte)(value & 0xFF));

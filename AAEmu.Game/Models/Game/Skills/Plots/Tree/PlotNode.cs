@@ -150,8 +150,9 @@ public class PlotNode
             else
             {
                 state.Caster.BroadcastPacket(packet, true);
-                RelayPlotEventToZoneIfNeeded(state.CastTlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj,
-                    0ul, unkId, (uint)castTime, (uint)channelingMs, flag, targetUnitIds);
+                if (RelayPlotEventToZoneIfNeeded(state.CastTlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj,
+                        0ul, unkId, (uint)castTime, (uint)channelingMs, flag, targetUnitIds))
+                    state.ZoneEventsRelayed = true;
             }
 
             Logger.Trace($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
@@ -173,7 +174,7 @@ public class PlotNode
         }
     }
 
-    private static void RelayPlotEventToZoneIfNeeded(
+    private static bool RelayPlotEventToZoneIfNeeded(
         ushort tl,
         uint eventId,
         uint skillId,
@@ -187,11 +188,11 @@ public class PlotNode
         IReadOnlyList<uint> targetUnitIds)
     {
         if (!WorldIntegration.ZoneAuthority)
-            return;
+            return false;
         if (Environment.GetEnvironmentVariable("AAEMU_DISABLE_WZ_PLOT_EVENT") == "1")
-            return;
+            return false;
         if (WorldIntegration.RelayPlotEventToZone == null)
-            return;
+            return false;
 
         var zoneTargetUnitIds = targetUnitIds?.ToArray() ?? [];
         if (zoneTargetUnitIds.Length == 0 && targetPlotObj.Type == PlotObjectType.UNIT && targetPlotObj.UnitId != 0)
@@ -210,5 +211,6 @@ public class PlotNode
             true,
             false,
             zoneTargetUnitIds);
+        return true;
     }
 }

@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
@@ -20,14 +21,16 @@ public class IndunCmd : ICommand
 
     public string GetCommandLineHelp()
     {
-        return "channels <zoneId> | enter <zoneId> [channel]";
+        return "channels <zoneId> | enter <zoneId> [channel] | reset [zoneGroupId]";
     }
 
     public string GetCommandHelpText()
     {
         return "System instances. 'channels <zoneId>' sends the channel list for that instance zone, which is " +
                "what opens the client's channel picker; 'enter <zoneId> [channel]' enters the copy on that " +
-               "channel, creating it when it does not exist yet.";
+               "channel, creating it when it does not exist yet; 'reset [zoneGroupId]' drops the caller's " +
+               "daily dungeon entry history so the daily visit cap stops refusing entry (no zoneGroupId " +
+               "clears every zone group).";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -43,6 +46,9 @@ public class IndunCmd : ICommand
                 break;
             case "enter":
                 Enter(character, args, messageOutput);
+                break;
+            case "reset":
+                Reset(character, args, messageOutput);
                 break;
             default:
                 CommandManager.SendErrorText(this, messageOutput, $"Unknown action '{action}'. {GetCommandLineHelp()}");
@@ -83,5 +89,28 @@ public class IndunCmd : ICommand
             entered
                 ? $"Entering zone {zoneId} channel {channel} (copy {dungeon?.World?.Id ?? 0})"
                 : $"Could not enter zone {zoneId} channel {channel}");
+    }
+
+    /// <summary>
+    /// Drops the caller's daily dungeon entry history (the in-memory counter behind
+    /// <c>ErrorMessageType.InstanceVisitLimit</c>) so testing is not capped at the authored
+    /// <c>instances.enter_count</c> per day, then refreshes the client's visit-count rows.
+    /// </summary>
+    private void Reset(Character character, string[] args, IMessageOutput messageOutput)
+    {
+        var zoneGroupId = 0u;
+        if (args.Length > 1 && !uint.TryParse(args[1], out zoneGroupId))
+        {
+            CommandManager.SendErrorText(this, messageOutput, "reset [zoneGroupId]");
+            return;
+        }
+
+        var dropped = IndunManager.Instance.ClearEntryHistory(character.Id, zoneGroupId);
+        character.SendPacket(new SCInstanceVisitCountsPacket(IndunManager.Instance.GetVisitCountRecords(character.Id)));
+
+        CommandManager.SendNormalText(this, messageOutput,
+            zoneGroupId == 0
+                ? $"Dropped {dropped} daily entry record(s) across all instance zone groups."
+                : $"Dropped {dropped} daily entry record(s) for zone group {zoneGroupId}.");
     }
 }

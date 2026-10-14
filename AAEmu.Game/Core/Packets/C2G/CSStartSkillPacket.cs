@@ -80,12 +80,25 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         // AbilitySet (15) is registered in IsKnownType so skillsaver activate keeps its slot payload.
         var hasExtraValues = (flag & 8) != 0;
         if (HousingGameData.Instance.IsRebuildSkill(skillId)
-            && flagType == (int)SkillObjectType.ItemGradeEnchantingSupport)
+            && flagType == (int)SkillObjectType.HouseRemodel)
         {
-            // Flag 7 is bits 0-2 on remodel Confirm, and the first u32 is the housing template.
-            // Reading it as grade-enchant consumes the rest of the extra and SkillStarted then
-            // echoes type 7, which the client cannot parse (sc error on SkillStarted).
+            // Flag 7 remodel Confirm: one u32 housing template. Must not fall through to
+            // grade-enchant (type 6) or leave type 7 on SkillStarted (client parse error).
             skillObject = HousingRebuildSkillCast.ForSkillStarted(stream.ReadUInt32());
+        }
+        else if (flagType == (int)SkillObjectType.ItemGradeEnchantingSupport)
+        {
+            // Type 6 is regrade's charm body and tempering's optional additive. Bare tempering
+            // sets the same flag with no body — only read when the skill expects it (regrade) or
+            // enough bytes remain for u64+bool (temper with a support slotted).
+            var castSkill = SkillManager.Instance.GetSkillTemplate(skillId);
+            if (SkillCastExtraRules.CanReadGradeEnchantSupportBody(castSkill, stream.LeftBytes))
+            {
+                skillObject = SkillObject.GetByType(SkillObjectType.ItemGradeEnchantingSupport);
+                skillObject.Read(stream);
+            }
+            else
+                skillObject = new SkillObject();
         }
         else if (SkillObject.IsKnownType(flagType))
         {
@@ -378,6 +391,16 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         {
             Logger.Warn("ZoneAuthority StartSkill unknown template skillId={0}", skillId);
             return;
+        }
+
+        // The client's talk action (대화하기) is a client-side skill with no effects of its own: the press is
+        // the talk. Advance the quest's talk objective here. The cast still runs below, so the client gets its
+        // normal acknowledgement and the press closes.
+        if (NpcTalkRules.IsTalkSkill(skillId))
+        {
+            var talkedTo = character.ParentWorld?.GetNpc(skillCastTarget?.ObjId ?? 0);
+            if (talkedTo != null)
+                QuestManager.Instance.DoTalkMadeEvents(character, character, talkedTo.ObjId, 0, 0, 0);
         }
 
         // Client spam of basic attack while auto-attack task owns pacing — ACK only (local path does this).

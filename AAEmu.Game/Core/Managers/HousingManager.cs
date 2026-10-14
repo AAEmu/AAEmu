@@ -361,29 +361,7 @@ public class HousingManager(
             Logger.Info("Applied {0} house.g lodestone placement(s)", snapped);
     }
 
-    private static IEnumerable<string> EnumerateZoneGameDataRoots()
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Offer(string candidate)
-        {
-            if (string.IsNullOrWhiteSpace(candidate))
-                return;
-            try
-            {
-                var full = Path.GetFullPath(candidate.Trim());
-                if (Directory.Exists(full))
-                    seen.Add(full);
-            }
-            catch (Exception)
-            {
-                // bad path
-            }
-        }
-
-        Offer(Environment.GetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT"));
-        Offer(AppConfiguration.Instance.ZoneGameDataRoot);
-        return seen;
-    }
+    private static IEnumerable<string> EnumerateZoneGameDataRoots() => ZoneGameDataRoots.Enumerate();
 
     /// <summary>
     /// Saves player housing information

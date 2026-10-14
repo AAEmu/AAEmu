@@ -50,6 +50,13 @@ public class IndunZone
     public bool SelectChannel { get; init; }
 
     /// <summary>
+    /// Parsed <c>indun_zones.option</c>: the copy's phase budget (ready/play/end seconds) and, when
+    /// non-zero, the <c>tower_defs.id</c> that scripts the copy. <see cref="IndunZoneOption.None"/> for
+    /// a plain instance. See <see cref="IndunInstancePhaseRules"/> for the clock over it.
+    /// </summary>
+    public IndunZoneOption Option { get; init; } = IndunZoneOption.None;
+
+    /// <summary>
     /// Maximum number of times a player can entry this instance (0 = can't enter).
     /// Loaded from <c>instances.enter_count</c> where <c>target_type=IndunZone</c>.
     /// </summary>

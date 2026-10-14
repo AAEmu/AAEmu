@@ -64,10 +64,10 @@ public class FeaturesConfigTests
             // switches, aaPoint (bit 44; the auction house keeps gold) and fset_12_1_unknown (bit 97;
             // the in-bag repair cost/slot collector, whose path also wants special-effect 121, which this
             // compact does not carry). Scalar bytes 1/8/10/26 stay zero - FeaturesManager fills those from
-            // the level caps, not from Flags. buyPremiuminSelChar (bit 117) and fset_24_7_unknown / fgt
-            // (bit 199) are ON since the post-port parity change. factionMigrateLimit (bit 206) is ON so the
-            // alliance info shows which factions accept exiles.
+            // the level caps, not from Flags. buyPremiuminSelChar (bit 117) stays ON; fset_24_7_unknown /
+            // fgt (bit 199) stays OFF so encyclopedia / AH / craft are not locked. factionMigrateLimit
+            // (bit 206) is ON so the alliance info shows which factions accept exiles.
             "5f 00 00 00 f4 8f 61 02 00 4e 00 fe bd cd 2d 00 00 ff bf " +
-            "f5 7f 9e b7 00 ec ff 00 d0 79 f2 02");
+            "f5 7f 9e b7 00 6c ff 00 d0 79 f2 02");
     }
 }

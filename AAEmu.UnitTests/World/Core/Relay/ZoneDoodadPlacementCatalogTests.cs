@@ -189,6 +189,43 @@ public class ZoneDoodadPlacementCatalogTests
     }
 
     [Test]
+    public async Task GetAll_ThenPlan_PlantsEveryCellRowNotAlreadyStanding()
+    {
+        const string world = "copy_plant_test_world";
+        ZoneDoodadPlacementCatalog.SeedIndexForTests(world,
+        [
+            new(13976, 1537.606f, 1657.114f, 124.023f, 87f),
+            new(14252, 1530.0f, 1660.0f, 123.6f, 0f),
+            new(14252, 1532.0f, 1662.0f, 123.6f, 0f),
+            new(14724, 1331.1f, 1648.3f, 103.2f, 0f)
+        ]);
+        try
+        {
+            var all = ZoneDoodadPlacementCatalog.GetAll(world);
+            await Assert.That(all.Count).IsEqualTo(4);
+
+            var places = ToRules(all);
+            var wanted = places.Select(p => p.TemplateId).ToHashSet();
+            var standing = new List<QuestTalkDoodadRules.Existing> { new(14252, 1530.2f, 1660.1f, 123.6f) };
+            var planned = QuestTalkDoodadRules.Plan(wanted, places, standing);
+
+            await Assert.That(planned.Count).IsEqualTo(3);
+            await Assert.That(planned.Count(p => p.TemplateId == 14252)).IsEqualTo(1);
+            await Assert.That(planned.Single(p => p.TemplateId == 14252).X).IsEqualTo(1532.0f);
+        }
+        finally
+        {
+            ZoneDoodadPlacementCatalog.Invalidate(world);
+        }
+    }
+
+    [Test]
+    public async Task GetAll_UnknownWorldIsEmpty()
+    {
+        await Assert.That(ZoneDoodadPlacementCatalog.GetAll("")).IsEmpty();
+    }
+
+    [Test]
     public async Task ParseFile_MissingPath_Throws()
     {
         var missing = Path.Combine(Path.GetTempPath(), $"missing_{Guid.NewGuid():N}.g");

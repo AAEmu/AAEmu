@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -79,6 +79,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
     /// <summary>Which chance row a lunagem is seated under, by its item template.</summary>
     private Dictionary<uint, uint> _gemSocketChanceRow;
+
+    /// <summary>
+    /// Gems whose <c>item_sockets.extractable</c> is set — extract returns them to the bag.
+    /// Non-members are cleared and lost.
+    /// </summary>
+    private HashSet<uint> _gemExtractable;
 
     /// <summary>
     /// Socket changes (<c>item_socket_changes</c>): a conversion or upgrade stone turns one seated gem
@@ -307,6 +313,13 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return !_gemSocketChanceRow.TryGetValue(gemTemplateId, out var rowId) ||
                _socketChanceFailBreaks.Contains(rowId);
     }
+
+    /// <summary>
+    /// Whether extracting this lunagem returns it to the bag. False means the socket is cleared
+    /// and the gem is lost (the extract tab's "not extractable" warning).
+    /// </summary>
+    public bool IsSocketGemExtractable(uint gemTemplateId) =>
+        gemTemplateId != 0 && _gemExtractable.Contains(gemTemplateId);
 
     /// <summary>
     /// What the seated gem <paramref name="sourceGemTemplateId"/> becomes when the stone
@@ -621,6 +634,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         _socketNumLimits = [];
         _socketChanceFailBreaks = [];
         _gemSocketChanceRow = [];
+        _gemExtractable = [];
         _socketChanges = [];
         _socketChangeStones = [];
         _socketLevelLimits = [];
@@ -1456,7 +1470,11 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             AddDowngradeMul = reader.GetInt32("add_downgrade_mul"),
                             AddDisableRatio = reader.GetInt32("add_disable_ratio", 0),
                             AddDisableMul = reader.GetInt32("add_disable_mul", 0),
-                            AddGreatSuccessGrade = reader.GetInt32("add_great_success_grade")
+                            AddGreatSuccessGrade = reader.GetInt32("add_great_success_grade"),
+                            RestrictItemTagId = reader.GetUInt32("restrict_item_tag_id", 0),
+                            ExclusiveItemTagId = reader.GetUInt32("exclusive_item_tag_id", 0),
+                            ReqScaleMinId = reader.GetInt32("req_scale_min_id", GradeEnchantCharmRules.NoScaleRequirementId),
+                            ReqScaleMaxId = reader.GetInt32("req_scale_max_id", GradeEnchantCharmRules.NoScaleRequirementId)
                         };
 
                         _enchantingSupports.TryAdd(template.ItemId, template);
@@ -1547,15 +1565,18 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT item_id, item_socket_chance_id FROM item_sockets";
+                command.CommandText = "SELECT item_id, item_socket_chance_id, extractable FROM item_sockets";
                 command.Prepare();
                 using var sqliteReader = command.ExecuteReader();
                 using var reader = new SQLiteWrapperReader(sqliteReader);
                 while (reader.Read())
                 {
                     var gemTemplateId = reader.GetUInt32("item_id", 0);
-                    if (gemTemplateId != 0)
-                        _gemSocketChanceRow[gemTemplateId] = reader.GetUInt32("item_socket_chance_id", 0);
+                    if (gemTemplateId == 0)
+                        continue;
+                    _gemSocketChanceRow[gemTemplateId] = reader.GetUInt32("item_socket_chance_id", 0);
+                    if (reader.GetBoolean("extractable", false))
+                        _gemExtractable.Add(gemTemplateId);
                 }
             }
 

@@ -17,6 +17,8 @@ using AAEmu.World.Core.Packets.Wz;
 
 using NLog;
 
+using GameTransform = AAEmu.Game.Models.Game.World.Transform.Transform;
+
 namespace AAEmu.World.Core.Relay;
 
 /// <summary>
@@ -65,6 +67,7 @@ public class MovementRelay
 
     private int _relayLog;
     private long _playerMirrorDrops;
+    private long _foreignZoneDrops;
 
     /// <summary>Accumulates horizontal travel per unit and reports a census every 30s.</summary>
     private static void Census(uint bcId, MoveType mt)
@@ -263,6 +266,26 @@ public class MovementRelay
         return false;
     }
 
+    private static bool IsReportedByOwningZone(ZoneConnection source, BaseUnit unit)
+    {
+        if (source == null || unit?.Transform == null)
+            return true;
+
+        // Prefer the dedicate that registered the unit. Transform.ZoneId is re-sampled when a unit
+        // enters a new region, so a border-crossing mirror would otherwise fail the zone match and
+        // freeze for clients.
+        if (source.Units.Contains(unit.ObjId))
+        {
+            var unitInstance = unit.Transform.InstanceId;
+            if (unitInstance == GameTransform.NoInstanceId)
+                return true;
+            return source.InstanceId == unitInstance;
+        }
+
+        return ZoneMoveOwnershipRules.IsOwnedBy(
+            source.ZoneId, source.InstanceId, unit.Transform.ZoneId, unit.Transform.InstanceId);
+    }
+
     private static void ApplyCombatUnitPosition(uint bcId, UnitMoveType move, ZoneConnection source)
     {
         if (DisableHullPositionSync)
@@ -272,10 +295,9 @@ public class MovementRelay
         if (unit is not Npc && unit is not Mate)
             return;
 
-        // Reject movement from a zone that does not own this unit.
-        var unitZone = unit.Transform?.ZoneId ?? 0;
-        if (source != null && unitZone != 0 && source.ZoneId != unitZone)
+        if (!IsReportedByOwningZone(source, unit))
             return;
+        var unitZone = unit.Transform?.ZoneId ?? 0;
 
         // Dedic owns pathing/flight — World only mirrors. Never clamp mid-path jumps (rift fly-ins
         // span hundreds of metres). Only repair multi-km snaps that look like raw zone-local on a
@@ -675,6 +697,12 @@ public class MovementRelay
                     // the record before it, so the rule reads what clients last heard for the unit.
                     if (TryGetZoneMirror(bcId, out var mirrorUnit))
                     {
+                        if (!IsReportedByOwningZone(source, mirrorUnit))
+                        {
+                            _foreignZoneDrops++;
+                            continue;
+                        }
+
                         var suppressIdle = ShouldSuppressIdleUnitMove(mirrorUnit, unitMove);
                         RememberRelayedMotion(mirrorUnit, unitMove);
                         if (suppressIdle)
@@ -795,8 +823,8 @@ public class MovementRelay
             if (_relayLog < 5 || _relayLog % 200 == 0)
             {
                 Logger.Info(
-                    "ZWUnitMovements → SCUnitMovements zoneCount={0} parsed={1} clients={2} playerMirrorDrops={3} (per-client AOI)",
-                    count, entries.Count, sentClients, _playerMirrorDrops);
+                    "ZWUnitMovements → SCUnitMovements zoneCount={0} parsed={1} clients={2} playerMirrorDrops={3} foreignZoneDrops={4} (per-client AOI)",
+                    count, entries.Count, sentClients, _playerMirrorDrops, _foreignZoneDrops);
             }
 
             _relayLog++;

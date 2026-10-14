@@ -232,6 +232,21 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
+    /// True when <paramref name="npc"/> must not be culled from, or evicted out of, this client's mirror
+    /// set: it is the unit the player is attacking, or it is attacking the player. Culling one of those
+    /// hides the enemy mid-fight, and the next attack has no target to resolve.
+    /// </summary>
+    public bool MustKeepMirrorStreamed(Npc npc)
+    {
+        if (npc == null)
+            return false;
+
+        return StreamAoiProtectionRules.MustKeepStreamed(
+            ReferenceEquals(CurrentTarget, npc),
+            npc.AggroTable.ContainsKey(ObjId));
+    }
+
+    /// <summary>
     /// Commercial interest leave: despawn streamed mirrors beyond soft AOI even if still in
     /// coarse region neighborhood. Re-queues those still in the region pool as pending.
     /// </summary>
@@ -252,6 +267,11 @@ public partial class Character : Unit, ICharacter
                 (remove ??= []).Add(objId);
                 continue;
             }
+
+            // The player's target, and anything fighting the player, stays on screen even past the soft AOI:
+            // culling it hides the enemy mid-fight.
+            if (MustKeepMirrorStreamed(npc))
+                continue;
 
             var d2 = DistanceSq(origin, npc.Transform.World.Position);
             if (!StreamAoiTable.IsInside(npc.StreamAoiCategory, d2, alreadyStreamed: true))
@@ -545,6 +565,11 @@ public partial class Character : Unit, ICharacter
             if (npc.IsMirrorStreamPriority)
                 continue;
 
+            // Never soft-evict the unit the player is attacking, or one fighting the player: taking it out
+            // of the client's world is exactly the "enemy vanished mid-fight" case.
+            if (MustKeepMirrorStreamed(npc))
+                continue;
+
             var d2 = DistanceSq(origin, npc.Transform.World.Position);
             if (d2 > farthestD2)
             {
@@ -610,6 +635,10 @@ public partial class Character : Unit, ICharacter
                 ReleaseMirrorNpcSlot(objId);
                 continue;
             }
+
+            // A fight is not ambient backlog: the target and anything fighting the player keep their slot.
+            if (MustKeepMirrorStreamed(npc))
+                continue;
 
             var d2 = DistanceSq(origin, npc.Transform.World.Position);
             if (d2 > farthestD2)
@@ -1068,6 +1097,31 @@ public partial class Character : Unit, ICharacter
     /// Current instant game (arena/battlefield) the character is in
     /// </summary>
     public InstantGame.InstantGame CurrentInstantGame { get; set; }
+
+    /// <summary>
+    /// Set by an instance load into a dungeon copy: the copy still has to be handed over once the
+    /// client's loading screen has closed.
+    /// </summary>
+    /// <remarks>
+    /// The client drops UI events raised while its loading screen is up, so the hand-over that its UI
+    /// reacts to (standby button down, instance HUD up) cannot ride the load. It is sent in answer to the
+    /// client's re-entry check, which the client sends once it has left the loading screen, and the flag
+    /// is consumed there so the hand-over goes out exactly once per load.
+    /// </remarks>
+    public bool InstantGameHandoverPending { get; private set; }
+
+    /// <summary>Records that the copy this character just loaded into still has to be handed over.</summary>
+    public void MarkInstantGameHandoverPending() => InstantGameHandoverPending = true;
+
+    /// <summary>
+    /// Reads and clears <see cref="InstantGameHandoverPending"/>; true when a hand-over is still owed.
+    /// </summary>
+    public bool TakeInstantGameHandoverPending()
+    {
+        var pending = InstantGameHandoverPending;
+        InstantGameHandoverPending = false;
+        return pending;
+    }
 
     public override bool IsUnderWater
     {

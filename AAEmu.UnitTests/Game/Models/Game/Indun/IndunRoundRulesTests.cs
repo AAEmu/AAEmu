@@ -345,4 +345,29 @@ public class IndunRoundRulesTests
         await Assert.That(state.TryMarkMailReward(6)).IsFalse();
         await Assert.That(state.TryMarkMailReward(7)).IsTrue();
     }
+
+    /// <summary>
+    /// The copy's authored chain opens round 1 with a one-step NextRound and then its start alarm; only
+    /// that start re-tells the client the copy is playing.
+    /// </summary>
+    [Test]
+    public async Task OpensFirstRound_OnlyTheStartAlarmOfRoundOne()
+    {
+        await Assert.That(IndunRoundRules.OpensFirstRound(IndunRoundRules.AlarmKindStart, 1)).IsTrue();
+        await Assert.That(IndunRoundRules.OpensFirstRound(IndunRoundRules.AlarmKindStart, 2)).IsFalse();
+        await Assert.That(IndunRoundRules.OpensFirstRound(IndunRoundRules.AlarmKindStart, 0)).IsFalse();
+        await Assert.That(IndunRoundRules.OpensFirstRound(IndunRoundRules.AlarmKindEnd, 1)).IsFalse();
+    }
+
+    [Test]
+    public async Task AuthoredOpening_LandsOnRoundOne()
+    {
+        var state = new IndunRoundState(ChallengeTower());
+        await Assert.That(state.CurrentRound).IsEqualTo(0);
+
+        var completed = state.ApplyNextRound(1);
+
+        await Assert.That(state.CurrentRound).IsEqualTo(1);
+        await Assert.That(completed).IsFalse();
+    }
 }

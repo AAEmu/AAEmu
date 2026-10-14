@@ -75,6 +75,32 @@ public class DamageEffectCanAttackBypassTests
     }
 
     [Test]
+    public async Task PlotMarkedVictim_ScriptedCaster_Bypasses()
+    {
+        // Hereafter hellhound: its kill search names the defenders by buff 25741; they share its faction.
+        var hound = new BaseUnit { ObjId = 1 };
+        var defender = new BaseUnit { ObjId = 2 };
+        var bystander = new BaseUnit { ObjId = 3 };
+        var skill = new Skill();
+        skill.MarkPlotTarget(defender.ObjId);
+        var plot = new CastPlot(4500, 1, 40505, 40505);
+
+        await Assert.That(DamageEffect.AllowsCanAttackBypass(plot, hound, defender, skill)).IsTrue();
+        await Assert.That(DamageEffect.AllowsCanAttackBypass(plot, hound, bystander, skill)).IsFalse();
+        await Assert.That(DamageEffect.AllowsCanAttackBypass(plot, hound, defender)).IsFalse();
+    }
+
+    [Test]
+    public async Task PlotMarkedVictim_NotForNonPlotCasts()
+    {
+        var hound = new BaseUnit { ObjId = 1 };
+        var defender = new BaseUnit { ObjId = 2 };
+        var skill = new Skill();
+        skill.MarkPlotTarget(defender.ObjId);
+        await Assert.That(DamageEffect.AllowsCanAttackBypass(new CastSkill(40505, 1), hound, defender, skill)).IsFalse();
+    }
+
+    [Test]
     public async Task Apply_AuthorizedPlotSelfHit_ReducesHp_UnauthorizedDoesNot()
     {
         var prev = WorldIntegration.AllowsPlotSelfDamageBypass;

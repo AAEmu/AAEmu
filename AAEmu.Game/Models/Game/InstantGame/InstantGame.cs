@@ -307,12 +307,12 @@ public partial class InstantGame
         OpeningSinceUtc = ServerCalendar.UtcNow;
 
         BroadcastPacket(new SCInstantGameReadyPacket(_zoneInstanceId, _battlefield.Id,
-            Helpers.UnixTimeNowInMilli(), BuildReadyRoster()));
+            Helpers.UnixTimeNow(), BuildReadyRoster()));
 
         Task.Run(async () =>
         {
             await Delay(TimeSpan.FromSeconds(_battlefield.RuleSet.TimeReady), _endGameTokenSource.Token);
-            BroadcastPacket(new SCInstantGameCountDownPacket(_zoneInstanceId, Helpers.UnixTimeNowInMilli()));
+            BroadcastPacket(new SCInstantGameCountDownPacket(_zoneInstanceId, Helpers.UnixTimeNow()));
 
             await Delay(CountdownDuration, _endGameTokenSource.Token);
             Start();
@@ -348,7 +348,7 @@ public partial class InstantGame
             corps = _characterCorps.Keys.ToArray();
         }
 
-        var start = new SCInstantGameStartPacket(_zoneInstanceId, Helpers.UnixTimeNowInMilli(),
+        var start = new SCInstantGameStartPacket(_zoneInstanceId, Helpers.UnixTimeNow(),
             InstantGameWireContract.FirstRound);
         foreach (var player in players)
             player.SendPacket(start);

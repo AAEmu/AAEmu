@@ -63,6 +63,12 @@ public sealed class IndunRoundState
         IndunRoundRules.IsTimerRunning(_roundStartedUtc, Current?.TimerSeconds ?? 0, nowUtc);
 
     /// <summary>
+    /// The limit and play seconds of the round in play, for SCIndunUpdateRoundInfoPacket (0x2DA).
+    /// </summary>
+    public (uint LimitSeconds, uint PlaySeconds, bool IsTimeLimitRound) RoundTimer(DateTime nowUtc) =>
+        IndunRoundRules.RoundTimerWire(_roundStartedUtc, Current?.TimerSeconds ?? 0, nowUtc);
+
+    /// <summary>
     /// Applies one <c>IndunActionNextRound</c>. Returns true only on the call that completes the copy; a
     /// second completion signal (a doubled event, a relog replaying the chain) returns false.
     /// </summary>
