@@ -1,7 +1,7 @@
 # Developer Notes
 
 - Audience: Contributors
-- Last verified against: `rust-rewrite` on October 13, 2026
+- Last verified against: `rust-rewrite` on October 14, 2026
 - Prerequisites: None
 
 ## New character skills and hotbar
@@ -16,6 +16,19 @@ to a free slot, preserving the other utility and supply shortcuts. Sorcery start
 (10752); Battlerage starts with Triple Slash (18132). Melee Attack, Shoot Arrow and Kick are
 shared general skills, even though Kick uses a Battlerage-style icon. Saved hotbars retain the
 player's arrangement when logging in.
+
+## Mirage Isle portals
+
+Mirage Isle entrance doodads (template 4894) were reconciled to the original 1.2
+`map_data/doodad_map/*.dat` map markers: ten inherited extra placements were removed, two
+positions corrected and five missing records restored. The 109 portals now match the markers
+one-to-one within 0.03 m. Authored rotations are unchanged; restored records use the default
+zero rotation because the markers carry only positions. Verify against the real assets from
+`rust/` with the 1.2 `game_pak`:
+
+```sh
+AAEMU_CLIENT_PAK=<path-to-1.2-game_pak> cargo test -p aaemu-game --test mirage_portal_spawns -- --ignored
+```
 
 ## NPC movement and respawn
 

@@ -947,6 +947,13 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   terrain 91–145 m above the authored positions, no downward probe reaches a floor and the
   corrected walking height stays at the authored cavity level (556.25–593 m).
 
+* systems::npcs (2026-10-14): the inherited main_world portal placements (entrance doodads,
+  template 4894) are reconciled with the original 1.2 `map_data/doodad_map/*.dat` marker
+  positions: ten extra records removed, two positions corrected and five missing records
+  restored (109 placements, one-to-one marker matches within 0.03 m). Authored rotations are
+  retained; restored records use the default zero rotation because the markers carry only
+  positions.
+
 ## Live testing (phase 5): fixes and deliberate deviations
 
 Found by running the servers against MySQL, the real `compact.sqlite3` / `game_pak` and the
