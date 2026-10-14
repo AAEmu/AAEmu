@@ -38,6 +38,17 @@ public static class ItemEvolvingReRollRules
     public const int ChosenGroupValue = 1;
 
     /// <summary>
+    /// Whether an item may pay as a luck / lucid / serendipity stone for this cast.
+    /// </summary>
+    /// <remarks>
+    /// <c>CSStartSkillPacket</c> lets <c>BindOnPickup</c> items start a skill even when
+    /// <c>UseSkillId</c> differs (fireplace portal recording). That must not turn an
+    /// unrelated bound item into unlimited stone payment that bypasses <c>EvolveChance</c>.
+    /// </remarks>
+    public static bool IsStoneForSkill(uint itemUseSkillId, uint castSkillId) =>
+        itemUseSkillId != 0 && castSkillId != 0 && itemUseSkillId == castSkillId;
+
+    /// <summary>
     /// Picks how the cast pays. A stone always wins and ignores remaining changes.
     /// Without one, lucid is refused and basic replace needs <c>EvolveChance</c> &gt; 0.
     /// </summary>

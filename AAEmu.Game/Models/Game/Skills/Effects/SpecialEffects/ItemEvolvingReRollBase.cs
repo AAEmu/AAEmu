@@ -51,16 +51,22 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
         // attempts. Stones ignore EvolveChance entirely. They are not use_skill_as_reagent and
         // the skill_effect does not consume_source_item, so a stone spend lands here on success
         // only. Lucid swaps always need a stone; basic swaps may spend an attempt with no stone.
+        // Only an item whose UseSkillId is this cast counts as a stone — BindOnPickup can start
+        // a mismatched skill and must not buy unlimited EvolveChance-free swaps.
         Item stone = null;
         if (casterObj is SkillItem stoneCaster)
         {
-            stone = owner.Inventory.GetItemById(stoneCaster.ItemId);
-            if (stone == null || stone.Count < 1)
+            var source = owner.Inventory.GetItemById(stoneCaster.ItemId);
+            if (source == null || source.Count < 1)
             {
                 owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
                 skill.Cancelled = true;
                 return;
             }
+
+            if (ItemEvolvingReRollRules.IsStoneForSkill(source.Template?.UseSkillId ?? 0,
+                    skill?.Template?.Id ?? 0))
+                stone = source;
         }
 
         if (targetObj is not SkillCastItemTarget itemTarget)

@@ -75,4 +75,13 @@ public class ItemEvolvingReRollRulesTests
         await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: false, evolveChance: 0,
             requiresStone: true)).IsEqualTo(ItemEvolvingReRollPayment.None);
     }
+
+    [Test]
+    public async Task IsStoneForSkill_RequiresMatchingUseSkillId()
+    {
+        await Assert.That(ItemEvolvingReRollRules.IsStoneForSkill(100, 100)).IsTrue();
+        await Assert.That(ItemEvolvingReRollRules.IsStoneForSkill(100, 200)).IsFalse();
+        await Assert.That(ItemEvolvingReRollRules.IsStoneForSkill(0, 100)).IsFalse();
+        await Assert.That(ItemEvolvingReRollRules.IsStoneForSkill(100, 0)).IsFalse();
+    }
 }
