@@ -234,16 +234,13 @@ public static class TowerDefScheduler
                 Logger.Info(
                     "Instance tower run finishing: zoneId={0} towerDef={1} instance={2} (host disconnected)",
                     zoneId, key.TowerDefId, key.InstanceId);
+                WorldIntegration.MarkInstanceTowerDefHostDropped(key.InstanceId, key.TowerDefId);
             }
         }
 
         foreach (var (towerDef, state) in finished)
             FinishRun(towerDef, state, "host disconnected");
     }
-
-    /// <summary>True when <see cref="RunningInstances"/> still holds this copy's tower_def run.</summary>
-    public static bool IsInstanceTowerDefRunning(uint instanceId, uint towerDefId) =>
-        instanceId != 0 && RunningInstances.ContainsKey((towerDefId, instanceId));
 
     /// <summary>
     /// After a dedicate reaches ZoneLoaded, refresh playability for scheduled tower defs.

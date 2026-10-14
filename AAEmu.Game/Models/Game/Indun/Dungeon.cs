@@ -307,9 +307,10 @@ public class Dungeon : IPreparedIndunInstance
         if (_zoneKey == 0 || World == null)
             return null;
 
-        // A host drop finishes the run without destroying this Dungeon; clear the flag so a new host can start it.
+        // Only a host drop (not force_end / deadline) may clear the started flag. Deadline also removes
+        // the run from RunningInstances while ShouldStartScript is still true in the End phase.
         if (_instanceScriptStarted
-            && WorldIntegration.IsInstanceTowerDefRunning?.Invoke(World.Id, option.TowerDefId) != true)
+            && WorldIntegration.ConsumeInstanceTowerDefHostDropped(World.Id, option.TowerDefId))
         {
             _instanceScriptStarted = false;
             _instanceScriptRefusedLogged = false;

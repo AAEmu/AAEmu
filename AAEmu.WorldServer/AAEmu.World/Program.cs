@@ -224,7 +224,6 @@ public static class Program
         // has left its ready window, and stops it as the copy is destroyed.
         WorldIntegration.StartInstanceTowerDef = TowerDefScheduler.StartInstanceTowerDef;
         WorldIntegration.EndInstanceTowerDef = TowerDefScheduler.EndInstanceTowerDef;
-        WorldIntegration.IsInstanceTowerDefRunning = TowerDefScheduler.IsInstanceTowerDefRunning;
         WorldIntegration.OnMainWorldReady = () =>
         {
             // Arm the schedule gate before remirroring, so the pass that re-accepts already

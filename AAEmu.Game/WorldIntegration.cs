@@ -741,10 +741,28 @@ public static class WorldIntegration
     public static Func<uint, uint, uint, bool> EndInstanceTowerDef { get; set; }
 
     /// <summary>
-    /// True when <c>RunningInstances</c> still holds <c>(towerDefId, instanceId)</c>. A host drop finishes
-    /// the run without destroying the Dungeon; the copy uses this to clear its started flag and restart.
+    /// One-shot markers for instance tower runs finished because their zone host dropped.
+    /// Deadline expiry must not clear a copy's started flag (that would restart mid End phase).
     /// </summary>
-    public static Func<uint, uint, bool> IsInstanceTowerDefRunning { get; set; }
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(uint InstanceId, uint TowerDefId), byte>
+        InstanceTowerDefHostDropped = new();
+
+    /// <summary>Record that this copy's tower run ended because its dedicate disconnected.</summary>
+    public static void MarkInstanceTowerDefHostDropped(uint instanceId, uint towerDefId)
+    {
+        if (instanceId == 0 || towerDefId == 0)
+            return;
+        InstanceTowerDefHostDropped[(instanceId, towerDefId)] = 0;
+    }
+
+    /// <summary>
+    /// True once when a host-drop marker exists for this copy's tower; removes it so a later deadline
+    /// cannot spuriously restart the script.
+    /// </summary>
+    public static bool ConsumeInstanceTowerDefHostDropped(uint instanceId, uint towerDefId) =>
+        instanceId != 0
+        && towerDefId != 0
+        && InstanceTowerDefHostDropped.TryRemove((instanceId, towerDefId), out _);
 
     /// <summary>
     /// Broadcast a finished SC body (opcode + body only) to in-world clients only.
