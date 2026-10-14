@@ -5,27 +5,21 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 public class SkillCooldownDurationRulesTests
 {
     [Test]
-    public async Task Accept_ArmsWhenCooldownAuthored()
+    public async Task Accept_ArmsWhenCooldownAuthored_EvenWithBypassGcd()
     {
-        await Assert.That(SkillCooldownDurationRules.ShouldArmOnAccept(false, false, 15000))
+        // bypassGcd is not an argument: skill CD arms for ItemProc / NpcEvents bypass casts.
+        await Assert.That(SkillCooldownDurationRules.ShouldArmOnAccept(unsupportedCast: false, cooldownTime: 15000))
             .IsTrue();
-        await Assert.That(SkillCooldownDurationRules.ShouldArmOnAccept(true, false, 15000))
+        await Assert.That(SkillCooldownDurationRules.ShouldArmOnAccept(unsupportedCast: true, cooldownTime: 15000))
             .IsFalse();
-        await Assert.That(SkillCooldownDurationRules.ShouldArmOnAccept(false, true, 15000))
-            .IsFalse();
-        await Assert.That(SkillCooldownDurationRules.ShouldArmOnAccept(false, false, 0))
+        await Assert.That(SkillCooldownDurationRules.ShouldArmOnAccept(unsupportedCast: false, cooldownTime: 0))
             .IsFalse();
     }
 
     [Test]
-    public async Task ResolveDuration_ScalesByGlobalCooldownMulPercent()
+    public async Task ResolveDuration_PassesThroughWithoutGlobalCooldownMul()
     {
-        // Character.GlobalCooldownMul is already the percent form (100 = unchanged).
-        await Assert.That(SkillCooldownDurationRules.ResolveDuration(10000, globalCooldownMul: 100f))
-            .IsEqualTo(10000u);
-        await Assert.That(SkillCooldownDurationRules.ResolveDuration(10000, globalCooldownMul: 50f))
-            .IsEqualTo(5000u);
-        await Assert.That(SkillCooldownDurationRules.ResolveDuration(0, globalCooldownMul: 50f))
-            .IsEqualTo(0u);
+        await Assert.That(SkillCooldownDurationRules.ResolveDuration(10000)).IsEqualTo(10000u);
+        await Assert.That(SkillCooldownDurationRules.ResolveDuration(0)).IsEqualTo(0u);
     }
 }

@@ -260,21 +260,37 @@ public class CharacterSkills(Character owner)
         return ids;
     }
 
+    private uint _lastComboSkillId;
+    private DateTime _lastComboAt = DateTime.MinValue;
+
+    /// <summary>
+    /// Records the last accepted cast so Combo follow-ups can be gated on the previous link's window.
+    /// </summary>
+    public void NoteSkillFired(uint skillId)
+    {
+        if (skillId == 0)
+            return;
+        _lastComboSkillId = skillId;
+        _lastComboAt = DateTime.UtcNow;
+    }
+
     /// <summary>
     /// Whether the character holds <paramref name="skillId"/> — learned, buff-granted, the
-    /// currently selected Heir successor, or a Combo follow-up of any of those roots.
-    /// ZoneAuthority keys off this; without the Combo branch, hold-to-cycle skills (Triple Slash,
-    /// Quake heir, Gods' Whip, Whirlwind Slash, …) only land the first hit and the rest are refused unlearned.
+    /// currently selected Heir successor, or the next Combo follow-up after the last fired skill
+    /// inside that link's Combo window. Open follow-ups without a prior link are refused.
     /// </summary>
     public bool HasSkill(uint skillId)
     {
         if (Skills.ContainsKey(skillId) || TemporarySkills.ContainsKey(skillId) || IsActiveHeirSuccessor(skillId))
             return true;
 
-        var roots = Skills.Keys
-            .Concat(TemporarySkills.Keys)
-            .Concat(Owner.HeirSkills?.ActiveSuccessorSkillIds() ?? []);
-        return SkillComboRules.IsHeldOrComboFollowUp(skillId, roots, SkillComboRules.NextFollowUp);
+        return SkillComboRules.IsNextComboWithinWindow(
+            skillId,
+            _lastComboSkillId,
+            _lastComboAt,
+            DateTime.UtcNow,
+            SkillComboRules.NextFollowUp,
+            SkillComboRules.ComboWindowMs);
     }
 
     private void ReconcileBuffGrants()

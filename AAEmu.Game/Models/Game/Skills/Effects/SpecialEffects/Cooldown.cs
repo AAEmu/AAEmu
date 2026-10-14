@@ -26,7 +26,7 @@ public class Cooldown : SpecialEffectAction
             return;
 
         var modified = (uint)Math.Max(0, Math.Round(caster.ApplySkillModifiers(skill, SkillAttribute.Cooldown, cooldownTime)));
-        var cooldownDuration = SkillCooldownDurationRules.ResolveDuration(modified, unit.GlobalCooldownMul);
+        var cooldownDuration = SkillCooldownDurationRules.ResolveDuration(modified);
         unit.Cooldowns.AddCooldown(skill.Template.Id, cooldownDuration, skill.Template.CooldownTags);
 
         // No mid-combat "set cooldown" SC — push the full snapshot so the HUD catches up.

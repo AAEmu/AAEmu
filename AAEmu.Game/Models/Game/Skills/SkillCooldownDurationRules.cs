@@ -7,30 +7,21 @@
 /// The client starts its own countdown when SkillStarted lands, so the server must arm at
 /// accept (not only at Cast fire) or a cancelled cast leaves the grey bar without a matching
 /// server gate — and a long cast leaves the server accepting a re-press while the client is
-/// still grey. Duration scaling matches <c>Character.GlobalCooldownMul</c>: raw unit attribute 74
-/// is already folded into that percentage, and <c>skill_modifiers</c> attribute
-/// <c>Cooldown</c> is applied on top.
+/// still grey. <c>bypassGcd</c> only skips the shared GCD; skill cooldowns still arm (ItemProc /
+/// NpcEvents rely on that). Attribute 74 (<c>GlobalCooldownMul</c>) is GCD / attack-speed only —
+/// it must not scale per-skill cooldown duration.
 /// </remarks>
 public static class SkillCooldownDurationRules
 {
     /// <summary>
     /// True when this cast should arm the skill's own cooldown at accept (SkillStarted / plot press).
+    /// Independent of <c>bypassGcd</c> — that flag only gates the shared GCD.
     /// </summary>
-    public static bool ShouldArmOnAccept(bool bypassGcd, bool unsupportedCast, uint cooldownTime) =>
-        !bypassGcd && !unsupportedCast && cooldownTime > 0;
+    public static bool ShouldArmOnAccept(bool unsupportedCast, uint cooldownTime) =>
+        !unsupportedCast && cooldownTime > 0;
 
     /// <summary>
-    /// Applies attack-speed / CoolDown rating (<paramref name="globalCooldownMul"/> as a percent,
-    /// 100 = unchanged) then the skill-modifier delta already folded into
-    /// <paramref name="modifiedCooldownTime"/>.
+    /// Skill-row cooldown after <c>skill_modifiers</c> CoolDown. No GlobalCooldownMul scaling.
     /// </summary>
-    public static uint ResolveDuration(uint modifiedCooldownTime, float globalCooldownMul)
-    {
-        if (modifiedCooldownTime == 0)
-            return 0;
-
-        var mul = globalCooldownMul <= 0f ? 1f : globalCooldownMul / 100f;
-        var scaled = (uint)Math.Max(0, Math.Round(modifiedCooldownTime * mul));
-        return scaled;
-    }
+    public static uint ResolveDuration(uint modifiedCooldownTime) => modifiedCooldownTime;
 }

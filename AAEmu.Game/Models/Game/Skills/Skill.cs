@@ -2717,9 +2717,14 @@ public class Skill
         if (unit == null)
             return;
 
+        // Combo follow-ups are gated on the last accepted cast; note every accept path.
+        if (unit is Character character)
+            character.Skills.NoteSkillFired(Template.Id);
+
         var cooldownTime = Template.CooldownTime > 0 ? (uint)Template.CooldownTime : 0u;
         // Charge skills still need ArmCooldowns when CooldownTime is 0 so the spend runs.
-        if (!SkillCooldownDurationRules.ShouldArmOnAccept(_bypassGcd, IsPureUnsupportedCast(), cooldownTime)
+        // bypassGcd only skips the shared GCD (EnsureGlobalCooldownArmed); skill CD still arms.
+        if (!SkillCooldownDurationRules.ShouldArmOnAccept(IsPureUnsupportedCast(), cooldownTime)
             && Template.ChargeCount <= 1)
             return;
 
@@ -2751,11 +2756,11 @@ public class Skill
         var owner = SkillCooldownOwnershipRules.CooldownOwner(unit, !_bypassGcd, ResolveCooldownOwnerUnit);
 
         var baseDuration = Template.CooldownTime > 0 ? (uint)Template.CooldownTime : 0u;
-        // skill_modifiers CoolDown (attribute 1) then unit CoolDown rating via GlobalCooldownMul %.
+        // skill_modifiers CoolDown (attribute 1) only — GlobalCooldownMul is GCD/attack-speed, not skill CD.
         var modified = baseDuration == 0
             ? 0u
             : (uint)Math.Max(0, Math.Round(owner.ApplySkillModifiers(this, SkillAttribute.Cooldown, baseDuration)));
-        var duration = SkillCooldownDurationRules.ResolveDuration(modified, owner.GlobalCooldownMul);
+        var duration = SkillCooldownDurationRules.ResolveDuration(modified);
         if (Template.SwitchToSkillCooldown)
         {
             duration = SkillCooldownGateRules.SwitchToCooldownDuration(

@@ -96,4 +96,37 @@ public static class SkillComboRules
 
         return false;
     }
+
+    /// <summary>
+    /// Combo window (ms) from the skill's Combo special <c>value2</c>, or 0 when it has none.
+    /// </summary>
+    public static int ComboWindowMs(uint skillId)
+    {
+        var template = SkillManager.Instance?.GetSkillTemplate(skillId);
+        return TryGetComboFollowUp(template, out _, out var ms) ? ms : 0;
+    }
+
+    /// <summary>
+    /// True when <paramref name="skillId"/> is exactly the next Combo link after
+    /// <paramref name="lastFiredSkillId"/> and still inside that link's window.
+    /// </summary>
+    public static bool IsNextComboWithinWindow(
+        uint skillId,
+        uint lastFiredSkillId,
+        DateTime lastFiredAt,
+        DateTime now,
+        Func<uint, uint?> nextFollowUp,
+        Func<uint, int> windowMsFor)
+    {
+        if (skillId == 0 || lastFiredSkillId == 0 || nextFollowUp == null || windowMsFor == null)
+            return false;
+        if (nextFollowUp(lastFiredSkillId) != skillId)
+            return false;
+
+        var window = windowMsFor(lastFiredSkillId);
+        if (window <= 0)
+            return false;
+
+        return (now - lastFiredAt).TotalMilliseconds <= window;
+    }
 }
