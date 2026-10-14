@@ -118,6 +118,49 @@ public class ItemRefurbishment : SpecialEffectAction
             return;
         }
 
+        // Optional tempering additive ("연마 첨가제") — same type-6 support body as regrade charms,
+        // gated by req_scale / tags. The polish itself is still consumed by use_skill_as_reagent.
+        ItemGradeEnchantingSupport charmInfo = null;
+        Item charmItem = null;
+        if (skillObject is SkillObjectItemGradeEnchantingSupport { SupportItemId: not 0 } charmObject)
+        {
+            charmItem = owner.Inventory.GetItemById(charmObject.SupportItemId);
+            if (charmItem == null)
+            {
+                Logger.Warn("ItemRefurbishment: support {0} not found", charmObject.SupportItemId);
+                skill.Cancelled = true;
+                return;
+            }
+
+            charmInfo = ItemManager.Instance.GetItemGradEnchantingSupportByItemId(charmItem.TemplateId);
+            if (charmInfo == null)
+            {
+                Logger.Warn("ItemRefurbishment: item {0} (tpl {1}) is not an enchanting support",
+                    charmItem.Id, charmItem.TemplateId);
+                owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+                skill.Cancelled = true;
+                return;
+            }
+
+            if (!GradeEnchantCharmRules.PassesGradeRequirement(charmInfo, equipItem.Grade))
+            {
+                owner.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
+                skill.Cancelled = true;
+                return;
+            }
+
+            var hasRestrictTag = charmInfo.RestrictItemTagId != 0
+                && ItemManager.Instance.HasItemTag(equipItem.TemplateId, charmInfo.RestrictItemTagId);
+            var hasExclusiveTag = charmInfo.ExclusiveItemTagId != 0
+                && ItemManager.Instance.HasItemTag(equipItem.TemplateId, charmInfo.ExclusiveItemTagId);
+            if (!GradeEnchantCharmRules.IsAllowed(charmInfo, hasRestrictTag, hasExclusiveTag, beforeScale))
+            {
+                owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+                skill.Cancelled = true;
+                return;
+            }
+        }
+
         // The rung's own price, run through the ladder's cost formula. Taken before the roll so a
         // player who cannot cover it keeps both their coin and their polish.
         var cost = TemperCost(equipItem, beforeScale);
@@ -140,7 +183,7 @@ public class ItemRefurbishment : SpecialEffectAction
         // tooltip promises the +2 and the plain ones preview Great Success at a flat 0%. The ladder
         // itself offers the chance on every rung and cannot tell the two apart, so the polish does.
         var greatAllowed = value2 != 0;
-        var result = Roll(ratio, equipItem, maxScale, greatAllowed, out var itemBroken);
+        var result = Roll(ratio, equipItem, maxScale, greatAllowed, charmInfo, out var itemBroken);
 
         if (itemBroken)
         {
@@ -165,6 +208,10 @@ public class ItemRefurbishment : SpecialEffectAction
             Amount = 1
         });
 
+        // Polish is use_skill_as_reagent; only the additive has to be taken here.
+        if (charmItem != null)
+            charmItem._holdingContainer?.ConsumeItem(ItemTaskType.ScaleCap, charmItem.TemplateId, 1, charmItem);
+
         var afterScale = itemBroken ? (ushort)0 : equipItem.EnchantScale;
         // The rung itself, which is what the window prints as "+N". The ladder's own scale column
         // runs ten times that - reporting it turned a +1 to +3 step into "+10 -> +30".
@@ -183,8 +230,8 @@ public class ItemRefurbishment : SpecialEffectAction
                 owner.Name, result, equipItem, (short)beforeScale, (short)afterScale));
         }
 
-        Logger.Debug("ItemRefurbishment: {0} item {1} {2} -> {3} ({4}), cost {5}",
-            owner.Name, equipItem.Id, beforeScale, afterScale, result, cost);
+        Logger.Debug("ItemRefurbishment: {0} item {1} {2} -> {3} ({4}), cost {5}, support {6}",
+            owner.Name, equipItem.Id, beforeScale, afterScale, result, cost, charmItem?.TemplateId ?? 0);
     }
 
     /// <summary>
@@ -231,13 +278,30 @@ public class ItemRefurbishment : SpecialEffectAction
     /// Applies one step to <paramref name="equipItem"/> and reports what the client should show.
     /// The ratios are per 10000 and are read off the step the item is currently on.
     /// </summary>
-    private static ItemGradeEnchantResult Roll(EnchantScaleRatio ratio, EquipItem equipItem, ushort maxScale, bool greatAllowed, out bool itemBroken)
+    private static ItemGradeEnchantResult Roll(
+        EnchantScaleRatio ratio,
+        EquipItem equipItem,
+        ushort maxScale,
+        bool greatAllowed,
+        ItemGradeEnchantingSupport charm,
+        out bool itemBroken)
     {
         itemBroken = false;
 
-        if (Random.Shared.Next(10000) < ratio.SuccessRatio)
+        var successChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.SuccessRatio, charm?.AddSuccessRatio, charm?.AddSuccessMul);
+        var greatChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.GreatSuccessRatio, charm?.AddGreatSuccessRatio, charm?.AddGreatSuccessMul);
+        var breakChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.BreakRatio, charm?.AddBreakRatio, charm?.AddBreakMul);
+        var disableChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.DisableRatio, charm?.AddDisableRatio, charm?.AddDisableMul);
+        var downChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.DownRatio, charm?.AddDowngradeRatio, charm?.AddDowngradeMul);
+
+        if (Random.Shared.Next(10000) < successChance)
         {
-            var step = greatAllowed && Random.Shared.Next(10000) < ratio.GreatSuccessRatio ? 2 : 1;
+            var step = greatAllowed && Random.Shared.Next(10000) < greatChance ? 2 : 1;
             var newScale = Math.Min(maxScale, equipItem.EnchantScale + step);
             equipItem.EnchantScale = (ushort)newScale;
             return step == 2 ? ItemGradeEnchantResult.GreatSuccess : ItemGradeEnchantResult.Success;
@@ -245,22 +309,22 @@ public class ItemRefurbishment : SpecialEffectAction
 
         // Failure. The shipped ladder leaves break and disable at zero everywhere and only starts
         // applying a downgrade from +18 up, so below that a failed attempt costs nothing but the
-        // material.
+        // material. Downgrade-block additives ship AddDowngradeMul -100 so downChance clamps to 0.
         var roll = Random.Shared.Next(10000);
 
-        if (ratio.BreakRatio > 0 && roll < ratio.BreakRatio)
+        if (breakChance > 0 && roll < breakChance)
         {
             itemBroken = true;
             return ItemGradeEnchantResult.Break;
         }
 
-        if (ratio.DisableRatio > 0 && roll < ratio.BreakRatio + ratio.DisableRatio)
+        if (disableChance > 0 && roll < breakChance + disableChance)
         {
             equipItem.EnchantDisabled = true;
             return ItemGradeEnchantResult.Disable;
         }
 
-        if (ratio.DownRatio > 0 && roll < ratio.BreakRatio + ratio.DisableRatio + ratio.DownRatio)
+        if (downChance > 0 && roll < breakChance + disableChance + downChance)
         {
             var down = Math.Max(1, (int)ratio.DownMax);
             equipItem.EnchantScale = (ushort)Math.Max(0, equipItem.EnchantScale - down);

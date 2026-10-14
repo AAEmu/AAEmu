@@ -69,9 +69,10 @@ public class SkillObject : PacketMarshaler
     /// Type 7 (<see cref="SkillObjectType.HouseRemodel"/>) is parsed only for rebuild skills in
     /// <c>CSStartSkillPacket</c> (one u32). Accepting it here for every cast would steal that u32
     /// from unrelated skills that share the same flag value.
-    /// Type 6 is listed so regrade can read the charm body, but <c>CSStartSkillPacket</c> still
-    /// gates that read on <see cref="SkillCastExtraRules.ReadsGradeEnchantSupport"/> — tempering
-    /// also arrives as flag 6 with no body.
+    /// Type 6 is listed so regrade / tempering can read the support body, but
+    /// <c>CSStartSkillPacket</c> gates that read on
+    /// <see cref="SkillCastExtraRules.CanReadGradeEnchantSupportBody"/> — bare tempering arrives
+    /// as flag 6 with no body.
     /// </remarks>
     public static bool IsKnownType(int flagType) =>
         flagType is (>= (int)SkillObjectType.Unk1 and <= (int)SkillObjectType.ItemEvolvingMaterials

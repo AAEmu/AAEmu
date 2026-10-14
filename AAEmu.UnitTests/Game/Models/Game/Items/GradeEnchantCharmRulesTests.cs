@@ -70,4 +70,43 @@ public class GradeEnchantCharmRulesTests
         await Assert.That(GradeEnchantCharmRules.IsAllowed(null, true, false, 0)).IsTrue();
         await Assert.That(GradeEnchantCharmRules.HasScaleRequirement(null)).IsFalse();
     }
+
+    [Test]
+    public async Task PassesGradeRequirement_ScaleGatedTemperAdditivesIgnoreGradeBand()
+    {
+        var temperAdditive = new ItemGradeEnchantingSupport
+        {
+            RequireGradeMin = 1,
+            RequireGradeMax = 1,
+            ReqScaleMinId = 0,
+            ReqScaleMaxId = 30
+        };
+
+        await Assert.That(GradeEnchantCharmRules.PassesGradeRequirement(temperAdditive, 0)).IsTrue();
+        await Assert.That(GradeEnchantCharmRules.PassesGradeRequirement(temperAdditive, 11)).IsTrue();
+    }
+
+    [Test]
+    public async Task PassesGradeRequirement_RegradeCharmsEnforceGradeBand()
+    {
+        var charm = new ItemGradeEnchantingSupport
+        {
+            RequireGradeMin = -1,
+            RequireGradeMax = 6,
+            ReqScaleMinId = 31,
+            ReqScaleMaxId = 31
+        };
+
+        await Assert.That(GradeEnchantCharmRules.PassesGradeRequirement(charm, 6)).IsTrue();
+        await Assert.That(GradeEnchantCharmRules.PassesGradeRequirement(charm, 7)).IsFalse();
+    }
+
+    [Test]
+    public async Task AdjustChance_AppliesFlatAndMulThenClamps()
+    {
+        await Assert.That(GradeEnchantCharmRules.AdjustChance(2000, null, null)).IsEqualTo(2000);
+        await Assert.That(GradeEnchantCharmRules.AdjustChance(2000, 500, 50)).IsEqualTo(3500);
+        await Assert.That(GradeEnchantCharmRules.AdjustChance(8000, 0, -100)).IsEqualTo(0);
+        await Assert.That(GradeEnchantCharmRules.AdjustChance(9000, 2000, 0)).IsEqualTo(10000);
+    }
 }

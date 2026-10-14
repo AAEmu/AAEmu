@@ -78,11 +78,13 @@ piece out of the whole enchant window until a restore item clears it.
 
 `ItemRefurbishment.Execute`:
 
-1. **Cast flag** - tempering sets SkillCastExtra bits 1+2 (= flag **6**) with **no body**.
-   That number is also the regrade charm type; only GradeEnchant skills may read the
-   `u64`+`bool` charm payload. Mis-reading tempering as a charm steals `inputDirection`,
-   echoes a fake charm on SkillStarted, and leaves the piece drawn as invalid after the
-   first success.
+1. **Cast flag** - tempering sets SkillCastExtra bits 1+2 (= flag **6**). With **no**
+   support additive the body is empty; with one, it is the same `u64`+`bool` support
+   payload as regrade (`item_grade_enchanting_supports`). Reading a body that is not
+   there steals `inputDirection` and leaves the piece drawn as invalid — only read when
+   enough bytes remain. The additive shifts the rung odds (`AddSuccessMul` etc.) and is
+   consumed on every attempt; scale-gated rows skip the regrade grade band (`1/1` is not
+   a grade filter for temper additives).
 2. **Validate** - character, item target, `EquipItem`, not `EnchantDisabled`.
 3. **Two gates on what may be tempered at all**, and both have to be asked:
    - `MaxEnchantScaleId == 0` or the piece is already at it, **and**

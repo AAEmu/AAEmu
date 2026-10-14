@@ -34,6 +34,14 @@ public class SkillCastExtraRulesTests
         await Assert.That(SkillCastExtraRules.ReadsGradeEnchantSupport(regrade)).IsTrue();
         await Assert.That(SkillCastExtraRules.ReadsGradeEnchantSupport(temper)).IsFalse();
         await Assert.That(SkillCastExtraRules.ReadsGradeEnchantSupport(null)).IsFalse();
+        await Assert.That(SkillCastExtraRules.CarriesOptionalGradeEnchantSupport(temper)).IsTrue();
+        await Assert.That(SkillCastExtraRules.CarriesOptionalGradeEnchantSupport(regrade)).IsFalse();
+
+        // Regrade always reads the body; tempering only when u64+bool still sit on the stream.
+        await Assert.That(SkillCastExtraRules.CanReadGradeEnchantSupportBody(regrade, 0)).IsTrue();
+        await Assert.That(SkillCastExtraRules.CanReadGradeEnchantSupportBody(temper, 1)).IsFalse();
+        await Assert.That(SkillCastExtraRules.CanReadGradeEnchantSupportBody(
+            temper, SkillCastExtraRules.GradeEnchantSupportBodyBytes)).IsTrue();
     }
 
     [Test]

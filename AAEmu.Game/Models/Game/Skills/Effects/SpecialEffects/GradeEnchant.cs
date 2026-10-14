@@ -161,16 +161,12 @@ public class GradeEnchant : SpecialEffectAction
                 return;
             }
 
-            if (charmInfo.RequireGradeMin != -1 && item.Grade < charmInfo.RequireGradeMin)
+            if (!GradeEnchantCharmRules.PassesGradeRequirement(charmInfo, item.Grade))
             {
-                character.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
-                skill.Cancelled = true;
-                return;
-            }
-
-            if (charmInfo.RequireGradeMax != -1 && item.Grade > charmInfo.RequireGradeMax)
-            {
-                character.SendErrorMessage(ErrorMessageType.GradeEnchantMax);
+                character.SendErrorMessage(
+                    charmInfo.RequireGradeMax != -1 && item.Grade > charmInfo.RequireGradeMax
+                        ? ErrorMessageType.GradeEnchantMax
+                        : ErrorMessageType.NotEnoughRequiredItem);
                 skill.Cancelled = true;
                 return;
             }
@@ -308,11 +304,16 @@ public class GradeEnchant : SpecialEffectAction
     {
         itemBroken = false;
 
-        var successChance = WithCharm(ratio.SuccessRatio, charm?.AddSuccessRatio, charm?.AddSuccessMul);
-        var greatChance = WithCharm(ratio.GreatSuccessRatio, charm?.AddGreatSuccessRatio, charm?.AddGreatSuccessMul);
-        var breakChance = WithCharm(ratio.BreakRatio, charm?.AddBreakRatio, charm?.AddBreakMul);
-        var disableChance = WithCharm(ratio.DisableRatio, charm?.AddDisableRatio, charm?.AddDisableMul);
-        var downgradeChance = WithCharm(ratio.DowngradeRatio, charm?.AddDowngradeRatio, charm?.AddDowngradeMul);
+        var successChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.SuccessRatio, charm?.AddSuccessRatio, charm?.AddSuccessMul);
+        var greatChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.GreatSuccessRatio, charm?.AddGreatSuccessRatio, charm?.AddGreatSuccessMul);
+        var breakChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.BreakRatio, charm?.AddBreakRatio, charm?.AddBreakMul);
+        var disableChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.DisableRatio, charm?.AddDisableRatio, charm?.AddDisableMul);
+        var downgradeChance = GradeEnchantCharmRules.AdjustChance(
+            ratio.DowngradeRatio, charm?.AddDowngradeRatio, charm?.AddDowngradeMul);
 
         if (Random.Shared.Next(10000) < successChance)
         {
@@ -444,19 +445,6 @@ public class GradeEnchant : SpecialEffectAction
             return 0;
 
         return cost > long.MaxValue ? long.MaxValue : (long)cost;
-    }
-
-    /// <summary>
-    /// A charm's flat and proportional adjustment to one chance. Both are optional and both are
-    /// signed - the break-suppressing charms ship a multiplier of -100.
-    /// </summary>
-    private static int WithCharm(int baseChance, int? addRatio, int? addMul)
-    {
-        if (addRatio == null && addMul == null)
-            return baseChance;
-
-        var adjusted = baseChance + (addRatio ?? 0) + (int)(baseChance * ((addMul ?? 0) / 100.0));
-        return Math.Clamp(adjusted, 0, 10000);
     }
 
     /// <summary>
