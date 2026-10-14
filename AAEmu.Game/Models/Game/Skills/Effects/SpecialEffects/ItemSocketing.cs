@@ -213,14 +213,16 @@ public class ItemSocketing : SpecialEffectAction
             returns[gemId] = returns.GetValueOrDefault(gemId) + 1;
         }
 
-        foreach (var (templateId, count) in returns)
+        var bag = owner.Inventory.Bag;
+        if (!ItemSocketingRules.CanFitExtractReturns(
+                returns,
+                templateId => StackRoomOnly(bag, templateId),
+                templateId => Math.Max(1, ItemManager.Instance.GetTemplate(templateId)?.MaxCount ?? 1),
+                bag.FreeSlotCount))
         {
-            if (owner.Inventory.Bag.SpaceLeftForItem(templateId) < count)
-            {
-                owner.SendErrorMessage(ErrorMessageType.BagFull);
-                skill.Cancelled = true;
-                return;
-            }
+            owner.SendErrorMessage(ErrorMessageType.BagFull);
+            skill.Cancelled = true;
+            return;
         }
 
         var consumed = owner.Inventory.ConsumeItem([SlotType.Inventory], ItemTaskType.Socketing,
@@ -304,6 +306,22 @@ public class ItemSocketing : SpecialEffectAction
         }
 
         owner.BroadcastPacket(new SCSkillEndedPacket(skill.TlId), true);
+    }
+
+    /// <summary>
+    /// Units of <paramref name="templateId"/> that still fit into stacks already in the bag —
+    /// empty slots are counted separately so two gem types cannot both claim the same free slot.
+    /// </summary>
+    private static int StackRoomOnly(Items.Containers.ItemContainer bag, uint templateId)
+    {
+        var template = ItemManager.Instance.GetTemplate(templateId);
+        if (template == null || template.MaxCount <= 0)
+            return 0;
+
+        bag.GetAllItemsByTemplate(templateId, -1, out var currentItems, out var currentTotal);
+        currentItems = currentItems.Where(item => item.HasDefaultDetail && item.MadeUnitId == 0).ToList();
+        currentTotal = currentItems.Sum(item => item.Count);
+        return Math.Max(0, currentItems.Count * template.MaxCount - currentTotal);
     }
 
     /// <summary>

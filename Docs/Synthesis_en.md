@@ -327,13 +327,12 @@ Two variants share one body: `ItemEvolvingReRoll` (the swap is rolled) and
 `ItemEvolvingSelectReRoll` (the player may also name the *result*). Both let the player
 choose *which line* is replaced.
 
-- **Needs remaining changes; success always spends one.** `EvolveChance` is earned one
-  per grade gained, capped at 5 (content_config 247; the tooltip tops out there). At **0**
-  the swap is refused for both free and stone casts (stone stays in the bag; no result
-  packet — that packet opens the confirm dialog). With attempts left, basic replace may
-  run with no stone (skill 39836) or with a Serendipity / Lucent stone; lucid always needs
-  its stone. A successful swap **always** decrements `EvolveChance` (stone or free); a
-  stone-paid success also consumes the stone.
+- **Free swaps need remaining changes; stones do not.** `EvolveChance` is earned one per
+  grade gained, capped at 5 (content_config 247; the tooltip tops out there). A free
+  replace (skill 39836, no stone) is refused at **0** (toast only — no result packet, that
+  packet opens the confirm dialog). Serendipity / Lucent / lucid stones ignore the counter
+  entirely: they work at 0 and never spend a change. Lucid always needs its stone. A free
+  success decrements `EvolveChance`; a stone success consumes the stone only.
 - **Stone spend is local.** Neither stone family is `use_skill_as_reagent` and the
   skill_effect does not `consume_source_item`, so the special effect consumes the
   `SkillItem` itself (`ItemTaskType.Evolving`) on a stone-paid success only. A refused cast

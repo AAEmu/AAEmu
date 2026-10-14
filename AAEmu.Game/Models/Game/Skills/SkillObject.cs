@@ -69,6 +69,9 @@ public class SkillObject : PacketMarshaler
     /// Type 7 (<see cref="SkillObjectType.HouseRemodel"/>) is parsed only for rebuild skills in
     /// <c>CSStartSkillPacket</c> (one u32). Accepting it here for every cast would steal that u32
     /// from unrelated skills that share the same flag value.
+    /// Type 6 is listed so regrade can read the charm body, but <c>CSStartSkillPacket</c> still
+    /// gates that read on <see cref="SkillCastExtraRules.ReadsGradeEnchantSupport"/> — tempering
+    /// also arrives as flag 6 with no body.
     /// </remarks>
     public static bool IsKnownType(int flagType) =>
         flagType is (>= (int)SkillObjectType.Unk1 and <= (int)SkillObjectType.ItemEvolvingMaterials
@@ -276,6 +279,10 @@ public class SkillObjectItemGradeEnchantingSupport : SkillObject
 /// <summary>
 /// Socket extract tab on CS SkillCastExtra type 11: which socket to pull, or every filled socket.
 /// </summary>
+/// <remarks>
+/// Extract-all writes <c>isAll = true</c> after the index. A single-socket cast omits that byte —
+/// reading it anyway steals <c>inputDirection</c> and either pulls every gem or desyncs the cast.
+/// </remarks>
 public class SkillObjectItemSocketExtract : SkillObject
 {
     public int Index { get; set; }
@@ -284,7 +291,7 @@ public class SkillObjectItemSocketExtract : SkillObject
     public override void Read(PacketStream stream)
     {
         Index = stream.ReadInt32();
-        IsAll = stream.ReadBoolean();
+        IsAll = SkillCastExtraRules.SocketExtractHasIsAllByte(stream.LeftBytes) && stream.ReadBoolean();
     }
 
     public override PacketStream Write(PacketStream stream)

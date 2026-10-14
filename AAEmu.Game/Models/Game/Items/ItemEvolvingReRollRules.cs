@@ -4,20 +4,20 @@
 /// How a synthesis effect-swap pays for the cast.
 /// </summary>
 /// <remarks>
-/// The piece must still have <c>EvolveChance</c> left — zero remaining blocks the swap
-/// whether or not a stone is present. With attempts left, basic replace may use a free
-/// attempt or a luck stone; lucid always needs its stone. A successful swap always
-/// decrements <c>EvolveChance</c>; a stone pay also consumes the stone.
+/// A luck / lucid / serendipity stone pays on its own and never reads or spends
+/// <c>EvolveChance</c>. Without a stone, basic replace needs a remaining change
+/// attempt; lucid always needs its stone. Only a free-attempt success decrements
+/// <c>EvolveChance</c>; a stone success consumes the stone only.
 /// </remarks>
 public enum ItemEvolvingReRollPayment : byte
 {
     /// <summary>Cast has nothing to spend — refuse.</summary>
     None = 0,
 
-    /// <summary>No stone — success still spends one <c>EvolveChance</c>.</summary>
+    /// <summary>No stone — success spends one <c>EvolveChance</c>.</summary>
     ChangeAttempt = 1,
 
-    /// <summary>Spend the luck / lucid stone; success also spends one <c>EvolveChance</c>.</summary>
+    /// <summary>Spend the luck / lucid stone; leave <c>EvolveChance</c> alone.</summary>
     LuckStone = 2
 }
 
@@ -38,21 +38,16 @@ public static class ItemEvolvingReRollRules
     public const int ChosenGroupValue = 1;
 
     /// <summary>
-    /// Picks how the cast pays. Zero remaining changes refuse the swap even with a stone.
-    /// With attempts left, a stone marks a stone-paid cast; otherwise it is a free attempt.
-    /// Lucid swaps still demand a stone. The caller always decrements <c>EvolveChance</c>
-    /// on success.
+    /// Picks how the cast pays. A stone always wins and ignores remaining changes.
+    /// Without one, lucid is refused and basic replace needs <c>EvolveChance</c> &gt; 0.
     /// </summary>
     public static ItemEvolvingReRollPayment ResolvePayment(bool hasStone, ushort evolveChance,
         bool requiresStone)
     {
-        if (evolveChance == 0)
-            return ItemEvolvingReRollPayment.None;
-
         if (hasStone)
             return ItemEvolvingReRollPayment.LuckStone;
 
-        if (requiresStone)
+        if (requiresStone || evolveChance == 0)
             return ItemEvolvingReRollPayment.None;
 
         return ItemEvolvingReRollPayment.ChangeAttempt;

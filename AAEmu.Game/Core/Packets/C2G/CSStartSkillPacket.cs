@@ -86,6 +86,15 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             // grade-enchant (type 6) or leave type 7 on SkillStarted (client parse error).
             skillObject = HousingRebuildSkillCast.ForSkillStarted(stream.ReadUInt32());
         }
+        else if (flagType == (int)SkillObjectType.ItemGradeEnchantingSupport
+                 && !SkillCastExtraRules.ReadsGradeEnchantSupport(
+                     SkillManager.Instance.GetSkillTemplate(skillId)))
+        {
+            // Tempering sets bits 1+2 (= 6) with no body. The regrade charm shares that number
+            // and carries u64+bool — reading it here steals inputDirection and SkillStarted then
+            // echoes a fake charm, which leaves the tempered piece drawn as invalid.
+            skillObject = new SkillObject();
+        }
         else if (SkillObject.IsKnownType(flagType))
         {
             skillObject = SkillObject.GetByType((SkillObjectType)flagType);

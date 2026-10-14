@@ -7,13 +7,54 @@
 /// <remarks>
 /// Shipped rows: install <c>value1 = 1</c>, remove (dawnstone wipe) <c>0</c>, extract/salvage
 /// <c>2</c>. The extract tab sends SkillObject type 11: a zero-based socket index and an
-/// <c>isAll</c> bool (extract-all still sends index 0 with <c>isAll</c> set).
+/// <c>isAll</c> bool only when true (a single-socket cast is the index alone).
 /// </remarks>
 public static class ItemSocketingRules
 {
     public const int ModeInstall = 1;
     public const int ModeRemove = 0;
     public const int ModeExtract = 2;
+
+    /// <summary>
+    /// Whether the bag can take every returned gem type together. Per-template
+    /// <c>SpaceLeftForItem</c> double-counts the same empty slots, so extract-all could clear
+    /// the sockets and then fail halfway through the returns.
+    /// </summary>
+    /// <param name="returns">Template id → count to add.</param>
+    /// <param name="stackRoom">Units that already fit into existing stacks of that template.</param>
+    /// <param name="maxStack">Max stack size for that template (at least 1).</param>
+    /// <param name="freeSlots">Empty bag slots still available.</param>
+    public static bool CanFitExtractReturns(
+        IReadOnlyDictionary<uint, int> returns,
+        Func<uint, int> stackRoom,
+        Func<uint, int> maxStack,
+        int freeSlots)
+    {
+        if (returns == null || returns.Count == 0)
+            return true;
+        if (stackRoom == null || maxStack == null)
+            return false;
+
+        var free = freeSlots;
+        foreach (var (templateId, count) in returns)
+        {
+            if (count <= 0)
+                continue;
+
+            var roomInStacks = Math.Max(0, stackRoom(templateId));
+            var remaining = count - Math.Min(count, roomInStacks);
+            if (remaining <= 0)
+                continue;
+
+            var stack = Math.Max(1, maxStack(templateId));
+            var slotsNeeded = (remaining + stack - 1) / stack;
+            free -= slotsNeeded;
+            if (free < 0)
+                return false;
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// Which filled sockets the extract cast asked for, in socket order. Empty when the cast

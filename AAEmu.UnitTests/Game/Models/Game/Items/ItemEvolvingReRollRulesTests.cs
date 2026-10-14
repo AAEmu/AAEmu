@@ -45,19 +45,13 @@ public class ItemEvolvingReRollRulesTests
     }
 
     [Test]
-    public async Task Payment_ZeroChanceBlocksStoneAndFreeAttempt()
+    public async Task Payment_StoneIgnoresRemainingChanges()
     {
+        // Serendipity / Lucent / lucid pay from the stone, not EvolveChance — even at 0.
         await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: true, evolveChance: 0,
-            requiresStone: false)).IsEqualTo(ItemEvolvingReRollPayment.None);
+            requiresStone: false)).IsEqualTo(ItemEvolvingReRollPayment.LuckStone);
         await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: true, evolveChance: 0,
-            requiresStone: true)).IsEqualTo(ItemEvolvingReRollPayment.None);
-        await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: false, evolveChance: 0,
-            requiresStone: false)).IsEqualTo(ItemEvolvingReRollPayment.None);
-    }
-
-    [Test]
-    public async Task Payment_StoneWinsWhenAttemptsRemain()
-    {
+            requiresStone: true)).IsEqualTo(ItemEvolvingReRollPayment.LuckStone);
         await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: true, evolveChance: 3,
             requiresStone: true)).IsEqualTo(ItemEvolvingReRollPayment.LuckStone);
         await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: true, evolveChance: 1,
@@ -69,12 +63,16 @@ public class ItemEvolvingReRollRulesTests
     {
         await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: false, evolveChance: 2,
             requiresStone: false)).IsEqualTo(ItemEvolvingReRollPayment.ChangeAttempt);
+        await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: false, evolveChance: 0,
+            requiresStone: false)).IsEqualTo(ItemEvolvingReRollPayment.None);
     }
 
     [Test]
     public async Task Payment_LucidWithoutStoneIsRefused()
     {
         await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: false, evolveChance: 5,
+            requiresStone: true)).IsEqualTo(ItemEvolvingReRollPayment.None);
+        await Assert.That(ItemEvolvingReRollRules.ResolvePayment(hasStone: false, evolveChance: 0,
             requiresStone: true)).IsEqualTo(ItemEvolvingReRollPayment.None);
     }
 }

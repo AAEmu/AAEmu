@@ -78,9 +78,12 @@ public class SkillCastExtraRebuildTests
     [Test]
     public async Task SocketExtract_Read_IsIndexThenIsAll()
     {
+        // Extract-all is index + true + inputDirection; without the trailing byte the reader
+        // must not treat the lone bool as isAll (that byte would be inputDirection on a single pull).
         var stream = new PacketStream();
         stream.Write(0);
         stream.Write(true);
+        stream.Write((byte)0);
 
         var skillObject = SkillObject.GetByType(SkillObjectType.ItemSocketExtract);
         skillObject.Read(new PacketStream(stream.GetBytes()));

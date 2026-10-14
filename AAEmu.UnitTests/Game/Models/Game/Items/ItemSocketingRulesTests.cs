@@ -63,4 +63,25 @@ public class ItemSocketingRulesTests
 
         await Assert.That(next).IsEquivalentTo(new uint[9]);
     }
+
+    [Test]
+    public async Task CanFitExtractReturns_SharedFreeSlots_AreNotDoubleCounted()
+    {
+        // Two different gems each "fit" if free slots are counted twice; together they need 2.
+        var returns = new Dictionary<uint, int> { [100] = 1, [200] = 1 };
+
+        await Assert.That(ItemSocketingRules.CanFitExtractReturns(
+            returns, _ => 0, _ => 1, freeSlots: 1)).IsFalse();
+        await Assert.That(ItemSocketingRules.CanFitExtractReturns(
+            returns, _ => 0, _ => 1, freeSlots: 2)).IsTrue();
+    }
+
+    [Test]
+    public async Task CanFitExtractReturns_ExistingStackRoom_DoesNotSpendAFreeSlot()
+    {
+        var returns = new Dictionary<uint, int> { [100] = 2 };
+
+        await Assert.That(ItemSocketingRules.CanFitExtractReturns(
+            returns, id => id == 100 ? 2 : 0, _ => 20, freeSlots: 0)).IsTrue();
+    }
 }

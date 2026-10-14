@@ -48,9 +48,9 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
         }
 
         // Payment is either a luck / lucid stone (SkillItem source) or one of the piece's change
-        // attempts. Stones are not use_skill_as_reagent and the skill_effect does not
-        // consume_source_item, so a stone spend lands here on success only. Lucid swaps always
-        // need a stone; basic swaps may spend an attempt with no stone at all.
+        // attempts. Stones ignore EvolveChance entirely. They are not use_skill_as_reagent and
+        // the skill_effect does not consume_source_item, so a stone spend lands here on success
+        // only. Lucid swaps always need a stone; basic swaps may spend an attempt with no stone.
         Item stone = null;
         if (casterObj is SkillItem stoneCaster)
         {
@@ -146,9 +146,10 @@ public abstract class ItemEvolvingReRollBase : SpecialEffectAction
         }
 
         equipItem.RndAttrGroupIds[index] = afterGroupId;
-        // Every successful swap spends one remaining change — stone or free. Leaving the
-        // counter alone on a stone pay stuck pieces at 1 forever.
-        equipItem.EvolveChance--;
+        // Free attempts spend EvolveChance; stone pays leave it alone so the banked changes
+        // stay available after the stone is gone.
+        if (payment == ItemEvolvingReRollPayment.ChangeAttempt)
+            equipItem.EvolveChance--;
         equipItem.IsDirty = true;
 
         if (payment == ItemEvolvingReRollPayment.LuckStone)
