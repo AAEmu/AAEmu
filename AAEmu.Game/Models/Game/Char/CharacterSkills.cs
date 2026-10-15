@@ -276,12 +276,23 @@ public class CharacterSkills(Character owner)
 
     /// <summary>
     /// Whether the character holds <paramref name="skillId"/> — learned, buff-granted, the
-    /// currently selected Heir successor, or the next Combo follow-up after the last fired skill
-    /// inside that link's Combo window. Open follow-ups without a prior link are refused.
+    /// currently selected Heir successor, or a Combo follow-up of any of those.
     /// </summary>
+    /// <remarks>
+    /// Combo follow-ups (special type 48) are never book entries: the client swaps the bar to the
+    /// next id in the chain and sends an ordinary cast for it. The chain is the only link between
+    /// the hits, so holding any earlier hit is what makes a later one castable — the same rule for
+    /// an instant chain (Triple Slash) and a cast-time one (Flamebolt, Gods' Whip), whose second hit
+    /// arrives after the first hit's cast and routinely outside the previous link's Combo window.
+    /// Gating on that window alone accepted one family and refused the other as unlearned.
+    /// The window check stays as a fallback for a root that was buff-granted and released mid-chain.
+    /// </remarks>
     public bool HasSkill(uint skillId)
     {
         if (Skills.ContainsKey(skillId) || TemporarySkills.ContainsKey(skillId) || IsActiveHeirSuccessor(skillId))
+            return true;
+
+        if (SkillComboRules.IsHeldOrComboFollowUp(skillId, HeldComboRoots(), SkillComboRules.NextFollowUp))
             return true;
 
         return SkillComboRules.IsNextComboWithinWindow(
@@ -291,6 +302,18 @@ public class CharacterSkills(Character owner)
             DateTime.UtcNow,
             SkillComboRules.NextFollowUp,
             SkillComboRules.ComboWindowMs);
+    }
+
+    /// <summary>
+    /// Every skill a Combo chain can hang off: live book skills, buff-granted skills and the
+    /// selected Heir successors.
+    /// </summary>
+    private IEnumerable<uint> HeldComboRoots()
+    {
+        foreach (var id in LiveSkillIds())
+            yield return id;
+        foreach (var id in Owner.HeirSkills?.ActiveSuccessorSkillIds() ?? [])
+            yield return id;
     }
 
     private void ReconcileBuffGrants()
