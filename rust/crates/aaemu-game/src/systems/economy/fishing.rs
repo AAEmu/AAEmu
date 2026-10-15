@@ -150,6 +150,8 @@ pub(crate) fn sell_equipped_fish(
     true
 }
 
+/// Converts the equipped fish into its trophy and, once every container lock is released,
+/// offers the catch to the ranking boards (`systems::social::ranking_manager`).
 pub(crate) fn convert_equipped_fish(
     server: &GameServer,
     player: &PlayerRef,
@@ -158,53 +160,70 @@ pub(crate) fn convert_equipped_fish(
     convert_func_id: u32,
     task: u8,
 ) -> bool {
-    let Some(convert) = server
+    let Some((length, weight)) =
+        convert_equipped_fish_inner(server, player, item_id, template_id, convert_func_id, task)
+    else {
+        return false;
+    };
+    record_catch(server, player, length, weight);
+    true
+}
+
+/// Offers one landed trophy fish (`BigFish` length / weight) to the fishing ranking boards. The
+/// boards are bound to a zone group, so the catch counts where the player stands.
+pub(crate) fn record_catch(server: &GameServer, player: &PlayerRef, length: f32, weight: f32) {
+    let zone_key = player.data().unit.transform.zone_id;
+    let zone_group = super::craft::zone_group_id(server, zone_key);
+    server.systems.social.ranking.record(
+        server,
+        player,
+        crate::systems::social::ranking_runtime::RankEvent::Catch { length, weight },
+        zone_group,
+        chrono::Utc::now(),
+    );
+}
+
+fn convert_equipped_fish_inner(
+    server: &GameServer,
+    player: &PlayerRef,
+    item_id: u64,
+    template_id: u32,
+    convert_func_id: u32,
+    task: u8,
+) -> Option<(f32, f32)> {
+    let convert = server
         .game_data
         .items
         .loot_packs_by_fish(template_id)
         .iter()
-        .find(|row| row.doodad_func_convert_fish_id == convert_func_id)
-    else {
-        return false;
-    };
+        .find(|row| row.doodad_func_convert_fish_id == convert_func_id)?;
     let econ = &server.game_data.systems.economy;
-    let Some(details) = econ.items.fish_details.get(&template_id) else {
-        return false;
-    };
+    let details = econ.items.fish_details.get(&template_id)?;
     if details.min_length < 0
         || details.max_length <= 0
         || details.max_length < details.min_length
         || details.min_weight < 0
         || details.max_weight < details.min_weight
     {
-        return false;
+        return None;
     }
     let mut txn = ItemTxn::begin(server);
     let inv = Inv::of(player);
     let equipment_ref = inv.equipment();
     let bag_ref = inv.bag();
     let (mut equipment, bag) = lock_pair(&equipment_ref, &bag_ref);
-    let Some(mut bag) = bag else {
-        return false;
-    };
-    let Some(source) = equipment.get_item_by_slot(equip_slot::BACKPACK) else {
-        return false;
-    };
+    let mut bag = bag?;
+    let source = equipment.get_item_by_slot(equip_slot::BACKPACK)?;
     if !is_equipped_fish(server, source, inv.character_id, item_id, template_id)
         || !txn.env.rules.can_destroy(source)
     {
-        return false;
+        return None;
     }
     let mut rng = SharedRandom;
-    let Some(trophies) =
-        loot_convert_fish_from_pack(server, template_id, convert.loot_pack_id, &mut rng)
-    else {
-        return false;
-    };
+    let trophies =
+        loot_convert_fish_from_pack(server, template_id, convert.loot_pack_id, &mut rng)?;
     // This lottery allocates only its single selected row (it breaks after selection).
-    let Some(trophy) = trophies.into_iter().next() else {
-        return false;
-    };
+    let trophy = trophies.into_iter().next()?;
     let Some(fish) = econ.items.create_big_fish(
         &server.game_data.items,
         &trophy,
@@ -213,12 +232,13 @@ pub(crate) fn convert_equipped_fish(
         txn.env.now,
     ) else {
         txn.env.fx.push(ItemFx::ReleaseId(trophy.id));
-        return false;
+        return None;
     };
+    let caught = (fish.details.fish_length, fish.details.fish_weight);
     let data = txn.data();
     if bag.place(&fish, -1, data).is_none() {
         txn.env.fx.push(ItemFx::ReleaseId(fish.id));
-        return false;
+        return None;
     }
     let before_equipment = equipment.clone();
     let fx_before = txn.env.fx.len();
@@ -227,7 +247,7 @@ pub(crate) fn convert_equipped_fish(
         .is_none()
     {
         txn.env.fx.push(ItemFx::ReleaseId(fish.id));
-        return false;
+        return None;
     }
     // Both containers stay locked throughout placement and consumption. Restore the
     // source and discard its queued effects if delivery nonetheless refuses the item.
@@ -235,9 +255,9 @@ pub(crate) fn convert_equipped_fish(
         *equipment = before_equipment;
         txn.env.fx.0.truncate(fx_before);
         txn.env.fx.push(ItemFx::ReleaseId(fish.id));
-        return false;
+        return None;
     }
-    true
+    Some(caught)
 }
 
 #[cfg(test)]

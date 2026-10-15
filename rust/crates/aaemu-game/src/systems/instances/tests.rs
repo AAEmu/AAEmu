@@ -128,6 +128,7 @@ fn instant_game_joined_is_byte_exact() {
         time_playing: 15,
         victory_score: 40,
         battlefield_id: 7,
+        ..Default::default()
     };
     let mut e = PacketStream::new();
     zid_bytes(&mut e);

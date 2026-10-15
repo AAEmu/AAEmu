@@ -1368,11 +1368,25 @@ async fn court_case_blocks_queueing() {
 // ---------------------------------------------------------------------------------------------
 
 fn camp_server(corps_size: u32, victory_score: i32) -> Arc<GameServer> {
+    camp_server_with(corps_size, victory_score, false)
+}
+
+/// [`camp_server`]; `ranked` puts the camp in the arena ranking board's zone group (77) with the
+/// gladiator duel's authored points (win 4, lose 1).
+fn camp_server_with(corps_size: u32, victory_score: i32, ranked: bool) -> Arc<GameServer> {
     let mut data = GameData::empty();
+    let camp_group = if ranked {
+        crate::systems::social::ranking_flow_tests::ARENA_ZONE_GROUP
+    } else {
+        31
+    };
     data.zones = zones(&[
         zone(TEST_ZONE, TEST_ZONE, 1),
-        zone(CAMP_ZONE, CAMP_ZONE, 31),
+        zone(CAMP_ZONE, CAMP_ZONE, camp_group),
     ]);
+    if ranked {
+        data.systems.social.ranking = crate::systems::social::ranking_flow_tests::ranking_data();
+    }
     let point = |x: f32, y: f32| Point {
         zone_id: CAMP_ZONE,
         x,
@@ -1400,6 +1414,9 @@ fn camp_server(corps_size: u32, victory_score: i32) -> Arc<GameServer> {
                 time_playing: 15,
                 victory_score,
                 battlefield_id: 7,
+                rank_win_point: if ranked { 4 } else { 0 },
+                rank_lose_point: i32::from(ranked),
+                ..Default::default()
             }),
         },
     )]);
@@ -1836,4 +1853,52 @@ async fn battlefield_entered_requires_actual_instance_and_subscribes_kills_once(
             .count(&p.p, CharEvent::Kill),
         1
     );
+}
+
+#[tokio::test]
+async fn a_battlefield_result_scores_the_arena_ranking_board() {
+    let server = camp_server_with(1, 60, true);
+    let mut e = Pc::new(&server, 5, "Echo", 100.0, 100.0);
+    let mut f = Pc::new(&server, 6, "Foxtrot", 120.0, 100.0);
+    e.frames();
+    f.frames();
+    for p in [&e, &f] {
+        instant_game::apply_to_battlefield(&server, 7, corps::ANY, &p.p);
+    }
+    instant_game::battlefield_tick(&server);
+    let mut join = vec![1];
+    join.extend_from_slice(&1u64.to_le_bytes());
+    let entered = 1u64.to_le_bytes();
+    for p in [&mut e, &mut f] {
+        p.frame(&server, cs::CSJoinInstantGamePacket, &join).await;
+        p.frame(&server, cs::CSEnteredInstantGameWorldPacket, &entered)
+            .await;
+    }
+    // Nothing is scored while the game runs.
+    let ranking = &server.systems.social.ranking;
+    assert!(ranking.is_empty());
+
+    // Echo kills Foxtrot twice: 60 points, corps 2 (Echo) wins, the result is final.
+    for _ in 0..2 {
+        events::on_do_die(
+            &server,
+            &WorldObject::from(&f.p),
+            Some(&WorldObject::from(&e.p)),
+        );
+    }
+    let board = server.game_data.systems.social.ranking.rank(1).unwrap();
+    let period = board
+        .period_at(chrono::Utc::now())
+        .unwrap()
+        .start
+        .timestamp();
+    let winner = ranking.score_of(5, 1, period).expect("winner scored");
+    assert_eq!((winner.v1, winner.v2), (4, 1));
+    assert_eq!(winner.account, "Echo");
+    let loser = ranking.score_of(6, 1, period).expect("loser scored");
+    assert_eq!((loser.v1, loser.v2), (1, 0));
+
+    // The result is offered once: the destroy that follows does not score again.
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert_eq!(ranking.score_of(5, 1, period).unwrap().v1, 4);
 }

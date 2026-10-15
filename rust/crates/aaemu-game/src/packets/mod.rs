@@ -135,7 +135,10 @@ mod tests {
             // registering it is harmless.
             // `CSTakeScheduleItemPacket` is a 1.2 client packet the C# never registered
             // (`systems::npcs::schedule_item_packets`, opcode read off the client).
-            let rust_only = opcode == crate::opcodes::cs::CSTakeScheduleItemPacket;
+            // `CSRankSnapshotPacket` (0x130) is not named by the 1.2 opcode tables and the C#
+            // never handled it; the real client sends it.
+            let rust_only =
+                opcode == crate::opcodes::cs::CSTakeScheduleItemPacket || opcode == 0x130;
             if !expected.contains_key(&(level, opcode)) && opcode != 0xfff && !rust_only {
                 missing.push(format!(
                     "0x{opcode:03x}({level}) {} not registered in C#",

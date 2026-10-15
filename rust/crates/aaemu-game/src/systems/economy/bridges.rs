@@ -2160,11 +2160,13 @@ impl crate::systems::npcs::hooks::EconomyBridge for EconomyForNpcs {
             );
             return;
         };
+        let caught = (fish.details.fish_length, fish.details.fish_weight);
         let data = txn.data();
         let res = lock(&Inv::of(player).bag()).add_item(task, fish, -1, data, &mut txn.env.fx);
         if let Err(item) = res {
             server.items.add_loose(item);
         }
+        super::fishing::record_catch(server, player, caught.0, caught.1);
     }
 
     fn coffer_chest_type(&self, server: &GameServer, container_id: u64) -> u8 {
