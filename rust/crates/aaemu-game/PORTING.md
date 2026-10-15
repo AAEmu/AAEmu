@@ -1046,6 +1046,33 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   source `(template, func group)` or a chain deeper than 8 entries is rejected with a warning,
   the current doodad stays in its phase, and finite A -> B -> C chains are unchanged.
 
+* systems::ai (2026-10-15): the optional compact patch
+  `SQL/patches/compact/2026-10-14-fix-npc-ai-param-syntax.sql` repairs malformed Lua syntax
+  in `npc_ai_params` 443, 835 and 1975 only when the original bytes match. It preserves authored
+  values and is idempotent; 1975 recovers the five complete skill entries present in the source,
+  without reconstructing any potentially missing entries. Back up the database, apply the patch
+  offline to the server's compact copy, then restart; runtime loaders remain read-only. AI tick
+  diagnostics now report plan, tick and maintenance time with active-work counts. Parallel tick
+  time is elapsed batch time, including dispatch and await overhead, rather than summed job time.
+
+* systems::vehicles / managers::item (2026-10-15): the shared death hook ignores self-deaths
+  of objects other than characters and mates instead of reporting a missing mate owner. A mate
+  whose owner really is missing still logs the mate and owner object IDs. A successful item
+  deletion with fewer affected rows now logs at debug: the other queued IDs were already absent
+  (for example, an item consumed before its first save). SQL errors and transaction handling are
+  unchanged, and deletion IDs are acknowledged only after commit.
+
+* Static-data gaps (2026-10-15): buffs 2149, 1142 and 1933 reference absent skill controllers
+  3554, 1806 and 7749 in the available 1.2 compact copies. Their controller behavior remains
+  unsupported pending authentic definitions; no replacement parameters are invented. The supplied
+  BuffEffect warnings also reference 33 absent buff templates, ten referenced by skill rows.
+  Restoring them requires an authentic 1.2 dataset. Skill 14602
+  already exists and uses the inherited fallback cast path for Memory Tome interactions; its
+  "undefined use type" diagnostic does not mean the skill template is absent. Quest skill 16881
+  references NPC group 200, whose members 7976/7977 have no available NPC templates; the meaning
+  of its unique `unit_reqs` kind-34 `value2 = 1` remains unverified. Missing authored `tuto_move`,
+  `public_farm*` and `public_mate*` paths also remain data gaps.
+
 ## Live testing (phase 5): fixes and deliberate deviations
 
 Found by running the servers against MySQL, the real `compact.sqlite3` / `game_pak` and the

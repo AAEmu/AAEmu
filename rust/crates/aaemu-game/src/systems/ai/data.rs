@@ -421,10 +421,22 @@ mod tests {
         };
         let d = AiData::load_from(&c).expect("ai data");
         assert!(d.params.len() > 1000, "{}", d.params.len());
-        // npc_ai_params 443, 835 and 1975 are Lua syntax errors (the C# warns and skips them).
-        let mut failed = d.params_failed.clone();
-        failed.sort_unstable();
-        assert_eq!(failed, vec![443, 835, 1975]);
+        // npc_ai_params 443, 835 and 1975 are Lua syntax errors in the original compact data and
+        // are repaired by SQL/patches/compact/2026-10-14-fix-npc-ai-param-syntax.sql. Both
+        // states are valid (original: the three fail; patched: the three parse), but a parse
+        // failure of any other row is not.
+        for id in &d.params_failed {
+            assert!(
+                [443, 835, 1975].contains(id),
+                "unexpected npc_ai_params parse failure {id}"
+            );
+        }
+        for id in [443, 835, 1975] {
+            assert!(
+                d.params.contains_key(&id) != d.params_failed.contains(&id),
+                "npc_ai_params {id} must parse on patched data or fail on original data"
+            );
+        }
         assert!(!d.commands.is_empty());
         assert_eq!(d.command_sets.len(), 325);
         assert!(d.chat_bubbles.len() > 1000);
@@ -673,3 +685,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "param_repair_tests.rs"]
+mod param_repair_tests;

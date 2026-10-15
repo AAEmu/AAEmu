@@ -140,7 +140,7 @@ analyze() {
       worder[++nw] = key
       next
     }
-    /Tick took/ && /to finish/ {
+    /[Tt]ick took/ && /to finish/ {
       ts = ts_of($0)
       if (use_since && ts < since) next
       ms = after_took($0) + 0
@@ -241,7 +241,7 @@ if [[ "$WATCH" -eq 1 ]]; then
       fi
       last_world_line="$line"
       echo "[world] $line"
-    elif [[ "$line" =~ Tick\ took[[:space:]]+([0-9]+(\.[0-9]+)?)ms\ to\ finish ]]; then
+    elif [[ "$line" =~ [Tt]ick\ took[[:space:]]+([0-9]+(\.[0-9]+)?)ms\ to\ finish ]]; then
       tick_ms="${BASH_REMATCH[1]}"
       tick_ts=""
       if [[ "$line" =~ ([0-9]{2}:[0-9]{2}:[0-9]{2}) ]]; then

@@ -1212,19 +1212,23 @@ pub fn reward_kill_exp(server: &GameServer, p: &PlayerRef, exp: i32) {
 }
 
 /// `Unit.DespawnMate(character)` of `Unit.DoDie`: a dead character's mates are despawned (for
-/// a mate victim, its owner's; nothing happens while the character is alive).
+/// a mate victim, its owner's; nothing happens while the character is alive). Deaths of any
+/// other victim kind are not mate deaths and are ignored.
 pub fn despawn_mate_on_death(server: &GameServer, victim: &WorldObject) {
     let character = match victim {
-        WorldObject::Player(p) => Some(p.clone()),
+        WorldObject::Player(p) => p.clone(),
         WorldObject::Mate(m) => {
-            let owner = m.data().owner_obj_id;
-            server.world.character_by_obj_id(owner)
+            let owner_obj_id = m.data().owner_obj_id;
+            let Some(owner) = server.world.character_by_obj_id(owner_obj_id) else {
+                tracing::error!(
+                    "DespawnMate: no character (NullReferenceException): mate obj_id {} owner_obj_id {owner_obj_id}",
+                    m.obj_id
+                );
+                return;
+            };
+            owner
         }
-        _ => None,
-    };
-    let Some(character) = character else {
-        tracing::error!("DespawnMate: no character (NullReferenceException)");
-        return;
+        _ => return,
     };
     if character.data().unit.hp > 0 {
         return;

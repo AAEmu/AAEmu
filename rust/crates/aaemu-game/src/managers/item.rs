@@ -530,8 +530,8 @@ impl ItemManager {
                 .await?
                 .rows_affected() as usize;
             if deleted != removed.len() {
-                tracing::error!(
-                    "Some items could not be deleted, only {deleted}/{} items removed !",
+                tracing::debug!(
+                    "Item deletion affected {deleted}/{} queued rows; the remaining ids were already absent",
                     removed.len()
                 );
             }

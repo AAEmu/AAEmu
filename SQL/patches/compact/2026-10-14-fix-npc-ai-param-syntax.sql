@@ -1,0 +1,39 @@
+-- Fix malformed Lua in npc_ai_params rows 443, 835 and 1975 (1.2 compact data).
+--
+-- These three rows are skipped by the AI loader ("Impossible to parse npc_ai_params")
+-- and their NPCs lose all authored AI behavior. Every edit below is punctuation-only and
+-- preserves all authored keys, numbers and comments:
+--   443  (npc 798, ArcherRoaming): brace-wrap the scalar makeAGap = 12449 into the list
+--        shape every neighbor uses, and add the missing comma after rangedDef = {15926}.
+--   835  (npc 5877, Flytrap): the table's only bracket pair, [2,12279], becomes the flat
+--        two-entry skill list { 2, 12279 } used by sibling rows 836/838.
+--   1975 (npc 12169, BigMonsterHoldPosition): append CRLF + the final closing brace for
+--        combatSkills. Exactly the five entries present in the row are activated; no entry
+--        or field is added.
+--
+-- Each UPDATE is guarded by exact equality with the verified original row text (UTF-8 hex),
+-- so re-imported/repaired/customized rows are never touched. The script is idempotent:
+-- re-running it changes nothing on an already-patched database.
+-- Assumption recorded for 1975: the source row contains exactly five complete combatSkills
+-- entries; only the closing brace is missing.
+BEGIN;
+
+UPDATE `npc_ai_params`
+SET `ai_param` = replace(replace(`ai_param`,
+        'makeAGap = 12449,', 'makeAGap = {12449},'),
+        'rangedDef = {15926} --', 'rangedDef = {15926}, --')
+WHERE `id` = 443
+  AND `ai_param` = CAST(X'616c6572744475726174696f6e203d2031302c0d0a616c6572745361666554617267657452656d656d62657254696d65203d20352c0d0a6d656c656541747461636b52616e6765203d20342c0d0a636f6d626174536b696c6c73203d207b0d0a20206d656c6565203d207b322c2031323438327d2c202d2ded9994ec97bc20ebbf9ceab8b00d0a20206d616b6541476170203d2031323434392c2d2deab095eba0a5ed959c20ec8690ec9584eab7800d0a202072616e676564446566203d207b31353932367d202d2debb688eabd8320ec86a1ec9db40d0a202072616e6765645374726f6e67203d207b31313931312c2031313036382c207d202d2ded9888ec95a120ec86a1ec9db42c20ec839deab8b020ed9da1ec88980d0a7d2c0d0a7072656665726564436f6d62617444697374203d2031352c0d0a6d61784d616b6541476170436f756e74203d2031' AS TEXT);
+
+UPDATE `npc_ai_params`
+SET `ai_param` = replace(`ai_param`,
+        'melee = { [2,12279] },', 'melee = { 2, 12279 },')
+WHERE `id` = 835
+  AND `ai_param` = CAST(X'61747461636b456e6444697374616e6365203d2032352c0d0a6d656c656541747461636b52616e6765203d20352c0d0a636f6d626174536b696c6c73203d207b0d0a20206d656c6565203d207b205b322c31323237395d207d2c0d0a7d' AS TEXT);
+
+UPDATE `npc_ai_params`
+SET `ai_param` = `ai_param` || char(13) || char(10) || '}'
+WHERE `id` = 1975
+  AND `ai_param` = CAST(X'616c6572744475726174696f6e203d20332c0d0a616c6572745361666554617267657452656d656d62657254696d65203d2031352c0d0a636f6d626174536b696c6c73203d0d0a7b0d0a20207b20736b696c6c54797065203d2031373334312c20736b696c6c44656c6179203d20302c20737472616665447572696e6744656c6179203d2066616c73652c206865616c746852616e6765203d207b20302c203930207d207d2c202d2dec96b4eb91a0ec9d98ed9994ec82b40d0a20207b20736b696c6c54797065203d2031353138392c20736b696c6c44656c6179203d20302c20737472616665447572696e6744656c6179203d2066616c73652c206865616c746852616e6765203d207b2037302c203930207d207d2c202d2dec96b4eb91a0ec9d98ec868debb0950d0a20207b20736b696c6c54797065203d2031353138392c20736b696c6c44656c6179203d20302c20737472616665447572696e6744656c6179203d2066616c73652c206865616c746852616e6765203d207b2033302c203530207d207d2c202d2dec96b4eb91a0ec9d98ec868debb0950d0a20207b20736b696c6c54797065203d2031353035342c20736b696c6c44656c6179203d20302c20737472616665447572696e6744656c6179203d2066616c73652c206865616c746852616e6765203d207b2035302c203730207d207d2c202d2deca3bdec9d8cec9d98ec868debb0950d0a20207b20736b696c6c54797065203d2031353035342c20736b696c6c44656c6179203d20302c20737472616665447572696e6744656c6179203d2066616c73652c206865616c746852616e6765203d207b2031302c203330207d207d2c202d2deca3bdec9d8cec9d98ec868debb095' AS TEXT);
+
+COMMIT;

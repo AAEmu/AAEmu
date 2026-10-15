@@ -134,7 +134,9 @@ impl AiHandle {
     }
 }
 
-/// Counts of one [`tick_all`] pass (tests / diagnostics; no timing).
+/// Counts and stage wall times of one [`tick_all`] / [`tick_batch`] pass (tests / diagnostics).
+/// Counts are exact; the stage times are millisecond wall times (truncated) and are not
+/// reproducible between passes.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct AiTickDiagnostics {
     /// AIs selected for the tick after deduplication (active regions + woken sets).
@@ -145,6 +147,19 @@ pub struct AiTickDiagnostics {
     pub busy: usize,
     /// Stale AIs removed during the tick (owner gone / NPC object deleted).
     pub removed: usize,
+    /// Wall time of the candidate plan construction (`tick_candidates`: selecting,
+    /// deduplicating and ordering the handles), ms. In a batch it is measured inside the plan
+    /// job, so blocking-pool queue time is not included.
+    pub plan_ms: u64,
+    /// Wall time of behavior processing (`process_plan`: `NpcAi::Tick` over the plan plus the
+    /// try-lock skips and drains), ms. Sequential passes measure `process_plan` directly; a
+    /// multi-worker batch measures one span over its whole chunk phase (dispatch through all
+    /// chunk awaits), so that span also includes chunk dispatch, blocking-pool queueing and
+    /// await overhead.
+    pub tick_ms: u64,
+    /// Wall time of the maintenance sweep of this pass, ms; 0 when the pass had no sweep
+    /// (`MAINTENANCE_SWEEP_TICKS` cadence).
+    pub maintenance_ms: u64,
 }
 
 /// `AIManager`.
@@ -600,10 +615,13 @@ fn plan_chunks(candidates: &[Arc<AiHandle>], workers: usize) -> Vec<Vec<Arc<AiHa
 }
 
 /// Shared tail of one pass: the low-frequency maintenance sweep (once per batch) and the
-/// diagnostics snapshot.
+/// diagnostics snapshot. `maintenance_ms` is the sweep's own wall time; a pass without a sweep
+/// keeps the zeroed default.
 fn finish_pass(server: &GameServer, seq: u64, diag: &mut AiTickDiagnostics) {
     if seq.is_multiple_of(MAINTENANCE_SWEEP_TICKS) {
+        let started = Instant::now();
         maintenance_sweep(server, diag);
+        diag.maintenance_ms = started.elapsed().as_millis() as u64;
     }
     *lock(&server.systems.ai.ais.last_tick) = *diag;
 }
@@ -619,12 +637,17 @@ fn finish_pass(server: &GameServer, seq: u64, diag: &mut AiTickDiagnostics) {
 pub fn tick_all(server: &GameServer, delta_ms: i64) -> AiTickDiagnostics {
     let manager = &server.systems.ai.ais;
     let seq = manager.tick_seq.fetch_add(1, Ordering::Relaxed) + 1;
+    let plan_started = Instant::now();
     let (candidates, local) = tick_candidates(server, seq);
+    let plan_ms = plan_started.elapsed().as_millis() as u64;
     let mut diag = AiTickDiagnostics {
         candidates: candidates.len(),
+        plan_ms,
         ..AiTickDiagnostics::default()
     };
+    let tick_started = Instant::now();
     process_plan(server, &candidates, &local, delta_ms, &mut diag);
+    diag.tick_ms = tick_started.elapsed().as_millis() as u64;
     finish_pass(server, seq, &mut diag);
     diag
 }
@@ -645,7 +668,25 @@ fn batch_worker_count(server: &GameServer) -> usize {
 /// owned supervisor (see `tick_batch_with_workers`), so cancelling the caller cannot release
 /// the lock while its jobs are still running.
 pub async fn tick_batch(server: &Arc<GameServer>, delta_ms: i64) -> AiTickDiagnostics {
-    tick_batch_with_workers(server, delta_ms, batch_worker_count(server)).await
+    let started = Instant::now();
+    let diag = tick_batch_with_workers(server, delta_ms, batch_worker_count(server)).await;
+    // Opt-in per-batch profile (`RUST_LOG` at debug). `total_ms` is the whole awaited
+    // batch as seen here: supervisor spawn, batch-lock serialization and blocking-pool dispatch
+    // are included; `plan_ms`/`maintenance_ms` are measured inside their jobs and the parallel
+    // `tick_ms` spans the whole chunk phase (see `AiTickDiagnostics`). Any remaining gap can
+    // include supervisor, batch-lock and finalization overhead; it does not identify one cause.
+    tracing::debug!(
+        total_ms = started.elapsed().as_millis() as u64,
+        plan_ms = diag.plan_ms,
+        tick_ms = diag.tick_ms,
+        maintenance_ms = diag.maintenance_ms,
+        candidates = diag.candidates,
+        ticked = diag.ticked,
+        busy = diag.busy,
+        removed = diag.removed,
+        "AI tick batch profile"
+    );
+    diag
 }
 
 /// [`tick_batch`] with an explicit worker count (clamped; tests): spawns the owning supervisor
@@ -691,15 +732,18 @@ async fn run_batch(server: Arc<GameServer>, delta_ms: i64, workers: usize) -> Ai
     }
 
     // Build the deduplicated plan once, on the blocking pool as well (it walks the player
-    // regions): a failure leaves the candidate sets untouched for the next batch.
+    // regions): a failure leaves the candidate sets untouched for the next batch. `plan_ms` is
+    // measured inside the job (candidate construction only; queue time excluded).
     let srv = server.clone();
     let plan = tokio::task::spawn_blocking(move || {
         let seq = srv.systems.ai.ais.tick_seq.fetch_add(1, Ordering::Relaxed) + 1;
+        let started = Instant::now();
         let (candidates, local) = tick_candidates(&srv, seq);
-        (seq, candidates, local)
+        let plan_ms = started.elapsed().as_millis() as u64;
+        (seq, candidates, local, plan_ms)
     })
     .await;
-    let (seq, candidates, local) = match plan {
+    let (seq, candidates, local, plan_ms) = match plan {
         Ok(plan) => plan,
         Err(e) => {
             tracing::error!("AI tick planning failed: {e}");
@@ -709,6 +753,12 @@ async fn run_batch(server: Arc<GameServer>, delta_ms: i64, workers: usize) -> Ai
 
     let local = Arc::new(local);
     let mut jobs = Vec::new();
+    // One wall-clock span over the whole parallel processing phase: it starts just before the
+    // chunk split/dispatch and ends when every chunk await has completed. It therefore includes
+    // chunk dispatch, blocking-pool queueing and await overhead in addition to the workers'
+    // execution; `plan_ms` and `maintenance_ms` are measured inside their jobs. The difference
+    // between the batch total and these stages is not attributed to any single cause.
+    let tick_started = Instant::now();
     for chunk in plan_chunks(&candidates, workers) {
         let srv = server.clone();
         let local = Arc::clone(&local);
@@ -718,6 +768,7 @@ async fn run_batch(server: Arc<GameServer>, delta_ms: i64, workers: usize) -> Ai
     }
     let mut diag = AiTickDiagnostics {
         candidates: candidates.len(),
+        plan_ms,
         ..AiTickDiagnostics::default()
     };
     for job in jobs {
@@ -730,6 +781,7 @@ async fn run_batch(server: Arc<GameServer>, delta_ms: i64, workers: usize) -> Ai
             Err(e) => tracing::error!("AI tick chunk failed: {e}"),
         }
     }
+    diag.tick_ms = tick_started.elapsed().as_millis() as u64;
 
     // The registry sweep and the diagnostics snapshot stay on the blocking pool, once.
     let base = diag;
@@ -831,10 +883,20 @@ pub fn start_tick(server: &Arc<GameServer>) {
             let Some(server) = weak.upgrade() else { return };
             let delta_ms = delta.as_millis() as i64;
             let started = Instant::now();
-            tick_batch(&server, delta_ms).await;
+            let diag = tick_batch(&server, delta_ms).await;
             let took = started.elapsed();
             if took > Duration::from_millis(100) {
-                tracing::warn!("AI tick took {}ms to finish", took.as_millis());
+                tracing::warn!(
+                    "AI tick took {}ms to finish (plan {}ms, tick {}ms, maintenance {}ms; candidates {}, ticked {}, busy {}, removed {})",
+                    took.as_millis(),
+                    diag.plan_ms,
+                    diag.tick_ms,
+                    diag.maintenance_ms,
+                    diag.candidates,
+                    diag.ticked,
+                    diag.busy,
+                    diag.removed
+                );
             }
         }
     });

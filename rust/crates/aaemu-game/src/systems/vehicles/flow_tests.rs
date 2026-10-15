@@ -184,6 +184,37 @@ fn bc(v: u32) -> Vec<u8> {
     v.to_le_bytes()[..3].to_vec()
 }
 
+/// Captures the tracing output of the current test thread (error-line assertions).
+#[derive(Clone, Default)]
+struct LogBuffer(Arc<Mutex<Vec<u8>>>);
+
+impl LogBuffer {
+    fn text(&self) -> String {
+        String::from_utf8(self.0.lock().unwrap().clone()).expect("utf-8 log")
+    }
+}
+
+impl std::io::Write for LogBuffer {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0.lock().unwrap().extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+fn capture_logs() -> (tracing::subscriber::DefaultGuard, LogBuffer) {
+    let buffer = LogBuffer::default();
+    let writer = buffer.clone();
+    let subscriber = tracing_subscriber::fmt()
+        .with_ansi(false)
+        .with_writer(move || writer.clone())
+        .finish();
+    (tracing::subscriber::set_default(subscriber), buffer)
+}
+
 #[tokio::test]
 async fn mount_and_dismount_flow() {
     let server = server_with(data());
@@ -1661,6 +1692,67 @@ async fn kill_exp_death_despawn_and_force_dismount() {
     pa.data().unit.hp = 0;
     mates::despawn_mate_on_death(&server, &WorldObject::from(&pa));
     assert!(mates::first_active_mate(&server, &pa).is_none());
+}
+
+#[tokio::test]
+async fn self_attributed_npc_death_does_not_touch_unrelated_mates() {
+    let server = server_with(data());
+    let mut a = TestClient::new(&server, 1, 1);
+    let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), MATE_ITEM);
+    mates::spawn_mount(&server, &pa, item_id);
+    let mate = mates::first_active_mate(&server, &pa).expect("active mate");
+    a.drain();
+
+    let (_guard, logs) = capture_logs();
+    let npc = crate::systems::npcs::npc::manager::create(&server, 0x200, MATE_NPC).expect("npc");
+    let world = server.world.world(0).unwrap();
+    world.spawn(&npc, &server.view_ctx());
+    npc.data().unit.hp = 0;
+    let npc_obj = WorldObject::from(&npc);
+    // The actual `Unit.DoDie` path with the NPC as its own killer.
+    crate::systems::skills::combat::do_die(
+        &server,
+        &npc_obj,
+        Some(&npc_obj),
+        crate::systems::skills::types::KillReason::Damage,
+    );
+
+    assert!(!logs.text().contains("DespawnMate"), "{}", logs.text());
+    assert!(mates::first_active_mate(&server, &pa).is_some());
+    assert!(world.mate(mate.obj_id).is_some());
+}
+
+#[tokio::test]
+async fn orphan_mate_death_logs_mate_and_owner_ids_without_deleting_mates() {
+    let server = server_with(data());
+    let a = TestClient::new(&server, 1, 1);
+    let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), MATE_ITEM);
+    mates::spawn_mount(&server, &pa, item_id);
+    let mate = mates::first_active_mate(&server, &pa).expect("active mate");
+    let owner_obj = mate.data().owner_obj_id;
+    // A real orphan: the owner leaves the server-wide character map.
+    assert!(server.world.try_remove_character(PA));
+
+    let (_guard, logs) = capture_logs();
+    mates::despawn_mate_on_death(&server, &WorldObject::from(&mate));
+
+    let text = logs.text();
+    assert!(
+        text.contains("DespawnMate: no character (NullReferenceException)"),
+        "{text}"
+    );
+    assert!(
+        text.contains(&format!("mate obj_id {}", mate.obj_id)),
+        "{text}"
+    );
+    assert!(
+        text.contains(&format!("owner_obj_id {owner_obj}")),
+        "{text}"
+    );
+    assert!(
+        mates::first_active_mate(&server, &pa).is_some(),
+        "a missing owner must not delete mates"
+    );
 }
 
 #[tokio::test]
