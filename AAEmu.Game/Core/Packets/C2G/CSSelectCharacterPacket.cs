@@ -181,7 +181,8 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             // client-side static data. Only the dynamic faction relations (SCFactionRelationList 0x0B)
             // are pushed at world entry.
             FactionManager.Instance.SendRelations(Connection.ActiveChar);
-            Connection.SendPacket(new SCFactionPowerScorePacket());
+            FactionPowerManager.Instance.OnLogin(Connection.ActiveChar);
+            FactionExileManager.Instance.OnLogin(Connection.ActiveChar);
             ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
 
             if (Connection.ActiveChar.Expedition != null)

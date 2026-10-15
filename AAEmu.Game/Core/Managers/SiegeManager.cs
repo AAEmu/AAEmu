@@ -197,6 +197,34 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
             [new SiegeRaidRegisterZone((int)zoneGroupId, rows)]));
     }
 
+    /// <summary>Whether the character is registered in the raid team of a territory whose siege is about to start or running.</summary>
+    public bool IsInSiegeMode(Character character)
+    {
+        if (character == null)
+            return false;
+
+        var running = DominionManager.Instance.Dominions
+            .Where(d => d.SiegeTimers?.SiegePeriod is (byte)SiegePeriod.ReadyToSiege or (byte)SiegePeriod.Siege)
+            .Select(d => d.ZoneId)
+            .ToHashSet();
+        if (running.Count == 0)
+            return false;
+
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT zone_id FROM siege_raid_team_members WHERE character_id=@c";
+        command.Parameters.AddWithValue("@c", character.Id);
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            if (running.Contains((ushort)reader.GetInt32(0)))
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// One faction's raid team for a zone group's siege, as the member list shows it: the members that faction
     /// registered, with what each of them is and how well they are geared.
@@ -542,6 +570,9 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         // Only now, with the row written, is the in-memory dominion and the clients told. A World that dies
         // between the commit and here re-reads the same record on its next tick.
         dominionManager.ApplySettlement(zoneGroupId, settled);
+        // Replays offer the award again; it is recorded with the points, so each cycle scores once.
+        if (settled.WinnerFactionId != 0)
+            FactionPowerManager.Instance.AddSiegeWin(settled.WinnerFactionId, zoneGroupId, settled.CycleWeekStart);
         BroadcastScore(zoneGroupId, SiegeScoreState.Empty(zoneGroupId));
 
         return wasOnRecord ? SiegeSettlementResult.AlreadySettled : SiegeSettlementResult.Settled;

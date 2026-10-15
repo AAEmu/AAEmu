@@ -512,6 +512,9 @@ public class UnitReqs
             case UnitReqsKindType.NotHero:
                 return Ret(SkillResultKeys.skill_urk_not_hero, player != null && !HeroManager.Instance.IsCurrentHero(player));
 
+            case UnitReqsKindType.NotSiegeMode:
+                return Ret(SkillResultKeys.skill_failure, player != null && !SiegeManager.Instance.IsInSiegeMode(player));
+
             case UnitReqsKindType.NotHeroNotCandidate:
                 return Ret(SkillResultKeys.skill_urk_not_hero_not_candidate,
                     player != null && !HeroManager.Instance.IsCurrentHero(player) && !HeroManager.Instance.IsCandidate(player));
@@ -879,19 +882,18 @@ public class UnitReqs
                     player != null && UnitReqOperatorRules.PassesGearScore(Value1, player.GearScore, Value2));
 
             case UnitReqsKindType.FactionPower:
-                // Tests whether faction value1 is in the client's faction-power set, filled from the
-                // faction power score feed the server does not model (SCFactionPowerScore is sent as zeros).
-                return MissingState("faction power scores are not modelled");
+                // Faction value1 has this week's standing value2 (1 inferior, 0 superior, 2 neither).
+                return Ret(SkillResultKeys.skill_failure, FactionExileManager.CheckFactionPower(Value1, Value2));
 
             case UnitReqsKindType.FactionChangePossibleFromTo:
-                // Passes when the faction service's per-(from, to) quota record (limit
-                // minus two counters) is positive. That record is server-fed and the server keeps no such quota.
-                return MissingState("faction change quotas are not modelled");
+                // The exile route value1 -> value2 is open and has slots left this week.
+                return Ret(SkillResultKeys.skill_failure, FactionExileManager.Instance.CheckRouteOpen(Value1, Value2));
 
             case UnitReqsKindType.FactionChangeCooldown:
-                // Passes once the character's faction change cooldown end (character block +0x3B60)
-                // is in the past. The server keeps no faction change timestamp.
-                return MissingState("faction change cooldown is not modelled");
+                // The faction change cooldown (faction_change_quest_cooldown) has run out, and the character
+                // has left their guild and family, as an exile must.
+                return Ret(SkillResultKeys.skill_failure,
+                    FactionExileManager.Instance.CheckCooldown(player) && FactionExileManager.LeaveRuleBlock(player) == null);
 
             case UnitReqsKindType.ConflictZoneState:
                 // Needs a conflict record for the unit's zone group and compares the state test

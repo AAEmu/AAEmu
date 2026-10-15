@@ -63,11 +63,11 @@ public class QuestRewardSupportRulesTests
         await Assert.That(QuestRewardSupportRules.RefusesAccept(template, false)).IsFalse();
     }
 
-    // Quest 9902 (exile, category 189): quest_act_supply_faction_changes 13 (161, ignore_limit t);
-    // quest 6572: quest_act_supply_ranked_items 1 (rank 1, 43779 x8); quest 11132:
+    // Quest 9902 (exile, category 189): quest_act_supply_faction_changes 13 (161, ignore_limit t), granted by
+    // the exile system; quest 6572: quest_act_supply_ranked_items 1 (rank 1, 43779 x8); quest 11132:
     // quest_act_supply_result_ranked_items 9 (win, rank 1, 51578 x15).
     [Test]
-    public async Task FactionChangeAndRankedItems_AreUnsupported()
+    public async Task FactionChangeIsSupportedAndRankedItemsAreNot()
     {
         var exile = Quest(9902, 43021, reward =>
         {
@@ -79,7 +79,7 @@ public class QuestRewardSupportRulesTests
         var competition = Quest(11132, 48507, reward =>
             reward.ActTemplates.Add(new QuestActSupplyResultRankedItem(reward) { DetailId = 9, Result = true, Rank = 1, ItemId = 51578, Count = 15 }));
 
-        await Assert.That(QuestRewardSupportRules.FirstUnsupported(exile) is QuestActSupplyFactionChange).IsTrue();
+        await Assert.That(QuestRewardSupportRules.FirstUnsupported(exile)).IsNull();
         await Assert.That(QuestRewardSupportRules.FirstUnsupported(war) is QuestActSupplyRankedItem).IsTrue();
         await Assert.That(QuestRewardSupportRules.FirstUnsupported(competition) is QuestActSupplyResultRankedItem).IsTrue();
     }

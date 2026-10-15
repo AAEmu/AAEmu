@@ -143,6 +143,12 @@ public static class WorldIntegration
     /// </remarks>
     public static Action<uint, uint, byte[]> RelayUnitStateToZone { get; set; }
 
+    /// <summary>
+    /// Replaces the set of npc_spawners ids the game keeps shut (exile brokers of closed routes): World stops
+    /// their spawns and retires live ones, and re-arms the zones when an id leaves the set.
+    /// </summary>
+    public static Action<IReadOnlyCollection<uint>> ApplyClosedGameSpawners { get; set; }
+
     /// <summary>Relay CS movement to zone as WZUnitMovement. Args: bcId, type+move body (no outer bc).</summary>
     public static Action<uint, byte[]> RelayMoveToZone { get; set; }
 

@@ -540,6 +540,7 @@ public static class Program
             zone.SendPacket(new WZNpcStartDespawnPacket(bcId));
             Logger.Info("WZNpcStartDespawn → zone bcId={0}", bcId);
         };
+        WorldIntegration.ApplyClosedGameSpawners = GameSpawnerGate.Apply;
         WorldIntegration.RelayNpcSpawnerEventToZone = request =>
         {
             var zone = request.CreatorObjId != 0

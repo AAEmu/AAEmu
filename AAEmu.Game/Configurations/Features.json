@@ -175,7 +175,7 @@
             "forbidTransferChar": false,
             "restrictFollow": false,
             "protectPvp": false,
-            "factionMigrateLimit": false,
+            "factionMigrateLimit": true,
             "uccUploadBlock": false,
             "blockRename": false,
             "notGainLeaderShipPoint": false,

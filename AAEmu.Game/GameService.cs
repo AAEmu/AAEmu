@@ -117,6 +117,8 @@ public sealed class GameService : IHostedService, IDisposable
         // Start main_world and other static instances
         WorldManager.Instance.CreateStaticInstances();
         WorldManager.Instance.Initialize();
+        FactionPowerManager.Instance.Start();
+        FactionExileManager.Instance.Start();
 
         CharacterManager.Instance.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
@@ -170,6 +172,7 @@ public sealed class GameService : IHostedService, IDisposable
 
 
         await SaveManager.Instance.StopAsync();
+        FactionPowerManager.Instance.Save();
 
         if (_gameKeepaliveTimer != null)
         {

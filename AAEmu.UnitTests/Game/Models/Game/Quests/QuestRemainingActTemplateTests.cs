@@ -95,7 +95,6 @@ public class QuestRemainingActTemplateTests
         QuestActTemplate[] acts =
         [
             new QuestActSupplyResidentCharge(Component(9334, QuestComponentKind.Reward)) { DetailId = 1, ZoneGroupId = 33, Charge = 10000 },
-            new QuestActSupplyFactionChange(Component(9902, QuestComponentKind.Reward)) { DetailId = 13, SystemFactionId = 161, IgnoreLimit = true },
             new QuestActSupplyRankedItem(Component(6572, QuestComponentKind.Reward)) { DetailId = 1, Rank = 1, ItemId = 43779, GradeId = 0, Count = 8 },
             new QuestActSupplyResultRankedItem(Component(11132, QuestComponentKind.Reward)) { DetailId = 9, Result = true, Rank = 1, ItemId = 51578, Count = 15 }
         ];
@@ -106,10 +105,10 @@ public class QuestRemainingActTemplateTests
             await Assert.That(act.CountsAsAnObjective).IsFalse();
         }
 
-        var ranked = (QuestActSupplyRankedItem)acts[2];
+        var ranked = (QuestActSupplyRankedItem)acts[1];
         await Assert.That(ranked.Count).IsEqualTo(8);
         await Assert.That(ranked.ItemId).IsEqualTo(43779u);
-        var result = (QuestActSupplyResultRankedItem)acts[3];
+        var result = (QuestActSupplyResultRankedItem)acts[2];
         await Assert.That(result.Result).IsTrue();
         await Assert.That(result.Count).IsEqualTo(15);
     }

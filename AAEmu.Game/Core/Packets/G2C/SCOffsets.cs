@@ -40,8 +40,6 @@ public static class SCOffsets
     public const ushort SCFactionIndependencePacket = 0x26;
     public const ushort SCFactionImmigrateInvitePacket = 0x27;
     public const ushort SCFactionImmigrateInviteResultPacket = 0x28;
-    public const ushort SCFactionImmigrateToOriginResultPacket = 0x29;
-    public const ushort SCFactionKickToOriginResultPacket = 0x2a;
     public const ushort SCFactionDeclareHostileResultPacket = 0x2b;
     public const ushort SCFactionRelationExpiredPacket = 0x2c;
     public const ushort SCFamilyInvitationPacket = 0x52; // 10.0.2.13
@@ -701,13 +699,11 @@ public static class SCOffsets
     public const ushort SCNotifyExpeditionWarResultPacket = 0x1F;
     public const ushort SCFactionCompetitionUpdatePointPacket = 0x338;
     public const ushort SCFactionImmigrateLimitDataPacket = 0x51;
+    public const ushort SCFactionImmigrateLimitListPacket = 0x50; // 10.0.2.13
     public const ushort SCFactionMobilizationOrderPacket = 0x3D;
     public const ushort SCFactionMobilizationOrderSuccessPacket = 0x3E;
     public const ushort SCFactionRelationRequestPacket = 0x2B;
     public const ushort SCFactionRelationResponsePacket = 0x2C;
-    // 10.0.2.13 heap pass. The v1.2 constants
-    // SCFactionImmigrateToOriginResultPacket 0x29 and SCFactionKickToOriginResultPacket 0x2a above
-    // sit on these same values and are flagged stale there (rename-candidates.csv).
     public const ushort SCFactionRelationHistoryPacket = 0x29;
     public const ushort SCFactionRelationCountPacket = 0x2A;
     public const ushort SCFamilyChangeMemberLevelPacket = 0x5E;
