@@ -1,4 +1,6 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -41,6 +43,12 @@ public class ChangeChargeCooldown : SpecialEffectAction
         }
 
         unit.Cooldowns.ChangeChargeRechargeTime(skillId, template.ChargeCount, value2);
+        if (unit is Character character)
+        {
+            character.SendPacket(new SCChargeSkillCooldownChangedPacket(
+                character.ObjId, skillId, percent: 0, count: 0, reduce: value2));
+        }
+
         Logger.Debug("Special effects: ChangeChargeCooldown skill {0} offset {1} ms", value1, value2);
     }
 }

@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
@@ -24,6 +24,8 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
 
     public ActorModel GetActorModel(uint modelId)
     {
+        if (!_loaded || _modelTypes == null || _models == null)
+            return null;
         if (!_modelTypes.TryGetValue(modelId, out var modelType))
             return null;
         if (!_models.TryGetValue(modelType.SubType, out var value) || !value.TryGetValue(modelType.SubId, out var model))

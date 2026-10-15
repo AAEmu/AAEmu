@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Game.Utils;
 
@@ -56,21 +56,61 @@ public class AreaShape
             //origin.Transform.World.ToRollPitchYawSBytes().Item3);
             origin.Transform.World.Rotation.Z);
 
+        var originPos = origin.Transform.World.Position;
         toCheck = toCheck.Where(o =>
         {
-            var tri1 = MathUtil.PointInTriangle((o.Transform.World.Position.X, o.Transform.World.Position.Y), vertices[0], vertices[1],
-                vertices[2]);
+            var p = o.Transform.World.Position;
+            var tri1 = MathUtil.PointInTriangle((p.X, p.Y), vertices[0], vertices[1], vertices[2]);
 
             // Fan from vertex 0, not (v1,v2,v3): the quad's two triangles have to share a diagonal
             // through the SAME corner. Splitting it as (v0,v1,v2)+(v1,v2,v3) leaves a quarter-wedge
             // of every cuboid uncovered, so an entire quarter of each box AoE never registered a hit.
-            var tri2 = MathUtil.PointInTriangle((o.Transform.World.Position.X, o.Transform.World.Position.Y), vertices[0], vertices[2],
-                vertices[3]);
+            var tri2 = MathUtil.PointInTriangle((p.X, p.Y), vertices[0], vertices[2], vertices[3]);
+            if (tri1 || tri2)
+                return true;
 
-            return tri1 || tri2;
+            // Body radius: Gods' Whip Wave bolts use a 2×2 box; a mob whose centre sits just outside
+            // still overlaps the volume when its ModelSize reaches the nearest face (not only when
+            // the centre-to-origin segment intersects the box).
+            var pad = o.ModelSize;
+            return pad > 0f && DistanceToCuboidXy(p.X, p.Y, vertices) <= pad;
         }).ToList();
 
         return toCheck;
+    }
+
+    /// <summary>XY distance from a point to the nearest edge of a convex cuboid (vertex order around the face).</summary>
+    private static float DistanceToCuboidXy(float px, float py, (float, float)[] vertices)
+    {
+        var minSq = float.MaxValue;
+        for (var i = 0; i < 4; i++)
+        {
+            var (ax, ay) = vertices[i];
+            var (bx, by) = vertices[(i + 1) % 4];
+            minSq = Math.Min(minSq, DistanceToSegmentSq(px, py, ax, ay, bx, by));
+        }
+
+        return MathF.Sqrt(minSq);
+    }
+
+    private static float DistanceToSegmentSq(float px, float py, float ax, float ay, float bx, float by)
+    {
+        var abx = bx - ax;
+        var aby = by - ay;
+        var abLenSq = abx * abx + aby * aby;
+        if (abLenSq <= 1e-12f)
+        {
+            var dx = px - ax;
+            var dy = py - ay;
+            return dx * dx + dy * dy;
+        }
+
+        var t = Math.Clamp(((px - ax) * abx + (py - ay) * aby) / abLenSq, 0f, 1f);
+        var qx = ax + t * abx;
+        var qy = ay + t * aby;
+        var ex = px - qx;
+        var ey = py - qy;
+        return ex * ex + ey * ey;
     }
 
     /// <summary>

@@ -143,6 +143,29 @@ public sealed class CharacterHeirSkills(Character owner)
                Owner.SkillActiveTypes.GetHeirState(heirSkillId, detail) == SkillActiveType.Active;
     }
 
+    /// <summary>
+    /// Selected successor skill ids that are currently castable. Combo follow-ups hang off these
+    /// roots the same way they hang off a learned book skill.
+    /// </summary>
+    public IReadOnlyList<uint> ActiveSuccessorSkillIds()
+    {
+        KeyValuePair<uint, uint>[] snapshot;
+        lock (_sync)
+            snapshot = _activeSuccessors.ToArray();
+
+        var result = new List<uint>(snapshot.Length);
+        foreach (var (heirSkillId, successorSkillId) in snapshot)
+        {
+            if (!HeirGameData.Instance.TryGetHeirSkillForSuccessor(successorSkillId, out var heirSkill, out var detail) ||
+                heirSkill.Id != heirSkillId ||
+                Owner.SkillActiveTypes.GetHeirState(heirSkillId, detail) != SkillActiveType.Active)
+                continue;
+            result.Add(successorSkillId);
+        }
+
+        return result;
+    }
+
     /// <summary>Builds the exact fixed-width records consumed by <c>SCHeirSkillListPacket</c>.</summary>
     public IReadOnlyList<HeirSkillListEntry> BuildPacketEntries()
     {

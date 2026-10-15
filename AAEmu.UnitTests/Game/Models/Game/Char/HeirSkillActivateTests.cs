@@ -69,6 +69,20 @@ public class HeirSkillActivateTests
         await Assert.That(persisted).IsTrue();
         await Assert.That(character.Skills.Skills.ContainsKey(BaseSkillId)).IsTrue();
         await Assert.That(character.HeirSkills.IsActiveSuccessor(SuccessorSkillId)).IsTrue();
+        // ZoneAuthority keys off HasSkill — the successor is never in Skills, only selected.
+        await Assert.That(character.Skills.HasSkill(SuccessorSkillId)).IsTrue();
+        await Assert.That(character.Skills.Skills.ContainsKey(SuccessorSkillId)).IsFalse();
+        await Assert.That(character.HeirSkills.ActiveSuccessorSkillIds()).IsEquivalentTo(new uint[] { SuccessorSkillId });
+    }
+
+    [Test]
+    public async Task HasSkill_UnselectedSuccessor_IsFalse()
+    {
+        var character = CharacterWith(baseCost: 0);
+        character.Skills.AddSkill(BaseSkillId);
+
+        await Assert.That(character.Skills.HasSkill(BaseSkillId)).IsTrue();
+        await Assert.That(character.Skills.HasSkill(SuccessorSkillId)).IsFalse();
     }
 
     [Test]

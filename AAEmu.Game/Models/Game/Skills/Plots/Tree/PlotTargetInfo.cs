@@ -280,7 +280,9 @@ public class PlotTargetInfo
         posUnit.Transform.ZoneId = PreviousTarget.Transform.ZoneId;
         posUnit.Transform.InstanceId = PreviousTarget.Transform.InstanceId;
         posUnit.Transform.Local.SetZRotation(((float)Random.Shared.Next(-180, 180)).DegToRad());
-        posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
+        // param3 is a disk radius (mm), not a fixed ring — see PlotRandomAreaRules.
+        posUnit.Transform.Local.AddDistanceToFront(
+            PlotRandomAreaRules.OffsetMetres(args.Distance, Random.Shared.NextSingle()));
         // Crimson plot 143: RandomArea after flying portals used Math.Max(portalZ+offset, ground)
         // which kept markers at rifts (balls never "landed"); army SpawnEffect copied that Z.
         posUnit.Transform.Local.SetHeight(ResolvePlotLandHeight(
@@ -387,8 +389,9 @@ public class PlotTargetInfo
 
     /// <summary>
     /// Pure floor pick for plot Area / RandomArea markers.
-    /// Flying NPC portals snap down onto terrain/water. Characters (glider nitro, etc.) keep
-    /// altitude + small HeightOffset — do not treat "high above seabed/heightmap" as a portal.
+    /// Flying NPC portals snap down onto terrain/water. Characters already high (glider nitro)
+    /// keep altitude + small HeightOffset. Near-ground aim picks land on the floor so a modest
+    /// HeightOffset (RandomArea param4, e.g. Meteor Strike 8 m) does not hang the impact in the air.
     /// </summary>
     public static float ChoosePlotAreaHeight(
         float anchorZ,
@@ -410,6 +413,12 @@ public class PlotTargetInfo
             return floor;
 
         if (previousIsFlyingNpc && raised > floor + 2f)
+            return floor;
+
+        // Ground (or near-ground) cast: telegraph is a surface pick. Small HeightOffset is scatter /
+        // FX metadata, not "leave the hit 8 m up". Glider clearance stays above this band.
+        const float NearGroundBandMetres = 3f;
+        if (!previousIsFlyingNpc && anchorZ - floor <= NearGroundBandMetres)
             return floor;
 
         return Math.Max(raised, floor);
@@ -540,7 +549,8 @@ public class PlotTargetInfo
 
         filtered = SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
         Step("relation");
-        filtered = filtered.Where(o => ((byte)o.TypeFlag & args.UnitTypeFlag) != 0);
+        filtered = filtered.Where(o =>
+            PlotTargetRules.PassesUnitTypeMask((byte)o.TypeFlag, args.UnitTypeFlag));
         Step("typeFlag");
 
         // plot_aoe_conditions (loaded on PlotEventTemplate.AoeConditions) gate Area / Random*

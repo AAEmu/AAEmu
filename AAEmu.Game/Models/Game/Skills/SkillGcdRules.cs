@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Skills;
+﻿namespace AAEmu.Game.Models.Game.Skills;
 
 /// <summary>
 /// Shared GCD length, and the attack-speed or cast-speed multiplier applied to it.
@@ -8,6 +8,9 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// is set, cast speed (<c>CastTimeMul</c>) otherwise. Every one of the 38,043 shipped <c>skills</c> rows
 /// carries <c>'f'</c>, so in 10.0.2.13 the weapon branch never runs and every skill scales by cast speed;
 /// it is kept because the column is authored data and a row that sets it must mean what it says.
+/// Scaling Flamebolt's 1000 ms GCD by attack speed made hold-repeat fire like a machine gun; cast
+/// speed is the authored selector for that family. The separate special-effect GlobalCooldown path still
+/// multiplies by <c>GlobalCooldownMul</c> — that is plot-forced GCD, not the skill-row arm.
 /// </remarks>
 public static class SkillGcdRules
 {

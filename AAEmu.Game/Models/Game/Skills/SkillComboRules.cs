@@ -8,6 +8,14 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// Combo special (type 48) names the next hold-hit. The client starts that skill
 /// when its GCD is up. World does not schedule or delay those hits.
 /// </summary>
+/// <remarks>
+/// Follow-up skill ids (Triple Slash 18132→18134→18131, Quake heir 36404→36405→36406,
+/// Gods' Whip 23593→23646→23647→23648→23649, Whirlwind Slash 13282→32040→32049, …) are not
+/// separate book entries. The client swaps the bar from the Combo effect and sends an ordinary
+/// <c>CSStartSkill</c> for the next id; World must treat that id as held when the character
+/// holds any earlier hit of the same chain, or the cast is refused as unlearned and the
+/// hold-to-cycle path falls back to repeating the first hit.
+/// </remarks>
 public static class SkillComboRules
 {
     public const int MaxChainLength = 8;
@@ -65,5 +73,60 @@ public static class SkillComboRules
                 return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// True when <paramref name="skillId"/> is held, or is a Combo follow-up of any held skill.
+    /// </summary>
+    public static bool IsHeldOrComboFollowUp(
+        uint skillId,
+        IEnumerable<uint> heldSkillIds,
+        Func<uint, uint?> nextFollowUp)
+    {
+        if (skillId == 0 || heldSkillIds == null)
+            return false;
+
+        foreach (var held in heldSkillIds)
+        {
+            if (held == skillId)
+                return true;
+            if (IsComboFollowUpOf(held, skillId, nextFollowUp))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Combo window (ms) from the skill's Combo special <c>value2</c>, or 0 when it has none.
+    /// </summary>
+    public static int ComboWindowMs(uint skillId)
+    {
+        var template = SkillManager.Instance?.GetSkillTemplate(skillId);
+        return TryGetComboFollowUp(template, out _, out var ms) ? ms : 0;
+    }
+
+    /// <summary>
+    /// True when <paramref name="skillId"/> is exactly the next Combo link after
+    /// <paramref name="lastFiredSkillId"/> and still inside that link's window.
+    /// </summary>
+    public static bool IsNextComboWithinWindow(
+        uint skillId,
+        uint lastFiredSkillId,
+        DateTime lastFiredAt,
+        DateTime now,
+        Func<uint, uint?> nextFollowUp,
+        Func<uint, int> windowMsFor)
+    {
+        if (skillId == 0 || lastFiredSkillId == 0 || nextFollowUp == null || windowMsFor == null)
+            return false;
+        if (nextFollowUp(lastFiredSkillId) != skillId)
+            return false;
+
+        var window = windowMsFor(lastFiredSkillId);
+        if (window <= 0)
+            return false;
+
+        return (now - lastFiredAt).TotalMilliseconds <= window;
     }
 }

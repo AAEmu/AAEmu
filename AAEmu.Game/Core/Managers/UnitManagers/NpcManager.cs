@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -893,7 +893,11 @@ public class NpcManager(
                             // equip_bodies_id column removed in 10.0.2.13 schema; defaults to 0
                             EquipClothsId = reader.GetUInt32("equip_cloths_id", 0),
                             EquipWeaponsId = reader.GetUInt32("equip_weapons_id", 0),
-                            TotalCustomId = reader.GetUInt32("total_custom_id", 0)
+                            TotalCustomId = reader.GetUInt32("total_custom_id", 0),
+                            WeaponElementId = reader.GetUInt32("weapon_element_id", 0),
+                            WeaponElementLevel = reader.GetInt32("weapon_element_level", 0),
+                            ArmorTypeId = reader.GetUInt32("armor_type_id", 0),
+                            ArmorElementLevel = reader.GetInt32("armor_element_level", 0)
                         };
 
                         using (var command2 = connection.CreateCommand())

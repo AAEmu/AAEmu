@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills;
+﻿using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
@@ -141,6 +141,22 @@ public class DamageEffectRulesTests
     // ---------------------------------------------------------------------------------------------------
 
     [Test]
+    public async Task ActabilityAdjust_AddOnly_MatchesHealShape()
+    {
+        // Shipped damage rows (e.g. 4487): group 7, step 1000, add 2.0, mul 0. Points 5000 → 5 steps → +10.
+        await Assert.That(DamageEffectRules.ActabilityAdjust(100, 5000, 1000, 2f, 0f)).IsEqualTo(110);
+        await Assert.That(DamageEffectRules.ActabilityAdjust(100, 0, 1000, 2f, 0f)).IsEqualTo(100);
+        await Assert.That(DamageEffectRules.ActabilityAdjust(100, 5000, 0, 2f, 0f)).IsEqualTo(100);
+    }
+
+    [Test]
+    public async Task ActabilityAdjust_MulAppliesAfterAdd()
+    {
+        // steps=2, add 10 → 120; then mul 0.5 → 120 + 120*2*0.5 = 240.
+        await Assert.That(DamageEffectRules.ActabilityAdjust(100, 2000, 1000, 10f, 0.5f)).IsEqualTo(240);
+    }
+
+    [Test]
     public async Task WeaponDps_PrefersTheWeaponItself()
     {
         // A weapon-flagged effect scales off the item: Character.Dps is weapon.Dps*1000 + Str/5*1000, so the
@@ -195,14 +211,13 @@ public class DamageEffectRulesTests
     [Test]
     public async Task CriticalFactor_WithoutAnEffectBonus_IsTheExpressionItReplaced()
     {
-        // 10,999 of the 11,001 rows leave critical_bonus at 0, and that has to crit for exactly what it
-        // crit for before: 1 + (bonus - flexibility/100)/100.
+        // Third arg is already the flexibility *bonus reduction* (formula 26 scale), not raw flexibility.
         foreach (var unitBonus in new[] { 0f, 12.5f, 50f, 120f })
         {
-            foreach (var flexibility in new[] { 0f, 100f, 350f })
+            foreach (var flexReduction in new[] { 0f, 1f, 9.75f })
             {
-                var before = 1 + (unitBonus - flexibility / 100) / 100;
-                await Assert.That(DamageEffectRules.CriticalFactor(unitBonus, 0, flexibility)).IsEqualTo(before);
+                var before = 1 + (unitBonus - flexReduction) / 100;
+                await Assert.That(DamageEffectRules.CriticalFactor(unitBonus, 0, flexReduction)).IsEqualTo(before);
             }
         }
     }
@@ -214,6 +229,15 @@ public class DamageEffectRulesTests
         // crits for double instead of for nothing.
         await Assert.That(DamageEffectRules.CriticalFactor(50f, 100, 0f)).IsEqualTo(2.5f);
         await Assert.That(DamageEffectRules.CriticalFactor(0f, 100, 0f)).IsEqualTo(2f);
+    }
+
+    [Test]
+    public async Task IncomingAdjust_MulThenFlatAdd()
+    {
+        await Assert.That(DamageEffectRules.IncomingAdjust(1000f, 0.9f, -49f)).IsEqualTo(851f);
+        await Assert.That(DamageEffectRules.IncomingAdjust(1000f, 1f, 0f)).IsEqualTo(1000f);
+        // Flat add larger than the hit must not go negative (that would heal via ReduceCurrentHp).
+        await Assert.That(DamageEffectRules.IncomingAdjust(30f, 1f, -49f)).IsEqualTo(0f);
     }
 
     [Test]
@@ -299,5 +323,25 @@ public class DamageEffectRulesTests
 
         await Assert.That(DamageEffectRules.TargetHealthAdjust(
             rolled, victimHealthPercent: 7, minPercent: 10, maxPercent: 3, mul: 0f, add: 0)).IsEqualTo(rolled);
+    }
+
+    // ---------------------------------------------------------------------------------------------------
+    // back-attack mul
+    // ---------------------------------------------------------------------------------------------------
+
+    [Test]
+    public async Task BackattackFactor_FrontHit_IsIdentityEvenWithABonus()
+    {
+        await Assert.That(DamageEffectRules.BackattackFactor(isBackAttack: false, backattackMul: 1.5f))
+            .IsEqualTo(DamageEffectRules.NeutralFactor);
+    }
+
+    [Test]
+    public async Task BackattackFactor_RearHit_AppliesTheTypedMul()
+    {
+        await Assert.That(DamageEffectRules.BackattackFactor(isBackAttack: true, backattackMul: 1.5f))
+            .IsEqualTo(1.5f);
+        await Assert.That(DamageEffectRules.BackattackFactor(isBackAttack: true, backattackMul: 1f))
+            .IsEqualTo(DamageEffectRules.NeutralFactor);
     }
 }

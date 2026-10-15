@@ -65,4 +65,33 @@ public class SkillComboRulesTests
         await Assert.That(SkillComboRules.IsComboFollowUpOf(Root, Root, NextOf)).IsFalse();
         await Assert.That(SkillComboRules.IsComboFollowUpOf(Second, Root, NextOf)).IsFalse();
     }
+
+    [Test]
+    public async Task IsHeldOrComboFollowUp_AllowsLaterHitsOfAHeldRoot()
+    {
+        // Triple Slash / Quake heir / Whirlwind Slash: only the first hit is held; the bar swaps to 2 then 3.
+        uint[] held = [Root];
+
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(Root, held, NextOf)).IsTrue();
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(Second, held, NextOf)).IsTrue();
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(Third, held, NextOf)).IsTrue();
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(99, held, NextOf)).IsFalse();
+        await Assert.That(SkillComboRules.IsHeldOrComboFollowUp(Second, [], NextOf)).IsFalse();
+    }
+
+    [Test]
+    public async Task IsNextComboWithinWindow_AllowsOnlyImmediateNextInsideWindow()
+    {
+        var firedAt = DateTime.UtcNow;
+        int Window(uint id) => id == Root || id == Second ? 1000 : 0;
+
+        await Assert.That(SkillComboRules.IsNextComboWithinWindow(
+            Second, Root, firedAt, firedAt.AddMilliseconds(500), NextOf, Window)).IsTrue();
+        await Assert.That(SkillComboRules.IsNextComboWithinWindow(
+            Third, Root, firedAt, firedAt.AddMilliseconds(500), NextOf, Window)).IsFalse();
+        await Assert.That(SkillComboRules.IsNextComboWithinWindow(
+            Second, Root, firedAt, firedAt.AddMilliseconds(1500), NextOf, Window)).IsFalse();
+        await Assert.That(SkillComboRules.IsNextComboWithinWindow(
+            Second, 0, firedAt, firedAt, NextOf, Window)).IsFalse();
+    }
 }

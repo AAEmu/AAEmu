@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 
@@ -21,11 +22,15 @@ public class Cooldown : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO only for server
-        if (caster is Character) { Logger.Debug("Special effects: Cooldown cooldownTime {0}, value2 {1}, value3 {2}, value4 {3}", cooldownTime, value2, value3, value4); }
+        if (caster is not Unit unit || skill?.Template == null)
+            return;
 
-        var cooldownDuration = caster.ApplySkillModifiers(skill, SkillAttribute.Cooldown, cooldownTime);
-        if (caster is Unit unit)
-            unit.Cooldowns.AddCooldown(skill.Template.Id, (uint)cooldownDuration, skill.Template.CooldownTags);
+        var modified = (uint)Math.Max(0, Math.Round(caster.ApplySkillModifiers(skill, SkillAttribute.Cooldown, cooldownTime)));
+        var cooldownDuration = SkillCooldownDurationRules.ResolveDuration(modified);
+        unit.Cooldowns.AddCooldown(skill.Template.Id, cooldownDuration, skill.Template.CooldownTags);
+
+        // No mid-combat "set cooldown" SC — push the full snapshot so the HUD catches up.
+        if (unit is Character character)
+            character.SendPacket(new SCCooldownsPacket(character.Cooldowns));
     }
 }

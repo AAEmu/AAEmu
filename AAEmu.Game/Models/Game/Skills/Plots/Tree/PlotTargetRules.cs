@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills.Plots;
+﻿using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units.Static;
 
@@ -131,4 +131,15 @@ public static class PlotTargetRules
     /// </remarks>
     public static T AoeConditionOwner<T>(PlotConditionType kind, T caster, T candidate) =>
         kind == PlotConditionType.UnitReqs ? candidate : caster;
+
+    /// <summary>
+    /// Whether <paramref name="unitTypeFlag"/> survives the plot's unit-kind mask (methods 5/6/7).
+    /// </summary>
+    /// <remarks>
+    /// Mask 0 is "unset" in the shipped rows (same idea as relation 127): applying
+    /// <c>(flag &amp; 0) != 0</c> would drop every unit and empty the AoE. A non-zero mask keeps the
+    /// bit test against <see cref="Units.UnitTypeFlag"/>.
+    /// </remarks>
+    public static bool PassesUnitTypeMask(byte unitTypeFlag, byte mask) =>
+        mask == 0 || (unitTypeFlag & mask) != 0;
 }
