@@ -217,12 +217,16 @@ public static class BoatZoneSimRules
             return false;
         if (shortOfCruise)
             return false;
+        // A just-fired catch-up has not landed yet: finishing now would take the surplus back
+        // from a still-at-cruise report (removed = 0) and clear the outstanding amount, so the
+        // pulse rides onto the client at the switch. Hold until the window ends.
+        if (CatchUpInFlight(msSinceCatchUp))
+            return false;
         // B at cruise but still behind the body the client is watching: switching now steps
         // the hull back by that gap (live 1.3–1.4 m on both 218↔186 crossings; 2.6 m on the
         // 600 ms fail-safe at 00:41:45). While A is still talking there is no reason to take
         // that step: the client is on A, B is unseen, and repeated catch-ups close the gap.
         // Only the hard ceiling switches onto an open gap.
-        _ = msSinceCatchUp;
         if (IsBehindStreamedBody(alongTrackMetres) && replantAgeMs < OverlapGapCeilingMs)
             return false;
 
@@ -230,11 +234,15 @@ public static class BoatZoneSimRules
     }
 
     /// <summary>
-    /// True when another catch-up may be sent: the previous one has had its window to land
-    /// and B is still behind the streamed body beyond tolerance.
+    /// True when another catch-up may be sent: the previous one has had its window to land,
+    /// B is still behind the streamed body beyond tolerance, and the gap ceiling has not
+    /// been reached. Past the ceiling the switch path runs; firing a catch-up on that same
+    /// tick leaves a surplus take-back cannot see yet.
     /// </summary>
-    public static bool ShouldRepeatCatchUp(float alongTrackMetres, long msSinceCatchUp) =>
-        IsBehindStreamedBody(alongTrackMetres) && !CatchUpInFlight(msSinceCatchUp);
+    public static bool ShouldRepeatCatchUp(float alongTrackMetres, long msSinceCatchUp, long replantAgeMs) =>
+        replantAgeMs < OverlapGapCeilingMs &&
+        IsBehindStreamedBody(alongTrackMetres) &&
+        !CatchUpInFlight(msSinceCatchUp);
 
     /// <summary>
     /// True when the switch should wait one more report for the take-back to show: the

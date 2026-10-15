@@ -181,6 +181,10 @@ public class BoatZoneSimRulesTests
         await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
             false, BoatZoneSimRules.OverlapGapCeilingMs, 13074f, 10114f, 10.9f, 9.9f, 300,
             alongTrackMetres: -1.4f)).IsTrue();
+        // Ceiling with a catch-up still landing: hold so take-back sees the pulse, not cruise.
+        await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
+            false, BoatZoneSimRules.OverlapGapCeilingMs, 13074f, 10114f, 10.9f, 9.9f, 300,
+            alongTrackMetres: -1.4f, msSinceCatchUp: 190)).IsFalse();
         // A silent: the gap cannot be closed against a dead body; switch as before.
         await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
             true, 281, 13074f, 10114f, 10.9f, 9.9f, 300, alongTrackMetres: -1.4f)).IsTrue();
@@ -196,9 +200,12 @@ public class BoatZoneSimRulesTests
         // instead of a switch onto the gap.
         await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
             false, 950, 13085f, 9979f, 14.9f, 9.9f, 520, alongTrackMetres: -1.0f, msSinceCatchUp: 520)).IsFalse();
-        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(-1.0f, 520)).IsTrue();
-        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(-1.0f, 190)).IsFalse();
-        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(-0.3f, 520)).IsFalse();
+        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(-1.0f, 520, 950)).IsTrue();
+        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(-1.0f, 190, 950)).IsFalse();
+        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(-0.3f, 520, 950)).IsFalse();
+        // At/after the gap ceiling: no more catch-ups (finish path owns the switch).
+        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(
+            -1.4f, 520, BoatZoneSimRules.OverlapGapCeilingMs)).IsFalse();
         // Gap closed: switch.
         await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
             false, 950, 13085f, 9979f, 14.9f, 9.9f, 520, alongTrackMetres: -0.4f, msSinceCatchUp: 520)).IsTrue();

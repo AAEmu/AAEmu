@@ -2615,7 +2615,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         // nothing, while switching onto an open gap is the step it feels.
         if (!silent &&
             slave.SeamTakeBackAtMs == 0 &&
-            BoatZoneSimRules.ShouldRepeatCatchUp(alongTrack, msSinceCatchUp) &&
+            BoatZoneSimRules.ShouldRepeatCatchUp(alongTrack, msSinceCatchUp, replantAge) &&
             BoatZoneSimRules.ShouldAcceptWarmupHandoff(x, y, reportedSpeed, expectedCruise, replantAge, msSinceImpulse) &&
             (slave.SeamImpulseAtMs == 0 || msSinceImpulse >= BoatZoneSimRules.ImpulseSettleMs))
         {
