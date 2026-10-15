@@ -205,6 +205,20 @@ fox, which fights back; logout then takes the 5-minute in-combat timer), `load` 
 create, select, spawn, move, chat, leave). `parity` exits with 2 when there are findings,
 `load` when a bot failed.
 
+`questitem` (`full`'s login/create/select/spawn, then GM setup and a quest-item cast loop) uses
+the Detection Orb (item 17594, use skill 16881) of quest 2394 "Searching for Answers" on the
+Soulreath "Field of Honor Participant" / "Fighter Participant" NPCs (7824 / 7823) three times and
+asserts that the quest objective counts 3; a rejected cast fails the step with its `SkillResult`
+(93 = `skill_urk_target_npc_group`). Setup: `/move`, `/quest add 2394 Npc 511`,
+`/quest step 2394 Progress` (the start step also needs an Elf who completed quest 2392, which the
+Nuian bot is not) and `/item add`. Prerequisite: the bot's account needs GM access level 100;
+after the first run created the account, grant it once on the private MySQL (never 3306):
+`mysql -h127.0.0.1 -P3317 -uroot -e "UPDATE rs_game.accounts SET access_level=100 WHERE account_id=<id>"`
+(the id is in the `login.auth` step note and in the error of `game.questitem.gm`; the schema name
+is the one of the game server's `Connections`). Fields (`quest_item_quest`, `quest_item_giver`,
+`quest_item_template`, `quest_item_skill`, `quest_item_npcs`, `quest_item_uses`,
+`quest_item_pos`, `quest_item_max_attempts`) default to those values.
+
 The combat step selects its NPC through `CSChangeTargetPacket` and faces it in movement
 packets so auto attacks and angle restrictions use the intended target. It matches skill responses to the player's object and skill IDs and reads
 the 1.2 `SkillResult` extra field before optional integer data. Missing combat NPCs and

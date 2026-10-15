@@ -2,7 +2,7 @@
 //!
 //! ```text
 //! aaemu-testclient run    [--config F] [--login H:P] [--user U] [--password P] [--character C]
-//!                         [--scenario login|lobby|full|combat|npc-return|load] [--out capture.jsonl]
+//!                         [--scenario login|lobby|full|combat|npc-return|questitem|load] [--out capture.jsonl]
 //!                         [--npc-return-distance M] [--npc-return-away-secs S]
 //! aaemu-testclient parity [--config F] --a H:P --b H:P [--a-label cs] [--b-label rs]
 //!                         [--user U] [--scenario full] [--masks masks.json] [--out-dir D]

@@ -90,6 +90,9 @@ pub struct GameState {
     /// First item of the bag (`SCCharacterInvenContentsPacket`, slot type 2): `(item id, slot)`.
     pub bag_items: Vec<(u64, u8, u32)>,
     pub bag_slots: u8,
+    /// Position of the last `SCTeleportUnitPacket` (a GM `/move` only tells the client to go
+    /// there; the server adopts the position from the client's next movement packet).
+    pub last_teleport: Option<(f32, f32, f32)>,
     pub disconnected: bool,
 }
 
@@ -396,6 +399,13 @@ impl GameClient {
                     u.pos = pos;
                 }
             }
+        } else if p.is_sc(sc::SCTeleportUnitPacket) {
+            // reason, error message, position, z2
+            s.read_u8()?;
+            s.read_i16()?;
+            let pos = s.read_position()?;
+            st.last_teleport = Some(pos);
+            st.self_pos = pos;
         } else if p.is_sc(sc::SCUnitsRemovedPacket) {
             let n = s.read_u16()?;
             for _ in 0..n {
@@ -562,6 +572,40 @@ impl GameClient {
             .write_bc(target_obj)
             .write_u8(0); // flag: no skill object
         self.send_cs(cs::CSStartSkillPacket, s.as_bytes()).await
+    }
+
+    /// `CSStartSkillPacket` cast by an item (the 1.2 client's item-use skill): item caster
+    /// (our object, the item id and template), unit target, no skill object.
+    pub async fn start_item_skill(
+        &mut self,
+        skill_id: u32,
+        item_id: u64,
+        item_template_id: u32,
+        target_obj: u32,
+    ) -> anyhow::Result<()> {
+        let mut s = PacketStream::new();
+        s.write_u32(skill_id)
+            .write_u8(2) // SkillCasterType.Item
+            .write_bc(self.state.self_obj)
+            .write_u64(item_id)
+            .write_u32(item_template_id)
+            .write_u8(0) // type1
+            .write_u32(0) // type2
+            .write_u8(0) // target: unit
+            .write_bc(target_obj)
+            .write_u8(0); // flag: no skill object
+        self.send_cs(cs::CSStartSkillPacket, s.as_bytes()).await
+    }
+
+    /// `CSTeleportEndedPacket`: the client's answer to `SCTeleportUnitPacket` (the server
+    /// then accepts our movement packets again and re-announces the objects around).
+    pub async fn teleport_ended(&mut self, pos: (f32, f32, f32)) -> anyhow::Result<()> {
+        let mut s = PacketStream::new();
+        s.write_i64(aaemu_commons::helpers::convert_coord_to_long(pos.0))
+            .write_i64(aaemu_commons::helpers::convert_coord_to_long(pos.1))
+            .write_f32(pos.2)
+            .write_raw(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80, 0x3f]); // identity
+        self.send_cs(cs::CSTeleportEndedPacket, s.as_bytes()).await
     }
 
     /// Select the unit used by auto attacks, as the real client does before attacking.

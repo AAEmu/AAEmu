@@ -15,6 +15,8 @@ use crate::login::LoginClient;
 use crate::record::Recorder;
 use crate::stream::StreamClient;
 
+mod questitem;
+
 /// Which scenario to run.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -36,6 +38,10 @@ pub enum Kind {
     /// giver instance and an active quest.
     #[serde(rename = "npc-return")]
     NpcReturn,
+    /// Quest-item use: GM setup (quest, orbs, teleport), then the quest item's use skill on
+    /// nearby NPCs until the quest objective is counted (see `scenario/questitem.rs`).
+    #[serde(rename = "questitem")]
+    QuestItem,
 }
 
 impl std::str::FromStr for Kind {
@@ -48,7 +54,10 @@ impl std::str::FromStr for Kind {
             "load" => Self::Load,
             "combat" => Self::Combat,
             "npc-return" => Self::NpcReturn,
-            _ => bail!("unknown scenario '{s}' (login, lobby, full, combat, npc-return, load)"),
+            "questitem" => Self::QuestItem,
+            _ => bail!(
+                "unknown scenario '{s}' (login, lobby, full, combat, npc-return, questitem, load)"
+            ),
         })
     }
 }
@@ -88,6 +97,32 @@ pub struct BotConfig {
     /// (server default 60 s).
     #[serde(default = "default_npc_return_away_secs")]
     pub npc_return_away_secs: u64,
+    /// `questitem`: quest started by GM command (2394 "Searching for Answers").
+    #[serde(default = "default_quest_item_quest")]
+    pub quest_item_quest: u32,
+    /// `questitem`: the quest's giver NPC template (511), recorded as the acceptor so the
+    /// `QuestActConAcceptNpc` start condition passes and the quest reaches its Progress step.
+    #[serde(default = "default_quest_item_giver")]
+    pub quest_item_giver: u32,
+    /// `questitem`: quest item template (17594 "Detection Orb").
+    #[serde(default = "default_quest_item_template")]
+    pub quest_item_template: u32,
+    /// `questitem`: the item's use skill (16881).
+    #[serde(default = "default_quest_item_skill")]
+    pub quest_item_skill: u32,
+    /// `questitem`: NPC templates the item is used on (7824 / 7823 Field of Honor
+    /// participants at Soulreath).
+    #[serde(default = "default_quest_item_npcs")]
+    pub quest_item_npcs: Vec<u32>,
+    /// `questitem`: successful uses required (objective count of the quest act).
+    #[serde(default = "default_quest_item_uses")]
+    pub quest_item_uses: u32,
+    /// `questitem`: GM teleport target next to those NPCs (`/move x y z`).
+    #[serde(default = "default_quest_item_pos")]
+    pub quest_item_pos: [f32; 3],
+    /// `questitem`: casts tried (rejected ones included) before the step fails.
+    #[serde(default = "default_quest_item_max_attempts")]
+    pub quest_item_max_attempts: u32,
 }
 
 fn default_gs() -> u8 {
@@ -113,6 +148,30 @@ fn default_npc_return_distance() -> f32 {
 }
 fn default_npc_return_away_secs() -> u64 {
     70
+}
+fn default_quest_item_quest() -> u32 {
+    2394
+}
+fn default_quest_item_giver() -> u32 {
+    511
+}
+fn default_quest_item_template() -> u32 {
+    17594
+}
+fn default_quest_item_skill() -> u32 {
+    16881
+}
+fn default_quest_item_npcs() -> Vec<u32> {
+    vec![7824, 7823]
+}
+fn default_quest_item_uses() -> u32 {
+    3
+}
+fn default_quest_item_pos() -> [f32; 3] {
+    [11041.0, 15622.0, 246.0]
+}
+fn default_quest_item_max_attempts() -> u32 {
+    12
 }
 
 /// Result of one scenario step.
@@ -350,6 +409,12 @@ async fn run_inner(kind: Kind, cfg: &BotConfig, r: &mut Runner<'_>) -> anyhow::R
 
     if kind == Kind::NpcReturn {
         npc_return(&mut game, cfg, r).await?;
+        drop(stream);
+        return Ok(());
+    }
+
+    if kind == Kind::QuestItem {
+        questitem::run(&mut game, cfg, r).await?;
         drop(stream);
         return Ok(());
     }
