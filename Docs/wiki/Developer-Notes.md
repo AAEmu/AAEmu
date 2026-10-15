@@ -161,6 +161,15 @@ active (`SCQuests` status 3) before a clean logout. The natural cave `load` scen
 template-4227 Mistfiends at their authored positions with 2381 HP and 17 nearby NPCs, with no
 force-spawned or manually placed NPCs.
 
+Scheduled event NPCs follow their event schedule through the whole ordinary spawn lifecycle.
+A fallback spawner generated for an unscheduled clone stays inactive when any candidate
+spawner of the same placement has schedule rows, so it cannot spawn the event NPC outside the
+event. An in-progress event keeps its NPCs; an ended or not-yet-started event removes them
+through the ordinary despawn and respawn cleanup instead of being torn down while active.
+Dated event rows do not become recurring: the shipped Vile Gourdhead Halloween window
+(October 16-30 2013; NPC 14312, schedules 53/54/55) is expired and is not retargeted into a
+yearly event.
+
 ## Housing behavior
 
 Housing uses the original 1.2 placement polygons and database category rules. Plot ownership is

@@ -46,7 +46,24 @@ confirm a 10.x behaviour against what the 1.2 client sends/expects before portin
     `D:\aa-re\` first so the `.i64` lands there. Reopening a saved `.i64` skips analysis.
   - **ida-pro-mcp** (MCP tools `mcp__ida-pro-mcp__*`): serves the one database open in an IDA GUI
     instance (Ctrl-Alt-M, port 13337). Good for interactive look-ups; use headless idat for bulk work.
-  - Ghidra is not installed; IDA covers everything so far.
+- **Ghidra 12.1.4 PUBLIC**: installed at `D:\Tools\ghidra_12.1.4_PUBLIC` (read-only is fine;
+  archive kept at `D:\Tools\_dl\ghidra.zip`), running on Temurin JDK 25
+  (`C:\Program Files\Eclipse Adoptium\jdk-25.0.1.8-hotspot`; Ghidra 12.1.4 needs JDK 21+ and
+  rejects the also-installed JDK 17). This is the tool for the **1.2 client DLLs** — IDA
+  databases below are for physics/zone; the unpacked 1.2 `x2game.dll` lives in Ghidra.
+  - **Always launch headless through the wrapper**:
+    `ghidra-work\ghidra-headless.cmd <projectDir> <projectName> [analyzeHeadless args...]`
+    from the repo root. The wrapper pins `JAVA_HOME` and redirects `APPDATA` to
+    `ghidra-work\appdata` — without that, Ghidra dies with "Failed to create directory"
+    and a bogus "JDK 21+ could not be found" (the real `%APPDATA%` is unwritable here).
+  - Working area: **`ghidra-work\`** at the repo root (gitignored, machine-local). Its
+    `README.md` records the traps and run results; `scripts\` holds the post-scripts
+    (`CountFunctions.java`, `DumpBlocks.java`, `DumpCoverage.java`); `logs\` the run logs.
+    Project directories must have **no dot-prefixed path element** (Ghidra rejects them),
+    hence `ghidra-work\proj-*`, never `.ghidra-work\…`.
+  - Example (reopen a saved project, no re-analysis):
+    `cmd /c "ghidra-work\ghidra-headless.cmd <repo>\ghidra-work\proj-aa12u aa12u -process x2game_unpacked.dll -noanalysis -scriptPath <repo>\ghidra-work\scripts -postScript CountFunctions.java"`.
+    Do not use `Start-Process -RedirectStandardOutput` (sandbox denies it); invoke with `cmd /c`.
 - **MSVC** (for the oracle and native client-driver parts): found via the `build.bat` files.
 - **Python** for the extraction tools: `c:\python312\python.exe` (run with `-I`).
 
@@ -58,6 +75,23 @@ Saved IDA databases (open these instead of re-analysing):
 | 1.2 `cryphysics.dll` (unpacked) | `D:\aa-re\cryphysics\work_x86\cryphysics_unpacked.dll.i64` |
 | 10.x zone DLLs (`cry3dengine_`, `cryaction_`, `cryaisystem_`, `cryentitysystem_dedicate`, `crysystem`) | `D:\aa-re\zone\bin\` |
 | 1.2 `crysystem.dll`, `cryscriptsystem.dll` | `D:\aa-re\client12\ida\` |
+
+Saved Ghidra projects, all under `ghidra-work\` in the repo (open these instead of re-analysing):
+
+| Project | Binary | State |
+|---|---|---|
+| `proj-aa12u` (`aa12u`) | `D:\aa-re\client12\x2game_unpacked.dll` | **The 1.2 client logic oracle**: full analysis, 65 203 functions (18 756 named). `.data` is absent from the runtime dump, so globals/RTTI descriptors resolve by reference only |
+| `proj-aa12` (`aa12`) | `D:\AA1.2\bin32\x2game.dll` as shipped | Packed: only the 135-function decrypt stub analyses. Useful as the before/after proof, not for logic |
+| `proj-smoke` | `notepad.exe` | Headless smoke test only |
+
+Unpacking a packed 1.2 DLL (`x2game.dll`, `crynetwork.dll`, `archeage.exe`; in-place section
+encryption, no VMProtect/Themida marks, imports intact, preferred base honoured): dump the
+decrypted sections from the live client with
+`D:\aa-re\regrade\db-auth\runtime\dump_runtime_modules.py` (update the PID; client via
+`Scripts/live-stack.sh client`), then splice them into a copy of the DLL with
+`D:\aa-re\client12\rebuild_unpacked.py`. Existing dumps: `x2game.{hdr,text,rdata}.bin`,
+`xlcommon.*`, `archeage.*` in that same `runtime\` folder. Never do any of this inside the
+client folders — they stay read-only; outputs go to `D:\aa-re\`.
 
 ## Knowledge base
 
@@ -73,6 +107,8 @@ Saved IDA databases (open these instead of re-analysing):
 | `rust/docs/client/LUA-DRIVER.md` | Running Lua inside the 1.2 client (addresses, design, usage) |
 | `rust/LIVE-TESTING.md` | Private MySQL, live servers, headless test client, C#-vs-Rust parity method |
 | `rust/PORT-AUDIT.md` (+ `rust/tools/port_audit/`) | Every former C# file mapped to its Rust counterpart |
+| `rust/CLIENT-DB-GAP-AUDIT.md` | Server vs. 1.2 client + databases gap audit (packets, unused tables, hardcoded values, quests, Ghidra unpack evidence); supersedes `rust/CLIENT-FEATURE-GAPS.md` |
+| `FEATURE-GAP-TASKS.md` | The prioritized task list (P0–P3) implementing those gaps, with per-task oracles |
 
 ### On disk (`D:\aa-re\`, plus the 10.x folder)
 
@@ -83,7 +119,8 @@ Saved IDA databases (open these instead of re-analysing):
 | `D:\aa-re\zone\agent_proto\zone_protocol_physics.md`, `wz_opcodes_fixed.txt` | World↔zone protocol: every WZ*/ZW* packet with handler addresses and constants |
 | `D:\aa-re\zone\agent_geom\` | `sub_cgf.md` (CGF chunks + physics-blob format), `sub_navmesh.md` (`.bai` formats, AI loader, Rust gaps), `sub_x2game.md` (zone startup, doodads, ocean, query sites); `tools\` (`pakx.py` pak extractor, `cgf.py`, `physblob.py`, `baiparse.py`, …); `data\` (per-cell `.dat`, model tables) |
 | `D:\aa-re\cryphysics\` | `x64_10x\` and `x86_12\` (decompile, RTTI, vtables, funcs, strings), `compare\func_match.csv` (1,122 matched functions 1.2↔10.x), `unpack_x86\` (how the 1.2 DLL was unpacked), `harness\` (first oracle prototype) |
-| `D:\aa-re\client12\` | 1.2 client PE info + strings for every main DLL, IDA work for the Lua driver (`ida\`), driver scratch |
+| `D:\aa-re\client12\` | 1.2 client PE info + strings for every main DLL (`*.pe.txt`, `*.strings.txt`), IDA work for the Lua driver (`ida\`), driver scratch, **`x2game_unpacked.dll`** (reconstructed unpacked client DLL — the binary behind Ghidra project `aa12u`) + `rebuild_unpacked.py` |
+| `D:\aa-re\regrade\db-auth\runtime\` | Runtime memory dumps from the live 1.2 client (`dump_runtime_modules.py` + `runtime_evidence.json`): decrypted `x2game`/`xlcommon`/`archeage` section `.bin`s — the source material of the unpack above |
 | `D:\aaemu-target\phys-bvtree\cgf_corpus\` | 1,500 real game models with physics blobs (used by the physics tests via `AAEMU_PHYS_CGF_DIR`) |
 
 ## Porting a zone feature into the 1.2 stack
@@ -91,9 +128,13 @@ Saved IDA databases (open these instead of re-analysing):
 1. **Find the behaviour**: `ZONE-PHYSICS-USAGE.md` → the zone-protocol notes → search
    `x2game-dev_dedicate.strings.txt` / `.funcs.csv` for the feature's strings or RTTI names, then
    read the function in `x2game-dev_dedicate.c` (open the `.i64` in IDA for xrefs).
-2. **Check the 1.2 side**: does the 1.2 client send/expect the same packets and fields? (1.2 opcode
-   tables are in `rust/crates/aaemu-game/src/opcodes.rs`; client strings in `D:\aa-re\client12\`.)
-   10.x-only mechanics should be skipped or adapted, not ported blindly.
+2. **Check the 1.2 side**: does the 1.2 client send/expect the same packets and fields? Read the
+   handler in the unpacked 1.2 `x2game.dll` first (Ghidra project `ghidra-work/proj-aa12u` — see
+   Tools above; its strings include the client's own `Load*Descs` SQL and feature API names).
+   1.2 opcode tables are in `rust/crates/aaemu-game/src/opcodes.rs`; packed-DLL strings in
+   `D:\aa-re\client12\` are the fallback. 10.x-only mechanics should be skipped or adapted,
+   not ported blindly. For client-data features, [`FEATURE-GAP-TASKS.md`](FEATURE-GAP-TASKS.md)
+   is the prioritized work list and `rust/CLIENT-DB-GAP-AUDIT.md` the evidence behind it.
 3. **Implement** in the owning `aaemu-game` subsystem (see `CONTRIBUTING-PORT.md`), using the
    physics query service / `aaemu-physics` World API rather than new geometry code. Cite the 10.x
    address in a comment, as the existing code does.
