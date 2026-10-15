@@ -688,6 +688,7 @@ pub fn notify_in_game(server: &GameServer, conn: &mut GameConnection) {
     crate::systems::skills::stats::update_gear_bonuses(server, &p, None, None);
     crate::systems::dispatch_buff_events(server, &WorldObject::from(&p));
     crate::systems::social::session::on_notify_in_game_trial(server, &p);
+    crate::systems::social::session::on_notify_in_game_achievements(server, &p);
     tracing::info!("NotifyInGame: {name} ({id})");
 }
 

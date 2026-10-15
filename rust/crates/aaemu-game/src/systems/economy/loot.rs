@@ -11,6 +11,8 @@ use crate::models::container::slot_type;
 use crate::models::item::{Item, ItemClass, ItemDetails};
 use crate::models::unit::UnitAttribute;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::PlayerRef;
 
 use super::inventory::{self, Inv, ItemTxn};
@@ -458,6 +460,17 @@ pub fn give_loot_pack(
             );
             return false;
         }
+        // GET_LOOTITEM: an item actually handed over by a loot roll (deferred until the item
+        // transaction is released).
+        crate::systems::report_achievement(
+            server,
+            player,
+            AchievementInput::Increment {
+                kind_id: char_record_kind::GET_LOOTITEM,
+                amount: i64::from(g.count),
+                matcher: RecordMatch::Value1(g.item_id),
+            },
+        );
     }
     if coins > 0 {
         inventory::add_money(&mut txn.out(), player, slot_type::INVENTORY, coins, task);

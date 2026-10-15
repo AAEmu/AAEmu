@@ -108,11 +108,34 @@ pub struct System {
     pub item_effects: item_effects::ItemEffectsManager,
 }
 
+thread_local! {
+    /// How many [`OpsGuard`]s the current thread holds (0 or 1: the lock is not re-entrant).
+    static OPS_HELD: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+/// The held item-operation lock ([`System::ops_lock`]); tracks the holding thread.
+pub struct OpsGuard<'a>(Option<MutexGuard<'a, ()>>);
+
+impl Drop for OpsGuard<'_> {
+    fn drop(&mut self) {
+        self.0.take();
+        OPS_HELD.with(|held| held.set(held.get().saturating_sub(1)));
+    }
+}
+
 impl System {
     /// The item-operation lock (outermost lock of every economy operation; never taken while a
     /// character or container lock is held).
-    pub fn ops_lock(&self) -> MutexGuard<'_, ()> {
-        self.ops.lock().unwrap_or_else(|e| e.into_inner())
+    pub fn ops_lock(&self) -> OpsGuard<'_> {
+        let guard = self.ops.lock().unwrap_or_else(|e| e.into_inner());
+        OPS_HELD.with(|held| held.set(held.get() + 1));
+        OpsGuard(Some(guard))
+    }
+
+    /// Whether the current thread holds the item-operation lock. The lock is not re-entrant, so
+    /// a producer that would take it again (the achievement reports) defers its event instead.
+    pub fn ops_held_on_this_thread() -> bool {
+        OPS_HELD.with(|held| held.get() > 0)
     }
 
     /// `Inventory.PreviousBackPackItemId = id`.

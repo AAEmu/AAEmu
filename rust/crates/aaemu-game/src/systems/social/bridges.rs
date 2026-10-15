@@ -30,6 +30,9 @@ const FARM_GROUP_INVALID: u8 = 0;
 
 /// Installs this subsystem's hook implementations.
 pub fn install(server: &GameServer) {
+    server.systems.hooks.achievements.install(Arc::new(
+        super::achievement_hooks::LiveAchievementHooks::default(),
+    ));
     install_economy(server);
     server
         .systems

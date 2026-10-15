@@ -401,6 +401,10 @@ pub fn set_in_party(server: &GameServer, p: &PlayerRef, value: bool) {
     }
     friend::send_status_change(server, p, false, value);
     p.data().in_party = value;
+    if value {
+        // ENROLL_PARTY / ENROLL_RAID_GROUP: queued, the team manager's lock is held here.
+        crate::systems::refresh_achievements_later(server, p);
+    }
 }
 
 /// `AreInRenderDistance(a, b)`: the same or a neighbouring region (2-region neighbourhood).

@@ -52,7 +52,7 @@ use crate::data::GameDataError;
 use crate::models::buff::BuffEvent;
 use crate::net::registry::PacketRegistry;
 use crate::server::GameServer;
-use crate::world::WorldObject;
+use crate::world::{PlayerRef, WorldObject};
 
 /// What a subsystem's `Data::load` gets (the same sources `GameData::load` uses).
 pub struct DataLoadCtx<'a> {
@@ -284,6 +284,55 @@ pub struct Hooks {
     pub ai: HookSlot<dyn ai::hooks::AiHooks>,
     /// Installed by the slaves subsystem (harpoon rope state for the ship physics).
     pub ship_physics: HookSlot<dyn ai::physics::ShipPhysicsHooks>,
+    /// Installed by the social subsystem (achievement record producers of every subsystem).
+    pub achievements: HookSlot<dyn social::achievement_hooks::AchievementHooks>,
+}
+
+/// Reports gameplay events to the achievement subsystem (no-op when its hooks are not
+/// installed). Call with no character / `ItemTxn` / container lock held.
+pub fn report_achievements(
+    server: &GameServer,
+    player: &PlayerRef,
+    inputs: &[social::achievement_hooks::AchievementInput],
+) {
+    if let Some(h) = server.systems.hooks.achievements.get() {
+        h.report(server, player, inputs);
+    }
+}
+
+/// [`report_achievements`] for a single event.
+pub fn report_achievement(
+    server: &GameServer,
+    player: &PlayerRef,
+    input: social::achievement_hooks::AchievementInput,
+) {
+    report_achievements(server, player, &[input]);
+}
+
+/// Like [`refresh_achievements`] for a caller that holds a lock the report path also takes (the
+/// team, family and expedition managers): the refresh is queued and runs from
+/// [`flush_achievements`].
+pub fn refresh_achievements_later(server: &GameServer, player: &PlayerRef) {
+    if let Some(h) = server.systems.hooks.achievements.get() {
+        h.refresh_later(player);
+    }
+}
+
+/// Runs the queued achievement events (call right after releasing the economy operation lock or
+/// at the end of a packet, with no character lock held).
+pub fn flush_achievements(server: &GameServer) {
+    if let Some(h) = server.systems.hooks.achievements.get() {
+        h.flush_deferred(server);
+    }
+}
+
+/// Re-reports everything the character's current state proves (level, abilities, memberships,
+/// completed quests, ...) to the achievement subsystem. Same locking rule as
+/// [`report_achievements`].
+pub fn refresh_achievements(server: &GameServer, player: &PlayerRef) {
+    if let Some(h) = server.systems.hooks.achievements.get() {
+        h.refresh_current(server, player);
+    }
 }
 
 /// Drains `owner`'s buff events and hands them to [`UnitHooks::on_buff_event`]. Call it after

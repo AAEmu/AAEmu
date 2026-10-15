@@ -25,6 +25,8 @@ use crate::net::packet::ServerPacket;
 use crate::packets::world::{SCChatMessagePacket, SCUnitPointsPacket};
 use crate::server::GameServer;
 use crate::systems::skills::packets_special::SCLoadInstancePacket;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::systems::social::chat::{chat_type, court_room_region};
 use crate::systems::social::config::SpawnPosition;
 use crate::systems::social::crime::{
@@ -249,6 +251,8 @@ pub enum Effect {
     SetFaction(PlayerRef, u32),
     /// Update world membership and visibility after a justice teleport, outside the trial lock.
     Teleport(PlayerRef, crate::models::transform::Transform),
+    /// An achievement event for a trial participant (JUDGEMENT, GET_JURY_POINT).
+    Achievement(PlayerRef, AchievementInput),
 }
 
 type Effects = Vec<Effect>;
@@ -300,6 +304,7 @@ fn run_effect(server: &GameServer, e: Effect) {
             hooks.remove_buffs_by_tag(server, &p, kind, count, tag);
             crate::systems::dispatch_buff_events(server, &WorldObject::from(&p));
         }
+        Effect::Achievement(p, input) => crate::systems::report_achievement(server, &p, input),
         Effect::SetFaction(..) => unreachable!("handled by the callers"),
         Effect::Teleport(p, destination) => {
             let old_instance = p.data().unit.transform.instance_id;
@@ -1098,6 +1103,15 @@ fn finalize_verdict(
     });
     t.jail_time = sentence_time.clamp(0, MAX_JAIL_MINUTES);
     let d = t.defendant.clone();
+    // JUDGEMENT: the verdict for the defendant (value1 0 = not guilty, 1 = guilty).
+    fx.push(Effect::Achievement(
+        d.clone(),
+        AchievementInput::Increment {
+            kind_id: char_record_kind::JUDGEMENT,
+            amount: 1,
+            matcher: RecordMatch::Value1(u32::from(is_guilty)),
+        },
+    ));
     if is_guilty {
         result_is_guilty(server, rooms, &d, t, false, now_ms, fx);
     } else {
@@ -2295,6 +2309,15 @@ fn cleanup_jury_member(
         tracing::debug!("{name} back at {}", fmt_vec3(cur3));
         if let Some(pkt) = pkt {
             m.send(pkt);
+            // GET_JURY_POINT: the point awarded for the finished trial.
+            fx.push(Effect::Achievement(
+                m.clone(),
+                AchievementInput::Increment {
+                    kind_id: char_record_kind::GET_JURY_POINT,
+                    amount: 1,
+                    matcher: RecordMatch::Any,
+                },
+            ));
         }
     }
     {

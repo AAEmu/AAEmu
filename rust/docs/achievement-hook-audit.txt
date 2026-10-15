@@ -1,6 +1,28 @@
 ACHIEVEMENT HOOK AUDIT - 1.2 authored record kinds -> real Rust gameplay events
-Read-only audit (no repo source edited). Workspace: rust-rewrite @ 8c37cb528, achievement
-runtime/persistence/manager are UNTRACKED WIP files under systems/social/.
+Audit of the 1.2 authored record kinds, kept up to date as producers are wired (see STATUS).
+Written against rust-rewrite @ 8c37cb528; the achievement runtime / persistence / manager /
+hooks / rewards files are now tracked under systems/social/ and the entry snapshot plus the
+producers marked WIRED below are live.
+
+STATUS (live producers)
+  Entry:   CSNotifyInGamePacket -> world::session::notify_in_game ->
+           social::session::on_notify_in_game_achievements -> achievement_hooks::initial_snapshot
+           (back-credit, SCAchievements list, pending reward delivery).
+  Routing: producers call systems::report_achievement(s) / refresh_achievements[_later] ->
+           server.systems.hooks.achievements (AchievementHooks, installed by social::bridges).
+           Events raised while the thread holds the economy operation lock (ItemTxn, quest op)
+           are queued and run when it is released; *_later events (team/family/expedition
+           managers) run at the end of the packet (server.rs::handle_frame).
+  WIRED:   k10 (level-up refresh), k11, k12, k16, k17, k18 (labor-attached points only), k19
+           (zone-conflict honor only), k20, k21 (via level-up refresh), k22, k23, k25, k27, k28,
+           k30, k32, k33, k34, k35, k36, k37, k38, k39, k40, k41, k43, k44, k45, k46, k47, k48,
+           k50, k51 (plain FAIL only), k42, k52-k55 (join events + entry), k9 (runtime).
+  PARTIAL: k14 MY_GOLD (entry + level-up refresh only; no live money hook: change_money has no
+           server handle), k18 (quest/other point sources only at entry/level-up refresh).
+  REMAINING (not wired, deliberately): k26 KILL_SLAVE (Q5), k29 GET_ITEM_TYPE (needs a
+           delta-carrying acquisition site, see its row), k49 MY_DISHONORABLE_POINT (Q2),
+           k57-60 siege results (Q1), siege honor of k19.
+
 Scope: the 55 char_records kinds referenced by achievement_objectives in
 rust/crates/aaemu-game/app/Data/compact.sqlite3 (kinds 1-8, 13, 15, 24, 31, 56 exist in the
 table with 0 objectives; 61+ are post-1.2 enum entries and absent).

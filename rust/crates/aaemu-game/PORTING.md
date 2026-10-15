@@ -227,7 +227,7 @@ connected by `systems::economy::wiring`).
 | `FriendMananger`, `CharacterFriends`, `CharacterBlocked` | `systems/social/friend.rs`, `packets/friend.rs` (`managers::friend` re-exports) | done | Add / remove friends (online or by DB name lookup), block / unblock (online only), status changes incl. `InParty`. |
 | `ChatManager`, `Models/Game/Chat` | `systems/social/chat.rs`, `session.rs` (`managers::chat` re-exports) | done | All channel kinds incl. party / raid / court, CleanUpChannels, party / raid / raid-leader / judge routing. User channels (`CSJoinUserChatChannel`) are log-only as in C#. |
 | `FactionManager` relations, `SystemFaction.GetRelationState`, `Unit/Character.SetFaction` | `systems/social/faction.rs`, `packets/faction.rs` | done | Relation table validated against compact.sqlite3 (gated test). Faction CS packets are log-only as in C#; every SCFaction* struct ported. |
-| `GameData/AchievementGameData` (`achievements`, `achievement_objectives`, `pre_completed_achievements`, `char_records`), `Models/Game/Achievement` | `systems/social/achievement.rs` (`server.game_data.systems.social.achievements`) | done | Loader + port of `AchievementGameDataTests`; gated real-DB test `achievement_game_data_real_compact_db`. The C# has no accessors / manager, so nothing reads the tables yet. |
+| `GameData/AchievementGameData` (`achievements`, `achievement_objectives`, `pre_completed_achievements`, `char_records`), `Models/Game/Achievement` | `systems/social/achievement.rs` (`server.game_data.systems.social.achievements`) | done | Loader + port of `AchievementGameDataTests`; gated real-DB test `achievement_game_data_real_compact_db`. The C# 1.2 tree has no manager; the Rust achievement manager / runtime / hooks / rewards (`achievement_*.rs`) read them (see "Achievement producers" below). |
 | `DuelManager`, `Models/Game/Duels`, duel tasks | `systems/social/duel.rs`, `packets/duel.rs` | done | Request / accept (flag via hook) / start / stop / cancel, distance + HP checks, end timer (tokio tasks; `set_delays` test hook). |
 | `CrimeManager`, `TrialManager`, `Models/Game/Crime`, `TrialUpdateTask` | `systems/social/{crime,trial}.rs`, `packets/trial.rs` | done | Crime table load / save (`AfterItems`), report / evidence (hooks), bot reports, trial / jury flow with 5 s tick, audience, bounty board (empty list as C#). Arrests, authenticated jury choices, guilty pleas, acquittals, court cleanup and reconnect jail enforcement have packet-flow regressions; prisoner buffs persist remaining online time. |
 | `DominionData`, `Models/Game/Achievement`, rename / chat bubble / NPC chat / spam packets | `systems/social/{dominion,achievement}.rs`, `packets/misc.rs` | done (data + packets) | No C# manager drives them in 1.2. |
@@ -1528,3 +1528,26 @@ commit acknowledgement preserves newer dirty rows/deletions. The wiki audits
 record targeted tests, MySQL rollback/reload and the real 1.2 client evidence,
 including GM fixture setup and remaining authored content/review limitations.
 See Docs/wiki/Quest-Audit.md and Docs/wiki/Mail-Audit.md.
+
+## Achievement producers (live wiring)
+
+The achievement subsystem has no 1.2 C# manager; the behaviour follows `rust/docs/achievement-hook-audit.txt`
+(which lists every record kind, its producer and what is still unwired). Deliberate choices:
+
+* **Entry snapshot** runs from `CSNotifyInGamePacket` (after the trial login step): back-credit, the
+  `SCAchievementsPacket` list, then pending rewards.
+* **Producers** report through `systems::report_achievement(s)` (`server.systems.hooks.achievements`).
+  The economy operation lock is not re-entrant, so events raised while the thread holds it (an
+  `ItemTxn`, a quest operation) are queued and flushed when it is released; events raised under the
+  team / family / expedition managers' own locks use `refresh_achievements_later` and run when the
+  packet handler returns. `economy::OpsGuard` tracks the holding thread.
+* **Repeatable quests** (kinds 27/28) credit +1 per completed run on top of the entry back-credit of 1
+  per distinct quest (audit Q3). Category counts therefore count repeats live.
+* **ENCHANT_FAILURE** credits only a plain FAIL result; BREAK and DOWNGRADE are not proven to be "failures"
+  (Q4). **GET_LOOTPACK** credits doodad loot packs only (Q6). **MAKE_HOUSING** credits the owner who
+  performs the last build action. **Auction** and **jury** credits go to online characters only.
+* **GET_FACTION** is state-derived (entry back-credit plus the crossing of the infamy threshold in
+  `CrimeManager::add_crime_points`); other faction changes do not credit (Q8).
+* **GET_ITEM_TYPE (k29), KILL_SLAVE (k26), MY_DISHONORABLE_POINT (k49), siege results (k57-60)** stay
+  unwired (see the audit for why). `SCAchievementResetedPacket` (0x1ff) has no 1.2 trigger and is
+  deliberately never sent.

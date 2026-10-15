@@ -15,6 +15,8 @@ use crate::net::registry::ClientPacket;
 use crate::opcodes::sc;
 use crate::packets::packet_def;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{broadcast, WorldObject};
 
 /// `ExpressTextManager` data.
@@ -130,6 +132,28 @@ impl ClientPacket for CSExpressEmotionPacket {
                 self.character_obj_id,
                 self.npc_obj_id,
             );
+            // NPC_EMOTION: the raw emotion id (value2) expressed at the npc template (value1).
+            if p.obj_id == self.character_obj_id {
+                let npc_template = server
+                    .world
+                    .world_of(&me)
+                    .and_then(|w| w.npc(self.npc_obj_id))
+                    .map(|npc| npc.data().unit.template_id);
+                if let Some(value1) = npc_template {
+                    crate::systems::report_achievement(
+                        server,
+                        &p,
+                        AchievementInput::Increment {
+                            kind_id: char_record_kind::NPC_EMOTION,
+                            amount: 1,
+                            matcher: RecordMatch::Value1And2 {
+                                value1,
+                                value2: self.emotion_id,
+                            },
+                        },
+                    );
+                }
+            }
             Ok(())
         })
     }

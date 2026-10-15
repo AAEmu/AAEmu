@@ -21,6 +21,8 @@ use crate::net::registry::ClientPacket;
 use crate::opcodes::sc;
 use crate::packets::packet_def;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{broadcast, PlayerRef, WorldObject};
 
 /// `CharacterManager.GetEffectiveAccessLevel(character)`: the higher of the character's and the
@@ -167,17 +169,34 @@ impl CharacterOnlineTrackingTask {
         };
         for p in server.world.all_characters() {
             let (id, account) = (p.character_id, p.data().account_id);
-            let delta_seconds = {
+            let (delta_seconds, hours) = {
                 let mut st = self.inner.lock().expect("tracking poisoned");
                 let frac = st.fractions.entry(id).or_insert(0.0);
                 let mut c = p.data();
                 let last = f64::from(c.online_time) + *frac;
                 let new = last + delta;
                 let whole = new.floor();
+                let before = c.online_time;
                 c.online_time = whole as u32;
                 *frac = new - whole;
-                (whole - last.floor()) as u32
+                (
+                    (whole - last.floor()) as u32,
+                    // Some(hours online) when this tick crossed an hour boundary.
+                    (c.online_time / 3600 > before / 3600).then_some(c.online_time / 3600),
+                )
             };
+            if let Some(hours) = hours {
+                // PLAY_TIME (hours online, absolute).
+                crate::systems::report_achievement(
+                    server,
+                    &p,
+                    AchievementInput::Absolute {
+                        kind_id: char_record_kind::PLAY_TIME,
+                        value: i64::from(hours),
+                        matcher: RecordMatch::Any,
+                    },
+                );
+            }
             let (time, taken) = super::accounts::get_divine_clock(server, account).await;
             super::accounts::update_divine_clock(
                 server,

@@ -27,6 +27,8 @@ use crate::systems::skills::ext::{
     GearStats, GradeEnchantRequest, HoldableInfo, ItemActionResult, ItemSkillHooks,
 };
 use crate::systems::skills::types::{SkillCastTarget, SkillCaster, SkillObject};
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{DoodadRef, NpcRef, PlayerRef, WorldObject};
 
 use super::error_message;
@@ -2066,7 +2068,7 @@ impl crate::systems::npcs::hooks::EconomyBridge for EconomyForNpcs {
             return Some(false);
         }
         let mut txn = ItemTxn::begin(server);
-        super::loot::give_loot_pack(
+        let given = super::loot::give_loot_pack(
             &mut txn,
             player,
             pack,
@@ -2076,6 +2078,18 @@ impl crate::systems::npcs::hooks::EconomyBridge for EconomyForNpcs {
             None,
             &mut rng,
         );
+        if given {
+            // GET_LOOTPACK (deferred until the item transaction is released).
+            crate::systems::report_achievement(
+                server,
+                player,
+                AchievementInput::Increment {
+                    kind_id: char_record_kind::GET_LOOTPACK,
+                    amount: 1,
+                    matcher: RecordMatch::Value1(loot_pack_id),
+                },
+            );
+        }
         Some(true)
     }
 

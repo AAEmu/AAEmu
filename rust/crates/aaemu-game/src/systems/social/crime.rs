@@ -20,6 +20,8 @@ use crate::models::character::Character;
 use crate::models::doodad::doodad_owner_type;
 use crate::models::transform::convert_long;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::systems::social::packets::trial::{
     CrimeRecordEntry, SCCrimeChangedPacket, SCJuryPointChangedPacket,
 };
@@ -744,6 +746,16 @@ impl CrimeManager {
         if next_phase > 0 {
             hooks.doodad_change_phase(server, evidence, reporter, next_phase);
         }
+        // REPORT_CRIME: one accepted report, credited to the reporter (value1 = the crime kind).
+        crate::systems::report_achievement(
+            server,
+            reporter,
+            AchievementInput::Increment {
+                kind_id: char_record_kind::REPORT_CRIME,
+                amount: 1,
+                matcher: RecordMatch::Value1(u32::from(crime_type)),
+            },
+        );
         Some(new_event)
     }
 
@@ -762,6 +774,19 @@ impl CrimeManager {
                 };
                 p.send(pkt);
                 crate::systems::dispatch_buff_events(server, &WorldObject::from(&p));
+                // GET_FACTION: crossing the infamy threshold made the criminal a pirate.
+                let faction_id = p.data().unit.faction_id;
+                if faction_id == crate::data::world_data::factions::PIRATE {
+                    crate::systems::report_achievement(
+                        server,
+                        &p,
+                        AchievementInput::Absolute {
+                            kind_id: char_record_kind::GET_FACTION,
+                            value: 1,
+                            matcher: RecordMatch::Value1(faction_id),
+                        },
+                    );
+                }
             }
             _ => add_offline_crime_points(server, criminal_id, points).await,
         }

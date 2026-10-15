@@ -15,6 +15,8 @@ use crate::net::packet::LEVEL_PLAIN;
 use crate::net::registry::PacketRegistry;
 use crate::opcodes::cs;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{PlayerRef, WorldObject};
 
 use super::error_message;
@@ -34,6 +36,7 @@ pub struct RepairTarget {
 pub fn do_repair(server: &GameServer, player: &PlayerRef, items: &[Option<RepairTarget>]) {
     let inv = Inv::of(player);
     let repaired = repair_in_containers(server, player, items, &[inv.bag(), inv.equipment()]);
+    report_repaired(server, player, repaired.len());
     if let Some(hooks) = server.systems.economy.hooks.gear.get() {
         for (item, was_destroyed) in repaired {
             if was_destroyed && item.slot_type == slot_type::EQUIPMENT {
@@ -71,6 +74,7 @@ pub fn repair_pet_items(server: &GameServer, player: &PlayerRef, npc_id: u32) {
         })
         .collect();
     let repaired = repair_in_containers(server, player, &items, &containers);
+    report_repaired(server, player, repaired.len());
     let Some(world) = server.world.world_of(&WorldObject::from(player)) else {
         return;
     };
@@ -101,6 +105,19 @@ pub fn repair_pet_items(server: &GameServer, player: &PlayerRef, npc_id: u32) {
             }
         }
     }
+}
+
+/// ITEM_FIX achievement credit: `count` items were actually repaired.
+fn report_repaired(server: &GameServer, player: &PlayerRef, count: usize) {
+    crate::systems::report_achievement(
+        server,
+        player,
+        AchievementInput::Increment {
+            kind_id: char_record_kind::ITEM_FIX,
+            amount: count as i64,
+            matcher: RecordMatch::Any,
+        },
+    );
 }
 
 fn repair_in_containers(

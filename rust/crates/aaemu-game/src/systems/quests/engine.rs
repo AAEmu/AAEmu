@@ -26,6 +26,8 @@ use crate::models::container::slot_type;
 use crate::net::packet::ServerPacket;
 use crate::packets::world::SCErrorMsgPacket;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::PlayerRef;
 
 /// A C# exception thrown inside quest code (index out of range, division by zero, ...): it
@@ -476,6 +478,7 @@ impl<'a> Ctx<'a> {
                     let _ = self.dispatch(&super::events::QuestEvent::QuestComplete {
                         quest_id: template_id,
                     });
+                    self.report_quest_completed(template_id);
                     self.send(SCQuestContextCompletedPacket {
                         quest_id: template_id,
                         body: block.body8(),
@@ -500,6 +503,29 @@ impl<'a> Ctx<'a> {
                 }
             }
         }
+    }
+
+    /// COMPLETE_QUEST_TYPE / COMPLETE_QUEST_CATEGORY achievement credit for one completed run of
+    /// `quest_id`. The report is deferred by the achievement hooks until this quest operation has
+    /// released the character and economy locks.
+    fn report_quest_completed(&self, quest_id: u32) {
+        let Some(player) = &self.player else {
+            return;
+        };
+        let category_id = self.data.template(quest_id).map_or(0, |t| t.category_id);
+        let mut inputs = vec![AchievementInput::Increment {
+            kind_id: char_record_kind::COMPLETE_QUEST_TYPE,
+            amount: 1,
+            matcher: RecordMatch::Value1(quest_id),
+        }];
+        if category_id != 0 {
+            inputs.push(AchievementInput::Increment {
+                kind_id: char_record_kind::COMPLETE_QUEST_CATEGORY,
+                amount: 1,
+                matcher: RecordMatch::Value1(category_id),
+            });
+        }
+        crate::systems::report_achievements(self.server, player, &inputs);
     }
 
     pub(super) fn set_status(&mut self, h: QuestHandle, s: u8) {

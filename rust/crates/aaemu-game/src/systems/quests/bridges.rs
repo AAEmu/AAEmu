@@ -415,15 +415,19 @@ impl QuestHooks for GameQuestHooks {
 
     fn change_game_points(
         &self,
-        _server: &GameServer,
+        server: &GameServer,
         player: Option<&PlayerRef>,
         c: &mut Character,
         kind: u8,
         amount: i32,
     ) {
-        let packet = crate::systems::skills::progress::change_game_points_locked(c, kind, amount);
+        use crate::systems::skills::progress;
+        let packet = progress::change_game_points_locked(c, kind, amount);
         if let (Some(p), Some(packet)) = (player, packet) {
+            let gained = packet.amount;
             p.send(packet);
+            // Deferred by the achievement hooks until the quest operation's locks are released.
+            progress::report_life_points_gained(server, p, kind, gained);
         }
     }
 
@@ -451,6 +455,7 @@ impl QuestHooks for GameQuestHooks {
             });
         }
         p.send(packet);
+        progress::report_labor_spent(server, p, amount);
     }
 
     fn add_crime(

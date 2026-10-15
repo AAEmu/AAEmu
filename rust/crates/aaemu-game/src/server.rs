@@ -143,6 +143,8 @@ impl GameServer {
             Some(reg) => {
                 let started = std::time::Instant::now();
                 let res = (reg.handler)(self, conn, raw.body).await;
+                // Achievement events queued under foreign locks run now that the handler is done.
+                crate::systems::flush_achievements(self);
                 let took = started.elapsed();
                 if took > std::time::Duration::from_millis(250) {
                     let names = if raw.level == LEVEL_PROXY {

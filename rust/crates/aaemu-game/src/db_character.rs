@@ -599,8 +599,8 @@ pub async fn load_character_details(server: &GameServer, c: &mut Character) -> R
         c.quests.active.push(q);
     }
 
-    // Achievements (records + progress rows; the gameplay events that report into them are a
-    // later phase).
+    // Achievements (records + progress rows). The gameplay producers report into them through
+    // `systems::report_achievement`, and `CSNotifyInGamePacket` pushes the entry snapshot.
     crate::systems::social::achievement_persistence::load_character_achievements(pool, c).await?;
 
     // LoadActionSlots(connection)

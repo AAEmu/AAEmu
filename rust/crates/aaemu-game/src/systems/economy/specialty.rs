@@ -21,6 +21,8 @@ use crate::net::registry::PacketRegistry;
 use crate::opcodes::{cs, sc};
 use crate::packets::packet_def;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{PlayerRef, WorldObject};
 
 use super::craft::zone_group_id;
@@ -398,6 +400,20 @@ pub fn sell_specialty(server: &GameServer, p: &PlayerRef, npc_obj_id: u32) -> i3
         inventory::change_labor(&mut out, server, p, -60, ACTABILITY_COMMERCE);
     }
 
+    // SELL_ITEM: the pack sold (value1) at the destination npc template (value2).
+    let npc_template_id = npc.data().unit.template_id;
+    crate::systems::report_achievement(
+        server,
+        p,
+        AchievementInput::Increment {
+            kind_id: char_record_kind::SELL_ITEM,
+            amount: 1,
+            matcher: RecordMatch::Value1And2 {
+                value1: backpack.template_id,
+                value2: npc_template_id,
+            },
+        },
+    );
     // Add one pack sold in this zone during this tick
     let zone_group = player_zone_group(server, p);
     server

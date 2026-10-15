@@ -14,6 +14,8 @@ use crate::net::packet::LEVEL_PLAIN;
 use crate::opcodes::sc;
 use crate::packets::packet_def;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{now_ms, PlayerRef, WorldObject};
 
 use super::broadcast;
@@ -208,6 +210,10 @@ pub fn add_exp_world_tail(server: &GameServer, p: &PlayerRef, gain: &ExpGain) {
         super::stats::refresh_cached_stats(server, &obj);
     }
     crate::systems::quests::events::on_level_up(server, p);
+    if gain.new_level.is_some() {
+        // CHAR_LEVEL, and the ability levels the exp gain moved: re-report the current state.
+        crate::systems::refresh_achievements(server, p);
+    }
 }
 
 /// `Character.AddExp(expDelta, shouldAddAbilityExp)`.
@@ -310,6 +316,48 @@ pub fn change_labor(server: &GameServer, p: &PlayerRef, change: i16, actability_
         add_exp_world_tail(server, p, gain);
     }
     p.send(packet);
+    report_labor_spent(server, p, change);
+    report_actability(server, p, actability_id);
+}
+
+/// GET_ACTABILITY achievement credit: the actability's current points (absolute).
+pub fn report_actability(server: &GameServer, p: &PlayerRef, actability_id: i32) {
+    if actability_id <= 0 {
+        return;
+    }
+    let point = p
+        .data()
+        .actability
+        .actabilities
+        .iter()
+        .find(|a| a.id == actability_id as u32)
+        .map(|a| i64::from(a.point));
+    if let Some(value) = point {
+        crate::systems::report_achievement(
+            server,
+            p,
+            AchievementInput::Absolute {
+                kind_id: char_record_kind::GET_ACTABILITY,
+                value,
+                matcher: RecordMatch::Value1(actability_id as u32),
+            },
+        );
+    }
+}
+
+/// SPEND_LABOR achievement credit: `change` labor was consumed (a negative change).
+pub fn report_labor_spent(server: &GameServer, p: &PlayerRef, change: i16) {
+    if change < 0 {
+        crate::systems::report_achievement(
+            server,
+            p,
+            AchievementInput::Increment {
+                kind_id: char_record_kind::SPEND_LABOR,
+                amount: i64::from(-i32::from(change)),
+                matcher: RecordMatch::Any,
+            },
+        );
+    }
 }
 
 /// The locked part of `Character.ChangeGamePoints(kind, change)`: the packet to send (`None`
@@ -350,13 +398,31 @@ pub fn change_game_points_locked(
 }
 
 /// `Character.ChangeGamePoints(kind, change)`.
-pub fn change_game_points(_server: &GameServer, p: &PlayerRef, kind: u8, change: i32) {
+pub fn change_game_points(server: &GameServer, p: &PlayerRef, kind: u8, change: i32) {
     let packet = {
         let mut c = p.data();
         change_game_points_locked(&mut c, kind, change)
     };
     if let Some(packet) = packet {
+        let amount = packet.amount;
         p.send(packet);
+        report_life_points_gained(server, p, kind, amount);
+    }
+}
+
+/// GET_LIFE_POINT achievement credit: vocation (living) points gained. Honor, and every spend,
+/// never credits.
+pub fn report_life_points_gained(server: &GameServer, p: &PlayerRef, kind: u8, amount: i32) {
+    if kind == GAME_POINT_VOCATION && amount > 0 {
+        crate::systems::report_achievement(
+            server,
+            p,
+            AchievementInput::Increment {
+                kind_id: char_record_kind::GET_LIFE_POINT,
+                amount: i64::from(amount),
+                matcher: RecordMatch::Any,
+            },
+        );
     }
 }
 
@@ -606,6 +672,15 @@ pub fn swap_ability(server: &GameServer, p: &PlayerRef, old: u8, new: u8) {
             ability: new,
         },
         true,
+    );
+    crate::systems::report_achievement(
+        server,
+        p,
+        AchievementInput::Increment {
+            kind_id: char_record_kind::ABILITY_CHANGE,
+            amount: 1,
+            matcher: RecordMatch::Any,
+        },
     );
 }
 

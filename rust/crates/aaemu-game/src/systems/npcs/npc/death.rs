@@ -20,6 +20,10 @@
 use crate::server::GameServer;
 use crate::systems::skills::combat::MAX_LOOTING_RANGE;
 use crate::systems::skills::geometry::{distance_to, Target};
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{
+    lowest_party_level, AchievementInput, RecordMatch,
+};
 use crate::world::{NpcRef, PlayerRef, WorldObject};
 
 /// The 1.2 player experience modifier (`plMod`) for `eligible` players with tagging rights.
@@ -144,6 +148,7 @@ pub fn before_death(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObje
                 q.on_npc_killed(server, ck, npc);
                 q.add_exp(server, ck, kill_exp, npc.obj_id);
             }
+            report_kill(server, ck, npc);
             // The killer's active mates (vehicles subsystem).
             crate::systems::vehicles::mates::reward_kill_exp(server, ck, kill_exp);
         }
@@ -169,6 +174,7 @@ pub fn before_death(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObje
             if let Some(q) = &quests {
                 q.on_npc_killed(server, pl, npc);
             }
+            report_kill(server, pl, npc);
         }
     }
 
@@ -189,8 +195,28 @@ pub fn before_death(server: &GameServer, npc: &NpcRef, killer: Option<&WorldObje
             if let Some(q) = &quests {
                 q.on_npc_killed(server, &contributor, npc);
             }
+            report_kill(server, &contributor, npc);
         }
     }
+}
+
+/// `KILL_NPC` achievement credit for one player who shares the kill (same eligibility as the
+/// monster-hunt quest event). The record's party-level cap is matched against the lowest level in
+/// the player's party / raid.
+fn report_kill(server: &GameServer, player: &PlayerRef, npc: &NpcRef) {
+    let template_id = npc.data().unit.template_id;
+    crate::systems::report_achievement(
+        server,
+        player,
+        AchievementInput::Increment {
+            kind_id: char_record_kind::KILL_NPC,
+            amount: 1,
+            matcher: RecordMatch::NpcKill {
+                template_id,
+                lowest_party_level: Some(lowest_party_level(server, player)),
+            },
+        },
+    );
 }
 
 /// `Tagging.GetAllContributors(MaxLootingRange)`: every online damage dealer in range plus
@@ -384,6 +410,42 @@ mod tests {
             vec!["exp 256 140 513".to_string(), "kill 256 513".to_string()]
         );
         assert_eq!(npc2.data().tagger_obj_id, 0);
+    }
+
+    #[tokio::test]
+    async fn a_tagged_kill_progresses_the_kill_npc_achievement() {
+        use crate::systems::social::achievement::char_record_kind;
+        use crate::systems::social::achievement_flow_tests::{
+            achievement_ops, one_achievement, player_of,
+        };
+        // Killing npc template 200 twice completes the achievement.
+        let mut gd = super::super::manager::tests::npc_game_data();
+        gd.systems.social.achievements =
+            one_achievement(1, 2, 0, 10, char_record_kind::KILL_NPC, 200, 0);
+        let server = Arc::new(test_server_with(gd));
+        server.set_self();
+        crate::systems::npcs::install_hooks(&server);
+        crate::systems::social::install_hooks(&server);
+        let (mut client, _player) = player_of(&server);
+
+        let kill = |obj_id| {
+            let npc = super::super::manager::create(&server, obj_id, 200).unwrap();
+            npc.data().tagger_obj_id = 0x100;
+            before_death(&server, &npc, None);
+        };
+        kill(0x201);
+        assert_eq!(
+            achievement_ops(client.drain_ops()),
+            [sc::SCAchievementChangedPacket]
+        );
+        kill(0x202);
+        assert_eq!(
+            achievement_ops(client.drain_ops()),
+            [
+                sc::SCAchievementChangedPacket,
+                sc::SCAchievementCompletedPacket
+            ]
+        );
     }
 
     #[test]
