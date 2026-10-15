@@ -39,40 +39,33 @@ public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
 
         for (var i = 0; i < num; i++)
         {
-            // Client sell-entry: u8 type, u8 index, u64 id, u32 stack, u64 removeReservationTime,
-            // u32 type, u32 dbSlaveId, u32 type. The padded 4-byte slot layout is in-memory only.
-            var slotType = (SlotType)stream.ReadByte();
-            var slot = stream.ReadByte();
-            var itemId = stream.ReadUInt64();
-            var stack = stream.ReadUInt32();
-            var removeReservationTime = stream.ReadUInt64();
-            _ = stream.ReadUInt32(); // detail/type
-            _ = stream.ReadUInt32(); // dbSlaveId
-            _ = stream.ReadUInt32(); // owner/type
+            // Client sell-entry: u8 type, u8 index, u64 id, … — not the padded 4-byte slot layout.
+            var entry = VendorSellWireRules.ReadEntry(stream);
 
-            if (!VendorSellWireRules.IsSellableContainer(slotType))
+            if (!VendorSellWireRules.IsSellableContainer(entry.SlotType))
                 continue;
 
             Item item = null;
-            if (slotType == SlotType.Equipment)
-                item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
-            else if (slotType == SlotType.Inventory)
-                item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
+            if (entry.SlotType == SlotType.Equipment)
+                item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(entry.Slot);
+            else if (entry.SlotType == SlotType.Inventory)
+                item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(entry.Slot);
 
             // Wire "stack" is unused on this client (always 0); sold qty is item.Count below.
-            if (item == null || item.Id != itemId ||
-                !VendorSellWireRules.StackFieldAllowsSale(stack, item.Count) ||
-                !seenItems.Add(itemId))
+            if (item == null || item.Id != entry.ItemId ||
+                !VendorSellWireRules.StackFieldAllowsSale(entry.Stack, item.Count) ||
+                !seenItems.Add(entry.ItemId))
             {
                 Logger.Debug(
                     "SellItems skip itemId={0} slot={1}:{2} wireStack={3} bagCount={4} found={5} for {6}",
-                    itemId, slotType, slot, stack, item?.Count, item != null, Connection.ActiveChar.Name);
+                    entry.ItemId, entry.SlotType, entry.Slot, entry.Stack, item?.Count, item != null,
+                    Connection.ActiveChar.Name);
                 continue;
             }
 
             Logger.Debug(
                 "SellItems item={0} slot={1}:{2} stack={3} removeReservationTime={4}",
-                itemId, slotType, slot, stack, removeReservationTime);
+                entry.ItemId, entry.SlotType, entry.Slot, entry.Stack, entry.RemoveReservationTime);
             items.Add(item);
         }
 

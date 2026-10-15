@@ -1,3 +1,5 @@
+using AAEmu.Commons.Network;
+
 namespace AAEmu.Game.Models.Game.Items;
 
 /// <summary>
@@ -34,6 +36,20 @@ public static class VendorSellWireRules
     /// </summary>
     public const int EntryWireSize =
         1 + 1 + 8 + 4 + 8 + 4 + 4 + 4; // type, index, id, stack, reservation, type, dbSlaveId, type
+
+    /// <summary>
+    /// Reads one sell-entry with the live wire widths (u8 type + u8 index, not a padded u32 slot).
+    /// </summary>
+    public static VendorSellEntry ReadEntry(PacketStream stream) =>
+        new(
+            (SlotType)stream.ReadByte(),
+            stream.ReadByte(),
+            stream.ReadUInt64(),
+            stream.ReadUInt32(),
+            stream.ReadUInt64(),
+            stream.ReadUInt32(),
+            stream.ReadUInt32(),
+            stream.ReadUInt32());
 
     /// <summary>
     /// Whether this line names a bag or equipment slot the sell handler knows how to look up.

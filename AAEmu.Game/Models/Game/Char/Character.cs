@@ -3704,10 +3704,15 @@ public partial class Character : Unit, ICharacter
 
         foreach (var equipItem in repairs)
         {
+            // Combat wear that hits 0 calls UpdateGearBonuses(null, item) and strips equip buffs.
+            // Restore those buffs when the piece becomes usable again while still equipped.
+            var wasBroken = equipItem.Durability == 0;
             CharacterRepairRules.TryRestore(equipItem);
             // UpdateDetail item tasks are not a detail write on this client — they leave the
             // piece as an invalid / broken icon. Same publish as temper and lure.
             SendPacket(new SCItemDetailUpdatedPacket(equipItem));
+            if (wasBroken && Equipment.Items.Contains(equipItem))
+                UpdateGearBonuses(equipItem, null);
         }
 
         foreach (var equipItem in resync)

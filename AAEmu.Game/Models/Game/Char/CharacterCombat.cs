@@ -482,7 +482,12 @@ public partial class Character
         var decrementChance = itemManager.GetDurabilityDecrementChance();
         var destroyed = new List<Item>();
 
-        foreach (var item in Equipment.Items)
+        // Snapshot under the inventory mutation guard so a mid-hit equip swap cannot mutate the
+        // live Items list while we walk it (or after we have already applied some wear).
+        using var mutation = Inventory?.AcquireMutation();
+        var equipped = Equipment.Items.ToArray();
+
+        foreach (var item in equipped)
         {
             if (item is not EquipItem equipItem)
                 continue;
