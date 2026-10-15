@@ -509,6 +509,7 @@ async fn an_equip_item_requirement_cannot_be_satisfied_by_an_item_in_the_bag() {
 async fn requirements_check_the_packet_doodad_and_resource_boundaries() {
     let mut data = GameData::empty();
     data.systems.quests.group_npcs.add(55, 1);
+    data.systems.quests.group_npcs.add(57, 2);
     let (server, _client, player, npc) = fixture(data);
     let owner = WorldObject::from(&player);
     let doodad = Entity::new(0x500, crate::models::doodad::Doodad::new(55));
@@ -546,6 +547,21 @@ async fn requirements_check_the_packet_doodad_and_resource_boundaries() {
         Some(&WorldObject::from(&npc))
     )
     .is_ok());
+    // value2 != 0: the target must NOT be in the (existing) group (Detection Orb, skill 16881).
+    requirement.value2 = 1;
+    for (group, accepted) in [(55, false), (57, true), (56, false)] {
+        requirement.value1 = group;
+        assert_eq!(
+            super::unit_reqs::validate(
+                &server,
+                &requirement,
+                &owner,
+                Some(&WorldObject::from(&npc))
+            )
+            .is_ok(),
+            accepted
+        );
+    }
     requirement.kind = 0x29;
     requirement.value1 = 2000;
     requirement.value2 = 600;

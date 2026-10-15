@@ -1094,8 +1094,12 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   Restoring them requires an authentic 1.2 dataset. Skill 14602
   already exists and uses the inherited fallback cast path for Memory Tome interactions; its
   "undefined use type" diagnostic does not mean the skill template is absent. Quest skill 16881
-  references NPC group 200, whose members 7976/7977 have no available NPC templates; the meaning
-  of its unique `unit_reqs` kind-34 `value2 = 1` remains unverified. Missing authored `tuto_move`,
+  (Detection Orb, quest 2394) references NPC group 200, whose members 7976/7977 have no available
+  NPC templates. Its unique `unit_reqs` kind-34 `value2 = 1` is a negation: the 10.x zone server
+  (`sub_39770380`) passes a TargetNpcGroup requirement when the target NPC is in the existing
+  group and `value2 == 0`, or is not in it and `value2 != 0`. The C# only checked that the
+  target is an NPC. The Rust port checked strict membership, which rejected every Detection Orb
+  cast with result 93 ("Invalid target"). It now follows the zone server. Missing authored `tuto_move`,
   `public_farm*` and `public_mate*` paths also remain data gaps.
 
 ## Live testing (phase 5): fixes and deliberate deviations

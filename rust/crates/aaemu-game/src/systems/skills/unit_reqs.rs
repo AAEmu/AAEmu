@@ -379,16 +379,15 @@ pub fn validate(
             v1,
             player.is_some_and(|p| quests.quest_step(server, p, v1) == Some(QUEST_STEP_READY)),
         ),
+        // value2 != 0 negates: "target is NOT in group value1" (10.x zone sub_39770380;
+        // e.g. skill 16881, Detection Orb, value1 200 value2 1).
         0x22 => ret(
             "skill_urk_target_npc_group",
             target_unit.is_some_and(|t| {
+                let groups = &server.game_data.systems.quests.group_npcs;
                 t.as_npc().is_some()
-                    && server
-                        .game_data
-                        .systems
-                        .quests
-                        .group_npcs
-                        .contains(v1, t.with_base_unit(|b| b.template_id()))
+                    && !groups.members(v1).is_empty()
+                    && groups.contains(v1, t.with_base_unit(|b| b.template_id())) == (v2 == 0)
             }),
         ),
         0x23 => {
