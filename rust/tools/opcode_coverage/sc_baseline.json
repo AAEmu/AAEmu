@@ -1,8 +1,8 @@
 {
   "counts": {
     "sc_opcodes": 517,
-    "typeless": 109,
-    "never_sent": 73
+    "typeless": 108,
+    "never_sent": 70
   },
   "typeless": [
     "CDominionStartUnkPacket",
@@ -70,7 +70,6 @@
     "SCRacingPacket",
     "SCRacingResultPacket",
     "SCRestrictInfoPacket",
-    "SCScheduleItemSentPacket",
     "SCScheduledEventEndedPacket",
     "SCScheduledEventStartedPacket",
     "SCSecondPassAccountLockedPacket",
@@ -167,9 +166,6 @@
     "SCPortalDeletedPacket",
     "SCPremiumPointChangedPacket",
     "SCRankAlarmPacket",
-    "SCRankCharacterPacket",
-    "SCRankRewardMailPacket",
-    "SCScheduleItemUpdatePacket",
     "SCSearchListPacket",
     "SCSetBountyDonePacket",
     "SCSetBountyPermittedPacket",
