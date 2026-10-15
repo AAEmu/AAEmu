@@ -189,6 +189,8 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
         var buybackTasks = new List<ItemTask>();
         foreach (var (item, _) in buybacks)
         {
+            // Invalid: bag grant is the ItemBuyback task below. The move still pulls the row out of
+            // BuyBackItems server-side; without a sold-list refresh the store UI keeps showing it.
             if (!character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, item))
             {
                 Logger.Error(
@@ -202,6 +204,13 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
 
         if (buybackTasks.Count > 0 || purchases.Count == 0)
             Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreBuy, buybackTasks, []));
+
+        // Same refresh sell uses: the buyback tab is driven by SCSoldItemList, not by ItemBuyback.
+        if (buybacks.Count > 0)
+        {
+            character.BuyBackItems.ReNumberSlots();
+            Connection.SendPacket(new SCSoldItemListPacket(character.BuyBackItems.Items));
+        }
 
         if (updatedPurchaseStates.Count > 0)
             Connection.SendPacket(new SCUpdateMerchantGoodLimitPurchasePacket(updatedPurchaseStates));
