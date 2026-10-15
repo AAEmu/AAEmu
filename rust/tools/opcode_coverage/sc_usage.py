@@ -70,7 +70,17 @@ Known limitations (stated honestly, they are why ``unclear`` exists):
    * three type names are declared twice (two modules, same opcode); all copies are analysed
      together and the extra declarations are reported in ``duplicate_types``.
 
+Ratchet (CI)
+------------
+``sc_baseline.json`` pins the two gap lists (opcodes without any Rust type = ``typeless``; types
+defined but never sent outside tests = ``never_sent``) with their counts.  ``--check`` re-analyses
+the sources (needs only the checked-in Rust files: no client data, no compact.sqlite3, no network),
+writes nothing and exits 1 when either list gains a member.  Shrinking is allowed; the check then
+hints to refresh the baseline with ``--update-baseline``.  ``cargo xtask ci`` runs ``--check``
+(skipped with a notice when python is missing).
+
 Usage: python rust/tools/opcode_coverage/sc_usage.py [--md out.md] [--json out.json]
+       python rust/tools/opcode_coverage/sc_usage.py --check | --update-baseline
 """
 
 from __future__ import annotations
@@ -87,6 +97,7 @@ SRC = GAME / "src"
 OPCODES = SRC / "opcodes.rs"
 DEFAULT_JSON = Path(__file__).resolve().parent / "sc_sent.json"
 DEFAULT_MD = Path(__file__).resolve().parent / "sc_sent.md"
+DEFAULT_BASELINE = Path(__file__).resolve().parent / "sc_baseline.json"
 
 # Generator macros of this crate that declare an S->C packet.  ``implicit`` means the opcode is
 # ``sc::<TypeName>`` (baked into the macro body), otherwise the opcode is an explicit argument.
@@ -953,12 +964,59 @@ def render_md(report: dict) -> str:
     return "\n".join(out)
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--json", default=str(DEFAULT_JSON))
-    ap.add_argument("--md", default=str(DEFAULT_MD))
-    args = ap.parse_args()
+BASELINE_LISTS = ("typeless", "never_sent")
+BASELINE_KEYS = ("counts", *BASELINE_LISTS)
 
+
+def baseline_from_report(report: dict) -> dict:
+    """The ratcheted part of a report: gap counts plus the sorted opcode/type names behind them."""
+    typeless = sorted(o["name"] for o in report["opcodes_without_any_type"])
+    never_sent = sorted(p["name"] for p in report["defined_only"] + report["unclear"])
+    return {
+        "counts": {
+            "sc_opcodes": report["summary"]["sc_opcodes"],
+            "typeless": len(typeless),
+            "never_sent": len(never_sent),
+        },
+        "typeless": typeless,
+        "never_sent": never_sent,
+    }
+
+
+def format_counts(counts: dict) -> str:
+    return (
+        f"  S->C opcodes: {counts['sc_opcodes']}, without a Rust type (typeless): "
+        f"{counts['typeless']}, typed but never sent: {counts['never_sent']}"
+    )
+
+
+def check_against_baseline(baseline: dict, current: dict) -> tuple[list[str], list[str]]:
+    """Compare two baseline-shaped dicts.  Returns (errors, hints); errors fail the ratchet.
+
+    A gap list may only shrink: every name that is in ``current`` but not in ``baseline`` is an
+    error.  Names that left a list produce a hint to refresh the baseline.
+    """
+    errors: list[str] = []
+    hints: list[str] = []
+    labels = {
+        "typeless": "S->C opcode has no Rust packet type",
+        "never_sent": "S->C packet type is defined but never sent outside tests",
+    }
+    for key in BASELINE_LISTS:
+        old, new = set(baseline.get(key, [])), set(current[key])
+        for name in sorted(new - old):
+            errors.append(f"regression ({key}): {name}: {labels[key]} (not in baseline)")
+        gone = sorted(old - new)
+        if gone:
+            hints.append(
+                f"improved ({key}): {len(gone)} fewer ({', '.join(gone[:5])}"
+                f"{', ...' if len(gone) > 5 else ''}); run --update-baseline to lock it in"
+            )
+    return errors, hints
+
+
+def build_report() -> dict:
+    """Analyse the game crate sources and return the report dict (no files are written)."""
     tables = load_opcodes()
     sc = tables["sc"]
     sources = discover_sources()
@@ -1013,6 +1071,54 @@ def main() -> int:
             key=lambda d: (d["opcode"], d["name"]),
         ),
     }
+    return report
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--json", default=str(DEFAULT_JSON))
+    ap.add_argument("--md", default=str(DEFAULT_MD))
+    ap.add_argument(
+        "--check",
+        action="store_true",
+        help="ratchet: exit 1 if a gap list grew vs the baseline; writes no report files",
+    )
+    ap.add_argument(
+        "--update-baseline",
+        action="store_true",
+        help="rewrite the baseline file from the current analysis (writes no report files)",
+    )
+    ap.add_argument("--baseline", default=str(DEFAULT_BASELINE))
+    args = ap.parse_args()
+
+    report = build_report()
+    defined_only = report["defined_only"]
+    unclear = report["unclear"]
+
+    if args.update_baseline:
+        current = baseline_from_report(report)
+        Path(args.baseline).write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
+        print(f"wrote {args.baseline}")
+        print(format_counts(current["counts"]))
+        return 0
+    if args.check:
+        baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
+        errors, hints = check_against_baseline(baseline, baseline_from_report(report))
+        for h in hints:
+            print(h)
+        for e in errors:
+            print(e, file=sys.stderr)
+        if errors:
+            print(
+                "S->C coverage ratchet FAILED: send/implement the new packets, or (only if the "
+                "growth is intended) run `python rust/tools/opcode_coverage/sc_usage.py "
+                "--update-baseline` and justify it in review.",
+                file=sys.stderr,
+            )
+            return 1
+        print("S->C coverage ratchet OK")
+        print(format_counts(baseline_from_report(report)["counts"]))
+        return 0
 
     Path(args.json).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     Path(args.md).write_text(render_md(report), encoding="utf-8")

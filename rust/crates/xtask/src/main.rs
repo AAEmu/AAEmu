@@ -8,7 +8,8 @@
 //!   (the `db` service of `docker-compose.yaml`), then the login server, then the game server
 //!   once the login server accepts game-server registrations, all wired through environment
 //!   variables.
-//! * `ci` — the checks CI runs: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`.
+//! * `ci` — the checks CI runs: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, and
+//!   the S->C packet coverage ratchet (`tools/opcode_coverage/sc_usage.py --check`, needs python).
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
@@ -35,7 +36,7 @@ Commands:
               --no-db            do not start MySQL; use --db-host/--db-port or Config.Local.json
               --db-host <host>   MySQL host passed to the servers (default: 127.0.0.1)
               --db-port <port>   MySQL port (default: DB_PORT from .env, else 3306)
-  ci        cargo fmt --check, clippy -D warnings, test (the CI checks)
+  ci        cargo fmt --check, clippy -D warnings, test, S->C coverage ratchet (the CI checks)
 ";
 
 /// The login server's internal (game-server registration) port in the shipped `Config.json`.
@@ -520,6 +521,25 @@ fn ci() -> Result<()> {
         "warnings",
     ]))?;
     run(cargo().args(["test", "--workspace"]))?;
+    sc_ratchet()
+}
+
+/// The S->C packet coverage ratchet (`rust/tools/opcode_coverage/sc_usage.py --check`): the lists
+/// of opcodes without a Rust type and of packets never sent may only shrink. Needs only python and
+/// the checked-in sources; skipped with a notice when no python interpreter is installed.
+fn sc_ratchet() -> Result<()> {
+    let script = workspace_dir().join("tools/opcode_coverage/sc_usage.py");
+    for python in ["python3", "python"] {
+        let mut cmd = Command::new(python);
+        cmd.arg(&script).arg("--check");
+        match cmd.status() {
+            Ok(status) if status.success() => return Ok(()),
+            Ok(status) => bail!("{cmd:?} failed ({status})"),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => return Err(e).with_context(|| format!("failed to start {cmd:?}")),
+        }
+    }
+    eprintln!("warning: python not found; skipping the S->C coverage ratchet");
     Ok(())
 }
 
