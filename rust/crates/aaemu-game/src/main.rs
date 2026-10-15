@@ -255,13 +255,8 @@ async fn run() -> anyhow::Result<()> {
     }
 
     // ---- shutdown: hosted services in reverse order ----
-    server.systems.services.stop_hosted_services().await;
-    tracing::info!("Stopping daemon...");
-    // SaveManager.StopAsync: one final save.
-    server.save.stop(&server).await;
-    server.systems.services.tasks.stop();
-    server.systems.services.tick.stop();
-    server.time.stop();
+    // (shared with the graceful `/scripts shutdown`)
+    aaemu_game::systems::services::shutdown::stop_server(&server).await;
     // Dispose.
     tracing::info!("Disposing...");
     Ok(())

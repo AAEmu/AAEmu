@@ -75,6 +75,9 @@ pub enum ConnCommand {
     /// `Connection.ActiveChar = null; Shutdown()` (GM `disconnectme`): the connection closes
     /// without saving / removing its character.
     DetachAndClose,
+    /// Graceful server shutdown: leave the world at once (no logout timer) if in it, then ask
+    /// the login server for the world list (`session::return_to_world_list`).
+    ReturnToWorldList,
 }
 
 /// Cloneable handle stored in the [`ConnectionTable`].
@@ -152,6 +155,11 @@ impl ConnectionHandle {
     /// `ActiveChar = null` then `Shutdown()` on the connection task.
     pub fn detach_and_close(&self) {
         let _ = self.tx.send(ConnCommand::DetachAndClose);
+    }
+
+    /// Queues [`ConnCommand::ReturnToWorldList`] for the connection task.
+    pub fn return_to_world_list(&self) {
+        let _ = self.tx.send(ConnCommand::ReturnToWorldList);
     }
 }
 

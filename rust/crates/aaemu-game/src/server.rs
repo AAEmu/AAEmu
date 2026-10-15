@@ -1,7 +1,7 @@
 //! Shared server state (the C# singletons used by this phase) and the frame dispatcher
 //! (`GameProtocolHandler.OnReceive` after reassembly).
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 
 use sqlx::mysql::MySqlPool;
@@ -51,6 +51,9 @@ pub struct GameServer {
     /// A weak self reference for the timers that outlive a packet handler.
     self_ref: std::sync::OnceLock<std::sync::Weak<GameServer>>,
     next_connection_id: AtomicU32,
+    /// Set while the graceful shutdown returns the players to the world list: entering the world
+    /// is refused (`systems::services::shutdown`).
+    shutting_down: AtomicBool,
 }
 
 impl GameServer {
@@ -87,7 +90,17 @@ impl GameServer {
             login: LoginLink::default(),
             self_ref: std::sync::OnceLock::new(),
             next_connection_id: AtomicU32::new(1),
+            shutting_down: AtomicBool::new(false),
         }
+    }
+
+    /// `true` while the graceful shutdown is returning players to the world list.
+    pub fn is_shutting_down(&self) -> bool {
+        self.shutting_down.load(Ordering::SeqCst)
+    }
+
+    pub fn set_shutting_down(&self, value: bool) {
+        self.shutting_down.store(value, Ordering::SeqCst);
     }
 
     /// Registers the shared handle (call once after wrapping the server in an `Arc`).

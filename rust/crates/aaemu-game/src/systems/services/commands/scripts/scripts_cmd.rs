@@ -51,6 +51,15 @@ impl Scripts {
             .lock()
             .expect("shutdown task poisoned")
             .clone();
+        if do_cancel && server.is_shutting_down() {
+            // Deviation: T-0 passed, the players are already being returned to the world list.
+            CommandManager::send_error_text(
+                self,
+                out,
+                "Too late to cancel, the server is shutting down right now.",
+            );
+            return Ok(());
+        }
         if let (Some(task), true) = (&current, do_cancel) {
             services.tasks.cancel_task(task.as_ref());
             CommandManager::send_normal_text(self, out, "Shutdown cancelled.");
@@ -239,6 +248,51 @@ mod tests {
             ["[scripts] Slave Attachment Point Locations reloaded from .json file"]
         );
         gm.frames();
+    }
+
+    #[tokio::test]
+    async fn scripts_shutdown_cancel_works_until_t0() {
+        let server = harness::server();
+        let mut gm = harness::pc(&server, 1, "Gm", 100.0, 100.0);
+        let task = crate::systems::services::shutdown::ShutdownTask::with_exit(
+            &server,
+            chrono::Utc::now().naive_utc() + chrono::TimeDelta::minutes(30),
+            -1,
+            std::sync::Arc::new(|_| {}),
+        );
+        *server.systems.services.shutdown_task.lock().unwrap() = Some(task.clone());
+        // Before T-0 nothing is refused or kicked and the cancel goes through.
+        task.run(&server).await;
+        assert!(!server.is_shutting_down());
+        assert!(gm.frames().is_empty());
+        let (_, out) = harness::run(&server, &gm.p, "scripts shutdown cancel").await;
+        assert_eq!(out, ["[scripts] Shutdown cancelled."]);
+        assert!(!server.is_shutting_down());
+        let ops: Vec<u16> = gm.frames().iter().map(|f| f.0).collect();
+        // The cancel notice (and the command's chat reply), no kick or leave.
+        assert!(ops.contains(&sc::SCNoticeMessagePacket));
+        assert!(!ops.contains(&sc::SCKickedPacket));
+        assert!(!ops.contains(&sc::SCLeaveWorldGrantedPacket));
+        assert!(gm.client.commands().is_empty());
+
+        // After T-0 (players are being returned to the world list) it is too late.
+        *server.systems.services.shutdown_task.lock().unwrap() = Some(task);
+        server.set_shutting_down(true);
+        let (_, out) = harness::run(&server, &gm.p, "scripts shutdown cancel").await;
+        assert_eq!(
+            out,
+            [harness::error(
+                "scripts",
+                "Too late to cancel, the server is shutting down right now."
+            )]
+        );
+        assert!(server
+            .systems
+            .services
+            .shutdown_task
+            .lock()
+            .unwrap()
+            .is_some());
     }
 
     #[tokio::test]

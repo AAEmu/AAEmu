@@ -58,6 +58,10 @@ pub async fn enter_world_login(
     account_id: u32,
     token: u32,
 ) -> Result<()> {
+    if server.is_shutting_down() {
+        crate::world::session::refuse_during_shutdown(conn);
+        return Ok(());
+    }
     match server.enter_world.login(account_id, token) {
         LoginDecision::Accepted => {}
         LoginDecision::AccountMismatch { expected } => {

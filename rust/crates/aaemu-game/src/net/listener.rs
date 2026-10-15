@@ -80,6 +80,9 @@ pub async fn serve(server: Arc<GameServer>, socket: TcpStream, peer: SocketAddr)
                     let active = conn.active_char.clone();
                     crate::world::session::leave_world_task(&server, Some(&mut conn), target, active).await;
                 }
+                Some(ConnCommand::ReturnToWorldList) => {
+                    crate::world::session::return_to_world_list(&server, &mut conn).await;
+                }
                 Some(ConnCommand::DetachAndClose) => {
                     conn.active_char = None;
                     break;

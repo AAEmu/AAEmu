@@ -224,6 +224,12 @@ Property, treasury, mail, certificates and wallets share a prepared save snapsho
 transaction. Logout writes the same financial state, and failed departures remain available for
 retry before character selection. Shutdown waits for ongoing saves before its final flush.
 
+`/scripts shutdown [minutes|now|cancel]` counts down with on-screen notices. At zero the server
+tells the players it is going down for maintenance, refuses new world entries, returns every
+connected client to the world (server) list instead of dropping the socket (players are saved and
+leave the world first), kicks whoever is still connected after about 10 seconds, then saves and
+exits. `cancel` only works before the countdown ends; `/scripts forcedshutdown` still exits at once.
+
 ## Architecture note: the Rust port
 
 The login server, game server and tools were ported from C# (.NET) to Rust,

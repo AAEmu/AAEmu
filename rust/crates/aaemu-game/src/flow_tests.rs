@@ -71,7 +71,7 @@ impl Client {
                     self.conn.active_char = None;
                     self.conn.shutdown();
                 }
-                ConnCommand::LeaveWorld(_) => {}
+                ConnCommand::LeaveWorld(_) | ConnCommand::ReturnToWorldList => {}
             }
         }
     }

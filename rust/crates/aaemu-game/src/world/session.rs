@@ -273,6 +273,10 @@ pub async fn select_character(
     conn: &mut GameConnection,
     character_id: u32,
 ) -> Result<()> {
+    if server.is_shutting_down() {
+        refuse_during_shutdown(conn);
+        return Ok(());
+    }
     let Some(idx) = conn.characters.iter().position(|c| c.id == character_id) else {
         tracing::error!(
             "Character {character_id} not found in list of loaded characters of this account {}",
@@ -588,6 +592,10 @@ pub fn select_loaded(
 
 /// `CSSpawnCharacterPacket.Read`.
 pub fn spawn_character(server: &GameServer, conn: &mut GameConnection, visual: VisualOptions) {
+    if server.is_shutting_down() {
+        refuse_during_shutdown(conn);
+        return;
+    }
     let Some(player) = conn.active_char.clone() else {
         tracing::error!(
             "CSSpawnCharacterPacket: ActiveChar is null for account {} — no character was selected. Disconnecting.",
@@ -1156,6 +1164,72 @@ pub async fn leave_world_task(
         conn.send(&SCLeaveWorldGrantedPacket { target });
         conn.send(&ChangeStatePacket { state: 0 });
     }
+}
+
+/// Graceful server shutdown, on the connection's own task. The shutdown sends this command to
+/// every connection, and again every few seconds to those still connected:
+///
+/// * In the world: the in-world leave without the logout timer (`LeaveWorldTask` to character
+///   select: save, `SCLeaveWorldGranted(1)` + `ChangeState(0)`, the connection becomes Lobby).
+///   The world list request is NOT sent yet: the client is busy switching to character select
+///   (it drops its stream connection and reopens it, then loads the lobby on this same game
+///   connection), and an `SCReconnectAuth` in that window did not take the live client to the
+///   world list.
+/// * In the lobby (already there, or left on an earlier round): the `CSLeaveWorld(ServerSelect)`
+///   path: `GLPlayerReconnect` to the login server, which answers `LGPlayerReconnect`; the game
+///   then sends `SCReconnectAuth`. Repeated rounds repeat the request.
+///
+/// Returns whether the character was in the world. A connection that never authenticated (no
+/// account id) only has its pending logout cancelled; the shutdown kicks and closes it if it is
+/// still connected at the end.
+pub async fn return_to_world_list(server: &GameServer, conn: &mut GameConnection) -> bool {
+    if let Some(task) = conn.leave_task.take() {
+        task.abort();
+    }
+    let active = conn.active_char.clone();
+    // After a leave the connection keeps `active_char` (as in C#), so only a character that is
+    // still the live world entry counts as in the world.
+    let in_world = active.as_ref().is_some_and(|p| {
+        server
+            .world
+            .character_by_obj_id(p.obj_id)
+            .is_some_and(|live| Arc::ptr_eq(&live, p))
+    });
+    if in_world {
+        leave_world_task(
+            server,
+            Some(&mut *conn),
+            leave_target::CHARACTER_SELECT,
+            active,
+        )
+        .await;
+        return true;
+    }
+    if conn.account_id() != 0 {
+        tracing::info!("Shutdown: session {} is asked for the world list", conn.id);
+        server
+            .login
+            .send(&crate::login::packets::GLPlayerReconnectPacket {
+                gs_id: server.config.id,
+                account_id: conn.account_id(),
+                connection_id: conn.id,
+            });
+    }
+    false
+}
+
+/// Refuses entering the world while the server shuts down: the localized "server maintenance"
+/// kick (`SCKicked`, `KickedReason.KickByMaintenance`), then the connection closes.
+pub fn refuse_during_shutdown(conn: &mut GameConnection) {
+    tracing::info!(
+        "Session {}: entering the world refused, the server is shutting down",
+        conn.id
+    );
+    conn.send(&crate::packets::g2c_misc::SCKickedPacket {
+        reason: crate::packets::g2c_misc::kicked_reason::KICK_BY_MAINTENANCE,
+        msg: crate::systems::services::shutdown::KICK_MESSAGE.into(),
+    });
+    conn.shutdown();
 }
 
 /// `GameConnection.SaveAndRemoveFromWorld(activeChar)`.
