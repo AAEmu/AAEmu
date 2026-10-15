@@ -2,7 +2,7 @@
 # Local live stack for agents and developers: private MySQL + Rust login/game servers + the real
 # ArcheAge 1.2 client started with aaemu-launcher. See AGENT-QUICKSTART.md.
 #
-#   Scripts/live-stack.sh build      # cargo build --release --bins
+#   Scripts/live-stack.sh build      # cargo build --profile live --bins (AAEMU_PROFILE=release for a full one)
 #   Scripts/live-stack.sh sync       # copy app/ configs + data into the runtime dirs
 #   Scripts/live-stack.sh db-reset   # drop + recreate the two throwaway databases
 #   Scripts/live-stack.sh start      # MySQL, login, game; waits until the game registered
@@ -17,7 +17,8 @@ set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 LIVE=${AAEMU_LIVE:-D:/aaemu-live}                         # runtime dirs, logs, MySQL data
-BIN=${AAEMU_BIN:-D:/aaemu-target/main/release}            # cargo target dir (see rust/.cargo/config.toml)
+PROFILE=${AAEMU_PROFILE:-live}                            # cargo profile: live (fast build) or release
+BIN=${AAEMU_BIN:-D:/aaemu-target/main/$PROFILE}            # cargo target dir (see rust/.cargo/config.toml)
 MYSQL_BIN=${AAEMU_MYSQL_BIN:-/c/Program Files/MySQL/MySQL Server 8.0/bin}
 MYSQL_PORT=${AAEMU_MYSQL_PORT:-3317}                      # private instance; NEVER the user's 3306
 CLIENT=${AAEMU_CLIENT:-D:/AA1.2/bin32/archeage.exe}       # read-only client install
@@ -30,7 +31,7 @@ MYSQL=("$MYSQL_BIN/mysql.exe" -h127.0.0.1 -P"$MYSQL_PORT" -uroot)
 running() { tasklist 2>/dev/null | grep -qi "^$1"; }
 mysql_up() { "${MYSQL[@]}" -N -e "select 1" >/dev/null 2>&1; }
 
-cmd_build() { (cd "$REPO/rust" && cargo build --release --bins); }
+cmd_build() { (cd "$REPO/rust" && cargo build --profile "$PROFILE" --bins); }
 
 cmd_sync() {
   local app="$REPO/rust/crates/aaemu-game/app"

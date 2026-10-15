@@ -78,7 +78,7 @@ Ports used side by side (C# = Rust + 10000):
 ### Rust
 
 ```sh
-cd rust && cargo build --release --bins
+cd rust && cargo build --release --bins    # or --profile live: opt-level 1 + incremental, for fast rebuilds
 ```
 
 `aaemu-login` reads `Config.json` + `Config.Local.json` from its application directory;

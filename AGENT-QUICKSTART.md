@@ -8,7 +8,7 @@ Both clients, the 10.x zone reference binaries, IDA databases and all reverse-en
 ## TL;DR
 
 ```bash
-Scripts/live-stack.sh build    # release build of all binaries (~3 min)
+Scripts/live-stack.sh build    # `live` profile build of all binaries (~12 min cold, ~2.5 min after an edit)
 Scripts/live-stack.sh sync     # copy rust/crates/*/app configs + data into the runtime dirs
 Scripts/live-stack.sh start    # private MySQL + login + game; returns when the game registered (~1 min)
 Scripts/live-stack.sh client   # starts the real 1.2 client, already logged in (ticket handoff)
@@ -57,8 +57,10 @@ After a schema change or when the databases are in a bad state: `stop`, then `db
 
 ## Rules that bite
 
-- **C: is nearly full.** Build output, logs and data go on D:. Keep `incremental = false` in the
-  worktree's `rust/.cargo/config.toml`; delete per-agent target dirs when done.
+- **C: is nearly full.** Build output, logs and data go on D: (`target-dir` in the untracked
+  `rust/.cargo/config.toml`, which also sets `jobs = 2` and the `rust-lld` linker); delete
+  per-agent target dirs when done. The live stack runs the `live` profile (opt-level 1,
+  incremental) from `D:\aaemu-target\main\live`; `AAEMU_PROFILE=release` switches the script back.
 - **The user's MySQL on port 3306 is off-limits.** Only use the private instance on 3317.
 - **`D:\AA1.2` and the 10.x folder are read-only.** The 10.x `dedicatedserver.exe` writes its log
   into the user's real `Documents\ArcheAge` — don't run it casually.

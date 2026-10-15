@@ -64,3 +64,12 @@ opt-level = 3
 # crash reports in Logs/Crash.log name file:line. Code generation is unchanged.
 [profile.release]
 debug = "line-tables-only"
+
+# Fast-to-build optimised profile for local live testing (`Scripts/live-stack.sh build`):
+# light optimisation, incremental and many codegen units, so rebuilding aaemu-game after an
+# edit takes a fraction of a full release build. Not for production: use `release`.
+[profile.live]
+inherits = "release"
+opt-level = 1
+incremental = true
+codegen-units = 256
