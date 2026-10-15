@@ -586,24 +586,20 @@ pub fn remove_active_mate_and_despawn(server: &GameServer, owner: &PlayerRef, tl
     );
 }
 
-/// `RemoveAndDespawnAllActiveOwnedMates(character)` of one instance. Note (C#): the active list
-/// entries are removed by `OwnerObjId` while the dictionary is keyed by the character id, so
-/// the (deleted) mates stay listed.
+/// `RemoveAndDespawnAllActiveOwnedMates(character)` of one instance. The active list is keyed by
+/// the character id (as `GetActiveMates`), so exactly that entry is removed once its mates were
+/// despawned. Deviation: the C# removed the entries by `OwnerObjId` and left the character's
+/// entry (the deleted mates stayed listed).
 pub fn remove_and_despawn_all_active_owned_mates(
     server: &GameServer,
     instance_id: u32,
     character_id: u32,
 ) {
     let manager = server.systems.vehicles.mates.get(instance_id);
-    let mut mark_for_delete = Vec::new();
     for mate in manager.get_active_mates(character_id) {
-        let (tl, passengers, owner_obj) = {
+        let (tl, passengers) = {
             let d = mate.data();
-            (
-                u32::from(d.unit.tl_id),
-                d.passengers.clone(),
-                d.owner_obj_id,
-            )
+            (u32::from(d.unit.tl_id), d.passengers.clone())
         };
         for (point, _) in &passengers {
             unmount_mate_by(
@@ -614,14 +610,9 @@ pub fn remove_and_despawn_all_active_owned_mates(
                 attach_reason::SLAVE_BINDING,
             );
         }
-        if owner_obj > 0 {
-            mark_for_delete.push(owner_obj);
-        }
         delete_mate(server, &mate);
     }
-    for key in mark_for_delete {
-        manager.remove_key(key);
-    }
+    manager.remove_key(character_id);
 }
 
 /// `Blink`: `if (character.IsRiding)` every active mate of the character is unmounted from the

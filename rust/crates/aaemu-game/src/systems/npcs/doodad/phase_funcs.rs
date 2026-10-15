@@ -213,6 +213,32 @@ pub fn use_phase_func(t: &FuncTemplate, ctx: &DoodadCtx<'_>, caster: Option<&Wor
                     ctx.doodad.data().phase.cumulative_phase_ratio -= f.ratio;
                     return false;
                 }
+                let (template_id, func_group_id) = {
+                    let d = ctx.doodad.data();
+                    (d.template_id, d.func_group_id)
+                };
+                // The replacement re-enters its phase funcs synchronously inside `spawn`; the
+                // guard rejects a source/group already active in this spawner's chain (or an
+                // over-deep chain) before the current doodad is despawned. It is dropped when
+                // the nested call has finished, also on early return or unwind.
+                let _chain = match spawner.enter_ratio_respawn(template_id, func_group_id) {
+                    Ok(guard) => guard,
+                    Err(reject) => {
+                        tracing::warn!(
+                            spawner = spawner.id,
+                            doodad = ctx.doodad.obj_id,
+                            template = template_id,
+                            group = func_group_id,
+                            replacement = f.spawn_doodad_id,
+                            repeated = reject.repeated,
+                            depth = reject.depth,
+                            limit = reject.limit,
+                            "DoodadFuncRatioRespawn: replacement chain rejected; keeping the current doodad"
+                        );
+                        ctx.doodad.data().phase.cumulative_phase_ratio -= f.ratio;
+                        return false;
+                    }
+                };
                 spawner.set_respawn_doodad_template_id(f.spawn_doodad_id);
                 spawner.despawn(server, &ctx.doodad);
                 if spawner.spawn(server, 0).is_none() {

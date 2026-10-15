@@ -5,12 +5,14 @@
 use std::sync::Arc;
 
 use super::*;
+use crate::data::world_templates::WorldSpawnPosition;
 use crate::data::GameData;
 use crate::opcodes::sc;
 use crate::server::GameServer;
 use crate::systems::npcs::doodad::data::DoodadData;
 use crate::systems::npcs::doodad::logic;
 use crate::systems::npcs::doodad::manager;
+use crate::systems::npcs::doodad::spawner::{DoodadSpawner, DoodadSpawnerDef, SpawnerBase};
 use crate::systems::npcs::doodad::templates::*;
 use crate::test_support::*;
 use crate::world::{PlayerRef, WorldInstance};
@@ -190,6 +192,41 @@ fn ratio(id: u32, ratio: i32, next_phase: i32) -> FuncTemplate {
         ratio,
         next_phase,
     })
+}
+
+fn ratio_respawn(id: u32, ratio: i32, spawn_doodad_id: u32) -> FuncTemplate {
+    FuncTemplate::RatioRespawn(DoodadFuncRatioRespawn {
+        id,
+        ratio,
+        spawn_doodad_id,
+    })
+}
+
+/// A real spawner for `unit_id` in the test world; `id > 0` because `RatioRespawn` ignores
+/// spawners without an index.
+fn new_spawner(unit_id: u32, id: u32) -> Arc<DoodadSpawner> {
+    Arc::new(DoodadSpawner::new(
+        DoodadSpawnerDef {
+            base: SpawnerBase {
+                id,
+                unit_id,
+                position: WorldSpawnPosition {
+                    world_id: 0,
+                    zone_id: TEST_ZONE,
+                    x: 120.0,
+                    y: 130.0,
+                    z: 100.0,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            scale: 1.0,
+            count: 1,
+            related_ids: None,
+            respawn_doodad_template_id: 0,
+        },
+        Some(0),
+    ))
 }
 
 fn group(d: &DoodadRef) -> u32 {
@@ -417,6 +454,174 @@ async fn recursion_guard_stops_ping_pong() {
     assert_eq!(group(&d), 10);
     assert!(d.data().phase.list_group_id.is_empty());
     assert_eq!(f.phase_packets(), vec![10]);
+}
+
+#[tokio::test]
+async fn ratio_respawn_self_reference_keeps_one_live_doodad_and_resets_guard() {
+    let b = Builder::default()
+        .template(TEMPLATE, &[(10, 1)])
+        .phase_func(10, ratio_respawn(1, 10_000, TEMPLATE));
+    let f = fx(b);
+    f.server
+        .systems
+        .npcs
+        .doodads
+        .set_forced_phase_ratio(Some(0));
+    let spawner = new_spawner(TEMPLATE, 501);
+    let first = spawner.spawn(&f.server, 0).expect("spawns the template");
+    let last = spawner.last().expect("the replacement is tracked");
+    assert!(!Arc::ptr_eq(&first, &last));
+    assert!(first.data().phase.deleted);
+    assert!(!f.world.all_doodads().iter().any(|d| Arc::ptr_eq(d, &first)));
+    assert!(!last.data().phase.deleted);
+    assert_eq!(last.data().func_group_id, 10);
+    assert!(f
+        .world
+        .doodad(last.obj_id)
+        .is_some_and(|d| Arc::ptr_eq(&d, &last)));
+    assert_eq!(f.world.all_doodads().len(), 1);
+    assert_eq!(spawner.spawned().len(), 1);
+    assert!(Arc::ptr_eq(&spawner.spawned()[0], &last));
+    assert_eq!(spawner.ratio_respawn_chain_depth(), 0);
+}
+
+#[tokio::test]
+async fn ratio_respawn_two_template_cycle_is_bounded_with_a_live_last_doodad() {
+    let b = Builder::default()
+        .template(TEMPLATE, &[(10, 1)])
+        .template(TEMPLATE + 1, &[(20, 1)])
+        .phase_func(10, ratio_respawn(1, 10_000, TEMPLATE + 1))
+        .phase_func(20, ratio_respawn(2, 10_000, TEMPLATE));
+    let f = fx(b);
+    f.server
+        .systems
+        .npcs
+        .doodads
+        .set_forced_phase_ratio(Some(0));
+    let spawner = new_spawner(TEMPLATE, 502);
+    let first = spawner.spawn(&f.server, 0).expect("spawns the template");
+    let last = spawner.last().expect("the replacement is tracked");
+    assert!(!Arc::ptr_eq(&first, &last));
+    assert!(first.data().phase.deleted);
+    assert!(!f.world.all_doodads().iter().any(|d| Arc::ptr_eq(d, &first)));
+    // T1 -> T2 -> T1 is rejected on the repeated (T1, 10) source, so the newest T1 survives.
+    assert_eq!(last.data().template_id, TEMPLATE);
+    assert_eq!(last.data().func_group_id, 10);
+    assert!(!last.data().phase.deleted);
+    assert!(f
+        .world
+        .doodad(last.obj_id)
+        .is_some_and(|d| Arc::ptr_eq(&d, &last)));
+    assert_eq!(f.world.all_doodads().len(), 1);
+    assert_eq!(spawner.spawned().len(), 1);
+    assert_eq!(spawner.ratio_respawn_chain_depth(), 0);
+}
+
+#[tokio::test]
+async fn ratio_respawn_finite_chain_reaches_the_last_template() {
+    let b = Builder::default()
+        .template(TEMPLATE, &[(10, 1)])
+        .template(TEMPLATE + 1, &[(20, 1)])
+        .template(TEMPLATE + 2, &[(30, 1)])
+        .phase_func(10, ratio_respawn(1, 10_000, TEMPLATE + 1))
+        .phase_func(20, ratio_respawn(2, 10_000, TEMPLATE + 2));
+    let f = fx(b);
+    f.server
+        .systems
+        .npcs
+        .doodads
+        .set_forced_phase_ratio(Some(0));
+    let spawner = new_spawner(TEMPLATE, 503);
+    let first = spawner.spawn(&f.server, 0).expect("spawns the template");
+    let last = spawner.last().expect("the replacement is tracked");
+    assert!(!Arc::ptr_eq(&first, &last));
+    assert!(first.data().phase.deleted);
+    assert!(!f.world.all_doodads().iter().any(|d| Arc::ptr_eq(d, &first)));
+    assert_eq!(last.data().template_id, TEMPLATE + 2);
+    assert_eq!(last.data().func_group_id, 30);
+    assert!(!last.data().phase.deleted);
+    assert!(f
+        .world
+        .doodad(last.obj_id)
+        .is_some_and(|d| Arc::ptr_eq(&d, &last)));
+    assert_eq!(f.world.all_doodads().len(), 1);
+    assert_eq!(spawner.ratio_respawn_chain_depth(), 0);
+}
+
+#[tokio::test]
+async fn ratio_respawn_deep_acyclic_chain_stops_at_the_depth_limit() {
+    let mut b = Builder::default();
+    for i in 0..10u32 {
+        b = b.template(TEMPLATE + i, &[(10 + i, 1)]);
+    }
+    for i in 0..9u32 {
+        b = b.phase_func(10 + i, ratio_respawn(i + 1, 10_000, TEMPLATE + i + 1));
+    }
+    let f = fx(b);
+    f.server
+        .systems
+        .npcs
+        .doodads
+        .set_forced_phase_ratio(Some(0));
+    let spawner = new_spawner(TEMPLATE, 505);
+    let first = spawner.spawn(&f.server, 0).expect("spawns the template");
+    let last = spawner.last().expect("the replacement is tracked");
+    assert!(!Arc::ptr_eq(&first, &last));
+    assert!(first.data().phase.deleted);
+    assert!(!f.world.all_doodads().iter().any(|d| Arc::ptr_eq(d, &first)));
+    // Sources T0..T7 occupy the 8 entries; T8 survives rejection and T9 is never reached.
+    assert_eq!(last.data().template_id, TEMPLATE + 8);
+    assert_eq!(last.data().func_group_id, 18);
+    assert!(!last.data().phase.deleted);
+    assert!(f
+        .world
+        .doodad(last.obj_id)
+        .is_some_and(|d| Arc::ptr_eq(&d, &last)));
+    assert_eq!(f.world.all_doodads().len(), 1);
+    assert_eq!(spawner.spawned().len(), 1);
+    assert!(Arc::ptr_eq(&spawner.spawned()[0], &last));
+    assert_eq!(spawner.ratio_respawn_chain_depth(), 0);
+}
+
+#[tokio::test]
+async fn ratio_respawn_guard_cleans_up_for_a_later_independent_respawn() {
+    let b = Builder::default()
+        .template(TEMPLATE, &[(10, 1)])
+        .template(TEMPLATE + 1, &[(20, 1)])
+        .phase_func(10, ratio_respawn(1, 10_000, TEMPLATE + 1))
+        .phase_func(20, ratio_respawn(2, 10_000, TEMPLATE));
+    let f = fx(b);
+    f.server
+        .systems
+        .npcs
+        .doodads
+        .set_forced_phase_ratio(Some(0));
+    let spawner = new_spawner(TEMPLATE, 504);
+    let first = spawner.spawn(&f.server, 0).expect("spawns the template");
+    assert!(!Arc::ptr_eq(&first, &spawner.last().unwrap()));
+    assert_eq!(spawner.ratio_respawn_chain_depth(), 0);
+
+    // Despawn the retained survivor and respawn independently: the same cycle must run again
+    // (a leaked chain entry would reject the first hop and keep the first doodad).
+    let stopped = spawner.last().unwrap();
+    spawner.despawn(&f.server, &stopped);
+    assert!(stopped.data().phase.deleted);
+    assert!(!f
+        .world
+        .all_doodads()
+        .iter()
+        .any(|d| Arc::ptr_eq(d, &stopped)));
+    let first_again = spawner.spawn(&f.server, 0).expect("respawns the template");
+    let last = spawner.last().expect("the replacement is tracked");
+    assert!(!Arc::ptr_eq(&first_again, &last));
+    assert!(!last.data().phase.deleted);
+    assert_eq!(last.data().template_id, TEMPLATE);
+    assert!(f
+        .world
+        .doodad(last.obj_id)
+        .is_some_and(|d| Arc::ptr_eq(&d, &last)));
+    assert_eq!(f.world.all_doodads().len(), 1);
+    assert_eq!(spawner.ratio_respawn_chain_depth(), 0);
 }
 
 #[tokio::test]

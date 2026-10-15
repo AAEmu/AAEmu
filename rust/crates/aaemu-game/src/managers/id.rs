@@ -493,7 +493,7 @@ pub const SHIPYARD_ID: IdManagerSpec = IdManagerSpec {
     name: "ShipyardIdManager",
     first_id: 0x0000_0001,
     last_id: 0xFFFF_FFFF,
-    obj_tables: &[("shipyards", "id")],
+    obj_tables: &[],
     distinct: false,
 };
 /// `TaskIdManager`.

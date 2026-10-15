@@ -393,7 +393,7 @@ async fn mate_summon_sends_attribute_pools_and_preserves_injured_exhausted_and_d
 }
 
 #[tokio::test]
-async fn second_summon_despawns_and_logout_keeps_stale_entry() {
+async fn second_summon_despawns_and_logout_clears_entry() {
     let server = server_with(data());
     let mut a = TestClient::new(&server, 1, 1);
     let (pa, item_id) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), MATE_ITEM);
@@ -406,11 +406,43 @@ async fn second_summon_despawns_and_logout_keeps_stale_entry() {
     mates::spawn_mount(&server, &pa, item_id);
     let mate = m.get_active_mates(1).pop().unwrap();
     a.drain();
-    // Logout path: the mate is deleted, but (C# bug) the list entry keyed by the character id
-    // is removed by the owner's obj id and stays.
+    // Logout path: the mate is deleted and the list entry keyed by the character id is removed.
     mates::remove_and_despawn_all_active_owned_mates(&server, 0, 1);
     assert!(server.world.world(0).unwrap().mate(mate.obj_id).is_none());
+    assert!(m.get_active_mates(1).is_empty());
+    // The whistle can be reused right away (no stale entry blocks the summon).
+    mates::spawn_mount(&server, &pa, item_id);
     assert_eq!(m.get_active_mates(1).len(), 1);
+}
+
+#[tokio::test]
+async fn logout_cleanup_only_removes_the_character_active_list() {
+    let server = server_with(data());
+    let mut a = TestClient::new(&server, 1, 1);
+    let mut b = TestClient::new(&server, 2, 2);
+    let (pa, a_item) = player_with_item(&server, &a, 1, PA, (100.0, 100.0), MATE_ITEM);
+    // B's character id equals A's obj id: the old cleanup removed the active list by that key and
+    // would have hit B's entry.
+    let (pb, b_item) = player_with_item(&server, &b, PA, PB, (110.0, 110.0), MATE_ITEM);
+    mates::spawn_mount(&server, &pa, a_item);
+    mates::spawn_mount(&server, &pb, b_item);
+    let m = server.systems.vehicles.mates.get(0);
+    let mate_b = m.get_active_mates(PA).pop().expect("B's active mate");
+    assert_eq!(m.get_active_mates(1).len(), 1);
+    a.drain();
+    b.drain();
+    // Cleaning up A (char id 1) must not touch B's entry.
+    mates::remove_and_despawn_all_active_owned_mates(&server, 0, 1);
+    assert!(m.get_active_mates(1).is_empty());
+    assert_eq!(m.get_active_mates(PA).len(), 1);
+    assert!(server.world.world(0).unwrap().mate(mate_b.obj_id).is_some());
+    // Repeating the cleanup is harmless and still leaves B alone.
+    mates::remove_and_despawn_all_active_owned_mates(&server, 0, 1);
+    assert_eq!(m.get_active_mates(PA).len(), 1);
+    // B's own cleanup removes exactly its entry and despawns its mate.
+    mates::remove_and_despawn_all_active_owned_mates(&server, 0, PA);
+    assert!(m.get_active_mates(PA).is_empty());
+    assert!(server.world.world(0).unwrap().mate(mate_b.obj_id).is_none());
 }
 
 #[tokio::test]
@@ -1658,8 +1690,8 @@ async fn logout_despawns_mates_and_vehicles() {
     // +10 minutes of logout delay with an active vehicle.
     assert_eq!(super::leave_extra_logout_ms(&server, &pa), 600_000);
     super::on_leave_world(&server, &pa);
-    // (C# bug) the deleted mate stays listed.
-    assert!(mates::first_active_mate(&server, &pa).is_some_and(|m| m.data().deleted));
+    // The active list entry keyed by the character id is removed together with the mate.
+    assert!(mates::first_active_mate(&server, &pa).is_none());
     assert!(world.slave(slave.obj_id).is_none());
     let o = ops(&b.drain());
     assert!(o.contains(&sc::SCUnitsRemovedPacket));

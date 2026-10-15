@@ -889,8 +889,13 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 * systems::vehicles: `Thread.Sleep(50)` between `SCMateSpawnedPacket` and the mate spawn is not
   reproduced. Slave weapon dps is 0 (mate / slave `UpdateGearBonuses` is ported).
   Ship physics, water and the storm cannon block are `systems::ai` (`ship_physics`).
-* systems::vehicles: a stale (already deleted) mate left in the active list by the logout bug
-  below is despawned again without releasing its obj / tl ids a second time.
+* systems::vehicles: logout removes the active mate list by character id, matching its key;
+  the C# used `OwnerObjId`, leaving deleted mates listed and potentially removing another
+  character's list when the ids collided. Repeated stale-mate deletion still avoids releasing
+  its obj / tl ids a second time.
+* systems::vehicles: `ShipyardIdManager` uses no MySQL table. Shipyards are runtime-only and
+  have no persistence writer; the inherited `shipyards` query only failed and used an empty
+  id set. Persisting shipyards remains separate work.
 * systems::vehicles: DB failures of the saved-slave lookups behave like "no saved slave"; the
   slave / mate saves outside `DoSave` are fire-and-forget tasks.
 * systems::vehicles: a missing unit formula evaluates to 0 (C# NullReferenceException); index
@@ -1031,6 +1036,15 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   caller cannot release the batch lock while its jobs are still running. No separate process or
   thread pool is created. Focused tests in `systems/ai/manager.rs` cover the candidate selection
   and batching.
+
+* systems::npcs (2026-10-14): a `DoodadFuncRatioRespawn` replacement initializes the new doodad
+  synchronously (`Spawn` -> `InitDoodad` -> `DoPhaseFuncs`), so a cyclic definition recursed
+  without bound until the stack overflowed; the 1.2 compact data has five template pairs whose
+  phase functions respawn into each other at ratio 10000 (e.g. 4345/g10678/f520 ->
+  4349/g10680/f521 -> 4345), and the C# per-doodad `ListGroupId` recursion guard resets with the
+  replacement. Each spawner now tracks its active synchronous replacement chain: a repeated
+  source `(template, func group)` or a chain deeper than 8 entries is rejected with a warning,
+  the current doodad stays in its phase, and finite A -> B -> C chains are unchanged.
 
 ## Live testing (phase 5): fixes and deliberate deviations
 
@@ -1222,9 +1236,6 @@ and in NPC wandering / buff remaining times.
   construction, residency or demolition changes. Model-specific placement slope/height/footprint
   checks and the developer-only
   category-8 `max_construct_count` rule are not inferred from later versions.
-* systems::vehicles: `MateManager.RemoveAndDespawnAllActiveOwnedMates` removes the active-list
-  entries by `OwnerObjId` while the list is keyed by the character id, so the deleted mates stay
-  listed; after a relog the first whistle use only "despawns" the stale mate.
 * systems::vehicles: `ShipyardCompleted` builds a `SkillItem` with only `ItemId`, so
   `SlaveManager.Create` returns on its `ItemTemplateId == 0` check: the finished ship is never
   summoned (the owner's active vehicle is still removed).

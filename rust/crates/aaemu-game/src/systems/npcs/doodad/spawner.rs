@@ -216,6 +216,10 @@ struct State {
     /// `NotFoundInScheduler`.
     not_found_in_scheduler: bool,
     cron_jobs: std::collections::HashSet<(bool, String)>,
+    /// The active synchronous `DoodadFuncRatioRespawn` chain: the source
+    /// `(template_id, func_group_id)` pairs in call order. Empty outside a replacement chain;
+    /// the entries are owned by their guards, so `reset_for_spawn` leaves this alone.
+    ratio_respawn_chain: Vec<(u32, u32)>,
 }
 
 /// `DoodadSpawner`.
@@ -232,6 +236,46 @@ pub struct DoodadSpawner {
     /// `RelatedIds` (for `DoodadFuncPulse`).
     pub related_ids: Option<Vec<u32>>,
     state: Mutex<State>,
+}
+
+/// The maximum depth of one synchronous `DoodadFuncRatioRespawn` replacement chain. Authored
+/// chains are a handful of templates; a deeper run is a cycle the identity check did not catch
+/// or a runaway acyclic definition.
+const MAX_RATIO_RESPAWN_CHAIN_DEPTH: usize = 8;
+
+/// A `DoodadFuncRatioRespawn` replacement rejected by the active-chain guard
+/// ([`DoodadSpawner::enter_ratio_respawn`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RatioRespawnReject {
+    /// The source `(template_id, func_group_id)` is already active in this spawner's chain (a
+    /// cycle); `false` when the chain only exceeded its depth limit.
+    pub repeated: bool,
+    /// The active chain depth when the replacement was rejected (excluding this entry).
+    pub depth: usize,
+    /// The chain limit that applies when `repeated` is false.
+    pub limit: usize,
+}
+
+/// One active entry of a spawner's synchronous `DoodadFuncRatioRespawn` chain. Holds no lock and
+/// dropping it removes the entry, so success, failure and unwinding all restore independent
+/// respawns.
+#[derive(Debug)]
+pub struct RatioRespawnGuard {
+    spawner: Arc<DoodadSpawner>,
+    entry: (u32, u32),
+}
+
+impl Drop for RatioRespawnGuard {
+    fn drop(&mut self) {
+        let mut st = self.spawner.st();
+        if let Some(i) = st
+            .ratio_respawn_chain
+            .iter()
+            .rposition(|e| *e == self.entry)
+        {
+            st.ratio_respawn_chain.remove(i);
+        }
+    }
 }
 
 /// `GameScheduleManager.GetDoodadCronRemainingTime(id, start)`.
@@ -378,6 +422,7 @@ impl DoodadSpawner {
                 respawn_doodad_template_id: def.respawn_doodad_template_id,
                 not_found_in_scheduler: false,
                 cron_jobs: Default::default(),
+                ratio_respawn_chain: Vec::new(),
             }),
         }
     }
@@ -412,6 +457,41 @@ impl DoodadSpawner {
         self.st().respawn_doodad_template_id = id;
     }
 
+    /// Reserve a `DoodadFuncRatioRespawn` entry in this spawner's active replacement chain,
+    /// before the source doodad is despawned. The replacement runs `DoPhaseFuncs` synchronously
+    /// inside `spawn`, so a repeated source `(template_id, func_group_id)` (a cyclic definition)
+    /// or a chain past `MAX_RATIO_RESPAWN_CHAIN_DEPTH` is rejected; the returned guard removes
+    /// the entry when the replacement (or its failure) has run, including on panic.
+    pub fn enter_ratio_respawn(
+        self: &Arc<Self>,
+        template_id: u32,
+        func_group_id: u32,
+    ) -> Result<RatioRespawnGuard, RatioRespawnReject> {
+        let entry = (template_id, func_group_id);
+        let mut st = self.st();
+        let depth = st.ratio_respawn_chain.len();
+        let repeated = st.ratio_respawn_chain.contains(&entry);
+        if repeated || depth >= MAX_RATIO_RESPAWN_CHAIN_DEPTH {
+            return Err(RatioRespawnReject {
+                repeated,
+                depth,
+                limit: MAX_RATIO_RESPAWN_CHAIN_DEPTH,
+            });
+        }
+        st.ratio_respawn_chain.push(entry);
+        drop(st);
+        Ok(RatioRespawnGuard {
+            spawner: self.clone(),
+            entry,
+        })
+    }
+
+    /// The active `DoodadFuncRatioRespawn` chain depth (tests).
+    #[cfg(test)]
+    pub(crate) fn ratio_respawn_chain_depth(&self) -> usize {
+        self.st().ratio_respawn_chain.len()
+    }
+
     /// `Last`.
     pub fn last(&self) -> Option<DoodadRef> {
         self.st().last.clone()
@@ -433,6 +513,8 @@ impl DoodadSpawner {
     /// The spawn-time reset at the top of both `Spawn` overloads.
     fn reset_for_spawn(&self) {
         let mut st = self.st();
+        // The active `DoodadFuncRatioRespawn` chain is not spawn state: its guards own the
+        // entries and must survive the nested `spawn` calls of a replacement.
         st.permanent = true;
         st.spawned = Vec::new();
         st.count = 1;
