@@ -15,9 +15,10 @@ use crate::world::{Player, PlayerRef, WorldObject};
 use super::data::{Battlefield, GameRuleSet, Point};
 use super::events::{CharEvent, Handler};
 use super::packets::{
-    SCAppliedToInstantGamePacket, SCInstantGameAddPointPacket, SCInstantGameEndPacket,
-    SCInstantGameJoinedPacket, SCInstantGameKillPacket, SCInstantGameKillstreakPacket,
-    SCInstantGameStartPacket, SCInviteToInstantGamePacket, SCSkillCooldownResetPacket,
+    SCAppliedToInstantGamePacket, SCCancelInstantGamePacket, SCInstantGameAddPointPacket,
+    SCInstantGameEndPacket, SCInstantGameInviteTimeoutPacket, SCInstantGameJoinedPacket,
+    SCInstantGameKillPacket, SCInstantGameKillstreakPacket, SCInstantGameStartPacket,
+    SCInstantGameStatePacket, SCInviteToInstantGamePacket, SCSkillCooldownResetPacket,
     TeamMemberWire, TeamResultWire, ZoneInstanceId,
 };
 use super::worlds;
@@ -47,6 +48,33 @@ pub mod victory_state {
 
 /// `BattlefieldEndingReason.AchievementScore`.
 pub const ENDING_ACHIEVEMENT_SCORE: u8 = 8;
+/// `BattlefieldEndingReason.AchievementKillCount`.
+pub const ENDING_ACHIEVEMENT_KILL_COUNT: u8 = 5;
+/// `BattlefieldEndingReason.AchievementKillCorpsHead`.
+pub const ENDING_ACHIEVEMENT_KILL_CORPS_HEAD: u8 = 7;
+
+/// Bits of `InstantGameTeamMember.BonusSet` (the scoreboard medal icons, in the order the
+/// 1.2 scoreboard Lua lists them: victory, bravery, destroyer, immortality).
+pub mod bonus_set {
+    // Bit order from the 1.2 client's bonus-condition mapper: 0 "winner", 1 "no_death",
+    // 2 "top_enemy_pc_kill", 3 "top_enemy_non_pc_kill", 4 "loser".
+    pub const VICTORY: u32 = 1 << 0;
+    pub const NO_DEATH: u32 = 1 << 1;
+    pub const TOP_PC_KILL: u32 = 1 << 2;
+    pub const TOP_NON_PC_KILL: u32 = 1 << 3;
+    pub const LOSER: u32 = 1 << 4;
+}
+
+/// `ui_texts` 336: "Failed the level requirements for this arena."
+pub const ERROR_LEVEL_REQUIREMENTS: u16 = 336;
+
+/// Seconds an invitation may go unanswered before it expires. No 1.2 value survives in any
+/// source; 60 matches the C# "game expire after 60 seconds" TODO and the Gladiator rule
+/// set's `time_unearned_win`.
+pub const INVITE_TIMEOUT_SECS: u64 = 60;
+/// `BattlefieldEndingReason.TimeoverCompareKillCount` (the only time-over reason the 1.2
+/// battlefield Lua names: `BFER_TIMEOVER_COMPARE_KILL_COUNT`).
+pub const ENDING_TIMEOVER_COMPARE_KILL_COUNT: u8 = 1;
 
 /// `Character.ResetAllSkillCooldowns`: `playerSkillsTag`.
 const PLAYER_SKILLS_TAG: u32 = 378;
@@ -78,6 +106,9 @@ pub struct TeamMember {
     pub kills: u16,
     pub assists: u16,
     pub deaths: u16,
+    /// Non-PC kills (server-side only; the wire carries no such count, it only decides the
+    /// `bonus_top_enemy_non_pc_kill` medal).
+    pub npc_kills: u16,
     /// `Corps` (which result: [`corps::CORPS1`] / [`corps::CORPS2`]).
     pub result: u8,
 }
@@ -103,6 +134,9 @@ pub struct GameState {
     pub members: Vec<TeamMember>,
     pub corps1: TeamResult,
     pub corps2: TeamResult,
+    /// The result (bonuses, honor, rank points) has been awarded; a second `send_result`
+    /// re-sends the packet but never pays twice.
+    pub results_awarded: bool,
 }
 
 impl GameState {
@@ -358,6 +392,41 @@ pub fn add_player(server: &GameServer, game: &Arc<InstantGame>, p: &PlayerRef, c
         .instances
         .instant_games
         .set_current(p, Some(game.clone()));
+    // An unanswered invitation expires (previously the player stayed invited forever and
+    // the game could never fill its roster).
+    if let Some(s) = server.self_arc() {
+        let g = game.clone();
+        let pl = p.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(INVITE_TIMEOUT_SECS)).await;
+            expire_invite(&s, &g, &pl);
+        });
+    }
+}
+
+/// Drops a still-unanswered invitation: the timeout packet first, then the normal
+/// withdrawal (which clears the queue UI and requeues the game).
+fn expire_invite(server: &GameServer, game: &Arc<InstantGame>, p: &PlayerRef) {
+    let mgr = &server.systems.instances.instant_games;
+    match mgr.current(p) {
+        Some(cur) if Arc::ptr_eq(&cur, game) => {}
+        _ => return,
+    }
+    if !game.has_player(p) || game.st().member_index(p).is_some() {
+        return;
+    }
+    let Some(assigned) = game.st().corps_of(p) else {
+        return;
+    };
+    p.send(SCInstantGameInviteTimeoutPacket {
+        zone_instance_id: game.zone_instance_id,
+        ruleset_id: game.rule_set.id,
+        corps: assigned,
+    });
+    // Mirror a decline without the Cancel clear: the 1.2 client's timeout handler returns
+    // it to applied/queued (state 2), so the player goes straight back into the queue.
+    withdraw_inner(server, p, false);
+    apply_to_battlefield(server, game.battlefield.id, corps::ANY, p);
 }
 
 /// `RemovePlayer(character)`.
@@ -389,7 +458,7 @@ pub fn player_invite_response(server: &GameServer, p: &PlayerRef, join: bool, _q
     };
     if !join {
         // Next room, remove from current game then readd to requeue
-        withdraw_from_battlefield(server, p);
+        withdraw_inner(server, p, false);
         apply_to_battlefield(server, game.battlefield.id, corps::ANY, p);
         return;
     }
@@ -496,6 +565,7 @@ pub fn on_enter_world(server: &GameServer, p: &PlayerRef, _qualified_id: u64) {
             kills: 0,
             assists: 0,
             deaths: 0,
+            npc_kills: 0,
             result: which,
         });
         let idx = st.members.len() - 1;
@@ -600,8 +670,13 @@ pub fn reset_all_skill_cooldowns(server: &GameServer, p: &PlayerRef, trigger_gcd
 }
 
 /// `EndGame()`: the result, then after `TimeEnding` minutes the game is destroyed.
+///
+/// Deviation: the C# timed path sent both corps as `Lose` with reason `AchievementScore`
+/// even when nobody reached the victory score (every Drill Camp game, whose rule set has
+/// `victory_score = 0`). The timed result now decides win / lose / draw by kill count
+/// (score breaks a kill tie) with `TimeoverCompareKillCount`.
 pub async fn end_game(server: &Arc<GameServer>, game: &Arc<InstantGame>) {
-    send_result(game);
+    finish_timeover(server, game);
     let ending = Duration::from_millis(
         u64::try_from(i64::from(game.rule_set.time_ending) * 60 * 1000).unwrap_or(0),
     );
@@ -609,18 +684,160 @@ pub async fn end_game(server: &Arc<GameServer>, game: &Arc<InstantGame>) {
     destroy_game(server, game);
 }
 
-/// `SendResult()`.
-pub fn send_result(game: &InstantGame) {
+/// The timed end of a game: decide the winner by kill count (score breaks a kill tie,
+/// equal score is a draw), then send the result.
+pub fn finish_timeover(server: &GameServer, game: &Arc<InstantGame>) {
+    {
+        let mut st = game.st();
+        if st.corps1.state != victory_state::WIN && st.corps2.state != victory_state::WIN {
+            let k1 = st.result_kills(corps::CORPS1);
+            let k2 = st.result_kills(corps::CORPS2);
+            let s1 = st.result_score(corps::CORPS1);
+            let s2 = st.result_score(corps::CORPS2);
+            let (c1, c2) = if (k1, s1) > (k2, s2) {
+                (victory_state::WIN, victory_state::LOSE)
+            } else if (k2, s2) > (k1, s1) {
+                (victory_state::LOSE, victory_state::WIN)
+            } else {
+                (victory_state::DRAW, victory_state::DRAW)
+            };
+            st.corps1.state = c1;
+            st.corps2.state = c2;
+        }
+    }
+    send_result(server, game, ENDING_TIMEOVER_COMPARE_KILL_COUNT);
+}
+
+/// One member's end-of-match award, computed under the game lock by [`award_results`] and
+/// paid out by [`send_result`] after the lock is released.
+struct MemberAward {
+    player: PlayerRef,
+    honor: i32,
+    rank_points: i32,
+    rank_wins: i32,
+}
+
+/// Fills every member's `bonus` / `bonus_set` from the rule set's `bonus_*` columns and
+/// returns what each member is owed (honor + arena ranking). Runs once per game.
+///
+/// Bonuses (all C# versions left them at zero, so the scoreboard medal column was always
+/// empty): the winning corps gets `bonus_winner`, the losing one `bonus_loser`, a member
+/// with no deaths gets `bonus_no_death`, and the top PC / non-PC killers (ties share) get
+/// `bonus_top_enemy_pc_kill` / `bonus_top_enemy_non_pc_kill`. The sum is the honor credited.
+fn award_results(game: &InstantGame) -> Vec<MemberAward> {
+    let mut st = game.st();
+    if st.results_awarded {
+        return Vec::new();
+    }
+    st.results_awarded = true;
+    let r = &game.rule_set;
+    let state1 = st.corps1.state;
+    let state2 = st.corps2.state;
+    let max_kills = st.members.iter().map(|m| m.kills).max().unwrap_or(0);
+    let max_npc_kills = st.members.iter().map(|m| m.npc_kills).max().unwrap_or(0);
+    let mut awards = Vec::with_capacity(st.members.len());
+    for m in &mut st.members {
+        let state = if m.result == corps::CORPS1 {
+            state1
+        } else {
+            state2
+        };
+        let (mut bonus, mut set, rank_points, rank_wins) = match state {
+            victory_state::WIN => (r.bonus_winner, bonus_set::VICTORY, r.rank_win_point, 1),
+            victory_state::LOSE => (r.bonus_loser, bonus_set::LOSER, r.rank_lose_point, 0),
+            victory_state::DRAW => (0, 0, r.rank_draw_point, 0),
+            _ => (0, 0, r.rank_invalid_point, 0),
+        };
+        if m.deaths == 0 {
+            bonus = bonus.wrapping_add(r.bonus_no_death);
+            set |= bonus_set::NO_DEATH;
+        }
+        if max_kills > 0 && m.kills == max_kills {
+            bonus = bonus.wrapping_add(r.bonus_top_enemy_pc_kill);
+            set |= bonus_set::TOP_PC_KILL;
+        }
+        if max_npc_kills > 0 && m.npc_kills == max_npc_kills {
+            bonus = bonus.wrapping_add(r.bonus_top_enemy_non_pc_kill);
+            set |= bonus_set::TOP_NON_PC_KILL;
+        }
+        m.bonus = bonus;
+        m.bonus_set = set;
+        awards.push(MemberAward {
+            player: m.player.clone(),
+            honor: bonus,
+            rank_points,
+            rank_wins,
+        });
+    }
+    awards
+}
+
+/// `SendResult()`: award the bonuses / honor / rank points, then broadcast the result.
+pub fn send_result(server: &GameServer, game: &Arc<InstantGame>, reason: u8) {
+    let awards = award_results(game);
     let packet = {
         let st = game.st();
         SCInstantGameEndPacket {
             zone_instance_id: game.zone_instance_id,
-            reason: ENDING_ACHIEVEMENT_SCORE,
+            reason,
             corps1: st.result_wire(corps::CORPS1),
             corps2: st.result_wire(corps::CORPS2),
         }
     };
+    pay_awards(server, game, &awards);
     game.broadcast(&packet);
+}
+
+/// Credits the honor of every award and records the result on the arena ranking board
+/// (`RankingState::record` with a [`RankEvent::Arena`](crate::systems::social::ranking_runtime::RankEvent::Arena);
+/// the board's own zone-group check keeps non-Gladiator battlefields off it).
+fn pay_awards(server: &GameServer, game: &InstantGame, awards: &[MemberAward]) {
+    use crate::systems::skills::progress::{change_game_points, GAME_POINT_HONOR};
+    use crate::systems::social::ranking_data::RankKind;
+    use crate::systems::social::ranking_runtime::{RankEvent, RankHolder};
+
+    let ranking = &server.game_data.systems.social.ranking;
+    let board = ranking
+        .supported_ranks()
+        .find(|b| b.kind() == Some(RankKind::Arena));
+    let zone_group_id = server
+        .game_data
+        .systems
+        .instances
+        .zone_order
+        .zones
+        .iter()
+        .find(|(key, _)| *key == game.battlefield.zone_key)
+        .map_or(0, |(_, group)| *group);
+    let now = chrono::Utc::now();
+    for award in awards {
+        if award.honor != 0 {
+            change_game_points(server, &award.player, GAME_POINT_HONOR, award.honor);
+        }
+        if let Some(board) = board {
+            if award.rank_points != 0 || award.rank_wins != 0 {
+                let mut c = award.player.data();
+                // The game server carries no account login name; the character name is
+                // the fallback the client's ranking row uses for want of it.
+                let holder = RankHolder {
+                    account_id: c.account_id,
+                    account: c.unit.name.clone(),
+                    character_id: c.id,
+                    world_id: c.server_id as u8,
+                };
+                c.ranking_state.record(
+                    board,
+                    &holder,
+                    RankEvent::Arena {
+                        points: award.rank_points,
+                        wins: award.rank_wins,
+                    },
+                    zone_group_id,
+                    now,
+                );
+            }
+        }
+    }
 }
 
 /// `DestroyInstantGame()`: every player leaves, the instance is removed.
@@ -734,6 +951,36 @@ pub fn on_kill(
     killer: &PlayerRef,
     victim: &WorldObject,
 ) {
+    // Non-PC victim: count it for the top-non-PC-kill bonus, and killing this corps' target
+    // Polestar (`victory_kill_corps*_head`) wins the game outright.
+    if let Some(npc) = victim.as_npc().cloned() {
+        let template_id = npc.data().unit.template_id;
+        let won = {
+            let mut st = game.st();
+            let Some(ki) = st.member_index(killer) else {
+                return;
+            };
+            st.members[ki].npc_kills = st.members[ki].npc_kills.wrapping_add(1);
+            let Some(kc) = st.corps_of(killer) else {
+                return;
+            };
+            let target = game.rule_set.corps_head_target(kc);
+            if target != 0 && template_id == target {
+                if kc == corps::CORPS1 {
+                    st.corps1.state = victory_state::WIN;
+                } else {
+                    st.corps2.state = victory_state::WIN;
+                }
+                true
+            } else {
+                false
+            }
+        };
+        if won {
+            finish_game(server, game, ENDING_ACHIEVEMENT_KILL_CORPS_HEAD);
+        }
+        return;
+    }
     let Some(victim) = victim.as_player().cloned() else {
         return;
     };
@@ -902,11 +1149,16 @@ fn full_points(server: &GameServer, p: &PlayerRef) {
     );
 }
 
-/// `AddScore(corps, scorer, score)`. Returns `true` when the corps reached the victory score
-/// (the game ends).
+/// `AddScore(corps, scorer, score)`. Returns `true` when the corps reached a victory
+/// condition (the game ends).
 ///
-/// Note (C#): the point packet always names `Corps1` and sends the scoring corps' total as
-/// `score1` with `score2 = 0`; mirrored.
+/// Deviations from the C#, all client-visible on 1.2: the point packet named `Corps1` with
+/// `score2 = 0` whoever scored (the mini scoreboard could never show corps 2's score);
+/// `result.Score >= VictoryScore` with the Drill Camp rule set's `victory_score = 0` ended
+/// the game on the first kill; and `victory_kill_count` was never checked. The packet now
+/// names the scoring corps with both corps' totals, a zero victory score / kill count
+/// disables that condition, and the kill-count condition ends with
+/// `AchievementKillCount`.
 fn add_score(
     server: &GameServer,
     game: &Arc<InstantGame>,
@@ -919,50 +1171,67 @@ fn add_score(
     } else {
         corps::CORPS2
     };
-    let (packet, won) = {
+    let (packet, reason) = {
         let mut st = game.st();
         st.members[scorer].score = st.members[scorer].score.wrapping_add(score);
         let total = st.result_score(which);
+        let kills = st.result_kills(which);
         let name = st.members[scorer].player.data().unit.name.clone();
-        let won = total >= game.rule_set.victory_score;
-        if won {
+        let reason = if game.rule_set.victory_score > 0 && total >= game.rule_set.victory_score {
+            Some(ENDING_ACHIEVEMENT_SCORE)
+        } else if game.rule_set.victory_kill_count > 0
+            && u32::try_from(kills).unwrap_or(0) >= game.rule_set.victory_kill_count
+        {
+            Some(ENDING_ACHIEVEMENT_KILL_COUNT)
+        } else {
+            None
+        };
+        if reason.is_some() {
             if which == corps::CORPS1 {
                 st.corps1.state = victory_state::WIN;
             } else {
                 st.corps2.state = victory_state::WIN;
             }
         }
+        let score1 = st.result_score(corps::CORPS1);
+        let score2 = st.result_score(corps::CORPS2);
         (
             SCInstantGameAddPointPacket {
                 zone_instance_id: game.zone_instance_id,
-                corps: corps::CORPS1,
+                corps: which,
                 points: score,
-                score1: total,
-                score2: 0,
+                score1,
+                score2,
                 char_name: name,
             },
-            won,
+            reason,
         )
     };
     game.broadcast(&packet);
-    if won {
-        if let Some(t) = game.end_task.lock().expect("end task poisoned").take() {
-            t.abort();
-        }
-        // `EndGame()` runs synchronously up to its first await: the result is sent now.
-        send_result(game);
-        if let Some(s) = server.self_arc() {
-            let g = game.clone();
-            let ending = Duration::from_millis(
-                u64::try_from(i64::from(game.rule_set.time_ending) * 60 * 1000).unwrap_or(0),
-            );
-            tokio::spawn(async move {
-                tokio::time::sleep(ending).await;
-                destroy_game(&s, &g);
-            });
-        }
+    if let Some(reason) = reason {
+        finish_game(server, game, reason);
     }
-    won
+    reason.is_some()
+}
+
+/// Ends a game right now with `reason`: cancels the timed end, sends the result (which pays
+/// the awards) and schedules the teardown after `TimeEnding`.
+fn finish_game(server: &GameServer, game: &Arc<InstantGame>, reason: u8) {
+    if let Some(t) = game.end_task.lock().expect("end task poisoned").take() {
+        t.abort();
+    }
+    // `EndGame()` runs synchronously up to its first await: the result is sent now.
+    send_result(server, game, reason);
+    if let Some(s) = server.self_arc() {
+        let g = game.clone();
+        let ending = Duration::from_millis(
+            u64::try_from(i64::from(game.rule_set.time_ending) * 60 * 1000).unwrap_or(0),
+        );
+        tokio::spawn(async move {
+            tokio::time::sleep(ending).await;
+            destroy_game(&s, &g);
+        });
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -974,6 +1243,9 @@ fn add_score(
 pub struct Applicant {
     pub time_applied_ms: i64,
     pub player: PlayerRef,
+    /// The corps requested on apply (`InstantCorps` byte) — the State packet counts the
+    /// queue by this preference (corps 1 / corps 2 / any).
+    pub corps: u8,
 }
 
 #[derive(Debug, Default)]
@@ -1045,6 +1317,31 @@ impl InstantGameManager {
 
 /// `ApplyToBattlefield(battlefieldId, corps, character)`.
 pub fn apply_to_battlefield(server: &GameServer, battlefield_id: u32, corps: u8, p: &PlayerRef) {
+    // `level_min` gate (never enforced by any C# version, so a level-1 character could queue
+    // for the level-50 Gladiator Arena): refuse with the client's own message and no queue
+    // entry.
+    if let Some(rs) = server
+        .game_data
+        .systems
+        .instances
+        .battlefields
+        .battlefield(battlefield_id)
+        .and_then(|bf| bf.rule_set)
+    {
+        if rs.level_min > 0 && u32::from(p.data().unit.level) < rs.level_min {
+            tracing::trace!(
+                "[Matchmaking] {} is below level {} for battlefield {battlefield_id}",
+                p.data().unit.name,
+                rs.level_min
+            );
+            p.send(SCAppliedToInstantGamePacket {
+                battlefield_id,
+                corps,
+                error_message_id: ERROR_LEVEL_REQUIREMENTS,
+            });
+            return;
+        }
+    }
     let mgr = &server.systems.instances.instant_games;
     {
         let mut st = mgr.lock();
@@ -1077,6 +1374,7 @@ pub fn apply_to_battlefield(server: &GameServer, battlefield_id: u32, corps: u8,
         applicants.push(Applicant {
             time_applied_ms: now_ms(),
             player: p.clone(),
+            corps,
         });
     }
     tracing::trace!(
@@ -1088,20 +1386,83 @@ pub fn apply_to_battlefield(server: &GameServer, battlefield_id: u32, corps: u8,
         corps,
         error_message_id: 0,
     });
+    broadcast_battlefield_state(server, battlefield_id);
+}
+
+/// Sends `SCInstantGameStatePacket` to everyone queued for this battlefield: the per-corps
+/// size plus how many applicants requested corps 1 / corps 2 / any. The client only applies
+/// it while applied (state 2) for the same battlefield and refreshes its joined counts.
+pub fn broadcast_battlefield_state(server: &GameServer, battlefield_id: u32) {
+    let Some(rs) = server
+        .game_data
+        .systems
+        .instances
+        .battlefields
+        .battlefield(battlefield_id)
+        .and_then(|bf| bf.rule_set)
+    else {
+        return;
+    };
+    let mgr = &server.systems.instances.instant_games;
+    let (mut recipients, mut counts) = (Vec::new(), [0u16; 3]);
+    {
+        let st = mgr.lock();
+        if let Some((_, applicants)) = st.queue.iter().find(|(id, _)| *id == battlefield_id) {
+            for a in applicants {
+                let i = match a.corps {
+                    corps::CORPS1 => 0,
+                    corps::CORPS2 => 1,
+                    _ => 2,
+                };
+                counts[i] = counts[i].saturating_add(1);
+                recipients.push(a.player.clone());
+            }
+        }
+    }
+    let packet = SCInstantGameStatePacket {
+        battlefield_id,
+        corps_size: u8::try_from(rs.corps_size).unwrap_or(u8::MAX),
+        corps1_count: counts[0],
+        corps2_count: counts[1],
+        any_count: counts[2],
+    };
+    let mut seen: Vec<u32> = Vec::new();
+    for p in recipients {
+        if seen.contains(&p.character_id) {
+            continue;
+        }
+        seen.push(p.character_id);
+        p.send(packet);
+    }
 }
 
 /// `WithdrawFromBattlefield(character)`: leaves the queue, or declines an invitation (the game
 /// goes back to the queue list).
 pub fn withdraw_from_battlefield(server: &GameServer, p: &PlayerRef) {
+    withdraw_inner(server, p, true);
+}
+
+/// As above; with `notify_cancel = false` for decline/invite-timeout, where the player is
+/// re-queued right away: retail sent no Cancel there, and the 1.2 client's cancel handler
+/// would reset it to not-applied (state 0).
+fn withdraw_inner(server: &GameServer, p: &PlayerRef, notify_cancel: bool) {
     let mgr = &server.systems.instances.instant_games;
     let mut st = mgr.lock();
-    for (_, applicants) in st.queue.iter_mut() {
+    for (battlefield_id, applicants) in st.queue.iter_mut() {
         if let Some(i) = applicants.iter().position(|a| Arc::ptr_eq(&a.player, p)) {
             applicants.remove(i);
             tracing::trace!(
                 "[Matchmaking] Removing {} from matchmaking.",
                 p.data().unit.name
             );
+            // The entrance UI waits for `INSTANT_GAME_JOIN_CANCEL`; without this packet it
+            // stayed in the applied/waiting state after a cancel.
+            let battlefield_id = *battlefield_id;
+            drop(st);
+            if notify_cancel {
+                p.send(SCCancelInstantGamePacket::clear_queue());
+            }
+            broadcast_battlefield_state(server, battlefield_id);
             return;
         }
     }
@@ -1112,10 +1473,16 @@ pub fn withdraw_from_battlefield(server: &GameServer, p: &PlayerRef) {
                 "[Matchmaking] {} declined arena invitation.",
                 p.data().unit.name
             );
+            let battlefield_id = game.battlefield_id();
             if !st.queue_list.iter().any(|g| Arc::ptr_eq(g, &game)) {
                 st.queue_list.push(game);
                 tracing::trace!("[Matchmaking] Adding game to queue list.");
             }
+            drop(st);
+            if notify_cancel {
+                p.send(SCCancelInstantGamePacket::clear_queue());
+            }
+            broadcast_battlefield_state(server, battlefield_id);
             return;
         }
     }

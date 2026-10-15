@@ -28,5 +28,35 @@
 			"Y": 530,
 			"Z": 199
 		}
+	},
+	{
+		"BattlefieldId": 6,
+		"Corps1Spawn": {
+			"ZoneId": 198,
+			"X": 1101.1,
+			"Y": 401.5,
+			"Z": 199
+		},
+		"Corps2Spawn": {
+			"ZoneId": 198,
+			"X": 1229,
+			"Y": 530,
+			"Z": 199
+		}
+	},
+	{
+		"BattlefieldId": 1,
+		"Corps1Spawn": {
+			"ZoneId": 198,
+			"X": 1101.1,
+			"Y": 401.5,
+			"Z": 199
+		},
+		"Corps2Spawn": {
+			"ZoneId": 198,
+			"X": 1229,
+			"Y": 530,
+			"Z": 199
+		}
 	}
 ]

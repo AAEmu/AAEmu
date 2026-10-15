@@ -97,6 +97,52 @@ fn simple_packets_are_byte_exact() {
         e.into_bytes()
     );
     assert_eq!(
+        body(&SCCancelInstantGamePacket::clear_queue()),
+        vec![0, 0, 1]
+    );
+    assert_eq!(
+        body(&SCCancelInstantGamePacket::with_error(336)),
+        vec![80, 1, 0]
+    );
+    assert_eq!(
+        SCCancelInstantGamePacket::clear_queue().opcode(),
+        sc::SCCancelInstantGamePacket
+    );
+    let mut e = PacketStream::new();
+    e.write_u32(7).write_i32(2).write_i32(10);
+    assert_eq!(
+        body(&SCInstantGameStatePacket {
+            battlefield_id: 7,
+            cur_count: 2,
+            max_count: 10
+        }),
+        e.into_bytes()
+    );
+    assert_eq!(
+        SCInstantGameStatePacket {
+            battlefield_id: 7,
+            cur_count: 2,
+            max_count: 10
+        }
+        .opcode(),
+        sc::SCInstantGameStatePacket
+    );
+    let mut e = PacketStream::new();
+    zid_bytes(&mut e);
+    assert_eq!(
+        body(&SCInstantGameInviteTimeoutPacket {
+            zone_instance_id: ZID
+        }),
+        e.into_bytes()
+    );
+    assert_eq!(
+        SCInstantGameInviteTimeoutPacket {
+            zone_instance_id: ZID
+        }
+        .opcode(),
+        sc::SCInstantGameInviteTimeoutPacket
+    );
+    assert_eq!(
         body(&SCInstantGameRemainTimePacket { remain_time: 60 }),
         vec![60, 0, 0, 0]
     );
@@ -127,21 +173,26 @@ fn instant_game_joined_is_byte_exact() {
         time_ending: 1,
         time_playing: 15,
         victory_score: 40,
+        victory_kill_count: 50,
+        killstreak_skills: std::array::from_fn(|i| 1000 + i as u32),
         battlefield_id: 7,
+        victory_kill_corps1_head: 13353,
+        victory_kill_corps2_head: 13352,
+        ..GameRuleSet::default()
     };
     let mut e = PacketStream::new();
     zid_bytes(&mut e);
     e.write_u8(0)
         .write_i32(40)
-        .write_u16(0)
-        .write_u32(0)
+        .write_u16(50)
+        .write_u32(13353)
         .write_i32(4 * 60_000)
         .write_i32(15 * 60_000)
         .write_i32(60_000)
         .write_u32(159)
         .write_u32(160);
-    for _ in 0..24 {
-        e.write_u32(0);
+    for i in 0..24u32 {
+        e.write_u32(1000 + i);
     }
     assert_eq!(
         body(&SCInstantGameJoinedPacket {
@@ -499,12 +550,56 @@ fn battlefield_data_loads_with_json_quirks() {
     assert_eq!(arena.rule_set.unwrap().id, 28);
     // The last rule set row of a battlefield wins.
     assert_eq!(d.battlefield(1).unwrap().rule_set.unwrap().id, 26);
-    // Note (C#): the unknown battlefield 99 ends the JSON loop: 7 gets no spawns.
-    assert!(d.battlefield(7).unwrap().spawns.is_none());
+    // The unknown battlefield 99 is skipped; entries after it still apply (deviation).
+    assert_eq!(
+        d.battlefield(7)
+            .unwrap()
+            .spawns
+            .unwrap()
+            .corps1_spawn
+            .unwrap()
+            .x,
+        1.0
+    );
     assert!(d.battlefield(7).unwrap().rule_set.is_none());
     // A missing / empty file is an error.
     assert!(BattlefieldData::load(&c, None).is_err());
     assert!(BattlefieldData::load(&c, Some("  ")).is_err());
+}
+
+#[test]
+fn battlefield_rule_set_loads_kill_conditions() {
+    let c = Connection::open_in_memory().unwrap();
+    c.execute_batch(
+        "CREATE TABLE battle_fields (id INT, name TEXT, zone_key INT);
+         CREATE TABLE game_rule_sets (id INT, corps_size INT, corps1_id INT, corps2_id INT, time_opening INT, time_ending INT, time_playing INT, victory_score INT, battle_field_id INT, victory_kill_count INT, killstreak0_id INT, killstreak9_id INT, killstreak23_id INT, level_min INT, victory_kill_corps1_head INT, victory_kill_corps2_head INT, bonus_winner INT, bonus_loser INT, bonus_no_death INT, bonus_top_enemy_pc_kill INT, bonus_top_enemy_non_pc_kill INT, rank_invalid_point INT, rank_win_point INT, rank_lose_point INT, rank_draw_point INT, time_unearned_win INT);
+         INSERT INTO battle_fields VALUES (6, 'camp1v1', 198);
+         INSERT INTO game_rule_sets VALUES (8, 1, 159, 160, 1, 1, 15, 5000, 6, 50, 22331, 22527, 0, 45, 13353, 13352, 50, 10, 7, 10, 3, 0, 4, 1, 2, 60);",
+    )
+    .unwrap();
+    let d = BattlefieldData::load(&c, Some("[]")).unwrap();
+    let rs = d.battlefield(6).unwrap().rule_set.unwrap();
+    assert_eq!(rs.victory_kill_count, 50);
+    assert_eq!(rs.killstreak_skills[0], 22331);
+    assert_eq!(rs.killstreak_skills[9], 22527);
+    assert_eq!(rs.killstreak_skills[10], 0);
+    assert_eq!(rs.killstreak_skills[23], 0);
+    assert_eq!(rs.level_min, 45);
+    assert_eq!(rs.victory_kill_corps1_head, 13353);
+    assert_eq!(rs.victory_kill_corps2_head, 13352);
+    assert_eq!(rs.corps_head_target(0), 13353);
+    assert_eq!(rs.corps_head_target(1), 13352);
+    assert_eq!(rs.corps_head_target(2), 0);
+    assert_eq!(rs.bonus_winner, 50);
+    assert_eq!(rs.bonus_loser, 10);
+    assert_eq!(rs.bonus_no_death, 7);
+    assert_eq!(rs.bonus_top_enemy_pc_kill, 10);
+    assert_eq!(rs.bonus_top_enemy_non_pc_kill, 3);
+    assert_eq!(rs.rank_invalid_point, 0);
+    assert_eq!(rs.rank_win_point, 4);
+    assert_eq!(rs.rank_lose_point, 1);
+    assert_eq!(rs.rank_draw_point, 2);
+    assert_eq!(rs.time_unearned_win, 60);
 }
 
 #[test]

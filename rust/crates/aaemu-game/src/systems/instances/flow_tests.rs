@@ -1368,6 +1368,23 @@ async fn court_case_blocks_queueing() {
 // ---------------------------------------------------------------------------------------------
 
 fn camp_server(corps_size: u32, victory_score: i32) -> Arc<GameServer> {
+    camp_server_kills(corps_size, victory_score, 0)
+}
+
+fn camp_server_kills(
+    corps_size: u32,
+    victory_score: i32,
+    victory_kill_count: u32,
+) -> Arc<GameServer> {
+    camp_server_with(corps_size, victory_score, victory_kill_count, |_| {})
+}
+
+fn camp_server_with(
+    corps_size: u32,
+    victory_score: i32,
+    victory_kill_count: u32,
+    tweak: impl FnOnce(&mut GameRuleSet),
+) -> Arc<GameServer> {
     let mut data = GameData::empty();
     data.zones = zones(&[
         zone(TEST_ZONE, TEST_ZONE, 1),
@@ -1380,6 +1397,21 @@ fn camp_server(corps_size: u32, victory_score: i32) -> Arc<GameServer> {
         z: 199.0,
         ..Point::default()
     };
+    let mut rule_set = GameRuleSet {
+        id: 22,
+        corps_size,
+        corps1_faction_id: 159,
+        corps2_faction_id: 160,
+        time_opening: 4,
+        time_ending: 0,
+        time_playing: 15,
+        victory_score,
+        battlefield_id: 7,
+        victory_kill_count,
+        killstreak_skills: [0; 24],
+        ..GameRuleSet::default()
+    };
+    tweak(&mut rule_set);
     data.systems.instances.battlefields.battlefields = HashMap::from([(
         7,
         Battlefield {
@@ -1390,17 +1422,7 @@ fn camp_server(corps_size: u32, victory_score: i32) -> Arc<GameServer> {
                 corps1_spawn: Some(point(1101.1, 401.5)),
                 corps2_spawn: Some(point(1229.0, 530.0)),
             }),
-            rule_set: Some(GameRuleSet {
-                id: 22,
-                corps_size,
-                corps1_faction_id: 159,
-                corps2_faction_id: 160,
-                time_opening: 4,
-                time_ending: 0,
-                time_playing: 15,
-                victory_score,
-                battlefield_id: 7,
-            }),
+            rule_set: Some(rule_set),
         },
     )]);
     build_server(
@@ -1435,13 +1457,27 @@ async fn battlefield_queue_match_join_score_and_end() {
         corps: corps::ANY,
         error_message_id: 0,
     });
+    let state = |cur| {
+        body(&SCInstantGameStatePacket {
+            battlefield_id: 7,
+            cur_count: cur,
+            max_count: 2,
+        })
+    };
     assert_eq!(
         e.frames(),
-        vec![(sc::SCAppliedToInstantGamePacket, applied.clone())]
+        vec![
+            (sc::SCAppliedToInstantGamePacket, applied.clone()),
+            (sc::SCInstantGameStatePacket, state(1)),
+            (sc::SCInstantGameStatePacket, state(2)),
+        ]
     );
     assert_eq!(
         f.frames(),
-        vec![(sc::SCAppliedToInstantGamePacket, applied)]
+        vec![
+            (sc::SCAppliedToInstantGamePacket, applied),
+            (sc::SCInstantGameStatePacket, state(2)),
+        ]
     );
     // Applying twice is ignored; unknown battlefields are refused.
     instant_game::apply_to_battlefield(&server, 7, corps::ANY, &e.p);
@@ -1538,13 +1574,14 @@ async fn battlefield_queue_match_join_score_and_end() {
         killer_corps_kills: 1,
         victim_corps_deaths: 0,
     });
+    // Echo is corps 2: the packet names corps 2 and carries both totals.
     let point = |total| {
         body(&SCInstantGameAddPointPacket {
             zone_instance_id: zid,
-            corps: corps::CORPS1,
+            corps: corps::CORPS2,
             points: 30,
-            score1: total,
-            score2: 0,
+            score1: 0,
+            score2: total,
             char_name: "Echo".into(),
         })
     };
@@ -1612,7 +1649,8 @@ async fn battlefield_queue_match_join_score_and_end() {
         .write_str("Echo")
         .write_i32(60)
         .write_i32(0)
-        .write_u32(0)
+        // Bonus set: victory + top PC kill + no death.
+        .write_u32(0b1011)
         .write_u16(2)
         .write_u16(2)
         .write_u16(0)
@@ -1662,7 +1700,14 @@ async fn battlefield_decline_requeues() {
         .await;
     assert!(!game.has_player(&h.p));
     assert_eq!(mgr.queued(7), Some(vec![7]));
-    assert_eq!(h.ops(), vec![sc::SCAppliedToInstantGamePacket]);
+    assert_eq!(
+        h.ops(),
+        vec![
+            sc::SCCancelInstantGamePacket,
+            sc::SCAppliedToInstantGamePacket,
+            sc::SCInstantGameStatePacket
+        ]
+    );
     // The next tick refills the waiting game.
     instant_game::battlefield_tick(&server);
     assert!(game.has_player(&h.p));
@@ -1836,4 +1881,171 @@ async fn battlefield_entered_requires_actual_instance_and_subscribes_kills_once(
             .count(&p.p, CharEvent::Kill),
         1
     );
+}
+
+/// Two players matched, joined and entered on battlefield 7; the game has started.
+async fn started_1v1(server: &Arc<GameServer>) -> (Pc, Pc, Arc<instant_game::InstantGame>) {
+    let mut a = Pc::new(server, 5, "Echo", 100.0, 100.0);
+    let mut b = Pc::new(server, 6, "Foxtrot", 120.0, 100.0);
+    for pc in [&a, &b] {
+        instant_game::apply_to_battlefield(server, 7, corps::ANY, &pc.p);
+    }
+    instant_game::battlefield_tick(server);
+    let game = server.systems.instances.instant_games.games()[0].clone();
+    let mut join = vec![1];
+    join.extend_from_slice(&1u64.to_le_bytes());
+    a.frame(server, cs::CSJoinInstantGamePacket, &join).await;
+    b.frame(server, cs::CSJoinInstantGamePacket, &join).await;
+    let entered = 1u64.to_le_bytes();
+    a.frame(server, cs::CSEnteredInstantGameWorldPacket, &entered)
+        .await;
+    b.frame(server, cs::CSEnteredInstantGameWorldPacket, &entered)
+        .await;
+    a.frames();
+    b.frames();
+    (a, b, game)
+}
+
+fn end_reason(frames: &[(u16, Vec<u8>)]) -> Option<u8> {
+    frames
+        .iter()
+        .find(|(op, _)| *op == sc::SCInstantGameEndPacket)
+        .map(|(_, b)| b[8])
+}
+
+#[tokio::test]
+async fn battlefield_zero_victory_score_waits_for_timeover() {
+    // The real Drill Camp rule set (22) has victory_score = 0: the C# check
+    // `Score >= VictoryScore` ended such a game on the first kill.
+    let server = camp_server_kills(1, 0, 0);
+    let (mut a, mut b, game) = started_1v1(&server).await;
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&b.p),
+        Some(&WorldObject::from(&a.p)),
+    );
+    assert_eq!(end_reason(&a.frames()), None);
+    assert_eq!(end_reason(&b.frames()), None);
+    assert_eq!(server.systems.instances.instant_games.games().len(), 1);
+    // Time over: the killer's corps wins by kill count, reason TimeoverCompareKillCount.
+    instant_game::finish_timeover(&server, &game);
+    assert_eq!(
+        end_reason(&a.frames()),
+        Some(instant_game::ENDING_TIMEOVER_COMPARE_KILL_COUNT)
+    );
+    let killer_corps = game.st().members[0].result;
+    let st = game.st();
+    let (winner, loser) = if killer_corps == corps::CORPS1 {
+        (st.corps1.state, st.corps2.state)
+    } else {
+        (st.corps2.state, st.corps1.state)
+    };
+    assert_eq!(
+        (winner, loser),
+        (
+            instant_game::victory_state::WIN,
+            instant_game::victory_state::LOSE
+        )
+    );
+}
+
+#[tokio::test]
+async fn battlefield_victory_kill_count_ends_game() {
+    let server = camp_server_kills(1, 0, 1);
+    let (mut a, b, _game) = started_1v1(&server).await;
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&b.p),
+        Some(&WorldObject::from(&a.p)),
+    );
+    assert_eq!(
+        end_reason(&a.frames()),
+        Some(instant_game::ENDING_ACHIEVEMENT_KILL_COUNT)
+    );
+}
+
+#[tokio::test]
+async fn battlefield_level_min_refuses_apply() {
+    // Test characters are level 10; a level-50 gate (the Gladiator rule set's) refuses the
+    // apply with the client's level-requirements message and never queues.
+    let server = camp_server_with(1, 60, 0, |r| r.level_min = 50);
+    let mut p = Pc::new(&server, 7, "Lowbie", 100.0, 100.0);
+    p.frames();
+    p.frame(&server, cs::CSApplyToInstantGamePacket, &[7, 0, 0, 0, 2])
+        .await;
+    assert_eq!(
+        p.frames(),
+        vec![(
+            sc::SCAppliedToInstantGamePacket,
+            body(&SCAppliedToInstantGamePacket {
+                battlefield_id: 7,
+                corps: corps::ANY,
+                error_message_id: instant_game::ERROR_LEVEL_REQUIREMENTS,
+            })
+        )]
+    );
+    assert_eq!(server.systems.instances.instant_games.queued(7), None);
+}
+
+#[tokio::test]
+async fn battlefield_corps_head_kill_wins() {
+    let server = camp_server_with(1, 0, 0, |r| {
+        r.victory_kill_corps1_head = 13353;
+        r.victory_kill_corps2_head = 13352;
+    });
+    let (mut a, _b, game) = started_1v1(&server).await;
+    let killer_corps = game.st().members[0].result;
+    let target = game.rule_set.corps_head_target(killer_corps);
+    assert!(target == 13352 || target == 13353);
+    // A non-target NPC only counts towards the non-PC-kill bonus.
+    let mob = WorldObject::from(&Entity::new(0x301, Npc::new(9999)));
+    events::on_do_die(&server, &mob, Some(&WorldObject::from(&a.p)));
+    assert_eq!(end_reason(&a.frames()), None);
+    assert_eq!(game.st().members[0].npc_kills, 1);
+    // The target Polestar ends the game for the killer's corps.
+    let head = WorldObject::from(&Entity::new(0x302, Npc::new(target)));
+    events::on_do_die(&server, &head, Some(&WorldObject::from(&a.p)));
+    assert_eq!(
+        end_reason(&a.frames()),
+        Some(instant_game::ENDING_ACHIEVEMENT_KILL_CORPS_HEAD)
+    );
+    let st = game.st();
+    let winner = if killer_corps == corps::CORPS1 {
+        st.corps1.state
+    } else {
+        st.corps2.state
+    };
+    assert_eq!(winner, instant_game::victory_state::WIN);
+    assert_eq!(st.members[0].npc_kills, 2);
+}
+
+#[tokio::test]
+async fn battlefield_end_awards_bonus_honor() {
+    let server = camp_server_with(1, 30, 0, |r| {
+        r.bonus_winner = 50;
+        r.bonus_loser = 10;
+        r.bonus_no_death = 7;
+        r.bonus_top_enemy_pc_kill = 10;
+        r.bonus_top_enemy_non_pc_kill = 3;
+    });
+    let (a, b, game) = started_1v1(&server).await;
+    // One kill reaches the 30-point victory score and pays out at the result.
+    events::on_do_die(
+        &server,
+        &WorldObject::from(&b.p),
+        Some(&WorldObject::from(&a.p)),
+    );
+    let st = game.st();
+    assert_eq!(st.members[0].bonus, 50 + 7 + 10);
+    assert_eq!(
+        st.members[0].bonus_set,
+        instant_game::bonus_set::VICTORY
+            | instant_game::bonus_set::TOP_PC_KILL
+            | instant_game::bonus_set::NO_DEATH
+    );
+    assert_eq!(st.members[1].bonus, 10);
+    assert_eq!(st.members[1].bonus_set, 0);
+    drop(st);
+    assert_eq!(a.p.data().honor_point, 67);
+    assert_eq!(b.p.data().honor_point, 10);
 }

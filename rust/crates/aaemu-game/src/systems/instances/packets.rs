@@ -420,6 +420,109 @@ impl Marshal for SCAppliedToInstantGamePacket {
     }
 }
 
+/// `SCCancelInstantGamePacket(errorMessage, fromHomeland)`: the queue/invitation ended.
+/// No 1.2-era type exists in any source; the layout follows the packet family as locked by
+/// two later-client routes that agree field for field: the retail 10.x named-field
+/// serializer (`x2game-dev_dedicate.c` sub_39C3B5D0 reads `ErrorMessage` as i16, then
+/// `fromHomeland`) and the later C# `SCCancelInstantGamePacket` + `InstantGameWireContract`
+/// (u16 error, u8 branch; branch 1 with error 0 = full queue clear, branch 0 with an error
+/// = error only). Applying that layout to the 1.2 opcode is an inference from family
+/// continuity; it has not been observed on a live 1.2 client yet.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SCCancelInstantGamePacket {
+    pub error_message_id: u16,
+    pub from_homeland: u8,
+}
+packet_def!(
+    SCCancelInstantGamePacket,
+    level = LEVEL_PLAIN,
+    opcode = sc::SCCancelInstantGamePacket
+);
+impl SCCancelInstantGamePacket {
+    /// Wire branch byte: clear the apply/queue UI (with error 0).
+    pub const BRANCH_CLEAR_QUEUE: u8 = 1;
+    /// Wire branch byte: show the error only, without clearing.
+    pub const BRANCH_ERROR_ONLY: u8 = 0;
+
+    /// The player left the queue or the server withdrew them (full UI clear).
+    pub fn clear_queue() -> Self {
+        Self {
+            error_message_id: 0,
+            from_homeland: Self::BRANCH_CLEAR_QUEUE,
+        }
+    }
+
+    /// The queue ended with a client error message.
+    pub fn with_error(error_message_id: u16) -> Self {
+        Self {
+            error_message_id,
+            from_homeland: Self::BRANCH_ERROR_ONLY,
+        }
+    }
+}
+impl Marshal for SCCancelInstantGamePacket {
+    fn write(&self, s: &mut PacketStream) {
+        // The 1.2 native struct holds one dword at +0xc and its handler ignores the value
+        // (FUN_3936d260 reads globals only), so the body is padded to the full dword: a
+        // u16+u8 reader sees error+branch, a dword reader sees the same low bytes.
+        s.write_u16(self.error_message_id)
+            .write_u8(self.from_homeland)
+            .write_u8(0);
+    }
+}
+
+/// `SCInstantGameStatePacket`: queue state for one battlefield, consumed by the client's
+/// `UPDATE_INSTANT_GAME_STATE` event. The unpacked 1.2 client's handler wrapper passes
+/// `u32` at +0xc, `u8` at +0x10 and `u16` at +0x12/+0x14/+0x16 to its consumer, which only
+/// applies them when the applied battlefield matches and stores the last four values for
+/// `GetJoinedInfos`; that getter caps the three counts (corps 1, corps 2, any) by the stored
+/// per-corps size. This writes the battlefield id, per-corps size, then the queued counts
+/// in that order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SCInstantGameStatePacket {
+    pub battlefield_id: u32,
+    pub corps_size: u8,
+    pub corps1_count: u16,
+    pub corps2_count: u16,
+    pub any_count: u16,
+}
+packet_def!(
+    SCInstantGameStatePacket,
+    level = LEVEL_PLAIN,
+    opcode = sc::SCInstantGameStatePacket
+);
+impl Marshal for SCInstantGameStatePacket {
+    fn write(&self, s: &mut PacketStream) {
+        s.write_u32(self.battlefield_id)
+            .write_u8(self.corps_size)
+            .write_u16(self.corps1_count)
+            .write_u16(self.corps2_count)
+            .write_u16(self.any_count);
+    }
+}
+
+/// `SCInstantGameInviteTimeoutPacket(zoneInstanceId, rulesetId, corps)`: an unanswered
+/// invitation expired. The unpacked 1.2 client's consumer only accepts the packet when all
+/// four identity values match the stored invitation (zone instance, ruleset, assigned
+/// corps), then closes the dialog and returns the client to its applied/queued state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SCInstantGameInviteTimeoutPacket {
+    pub zone_instance_id: ZoneInstanceId,
+    pub ruleset_id: u32,
+    pub corps: u8,
+}
+packet_def!(
+    SCInstantGameInviteTimeoutPacket,
+    level = LEVEL_PLAIN,
+    opcode = sc::SCInstantGameInviteTimeoutPacket
+);
+impl Marshal for SCInstantGameInviteTimeoutPacket {
+    fn write(&self, s: &mut PacketStream) {
+        self.zone_instance_id.write(s);
+        s.write_u32(self.ruleset_id).write_u8(self.corps);
+    }
+}
+
 /// `SCInviteToInstantGamePacket(zoneInstanceId, rulesetId, corps, qualifiedId)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SCInviteToInstantGamePacket {
@@ -460,15 +563,15 @@ impl Marshal for SCInstantGameJoinedPacket {
         self.zone_instance_id.write(s);
         s.write_u8(self.corps)
             .write_i32(r.victory_score) // victoryScore
-            .write_u16(0) // victoryKillCount
-            .write_u32(0) // victoryKillCorpsHead
+            .write_u16(r.victory_kill_count as u16) // victoryKillCount
+            .write_u32(r.corps_head_target(self.corps)) // victoryKillCorpsHead (this corps' target)
             .write_i32(r.time_opening.wrapping_mul(60 * 1000)) // opening time
             .write_i32(r.time_playing.wrapping_mul(60 * 1000)) // playing time
             .write_i32(r.time_ending.wrapping_mul(60 * 1000)) // ending time
             .write_u32(r.corps1_faction_id) // corpsId[0]
             .write_u32(r.corps2_faction_id); // corpsId[1]
-        for _ in 0..24 {
-            s.write_u32(0); // killstreak skill id
+        for i in 0..24 {
+            s.write_u32(r.killstreak_skills[i]); // killstreak skill id
         }
     }
 }

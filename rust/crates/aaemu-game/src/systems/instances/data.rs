@@ -499,6 +499,48 @@ pub struct GameRuleSet {
     pub time_playing: i32,
     pub victory_score: i32,
     pub battlefield_id: u32,
+    /// `victory_kill_count` (0 = no kill-count victory). Not loaded by the C# (`TODO fill out
+    /// the rest of the fields` in `GameRuleSet.cs`); the 1.2 data sets it (battlefield 6: 50)
+    /// and `SCInstantGameJoinedPacket` carries it to the client.
+    pub victory_kill_count: u32,
+    /// `killstreak0_id` ..= `killstreak23_id` (the 24 killstreak skill ids of
+    /// `SCInstantGameJoinedPacket`; the C# wrote 24 zeros, so the battlefield action bar
+    /// never had skills to show).
+    pub killstreak_skills: [u32; 24],
+    /// `level_min` (0 = no gate). The entrance window groups a battlefield's rule sets into
+    /// level sections by this value; applying below it is refused.
+    pub level_min: u32,
+    /// `victory_kill_corps1_head`: the NPC template corps 1 must kill to win (the enemy
+    /// Polestar; 0 = no such target). The 1.2 rows pair 13353/13352, the blue/red Polestars
+    /// (factions 160/159).
+    pub victory_kill_corps1_head: u32,
+    /// `victory_kill_corps2_head`: the NPC template corps 2 must kill to win.
+    pub victory_kill_corps2_head: u32,
+    /// End-of-match honor bonuses (`bonus_*` columns), credited per member at the result.
+    pub bonus_winner: i32,
+    pub bonus_loser: i32,
+    pub bonus_no_death: i32,
+    pub bonus_top_enemy_pc_kill: i32,
+    pub bonus_top_enemy_non_pc_kill: i32,
+    /// Arena ranking points per result (`rank_*_point` columns; only the Gladiator rule set
+    /// authors non-zero values).
+    pub rank_invalid_point: i32,
+    pub rank_win_point: i32,
+    pub rank_lose_point: i32,
+    pub rank_draw_point: i32,
+    /// `time_unearned_win` (seconds; 0 on every shipped row but the Gladiator's 60).
+    pub time_unearned_win: i32,
+}
+
+impl GameRuleSet {
+    /// The corps-head NPC template a member of `corps` must kill to win (0 = none).
+    pub fn corps_head_target(&self, corps: u8) -> u32 {
+        match corps {
+            0 => self.victory_kill_corps1_head,
+            1 => self.victory_kill_corps2_head,
+            _ => 0,
+        }
+    }
 }
 
 /// `Battlefield`.
@@ -546,6 +588,13 @@ impl BattlefieldData {
             }
         }
         for_each_row(conn, "SELECT * FROM game_rule_sets", [], |r| {
+            let mut killstreak_skills = [0u32; 24];
+            for (i, slot) in killstreak_skills.iter_mut().enumerate() {
+                let col = format!("killstreak{i}_id");
+                if r.has(&col) {
+                    *slot = r.u32_or(&col, 0)?;
+                }
+            }
             let gsr = GameRuleSet {
                 id: r.u32("id")?,
                 battlefield_id: r.u32("battle_field_id")?,
@@ -556,6 +605,77 @@ impl BattlefieldData {
                 time_ending: r.i32("time_ending")?,
                 time_playing: r.i32("time_playing")?,
                 victory_score: r.i32("victory_score")?,
+                victory_kill_count: if r.has("victory_kill_count") {
+                    r.u32_or("victory_kill_count", 0)?
+                } else {
+                    0
+                },
+                killstreak_skills,
+                level_min: if r.has("level_min") {
+                    r.u32_or("level_min", 0)?
+                } else {
+                    0
+                },
+                victory_kill_corps1_head: if r.has("victory_kill_corps1_head") {
+                    r.u32_or("victory_kill_corps1_head", 0)?
+                } else {
+                    0
+                },
+                victory_kill_corps2_head: if r.has("victory_kill_corps2_head") {
+                    r.u32_or("victory_kill_corps2_head", 0)?
+                } else {
+                    0
+                },
+                bonus_winner: if r.has("bonus_winner") {
+                    r.i32_or("bonus_winner", 0)?
+                } else {
+                    0
+                },
+                bonus_loser: if r.has("bonus_loser") {
+                    r.i32_or("bonus_loser", 0)?
+                } else {
+                    0
+                },
+                bonus_no_death: if r.has("bonus_no_death") {
+                    r.i32_or("bonus_no_death", 0)?
+                } else {
+                    0
+                },
+                bonus_top_enemy_pc_kill: if r.has("bonus_top_enemy_pc_kill") {
+                    r.i32_or("bonus_top_enemy_pc_kill", 0)?
+                } else {
+                    0
+                },
+                bonus_top_enemy_non_pc_kill: if r.has("bonus_top_enemy_non_pc_kill") {
+                    r.i32_or("bonus_top_enemy_non_pc_kill", 0)?
+                } else {
+                    0
+                },
+                rank_invalid_point: if r.has("rank_invalid_point") {
+                    r.i32_or("rank_invalid_point", 0)?
+                } else {
+                    0
+                },
+                rank_win_point: if r.has("rank_win_point") {
+                    r.i32_or("rank_win_point", 0)?
+                } else {
+                    0
+                },
+                rank_lose_point: if r.has("rank_lose_point") {
+                    r.i32_or("rank_lose_point", 0)?
+                } else {
+                    0
+                },
+                rank_draw_point: if r.has("rank_draw_point") {
+                    r.i32_or("rank_draw_point", 0)?
+                } else {
+                    0
+                },
+                time_unearned_win: if r.has("time_unearned_win") {
+                    r.i32_or("time_unearned_win", 0)?
+                } else {
+                    0
+                },
             };
             if let Some(bf) = d.battlefields.get_mut(&gsr.battlefield_id) {
                 bf.rule_set = Some(gsr);
@@ -573,8 +693,14 @@ impl BattlefieldData {
         if let Some(spawns) = parse_battlefield_spawns(contents) {
             for s in spawns {
                 let Some(bf) = d.battlefields.get_mut(&s.battlefield_id) else {
-                    // Note (C#): `return` — the remaining entries are not applied.
-                    break;
+                    // Deviation from the C# (`return` abandoned every remaining entry, so one
+                    // stale id silently left later battlefields without spawns and their
+                    // invited players were never teleported): skip only the unknown entry.
+                    tracing::warn!(
+                        "battlefields.json: no battlefield {} for its spawns entry",
+                        s.battlefield_id
+                    );
+                    continue;
                 };
                 bf.spawns = Some(s);
             }
