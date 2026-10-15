@@ -9,5 +9,11 @@
   "quest_npc_template": 3597,
   "wait_leave_granted": true,
   "npc_return_distance": 2048,
-  "npc_return_away_secs": 70
+  "npc_return_away_secs": 70,
+  "mate_item_template": 8159,
+  "mate_item_skill_id": 10602,
+  "stablehand_npc_template": 1890,
+  "stablehand_pos": [12590.85, 15406.811, 156.48676],
+  "revive_skill_id": 12195,
+  "revive_method": "repair"
 }

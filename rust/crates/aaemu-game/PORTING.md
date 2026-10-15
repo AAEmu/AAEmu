@@ -1445,7 +1445,7 @@ Additional world-side fixes from the same audit:
 * Mate pool and regeneration formulas now receive the complete attribute parameter set plus
   mate kind. Real 1.2 level-five horse formulas produce 1,012 maximum HP and 335 maximum MP;
   the old incomplete parameter map failed and produced zero maximum pools. Summoning clamps
-  saved pools to the computed maximum and preserves injured, exhausted and dead saves. Mate
+  saved pools to the computed maximum and preserves injured and exhausted saves. Mate
   skill requests require ownership or an actual server-managed passenger/parent relation
   before charging resources. The slave child-cannon versus parent-caster mapping remains
   unverified and is not tightened by this mate-only rule.
@@ -1453,6 +1453,26 @@ Additional world-side fixes from the same audit:
   mounting, dismounting and dismissal/resummoning passed. The native Run! action was not
   exercised because the captured pet button had no key binding and its Lua click handler
   only dismissed a tooltip; server cast permission flows are tested separately.
+* Dead mates and the stablehand revive (not in the C#, which only logged
+  `CSRepairPetItemsPacket` and never marked a mate dead). The 1.2 `SummonMate` item detail is
+  `exp i32, dead u8, level u8` (`ItemDetails::mate_dead`, persisted in the details blob). When a
+  mate dies (`vehicles::on_death_event` -> `mates::on_death`) the summon item gets the dead flag
+  (plus the mate's live level/exp, from which the client prices the revive), the `mates` row
+  loses its HP, and the owner receives `SCItemTaskSuccess(MateDeath, ItemUpdate)` and
+  `MATE_DEAD`; a repeated death/dismissal sends nothing again. The corpse stays in the world
+  until dismissed. The client never checks the flag, so `spawn_mount` refuses a flagged item or
+  a saved zero-HP row (a legacy row gets the flag then) with `MATE_CANNOT_SPAWN_WHILE_CORPSE`.
+  The stabler dialog (`X2:GetTotalRepairsForPetItems`) sends `CSRepairPetItemsPacket(npc)`, now
+  handled by `mates::revive_pet_items`: the npc must be the current interaction object, a
+  stabler and within 5 m (`TOO_FAR_AWAY`); every flagged `SummonMate` item in bag and bank is
+  revived for `floor(0.5 * level + level^2.3 + 0.5)` copper each (detail level), refused with
+  `MATE_CANNOT_REPAIR_WHILE_CORPSE` while one of those mates is still summoned and with
+  `NOT_ENOUGH_MONEY` when the bag money does not cover the total. A revive charges the money
+  (`DepositMoney` task), clears the flags, restores the rows to the new-mate pool values
+  (`MATE_FULL_POOL` 9999, clamped to the computed maximum at the next summon, i.e. full HP/MP)
+  and sends `SCItemTaskSuccess(RepairPets, ItemUpdate...)` + `MATE_RESURRECTED`. The old
+  blacksmith repair of `EQUIPMENT_MATE` gear on this opcode was wrong (the client only sends it
+  to stablers) and is removed.
 * Character persistence saves `reported_as_bot_count` as well as `bot_reported_count`; the
   former was read but omitted from REPLACE, resetting the reported character's counter on
   every save. A private-MySQL temporary-table test covers repeated saves and adjacent fields.

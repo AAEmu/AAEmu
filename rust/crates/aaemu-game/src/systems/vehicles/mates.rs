@@ -19,6 +19,7 @@ use crate::models::mate::{Mate, MatePassengerInfo};
 use crate::packets::world::SCUnitPointsPacket;
 use crate::packets::world_objects::{SCTargetChangedPacket, SCUnitAttachedPacket};
 use crate::server::GameServer;
+use crate::systems::economy::error_message;
 use crate::systems::skills::packets::SCExpChangedPacket;
 use crate::systems::skills::progress::SCLevelChangedPacket;
 use crate::systems::skills::types::{BuffEventTriggerKind, BuffRemoveOn, KillReason, SkillCaster};
@@ -39,6 +40,11 @@ use super::{broadcast, now_ms, set_unit_position, world_of};
 pub const MATE_XP_TASK_EXP: i32 = 300;
 /// `MateXpUpdateTask` delay.
 pub const MATE_XP_TASK_DELAY_MS: u64 = 60_000;
+
+/// HP / MP a mate row starts with (`CharacterMates.CreateNewMate`) and is restored to by the
+/// stablehand revive; the spawn clamps both to the mate's current pools (`MaxHp` / `MaxMp`), so
+/// this always means "full".
+pub const MATE_FULL_POOL: i32 = 9999;
 
 static XP_TASK_GEN: AtomicU64 = AtomicU64::new(1);
 
@@ -674,8 +680,8 @@ fn create_new_mate(
         owner: owner_id,
         mileage: 0,
         xp: server.game_data.experience.exp_for_level(tpl.level, true),
-        hp: 9999,
-        mp: 9999,
+        hp: MATE_FULL_POOL,
+        mp: MATE_FULL_POOL,
         updated_at: now,
         created_at: now,
     };
@@ -772,18 +778,31 @@ pub fn spawn_mount(server: &GameServer, owner: &PlayerRef, skill_item_id: u64) {
         tracing::error!("SpawnMount: npc template {npc_id} missing (NullReferenceException)");
         return;
     };
+    // A dead mate (item flag set, or a saved row without HP) cannot be summoned until a
+    // stablehand revives it; the client never checks the flag on its own.
+    let saved = server
+        .systems
+        .vehicles
+        .mates
+        .character(owner_id, |cm| cm.get(skill_item_id).cloned());
+    if item.details.mate_dead != 0 || saved.as_ref().is_some_and(|db| db.hp <= 0) {
+        // A legacy row (zero HP, flag unset) gets the flag now so the client offers the revive.
+        let (level, xp) = saved
+            .as_ref()
+            .map_or((item.details.mate_level, item.details.mate_exp), |db| {
+                (db.level as u8, db.xp)
+            });
+        record_mate_death(server, owner, skill_item_id, level, xp);
+        super::error(owner, error_message::MATE_CANNOT_SPAWN_WHILE_CORPSE);
+        return;
+    }
     let Ok(tl_id) = server.ids.tl.get_next_id() else {
         return;
     };
     let Ok(obj_id) = server.ids.object.get_next_id() else {
         return;
     };
-    let db = server
-        .systems
-        .vehicles
-        .mates
-        .character(owner_id, |cm| cm.get(skill_item_id).cloned())
-        .or_else(|| create_new_mate(server, owner_id, skill_item_id, npc_id));
+    let db = saved.or_else(|| create_new_mate(server, owner_id, skill_item_id, npc_id));
     let Some(db) = db else {
         tracing::error!(
             "SpawnMount: no mate info for item {skill_item_id} (NullReferenceException)"
@@ -806,8 +825,8 @@ pub fn spawn_mount(server: &GameServer, owner: &PlayerRef, skill_item_id: u64) {
     m.unit.model_id = template.model_id;
     m.unit.faction_id = owner_faction;
     m.unit.level = db.level as u8;
-    // New mates start with the configured high pool values in create_new_mate.
-    // A saved zero HP is a dead mate, and zero MP is an exhausted mate.
+    // New mates start with the configured high pool values in create_new_mate. A zero HP row
+    // never gets here (dead mates are refused above); zero MP is an exhausted mate.
     m.unit.hp = db.hp.max(0);
     m.unit.mp = db.mp.max(0);
     m.unit.scale = template.scale;
@@ -941,8 +960,198 @@ pub fn despawn_mate(server: &GameServer, owner: &PlayerRef, tl_id: u32) {
                 db.updated_at = chrono::Utc::now().naive_utc();
             }
         });
+        if snapshot.1 <= 0 {
+            // Idempotent: the death hook already flagged the item and told the client.
+            record_mate_death(server, owner, snapshot.0, snapshot.3, snapshot.4);
+        }
     }
     remove_active_mate_and_despawn(server, owner, tl_id);
+}
+
+/// Marks the mate of the summon item `item_id` dead: the `mates` row loses its HP, the item gets
+/// its dead flag (plus the mate's live level / exp, which the client prices the revive from) and
+/// is marked dirty, and the owner receives `SCItemTaskSuccess(MateDeath, ItemUpdate)`. Returns
+/// `true` when the flag changed; repeated calls change and send nothing.
+fn record_mate_death(
+    server: &GameServer,
+    owner: &PlayerRef,
+    item_id: u64,
+    level: u8,
+    exp: i32,
+) -> bool {
+    if item_id == 0 {
+        return false;
+    }
+    let owner_id = owner.data().id;
+    server.systems.vehicles.mates.character(owner_id, |cm| {
+        if let Some(db) = cm.get_mut(item_id) {
+            if db.hp != 0 {
+                db.hp = 0;
+                db.updated_at = chrono::Utc::now().naive_utc();
+            }
+        }
+    });
+    let task = update_owned_item(server, Some(owner), item_id, |i| {
+        if i.class != ItemClass::SummonMate || i.details.mate_dead != 0 {
+            return None;
+        }
+        i.details.mate_dead = 1;
+        i.details.mate_level = level;
+        i.details.mate_exp = exp;
+        i.dirty = true;
+        Some(super::packets::item_update(i))
+    })
+    .flatten();
+    let Some(task) = task else {
+        return false;
+    };
+    owner.send(SCItemTaskSuccessPacket {
+        action: item_task_type::MATE_DEATH,
+        tasks: vec![task],
+        force_remove: Vec::new(),
+    });
+    true
+}
+
+/// The death of a mate (`Unit.DoDie` event point, see `vehicles::on_death_event`): the summon
+/// item is flagged dead and the owner is told ([`record_mate_death`] + `MATE_DEAD`). The corpse
+/// stays in the world until the owner dismisses it.
+pub fn on_death(server: &GameServer, mate: &MateRef) {
+    let (item_id, owner_obj, level, exp) = {
+        let d = mate.data();
+        (d.item_id, d.owner_obj_id, d.unit.level, d.experience)
+    };
+    let Some(owner) = server.world.character_by_obj_id(owner_obj) else {
+        return;
+    };
+    if record_mate_death(server, &owner, item_id, level, exp) {
+        super::error(&owner, error_message::MATE_DEAD);
+    }
+}
+
+/// `CSRepairPetItemsPacket` (the stablehand revive): every dead summon mate item in the bag and
+/// the bank is revived for the total of `floor(0.5 * level + level^2.3 + 0.5)` copper per item
+/// (the client's `GetTotalRepairsForPetItems`). Nothing happens unless `npc_obj_id` is the
+/// character's current interaction object, a stabler within reach, none of the dead mates is
+/// still summoned and the character can pay.
+pub fn revive_pet_items(server: &GameServer, player: &PlayerRef, npc_obj_id: u32) {
+    use crate::models::item_task::{task_type, ItemTask};
+    use crate::systems::economy::inventory::{self, Inv, ItemTxn};
+    if npc_obj_id == 0 || player.data().unit.current_interaction_object != npc_obj_id {
+        return;
+    }
+    let Some(world) = server.world.world_of(&WorldObject::from(player)) else {
+        return;
+    };
+    let Some(npc) = world.npc(npc_obj_id) else {
+        return;
+    };
+    let stabler = server
+        .systems
+        .economy
+        .hooks
+        .npcs
+        .get()
+        .and_then(|h| h.shop_info(server, &npc))
+        .is_some_and(|i| i.stabler);
+    if !stabler {
+        tracing::warn!(
+            "Attempting to revive a mate while not at a stabler, NPC: {}",
+            npc.obj_id
+        );
+        return;
+    }
+    let me = world.world_pos_rot(&WorldObject::from(player));
+    let them = world.world_pos_rot(&WorldObject::from(&npc));
+    if me.distance_to(&them, false) > 5.0 {
+        super::error(player, error_message::TOO_FAR_AWAY);
+        return;
+    }
+    let owner_id = player.data().id;
+    let inv = Inv::of(player);
+    let containers: Vec<_> = [slot_type::INVENTORY, slot_type::BANK]
+        .into_iter()
+        .filter_map(|t| inv.get(t))
+        .collect();
+    let mut txn = ItemTxn::begin(server);
+    // (item id, detail level) of the dead mates.
+    let mut dead = Vec::new();
+    for c in &containers {
+        let c = c.lock().expect("container poisoned");
+        dead.extend(
+            c.items
+                .iter()
+                .filter(|i| i.class == ItemClass::SummonMate && i.details.mate_dead != 0)
+                .map(|i| (i.id, i.details.mate_level)),
+        );
+    }
+    if dead.is_empty() {
+        tracing::debug!("RepairPetItems: no dead mate item, NPC: {}", npc.obj_id);
+        return;
+    }
+    let active = manager_of(server, player).get_active_mates(owner_id);
+    if active
+        .iter()
+        .any(|m| dead.iter().any(|(id, _)| *id == m.data().item_id))
+    {
+        super::error(player, error_message::MATE_CANNOT_REPAIR_WHILE_CORPSE);
+        return;
+    }
+    let total: i64 = dead.iter().map(|(_, l)| i64::from(revive_cost(*l))).sum();
+    let Ok(cost) = i32::try_from(total) else {
+        return;
+    };
+    if player.data().money < i64::from(cost) {
+        inventory::send_error_message_to(&mut txn.out(), player, error_message::NOT_ENOUGH_MONEY);
+        return;
+    }
+    if cost > 0 {
+        inventory::change_money_at(
+            &mut txn.out(),
+            player,
+            slot_type::INVENTORY,
+            -cost,
+            task_type::DEPOSIT_MONEY,
+        );
+    }
+    let now = chrono::Utc::now().naive_utc();
+    let mut tasks = Vec::new();
+    for (item_id, _) in &dead {
+        for c in &containers {
+            let mut c = c.lock().expect("container poisoned");
+            if let Some(i) = c.get_item_by_id_mut(*item_id) {
+                i.details.mate_dead = 0;
+                i.dirty = true;
+                tasks.push(ItemTask::update(i));
+                break;
+            }
+        }
+    }
+    server.systems.vehicles.mates.character(owner_id, |cm| {
+        for (item_id, _) in &dead {
+            if let Some(db) = cm.get_mut(*item_id) {
+                db.hp = MATE_FULL_POOL;
+                db.mp = MATE_FULL_POOL;
+                db.updated_at = now;
+            }
+        }
+    });
+    let mut out = txn.out();
+    out.send(
+        player,
+        SCItemTaskSuccessPacket {
+            action: task_type::REPAIR_PETS,
+            tasks,
+            force_remove: Vec::new(),
+        },
+    );
+    inventory::send_error_message_to(&mut out, player, error_message::MATE_RESURRECTED);
+}
+
+/// The revive price of one dead mate item of detail level `level` (client formula).
+pub fn revive_cost(level: u8) -> i32 {
+    let l = f64::from(level);
+    (0.5 * l + l.powf(2.3) + 0.5).floor() as i32
 }
 
 // ---------------------------------------------------------------------------------------------

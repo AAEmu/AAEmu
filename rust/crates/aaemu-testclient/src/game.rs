@@ -4,7 +4,7 @@
 //! level 2 (proxy / CryNetwork) just `[u16 opcode]`. 1.2 traffic is neither encrypted nor
 //! compressed.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
 use aaemu_commons::net::FrameCodec;
@@ -73,6 +73,136 @@ pub struct UnitInfo {
     /// Character id (type 0) or NPC template id (type 1).
     pub id: u32,
     pub pos: (f32, f32, f32),
+    /// Transport-layer id of a mate (type 5, `SCUnitStatePacket`); 0 for every other unit.
+    pub tl_id: u16,
+}
+
+/// The last `SCMateSpawnedPacket`: the owner's own view of the summoned mate.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MateSpawn {
+    pub tl_id: u16,
+    pub db_id: u32,
+    pub item_id: u64,
+    pub user_state: u8,
+}
+
+/// One item of an `SCItemTaskSuccessPacket` task.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TaskItem {
+    /// `ItemAction` of the task (5 create, 9 update detail, ...).
+    pub task: u8,
+    /// Template id (0 for tasks that do not carry it, e.g. `UpdateDetail`).
+    pub template: u32,
+    pub id: u64,
+    /// `SummonMate` detail block: `(exp, dead flag, level)`; a non-zero dead flag marks a corpse.
+    pub mate: Option<(i32, u8, u8)>,
+}
+
+/// The readable part of an `SCItemTaskSuccessPacket`.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ItemTaskInfo {
+    /// `ItemTaskType` (59 mate death, 58 repair pets, 11 GM, ...).
+    pub action: u8,
+    pub items: Vec<TaskItem>,
+    /// Sum of the `MoneyChange` tasks (copper; negative = deducted).
+    pub money: i64,
+}
+
+/// Something the server told us that scenarios assert on, in arrival order.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum GameEvent {
+    /// `SCErrorMsgPacket` (error code).
+    ErrorMsg(i16),
+    ItemTask(ItemTaskInfo),
+}
+
+/// `ItemAction` values of the tasks [`parse_item_task`] reads.
+mod item_action {
+    pub const CHANGE_MONEY_AMOUNT: u8 = 1;
+    pub const CHANGE_BANK_MONEY_AMOUNT: u8 = 2;
+    pub const CREATE: u8 = 5;
+    pub const TAKE: u8 = 6;
+    pub const UPDATE_DETAIL: u8 = 9;
+    pub const CHANGE_OWNER: u8 = 15;
+}
+
+/// Best-effort decode of an `SCItemTaskSuccessPacket` body (`[u8 reason][u8 count]`, then the
+/// tasks, see `models/item_task.rs` of the game crate). Reading stops at the first task kind it
+/// does not know or on truncation; what was read so far is returned.
+pub fn parse_item_task(body: &[u8]) -> ItemTaskInfo {
+    fn details(s: &mut PacketStream) -> anyhow::Result<Option<(i32, u8, u8)>> {
+        let len = s.read_i16()?;
+        if len != 128 {
+            bail!("task details length {len}");
+        }
+        let mut block = [0u8; 128];
+        for b in &mut block {
+            *b = s.read_u8()?;
+        }
+        // detail type 3 = SummonMate: [i32 exp][u8 dead][u8 level]
+        Ok((block[0] == 3).then(|| {
+            (
+                i32::from_le_bytes([block[1], block[2], block[3], block[4]]),
+                block[5],
+                block[6],
+            )
+        }))
+    }
+    fn read(s: &mut PacketStream, info: &mut ItemTaskInfo) -> anyhow::Result<()> {
+        info.action = s.read_u8()?;
+        let count = s.read_u8()?;
+        for _ in 0..count {
+            let task = s.read_u8()?;
+            match task {
+                item_action::CHANGE_MONEY_AMOUNT | item_action::CHANGE_BANK_MONEY_AMOUNT => {
+                    info.money += i64::from(s.read_i32()?);
+                }
+                item_action::CREATE | item_action::CHANGE_OWNER | item_action::TAKE => {
+                    s.read_u8()?; // slot type
+                    s.read_u8()?; // slot
+                    let template = s.read_u32()?;
+                    let id = s.read_u64()?;
+                    info.items.push(TaskItem {
+                        task,
+                        template,
+                        id,
+                        mate: None,
+                    });
+                    s.read_u8()?; // grade
+                    s.read_u8()?; // flags
+                    s.read_i32()?; // count
+                    let mate = details(s)?;
+                    if let Some(item) = info.items.last_mut() {
+                        item.mate = mate;
+                    }
+                    s.read_i64()?; // create time
+                    s.read_i32()?; // lifespan
+                    s.read_u32()?; // made unit id
+                    s.read_u8()?; // world id
+                    s.read_i64()?; // unsecure time
+                    s.read_i64()?; // unpack time
+                }
+                item_action::UPDATE_DETAIL => {
+                    s.read_u8()?; // slot type
+                    s.read_u8()?; // slot
+                    let id = s.read_u64()?;
+                    let mate = details(s)?;
+                    info.items.push(TaskItem {
+                        task,
+                        template: 0,
+                        id,
+                        mate,
+                    });
+                }
+                _ => break,
+            }
+        }
+        Ok(())
+    }
+    let mut s = PacketStream::from_bytes(body.to_vec());
+    let mut info = ItemTaskInfo::default();
+    let _ = read(&mut s, &mut info);
+    info
 }
 
 /// What the bot learned from the server so far.
@@ -90,7 +220,150 @@ pub struct GameState {
     /// First item of the bag (`SCCharacterInvenContentsPacket`, slot type 2): `(item id, slot)`.
     pub bag_items: Vec<(u64, u8, u32)>,
     pub bag_slots: u8,
+    /// Latest `SCUnitPointsPacket` per unit: `(hp, mp)` (the wire carries them times 100).
+    pub unit_points: HashMap<u32, (i32, i32)>,
+    /// Units announced dead by `SCUnitDeathPacket` (and not removed since).
+    pub dead_units: HashSet<u32>,
+    /// Last `SCMateSpawnedPacket`.
+    pub mate_spawned: Option<MateSpawn>,
+    /// Number of `SCMateSpawnedPacket`s seen so far.
+    pub mate_spawn_count: u32,
+    /// `SCErrorMsgPacket`s and `SCItemTaskSuccessPacket`s in arrival order; scenarios remember
+    /// `events.len()` before an action and inspect what was appended.
+    pub events: Vec<GameEvent>,
     pub disconnected: bool,
+}
+
+impl GameState {
+    /// Updates the state from a packet.
+    pub fn observe(&mut self, p: &Packet) -> anyhow::Result<()> {
+        let mut s = p.stream();
+        let st = self;
+        if p.is(LEVEL_PROXY, pp::ChangeStatePacket) {
+            st.last_change_state = Some(s.read_i32()?);
+        } else if p.is_sc(sc::X2EnterWorldResponsePacket) {
+            let _reason = s.read_i16()?;
+            let _gm = s.read_bool()?;
+            st.token = s.read_u32()?;
+            st.stream_port = s.read_u16()?;
+        } else if p.is_sc(sc::SCCharacterListPacket) {
+            let last = s.read_bool()?;
+            let n = s.read_u8()?;
+            if n > 0 {
+                // Only the first entry can be located without decoding a whole Character.
+                let id = s.read_u32()?;
+                let name = s.read_string()?;
+                if !st.characters.iter().any(|c| c.id == id) {
+                    st.characters.push(CharInfo { id, name });
+                }
+            }
+            st.char_list_done |= last;
+        } else if p.is_sc(sc::SCCreateCharacterResponsePacket) {
+            let id = s.read_u32()?;
+            let name = s.read_string()?;
+            st.characters.push(CharInfo { id, name });
+        } else if p.is_sc(sc::SCUnitStatePacket) {
+            let obj_id = s.read_bc()?;
+            let name = s.read_string()?;
+            let unit_type = s.read_u8()?;
+            let mut tl_id = 0;
+            let id = match unit_type {
+                0 => {
+                    let id = s.read_u32()?;
+                    s.read_u64()?;
+                    id
+                }
+                1 => {
+                    s.read_bc()?;
+                    let tpl = s.read_u32()?;
+                    s.read_u32()?;
+                    s.read_u8()?;
+                    tpl
+                }
+                5 => {
+                    // Mate: tl id, template id, owner character id.
+                    tl_id = s.read_u16()?;
+                    let tpl = s.read_u32()?;
+                    s.read_u32()?;
+                    tpl
+                }
+                _ => return Ok(()),
+            };
+            let _owner = s.read_string()?;
+            let pos = s.read_position()?;
+            if unit_type == 0 && id == st.selected_char && id != 0 {
+                st.self_obj = obj_id;
+                st.self_pos = pos;
+            }
+            st.units.insert(
+                obj_id,
+                UnitInfo {
+                    obj_id,
+                    name,
+                    unit_type,
+                    id,
+                    pos,
+                    tl_id,
+                },
+            );
+        } else if p.is_sc(sc::SCOneUnitMovementPacket) {
+            // objId, MoveTypeEnum (1 = Unit), time, flags [+ scType, phase], position.
+            let obj_id = s.read_bc()?;
+            if s.read_u8()? == 1 {
+                s.read_u32()?;
+                let flags = s.read_u8()?;
+                if flags & 0x10 != 0 {
+                    s.read_u32()?;
+                    s.read_u8()?;
+                }
+                let pos = s.read_position()?;
+                if let Some(u) = st.units.get_mut(&obj_id) {
+                    u.pos = pos;
+                }
+            }
+        } else if p.is_sc(sc::SCUnitsRemovedPacket) {
+            let n = s.read_u16()?;
+            for _ in 0..n {
+                let id = s.read_bc()?;
+                st.units.remove(&id);
+                st.unit_points.remove(&id);
+                st.dead_units.remove(&id);
+            }
+        } else if p.is_sc(sc::SCUnitPointsPacket) {
+            let obj_id = s.read_bc()?;
+            let hp = s.read_i32()? / 100;
+            let mp = s.read_i32()? / 100;
+            st.unit_points.insert(obj_id, (hp, mp));
+        } else if p.is_sc(sc::SCUnitDeathPacket) {
+            st.dead_units.insert(s.read_bc()?);
+        } else if p.is_sc(sc::SCErrorMsgPacket) {
+            st.events.push(GameEvent::ErrorMsg(s.read_i16()?));
+        } else if p.is_sc(sc::SCItemTaskSuccessPacket) {
+            st.events
+                .push(GameEvent::ItemTask(parse_item_task(&p.body)));
+        } else if p.is_sc(sc::SCMateSpawnedPacket) {
+            st.mate_spawned = Some(MateSpawn {
+                tl_id: s.read_u16()?,
+                db_id: s.read_u32()?,
+                item_id: s.read_u64()?,
+                user_state: s.read_u8()?,
+            });
+            st.mate_spawn_count += 1;
+        } else if p.is_sc(sc::SCCharacterInvenContentsPacket) {
+            let slot_type = s.read_u8()?;
+            let _num_chunks = s.read_u8()?;
+            let chunk = s.read_u8()?;
+            if slot_type == 2 {
+                // 10 items per chunk; only leading items can be located (variable layout).
+                let tpl = s.read_u32()?;
+                if tpl != 0 {
+                    let id = s.read_u64()?;
+                    st.bag_items.push((id, chunk * 10, tpl));
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 pub struct GameClient {
@@ -321,101 +594,7 @@ impl GameClient {
 
     /// Updates [`GameState`] from a packet.
     fn observe(&mut self, p: &Packet) -> anyhow::Result<()> {
-        let mut s = p.stream();
-        let st = &mut self.state;
-        if p.is(LEVEL_PROXY, pp::ChangeStatePacket) {
-            st.last_change_state = Some(s.read_i32()?);
-        } else if p.is_sc(sc::X2EnterWorldResponsePacket) {
-            let _reason = s.read_i16()?;
-            let _gm = s.read_bool()?;
-            st.token = s.read_u32()?;
-            st.stream_port = s.read_u16()?;
-        } else if p.is_sc(sc::SCCharacterListPacket) {
-            let last = s.read_bool()?;
-            let n = s.read_u8()?;
-            if n > 0 {
-                // Only the first entry can be located without decoding a whole Character.
-                let id = s.read_u32()?;
-                let name = s.read_string()?;
-                if !st.characters.iter().any(|c| c.id == id) {
-                    st.characters.push(CharInfo { id, name });
-                }
-            }
-            st.char_list_done |= last;
-        } else if p.is_sc(sc::SCCreateCharacterResponsePacket) {
-            let id = s.read_u32()?;
-            let name = s.read_string()?;
-            st.characters.push(CharInfo { id, name });
-        } else if p.is_sc(sc::SCUnitStatePacket) {
-            let obj_id = s.read_bc()?;
-            let name = s.read_string()?;
-            let unit_type = s.read_u8()?;
-            let id = match unit_type {
-                0 => {
-                    let id = s.read_u32()?;
-                    s.read_u64()?;
-                    id
-                }
-                1 => {
-                    s.read_bc()?;
-                    let tpl = s.read_u32()?;
-                    s.read_u32()?;
-                    s.read_u8()?;
-                    tpl
-                }
-                _ => return Ok(()),
-            };
-            let _owner = s.read_string()?;
-            let pos = s.read_position()?;
-            if unit_type == 0 && id == st.selected_char && id != 0 {
-                st.self_obj = obj_id;
-                st.self_pos = pos;
-            }
-            st.units.insert(
-                obj_id,
-                UnitInfo {
-                    obj_id,
-                    name,
-                    unit_type,
-                    id,
-                    pos,
-                },
-            );
-        } else if p.is_sc(sc::SCOneUnitMovementPacket) {
-            // objId, MoveTypeEnum (1 = Unit), time, flags [+ scType, phase], position.
-            let obj_id = s.read_bc()?;
-            if s.read_u8()? == 1 {
-                s.read_u32()?;
-                let flags = s.read_u8()?;
-                if flags & 0x10 != 0 {
-                    s.read_u32()?;
-                    s.read_u8()?;
-                }
-                let pos = s.read_position()?;
-                if let Some(u) = st.units.get_mut(&obj_id) {
-                    u.pos = pos;
-                }
-            }
-        } else if p.is_sc(sc::SCUnitsRemovedPacket) {
-            let n = s.read_u16()?;
-            for _ in 0..n {
-                let id = s.read_bc()?;
-                st.units.remove(&id);
-            }
-        } else if p.is_sc(sc::SCCharacterInvenContentsPacket) {
-            let slot_type = s.read_u8()?;
-            let _num_chunks = s.read_u8()?;
-            let chunk = s.read_u8()?;
-            if slot_type == 2 {
-                // 10 items per chunk; only leading items can be located (variable layout).
-                let tpl = s.read_u32()?;
-                if tpl != 0 {
-                    let id = s.read_u64()?;
-                    st.bag_items.push((id, chunk * 10, tpl));
-                }
-            }
-        }
-        Ok(())
+        self.state.observe(p)
     }
 
     // ----- C2G packets -----
@@ -562,6 +741,63 @@ impl GameClient {
             .write_bc(target_obj)
             .write_u8(0); // flag: no skill object
         self.send_cs(cs::CSStartSkillPacket, s.as_bytes()).await
+    }
+
+    /// `CSStartSkillPacket` cast from an inventory item (the item's use skill) on ourselves,
+    /// as the client does for a summon item.
+    pub async fn use_item_skill(
+        &mut self,
+        skill_id: u32,
+        item_id: u64,
+        item_template_id: u32,
+    ) -> anyhow::Result<()> {
+        let mut s = PacketStream::new();
+        s.write_u32(skill_id)
+            .write_u8(2) // SkillCasterType.Item
+            .write_bc(self.state.self_obj)
+            .write_u64(item_id)
+            .write_u32(item_template_id)
+            .write_u8(0) // type1
+            .write_u32(0) // type2
+            .write_u8(0) // SkillCastUnitTarget
+            .write_bc(self.state.self_obj)
+            .write_u8(0); // flag: no skill object
+        self.send_cs(cs::CSStartSkillPacket, s.as_bytes()).await
+    }
+
+    /// `CSRemoveMatePacket`: dismiss the mate with transport id `tl_id`.
+    pub async fn remove_mate(&mut self, tl_id: u16) -> anyhow::Result<()> {
+        let mut s = PacketStream::new();
+        s.write_u16(tl_id);
+        self.send_cs(cs::CSRemoveMatePacket, s.as_bytes()).await
+    }
+
+    /// `CSRepairPetItemsPacket`: the stablehand revive of dead summon items; the NPC must be the
+    /// current interaction object (`CSInteractNPCPacket` first).
+    pub async fn repair_pet_items(&mut self, npc_obj: u32) -> anyhow::Result<()> {
+        let mut s = PacketStream::new();
+        s.write_bc(npc_obj);
+        self.send_cs(cs::CSRepairPetItemsPacket, s.as_bytes()).await
+    }
+
+    /// `CSInteractNPCPacket`.
+    pub async fn interact_npc(&mut self, npc_obj: u32, target_changed: bool) -> anyhow::Result<()> {
+        let mut s = PacketStream::new();
+        s.write_bc(npc_obj).write_bool(target_changed);
+        self.send_cs(cs::CSInteractNPCPacket, s.as_bytes()).await
+    }
+
+    /// `CSStartInteractionPacket` (asks the NPC for its interaction skill list).
+    pub async fn start_interaction(&mut self, npc_obj: u32) -> anyhow::Result<()> {
+        let mut s = PacketStream::new();
+        s.write_bc(npc_obj)
+            .write_bc(npc_obj)
+            .write_i32(0) // extra info
+            .write_i32(0) // pick id
+            .write_u8(1) // mouse button
+            .write_i32(0); // modifier keys
+        self.send_cs(cs::CSStartInteractionPacket, s.as_bytes())
+            .await
     }
 
     /// Select the unit used by auto attacks, as the real client does before attacking.

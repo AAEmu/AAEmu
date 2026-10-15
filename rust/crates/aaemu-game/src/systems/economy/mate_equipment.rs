@@ -1,9 +1,9 @@
 //! Pet / vehicle gear: `CSChangeMateEquipmentPacket` (moves between the bag and a mate's
 //! `MateEquipmentContainer`), the `MateEquipmentContainer.OnEnter/LeaveContainer` packets
 //! (`SCMateEquipmentChangedPacket`), the base `EquipmentContainer` events of a mate (the default
-//! [`SummonItemHooks::on_mate_equipment_changed`]), and the slave gear / pet repair packets that
-//! only log in the 1.2 C# (`CSChangeSlaveEquipmentPacket`, `CSRepairPetItemsPacket`,
-//! `CSRepairSlaveItemsPacket`).
+//! [`SummonItemHooks::on_mate_equipment_changed`]), the slave gear / slave repair packets that
+//! only log in the 1.2 C# (`CSChangeSlaveEquipmentPacket`, `CSRepairSlaveItemsPacket`), and the
+//! stablehand mate revive packet (`CSRepairPetItemsPacket`, handled in `vehicles::mates`).
 
 use std::sync::Arc;
 
@@ -410,7 +410,7 @@ impl CSChangeSlaveEquipmentPacket {
 }
 sync_client_packet!(CSChangeSlaveEquipmentPacket);
 
-/// `CSRepairPetItemsPacket`: repair the character's mate equipment at a blacksmith.
+/// `CSRepairPetItemsPacket`: the stablehand revive of dead mates (not an equipment repair).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CSRepairPetItemsPacket {
     pub npc_id: u32,
@@ -427,7 +427,7 @@ impl CSRepairPetItemsPacket {
         let Some(character) = active(conn) else {
             return;
         };
-        super::repair::repair_pet_items(server, &character, self.npc_id);
+        crate::systems::vehicles::mates::revive_pet_items(server, &character, self.npc_id);
     }
 }
 sync_client_packet!(CSRepairPetItemsPacket);
