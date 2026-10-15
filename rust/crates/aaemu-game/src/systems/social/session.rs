@@ -31,6 +31,14 @@ pub fn on_notify_in_game_trial(server: &GameServer, p: &PlayerRef) {
     crate::systems::housing::dominion::participants::sync_player(server, p);
 }
 
+/// `CSNotifyInGamePacket`: the achievement entry snapshot (`AchievementManager` login path):
+/// back-credits the character's current state, pushes the touched `SCAchievementsPacket` list and
+/// pays every reward still owed. Runs after the other login steps so the team / expedition /
+/// family memberships it back-credits are already restored.
+pub fn on_notify_in_game_achievements(server: &GameServer, p: &PlayerRef) {
+    crate::systems::social::achievement_hooks::initial_snapshot(server, p, chrono::Utc::now());
+}
+
 /// `WorldManager.OnPlayerJoin`: `FamilyManager.OnCharacterLogin` when in a family.
 pub fn on_player_join(server: &GameServer, p: &PlayerRef) {
     if p.data().family > 0 {

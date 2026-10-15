@@ -82,6 +82,15 @@ impl<'a> AchievementContent<'a> {
         self.data
     }
 
+    /// Whether the content has a record of `kind_id` that `matches` accepts (lock-free: lets a
+    /// producer skip an event nothing authored cares about).
+    pub fn has_record(&self, kind_id: u32, matches: impl Fn(&CharRecords) -> bool) -> bool {
+        self.data
+            .char_records
+            .values()
+            .any(|record| record.kind_id == kind_id && matches(record))
+    }
+
     /// The pre-built lookups.
     pub fn index(&self) -> &AchievementIndex<'a> {
         &self.index
@@ -328,7 +337,8 @@ fn send_list_chunks(player: &PlayerRef, list: &[AchievementInfo]) -> usize {
 /// Only state the character carries is read, and only record kinds whose units are legible from
 /// it: the character's level, each ability's level through the shared experience table, actability
 /// points, hours online, carried gold, the family / expedition / party / raid memberships the
-/// character is in right now, and the completed-quest bitset. Historical events (kills, crafts,
+/// character is in right now, the faction the character belongs to, and the completed-quest
+/// bitset. Historical events (kills, crafts,
 /// gold spent, items used, ...) are not reconstructible and are left alone; a kind with no
 /// definition in the content simply produces nothing.
 ///
@@ -374,6 +384,9 @@ pub fn back_credit_values(
             char_record_kind::ENROLL_RAID_GROUP => i64::from(in_raid),
             char_record_kind::ENROLL_FAMILY => i64::from(character.family != 0),
             char_record_kind::ENROLL_GUILD => i64::from(character.unit.expedition_id != 0),
+            char_record_kind::GET_FACTION => {
+                i64::from(character.unit.faction_id == record.value1 && record.value1 != 0)
+            }
             char_record_kind::COMPLETE_QUEST_TYPE => {
                 i64::from(crate::systems::quests::engine::has_quest_completed(
                     &character.quests.completed,

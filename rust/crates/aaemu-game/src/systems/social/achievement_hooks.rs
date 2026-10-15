@@ -72,6 +72,8 @@ pub enum RecordMatch {
     /// records like `GET_HONOR_POINT`: `value2 == 0` counts in any zone, otherwise only in the
     /// listed zone group).
     Value1OrZeroValue2 { value1: u32, value2: u32 },
+    /// A zone-group record (`DEAD_BY_PVP`): `value1` is the zone group id, `0` = any zone.
+    ZoneGroup { zone_group: u32 },
     /// A `KILL_NPC` event: `value1` is the npc template and `value2` is the party-member level
     /// cap. A `0` cap needs no party member; a positive cap only counts when the lowest eligible
     /// party member's level is known (`lowest_party_level`) and at most the cap.
@@ -100,6 +102,7 @@ impl RecordMatch {
             Self::Value1OrZeroValue2 { value1, value2 } => {
                 record.value1 == value1 && (record.value2 == 0 || record.value2 == value2)
             }
+            Self::ZoneGroup { zone_group } => record.value1 == 0 || record.value1 == zone_group,
             Self::NpcKill {
                 template_id,
                 lowest_party_level,
@@ -128,6 +131,33 @@ pub enum AchievementInput {
         amount: i64,
         matcher: RecordMatch,
     },
+    /// Report `value` as the absolute (current-state) value of every `kind_id` record the matcher
+    /// accepts (the state kinds that are not reconstructible from [`refresh_current`], e.g. a
+    /// mate's level against its template). The store keeps the high-water mark.
+    Absolute {
+        kind_id: u32,
+        value: i64,
+        matcher: RecordMatch,
+    },
+}
+
+impl AchievementInput {
+    /// Whether the content has a record this event could move (lock-free).
+    fn has_authored_record(&self, content: &AchievementContent<'_>) -> bool {
+        match *self {
+            Self::Record { record_id, .. } => {
+                record_id != 0 && content.data().char_records.contains_key(&record_id)
+            }
+            Self::Increment {
+                kind_id,
+                amount,
+                matcher,
+            } => amount != 0 && content.has_record(kind_id, |record| matcher.matches(record)),
+            Self::Absolute {
+                kind_id, matcher, ..
+            } => content.has_record(kind_id, |record| matcher.matches(record)),
+        }
+    }
 }
 
 /// What one facade report did: the core's evaluation pass, the records that moved, and the
@@ -199,20 +229,36 @@ pub fn report_inputs(
     for input in inputs {
         match input {
             AchievementInput::Record { record_id, value } => records.push((record_id, value)),
+            AchievementInput::Absolute {
+                kind_id,
+                value,
+                matcher,
+            } => {
+                let mut ids: Vec<u32> = content
+                    .data()
+                    .char_records
+                    .values()
+                    .filter(|record| record.kind_id == kind_id && matcher.matches(record))
+                    .map(|record| record.id)
+                    .collect();
+                ids.sort_unstable();
+                records.extend(ids.into_iter().map(|record_id| (record_id, value)));
+            }
             AchievementInput::Increment {
                 kind_id,
                 amount,
                 matcher,
             } => {
+                // Most events have no authored record: skip them before any lock is taken.
+                if amount == 0 || !content.has_record(kind_id, |record| matcher.matches(record)) {
+                    continue;
+                }
                 if !records.is_empty() {
                     let values = std::mem::take(&mut records);
                     merge_record_report(
                         &mut report,
                         content.report_values(server, player, now, values),
                     );
-                }
-                if amount == 0 {
-                    continue;
                 }
                 merge_record_report(
                     &mut report,
@@ -297,6 +343,121 @@ pub fn initial_snapshot(
 /// again only through a new completion, and a failed hand-over never writes its receipt.
 pub fn retry_pending_rewards(server: &GameServer, player: &PlayerRef) -> RewardDelivery {
     deliver_pending(server, player)
+}
+
+/// What the other subsystems call to credit achievements, through `server.systems.hooks`
+/// (`HookSlot<dyn AchievementHooks>`; see `systems::report_achievements`).
+///
+/// A caller of [`Self::report`] / [`Self::refresh_current`] must hold no character or container
+/// lock. The economy operation lock is tolerated, because [`LiveAchievementHooks`] queues the
+/// event while the current thread holds it. A caller that holds some other lock (the team
+/// manager's, a family's) uses the `*_later` variants, which always queue. Queued events run from
+/// [`AchievementHooks::flush_deferred`], which the economy transaction, the quest operation and
+/// the packet dispatcher call once their locks are released. Without an installed implementation
+/// (tests that do not install the social hooks) every call is a no-op.
+pub trait AchievementHooks: Send + Sync {
+    /// [`report_inputs`] over `inputs`, stamped with the current time.
+    fn report(&self, server: &GameServer, player: &PlayerRef, inputs: &[AchievementInput]);
+
+    /// [`refresh_current`], stamped with the current time.
+    fn refresh_current(&self, server: &GameServer, player: &PlayerRef);
+
+    /// Queues a [`refresh_current`] for the next [`Self::flush_deferred`] (callers that hold a
+    /// lock the report path also takes).
+    fn refresh_later(&self, player: &PlayerRef);
+
+    /// Runs the queued events. A no-op while this thread still holds the economy operation lock.
+    fn flush_deferred(&self, server: &GameServer);
+}
+
+/// One queued event.
+enum Deferred {
+    Report(PlayerRef, Vec<AchievementInput>),
+    Refresh(PlayerRef),
+}
+
+/// The live [`AchievementHooks`] (installed by `social::bridges::install`).
+#[derive(Default)]
+pub struct LiveAchievementHooks {
+    deferred: std::sync::Mutex<Vec<Deferred>>,
+}
+
+impl LiveAchievementHooks {
+    fn queue(&self, event: Deferred) {
+        self.deferred
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(event);
+    }
+}
+
+impl AchievementHooks for LiveAchievementHooks {
+    fn report(&self, server: &GameServer, player: &PlayerRef, inputs: &[AchievementInput]) {
+        // Most events have no authored record: drop them before queueing or locking anything.
+        let content = AchievementContent::new(&server.game_data.systems.social.achievements);
+        let relevant: Vec<AchievementInput> = inputs
+            .iter()
+            .copied()
+            .filter(|input| input.has_authored_record(&content))
+            .collect();
+        if relevant.is_empty() {
+            return;
+        }
+        if crate::systems::economy::System::ops_held_on_this_thread() {
+            self.queue(Deferred::Report(player.clone(), relevant));
+            return;
+        }
+        report_inputs(server, player, relevant, Utc::now());
+    }
+
+    fn refresh_current(&self, server: &GameServer, player: &PlayerRef) {
+        if crate::systems::economy::System::ops_held_on_this_thread() {
+            self.queue(Deferred::Refresh(player.clone()));
+            return;
+        }
+        refresh_current(server, player, Utc::now());
+    }
+
+    fn refresh_later(&self, player: &PlayerRef) {
+        self.queue(Deferred::Refresh(player.clone()));
+    }
+
+    fn flush_deferred(&self, server: &GameServer) {
+        if crate::systems::economy::System::ops_held_on_this_thread() {
+            return;
+        }
+        loop {
+            let batch =
+                std::mem::take(&mut *self.deferred.lock().unwrap_or_else(|e| e.into_inner()));
+            if batch.is_empty() {
+                return;
+            }
+            for event in batch {
+                match event {
+                    Deferred::Report(player, inputs) => {
+                        report_inputs(server, &player, inputs, Utc::now());
+                    }
+                    Deferred::Refresh(player) => {
+                        refresh_current(server, &player, Utc::now());
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// The lowest level among the party / raid members of `player` (the killer included), or the
+/// player's own level when solo: the `KILL_NPC` party-level cap input ([`RecordMatch::NpcKill`]).
+pub fn lowest_party_level(server: &GameServer, player: &PlayerRef) -> u32 {
+    let own = u32::from(player.data().unit.level);
+    let Some(team) = server.systems.social.teams.team_by_obj_id(player.obj_id) else {
+        return own;
+    };
+    team.members
+        .iter()
+        .flatten()
+        .map(|member| u32::from(member.character.data().unit.level))
+        .fold(own, u32::min)
 }
 
 /// Folds one manager pass into the facade result, keeping event order.
