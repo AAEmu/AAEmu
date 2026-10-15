@@ -1,4 +1,4 @@
-using AAEmu.Commons.Exceptions;
+﻿using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using Microsoft.Extensions.DependencyInjection;
@@ -1641,83 +1641,33 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             return false;
         }
 
-        if (FeaturesManager.Fsets.TaxItem)
+        // Guild residences bill prestige; ordinary houses use seals or gold. BillingAmount stays copper;
+        // HousingManager converts with the content gold ratios.
+        if (!housingManager.Value.TryChargeTaxForHouse(
+                character,
+                house,
+                mail.Body.BillingAmount,
+                ItemTaskType.Mail,
+                autoUseAAPoint,
+                out var taxCharge))
+            return false;
+
+        if (!housingManager.Value.CompleteHouseTaxPayment(character, house, taxCharge))
         {
-            // use Tax Certificates as payment
-            // TODO: grab these values from DB somewhere ?
-            var userTaxCount = character.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
-            var userBoundTaxCount = character.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
-            var totatUserTaxCount = userTaxCount + userBoundTaxCount;
-            // Derived from the issued bill, exactly as X2House:CountTaxItemForTax derives it from the
-            // money amount. The bill already carries the heavy-property modifier applied at issuance,
-            // so the certificate path and the money path settle the same recorded obligation.
-            var consumedCerts = Math.Max(1, (int)Math.Ceiling(mail.Body.BillingAmount / 10000f));
-
-            if (totatUserTaxCount < consumedCerts)
-            {
-                // Not enough certs
-                character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
-                return false;
-            }
-            else
-            {
-                var c = consumedCerts;
-                // Use Bound First
-                if (userBoundTaxCount > 0 && c > 0)
-                {
-                    if (c > userBoundTaxCount)
-                        c = userBoundTaxCount;
-                    character.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.Mail, Item.BoundTaxCertificate, c, null);
-                    consumedCerts -= c;
-                }
-                c = consumedCerts;
-                if (userTaxCount > 0 && c > 0)
-                {
-                    if (c > userTaxCount)
-                        c = userTaxCount;
-                    character.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.Mail, Item.TaxCertificate, c, null);
-                    consumedCerts -= c;
-                }
-
-                if (consumedCerts != 0)
-                    Logger.Error("Something went wrong when paying tax for mailId {0}", mail.Id);
-
-                mail.Body.BillingAmount = consumedCerts;
-
-            }
-        }
-        else
-        {
-            var billingBalance = autoUseAAPoint ? character.AaPoint : character.Money;
-            if (mail.Body.BillingAmount > billingBalance)
-            {
-                character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
-                return false;
-            }
-
-            var paid = autoUseAAPoint
-                ? character.SubtractAAPoint(SlotType.Inventory, mail.Body.BillingAmount, ItemTaskType.Mail)
-                : character.SubtractMoney(SlotType.Inventory, mail.Body.BillingAmount, ItemTaskType.Mail);
-            if (!paid)
-                return false;
-        }
-
-        if (!housingManager.Value.PayWeeklyTax(house))
             Logger.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
-        else
-        {
-            if (mail.Header.Status != MailStatus.Read)
-            {
-                mail.Header.Status = MailStatus.Read;
-                character.Mails.UnreadMailCount.UpdateReceived(mail.MailType, -1);
-            }
-
-            character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));
-            character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.UnreadMailCount));
-            DeleteMail(mail);
-            character.Mails.SendUnreadMailCount();
+            return false;
         }
 
+        if (mail.Header.Status != MailStatus.Read)
+        {
+            mail.Header.Status = MailStatus.Read;
+            character.Mails.UnreadMailCount.UpdateReceived(mail.MailType, -1);
+        }
+
+        character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));
+        character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.UnreadMailCount));
+        DeleteMail(mail);
+        character.Mails.SendUnreadMailCount();
         return true;
     }
 

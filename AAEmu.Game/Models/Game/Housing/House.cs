@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -104,7 +105,14 @@ public sealed class House : Unit
                         doodad.Transform = this.Transform.CloneDetached(doodad);
                         doodad.Transform.Parent = this.Transform;
                         doodad.Transform.Local.ApplyWorldSpawnPositionWithDeg(bindingDoodad.Position);
-                        if (AppConfiguration.Instance.World.UsePersistentHouseDoodads)
+                        // Guild worldgates keep a multi-day growth timer; persist them even when the
+                        // global house-doodad flag is off so a World bounce does not reset the countdown.
+                        var isWorldgate = ExpeditionPortalDoodadRules.TemplateHasPortalUi(
+                            doodad.Template,
+                            groupId => DoodadManager.Instance.GetFuncsForGroup(groupId).Select(f => f.FuncType));
+                        var persistBinding = HousingBoundDoodadRules.ShouldPersistBinding(
+                            AppConfiguration.Instance.World.UsePersistentHouseDoodads, isWorldgate);
+                        if (persistBinding)
                         {
                             doodad.IsPersistent = true;
                             doodad.InitDoodad();
@@ -159,19 +167,39 @@ public sealed class House : Unit
     /// <summary>10.x public-listing flag (sale dialog checkbox); only public sales feed the property listing.</summary>
     public bool SellPublic { get => _sellPublic; set { _sellPublic = value; _isDirty = true; } }
 
-    // House always gets its guild from its owner
+    /// <summary>
+    /// Guild residences belong to the expedition that still names this house
+    /// (<c>ResidenceHouseId</c>). Ordinary houses follow the owner's current membership.
+    /// Using the owner alone reassigns a clubhouse after the placer leaves or joins another guild,
+    /// which also poisons the "Current Guild" wire name on house packets.
+    /// </summary>
     public override Expedition Expedition
     {
         get
         {
+            Expedition residenceNamed = null;
+            if (Id != 0 && HousingGameData.Instance.IsExpeditionResidenceTemplate(TemplateId))
+            {
+                foreach (var expedition in ExpeditionManager.Instance.Expeditions)
+                {
+                    if (expedition.ResidenceHouseId == Id)
+                    {
+                        residenceNamed = expedition;
+                        break;
+                    }
+                }
+            }
+
+            Expedition ownerGuild = null;
             var guildId = ExpeditionManager.Instance.GetExpeditionOfCharacter(OwnerId);
-            if (guildId == 0)
-                return null;
-            return ExpeditionManager.Instance.GetExpedition(guildId);
+            if (guildId != 0)
+                ownerGuild = ExpeditionManager.Instance.GetExpedition(guildId);
+
+            return HousingResidenceRules.ResolveOwningExpedition(residenceNamed, ownerGuild) as Expedition;
         }
         set
         {
-            // Ignored, we always get the guild from its owner
+            // Ignored: resolved from ResidenceHouseId / owner membership above.
         }
     }
 
@@ -373,7 +401,13 @@ public sealed class House : Unit
 
     public PacketStream Write(PacketStream stream)
     {
-        var ownerName = NameManager.Instance.GetCharacterName(OwnerId);
+        var isExpeditionResidence = HousingGameData.Instance.IsExpeditionResidenceTemplate(TemplateId);
+        var ownerName = HousingResidenceWireRules.WireOwnerName(
+            NameManager.Instance.GetCharacterName(OwnerId),
+            Expedition?.Name,
+            isExpeditionResidence);
+        // Live unit body: real master id. List packet (SCHouseData) keeps the 601 guild marker.
+        var wireOwnerId = HousingResidenceWireRules.WireOwnerIdForState(OwnerId);
         var sellToPlayerName = NameManager.Instance.GetCharacterName(SellToPlayerId);
 
         // single pisc of three values rather than a plain templateId followed by a two-value pisc
@@ -395,10 +429,13 @@ public sealed class House : Unit
         stream.WriteBc(ObjId);
         stream.WritePisc(TemplateId, allStep, curStep);         // templateId, allstep, curstep
         stream.Write((ulong)SellPrice);                                     // Fix: sale price, was tax (client renders this as asking price)
-        stream.Write(ModelId);                                  // ht (u32)
-        stream.Write((ulong)CoOwnerId);                         // original owner who placed it (u64)
-        stream.Write((ulong)OwnerId);                           // current owner (u64)
-        stream.Write(ownerName ?? "");                          // owner (string, cap 0x80)
+        // Wire "ht" is housings.category_id (enum_housing_category), not main_model_id.
+        // Client IsExpeditionHouse is literally ht == 36 (expedition_house); sending the model
+        // id made every guild residence look like a personal house for decorate/UI gates.
+        stream.Write(Template?.CategoryId ?? 0u);
+        stream.Write(wireOwnerId);                              // co-owner / placer (u64); 601 = guild residence
+        stream.Write(wireOwnerId);                              // current owner (u64); 601 = guild residence
+        stream.Write(ownerName);                                // owner / Current Guild (string, cap 0x80)
         stream.Write((long)AccountId);                          // accountId (i64)
         stream.Write((byte)Permission);                         // permission (i8)
         stream.Write(Helpers.ConvertLongX(Transform.World.Position.X));
@@ -449,7 +486,15 @@ public sealed class House : Unit
         if (CurrentStep != -1) // unfinished houses can't be used to private store, so always true
             return base.AllowedToInteract(player);
 
-        return HousingPermissionRules.CanAccess(player, OwnerId, Permission) &&
+        // Only Guild mode needs the owning expedition. Always reading Expedition here pulls
+        // ExpeditionManager for Private/Public/Family checks and breaks unit hosts with no DI.
+        // Guild residences: Expedition already prefers ResidenceHouseId over the placer's current guild.
+        var guildIdForAccess = Permission == HousingPermission.Guild
+            ? Expedition?.Id ?? 0
+            : default;
+        return HousingPermissionRules.CanAccess(
+                   player, OwnerId, Permission,
+                   guildIdForAccess: guildIdForAccess) &&
                base.AllowedToInteract(player);
     }
 

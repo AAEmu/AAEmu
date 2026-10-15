@@ -4,11 +4,11 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Answers CSExpeditionBuffUnitPacket, sent repeatedly by the client while the prestige-shop buff
-/// window is open. Wire: unitId (Bc), then the same 12-byte {buffType, grade, learnedGrade} entries
-/// as SCExpeditionBuffsPacket.
-/// TODO: semantics of "why per-unit" (vs the guild-wide SCExpeditionBuffsPacket) unconfirmed; modeled
-/// as an echo of the requesting character's own unit plus the guild's buff-grade state. Untested live.
+/// Installs the guild's purchased prestige-shop buff grades on one unit so the client recomputes that
+/// unit's attributes (Max Hp/Mp, etc.) from local <c>unit_modifiers</c>. Wire: unitId (Bc), then the
+/// same Size + 12-byte {type, grade, learnedGrade} list as <see cref="SCExpeditionBuffsPacket"/>.
+/// Pushed after purchase/login/leave; also answers <c>CSExpeditionBuffUnit</c> while the shop is open.
+/// Guild-wide <see cref="SCExpeditionBuffsPacket"/> only refreshes the shop UI and is not enough.
 /// </summary>
 public class SCExpeditionBuffUnitPacket(uint unitId, IReadOnlyDictionary<uint, byte> purchasedGrades)
     : GamePacket(SCOffsets.SCExpeditionBuffUnitPacket, 1)

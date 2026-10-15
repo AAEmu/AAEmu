@@ -1,6 +1,7 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Housing;
 using System.Globalization;
 using System.Text;
@@ -61,8 +62,10 @@ public class MailForTax : BaseMail
         }
 
         //testmail 6 .houseTax title(25) "body('Test','1606565186','1607169986','1606565186','250000','50','3','0','500000','true','1')" 0 500000
-        // Fix: client parses 13 body args (was 11); taxType 1=HOUSING_TAX_SEAL
-        var mailTaxType = FeaturesManager.Fsets.TaxItem ? 1 : 0;
+        // Client body arg 13 is taxType: HOUSING_TAX_CONTRIBUTION (2) for guild residences, HOUSING_TAX_SEAL (1) otherwise when TaxItem is on.
+        var mailTaxType = HousingTaxPaymentRules.ResolveTaxType(
+            HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId),
+            FeaturesManager.Fsets.TaxItem);
         mail.Body.Text = string.Format("body('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{10}', '{11}', '{12}')",
             EscapeLuaString(house.Name),                // House Name
             Helpers.UnixTime(house.PlaceDate),          // Tax period start (this might need to be the same as tax due date)

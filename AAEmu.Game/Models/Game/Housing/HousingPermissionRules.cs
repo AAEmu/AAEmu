@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Housing;
 
@@ -19,8 +20,12 @@ public static class HousingPermissionRules
     /// Checks the selected house/coffer access mode against the owner and actor. Private coffer
     /// containers can opt into owner-only access; normal house furniture keeps account access.
     /// </summary>
+    /// <param name="guildIdForAccess">
+    /// When set (guild residences), Guild permission uses this expedition id instead of the
+    /// placer's current membership from <paramref name="ownerId"/>.
+    /// </param>
     public static bool CanAccess(Character actor, uint ownerId, HousingPermission permission,
-        bool privateOwnerOnly = false)
+        bool privateOwnerOnly = false, FactionsEnum guildIdForAccess = 0)
     {
         if (actor == null || ownerId == 0 || !IsDefined(permission))
             return false;
@@ -43,7 +48,9 @@ public static class HousingPermissionRules
                 var ownerFamilyId = FamilyManager.Instance.GetFamilyOfCharacter(ownerId);
                 return ownerFamilyId != 0 && ownerFamilyId == actor.Family;
             case HousingPermission.Guild:
-                var ownerGuildId = ExpeditionManager.Instance.GetExpeditionOfCharacter(ownerId);
+                var ownerGuildId = guildIdForAccess != 0
+                    ? guildIdForAccess
+                    : ExpeditionManager.Instance.GetExpeditionOfCharacter(ownerId);
                 return ownerGuildId != 0 && ownerGuildId == actor.Expedition?.Id;
             default:
                 return false;

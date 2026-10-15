@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Collections.Concurrent;
 
@@ -224,14 +224,45 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             command.CommandText =
                 "SELECT expedition_id,expedition_rejoin_until FROM characters WHERE id=@characterId AND deleted=0";
             command.Parameters.AddWithValue("@characterId", character.Id);
-            FactionsEnum expeditionId;
+            uint characterExpeditionId;
             using (var reader = command.ExecuteReader())
             {
                 if (!reader.Read())
                     throw new InvalidOperationException($"Character {character.Id} disappeared during guild login association.");
-                expeditionId = (FactionsEnum)reader.GetUInt32("expedition_id");
+                characterExpeditionId = reader.GetUInt32("expedition_id");
                 character.ExpeditionRejoinUntil = reader.GetInt64("expedition_rejoin_until");
             }
+
+            uint? rosterExpeditionId = null;
+            lock (_expeditionsSync)
+            {
+                foreach (var guild in _expeditions.Values)
+                {
+                    lock (guild.SyncRoot)
+                    {
+                        if (guild.GetMember(character.Id) != null)
+                        {
+                            rosterExpeditionId = (uint)guild.Id;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            var decision = GuildLoginAssociationRules.Resolve(characterExpeditionId, rosterExpeditionId);
+            if (decision.HealCharacterRow)
+            {
+                using var heal = connection.CreateCommand();
+                heal.CommandText =
+                    "UPDATE characters SET expedition_id=@expeditionId WHERE id=@characterId AND deleted=0 AND expedition_id=0";
+                heal.Parameters.AddWithValue("@expeditionId", decision.ExpeditionId);
+                heal.Parameters.AddWithValue("@characterId", character.Id);
+                if (heal.ExecuteNonQuery() != 1)
+                    throw new InvalidOperationException(
+                        $"Failed to heal characters.expedition_id for {character.Id} from roster guild {decision.ExpeditionId}.");
+            }
+
+            var expeditionId = (FactionsEnum)decision.ExpeditionId;
             lock (_expeditionsSync)
                 character.Expedition = _expeditions.GetValueOrDefault(expeditionId);
             if (character.Expedition is { } expedition)
@@ -303,7 +334,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         chatManager.GetGuildChat(expedition)?.LeaveChannel(character);
         character.Bonuses[Buffs.ExpeditionBonusesIndex] = [];
         character.BuffModifiersCache.ReplaceExpeditionModifiers([]);
-        character.SendPacket(new SCUnitStatePacket(character));
+        character.SendPacket(new SCExpeditionBuffUnitPacket(character.ObjId, new Dictionary<uint, byte>()));
         character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
     }
 
@@ -352,6 +383,18 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
     {
         var motherId = FactionManagerForAlliance.GetFaction(expedition.MotherId)?.MotherId ?? FactionsEnum.Invalid;
         return motherId == FactionsEnum.Invalid ? expedition.MotherId : motherId;
+    }
+
+    /// <summary>
+    /// Alliance root used for recruit-board / join faction gates. A guilded character's
+    /// <c>Faction.MotherId</c> is the race sponsor, not the alliance; unguilded race
+    /// factions already expose the alliance on MotherId.
+    /// </summary>
+    public FactionsEnum GetCharacterAllianceId(Character character)
+    {
+        if (character?.Expedition != null)
+            return GetAllianceId(character.Expedition);
+        return character?.Faction?.MotherId ?? FactionsEnum.Invalid;
     }
 
     private Expedition Create(string name, Character owner, FactionsEnum sponsorId)
@@ -510,6 +553,9 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
                     }
                 }
 
+                if (GuildRolePolicyRules.NeedsDefaultPolicies(expedition.Policies.Count))
+                    expedition.Policies = GetDefaultPolicies(expedition.Id);
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -618,6 +664,86 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         return res;
     }
 
+    /// <summary>
+    /// Credits prestige to a member row (online or offline). Used when demolishing a guild
+    /// residence so the placement deposit returns in the same currency it was charged.
+    /// </summary>
+    public bool TryCreditContributionPoints(uint characterId, uint expeditionId, int amount)
+    {
+        if (characterId == 0 || expeditionId == 0 || amount <= 0)
+            return false;
+
+        var online = worldManager.GetCharacterById(characterId);
+        if (online?.Expedition is { } onlineGuild &&
+            (uint)onlineGuild.Id == expeditionId &&
+            onlineGuild.GetMember(online) != null)
+            return TryChangeContributionPoints(online, amount, false);
+
+        var expedition = GetExpedition((FactionsEnum)expeditionId);
+        if (expedition == null)
+            return false;
+
+        using var persistenceOperation = PersistenceOperationScope.Enter();
+        lock (expedition.SyncRoot)
+        {
+            var member = expedition.Members.FirstOrDefault(m => m.CharacterId == characterId);
+            if (member == null)
+                return false;
+
+            lock (member)
+            {
+                var newTotal = (long)member.ContributionPoint + amount;
+                if (newTotal > uint.MaxValue)
+                    return false;
+
+                using var connection = persistenceConnections.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText =
+                    "UPDATE expedition_members SET contribution_point = @contribution_point WHERE character_id = @character_id AND expedition_id = @expedition_id AND contribution_point = @previous";
+                command.Parameters.AddWithValue("@contribution_point", (uint)newTotal);
+                command.Parameters.AddWithValue("@character_id", characterId);
+                command.Parameters.AddWithValue("@expedition_id", expeditionId);
+                command.Parameters.AddWithValue("@previous", member.ContributionPoint);
+                if (command.ExecuteNonQuery() != 1)
+                    return false;
+
+                member.ContributionPoint = (uint)newTotal;
+            }
+
+            expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0), worldManager);
+            expedition.SendDescriptor(worldManager);
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// True when <paramref name="amount"/> can be applied to the character's live prestige balance
+    /// without writing the database. Used to reserve housing-tax prestige before a joint house commit.
+    /// </summary>
+    public bool CanChangeContributionPoints(Character character, int amount)
+    {
+        var expedition = character?.Expedition;
+        var member = expedition?.GetMember(character);
+        if (member == null)
+            return false;
+        if (amount == 0)
+            return true;
+
+        var newTotal = (long)member.ContributionPoint + amount;
+        if (newTotal is < 0 or > uint.MaxValue)
+            return false;
+        if (amount > 0)
+        {
+            var weekStart = ServerCalendar.WeekStartMondayUtc;
+            var currentWeekly = WeeklyContributionRules.CurrentValue(member.WeeklyContributionPoint,
+                member.WeeklyContributionPeriodStart, weekStart);
+            if ((long)currentWeekly + amount > uint.MaxValue)
+                return false;
+        }
+
+        return true;
+    }
+
     public bool TryChangeContributionPoints(Character character, int amount, bool addToWeeklyTotal)
     {
         var expedition = character.Expedition;
@@ -632,39 +758,120 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         lock (expedition.SyncRoot)
         lock (member)
         {
-            if (!ReferenceEquals(character.Expedition, expedition) || expedition.GetMember(character) != member)
-                return false;
-            var newTotal = (long)member.ContributionPoint + amount;
-            var weekStart = ServerCalendar.WeekStartMondayUtc;
-            var currentWeekly = WeeklyContributionRules.CurrentValue(member.WeeklyContributionPoint,
-                member.WeeklyContributionPeriodStart, weekStart);
-            var weeklyDelta = addToWeeklyTotal && amount > 0 ? amount : 0;
-            var newWeeklyTotal = (long)currentWeekly + weeklyDelta;
-            if (newTotal is < 0 or > uint.MaxValue || newWeeklyTotal > uint.MaxValue)
-                return false;
-
             using var connection = persistenceConnections.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText =
-                "UPDATE expedition_members SET contribution_point = @contribution_point, weekly_contribution_point = @weekly_contribution_point, weekly_contribution_period_start = @week_start WHERE character_id = @character_id AND expedition_id = @expedition_id";
-            command.Parameters.AddWithValue("@contribution_point", (uint)newTotal);
-            command.Parameters.AddWithValue("@weekly_contribution_point", (uint)newWeeklyTotal);
-            command.Parameters.AddWithValue("@week_start", weekStart);
-            command.Parameters.AddWithValue("@character_id", member.CharacterId);
-            command.Parameters.AddWithValue("@expedition_id", member.ExpeditionId);
-            if (command.ExecuteNonQuery() != 1)
+            using var transaction = connection.BeginTransaction();
+            if (!TryWriteContributionPoints(
+                    character, amount, addToWeeklyTotal, connection, transaction, out var pending))
                 return false;
-
-            member.ContributionPoint = (uint)newTotal;
-            member.WeeklyContributionPoint = (uint)newWeeklyTotal;
-            member.WeeklyContributionPeriodStart = weekStart;
+            transaction.Commit();
+            pending.ApplyLive(worldManager);
         }
 
-        character.SendPacket(new SCAddContributionPointPacket(unchecked((uint)amount), member.ContributionPoint));
-        expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0), worldManager);
-        // Refresh the guild overview aggregate after this member's personal contribution balance changes.
-        expedition.SendDescriptor(worldManager);
         return true;
+    }
+
+    /// <summary>
+    /// Writes the contribution delta on the caller's open transaction. Live memory and packets stay
+    /// unchanged until <see cref="PendingContributionPointsChange.ApplyLive"/> runs after commit.
+    /// Caller must hold the expedition and member locks.
+    /// </summary>
+    public bool TryWriteContributionPoints(
+        Character character,
+        int amount,
+        bool addToWeeklyTotal,
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        out PendingContributionPointsChange pending)
+    {
+        pending = null;
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        var expedition = character?.Expedition;
+        var member = expedition?.GetMember(character);
+        if (member == null)
+            return false;
+        if (amount == 0)
+        {
+            pending = PendingContributionPointsChange.NoOp;
+            return true;
+        }
+
+        if (!ReferenceEquals(character.Expedition, expedition) || expedition.GetMember(character) != member)
+            return false;
+
+        var newTotal = (long)member.ContributionPoint + amount;
+        var weekStart = ServerCalendar.WeekStartMondayUtc;
+        var currentWeekly = WeeklyContributionRules.CurrentValue(member.WeeklyContributionPoint,
+            member.WeeklyContributionPeriodStart, weekStart);
+        var weeklyDelta = addToWeeklyTotal && amount > 0 ? amount : 0;
+        var newWeeklyTotal = (long)currentWeekly + weeklyDelta;
+        if (newTotal is < 0 or > uint.MaxValue || newWeeklyTotal > uint.MaxValue)
+            return false;
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "UPDATE expedition_members SET contribution_point = @contribution_point, weekly_contribution_point = @weekly_contribution_point, weekly_contribution_period_start = @week_start WHERE character_id = @character_id AND expedition_id = @expedition_id AND contribution_point = @previous";
+        command.Parameters.AddWithValue("@contribution_point", (uint)newTotal);
+        command.Parameters.AddWithValue("@weekly_contribution_point", (uint)newWeeklyTotal);
+        command.Parameters.AddWithValue("@week_start", weekStart);
+        command.Parameters.AddWithValue("@character_id", member.CharacterId);
+        command.Parameters.AddWithValue("@expedition_id", member.ExpeditionId);
+        command.Parameters.AddWithValue("@previous", member.ContributionPoint);
+        if (command.ExecuteNonQuery() != 1)
+            return false;
+
+        pending = new PendingContributionPointsChange(
+            character, expedition, member, amount, (uint)newTotal, (uint)newWeeklyTotal, weekStart);
+        return true;
+    }
+
+    /// <summary>
+    /// Live prestige update + packets after a successful <see cref="TryWriteContributionPoints"/> commit.
+    /// </summary>
+    public sealed class PendingContributionPointsChange
+    {
+        public static PendingContributionPointsChange NoOp { get; } = new(null, null, null, 0, 0, 0, default);
+
+        private readonly Character _character;
+        private readonly Expedition _expedition;
+        private readonly ExpeditionMember _member;
+        private readonly int _amount;
+        private readonly uint _newTotal;
+        private readonly uint _newWeeklyTotal;
+        private readonly DateTime _weekStart;
+
+        internal PendingContributionPointsChange(
+            Character character,
+            Expedition expedition,
+            ExpeditionMember member,
+            int amount,
+            uint newTotal,
+            uint newWeeklyTotal,
+            DateTime weekStart)
+        {
+            _character = character;
+            _expedition = expedition;
+            _member = member;
+            _amount = amount;
+            _newTotal = newTotal;
+            _newWeeklyTotal = newWeeklyTotal;
+            _weekStart = weekStart;
+        }
+
+        public void ApplyLive(IWorldManager worldManager)
+        {
+            if (_member == null || _amount == 0)
+                return;
+
+            _member.ContributionPoint = _newTotal;
+            _member.WeeklyContributionPoint = _newWeeklyTotal;
+            _member.WeeklyContributionPeriodStart = _weekStart;
+            _character.SendPacket(new SCAddContributionPointPacket(unchecked((uint)_amount), _member.ContributionPoint));
+            _expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(_member, 0), worldManager);
+            _expedition.SendDescriptor(worldManager);
+        }
     }
 
     public bool TryAddDailyContributionPoints(Character character, int requestedAmount)
@@ -1335,9 +1542,14 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         {
             Logger.Warn("ExpeditionBuffGrade purchase rejected: buffId={0} grade={1} reason={2} (character {3}, expedition {4})",
                 buffId, targetGrade, decision.Reason, character.Name, expedition.Name);
-            character.SendErrorMessage(decision.Reason == GuildBuffPurchaseRejection.InsufficientContribution
-                ? ErrorMessageType.NotEnoughRequiredItem
-                : ErrorMessageType.Invalid);
+            character.SendErrorMessage(decision.Reason switch
+            {
+                GuildBuffPurchaseRejection.InsufficientContribution => ErrorMessageType.NotEnoughContributionPoint,
+                GuildBuffPurchaseRejection.ResidenceRequired => ErrorMessageType.ExpeditionHouseNotExist,
+                GuildBuffPurchaseRejection.ExpeditionLevelTooLow => ErrorMessageType.NotEnoughExpeditionLevel,
+                GuildBuffPurchaseRejection.OutOfOrder => ErrorMessageType.Invalid,
+                _ => ErrorMessageType.Invalid
+            });
             return false;
         }
 
@@ -1417,7 +1629,13 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
                 committedPublication.PublishPackets();
             }
 
+            // Shop path already pushes SCAddContributionPoint + descriptor; without those the
+            // prestige total stays frozen until relog even though the debit committed.
+            if (contributionCost > 0)
+                character.SendPacket(new SCAddContributionPointPacket(
+                    unchecked((uint)-(int)contributionCost), member.ContributionPoint));
             expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0), worldManager);
+            expedition.SendDescriptor(worldManager);
             expedition.SendPacket(new SCExpeditionBuffsPacket((uint)expedition.Id, expedition.PurchasedBuffGrades), worldManager);
             expedition.SendPacket(new SCExpeditionBuffChangedPacket((int)expedition.Id, (int)buffId, currentGrade, targetGrade), worldManager);
             expedition.ApplyBuffBonusesToAllOnline(worldManager);
@@ -1432,11 +1650,19 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         return true;
     }
 
-    /// <summary>Sends the guild's current full prestige-shop buff state to one client - handles CSExpeditionBuffPacket's "view" request and should also fire on Expedition join/login, mirroring SendExpeditionInfo.</summary>
-    public void SendExpeditionBuffs(Character character)
+    /// <summary>
+    /// Sends one guild's prestige-shop buff grades to a viewer. <paramref name="expeditionId"/> is the
+    /// listed/target guild (from CSExpeditionBuffPacket.type); 0 means the viewer's own expedition.
+    /// </summary>
+    public void SendExpeditionBuffs(Character character, uint expeditionId = 0)
     {
-        var expedition = character.Expedition;
-        if (expedition == null)
+        if (character == null)
+            return;
+
+        var expedition = expeditionId != 0
+            ? GetExpedition((FactionsEnum)expeditionId)
+            : character.Expedition;
+        if (expedition == null || expedition.isDisbanded)
             return;
 
         lock (expedition.SyncRoot)
@@ -1634,6 +1860,95 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             SendExpeditionInfo(joined);
             expedition.OnCharacterLogin(joined, worldManager, chatManager);
         }
+        }
+    }
+
+public bool TryCreateSoloExpedition(Character owner, string name, out string error)
+    {
+        error = null;
+        if (!IsCurrentSession(owner))
+        {
+            error = "Character session is not current.";
+            return false;
+        }
+        if (owner.Expedition != null)
+        {
+            error = "Already in a guild.";
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 32)
+        {
+            error = "Invalid guild name length.";
+            return false;
+        }
+        if (!_nameRegex.IsMatch(name))
+        {
+            error = "Guild name has invalid characters.";
+            return false;
+        }
+
+        var sponsorId = owner.Faction.MotherId;
+        var sponsor = FactionManagerForAlliance.GetFaction(sponsorId);
+        if (sponsor is not { ShowCreateExpedition: true })
+        {
+            error = "Faction cannot found a guild.";
+            return false;
+        }
+
+        using var persistenceOperation = PersistenceOperationScope.Enter();
+        using var membershipLocks = AcquireMembershipLocks([owner.Id]);
+        lock (_expeditionsSync)
+        {
+            if (_expeditions.Values.Any(expedition =>
+                    string.Equals(name, expedition.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                error = "A guild with that name already exists.";
+                return false;
+            }
+            if (!IsCurrentSession(owner) || owner.Expedition != null)
+            {
+                error = "Character is no longer available to found a guild.";
+                return false;
+            }
+
+            // Disband/leave persist a rejoin cooldown; GM solo-create must clear it in the
+            // claim transaction (memory-only clear is not enough for PersistNewExpedition).
+            owner.ExpeditionRejoinUntil = 0;
+
+            Expedition expedition;
+            lock (owner.WalletSyncRoot)
+            {
+                expedition = Create(name, owner, sponsorId);
+                _expeditions.Add(expedition.Id, expedition);
+                owner.Expedition = expedition;
+                try
+                {
+                    PersistNewExpedition(expedition, [owner], owner, creationCost: 0,
+                        allowDuringRejoinCooldown: true);
+                }
+                catch (Exception ex)
+                {
+                    if (ReferenceEquals(owner.Expedition, expedition))
+                        owner.Expedition = null;
+                    if (_expeditions.GetValueOrDefault(expedition.Id) == expedition)
+                        _expeditions.Remove(expedition.Id);
+                    error = ex.Message;
+                    return false;
+                }
+            }
+
+            var expeditionsSnapshot = _expeditions.Values.ToArray();
+            foreach (var online in worldManager.GetAllCharacters())
+                SendExpeditionList(online, expeditionsSnapshot);
+
+            WorldIntegration.RelayUnitExpeditionChangedToZone?.Invoke(owner.ObjId, 0, (int)expedition.Id);
+            owner.BroadcastPacket(
+                new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false),
+                true);
+            owner.SendPacket(new SCUnitExpeditionChangedPacket(0, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false));
+            SendExpeditionInfo(owner);
+            expedition.OnCharacterLogin(owner, worldManager, chatManager);
+            return true;
         }
     }
 
@@ -3099,8 +3414,25 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         }
     }
 
+    /// <summary>
+    /// Clears a persisted rejoin cooldown (memory + MySQL). Used by GM guild-reset helpers
+    /// after Disband/Leave write a future <c>expedition_rejoin_until</c>.
+    /// </summary>
+    public void ClearExpeditionRejoinCooldown(Character character)
+    {
+        if (character == null)
+            return;
+        character.ExpeditionRejoinUntil = 0;
+        using var connection = persistenceConnections.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "UPDATE characters SET expedition_rejoin_until=0 WHERE id=@characterId AND deleted=0";
+        command.Parameters.AddWithValue("@characterId", character.Id);
+        command.ExecuteNonQuery();
+    }
+
     private void PersistNewExpedition(Expedition expedition, IReadOnlyCollection<Character> founders,
-        Character owner, long creationCost)
+        Character owner, long creationCost, bool allowDuringRejoinCooldown = false)
     {
         using var connection = persistenceConnections.Open();
         using var transaction = connection.BeginTransaction();
@@ -3110,14 +3442,20 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             {
                 using var claim = connection.CreateCommand();
                 claim.Transaction = transaction;
+                var rejoinGate = allowDuringRejoinCooldown
+                    ? string.Empty
+                    : " AND expedition_rejoin_until<=@unixNow";
                 claim.CommandText = character.Id == owner.Id
-                    ? "UPDATE characters SET expedition_id=@expeditionId,expedition_rejoin_until=0,money=money-@creationCost WHERE id=@characterId AND deleted=0 AND expedition_id=0 AND expedition_rejoin_until<=@unixNow AND money>=@creationCost"
-                    : "UPDATE characters SET expedition_id=@expeditionId,expedition_rejoin_until=0 WHERE id=@characterId AND deleted=0 AND expedition_id=0 AND expedition_rejoin_until<=@unixNow";
+                    ? "UPDATE characters SET expedition_id=@expeditionId,expedition_rejoin_until=0,money=money-@creationCost WHERE id=@characterId AND deleted=0 AND expedition_id=0" +
+                      rejoinGate + " AND money>=@creationCost"
+                    : "UPDATE characters SET expedition_id=@expeditionId,expedition_rejoin_until=0 WHERE id=@characterId AND deleted=0 AND expedition_id=0" +
+                      rejoinGate;
                 claim.Parameters.AddWithValue("@expeditionId", (uint)expedition.Id);
                 claim.Parameters.AddWithValue("@characterId", character.Id);
                 if (character.Id == owner.Id)
                     claim.Parameters.AddWithValue("@creationCost", creationCost);
-                claim.Parameters.AddWithValue("@unixNow", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                if (!allowDuringRejoinCooldown)
+                    claim.Parameters.AddWithValue("@unixNow", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
                 if (claim.ExecuteNonQuery() != 1)
                     throw new InvalidOperationException($"Founding character {character.Id} is no longer guildless.");
             }

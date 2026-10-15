@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -44,6 +44,11 @@ public class CSNotifyInGameCompletedPacket() : GamePacket(CSOffsets.CSNotifyInGa
             // load was still running were held back for exactly this point — the load has finished now,
             // so replay the collection rows alongside the other post-entry state.
             CollectionsManager.Instance.FlushInitialSync(Connection.ActiveChar);
+
+            // GetExpeditionHouseId starts at 0; SCHouseData with the guild-residence owner marker
+            // fills it. Placement pushes it to online members; offline members need the same push
+            // once the load screen is gone.
+            HousingManager.Instance.SendExpeditionHouseInfo(Connection.ActiveChar);
         }
     }
 

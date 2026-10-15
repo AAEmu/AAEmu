@@ -30,14 +30,28 @@ public class QuestActConAcceptItem(QuestComponentTemplate parentComponent) : Que
         if (!Cleanup)
             return;
 
-        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, Count, null);
+        // quest_act_con_accept_items has no count column; RunAct always checks for 1. Leaving
+        // Count at the QuestActTemplate default (0) made ConsumeItem a no-op and left the token in bag.
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, ResolveConsumeAmount(Count), null);
     }
 
     public override void QuestDropped(Quest quest)
     {
         base.QuestDropped(quest);
-        if (!DestroyWhenDrop)
+        // DropQuest runs Cleanup before Drop. When Cleanup already consumes the starter item,
+        // consuming again here would delete a second copy (bag or bank).
+        if (!ShouldConsumeOnDrop(Cleanup, DestroyWhenDrop))
             return;
-        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, Count, null);
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, ResolveConsumeAmount(Count), null);
     }
+
+    /// <summary>Accept-item rows have no count column; treat unset/non-positive as one token.</summary>
+    public static int ResolveConsumeAmount(int count) => count > 0 ? count : 1;
+
+    /// <summary>
+    /// DropQuest always calls Cleanup then Drop. Only consume on the Drop path when Cleanup
+    /// did not already remove the starter item.
+    /// </summary>
+    public static bool ShouldConsumeOnDrop(bool cleanup, bool destroyWhenDrop) =>
+        destroyWhenDrop && !cleanup;
 }

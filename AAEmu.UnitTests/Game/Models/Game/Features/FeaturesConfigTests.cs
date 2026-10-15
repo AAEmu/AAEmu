@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game;
+﻿using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Features;
 using Microsoft.Extensions.Configuration;
 

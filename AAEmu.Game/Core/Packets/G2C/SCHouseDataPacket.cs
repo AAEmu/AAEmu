@@ -2,6 +2,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -31,11 +32,17 @@ public class SCHouseDataPacket(IEnumerable<House> houses) : GamePacket(SCOffsets
         foreach (var house in _houses)
         {
             var position = house.Transform.World.Position;
+            var isExpeditionResidence = HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId);
+            var wireOwnerId = HousingResidenceWireRules.WireOwnerIdForList(house.OwnerId, isExpeditionResidence);
+            var ownerName = HousingResidenceWireRules.WireOwnerName(
+                NameManager.Instance.GetCharacterName(house.OwnerId),
+                house.Expedition?.Name,
+                isExpeditionResidence);
             stream.Write((short)house.TlId);                         // tl (i16)
-            stream.Write((ulong)house.OwnerId);                      // ownerId (u64)
+            stream.Write(wireOwnerId);                               // ownerId (u64); 601 = guild residence
             stream.WriteBc(house.ObjId);                             // objId (bc/u24)
             stream.Write((long)house.AccountId);                     // accountId (i64)
-            stream.Write(NameManager.Instance.GetCharacterName(house.OwnerId) ?? string.Empty);
+            stream.Write(ownerName);
             stream.Write((ulong)Helpers.ConvertLongX(position.X));   // WorldPosition.x (u64)
             stream.Write((ulong)Helpers.ConvertLongY(position.Y));   // WorldPosition.y (u64)
             stream.Write(position.Z);                                // WorldPosition.z (f32)

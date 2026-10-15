@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Expeditions.Recruitment;
+﻿namespace AAEmu.Game.Models.Game.Expeditions.Recruitment;
 
 using AAEmu.Game.Models.StaticValues;
 
@@ -38,7 +38,7 @@ public sealed record ExpeditionRecruitmentQuery(
     short InterestMask,
     bool MineOnly);
 
-public sealed record ExpeditionRecruitmentPage(int Total, int PageSize, IReadOnlyList<ExpeditionRecruitment> Items);
+public sealed record ExpeditionRecruitmentPage(int Total, int Page, IReadOnlyList<ExpeditionRecruitment> Items);
 
 public enum ExpeditionRecruitmentResult
 {

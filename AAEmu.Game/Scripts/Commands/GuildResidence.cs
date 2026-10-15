@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
@@ -20,17 +20,17 @@ public class GuildResidence : ICommand
 
     public string GetCommandLineHelp()
     {
-        return "demolish";
+        return "<info|demolish|push>";
     }
 
     public string GetCommandHelpText()
     {
-        return "Force-demolishes your guild's Residence (workaround for the client's missing demolish button).";
+        return "Guild Residence helpers: info (association), push (re-send SCHouseData + tax so the client learns the TlId), demolish (force-remove; client demolish button is unreliable).";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        if (args.Length == 0 || args[0] != "demolish")
+        if (args.Length == 0)
         {
             CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
@@ -43,6 +43,49 @@ public class GuildResidence : ICommand
             return;
         }
 
+        switch (args[0].ToLowerInvariant())
+        {
+            case "info":
+                ShowInfo(character, expedition, messageOutput);
+                return;
+            case "push":
+                HousingManager.Instance.SendExpeditionHouseInfo(character);
+                CommandManager.SendNormalText(this, messageOutput,
+                    expedition.ResidenceHouseId == 0
+                        ? $"{expedition.Name} has no Residence to push."
+                        : $"Pushed Residence tax info for house {expedition.ResidenceHouseId}.");
+                return;
+            case "demolish":
+                DemolishResidence(character, expedition, messageOutput);
+                return;
+            default:
+                CommandManager.SendDefaultHelpText(this, messageOutput);
+                return;
+        }
+    }
+
+    private void ShowInfo(Character character, Models.Game.Expeditions.Expedition expedition, IMessageOutput messageOutput)
+    {
+        if (expedition.ResidenceHouseId == 0)
+        {
+            CommandManager.SendNormalText(this, messageOutput, $"{expedition.Name}: no Residence associated (residence_house_id=0).");
+            return;
+        }
+
+        var house = HousingManager.Instance.GetHouseById(expedition.ResidenceHouseId);
+        if (house == null)
+        {
+            CommandManager.SendErrorText(this, messageOutput,
+                $"{expedition.Name}: residence_house_id={expedition.ResidenceHouseId} but no loaded house (stale).");
+            return;
+        }
+
+        CommandManager.SendNormalText(this, messageOutput,
+            $"{expedition.Name}: houseId={house.Id} tl={house.TlId} template={house.TemplateId} owner={house.OwnerId} at ({house.Transform.World.Position.X:0.#},{house.Transform.World.Position.Y:0.#},{house.Transform.World.Position.Z:0.#}) zone={house.Transform.ZoneId}");
+    }
+
+    private void DemolishResidence(Character character, Models.Game.Expeditions.Expedition expedition, IMessageOutput messageOutput)
+    {
         if (expedition.ResidenceHouseId == 0)
         {
             CommandManager.SendErrorText(this, messageOutput, $"{expedition.Name} has no Residence placed.");
@@ -52,8 +95,14 @@ public class GuildResidence : ICommand
         var house = HousingManager.Instance.GetHouseById(expedition.ResidenceHouseId);
         if (house == null)
         {
-            CommandManager.SendErrorText(this, messageOutput, $"Residence house id {expedition.ResidenceHouseId} not found - clearing the stale reference.");
-            expedition.ResidenceHouseId = 0;
+            var staleId = expedition.ResidenceHouseId;
+            if (!ExpeditionManager.Instance.TrySetResidenceHouseId(expedition, staleId, 0))
+            {
+                CommandManager.SendErrorText(this, messageOutput, $"Residence house id {staleId} not found and could not clear the stale reference.");
+                return;
+            }
+
+            CommandManager.SendErrorText(this, messageOutput, $"Residence house id {staleId} not found - cleared the stale reference.");
             return;
         }
 

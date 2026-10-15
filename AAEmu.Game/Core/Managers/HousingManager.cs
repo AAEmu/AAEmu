@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -166,6 +166,50 @@ public class HousingManager(
     }
 
     /// <summary>
+    /// Guild residences share Faction with the expedition and use Guild permission. Repair
+    /// rows that were saved under the placer's race faction / Private.
+    /// </summary>
+    /// <returns>True when permission or faction was corrected (caller must keep IsDirty).</returns>
+    private bool ApplyExpeditionResidenceOwnership(House house)
+    {
+        if (house == null)
+            return false;
+
+        var dirty = house.Permission != HousingPermission.Guild;
+        house.Permission = HousingPermission.Guild;
+
+        // ResidenceHouseId is authoritative once set; House.Expedition follows the placer's
+        // current guild and would reassign the building if they join another.
+        var residenceNamed = ExpeditionManager.Instance.Expeditions
+            .FirstOrDefault(e => e.ResidenceHouseId == house.Id);
+        var expedition = HousingResidenceRules.ResolveOwningExpedition(residenceNamed, house.Expedition);
+        if (expedition == null)
+        {
+            if (dirty)
+                house.IsDirty = true;
+            return dirty;
+        }
+
+        // Expedition : SystemFaction, but it is never registered in FactionManager's system map —
+        // GetFaction(expedition.Id) is always null for a live guild.
+        var next = HousingResidenceRules.AssignExpeditionResidenceFaction(house.Faction, expedition);
+        if (house.Faction?.Id == next.Id)
+        {
+            if (dirty)
+                house.IsDirty = true;
+            return dirty;
+        }
+
+        var oldId = house.Faction?.Id ?? FactionsEnum.Invalid;
+        house.Faction = next;
+        house.IsDirty = true;
+        if (house.IsVisible)
+            house.BroadcastPacket(new SCUnitFactionChangedPacket(
+                house.ObjId, house.Name ?? "", oldId, next.Id, false), true);
+        return true;
+    }
+
+    /// <summary>
     /// Creates the House for a Dominion claim on first declare - i.e. the very first time a zone group's Guard
     /// Tower is built, when only a native, always-present "정화의 수호탑 소환지점" doodad exists (baked into the
     /// CryEngine level, not tracked by AAEmu at all - no `doodad_spawners` table exists for it) and no House row
@@ -251,7 +295,10 @@ public class HousingManager(
                         );
                         house.Transform.InstanceId = house.ParentWorld.Id; // Just to be sure
                         house.Transform.ZoneId = worldManager.GetZoneId(house.ParentWorld.Template, house.Transform.World.Position.X, house.Transform.World.Position.Y);
-                        house.IsBeingLoadedFromDb = AppConfiguration.Instance.World.UsePersistentHouseDoodads;
+                        // Skip fresh binding create when persisted doodads will be loaded — either the
+                        // global house-doodad flag, or a guild residence (its worldgate must keep growth).
+                        house.IsBeingLoadedFromDb = AppConfiguration.Instance.World.UsePersistentHouseDoodads
+                            || HousingGameData.Instance.IsExpeditionResidenceTemplate(templateId);
                         try
                         {
                             house.CurrentStep = reader.GetInt32("current_step");
@@ -276,10 +323,17 @@ public class HousingManager(
                             house.ProtectionEndDate = house.PlaceDate.AddDays(14);
 
                         UpdateTaxInfo(house);
+                        // Guild residences must carry the expedition as Faction and Guild permission.
+                        // Older rows were saved with the placer's race faction + Private.
+                        var ownershipDirty = false;
+                        if (HousingGameData.Instance.IsExpeditionResidenceTemplate(templateId))
+                            ownershipDirty = ApplyExpeditionResidenceOwnership(house);
                         // Expired houses are demolished by CleanupExpiredHouses after the furniture and
                         // bound doodads have been spawned (see SpawnManager) - their contents cannot be
                         // returned before that.
-                        house.IsDirty = false;
+                        // Keep IsDirty when ownership was repaired so faction_id/permission persist.
+                        if (!ownershipDirty)
+                            house.IsDirty = false;
                     }
                 }
             }
@@ -451,14 +505,25 @@ public class HousingManager(
     /// After persistent housing doodads have been loaded from DB, reconcile bound doodads for each completed house.
     /// Spawns and saves any bound doodads missing from the DB (first-run migration), and removes duplicates.
     /// </summary>
-    public void ReconcileBoundDoodads()
+    public void ReconcileBoundDoodads() => ReconcileBoundDoodads(_houses.Values, "completed houses");
+
+    /// <summary>
+    /// Same as <see cref="ReconcileBoundDoodads()"/> but only for guild residences — keeps worldgate
+    /// growth when <c>UsePersistentHouseDoodads</c> is off.
+    /// </summary>
+    public void ReconcileExpeditionResidenceBoundDoodads() =>
+        ReconcileBoundDoodads(
+            _houses.Values.Where(h => HousingGameData.Instance.IsExpeditionResidenceTemplate(h.TemplateId)),
+            "guild residences");
+
+    private void ReconcileBoundDoodads(IEnumerable<House> houses, string scopeLabel)
     {
-        Logger.Info("Reconciling bound doodads for completed houses...");
+        Logger.Info("Reconciling bound doodads for {0}...", scopeLabel);
         var addedCount = 0;
         var removedCount = 0;
         var realignedCount = 0;
 
-        foreach (var house in _houses.Values)
+        foreach (var house in houses)
         {
             if (house.CurrentStep != -1)
                 continue;
@@ -495,12 +560,26 @@ public class HousingManager(
                     doodad.Transform = house.Transform.CloneDetached(doodad);
                     doodad.Transform.Parent = house.Transform;
                     doodad.Transform.Local.ApplyWorldSpawnPositionWithDeg(bindingDoodad.Position);
-                    doodad.IsPersistent = true;
-                    doodad.InitDoodad();
-                    doodad.Spawn(); // register in world and make visible
-                    doodad.Save();
+                    var isWorldgate = ExpeditionPortalDoodadRules.TemplateHasPortalUi(
+                        doodad.Template,
+                        groupId => doodadManager.GetFuncsForGroup(groupId).Select(f => f.FuncType));
+                    var persist = HousingBoundDoodadRules.ShouldPersistBinding(
+                        AppConfiguration.Instance.World.UsePersistentHouseDoodads, isWorldgate);
+                    if (persist)
+                    {
+                        doodad.IsPersistent = true;
+                        doodad.InitDoodad();
+                        doodad.Spawn();
+                        doodad.Save();
+                    }
+                    else
+                    {
+                        doodad.InitDoodad();
+                        doodad.Spawn();
+                    }
                     house.AttachedDoodads.Add(doodad);
-                    house.ParentWorld.SpawnManager.AddPlayerDoodad(doodad);
+                    if (persist)
+                        house.ParentWorld.SpawnManager.AddPlayerDoodad(doodad);
                     addedCount++;
                 }
                 else if (matches.Count > 1)
@@ -828,7 +907,9 @@ public class HousingManager(
                 (sbyte)weeksWithoutPay,
                 (byte)weeksPrepay,   // Fix: banked prepaid weeks (was hardcoded 0) — prepayment is not modelled
                 house.Template.HeavyTax,
-                (byte)(FeaturesManager.Fsets.TaxItem ? 1 : 0)   // Fix: 1=HOUSING_TAX_SEAL, was 0=contribution path — the client leaves this enum unnamed
+                HousingTaxPaymentRules.ResolveTaxType(
+                    HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId),
+                    FeaturesManager.Fsets.TaxItem)
             )
         );
     }
@@ -1187,12 +1268,10 @@ public class HousingManager(
     /// request for one asks using that same starting-at-0 value - so the loop never closes on its own.
     /// The server must push the correct id unprompted at least once: on placement, and again at login
     /// for members who weren't online when it was placed.
-    /// Pushes the guild residence's TlId to one character with the same SCHouseTaxInfoPacket the
-    /// client's own request would receive. The client's "do I have a guild residence" value
-    /// (X2Faction:GetExpeditionHouseId) starts at 0 and is only populated by an incoming
-    /// SCHouseTaxInfoPacket; its own CSRequestHouseTaxPacket asks about that cached value, so before
-    /// the first push it asks about tl=0, which matches no house and the loop never closes. The server
-    /// therefore pushes it unprompted: on placement, and again at login for members who were offline.
+    /// Pushes the guild residence so the client can cache its tl. <c>GetExpeditionHouseId</c> is
+    /// filled only by <c>SCHouseData</c> when the list entry's owner field is the guild-residence
+    /// wire marker (601); tax info alone refreshes an already-known id. After that push the client
+    /// auto-asks for tax, and we also send tax unprompted for members who were offline at placement.
     /// </summary>
     public void SendExpeditionHouseInfo(Character character)
     {
@@ -1207,7 +1286,18 @@ public class HousingManager(
             return;
         }
 
+        // Repair Faction/permission on the live object so the info panel and nameplate show the guild.
+        ApplyExpeditionResidenceOwnership(house);
+        // Owner marker 601 on this packet is what sets GetExpeditionHouseId from the house tl.
+        character.SendPacket(new SCHouseDataPacket([house]));
+        character.SendPacket(new SCHouseStatePacket(house));
+        if (house.Faction != null)
+            character.SendPacket(new SCUnitFactionChangedPacket(
+                house.ObjId, house.Name ?? "", FactionsEnum.Invalid, house.Faction.Id, false));
         SendHouseTaxInfo(character, house);
+        // Timer alone leaves X2Faction:GetExpeditionPortals() nil until worldgate F-use.
+        // SendPortals also pushes the countdown (SendPortalTimer).
+        ExpeditionActivityServices.Get().SendPortals(character);
     }
 
     /// <summary>
@@ -1380,72 +1470,34 @@ public class HousingManager(
 
         CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out _, out _, out _, out _);
 
-        if (FeaturesManager.Fsets.TaxItem)
-        {
-            // Pay in Tax Certificate
-
-            var userTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
-            var userBoundTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
-            var totalUserTaxCount = userTaxCount + userBoundTaxCount;
-            var totalCertsCost = (int)Math.Ceiling(totalTaxAmountDue / 10000f);
-
-            // Annoyingly complex item consumption, maybe we need a separate function in inventory to handle this kind of thing
-            var consumedCerts = totalCertsCost;
-            if (totalCertsCost > totalUserTaxCount)
-            {
-                connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
-                return;
-            }
-            else
-            {
-                var c = consumedCerts;
-                // Use Bound First
-                if (userBoundTaxCount > 0 && c > 0)
-                {
-                    if (c > userBoundTaxCount)
-                        c = userBoundTaxCount;
-                    connection.ActiveChar.Inventory.Bag.ConsumeItem(ItemTaskType.HouseCreation, Item.BoundTaxCertificate, c, null);
-                    consumedCerts -= c;
-                }
-                c = consumedCerts;
-                if (userTaxCount > 0 && c > 0)
-                {
-                    if (c > userTaxCount)
-                        c = userTaxCount;
-                    connection.ActiveChar.Inventory.Bag.ConsumeItem(ItemTaskType.HouseCreation, Item.TaxCertificate, c, null);
-                    consumedCerts -= c;
-                }
-
-                if (consumedCerts != 0)
-                    Logger.Error($"Something went wrong when paying tax for new building for player {connection.ActiveChar.Name}");
-            }
-        }
-        else
-        {
-            var paymentBalance = autoUseAaPoint
-                ? connection.ActiveChar.AaPoint
-                : connection.ActiveChar.Money;
-            if (totalTaxAmountDue > paymentBalance)
-            {
-                connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
-                return;
-            }
-
-            var paid = autoUseAaPoint
-                ? connection.ActiveChar.SubtractAAPoint(SlotType.Inventory, totalTaxAmountDue, ItemTaskType.HouseCreation)
-                : connection.ActiveChar.SubtractMoney(SlotType.Inventory, totalTaxAmountDue, ItemTaskType.HouseCreation);
-            if (!paid)
-                return;
-        }
-
-        if (connection.ActiveChar.Inventory.Bag.ConsumeItem(ItemTaskType.HouseBuilding, sourceDesignItem.TemplateId, 1, sourceDesignItem) <= 0)
-        {
-            connection.ActiveChar.SendErrorMessage(ErrorMessageType.BagInvalidItem);
+        var placingExpeditionResidence = HousingGameData.Instance.IsExpeditionResidenceTemplate(designId);
+        if (!TryChargeHousingTax(
+                connection.ActiveChar,
+                totalTaxAmountDue,
+                placingExpeditionResidence,
+                ItemTaskType.HouseCreation,
+                autoUseAaPoint,
+                out var placementCharge))
             return;
+
+        ItemConsumptionPlan designPlan;
+        lock (connection.ActiveChar.Inventory.MutationSyncRoot)
+        {
+            if (!connection.ActiveChar.Inventory.TryPlanExactBagConsumption(
+                    sourceDesignItem.Id, 1, out designPlan))
+            {
+                RefundHousingTaxCharge(connection.ActiveChar, placementCharge);
+                connection.ActiveChar.SendErrorMessage(ErrorMessageType.BagInvalidItem);
+                return;
+            }
         }
 
         // Spawn the actual house
-        var house = Create(designId, connection.ActiveChar.Faction.Id, connection.ActiveChar.ParentWorld);
+        var isExpeditionResidence = HousingGameData.Instance.IsExpeditionResidenceTemplate(designId);
+        var placeFactionId = isExpeditionResidence && connection.ActiveChar.Expedition != null
+            ? connection.ActiveChar.Expedition.Id
+            : connection.ActiveChar.Faction.Id;
+        var house = Create(designId, placeFactionId, connection.ActiveChar.ParentWorld);
 
         // Fallback for un-translated buildings (en_us)
         if (house.Name == string.Empty)
@@ -1475,7 +1527,12 @@ public class HousingManager(
         house.OwnerId = connection.ActiveChar.Id;
         house.CoOwnerId = connection.ActiveChar.Id;
         house.AccountId = connection.AccountId;
-        house.Permission = HousingPermission.Private;
+        // Guild residences are shared with the expedition; Private would lock out every other member.
+        // Create() only resolves system factions — assign the expedition object itself as Faction.
+        if (isExpeditionResidence)
+            ApplyExpeditionResidenceOwnership(house);
+        else
+            house.Permission = HousingPermission.Private;
         house.AllowRecover = true;
         house.PlaceDate = DateTime.UtcNow;
         house.ProtectionEndDate = DateTime.UtcNow.AddDays(AppConfiguration.Instance.World.DaysForTaxPayment);
@@ -1486,6 +1543,17 @@ public class HousingManager(
         if (WorldIntegration.ZoneAuthority)
             HousingZoneBridge.NotifyZoneHouseCreated(house);
         UpdateTaxInfo(house);
+
+        // House row + wallet / seals / design must land together; a house-only commit can keep the
+        // building while a crash restores the payment and design from MySQL.
+        if (!TryPersistNewHouseWithPayment(connection.ActiveChar, house, placementCharge, designPlan))
+        {
+            _houses.Remove(house.Id);
+            _housesTl.Remove(house.TlId);
+            house.Delete();
+            connection.ActiveChar.SendErrorMessage(ErrorMessageType.HouseCannotCreate);
+            return;
+        }
 
         if (HousingGameData.Instance.IsExpeditionResidenceTemplate(designId) && connection.ActiveChar.Expedition != null)
         {
@@ -1767,6 +1835,141 @@ public class HousingManager(
     /// <param name="hostileTaxRate"></param>
     /// <param name="oneWeekTaxCount"></param>
     /// <returns></returns>
+    /// <summary>
+    /// Charges upkeep for an already-placed house (tax mail / prepay) in the currency that house uses.
+    /// </summary>
+    public bool TryChargeTaxForHouse(
+        Character character,
+        House house,
+        int taxCopper,
+        ItemTaskType taskType,
+        bool useAaPoint,
+        out HousingTaxCharge charge) =>
+        TryChargeHousingTax(
+            character,
+            taxCopper,
+            HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId),
+            taskType,
+            useAaPoint,
+            out charge);
+
+    /// <summary>
+    /// Extends protection after a successful tax charge and writes the house row with the payment
+    /// so a debit cannot outlive an unsaved <c>ProtectionEndDate</c> (or the reverse for gold/AA).
+    /// </summary>
+    public bool CompleteHouseTaxPayment(Character character, House house, HousingTaxCharge charge)
+    {
+        // Enter the persistence gate before guild/member/inventory locks inside PersistHouseWithTaxPayment.
+        using var persistenceOperation = PersistenceOperationScope.Enter();
+
+        if (house == null)
+            return false;
+        charge ??= HousingTaxCharge.Empty;
+        var previousProtectionEnd = house.ProtectionEndDate;
+        if (!PayWeeklyTax(house))
+        {
+            RefundHousingTaxCharge(character, charge);
+            return false;
+        }
+
+        return TryPersistHouseAfterTaxCharge(character, house, charge, previousProtectionEnd);
+    }
+
+    /// <summary>
+    /// Charges placement or upkeep tax in the currency the house family uses: guild residences debit
+    /// prestige (<c>contribution_gold_ratio</c>); other houses plan tax certificates when the tax-item
+    /// feature is on (applied when the house commits), otherwise gold / AA points.
+    /// </summary>
+    private bool TryChargeHousingTax(
+        Character character,
+        int taxCopper,
+        bool isExpeditionResidence,
+        ItemTaskType taskType,
+        bool useAaPoint,
+        out HousingTaxCharge charge)
+    {
+        charge = new HousingTaxCharge { TaskType = taskType };
+        if (taxCopper <= 0)
+            return true;
+
+        if (HousingTaxPaymentRules.UsesContributionTax(isExpeditionResidence))
+        {
+            var ratio = ContentConfigGameData.Instance.RequireInt(HousingTaxPaymentRules.ContributionGoldRatioKey);
+            var cost = HousingTaxPaymentRules.CurrencyUnits(taxCopper, ratio);
+            // Reserve only — prestige is written in the same transaction as the house row.
+            if (!ExpeditionManager.Instance.CanChangeContributionPoints(character, -cost))
+            {
+                character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
+                return false;
+            }
+
+            charge.ContributionPoints = cost;
+            return true;
+        }
+
+        if (FeaturesManager.Fsets.TaxItem)
+        {
+            var ratio = ContentConfigGameData.Instance.RequireInt(HousingTaxPaymentRules.TaxGoldRatioKey);
+            var totalCertsCost = HousingTaxPaymentRules.CurrencyUnits(taxCopper, ratio);
+            var userTaxCount = character.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
+            var userBoundTaxCount = character.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
+            if (totalCertsCost > userTaxCount + userBoundTaxCount)
+            {
+                character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
+                return false;
+            }
+
+            lock (character.Inventory.MutationSyncRoot)
+            {
+                var remaining = totalCertsCost;
+                if (userBoundTaxCount > 0 && remaining > 0)
+                {
+                    var bound = Math.Min(remaining, userBoundTaxCount);
+                    if (!character.Inventory.TryPlanBagConsumption(Item.BoundTaxCertificate, bound, out var boundPlan))
+                    {
+                        character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
+                        return false;
+                    }
+
+                    charge.SealPlans.Add(boundPlan);
+                    charge.BoundCertificates = bound;
+                    remaining -= bound;
+                }
+
+                if (remaining > 0)
+                {
+                    if (!character.Inventory.TryPlanBagConsumption(Item.TaxCertificate, remaining, out var taxPlan))
+                    {
+                        character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
+                        return false;
+                    }
+
+                    charge.SealPlans.Add(taxPlan);
+                    charge.TaxCertificates = remaining;
+                }
+            }
+
+            return true;
+        }
+
+        var paymentBalance = useAaPoint ? character.AaPoint : character.Money;
+        if (taxCopper > paymentBalance)
+        {
+            character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
+            return false;
+        }
+
+        var paid = useAaPoint
+            ? character.SubtractAAPoint(SlotType.Inventory, taxCopper, taskType)
+            : character.SubtractMoney(SlotType.Inventory, taxCopper, taskType);
+        if (!paid)
+            return false;
+
+        charge.CopperAmount = taxCopper;
+        charge.UsedAaPoint = useAaPoint;
+        return true;
+    }
+
     public bool CalculateBuildingTaxInfo(uint accountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate, out int oneWeekTaxCount, ushort? zoneId = null, float x = 0, float y = 0)
     {
         totalTaxToPay = 0;
@@ -1959,6 +2162,9 @@ public class HousingManager(
     /// </summary>
     public bool PrepayHouseTax(GameConnection connection, ushort tlId, bool useAaPoint)
     {
+        // Enter the persistence gate before guild/member/inventory locks inside PersistHouseWithTaxPayment.
+        using var persistenceOperation = PersistenceOperationScope.Enter();
+
         var character = connection.ActiveChar;
         if (character == null || !_housesTl.TryGetValue(tlId, out var house) || house.OwnerId != character.Id)
             return false;
@@ -1995,45 +2201,24 @@ public class HousingManager(
                 out _, out _, out _, out _, out var weeklyTax))
             return false;
 
-        if (FeaturesManager.Fsets.TaxItem)
-        {
-            var boundCertificates = character.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
-            var certificates = character.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
-            var requiredCertificates = (int)Math.Ceiling(weeklyTax / 10000f);
-            if (boundCertificates + certificates < requiredCertificates)
-            {
-                character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
-                return false;
-            }
+        var isExpeditionResidence = HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId);
+        if (!TryChargeHousingTax(
+                character,
+                weeklyTax,
+                isExpeditionResidence,
+                ItemTaskType.HouseDeposit,
+                useAaPoint,
+                out var charge))
+            return false;
 
-            var remaining = requiredCertificates;
-            if (boundCertificates > 0)
-            {
-                var consume = Math.Min(remaining, boundCertificates);
-                character.Inventory.Bag.ConsumeItem(ItemTaskType.HouseDeposit, Item.BoundTaxCertificate, consume, null);
-                remaining -= consume;
-            }
-
-            if (remaining > 0)
-                character.Inventory.Bag.ConsumeItem(ItemTaskType.HouseDeposit, Item.TaxCertificate, remaining, null);
-        }
-        else
-        {
-            var balance = useAaPoint ? character.AaPoint : character.Money;
-            if (weeklyTax > balance)
-            {
-                character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
-                return false;
-            }
-
-            var paid = useAaPoint
-                ? character.SubtractAAPoint(SlotType.Inventory, weeklyTax, ItemTaskType.HouseDeposit)
-                : character.SubtractMoney(SlotType.Inventory, weeklyTax, ItemTaskType.HouseDeposit);
-            if (!paid)
-                return false;
-        }
-
+        var previousProtectionEnd = house.ProtectionEndDate;
         if (!PayWeeklyTax(house))
+        {
+            RefundHousingTaxCharge(character, charge);
+            return false;
+        }
+
+        if (!TryPersistHouseAfterTaxCharge(character, house, charge, previousProtectionEnd))
             return false;
 
         UpdateTaxInfo(house);
@@ -2189,8 +2374,13 @@ public class HousingManager(
         var myHouses = new Dictionary<uint, House>();
         GetByCharacterId(myHouses, characterId);
         foreach (var h in myHouses)
+        {
+            // Guild residences stay on the expedition faction, not the owner's race faction.
+            if (HousingGameData.Instance.IsExpeditionResidenceTemplate(h.Value.TemplateId))
+                continue;
             if (h.Value.Faction == null || h.Value.Faction.Id != factionId)
                 UpdateHouseFaction(h.Value, factionId);
+        }
     }
 
     /// <summary>
@@ -2232,10 +2422,31 @@ public class HousingManager(
                 Logger.Error($"Was unable to find design items for demolishing {house.Name} ({house.Id}). HouseTemplateId: {house.Template.Id}, DesignItemId: {designItemId}");
             }
 
-            // Return taxes
+            // Return the placement deposit in the same currency the house charged.
             if (!failedToPayTax)
             {
-                if (FeaturesManager.Fsets.TaxItem)
+                var weeklyCopper = (int)(house.Template.Taxation?.Tax ?? 0);
+                if (HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId))
+                {
+                    var ratio = ContentConfigGameData.Instance.RequireInt(
+                        HousingTaxPaymentRules.ContributionGoldRatioKey);
+                    var prestige = HousingTaxPaymentRules.CurrencyUnits(
+                        HousingTaxPaymentRules.DepositCopper(weeklyCopper), ratio);
+                    if (prestige > 0)
+                    {
+                        var expeditionId = (uint)(ExpeditionManager.Instance.Expeditions
+                            .FirstOrDefault(e => e.ResidenceHouseId == house.Id)?.Id
+                            ?? house.Faction?.Id ?? 0);
+                        if (!ExpeditionManager.Instance.TryCreditContributionPoints(
+                                ownerId, expeditionId, prestige))
+                        {
+                            Logger.Warn(
+                                "ReturnHouseItemsToOwner: could not refund {0} prestige for house {1} owner {2} guild {3}",
+                                prestige, house.Id, ownerId, expeditionId);
+                        }
+                    }
+                }
+                else if (FeaturesManager.Fsets.TaxItem)
                 {
                     var taxItem = itemManager.Create(Item.BoundTaxCertificate, (int)(house.Template.Taxation.Tax / 5000), 0);
                     taxItem.OwnerId = ownerId;
@@ -2244,7 +2455,7 @@ public class HousingManager(
                 }
                 else
                 {
-                    returnedMoney = (int)(house.Template.Taxation.Tax * 2);
+                    returnedMoney = HousingTaxPaymentRules.DepositCopper(weeklyCopper);
                 }
             }
         }
@@ -2504,6 +2715,188 @@ public class HousingManager(
         using var transaction = connection.BeginTransaction();
         house.Save(connection, transaction);
         transaction.Commit();
+    }
+
+    private bool TryPersistHouseAfterTaxCharge(
+        Character character,
+        House house,
+        HousingTaxCharge charge,
+        DateTime previousProtectionEnd)
+    {
+        try
+        {
+            PersistHouseWithTaxPayment(character, house, charge, designPlan: null);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to persist house {0} after tax charge; restoring protection and refunding", house.Id);
+            house.ProtectionEndDate = previousProtectionEnd;
+            RefundHousingTaxCharge(character, charge);
+            return false;
+        }
+    }
+
+    private bool TryPersistNewHouseWithPayment(
+        Character character,
+        House house,
+        HousingTaxCharge charge,
+        ItemConsumptionPlan designPlan)
+    {
+        try
+        {
+            PersistHouseWithTaxPayment(character, house, charge, designPlan);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to persist new house {0} with payment; refunding", house.Id);
+            RefundHousingTaxCharge(character, charge);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Commits the house row with prestige / gold/AA / planned seal/design item rows together.
+    /// </summary>
+    private void PersistHouseWithTaxPayment(
+        Character character,
+        House house,
+        HousingTaxCharge charge,
+        ItemConsumptionPlan designPlan)
+    {
+        charge ??= HousingTaxCharge.Empty;
+        var sealPlans = charge.SealPlans;
+        var needsItemPlans = sealPlans.Count > 0 || designPlan != null;
+        var needsCharacterSave = charge.RequiresCharacterSave && character != null;
+        var needsContribution = charge.RequiresContributionPersist;
+
+        if (!needsItemPlans && !needsCharacterSave && !needsContribution)
+        {
+            SaveHouseNow(house);
+            return;
+        }
+
+        if (character == null)
+            throw new InvalidOperationException("Housing tax payment persistence requires a character when wallet, prestige, or items change.");
+
+        List<ItemConsumptionPublication> publications = null;
+
+        void RunPersist()
+        {
+            publications = WithPersistenceOperation(() =>
+            {
+                var snapshots = new List<ItemPersistenceSnapshot>();
+                if (needsItemPlans)
+                {
+                    foreach (var plan in sealPlans)
+                        snapshots.AddRange(plan.CapturePersistenceSnapshots(itemManager));
+                    if (designPlan != null)
+                        snapshots.AddRange(designPlan.CapturePersistenceSnapshots(itemManager));
+                }
+
+                ExpeditionManager.PendingContributionPointsChange pendingContribution = null;
+                using var connection = MySQL.CreateConnection();
+                using var transaction = connection.BeginTransaction();
+                if (!house.Save(connection, transaction))
+                    throw new InvalidOperationException($"House {house.Id} failed to save during tax payment persistence.");
+                if (needsCharacterSave)
+                    character.Save(connection, transaction);
+                if (needsContribution)
+                {
+                    if (!ExpeditionManager.Instance.TryWriteContributionPoints(
+                            character,
+                            -charge.ContributionPoints,
+                            false,
+                            connection,
+                            transaction,
+                            out pendingContribution))
+                        throw new InvalidOperationException(
+                            $"Failed to write prestige debit for house {house.Id} / character {character.Id}.");
+                }
+
+                if (snapshots.Count > 0)
+                    itemManager.PersistSnapshots(connection, transaction, snapshots);
+                transaction.Commit();
+
+                if (pendingContribution != null)
+                {
+                    pendingContribution.ApplyLive(worldManager);
+                    charge.ContributionCommitted = true;
+                }
+
+                var applied = new List<ItemConsumptionPublication>();
+                foreach (var plan in sealPlans)
+                    applied.Add(plan.ApplyCommitted(charge.TaskType));
+                if (designPlan != null)
+                    applied.Add(designPlan.ApplyCommitted(ItemTaskType.HouseBuilding));
+                foreach (var publication in applied)
+                    publication.PublishPackets();
+                return applied;
+            });
+        }
+
+        // Expedition rename locks guild then inventory; keep that order when both are needed.
+        if (needsContribution)
+        {
+            var expedition = character.Expedition;
+            var member = expedition?.GetMember(character);
+            if (expedition == null || member == null)
+                throw new InvalidOperationException($"Character {character.Id} cannot pay housing tax with prestige without a guild membership.");
+
+            lock (expedition.SyncRoot)
+            lock (member)
+            {
+                if (needsItemPlans)
+                {
+                    lock (character.Inventory.MutationSyncRoot)
+                        RunPersist();
+                }
+                else
+                    RunPersist();
+            }
+        }
+        else if (needsItemPlans)
+        {
+            lock (character.Inventory.MutationSyncRoot)
+                RunPersist();
+        }
+        else
+            RunPersist();
+
+        if (publications == null)
+            return;
+        foreach (var publication in publications)
+        {
+            try
+            {
+                publication.PublishCallbacks();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to publish housing tax item callbacks for character {0}", character.Id);
+            }
+        }
+    }
+
+    private static void RefundHousingTaxCharge(Character character, HousingTaxCharge charge)
+    {
+        if (character == null || charge == null || charge.IsEmpty)
+            return;
+
+        switch (HousingTaxPaymentRules.RefundKind(charge))
+        {
+            case HousingTaxRefundKind.Contribution:
+                ExpeditionManager.Instance.TryChangeContributionPoints(character, charge.ContributionPoints, false);
+                break;
+            case HousingTaxRefundKind.AaPoint:
+                character.AddAAPoint(SlotType.Inventory, charge.CopperAmount, charge.TaskType);
+                break;
+            case HousingTaxRefundKind.Gold:
+                character.ChangeMoney(SlotType.Inventory, charge.CopperAmount, charge.TaskType);
+                break;
+        }
+        // Pending seal / design plans were never applied; abandoning them restores nothing.
     }
 
     /// <summary>

@@ -331,6 +331,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     var id = reader.GetUInt32("id", 0);
                     var buffTagId = reader.GetUInt32("buff_tag_id", 0);
                     requirementTemplates[id] = new SkillRequirement(
+                        Id: id,
                         OnTarget: reader.GetBoolean("target", true),
                         BuffId: reader.GetUInt32("buff_id", 0),
                         BuffTagId: buffTagId,
@@ -362,10 +363,16 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             {
                 while (reader.Read())
                 {
-                    if (!requirementTemplates.TryGetValue(reader.GetUInt32("skill_req_id", 0), out var requirement))
+                    var skillReqId = reader.GetUInt32("skill_req_id", 0);
+                    if (!requirementTemplates.TryGetValue(skillReqId, out var requirement))
                         continue;
 
-                    AddRequirement(reader.GetUInt32("skill_id", 0), requirement);
+                    var skillId = reader.GetUInt32("skill_id", 0);
+                    // Space-Time Ink / expedition portal-save: row 25 must require Nuia buff (item text).
+                    // Dash and other direct consumers of the same row keep the default forbid.
+                    requirement = SkillRequirementRules.WithDirectLinkPolarity(
+                        skillReqId, requirement, IsSaveExpeditionPortalSkill(skillId));
+                    AddRequirement(skillId, requirement);
                 }
             }
         }
@@ -395,6 +402,24 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         Logger.Info(
             "Skill requirements loaded: {0} skill_reqs rows on {1} skills ({2} links through skill tags)",
             requirementTemplates.Count, _skillRequirements.Count, tagLinked);
+    }
+
+    /// <summary>
+    /// True when the skill's effects include <see cref="SpecialType.SaveExpeditionPortal"/>.
+    /// </summary>
+    private bool IsSaveExpeditionPortalSkill(uint skillId)
+    {
+        if (!_skills.TryGetValue(skillId, out var skill))
+            return false;
+
+        foreach (var effect in skill.Effects)
+        {
+            if (effect.Template is SpecialEffect special &&
+                special.SpecialEffectTypeId == SpecialType.SaveExpeditionPortal)
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>

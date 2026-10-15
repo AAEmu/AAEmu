@@ -1,5 +1,6 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models;
 
 namespace AAEmu.Game.Models.Game.Expeditions.Activities;
 
@@ -28,10 +29,12 @@ public sealed class ExpeditionManagementHistory(
 
     public override PacketStream Write(PacketStream stream)
     {
+        // History row: type is u8 and usedDate is i64 Unix seconds. An i32 type shifts the
+        // remainder of the row; a Windows file-time value makes the UI date unreadable.
         stream.Write(MemberName ?? string.Empty);
-        stream.Write(Type);
+        stream.Write((byte)Type);
         stream.Write(Amount);
-        stream.Write(UsedAt);
+        stream.Write(ToWireUnixSeconds(UsedAt));
         if (Type is 1 or 3)
         {
             stream.Write(DetailId);
@@ -39,6 +42,9 @@ public sealed class ExpeditionManagementHistory(
         }
         return stream;
     }
+
+    internal static long ToWireUnixSeconds(DateTime value) =>
+        Helpers.UnixTime(ServerCalendar.AsUtc(value));
 }
 
 public sealed class ExpeditionShopHistory(
@@ -59,7 +65,7 @@ public sealed class ExpeditionShopHistory(
         .Write(Type)
         .Write(Stack)
         .Write(Amount)
-        .Write(PurchasedAt);
+        .Write(ExpeditionManagementHistory.ToWireUnixSeconds(PurchasedAt));
 }
 
 public sealed class ExpeditionWarHistory(
@@ -84,7 +90,7 @@ public sealed class ExpeditionWarHistory(
         .Write(DeclarerName ?? string.Empty)
         .Write(DefendantType)
         .Write(DefendantName ?? string.Empty)
-        .Write(DeclaredAt)
+        .Write(ExpeditionManagementHistory.ToWireUnixSeconds(DeclaredAt))
         .Write(DeclarerKills)
         .Write(DefendantKills);
 }

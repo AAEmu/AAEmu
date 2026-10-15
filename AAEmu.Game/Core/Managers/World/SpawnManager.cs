@@ -288,9 +288,13 @@ public class SpawnManager(WorldInstance parentWorld)
 
                 // Load furniture and bound doodads
                 doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Housing);
-                // Reconcile bound doodads: spawn any missing from DB, remove duplicates
+                // Reconcile bound doodads: spawn any missing from DB, remove duplicates.
+                // Guild residences always reconcile so a missing worldgate is recreated (and so a
+                // persisted active worldgate is attached even when the global flag is off).
                 if (AppConfiguration.Instance.World.UsePersistentHouseDoodads)
                     HousingManager.Instance.ReconcileBoundDoodads();
+                else
+                    HousingManager.Instance.ReconcileExpeditionResidenceBoundDoodads();
                 // Expired houses can only be demolished once their furniture and bound doodads exist,
                 // so the cleanup runs here rather than during LoadPlayerHousing.
                 HousingManager.Instance.CleanupExpiredHouses();
@@ -703,17 +707,14 @@ public class SpawnManager(WorldInstance parentWorld)
                             doodad.ParentObjId = resolvedHouse.ObjId;
                             owningHouse = resolvedHouse;
 
-                            // If persistent house doodads are enabled and this doodad matches a binding
-                            // from the house template, register it in AttachedDoodads so
-                            // House.Spawn/Show/Hide/Delete handle it correctly.
-                            if (AppConfiguration.Instance.World.UsePersistentHouseDoodads)
-                            {
-                                var isBoundDoodad = resolvedHouse.Template?.HousingBindingDoodad != null &&
-                                    resolvedHouse.Template.HousingBindingDoodad.Any(b =>
-                                        b.DoodadId == templateId && b.AttachPointId == attachPoint);
-                                if (isBoundDoodad)
-                                    resolvedHouse.AttachedDoodads.Add(doodad);
-                            }
+                            // Always track template bindings on the house. Skipping registration when
+                            // UsePersistentHouseDoodads is off made reconcile think doors/NPCs were
+                            // missing and spawn a second full set on top of the DB-loaded ones.
+                            var isBoundDoodad = resolvedHouse.Template?.HousingBindingDoodad != null &&
+                                resolvedHouse.Template.HousingBindingDoodad.Any(b =>
+                                    b.DoodadId == templateId && b.AttachPointId == attachPoint);
+                            if (HousingBoundDoodadRules.ShouldTrackBoundOnHouse(isBoundDoodad))
+                                resolvedHouse.AttachedDoodads.Add(doodad);
                         }
                     }
 

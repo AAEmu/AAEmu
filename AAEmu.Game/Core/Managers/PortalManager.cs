@@ -512,6 +512,8 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             portalInfo.X, portalInfo.Y, portalInfo.Z,
             0f, 0f, portalInfo.ZRot);
 
+        // Enter stays in the caster's zone (book cast position); exit uses the destination zone.
+        var liveZoneId = isExit ? portalInfo.ZoneId : owner.Transform.ZoneId;
         var portalNpc = new Models.Game.Units.Portal
         {
             ParentWorld = owner.ParentWorld,
@@ -526,7 +528,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             TeleportPosition = portalPointDestination,
             IsExit = isExit,
             SourcePortal = portalInfo,
-            Transform = { ZoneId = portalInfo.ZoneId }
+            Transform = { ZoneId = liveZoneId }
         };
 
         if (isExit)

@@ -1,12 +1,14 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Expeditions;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// Opens/refreshes the prestige-shop buff view - resent unconditionally on every request rather than
-/// gated on Enter, since the client doesn't reliably set that flag.
+/// Opens/refreshes a guild's prestige-shop buff view. <see cref="TypeValue"/> is the expedition id
+/// (recruit-board "Buff Effect" and own-guild shop both send it). Must not require the viewer to
+/// already be in a guild — unguilded applicants need the listed guild's grades.
 /// </summary>
 public class CSExpeditionBuffPacket() : GamePacket(CSOffsets.CSExpeditionBuffPacket, 1)
 {
@@ -20,7 +22,13 @@ public class CSExpeditionBuffPacket() : GamePacket(CSOffsets.CSExpeditionBuffPac
         Enter = stream.ReadBoolean();
         ResponseOnly = stream.ReadBoolean();
 
-        if (Connection.ActiveChar?.Expedition != null)
-            ExpeditionManager.Instance.SendExpeditionBuffs(Connection.ActiveChar);
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
+
+        var expeditionId = ExpeditionBuffViewRules.ResolveExpeditionId(
+            TypeValue, (uint)(character.Expedition?.Id ?? 0));
+        if (expeditionId != 0)
+            ExpeditionManager.Instance.SendExpeditionBuffs(character, expeditionId);
     }
 }

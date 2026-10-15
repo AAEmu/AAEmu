@@ -1,8 +1,9 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
@@ -57,7 +58,7 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
             "BuyItems npc={0}, doodad={1}, shopType={2}, buys={3}, buybacks={4}, useAAPoint={5}, openType={6}",
             npcObjId, doodadObjId, shopType, buyCount, buybackCount, useAaPoint, openType);
 
-        var pack = ResolveMerchantPack(character, npcObjId, doodadObjId);
+        var pack = ResolveMerchantPack(character, npcObjId, doodadObjId, openType);
         if (pack == null)
             return;
 
@@ -206,9 +207,15 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
             Connection.SendPacket(new SCUpdateMerchantGoodLimitPurchasePacket(updatedPurchaseStates));
     }
 
-    private static MerchantGoods ResolveMerchantPack(Character character, uint npcObjId, uint doodadObjId)
+    private static MerchantGoods ResolveMerchantPack(Character character, uint npcObjId, uint doodadObjId,
+        byte openType)
     {
-        if ((npcObjId == 0) == (doodadObjId == 0))
+        // Guild / honor / vocation / battlefield shops open from UI with no NPC or doodad
+        // (SHOP_OPEN_CONTRIBUTION etc.). Pack id comes from content_configs.
+        if (npcObjId == 0 && doodadObjId == 0)
+            return ResolveDirectOpenStorePack(openType);
+
+        if (npcObjId != 0 && doodadObjId != 0)
             return null;
 
         if (npcObjId != 0)
@@ -237,6 +244,16 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
 
         var packId = DoodadManager.Instance.GetStoreMerchantPackId(doodad);
         return packId == 0 ? null : NpcManager.Instance.GetGoods(packId);
+    }
+
+    internal static MerchantGoods ResolveDirectOpenStorePack(byte openType)
+    {
+        var configName = StoreOpenType.ConfigNameFor(openType);
+        if (configName == null)
+            return null;
+        if (!ContentConfigGameData.Instance.TryGetInt(configName, out var packId) || packId <= 0)
+            return null;
+        return NpcManager.Instance.GetGoods((uint)packId);
     }
 
     private static bool TryAddCost(
