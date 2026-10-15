@@ -107,14 +107,9 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 character.AttachedPoint != AttachPointKind.None,
                 character.Transform.Parent?.GameObject is Slave);
             var isSelfActorMove = _moveType is UnitMoveType && _objId == character.ObjId;
-            // Ships: type 5 helm → zone. Land carts: type 2 when ShouldRelayLandVehicleMoveToZone.
-            var landVehicleSkipZone =
-                _moveType is VehicleMoveType
-                && mirrorTarget is Slave land
-                && land.Template != null
-                && !SlaveVehicleSimRules.ShouldRelayLandVehicleMoveToZone(land.Template.SlaveKind);
-            if (!landVehicleSkipZone
-                && (BoatHelmSeatRules.ShouldForwardActorMoveToZone(seatedOnSlave) || !isSelfActorMove))
+            // Ships: type 5 helm → zone. Land carts: type 2 (CanControlMovement already gates
+            // VehicleMoveType to client-driven kinds, so a skip flag here can never be true).
+            if (BoatHelmSeatRules.ShouldForwardActorMoveToZone(seatedOnSlave) || !isSelfActorMove)
             {
                 var moveBody = new PacketStream();
                 moveBody.Write((byte)_moveType.Type);

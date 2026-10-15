@@ -130,7 +130,19 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         }
 
         if (!slaveTemplate.IsABoat())
+        {
+            if (!SlaveSummonSeedRules.IsWithinValidZ(
+                    caster.Z, seed.Z, SlaveLandVehiclePlantRules.ClientSeedZBandMetres))
+            {
+                Logger.Warn(
+                    "SlaveSpawn seed refused: Z {0:0.0} is outside {1:0.0} m of owner Z {2:0.0} tpl={3}",
+                    seed.Z, SlaveLandVehiclePlantRules.ClientSeedZBandMetres, caster.Z, slaveTemplate.Id);
+                owner.SendErrorMessage(ErrorMessageType.SlaveSpawnErrorInvalidArea);
+                return false;
+            }
+
             return true;
+        }
 
         var floorHeight = World.Template.GeoData.GetHeight(seed);
         var surfaceHeight = GetWaterSurfaceFromAreas(World, seed);
@@ -1535,9 +1547,15 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                 WorldIntegration.IsZoneLoaded,
                 WorldIntegration.IsZoneInstanceLoaded))
         {
-            Logger.Warn(
-                "No zone host for zone {0}; land vehicle obj={1} was not announced",
-                newZoneKey, slave.ObjId);
+            if (slave.ZoneAnnouncedTo == 0)
+            {
+                Logger.Warn(
+                    "No zone host for zone {0}; land vehicle obj={1} was not announced",
+                    newZoneKey, slave.ObjId);
+                return;
+            }
+
+            AbandonBoatWithoutZoneHost(slave, newZoneKey);
             return;
         }
 
@@ -1562,6 +1580,15 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         WorldIntegration.RelayShipControlChangeToZoneId?.Invoke(newZoneKey, slave.ObjId, false);
 
         slave.ZoneAnnouncedTo = newZoneKey;
+
+        // Same rider attach as the boat seam: Create alone leaves a driverless cart in the new zone.
+        if (!HandoffPassengersToZone(slave, previous, newZoneKey))
+        {
+            AbandonBoatWithoutZoneHost(slave, newZoneKey);
+            return;
+        }
+
+        RefreshClientSeatBinds(slave);
 
         Logger.Info(
             "Land vehicle announced to zone slave obj={0} {1}→{2} bodyLen={3} control=0",
@@ -2592,10 +2619,10 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             // One impulse carries both: the speed the flush lost and the distance B fell behind
             // A while it was slow. A separate catch-up 200 ms later started too late to land
             // before the fail-safe (live 18:23–18:25: gap 2.0–2.6 m, switch with 1.6–1.9 m left).
-            var catchUp = silent || slave.SeamCatchUpSpeed > 0f ? 0f : BoatZoneSimRules.CatchUpSpeed(alongTrack);
+            var catchUp = silent || slave.SeamCatchUpSpeed > 0f
+                ? 0f
+                : ReserveSeamCatchUp(slave, BoatZoneSimRules.CatchUpSpeed(alongTrack), alongTrack, zoneKey, now);
             ApplySeamSpeedCorrection(slave, zoneKey, reportedSpeed, catchUp);
-            if (catchUp > 0f)
-                NoteSeamCatchUp(slave, zoneKey, catchUp, alongTrack, now);
             slave.SeamImpulseAtMs = now;
             Logger.Info(
                 "Seam overlap closed-loop obj={0} zone={1} arrived={2:F1} expectedCruise={3:F1} along={4:F2} m",
@@ -2619,11 +2646,11 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             BoatZoneSimRules.ShouldAcceptWarmupHandoff(x, y, reportedSpeed, expectedCruise, replantAge, msSinceImpulse) &&
             (slave.SeamImpulseAtMs == 0 || msSinceImpulse >= BoatZoneSimRules.ImpulseSettleMs))
         {
-            var catchUp = BoatZoneSimRules.CatchUpSpeed(alongTrack);
+            var catchUp = ReserveSeamCatchUp(
+                slave, BoatZoneSimRules.CatchUpSpeed(alongTrack), alongTrack, zoneKey, now);
             if (catchUp > 0f)
             {
                 ApplySeamCatchUp(slave, zoneKey, catchUp);
-                NoteSeamCatchUp(slave, zoneKey, catchUp, alongTrack, now);
                 slave.SeamImpulseAtMs = now;
                 msSinceImpulse = 0;
                 msSinceCatchUp = 0;
@@ -2725,13 +2752,25 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         slave.SeamBlendStartMs = Environment.TickCount64;
     }
 
-    private static void NoteSeamCatchUp(Slave slave, uint zoneKey, float catchUp, float alongTrack, long now)
+    /// <summary>
+    /// Books a catch-up pulse. Outstanding is capped at <see cref="BoatZoneSimRules.MaxCatchUpSpeed"/>
+    /// so repeated repeats cannot stack ~40 m/s; the returned value is what may be applied.
+    /// </summary>
+    private static float ReserveSeamCatchUp(
+        Slave slave, float catchUp, float alongTrack, uint zoneKey, long now)
     {
-        slave.SeamCatchUpSpeed += catchUp;
+        if (catchUp <= 0f)
+            return 0f;
+        var room = MathF.Max(0f, BoatZoneSimRules.MaxCatchUpSpeed - slave.SeamCatchUpSpeed);
+        var added = MathF.Min(catchUp, room);
+        if (added <= 0f)
+            return 0f;
+        slave.SeamCatchUpSpeed += added;
         slave.SeamCatchUpAtMs = now;
         Logger.Info(
             "Seam catch-up obj={0} zone={1} behind={2:F2} m added={3:F1} m/s outstanding={4:F1} m/s",
-            slave.ObjId, zoneKey, -alongTrack, catchUp, slave.SeamCatchUpSpeed);
+            slave.ObjId, zoneKey, -alongTrack, added, slave.SeamCatchUpSpeed);
+        return added;
     }
 
     /// <summary>

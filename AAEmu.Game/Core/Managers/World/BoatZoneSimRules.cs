@@ -268,8 +268,10 @@ public static class BoatZoneSimRules
     {
         if (catchUpAdded <= 0f)
             return 0f;
+        // No cruise / no report: never pull more than the body is currently carrying, or a
+        // coasting seam take-back becomes a large reverse kick.
         if (expectedCruise < BoatSeamImpulse.MinCruiseSpeed || reportedSpeed <= 0f)
-            return catchUpAdded;
+            return MathF.Min(catchUpAdded, MathF.Max(0f, reportedSpeed));
         var excess = MathF.Min(catchUpAdded, reportedSpeed - expectedCruise);
         return excess >= BoatSeamImpulse.MinCorrectionDeficit ? excess : 0f;
     }

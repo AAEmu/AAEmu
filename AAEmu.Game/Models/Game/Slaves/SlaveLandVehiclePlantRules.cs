@@ -20,6 +20,13 @@ public static class SlaveLandVehiclePlantRules
     public const float OwnerFloorBandMetres = 2f;
 
     /// <summary>
+    /// Client seed Z may sit this far from the owner's feet. Sanity bound for a crafted
+    /// <c>CSSpawnSlave</c> height, not a content radius — XY still uses
+    /// <c>slaves.spawn_valid_area_range</c>.
+    /// </summary>
+    public const float ClientSeedZBandMetres = 15f;
+
+    /// <summary>
     /// Pick the plant Z for a land-vehicle summon.
     /// </summary>
     /// <param name="ownerZ">Driver's world Z (feet on dirt).</param>

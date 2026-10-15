@@ -237,8 +237,10 @@ public class BoatZoneSimRulesTests
         // Already bled back to cruise: nothing to remove.
         await Assert.That(BoatZoneSimRules.CatchUpTakeBack(4.3f, 9.3f, 9.1f)).IsEqualTo(0f);
         await Assert.That(BoatZoneSimRules.CatchUpTakeBack(0f, 12f, 9f)).IsEqualTo(0f);
-        // No reference: fall back to the full pulse.
-        await Assert.That(BoatZoneSimRules.CatchUpTakeBack(4.3f, 0f, 9.1f)).IsEqualTo(4.3f);
+        // No report: take nothing (a zero-speed take-back of the full pulse was a reverse kick).
+        await Assert.That(BoatZoneSimRules.CatchUpTakeBack(4.3f, 0f, 9.1f)).IsEqualTo(0f);
+        // Coasting under MinCruiseSpeed: never pull more than the body is carrying.
+        await Assert.That(BoatZoneSimRules.CatchUpTakeBack(4.3f, 1.5f, 0f)).IsEqualTo(1.5f);
     }
 
     [Test]

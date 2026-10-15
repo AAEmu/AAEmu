@@ -452,15 +452,19 @@ public class ZoneSimRelay
         var impactVel = stream.ReadSingle();
 
         // Land carts: the driver's client owns the wheeled PE. Zone terrain-thrash floaters
-        // fight that PE the same way echoing type-2 does — skip anyone occupying the hull.
+        // fight that PE the same way echoing type-2 does — skip the driver only (passengers still
+        // need the floater).
         if (WorldIntegration.FindUnitAcrossWorlds(unitId) is Slave cart
             && cart.Template?.IsClientDrivenLandVehicle() == true)
         {
+            var driverObjId = cart.AttachedCharacters.TryGetValue(AttachPointKind.Driver, out var driver)
+                ? driver?.ObjId ?? 0u
+                : cart.Summoner?.ObjId ?? 0u;
             WorldIntegration.ForEachReadyConnection((con, ch) =>
             {
                 if (!WorldIntegration.IsStreamedUnitForClient(ch, unitId))
                     return;
-                if (ch.IsOccupyingSlave(cart))
+                if (!SlaveVehicleSimRules.ShouldEchoLandVehicleCollisionResultTo(ch.ObjId, driverObjId))
                     return;
                 try { con.SendPacket(new SCUnitCollisionResultPacket(x, y, z, impactVel)); }
                 catch (Exception ex)

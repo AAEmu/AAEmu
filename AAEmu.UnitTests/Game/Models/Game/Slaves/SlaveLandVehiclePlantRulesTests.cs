@@ -32,4 +32,17 @@ public class SlaveLandVehiclePlantRulesTests
         await Assert.That(SlaveLandVehiclePlantRules.ChoosePlantZ(
             ownerZ: 0f, heightmapZ: 119.2f, geoDataZ: 121f)).IsEqualTo(119.2f);
     }
+
+    [Test]
+    public async Task ClientSeedZBand_RejectsSkyPlantsNearOwner()
+    {
+        await Assert.That(SlaveSummonSeedRules.IsWithinValidZ(
+            110f, 110f, SlaveLandVehiclePlantRules.ClientSeedZBandMetres)).IsTrue();
+        await Assert.That(SlaveSummonSeedRules.IsWithinValidZ(
+            110f, 124.9f, SlaveLandVehiclePlantRules.ClientSeedZBandMetres)).IsTrue();
+        await Assert.That(SlaveSummonSeedRules.IsWithinValidZ(
+            110f, 125.1f, SlaveLandVehiclePlantRules.ClientSeedZBandMetres)).IsFalse();
+        await Assert.That(SlaveSummonSeedRules.IsWithinValidZ(
+            110f, 90f, SlaveLandVehiclePlantRules.ClientSeedZBandMetres)).IsFalse();
+    }
 }
