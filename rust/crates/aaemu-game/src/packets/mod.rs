@@ -132,8 +132,9 @@ mod tests {
         }
         for ((level, opcode), reg) in r.iter() {
             // `CSReturnMailPacket` is commented out in C# (opcode 0xfff, never sent by 1.2):
-            // registering it is harmless.
-            if !expected.contains_key(&(level, opcode)) && opcode != 0xfff {
+            // registering it is harmless. `CSRankSnapshotPacket` (0x130) is not named by the 1.2
+            // opcode tables and the C# never handled it; the real client sends it.
+            if !expected.contains_key(&(level, opcode)) && opcode != 0xfff && opcode != 0x130 {
                 missing.push(format!(
                     "0x{opcode:03x}({level}) {} not registered in C#",
                     reg.name

@@ -580,7 +580,7 @@ impl RankingGameData {
     /// Resolves the link tables into `board -> scopes` and `(board, scope) -> rewards`, both in
     /// link `id` order. A link whose row is missing is reported and skipped by the lookups; it
     /// stays in the raw link tables.
-    fn index_links(&mut self) {
+    pub(crate) fn index_links(&mut self) {
         self.scopes_by_rank.clear();
         for i in 0..self.scope_links.len() {
             let link = self.scope_links[i];
