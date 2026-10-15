@@ -22,6 +22,8 @@ pub(crate) struct FinancialSnapshot {
     pub(crate) mails: crate::systems::economy::mail::MailSaveBatch,
     pub(crate) auctions: crate::systems::economy::auction::AuctionSaveBatch,
     pub(crate) items: super::item::ItemSaveBatch,
+    pub(crate) schedule_items:
+        crate::systems::npcs::schedule_item_persistence::PreparedScheduleSave,
     pub(crate) characters: Vec<(PlayerRef, Character)>,
 }
 
@@ -59,6 +61,8 @@ pub(crate) fn capture_financial_snapshot(server: &GameServer) -> FinancialSnapsh
         mails: server.systems.economy.mail.prepare_save(),
         auctions: server.systems.economy.auction.prepare_save(server),
         items: server.items.prepare_save(),
+        // Captured under the same `ops_lock` as the granted items / mails of a take.
+        schedule_items: server.systems.npcs.schedule_items.prepare_save(),
         characters: players
             .into_iter()
             .map(|p| {
@@ -78,6 +82,7 @@ struct CharacterSaveAck {
 
 pub(crate) struct FinancialSaveReceipt {
     counts: (usize, usize, usize, usize, usize),
+    schedule_items: crate::systems::npcs::schedule_item_manager::ScheduleSaveToken,
     characters: Vec<CharacterSaveAck>,
 }
 
@@ -112,6 +117,13 @@ pub(crate) async fn write_financial_snapshot(
         .write_prepared(tx, snapshot.auctions)
         .await?;
     systems += auction_updated + auction_deleted;
+    let schedule_items =
+        crate::systems::npcs::schedule_item_manager::ScheduleItemManager::write_prepared(
+            tx,
+            snapshot.schedule_items,
+        )
+        .await?;
+    systems += schedule_items.written();
     systems +=
         crate::systems::save_prepared_financial_stage(server, tx, SaveStage::AfterItems).await?;
     let mut characters = Vec::new();
@@ -140,6 +152,7 @@ pub(crate) async fn write_financial_snapshot(
     systems += save_stage(server, tx, SaveStage::AfterCharacters).await?;
     Ok(FinancialSaveReceipt {
         counts: (items, deleted, containers, characters.len(), systems),
+        schedule_items,
         characters,
     })
 }
@@ -150,6 +163,11 @@ pub(crate) fn commit_financial_snapshot(server: &GameServer, receipt: FinancialS
     server.systems.economy.mail.commit_save();
     server.systems.economy.auction.commit_save();
     server.items.commit_save();
+    server
+        .systems
+        .npcs
+        .schedule_items
+        .commit_save(receipt.schedule_items);
     for ack in receipt.characters {
         let mut live = ack.player.data();
         let unchanged_money = (live.money, live.money2) == ack.money;
