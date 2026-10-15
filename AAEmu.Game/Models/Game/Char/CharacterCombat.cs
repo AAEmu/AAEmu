@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
 
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using Microsoft.Extensions.DependencyInjection;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
@@ -468,10 +470,16 @@ public partial class Character
     /// </summary>
     public void ApplyDurabilityLossToEquipment(byte durabilityLoss, DurabilityLossTargets targets, float worldRate)
     {
-        if (Equipment == null || durabilityLoss == 0)
+        if (Equipment == null || durabilityLoss == 0 || Equipment.Items.Count == 0)
             return;
 
-        var decrementChance = ItemManager.Instance.GetDurabilityDecrementChance();
+        // Chance lives on ItemManager; hosts without DI (unit tests that only hit ReduceCurrentHp)
+        // skip wear instead of resolving the singleton via a parameterless ctor.
+        var itemManager = SingletonContainer.ServiceProvider?.GetService<IItemManager>();
+        if (itemManager == null)
+            return;
+
+        var decrementChance = itemManager.GetDurabilityDecrementChance();
         var destroyed = new List<Item>();
 
         foreach (var item in Equipment.Items)
