@@ -22,6 +22,8 @@ use crate::server::GameServer;
 use crate::systems::skills::packets::SCExpChangedPacket;
 use crate::systems::skills::progress::SCLevelChangedPacket;
 use crate::systems::skills::types::{BuffEventTriggerKind, BuffRemoveOn, KillReason, SkillCaster};
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{Entity, MateRef, PlayerRef, WorldObject};
 
 use super::data::attach_point;
@@ -1023,6 +1025,17 @@ pub fn add_exp(server: &GameServer, mate: &MateRef, exp_delta: i32) {
             true,
         );
         crate::systems::quests::events::on_mate_level_up(server, &owner);
+        // PET_LEVEL: the mate's absolute level against its npc template.
+        let template_id = mate.data().unit.template_id;
+        crate::systems::report_achievement(
+            server,
+            &owner,
+            AchievementInput::Absolute {
+                kind_id: char_record_kind::PET_LEVEL,
+                value: i64::from(level),
+                matcher: RecordMatch::Value1(template_id),
+            },
+        );
     }
 }
 

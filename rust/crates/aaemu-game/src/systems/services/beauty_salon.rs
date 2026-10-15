@@ -19,6 +19,8 @@ use crate::opcodes::sc;
 use crate::packets::packet_def;
 use crate::server::GameServer;
 use crate::systems::skills::packets_special::SCToggleBeautyshopResponsePacket;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{broadcast, PlayerRef, WorldObject};
 
 /// `BuffConstants.InBeautySalon`.
@@ -103,6 +105,17 @@ pub fn apply_beauty_salon(
             (c.unit.name.clone(), c.id)
         };
         tracing::error!("Could not consume salon certificate for player {name} ({id})!");
+    } else {
+        // CHANGE_LOOK: one completed appearance change (certificate consumed).
+        crate::systems::report_achievement(
+            server,
+            player,
+            AchievementInput::Increment {
+                kind_id: char_record_kind::CHANGE_LOOK,
+                amount: 1,
+                matcher: RecordMatch::Any,
+            },
+        );
     }
     // The client sends the salon leave request after SCCharacterGenderAndModelModifiedPacket.
 }

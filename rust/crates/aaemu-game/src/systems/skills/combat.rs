@@ -8,6 +8,8 @@ use crate::models::buff::Buff;
 use crate::packets::world::SCUnitPointsPacket;
 use crate::packets::world_objects::SCTargetChangedPacket;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{now_ms, PlayerRef, WorldObject};
 
 use super::buffs;
@@ -587,6 +589,18 @@ fn character_death_tail(
                     c.died_in_pvp_war_zone = true;
                 }
             }
+            // DEAD_BY_PVP (value1: the zone group the victim died in, 0 = any zone).
+            crate::systems::report_achievement(
+                server,
+                victim_p,
+                AchievementInput::Increment {
+                    kind_id: char_record_kind::DEAD_BY_PVP,
+                    amount: 1,
+                    matcher: RecordMatch::ZoneGroup {
+                        zone_group: victim_zone_group.unwrap_or(0),
+                    },
+                },
+            );
             // Broadcast PvP stats: kind=0 → HonorGainedInCombat, kind=1 → HostileFactionKills
             let (honor, kills) = {
                 let c = enemy.data();
@@ -656,6 +670,16 @@ fn character_death_tail(
     if !buffs::check_buff_tag(server, victim, tags::WANTED) {
         return;
     }
+    // KILL_WANTED: the killer of a wanted victim, whether or not the arrest goes through.
+    crate::systems::report_achievement(
+        server,
+        &arrestor,
+        AchievementInput::Increment {
+            kind_id: char_record_kind::KILL_WANTED,
+            amount: 1,
+            matcher: RecordMatch::Any,
+        },
+    );
     let contemptuous =
         victim.with_base_unit(|b| b.buffs().check_buff(buff_constants::CONTEMPTUOUS));
     let arrest = if !contemptuous {
@@ -777,9 +801,25 @@ fn award_pvp_honor(
     let round = |share: i32| (f64::from(share) * rate).round_ties_even() as i32;
     let gain = |p: &PlayerRef, honor: i32| {
         super::progress::change_game_points(server, p, super::progress::GAME_POINT_HONOR, honor);
-        let mut c = p.data();
-        c.honor_gained_in_combat = c.honor_gained_in_combat.wrapping_add(honor as u32);
-        c.honor_gained_in_combat
+        let total = {
+            let mut c = p.data();
+            c.honor_gained_in_combat = c.honor_gained_in_combat.wrapping_add(honor as u32);
+            c.honor_gained_in_combat
+        };
+        // GET_HONOR_POINT (zone-conflict honor: value1 0, value2 the zone group or 0 = any).
+        crate::systems::report_achievement(
+            server,
+            p,
+            AchievementInput::Increment {
+                kind_id: char_record_kind::GET_HONOR_POINT,
+                amount: i64::from(honor),
+                matcher: RecordMatch::Value1OrZeroValue2 {
+                    value1: 0,
+                    value2: victim_zone_group.unwrap_or(0),
+                },
+            },
+        );
+        total
     };
     if !online.is_empty() {
         let killer_honor = round(killer_share);

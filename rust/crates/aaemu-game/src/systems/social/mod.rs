@@ -40,6 +40,8 @@ pub mod util;
 pub mod zone_conflict;
 
 #[cfg(test)]
+pub(crate) mod achievement_flow_tests;
+#[cfg(test)]
 mod achievement_game_data_tests;
 #[cfg(test)]
 mod flow_tests;
