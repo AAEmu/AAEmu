@@ -103,6 +103,8 @@ pub struct GameState {
     pub members: Vec<TeamMember>,
     pub corps1: TeamResult,
     pub corps2: TeamResult,
+    /// The result was already offered to the ranking boards ([`record_rankings`]).
+    pub ranked: bool,
 }
 
 impl GameState {
@@ -602,11 +604,53 @@ pub fn reset_all_skill_cooldowns(server: &GameServer, p: &PlayerRef, trigger_gcd
 /// `EndGame()`: the result, then after `TimeEnding` minutes the game is destroyed.
 pub async fn end_game(server: &Arc<GameServer>, game: &Arc<InstantGame>) {
     send_result(game);
+    record_rankings(server, game);
     let ending = Duration::from_millis(
         u64::try_from(i64::from(game.rule_set.time_ending) * 60 * 1000).unwrap_or(0),
     );
     tokio::time::sleep(ending).await;
     destroy_game(server, game);
+}
+
+/// Offers the game's result to the arena ranking board (`systems::social::ranking_manager`),
+/// once per game: every member scores the `game_rule_sets.rank_*_point` figure of their corps'
+/// final state (a win also adds one win). The ranking board is bound to the zone group of the
+/// battlefield's zone, so only the gladiator duel (zone group 77, rule set 28) can score.
+///
+/// Deviation (ranking is not in the C# 1.2 server): the states are the ones `SendResult` sent, so
+/// a game that runs out of time with no corps at the victory score ranks both corps as `LOSE`
+/// (mirrored C# bug in `EndGame`), not as a draw.
+pub fn record_rankings(server: &GameServer, game: &InstantGame) {
+    let results: Vec<(PlayerRef, u8)> = {
+        let mut st = game.st();
+        if st.ranked {
+            return;
+        }
+        st.ranked = true;
+        st.members
+            .iter()
+            .map(|m| (m.player.clone(), st.result(m.result).state))
+            .collect()
+    };
+    let zone_group =
+        crate::systems::economy::craft::zone_group_id(server, game.battlefield.zone_key);
+    let rules = &game.rule_set;
+    let now = chrono::Utc::now();
+    for (player, state) in results {
+        let (points, wins) = match state {
+            victory_state::WIN => (rules.rank_win_point, 1),
+            victory_state::LOSE => (rules.rank_lose_point, 0),
+            victory_state::DRAW => (rules.rank_draw_point, 0),
+            _ => (rules.rank_invalid_point, 0),
+        };
+        server.systems.social.ranking.record(
+            server,
+            &player,
+            crate::systems::social::ranking_runtime::RankEvent::Arena { points, wins },
+            zone_group,
+            now,
+        );
+    }
 }
 
 /// `SendResult()`.
@@ -951,6 +995,7 @@ fn add_score(
         }
         // `EndGame()` runs synchronously up to its first await: the result is sent now.
         send_result(game);
+        record_rankings(server, game);
         if let Some(s) = server.self_arc() {
             let g = game.clone();
             let ending = Duration::from_millis(

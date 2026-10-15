@@ -499,6 +499,15 @@ pub struct GameRuleSet {
     pub time_playing: i32,
     pub victory_score: i32,
     pub battlefield_id: u32,
+    /// `game_rule_sets.rank_win_point`: the arena ranking score a win adds (the ranking board
+    /// is `systems::social::ranking_*`; `0` on every rule set but the gladiator duel).
+    pub rank_win_point: i32,
+    /// `game_rule_sets.rank_lose_point`: the arena ranking score a loss adds.
+    pub rank_lose_point: i32,
+    /// `game_rule_sets.rank_draw_point`: the arena ranking score a draw adds.
+    pub rank_draw_point: i32,
+    /// `game_rule_sets.rank_invalid_point`: the arena ranking score an invalid result adds.
+    pub rank_invalid_point: i32,
 }
 
 /// `Battlefield`.
@@ -516,6 +525,16 @@ pub struct Battlefield {
 #[derive(Debug, Clone, Default)]
 pub struct BattlefieldData {
     pub battlefields: HashMap<u32, Battlefield>,
+}
+
+/// A `game_rule_sets.rank_*_point` column: `0` when the table has no such column or the value is
+/// NULL.
+fn rank_point(r: &crate::data::sqlite::SqlRow<'_, '_>, col: &str) -> rusqlite::Result<i32> {
+    if r.has(col) {
+        r.i32_or(col, 0)
+    } else {
+        Ok(0)
+    }
 }
 
 impl BattlefieldData {
@@ -556,6 +575,11 @@ impl BattlefieldData {
                 time_ending: r.i32("time_ending")?,
                 time_playing: r.i32("time_playing")?,
                 victory_score: r.i32("victory_score")?,
+                // The ranking columns are optional (hand-built test schemas omit them).
+                rank_win_point: rank_point(r, "rank_win_point")?,
+                rank_lose_point: rank_point(r, "rank_lose_point")?,
+                rank_draw_point: rank_point(r, "rank_draw_point")?,
+                rank_invalid_point: rank_point(r, "rank_invalid_point")?,
             };
             if let Some(bf) = d.battlefields.get_mut(&gsr.battlefield_id) {
                 bf.rule_set = Some(gsr);
