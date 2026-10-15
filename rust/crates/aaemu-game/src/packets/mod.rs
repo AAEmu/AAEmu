@@ -71,7 +71,7 @@ mod tests {
             .iter()
             .filter(|(opcode, _)| *opcode != 0xfff)
             .collect();
-        assert_eq!(supported.len(), 244);
+        assert_eq!(supported.len(), 245);
         for (opcode, name) in supported {
             assert!(
                 registry
@@ -133,7 +133,10 @@ mod tests {
         for ((level, opcode), reg) in r.iter() {
             // `CSReturnMailPacket` is commented out in C# (opcode 0xfff, never sent by 1.2):
             // registering it is harmless.
-            if !expected.contains_key(&(level, opcode)) && opcode != 0xfff {
+            // `CSTakeScheduleItemPacket` is a 1.2 client packet the C# never registered
+            // (`systems::npcs::schedule_item_packets`, opcode read off the client).
+            let rust_only = opcode == crate::opcodes::cs::CSTakeScheduleItemPacket;
+            if !expected.contains_key(&(level, opcode)) && opcode != 0xfff && !rust_only {
                 missing.push(format!(
                     "0x{opcode:03x}({level}) {} not registered in C#",
                     reg.name

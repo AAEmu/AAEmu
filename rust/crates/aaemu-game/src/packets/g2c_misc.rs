@@ -325,6 +325,27 @@ impl Marshal for SCScheduleItemUpdatePacket {
     }
 }
 
+/// `SCScheduleItemSentPacket(uint scheduleType, bool byMail)` (0x151): the answer to a take. The
+/// 1.2 client handler (`OnScheduleItemSent`) reads a `u32` (the schedule row id, the same value the
+/// update rows carry as `item_template_id`) and one `u8` flag (1 = the reward went to the mailbox).
+/// The layout is the 5.0 C# `SCScheduleItemSentPacket(itemTemplateId, byMail)`; the 1.2 C# never
+/// built it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SCScheduleItemSentPacket {
+    pub item_template_id: u32,
+    pub by_mail: bool,
+}
+packet_def!(
+    SCScheduleItemSentPacket,
+    level = LEVEL_PLAIN,
+    opcode = sc::SCScheduleItemSentPacket
+);
+impl Marshal for SCScheduleItemSentPacket {
+    fn write(&self, s: &mut PacketStream) {
+        s.write_u32(self.item_template_id).write_bool(self.by_mail);
+    }
+}
+
 /// `SCSearchListPacket(int total, Friend[] friends, bool success)`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SCSearchListPacket {
@@ -607,6 +628,27 @@ mod tests {
         want.extend(body(&f));
         want.push(1);
         assert_eq!(body(&p), want);
+    }
+
+    #[test]
+    fn schedule_item_sent_packet_is_byte_exact() {
+        let packet = SCScheduleItemSentPacket {
+            item_template_id: 28,
+            by_mail: true,
+        };
+        let want = [28u8, 0, 0, 0, 1];
+        assert_eq!(body(&packet), want);
+        assert_eq!(
+            body(&SCScheduleItemSentPacket {
+                item_template_id: 0x0102_0304,
+                by_mail: false
+            }),
+            [4, 3, 2, 1, 0]
+        );
+        // Level 1 frame on opcode 0x151.
+        let mut frame = vec![0xdd, 1, 0, 0, 0x51, 0x01];
+        frame.extend(want);
+        assert_eq!(encode(&packet), frame);
     }
 
     #[test]
