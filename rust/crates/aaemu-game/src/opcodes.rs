@@ -259,6 +259,7 @@ pub mod cs {
     pub const CSPremiumServiceBuyPacket: u16 = 0x135;
     pub const CSPremiumServiceListPacket: u16 = 0x136;
     pub const CSTakeAllAttachmentItemPacket: u16 = 0x139;
+    pub const CSTakeScheduleItemPacket: u16 = 0x13b;
     pub const CSPremiumServiceMsgPacket: u16 = 0x13c;
     pub const CSUnknownInstancePacket: u16 = 0x13e;
     pub const CSSetupSecondPassword: u16 = 0x140;
@@ -520,6 +521,7 @@ pub mod cs {
         (0x135, "CSPremiumServiceBuyPacket"),
         (0x136, "CSPremiumServiceListPacket"),
         (0x139, "CSTakeAllAttachmentItemPacket"),
+        (0x13b, "CSTakeScheduleItemPacket"),
         (0x13c, "CSPremiumServiceMsgPacket"),
         (0x13e, "CSUnknownInstancePacket"),
         (0x140, "CSSetupSecondPassword"),

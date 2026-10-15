@@ -35,11 +35,15 @@ use crate::error::Result;
 
 use super::schedule_item_persistence::{self, PreparedAccountSave, PreparedScheduleSave};
 use super::schedule_item_runtime::AccountScheduleProgress;
+use crate::packets::g2c_misc::ScheduleItem;
 
 /// One account's schedule-item progress per login account (`ScheduleItemManager._progress`).
 #[derive(Debug, Default)]
 pub struct ScheduleItemManager {
     progress: Mutex<BTreeMap<u32, AccountScheduleProgress>>,
+    /// character id -> the rows of the last `SCScheduleItemUpdatePacket` sent to it; transient
+    /// (never saved). Lets the periodic tick re-send only when something the client shows changed.
+    sent: Mutex<BTreeMap<u32, Vec<ScheduleItem>>>,
 }
 
 /// The receipt of [`ScheduleItemManager::write_prepared`]: the marks of the snapshot that was
@@ -85,7 +89,43 @@ impl ScheduleItemManager {
     pub(crate) fn from_accounts(accounts: BTreeMap<u32, AccountScheduleProgress>) -> Self {
         Self {
             progress: Mutex::new(accounts),
+            sent: Mutex::new(BTreeMap::new()),
         }
+    }
+
+    /// Startup: replaces the (empty) map with the saved rows. The manager lives in the
+    /// `Default`-built subsystem state, so the load fills it in place
+    /// ([`schedule_item_persistence::load_accounts`]); an error propagates and fails startup.
+    pub async fn restore(&self, pool: &MySqlPool) -> Result<usize> {
+        let accounts = schedule_item_persistence::load_accounts(pool).await?;
+        let rows = accounts.len();
+        *self.lock() = accounts;
+        Ok(rows)
+    }
+
+    /// The rows last sent to `character_id` (`None` before the first send).
+    pub fn last_sent(&self, character_id: u32) -> Option<Vec<ScheduleItem>> {
+        self.sent
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&character_id)
+            .cloned()
+    }
+
+    /// Records the rows just sent to `character_id`.
+    pub fn record_sent(&self, character_id: u32, rows: Vec<ScheduleItem>) {
+        self.sent
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(character_id, rows);
+    }
+
+    /// Forgets the last-sent rows of a character that left the world.
+    pub fn forget_sent(&self, character_id: u32) {
+        self.sent
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&character_id);
     }
 
     /// The short lock accessor for one synchronous state operation: lock, read or mutate, drop.

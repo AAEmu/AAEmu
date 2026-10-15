@@ -34,8 +34,10 @@ pub mod portal;
 pub mod public_farm;
 pub mod schedule;
 pub mod schedule_item_manager;
+pub mod schedule_item_packets;
 pub mod schedule_item_persistence;
 pub mod schedule_item_runtime;
+pub mod schedule_item_session;
 pub mod schedule_items;
 pub mod spawn_manager;
 pub mod specialty;
@@ -149,6 +151,15 @@ impl System {
         fish_school::start(server).await?;
         // `WorldManager.CreateStaticInstances`: SpawnManager.Load + SpawnAll for main_world.
         spawn_manager::start(server).await?;
+        // `ScheduleItemManager.Load`: the saved account progress, then the accrual tick.
+        let accounts = server
+            .systems
+            .npcs
+            .schedule_items
+            .restore(&server.db)
+            .await?;
+        tracing::info!("Loaded schedule item progress of {accounts} accounts");
+        schedule_item_session::start_tick_task(server);
         Ok(())
     }
 
@@ -179,12 +190,15 @@ pub fn register(reg: &mut PacketRegistry) {
     fish_school::register(reg);
     area_trigger::register(reg);
     sphere_quest::register(reg);
+    schedule_item_packets::register(reg);
 }
 
 #[cfg(test)]
 mod flow_tests;
 #[cfg(test)]
 mod manager_tests;
+#[cfg(test)]
+mod schedule_item_session_tests;
 #[cfg(test)]
 mod spawn_tests;
 

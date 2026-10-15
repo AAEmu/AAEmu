@@ -1062,6 +1062,27 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   `ScheduleData` also builds the `quest -> schedules` map the C# left as `//TODO: quests data`
   in `LoadGameScheduleSpawnersData` and exposes `period_status_quest`.
 
+* systems::npcs (2026-10-15): the schedule items (event timer bar) are live
+  (`schedule_item_session.rs`, `schedule_item_packets.rs`); the 1.2 C# never sent or took them,
+  so this follows the 5.0 C# (`CSTakeScheduleItemPacket`, `SCScheduleItemSentPacket`) and the 1.2
+  client. World entry (`CSNotifyInGame`) joins the account session and sends
+  `SCScheduleItemUpdatePacket` (0x1eb); a 60 s tick credits the account clock and re-sends the list
+  only to characters whose rows changed (progress, a window opening / closing, a daily reset or a
+  take through another character of the account); leaving the world credits the open interval
+  first. The take is `CSTakeScheduleItemPacket` (**0x13b**, one `u32` schedule row id; the opcode
+  and body were read off the 1.2 `x2game.dll` Lua binding: it builds a packet object with opcode
+  field `0x13b` and the id at `+0xc`, and `OnScheduleItemSent` reads a `u32` plus a `u8`). It
+  reserves, hands the reward over (bag if the whole stack fits, otherwise one `SYS_EXPRESS`
+  letter, like the achievement rewards) and only then records the receipt, all under the economy
+  `ops_lock`, so a window pays once; a failed hand-over leaves the term ready. The answer is
+  `SCScheduleItemSentPacket` (0x151: `u32` schedule id, `u8` by-mail), followed by a fresh list.
+  Deviations / unverified: the take packet's body width is inferred (the serializer writes the
+  field through a generic stream call whose width was not traced; it matches the 5.0 C#);
+  eligibility is `paid_patron` = the connection payment state (premium for every account) with no
+  premium grade and no PC-bang, so rows needing a specific grade or a PC-bang are never listed;
+  the progress is loaded at startup (`ScheduleItemManager::restore`) and saved inside the
+  financial snapshot transaction (`SaveManager`), not by the C# per-account saves.
+
 * systems::npcs (2026-10-14): a `DoodadFuncRatioRespawn` replacement initializes the new doodad
   synchronously (`Spawn` -> `InitDoodad` -> `DoPhaseFuncs`), so a cyclic definition recursed
   without bound until the stack overflowed; the 1.2 compact data has five template pairs whose
