@@ -14,6 +14,8 @@ use super::spheres::SphereQuest;
 use super::state::EventKind;
 use crate::models::character::Character;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{NpcRef, PlayerRef, WorldObject};
 
 /// A unit taking part in a kill (`OnKillArgs` / `OnZoneKillArgs` members).
@@ -390,6 +392,7 @@ pub fn with_quests<R>(
         }
     });
     drop(economy);
+    crate::systems::flush_achievements(server);
     if buffs_changed {
         crate::systems::dispatch_buff_events(server, &WorldObject::from(player.clone()));
     }
@@ -795,6 +798,16 @@ pub fn on_item_use(server: &GameServer, player: &PlayerRef, item_template_id: u3
     if item_template_id == 0 {
         return;
     }
+    // USE_ITEM achievement credit (one per successful use).
+    crate::systems::report_achievement(
+        server,
+        player,
+        AchievementInput::Increment {
+            kind_id: char_record_kind::USE_ITEM,
+            amount: 1,
+            matcher: RecordMatch::Value1(item_template_id),
+        },
+    );
     run_or_queue(server, player, move |ctx| {
         dispatch_logged(
             ctx,

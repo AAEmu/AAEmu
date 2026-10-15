@@ -159,6 +159,9 @@ pub struct ItemDetails {
     pub song_id: u32,
     // SummonMate
     pub mate_exp: i32,
+    /// The "dead" byte of the 1.2 SummonMate detail (client `GetTotalRepairsForPetItems`): a
+    /// non-zero value marks a corpse that only a stablehand revive (`CSRepairPetItems`) clears.
+    pub mate_dead: u8,
     pub mate_level: u8,
     // SummonSlave
     pub slave_type: u8,
@@ -516,7 +519,7 @@ impl Item {
                 ItemClass::MusicSheetItem => d.song_id = s.read_u64()? as u32,
                 ItemClass::SummonMate => {
                     d.mate_exp = s.read_i32()?;
-                    let _ = s.read_u8()?;
+                    d.mate_dead = s.read_u8()?;
                     d.mate_level = s.read_u8()?;
                 }
                 ItemClass::SummonSlave => {
@@ -575,7 +578,9 @@ impl Item {
                 s.write_u64(u64::from(d.song_id));
             }
             ItemClass::SummonMate => {
-                s.write_i32(d.mate_exp).write_u8(0).write_u8(d.mate_level);
+                s.write_i32(d.mate_exp)
+                    .write_u8(d.mate_dead)
+                    .write_u8(d.mate_level);
             }
             ItemClass::SummonSlave => {
                 s.write_u8(d.slave_type)
@@ -1131,5 +1136,33 @@ mod tests {
         };
         let item = Item::from_row(row, None, 1);
         assert_eq!(item.flags & ITEM_FLAG_HAS_UCC, 0);
+    }
+
+    #[test]
+    fn summon_mate_details_keep_the_dead_byte() {
+        let blob = {
+            let mut s = PacketStream::new();
+            s.write_i32(600).write_u8(1).write_u8(7);
+            s.into_bytes()
+        };
+        let row = ItemRow {
+            type_name: "AAEmu.Game.Models.Game.Items.SummonMate".into(),
+            template_id: 5,
+            details: blob.clone(),
+            ..ItemRow::default()
+        };
+        let item = Item::from_row(row, None, 1);
+        assert_eq!(
+            (
+                item.details.mate_exp,
+                item.details.mate_dead,
+                item.details.mate_level
+            ),
+            (600, 1, 7)
+        );
+        assert_eq!(item.details_blob(), blob);
+        let mut want = vec![detail_type::MATE];
+        want.extend_from_slice(&blob);
+        assert_eq!(item.detail_type_and_details(), want);
     }
 }

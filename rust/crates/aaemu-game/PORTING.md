@@ -227,10 +227,11 @@ connected by `systems::economy::wiring`).
 | `FriendMananger`, `CharacterFriends`, `CharacterBlocked` | `systems/social/friend.rs`, `packets/friend.rs` (`managers::friend` re-exports) | done | Add / remove friends (online or by DB name lookup), block / unblock (online only), status changes incl. `InParty`. |
 | `ChatManager`, `Models/Game/Chat` | `systems/social/chat.rs`, `session.rs` (`managers::chat` re-exports) | done | All channel kinds incl. party / raid / court, CleanUpChannels, party / raid / raid-leader / judge routing. User channels (`CSJoinUserChatChannel`) are log-only as in C#. |
 | `FactionManager` relations, `SystemFaction.GetRelationState`, `Unit/Character.SetFaction` | `systems/social/faction.rs`, `packets/faction.rs` | done | Relation table validated against compact.sqlite3 (gated test). Faction CS packets are log-only as in C#; every SCFaction* struct ported. |
-| `GameData/AchievementGameData` (`achievements`, `achievement_objectives`, `pre_completed_achievements`, `char_records`), `Models/Game/Achievement` | `systems/social/achievement.rs` (`server.game_data.systems.social.achievements`) | done | Loader + port of `AchievementGameDataTests`; gated real-DB test `achievement_game_data_real_compact_db`. The C# has no accessors / manager, so nothing reads the tables yet. |
+| `GameData/AchievementGameData` (`achievements`, `achievement_objectives`, `pre_completed_achievements`, `char_records`), `Models/Game/Achievement` | `systems/social/achievement.rs` (`server.game_data.systems.social.achievements`) | done | Loader + port of `AchievementGameDataTests`; gated real-DB test `achievement_game_data_real_compact_db`. The C# 1.2 tree has no manager; the Rust achievement manager / runtime / hooks / rewards (`achievement_*.rs`) read them (see "Achievement producers" below). |
 | `DuelManager`, `Models/Game/Duels`, duel tasks | `systems/social/duel.rs`, `packets/duel.rs` | done | Request / accept (flag via hook) / start / stop / cancel, distance + HP checks, end timer (tokio tasks; `set_delays` test hook). |
 | `CrimeManager`, `TrialManager`, `Models/Game/Crime`, `TrialUpdateTask` | `systems/social/{crime,trial}.rs`, `packets/trial.rs` | done | Crime table load / save (`AfterItems`), report / evidence (hooks), bot reports, trial / jury flow with 5 s tick, audience, bounty board (empty list as C#). Arrests, authenticated jury choices, guilty pleas, acquittals, court cleanup and reconnect jail enforcement have packet-flow regressions; prisoner buffs persist remaining online time. |
 | `DominionData`, `Models/Game/Achievement`, rename / chat bubble / NPC chat / spam packets | `systems/social/{dominion,achievement}.rs`, `packets/misc.rs` | done (data + packets) | No C# manager drives them in 1.2. |
+| `RankingGameData` (later C# history), 1.2 ranking packets | `systems/social/ranking_{data,packets,runtime,manager,persistence}.rs` | done (arena + fishing boards) | Not in the 1.2 C#; Rust only. Request path, MySQL persistence (`character_rank_scores`, `rank_period_payouts`), score hooks and period-close reward letters: see "Ranking boards" under Known deviations. |
 | `RadarManager` | – | not social | Telescope / fish school registration from buff templates: skills / npcs. |
 
 Cross-subsystem calls: wired in phase 3b (see "Phase 3b wiring": trial court doodads / NPCs after the spawns, `SocialHooks` by social itself, crime evidence / arrests / team and duel queries from skills, loot rules from economy, court checks in portals and instances, `force_dismount` through vehicles). Still open: teleports -> `session::on_moved` (C# `Character.SetPosition` -> `TeamManager.UpdatePosition`; plain movement does not call it in C# either).
@@ -1062,6 +1063,27 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   `ScheduleData` also builds the `quest -> schedules` map the C# left as `//TODO: quests data`
   in `LoadGameScheduleSpawnersData` and exposes `period_status_quest`.
 
+* systems::npcs (2026-10-15): the schedule items (event timer bar) are live
+  (`schedule_item_session.rs`, `schedule_item_packets.rs`); the 1.2 C# never sent or took them,
+  so this follows the 5.0 C# (`CSTakeScheduleItemPacket`, `SCScheduleItemSentPacket`) and the 1.2
+  client. World entry (`CSNotifyInGame`) joins the account session and sends
+  `SCScheduleItemUpdatePacket` (0x1eb); a 60 s tick credits the account clock and re-sends the list
+  only to characters whose rows changed (progress, a window opening / closing, a daily reset or a
+  take through another character of the account); leaving the world credits the open interval
+  first. The take is `CSTakeScheduleItemPacket` (**0x13b**, one `u32` schedule row id; the opcode
+  and body were read off the 1.2 `x2game.dll` Lua binding: it builds a packet object with opcode
+  field `0x13b` and the id at `+0xc`, and `OnScheduleItemSent` reads a `u32` plus a `u8`). It
+  reserves, hands the reward over (bag if the whole stack fits, otherwise one `SYS_EXPRESS`
+  letter, like the achievement rewards) and only then records the receipt, all under the economy
+  `ops_lock`, so a window pays once; a failed hand-over leaves the term ready. The answer is
+  `SCScheduleItemSentPacket` (0x151: `u32` schedule id, `u8` by-mail), followed by a fresh list.
+  Deviations / unverified: the take packet's body width is inferred (the serializer writes the
+  field through a generic stream call whose width was not traced; it matches the 5.0 C#);
+  eligibility is `paid_patron` = the connection payment state (premium for every account) with no
+  premium grade and no PC-bang, so rows needing a specific grade or a PC-bang are never listed;
+  the progress is loaded at startup (`ScheduleItemManager::restore`) and saved inside the
+  financial snapshot transaction (`SaveManager`), not by the C# per-account saves.
+
 * systems::npcs (2026-10-14): a `DoodadFuncRatioRespawn` replacement initializes the new doodad
   synchronously (`Spawn` -> `InitDoodad` -> `DoPhaseFuncs`), so a cyclic definition recursed
   without bound until the stack overflowed; the 1.2 compact data has five template pairs whose
@@ -1101,6 +1123,16 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   target is an NPC. The Rust port checked strict membership, which rejected every Detection Orb
   cast with result 93 ("Invalid target"). It now follows the zone server. Missing authored `tuto_move`,
   `public_farm*` and `public_mate*` paths also remain data gaps.
+
+### Ranking boards (Rust only)
+
+The 1.2 C# never answered `CSRankCharacterPacket` (empty, log-only) and has no `CSRankSnapshotPacket` (0x130, unnamed in the opcode tables, `ranking_packets.rs`). The Rust server answers both from a global store (`systems::social::ranking_manager`, `server.systems.social.ranking`):
+
+- **Requests.** 0x12f answers `SCRankCharacterPacket` (one row per supported board, zeros where the character has no score; `type_id` 0 because the request carries nothing to echo). 0x130 answers `SCRankSnapshotPacket` with the current period's standings (<= 100 lines); the racing board and unknown boards are not answered. The snapshot scope list stays empty (the raw scope figures are unresolved). The row's "account" string is the character name: the game database does not know the login account names. 0x130 is the one registration the C# registry-parity test exempts.
+- **Persistence.** `character_rank_scores` (one row per character, board and period) and `rank_period_payouts` (periods already paid), loaded at startup and upserted by every `SaveManager` pass (`AfterCharacters`). Every row is rewritten on each save (idempotent, so a rolled-back save loses nothing); `Character::ranking_state` is unused (standings need offline characters, so the store is global).
+- **Events.** The arena board scores at the end of an instant game (`instant_game::record_rankings`, once per game): win/lose/draw/invalid points are `game_rule_sets.rank_*_point` (only rule set 28, the gladiator duel in zone group 77: win 4, lose 1). Because `EndGame` leaves both corps `LOSE` when the timer runs out (mirrored C# bug), a timed-out duel scores both players as losers. The two fishing boards score each trophy fish a player lands (`fishing::record_catch`, from `DoodadFuncConvertFish` and the equipped-fish conversion) in the player's zone group; they only count inside the board's authored window, which ended in 2014, so on the shipped data no catch scores. The racing board is never recorded.
+- **Period close.** A once-a-minute task (first tick at start-up) mails every closed, unpaid period: place -> `rank_scope_links` band -> `rank_rewards` item (count and grade as authored) as a `SYS_EXPRESS` letter (offline winners included), then `SCRankRewardMailPacket` to online winners. The period is marked paid before the letters are built, inside the economy operation gate; a crash between the letters and the next save can therefore lose (never duplicate) the mark. `rank_rewards.weeks` (how long the reward lasts) and appellation rewards (none authored) are not applied.
+- **Not sent.** `SCRankAlarmPacket` (0x205): only the fishing contest authors alarms (`start_time_alarm` -5 / `end_time_alarm` 0 and message strings), that board ended in 2014 and the packet's `kind` / `rank_alarm_kind` values are unresolved, so no trigger is invented.
 
 ## Live testing (phase 5): fixes and deliberate deviations
 
@@ -1417,7 +1449,7 @@ Additional world-side fixes from the same audit:
 * Mate pool and regeneration formulas now receive the complete attribute parameter set plus
   mate kind. Real 1.2 level-five horse formulas produce 1,012 maximum HP and 335 maximum MP;
   the old incomplete parameter map failed and produced zero maximum pools. Summoning clamps
-  saved pools to the computed maximum and preserves injured, exhausted and dead saves. Mate
+  saved pools to the computed maximum and preserves injured and exhausted saves. Mate
   skill requests require ownership or an actual server-managed passenger/parent relation
   before charging resources. The slave child-cannon versus parent-caster mapping remains
   unverified and is not tightened by this mate-only rule.
@@ -1425,6 +1457,26 @@ Additional world-side fixes from the same audit:
   mounting, dismounting and dismissal/resummoning passed. The native Run! action was not
   exercised because the captured pet button had no key binding and its Lua click handler
   only dismissed a tooltip; server cast permission flows are tested separately.
+* Dead mates and the stablehand revive (not in the C#, which only logged
+  `CSRepairPetItemsPacket` and never marked a mate dead). The 1.2 `SummonMate` item detail is
+  `exp i32, dead u8, level u8` (`ItemDetails::mate_dead`, persisted in the details blob). When a
+  mate dies (`vehicles::on_death_event` -> `mates::on_death`) the summon item gets the dead flag
+  (plus the mate's live level/exp, from which the client prices the revive), the `mates` row
+  loses its HP, and the owner receives `SCItemTaskSuccess(MateDeath, ItemUpdate)` and
+  `MATE_DEAD`; a repeated death/dismissal sends nothing again. The corpse stays in the world
+  until dismissed. The client never checks the flag, so `spawn_mount` refuses a flagged item or
+  a saved zero-HP row (a legacy row gets the flag then) with `MATE_CANNOT_SPAWN_WHILE_CORPSE`.
+  The stabler dialog (`X2:GetTotalRepairsForPetItems`) sends `CSRepairPetItemsPacket(npc)`, now
+  handled by `mates::revive_pet_items`: the npc must be the current interaction object, a
+  stabler and within 5 m (`TOO_FAR_AWAY`); every flagged `SummonMate` item in bag and bank is
+  revived for `floor(0.5 * level + level^2.3 + 0.5)` copper each (detail level), refused with
+  `MATE_CANNOT_REPAIR_WHILE_CORPSE` while one of those mates is still summoned and with
+  `NOT_ENOUGH_MONEY` when the bag money does not cover the total. A revive charges the money
+  (`DepositMoney` task), clears the flags, restores the rows to the new-mate pool values
+  (`MATE_FULL_POOL` 9999, clamped to the computed maximum at the next summon, i.e. full HP/MP)
+  and sends `SCItemTaskSuccess(RepairPets, ItemUpdate...)` + `MATE_RESURRECTED`. The old
+  blacksmith repair of `EQUIPMENT_MATE` gear on this opcode was wrong (the client only sends it
+  to stablers) and is removed.
 * Character persistence saves `reported_as_bot_count` as well as `bot_reported_count`; the
   former was read but omitted from REPLACE, resetting the reported character's counter on
   every save. A private-MySQL temporary-table test covers repeated saves and adjacent fields.
@@ -1532,3 +1584,26 @@ commit acknowledgement preserves newer dirty rows/deletions. The wiki audits
 record targeted tests, MySQL rollback/reload and the real 1.2 client evidence,
 including GM fixture setup and remaining authored content/review limitations.
 See Docs/wiki/Quest-Audit.md and Docs/wiki/Mail-Audit.md.
+
+## Achievement producers (live wiring)
+
+The achievement subsystem has no 1.2 C# manager; the behaviour follows `rust/docs/achievement-hook-audit.txt`
+(which lists every record kind, its producer and what is still unwired). Deliberate choices:
+
+* **Entry snapshot** runs from `CSNotifyInGamePacket` (after the trial login step): back-credit, the
+  `SCAchievementsPacket` list, then pending rewards.
+* **Producers** report through `systems::report_achievement(s)` (`server.systems.hooks.achievements`).
+  The economy operation lock is not re-entrant, so events raised while the thread holds it (an
+  `ItemTxn`, a quest operation) are queued and flushed when it is released; events raised under the
+  team / family / expedition managers' own locks use `refresh_achievements_later` and run when the
+  packet handler returns. `economy::OpsGuard` tracks the holding thread.
+* **Repeatable quests** (kinds 27/28) credit +1 per completed run on top of the entry back-credit of 1
+  per distinct quest (audit Q3). Category counts therefore count repeats live.
+* **ENCHANT_FAILURE** credits only a plain FAIL result; BREAK and DOWNGRADE are not proven to be "failures"
+  (Q4). **GET_LOOTPACK** credits doodad loot packs only (Q6). **MAKE_HOUSING** credits the owner who
+  performs the last build action. **Auction** and **jury** credits go to online characters only.
+* **GET_FACTION** is state-derived (entry back-credit plus the crossing of the infamy threshold in
+  `CrimeManager::add_crime_points`); other faction changes do not credit (Q8).
+* **GET_ITEM_TYPE (k29), KILL_SLAVE (k26), MY_DISHONORABLE_POINT (k49), siege results (k57-60)** stay
+  unwired (see the audit for why). `SCAchievementResetedPacket` (0x1ff) has no 1.2 trigger and is
+  deliberately never sent.

@@ -7,6 +7,8 @@
 use crate::models::house::{housing_permission, House};
 use crate::models::transform::PositionAndRotation;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{HouseRef, PlayerRef, WorldObject};
 
 use super::hooks::{
@@ -1623,6 +1625,18 @@ pub fn craft_building(
         manager::set_current_step(server, house, -1, false);
     } else {
         manager::add_build_action(server, house);
+        // MAKE_HOUSING: the owner's last build action finished the house (design id value1).
+        if owner == player.character_id && house.data().current_step == -1 {
+            crate::systems::report_achievement(
+                server,
+                player,
+                AchievementInput::Increment {
+                    kind_id: char_record_kind::MAKE_HOUSING,
+                    amount: 1,
+                    matcher: RecordMatch::Value1(template.id),
+                },
+            );
+        }
     }
     let packet = {
         let h = house.data();

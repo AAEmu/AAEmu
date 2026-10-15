@@ -15,10 +15,11 @@
 //!   the ordering logic independent of wherever those states are kept (a manager, a future
 //!   score store, the tests here).
 //!
-//! Deliberately not here yet: SQL/persistence, packet handlers and registration, the hooks that
-//! feed arena results and catches in, reward payouts, the frozen standings of closed periods,
-//! and the scope figures of a snapshot (their raw meaning is unresolved, so the builder sends
-//! none rather than invent cutoffs or totals). The racing board is never recorded or shown.
+//! Deliberately not here: SQL/persistence, the request handlers, the hooks that feed arena
+//! results and catches in and the reward payouts — those are `ranking_manager` and
+//! `ranking_persistence`. Also unresolved: the scope figures of a snapshot (their raw meaning
+//! is unknown, so the builder sends none rather than invent cutoffs or totals). The racing board
+//! is never recorded or shown.
 //!
 //! # Periods and windows
 //!
@@ -165,6 +166,13 @@ impl RankingState {
     /// How many `(board, period)` scores are stored.
     pub fn len(&self) -> usize {
         self.scores.len()
+    }
+
+    /// Puts a stored score back (the load path of the ranking store). A score already held for
+    /// the same `(rank_id, period_start)` is replaced.
+    pub fn restore(&mut self, score: RankScore) {
+        self.scores
+            .insert((score.rank_id, score.period_start), score);
     }
 
     /// The stored score of one board in one period.
@@ -328,12 +336,7 @@ pub fn build_standings<'a>(
     period_start: i64,
     scores: impl IntoIterator<Item = &'a RankScore>,
 ) -> Vec<SCRankSnapshotEntry> {
-    let mut ranked: Vec<&RankScore> = scores
-        .into_iter()
-        .filter(|score| score.rank_id == board.id && score.period_start == period_start)
-        .collect();
-    ranked.sort_by(|a, b| standings_order(a, b));
-    ranked
+    ranked_scores(board, period_start, scores)
         .into_iter()
         .take(MAX_SNAPSHOT_ENTRIES)
         .enumerate()
@@ -437,6 +440,21 @@ pub fn period_or_last(board: &RankDefinition, moment: DateTime<Utc>) -> Option<R
     // The moment just before the authored end lies in the board's final period.
     let last = until.checked_sub_signed(TimeDelta::seconds(1))?;
     board.period_at(last)
+}
+
+/// Every score of one board in one period in standings order (place 1 first), uncapped — the
+/// payout reads the whole list, the snapshot caps it at [`MAX_SNAPSHOT_ENTRIES`].
+pub fn ranked_scores<'a>(
+    board: &RankDefinition,
+    period_start: i64,
+    scores: impl IntoIterator<Item = &'a RankScore>,
+) -> Vec<&'a RankScore> {
+    let mut ranked: Vec<&RankScore> = scores
+        .into_iter()
+        .filter(|score| score.rank_id == board.id && score.period_start == period_start)
+        .collect();
+    ranked.sort_by(|a, b| standings_order(a, b));
+    ranked
 }
 
 /// The board order: primary descending, secondary descending, earliest update, then character id.

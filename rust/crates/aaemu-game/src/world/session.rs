@@ -688,6 +688,8 @@ pub fn notify_in_game(server: &GameServer, conn: &mut GameConnection) {
     crate::systems::skills::stats::update_gear_bonuses(server, &p, None, None);
     crate::systems::dispatch_buff_events(server, &WorldObject::from(&p));
     crate::systems::social::session::on_notify_in_game_trial(server, &p);
+    crate::systems::social::session::on_notify_in_game_achievements(server, &p);
+    crate::systems::npcs::schedule_item_session::on_enter(server, &p);
     tracing::info!("NotifyInGame: {name} ({id})");
 }
 
@@ -1162,6 +1164,7 @@ pub async fn save_and_remove_from_world(server: &GameServer, active: Option<&Pla
         return;
     };
     server.save.remember_departing(p);
+    crate::systems::npcs::schedule_item_session::on_leave(server, p);
     let _transaction = server.save.transaction_lock().await;
     // Remove Radars (buff effect tasks: skills subsystem).
     server.systems.services.radar.unregister(p.character_id);

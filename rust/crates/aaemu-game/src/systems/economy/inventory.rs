@@ -58,7 +58,7 @@ impl ItemRules for GameServer {
 /// An item operation in progress (see the module docs).
 pub struct ItemTxn<'a> {
     pub server: &'a GameServer,
-    guard: Option<MutexGuard<'a, ()>>,
+    guard: Option<super::OpsGuard<'a>>,
     pub env: ItemEnv<'a>,
 }
 
@@ -110,8 +110,13 @@ impl Drop for ItemTxn<'_> {
     fn drop(&mut self) {
         let mut fx = self.env.take_fx();
         super::fx::flush_persistence(self.server, &mut fx);
-        self.guard.take();
+        // An unlocked transaction (quest locked hooks) may run under a character lock: only a
+        // transaction that held the operation lock is a safe point for the queued achievements.
+        let locked = self.guard.take().is_some();
         super::fx::flush(self.server, fx);
+        if locked {
+            crate::systems::flush_achievements(self.server);
+        }
     }
 }
 

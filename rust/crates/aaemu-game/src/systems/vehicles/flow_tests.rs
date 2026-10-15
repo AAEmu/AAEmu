@@ -20,12 +20,14 @@ use crate::models::item::Item;
 use crate::models::movement::{MoveKind, MoveType, VehicleMove};
 use crate::opcodes::sc;
 use crate::server::GameServer;
+use crate::systems::economy::error_message;
+use crate::systems::economy::hooks::{NpcEconomyHooks, NpcShopInfo};
 use crate::systems::npcs::doodad::spawner::{SimpleSpawnerDef, SpawnerBase};
 use crate::systems::npcs::npc::data::NpcTemplate;
 use crate::systems::skills::ext::ItemSkillHooks;
 use crate::systems::DataLoadCtx;
 use crate::test_support::*;
-use crate::world::{PlayerRef, WorldObject};
+use crate::world::{NpcRef, PlayerRef, WorldObject};
 
 use super::data::{
     attach_point, ShipyardStep, ShipyardTemplate, SlaveTemplate, TransferPath, TransferRoad,
@@ -180,6 +182,28 @@ fn body(frames: &[(u16, Vec<u8>)], op: u16) -> Vec<u8> {
         .clone()
 }
 
+/// `ItemTaskType.MateDeath` / `RepairPets` / `DepositMoney`.
+const MATE_DEATH_TASK: u8 = 59;
+const REPAIR_PETS_TASK: u8 = 58;
+
+/// The error codes of the `SCErrorMsgPacket`s in `frames`.
+fn error_codes(frames: &[(u16, Vec<u8>)]) -> Vec<i16> {
+    frames
+        .iter()
+        .filter(|f| f.0 == sc::SCErrorMsgPacket)
+        .map(|f| i16::from_le_bytes([f.1[0], f.1[1]]))
+        .collect()
+}
+
+/// The actions of the `SCItemTaskSuccessPacket`s in `frames`.
+fn task_actions(frames: &[(u16, Vec<u8>)]) -> Vec<u8> {
+    frames
+        .iter()
+        .filter(|f| f.0 == sc::SCItemTaskSuccessPacket)
+        .map(|f| f.1[0])
+        .collect()
+}
+
 fn bc(v: u32) -> Vec<u8> {
     v.to_le_bytes()[..3].to_vec()
 }
@@ -332,7 +356,7 @@ async fn mount_and_dismount_flow() {
 }
 
 #[tokio::test]
-async fn mate_summon_sends_attribute_pools_and_preserves_injured_exhausted_and_dead_saves() {
+async fn mate_summon_sends_attribute_pools_preserves_injured_saves_and_refuses_dead_ones() {
     use crate::net::registry::ClientPacket;
     let mut d = data();
     d.formulas = super::stats::tests::formulas(
@@ -362,7 +386,7 @@ async fn mate_summon_sends_attribute_pools_and_preserves_injured_exhausted_and_d
     client.drain();
     mates::spawn_mount(&server, &player, item_id);
     let manager = server.systems.vehicles.mates.get(0);
-    let mut mate = manager.get_active_mates(1).pop().unwrap();
+    let mate = manager.get_active_mates(1).pop().unwrap();
     {
         let mate = mate.data();
         assert_eq!(
@@ -383,44 +407,390 @@ async fn mate_summon_sends_attribute_pools_and_preserves_injured_exhausted_and_d
         .write_i32(335 * 100);
     assert_eq!(body(&frames, sc::SCUnitPointsPacket), points.as_bytes());
 
-    for (hp, mp) in [(117, 0), (0, 42)] {
-        {
-            let mut unit = mate.data();
-            unit.unit.hp = hp;
-            unit.unit.mp = mp;
-        }
-        let tl_id = mate.data().unit.tl_id;
-        super::packets::CSRemoveMatePacket { tl_id }
-            .handle(&server, &mut client.conn)
+    // An injured, exhausted mate comes back as saved.
+    let (hp, mp) = (117, 0);
+    {
+        let mut unit = mate.data();
+        unit.unit.hp = hp;
+        unit.unit.mp = mp;
+    }
+    let tl_id = mate.data().unit.tl_id;
+    super::packets::CSRemoveMatePacket { tl_id }
+        .handle(&server, &mut client.conn)
+        .await
+        .unwrap();
+    assert!(manager.get_active_mates(1).is_empty());
+    let stored = server.systems.vehicles.mates.character_mates(1).unwrap();
+    assert_eq!(
+        (
+            stored.get(item_id).unwrap().hp,
+            stored.get(item_id).unwrap().mp
+        ),
+        (hp, mp)
+    );
+    assert_eq!(
+        mates::owned_item(&server, &player, item_id)
+            .unwrap()
+            .details
+            .mate_dead,
+        0
+    );
+    client.drain();
+    mates::spawn_mount(&server, &player, item_id);
+    let restored = manager.get_active_mates(1).pop().unwrap();
+    {
+        let data = restored.data();
+        assert_eq!((data.unit.hp, data.unit.mp), (hp, mp));
+    }
+    let mut points = PacketStream::new();
+    points
+        .write_bc(restored.obj_id)
+        .write_i32(hp * 100)
+        .write_i32(mp * 100);
+    assert_eq!(
+        body(&client.drain(), sc::SCUnitPointsPacket),
+        points.as_bytes()
+    );
+
+    // A mate dismissed with zero HP is a dead one: the summon item is flagged (and the client
+    // told), the mate row keeps no HP and the next summon is refused.
+    {
+        let mut unit = restored.data();
+        unit.unit.hp = 0;
+        unit.unit.mp = 42;
+    }
+    let tl_id = restored.data().unit.tl_id;
+    super::packets::CSRemoveMatePacket { tl_id }
+        .handle(&server, &mut client.conn)
+        .await
+        .unwrap();
+    assert!(manager.get_active_mates(1).is_empty());
+    let stored = server.systems.vehicles.mates.character_mates(1).unwrap();
+    assert_eq!(
+        (
+            stored.get(item_id).unwrap().hp,
+            stored.get(item_id).unwrap().mp
+        ),
+        (0, 42)
+    );
+    assert_eq!(task_actions(&client.drain()), vec![MATE_DEATH_TASK]);
+    assert_eq!(
+        mates::owned_item(&server, &player, item_id)
+            .unwrap()
+            .details
+            .mate_dead,
+        1
+    );
+    mates::spawn_mount(&server, &player, item_id);
+    assert!(manager.get_active_mates(1).is_empty());
+    let frames = client.drain();
+    assert_eq!(
+        error_codes(&frames),
+        vec![error_message::MATE_CANNOT_SPAWN_WHILE_CORPSE]
+    );
+    assert!(!ops(&frames).contains(&sc::SCMateSpawnedPacket));
+}
+
+const STABLER_NPC: u32 = 901;
+const STABLER_OBJ: u32 = 0x300;
+
+/// Shop flags by template: only `STABLER_NPC` is a stabler.
+struct StablerHook;
+impl NpcEconomyHooks for StablerHook {
+    fn shop_info(&self, _: &GameServer, npc: &NpcRef) -> Option<NpcShopInfo> {
+        Some(NpcShopInfo {
+            stabler: npc.data().unit.template_id == STABLER_NPC,
+            ..Default::default()
+        })
+    }
+}
+
+fn spawn_npc_at(server: &GameServer, obj_id: u32, template: u32, x: f32, y: f32) -> NpcRef {
+    let npc = crate::systems::npcs::npc::manager::create(server, obj_id, template).expect("npc");
+    npc.data().unit.transform.set_xyz(x, y, 100.0);
+    server
+        .world
+        .world(0)
+        .unwrap()
+        .spawn(&npc, &server.view_ctx());
+    npc
+}
+
+/// A player (12 000 copper, living) with a summoned mate that was just killed by an NPC, and a
+/// stabler 2 m away that is not yet the interaction object.
+struct DeadMate {
+    server: Arc<GameServer>,
+    client: TestClient,
+    player: PlayerRef,
+    item_id: u64,
+    mate: crate::world::MateRef,
+    stabler: NpcRef,
+}
+
+fn dead_mate() -> DeadMate {
+    let mut d = data();
+    d.systems.npcs.npc.templates.insert(
+        STABLER_NPC,
+        NpcTemplate {
+            id: STABLER_NPC,
+            name: "Stablehand".into(),
+            level: 1,
+            ..NpcTemplate::default()
+        },
+    );
+    let server = server_with(d);
+    server
+        .systems
+        .economy
+        .hooks
+        .npcs
+        .install(Arc::new(StablerHook));
+    let mut client = TestClient::new(&server, 1, 1);
+    let (player, item_id) = player_with_item(&server, &client, 1, PA, (100.0, 100.0), MATE_ITEM);
+    {
+        let mut c = player.data();
+        c.unit.hp = 1000;
+        c.unit.max_hp = 1000;
+        c.money = 12_000;
+    }
+    client.conn.active_char = Some(player.clone());
+    let stabler = spawn_npc_at(&server, STABLER_OBJ, STABLER_NPC, 102.0, 100.0);
+    let killer = spawn_npc_at(&server, 0x200, MATE_NPC, 110.0, 110.0);
+    mates::spawn_mount(&server, &player, item_id);
+    let mate = mates::first_active_mate(&server, &player).expect("active mate");
+    client.drain();
+    crate::systems::skills::combat::reduce_current_hp(
+        &server,
+        &WorldObject::from(&mate),
+        Some(&WorldObject::from(&killer)),
+        1_000_000,
+        crate::systems::skills::types::KillReason::Damage,
+    );
+    assert_eq!(mate.data().unit.hp, 0);
+    DeadMate {
+        server,
+        client,
+        player,
+        item_id,
+        mate,
+        stabler,
+    }
+}
+
+impl DeadMate {
+    fn dismiss(&mut self) {
+        let tl = u32::from(self.mate.data().unit.tl_id);
+        mates::despawn_mate(&self.server, &self.player, tl);
+        self.client.drain();
+    }
+
+    async fn revive_at(&mut self, npc_obj_id: u32) -> Vec<(u16, Vec<u8>)> {
+        use crate::net::registry::ClientPacket;
+        crate::systems::economy::mate_equipment::CSRepairPetItemsPacket { npc_id: npc_obj_id }
+            .handle(&self.server, &mut self.client.conn)
             .await
             .unwrap();
-        assert!(manager.get_active_mates(1).is_empty());
-        let stored = server.systems.vehicles.mates.character_mates(1).unwrap();
-        assert_eq!(
-            (
-                stored.get(item_id).unwrap().hp,
-                stored.get(item_id).unwrap().mp
-            ),
-            (hp, mp)
-        );
-        client.drain();
-        mates::spawn_mount(&server, &player, item_id);
-        let restored = manager.get_active_mates(1).pop().unwrap();
-        {
-            let data = restored.data();
-            assert_eq!((data.unit.hp, data.unit.mp), (hp, mp));
-        }
-        let mut points = PacketStream::new();
-        points
-            .write_bc(restored.obj_id)
-            .write_i32(hp * 100)
-            .write_i32(mp * 100);
-        assert_eq!(
-            body(&client.drain(), sc::SCUnitPointsPacket),
-            points.as_bytes()
-        );
-        mate = restored;
+        self.client.drain()
     }
+
+    fn item(&self) -> Item {
+        mates::owned_item(&self.server, &self.player, self.item_id).unwrap()
+    }
+
+    fn row(&self) -> mates::MateDb {
+        let cm = self
+            .server
+            .systems
+            .vehicles
+            .mates
+            .character_mates(1)
+            .unwrap();
+        cm.get(self.item_id).cloned().unwrap()
+    }
+}
+
+#[test]
+fn mate_revive_cost_follows_the_client_formula() {
+    assert_eq!([0, 1, 5, 55].map(mates::revive_cost), [0, 2, 43, 10_093]);
+}
+
+#[tokio::test]
+async fn a_killed_mate_flags_its_item_once_and_cannot_be_summoned_until_revived() {
+    let mut t = dead_mate();
+    let f = t.client.drain();
+    // The death hook: MateDeath item task (byte-exact ItemUpdate of the flagged item) + MATE_DEAD.
+    let item = t.item();
+    assert_eq!(item.details.mate_dead, 1);
+    assert_eq!(item.details.mate_level, 1);
+    assert!(item.dirty);
+    let mut expect = PacketStream::new();
+    aaemu_commons::Marshal::write(
+        &crate::systems::economy::item_packets::SCItemTaskSuccessPacket {
+            action: MATE_DEATH_TASK,
+            tasks: vec![crate::models::item_task::ItemTask::update(&item)],
+            force_remove: Vec::new(),
+        },
+        &mut expect,
+    );
+    let frames: Vec<_> = f
+        .iter()
+        .filter(|x| x.0 == sc::SCItemTaskSuccessPacket)
+        .collect();
+    assert_eq!(frames.len(), 1, "{:x?}", ops(&f));
+    assert_eq!(frames[0].1, expect.as_bytes());
+    assert_eq!(error_codes(&f), vec![error_message::MATE_DEAD]);
+    assert_eq!(t.row().hp, 0);
+
+    // Idempotent: another death notice, and the dismissal that snapshots hp 0, send nothing new.
+    mates::on_death(&t.server, &t.mate);
+    assert!(t.client.drain().is_empty());
+    t.dismiss();
+    assert!(t
+        .server
+        .systems
+        .vehicles
+        .mates
+        .get(0)
+        .get_active_mates(1)
+        .is_empty());
+    mates::spawn_mount(&t.server, &t.player, t.item_id);
+    let f = t.client.drain();
+    assert_eq!(
+        error_codes(&f),
+        vec![error_message::MATE_CANNOT_SPAWN_WHILE_CORPSE]
+    );
+    assert!(task_actions(&f).is_empty());
+    assert!(t
+        .server
+        .systems
+        .vehicles
+        .mates
+        .get(0)
+        .get_active_mates(1)
+        .is_empty());
+}
+
+#[tokio::test]
+async fn a_stabler_revives_dead_mates_for_the_client_price() {
+    let mut t = dead_mate();
+    t.dismiss();
+    t.player.data().unit.current_interaction_object = t.stabler.obj_id;
+    let frames = t.revive_at(STABLER_OBJ).await;
+    // Level 1: floor(0.5 + 1 + 0.5) = 2 copper, as a money task, then the item update, then the
+    // MATE_RESURRECTED message.
+    assert_eq!(t.player.data().money, 12_000 - 2);
+    let item = t.item();
+    assert_eq!(item.details.mate_dead, 0);
+    assert!(item.dirty);
+    let mut expect = PacketStream::new();
+    aaemu_commons::Marshal::write(
+        &crate::systems::economy::item_packets::SCItemTaskSuccessPacket {
+            action: REPAIR_PETS_TASK,
+            tasks: vec![crate::models::item_task::ItemTask::update(&item)],
+            force_remove: Vec::new(),
+        },
+        &mut expect,
+    );
+    let o = ops(&frames);
+    assert_eq!(
+        o,
+        vec![
+            sc::SCItemTaskSuccessPacket,
+            sc::SCItemTaskSuccessPacket,
+            sc::SCErrorMsgPacket
+        ]
+    );
+    assert_eq!(frames[1].1, expect.as_bytes());
+    assert_eq!(error_codes(&frames), vec![error_message::MATE_RESURRECTED]);
+    let row = t.row();
+    assert_eq!(
+        (row.hp, row.mp),
+        (mates::MATE_FULL_POOL, mates::MATE_FULL_POOL)
+    );
+
+    // The revived mate can be summoned again, alive.
+    mates::spawn_mount(&t.server, &t.player, t.item_id);
+    let mate = mates::first_active_mate(&t.server, &t.player).expect("summoned");
+    let d = mate.data();
+    assert!(d.unit.hp > 0 && d.unit.hp == d.unit.max_hp);
+    assert!(d.unit.mp > 0);
+}
+
+#[tokio::test]
+async fn a_legacy_zero_hp_row_is_flagged_on_the_summon_attempt() {
+    let mut t = dead_mate();
+    t.dismiss();
+    // Pre-flag state: zero HP row, flag not set.
+    mates::update_owned_item(&t.server, Some(&t.player), t.item_id, |i| {
+        i.details.mate_dead = 0;
+    });
+    mates::spawn_mount(&t.server, &t.player, t.item_id);
+    let f = t.client.drain();
+    assert_eq!(task_actions(&f), vec![MATE_DEATH_TASK]);
+    assert_eq!(
+        error_codes(&f),
+        vec![error_message::MATE_CANNOT_SPAWN_WHILE_CORPSE]
+    );
+    assert_eq!(t.item().details.mate_dead, 1);
+    assert!(t
+        .server
+        .systems
+        .vehicles
+        .mates
+        .get(0)
+        .get_active_mates(1)
+        .is_empty());
+}
+
+#[tokio::test]
+async fn mate_revive_is_refused_without_a_stabler_interaction_or_while_the_corpse_is_summoned() {
+    let mut t = dead_mate();
+    t.client.drain();
+    // The corpse is still summoned.
+    t.player.data().unit.current_interaction_object = t.stabler.obj_id;
+    let f = t.revive_at(STABLER_OBJ).await;
+    assert_eq!(
+        error_codes(&f),
+        vec![error_message::MATE_CANNOT_REPAIR_WHILE_CORPSE]
+    );
+    assert_eq!(t.item().details.mate_dead, 1);
+    assert_eq!(t.player.data().money, 12_000);
+    t.dismiss();
+
+    // Not the current interaction object.
+    t.player.data().unit.current_interaction_object = 0;
+    assert!(t.revive_at(STABLER_OBJ).await.is_empty());
+    // An unknown object.
+    t.player.data().unit.current_interaction_object = 0x999;
+    assert!(t.revive_at(0x999).await.is_empty());
+    // An NPC that is not a stabler.
+    let other = spawn_npc_at(&t.server, 0x301, MATE_NPC, 101.0, 100.0);
+    t.client.drain();
+    t.player.data().unit.current_interaction_object = other.obj_id;
+    assert!(t.revive_at(other.obj_id).await.is_empty());
+    // A stabler out of reach.
+    t.player.data().unit.current_interaction_object = t.stabler.obj_id;
+    t.stabler.data().unit.transform.set_xyz(160.0, 100.0, 100.0);
+    let f = t.revive_at(STABLER_OBJ).await;
+    assert_eq!(error_codes(&f), vec![error_message::TOO_FAR_AWAY]);
+    t.stabler.data().unit.transform.set_xyz(102.0, 100.0, 100.0);
+
+    // Not enough money.
+    t.player.data().money = 1;
+    let f = t.revive_at(STABLER_OBJ).await;
+    assert_eq!(error_codes(&f), vec![error_message::NOT_ENOUGH_MONEY]);
+    assert!(task_actions(&f).is_empty());
+
+    assert_eq!(t.player.data().money, 1);
+    assert_eq!(t.item().details.mate_dead, 1);
+    assert_eq!(t.row().hp, 0);
+
+    // Nothing dead (a second request after the revive) does nothing.
+    t.player.data().money = 100;
+    assert!(!t.revive_at(STABLER_OBJ).await.is_empty());
+    assert_eq!(t.player.data().money, 98);
+    assert!(t.revive_at(STABLER_OBJ).await.is_empty());
+    assert_eq!(t.player.data().money, 98);
 }
 
 #[tokio::test]

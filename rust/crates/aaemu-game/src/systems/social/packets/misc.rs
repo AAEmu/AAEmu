@@ -249,7 +249,8 @@ cs_packet!(
     }
 );
 
-// ---- Achievements (no achievement manager in the 1.2 C#: none of these is sent) ----
+// ---- Achievements (no achievement manager in the 1.2 C#; the Rust manager sends all of these
+// except `SCAchievementResetedPacket`) ----
 
 sc_packet!(
     /// `SCAchievementsPacket(achievements)`: i32 count, then id / amount / complete (the C#
@@ -295,7 +296,8 @@ sc_packet!(
 
 sc_packet!(
     /// `SCAchievementResetedPacket(id, amount)` (+ `DateTime.UtcNow`, see
-    /// [`SCAchievementResetedPacket::new`]).
+    /// [`SCAchievementResetedPacket::new`]). Deliberately never sent: no 1.2 content resets an
+    /// achievement (records are high-water marks and completions are one-way).
     SCAchievementResetedPacket { id: u32, amount: i32, complete: DateTime<Utc> } |self, s| {
         s.write_u32(self.id)
             .write_i32(self.amount)

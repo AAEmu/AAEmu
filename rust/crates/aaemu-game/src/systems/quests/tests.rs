@@ -544,6 +544,78 @@ fn cs_quest_packets_decode() {
 // ----- state machine -----
 
 #[tokio::test]
+async fn completing_a_quest_credits_the_quest_achievements() {
+    use crate::systems::social::achievement::char_record_kind;
+    use crate::systems::social::achievement_flow_tests::{
+        achievement_ops, one_achievement, player_of,
+    };
+    let mut d = QuestData::default();
+    main_quest(&mut d);
+    d.finish();
+    let mut data = GameData::empty();
+    data.systems.quests = d;
+    // Quest 100 completed once completes achievement 1 (COMPLETE_QUEST_TYPE, value1 = quest id).
+    data.systems.social.achievements =
+        one_achievement(1, 1, 0, 10, char_record_kind::COMPLETE_QUEST_TYPE, 100, 0);
+    let server = Arc::new(test_server_with(data));
+    server.set_self();
+    let rec = Arc::new(Rec::default());
+    server.systems.quests.hooks.install(rec.clone());
+    crate::systems::social::install_hooks(&server);
+    let (mut client, player) = player_of(&server);
+    let env = || QuestEnv {
+        target: Some(UnitSnapshot {
+            obj_id: 0x200,
+            npc_template_id: Some(500),
+            is_unit: true,
+            base_unit_type: 1,
+            ..UnitSnapshot::default()
+        }),
+        ..QuestEnv::default()
+    };
+    player.data().unit.current_target = 0x200;
+    let quests = &server.systems.quests;
+
+    // With a player the evaluations go through the manager's queue.
+    events::with_quests(&server, &player, Some(env()), |ctx| {
+        assert!(ctx.add_quest(100, false, acceptor::NPC, 500));
+    })
+    .expect("not nested");
+    quests.run_queued_evaluations(&server);
+    events::with_quests(&server, &player, Some(env()), |ctx| {
+        for npc_id in [600, 601, 600] {
+            ctx.dispatch(&QuestEvent::MonsterHunt { npc_id, count: 1 })
+                .unwrap();
+        }
+    })
+    .expect("not nested");
+    quests.run_queued_evaluations(&server);
+    // Nothing is credited before the quest is turned in.
+    assert!(achievement_ops(client.drain_ops()).is_empty());
+
+    events::with_quests(&server, &player, Some(env()), |ctx| {
+        ctx.dispatch(&QuestEvent::ReportNpc {
+            quest_id: 100,
+            npc_id: 500,
+            selected: 1,
+        })
+        .unwrap();
+    })
+    .expect("not nested");
+    quests.run_queued_evaluations(&server);
+    assert!(player.data().quests.completed.iter().any(|c| c.id == 1));
+
+    assert_eq!(
+        achievement_ops(client.drain_ops()),
+        [
+            sc::SCAchievementChangedPacket,
+            sc::SCAchievementCompletedPacket
+        ]
+    );
+    assert!(player.data().achievement_state.is_complete(1));
+}
+
+#[tokio::test]
 async fn full_quest_lifecycle_on_data() {
     let (server, rec) = server_with(main_quest);
     let mut c = character();

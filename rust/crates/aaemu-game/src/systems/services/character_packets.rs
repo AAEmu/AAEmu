@@ -252,10 +252,29 @@ log_only_packet!(CSEditorGameModePacket, debug, |s| {
     let _z = s.read_f32()?;
     format!(", On: {on}")
 });
-log_only_packet!(CSRankCharacterPacket, debug, |s| {
-    let _ = s;
-    String::new()
-});
+/// `CSRankCharacterPacket` (empty body): the client's own ranking rows, answered with
+/// `SCRankCharacterPacket` (`systems::social::ranking_manager`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CSRankCharacterPacket;
+
+impl ClientPacket for CSRankCharacterPacket {
+    const NAME: &'static str = "CSRankCharacterPacket";
+
+    fn read(_s: &mut PacketStream) -> Result<Self> {
+        Ok(Self)
+    }
+
+    fn handle<'a>(
+        self,
+        server: &'a GameServer,
+        conn: &'a mut GameConnection,
+    ) -> BoxFuture<'a, Result<()>> {
+        Box::pin(async move {
+            crate::systems::social::ranking_manager::handle_rank_character(server, conn);
+            Ok(())
+        })
+    }
+}
 log_only_packet!(CSRequestPermissionToPlayCinemaForDirectingMode, warn, |s| {
     let _quest_context_id = s.read_u32()?;
     let _npc = s.read_bc()?;

@@ -337,6 +337,11 @@ impl AccountScheduleProgress {
         self.sessions.len()
     }
 
+    /// The in-world characters of this account, in character id order.
+    pub fn online_character_ids(&self) -> Vec<u32> {
+        self.sessions.keys().copied().collect()
+    }
+
     /// The account accrual clock: the last sampled in-world second, or `0` when nobody is online.
     pub fn account_clock(&self) -> i64 {
         self.clock

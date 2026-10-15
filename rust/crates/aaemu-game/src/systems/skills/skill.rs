@@ -11,6 +11,8 @@ use rand::Rng;
 use crate::models::transform::PositionAndRotation;
 use crate::models::unit::SkillAttribute;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{now_ms, WorldObject};
 
 use super::buffs;
@@ -1734,6 +1736,20 @@ pub fn end_skill(server: &GameServer, skill: &SkillRef, caster: &WorldObject) {
     broadcast(server, caster, &SCSkillEndedPacket { tl }, true);
     server.systems.skills.tl_ids.release(tl);
     reset_cooldown_if_ignored(server, skill, caster);
+    // USE_SKILL: one completed (not cancelled) cast.
+    if let Some(p) = caster.as_player() {
+        if !skill.cancelled() {
+            crate::systems::report_achievement(
+                server,
+                p,
+                AchievementInput::Increment {
+                    kind_id: char_record_kind::USE_SKILL,
+                    amount: 1,
+                    matcher: RecordMatch::Value1(t.id),
+                },
+            );
+        }
+    }
 }
 
 fn reset_cooldown_if_ignored(server: &GameServer, skill: &SkillRun, caster: &WorldObject) {

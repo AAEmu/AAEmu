@@ -560,6 +560,16 @@ pub struct BattlefieldData {
     pub battlefields: HashMap<u32, Battlefield>,
 }
 
+/// A `game_rule_sets.rank_*_point` column: `0` when the table has no such column or the value is
+/// NULL.
+fn rank_point(r: &crate::data::sqlite::SqlRow<'_, '_>, col: &str) -> rusqlite::Result<i32> {
+    if r.has(col) {
+        r.i32_or(col, 0)
+    } else {
+        Ok(0)
+    }
+}
+
 impl BattlefieldData {
     /// `GetBattlefield(id)`.
     pub fn battlefield(&self, id: u32) -> Option<&Battlefield> {
@@ -651,26 +661,11 @@ impl BattlefieldData {
                 } else {
                     0
                 },
-                rank_invalid_point: if r.has("rank_invalid_point") {
-                    r.i32_or("rank_invalid_point", 0)?
-                } else {
-                    0
-                },
-                rank_win_point: if r.has("rank_win_point") {
-                    r.i32_or("rank_win_point", 0)?
-                } else {
-                    0
-                },
-                rank_lose_point: if r.has("rank_lose_point") {
-                    r.i32_or("rank_lose_point", 0)?
-                } else {
-                    0
-                },
-                rank_draw_point: if r.has("rank_draw_point") {
-                    r.i32_or("rank_draw_point", 0)?
-                } else {
-                    0
-                },
+                // The ranking columns are optional (hand-built test schemas omit them).
+                rank_invalid_point: rank_point(r, "rank_invalid_point")?,
+                rank_win_point: rank_point(r, "rank_win_point")?,
+                rank_lose_point: rank_point(r, "rank_lose_point")?,
+                rank_draw_point: rank_point(r, "rank_draw_point")?,
                 time_unearned_win: if r.has("time_unearned_win") {
                     r.i32_or("time_unearned_win", 0)?
                 } else {

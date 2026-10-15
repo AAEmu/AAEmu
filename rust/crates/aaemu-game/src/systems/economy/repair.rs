@@ -15,6 +15,8 @@ use crate::net::packet::LEVEL_PLAIN;
 use crate::net::registry::PacketRegistry;
 use crate::opcodes::cs;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{PlayerRef, WorldObject};
 
 use super::error_message;
@@ -34,6 +36,7 @@ pub struct RepairTarget {
 pub fn do_repair(server: &GameServer, player: &PlayerRef, items: &[Option<RepairTarget>]) {
     let inv = Inv::of(player);
     let repaired = repair_in_containers(server, player, items, &[inv.bag(), inv.equipment()]);
+    report_repaired(server, player, repaired.len());
     if let Some(hooks) = server.systems.economy.hooks.gear.get() {
         for (item, was_destroyed) in repaired {
             if was_destroyed && item.slot_type == slot_type::EQUIPMENT {
@@ -43,64 +46,17 @@ pub fn do_repair(server: &GameServer, player: &PlayerRef, items: &[Option<Repair
     }
 }
 
-/// The native repair-pet button (10.x `sub_399093D0`) sends its current blacksmith's obj id.
-/// Use the 1.2 equipment containers and repair task format, including unsummoned mates.
-pub fn repair_pet_items(server: &GameServer, player: &PlayerRef, npc_id: u32) {
-    if npc_id == 0 || player.data().unit.current_interaction_object != npc_id {
-        return;
-    }
-    let owner_id = player.character_id;
-    let containers: Vec<_> = server
-        .items
-        .all_containers()
-        .into_iter()
-        .filter(|c| {
-            let c = c.lock().expect("container poisoned");
-            c.owner_id == owner_id && c.slot_type == slot_type::EQUIPMENT_MATE
-        })
-        .collect();
-    let items: Vec<_> = containers
-        .iter()
-        .flat_map(|c| {
-            c.lock()
-                .expect("container poisoned")
-                .items
-                .iter()
-                .map(|i| Some(RepairTarget { item_id: i.id }))
-                .collect::<Vec<_>>()
-        })
-        .collect();
-    let repaired = repair_in_containers(server, player, &items, &containers);
-    let Some(world) = server.world.world_of(&WorldObject::from(player)) else {
-        return;
-    };
-    for obj in world.all_of_kind(crate::world::ObjectKind::Mate) {
-        let Some(mate) = obj.as_mate() else {
-            continue;
-        };
-        let owned = mate.data().owner_obj_id == player.obj_id;
-        if !owned {
-            continue;
-        }
-        for (item, was_destroyed) in &repaired {
-            let updated = {
-                let mut m = mate.data();
-                let mut updated = false;
-                for equipped in m.equipment.iter_mut().flatten() {
-                    if equipped.id == item.id {
-                        *equipped = item.clone();
-                        updated = true;
-                    }
-                }
-                updated
-            };
-            if updated && *was_destroyed {
-                if let Some(hooks) = server.systems.economy.hooks.gear.get() {
-                    hooks.update_gear_bonuses(server, &obj, Some(item), None);
-                }
-            }
-        }
-    }
+/// ITEM_FIX achievement credit: `count` items were actually repaired.
+fn report_repaired(server: &GameServer, player: &PlayerRef, count: usize) {
+    crate::systems::report_achievement(
+        server,
+        player,
+        AchievementInput::Increment {
+            kind_id: char_record_kind::ITEM_FIX,
+            amount: count as i64,
+            matcher: RecordMatch::Any,
+        },
+    );
 }
 
 fn repair_in_containers(

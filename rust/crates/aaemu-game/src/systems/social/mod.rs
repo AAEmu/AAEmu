@@ -31,7 +31,9 @@ pub mod friend;
 pub mod hooks;
 pub mod packets;
 pub mod ranking_data;
+pub mod ranking_manager;
 pub mod ranking_packets;
+pub mod ranking_persistence;
 pub mod ranking_runtime;
 pub mod session;
 pub mod team;
@@ -40,11 +42,15 @@ pub mod util;
 pub mod zone_conflict;
 
 #[cfg(test)]
+pub(crate) mod achievement_flow_tests;
+#[cfg(test)]
 mod achievement_game_data_tests;
 #[cfg(test)]
 mod flow_tests;
 #[cfg(test)]
 mod manager_tests;
+#[cfg(test)]
+pub(crate) mod ranking_flow_tests;
 #[cfg(test)]
 mod trial_flow_tests;
 
@@ -86,6 +92,8 @@ pub struct System {
     pub trials: trial::TrialManager,
     /// `ZoneManager.GetConflicts()` runtime state (`ZoneConflict`).
     pub conflicts: zone_conflict::ZoneConflictManager,
+    /// The ranking boards' score store (`ranking_manager`).
+    pub ranking: ranking_manager::RankingManager,
     /// Services other subsystems provide (`hooks::SocialHooks`).
     pub hooks: hooks::SocialHookSlot,
 }
@@ -109,6 +117,15 @@ impl System {
         server.systems.social.crimes.load(server).await?;
         server.systems.social.trials.load(server);
         trial::TrialManager::start_tick(server);
+        // Ranking scores (`character_rank_scores`) and the closed-period payout ledger.
+        server
+            .systems
+            .social
+            .ranking
+            .load(&server.db)
+            .await
+            .context("RankingManager")?;
+        ranking_manager::RankingManager::start_tick(server);
         Ok(())
     }
 
@@ -120,6 +137,9 @@ impl System {
         tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
         stage: SaveStage,
     ) -> crate::Result<usize> {
+        if matches!(stage, SaveStage::AfterCharacters) {
+            return self.ranking.save(tx).await;
+        }
         if matches!(stage, SaveStage::AfterItems) {
             // SaveManager.DoSave: `CrimeManager.Instance.Save(connection, transaction)`.
             let (updated, deleted) = self.crimes.save(tx).await?;
@@ -132,6 +152,7 @@ impl System {
 /// Registers this subsystem's C->S packets.
 pub fn register(reg: &mut PacketRegistry) {
     packets::register(reg);
+    ranking_manager::register(reg);
 }
 
 /// Installs the social subsystem's hooks (its implementations of the other subsystems' hooks

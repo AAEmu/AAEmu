@@ -12,6 +12,8 @@ use crate::systems::npcs::doodad::templates::{
     DoodadFuncBuyFish, DoodadFuncConsumeChanger, DoodadFuncLootItem, DoodadFuncLootPack,
     DoodadFuncPurchase, DoodadFuncRecoverItem, DoodadFuncRemoveItem,
 };
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::world::{PlayerRef, WorldObject};
 
 /// `SCUnitEquipmentsChangedPacket`: one definition per opcode (`crate::systems::economy::item_packets::SCUnitEquipmentsChangedPacket`).
@@ -91,6 +93,17 @@ pub fn loot_item(
     };
     if !res {
         send_error(player, err::BAG_INVALID_ITEM);
+    } else if f.item_id != ITEM_COINS {
+        // GET_LOOTITEM: the items granted by this loot roll.
+        crate::systems::report_achievement(
+            ctx.server,
+            player,
+            AchievementInput::Increment {
+                kind_id: char_record_kind::GET_LOOTITEM,
+                amount: i64::from(count),
+                matcher: RecordMatch::Value1(f.item_id),
+            },
+        );
     }
     // Move to next phase only when loot was actually granted.
     set_to_next_phase(ctx, res);
