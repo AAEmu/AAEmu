@@ -816,7 +816,7 @@ struct MateView {
 /// interact with the stablehand, revive request, re-summon). Checks that do not stop the flow
 /// (item detail dead byte, refused summon, revive answers, re-summon alive) are recorded as
 /// failed steps and the run continues to the clean-up, so one run reports everything a server
-/// gets wrong. Needs a GM account (`/item add`, `/addgold`: access level 100, `/kill`: 50).
+/// gets wrong. Needs a GM account (`/item add`, `/gold add`: access level 100, `/kill`: 50).
 async fn mate_revive(
     game: &mut GameClient,
     cfg: &BotConfig,
@@ -852,7 +852,7 @@ async fn mate_revive(
         .map(|(_, id)| id)
         .context("item id missing")?;
     // 100 gold for the stablehand fee; the answer (if any) is not needed.
-    game.chat(0, "/addgold 100").await?;
+    game.chat(0, "/gold add self 100").await?;
     game.drain(Duration::from_millis(500), Duration::from_secs(3))
         .await?;
     r.var("mate_item_id", item_id);
@@ -1013,12 +1013,18 @@ async fn mate_revive(
         "stablehand obj {} (template {}) offers {skills:?}",
         stablehand.obj_id, stablehand.id
     );
+    // Informational only: the 1.2 client builds the stabler dialog from its own NPC data and
+    // sends `CSRepairPetItems` regardless of this list (a merchant-stabler offers the merchant
+    // skill here).
     if skills.contains(&cfg.revive_skill_id) {
         r.end(s, note);
     } else {
-        r.fail(
+        r.end(
             s,
-            format!("{note}, not the stabler skill {}", cfg.revive_skill_id),
+            format!(
+                "{note} (no stabler skill {}; not used by the client)",
+                cfg.revive_skill_id
+            ),
         );
     }
 
