@@ -1436,6 +1436,22 @@ impl<'a> Ctx<'a> {
             tracing::error!("Failed to start new Quest {quest_id}, invalid Id");
             return false;
         };
+        // `game_schedule_quests`: a scheduled quest is acceptable only inside its window
+        // (`forcibly` = the GM path, like the component requirements below).
+        if !forcibly
+            && !super::quest_schedule_allows(
+                &self.server.game_data.systems.npcs.schedule,
+                quest_id,
+                crate::systems::npcs::spawn_manager::unix_now(),
+            )
+        {
+            tracing::trace!(
+                "User {} ({}) cannot start new Quest {quest_id}, its game schedule window is not in progress",
+                self.c.unit.name,
+                self.c.id
+            );
+            return false;
+        }
         if !forcibly && !self.can_accept_supply_items(quest_id) {
             return false;
         }

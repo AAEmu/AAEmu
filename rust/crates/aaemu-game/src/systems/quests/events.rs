@@ -1068,6 +1068,14 @@ pub fn doodad_func_quest(
     quest_id: u32,
 ) {
     if !has_quest(player, quest_id) {
+        // A scheduled quest is offered (marker packet) only while its window is in progress.
+        if !super::quest_schedule_allows(
+            &server.game_data.systems.npcs.schedule,
+            quest_id,
+            crate::systems::npcs::spawn_manager::unix_now(),
+        ) {
+            return;
+        }
         player.send(super::packets::SCDoodadQuestAcceptPacket {
             doodad_obj_id,
             quest_id,

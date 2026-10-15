@@ -33,5 +33,12 @@
     "HeightMapsEnable": true,
     "DebugInfo": true,
     "DebugInfoLevel": 100,
-	"DefaultLanguage" : "en_us"
+	"DefaultLanguage" : "en_us",
+    "Events": {
+        "Halloween": {
+            "Enabled": true,
+            "Start": "",
+            "End": ""
+        }
+    }
 }

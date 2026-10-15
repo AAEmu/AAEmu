@@ -268,6 +268,14 @@ pub fn quest(
     };
     let quests = quests_hook(ctx.server);
     if !quests.has_quest(ctx.server, player, f.quest_id) {
+        // A scheduled quest is offered (marker packet) only while its window is in progress.
+        if !crate::systems::quests::quest_schedule_allows(
+            &ctx.server.game_data.systems.npcs.schedule,
+            f.quest_id,
+            crate::systems::npcs::spawn_manager::unix_now(),
+        ) {
+            return;
+        }
         player.send(SCDoodadQuestAcceptPacket {
             doodad_obj_id: ctx.doodad.obj_id,
             quest_id: f.quest_id,

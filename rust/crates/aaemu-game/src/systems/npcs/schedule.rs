@@ -16,6 +16,7 @@ use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, TimeDelta, Timelike};
 
+use crate::config::HalloweenConfig;
 use crate::data::sqlite::for_each_row;
 use crate::systems::DataLoadCtx;
 
@@ -43,6 +44,22 @@ pub mod day_of_week {
     pub const SATURDAY: i32 = 7;
     pub const INVALID: i32 = 8;
 }
+
+/// The Halloween rows of the 1.2 `compact.sqlite3` `game_schedules` (names as authored there):
+///
+/// | id | name | retail window (UTC) |
+/// |---|---|---|
+/// | 53 | Halloween event 12:00 | 2013-10-16 06:00 .. 2013-10-30 06:00 |
+/// | 54 | Halloween event 17:00 | 2013-10-16 06:00 .. 2013-10-30 06:00 |
+/// | 55 | Halloween event 22:00 | 2013-10-16 06:00 .. 2013-10-30 06:00 |
+/// | 57 | Halloween event NPC | 2013-10-16 .. 2013-10-30 |
+/// | 58 | Halloween event craft doodad | 2013-10-16 .. 2013-11-06 |
+/// | 8000001 | NA Halloween doodad placement Ezna/Austera | 2014-10-20 .. 2014-11-04 |
+///
+/// Every one is long expired. `compact.sqlite3` is read-only; the `Events.Halloween`
+/// configuration repeats the window in memory ([`ScheduleData::apply_halloween_window`],
+/// startup) instead of editing the compact rows (see `PORTING.md`).
+pub const HALLOWEEN_SCHEDULE_IDS: [i32; 6] = [53, 54, 55, 57, 58, 8000001];
 
 /// `GameSchedules`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -106,6 +123,10 @@ pub struct ScheduleData {
     spawner_ids: HashMap<i32, Vec<i32>>,
     /// `_gameScheduleDoodadIds` (doodad template id -> schedule ids in row order).
     doodad_ids: HashMap<i32, Vec<i32>>,
+    /// `quest id -> schedule ids` in row order. The C# `LoadGameScheduleSpawnersData` left the
+    /// quests out (`//TODO: quests data`); built here so [`Self::period_status_quest`] has the
+    /// same shape as the spawner / doodad lookups.
+    quest_ids: HashMap<i32, Vec<i32>>,
 }
 
 /// `Dictionary.TryAdd` over a row list keyed by `id`.
@@ -212,7 +233,8 @@ impl ScheduleData {
         d
     }
 
-    /// `LoadGameScheduleSpawnersData` (quests: "TODO: quests data" in C# too).
+    /// `LoadGameScheduleSpawnersData` (quests: "TODO: quests data" in C# too; the Rust side
+    /// builds the quest map anyway, see [`Self::period_status_quest`]).
     fn load_game_schedule_spawners_data(&mut self) {
         self.spawner_ids.clear();
         for gss in &self.game_schedule_spawners {
@@ -227,6 +249,13 @@ impl ScheduleData {
                 .entry(gsd.doodad_id)
                 .or_default()
                 .push(gsd.game_schedule_id);
+        }
+        self.quest_ids.clear();
+        for gsq in &self.game_schedule_quests {
+            self.quest_ids
+                .entry(gsq.quest_id)
+                .or_default()
+                .push(gsq.game_schedule_id);
         }
     }
 
@@ -271,6 +300,120 @@ impl ScheduleData {
             Some(ids) => self.check_period_status(ids, now),
             None => PeriodStatus::NotFound,
         }
+    }
+
+    /// The quests counterpart of [`Self::period_status_npc`] / [`Self::period_status_doodad`]
+    /// at `now` (unix seconds, UTC), backed by the `quest -> schedules` map built in
+    /// `load_game_schedule_spawners_data`.
+    pub fn period_status_quest(&self, quest_id: i32, now: i64) -> PeriodStatus {
+        match self.quest_ids.get(&quest_id) {
+            Some(ids) => self.check_period_status(ids, now),
+            None => PeriodStatus::NotFound,
+        }
+    }
+
+    /// Applies the `Events.Halloween` window to [`HALLOWEEN_SCHEDULE_IDS`] at `now` (unix
+    /// seconds, UTC). The retail rows are dated 2013/2014; `compact.sqlite3` is read-only, so
+    /// the window is rewritten in memory:
+    ///
+    /// * `enabled == false`: nothing changes (the retail rows stay expired).
+    /// * empty `start` / `end`: every listed row keeps its month / day / time and gets the
+    ///   current UTC year, bumped to the next year when its rolled end is already past at `now`
+    ///   (the yearly retail window).
+    /// * both `start` and `end` set (`YYYY-MM-DDTHH:MM:SSZ`, parsed strictly, `start < end`):
+    ///   the start date fields (`st_*`) become the override start and the end date fields
+    ///   (`ed_*`) the override end; the daily `start_time` / `end_time` / `start_time_min` /
+    ///   `end_time_min` are kept (schedules 53-55 keep their 12:00 / 17:00 / 22:00 daily hours).
+    /// * anything else (only one bound set, unparsable or inverted): a `tracing::warn!` and the
+    ///   yearly window.
+    ///
+    /// Returns the number of rewritten rows and logs one `tracing::info!` line naming the
+    /// applied window.
+    pub fn apply_halloween_window(&mut self, config: &HalloweenConfig, now: i64) -> usize {
+        if !config.enabled {
+            return 0;
+        }
+        let (start, end) = (config.start.trim(), config.end.trim());
+        let explicit = match (start.is_empty(), end.is_empty()) {
+            (true, true) => None,
+            (false, false) => match parse_window_bound(start).zip(parse_window_bound(end)) {
+                Some((s, e)) if s < e => Some((s, e)),
+                _ => {
+                    tracing::warn!(
+                        "Events.Halloween: invalid window {start:?} .. {end:?}; expected UTC \
+                         \"YYYY-MM-DDTHH:MM:SSZ\" with start < end — falling back to the yearly \
+                         retail window"
+                    );
+                    None
+                }
+            },
+            _ => {
+                tracing::warn!(
+                    "Events.Halloween: Start and End must be set together ({start:?} .. \
+                     {end:?}) — falling back to the yearly retail window"
+                );
+                None
+            }
+        };
+        let now_dt = utc(now);
+        let mut changed = 0usize;
+        let mut first_start: Option<NaiveDate> = None;
+        let mut last_end: Option<NaiveDate> = None;
+        for id in HALLOWEEN_SCHEDULE_IDS {
+            let Some(row) = self.game_schedules.get_mut(&id) else {
+                continue;
+            };
+            match explicit {
+                Some((s, e)) => {
+                    row.st_year = s.year();
+                    row.st_month = s.month() as i32;
+                    row.st_day = s.day() as i32;
+                    row.st_hour = s.hour() as i32;
+                    row.st_min = s.minute() as i32;
+                    row.ed_year = e.year();
+                    row.ed_month = e.month() as i32;
+                    row.ed_day = e.day() as i32;
+                    row.ed_hour = e.hour() as i32;
+                    row.ed_min = e.minute() as i32;
+                }
+                None => {
+                    let year = now_dt.year();
+                    row.st_year = year;
+                    row.ed_year = year;
+                    // The same comparison the runtime uses (`has_ended` is date / end-time
+                    // based): the rolled end instant is already past -> next year.
+                    if check_data(row, now).1 {
+                        row.st_year = year + 1;
+                        row.ed_year = year + 1;
+                    }
+                }
+            }
+            if let Some(d) =
+                NaiveDate::from_ymd_opt(row.st_year, row.st_month as u32, row.st_day as u32)
+            {
+                first_start = Some(first_start.map_or(d, |f| f.min(d)));
+            }
+            if let Some(d) =
+                NaiveDate::from_ymd_opt(row.ed_year, row.ed_month as u32, row.ed_day as u32)
+            {
+                last_end = Some(last_end.map_or(d, |l| l.max(d)));
+            }
+            changed += 1;
+        }
+        if changed > 0 {
+            let mode = if explicit.is_some() {
+                "explicit override"
+            } else {
+                "yearly roll"
+            };
+            tracing::info!(
+                "Halloween schedules applied ({mode}): {first} .. {last} UTC ({changed} compact \
+                 rows)",
+                first = first_start.map_or_else(|| "?".to_string(), |d| d.to_string()),
+                last = last_end.map_or_else(|| "?".to_string(), |d| d.to_string()),
+            );
+        }
+        changed
     }
 
     /// `CheckPeriodStatus(ids)`.
@@ -381,6 +524,11 @@ impl ScheduleData {
     pub fn doodad_schedule_ids(&self, doodad_id: i32) -> Option<&[i32]> {
         self.doodad_ids.get(&doodad_id).map(Vec::as_slice)
     }
+}
+
+/// Parses one explicit `Events.Halloween` window bound: strict UTC `YYYY-MM-DDTHH:MM:SSZ`.
+fn parse_window_bound(value: &str) -> Option<NaiveDateTime> {
+    NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%SZ").ok()
 }
 
 /// Unix seconds (UTC) -> naive UTC date time (`DateTime.UtcNow`).
@@ -1002,6 +1150,253 @@ mod tests {
         assert_eq!(d.remaining_time(503, true, now).unwrap(), TimeDelta::MAX);
         // Day 0 / month 0: CrontabException.
         assert!(d.remaining_time(502, true, now).is_err());
+    }
+
+    /// Synthetic retail Halloween rows (53 daily 12:00-13:30, 57 NPC event -> quest 6036,
+    /// 8000001 NA doodad placement) in the shape of the `compact.sqlite3` rows.
+    fn halloween_data() -> ScheduleData {
+        ScheduleData::from_rows(
+            vec![
+                gs(
+                    53,
+                    day_of_week::INVALID,
+                    (12, 0, 13, 30),
+                    (2013, 10, 16, 6, 0),
+                    (2013, 10, 30, 6, 0),
+                ),
+                gs(
+                    57,
+                    day_of_week::INVALID,
+                    (0, 0, 0, 0),
+                    (2013, 10, 16, 6, 0),
+                    (2013, 10, 30, 6, 0),
+                ),
+                gs(
+                    8000001,
+                    day_of_week::INVALID,
+                    (0, 0, 0, 0),
+                    (2014, 10, 20, 0, 0),
+                    (2014, 11, 4, 0, 0),
+                ),
+            ],
+            vec![],
+            vec![],
+            vec![GameScheduleQuest {
+                id: 1,
+                game_schedule_id: 57,
+                quest_id: 6036,
+            }],
+        )
+    }
+
+    #[test]
+    fn halloween_yearly_roll() {
+        // Rolled from before the window: the candidate year's end is still in the future.
+        let mut d = halloween_data();
+        let now = ts("2026-01-10 00:00:00");
+        assert_eq!(
+            d.apply_halloween_window(&HalloweenConfig::default(), now),
+            3
+        );
+        for id in [53, 57, 8000001] {
+            assert_eq!(d.game_schedules[&id].st_year, 2026, "schedule {id}");
+            assert_eq!(d.game_schedules[&id].ed_year, 2026, "schedule {id}");
+        }
+        // Month / day / hour / minute survive the roll.
+        let s53 = &d.game_schedules[&53];
+        assert_eq!(
+            (s53.st_month, s53.st_day, s53.st_hour, s53.st_min),
+            (10, 16, 6, 0)
+        );
+        assert_eq!(
+            (s53.ed_month, s53.ed_day, s53.ed_hour, s53.ed_min),
+            (10, 30, 6, 0)
+        );
+        // 57 via its quest: in progress on Oct 20 of the rolled year, not before it, ended
+        // after the end date (10-30, daily end 00:00); a year earlier is before the roll.
+        assert_eq!(
+            d.period_status_quest(6036, ts("2026-10-20 12:00:00")),
+            PeriodStatus::InProgress
+        );
+        assert_eq!(
+            d.period_status_quest(6036, ts("2026-10-01 00:00:00")),
+            PeriodStatus::NotStarted
+        );
+        assert_eq!(
+            d.period_status_quest(6036, ts("2026-10-30 00:00:00")),
+            PeriodStatus::Ended
+        );
+        assert_eq!(
+            d.period_status_quest(6036, ts("2026-10-31 00:00:00")),
+            PeriodStatus::Ended
+        );
+        assert_eq!(
+            d.period_status_quest(6036, ts("2025-10-20 12:00:00")),
+            PeriodStatus::NotStarted
+        );
+
+        // Rolled from after the window: the candidate year's end is past -> next year.
+        let mut d = halloween_data();
+        let now = ts("2026-11-10 00:00:00");
+        assert_eq!(
+            d.apply_halloween_window(&HalloweenConfig::default(), now),
+            3
+        );
+        assert_eq!(d.game_schedules[&57].st_year, 2027);
+        assert_eq!(d.game_schedules[&57].ed_year, 2027);
+        assert_eq!(d.game_schedules[&8000001].ed_year, 2027);
+        assert_eq!(
+            d.period_status_quest(6036, ts("2027-10-20 12:00:00")),
+            PeriodStatus::InProgress
+        );
+        assert_eq!(
+            d.period_status_quest(6036, ts("2027-10-31 00:00:00")),
+            PeriodStatus::Ended
+        );
+        // The bumped-away candidate year is now before the rolled window.
+        assert_eq!(
+            d.period_status_quest(6036, ts("2026-10-20 12:00:00")),
+            PeriodStatus::NotStarted
+        );
+    }
+
+    #[test]
+    fn halloween_daily_window() {
+        let mut d = halloween_data();
+        d.apply_halloween_window(&HalloweenConfig::default(), ts("2026-01-10 00:00:00"));
+        // 53 keeps its daily window: on the rolled start date the daily start hour gates it...
+        let (started, ended) = check_data(&d.game_schedules[&53], ts("2026-10-16 11:30:00"));
+        assert!(!started && !ended);
+        let (started, ended) = check_data(&d.game_schedules[&53], ts("2026-10-16 12:30:00"));
+        assert!(started && !ended);
+        // ...inside the season it is in progress at 12:30 UTC and ended after the end date.
+        let (started, ended) = check_data(&d.game_schedules[&53], ts("2026-10-20 12:30:00"));
+        assert!(started && !ended);
+        let (started, ended) = check_data(&d.game_schedules[&53], ts("2026-10-31 12:30:00"));
+        assert!(!started && ended);
+    }
+
+    #[test]
+    fn halloween_disabled_is_a_no_op() {
+        let mut d = halloween_data();
+        let cfg = HalloweenConfig {
+            enabled: false,
+            start: String::new(),
+            end: String::new(),
+        };
+        let now = ts("2026-10-12 10:00:00");
+        assert_eq!(d.apply_halloween_window(&cfg, now), 0);
+        // The retail rows stay untouched: 2013/2014, ended today.
+        assert_eq!(d.game_schedules[&53].st_year, 2013);
+        assert_eq!(d.game_schedules[&57].ed_year, 2013);
+        assert_eq!(d.game_schedules[&8000001].st_year, 2014);
+        assert_eq!(d.period_status_quest(6036, now), PeriodStatus::Ended);
+    }
+
+    #[test]
+    fn halloween_explicit_override() {
+        let mut d = halloween_data();
+        let cfg = HalloweenConfig {
+            enabled: true,
+            start: "2026-10-14T12:00:00Z".into(),
+            end: "2026-11-01T00:00:00Z".into(),
+        };
+        let now = ts("2026-10-14 12:30:00");
+        assert_eq!(d.apply_halloween_window(&cfg, now), 3);
+        // The date fields come from the override; the daily hours survive.
+        let s53 = &d.game_schedules[&53];
+        assert_eq!(
+            (
+                s53.st_year,
+                s53.st_month,
+                s53.st_day,
+                s53.st_hour,
+                s53.st_min
+            ),
+            (2026, 10, 14, 12, 0)
+        );
+        assert_eq!(
+            (
+                s53.ed_year,
+                s53.ed_month,
+                s53.ed_day,
+                s53.ed_hour,
+                s53.ed_min
+            ),
+            (2026, 11, 1, 0, 0)
+        );
+        assert_eq!(
+            (
+                s53.start_time,
+                s53.start_time_min,
+                s53.end_time,
+                s53.end_time_min
+            ),
+            (12, 0, 13, 30)
+        );
+        // At 12:30 on the override start date 53's hour has been reached, 57 and 8000001 have
+        // no daily hour: all three are in progress.
+        let (started, ended) = check_data(&d.game_schedules[&53], now);
+        assert!(started && !ended);
+        let (started, ended) = check_data(&d.game_schedules[&8000001], now);
+        assert!(started && !ended);
+        assert_eq!(d.period_status_quest(6036, now), PeriodStatus::InProgress);
+        // Same date, before 53's daily 12:00: 53 is outside its hour, 57 is not.
+        let early = ts("2026-10-14 11:30:00");
+        let (started, ended) = check_data(&d.game_schedules[&53], early);
+        assert!(!started && !ended);
+        assert_eq!(d.period_status_quest(6036, early), PeriodStatus::InProgress);
+        // After the override end.
+        assert_eq!(
+            d.period_status_quest(6036, ts("2026-11-02 00:00:00")),
+            PeriodStatus::Ended
+        );
+    }
+
+    #[test]
+    fn halloween_invalid_override_falls_back_to_the_yearly_roll() {
+        // Unparsable start (the format is strict: `YYYY-MM-DDTHH:MM:SSZ`).
+        let mut d = halloween_data();
+        let cfg = HalloweenConfig {
+            enabled: true,
+            start: "2026-10-14 00:00:00".into(),
+            end: "2026-11-01T00:00:00Z".into(),
+        };
+        assert_eq!(d.apply_halloween_window(&cfg, ts("2026-01-10 00:00:00")), 3);
+        assert_eq!(d.game_schedules[&57].st_year, 2026);
+        assert_eq!(d.game_schedules[&57].st_month, 10);
+        // Only one bound set.
+        let mut d = halloween_data();
+        let cfg = HalloweenConfig {
+            enabled: true,
+            start: String::new(),
+            end: "2026-11-01T00:00:00Z".into(),
+        };
+        assert_eq!(d.apply_halloween_window(&cfg, ts("2026-01-10 00:00:00")), 3);
+        assert_eq!(d.game_schedules[&57].st_year, 2026);
+        // Inverted window (start after end).
+        let mut d = halloween_data();
+        let cfg = HalloweenConfig {
+            enabled: true,
+            start: "2026-11-01T00:00:00Z".into(),
+            end: "2026-10-01T00:00:00Z".into(),
+        };
+        assert_eq!(d.apply_halloween_window(&cfg, ts("2026-01-10 00:00:00")), 3);
+        assert_eq!(d.game_schedules[&57].st_year, 2026);
+    }
+
+    #[test]
+    fn period_status_quest_lookup() {
+        let mut d = halloween_data();
+        d.apply_halloween_window(&HalloweenConfig::default(), ts("2026-01-10 00:00:00"));
+        assert_eq!(
+            d.period_status_quest(6036, ts("2026-10-20 12:00:00")),
+            PeriodStatus::InProgress
+        );
+        assert_eq!(
+            d.period_status_quest(9999, ts("2026-10-20 12:00:00")),
+            PeriodStatus::NotFound
+        );
     }
 
     #[test]

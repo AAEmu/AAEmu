@@ -168,12 +168,19 @@ async fn run() -> anyhow::Result<()> {
 
     // FormulaManager.Load, ItemManager.Load and the orchestrated ILoadable game data (a failing
     // loader is fatal, as in the 1.2 C#).
-    let game_data = GameData::load(
+    let mut game_data = GameData::load(
         &config.app_path,
         &config.client_data.sources,
         &config.default_language,
     )
     .context("Failed to load compact.sqlite3 database check if it exists!")?;
+    // The retail Halloween `game_schedules` rows are dated 2013/2014 and compact.sqlite3 is
+    // read-only: `Events.Halloween` repeats the window in memory (`systems::npcs::schedule`).
+    game_data
+        .systems
+        .npcs
+        .schedule
+        .apply_halloween_window(&config.events.halloween, chrono::Utc::now().timestamp());
 
     // WorldManager.CreateStaticInstances (main_world) happens in GameServer::new.
     let server = Arc::new(GameServer::new(config, db, game_data));

@@ -96,6 +96,9 @@ pub struct AppConfig {
     /// `Scripts`.
     #[serde(rename = "scripts")]
     pub scripts: ScriptsConfig,
+    /// `Events` (Rust only: seasonal event windows).
+    #[serde(rename = "events")]
+    pub events: EventsConfig,
     /// `CharacterNameRegex` (`None` = NameManager's default pattern).
     #[serde(rename = "characternameregex")]
     pub character_name_regex: Option<String>,
@@ -148,6 +151,7 @@ impl Default for AppConfig {
             client_data: ClientDataConfig::default(),
             specialty: SpecialtyConfig::default(),
             scripts: ScriptsConfig::default(),
+            events: EventsConfig::default(),
             character_name_regex: None,
             default_language: "en_us".into(),
             debug_info: true,
@@ -454,6 +458,43 @@ pub struct ScriptsConfig {
     pub load_strategy: LoadStrategyType,
 }
 
+/// `Events` (Rust only: seasonal event windows that the compact data dates one-off years).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct EventsConfig {
+    /// `Events:Halloween`.
+    #[serde(rename = "halloween")]
+    pub halloween: HalloweenConfig,
+}
+
+/// `Events:Halloween`: the window applied in memory to the retail Halloween rows of
+/// `game_schedules` (`systems::npcs::schedule::HALLOWEEN_SCHEDULE_IDS`, dated 2013/2014;
+/// `compact.sqlite3` is read-only). Applied once at startup (`main.rs`, after `GameData::load`).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct HalloweenConfig {
+    /// Enables the in-memory window (retail rows stay expired when false).
+    #[serde(rename = "enabled", deserialize_with = "lenient")]
+    pub enabled: bool,
+    /// Explicit UTC window start, `YYYY-MM-DDTHH:MM:SSZ` (`""` = retail window with the year
+    /// rolled yearly). Both `Start` and `End` must be set to use the override.
+    #[serde(rename = "start")]
+    pub start: String,
+    /// Explicit UTC window end, `YYYY-MM-DDTHH:MM:SSZ` (see `start`).
+    #[serde(rename = "end")]
+    pub end: String,
+}
+
+impl Default for HalloweenConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            start: String::new(),
+            end: String::new(),
+        }
+    }
+}
+
 /// `ClientDataConfig`.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
@@ -522,7 +563,7 @@ pub const USER_SECRETS_ID: &str = "426ad5c3-9a72-44e9-88f5-4b5940b98c28";
 
 /// The top-level `AppConfiguration` members (environment variables are only applied below
 /// these keys; anything else could never bind).
-const TOP_LEVEL_KEYS: [&str; 29] = [
+const TOP_LEVEL_KEYS: [&str; 30] = [
     "physics",
     "id",
     "additionalesid",
@@ -548,6 +589,7 @@ const TOP_LEVEL_KEYS: [&str; 29] = [
     "clientdata",
     "specialty",
     "scripts",
+    "events",
     "justice",
     "defaultlanguage",
     "debuginfo",
@@ -1122,6 +1164,10 @@ mod tests {
         assert_eq!(cfg.account.name_regex, "^[a-zA-Z0-9]{1,18}$");
         assert_eq!(cfg.scripts.load_strategy, LoadStrategyType::Reflection);
         assert_eq!(cfg.client_data.sources.len(), 4);
+        // Events.json / Config.json: the Halloween window defaults to the yearly roll.
+        assert!(cfg.events.halloween.enabled);
+        assert_eq!(cfg.events.halloween.start, "");
+        assert_eq!(cfg.events.halloween.end, "");
     }
 
     #[test]
@@ -1170,6 +1216,9 @@ mod tests {
         assert!(cfg.dungeons.auto_cleanup_after_kick);
         assert_eq!(cfg.specialty.ratio_decrease_per_pack, f64::from(0.5f32));
         assert_eq!(cfg.credits.get_tick_amount(true), 0);
+        assert!(cfg.events.halloween.enabled);
+        assert_eq!(cfg.events.halloween.start, "");
+        assert_eq!(cfg.events.halloween.end, "");
         let cfg = AppConfig::from_value(json!({
             "Credits": { "TickAmount": 1, "TickAmountPremium": "2" },
             "Scripts": { "LoadStrategy": 0 },
@@ -1214,6 +1263,21 @@ mod tests {
         assert_eq!(cfg.world.npc_warm_retention_seconds, 300);
         assert!(!cfg.world.npc_resident_service_npcs);
         assert_eq!(cfg.world.ai_worker_threads, 4);
+    }
+
+    #[test]
+    fn events_halloween_binds_leniently() {
+        let cfg = AppConfig::from_value(json!({
+            "Events": { "Halloween": {
+                "Enabled": "False",
+                "Start": "2026-10-14T00:00:00Z",
+                "End": "2026-11-01T00:00:00Z"
+            } }
+        }))
+        .unwrap();
+        assert!(!cfg.events.halloween.enabled);
+        assert_eq!(cfg.events.halloween.start, "2026-10-14T00:00:00Z");
+        assert_eq!(cfg.events.halloween.end, "2026-11-01T00:00:00Z");
     }
 
     #[test]

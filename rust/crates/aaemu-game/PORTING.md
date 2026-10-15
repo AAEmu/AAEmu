@@ -860,6 +860,17 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   no spawn commands): screenshots show the Mistfiend and Wisp, and telemetry reported all
   six `npc_fogmonster` Mistfiend entities at cave heights below the terrain, plus a Mist
   Skeleton. This does not establish retail population density or validate every cave.
+* systems::npcs (2026-10-14): scheduled NPC groups now honor their event window through the
+  whole ordinary spawn lifecycle (Vile Gourdhead 14312 is the reference: its member rows
+  produce AUTOCREATED 15942 and NORMAL 15948 with schedules 53/54/55). `HasScheduledSpawner`
+  evaluates each candidate spawner's own schedule rows instead of looking every entry up
+  through the clone's template, so the AUTOCREATED fallback cannot spawn the event NPC before,
+  during or after the event (`NotStarted` / `InProgress` / `Ended` all suppress it). The
+  despawn check was inverted for live events: `InProgress` retains the event NPCs and
+  `NotStarted` / `Ended` schedule removal through the ordinary despawn / respawn tick, while
+  ordinary no-schedule NPCs and authored game-clock windows behave as before. Dated event rows
+  do not become recurring: the shipped October 16-30 2013 Halloween window stays expired.
+  Regression tests: `npc/spawner_schedule_tests.rs`.
 * `systems::npcs`: doodad func timers are tokio tasks (cancel = generation bump); `DoodadManager.Create`'s `Task.Run(InitDoodad)` is a spawned task; `TimeManager.OnTimeOfDayChange` runs from a 10 s poller. `GetNpcSpawner` template rewrites do not propagate to already loaded spawners; the "first" concurrent-dictionary entry is the lowest key; spawn files are processed in sorted name order (C# `Directory.GetFiles` order is unspecified). Portal book deletions are written at the next periodic save. Debug messages check only the character's access level. Coffer slot counting stops at 255 (C# loops forever). Where the C# would throw on a null / failed cast the Rust code returns quietly. Sticky parents are not modelled.
 * systems::housing: dates are stored with second precision (unix seconds); `DateTime.MinValue`
   rows load as 0, so a manually inserted house with both dates at MinValue gets 1970-01-15 as
@@ -1036,6 +1047,20 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
   caller cannot release the batch lock while its jobs are still running. No separate process or
   thread pool is created. Focused tests in `systems/ai/manager.rs` cover the candidate selection
   and batching.
+
+* systems::npcs (2026-10-14): the Halloween schedules of the 1.2 compact data are one-off rows
+  (`53`/`54`/`55` "Halloween event 12:00/17:00/22:00" 2013-10-16 .. 10-30, `57` "Halloween
+  event NPC" 2013-10-16 .. 10-30, `58` "Halloween event craft doodad" 2013-10-16 .. 11-06,
+  `8000001` "NA Halloween doodad placement Ezna/Austera" 2014-10-20 .. 11-04), all expired.
+  `Events` (default `Halloween.Enabled = true`) rewrites those six rows in memory at startup
+  (`ScheduleData::apply_halloween_window`, wired in `main.rs` after `GameData::load`) instead
+  of editing the read-only `compact.sqlite3`: the yearly mode keeps each row's month / day /
+  time and uses the current UTC year (next year when the rolled end is already past); an
+  explicit `Start` / `End` pair (`YYYY-MM-DDTHH:MM:SSZ`, parsed strictly, both or neither)
+  replaces the window while the daily hours of `53`-`55` stay; invalid values log a warning and
+  fall back to the yearly window. `Enabled = false` leaves the retail rows expired.
+  `ScheduleData` also builds the `quest -> schedules` map the C# left as `//TODO: quests data`
+  in `LoadGameScheduleSpawnersData` and exposes `period_status_quest`.
 
 * systems::npcs (2026-10-14): a `DoodadFuncRatioRespawn` replacement initializes the new doodad
   synchronously (`Spawn` -> `InitDoodad` -> `DoPhaseFuncs`), so a cyclic definition recursed

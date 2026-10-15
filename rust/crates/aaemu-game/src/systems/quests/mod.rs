@@ -31,6 +31,8 @@ mod manager_tests;
 #[cfg(test)]
 mod quest_tests;
 #[cfg(test)]
+mod schedule_tests;
+#[cfg(test)]
 mod tests;
 
 use std::collections::{HashMap, VecDeque};
@@ -40,6 +42,7 @@ use crate::net::packet::LEVEL_PLAIN;
 use crate::net::registry::PacketRegistry;
 use crate::opcodes::cs;
 use crate::server::GameServer;
+use crate::systems::npcs::schedule::{PeriodStatus, ScheduleData};
 use crate::systems::{DataLoadCtx, HookSlot, SaveStage};
 use crate::world::{Player, PlayerRef};
 
@@ -52,6 +55,18 @@ impl Data {
     pub fn load(ctx: &DataLoadCtx<'_>) -> Result<Self, crate::data::GameDataError> {
         Self::load_from(ctx.conn, ctx.files)
     }
+}
+
+/// `game_schedule_quests` gate: a quest with schedule rows is offered and acceptable only while
+/// one of its windows is `InProgress` at `now` (unix seconds, UTC —
+/// `systems::npcs::spawn_manager::unix_now`). A quest without rows (`NotFound`) behaves exactly
+/// as before. The C# `GameScheduleManager` loaded the rows (`GetGameScheduleQuestsData`) but
+/// never queried them, and `LoadGameScheduleSpawnersData` left the quest map as `//TODO`.
+pub fn quest_schedule_allows(schedule: &ScheduleData, quest_id: u32, now: i64) -> bool {
+    matches!(
+        schedule.period_status_quest(quest_id as i32, now),
+        PeriodStatus::NotFound | PeriodStatus::InProgress
+    )
 }
 
 /// One scheduled `QuestTimeoutTask`.
