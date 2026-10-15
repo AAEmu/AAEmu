@@ -688,6 +688,8 @@ pub async fn create_expedition(server: &GameServer, owner: &PlayerRef, name: &st
     };
     server.expeditions.add(expedition.clone());
     owner.data().unit.expedition_id = id;
+    // ENROLL_GUILD (queued: runs once the packet is handled).
+    crate::systems::refresh_achievements_later(server, owner);
 
     owner.send(SCFactionCreatedPacket {
         faction: expedition.faction.clone(),
@@ -719,6 +721,7 @@ pub async fn create_expedition(server: &GameServer, owner: &PlayerRef, name: &st
         }
         let member = member_from_character(server, id, &m, false);
         m.data().unit.expedition_id = id;
+        crate::systems::refresh_achievements_later(server, &m);
         let snapshot = server
             .expeditions
             .with_mut(id, |e| {
@@ -796,6 +799,7 @@ pub async fn reply_invite(
     }
     let member = member_from_character(server, id1, invited, false);
     invited.data().unit.expedition_id = id1;
+    crate::systems::refresh_achievements_later(server, invited);
     let Some(snapshot) = server.expeditions.with_mut(id1, |e| {
         e.members.push(member);
         e.clone()

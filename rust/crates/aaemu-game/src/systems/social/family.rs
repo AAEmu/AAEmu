@@ -268,6 +268,8 @@ fn add_family_member(
     st.family_members.insert(p.character_id, family_id);
     p.data().family = family_id;
     family_chat(server, family_id).join(p);
+    // ENROLL_FAMILY: queued, the family manager's lock is held here.
+    crate::systems::refresh_achievements_later(server, p);
     true
 }
 

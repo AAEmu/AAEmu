@@ -22,6 +22,8 @@ use tokio::task::JoinHandle;
 
 use crate::packets::world_objects::SCDoodadRemovedPacket;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::systems::social::faction;
 use crate::systems::social::packets::duel::*;
 use crate::systems::social::util::{self, send_error};
@@ -530,9 +532,11 @@ impl DuelManager {
             if lose_id == a_id {
                 duel.send_both(ended(b_id, a_id, b_obj, a_obj));
                 tracing::warn!("DuelStop: Challenger:{a_id} Lose, Challenged:{b_id} Win!");
+                report_duel_win(server, &duel.challenged);
             } else if lose_id == b_id {
                 duel.send_both(ended(a_id, b_id, a_obj, b_obj));
                 tracing::warn!("DuelStop: Challenger:{a_id} Win, Challenged:{b_id} Lose!");
+                report_duel_win(server, &duel.challenger);
             }
         }
         // Duel state: ended.
@@ -734,6 +738,19 @@ fn world_pos_rot(
         }
     }
     t.local()
+}
+
+/// WIN_DUEL achievement credit for the winner of a decided duel (a draw credits nothing).
+fn report_duel_win(server: &GameServer, winner: &PlayerRef) {
+    crate::systems::report_achievement(
+        server,
+        winner,
+        AchievementInput::Increment {
+            kind_id: char_record_kind::WIN_DUEL,
+            amount: 1,
+            matcher: RecordMatch::Any,
+        },
+    );
 }
 
 #[cfg(test)]

@@ -28,6 +28,8 @@ use crate::models::item_task::{task_type, ItemFx, ItemTask};
 use crate::net::packet::ServerPacket;
 use crate::packets::world::SCChatMessagePacket;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::systems::HookSlot;
 use crate::world::{MateRef, ObjectKind, PlayerRef, WorldObject};
 
@@ -481,6 +483,7 @@ pub fn grade_enchant(
     );
     drop(txn);
     broadcast_with_self(server, player, &SCSkillEndedPacket { tl: skill_tl_id });
+    report_enchant(server, player, result, after.grade);
 
     // Let the world know if we got lucky enough
     if after.grade >= 8
@@ -498,6 +501,29 @@ pub fn grade_enchant(
                 type2: after.grade,
             });
     }
+}
+
+/// ENCHANT_ITEM (the resulting grade, successes only) / ENCHANT_FAILURE (a plain failure)
+/// achievement credit for one regrade.
+fn report_enchant(server: &GameServer, player: &PlayerRef, result: u8, grade: u8) {
+    let input = if result == grade_enchant_result::SUCCESS
+        || result == grade_enchant_result::GREAT_SUCCESS
+    {
+        AchievementInput::Increment {
+            kind_id: char_record_kind::ENCHANT_ITEM,
+            amount: 1,
+            matcher: RecordMatch::Value1(u32::from(grade)),
+        }
+    } else if result == grade_enchant_result::FAIL {
+        AchievementInput::Increment {
+            kind_id: char_record_kind::ENCHANT_FAILURE,
+            amount: 1,
+            matcher: RecordMatch::Any,
+        }
+    } else {
+        return;
+    };
+    crate::systems::report_achievement(server, player, input);
 }
 
 /// `GradeEnchant.RollRegrade`: `(result, new grade)` (`None` new grade = unchanged). `None`

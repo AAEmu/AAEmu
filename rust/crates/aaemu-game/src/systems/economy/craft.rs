@@ -26,6 +26,8 @@ use crate::opcodes::{cs, sc};
 use crate::packets::packet_def;
 use crate::packets::world::SCErrorMsgPacket;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::systems::HookSlot;
 use crate::world::{DoodadRef, PlayerRef, WorldObject};
 
@@ -624,6 +626,8 @@ fn hand_out_products(server: &GameServer, player: &PlayerRef, inv: &Inv, craft: 
         }
     }
 
+    // The products handed out, for the MAKE_ITEM_* achievement credit once the craft went through.
+    let mut produced: Vec<(u32, i32, i32)> = Vec::new();
     for product in &craft.craft_products {
         let grade_to_use = match inherited_grade {
             // If we found an equipment material, inherit grade and roll for free regrade
@@ -655,6 +659,7 @@ fn hand_out_products(server: &GameServer, player: &PlayerRef, inv: &Inv, craft: 
                     player.character_id,
                     &mut txn.env,
                 );
+            produced.push((product.item_id, grade_to_use, product.amount));
         } else if !inventory::try_equip_new_backpack(
             &mut txn,
             inv,
@@ -674,6 +679,8 @@ fn hand_out_products(server: &GameServer, player: &PlayerRef, inv: &Inv, craft: 
                 false,
             );
             return false;
+        } else {
+            produced.push((product.item_id, grade_to_use, product.amount));
         }
     }
 
@@ -686,7 +693,49 @@ fn hand_out_products(server: &GameServer, player: &PlayerRef, inv: &Inv, craft: 
             &mut txn.env,
         );
     }
+    report_crafted(server, player, &produced);
     true
+}
+
+/// MAKE_ITEM_TYPE / MAKE_ITEM_IMPL achievement credit for the products of one craft. Runs inside
+/// the craft's item transaction: the achievement hooks defer the report until it is released.
+fn report_crafted(server: &GameServer, player: &PlayerRef, produced: &[(u32, i32, i32)]) {
+    let items = &server.game_data.items;
+    let mut inputs = Vec::new();
+    for &(item_id, requested_grade, amount) in produced {
+        let Some(template) = items.template(item_id) else {
+            continue;
+        };
+        // The grade the container gives the new item (`AcquireDefaultItem`).
+        let mut grade = requested_grade;
+        if template.fixed_grade >= 0 && !template.gradable {
+            grade = template.fixed_grade;
+        }
+        if grade == -1 {
+            grade = template.fixed_grade;
+        }
+        let grade = grade.max(0) as u32;
+        let amount = i64::from(amount);
+        inputs.push(AchievementInput::Increment {
+            kind_id: char_record_kind::MAKE_ITEM_TYPE,
+            amount,
+            matcher: RecordMatch::GradeWildcard {
+                value1: item_id,
+                grade: Some(grade),
+            },
+        });
+        if template.impl_id > 0 {
+            inputs.push(AchievementInput::Increment {
+                kind_id: char_record_kind::MAKE_ITEM_IMPL,
+                amount,
+                matcher: RecordMatch::GradeWildcard {
+                    value1: template.impl_id as u32,
+                    grade: Some(grade),
+                },
+            });
+        }
+    }
+    crate::systems::report_achievements(server, player, &inputs);
 }
 
 /// `CharacterCraft.CraftOrCancel()`.

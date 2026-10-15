@@ -25,6 +25,8 @@ use crate::models::container::slot_type;
 use crate::models::item::Item;
 use crate::models::item_task::task_type;
 use crate::server::GameServer;
+use crate::systems::social::achievement::char_record_kind;
+use crate::systems::social::achievement_hooks::{AchievementInput, RecordMatch};
 use crate::systems::HookSlot;
 use crate::world::PlayerRef;
 
@@ -399,6 +401,21 @@ pub enum AuctionMail {
     },
 }
 
+/// Credits `kind_id` (+1) to the online character `character_id`, if any.
+fn report_auction(server: &GameServer, character_id: u32, kind_id: u32) {
+    if let Some(player) = server.world.character_by_id(character_id) {
+        crate::systems::report_achievement(
+            server,
+            &player,
+            AchievementInput::Increment {
+                kind_id,
+                amount: 1,
+                matcher: RecordMatch::Any,
+            },
+        );
+    }
+}
+
 /// `MailForAuction` creation + `Send()`, implemented by the mail port and installed into
 /// `server.systems.economy.auction.mail`. Called at the C# `Send()` point, with no container /
 /// character lock held and outside any `ItemTxn` (the implementation may start its own), but
@@ -647,6 +664,11 @@ impl AuctionManager {
                     buyer_id,
                 },
             );
+            // AUCTION_SOLD / AUCTION_BUY: only a party that is online is credited.
+            if !lot.client_name.is_empty() {
+                report_auction(server, lot.client_id, char_record_kind::AUCTION_SOLD);
+            }
+            report_auction(server, buyer_id, char_record_kind::AUCTION_BUY);
         }
         self.remove_auction_lot(server, lot.id);
     }
