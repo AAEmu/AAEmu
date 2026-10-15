@@ -29,6 +29,19 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all --check
 
+  sc-ratchet:
+    name: S->C coverage ratchet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      # Gap lists (opcodes without a Rust type, packets never sent) may only shrink; see the
+      # header of rust/tools/opcode_coverage/sc_usage.py. Pure text analysis, no network or data.
+      - name: Check baseline
+        run: python3 tools/opcode_coverage/sc_usage.py --check
+      - name: Ratchet logic tests
+        working-directory: rust/tools/opcode_coverage
+        run: python3 -m unittest test_sc_usage
+
   clippy:
     name: clippy (${{ matrix.os }})
     strategy:
