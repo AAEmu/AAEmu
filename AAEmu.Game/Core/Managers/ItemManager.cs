@@ -382,6 +382,11 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return _config.DeathDurabilityLossRatio;
     }
 
+    public float GetDurabilityDecrementChance()
+    {
+        return _config.DurabilityDecrementChance;
+    }
+
     public float GetItemStatConst()
     {
         return _config.ItemStatConst;

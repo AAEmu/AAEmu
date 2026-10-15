@@ -858,6 +858,21 @@ public class DamageEffect : EffectTemplate
             if (hitCause == BuffHitCause.BuffTrigger)
                 trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedBuffTrigger);
         }
+
+        // Weapon wear on the attacking player for a hit that dealt health damage.
+        if (!ManaDamage && value > 0 && caster is Character attackingPlayer)
+        {
+            var worldRate = trg is Character
+                ? AppConfiguration.Instance.World.PvPDurabilityLossRate
+                : AppConfiguration.Instance.World.PvEDurabilityLossRate;
+            if (worldRate > 0f)
+            {
+                attackingPlayer.ApplyDurabilityLossToEquipment(
+                    1,
+                    CharacterDurabilityRules.WeaponTarget(UseMainhandWeapon, UseOffhandWeapon, UseRangedWeapon),
+                    worldRate);
+            }
+        }
     }
 
     /// <summary>

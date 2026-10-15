@@ -15,6 +15,13 @@ public class CharacterRepairRulesTests
     }
 
     [Test]
+    public async Task RepairAll_InBagIsAuthority_AlwaysEquipment()
+    {
+        await Assert.That(CharacterRepairRules.RepairAllUsesEquipment(inBagAuthority: true)).IsTrue();
+        await Assert.That(CharacterRepairRules.RepairAllUsesEquipment(inBagAuthority: false)).IsTrue();
+    }
+
+    [Test]
     public async Task NeedsRepair_RefusesZeroMaxOrFull()
     {
         var empty = new EquipItem { Durability = 10 };
@@ -40,6 +47,15 @@ public class CharacterRepairRulesTests
         await Assert.That(CharacterRepairRules.NeedsRepair(full)).IsFalse();
         await Assert.That(CharacterRepairRules.TryRestore(full)).IsFalse();
         await Assert.That(full.Durability).IsEqualTo((byte)80);
+    }
+
+    [Test]
+    public async Task ShouldResyncDetail_OnlyWhenThePieceHasAMax()
+    {
+        await Assert.That(CharacterRepairRules.ShouldResyncDetail(null)).IsFalse();
+        await Assert.That(CharacterRepairRules.ShouldResyncDetail(new EquipItem { Durability = 10 })).IsFalse();
+        await Assert.That(CharacterRepairRules.ShouldResyncDetail(new RepairablePiece(80, 80))).IsTrue();
+        await Assert.That(CharacterRepairRules.ShouldResyncDetail(new RepairablePiece(80, 10))).IsTrue();
     }
 
     private sealed class RepairablePiece : EquipItem

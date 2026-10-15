@@ -644,14 +644,9 @@ public static class Program
                 return;
 
             var zone = PlayerEnterService.ForUnit(bcId);
-            if (zone == null)
-                return;
-
-            zone.SendPacket(new WZUnitRemovedPacket(bcId));
-
-            // A forced removal has no completion callback, so release its spawn marker here.
-            NpcSpawnRelay.ForgetNpcState(zone.ZoneId, zone.InstanceId, bcId);
-            AAEmu.World.Core.Relay.ZoneBuffRegistry.ClearUnit(zone.ZoneId, zone.InstanceId, bcId);
+            // Hold the bcId even when the zone session is already gone — SpawnManager must not
+            // ReleaseId immediately or the next ZWSpawnNpc recycles it under Zone's QueueSpawn delay.
+            NpcSpawnRelay.FinishForcedUnitRemoved(zone, bcId);
             Logger.Info("WZUnitRemoved → zone bcId={0} (forced teardown, Create marker dropped)", bcId);
         };
         WorldIntegration.RelayUnitRemovedToZoneId = (zoneId, bcId) =>

@@ -1772,6 +1772,30 @@ public class Skill
                 // Auto-attack tasks reuse their Skill instance, so each swing must replace the
                 // previous result for this target instead of latching the first hit or miss forever.
                 HitTypes[targetUnit.ObjId] = diceResult;
+
+                // Block / parry wear the defender's shield or main weapons.
+                if (targetUnit is Character targetPlayer)
+                {
+                    var worldRate = caster is Character
+                        ? AppConfiguration.Instance.World.PvPDurabilityLossRate
+                        : AppConfiguration.Instance.World.PvEDurabilityLossRate;
+                    if (worldRate > 0f)
+                    {
+                        switch (diceResult)
+                        {
+                            case SkillHitType.MeleeBlock:
+                            case SkillHitType.RangedBlock:
+                                targetPlayer.ApplyDurabilityLossToEquipment(
+                                    1, DurabilityLossTargets.Shield, worldRate);
+                                break;
+                            case SkillHitType.MeleeParry:
+                            case SkillHitType.RangedParry:
+                                targetPlayer.ApplyDurabilityLossToEquipment(
+                                    1, DurabilityLossTargets.AllMainWeapons, worldRate);
+                                break;
+                        }
+                    }
+                }
             }
             else if (target is Doodad doodad)
             {

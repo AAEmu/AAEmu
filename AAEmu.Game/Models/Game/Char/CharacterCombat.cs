@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Justice;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Team;
@@ -457,4 +458,85 @@ public partial class Character
             }
         }
     }
+
+    /// <summary>
+    /// Combat / death wear on equipped pieces. Each qualifying slot rolls
+    /// <c>worldRate * item_configs.durability_decrement_chance</c>; a negative
+    /// <paramref name="worldRate"/> forces the loss on every target. Detail is
+    /// published with <see cref="SCItemDetailUpdatedPacket"/> (item-task UpdateDetail
+    /// leaves this client with an invalid icon).
+    /// </summary>
+    public void ApplyDurabilityLossToEquipment(byte durabilityLoss, DurabilityLossTargets targets, float worldRate)
+    {
+        if (Equipment == null || durabilityLoss == 0)
+            return;
+
+        var decrementChance = ItemManager.Instance.GetDurabilityDecrementChance();
+        var destroyed = new List<Item>();
+
+        foreach (var item in Equipment.Items)
+        {
+            if (item is not EquipItem equipItem)
+                continue;
+            if (equipItem.MaxDurability <= 0 || equipItem.Durability == 0)
+                continue;
+            if (!MatchesDurabilityTarget(equipItem, targets))
+                continue;
+            if (!CharacterDurabilityRules.ShouldLose(worldRate, decrementChance, Random.Shared.NextDouble()))
+                continue;
+
+            equipItem.Durability = CharacterDurabilityRules.ApplyLoss(equipItem.Durability, durabilityLoss);
+            equipItem.IsDirty = true;
+            SendPacket(new SCItemDetailUpdatedPacket(equipItem));
+            if (equipItem.Durability == 0)
+                destroyed.Add(equipItem);
+        }
+
+        foreach (var item in destroyed)
+            UpdateGearBonuses(null, item);
+    }
+
+    private static bool MatchesDurabilityTarget(EquipItem equipItem, DurabilityLossTargets targets)
+    {
+        switch (targets)
+        {
+            case DurabilityLossTargets.All:
+                return true;
+            case DurabilityLossTargets.AllArmor:
+                return equipItem is Armor;
+            case DurabilityLossTargets.AllWeapons:
+                return equipItem is Weapon;
+            case DurabilityLossTargets.AllMainWeapons:
+                return equipItem is Weapon &&
+                       (equipItem.Slot == (int)EquipmentItemSlot.Mainhand ||
+                        equipItem.Slot == (int)EquipmentItemSlot.Offhand);
+            case DurabilityLossTargets.PrimaryWeapon:
+                return equipItem.Slot == (int)EquipmentItemSlot.Mainhand;
+            case DurabilityLossTargets.SecondaryWeapon:
+                return equipItem.Slot == (int)EquipmentItemSlot.Offhand;
+            case DurabilityLossTargets.RangedWeapon:
+                return equipItem.Slot == (int)EquipmentItemSlot.Ranged;
+            case DurabilityLossTargets.Shield:
+                return equipItem.Template is WeaponTemplate shield &&
+                       shield.HoldableTemplate.SlotTypeId == (uint)EquipmentItemSlotType.Shield;
+            case DurabilityLossTargets.Feet:
+                return equipItem.Slot == (int)EquipmentItemSlot.Feet;
+            default:
+                return false;
+        }
+    }
 }
+
+public enum DurabilityLossTargets
+{
+    All,
+    AllArmor,
+    AllWeapons,
+    AllMainWeapons,
+    PrimaryWeapon,
+    SecondaryWeapon,
+    RangedWeapon,
+    Shield,
+    Feet
+}
+

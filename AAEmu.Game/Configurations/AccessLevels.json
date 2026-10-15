@@ -32,6 +32,7 @@
         // Admin
         "addbuff": 100,
         "addgold": 100,
+        "gold": 100,
         "additem": 100,
         "addlabor": 100,
         "addportal": 100,

@@ -10,7 +10,8 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddGold : ICommand
 {
-    public string[] CommandNames { get; set; } = ["gold", "addgold", "add_gold"];
+    // Primary is addgold — /gold is owned by GoldCmd (ICommandV2). Aliases still work.
+    public string[] CommandNames { get; set; } = ["addgold", "add_gold"];
 
     public void OnLoad()
     {
@@ -19,7 +20,7 @@ public class AddGold : ICommand
 
     public string GetCommandLineHelp()
     {
-        return "(target) <gold> [silver] [copper]>";
+        return "(target) <gold> [silver] [copper]";
     }
 
     public string GetCommandHelpText()
@@ -60,17 +61,16 @@ public class AddGold : ICommand
 
         if (argTotal != 0)
         {
-            if (!targetPlayer.ChangeMoney(SlotType.Inventory, argTotal, ItemTaskType.AutoLootDoodadItem))
+            if (!targetPlayer.ChangeMoney(SlotType.Inventory, argTotal, ItemTaskType.Gm))
             {
                 CommandManager.SendErrorText(this, messageOutput, "Money change was rejected");
                 return;
             }
+
+            CommandManager.SendNormalText(this, messageOutput,
+                $"changed {targetPlayer.Name}'s money by {argGold}g {argSilver}s {argCopper}c → {targetPlayer.Money}");
             if (character.Id != targetPlayer.Id)
-            {
-                CommandManager.SendNormalText(this, messageOutput,
-                    $"changed {targetPlayer.Name}'s money by {argGold}g {argSilver}s {argCopper}c");
                 targetPlayer.SendMessage($"[GM] {character.Name} has adjusted your money");
-            }
         }
         else
         {
