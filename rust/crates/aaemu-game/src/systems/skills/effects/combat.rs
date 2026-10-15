@@ -492,7 +492,10 @@ pub fn damage(
         Some(b) => b.add(&p),
         None => broadcast(server, &trg, &p, true),
     }
-    if let Some(n) = trg.as_npc() {
+    // Not for a hit that killed the NPC: re-adding the killer to the corpse's aggro table made a
+    // deferred `GoToDead` return (and fully heal) the corpse, so its attackers fought it again.
+    let trg_alive = trg.with_unit(|u| u.unit().hp > 0).unwrap_or(false);
+    if let Some(n) = trg.as_npc().filter(|_| trg_alive) {
         let summarize = caster.with_unit(|u| u.unit().summarize_damage).unwrap_or(0);
         send_to_players(
             server,

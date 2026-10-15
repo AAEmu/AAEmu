@@ -1168,3 +1168,291 @@ async fn flying_npc_timeout_return_counts_vertical_displacement() {
         "{home:?}"
     );
 }
+
+/// A guard NPC that kills a hostile mob must drop it as target, stop attacking and leave combat
+/// (live report: Graymist guards kept attacking the dead mob, whose client health bar stayed
+/// gray as if the death never registered).
+const MOB_OBJ: u32 = 0x202;
+const GUARD2_OBJ: u32 = 0x203;
+const GUARD_FACTION: u32 = 101;
+const MOB_FACTION: u32 = 109;
+
+/// [`data`] with the guard faction (also the test characters' faction), hostile to the mob faction.
+fn guard_data() -> GameData {
+    use crate::data::world_data::{FactionRelation, SystemFaction};
+    let mut data = data();
+    for id in [GUARD_FACTION, MOB_FACTION] {
+        data.factions.add(SystemFaction {
+            id,
+            ..SystemFaction::default()
+        });
+    }
+    data.factions.relations.push(FactionRelation {
+        id: GUARD_FACTION,
+        id2: MOB_FACTION,
+        state: crate::systems::skills::types::RelationState::Hostile as u8,
+        exp_time: 0,
+    });
+    data
+}
+
+fn tracked_state(server: &GameServer, guard: &NpcRef, mob: &NpcRef) -> String {
+    let (target, aggro_target, battle, aggro) = {
+        let g = guard.data();
+        let mut keys: Vec<u32> = g.unit.skill_state.aggro_table.keys().copied().collect();
+        keys.sort_unstable();
+        (
+            g.unit.current_target,
+            g.current_aggro_target,
+            g.unit.is_in_battle,
+            keys,
+        )
+    };
+    let (hp, dead) = {
+        let m = mob.data();
+        (m.unit.hp, m.unit.is_dead())
+    };
+    format!(
+        "guard[beh={:?} target={target:#x} aggro_target={aggro_target:#x} battle={battle} aggro={aggro:x?}] mob[hp={hp} dead={dead} beh={:?}]",
+        behavior(server, NPC_OBJ),
+        behavior(server, MOB_OBJ),
+    )
+}
+
+/// `with_player`: a same-faction bystander 30 m away (region activity + a packet receiver);
+/// without one the guard is seeded with aggro on the mob (an idle NPC without region activity is
+/// dormant, so it would never notice the mob by itself).
+async fn run_guard_kills_mob(guard_kind: AiKind, with_player: bool, second_guard: bool) {
+    let server = server_with_data(guard_data());
+    let mut client = TestClient::new(&server, 1, 1);
+    let player = with_player.then(|| {
+        let mut c = test_character(1, "Bystander", 130.0, 100.0);
+        c.unit.hp = 1000;
+        c.unit.max_hp = 1000;
+        spawn_player(&server, &client, c, PLAYER_OBJ)
+    });
+    let guard = spawn_npc(&server, NPC_OBJ, NPC_TEMPLATE, 100.0, 100.0, guard_kind);
+    guard.data().unit.faction_id = GUARD_FACTION;
+    let mob = spawn_npc(
+        &server,
+        MOB_OBJ,
+        PASSIVE_TEMPLATE,
+        103.0,
+        100.0,
+        AiKind::Default,
+    );
+    mob.data().unit.faction_id = MOB_FACTION;
+    mob.data().unit.hp = HIT_DAMAGE + 20;
+    mob.data().unit.max_hp = HIT_DAMAGE + 20;
+    let guard2 = second_guard.then(|| {
+        let g = spawn_npc(
+            &server,
+            GUARD2_OBJ,
+            NPC_TEMPLATE,
+            100.0,
+            103.0,
+            AiKind::HoldPosition,
+        );
+        g.data().unit.faction_id = GUARD_FACTION;
+        g
+    });
+    if !with_player {
+        // settle (the spawn / command-set grace runs without region activity), then seed
+        tick_until(&server, 100, 120, 5, || false).await;
+        let mob_obj = WorldObject::from(&mob);
+        super::combat::add_unit_aggro(
+            &server,
+            &WorldObject::from(&guard),
+            AggroKind::Damage,
+            &mob_obj,
+            1,
+        );
+        post(&server, NPC_OBJ, |c| c.on_aggro_target_changed());
+    }
+    client.drain();
+
+    let mut trace = Vec::new();
+    let mut died_at = None;
+    for i in 0..120 {
+        tick_all(&server, 500);
+        tokio::time::sleep(Duration::from_millis(160)).await;
+        let ops = frame_ops(&mut client);
+        let line = format!(
+            "#{i:03} {} ops={:x?}",
+            tracked_state(&server, &guard, &mob),
+            ops
+        );
+        if died_at.is_none() && mob.data().unit.hp <= 0 {
+            died_at = Some(i);
+        }
+        trace.push((i, line, ops));
+        if died_at.is_some_and(|d| i >= d + 30) {
+            break;
+        }
+    }
+    for (_, line, _) in &trace {
+        eprintln!("{line}");
+    }
+    let died = died_at.expect("the guard never killed the mob");
+    assert!(mob.data().unit.is_dead(), "hp 0 but the mob is not dead");
+    assert_eq!(behavior(&server, MOB_OBJ), Some(B::Dead));
+    // the death packet reached the bystander, after the points packet
+    if with_player {
+        let ops = &trace[died].2;
+        let death = ops.iter().position(|o| *o == sc::SCUnitDeathPacket);
+        assert!(
+            death.is_some(),
+            "no SCUnitDeathPacket to the player: {ops:x?}"
+        );
+        let points = ops.iter().position(|o| *o == sc::SCUnitPointsPacket);
+        assert!(points < death, "points must precede death: {ops:x?}");
+    }
+    // after the death: no further skill starts / damage against the dead mob
+    for (i, line, ops) in &trace[(died + 3).min(trace.len() - 1)..] {
+        assert!(
+            !ops.contains(&sc::SCUnitDamagedPacket),
+            "guard still attacking the dead mob at tick {i}: {line}"
+        );
+    }
+    // the dead mob is no target / aggro entry anywhere and the guards left combat
+    for g in [Some(&guard), guard2.as_ref()].into_iter().flatten() {
+        let gd = g.data();
+        assert!(
+            !gd.unit.skill_state.aggro_table.contains_key(&MOB_OBJ),
+            "dead mob still in aggro table: {}",
+            tracked_state(&server, g, &mob)
+        );
+        assert_ne!(gd.unit.current_target, MOB_OBJ, "dead mob still targeted");
+        assert!(!gd.unit.is_in_battle, "guard still in battle");
+    }
+    assert_ne!(behavior(&server, NPC_OBJ), Some(B::Attack));
+    drop(player);
+}
+
+#[tokio::test]
+async fn guard_stops_attacking_a_mob_it_killed() {
+    run_guard_kills_mob(AiKind::HoldPosition, true, false).await;
+}
+
+#[tokio::test]
+async fn two_guards_stop_attacking_a_mob_they_killed() {
+    run_guard_kills_mob(AiKind::HoldPosition, true, true).await;
+}
+
+/// The kill lands while the mob's AI is busy on another thread (a player's skill task / the
+/// blocking-pool AI batch racing the guard): `go_to_dead` is queued behind the damage effect's
+/// tail, which re-adds the killer to the dead mob's aggro table
+/// (`skills/effects/combat.rs` damage: `add_unit_aggro(trg, ..)` after `reduce_current_hp`).
+/// `dead_enter` -> `npc_clear_all_aggro` then sees a non-empty table and, with the mob away from
+/// its idle position, `check_if_empty_aggro_to_return` runs `go_to_return` on the corpse:
+/// `return_state_enter` restores the hp, so the mob is alive again and hostile.
+#[tokio::test]
+async fn guard_kill_while_the_mob_ai_is_busy_keeps_the_mob_dead() {
+    let server = server_with_data(guard_data());
+    let mut client = TestClient::new(&server, 1, 1);
+    let mut c = test_character(1, "Bystander", 130.0, 100.0);
+    c.unit.hp = 1000;
+    c.unit.max_hp = 1000;
+    let _player = spawn_player(&server, &client, c, PLAYER_OBJ);
+    let guard = spawn_npc(
+        &server,
+        NPC_OBJ,
+        NPC_TEMPLATE,
+        100.0,
+        100.0,
+        AiKind::HoldPosition,
+    );
+    guard.data().unit.faction_id = GUARD_FACTION;
+    let mob = spawn_npc(
+        &server,
+        MOB_OBJ,
+        PASSIVE_TEMPLATE,
+        103.0,
+        100.0,
+        AiKind::Roaming,
+    );
+    mob.data().unit.faction_id = MOB_FACTION;
+    // three hits: 40 + 40 + 40 >= 3 * 40 - 20
+    mob.data().unit.hp = 3 * HIT_DAMAGE - 20;
+    mob.data().unit.max_hp = 3 * HIT_DAMAGE - 20;
+    client.drain();
+
+    // normal engagement until the first hit landed
+    let first_hit = tick_until(&server, 500, 160, 60, || mob.data().unit.hp < 100).await;
+    assert!(first_hit, "{}", tracked_state(&server, &guard, &mob));
+    // the mob chased / drifted away from its idle position
+    mob.data().unit.transform.set_xyz(110.0, 100.0, 100.0);
+
+    // block the mob AI (as a concurrent tick would) until it is dead
+    let (release, wait) = std::sync::mpsc::channel::<()>();
+    let (ready_tx, ready) = std::sync::mpsc::channel::<()>();
+    let s = server.clone();
+    let blocker = std::thread::spawn(move || {
+        super::manager::run_now(&s, MOB_OBJ, move |_c| {
+            ready_tx.send(()).expect("ready");
+            let _ = wait.recv();
+        });
+    });
+    ready.recv().expect("mob ai busy");
+    let killed = tick_until(&server, 500, 160, 60, || mob.data().unit.hp <= 0).await;
+    eprintln!(
+        "after kill (mob ai still busy): mob hp {} guard aggro {:?}",
+        mob.data().unit.hp,
+        guard
+            .data()
+            .unit
+            .skill_state
+            .aggro_table
+            .keys()
+            .collect::<Vec<_>>()
+    );
+    eprintln!(
+        "mob aggro table after kill: {:?}",
+        mob.data()
+            .unit
+            .skill_state
+            .aggro_table
+            .keys()
+            .collect::<Vec<_>>()
+    );
+    release.send(()).expect("release");
+    blocker.join().expect("blocker");
+    assert!(killed, "{}", tracked_state(&server, &guard, &mob));
+    // the queued `go_to_dead` ran now: the corpse must stay a corpse
+    let after_release = tracked_state(&server, &guard, &mob);
+    eprintln!("after the queued AI calls ran: {after_release}");
+    assert_eq!(
+        mob.data().unit.hp,
+        0,
+        "the corpse was healed back to life by ReturnState: {after_release}"
+    );
+    // the death of the kill above
+    let kill_ops = frame_ops(&mut client);
+    assert_eq!(
+        kill_ops
+            .iter()
+            .filter(|o| **o == sc::SCUnitDeathPacket)
+            .count(),
+        1,
+        "{kill_ops:x?}"
+    );
+    let mut deaths = 0;
+    for i in 0..40 {
+        tick_all(&server, 500);
+        tokio::time::sleep(Duration::from_millis(160)).await;
+        let ops = frame_ops(&mut client);
+        deaths += ops.iter().filter(|o| **o == sc::SCUnitDeathPacket).count();
+        let line = tracked_state(&server, &guard, &mob);
+        eprintln!("#{i:02} {line} ops={ops:x?}");
+        assert_eq!(mob.data().unit.hp, 0, "the mob came back to life: {line}");
+    }
+    assert_eq!(deaths, 0, "the mob had to be killed a second time");
+    assert_eq!(behavior(&server, MOB_OBJ), Some(B::Dead));
+    assert!(!guard
+        .data()
+        .unit
+        .skill_state
+        .aggro_table
+        .contains_key(&MOB_OBJ));
+    assert_ne!(behavior(&server, NPC_OBJ), Some(B::Attack));
+}

@@ -610,8 +610,9 @@ Deviations of the wiring:
   the character through a weak reference held by its time observer.
 
 C# bugs mirrored by the wiring: a fall death generates crime evidence against the victim
-itself (the faller is its own "killer"); the killing blow's aggro / tagger is added to the dead
-NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`).
+itself (the faller is its own "killer"). The killing blow's aggro / tagger used to be added to
+the dead NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`); that
+is no longer mirrored (see "Known deviations", dead NPC returned and healed).
 
 ## Known deviations from the C#
 
@@ -638,6 +639,13 @@ NPC after `DoDie` cleared them (`OnDamageReceived` runs after `ReduceCurrentHp`)
 * `LGPlayerEnter` for an already registered connection id: C# `Dictionary.Add` throws inside the
   login handler, which has no catch (the exception escapes into the network client, the world is
   shown inactive afterwards). Rust replaces the stale entry and replies 0 (see "Live testing").
+* systems::skills / systems::ai (dead NPC returned and healed): the `DamageEffect` tail
+  (`SCAiAggroPacket`, `AddUnitAggro`, `Npc.OnDamageReceived`) is skipped when the hit killed the
+  NPC, and `CheckIfEmptyAggroToReturn` never sends a dead NPC to `ReturnState`. In the C# order the
+  killer was re-added to the corpse's aggro table; when the NPC's `GoToDead` ran after that tail
+  (its AI busy on another thread), `DeadBehavior`'s `ClearAllAggro` sent the corpse home and
+  `ReturnState` restored its hp, so town guards kept fighting the mob they had killed (gray hp
+  bar in the client). Test: `ai::flow_tests::guard_kill_while_the_mob_ai_is_busy_keeps_the_mob_dead`.
 * `Character.Load` for a character with InfamyPoint >= 3000: the Wanted / Contemptuous buffs are
   added and the faction becomes Pirate as in C#; `SetFaction`'s side effects (house factions,
   `ExpeditionManager.Kick(this.Connection, ...)` — which throws on the null lobby connection and

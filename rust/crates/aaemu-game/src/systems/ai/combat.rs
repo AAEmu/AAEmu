@@ -121,7 +121,8 @@ pub fn check_if_empty_aggro_to_return(c: &mut AiCtx<'_>) {
     let pos = npc::world_pos(c.server, &c.obj);
     let distance_to_idle =
         crate::systems::skills::controllers::calculate_distance(c.ai.idle_position, pos, true);
-    if distance_to_idle > 4.0 {
+    // A dead NPC stays where it died (`ReturnState` would restore its hp).
+    if distance_to_idle > 4.0 && !npc::is_dead(&c.obj) {
         c.go_to_return();
     }
     set_in_battle(c.server, &c.obj, false);
