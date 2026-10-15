@@ -66,10 +66,102 @@ pub(crate) fn capture_financial_snapshot(server: &GameServer) -> FinancialSnapsh
         characters: players
             .into_iter()
             .map(|p| {
-                let character = p.data().clone();
+                // Resolved before locking the character: `world_pos_rot` locks transforms.
+                let world = save_world_position(server, &p);
+                let mut character = p.data().clone();
+                if let Some(world) = world {
+                    let t = &mut character.unit.transform;
+                    t.set_position(
+                        world.x,
+                        world.y,
+                        world.z,
+                        world.rot_x,
+                        world.rot_y,
+                        world.rot_z,
+                    );
+                    t.parent_obj_id = 0;
+                }
                 (p, character)
             })
             .collect(),
+    }
+}
+
+/// The world position of a character attached to a parent (ship, mate, transfer): its
+/// transform is then relative to the parent, but the row must hold world coordinates
+/// (`Character.Save` writes `Transform.World.Position` / `Rotation`). `None` when the
+/// character has no parent, or the parent is gone (the local values are kept, with a warning).
+fn save_world_position(
+    server: &GameServer,
+    player: &PlayerRef,
+) -> Option<crate::models::transform::PositionAndRotation> {
+    let obj = crate::world::WorldObject::from(player);
+    let parent_id = obj.transform().parent_obj_id;
+    if parent_id == 0 {
+        return None;
+    }
+    let Some(world) = server.world.world_of(&obj) else {
+        tracing::warn!(
+            "Saving character {}: no world instance for its parent {parent_id}; \
+             saving the parent-relative position",
+            player.character_id
+        );
+        return None;
+    };
+    if world.object(parent_id).is_none() {
+        tracing::warn!(
+            "Saving character {}: parent object {parent_id} not found; \
+             saving the parent-relative position",
+            player.character_id
+        );
+        return None;
+    }
+    Some(world.world_pos_rot(&obj))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::slave::Slave;
+    use crate::test_support::{spawn_player, test_character, test_server, TestClient};
+    use crate::world::{Entity, WorldObject};
+
+    #[tokio::test]
+    async fn snapshot_saves_world_position_of_attached_character() {
+        let s = test_server();
+        let client = TestClient::new(&s, 1, 1);
+        let player = spawn_player(
+            &s,
+            &client,
+            test_character(1, "Deck", 1003.0, 1002.0),
+            0x100,
+        );
+        let world = s.world.world(0).unwrap();
+        let obj = WorldObject::from(&player);
+        let mut hull = Slave::new(1, 1);
+        hull.unit
+            .transform
+            .set_position(1000.0, 2000.0, 305.0, 0.0, 0.0, 0.0);
+        let slave = Entity::new(0x300, hull);
+        world.spawn(&slave, &s.view_ctx());
+        world.attach_child(&WorldObject::from(&slave), &obj);
+        player.data().unit.transform.set_xyz(2.0, -3.0, 4.0);
+
+        let snapshot = capture_financial_snapshot(&s);
+        let (_, saved) = snapshot
+            .characters
+            .iter()
+            .find(|(p, _)| p.character_id == player.character_id)
+            .expect("character in snapshot");
+        let t = &saved.unit.transform;
+        assert_eq!(t.parent_obj_id, 0);
+        assert!((t.x - 1002.0).abs() < 1e-3, "x = {}", t.x);
+        assert!((t.y - 1997.0).abs() < 1e-3, "y = {}", t.y);
+        assert!((t.z - 309.0).abs() < 1e-3, "z = {}", t.z);
+
+        let live = player.data().unit.transform;
+        assert_eq!(live.parent_obj_id, slave.obj_id);
+        assert_eq!((live.x, live.y, live.z), (2.0, -3.0, 4.0));
     }
 }
 
