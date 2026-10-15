@@ -28,6 +28,9 @@ use crate::game::{GameClient, Packet, UnitInfo};
 /// find without any reply).
 const CAST_ANSWER: Duration = Duration::from_secs(8);
 
+/// `SkillResult.SourceDied`.
+const SOURCE_DIED: i32 = aaemu_game::systems::skills::types::skill_result::SOURCE_DIED as i32;
+
 pub(super) async fn run(
     game: &mut GameClient,
     cfg: &BotConfig,
@@ -54,6 +57,12 @@ pub(super) async fn run(
         !texts.is_empty(),
         "no reply to the GM command /quest list (commands not loaded?)"
     );
+    // The orb angers its target (buff 3003): a previous run's NPCs may have killed the bot,
+    // which then logs in dead and every cast fails with SkillResult 2 (source died).
+    gm_command(game, "revive").await?;
+    // A bot killed by the Soulreath mobs on an earlier run is saved dead and every cast would
+    // fail with SourceDied: revive it first (nothing happens to a living bot).
+    gm_command(game, "revive").await?;
     r.end(s, "GM commands accepted");
 
     // ---- teleport next to the NPCs ----
@@ -271,6 +280,10 @@ async fn casts(
         }
         if result == 0 {
             ok += 1;
+        } else if result == SOURCE_DIED {
+            // The orb angers the NPC (buff 3003) and it fights back: the low-level bot can
+            // die between casts.
+            gm_command(game, "revive").await?;
         } else {
             // The NPC's own buff handling (3004) needs a moment before it can be used again.
             tokio::time::sleep(Duration::from_secs(1)).await;
