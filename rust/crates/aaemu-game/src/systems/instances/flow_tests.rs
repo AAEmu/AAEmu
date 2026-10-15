@@ -1457,11 +1457,14 @@ async fn battlefield_queue_match_join_score_and_end() {
         corps: corps::ANY,
         error_message_id: 0,
     });
-    let state = |cur| {
+    // Per-corps size 1; both applied as "any corps", so only the any-count grows.
+    let state = |any_count| {
         body(&SCInstantGameStatePacket {
             battlefield_id: 7,
-            cur_count: cur,
-            max_count: 2,
+            corps_size: 1,
+            corps1_count: 0,
+            corps2_count: 0,
+            any_count,
         })
     };
     assert_eq!(
@@ -1633,7 +1636,8 @@ async fn battlefield_queue_match_join_score_and_end() {
         .write_str("Foxtrot")
         .write_i32(0)
         .write_i32(0)
-        .write_u32(0)
+        // Bonus set: loser only (2 deaths, no kills).
+        .write_u32(instant_game::bonus_set::LOSER)
         .write_u16(0)
         .write_u16(0)
         .write_u16(0)
@@ -1649,8 +1653,12 @@ async fn battlefield_queue_match_join_score_and_end() {
         .write_str("Echo")
         .write_i32(60)
         .write_i32(0)
-        // Bonus set: victory + top PC kill + no death.
-        .write_u32(0b1011)
+        // Bonus set: victory + no death + top PC kill.
+        .write_u32(
+            instant_game::bonus_set::VICTORY
+                | instant_game::bonus_set::NO_DEATH
+                | instant_game::bonus_set::TOP_PC_KILL,
+        )
         .write_u16(2)
         .write_u16(2)
         .write_u16(0)
@@ -1693,7 +1701,8 @@ async fn battlefield_decline_requeues() {
         .frames()
         .iter()
         .any(|(op, _)| *op == sc::SCInviteToInstantGamePacket));
-    // Decline: removed from the game, applied again.
+    // Decline: removed from the game, applied again (no Cancel: that would reset the 1.2
+    // client to not-applied).
     let mut decline = vec![0];
     decline.extend_from_slice(&1u64.to_le_bytes());
     h.frame(&server, cs::CSJoinInstantGamePacket, &decline)
@@ -1703,7 +1712,6 @@ async fn battlefield_decline_requeues() {
     assert_eq!(
         h.ops(),
         vec![
-            sc::SCCancelInstantGamePacket,
             sc::SCAppliedToInstantGamePacket,
             sc::SCInstantGameStatePacket
         ]
@@ -2044,7 +2052,7 @@ async fn battlefield_end_awards_bonus_honor() {
             | instant_game::bonus_set::NO_DEATH
     );
     assert_eq!(st.members[1].bonus, 10);
-    assert_eq!(st.members[1].bonus_set, 0);
+    assert_eq!(st.members[1].bonus_set, instant_game::bonus_set::LOSER);
     drop(st);
     assert_eq!(a.p.data().honor_point, 67);
     assert_eq!(b.p.data().honor_point, 10);

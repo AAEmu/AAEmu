@@ -98,50 +98,41 @@ fn simple_packets_are_byte_exact() {
     );
     assert_eq!(
         body(&SCCancelInstantGamePacket::clear_queue()),
-        vec![0, 0, 1]
+        vec![0, 0, 1, 0]
     );
     assert_eq!(
         body(&SCCancelInstantGamePacket::with_error(336)),
-        vec![80, 1, 0]
+        vec![80, 1, 0, 0]
     );
     assert_eq!(
         SCCancelInstantGamePacket::clear_queue().opcode(),
         sc::SCCancelInstantGamePacket
     );
+    let state = SCInstantGameStatePacket {
+        battlefield_id: 7,
+        corps_size: 5,
+        corps1_count: 2,
+        corps2_count: 3,
+        any_count: 4,
+    };
     let mut e = PacketStream::new();
-    e.write_u32(7).write_i32(2).write_i32(10);
-    assert_eq!(
-        body(&SCInstantGameStatePacket {
-            battlefield_id: 7,
-            cur_count: 2,
-            max_count: 10
-        }),
-        e.into_bytes()
-    );
-    assert_eq!(
-        SCInstantGameStatePacket {
-            battlefield_id: 7,
-            cur_count: 2,
-            max_count: 10
-        }
-        .opcode(),
-        sc::SCInstantGameStatePacket
-    );
+    e.write_u32(7)
+        .write_u8(5)
+        .write_u16(2)
+        .write_u16(3)
+        .write_u16(4);
+    assert_eq!(body(&state), e.into_bytes());
+    assert_eq!(state.opcode(), sc::SCInstantGameStatePacket);
+    let timeout = SCInstantGameInviteTimeoutPacket {
+        zone_instance_id: ZID,
+        ruleset_id: 22,
+        corps: 2,
+    };
     let mut e = PacketStream::new();
     zid_bytes(&mut e);
-    assert_eq!(
-        body(&SCInstantGameInviteTimeoutPacket {
-            zone_instance_id: ZID
-        }),
-        e.into_bytes()
-    );
-    assert_eq!(
-        SCInstantGameInviteTimeoutPacket {
-            zone_instance_id: ZID
-        }
-        .opcode(),
-        sc::SCInstantGameInviteTimeoutPacket
-    );
+    e.write_u32(22).write_u8(2);
+    assert_eq!(body(&timeout), e.into_bytes());
+    assert_eq!(timeout.opcode(), sc::SCInstantGameInviteTimeoutPacket);
     assert_eq!(
         body(&SCInstantGameRemainTimePacket { remain_time: 60 }),
         vec![60, 0, 0, 0]
