@@ -2091,6 +2091,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         slave.SeamHandoffEpoch++;
         slave.SeamImpulseAtMs = 0;
         slave.SeamBridgeBehindAtMs = 0;
+        slave.SeamTakeBackAtMs = 0;
         var liveThrottle = BoatSeamPredictRules.LiveThrottle(
             slave.SimulatedShipState?.Throttle ?? 0, slave.ThrottleRequest, slave.Throttle);
         if (!BoatSeamHandoffRules.TryCapture(
@@ -2608,11 +2609,13 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         var msSinceImpulse = slave.SeamImpulseAtMs == 0 ? -1 : now - slave.SeamImpulseAtMs;
         var msSinceCatchUp = slave.SeamCatchUpAtMs == 0 ? -1 : now - slave.SeamCatchUpAtMs;
 
-        // B has its speed back but is still behind the body the client is watching and no
-        // catch-up has been sent yet: close the gap on B before follow switches.
+        // B has its speed back but is still behind the body the client is watching: close the
+        // gap on B before follow switches. Repeats once the previous catch-up has had its
+        // window — B is unseen during the overlap, so walking the gap in costs the client
+        // nothing, while switching onto an open gap is the step it feels.
         if (!silent &&
-            slave.SeamCatchUpSpeed <= 0f &&
-            BoatZoneSimRules.IsBehindStreamedBody(alongTrack) &&
+            slave.SeamTakeBackAtMs == 0 &&
+            BoatZoneSimRules.ShouldRepeatCatchUp(alongTrack, msSinceCatchUp) &&
             BoatZoneSimRules.ShouldAcceptWarmupHandoff(x, y, reportedSpeed, expectedCruise, replantAge, msSinceImpulse) &&
             (slave.SeamImpulseAtMs == 0 || msSinceImpulse >= BoatZoneSimRules.ImpulseSettleMs))
         {
@@ -2637,9 +2640,32 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             return true;
         }
 
+        // Switch criteria met. Take the catch-up surplus back first and let one more report
+        // land, so the first B body the client is handed is at cruise — not the pulse the
+        // take-back is about to remove (live 00:41:46: switch at 22.6, cruise 18). A silent A
+        // cannot wait: take back and switch on this tick as before.
+        if (!silent && slave.SeamCatchUpSpeed > 0f && slave.SeamTakeBackAtMs == 0)
+        {
+            TakeBackSeamCatchUp(slave, zoneKey, reportedSpeed, expectedCruise);
+            slave.SeamTakeBackAtMs = now;
+            Logger.Info(
+                "Seam take-back before switch obj={0} zone={1} arrived={2:F1} expectedCruise={3:F1} along={4:F2} m",
+                slave.ObjId, zoneKey, reportedSpeed, expectedCruise, alongTrack);
+            return true;
+        }
+
+        var msSinceTakeBack = slave.SeamTakeBackAtMs == 0 ? -1 : now - slave.SeamTakeBackAtMs;
+        if (!silent && BoatZoneSimRules.ShouldWaitForTakeBack(msSinceTakeBack, reportedSpeed, expectedCruise))
+        {
+            Logger.Info(
+                "Seam overlap waiting for take-back obj={0} zone={1} arrived={2:F1} expectedCruise={3:F1} msSinceTakeBack={4}",
+                slave.ObjId, zoneKey, reportedSpeed, expectedCruise, msSinceTakeBack);
+            return true;
+        }
+
         Logger.Info(
-            "Seam overlap follow switch obj={0} zone={1} pos=({2:F1},{3:F1}) settleMs={4} silent={5} along={6:F2} m",
-            slave.ObjId, zoneKey, x, y, replantAge, silent, alongTrack);
+            "Seam overlap follow switch obj={0} zone={1} pos=({2:F1},{3:F1}) settleMs={4} silent={5} along={6:F2} m arrived={7:F1}",
+            slave.ObjId, zoneKey, x, y, replantAge, silent, alongTrack, reportedSpeed);
         FinishBoatSeamHandoff(slave, reportedSpeed, expectedCruise);
         return true;
     }
@@ -2701,11 +2727,11 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
     private static void NoteSeamCatchUp(Slave slave, uint zoneKey, float catchUp, float alongTrack, long now)
     {
-        slave.SeamCatchUpSpeed = catchUp;
+        slave.SeamCatchUpSpeed += catchUp;
         slave.SeamCatchUpAtMs = now;
         Logger.Info(
-            "Seam catch-up obj={0} zone={1} behind={2:F2} m added={3:F1} m/s",
-            slave.ObjId, zoneKey, -alongTrack, catchUp);
+            "Seam catch-up obj={0} zone={1} behind={2:F2} m added={3:F1} m/s outstanding={4:F1} m/s",
+            slave.ObjId, zoneKey, -alongTrack, catchUp, slave.SeamCatchUpSpeed);
     }
 
     /// <summary>
@@ -2807,6 +2833,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         slave.SeamImpulseAtMs = 0;
         slave.SeamBridgeBehindAtMs = 0;
         slave.SeamReplantAtMs = 0;
+        slave.SeamTakeBackAtMs = 0;
         slave.SeamTargetSpeed = 0f;
         slave.SeamCorrectionZone = 0;
         slave.SeamHelmQueue.Clear();

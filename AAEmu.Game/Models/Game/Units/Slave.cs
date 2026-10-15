@@ -209,12 +209,19 @@ public class Slave : Unit
 
     /// <summary>
     /// Forward speed added to the incoming body so it closes its along-track gap to the streamed
-    /// one; taken back at the follow switch. Zero when no catch-up is in flight.
+    /// one, summed over every catch-up of this overlap; taken back before the follow switch.
+    /// Zero when nothing is outstanding.
     /// </summary>
     public float SeamCatchUpSpeed { get; set; }
 
-    /// <summary>When <see cref="SeamCatchUpSpeed"/> was applied (<see cref="Environment.TickCount64"/>).</summary>
+    /// <summary>When the latest catch-up was applied (<see cref="Environment.TickCount64"/>).</summary>
     public long SeamCatchUpAtMs { get; set; }
+
+    /// <summary>
+    /// When the catch-up surplus was taken back ahead of the follow switch; zero until then.
+    /// The switch waits one report after this so the client's first B body is at cruise.
+    /// </summary>
+    public long SeamTakeBackAtMs { get; set; }
 
     /// <summary>
     /// Follow-switch blend (<see cref="Core.Managers.World.BoatSeamBlendRules"/>): the outgoing
