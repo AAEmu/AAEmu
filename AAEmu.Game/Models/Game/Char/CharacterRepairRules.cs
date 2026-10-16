@@ -1,4 +1,5 @@
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -10,6 +11,8 @@ public static class CharacterRepairRules
 {
     public static bool CanRepairWithoutBlacksmith(bool itemRepairInBag, bool isPaidPatron) =>
         itemRepairInBag && isPaidPatron;
+
+    public static bool CanRepairAtNpc(NpcTemplate npc) => npc?.Repairman == true;
 
     /// <summary>
     /// A piece with no max durability is not repairable. Restoring it to 0 would brick it.

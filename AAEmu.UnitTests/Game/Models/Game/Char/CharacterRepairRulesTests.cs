@@ -1,5 +1,6 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Char;
 
@@ -12,6 +13,16 @@ public class CharacterRepairRulesTests
         await Assert.That(CharacterRepairRules.CanRepairWithoutBlacksmith(true, false)).IsFalse();
         await Assert.That(CharacterRepairRules.CanRepairWithoutBlacksmith(false, true)).IsFalse();
         await Assert.That(CharacterRepairRules.CanRepairWithoutBlacksmith(false, false)).IsFalse();
+    }
+
+    [Test]
+    public async Task NpcRepair_RequiresARepairman()
+    {
+        var repairman = new NpcTemplate { Repairman = true };
+        var blacksmith = new NpcTemplate { Blacksmith = true };
+        await Assert.That(CharacterRepairRules.CanRepairAtNpc(repairman)).IsTrue();
+        await Assert.That(CharacterRepairRules.CanRepairAtNpc(blacksmith)).IsFalse();
+        await Assert.That(CharacterRepairRules.CanRepairAtNpc(null)).IsFalse();
     }
 
     [Test]
