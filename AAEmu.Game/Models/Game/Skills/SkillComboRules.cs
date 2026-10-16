@@ -9,12 +9,10 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// when its GCD is up. World does not schedule or delay those hits.
 /// </summary>
 /// <remarks>
-/// Follow-up skill ids (Triple Slash 18132→18134→18131, Quake heir 36404→36405→36406,
-/// Gods' Whip 23593→23646→23647→23648→23649, Whirlwind Slash 13282→32040→32049, …) are not
-/// separate book entries. The client swaps the bar from the Combo effect and sends an ordinary
-/// <c>CSStartSkill</c> for the next id; World must treat that id as held when the character
-/// holds any earlier hit of the same chain, or the cast is refused as unlearned and the
-/// hold-to-cycle path falls back to repeating the first hit.
+/// Follow-up skill ids are not separate book entries. The client swaps the bar from the Combo
+/// effect and sends an ordinary <c>CSStartSkill</c> for the next id. That id is castable only as
+/// the next link after the previous hit, inside that hit's Combo window — holding the root is not
+/// enough, or a later hit with its own short cooldown could be cast without the root.
 /// </remarks>
 public static class SkillComboRules
 {
@@ -98,12 +96,20 @@ public static class SkillComboRules
     }
 
     /// <summary>
-    /// Combo window (ms) from the skill's Combo special <c>value2</c>, or 0 when it has none.
+    /// Combo window (ms) from the skill's Combo special <c>value2</c> plus that skill's cast time,
+    /// or 0 when it has no Combo link.
     /// </summary>
+    /// <remarks>
+    /// The window is measured from when the cast is accepted, which is before a cast-time hit
+    /// finishes. Adding the cast time leaves the follow-up inside the window once the bar swaps,
+    /// and still closes it so a later link cannot be sent on its own.
+    /// </remarks>
     public static int ComboWindowMs(uint skillId)
     {
         var template = SkillManager.Instance?.GetSkillTemplate(skillId);
-        return TryGetComboFollowUp(template, out _, out var ms) ? ms : 0;
+        if (template == null || !TryGetComboFollowUp(template, out _, out var ms) || ms <= 0)
+            return 0;
+        return ms + Math.Max(0, template.CastingTime);
     }
 
     /// <summary>

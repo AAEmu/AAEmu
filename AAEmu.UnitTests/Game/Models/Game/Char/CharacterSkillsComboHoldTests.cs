@@ -11,9 +11,9 @@ using AAEmu.UnitTests.Utils;
 namespace AAEmu.UnitTests.Game.Models.Game.Char;
 
 /// <summary>
-/// A Combo follow-up (special type 48) is castable whenever the character holds an earlier hit of
-/// the same chain â€” learned, buff-granted or a selected Heir successor â€” without a prior cast
-/// having to land inside the previous link's window. Ids here are invented.
+/// A Combo follow-up is the next link after the last accepted cast, inside
+/// value2 plus that hit's cast time. Holding the root does not open later links on their own.
+/// Ids here are invented.
 /// </summary>
 [NotInParallel]
 public class CharacterSkillsComboHoldTests
@@ -21,7 +21,6 @@ public class CharacterSkillsComboHoldTests
     private const uint Root = 92001;
     private const uint Second = 92002;
     private const uint Third = 92003;
-    private const uint Unrelated = 92099;
 
     private SingletonScope<SkillManager> _skills;
 
@@ -36,7 +35,6 @@ public class CharacterSkillsComboHoldTests
             [Root] = Chained(Root, Second, castingTime: 1000),
             [Second] = Chained(Second, Third, castingTime: 0),
             [Third] = new SkillTemplate { Id = Third, AbilityId = AbilityType.Magic },
-            [Unrelated] = new SkillTemplate { Id = Unrelated, AbilityId = AbilityType.Magic },
         };
         typeof(SkillManager).GetField("_skills", BindingFlags.Instance | BindingFlags.NonPublic)!
             .SetValue(SkillManager.Instance, skills);
@@ -46,40 +44,53 @@ public class CharacterSkillsComboHoldTests
     public void RestoreCatalog() => _skills.Dispose();
 
     [Test]
-    public async Task LearnedRoot_HoldsEveryLaterHit_WithoutAPriorCast()
+    public async Task LearnedRoot_DoesNotHoldFollowUpsWithoutAPriorCast()
     {
         var character = NewCharacter();
         character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(Root), 1, packet: false);
 
-        // No NoteSkillFired: a cast-time root's second hit arrives after the cast, outside the window.
-        await Assert.That(character.Skills.HasSkill(Root)).IsTrue();
-        await Assert.That(character.Skills.HasSkill(Second)).IsTrue();
-        await Assert.That(character.Skills.HasSkill(Third)).IsTrue();
-        await Assert.That(character.Skills.HasSkill(Unrelated)).IsFalse();
+        await Assert.That(character.Skills.HasSkill(Second)).IsFalse();
+        await Assert.That(character.Skills.HasSkill(Third)).IsFalse();
     }
 
     [Test]
-    public async Task HoldingOnlyAMiddleHit_HoldsWhatFollowsIt_NotTheRoot()
+    public async Task CastTimeRoot_KeepsTheNextLinkOpenThroughTheCast()
     {
         var character = NewCharacter();
-        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(Second), 1, packet: false);
+        character.Skills.NoteSkillFired(Root);
 
+        // value2 is 1000 and the root casts for 1000, so a follow-up that arrives as the cast ends
+        // is still inside the window. The link after that is not.
+        await Assert.That(SkillComboRules.ComboWindowMs(Root)).IsEqualTo(2000);
+        Backdate(character, millisecondsAgo: 1500);
+        await Assert.That(character.Skills.HasSkill(Second)).IsTrue();
+        await Assert.That(character.Skills.HasSkill(Third)).IsFalse();
+    }
+
+    [Test]
+    public async Task Window_ClosesAfterCastTimePlusValue2()
+    {
+        var character = NewCharacter();
+        character.Skills.NoteSkillFired(Root);
+        Backdate(character, millisecondsAgo: 2001);
+
+        await Assert.That(character.Skills.HasSkill(Second)).IsFalse();
+    }
+
+    [Test]
+    public async Task InstantLink_WindowIsValue2Only()
+    {
+        var character = NewCharacter();
+        character.Skills.NoteSkillFired(Second);
+
+        await Assert.That(SkillComboRules.ComboWindowMs(Second)).IsEqualTo(1000);
+        Backdate(character, millisecondsAgo: 500);
         await Assert.That(character.Skills.HasSkill(Third)).IsTrue();
         await Assert.That(character.Skills.HasSkill(Root)).IsFalse();
     }
 
     [Test]
-    public async Task BuffGrantedRoot_HoldsItsFollowUps()
-    {
-        var character = NewCharacter();
-        character.Skills.TemporarySkills[Root] = new Skill(SkillManager.Instance.GetSkillTemplate(Root));
-
-        await Assert.That(character.Skills.HasSkill(Second)).IsTrue();
-        await Assert.That(character.Skills.HasSkill(Third)).IsTrue();
-    }
-
-    [Test]
-    public async Task NothingHeld_RefusesTheFollowUps()
+    public async Task NothingFired_RefusesTheFollowUps()
     {
         var character = NewCharacter();
 
@@ -87,14 +98,10 @@ public class CharacterSkillsComboHoldTests
         await Assert.That(character.Skills.HasSkill(Third)).IsFalse();
     }
 
-    [Test]
-    public async Task ReplacedRoot_NoLongerHoldsItsFollowUps()
+    private static void Backdate(Character character, int millisecondsAgo)
     {
-        var character = NewCharacter();
-        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(Root), 1, packet: false);
-        character.Skills.ReplacedSkillIds.Add(Root);
-
-        await Assert.That(character.Skills.HasSkill(Second)).IsFalse();
+        typeof(CharacterSkills).GetField("_lastComboAt", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(character.Skills, DateTime.UtcNow.AddMilliseconds(-millisecondsAgo));
     }
 
     private static SkillTemplate Chained(uint id, uint next, int castingTime) => new()
