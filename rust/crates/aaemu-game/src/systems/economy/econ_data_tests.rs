@@ -222,6 +222,97 @@ async fn npc_loot_is_generated_and_looted_with_loot_all() {
     run::<CSLootCloseBagPacket>(&mut w, 0, s.as_bytes());
 }
 
+fn kill_and_generate(w: &World, npc: &NpcRef) {
+    let mut rng = ScriptedRng::new(&[0, 0, 0, 3, 50, 1], &[]);
+    LootManager::generate_loot_with(
+        &w.server,
+        &WorldObject::from(npc),
+        Some(&WorldObject::from(&w.pa)),
+        &mut rng,
+    );
+}
+
+#[tokio::test]
+async fn releasing_the_object_id_drops_the_loot_container() {
+    let mut w = world_with(data());
+    super::bridges::install(&w.server);
+    let npc = spawn_npc(&mut w);
+    kill_and_generate(&w, &npc);
+    assert_eq!(w.server.systems.economy.loot.item_count(NPC_OBJ), 3);
+    assert!(w.server.systems.economy.loot.get(NPC_OBJ).is_some());
+
+    // Any subsystem's despawn path ends in the object id release.
+    w.server
+        .world
+        .world_of(&WorldObject::from(&npc))
+        .unwrap()
+        .delete(&npc);
+    w.server.ids.object.release_id(NPC_OBJ);
+    assert!(w.server.systems.economy.loot.get(NPC_OBJ).is_none());
+    assert_eq!(w.server.systems.economy.loot.item_count(NPC_OBJ), 0);
+}
+
+#[tokio::test]
+async fn npc_on_a_recycled_object_id_drops_loot_again() {
+    let mut w = world_with(data());
+    super::bridges::install(&w.server);
+    let first = spawn_npc(&mut w);
+    kill_and_generate(&w, &first);
+    assert_eq!(w.server.systems.economy.loot.item_count(NPC_OBJ), 3);
+    assert!(
+        w.server
+            .systems
+            .economy
+            .loot
+            .container(NPC_OBJ)
+            .lock()
+            .unwrap()
+            .already_generated
+    );
+
+    w.server
+        .world
+        .world_of(&WorldObject::from(&first))
+        .unwrap()
+        .delete(&first);
+    w.server.ids.object.release_id(NPC_OBJ);
+
+    let second = spawn_npc(&mut w);
+    assert_eq!(second.obj_id, NPC_OBJ);
+    assert_eq!(
+        w.server.systems.economy.loot.item_count(NPC_OBJ),
+        0,
+        "no stale items for the new NPC"
+    );
+    assert!(
+        !w.server
+            .systems
+            .economy
+            .loot
+            .container(NPC_OBJ)
+            .lock()
+            .unwrap()
+            .already_generated
+    );
+    kill_and_generate(&w, &second);
+    assert_eq!(w.server.systems.economy.loot.item_count(NPC_OBJ), 3);
+}
+
+#[tokio::test]
+async fn creating_an_object_on_a_reused_id_drops_a_stale_loot_container() {
+    use crate::systems::npcs::spawn_manager;
+
+    let mut w = world_with(data());
+    super::bridges::install(&w.server);
+    let npc = spawn_npc(&mut w);
+    kill_and_generate(&w, &npc);
+    assert!(w.server.systems.economy.loot.get(NPC_OBJ).is_some());
+    // The spawners call this for every freshly created NPC / doodad, even when the id was
+    // never released through a path that clears the container.
+    spawn_manager::forget_object_fields(&w.server, NPC_OBJ);
+    assert!(w.server.systems.economy.loot.get(NPC_OBJ).is_none());
+}
+
 #[tokio::test]
 async fn open_bag_without_loot_all_sends_bag_data_and_single_take_works() {
     let mut w = world_with(data());

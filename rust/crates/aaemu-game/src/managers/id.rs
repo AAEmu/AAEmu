@@ -8,7 +8,7 @@
 //! the next-free cursor.
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex, OnceLock};
 
 use sqlx::mysql::MySqlPool;
 use sqlx::Row;
@@ -121,6 +121,17 @@ pub struct IdManagerSpec {
     pub distinct: bool,
 }
 
+/// Observer called with every id [`IdManager::release_id`] gives back (Rust-only: per-id state
+/// that lives outside the object, e.g. loot containers, must not outlive the id).
+#[derive(Clone)]
+pub struct ReleaseHook(pub Arc<dyn Fn(u32) + Send + Sync>);
+
+impl std::fmt::Debug for ReleaseHook {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ReleaseHook")
+    }
+}
+
 /// `IdManager`.
 #[derive(Debug)]
 pub struct IdManager {
@@ -132,6 +143,8 @@ pub struct IdManager {
     state: Mutex<State>,
     /// `_initialized`.
     initialized: AtomicBool,
+    /// Observer of released ids, installed once by the subsystem that owns per-id state.
+    release_hook: OnceLock<ReleaseHook>,
 }
 
 impl IdManager {
@@ -149,6 +162,7 @@ impl IdManager {
                 next_free_id: 0,
             }),
             initialized: AtomicBool::new(false),
+            release_hook: OnceLock::new(),
         };
         // Usable before the DB-backed Initialize (tests, managers without tables); this does
         // not count as `_initialized`.
@@ -158,6 +172,11 @@ impl IdManager {
 
     pub fn name(&self) -> &'static str {
         self.name
+    }
+
+    /// Installs the observer of released ids (first installation wins; later ones are ignored).
+    pub fn install_release_hook(&self, hook: impl Fn(u32) + Send + Sync + 'static) {
+        let _ = self.release_hook.set(ReleaseHook(Arc::new(hook)));
     }
 
     /// `Initialize()` with the used ids already extracted (`ExtractUsedObjectIdTable`).
@@ -271,19 +290,26 @@ impl IdManager {
     /// `ReleaseId`. The offset is `(int)(usedObjectId - _firstId)` as in the C#: ids below the
     /// first id, or more than `int.MaxValue` above it, are rejected.
     pub fn release_id(&self, used_id: u32) {
-        let mut st = self.state.lock().expect("id manager poisoned");
-        let object_id = used_id.wrapping_sub(self.first_id) as i32;
-        if object_id > -1 {
-            let object_id = object_id as usize;
-            if object_id < st.free_ids.count {
-                st.free_ids.clear(object_id);
+        {
+            let mut st = self.state.lock().expect("id manager poisoned");
+            let object_id = used_id.wrapping_sub(self.first_id) as i32;
+            if object_id > -1 {
+                let object_id = object_id as usize;
+                if object_id < st.free_ids.count {
+                    st.free_ids.clear(object_id);
+                }
+                if st.next_free_id > object_id {
+                    st.next_free_id = object_id;
+                }
+                st.free_id_count += 1;
+            } else {
+                tracing::error!("{}: release objectId {used_id} failed", self.name);
+                return;
             }
-            if st.next_free_id > object_id {
-                st.next_free_id = object_id;
-            }
-            st.free_id_count += 1;
-        } else {
-            tracing::error!("{}: release objectId {used_id} failed", self.name);
+        }
+        // Outside the state lock: the observer takes its own locks.
+        if let Some(hook) = self.release_hook.get() {
+            (hook.0)(used_id);
         }
     }
 

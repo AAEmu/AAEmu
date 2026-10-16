@@ -230,6 +230,10 @@ pub trait EconomyBridge: Send + Sync {
         false
     }
 
+    /// Drops the `LootingContainer` of `obj_id`: a new NPC / doodad is created with that
+    /// (recycled) object id, and the C# container is a per-unit field that starts empty.
+    fn forget_loot(&self, _server: &GameServer, _obj_id: u32) {}
+
     /// `ItemManager.Instance.GetItemByItemId(itemId)?.TemplateId` / `.UccId`.
     fn item_template_and_ucc(&self, _server: &GameServer, _item_id: u64) -> Option<(u32, u64)> {
         None

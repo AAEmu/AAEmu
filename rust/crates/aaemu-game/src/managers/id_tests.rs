@@ -253,6 +253,18 @@ fn object_id_manager_release_id_makes_id_available() {
 }
 
 #[test]
+fn release_hook_sees_released_ids_but_not_rejected_ones() {
+    let m = initialized(OBJECT_ID);
+    let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let s2 = seen.clone();
+    m.install_release_hook(move |id| s2.lock().unwrap().push(id));
+    let id = next(&m);
+    m.release_id(id);
+    m.release_id(0x10); // below the first id: rejected, not observed
+    assert_eq!(*seen.lock().unwrap(), vec![id]);
+}
+
+#[test]
 fn object_id_manager_get_next_id_multiple_returns_array() {
     let m = initialized(OBJECT_ID);
     let first_id = 0x0000_0100;

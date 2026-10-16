@@ -262,9 +262,13 @@ impl LootingContainer {
 /// `server.systems.economy.loot`: the looting containers by owner object id and the hooks.
 #[derive(Debug, Default)]
 pub struct LootManager {
-    containers: Mutex<HashMap<u32, Arc<Mutex<LootingContainer>>>>,
+    containers: Containers,
     pub hooks: LootHooks,
 }
+
+/// The containers by owner object id. Shared (`Arc`) with the object id manager's release
+/// observer ([`LootManager::install_release_hook`]).
+type Containers = Arc<Mutex<HashMap<u32, Arc<Mutex<LootingContainer>>>>>;
 
 type Guard<'a> = MutexGuard<'a, LootingContainer>;
 
@@ -292,6 +296,13 @@ impl Ctx<'_, '_> {
     }
 }
 
+fn forget_container(containers: &Containers, obj_id: u32) {
+    containers
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .remove(&obj_id);
+}
+
 impl LootManager {
     /// The looting container of `obj_id` (created on first use, like the C# per-unit field).
     pub fn container(&self, obj_id: u32) -> Arc<Mutex<LootingContainer>> {
@@ -312,12 +323,18 @@ impl LootManager {
             .cloned()
     }
 
-    /// Drops the container of a deleted object.
+    /// Drops the container of a deleted object (the C# field dies with the unit; here the
+    /// container is keyed by object id, which is reused once released).
     pub fn forget(&self, obj_id: u32) {
-        self.containers
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .remove(&obj_id);
+        forget_container(&self.containers, obj_id);
+    }
+
+    /// Makes every release of an object id (`ObjectIdManager.ReleaseId`, whichever subsystem
+    /// despawns the object) drop that id's container, so a new object on a recycled id starts
+    /// with a fresh `LootingContainer` like the C# per-unit field.
+    pub fn install_release_hook(&self, ids: &crate::managers::id::IdManager) {
+        let containers = self.containers.clone();
+        ids.install_release_hook(move |obj_id| forget_container(&containers, obj_id));
     }
 
     /// `LootingContainer.Items.Count`.

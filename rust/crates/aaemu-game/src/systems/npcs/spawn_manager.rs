@@ -23,6 +23,8 @@
 //! Object ids are reused after `ObjectIdManager.ReleaseId`, so the links / fields of an id are
 //! dropped when this module releases it ([`forget_object`]) and when a spawner creates a new
 //! object with it. Other modules that release spawned objects' ids call [`forget_object`].
+//! (Loot containers are dropped by the object id manager's release observer, see
+//! `LootManager::install_release_hook`, so no release path can miss them.)
 //!
 //! Times use `tokio::time::Instant` (`DateTime.UtcNow` in C#) so tests can drive them.
 
@@ -419,11 +421,15 @@ pub fn forget_object(server: &GameServer, obj_id: u32) {
     server.systems.npcs.spawns.forget_object(obj_id);
 }
 
-/// Resets the `Respawn` / `Despawn` fields of a freshly created object (its id may be reused).
+/// Resets the `Respawn` / `Despawn` fields (and any stale looting container) of a freshly
+/// created object (its id may be reused).
 pub fn forget_object_fields(server: &GameServer, obj_id: u32) {
     let s = &server.systems.npcs.spawns;
     s.respawn_fields.remove(&obj_id);
     s.despawn_fields.remove(&obj_id);
+    if let Some(h) = server.systems.npcs.hooks.economy.get() {
+        h.forget_loot(server, obj_id);
+    }
 }
 
 /// `obj.ParentWorld.SpawnManager` (by the object's world, else `fallback_world`).
