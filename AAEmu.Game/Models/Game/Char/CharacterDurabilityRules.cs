@@ -4,8 +4,8 @@ namespace AAEmu.Game.Models.Game.Char;
 
 /// <summary>
 /// Combat / death durability decision table.
-/// Chance comes from <c>item_configs.durability_decrement_chance</c> (0..1) scaled by the
-/// World PvE/PvP rates; a negative world rate forces the loss (death-style).
+/// Chance comes from <c>item_configs.durability_decrement_chance</c>, a percent (0.8 is 0.8%),
+/// scaled by the World PvE/PvP rates; a negative world rate forces the loss (death-style).
 /// </summary>
 public static class CharacterDurabilityRules
 {
@@ -15,7 +15,7 @@ public static class CharacterDurabilityRules
             return 1f;
         if (worldRate <= 0f || decrementChance <= 0f)
             return 0f;
-        return Math.Clamp(worldRate * decrementChance, 0f, 1f);
+        return Math.Clamp(worldRate * decrementChance / 100f, 0f, 1f);
     }
 
     /// <param name="roll01">Uniform roll in [0, 1).</param>

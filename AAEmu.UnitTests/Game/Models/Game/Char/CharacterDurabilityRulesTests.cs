@@ -8,8 +8,8 @@ public class CharacterDurabilityRulesTests
     [Test]
     public async Task EffectiveChance_ScalesConfigByWorldRate()
     {
-        await Assert.That(CharacterDurabilityRules.EffectiveChance(1.0f, 0.8f)).IsEqualTo(0.8f);
-        await Assert.That(CharacterDurabilityRules.EffectiveChance(0.5f, 0.8f)).IsEqualTo(0.4f);
+        await Assert.That(CharacterDurabilityRules.EffectiveChance(1.0f, 0.8f)).IsEqualTo(0.8f / 100f);
+        await Assert.That(CharacterDurabilityRules.EffectiveChance(0.5f, 0.8f)).IsEqualTo(0.5f * 0.8f / 100f);
         await Assert.That(CharacterDurabilityRules.EffectiveChance(0f, 0.8f)).IsEqualTo(0f);
         await Assert.That(CharacterDurabilityRules.EffectiveChance(1.0f, 0f)).IsEqualTo(0f);
         await Assert.That(CharacterDurabilityRules.EffectiveChance(-1f, 0.8f)).IsEqualTo(1f);
@@ -19,9 +19,8 @@ public class CharacterDurabilityRulesTests
     public async Task ShouldLose_UsesProbabilityAndForceFlag()
     {
         await Assert.That(CharacterDurabilityRules.ShouldLose(-1f, 0.8f, 0.99)).IsTrue();
-        await Assert.That(CharacterDurabilityRules.ShouldLose(1.0f, 0.8f, 0.79)).IsTrue();
-        // 0.8f is not an exact double — stay clearly above the float chance.
-        await Assert.That(CharacterDurabilityRules.ShouldLose(1.0f, 0.8f, 0.81)).IsFalse();
+        await Assert.That(CharacterDurabilityRules.ShouldLose(1.0f, 0.8f, 0.007)).IsTrue();
+        await Assert.That(CharacterDurabilityRules.ShouldLose(1.0f, 0.8f, 0.009)).IsFalse();
         await Assert.That(CharacterDurabilityRules.ShouldLose(0f, 0.8f, 0.0)).IsFalse();
     }
 

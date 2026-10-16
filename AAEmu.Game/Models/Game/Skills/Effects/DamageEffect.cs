@@ -859,8 +859,10 @@ public class DamageEffect : EffectTemplate
                 trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedBuffTrigger);
         }
 
-        // Weapon wear on the attacking player for a hit that dealt health damage.
-        if (!ManaDamage && value > 0 && caster is Character attackingPlayer)
+        // Weapon wear once per cast. A DoT tick and each extra AoE target do not roll again.
+        if (!ManaDamage && value > 0 && hitCause != BuffHitCause.BuffTrigger
+            && caster is Character attackingPlayer
+            && (source?.Skill == null || source.Skill.ClaimWeaponDurabilityRoll()))
         {
             var worldRate = trg is Character
                 ? AppConfiguration.Instance.World.PvPDurabilityLossRate

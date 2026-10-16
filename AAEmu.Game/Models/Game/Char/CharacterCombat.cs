@@ -195,6 +195,11 @@ public partial class Character
                     continue;
                 gear.Durability = (byte)Math.Max(0, gear.Durability - loss);
                 SendPacket(new SCItemDetailUpdatedPacket(gear));
+                if (gear.Durability == 0)
+                {
+                    UpdateGearBonuses(null, gear);
+                    NoteGearEffectsRemoved(gear.Id);
+                }
             }
         }
 
@@ -463,7 +468,7 @@ public partial class Character
 
     /// <summary>
     /// Combat / death wear on equipped pieces. Each qualifying slot rolls
-    /// <c>worldRate * item_configs.durability_decrement_chance</c>; a negative
+    /// <c>worldRate * durability_decrement_chance / 100</c>; a negative
     /// <paramref name="worldRate"/> forces the loss on every target. Detail is
     /// published with <see cref="SCItemDetailUpdatedPacket"/> (item-task UpdateDetail
     /// leaves this client with an invalid icon).
@@ -482,9 +487,7 @@ public partial class Character
         var decrementChance = itemManager.GetDurabilityDecrementChance();
         var destroyed = new List<Item>();
 
-        // Snapshot under the inventory mutation guard so a mid-hit equip swap cannot mutate the
-        // live Items list while we walk it (or after we have already applied some wear).
-        using var mutation = Inventory?.AcquireMutation();
+        // Snapshot without the persistence lock. Only a piece that loses a point is written.
         var equipped = Equipment.Items.ToArray();
 
         foreach (var item in equipped)
@@ -506,8 +509,17 @@ public partial class Character
         }
 
         foreach (var item in destroyed)
+        {
             UpdateGearBonuses(null, item);
+            NoteGearEffectsRemoved(item.Id);
+        }
     }
+
+    private readonly HashSet<ulong> _gearEffectsRemovedAtZero = [];
+
+    private void NoteGearEffectsRemoved(ulong itemId) => _gearEffectsRemovedAtZero.Add(itemId);
+
+    private bool TakeGearEffectsRemoved(ulong itemId) => _gearEffectsRemovedAtZero.Remove(itemId);
 
     private static bool MatchesDurabilityTarget(EquipItem equipItem, DurabilityLossTargets targets)
     {

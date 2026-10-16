@@ -3600,6 +3600,10 @@ public partial class Character : Unit, ICharacter
 
         base.ReduceCurrentHp(attacker, value, killReason, damageType);
 
+        // A killing blow already applied death durability. Do not wear the corpse again.
+        if (Hp <= 0)
+            return;
+
         // Armor wear: each equipped armor piece rolls decrement_chance on a real hit.
         if (value > 0)
         {
@@ -3704,14 +3708,14 @@ public partial class Character : Unit, ICharacter
 
         foreach (var equipItem in repairs)
         {
-            // Combat wear that hits 0 calls UpdateGearBonuses(null, item) and strips equip buffs.
-            // Restore those buffs when the piece becomes usable again while still equipped.
-            var wasBroken = equipItem.Durability == 0;
+            // Restore equip buffs only when this session stripped them at durability 0.
+            // Death-to-zero and combat-to-zero record the id; a piece loaded already broken does not.
+            var restoreEffects = equipItem.Durability == 0 && TakeGearEffectsRemoved(equipItem.Id);
             CharacterRepairRules.TryRestore(equipItem);
             // UpdateDetail item tasks are not a detail write on this client — they leave the
             // piece as an invalid / broken icon. Same publish as temper and lure.
             SendPacket(new SCItemDetailUpdatedPacket(equipItem));
-            if (wasBroken && Equipment.Items.Contains(equipItem))
+            if (restoreEffects && Equipment.Items.Contains(equipItem))
                 UpdateGearBonuses(equipItem, null);
         }
 
