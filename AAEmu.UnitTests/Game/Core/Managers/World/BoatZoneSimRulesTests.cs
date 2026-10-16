@@ -172,27 +172,59 @@ public class BoatZoneSimRulesTests
         // Ahead: switch.
         await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
             false, 281, 13074f, 10114f, 10.9f, 9.9f, 100, alongTrackMetres: 0.6f)).IsTrue();
-        // Fail-safe: a gap the catch-up did not close does not hold the client on A forever.
+        // The old 600 ms fail-safe no longer switches onto an open gap while A is alive
+        // (live 00:41:46: it did, with 2.63 m open — the felt step).
         await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
             false, BoatZoneSimRules.OverlapFollowFailSafeMs, 13074f, 10114f, 10.9f, 9.9f, 300,
+            alongTrackMetres: -1.4f)).IsFalse();
+        // Hard ceiling: a gap nothing closes does not hold the client on A forever.
+        await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
+            false, BoatZoneSimRules.OverlapGapCeilingMs, 13074f, 10114f, 10.9f, 9.9f, 300,
             alongTrackMetres: -1.4f)).IsTrue();
+        // Ceiling with a catch-up still landing: hold so take-back sees the pulse, not cruise.
+        await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
+            false, BoatZoneSimRules.OverlapGapCeilingMs, 13074f, 10114f, 10.9f, 9.9f, 300,
+            alongTrackMetres: -1.4f, msSinceCatchUp: 190)).IsFalse();
         // A silent: the gap cannot be closed against a dead body; switch as before.
         await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
             true, 281, 13074f, 10114f, 10.9f, 9.9f, 300, alongTrackMetres: -1.4f)).IsTrue();
     }
 
     [Test]
-    public async Task ShouldFinishOverlapSeam_CatchUpInFlightOutlivesTheFailSafe()
+    public async Task ShouldFinishOverlapSeam_HoldsOnAUntilTheGapIsClosedOrTheCeiling()
     {
-        // Live 18:24:56: catch-up sent at 437 ms, fail-safe cut the wait at 625 ms with 1.9 m left.
+        // Live 18:24:56 / 00:41:45: catch-up in flight, still behind — hold.
         await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
             false, 625, 13085f, 9979f, 14.9f, 9.9f, 190, alongTrackMetres: -1.9f, msSinceCatchUp: 190)).IsFalse();
-        // Catch-up window over and still behind: give up and switch.
+        // Catch-up window over and still behind: A is talking, so another catch-up goes out
+        // instead of a switch onto the gap.
         await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
-            false, 950, 13085f, 9979f, 14.9f, 9.9f, 520, alongTrackMetres: -1.0f, msSinceCatchUp: 520)).IsTrue();
+            false, 950, 13085f, 9979f, 14.9f, 9.9f, 520, alongTrackMetres: -1.0f, msSinceCatchUp: 520)).IsFalse();
+        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(-1.0f, 520, 950)).IsTrue();
+        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(-1.0f, 190, 950)).IsFalse();
+        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(-0.3f, 520, 950)).IsFalse();
+        // At/after the gap ceiling: no more catch-ups (finish path owns the switch).
+        await Assert.That(BoatZoneSimRules.ShouldRepeatCatchUp(
+            -1.4f, 520, BoatZoneSimRules.OverlapGapCeilingMs)).IsFalse();
+        // Gap closed: switch.
+        await Assert.That(BoatZoneSimRules.ShouldFinishOverlapSeam(
+            false, 950, 13085f, 9979f, 14.9f, 9.9f, 520, alongTrackMetres: -0.4f, msSinceCatchUp: 520)).IsTrue();
         await Assert.That(BoatZoneSimRules.CatchUpInFlight(-1)).IsFalse();
         await Assert.That(BoatZoneSimRules.CatchUpInFlight(499)).IsTrue();
         await Assert.That(BoatZoneSimRules.CatchUpInFlight(500)).IsFalse();
+    }
+
+    [Test]
+    public async Task ShouldWaitForTakeBack_HoldsOneReportWhileBStillReadsAboveCruise()
+    {
+        // Live 00:41:46: switch landed with B at 22.6 against cruise 18 — hold until the
+        // take-back shows, bounded by the settle window.
+        await Assert.That(BoatZoneSimRules.ShouldWaitForTakeBack(30, 22.6f, 18f)).IsTrue();
+        await Assert.That(BoatZoneSimRules.ShouldWaitForTakeBack(30, 18.3f, 18f)).IsFalse();
+        await Assert.That(BoatZoneSimRules.ShouldWaitForTakeBack(BoatZoneSimRules.TakeBackSettleMs, 22.6f, 18f)).IsFalse();
+        await Assert.That(BoatZoneSimRules.ShouldWaitForTakeBack(-1, 22.6f, 18f)).IsFalse();
+        // No cruise target (coasting cross): nothing to wait for.
+        await Assert.That(BoatZoneSimRules.ShouldWaitForTakeBack(30, 4f, 0f)).IsFalse();
     }
 
     [Test]
@@ -205,8 +237,10 @@ public class BoatZoneSimRulesTests
         // Already bled back to cruise: nothing to remove.
         await Assert.That(BoatZoneSimRules.CatchUpTakeBack(4.3f, 9.3f, 9.1f)).IsEqualTo(0f);
         await Assert.That(BoatZoneSimRules.CatchUpTakeBack(0f, 12f, 9f)).IsEqualTo(0f);
-        // No reference: fall back to the full pulse.
-        await Assert.That(BoatZoneSimRules.CatchUpTakeBack(4.3f, 0f, 9.1f)).IsEqualTo(4.3f);
+        // No report: take nothing (a zero-speed take-back of the full pulse was a reverse kick).
+        await Assert.That(BoatZoneSimRules.CatchUpTakeBack(4.3f, 0f, 9.1f)).IsEqualTo(0f);
+        // Coasting under MinCruiseSpeed: never pull more than the body is carrying.
+        await Assert.That(BoatZoneSimRules.CatchUpTakeBack(4.3f, 1.5f, 0f)).IsEqualTo(1.5f);
     }
 
     [Test]
@@ -215,8 +249,10 @@ public class BoatZoneSimRulesTests
         await Assert.That(BoatZoneSimRules.CatchUpSpeed(0.2f)).IsEqualTo(0f);
         await Assert.That(BoatZoneSimRules.CatchUpSpeed(-0.3f)).IsEqualTo(0f);
         await Assert.That(BoatZoneSimRules.CatchUpSpeed(-1.4f)).IsEqualTo(2.8f).Within(0.01f);
+        // Live 00:41:45: 4.96 m behind needs ~10 m/s over the window; the unseen body may take it.
+        await Assert.That(BoatZoneSimRules.CatchUpSpeed(-4.96f)).IsEqualTo(9.92f).Within(0.01f);
         await Assert.That(BoatZoneSimRules.CatchUpSpeed(-40f)).IsEqualTo(BoatZoneSimRules.MaxCatchUpSpeed);
-        await Assert.That(BoatZoneSimRules.MaxCatchUpSpeed).IsEqualTo(5f);
+        await Assert.That(BoatZoneSimRules.MaxCatchUpSpeed).IsEqualTo(10f);
     }
 
     [Test]

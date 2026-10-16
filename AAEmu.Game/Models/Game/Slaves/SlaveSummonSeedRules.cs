@@ -88,6 +88,12 @@ public static class SlaveSummonSeedRules
         return dx * dx + dy * dy <= range * range;
     }
 
+    /// <summary>
+    /// Vertical reach of a client-chosen land-vehicle stand (anti-craft, not content).
+    /// </summary>
+    public static bool IsWithinValidZ(float casterZ, float seedZ, float maxDeltaMetres) =>
+        MathF.Abs(seedZ - casterZ) <= maxDeltaMetres;
+
     public static bool HasWorldSeed(float x, float y, float z) =>
         float.IsFinite(x) && float.IsFinite(y) && float.IsFinite(z)
         && (x != 0f || y != 0f || z != 0f);

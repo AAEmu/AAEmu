@@ -98,7 +98,9 @@
             "mateAggressive": true,
             "mate_type_summon": true,
             "bless_uthstin": true,
-            "vehicleZoneSimulation": true,
+            // Retail sends this OFF. ON makes the client add the unit OBB as a terrain-colliding chassis
+            // box to a driven land vehicle (bottom below wheel level), so carts ride on the box and stall.
+            "vehicleZoneSimulation": false,
 
             // ---- Instances, squads, expeditions ----
             "indunPortal": true,

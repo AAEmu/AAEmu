@@ -107,6 +107,8 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 character.AttachedPoint != AttachPointKind.None,
                 character.Transform.Parent?.GameObject is Slave);
             var isSelfActorMove = _moveType is UnitMoveType && _objId == character.ObjId;
+            // Ships: type 5 helm → zone. Land carts: type 2 (CanControlMovement already gates
+            // VehicleMoveType to client-driven kinds, so a skip flag here can never be true).
             if (BoatHelmSeatRules.ShouldForwardActorMoveToZone(seatedOnSlave) || !isSelfActorMove)
             {
                 var moveBody = new PacketStream();
@@ -235,9 +237,9 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     vehicleMove.X, vehicleMove.Y, vehicleMove.Z, rotX, rotY, rotZ);
                 vehicle.Transform.FinalizeTransform();
 
-                // As above. The driver's own client authored this position, so the relay filters the
-                // zone's copy of wheeled vehicles back out for them anyway; observers need it from here.
-                vehicle.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vehicleMove), false);
+                // Driver owns the wheeled PE — never echo SCOneUnitMovement back to them
+                // (BroadcastPacket's GetAround includes the seated driver). Observers still need it.
+                EchoLandVehicleMove(vehicle, character.ObjId, vehicleMove);
             }
             else if (_moveType is ShipRequestMoveType shipRequest && mirrorTarget is Slave ship)
             {
@@ -307,8 +309,8 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     // Make sure driver is attached to car
                     character.Transform.Parent = car.Transform;
                     car.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z, rotDegX, rotDegY, rotDegZ);
-                    car.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vmt), true);
                     car.Transform.FinalizeTransform(); // Propagate position updates to all children
+                    EchoLandVehicleMove(car, character.ObjId, vmt);
                     break;
                 }
             case UnitMoveType dmt:
@@ -656,6 +658,20 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 
         if (sticky?.GameObject is Slave stickySlave)
             ShipHarpoonRopeController.BreakRopeForClients(stickySlave, cutouted: false);
+    }
+
+    /// <summary>
+    /// Relay a client-driven land-vehicle pose to nearby players except the authoring driver.
+    /// </summary>
+    private void EchoLandVehicleMove(Slave vehicle, uint driverObjId, VehicleMoveType move)
+    {
+        var packet = new SCOneUnitMovementPacket(_objId, move);
+        foreach (var observer in WorldManager.GetAround<Character>(vehicle))
+        {
+            if (!SlaveVehicleSimRules.ShouldEchoLandVehicleMoveTo(observer.ObjId, driverObjId))
+                continue;
+            observer.SendPacket(packet);
+        }
     }
 
     private static bool CanControlMovement(Character character, BaseUnit target, MoveType moveType)

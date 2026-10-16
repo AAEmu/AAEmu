@@ -493,15 +493,16 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
     {
         if (obj is Character passenger &&
             passenger.Transform?.Parent?.GameObject is Slave hull &&
-            hull.Template?.IsABoat() == true)
+            (hull.Template?.IsABoat() == true || hull.Template?.IsClientDrivenLandVehicle() == true))
         {
             return hull.Transform.ZoneId != 0 ? hull.Transform.ZoneId : sampledKey;
         }
 
-        if (obj is Slave boat && boat.Template?.IsABoat() == true)
+        if (obj is Slave vehicle &&
+            (vehicle.Template?.IsABoat() == true || vehicle.Template?.IsClientDrivenLandVehicle() == true))
         {
-            var current = boat.Transform?.ZoneId ?? 0;
-            return ZoneKeyStability.Resolve(boat.ObjId, sampledKey, current);
+            var current = vehicle.Transform?.ZoneId ?? 0;
+            return ZoneKeyStability.Resolve(vehicle.ObjId, sampledKey, current);
         }
 
         return sampledKey;

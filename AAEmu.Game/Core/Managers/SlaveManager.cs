@@ -130,7 +130,19 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         }
 
         if (!slaveTemplate.IsABoat())
+        {
+            if (!SlaveSummonSeedRules.IsWithinValidZ(
+                    caster.Z, seed.Z, SlaveLandVehiclePlantRules.ClientSeedZBandMetres))
+            {
+                Logger.Warn(
+                    "SlaveSpawn seed refused: Z {0:0.0} is outside {1:0.0} m of owner Z {2:0.0} tpl={3}",
+                    seed.Z, SlaveLandVehiclePlantRules.ClientSeedZBandMetres, caster.Z, slaveTemplate.Id);
+                owner.SendErrorMessage(ErrorMessageType.SlaveSpawnErrorInvalidArea);
+                return false;
+            }
+
             return true;
+        }
 
         var floorHeight = World.Template.GeoData.GetHeight(seed);
         var surfaceHeight = GetWaterSurfaceFromAreas(World, seed);
@@ -846,15 +858,14 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                     return null;
                 }
 
-                // Land vehicle: prefer the summoner's floor. HeightMapsEnable is often false under
-                // ZoneAuthority, and GeoData/.bai nearest-node samples can sit ~1–2 m above the
-                // dirt the player is standing on — that is exactly the "hovering car" look.
+                // Land vehicle: plant on the heightmap / owner's feet. GeoData/.bai nearest-node
+                // samples sit ~1–2 m above dirt and kill wheeled contact (short susp strokes).
                 var ownerZ = owner?.Transform.World.Position.Z ?? spawnPos.World.Position.Z;
-                var h = World.Template.GeoData.GetHeight(spawnPos.World.Position);
-                if (h > 0f && MathF.Abs(h - ownerZ) <= 2f)
-                    spawnPos.Local.SetHeight(h);
-                else
-                    spawnPos.Local.SetHeight(ownerZ);
+                var pos = spawnPos.World.Position;
+                var heightmapZ = TerrainFloor.SampleHeightmap(World, pos.X, pos.Y);
+                var geoZ = World.Template.GeoData?.GetHeight(pos) ?? 0f;
+                spawnPos.Local.SetHeight(
+                    SlaveLandVehiclePlantRules.ChoosePlantZ(ownerZ, heightmapZ, geoZ));
             }
 
             // Always spawn horizontal(level) and 90° CCW of the player
@@ -862,6 +873,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         }
         else
         {
+            // Client seed is the client's own terrain probe at the stand — keep its Z as-is.
             Logger.Info(
                 "SlaveSpawn used client seed tpl={0} at ({1:0.0},{2:0.0},{3:0.0})",
                 slaveTemplate.Id,
@@ -1010,17 +1022,10 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         // Move it to target location, and call spawn packet
         summonedSlave.Transform = spawnPos.CloneDetached(summonedSlave);
 
-        // CSSpawnSlave (and any other positionOverride) skips the IsOrigin ground snap above —
-        // still pin land vehicles to the owner's floor so client SummonPos Z offsets cannot hover.
-        if (owner != null && !summonedSlave.Template.IsABoat() && positionOverride != null)
-        {
-            var ownerZ = owner.Transform.World.Position.Z;
-            var h = World.Template.GeoData.GetHeight(summonedSlave.Transform.World.Position);
-            if (h > 0f && MathF.Abs(h - ownerZ) <= 2f)
-                summonedSlave.Transform.Local.SetHeight(h);
-            else
-                summonedSlave.Transform.Local.SetHeight(ownerZ);
-        }
+        // Client SummonPos / skill seed already sits on the client's own terrain mesh. Rewriting
+        // that Z with World heightmap or GeoData fights the local PE (planted high → spin with no
+        // bite; planted low → chassis grinding). Server-authored stands are floored in the
+        // IsOrigin land branch above via SlaveLandVehiclePlantRules.
 
         // Retail: CSSpawnSlave.hideSpawnEffect=false (and skill summons that skip that CS)
         // → UnitState flags bit 11 → client portal_spawn_fx. hideSpawnEffect was previously unused.
@@ -1518,6 +1523,79 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     }
 
     /// <summary>
+    /// Creates a land vehicle in the dedicate with zone sim off (<c>control=0</c>).
+    /// </summary>
+    /// <remarks>
+    /// Driven carts are client-authored (type 2 → zone net controller). Arming <c>control=1</c>
+    /// parks them and drops inbound moves — that path stays on ships only. This is a plain Create
+    /// / re-Create on zone change, not the boat seam plant.
+    /// </remarks>
+    internal static void AnnounceLandVehicleToZone(Slave slave, uint oldZoneKey, uint newZoneKey)
+    {
+        if (!WorldIntegration.ZoneAuthority || slave?.Template == null || newZoneKey == 0)
+            return;
+
+        if (!SlaveVehicleSimRules.ShouldAnnounceToZone(slave.Template.SlaveKind))
+            return;
+
+        if (newZoneKey == slave.ZoneAnnouncedTo)
+            return;
+
+        if (!BoatZoneHostGate.HasHost(
+                newZoneKey,
+                slave.Transform?.InstanceId ?? 0,
+                WorldIntegration.IsZoneLoaded,
+                WorldIntegration.IsZoneInstanceLoaded))
+        {
+            if (slave.ZoneAnnouncedTo == 0)
+            {
+                Logger.Warn(
+                    "No zone host for zone {0}; land vehicle obj={1} was not announced",
+                    newZoneKey, slave.ObjId);
+                return;
+            }
+
+            AbandonBoatWithoutZoneHost(slave, newZoneKey);
+            return;
+        }
+
+        var previous = slave.ZoneAnnouncedTo != 0 ? slave.ZoneAnnouncedTo : oldZoneKey;
+        if (previous != 0 && previous != newZoneKey)
+            DropHullFromZone(slave, previous, detachPassengers: false);
+
+        // Never leave a parked-sim arm pending from an older buggy path.
+        slave.ZoneSimPendingFor = 0;
+        slave.ZoneSimEnabledFor = 0;
+        slave.SeamHandoff = null;
+
+        var slaveStateBody = WorldIntegration.BuildWzUnitStateBody(slave);
+        if (slaveStateBody is not { Length: > 0 })
+            return;
+
+        WorldIntegration.RelayUnitStateToZone?.Invoke(newZoneKey, slave.ObjId, slaveStateBody);
+        ReplaySlaveBuffsToZone(slave, newZoneKey, (int)(slave.Transform?.InstanceId ?? 0));
+        AnnounceBoatAttachmentsToZone(slave, newZoneKey);
+
+        // Driven land vehicles must stay control=0 so type-2 relays reach the net controller.
+        WorldIntegration.RelayShipControlChangeToZoneId?.Invoke(newZoneKey, slave.ObjId, false);
+
+        slave.ZoneAnnouncedTo = newZoneKey;
+
+        // Same rider attach as the boat seam: Create alone leaves a driverless cart in the new zone.
+        if (!HandoffPassengersToZone(slave, previous, newZoneKey))
+        {
+            AbandonBoatWithoutZoneHost(slave, newZoneKey);
+            return;
+        }
+
+        RefreshClientSeatBinds(slave);
+
+        Logger.Info(
+            "Land vehicle announced to zone slave obj={0} {1}→{2} bodyLen={3} control=0",
+            slave.ObjId, previous, newZoneKey, slaveStateBody.Length);
+    }
+
+    /// <summary>
     /// Moves a hull to the zone that will simulate it. Zone A keeps simulating and is what
     /// the client rides; Zone B is Created at A's live pose and armed in the background.
     /// </summary>
@@ -1535,6 +1613,14 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
         if (newZoneKey == 0)
             return;
+
+        // Land vehicles must not run the ship seam plant or sim-arm path: that seeds type-4 and
+        // can arm control=1, which parks a cart and drops its VehicleMoveType relays.
+        if (!SlaveVehicleSimRules.ShouldUseBoatSeamHandoff(slave.Template.SlaveKind))
+        {
+            AnnounceLandVehicleToZone(slave, oldZoneKey, newZoneKey);
+            return;
+        }
 
         if (newZoneKey == slave.ZoneAnnouncedTo)
         {
@@ -2032,6 +2118,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         slave.SeamHandoffEpoch++;
         slave.SeamImpulseAtMs = 0;
         slave.SeamBridgeBehindAtMs = 0;
+        slave.SeamTakeBackAtMs = 0;
         var liveThrottle = BoatSeamPredictRules.LiveThrottle(
             slave.SimulatedShipState?.Throttle ?? 0, slave.ThrottleRequest, slave.Throttle);
         if (!BoatSeamHandoffRules.TryCapture(
@@ -2234,8 +2321,8 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         // and a land vehicle's simulator has no steering or throttle input at all — it holds the
         // handbrake and drives both to zero, and while it is armed the zone discards the movement
         // World relays for that unit. Arming a cart therefore parks it and deafens it to its driver.
-        // Land vehicles stay client-driven (see SlaveTemplate.IsClientDrivenLandVehicle).
-        if (!slave.Template.IsZoneSimulatedHull())
+        // Land vehicles stay client-driven (see SlaveVehicleSimRules).
+        if (!SlaveVehicleSimRules.ShouldArmZoneSimulation(slave.Template.SlaveKind))
             return;
 
         if (zoneKey == 0 || slave.ZoneSimPendingFor == zoneKey)
@@ -2532,10 +2619,10 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             // One impulse carries both: the speed the flush lost and the distance B fell behind
             // A while it was slow. A separate catch-up 200 ms later started too late to land
             // before the fail-safe (live 18:23–18:25: gap 2.0–2.6 m, switch with 1.6–1.9 m left).
-            var catchUp = silent || slave.SeamCatchUpSpeed > 0f ? 0f : BoatZoneSimRules.CatchUpSpeed(alongTrack);
+            var catchUp = silent || slave.SeamCatchUpSpeed > 0f
+                ? 0f
+                : ReserveSeamCatchUp(slave, BoatZoneSimRules.CatchUpSpeed(alongTrack), alongTrack, zoneKey, now);
             ApplySeamSpeedCorrection(slave, zoneKey, reportedSpeed, catchUp);
-            if (catchUp > 0f)
-                NoteSeamCatchUp(slave, zoneKey, catchUp, alongTrack, now);
             slave.SeamImpulseAtMs = now;
             Logger.Info(
                 "Seam overlap closed-loop obj={0} zone={1} arrived={2:F1} expectedCruise={3:F1} along={4:F2} m",
@@ -2549,19 +2636,21 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         var msSinceImpulse = slave.SeamImpulseAtMs == 0 ? -1 : now - slave.SeamImpulseAtMs;
         var msSinceCatchUp = slave.SeamCatchUpAtMs == 0 ? -1 : now - slave.SeamCatchUpAtMs;
 
-        // B has its speed back but is still behind the body the client is watching and no
-        // catch-up has been sent yet: close the gap on B before follow switches.
+        // B has its speed back but is still behind the body the client is watching: close the
+        // gap on B before follow switches. Repeats once the previous catch-up has had its
+        // window — B is unseen during the overlap, so walking the gap in costs the client
+        // nothing, while switching onto an open gap is the step it feels.
         if (!silent &&
-            slave.SeamCatchUpSpeed <= 0f &&
-            BoatZoneSimRules.IsBehindStreamedBody(alongTrack) &&
+            slave.SeamTakeBackAtMs == 0 &&
+            BoatZoneSimRules.ShouldRepeatCatchUp(alongTrack, msSinceCatchUp, replantAge) &&
             BoatZoneSimRules.ShouldAcceptWarmupHandoff(x, y, reportedSpeed, expectedCruise, replantAge, msSinceImpulse) &&
             (slave.SeamImpulseAtMs == 0 || msSinceImpulse >= BoatZoneSimRules.ImpulseSettleMs))
         {
-            var catchUp = BoatZoneSimRules.CatchUpSpeed(alongTrack);
+            var catchUp = ReserveSeamCatchUp(
+                slave, BoatZoneSimRules.CatchUpSpeed(alongTrack), alongTrack, zoneKey, now);
             if (catchUp > 0f)
             {
                 ApplySeamCatchUp(slave, zoneKey, catchUp);
-                NoteSeamCatchUp(slave, zoneKey, catchUp, alongTrack, now);
                 slave.SeamImpulseAtMs = now;
                 msSinceImpulse = 0;
                 msSinceCatchUp = 0;
@@ -2578,9 +2667,32 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             return true;
         }
 
+        // Switch criteria met. Take the catch-up surplus back first and let one more report
+        // land, so the first B body the client is handed is at cruise — not the pulse the
+        // take-back is about to remove (live 00:41:46: switch at 22.6, cruise 18). A silent A
+        // cannot wait: take back and switch on this tick as before.
+        if (!silent && slave.SeamCatchUpSpeed > 0f && slave.SeamTakeBackAtMs == 0)
+        {
+            TakeBackSeamCatchUp(slave, zoneKey, reportedSpeed, expectedCruise);
+            slave.SeamTakeBackAtMs = now;
+            Logger.Info(
+                "Seam take-back before switch obj={0} zone={1} arrived={2:F1} expectedCruise={3:F1} along={4:F2} m",
+                slave.ObjId, zoneKey, reportedSpeed, expectedCruise, alongTrack);
+            return true;
+        }
+
+        var msSinceTakeBack = slave.SeamTakeBackAtMs == 0 ? -1 : now - slave.SeamTakeBackAtMs;
+        if (!silent && BoatZoneSimRules.ShouldWaitForTakeBack(msSinceTakeBack, reportedSpeed, expectedCruise))
+        {
+            Logger.Info(
+                "Seam overlap waiting for take-back obj={0} zone={1} arrived={2:F1} expectedCruise={3:F1} msSinceTakeBack={4}",
+                slave.ObjId, zoneKey, reportedSpeed, expectedCruise, msSinceTakeBack);
+            return true;
+        }
+
         Logger.Info(
-            "Seam overlap follow switch obj={0} zone={1} pos=({2:F1},{3:F1}) settleMs={4} silent={5} along={6:F2} m",
-            slave.ObjId, zoneKey, x, y, replantAge, silent, alongTrack);
+            "Seam overlap follow switch obj={0} zone={1} pos=({2:F1},{3:F1}) settleMs={4} silent={5} along={6:F2} m arrived={7:F1}",
+            slave.ObjId, zoneKey, x, y, replantAge, silent, alongTrack, reportedSpeed);
         FinishBoatSeamHandoff(slave, reportedSpeed, expectedCruise);
         return true;
     }
@@ -2640,13 +2752,25 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         slave.SeamBlendStartMs = Environment.TickCount64;
     }
 
-    private static void NoteSeamCatchUp(Slave slave, uint zoneKey, float catchUp, float alongTrack, long now)
+    /// <summary>
+    /// Books a catch-up pulse. Outstanding is capped at <see cref="BoatZoneSimRules.MaxCatchUpSpeed"/>
+    /// so repeated repeats cannot stack ~40 m/s; the returned value is what may be applied.
+    /// </summary>
+    private static float ReserveSeamCatchUp(
+        Slave slave, float catchUp, float alongTrack, uint zoneKey, long now)
     {
-        slave.SeamCatchUpSpeed = catchUp;
+        if (catchUp <= 0f)
+            return 0f;
+        var room = MathF.Max(0f, BoatZoneSimRules.MaxCatchUpSpeed - slave.SeamCatchUpSpeed);
+        var added = MathF.Min(catchUp, room);
+        if (added <= 0f)
+            return 0f;
+        slave.SeamCatchUpSpeed += added;
         slave.SeamCatchUpAtMs = now;
         Logger.Info(
-            "Seam catch-up obj={0} zone={1} behind={2:F2} m added={3:F1} m/s",
-            slave.ObjId, zoneKey, -alongTrack, catchUp);
+            "Seam catch-up obj={0} zone={1} behind={2:F2} m added={3:F1} m/s outstanding={4:F1} m/s",
+            slave.ObjId, zoneKey, -alongTrack, added, slave.SeamCatchUpSpeed);
+        return added;
     }
 
     /// <summary>
@@ -2748,6 +2872,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         slave.SeamImpulseAtMs = 0;
         slave.SeamBridgeBehindAtMs = 0;
         slave.SeamReplantAtMs = 0;
+        slave.SeamTakeBackAtMs = 0;
         slave.SeamTargetSpeed = 0f;
         slave.SeamCorrectionZone = 0;
         slave.SeamHelmQueue.Clear();

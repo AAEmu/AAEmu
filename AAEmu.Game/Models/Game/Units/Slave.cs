@@ -209,12 +209,19 @@ public class Slave : Unit
 
     /// <summary>
     /// Forward speed added to the incoming body so it closes its along-track gap to the streamed
-    /// one; taken back at the follow switch. Zero when no catch-up is in flight.
+    /// one, summed over every catch-up of this overlap; taken back before the follow switch.
+    /// Zero when nothing is outstanding.
     /// </summary>
     public float SeamCatchUpSpeed { get; set; }
 
-    /// <summary>When <see cref="SeamCatchUpSpeed"/> was applied (<see cref="Environment.TickCount64"/>).</summary>
+    /// <summary>When the latest catch-up was applied (<see cref="Environment.TickCount64"/>).</summary>
     public long SeamCatchUpAtMs { get; set; }
+
+    /// <summary>
+    /// When the catch-up surplus was taken back ahead of the follow switch; zero until then.
+    /// The switch waits one report after this so the client's first B body is at cruise.
+    /// </summary>
+    public long SeamTakeBackAtMs { get; set; }
 
     /// <summary>
     /// Follow-switch blend (<see cref="Core.Managers.World.BoatSeamBlendRules"/>): the outgoing
@@ -1521,9 +1528,8 @@ public class Slave : Unit
     {
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
-        // WZ traffic (impulse turns, control changes) is routed by the hull's current zone key, and a
-        // announce belongs to the summon path, which sends the fully built state body. Every
-        // announced vehicle hands off, not just boats — cars are zone-simulated too (fset bit 177).
+        // WZ traffic is routed by the hull's current zone key. Sea hulls run the boat seam/sim-arm
+        // machine; land vehicles only re-Create in the new zone and stay client-driven (control=0).
         if (ZoneAnnouncedTo != 0 && ZoneAnnouncedTo != newZoneKey)
             SlaveManager.CommitBoatZoneHandoff(this, lastZoneKey, newZoneKey);
 

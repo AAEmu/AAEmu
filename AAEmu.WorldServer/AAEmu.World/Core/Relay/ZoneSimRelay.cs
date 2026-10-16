@@ -430,8 +430,10 @@ public class ZoneSimRelay
     private static void ApplyCollisionDamage(
         uint bcId, byte part, float impact, float mass, long x, long y, float z)
     {
-        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is Slave slave)
-            SlaveCollisionDamage.ApplyFromImpact(slave, (SlaveCollisionPart)part, impact, mass, x, y, z);
+        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Slave slave)
+            return;
+
+        SlaveCollisionDamage.ApplyFromImpact(slave, (SlaveCollisionPart)part, impact, mass, x, y, z);
     }
 
     /// <summary>
@@ -448,8 +450,35 @@ public class ZoneSimRelay
         var y = stream.ReadUInt64();
         var z = stream.ReadSingle();
         var impactVel = stream.ReadSingle();
-        WorldIntegration.BroadcastPacketToUnitViewers(
-            new SCUnitCollisionResultPacket(x, y, z, impactVel), unitId);
+
+        // Land carts: the driver's client owns the wheeled PE. Zone terrain-thrash floaters
+        // fight that PE the same way echoing type-2 does — skip the driver only (passengers still
+        // need the floater).
+        if (WorldIntegration.FindUnitAcrossWorlds(unitId) is Slave cart
+            && cart.Template?.IsClientDrivenLandVehicle() == true)
+        {
+            var driverObjId = cart.AttachedCharacters.TryGetValue(AttachPointKind.Driver, out var driver)
+                ? driver?.ObjId ?? 0u
+                : cart.Summoner?.ObjId ?? 0u;
+            WorldIntegration.ForEachReadyConnection((con, ch) =>
+            {
+                if (!WorldIntegration.IsStreamedUnitForClient(ch, unitId))
+                    return;
+                if (!SlaveVehicleSimRules.ShouldEchoLandVehicleCollisionResultTo(ch.ObjId, driverObjId))
+                    return;
+                try { con.SendPacket(new SCUnitCollisionResultPacket(x, y, z, impactVel)); }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, "Land-vehicle collision result failed for connection {0}", con.Id);
+                }
+            });
+        }
+        else
+        {
+            WorldIntegration.BroadcastPacketToUnitViewers(
+                new SCUnitCollisionResultPacket(x, y, z, impactVel), unitId);
+        }
+
         Logger.Info("ZWUnitCollisionResult → SC unit={0} impactVel={1:F2}", unitId, impactVel);
 
         // Zone's aggregated flush is behind its own interval CVar. If a dedicate only ever sends the
