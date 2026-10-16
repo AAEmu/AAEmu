@@ -625,6 +625,62 @@ async fn ratio_respawn_guard_cleans_up_for_a_later_independent_respawn() {
 }
 
 #[tokio::test]
+async fn clout_with_origin_source_changes_only_its_own_phase() {
+    // Doodad 5007 (NPC 10119's summon) next to the Amber Boulder 4252 (quest 3447): the clout's
+    // area may start at a nearby doodad, but its NextPhase / Final belong to the summon.
+    const BYSTANDER: u32 = 200;
+    let b = Builder::default()
+        .template(BYSTANDER, &[(20, 1)])
+        .template(TEMPLATE, &[(10, 1), (11, 2)])
+        .phase_func(
+            10,
+            FuncTemplate::Clout(DoodadFuncClout {
+                id: 1,
+                duration: 1000,
+                next_phase: 11,
+                use_origin_source: true,
+                ..DoodadFuncClout::default()
+            }),
+        )
+        .phase_func(
+            11,
+            FuncTemplate::Final(DoodadFuncFinal {
+                id: 2,
+                after: 2000,
+                ..DoodadFuncFinal::default()
+            }),
+        );
+    let f = fx(b);
+    let bystander = manager::create(&f.server, &f.world, 0x600, BYSTANDER, None, true).unwrap();
+    bystander.data().transform.set_xyz(101.0, 101.0, 100.0);
+    manager::spawn(&f.server, &f.world, &bystander);
+    manager::init_doodad(&f.server, &f.world, &bystander);
+
+    // Summoned by the player 1.4 m away from the bystander, then initialised before it spawns.
+    let summon = manager::create(
+        &f.server,
+        &f.world,
+        0x500,
+        TEMPLATE,
+        Some(&f.caster()),
+        true,
+    )
+    .unwrap();
+    summon.data().transform.set_xyz(100.0, 100.0, 100.0);
+    manager::init_doodad(&f.server, &f.world, &summon);
+    manager::spawn(&f.server, &f.world, &summon);
+    assert_eq!(group(&summon), 10);
+
+    f.advance(1000);
+    assert_eq!(group(&summon), 11);
+    assert_eq!(group(&bystander), 20);
+    f.advance(2000);
+    assert!(summon.data().phase.deleted);
+    assert!(!bystander.data().phase.deleted);
+    assert!(f.world.doodad(0x600).is_some());
+}
+
+#[tokio::test]
 async fn next_phase_minus_one_deletes() {
     let b = Builder::default()
         .template(TEMPLATE, &[(10, 1), (11, 2)])

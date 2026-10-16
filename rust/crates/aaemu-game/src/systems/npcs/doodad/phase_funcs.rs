@@ -512,12 +512,15 @@ fn use_clout(ctx: &DoodadCtx<'_>, caster: Option<&WorldObject>, f: &DoodadFuncCl
     let trigger = Arc::new(trigger);
     area_trigger::add_area_trigger(server, trigger.clone());
     if f.duration > 0 {
-        // C#: `owner.FuncTask = new DoodadFuncCloutTask(areaTrigger.Caster, areaTrigger.Owner,
-        // ...)`: the task is this doodad's FuncTask but acts on the trigger owner.
-        tasks::start_func_task_for(
+        // Deviation: the C# task (`new DoodadFuncCloutTask(areaTrigger.Caster,
+        // areaTrigger.Owner, ...)`) acts on the trigger owner, which with UseOriginSource is any
+        // doodad near the caster. `NextPhase` is a func group of this doodad's template, so the
+        // borrowed doodad was moved into a foreign phase (and deleted by its Final): e.g. the
+        // summoned doodad 5007 of NPC 10119 took the Amber Boulder (4252, quest 3447) with it.
+        // The borrowed doodad stays the area origin; the phase change is this doodad's.
+        tasks::start_func_task(
             server,
             &ctx.doodad,
-            &owner,
             Some(&trigger_caster),
             FuncTaskKind::Clout {
                 next_phase: f.next_phase,

@@ -77,6 +77,58 @@ pub struct UnitInfo {
     pub tl_id: u16,
 }
 
+/// A doodad seen in `SCDoodadCreatedPacket` / `SCDoodadsCreatedPacket` (`Doodad.Write`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct DoodadInfo {
+    pub obj_id: u32,
+    pub template_id: u32,
+    pub pos: (f32, f32, f32),
+    /// Current phase (`func_group_id`), updated by `SCDoodadPhaseChangedPacket`.
+    pub func_group_id: u32,
+    pub owner_obj_id: u32,
+    pub parent_obj_id: u32,
+    pub quest_glow: u32,
+    pub data: i32,
+}
+
+/// Reads one `Doodad.Write` entry (see `models/doodad.rs` of the game crate).
+fn read_doodad(s: &mut PacketStream) -> anyhow::Result<DoodadInfo> {
+    let obj_id = s.read_bc()?;
+    let template_id = s.read_u32()?;
+    let owner_obj_id = s.read_bc()?;
+    let parent_obj_id = s.read_bc()?;
+    s.read_u8()?; // attach point
+    let pos = s.read_position()?;
+    s.read_i16()?; // roll
+    s.read_i16()?; // pitch
+    s.read_i16()?; // yaw
+    s.read_f32()?; // scale
+    s.read_bool()?; // has loot item
+    let func_group_id = s.read_u32()?;
+    s.read_u32()?; // owner id
+    s.read_u64()?; // ucc id
+    s.read_u32()?; // item template id
+    s.read_u32()?; // type2
+    s.read_u32()?; // time left
+    s.read_i64()?; // plant time
+    let quest_glow = s.read_u32()?;
+    s.read_i32()?; // family
+    s.read_i32()?; // puzzle group
+    s.read_u8()?; // owner type
+    s.read_u32()?; // owner db id
+    let data = s.read_i32()?;
+    Ok(DoodadInfo {
+        obj_id,
+        template_id,
+        pos,
+        func_group_id,
+        owner_obj_id,
+        parent_obj_id,
+        quest_glow,
+        data,
+    })
+}
+
 /// The last `SCMateSpawnedPacket`: the owner's own view of the summoned mate.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MateSpawn {
@@ -217,6 +269,8 @@ pub struct GameState {
     pub self_obj: u32,
     pub self_pos: (f32, f32, f32),
     pub units: HashMap<u32, UnitInfo>,
+    /// Doodads announced by `SCDoodad(s)CreatedPacket` and not removed since.
+    pub doodads: HashMap<u32, DoodadInfo>,
     /// First item of the bag (`SCCharacterInvenContentsPacket`, slot type 2): `(item id, slot)`.
     pub bag_items: Vec<(u64, u8, u32)>,
     pub bag_slots: u8,
@@ -331,6 +385,31 @@ impl GameState {
             let pos = s.read_position()?;
             st.last_teleport = Some(pos);
             st.self_pos = pos;
+        } else if p.is_sc(sc::SCDoodadCreatedPacket) {
+            let d = read_doodad(&mut s)?;
+            st.doodads.insert(d.obj_id, d);
+        } else if p.is_sc(sc::SCDoodadsCreatedPacket) {
+            let n = s.read_u8()?;
+            for _ in 0..n {
+                let d = read_doodad(&mut s)?;
+                st.doodads.insert(d.obj_id, d);
+            }
+        } else if p.is_sc(sc::SCDoodadRemovedPacket) {
+            st.doodads.remove(&s.read_bc()?);
+        } else if p.is_sc(sc::SCDoodadsRemovedPacket) {
+            let n = s.read_u16()?;
+            s.read_bool()?; // last
+            for _ in 0..n {
+                let id = s.read_bc()?;
+                s.read_bool()?;
+                st.doodads.remove(&id);
+            }
+        } else if p.is_sc(sc::SCDoodadPhaseChangedPacket) {
+            let id = s.read_bc()?;
+            let group = s.read_u32()?;
+            if let Some(d) = st.doodads.get_mut(&id) {
+                d.func_group_id = group;
+            }
         } else if p.is_sc(sc::SCUnitsRemovedPacket) {
             let n = s.read_u16()?;
             for _ in 0..n {
@@ -749,6 +828,23 @@ impl GameClient {
             .write_bc(self.state.self_obj)
             .write_u8(0)
             .write_bc(target_obj)
+            .write_u8(0); // flag: no skill object
+        self.send_cs(cs::CSStartSkillPacket, s.as_bytes()).await
+    }
+
+    /// `CSStartSkillPacket`: unit caster (us) on a doodad target (`SkillCastDoodadTarget`), what
+    /// the client sends for a doodad interaction skill.
+    pub async fn start_doodad_skill(
+        &mut self,
+        skill_id: u32,
+        doodad_obj: u32,
+    ) -> anyhow::Result<()> {
+        let mut s = PacketStream::new();
+        s.write_u32(skill_id)
+            .write_u8(0) // SkillCasterType.Unit
+            .write_bc(self.state.self_obj)
+            .write_u8(4) // SkillCastTargetType.Doodad
+            .write_bc(doodad_obj)
             .write_u8(0); // flag: no skill object
         self.send_cs(cs::CSStartSkillPacket, s.as_bytes()).await
     }

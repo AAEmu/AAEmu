@@ -1110,6 +1110,15 @@ is no longer mirrored (see "Known deviations", dead NPC returned and healed).
   diagnostics now report plan, tick and maintenance time with active-work counts. Parallel tick
   time is elapsed batch time, including dispatch and await overhead, rather than summed job time.
 
+* systems::npcs (2026-10-15): `DoodadFuncClout` with `UseOriginSource` takes the first doodad
+  within 4 m of the caster as the area trigger's owner, and the C# scheduled the
+  `DoodadFuncCloutTask` on that owner, so it changed that doodad's phase to the clout's
+  `NextPhase`, a function group of the other template. NPC 10119 near Arach Hollow summons doodad
+  5007, whose clout moved the Amber Boulder (4252) into 5007's `DoodadFuncFinal` phase. That
+  deleted the boulder, so quest 3447 "Fellow Searchers" could not be completed. 991 clouts use
+  the origin source and 602 of them have a next phase. The borrowed doodad is still the trigger
+  origin, but the task now changes the phase of the doodad that owns the clout.
+
 * systems::vehicles / managers::item (2026-10-15): the shared death hook ignores self-deaths
   of objects other than characters and mates instead of reporting a missing mate owner. A mate
   whose owner really is missing still logs the mate and owner object IDs. A successful item

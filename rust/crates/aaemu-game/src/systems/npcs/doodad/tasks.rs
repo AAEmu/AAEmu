@@ -56,8 +56,7 @@ pub struct DoodadTask {
     pub world: Option<Weak<WorldInstance>>,
     /// The task's `owner` (the doodad it acts on).
     pub doodad: DoodadRef,
-    /// The doodad whose `FuncTask` this is (the owner, except for `DoodadFuncCloutTask` whose
-    /// owner is the area trigger's owner).
+    /// The doodad whose `FuncTask` this is (normally the owner).
     pub holder: DoodadRef,
     pub caster: Option<WorldObject>,
     /// `FuncTask` generation (0 = not a `FuncTask`, always runs).

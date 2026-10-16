@@ -311,14 +311,14 @@ fn candidates(game: &GameClient, templates: &[u32]) -> Vec<UnitInfo> {
 }
 
 /// Sends `text` as a say-chat line starting with `/` (a GM command) and collects the replies.
-async fn gm_command(game: &mut GameClient, text: &str) -> anyhow::Result<Vec<Packet>> {
+pub(super) async fn gm_command(game: &mut GameClient, text: &str) -> anyhow::Result<Vec<Packet>> {
     game.chat(0, &format!("/{text}")).await?;
     game.drain(Duration::from_millis(800), Duration::from_secs(4))
         .await
 }
 
 /// Text of an `SCChatMessagePacket` (system lines carry the command output).
-fn chat_text(p: &Packet) -> Option<String> {
+pub(super) fn chat_text(p: &Packet) -> Option<String> {
     if !p.is_sc(sc::SCChatMessagePacket) {
         return None;
     }
@@ -338,9 +338,9 @@ fn chat_text(p: &Packet) -> Option<String> {
 /// Status and objective counters of an `SCQuestContextStarted/UpdatedPacket` (the leading
 /// `Quest.Write` block).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct QuestState {
-    status: u8,
-    objectives: [i32; 5],
+pub(super) struct QuestState {
+    pub(super) status: u8,
+    pub(super) objectives: [i32; 5],
 }
 
 fn quest_state(p: &Packet) -> Option<(u32, QuestState)> {
@@ -360,7 +360,7 @@ fn quest_state(p: &Packet) -> Option<(u32, QuestState)> {
 }
 
 /// The last quest state of `quest_id` among `packets`.
-fn last_quest_state(packets: &[Packet], quest_id: u32) -> Option<QuestState> {
+pub(super) fn last_quest_state(packets: &[Packet], quest_id: u32) -> Option<QuestState> {
     packets
         .iter()
         .filter_map(quest_state)

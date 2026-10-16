@@ -15,6 +15,7 @@ use crate::login::LoginClient;
 use crate::record::Recorder;
 use crate::stream::StreamClient;
 
+mod doodad;
 mod questitem;
 
 /// Which scenario to run.
@@ -47,6 +48,10 @@ pub enum Kind {
     /// nearby NPCs until the quest objective is counted (see `scenario/questitem.rs`).
     #[serde(rename = "questitem")]
     QuestItem,
+    /// Doodad interaction: GM setup (quest 3447, teleport next to the Amber Boulder), then the
+    /// doodad's fake use skill on it, logging the packets (see `scenario/doodad.rs`).
+    #[serde(rename = "doodad")]
+    Doodad,
 }
 
 impl std::str::FromStr for Kind {
@@ -61,8 +66,9 @@ impl std::str::FromStr for Kind {
             "npc-return" => Self::NpcReturn,
             "mate-revive" => Self::MateRevive,
             "questitem" => Self::QuestItem,
+            "doodad" => Self::Doodad,
             _ => bail!(
-                "unknown scenario '{s}' (login, lobby, full, combat, npc-return, mate-revive, questitem, \n                 load)"
+                "unknown scenario '{s}' (login, lobby, full, combat, npc-return, mate-revive, questitem, doodad, \n                 load)"
             ),
         })
     }
@@ -505,6 +511,11 @@ async fn run_inner(kind: Kind, cfg: &BotConfig, r: &mut Runner<'_>) -> anyhow::R
     }
     if kind == Kind::QuestItem {
         questitem::run(&mut game, cfg, r).await?;
+        drop(stream);
+        return Ok(());
+    }
+    if kind == Kind::Doodad {
+        doodad::run(&mut game, cfg, r).await?;
         drop(stream);
         return Ok(());
     }

@@ -2,7 +2,7 @@
 //!
 //! ```text
 //! aaemu-testclient run    [--config F] [--login H:P] [--user U] [--password P] [--character C]
-//!                         [--scenario login|lobby|full|combat|npc-return|mate-revive|questitem|load]
+//!                         [--scenario login|lobby|full|combat|npc-return|mate-revive|questitem|doodad|load]
 //!                         [--out capture.jsonl]
 //!                         [--npc-return-distance M] [--npc-return-away-secs S]
 //!                         [--revive-method repair|skill|none]   (mate-revive; GM account needed)

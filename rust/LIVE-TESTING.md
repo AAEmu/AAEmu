@@ -219,6 +219,13 @@ is the one of the game server's `Connections`). Fields (`quest_item_quest`, `que
 `quest_item_template`, `quest_item_skill`, `quest_item_npcs`, `quest_item_uses`,
 `quest_item_pos`, `quest_item_max_attempts`) default to those values.
 
+`doodad` (same login and GM prerequisites as `questitem`) adds quest 3447 "Fellow Searchers"
+(`/quest add 3447 Npc 7890`, `/quest step 3447 Progress`), teleports next to the Amber Boulder
+(doodad 4252, Arach Hollow) and lists the doodads in sight. It casts the boulder's fake-use skill
+16790 on it with a doodad target and asserts that the quest objective counts 1. A boulder missing
+from the level spawn fails the `game.doodad.level_spawn` step. The scenario then interacts with a
+`/spawn doodad 4252` copy, so the cast is still checked, and removes that copy afterwards.
+
 The combat step selects its NPC through `CSChangeTargetPacket` and faces it in movement
 packets so auto attacks and angle restrictions use the intended target. It matches skill responses to the player's object and skill IDs and reads
 the 1.2 `SkillResult` extra field before optional integer data. Missing combat NPCs and
