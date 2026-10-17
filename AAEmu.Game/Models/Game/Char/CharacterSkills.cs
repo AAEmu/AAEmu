@@ -264,7 +264,7 @@ public class CharacterSkills(Character owner)
     private DateTime _lastComboAt = DateTime.MinValue;
 
     /// <summary>
-    /// Records the last accepted cast so Combo follow-ups can be gated on the previous link's window.
+    /// Records the last accepted cast so the next Combo link can be gated on that link's window.
     /// </summary>
     public void NoteSkillFired(uint skillId)
     {
@@ -276,9 +276,16 @@ public class CharacterSkills(Character owner)
 
     /// <summary>
     /// Whether the character holds <paramref name="skillId"/> — learned, buff-granted, the
-    /// currently selected Heir successor, or the next Combo follow-up after the last fired skill
-    /// inside that link's Combo window. Open follow-ups without a prior link are refused.
+    /// currently selected Heir successor, or the next Combo link after the last accepted cast
+    /// while that link's window is still open.
     /// </summary>
+    /// <remarks>
+    /// Combo follow-ups (special type 48) are never book entries: the client swaps the bar and sends
+    /// an ordinary cast for the next id. Accepting every later hit of a learned root would let a
+    /// short-cooldown follow-up be cast without its root. The window is
+    /// <c>value2 + casting_time</c> of the previous hit, so a cast-time chain (the follow-up arrives
+    /// after the cast) still fits and an open follow-up with no prior link is refused.
+    /// </remarks>
     public bool HasSkill(uint skillId)
     {
         if (Skills.ContainsKey(skillId) || TemporarySkills.ContainsKey(skillId) || IsActiveHeirSuccessor(skillId))
