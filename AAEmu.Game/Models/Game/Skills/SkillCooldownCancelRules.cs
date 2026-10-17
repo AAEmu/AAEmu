@@ -17,4 +17,25 @@ public static class SkillCooldownCancelRules
     /// </summary>
     public static bool ShouldRefundOnCancel(bool skillCooldownArmed, bool gcdArmed) =>
         skillCooldownArmed || gcdArmed;
+
+    /// <summary>
+    /// A cancelled plot refunds only while it has not committed. Once a node has applied an effect,
+    /// finished its cast, or entered a channel, the cooldown stays with that cast.
+    /// </summary>
+    public static bool ShouldRefundCancelledPlot(bool hasFired) => !hasFired;
+
+    /// <summary>
+    /// True when this node is the point a later cancel must not refund: the cast's fire moment,
+    /// a channel edge, or any node that applied effects without opening a further cast bar.
+    /// A cast-bar opener may carry setup effects and still refund if the player stops during the bar.
+    /// </summary>
+    public static bool PlotCommitted(bool appliedEffects, bool openedCastBar, bool fireMoment, bool enteredChannel) =>
+        fireMoment || enteredChannel || (appliedEffects && !openedCastBar);
+
+    /// <summary>
+    /// The cancelled cast may clear a shared timer only when the token it wrote is still the current one.
+    /// A later cast replaces the token; the older cancel must leave that newer timer alone.
+    /// </summary>
+    public static bool StillOwnsCooldown(long armedToken, long currentToken) =>
+        armedToken != 0 && armedToken == currentToken;
 }

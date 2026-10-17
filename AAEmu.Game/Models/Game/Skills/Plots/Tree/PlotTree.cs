@@ -3,6 +3,7 @@ using AAEmu.Game;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
 using NLog;
@@ -305,9 +306,13 @@ public class PlotTree(uint plotId)
             return;
         }
 
-        // Plot-only arms CD at press; a cancelled graph must refund rather than re-arm / leave grey.
+        // Plot-only arms CD at press. A cancel before the plot commits refunds that arm.
+        // A cancel after an effect, the fire moment, or a channel keeps it.
         if (state.CancellationRequested())
-            state.ActiveSkill.RefundCooldownsOnCancel(state.Caster);
+        {
+            if (SkillCooldownCancelRules.ShouldRefundCancelledPlot(state.HasFired))
+                state.ActiveSkill.RefundCooldownsOnCancel(state.Caster);
+        }
         else
             state.ActiveSkill.ArmCooldowns(state.Caster);
 

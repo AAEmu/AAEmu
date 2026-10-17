@@ -125,16 +125,21 @@ public class QuestStep(QuestComponentKind step, Quest parent)
                 : QuestStatus.Progress;
         }
 
+        // Score quests already folded their threshold into res. A non-score LetItDone step
+        // replaced res with the overachieve gate (3/2); an exact count must still count.
+        var objectiveMet = Parent.Template.Score > 0 ? res : actsMet;
+
         // Handle Supply/Reward Distribution
-        res &= Parent.DistributeRewards(true);
+        var rewardsDistributed = Parent.DistributeRewards(true);
+        res &= rewardsDistributed;
 
         // LetItDone Progress normally waits for a Report act. Quests that only have
-        // QuestActConAutoComplete (no report) leave Progress once their acts are met.
+        // QuestActConAutoComplete (no report) leave Progress once their objectives are met.
         if (ThisStep == QuestComponentKind.Progress && Parent.Template.LetItDone)
         {
             res = QuestLetItDoneAdvanceRules.ResolveProgressResult(
-                res,
-                actsMet,
+                rewardsDistributed,
+                objectiveMet,
                 QuestLetItDoneAdvanceRules.AutoCompletesWithoutReport(AllActTemplates()));
         }
 

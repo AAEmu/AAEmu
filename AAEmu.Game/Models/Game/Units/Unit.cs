@@ -411,6 +411,11 @@ public class Unit : BaseUnit, IUnit
     public SkillTask AutoAttackTask { get; set; }
     public DateTime GlobalCooldown { get; set; }
     public bool IsGlobalCooldownDone => GlobalCooldown > DateTime.UtcNow;
+    private long _globalCooldownToken;
+    /// <summary>Token of the cast that last wrote <see cref="GlobalCooldown"/>.</summary>
+    public long GlobalCooldownToken => Volatile.Read(ref _globalCooldownToken);
+    /// <summary>Stamps a new owner for the shared GCD and returns that token.</summary>
+    public long ClaimGlobalCooldown() => Interlocked.Increment(ref _globalCooldownToken);
     public object GcdLock { get; set; }
     public DateTime SkillLastUsed { get; set; }
 

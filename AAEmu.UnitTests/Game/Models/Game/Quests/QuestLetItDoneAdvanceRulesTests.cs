@@ -11,8 +11,8 @@ public class QuestLetItDoneAdvanceRulesTests
     {
         // Classic LetItDone: wait for a report even when objectives already passed.
         await Assert.That(QuestLetItDoneAdvanceRules.ResolveProgressResult(
-            postOverrideResult: true,
-            actsMet: true,
+            rewardsDistributed: true,
+            objectiveMet: true,
             autoCompletesWithoutReport: false)).IsFalse();
     }
 
@@ -20,8 +20,19 @@ public class QuestLetItDoneAdvanceRulesTests
     public async Task ResolveProgress_AutoCompleteWithoutReport_LeavesWhenActsMet()
     {
         await Assert.That(QuestLetItDoneAdvanceRules.ResolveProgressResult(
-            postOverrideResult: true,
-            actsMet: true,
+            rewardsDistributed: true,
+            objectiveMet: true,
+            autoCompletesWithoutReport: true)).IsTrue();
+    }
+
+    [Test]
+    public async Task ResolveProgress_ExactCount_LeavesEvenThoughOverachieveGateWouldFail()
+    {
+        // QuestStep used to pass the overachieve gate (3/2) as the result. An exact 2/2 is
+        // QuestComplete, so that gate is false, and the auto-complete path must still advance.
+        await Assert.That(QuestLetItDoneAdvanceRules.ResolveProgressResult(
+            rewardsDistributed: true,
+            objectiveMet: true,
             autoCompletesWithoutReport: true)).IsTrue();
     }
 
@@ -29,13 +40,13 @@ public class QuestLetItDoneAdvanceRulesTests
     public async Task ResolveProgress_AutoCompleteWithoutReport_StaysWhenActsNotMet()
     {
         await Assert.That(QuestLetItDoneAdvanceRules.ResolveProgressResult(
-            postOverrideResult: true,
-            actsMet: false,
+            rewardsDistributed: true,
+            objectiveMet: false,
             autoCompletesWithoutReport: true)).IsFalse();
 
         await Assert.That(QuestLetItDoneAdvanceRules.ResolveProgressResult(
-            postOverrideResult: false,
-            actsMet: true,
+            rewardsDistributed: false,
+            objectiveMet: true,
             autoCompletesWithoutReport: true)).IsFalse();
     }
 

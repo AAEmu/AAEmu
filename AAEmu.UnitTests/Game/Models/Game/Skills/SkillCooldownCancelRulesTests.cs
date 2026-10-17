@@ -1,4 +1,5 @@
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
@@ -23,5 +24,78 @@ public class SkillCooldownCancelRulesTests
     {
         await Assert.That(SkillCooldownCancelRules.ShouldRefundOnCancel(
             skillCooldownArmed: false, gcdArmed: false)).IsFalse();
+    }
+
+    [Test]
+    public async Task CancelledPlot_RefundsOnlyBeforeItCommits()
+    {
+        await Assert.That(SkillCooldownCancelRules.ShouldRefundCancelledPlot(hasFired: false)).IsTrue();
+        await Assert.That(SkillCooldownCancelRules.ShouldRefundCancelledPlot(hasFired: true)).IsFalse();
+    }
+
+    [Test]
+    public async Task PlotCommitted_CastBarOpenerStaysRefundable()
+    {
+        await Assert.That(SkillCooldownCancelRules.PlotCommitted(
+            appliedEffects: true, openedCastBar: true, fireMoment: false, enteredChannel: false)).IsFalse();
+    }
+
+    [Test]
+    public async Task PlotCommitted_FireMomentAndAppliedEffectsCommit()
+    {
+        await Assert.That(SkillCooldownCancelRules.PlotCommitted(
+            appliedEffects: false, openedCastBar: false, fireMoment: true, enteredChannel: false)).IsTrue();
+        await Assert.That(SkillCooldownCancelRules.PlotCommitted(
+            appliedEffects: true, openedCastBar: false, fireMoment: false, enteredChannel: false)).IsTrue();
+        await Assert.That(SkillCooldownCancelRules.PlotCommitted(
+            appliedEffects: false, openedCastBar: false, fireMoment: false, enteredChannel: true)).IsTrue();
+    }
+
+    [Test]
+    public async Task StillOwnsCooldown_OnlyTheCurrentToken()
+    {
+        await Assert.That(SkillCooldownCancelRules.StillOwnsCooldown(armedToken: 4, currentToken: 4)).IsTrue();
+        await Assert.That(SkillCooldownCancelRules.StillOwnsCooldown(armedToken: 4, currentToken: 5)).IsFalse();
+        await Assert.That(SkillCooldownCancelRules.StillOwnsCooldown(armedToken: 0, currentToken: 0)).IsFalse();
+    }
+
+    [Test]
+    public async Task OwnedCooldown_ALaterArmIsNotClearedByTheEarlierToken()
+    {
+        var cooldowns = new UnitCooldowns();
+        var first = cooldowns.AddCooldown(skillId: 10, duration: 5000, tagIds: [3]);
+        var second = cooldowns.AddCooldown(skillId: 10, duration: 8000, tagIds: [3]);
+
+        await Assert.That(cooldowns.TryRemoveOwnedCooldown(10, first, [3])).IsFalse();
+        await Assert.That(cooldowns.CheckCooldown(10)).IsTrue();
+        await Assert.That(cooldowns.CheckTagCooldown([3])).IsTrue();
+
+        await Assert.That(cooldowns.TryRemoveOwnedCooldown(10, second, [3])).IsTrue();
+        await Assert.That(cooldowns.CheckCooldown(10)).IsFalse();
+        await Assert.That(cooldowns.CheckTagCooldown([3])).IsFalse();
+    }
+
+    [Test]
+    public async Task ChargeEpoch_ALaterSpendDoesNotMatchTheEarlierCast()
+    {
+        var cooldowns = new UnitCooldowns();
+        cooldowns.ConsumeCharge(skillId: 10, maxCharges: 3, rechargeTime: 1000);
+        var first = cooldowns.ChargeEpoch(10);
+        cooldowns.ConsumeCharge(skillId: 10, maxCharges: 3, rechargeTime: 1000);
+        var second = cooldowns.ChargeEpoch(10);
+
+        await Assert.That(SkillCooldownCancelRules.StillOwnsCooldown(first, cooldowns.ChargeEpoch(10))).IsFalse();
+        await Assert.That(SkillCooldownCancelRules.StillOwnsCooldown(second, cooldowns.ChargeEpoch(10))).IsTrue();
+    }
+
+    [Test]
+    public async Task GlobalCooldownClaim_ALaterClaimReplacesTheEarlierToken()
+    {
+        var unit = new Unit();
+        var first = unit.ClaimGlobalCooldown();
+        var second = unit.ClaimGlobalCooldown();
+
+        await Assert.That(SkillCooldownCancelRules.StillOwnsCooldown(first, unit.GlobalCooldownToken)).IsFalse();
+        await Assert.That(SkillCooldownCancelRules.StillOwnsCooldown(second, unit.GlobalCooldownToken)).IsTrue();
     }
 }

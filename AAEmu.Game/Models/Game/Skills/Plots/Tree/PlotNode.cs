@@ -2,6 +2,7 @@
 using AAEmu.Game;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Static;
 
@@ -98,6 +99,13 @@ public class PlotNode
             if (castTime <= 0)
                 state.ActiveSkill?.ApplyPlotOnlyFireCosts(state.Caster);
         }
+
+        if (SkillCooldownCancelRules.PlotCommitted(
+                Event.Effects.Count > 0,
+                openedCastBar: castTime > 0,
+                fireMoment: (ParentNextEvent?.Casting ?? false) && castTime <= 0,
+                enteredChannel: ParentNextEvent?.Channeling ?? false))
+            state.MarkFired();
 
         if (ParentNextEvent?.Channeling ?? false)
             state.IsChanneling = false;

@@ -11,15 +11,19 @@ namespace AAEmu.Game.Models.Game.Quests;
 public static class QuestLetItDoneAdvanceRules
 {
     /// <summary>
-    /// Final Progress result after the LetItDone / score overrides: keep waiting for
-    /// a report unless the quest auto-completes without one and its acts already passed.
+    /// Final Progress result for a LetItDone quest. A report path stays parked.
+    /// An auto-complete quest with no report leaves Progress when its objectives are met
+    /// and its rewards were given. The LetItDone overachieve gate (3/2) is not an input:
+    /// an exact count is already complete.
     /// </summary>
-    public static bool ResolveProgressResult(bool postOverrideResult, bool actsMet, bool autoCompletesWithoutReport)
+    /// <param name="rewardsDistributed">True when <c>DistributeRewards</c> did not hold the step back.</param>
+    /// <param name="objectiveMet">Act results, or the score check when the quest is scored.</param>
+    public static bool ResolveProgressResult(bool rewardsDistributed, bool objectiveMet, bool autoCompletesWithoutReport)
     {
         if (!autoCompletesWithoutReport)
             return false;
 
-        return postOverrideResult && actsMet;
+        return rewardsDistributed && objectiveMet;
     }
 
     /// <summary>

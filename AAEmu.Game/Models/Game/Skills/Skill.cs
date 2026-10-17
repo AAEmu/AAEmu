@@ -101,8 +101,16 @@ public class Skill
     private bool _plotOnlyFireCostsApplied;
     /// <summary>Shared GCD armed once per accept (Use), not again at Cast fire.</summary>
     private bool _gcdArmed;
+    /// <summary>Token from <see cref="Unit.ClaimGlobalCooldown"/> for the GCD this cast wrote.</summary>
+    private long _gcdToken;
     /// <summary>Individual skill CD armed once per accept; Cast / plot-end must not re-arm.</summary>
     private bool _skillCooldownArmed;
+    /// <summary>Token from <see cref="UnitCooldowns.AddCooldown"/> for the skill timer this cast wrote.</summary>
+    private long _skillCooldownToken;
+    /// <summary>Token from <see cref="AccountCooldowns.Arm"/> when this cast armed an account cooldown.</summary>
+    private long _accountCooldownToken;
+    /// <summary>Charge-pool epoch observed when this cast spent a charge.</summary>
+    private long _chargeEpochAtSpend;
     private bool _zoneSkillFiredRelayed;
     private bool _zoneSkillEndedRelayed;
     private bool _laborConsumed;
@@ -321,7 +329,11 @@ public class Skill
         _zoneSkillEndedRelayed = false;
         _plotOnlyFireCostsApplied = false;
         _gcdArmed = false;
+        _gcdToken = 0;
         _skillCooldownArmed = false;
+        _skillCooldownToken = 0;
+        _accountCooldownToken = 0;
+        _chargeEpochAtSpend = 0;
         _laborConsumed = false;
         _chargesAfterCast = -1;
         _zoneSkillCaster = null;
@@ -2596,7 +2608,9 @@ public class Skill
 
         // Cast-time / plot skills arm CD+GCD at accept; a cancel before the cast commits must clear them
         // (GM IgnoreSkillCooldowns already did this — every cancel needs the same refund).
-        RefundCooldownsOnCancel(unit);
+        // A plot that already applied its effect keeps the cooldown.
+        if (SkillCooldownCancelRules.ShouldRefundCancelledPlot(ActivePlotState?.HasFired ?? false))
+            RefundCooldownsOnCancel(unit);
     }
 
     public SkillHitType RollCombatDice(BaseUnit attacker, BaseUnit target)
@@ -2830,6 +2844,7 @@ public class Skill
             {
                 _chargesAfterCast = owner.Cooldowns.ConsumeCharge(
                     Template.Id, Template.ChargeCount, Template.ChargeCooldownTime);
+                _chargeEpochAtSpend = owner.Cooldowns.ChargeEpoch(Template.Id);
             }
 
             // Charges left: the skill is usable again right away, so neither its own cooldown nor its
@@ -2838,10 +2853,10 @@ public class Skill
                 return;
         }
 
-        owner.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
+        _skillCooldownToken = owner.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
 
         if (Template.AccountCooldown && owner is Character character)
-            AccountCooldowns.Arm(character.AccountId, Template.Id, duration);
+            _accountCooldownToken = AccountCooldowns.Arm(character.AccountId, Template.Id, duration);
     }
 
     /// <summary>
@@ -2858,33 +2873,46 @@ public class Skill
         if (owner == null)
             return;
 
+        var clearedSkill = false;
         if (_skillCooldownArmed)
         {
-            owner.Cooldowns.RemoveCooldown(Template.Id, Template.CooldownTags);
+            clearedSkill = owner.Cooldowns.TryRemoveOwnedCooldown(
+                Template.Id, _skillCooldownToken, Template.CooldownTags);
             if (Template.AccountCooldown && owner is Character accountOwner)
-                AccountCooldowns.ClearSkill(accountOwner.AccountId, Template.Id);
+                AccountCooldowns.ClearIfOwner(accountOwner.AccountId, Template.Id, _accountCooldownToken);
 
-            // A charge spent at accept is restored so a cancelled cast does not burn the pool.
-            if (Template.ChargeCount > 1 && _chargesAfterCast >= 0)
+            // A charge spent at accept is restored only while no later cast has spent another.
+            if (Template.ChargeCount > 1 && _chargesAfterCast >= 0 &&
+                SkillCooldownCancelRules.StillOwnsCooldown(
+                    _chargeEpochAtSpend, owner.Cooldowns.ChargeEpoch(Template.Id)))
             {
                 owner.Cooldowns.ChangeChargeCount(Template.Id, Template.ChargeCount, +1);
                 _chargesAfterCast = -1;
             }
 
             _skillCooldownArmed = false;
+            _skillCooldownToken = 0;
+            _accountCooldownToken = 0;
         }
 
+        var clearedGcd = false;
         if (_gcdArmed)
         {
-            owner.GlobalCooldown = DateTime.MinValue;
+            if (SkillCooldownCancelRules.StillOwnsCooldown(_gcdToken, owner.GlobalCooldownToken))
+            {
+                owner.GlobalCooldown = DateTime.MinValue;
+                clearedGcd = true;
+            }
+
             _gcdArmed = false;
+            _gcdToken = 0;
         }
 
-        if (owner is Character character)
+        if (owner is Character character && (clearedSkill || clearedGcd))
         {
-            var tagId = Template.CooldownTags?.FirstOrDefault(t => t > 0) ?? 0;
+            var tagId = clearedSkill ? Template.CooldownTags?.FirstOrDefault(t => t > 0) ?? 0 : 0;
             character.SendPacket(new SCSkillCooldownResetPacket(
-                character, Template.Id, (uint)tagId, gcd: true,
+                character, Template.Id, (uint)tagId, gcd: clearedGcd,
                 resetSkillTagCooldown: tagId > 0));
         }
     }
@@ -2960,6 +2988,7 @@ public class Skill
             return;
         ApplyGlobalCooldown(unit);
         _gcdArmed = true;
+        _gcdToken = unit.ClaimGlobalCooldown();
     }
 
     private void ApplyGlobalCooldown(Unit unit)
