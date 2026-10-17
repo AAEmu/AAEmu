@@ -706,7 +706,9 @@ public class Buff
         if (State == EffectState.Finished)
             return;
 
-        StopEffectTask(replace: false, fireTimeout: true);
+        // Finished like a natural expiry, so the DispelTask still queued for this instance stops instead of
+        // applying further ticks to a buff that is gone.
+        FinishBuff(replace: false, fireTimeout: true);
     }
 
     private void StopEffectTask(bool replace, bool fireTimeout)

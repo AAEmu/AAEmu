@@ -49,6 +49,8 @@ public interface IBuffs
     void SetOwner(BaseUnit owner);
     void TriggerRemoveOn(BuffRemoveOn on, uint value = 0);
     void TimeoutBuffsFromSkill(uint skillId);
+    /// <summary>Ends a channeling buff through the natural-timeout path (Timeout triggers fire).</summary>
+    void TimeoutEffect(uint templateId, uint skillId) => RemoveEffect(templateId, skillId);
     // Buff Persistence
     void SaveActiveBuffs(MySqlConnection connection, MySqlTransaction transaction, uint characterId);
     void LoadActiveBuffs(Character character);

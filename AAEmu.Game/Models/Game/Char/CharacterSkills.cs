@@ -283,8 +283,9 @@ public class CharacterSkills(Character owner)
     /// Combo follow-ups (special type 48) are never book entries: the client swaps the bar and sends
     /// an ordinary cast for the next id. Accepting every later hit of a learned root would let a
     /// short-cooldown follow-up be cast without its root. The window is
-    /// <c>value2 + casting_time</c> of the previous hit, so a cast-time chain (the follow-up arrives
-    /// after the cast) still fits and an open follow-up with no prior link is refused.
+    /// <c>value2 + max(casting_time, shared GCD)</c> of the previous hit, so a cast-time or
+    /// GCD-gated chain (the follow-up arrives after that wait) still fits and an open follow-up
+    /// with no prior link is refused.
     /// </remarks>
     public bool HasSkill(uint skillId)
     {

@@ -34,6 +34,11 @@ public class PlotState(
 {
     private bool _cancellationRequest = false;
     private bool _finishChanneling = false;
+    /// <summary>
+    /// True once this plot has applied an effect, finished its cast, or entered a channel.
+    /// A cancel after that keeps the cooldown the cast armed.
+    /// </summary>
+    public bool HasFired { get; private set; }
     public Dictionary<uint, int> Tickets { get; set; } = [];
     public int[] Variables { get; set; } = new int[12];
     /// <summary>
@@ -98,6 +103,8 @@ public class PlotState(
     public Dictionary<uint, float> AreaSelectionRadius { get; } = [];
 
     public bool CancellationRequested() => _cancellationRequest;
+
+    public void MarkFired() => HasFired = true;
 
     /// <summary>
     /// Start of the cast or channel bar the plot last advertised to the client, and how long that bar runs.

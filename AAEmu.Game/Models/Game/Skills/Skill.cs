@@ -101,8 +101,16 @@ public class Skill
     private bool _plotOnlyFireCostsApplied;
     /// <summary>Shared GCD armed once per accept (Use), not again at Cast fire.</summary>
     private bool _gcdArmed;
+    /// <summary>Token from <see cref="Unit.ClaimGlobalCooldown"/> for the GCD this cast wrote.</summary>
+    private long _gcdToken;
     /// <summary>Individual skill CD armed once per accept; Cast / plot-end must not re-arm.</summary>
     private bool _skillCooldownArmed;
+    /// <summary>Token from <see cref="UnitCooldowns.AddCooldown"/> for the skill timer this cast wrote.</summary>
+    private long _skillCooldownToken;
+    /// <summary>Token from <see cref="AccountCooldowns.Arm"/> when this cast armed an account cooldown.</summary>
+    private long _accountCooldownToken;
+    /// <summary>Charge-pool epoch observed when this cast spent a charge.</summary>
+    private long _chargeEpochAtSpend;
     private bool _zoneSkillFiredRelayed;
     private bool _zoneSkillEndedRelayed;
     private bool _laborConsumed;
@@ -321,7 +329,11 @@ public class Skill
         _zoneSkillEndedRelayed = false;
         _plotOnlyFireCostsApplied = false;
         _gcdArmed = false;
+        _gcdToken = 0;
         _skillCooldownArmed = false;
+        _skillCooldownToken = 0;
+        _accountCooldownToken = 0;
+        _chargeEpochAtSpend = 0;
         _laborConsumed = false;
         _chargesAfterCast = -1;
         _zoneSkillCaster = null;
@@ -1414,13 +1426,22 @@ public class Skill
         var channelTargetCaster = _channelingTargetCaster ?? new SkillCastUnitTarget(channelTarget.ObjId);
         var channelSkillObject = _channelingSkillObject ?? new SkillObject();
 
+        // A channel that ran its full time ends its channeling buffs as timed out: their timeout triggers
+        // are the channel's result (quest 1107: buff 938 of skill 12222 casts the capture skill 12113 on
+        // timeout). An interrupted channel ends them as dispelled, as before.
         if (Template.ChannelingBuffId != 0)
         {
-            caster.Buffs.RemoveEffect(Template.ChannelingBuffId, Template.Id);
+            if (completedNaturally)
+                caster.Buffs.TimeoutEffect(Template.ChannelingBuffId, Template.Id);
+            else
+                caster.Buffs.RemoveEffect(Template.ChannelingBuffId, Template.Id);
         }
         if (Template.ChannelingTargetBuffId != 0)
         {
-            channelTarget.Buffs.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
+            if (completedNaturally)
+                channelTarget.Buffs.TimeoutEffect(Template.ChannelingTargetBuffId, Template.Id);
+            else
+                channelTarget.Buffs.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
         }
 
         (channelDoodad ?? _channelingDoodad)?.Delete();
@@ -1489,8 +1510,8 @@ public class Skill
         var totalDelay = 0;
         if (Template.EffectDelay > 0)
             totalDelay += Template.EffectDelay;
-        if (Template.EffectSpeed > 0)
-            totalDelay += (int)(unit.GetDistanceTo(target) / Template.EffectSpeed * 1000.0f);
+        // effect_speed is travel speed in m/s. Near-zero quest rows must not schedule a multi-minute wait.
+        totalDelay += SkillEffectTravelRules.TravelDelayMs(Template.EffectSpeed, unit.GetDistanceTo(target));
         if (Template.FireAnim != null && Template.UseAnimTime)
         {
             // attack_anim_speed_mul (119) is the animation's own view of the rating that already paced this
@@ -2585,8 +2606,11 @@ public class Skill
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
 
-        if (caster is Character character && character.IgnoreSkillCooldowns)
-            character.ResetSkillCooldown(Template.Id, false);
+        // Cast-time / plot skills arm CD+GCD at accept; a cancel before the cast commits must clear them
+        // (GM IgnoreSkillCooldowns already did this — every cancel needs the same refund).
+        // A plot that already applied its effect keeps the cooldown.
+        if (SkillCooldownCancelRules.ShouldRefundCancelledPlot(ActivePlotState?.HasFired ?? false))
+            RefundCooldownsOnCancel(unit);
     }
 
     public SkillHitType RollCombatDice(BaseUnit attacker, BaseUnit target)
@@ -2820,6 +2844,7 @@ public class Skill
             {
                 _chargesAfterCast = owner.Cooldowns.ConsumeCharge(
                     Template.Id, Template.ChargeCount, Template.ChargeCooldownTime);
+                _chargeEpochAtSpend = owner.Cooldowns.ChargeEpoch(Template.Id);
             }
 
             // Charges left: the skill is usable again right away, so neither its own cooldown nor its
@@ -2828,10 +2853,68 @@ public class Skill
                 return;
         }
 
-        owner.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
+        _skillCooldownToken = owner.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
 
         if (Template.AccountCooldown && owner is Character character)
-            AccountCooldowns.Arm(character.AccountId, Template.Id, duration);
+            _accountCooldownToken = AccountCooldowns.Arm(character.AccountId, Template.Id, duration);
+    }
+
+    /// <summary>
+    /// Clears skill CD, cooldown tags, account CD, spent charge and shared GCD that this cast armed at
+    /// accept. Called from <see cref="Stop"/> and from a cancelled plot end so a stopped cast does not
+    /// leave the skill grey for its full cooldown.
+    /// </summary>
+    internal void RefundCooldownsOnCancel(Unit unit)
+    {
+        if (unit == null || !SkillCooldownCancelRules.ShouldRefundOnCancel(_skillCooldownArmed, _gcdArmed))
+            return;
+
+        var owner = SkillCooldownOwnershipRules.CooldownOwner(unit, !_bypassGcd, ResolveCooldownOwnerUnit);
+        if (owner == null)
+            return;
+
+        var clearedSkill = false;
+        if (_skillCooldownArmed)
+        {
+            clearedSkill = owner.Cooldowns.TryRemoveOwnedCooldown(
+                Template.Id, _skillCooldownToken, Template.CooldownTags);
+            if (Template.AccountCooldown && owner is Character accountOwner)
+                AccountCooldowns.ClearIfOwner(accountOwner.AccountId, Template.Id, _accountCooldownToken);
+
+            // A charge spent at accept is restored only while no later cast has spent another.
+            if (Template.ChargeCount > 1 && _chargesAfterCast >= 0 &&
+                SkillCooldownCancelRules.StillOwnsCooldown(
+                    _chargeEpochAtSpend, owner.Cooldowns.ChargeEpoch(Template.Id)))
+            {
+                owner.Cooldowns.ChangeChargeCount(Template.Id, Template.ChargeCount, +1);
+                _chargesAfterCast = -1;
+            }
+
+            _skillCooldownArmed = false;
+            _skillCooldownToken = 0;
+            _accountCooldownToken = 0;
+        }
+
+        var clearedGcd = false;
+        if (_gcdArmed)
+        {
+            if (SkillCooldownCancelRules.StillOwnsCooldown(_gcdToken, owner.GlobalCooldownToken))
+            {
+                owner.GlobalCooldown = DateTime.MinValue;
+                clearedGcd = true;
+            }
+
+            _gcdArmed = false;
+            _gcdToken = 0;
+        }
+
+        if (owner is Character character && (clearedSkill || clearedGcd))
+        {
+            var tagId = clearedSkill ? Template.CooldownTags?.FirstOrDefault(t => t > 0) ?? 0 : 0;
+            character.SendPacket(new SCSkillCooldownResetPacket(
+                character, Template.Id, (uint)tagId, gcd: clearedGcd,
+                resetSkillTagCooldown: tagId > 0));
+        }
     }
 
     /// <summary>
@@ -2905,6 +2988,7 @@ public class Skill
             return;
         ApplyGlobalCooldown(unit);
         _gcdArmed = true;
+        _gcdToken = unit.ClaimGlobalCooldown();
     }
 
     private void ApplyGlobalCooldown(Unit unit)

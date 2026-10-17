@@ -94,7 +94,8 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
 
         if (WorldIntegration.ZoneAuthority)
         {
-            WorldIntegration.DeleteNpcMirror(npc, true);
+            // Removed now: the npc vanishes as the effect lands, it does not walk off through GO_TO_DESPAWN.
+            WorldIntegration.RemoveNpcNow(npc);
         }
         else if (npc.Spawner != null)
         {

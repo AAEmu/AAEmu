@@ -1283,6 +1283,40 @@ public class Buffs : IBuffs
     }
 
     /// <summary>
+    /// Ends the live instances of <paramref name="templateId"/> applied by <paramref name="skillId"/> through
+    /// the natural-timeout path (Timeout triggers fire, buff removed). Used when a channel runs its full
+    /// channeling_time: the channeling buffs end with the channel, and those of about 80 channel skills
+    /// carry a timeout trigger that is the channel's actual result (buff 938 '호랑이 속박' of skill 12222, quest 1107, casts 12113 on
+    /// timeout). <see cref="RemoveEffect(uint, uint)"/> ends them as dispelled, so those triggers never ran.
+    /// </summary>
+    public void TimeoutEffect(uint templateId, uint skillId)
+    {
+        List<Buff> snapshot;
+        lock (_lock)
+        {
+            snapshot = _effects?.ToList() ?? [];
+        }
+
+        foreach (var buff in snapshot)
+        {
+            if (buff == null || buff.State == EffectState.Finished || buff.Template?.Id != templateId ||
+                buff.Skill?.Template?.Id != skillId)
+                continue;
+
+            try
+            {
+                buff.TimeOut();
+            }
+            catch (Exception ex)
+            {
+                // The caller is ending a channel: a failing trigger must not leave the cast open.
+                Logger.Error(ex, "TimeoutEffect failed for buff {0} (skill {1}) on {2}", templateId, skillId,
+                    GetOwner()?.ObjId ?? 0);
+            }
+        }
+    }
+
+    /// <summary>
     /// Ends every active buff applied by <paramref name="skillId"/> through its natural-timeout path
     /// (triggers fire, buff removed). Used when a seat is left: rides such as the house floor mover are
     /// driven by the seat buff's Timeout trigger (skills.id 40228 '층간 이동' applies it and its trigger

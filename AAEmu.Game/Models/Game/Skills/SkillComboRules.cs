@@ -96,20 +96,38 @@ public static class SkillComboRules
     }
 
     /// <summary>
-    /// Combo window (ms) from the skill's Combo special <c>value2</c> plus that skill's cast time,
-    /// or 0 when it has no Combo link.
+    /// Combo window (ms) from the skill's Combo special <c>value2</c> plus the time until the
+    /// client can send the next link, or 0 when it has no Combo link.
     /// </summary>
     /// <remarks>
-    /// The window is measured from when the cast is accepted, which is before a cast-time hit
-    /// finishes. Adding the cast time leaves the follow-up inside the window once the bar swaps,
-    /// and still closes it so a later link cannot be sent on its own.
+    /// The window is measured from when the cast is accepted. The client cannot send the follow-up
+    /// until that hit's cast bar and/or shared GCD have finished — cast-time hits used to burn
+    /// <c>value2</c> before the next press; plot-only chains with <c>custom_gcd</c> longer than
+    /// <c>value2</c> (Mana Bolt under Serpent Glare) did the same on the GCD. Adding
+    /// <c>max(casting_time, shared GCD)</c> keeps the next link open through that wait and still
+    /// closes it so a later link cannot be sent on its own.
     /// </remarks>
     public static int ComboWindowMs(uint skillId)
     {
         var template = SkillManager.Instance?.GetSkillTemplate(skillId);
         if (template == null || !TryGetComboFollowUp(template, out _, out var ms) || ms <= 0)
             return 0;
-        return ms + Math.Max(0, template.CastingTime);
+        return ms + FollowUpReadyDelayMs(template);
+    }
+
+    /// <summary>
+    /// Milliseconds after accept before the client may send this skill's Combo follow-up.
+    /// </summary>
+    public static int FollowUpReadyDelayMs(SkillTemplate template)
+    {
+        if (template == null)
+            return 0;
+        var castMs = Math.Max(0, template.CastingTime);
+        // Weapon-class GCD needs the caster's holdable; combo gates only see the template, and the
+        // shipped caster chains that hit this path author custom_gcd outright.
+        var gcdMs = SkillGcdRules.ResolveSharedGcd(
+            template.CustomGcd, template.DefaultGcd, weaponGcdSpeed: 0, isNpc: false);
+        return Math.Max(castMs, gcdMs);
     }
 
     /// <summary>
