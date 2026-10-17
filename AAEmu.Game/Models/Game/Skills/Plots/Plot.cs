@@ -24,9 +24,10 @@ public class Plot
         if (caster is not Unit casterUnit)
             return;
 
-        // New cast-time or channel plot while the previous one is still on the bar: cancel so
-        // anims / projectiles do not stack. Sport-fish holds replace each other immediately but
-        // must not tear down the rod channel (plots 809 / 821).
+        // A cast that has not fired yet, or a channel the player is still sitting in, yields to the
+        // new skill. A plot that has already fired does not: the projectile stays in the air and the
+        // cooldown stays armed. Sport-fish holds replace each other immediately but must not tear
+        // down the rod channel (plots 809 / 821).
         var prev = casterUnit.ActivePlotState;
         if (prev != null && !ReferenceEquals(prev.ActiveSkill, skill))
         {
@@ -43,12 +44,14 @@ public class Plot
             var previousIsFollowUp = prevSkill != null &&
                                      SkillComboRules.IsComboFollowUpOf(
                                          skill.Id, prevSkill.Id, SkillComboRules.NextFollowUp);
+            var previousMustYield = SkillCastOverlapRules.PreviousPlotMustYield(
+                prev.IsCasting, prev.HasFired, prev.WaitingOnChannel);
             if (SkillCastOverlapRules.ShouldCancelPreviousPlot(
-                    prev.IsCasting || prev.IsChanneling,
+                    previousMustYield,
                     incomingCombo,
                     incomingSame,
                     SportFishCombat.ShouldCancelPreviousPlot(
-                        prev.IsCasting || prev.IsChanneling,
+                        previousMustYield,
                         prevHold,
                         incomingHold),
                     previousIsFollowUp))

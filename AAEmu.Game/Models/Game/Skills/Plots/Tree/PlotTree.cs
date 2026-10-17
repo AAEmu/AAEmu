@@ -80,6 +80,8 @@ public class PlotTree(uint plotId)
                 nodeWatch.Start();
                 var now = DateTime.UtcNow;
                 var node = item.node;
+                if (node?.ParentNextEvent?.Channeling == true)
+                    state.WaitingOnChannel = false;
 
                 if (state.Tickets.TryGetValue(node.Event.Id, out var value))
                     state.Tickets[node.Event.Id] = ++value;
@@ -120,6 +122,9 @@ public class PlotTree(uint plotId)
 
                     foreach (var child in PlotBranchRules.SelectChildren(node.Children, condition, Random.Shared.Next))
                     {
+                        if (child.ParentNextEvent?.Channeling == true)
+                            state.WaitingOnChannel = true;
+
                         if (child.ParentNextEvent?.PerTarget ?? false)
                         {
                             foreach (var target in item.targetInfo.EffectedTargets)

@@ -49,6 +49,11 @@ public class PlotState(
     public byte CombatDiceRoll { get; set; }
     public bool IsCasting { get; set; }
     public bool IsChanneling { get; set; }
+    /// <summary>
+    /// True while a child entered by a channeling edge is still waiting. A fired projectile
+    /// delay is not a channel, so the next skill must not treat it as one.
+    /// </summary>
+    public bool WaitingOnChannel { get; set; }
     public PlotClientEvent LastClientEvent { get; set; }
     public DateTime LastIgnoredStopRefreshUtc { get; set; }
 
