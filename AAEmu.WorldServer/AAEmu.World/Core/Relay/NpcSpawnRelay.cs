@@ -133,6 +133,34 @@ public class NpcSpawnRelay
         ForgetNpcState(zoneId, instanceId: 0, bcId);
 
     /// <summary>
+    /// World tore down a Zone mirror after <c>WZNpcStartDespawn</c> got no <c>ZWRemoveNpc</c>
+    /// (killed AI cannot answer). Must match <see cref="CompleteRemove"/> ownership cleanup:
+    /// drop the Create marker, unregister the body, and hold the bcId — never
+    /// <c>ReleaseId</c> immediately. Immediate free let the next camp spawn reuse the id while
+    /// Zone's own <c>QueueSpawn</c> delay was still running, so the same bc looked "respawned"
+    /// in tens of seconds instead of the spawner's delay.
+    /// </summary>
+    public static void FinishForcedUnitRemoved(ZoneConnection? connection, uint bcId)
+    {
+        if (bcId == 0)
+            return;
+
+        if (connection != null)
+        {
+            connection.SendPacket(new WZUnitRemovedPacket(bcId));
+            ForgetNpcState(connection.ZoneId, connection.InstanceId, bcId);
+            ZoneBuffRegistry.ClearUnit(connection.ZoneId, connection.InstanceId, bcId);
+            connection.Units.TryRemove(bcId);
+        }
+
+        ScheduleObjectIdRelease(bcId);
+    }
+
+    /// <summary>Test seam: true while a forced/complete remove is holding this bcId out of the pool.</summary>
+    internal static bool IsObjectIdReleasePending(uint bcId) =>
+        PendingObjectIdReleases.ContainsKey(bcId);
+
+    /// <summary>
     /// Delete Game NPC mirrors for this ZoneConnection. Call on TCP disconnect before
     /// removing the connection from ZoneSession.
     /// Players are also tracked via <c>RegisterWithId</c> — only remove entries whose

@@ -858,6 +858,23 @@ public class DamageEffect : EffectTemplate
             if (hitCause == BuffHitCause.BuffTrigger)
                 trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedBuffTrigger);
         }
+
+        // Weapon wear once per cast. A DoT tick and each extra AoE target do not roll again.
+        if (!ManaDamage && value > 0 && hitCause != BuffHitCause.BuffTrigger
+            && caster is Character attackingPlayer
+            && (source?.Skill == null || source.Skill.ClaimWeaponDurabilityRoll()))
+        {
+            var worldRate = trg is Character
+                ? AppConfiguration.Instance.World.PvPDurabilityLossRate
+                : AppConfiguration.Instance.World.PvEDurabilityLossRate;
+            if (worldRate > 0f)
+            {
+                attackingPlayer.ApplyDurabilityLossToEquipment(
+                    1,
+                    CharacterDurabilityRules.WeaponTarget(UseMainhandWeapon, UseOffhandWeapon, UseRangedWeapon),
+                    worldRate);
+            }
+        }
     }
 
     /// <summary>

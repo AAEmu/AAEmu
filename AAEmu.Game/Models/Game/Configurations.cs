@@ -130,6 +130,16 @@ public class WorldConfig
     public bool GodMode { get; set; }
 
     /// <summary>
+    /// Multiplier on <c>item_configs.durability_decrement_chance</c> for player-vs-NPC combat wear.
+    /// </summary>
+    public float PvEDurabilityLossRate { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Multiplier on <c>item_configs.durability_decrement_chance</c> for player-vs-player combat wear.
+    /// </summary>
+    public float PvPDurabilityLossRate { get; set; } = 1.0f;
+
+    /// <summary>
     /// Enables the loading of NavMesh data for dungeons
     /// </summary>
     public bool GeoDataMode { get; set; }

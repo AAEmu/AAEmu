@@ -1,7 +1,9 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
@@ -14,46 +16,59 @@ public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
         var npcObjId = stream.ReadBc();
         var npc = Connection.ActiveChar.ParentWorld.GetNpc(npcObjId);
         if (npc == null || !npc.Template.Merchant)
+        {
+            Logger.Debug(
+                "SellItems refused: npcObjId={0} missingOrNotMerchant for {1}",
+                npcObjId, Connection.ActiveChar.Name);
             return;
+        }
 
         // A garden deed can move from Bag to the server-owned System container only through the
         // farmhand transaction. Keep the selected item references stable through sale and payment.
         using var inventoryMutation = Connection.ActiveChar.Inventory.AcquireMutation();
 
-        var unkObjId = stream.ReadBc();
+        // Second bc is the doodad store (0 when the seller is an NPC). Buy uses the same pair.
+        _ = stream.ReadBc();
 
         var num = stream.ReadByte();
-        var items = new List<Item>();
+        if (num > VendorSellWireRules.BuybackListCapacity)
+            return;
+
+        var items = new List<Item>(num);
         var seenItems = new HashSet<ulong>();
 
         for (var i = 0; i < num; i++)
         {
-            _ = stream.ReadByte();
-            var slotType = (SlotType)stream.ReadByte();
-            _ = stream.ReadByte();
-            var slot = stream.ReadByte();
+            // Client sell-entry: u8 type, u8 index, u64 id, … — not the padded 4-byte slot layout.
+            var entry = VendorSellWireRules.ReadEntry(stream);
 
-            var itemId = stream.ReadUInt64();
-            var stack = stream.ReadUInt32();
-            var removeReservationTime = stream.ReadUInt64();
+            if (!VendorSellWireRules.IsSellableContainer(entry.SlotType))
+                continue;
 
             Item item = null;
-            if (slotType == SlotType.Equipment)
-                item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
-            else if (slotType == SlotType.Inventory)
-                item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
-            //                else if (slotType == SlotType.Bank)
-            //                    item = Connection.ActiveChar.Inventory.Bank[slot];
-            if (item != null && item.Id == itemId && stack <= int.MaxValue && (int)stack == item.Count && seenItems.Add(itemId))
+            if (entry.SlotType == SlotType.Equipment)
+                item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(entry.Slot);
+            else if (entry.SlotType == SlotType.Inventory)
+                item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(entry.Slot);
+
+            // Wire "stack" is unused on this client (always 0); sold qty is item.Count below.
+            if (item == null || item.Id != entry.ItemId ||
+                !VendorSellWireRules.StackFieldAllowsSale(entry.Stack, item.Count) ||
+                !seenItems.Add(entry.ItemId))
             {
-                Logger.Trace(
-                    "SellItems item={0} slot={1}:{2} stack={3} removeReservationTime={4}",
-                    itemId, slotType, slot, stack, removeReservationTime);
-                items.Add(item);
+                Logger.Debug(
+                    "SellItems skip itemId={0} slot={1}:{2} wireStack={3} bagCount={4} found={5} for {6}",
+                    entry.ItemId, entry.SlotType, entry.Slot, entry.Stack, item?.Count, item != null,
+                    Connection.ActiveChar.Name);
+                continue;
             }
+
+            Logger.Debug(
+                "SellItems item={0} slot={1}:{2} stack={3} removeReservationTime={4}",
+                entry.ItemId, entry.SlotType, entry.Slot, entry.Stack, entry.RemoveReservationTime);
+            items.Add(item);
         }
 
-        //var tasks = new List<ItemTask>();
         // Money is accumulated only for items that actually reached the buy-back list, and it is paid
         // once after the loop. A refused or unmoved item is never added to the total, so the two
         // sides of the trade cannot drift apart: there is no path that pays for an item the character
@@ -96,13 +111,36 @@ public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
                 moved ? ItemSaleTransfer.Moved : ItemSaleTransfer.NotMoved));
         }
 
-        Connection.ActiveChar.ChangeMoney(
-            SlotType.Inventory, VendorSalePayoutRules.BatchValue(lines));
-        /*
-        Connection.ActiveChar.Money += money;
-        tasks.Add(new MoneyChange(money));
-        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreSell, itemTasks, new List<ulong>()));
-        */
+        TrimBuybackList(Connection.ActiveChar);
+
+        var payout = VendorSalePayoutRules.BatchValue(lines);
+        if (payout > 0)
+        {
+            // Pay in its own StoreSell task packet. Combining money with the bag remove (as the old
+            // commented path did) leaves the client ignoring the gold half after a remove body.
+            Connection.ActiveChar.ChangeMoney(SlotType.Inventory, payout, ItemTaskType.StoreSell);
+        }
+
+        // Refresh the buy-back tab for the open store window. Sold items stay here until logout
+        // (EnterWorld wipe) or until they fall off the capacity cap above — that is the repurchase
+        // window the client offers after a sale.
+        Connection.ActiveChar.BuyBackItems.ReNumberSlots();
+        Connection.SendPacket(new SCSoldItemListPacket(Connection.ActiveChar.BuyBackItems.Items));
+    }
+
+    /// <summary>
+    /// Drops the oldest buy-back rows past the sold-item list cap. Newest sales are inserted at the
+    /// front of <see cref="Character.BuyBackItems"/>, so excess lives at the tail.
+    /// </summary>
+    private static void TrimBuybackList(Character character)
+    {
+        var buyback = character.BuyBackItems;
+        var excess = VendorSellWireRules.ExcessBuybackCount(buyback.Items.Count);
+        for (var i = 0; i < excess; i++)
+        {
+            var oldest = buyback.Items[^1];
+            buyback.RemoveItem(ItemTaskType.Invalid, oldest, true);
+        }
     }
 
     /// <summary>

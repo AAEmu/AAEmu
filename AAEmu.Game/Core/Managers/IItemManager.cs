@@ -38,6 +38,7 @@ public interface IItemManager : ILoadable
     float GetHoldableDurabilityConst();
     float GetWearableDurabilityConst();
     int GetDeathDurabilityLossRatio();
+    float GetDurabilityDecrementChance();
     float GetItemStatConst();
     float GetHoldableStatConst();
     float GetWearableStatConst();

@@ -15,7 +15,7 @@ public class GoldSetSubCommand : SubCommandBase
     {
         Title = "[Gold Set]";
         Description =
-            "Changes to self or a player name or a selected target an specific amount of gold, silver and copper.";
+            "Changes self, a named player, or the selected target's gold / silver / copper.";
         CallPrefix = $"{CommandManager.CommandPrefix}gold <add||set||remove>";
         AddParameter(new StringSubCommandParameter("target", "player name||target||self", true));
         AddParameter(new NumericSubCommandParameter<int>("gold", "gold amount", true));
@@ -58,33 +58,29 @@ public class GoldSetSubCommand : SubCommandBase
 
         var silverAmount = 0;
         var copperAmount = 0;
-        var multiplier = triggerArgument == "remove" ? -1 : 1;
+        var multiplier = string.Equals(triggerArgument, "remove", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
         int goldAmount = parameters["gold"];
         if (parameters.TryGetValue("silver", out var parameter))
-        {
             silverAmount = parameter;
-        }
 
         if (parameters.TryGetValue("copper", out var parameter1))
-        {
             copperAmount = parameter1;
-        }
 
-        var totalAmount = copperAmount * multiplier + silverAmount * 100 * multiplier + goldAmount * 10000 * multiplier;
+        var absoluteOrDelta = copperAmount * multiplier + silverAmount * 100L * multiplier + goldAmount * 10000L * multiplier;
+        var totalAmount = GoldCommandRules.MoneyDelta(triggerArgument, absoluteOrDelta, targetCharacter.Money);
 
         if (totalAmount != 0)
         {
-            if (!targetCharacter.ChangeMoney(SlotType.Inventory, totalAmount, ItemTaskType.AutoLootDoodadItem))
+            if (!targetCharacter.ChangeMoney(SlotType.Inventory, totalAmount, ItemTaskType.Gm))
             {
                 SendColorMessage(messageOutput, Color.Red, "Money change was rejected");
                 return;
             }
+
             SendMessage(messageOutput,
-                $"Changed {targetCharacter.Name}'s money by {goldAmount}g {silverAmount}s {copperAmount}c");
+                $"Changed {targetCharacter.Name}'s money by {goldAmount}g {silverAmount}s {copperAmount}c → {targetCharacter.Money}");
             if (selfCharacter.Id != targetCharacter.Id)
-            {
                 SendMessage(targetCharacter, messageOutput, $"[GM] {selfCharacter.Name} has changed your gold");
-            }
         }
         else
         {

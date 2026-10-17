@@ -122,6 +122,7 @@ public class Skill
     private SkillObject _activeSkillObject;
     private SkillCaster _zoneSkillCaster;
     private bool _cancelled;
+    private bool _weaponDurabilityRolled;
     internal event Action<Skill> CancellationRequested;
     public bool Cancelled
     {
@@ -135,6 +136,18 @@ public class Skill
                 CancellationRequested?.Invoke(this);
         }
     }
+    /// <summary>
+    /// First damaging hit of this cast claims the weapon-wear roll. Later targets and a reused
+    /// auto-attack instance (reset in <see cref="Use(BaseUnit, SkillCaster, SkillCastTarget, SkillObject, bool, out ushort, out uint)"/>) do not.
+    /// </summary>
+    internal bool ClaimWeaponDurabilityRoll()
+    {
+        if (_weaponDurabilityRolled)
+            return false;
+        _weaponDurabilityRolled = true;
+        return true;
+    }
+
     public Action Callback { get; set; }
 
     /// <summary>
@@ -226,6 +239,7 @@ public class Skill
     {
         skillResultValueUShort = 0;
         skillResultValueUInt = 0;
+        _weaponDurabilityRolled = false;
         // Check if the source is an actual Unit
         if (caster is not Unit unit)
         {
@@ -1772,6 +1786,30 @@ public class Skill
                 // Auto-attack tasks reuse their Skill instance, so each swing must replace the
                 // previous result for this target instead of latching the first hit or miss forever.
                 HitTypes[targetUnit.ObjId] = diceResult;
+
+                // Block / parry wear the defender's shield or main weapons.
+                if (targetUnit is Character targetPlayer)
+                {
+                    var worldRate = caster is Character
+                        ? AppConfiguration.Instance.World.PvPDurabilityLossRate
+                        : AppConfiguration.Instance.World.PvEDurabilityLossRate;
+                    if (worldRate > 0f)
+                    {
+                        switch (diceResult)
+                        {
+                            case SkillHitType.MeleeBlock:
+                            case SkillHitType.RangedBlock:
+                                targetPlayer.ApplyDurabilityLossToEquipment(
+                                    1, DurabilityLossTargets.Shield, worldRate);
+                                break;
+                            case SkillHitType.MeleeParry:
+                            case SkillHitType.RangedParry:
+                                targetPlayer.ApplyDurabilityLossToEquipment(
+                                    1, DurabilityLossTargets.AllMainWeapons, worldRate);
+                                break;
+                        }
+                    }
+                }
             }
             else if (target is Doodad doodad)
             {

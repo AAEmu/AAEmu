@@ -1207,10 +1207,14 @@ public static class WorldIntegration
             return;
         }
 
-        if (notifyZone && ZoneAuthority)
+        if (notifyZone && ZoneAuthority && RelayUnitRemovedToZone != null)
         {
             npc.ParentWorld?.SpawnManager?.CancelDespawn(npc);
-            RelayUnitRemovedToZone?.Invoke(npc.ObjId);
+            // FinishForcedUnitRemoved owns the delayed ReleaseId. Releasing here as well let the
+            // allocator hand the bc to a new unit before the hold timer fired.
+            RelayUnitRemovedToZone.Invoke(npc.ObjId);
+            npc.Delete();
+            return;
         }
 
         var objId = npc.ObjId;

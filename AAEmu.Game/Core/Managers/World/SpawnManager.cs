@@ -1093,9 +1093,11 @@ public class SpawnManager(WorldInstance parentWorld)
                                 "Zone mirror bc={0} tpl={1} ignored WZNpcStartDespawn for {2}s � forcing WZUnitRemoved",
                                 mirrorNpc.ObjId, mirrorNpc.TemplateId, ZoneDespawnAckSeconds);
                         }
+                        // Relay owns marker drop, Units.TryRemove, and deferred ObjectId release.
+                        // Do not ReleaseId here — immediate free recycled bcIds under Zone's
+                        // spawn_delay and made the next camp spawn look like a fast respawn.
                         WorldIntegration.RelayUnitRemovedToZone?.Invoke(mirrorNpc.ObjId);
                         mirrorNpc.Delete();
-                        ObjectIdManager.Instance.ReleaseId(mirrorNpc.ObjId);
                         RemoveDespawn(obj);
                         continue;
                     }

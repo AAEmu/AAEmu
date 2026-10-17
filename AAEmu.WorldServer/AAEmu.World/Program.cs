@@ -640,19 +640,16 @@ public static class Program
         };
         WorldIntegration.RelayUnitRemovedToZone = bcId =>
         {
-            if (Environment.GetEnvironmentVariable("AAEMU_DISABLE_ZONE_COMBAT_RELAY") == "1")
-                return;
-
-            var zone = PlayerEnterService.ForUnit(bcId);
-            if (zone == null)
-                return;
-
-            zone.SendPacket(new WZUnitRemovedPacket(bcId));
-
-            // A forced removal has no completion callback, so release its spawn marker here.
-            NpcSpawnRelay.ForgetNpcState(zone.ZoneId, zone.InstanceId, bcId);
-            AAEmu.World.Core.Relay.ZoneBuffRegistry.ClearUnit(zone.ZoneId, zone.InstanceId, bcId);
-            Logger.Info("WZUnitRemoved → zone bcId={0} (forced teardown, Create marker dropped)", bcId);
+            // Always schedule the delayed ReleaseId: DeleteNpcMirror defers ownership to this
+            // hook. Skipping under the kill-switch would leak the id forever.
+            var zone = Environment.GetEnvironmentVariable("AAEMU_DISABLE_ZONE_COMBAT_RELAY") == "1"
+                ? null
+                : PlayerEnterService.ForUnit(bcId);
+            // Hold the bcId even when the zone session is already gone — SpawnManager must not
+            // ReleaseId immediately or the next ZWSpawnNpc recycles it under Zone's QueueSpawn delay.
+            NpcSpawnRelay.FinishForcedUnitRemoved(zone, bcId);
+            if (zone != null)
+                Logger.Info("WZUnitRemoved → zone bcId={0} (forced teardown, Create marker dropped)", bcId);
         };
         WorldIntegration.RelayUnitRemovedToZoneId = (zoneId, bcId) =>
         {

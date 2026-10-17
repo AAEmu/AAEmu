@@ -18,6 +18,8 @@
         "DaysForTaxPayment": 7,
         "IgnoreFallDamageAccessLevel": 100,
         "GodMode": false,
+        "PvEDurabilityLossRate": 1.0,
+        "PvPDurabilityLossRate": 1.0,
         "GeoDataMode": true,
         "PreLoadTerrain": false,
         "PreLoadNavmesh": false,

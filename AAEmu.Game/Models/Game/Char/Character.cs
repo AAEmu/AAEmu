@@ -3599,11 +3599,28 @@ public partial class Character : Unit, ICharacter
             RecordPvpDamageFrom(enemyChar);
 
         base.ReduceCurrentHp(attacker, value, killReason, damageType);
+
+        // A killing blow already applied death durability. Do not wear the corpse again.
+        if (Hp <= 0)
+            return;
+
+        // Armor wear: each equipped armor piece rolls decrement_chance on a real hit.
+        if (value > 0)
+        {
+            var worldRate = CharacterDurabilityRules.ArmorWorldRate(
+                killReason,
+                attacker is Character,
+                AppConfiguration.Instance.World.PvPDurabilityLossRate,
+                AppConfiguration.Instance.World.PvEDurabilityLossRate);
+            if (worldRate > 0f)
+                ApplyDurabilityLossToEquipment(1, DurabilityLossTargets.AllArmor, worldRate);
+        }
     }
 
     public void DoRepair(List<Item> items, bool useAaPoint)
     {
-        var repairs = new List<(EquipItem EquipItem, Item Item)>();
+        var repairs = new List<EquipItem>();
+        var resync = new List<EquipItem>();
         long repairCost = 0;
 
         foreach (var item in items)
@@ -3625,7 +3642,17 @@ public partial class Character : Unit, ICharacter
 
             if (!CharacterRepairRules.NeedsRepair(equipItem))
             {
-                Logger.Warn($"Attempting to repair an item that has max durability, Item: {item.Id}");
+                // Client RepairAllCost / durability bars can lag the server detail (e.g. after a
+                // death packet applied wear locally while Patron zeroed the server loss). Re-push
+                // so a repair click clears a false worn state without charging gold.
+                if (CharacterRepairRules.ShouldResyncDetail(equipItem))
+                {
+                    Logger.Info(
+                        "Repair resync (server already full) Item: {0} durability={1}/{2}",
+                        item.Id, equipItem.Durability, equipItem.MaxDurability);
+                    resync.Add(equipItem);
+                }
+
                 continue;
             }
 
@@ -3667,11 +3694,8 @@ public partial class Character : Unit, ICharacter
             }
 
             repairCost += currentRepairCost;
-            repairs.Add((equipItem, item));
+            repairs.Add(equipItem);
         }
-
-        if (repairs.Count == 0)
-            return;
 
         if (repairCost > 0)
         {
@@ -3682,13 +3706,21 @@ public partial class Character : Unit, ICharacter
                 return;
         }
 
-        foreach (var (equipItem, _) in repairs)
+        foreach (var equipItem in repairs)
         {
+            // Restore equip buffs only when this session stripped them at durability 0.
+            // Death-to-zero and combat-to-zero record the id; a piece loaded already broken does not.
+            var restoreEffects = equipItem.Durability == 0 && TakeGearEffectsRemoved(equipItem.Id);
             CharacterRepairRules.TryRestore(equipItem);
             // UpdateDetail item tasks are not a detail write on this client — they leave the
             // piece as an invalid / broken icon. Same publish as temper and lure.
             SendPacket(new SCItemDetailUpdatedPacket(equipItem));
+            if (restoreEffects && Equipment.Items.Contains(equipItem))
+                UpdateGearBonuses(equipItem, null);
         }
+
+        foreach (var equipItem in resync)
+            SendPacket(new SCItemDetailUpdatedPacket(equipItem));
     }
 
     /// <summary>
