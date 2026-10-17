@@ -61,4 +61,12 @@ public static class AccountCooldowns
     /// <summary>Drops every cooldown held for an account (used by tests and account teardown).</summary>
     public static void Clear(uint accountId)
         => Store.TryRemove(accountId, out _);
+
+    /// <summary>Clears one skill's account cooldown (cancelled cast that had armed it at accept).</summary>
+    public static void ClearSkill(uint accountId, uint skillId)
+    {
+        if (accountId == 0 || skillId == 0 || !Store.TryGetValue(accountId, out var skills))
+            return;
+        skills.TryRemove(skillId, out _);
+    }
 }

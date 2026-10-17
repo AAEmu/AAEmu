@@ -143,4 +143,25 @@ public class PlotConditionRulesTests
         await Assert.That(PlotConditionRules.CastProgressPercent(start, 4000, start.AddSeconds(60))).IsEqualTo(100);
         await Assert.That(PlotConditionRules.CastProgressPercent(start, 0, start.AddSeconds(1))).IsEqualTo(100);
     }
+
+    [Test]
+    public async Task Visible_PlotLocationMarker_PassesEvenWhenIsVisibleIsFalse()
+    {
+        // Hammer Toss: Area "target→location" then launch visible+notify. The marker never Show()s.
+        var marker = new BaseUnit { ObjId = uint.MaxValue, IsVisible = false };
+        await Assert.That(PlotConditionRules.VisibleTargetPasses(marker, hasStealthBuffTag: false, isSpawnVisible: false)).IsTrue();
+    }
+
+    [Test]
+    public async Task Visible_Unit_RequiresSpawnFlagAndNoStealth()
+    {
+        var unit = new Unit { ObjId = 42, IsVisible = true };
+        await Assert.That(PlotConditionRules.VisibleTargetPasses(unit, hasStealthBuffTag: false, isSpawnVisible: true)).IsTrue();
+        await Assert.That(PlotConditionRules.VisibleTargetPasses(unit, hasStealthBuffTag: true, isSpawnVisible: true)).IsFalse();
+        await Assert.That(PlotConditionRules.VisibleTargetPasses(unit, hasStealthBuffTag: false, isSpawnVisible: false)).IsFalse();
+        await Assert.That(PlotConditionRules.VisibleTargetPasses(null, hasStealthBuffTag: false, isSpawnVisible: false)).IsFalse();
+        // A doodad is a BaseUnit with a real id. Hidden still fails; the marker exemption is ObjId MaxValue only.
+        var hiddenDoodad = new BaseUnit { ObjId = 77, IsVisible = false };
+        await Assert.That(PlotConditionRules.VisibleTargetPasses(hiddenDoodad, hasStealthBuffTag: false, isSpawnVisible: false)).IsFalse();
+    }
 }

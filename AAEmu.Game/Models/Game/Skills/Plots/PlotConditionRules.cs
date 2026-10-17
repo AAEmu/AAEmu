@@ -137,4 +137,24 @@ public static class PlotConditionRules
             return 100;
         return (int)(elapsedMs * 100 / windowMs);
     }
+
+    /// <summary>
+    /// Plot <c>visible</c> (kind 16): can this target be seen for a launch / hit gate?
+    /// </summary>
+    /// <remarks>
+    /// Area and RandomArea plot steps plant a synthetic <see cref="BaseUnit"/> (ObjId
+    /// <see cref="uint.MaxValue"/>) at the aim point; those markers never call <c>Show()</c>, so
+    /// <c>IsVisible</c> stays false. Skills such as Hammer Toss retarget "target → location" then
+    /// gate the launch on visible with <c>notify_failure</c>, which used to refuse every cast with
+    /// <c>SkillCannotUseHere</c>. Only that marker is exempt. A doodad is also not a
+    /// <see cref="Unit"/>, and a hidden doodad must still fail the same way a hidden unit does.
+    /// </remarks>
+    public static bool VisibleTargetPasses(BaseUnit target, bool hasStealthBuffTag, bool isSpawnVisible)
+    {
+        if (target is null)
+            return false;
+        if (target.ObjId == uint.MaxValue)
+            return true;
+        return !hasStealthBuffTag && isSpawnVisible;
+    }
 }

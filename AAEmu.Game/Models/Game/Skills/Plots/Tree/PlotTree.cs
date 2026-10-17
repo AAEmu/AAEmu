@@ -305,7 +305,11 @@ public class PlotTree(uint plotId)
             return;
         }
 
-        state.ActiveSkill.ArmCooldowns(state.Caster);
+        // Plot-only arms CD at press; a cancelled graph must refund rather than re-arm / leave grey.
+        if (state.CancellationRequested())
+            state.ActiveSkill.RefundCooldownsOnCancel(state.Caster);
+        else
+            state.ActiveSkill.ArmCooldowns(state.Caster);
 
         if (state.Caster is Character { IgnoreSkillCooldowns: true } character)
             character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);

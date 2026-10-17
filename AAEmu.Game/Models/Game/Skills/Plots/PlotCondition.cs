@@ -63,7 +63,7 @@ public class PlotCondition
             PlotConditionType.WeaponEquipStatus => ConditionWeaponEquipStatus(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Chance => ConditionChance(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Dead => ConditionDead(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
-            PlotConditionType.CombatDiceResult => ConditionCombatDiceResult(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3, skill), // Every CombatDiceResult is a NotCondition -> false makes it true.
+            PlotConditionType.CombatDiceResult => ConditionCombatDiceResult(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3, skill),
             PlotConditionType.InstrumentType => ConditionInstrumentType(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Range => ConditionRange(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3, skill),
             PlotConditionType.Variable => ConditionVariable(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3, skill),
@@ -328,9 +328,15 @@ public class PlotCondition
 
     // 9
     private static bool ConditionCombatDiceResult(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
-        SkillCastTarget targetCaster, SkillObject skillObject, int unknown1, int unused2, int unused3, Skill skill)
+        SkillCastTarget targetCaster, SkillObject skillObject, int resultMask, int unused2, int unused3, Skill skill)
     {
-        // NOTE: unknown1 kind of looks like it could be a bit mask of some sorts, but no idea what it actually is
+        // param1 is a bit mask over enum_combat_dice_results (bit = id - 1): 1 hit, 2 critical, 4 miss,
+        // 8 dodge, 16 block, 32 parry, 64 resist, 128 immune. The condition holds when the roll is one of the
+        // results in the mask. 10.0.2.13 uses it both ways: 469 conditions are NOT 204 (not miss / dodge /
+        // resist / immune) and 93 are plain 51 (hit / critical / block / parry), 28 plain 3 (hit / critical).
+        // The mask used to be ignored and "missed" returned instead, which only matched the NOT form: every
+        // plain-form branch ran on a miss only, and its buffs were then dropped by BuffEffect because the
+        // stored roll was a miss. That is why e.g. 16210 '충격 사격' never applied its slow or its combos.
         if (target is Unit targetUnit)
         {
             // Super hacky way to do combat dice....
@@ -338,18 +344,28 @@ public class PlotCondition
             if (!skill.HitTypes.TryAdd(targetUnit.ObjId, hitType))
                 skill.HitTypes[targetUnit.ObjId] = hitType;
 
-            return hitType == SkillHitType.MeleeDodge
-                || hitType == SkillHitType.MeleeParry
-                || hitType == SkillHitType.MeleeBlock
-                || hitType == SkillHitType.MeleeMiss
-                || hitType == SkillHitType.RangedDodge
-                || hitType == SkillHitType.RangedParry
-                || hitType == SkillHitType.RangedBlock
-                || hitType == SkillHitType.RangedMiss
-                || hitType == SkillHitType.Immune;
+            if (resultMask == 0)
+                return IsAvoidedOrMissed(hitType); // no mask (no such row in 10.0.2.13): the old reading
+            return (resultMask & CombatDiceResultBit(hitType)) != 0;
         }
-        return true; // Almost Every CombatDiceResult is a NotCondition -> false makes it true.
+        return true; // No unit to roll against: let the branch through, as before.
     }
+
+    /// <summary>The enum_combat_dice_results bit (id - 1) a client hit type reports.</summary>
+    internal static int CombatDiceResultBit(SkillHitType hitType) => hitType switch
+    {
+        SkillHitType.MeleeCritical or SkillHitType.RangedCritical or SkillHitType.SpellCritical => 1 << 1,
+        SkillHitType.MeleeMiss or SkillHitType.RangedMiss or SkillHitType.SpellMiss => 1 << 2,
+        SkillHitType.MeleeDodge or SkillHitType.RangedDodge => 1 << 3,
+        SkillHitType.MeleeBlock or SkillHitType.RangedBlock => 1 << 4,
+        SkillHitType.MeleeParry or SkillHitType.RangedParry => 1 << 5,
+        SkillHitType.SpellResist => 1 << 6,
+        SkillHitType.Immune => 1 << 7,
+        _ => 1 << 0, // melee / ranged / spell hit, and Invalid (no dice kind): a plain hit
+    };
+
+    private static bool IsAvoidedOrMissed(SkillHitType hitType) =>
+        (CombatDiceResultBit(hitType) & ~0b11) != 0;
 
     // 10
     private static bool ConditionInstrumentType(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
@@ -486,11 +502,8 @@ public class PlotCondition
     private static bool ConditionVisible(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
         SkillCastTarget targetCaster, SkillObject skillObject, int unused1, int unused2, int unused3)
     {
-        if (target != null)
-        {
-            return target.Buffs.CheckBuffTag((uint)TagsEnum.Stealth) == false && target.IsVisible;    
-        }
-        return false;
+        var stealthed = target?.Buffs.CheckBuffTag((uint)TagsEnum.Stealth) ?? false;
+        return PlotConditionRules.VisibleTargetPasses(target, stealthed, target?.IsVisible ?? false);
     }
     private static bool ConditionAbLevel(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
         SkillCastTarget targetCaster, SkillObject skillObject, int abilityType, int minimumLevel, int maximumLevel)

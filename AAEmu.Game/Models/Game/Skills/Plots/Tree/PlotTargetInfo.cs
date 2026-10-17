@@ -167,7 +167,9 @@ public class PlotTargetInfo
 
     private BaseUnit UpdateAreaTarget(PlotTargetAreaParams args, PlotState state, PlotEventTemplate plotEvent)
     {
-        var posUnit = new BaseUnit { ObjId = uint.MaxValue, Region = PreviousTarget.Region };
+        // IsVisible=true so kind-16 "visible" gates after a target→location retarget do not treat the
+        // aim marker as a hidden unit (Hammer Toss / Grip / Thunderclap launch notify_failure).
+        var posUnit = new BaseUnit { ObjId = uint.MaxValue, Region = PreviousTarget.Region, IsVisible = true };
         posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
         var degrees = (float)args.Angle;
         posUnit.Transform.Local.Rotate(0, 0, degrees.DegToRad() * -1f);
@@ -275,7 +277,7 @@ public class PlotTargetInfo
 
     private BaseUnit UpdateRandomAreaTarget(PlotTargetRandomAreaParams args, PlotState state, PlotEventTemplate plotEvent)
     {
-        var posUnit = new BaseUnit { ObjId = uint.MaxValue, Region = PreviousTarget.Region };
+        var posUnit = new BaseUnit { ObjId = uint.MaxValue, Region = PreviousTarget.Region, IsVisible = true };
         posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
         posUnit.Transform.ZoneId = PreviousTarget.Transform.ZoneId;
         posUnit.Transform.InstanceId = PreviousTarget.Transform.InstanceId;

@@ -105,6 +105,22 @@ public class UnitCooldowns
         _cooldowns.TryRemove(skillId, out _);
     }
 
+    /// <summary>
+    /// Clears the skill id and every cooldown tag it was armed with — used when a cast is cancelled
+    /// after accept so sibling skills that share a tag are not left grey.
+    /// </summary>
+    public void RemoveCooldown(uint skillId, IReadOnlyList<int> tagIds)
+    {
+        RemoveCooldown(skillId);
+        if (tagIds == null)
+            return;
+        foreach (var tagId in tagIds)
+        {
+            if (tagId > 0)
+                _tagCooldowns.TryRemove((uint)tagId, out _);
+        }
+    }
+
     /// <summary>Remaining time of the longest of the skill's own and tag cooldowns.</summary>
     public TimeSpan GetRemaining(uint skillId, IReadOnlyList<int> tagIds)
     {
