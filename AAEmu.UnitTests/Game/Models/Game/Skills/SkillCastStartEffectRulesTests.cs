@@ -16,7 +16,22 @@ public class SkillCastStartEffectRulesTests
         };
 
         await Assert.That(SkillCastStartEffectRules.IsCastStartTelegraph(effect)).IsTrue();
-        await Assert.That(SkillCastStartEffectRules.AppliesAtFire(effect)).IsFalse();
+        await Assert.That(SkillCastStartEffectRules.AppliesAtFire(effect, castStartTelegraphsApplied: true))
+            .IsFalse();
+    }
+
+    [Test]
+    public async Task Telegraph_AppliesAtFire_WhenCastStartPassDidNotRun()
+    {
+        var effect = new SkillEffect
+        {
+            ApplicationMethod = SkillEffectApplicationMethod.SourceToPos,
+            Template = new SpecialEffect { SpecialEffectTypeId = SpecialType.SpawnDoodad }
+        };
+
+        // Instant / cast-time collapsed to zero: no SkillStarted telegraph pass.
+        await Assert.That(SkillCastStartEffectRules.AppliesAtFire(effect, castStartTelegraphsApplied: false))
+            .IsTrue();
     }
 
     [Test]

@@ -102,6 +102,8 @@ public class Skill
     /// <summary>Doodads planted by cast-start telegraphs; despawned on cancel before fire.</summary>
     private readonly List<Doodad> _castStartTelegraphs = [];
     private bool _applyingCastStartTelegraphs;
+    /// <summary>True after <see cref="ApplyCastStartTelegraphs"/> ran (cast bar path). Instant / zeroed cast time leave this false so fire still plants the marker.</summary>
+    private bool _castStartTelegraphsApplied;
 
     /// <summary>
     /// The item a <see cref="SkillTargetType.Item"/> cast names, resolved from the client's
@@ -1758,6 +1760,7 @@ public class Skill
         SkillCastTarget targetCaster,
         SkillObject skillObject)
     {
+        _castStartTelegraphsApplied = true;
         var telegraphs = Template.Effects.Where(SkillCastStartEffectRules.IsCastStartTelegraph).ToList();
         if (telegraphs.Count == 0)
             return;
@@ -2104,7 +2107,8 @@ public class Skill
                 }
 
                 // Cast-start telegraphs already ran at SkillStarted; re-applying would duplicate the marker.
-                if (!SkillCastStartEffectRules.AppliesAtFire(effect))
+                // Instant / cast-time-collapsed casts never ran that pass — still plant at fire.
+                if (!SkillCastStartEffectRules.AppliesAtFire(effect, _castStartTelegraphsApplied))
                     continue;
 
                 // start_casting_use_chance..end_casting_use_chance: the shipped rows are the default 1..100

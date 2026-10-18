@@ -24,5 +24,11 @@ public static class SkillCastStartEffectRules
     /// <summary>
     /// True when the fire-edge apply pass should run this effect.
     /// </summary>
-    public static bool AppliesAtFire(SkillEffect effect) => !IsCastStartTelegraph(effect);
+    /// <param name="castStartTelegraphsApplied">
+    /// Whether <c>ApplyCastStartTelegraphs</c> already ran for this cast. When false (instant cast,
+    /// or cast-time multipliers that collapse the bar to zero), telegraph rows still apply at fire
+    /// so the ground marker is not lost.
+    /// </param>
+    public static bool AppliesAtFire(SkillEffect effect, bool castStartTelegraphsApplied = false) =>
+        !IsCastStartTelegraph(effect) || !castStartTelegraphsApplied;
 }

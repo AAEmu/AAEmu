@@ -33,4 +33,32 @@ public class BlinkStaleMoveRulesTests
         await Assert.That(BlinkStaleMoveRules.ShouldDrop(
             until.AddMilliseconds(1), until, 100f, 200f, 150f, 250f)).IsFalse();
     }
+
+    [Test]
+    public async Task MoveXyForLandingCompare_UsesWorldWhenCarrierLocal()
+    {
+        var (x, y) = BlinkStaleMoveRules.MoveXyForLandingCompare(
+            packetX: 2f, packetY: 3f,
+            positionIsCarrierLocal: true,
+            worldMoveX: 13050f, worldMoveY: 11100f);
+        await Assert.That(x).IsEqualTo(13050f);
+        await Assert.That(y).IsEqualTo(11100f);
+
+        (x, y) = BlinkStaleMoveRules.MoveXyForLandingCompare(
+            packetX: 13050f, packetY: 11100f,
+            positionIsCarrierLocal: false,
+            worldMoveX: 0f, worldMoveY: 0f);
+        await Assert.That(x).IsEqualTo(13050f);
+        await Assert.That(y).IsEqualTo(11100f);
+    }
+
+    [Test]
+    public async Task CarrierLocalNearLanding_WorldCompare_IsNotStale()
+    {
+        // Deck-local (2,3) under a hull at ~13048,11097 looks kilometres away if compared raw.
+        var (wx, wy) = BlinkStaleMoveRules.MoveXyForLandingCompare(
+            2f, 3f, positionIsCarrierLocal: true, worldMoveX: 150.5f, worldMoveY: 250.5f);
+        await Assert.That(BlinkStaleMoveRules.IsStaleAwayFromLanding(wx, wy, 150f, 250f)).IsFalse();
+        await Assert.That(BlinkStaleMoveRules.IsStaleAwayFromLanding(2f, 3f, 150f, 250f)).IsTrue();
+    }
 }

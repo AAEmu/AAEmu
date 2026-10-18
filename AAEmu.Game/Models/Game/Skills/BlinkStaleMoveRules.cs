@@ -28,6 +28,17 @@ public static class BlinkStaleMoveRules
         return dx * dx + dy * dy > r * r;
     }
 
+    /// <summary>
+    /// Picks the move XY that must be compared to a world-space blink landing.
+    /// Carrier-local packets already converted by the caller pass <paramref name="worldMoveX"/> /
+    /// <paramref name="worldMoveY"/>; otherwise the raw packet XY is world.
+    /// </summary>
+    public static (float x, float y) MoveXyForLandingCompare(
+        float packetX, float packetY,
+        bool positionIsCarrierLocal,
+        float worldMoveX, float worldMoveY)
+        => positionIsCarrierLocal ? (worldMoveX, worldMoveY) : (packetX, packetY);
+
     public static bool ShouldDrop(
         DateTime utcNow,
         DateTime suppressUntilUtc,

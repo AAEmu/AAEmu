@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -267,6 +267,12 @@ public class CharacterSkills(Character owner)
     private readonly Dictionary<uint, DateTime> _comboFollowUpExpires = [];
 
     /// <summary>
+    /// Guards prune / consume / open / check of <see cref="_comboFollowUpExpires"/>. Packet
+    /// <c>HasSkill</c> and scheduled cast accept (<c>NoteSkillFired</c>) can race.
+    /// </summary>
+    private readonly object _comboFollowUpLock = new();
+
+    /// <summary>
     /// Records an accepted cast: consumes this id's follow-up window if any, and opens the next
     /// Combo link's window when this skill names one.
     /// </summary>
@@ -275,13 +281,16 @@ public class CharacterSkills(Character owner)
         if (skillId == 0)
             return;
         var now = DateTime.UtcNow;
-        SkillComboRules.PruneExpiredFollowUps(_comboFollowUpExpires, now);
-        SkillComboRules.ApplyAcceptedCast(
-            skillId,
-            now,
-            _comboFollowUpExpires,
-            SkillComboRules.NextFollowUp,
-            SkillComboRules.ComboWindowMs);
+        lock (_comboFollowUpLock)
+        {
+            SkillComboRules.PruneExpiredFollowUps(_comboFollowUpExpires, now);
+            SkillComboRules.ApplyAcceptedCast(
+                skillId,
+                now,
+                _comboFollowUpExpires,
+                SkillComboRules.NextFollowUp,
+                SkillComboRules.ComboWindowMs);
+        }
     }
 
     /// <summary>
@@ -301,8 +310,11 @@ public class CharacterSkills(Character owner)
             return true;
 
         var now = DateTime.UtcNow;
-        SkillComboRules.PruneExpiredFollowUps(_comboFollowUpExpires, now);
-        return SkillComboRules.IsOpenComboFollowUp(skillId, _comboFollowUpExpires, now);
+        lock (_comboFollowUpLock)
+        {
+            SkillComboRules.PruneExpiredFollowUps(_comboFollowUpExpires, now);
+            return SkillComboRules.IsOpenComboFollowUp(skillId, _comboFollowUpExpires, now);
+        }
     }
 
     private void ReconcileBuffGrants()
