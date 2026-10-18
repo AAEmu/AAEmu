@@ -85,5 +85,7 @@ public class SpawnDoodad : SpecialEffectAction
         {
             doodad.Spawn();
         }
+
+        skill?.RegisterCastStartTelegraph(doodad);
     }
 }

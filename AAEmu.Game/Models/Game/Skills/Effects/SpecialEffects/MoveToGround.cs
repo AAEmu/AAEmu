@@ -28,7 +28,7 @@ public class MoveToGround : SpecialEffectAction
         if (caster is not Unit unit || unit.ParentWorld == null)
             return;
 
-        var (destX, destY) = MoveToGroundRules.DestinationXy(unit, target);
+        var (destX, destY) = MoveToGroundRules.DestinationXy(unit, target, skill?.CastAim);
         var ground = TerrainFloor.SampleHeightmap(unit.ParentWorld, destX, destY);
         if (ground <= 0f)
             ground = TerrainFloor.SampleHeightmap(unit.Transform.ZoneId, destX, destY);
@@ -41,9 +41,26 @@ public class MoveToGround : SpecialEffectAction
         var rawZ = target is { ObjId: uint.MaxValue, Transform: not null }
             ? target.Transform.World.Position.Z
             : probe.Z;
+        // Marker teleports (plot Area / RandomArea location units) must still land when the
+        // heightmap sample misses — refusing left every plot_only move_to_ground as a no-op after
+        // GCD/mana were spent. In-place snaps without a marker keep the old refuse (no floor →
+        // do nothing).
         if (!GroundSnapRules.TryGetFloorZ(rawZ, ground, overWater, waterSurfaceZ, out var z))
-            return;
+        {
+            if (target is not { ObjId: uint.MaxValue })
+                return;
+            z = rawZ;
+            Logger.Warn(
+                "MoveToGround heightmap miss for {0} at ({1:F1},{2:F1}); keeping marker Z={3:F1}",
+                unit.ObjId, destX, destY, z);
+        }
 
+        Logger.Debug(
+            "MoveToGround unit={0} dest=({1:F1},{2:F1},{3:F1}) targetObj={4} castAim={5}",
+            unit.ObjId, destX, destY, z,
+            target?.ObjId,
+            skill?.CastAim is { } aim ? $"({aim.X:F1},{aim.Y:F1})" : "none");
+        // Soft blink only — never SCTeleportUnit (that is a load-screen teleport).
         SkillBlinkLanding.Apply(unit, destX, destY, z, move3D: true);
     }
 }

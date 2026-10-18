@@ -171,6 +171,14 @@ public class PlotTargetInfo
         // aim marker as a hidden unit (Hammer Toss / Grip / Thunderclap launch notify_failure).
         var posUnit = new BaseUnit { ObjId = uint.MaxValue, Region = PreviousTarget.Region, IsVisible = true };
         posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
+        // Blink return-beam: Area from OriginalSource after move_to_ground must sit at CastOrigin,
+        // not at the (already teleported) caster Transform.
+        if (PlotCastOriginStandRules.TryGetFrozenCasterOrigin(
+                PreviousTarget, state, out var ox, out var oy, out var oz, out var oYaw))
+        {
+            posUnit.Transform.Local.SetPosition(ox, oy, oz);
+            posUnit.Transform.Local.SetZRotation(oYaw);
+        }
         var degrees = (float)args.Angle;
         posUnit.Transform.Local.Rotate(0, 0, degrees.DegToRad() * -1f);
         // posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll(((float)args.Angle).DegToRad() * -1f, 0f, 0f));
@@ -281,6 +289,9 @@ public class PlotTargetInfo
         posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
         posUnit.Transform.ZoneId = PreviousTarget.Transform.ZoneId;
         posUnit.Transform.InstanceId = PreviousTarget.Transform.InstanceId;
+        if (PlotCastOriginStandRules.TryGetFrozenCasterOrigin(
+                PreviousTarget, state, out var ox, out var oy, out var oz, out _))
+            posUnit.Transform.Local.SetPosition(ox, oy, oz);
         posUnit.Transform.Local.SetZRotation(((float)Random.Shared.Next(-180, 180)).DegToRad());
         // param3 is a disk radius (mm), not a fixed ring — see PlotRandomAreaRules.
         posUnit.Transform.Local.AddDistanceToFront(

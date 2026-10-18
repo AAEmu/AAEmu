@@ -1,5 +1,6 @@
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots;
 
@@ -68,6 +69,22 @@ public static class PlotConditionRules
         }
 
         return PlotConditionHandling.Unhandled;
+    }
+
+    /// <summary>
+    /// Plot <c>direction</c>: either unit is looking at the other.
+    /// </summary>
+    /// <remarks>
+    /// Relentless Assault / Thrash continuation rows wire source=target → target=source, which with a
+    /// one-way <c>IsFront(a,b)</c> meant "stand in the target's front cone". That blocked back attacks
+    /// and PvP from behind (you cannot force another character to face you). Either facing the other
+    /// is enough engagement for the gate; range is checked separately.
+    /// </remarks>
+    public static bool DirectionEngaged(BaseUnit a, BaseUnit b)
+    {
+        if (a == null || b == null)
+            return false;
+        return MathUtil.IsFront(a, b) || MathUtil.IsFront(b, a);
     }
 
     /// <summary>

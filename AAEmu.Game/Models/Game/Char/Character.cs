@@ -685,6 +685,63 @@ public partial class Character : Unit, ICharacter
     public bool HasPhysTimeAnchor => PhysTimeAnchorTick != 0;
     public uint CurrentPhysTime => PhysTimeAnchor + (uint)(Environment.TickCount64 - PhysTimeAnchorTick);
 
+    // Soft blink: drop CSMoveUnit still reporting the cast stand until the client lands or the window ends.
+    private DateTime _blinkSuppressUntilUtc = DateTime.MinValue;
+    private DateTime _blinkReassertUtc = DateTime.MinValue;
+    private float _blinkLandX;
+    private float _blinkLandY;
+    private float _blinkLandZ;
+
+    /// <summary>
+    /// Arms a short window that rejects client moves still far from a soft-blink landing.
+    /// Does not use <see cref="GameObject.DisabledSetPosition"/> / <c>SCTeleportUnit</c> (no load screen).
+    /// </summary>
+    public void ArmBlinkMoveSuppress(float landX, float landY, float landZ, TimeSpan? window = null)
+    {
+        _blinkLandX = landX;
+        _blinkLandY = landY;
+        _blinkLandZ = landZ;
+        _blinkSuppressUntilUtc = DateTime.UtcNow + (window ?? BlinkStaleMoveRules.SuppressWindow);
+        _blinkReassertUtc = DateTime.MinValue;
+    }
+
+    /// <summary>
+    /// True when this move should be ignored because it is still the pre-blink cast stand.
+    /// Clears early once the client reports near the landing.
+    /// </summary>
+    public bool ShouldDropStaleBlinkMove(float moveX, float moveY)
+    {
+        var now = DateTime.UtcNow;
+        if (now >= _blinkSuppressUntilUtc)
+            return false;
+        if (!BlinkStaleMoveRules.IsStaleAwayFromLanding(moveX, moveY, _blinkLandX, _blinkLandY))
+        {
+            _blinkSuppressUntilUtc = DateTime.MinValue;
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Re-send soft blink so a stand CSMove that we refuse cannot leave the client / zone at the cast feet.
+    /// Rate-limited; call only after <see cref="ShouldDropStaleBlinkMove"/> is true.
+    /// </summary>
+    public void ReassertBlinkLandingIfDue()
+    {
+        var now = DateTime.UtcNow;
+        if (now < _blinkReassertUtc)
+            return;
+        _blinkReassertUtc = now.AddMilliseconds(200);
+        BroadcastPacket(
+            new SCBlinkUnitPacket(ObjId, 0f, 0f, true, _blinkLandX, _blinkLandY, _blinkLandZ),
+            true);
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayBlinkToZone?.Invoke(
+                ObjId, ObjId, true, _blinkLandX, _blinkLandY, _blinkLandZ);
+        }
+    }
+
     private readonly Dictionary<ushort, string> _options;
     private readonly object _optionsLock = new();
     private readonly object _uiDataSaveLock = new();

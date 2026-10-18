@@ -229,7 +229,7 @@ public class PlotCondition
     private static bool ConditionDirection(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
         SkillCastTarget targetCaster, SkillObject skillObject, int unused1, int unused2, int unused3)
     {
-        return MathUtil.IsFront(caster, target);
+        return PlotConditionRules.DirectionEngaged(caster, target);
     }
 
     // 4 does not exist

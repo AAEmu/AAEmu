@@ -11,8 +11,9 @@ using AAEmu.UnitTests.Utils;
 namespace AAEmu.UnitTests.Game.Models.Game.Char;
 
 /// <summary>
-/// A Combo follow-up is the next link after the last accepted cast, inside
-/// value2 plus that hit's cast/GCD wait. Holding the root does not open later links on their own.
+/// A Combo follow-up opens when its prior link is accepted, for value2 plus that hit's
+/// cast/GCD wait. Holding the root does not open later links on their own. Intervening
+/// casts leave other open windows alone (dash → attack → return).
 /// Ids here are invented.
 /// </summary>
 [NotInParallel]
@@ -23,6 +24,7 @@ public class CharacterSkillsComboHoldTests
     private const uint Third = 92003;
     private const uint GcdRoot = 92004;
     private const uint GcdSecond = 92005;
+    private const uint Unrelated = 92006;
 
     private SingletonScope<SkillManager> _skills;
 
@@ -40,6 +42,7 @@ public class CharacterSkillsComboHoldTests
             // Plot-only caster chain: value2 1000 but custom_gcd 1200 (Serpent Glare / Crashing Wave).
             [GcdRoot] = Chained(GcdRoot, GcdSecond, castingTime: 0, customGcd: 1200),
             [GcdSecond] = new SkillTemplate { Id = GcdSecond, AbilityId = AbilityType.Magic },
+            [Unrelated] = new SkillTemplate { Id = Unrelated, AbilityId = AbilityType.Fight },
         };
         typeof(SkillManager).GetField("_skills", BindingFlags.Instance | BindingFlags.NonPublic)!
             .SetValue(SkillManager.Instance, skills);
@@ -118,10 +121,34 @@ public class CharacterSkillsComboHoldTests
         await Assert.That(character.Skills.HasSkill(Third)).IsFalse();
     }
 
+    [Test]
+    public async Task InterveningCast_DoesNotCloseAnOpenFollowUpWindow()
+    {
+        var character = NewCharacter();
+        character.Skills.NoteSkillFired(Root);
+        character.Skills.NoteSkillFired(Unrelated);
+
+        await Assert.That(character.Skills.HasSkill(Second)).IsTrue();
+    }
+
+    [Test]
+    public async Task AcceptingTheFollowUp_OpensTheNextLinkAndConsumesThisOne()
+    {
+        var character = NewCharacter();
+        character.Skills.NoteSkillFired(Root);
+        character.Skills.NoteSkillFired(Second);
+
+        await Assert.That(character.Skills.HasSkill(Third)).IsTrue();
+        await Assert.That(character.Skills.HasSkill(Second)).IsFalse();
+    }
+
     private static void Backdate(Character character, int millisecondsAgo)
     {
-        typeof(CharacterSkills).GetField("_lastComboAt", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(character.Skills, DateTime.UtcNow.AddMilliseconds(-millisecondsAgo));
+        var field = typeof(CharacterSkills).GetField("_comboFollowUpExpires",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var expires = (Dictionary<uint, DateTime>)field.GetValue(character.Skills)!;
+        foreach (var id in expires.Keys.ToList())
+            expires[id] = expires[id].AddMilliseconds(-millisecondsAgo);
     }
 
     private static SkillTemplate Chained(uint id, uint next, int castingTime, int customGcd = 0) => new()

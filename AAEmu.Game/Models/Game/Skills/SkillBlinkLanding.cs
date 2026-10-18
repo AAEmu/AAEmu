@@ -30,6 +30,8 @@ public static class SkillBlinkLanding
         switch (unit)
         {
             case Character character:
+                // Drop CSMoveUnit still reporting the cast stand; keep soft blink (no SCTeleportUnit).
+                character.ArmBlinkMoveSuppress(worldX, worldY, worldZ);
                 // Broadcast so allies watching Grasping Void (and the caster) all see the hop.
                 character.BroadcastPacket(packet, true);
                 break;

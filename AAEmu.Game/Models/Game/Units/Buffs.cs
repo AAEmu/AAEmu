@@ -563,18 +563,13 @@ public class Buffs : IBuffs
             buff.State = EffectState.Created;
 
             // save_pos (8 buffs: the 급습 marking family 24610/24947/24770/27825/27827 and the magic
-            // circles 19037/25850/25851) remembers where its owner stood so a later cast of the recall
-            // skill can return them there. The capture is taken here, at application time, because the
-            // marking skill applies this buff as its FIRST effect and leaps afterwards: by the time the
-            // cast's other effects have run the owner is already somewhere else.
+            // circles 19037/25850/25851) remembers where the casting skill started so a later recall
+            // can return there. Prefer Skill.CastOrigin (Use-time snapshot): plot-only blinks apply
+            // this buff after move_to_ground, so the standing Transform at attach is already the
+            // landing. skill_effects that mark before the leap leave CastOrigin null and fall back
+            // to Capture(standing).
             if (buff.Template.SavePos)
-                buff.SavedPosition = new SavedPosition(
-                    owner.Transform.ZoneId,
-                    owner.Transform.InstanceId,
-                    owner.Transform.World.Position.X,
-                    owner.Transform.World.Position.Y,
-                    owner.Transform.World.Position.Z,
-                    owner.Transform.World.Rotation.Z);
+                buff.SavedPosition = SavedPositionRules.PreferCastOrigin(buff.Skill?.CastOrigin, owner);
 
             if (index == 0)
             {

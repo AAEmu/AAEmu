@@ -1265,6 +1265,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             Repairable = reader.GetBoolean("repairable", true),
                             DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
                             BaseEquipment = reader.GetBoolean("base_equipment", true),
+                            UseAsStat = reader.GetBoolean("useAsStat", true),
                             RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
                             ChargeCount = reader.GetInt32("charge_count", 0),

@@ -235,29 +235,19 @@ public class UnitReqs
                 if (Value1 == 1)
                 {
                     var instrument = unit.Equipment.GetItemBySlot((int)EquipmentItemSlot.Musical);
-                    var isCombatInstrument = instrument?.Template is WeaponTemplate
-                    {
-                        HoldableTemplate.SlotTypeId: (uint)EquipmentItemSlotType.Instrument
-                    };
-                    if (!isCombatInstrument)
-                        return new UnitReqsValidationResult(
-                            SkillResultKeys.skill_urk_equip_ranged,
-                            0,
-                            1);
-
-                    if (ItemManager.Instance.HasItemInstrumentSound(instrument.TemplateId))
-                        return new UnitReqsValidationResult(
-                            SkillResultKeys.skill_urk_equip_ranged,
-                            0,
-                            2);
-
+                    var weaponTemplate = instrument?.Template as WeaponTemplate;
+                    var isInstrumentShape = weaponTemplate?.HoldableTemplate.SlotTypeId ==
+                                            (uint)EquipmentItemSlotType.Instrument;
+                    var useAsStat = weaponTemplate?.UseAsStat ?? false;
                     var musicalSlotDisabled = unit.Buffs.HasEffectsMatchingCondition(
                         effect => effect.Template.DisarmamentMusical);
-                    if (musicalSlotDisabled)
+                    var instrumentOutcome = EquipRangedInstrumentRules.Evaluate(
+                        isInstrumentShape, useAsStat, musicalSlotDisabled);
+                    if (instrumentOutcome != EquipRangedInstrumentRules.Outcome.Ok)
                         return new UnitReqsValidationResult(
                             SkillResultKeys.skill_urk_equip_ranged,
                             0,
-                            1);
+                            (uint)instrumentOutcome);
 
                     return Ret(SkillResultKeys.ok, true);
                 }

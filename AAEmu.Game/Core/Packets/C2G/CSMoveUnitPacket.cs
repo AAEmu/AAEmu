@@ -107,6 +107,20 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 character.AttachedPoint != AttachPointKind.None,
                 character.Transform.Parent?.GameObject is Slave);
             var isSelfActorMove = _moveType is UnitMoveType && _objId == character.ObjId;
+
+            // Soft blink planted World+WZ at the aim; cast-window CSMoveUnit still reports the stand.
+            // Drop before RelayMoveToZone — relaying first undoes WZBlink and the zone snaps the
+            // player back (Grasping Void cast time leaves a queue of stand moves after the hop).
+            if (isSelfActorMove && _moveType is UnitMoveType earlyUmt &&
+                character.ShouldDropStaleBlinkMove(earlyUmt.X, earlyUmt.Y))
+            {
+                character.PhysTimeAnchor = _moveType.Time;
+                character.PhysTimeAnchorTick = Environment.TickCount64;
+                character.ReassertBlinkLandingIfDue();
+                character.Transform.FinalizeTransform();
+                return;
+            }
+
             // Ships: type 5 helm → zone. Land carts: type 2 (CanControlMovement already gates
             // VehicleMoveType to client-driven kinds, so a skip flag here can never be true).
             if (BoatHelmSeatRules.ShouldForwardActorMoveToZone(seatedOnSlave) || !isSelfActorMove)
@@ -365,6 +379,12 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 
                         // Player moved
                         player.SetPlayerMoved();
+
+                        if (player.ShouldDropStaleBlinkMove(dmt.X, dmt.Y))
+                        {
+                            player.ReassertBlinkLandingIfDue();
+                            return;
+                        }
                     }
 
                     var isStandingOnObject = dmt.Flags.HasFlag(MoveTypeFlags.StandingOnObject);

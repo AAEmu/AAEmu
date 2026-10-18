@@ -208,7 +208,18 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
 
         var world = Connection.ActiveChar?.ParentWorld ?? WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
 
-        Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
+        if (skillCastTarget is SkillCastPositionTarget pos)
+        {
+            var feet = activeCharacter.Transform?.World.Position;
+            var dx = feet.HasValue ? pos.PosX - feet.Value.X : 0f;
+            var dy = feet.HasValue ? pos.PosY - feet.Value.Y : 0f;
+            Logger.Info(
+                "StartSkill: Id {0}, flag {1}, caster={2}, target=pos ({3:F1},{4:F1},{5:F1}) obj1={6} feet=({7:F1},{8:F1}) aimDelta={9:F1}m",
+                skillId, flag, skillCaster.ObjId, pos.PosX, pos.PosY, pos.PosZ, pos.ObjId1,
+                feet?.X ?? 0f, feet?.Y ?? 0f, MathF.Sqrt(dx * dx + dy * dy));
+        }
+        else
+            Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
 
         // Skillsaver apply: stash slot before zone/local split so ActivateSavedAbilitySet can finish it.
         if (skillId == CharacterAbilitySets.ActivateSkillId)

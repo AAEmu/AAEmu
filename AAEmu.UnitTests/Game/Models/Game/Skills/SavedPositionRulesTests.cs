@@ -1,4 +1,5 @@
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
@@ -42,5 +43,36 @@ public class SavedPositionRulesTests
         await Assert.That(marked.Y).IsEqualTo(6789.25f);
         await Assert.That(marked.Z).IsEqualTo(42.5f);
         await Assert.That(marked.YawRad).IsEqualTo(1.5f);
+    }
+
+    [Test]
+    public async Task PreferCastOrigin_UsesCastStartWhenPresent()
+    {
+        // Plot-only blink applies save_pos after move_to_ground; the standing Transform at buff
+        // attach is the landing. The mark must stay at Use-time CastOrigin.
+        var castOrigin = Marked(zoneId: 186, instanceId: 1) with { X = 100f, Y = 200f, Z = 30f };
+        var standing = new BaseUnit { ObjId = 1 };
+        standing.Transform.KeepZoneQuietly(186);
+        standing.Transform.Local.Position = new System.Numerics.Vector3(999f, 888f, 77f);
+
+        var chosen = SavedPositionRules.PreferCastOrigin(castOrigin, standing);
+
+        await Assert.That(chosen.X).IsEqualTo(100f);
+        await Assert.That(chosen.Y).IsEqualTo(200f);
+        await Assert.That(chosen.Z).IsEqualTo(30f);
+    }
+
+    [Test]
+    public async Task PreferCastOrigin_FallsBackToStandingWhenNoCastOrigin()
+    {
+        var standing = new BaseUnit { ObjId = 1 };
+        standing.Transform.KeepZoneQuietly(186);
+        standing.Transform.Local.Position = new System.Numerics.Vector3(50f, 60f, 70f);
+
+        var chosen = SavedPositionRules.PreferCastOrigin(null, standing);
+
+        await Assert.That(chosen.X).IsEqualTo(50f);
+        await Assert.That(chosen.Y).IsEqualTo(60f);
+        await Assert.That(chosen.Z).IsEqualTo(70f);
     }
 }

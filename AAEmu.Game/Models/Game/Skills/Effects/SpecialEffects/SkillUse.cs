@@ -38,7 +38,9 @@ public class SkillUse : SpecialEffectAction
         //target = ((Unit)caster).CurrentTarget;
         var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
         targetObj = new SkillCastUnitTarget(target?.ObjId ?? 0);
-        caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill);//Not sure if it belongs here.
+        // Buff-tick SkillUse (Romance cadence, etc.) must not wipe remove_on_use_skill performances.
+        if (SkillUseRemoveOnRules.ShouldTriggerRemoveOnUseSkill(castObj))
+            caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill);
         TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(delay));
         //useSkill.ApplyEffects(caster, casterObj, target, targetObj, skillObject);
     }

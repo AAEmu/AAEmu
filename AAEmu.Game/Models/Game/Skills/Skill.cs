@@ -84,6 +84,25 @@ public class Skill
     }
 
     public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
+
+    /// <summary>
+    /// Continents XYZ at <see cref="Use"/>, before the plot graph or <c>skill_effects</c> run.
+    /// Plot-only blinks (plot 4211) apply save_pos <em>after</em> <c>move_to_ground</c>, so the
+    /// standing Transform at buff attach is already the landing — mark from this instead.
+    /// </summary>
+    public SavedPosition? CastOrigin { get; private set; }
+
+    /// <summary>
+    /// Ground-aim stand captured at <see cref="Use"/> for position-targeted casts
+    /// (<see cref="uint.MaxValue"/> marker). Plot teleports that lose the marker mid-graph
+    /// (OriginalSource retarget) still land on this aim via <see cref="MoveToGroundRules"/>.
+    /// </summary>
+    public SavedPosition? CastAim { get; private set; }
+
+    /// <summary>Doodads planted by cast-start telegraphs; despawned on cancel before fire.</summary>
+    private readonly List<Doodad> _castStartTelegraphs = [];
+    private bool _applyingCastStartTelegraphs;
+
     /// <summary>
     /// The item a <see cref="SkillTargetType.Item"/> cast names, resolved from the client's
     /// <see cref="SkillCastItemTarget"/>. Null for every other target type.
@@ -407,8 +426,9 @@ public class Skill
             }
         }
 
-        // Cancel buffs if Template asks for it
-        if (Template.CancelOngoingBuffs)
+        // Cancel buffs if Template asks for it — player presses only. Nested SkillUse / auto-attack /
+        // item-proc / NPC event casts pass bypassGcd and must not wipe remove_on_start_skill songs.
+        if (SkillStartCancelOngoingRules.ShouldApply(_bypassGcd, Template.CancelOngoingBuffs))
         {
             if (caster is Units.Mate)
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill, Template.CancelOngoingBuffExceptionTagId);
@@ -522,6 +542,13 @@ public class Skill
         TlId = SkillTlIdManager.GetNextId(caster);
         // if (caster is Character)
         Logger.Debug($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
+
+        // Snapshot before any plot effect moves the caster (save_pos must mark cast-start, not landing).
+        if (caster is Unit castUnit)
+            CastOrigin = SavedPositionRules.FromUnit(castUnit);
+        // Position casts: keep the aim stand even if the plot later retargets OriginalSource.
+        if (target is { ObjId: uint.MaxValue, Transform: not null })
+            CastAim = SavedPositionRules.Capture(target);
 
         // Hold / reel kit ships a plot but is not flagged plot_only. Cast() after the plot
         // starts EndSkill's the TlId while the graph is still on the bar.
@@ -738,6 +765,8 @@ public class Skill
                 BaseCastTimeDiv10 = (ushort)(castTime / 10),
                 RealCastTimeDiv10 = (ushort)(castTime / 10), // calculate with adjustments
             }, true);
+            // SourceToPos SpawnDoodad telegraphs (Meteor circle) land with the cast bar, not at fire.
+            ApplyCastStartTelegraphs(caster, casterCaster, target, targetCaster, skillObject);
 
             unit.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
             _activeCasterCaster = casterCaster;
@@ -1715,6 +1744,75 @@ public class Skill
     {
         using var inventoryEffect = (caster as Character)?.Inventory?.EnterSkillEffect();
         ApplyEffectsCore(caster, casterCaster, targetSelf, targetCaster, skillObject);
+        // Fire committed — keep telegraphs that stay as lasting marks (Meteor crater).
+        _castStartTelegraphs.Clear();
+    }
+
+    /// <summary>
+    /// Plants <c>source_to_pos</c> SpawnDoodad telegraphs when the cast bar starts.
+    /// </summary>
+    private void ApplyCastStartTelegraphs(
+        BaseUnit caster,
+        SkillCaster casterCaster,
+        BaseUnit target,
+        SkillCastTarget targetCaster,
+        SkillObject skillObject)
+    {
+        var telegraphs = Template.Effects.Where(SkillCastStartEffectRules.IsCastStartTelegraph).ToList();
+        if (telegraphs.Count == 0)
+            return;
+
+        _applyingCastStartTelegraphs = true;
+        try
+        {
+            foreach (var effect in telegraphs)
+            {
+                if (effect.Chance < 100 && Random.Shared.Next(100) > effect.Chance)
+                    continue;
+                effect.Template?.Apply(
+                    caster,
+                    casterCaster,
+                    target,
+                    EffectCastTarget(target, targetCaster),
+                    new CastSkill(Template.Id, TlId),
+                    new EffectSource(this),
+                    skillObject,
+                    DateTime.UtcNow);
+            }
+        }
+        finally
+        {
+            _applyingCastStartTelegraphs = false;
+        }
+    }
+
+    /// <summary>Records a cast-start telegraph doodad so a cancel before fire can despawn it.</summary>
+    internal void RegisterCastStartTelegraph(Doodad doodad)
+    {
+        if (_applyingCastStartTelegraphs && doodad != null)
+            _castStartTelegraphs.Add(doodad);
+    }
+
+    /// <summary>Test hook: records the cast-start mark without going through <see cref="Use"/>.</summary>
+    public void RecordCastOriginForTests(SavedPosition origin) => CastOrigin = origin;
+
+    /// <summary>Test hook: records the ground aim without going through <see cref="Use"/>.</summary>
+    public void RecordCastAimForTests(SavedPosition aim) => CastAim = aim;
+
+    private void ClearCastStartTelegraphs()
+    {
+        foreach (var doodad in _castStartTelegraphs)
+        {
+            try
+            {
+                doodad.Delete();
+            }
+            catch (Exception e)
+            {
+                Logger.Warn(e, "Failed to clear cast-start telegraph doodad {0}", doodad.ObjId);
+            }
+        }
+        _castStartTelegraphs.Clear();
     }
 
     private void ApplyEffectsCore(BaseUnit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -2004,6 +2102,10 @@ public class Skill
                 {
                     continue;
                 }
+
+                // Cast-start telegraphs already ran at SkillStarted; re-applying would duplicate the marker.
+                if (!SkillCastStartEffectRules.AppliesAtFire(effect))
+                    continue;
 
                 // start_casting_use_chance..end_casting_use_chance: the shipped rows are the default 1..100
                 // except four, and effects land after the cast, so the end value is the one that applies.
@@ -2586,6 +2688,7 @@ public class Skill
     {
         if (caster is not Unit unit) { return; }
         Cancelled = true;
+        ClearCastStartTelegraphs();
         if (Template.ChannelingTime > 0)
         {
             EndChanneling(caster, channelDoodad, casterCaster);
@@ -2787,7 +2890,7 @@ public class Skill
         if (unit == null)
             return;
 
-        // Combo follow-ups are gated on the last accepted cast; note every accept path.
+        // Combo follow-ups are gated on open windows from accepted casts; note every accept path.
         if (unit is Character character)
             character.Skills.NoteSkillFired(Template.Id);
 

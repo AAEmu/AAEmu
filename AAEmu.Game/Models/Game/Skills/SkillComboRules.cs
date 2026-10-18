@@ -10,9 +10,10 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// </summary>
 /// <remarks>
 /// Follow-up skill ids are not separate book entries. The client swaps the bar from the Combo
-/// effect and sends an ordinary <c>CSStartSkill</c> for the next id. That id is castable only as
-/// the next link after the previous hit, inside that hit's Combo window — holding the root is not
-/// enough, or a later hit with its own short cooldown could be cast without the root.
+/// effect and sends an ordinary <c>CSStartSkill</c> for the next id. That id is castable only while
+/// an open window from the prior accepted hit remains — holding the root is not enough, or a later
+/// hit with its own short cooldown could be cast without the root. Other skills cast in between do
+/// not close that window.
 /// </remarks>
 public static class SkillComboRules
 {
@@ -134,6 +135,10 @@ public static class SkillComboRules
     /// True when <paramref name="skillId"/> is exactly the next Combo link after
     /// <paramref name="lastFiredSkillId"/> and still inside that link's window.
     /// </summary>
+    /// <remarks>
+    /// Prefer <see cref="IsOpenComboFollowUp"/> for live casts: an intervening skill must not
+    /// close a still-open return/hold window (dash → attack → return).
+    /// </remarks>
     public static bool IsNextComboWithinWindow(
         uint skillId,
         uint lastFiredSkillId,
@@ -152,5 +157,66 @@ public static class SkillComboRules
             return false;
 
         return (now - lastFiredAt).TotalMilliseconds <= window;
+    }
+
+    /// <summary>
+    /// True when <paramref name="skillId"/> still has an unexpired Combo follow-up window.
+    /// </summary>
+    public static bool IsOpenComboFollowUp(
+        uint skillId,
+        IReadOnlyDictionary<uint, DateTime> followUpExpiresAt,
+        DateTime now)
+    {
+        if (skillId == 0 || followUpExpiresAt == null)
+            return false;
+        return followUpExpiresAt.TryGetValue(skillId, out var expiresAt) && now <= expiresAt;
+    }
+
+    /// <summary>
+    /// After an accepted cast: drop a consumed follow-up window for this id, then open the next
+    /// link's window when this skill names one. Other open windows stay (intervening casts).
+    /// </summary>
+    public static void ApplyAcceptedCast(
+        uint skillId,
+        DateTime now,
+        IDictionary<uint, DateTime> followUpExpiresAt,
+        Func<uint, uint?> nextFollowUp,
+        Func<uint, int> windowMsFor)
+    {
+        if (skillId == 0 || followUpExpiresAt == null || nextFollowUp == null || windowMsFor == null)
+            return;
+
+        followUpExpiresAt.Remove(skillId);
+
+        var next = nextFollowUp(skillId);
+        if (next is not uint nextId || nextId == 0)
+            return;
+
+        var window = windowMsFor(skillId);
+        if (window <= 0)
+            return;
+
+        followUpExpiresAt[nextId] = now.AddMilliseconds(window);
+    }
+
+    /// <summary>
+    /// Drops expired Combo follow-up windows.
+    /// </summary>
+    public static void PruneExpiredFollowUps(IDictionary<uint, DateTime> followUpExpiresAt, DateTime now)
+    {
+        if (followUpExpiresAt == null || followUpExpiresAt.Count == 0)
+            return;
+
+        List<uint> stale = null;
+        foreach (var (id, expiresAt) in followUpExpiresAt)
+        {
+            if (now > expiresAt)
+                (stale ??= []).Add(id);
+        }
+
+        if (stale == null)
+            return;
+        foreach (var id in stale)
+            followUpExpiresAt.Remove(id);
     }
 }
