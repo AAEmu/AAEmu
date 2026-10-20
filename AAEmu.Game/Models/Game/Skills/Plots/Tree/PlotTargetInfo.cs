@@ -183,11 +183,12 @@ public class PlotTargetInfo
         }
 
         // A move controller that delays its children has already carried the caster off the shot.
-        // The stand built from the caster is put back on the pose captured when that move started,
-        // ahead of the plot's own angle and distance nudge.
+        // Only a cone that still aims from that shot is pinned back; a sphere Area after the leap
+        // (landing spin) keeps the live Transform — same gate spirit as SoftMovedCaster on CastOrigin.
         var pinnedToMoveOrigin = false;
         if (state.MoveOrigin is { } moveOrigin &&
-            PlotMoveOriginRules.PinsCasterStand(PreviousTarget?.ObjId == state.Caster?.ObjId, true))
+            PlotMoveOriginRules.PinsCasterStand(
+                PreviousTarget?.ObjId == state.Caster?.ObjId, true, IsCone(args.Shape)))
         {
             posUnit.Transform.Local.SetPosition(moveOrigin.X, moveOrigin.Y, moveOrigin.Z);
             posUnit.Transform.Local.SetZRotation(moveOrigin.YawRad);

@@ -4,9 +4,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 /// Pose a plot should keep when a skill controller asks the following events to wait until the move finishes.
 /// </summary>
 /// <remarks>
-/// The wait is <c>skill_controllers.value5 == 1</c> (the delay is value3). Area searches that run after
-/// that wait otherwise measure from the caster's landing, so a cone drawn at the shot finds nothing.
-/// A search whose stand is some other unit keeps the live caster as its cone origin.
+/// The wait is <c>skill_controllers.value5 == 1</c> (the delay is value3). A cone drawn at the shot
+/// would otherwise measure from the caster's landing and find nothing — only those cones pin the
+/// caster stand back to the captured take-off. A plain sphere Area after the same leap (a landing
+/// spin) must keep the live Transform, just as <see cref="PlotCastOriginStandRules"/> refuses to
+/// freeze leap stands without a soft move.
 /// </remarks>
 public static class PlotMoveOriginRules
 {
@@ -15,7 +17,12 @@ public static class PlotMoveOriginRules
 
     public static bool RemembersOrigin(int useDelayFlag) => useDelayFlag == 1;
 
-    public static bool PinsCasterStand(bool basisIsCaster, bool hasOrigin) => basisIsCaster && hasOrigin;
+    /// <summary>
+    /// Pin only a caster-based cone that still needs the shot pose. Sphere / box / line Areas after
+    /// a leap keep the live caster stand.
+    /// </summary>
+    public static bool PinsCasterStand(bool basisIsCaster, bool hasOrigin, bool areaIsCone) =>
+        basisIsCaster && hasOrigin && areaIsCone;
 
     public static bool StandSitsOnOrigin(bool hasOrigin, float standX, float standY, float originX, float originY)
     {

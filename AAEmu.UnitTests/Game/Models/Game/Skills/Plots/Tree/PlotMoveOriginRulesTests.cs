@@ -12,11 +12,13 @@ public class PlotMoveOriginRulesTests
     }
 
     [Test]
-    public async Task CasterBasis_Pins_OtherUnitDoesNot()
+    public async Task CasterCone_Pins_SphereOrOtherBasisDoesNot()
     {
-        await Assert.That(PlotMoveOriginRules.PinsCasterStand(true, true)).IsTrue();
-        await Assert.That(PlotMoveOriginRules.PinsCasterStand(false, true)).IsFalse();
-        await Assert.That(PlotMoveOriginRules.PinsCasterStand(true, false)).IsFalse();
+        // Shot-cone after a value5 wait needs the take-off; a post-leap spin sphere must not.
+        await Assert.That(PlotMoveOriginRules.PinsCasterStand(true, true, true)).IsTrue();
+        await Assert.That(PlotMoveOriginRules.PinsCasterStand(true, true, false)).IsFalse();
+        await Assert.That(PlotMoveOriginRules.PinsCasterStand(false, true, true)).IsFalse();
+        await Assert.That(PlotMoveOriginRules.PinsCasterStand(true, false, true)).IsFalse();
     }
 
     [Test]
