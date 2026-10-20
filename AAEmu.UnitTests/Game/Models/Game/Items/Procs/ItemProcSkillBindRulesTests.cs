@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Items.Procs;
+﻿using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Items.Procs;
@@ -47,5 +47,21 @@ public class ItemProcSkillBindRulesTests
 
         await Assert.That(missing).IsEqualTo(0);
         await Assert.That(proc.SkillTemplate).IsSameReferenceAs(skill);
+    }
+
+    [Test]
+    public async Task Bind_AfterSkillsCatalogReadyWithoutEvent_ResolvesTemplates()
+    {
+        // Models the missed-event race: skills are already resolvable, but no OnSkillsLoaded
+        // listener ran. A post-load Bind (ItemManager.Load) is what fills SkillTemplate.
+        var catalog = new Dictionary<uint, SkillTemplate> { [10] = new() { Id = 10 } };
+        var proc = new ItemProcTemplate { Id = 1, SkillId = 10 };
+
+        await Assert.That(proc.SkillTemplate).IsNull();
+
+        var missing = ItemProcSkillBindRules.Bind([proc], id => catalog.GetValueOrDefault(id));
+
+        await Assert.That(missing).IsEqualTo(0);
+        await Assert.That(proc.SkillTemplate).IsSameReferenceAs(catalog[10]);
     }
 }
