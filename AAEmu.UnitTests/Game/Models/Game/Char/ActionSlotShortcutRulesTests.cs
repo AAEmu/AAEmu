@@ -111,6 +111,10 @@ public class ActionSlotShortcutRulesTests
             keepsShortcut: true, usedRecently: false, movedRecently: false)).IsFalse();
         await Assert.That(ActionSlotShortcutRules.ShouldKeepAgainstClear(
             keepsShortcut: false, usedRecently: true, movedRecently: false)).IsFalse();
+        // Hotbar drag already placed the same item elsewhere: allow the source clear.
+        await Assert.That(ActionSlotShortcutRules.ShouldKeepAgainstClear(
+            keepsShortcut: true, usedRecently: true, movedRecently: false,
+            sameItemAlreadyOnAnotherSlot: true)).IsFalse();
     }
 
     [Test]

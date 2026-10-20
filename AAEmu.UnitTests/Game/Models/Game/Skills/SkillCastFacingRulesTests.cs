@@ -111,6 +111,21 @@ public class SkillCastFacingRulesTests
         await Assert.That(SkillCastFacingRules.AimFromUnitTarget).IsFalse();
     }
 
+    [Test]
+    public async Task LocalYawFromWorldYaw_SubtractsParentYaw()
+    {
+        // Parent turned +90° (π/2); desired world yaw 0 → local must be −90° so World composes to 0.
+        var parentYaw = MathF.PI / 2f;
+        var parentQuat = PositionAndRotation.ToQuaternion(new Vector3(0f, 0f, parentYaw));
+        var local = SkillCastFacingRules.LocalYawFromWorldYaw(parentQuat, worldYawRadians: 0f);
+        await Assert.That(NormalizeAngle(local + parentYaw)).IsEqualTo(0f).Within(1e-3f);
+
+        // Unrotated parent: local == world.
+        var identity = PositionAndRotation.ToQuaternion(Vector3.Zero);
+        var same = SkillCastFacingRules.LocalYawFromWorldYaw(identity, worldYawRadians: parentYaw);
+        await Assert.That(NormalizeAngle(same - parentYaw)).IsEqualTo(0f).Within(1e-3f);
+    }
+
     private static float NormalizeAngle(float radians)
     {
         var turn = (float)(Math.PI * 2);

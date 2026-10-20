@@ -35,11 +35,9 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>, IAreaTriggerMan
     public void AddAreaTrigger(AreaTrigger trigger)
     {
         trigger.Owner?.AttachAreaTriggers.Add(trigger);
-        lock (_addLock)
-        {
-            _addQueue.Add(trigger);
-        }
 
+        // Pulse before publishing to the manager queue. Publishing first lets the 200 ms manager
+        // tick race this call and apply the same enter/effect twice.
         // Manager ticks every 200 ms. Short clouts (e.g. duration 120 / tick 100 lightning bolts)
         // expire before that, so pulse once on arm: enter + first effect land in the same frame.
         try
@@ -49,6 +47,11 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>, IAreaTriggerMan
         catch (Exception e)
         {
             Logger.Error(e, "Error pulsing AreaTrigger on add");
+        }
+
+        lock (_addLock)
+        {
+            _addQueue.Add(trigger);
         }
     }
 

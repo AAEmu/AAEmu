@@ -459,6 +459,14 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
                 out var yawRadians))
             return;
 
+        // Aim is world-space; Local is parent-relative. On a rotated ship/house, write the local
+        // yaw that composes back to that world heading — otherwise World re-adds the parent turn.
+        if (character.Transform.Parent != null)
+        {
+            yawRadians = SkillCastFacingRules.LocalYawFromWorldYaw(
+                character.Transform.Parent.World.ToQuaternion(), yawRadians);
+        }
+
         character.Transform.Local.SetZRotation(yawRadians);
     }
 

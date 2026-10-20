@@ -72,4 +72,16 @@ public static class SkillCastFacingRules
     /// Unit targets are excluded: tab-select must not redirect frontal plots off the body facing.
     /// </summary>
     public static bool AimFromUnitTarget => false;
+
+    /// <summary>
+    /// Converts a world-space cast yaw into the parent-local yaw <c>Transform.Local</c> stores.
+    /// Unparented casters pass identity (local == world). A ship/house parent composes its own
+    /// rotation onto Local, so writing a world heading there aims the cast the parent's yaw off.
+    /// </summary>
+    public static float LocalYawFromWorldYaw(Quaternion parentWorldRotation, float worldYawRadians)
+    {
+        var desiredWorld = PositionAndRotation.ToQuaternion(new Vector3(0f, 0f, worldYawRadians));
+        var local = Quaternion.Normalize(Quaternion.Inverse(parentWorldRotation) * desiredWorld);
+        return PositionAndRotation.FromQuaternion(local).Z;
+    }
 }

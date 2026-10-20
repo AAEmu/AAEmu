@@ -32,9 +32,15 @@ public static class ActionSlotShortcutRules
     /// <summary>
     /// A clear that arrives right after that item's skill cast, or while the item is mid-move,
     /// must not wipe the hotbar. A clear with neither behind it is intentional.
+    /// When the same item already sits on another hotbar slot, the clear is a drag-to-slot move
+    /// (not the use-clear), so keep is skipped even inside the use window.
     /// </summary>
-    public static bool ShouldKeepAgainstClear(bool keepsShortcut, bool usedRecently, bool movedRecently) =>
-        keepsShortcut && (usedRecently || movedRecently);
+    public static bool ShouldKeepAgainstClear(
+        bool keepsShortcut,
+        bool usedRecently,
+        bool movedRecently,
+        bool sameItemAlreadyOnAnotherSlot = false) =>
+        keepsShortcut && (movedRecently || (usedRecently && !sameItemAlreadyOnAnotherSlot));
 
     /// <summary>
     /// Writes remembered shortcuts back into slots that are still empty. A slot filled since the

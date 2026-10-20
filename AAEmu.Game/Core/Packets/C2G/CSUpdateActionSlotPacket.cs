@@ -20,7 +20,9 @@ public class CSUpdateActionSlotPacket() : GamePacket(CSOffsets.CSUpdateActionSlo
                 var keepsShortcut = character.SkillItemShortcutKeeps(slot);
                 var usedRecently = character.SkillItemShortcutWasJustUsed(slot, now);
                 var movedRecently = character.SkillItemShortcutWasJustMoved(slot, now);
-                if (ActionSlotShortcutRules.ShouldKeepAgainstClear(keepsShortcut, usedRecently, movedRecently))
+                var alreadyOnAnotherSlot = character.SkillItemShortcutExistsOnOtherSlot(slot);
+                if (ActionSlotShortcutRules.ShouldKeepAgainstClear(
+                        keepsShortcut, usedRecently, movedRecently, alreadyOnAnotherSlot))
                 {
                     // Use-clear or swap-clear: keep the stored shortcut and push it back to the client.
                     character.SendPacket(new SCActionSlotsPacket(character.Slots));

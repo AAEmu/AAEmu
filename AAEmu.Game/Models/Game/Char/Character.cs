@@ -3606,6 +3606,32 @@ public partial class Character : Unit, ICharacter
         return false;
     }
 
+    /// <summary>
+    /// True when another hotbar slot already holds the same item this slot names — the client
+    /// placed it elsewhere before clearing here (hotbar drag), so the clear is not a use-clear.
+    /// </summary>
+    public bool SkillItemShortcutExistsOnOtherSlot(byte slot)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return false;
+        var current = Slots[slot];
+        if (current == null || current.Type is not (ActionSlotType.ItemId or ActionSlotType.ItemType))
+            return false;
+
+        for (var i = 0; i < Slots.Length; i++)
+        {
+            if (i == slot)
+                continue;
+            var other = Slots[i];
+            if (other == null || other.Type != current.Type)
+                continue;
+            if (other.ActionId == current.ActionId)
+                return true;
+        }
+
+        return false;
+    }
+
     public void SetOption(ushort key, string value)
     {
         lock (_optionsLock)

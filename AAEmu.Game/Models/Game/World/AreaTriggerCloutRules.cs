@@ -29,7 +29,8 @@ public static class AreaTriggerCloutRules
     /// <summary>
     /// A clout armed from the doodad's initial phase runs before <c>Spawn</c> marks the owner
     /// visible and places it in a region. Retiring the trigger on that first pulse deletes the
-    /// area, so a later dwell buff never lands. Wait for the owner to become visible instead.
+    /// area, so a later dwell buff never lands. Wait for the owner to become visible instead —
+    /// and do not advance the effect clock until then.
     /// </summary>
     public static bool WaitUntilOwnerVisible(bool ownerVisible) => !ownerVisible;
 

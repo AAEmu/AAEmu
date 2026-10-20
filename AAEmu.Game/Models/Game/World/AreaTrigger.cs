@@ -47,6 +47,8 @@ public class AreaTrigger
     public Dictionary<uint, List<EffectTemplate>> EffectsPerBuff { get; set; } = new();
     public int TickRate { get; set; }
     private DateTime _lastTick = DateTime.MinValue;
+    // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
+    private readonly object _tickLock = new();
 
     /// <summary>
     /// True while at least one unit still has this trigger's inside-buff. The owner region may
@@ -61,11 +63,6 @@ public class AreaTrigger
             AreaTriggerManager.Instance.RemoveAreaTrigger(this);
             return;
         }
-
-        // Initial-phase clouts pulse before Spawn. Dropping the trigger there means nobody
-        // can enter after the doodad becomes visible.
-        if (AreaTriggerCloutRules.WaitUntilOwnerVisible(Owner.IsVisible))
-            return;
 
         // Get units currently in the shape
         var currentUnitsInShape = WorldManager.GetAroundByShape<Unit>(Owner, Shape) ?? [];
@@ -141,8 +138,11 @@ public class AreaTrigger
 
     public void OnDelete()
     {
-        foreach (var unit in TriggeredUnits.ToList())
-            OnLeave(unit);
+        lock (_tickLock)
+        {
+            foreach (var unit in TriggeredUnits.ToList())
+                OnLeave(unit);
+        }
     }
 
     private bool IsValidTarget(Unit unit)
@@ -220,13 +220,22 @@ public class AreaTrigger
     // Called every 50ms
     public void Tick(TimeSpan delta)
     {
-        UpdateUnits();
-        if (TickRate > 0)
+        lock (_tickLock)
         {
-            if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
+            // Initial-phase clouts arm before Spawn. Do not start the effect clock (or search)
+            // until the owner is visible — otherwise _lastTick advances on an empty pulse and a
+            // short clout can expire before the first real hit.
+            if (Owner != null && AreaTriggerCloutRules.WaitUntilOwnerVisible(Owner.IsVisible))
+                return;
+
+            UpdateUnits();
+            if (TickRate > 0)
             {
-                ApplyEffects();
-                _lastTick = DateTime.UtcNow;
+                if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
+                {
+                    ApplyEffects();
+                    _lastTick = DateTime.UtcNow;
+                }
             }
         }
     }
