@@ -62,5 +62,6 @@ public class MoveToGround : SpecialEffectAction
             skill?.CastAim is { } aim ? $"({aim.X:F1},{aim.Y:F1})" : "none");
         // Soft blink only — never SCTeleportUnit (that is a load-screen teleport).
         SkillBlinkLanding.Apply(unit, destX, destY, z, move3D: true);
+        skill?.NoteCasterSoftMoved();
     }
 }

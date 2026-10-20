@@ -219,4 +219,20 @@ public static class SkillComboRules
         foreach (var id in stale)
             followUpExpiresAt.Remove(id);
     }
+
+    /// <summary>
+    /// On a cancelled accept: drop the follow-up window this skill opened so a refunded root cannot
+    /// unlock the next hold-hit for free.
+    /// </summary>
+    public static void CloseFollowUpOpenedBy(
+        uint skillId,
+        IDictionary<uint, DateTime> followUpExpiresAt,
+        Func<uint, uint?> nextFollowUp)
+    {
+        if (skillId == 0 || followUpExpiresAt == null || nextFollowUp == null)
+            return;
+        var next = nextFollowUp(skillId);
+        if (next is uint nextId && nextId != 0)
+            followUpExpiresAt.Remove(nextId);
+    }
 }

@@ -8,26 +8,19 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills.Plots;
 public class PlotDirectionEngagedTests
 {
     [Test]
-    public async Task DirectionEngaged_IsOrOfEitherFacing()
+    public async Task DirectionEngaged_IsTargetFacesSource()
     {
-        var a = Place(0f, 0f, yawDegrees: 0f);
-        var b = Place(0f, 5f, yawDegrees: 0f);
+        var source = Place(0f, 0f, yawDegrees: 0f);
+        var target = Place(0f, 5f, yawDegrees: 180f);
 
-        var aFacesB = MathUtil.IsFront(a, b);
-        var bFacesA = MathUtil.IsFront(b, a);
-
-        await Assert.That(PlotConditionRules.DirectionEngaged(a, b))
-            .IsEqualTo(aFacesB || bFacesA);
-        await Assert.That(PlotConditionRules.DirectionEngaged(b, a))
-            .IsEqualTo(aFacesB || bFacesA);
+        await Assert.That(MathUtil.IsFront(target, source)).IsTrue();
+        await Assert.That(PlotConditionRules.DirectionEngaged(source, target)).IsTrue();
     }
 
     [Test]
-    public async Task DirectionEngaged_BackAttack_PassesWhenOnlyAttackerFacesTarget()
+    public async Task DirectionEngaged_BackAttack_FailsWhenTargetLooksAway()
     {
-        // Find a yaw for the target such that the attacker is behind them, while the attacker
-        // still looks at the target — the Relentless continuation case that one-way IsFront(target,
-        // attacker) used to refuse.
+        // Attacker behind the target: target does not face source → direction fails (NOT branch wins).
         var target = Place(0f, 0f, yawDegrees: 0f);
         var attacker = Place(0f, -5f, yawDegrees: 0f);
 
@@ -36,7 +29,7 @@ public class PlotDirectionEngagedTests
 
         await Assert.That(MathUtil.IsFront(attacker, target)).IsTrue();
         await Assert.That(MathUtil.IsFront(target, attacker)).IsFalse();
-        await Assert.That(PlotConditionRules.DirectionEngaged(target, attacker)).IsTrue();
+        await Assert.That(PlotConditionRules.DirectionEngaged(attacker, target)).IsFalse();
     }
 
     [Test]

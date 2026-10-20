@@ -35,6 +35,19 @@ public class SkillCooldownCancelRulesTests
     }
 
     [Test]
+    public async Task Stop_RefundsOnlyBeforeCastOrPlotCommits()
+    {
+        await Assert.That(SkillCooldownCancelRules.ShouldRefundOnStop(
+            plotHasFired: false, castCommitted: false)).IsTrue();
+        await Assert.That(SkillCooldownCancelRules.ShouldRefundOnStop(
+            plotHasFired: false, castCommitted: true)).IsFalse();
+        await Assert.That(SkillCooldownCancelRules.ShouldRefundOnStop(
+            plotHasFired: true, castCommitted: false)).IsFalse();
+        await Assert.That(SkillCooldownCancelRules.ShouldRefundOnStop(
+            plotHasFired: true, castCommitted: true)).IsFalse();
+    }
+
+    [Test]
     public async Task PlotEnd_RefundsWhenTheGraphNeverCommitted()
     {
         await Assert.That(SkillCooldownCancelRules.ShouldRefundPlotEnd(hasFired: false)).IsTrue();

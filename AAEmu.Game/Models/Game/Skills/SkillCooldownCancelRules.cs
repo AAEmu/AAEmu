@@ -37,6 +37,13 @@ public static class SkillCooldownCancelRules
     public static bool ShouldRefundCancelledPlot(bool hasFired) => ShouldRefundPlotEnd(hasFired);
 
     /// <summary>
+    /// <see cref="Skill.Stop"/> refunds only while neither a plot nor a non-plot cast has committed.
+    /// A no-plot channel whose <c>Cast()</c> already fired must keep its cooldown.
+    /// </summary>
+    public static bool ShouldRefundOnStop(bool plotHasFired, bool castCommitted) =>
+        !plotHasFired && !castCommitted;
+
+    /// <summary>
     /// Setup-only specials on a plot start node (GCD, auto-attack arm, stealth cancel, SetVariable)
     /// must not lock the skill CD. Bladefall starts with those, then a Range gate can still fail.
     /// </summary>

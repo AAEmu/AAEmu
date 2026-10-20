@@ -7,33 +7,12 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 public class CombatResourceGrantRulesTests
 {
     [Test]
-    public async Task BuffTick_CeilingSizedGrant_IsOne()
+    public async Task BuffTick_KeepsAuthoredAmount()
     {
-        // Fury tick CRE 472 stores +10 on a max-10 Hatred pool; tooltip is +1/sec after the +5 start.
-        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(10, 10)).IsEqualTo(1);
-        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(24, 24)).IsEqualTo(1);
-    }
-
-    [Test]
-    public async Task BuffTick_OverCeilingGrant_IsOne()
-    {
-        // Assassin stealth stages tick +45/+90 into 살기 (max 10). Without this they clamp-fill
-        // the bar every second while stealthed — "bottom bar filling with nothing casting".
-        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(45, 10)).IsEqualTo(1);
-        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(90, 10)).IsEqualTo(1);
-    }
-
-    [Test]
-    public async Task BuffTick_OrdinaryGrant_Unchanged()
-    {
-        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(1, 10)).IsEqualTo(1);
+        // Content amounts stand as authored — do not invent a +1 for ceiling-sized ticks.
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(10, 10)).IsEqualTo(10);
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(45, 10)).IsEqualTo(45);
         await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(5, 10)).IsEqualTo(5);
-    }
-
-    [Test]
-    public async Task BuffTick_MaxOnePool_Unchanged()
-    {
-        // A max-1 pool whose tick stores 1 is a real +1, not a sentinel refill.
         await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(1, 1)).IsEqualTo(1);
     }
 

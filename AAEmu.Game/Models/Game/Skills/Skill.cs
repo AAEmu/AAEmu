@@ -93,6 +93,22 @@ public class Skill
     public SavedPosition? CastOrigin { get; private set; }
 
     /// <summary>
+    /// True after a soft blink / teleport effect has moved the caster on this cast
+    /// (<c>move_to_ground</c>, Blink, TeleportToUnit, …). Plot Area stands may then pin to
+    /// <see cref="CastOrigin"/>; leap controllers alone must not.
+    /// </summary>
+    public bool SoftMovedCaster { get; private set; }
+
+    /// <summary>Marks that a soft move/teleport effect relocated the caster on this cast.</summary>
+    public void NoteCasterSoftMoved() => SoftMovedCaster = true;
+
+    /// <summary>
+    /// True after <see cref="Cast"/> has committed (SkillFired / effects path). A Stop during the
+    /// cast bar still refunds; a Stop after fire keeps the cooldown.
+    /// </summary>
+    private bool _castCommitted;
+
+    /// <summary>
     /// Ground-aim stand captured at <see cref="Use"/> for position-targeted casts
     /// (<see cref="uint.MaxValue"/> marker). Plot teleports that lose the marker mid-graph
     /// (OriginalSource retarget) still land on this aim via <see cref="MoveToGroundRules"/>.
@@ -381,6 +397,8 @@ public class Skill
         _skillCooldownArmed = false;
         _skillCooldownToken = 0;
         _accountCooldownToken = 0;
+        _castCommitted = false;
+        SoftMovedCaster = false;
         _chargeEpochAtSpend = 0;
         _laborConsumed = false;
         _chargesAfterCast = -1;
@@ -1592,6 +1610,7 @@ public class Skill
         if (fireAnimId > 0)
             firedPacket.FireAnimId = fireAnimId;
         caster.BroadcastPacket(firedPacket, true);
+        _castCommitted = true;
 
         // ZoneAuthority: bridge fire to Zone at the same moment as SC SkillFired (not for plot_only — Use never reaches here).
         RelayZoneSkillFiredIfNeeded(casterCaster, targetCaster, skillObject);
@@ -2743,8 +2762,8 @@ public class Skill
 
         // Cast-time / plot skills arm CD+GCD at accept; a cancel before the cast commits must clear them
         // (GM IgnoreSkillCooldowns already did this — every cancel needs the same refund).
-        // A plot that already applied its effect keeps the cooldown.
-        if (SkillCooldownCancelRules.ShouldRefundCancelledPlot(ActivePlotState?.HasFired ?? false))
+        // A plot that already applied its effect, or a no-plot cast that already fired, keeps the cooldown.
+        if (SkillCooldownCancelRules.ShouldRefundOnStop(ActivePlotState?.HasFired ?? false, _castCommitted))
             RefundCooldownsOnCancel(unit);
     }
 
@@ -2997,7 +3016,8 @@ public class Skill
     /// <summary>
     /// Clears skill CD, cooldown tags, account CD, spent charge and shared GCD that this cast armed at
     /// accept. Called from <see cref="Stop"/> and from a cancelled plot end so a stopped cast does not
-    /// leave the skill grey for its full cooldown.
+    /// leave the skill grey for its full cooldown. Also closes any Combo follow-up window this accept
+    /// opened, so a cancelled root cannot unlock the next hold-hit for free.
     /// </summary>
     internal void RefundCooldownsOnCancel(Unit unit)
     {
@@ -3043,12 +3063,16 @@ public class Skill
             _gcdToken = 0;
         }
 
-        if (owner is Character character && (clearedSkill || clearedGcd))
+        if (owner is Character character)
         {
-            var tagId = clearedSkill ? Template.CooldownTags?.FirstOrDefault(t => t > 0) ?? 0 : 0;
-            character.SendPacket(new SCSkillCooldownResetPacket(
-                character, Template.Id, (uint)tagId, gcd: clearedGcd,
-                resetSkillTagCooldown: tagId > 0));
+            character.Skills.CancelComboOpenedBy(Template.Id);
+            if (clearedSkill || clearedGcd)
+            {
+                var tagId = clearedSkill ? Template.CooldownTags?.FirstOrDefault(t => t > 0) ?? 0 : 0;
+                character.SendPacket(new SCSkillCooldownResetPacket(
+                    character, Template.Id, (uint)tagId, gcd: clearedGcd,
+                    resetSkillTagCooldown: tagId > 0));
+            }
         }
     }
 
@@ -3114,6 +3138,7 @@ public class Skill
     /// <summary>
     /// Arms the shared GCD once per accepted cast. Cast-time skills call this at SkillStarted;
     /// instant and plot-only paths call it from Cast / ApplyPlotOnlyFireCosts. A second call is a no-op.
+    /// Claims a token only when a GCD was actually written, on the cooldown-owner unit the refund checks.
     /// </summary>
     private void EnsureGlobalCooldownArmed(Unit unit)
     {
@@ -3121,28 +3146,37 @@ public class Skill
             return;
         if (!SkillGcdArmRules.ShouldArmOnAccept(_bypassGcd, TlId))
             return;
-        ApplyGlobalCooldown(unit);
+
+        var owner = SkillCooldownOwnershipRules.CooldownOwner(unit, !_bypassGcd, ResolveCooldownOwnerUnit) ?? unit;
+        if (!TryApplyGlobalCooldown(owner))
+            return;
+
         _gcdArmed = true;
-        _gcdToken = unit.ClaimGlobalCooldown();
+        _gcdToken = owner.ClaimGlobalCooldown();
     }
 
-    private void ApplyGlobalCooldown(Unit unit)
+    /// <summary>
+    /// Writes the shared GCD on <paramref name="unit"/> when this skill arms one. Returns false when
+    /// the skill is exempt (basic attacks, <c>ignore_global_cooldown</c>, zero length) so callers do
+    /// not claim a refund token for a clock that was never set.
+    /// </summary>
+    private bool TryApplyGlobalCooldown(Unit unit)
     {
         // Basic attacks are weapon-speed paced (StartAutoSkill / UseAutoAttackSkillTask), not GCD.
         // Skill 2 has default_gcd in DB; applying it made the hotbar feel dead and blocked the
         // auto-attack loop (task ticks skip while GlobalCooldown is active). Skill 4 already
         // ignore_global_cooldown in DB — match that for 2/3.
         if (Template.Id is 2 or 3 or 4)
-            return;
+            return false;
 
         // A skill flagged ignore_global_cooldown neither waits for the GCD nor arms it. The wait side was
         // already honoured in Use(); arming it here anyway meant 8659 skills put every OTHER skill on a
         // cooldown they themselves are declared to sit outside of — Backdraft (44200) among them.
         if (Template.IgnoreGlobalCooldown)
-            return;
+            return false;
 
         if (!SkillCastOverlapRules.ArmsSharedGlobalCooldown(Template.CastingTime, Template.CustomGcd, Template.DefaultGcd))
-            return;
+            return false;
 
         // Length order of authority is custom_gcd → weapon_gcd_id → default_gcd: see SkillGcdRules.
         // weapon_gcd_id names a holdables row (15 한손창 1100 ms, 16 양손창 1200 ms, 17 양손지팡이 1300 ms
@@ -3154,10 +3188,11 @@ public class Skill
         var gcd = SkillGcdRules.ResolveSharedGcd(
             Template.CustomGcd, Template.DefaultGcd, weaponGcdSpeed, unit is Npc);
         if (gcd <= 0)
-            return;
+            return false;
         var gcdMul = SkillGcdRules.SharedGcdMultiplier(
             Template.UseWeaponCooldownTime, unit.GlobalCooldownMul, unit.CastTimeMul);
         unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * gcdMul * GlobalCooldownFactor(unit));
+        return true;
     }
 
     /// <summary>

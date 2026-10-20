@@ -42,5 +42,6 @@ public class Blink : SpecialEffectAction
         }
 
         SkillBlinkLanding.Apply(character, destX, destY, start.Z, value1, value2, value3 != 0);
+        skill?.NoteCasterSoftMoved();
     }
 }

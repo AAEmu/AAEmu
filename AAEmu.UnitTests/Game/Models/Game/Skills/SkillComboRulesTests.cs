@@ -137,4 +137,21 @@ public class SkillComboRulesTests
         await Assert.That(expires.ContainsKey(Second)).IsFalse();
         await Assert.That(expires.ContainsKey(Third)).IsTrue();
     }
+
+    [Test]
+    public async Task CloseFollowUpOpenedBy_DropsNextWindowOnly()
+    {
+        var now = DateTime.UtcNow;
+        var expires = new Dictionary<uint, DateTime>();
+        int Window(uint id) => id == Root || id == Second ? 1000 : 0;
+
+        SkillComboRules.ApplyAcceptedCast(Root, now, expires, NextOf, Window);
+        SkillComboRules.ApplyAcceptedCast(99, now, expires, _ => 88u, _ => 1000);
+        await Assert.That(expires.ContainsKey(Second)).IsTrue();
+        await Assert.That(expires.ContainsKey(88u)).IsTrue();
+
+        SkillComboRules.CloseFollowUpOpenedBy(Root, expires, NextOf);
+        await Assert.That(expires.ContainsKey(Second)).IsFalse();
+        await Assert.That(expires.ContainsKey(88u)).IsTrue();
+    }
 }

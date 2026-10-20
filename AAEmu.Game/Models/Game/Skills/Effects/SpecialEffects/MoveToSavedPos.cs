@@ -58,5 +58,6 @@ public class MoveToSavedPos : SpecialEffectAction
         // Soft blink — same packet as the first cast. CanReturnTo already proved same zone/instance;
         // the full teleport restream looks like loading a zone for a hop that never left it.
         SkillBlinkLanding.Apply(character, point.X, point.Y, point.Z, move3D: true);
+        skill?.NoteCasterSoftMoved();
     }
 }

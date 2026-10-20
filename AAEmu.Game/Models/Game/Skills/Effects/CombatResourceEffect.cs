@@ -62,7 +62,7 @@ public class CombatResourceEffect : EffectTemplate
     {
         var resourceMax = CombatResourceGameData.Instance.GetMax(resourceId);
 
-        // Buff tick (CastBuff): ceiling-sized grants are +1 per tick, not a refill.
+        // Buff tick (CastBuff): keep the authored combat_resource_effects amount.
         if (castObj is CastBuff)
             return CombatResourceGrantRules.ResolveBuffTickAmount(amount, resourceMax);
 

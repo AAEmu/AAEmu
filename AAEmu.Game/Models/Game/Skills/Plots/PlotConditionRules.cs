@@ -72,19 +72,20 @@ public static class PlotConditionRules
     }
 
     /// <summary>
-    /// Plot <c>direction</c>: either unit is looking at the other.
+    /// Plot <c>direction</c>: does <paramref name="target"/> face <paramref name="source"/>?
     /// </summary>
     /// <remarks>
-    /// Relentless Assault / Thrash continuation rows wire source=target → target=source, which with a
-    /// one-way <c>IsFront(a,b)</c> meant "stand in the target's front cone". That blocked back attacks
-    /// and PvP from behind (you cannot force another character to face you). Either facing the other
-    /// is enough engagement for the gate; range is checked separately.
+    /// Content reads <c>direction(source, target)</c> as "target faces source" (e.g. NOT gates that
+    /// require the foe to look away for a back-attack branch). Call sites pass the plot condition's
+    /// caster as <paramref name="source"/> and its target as <paramref name="target"/>. Thrash /
+    /// Relentless rows that wire source=target → target=source still reduce to the same one-way
+    /// facing check once the arguments are swapped at the call site.
     /// </remarks>
-    public static bool DirectionEngaged(BaseUnit a, BaseUnit b)
+    public static bool DirectionEngaged(BaseUnit source, BaseUnit target)
     {
-        if (a == null || b == null)
+        if (source == null || target == null)
             return false;
-        return MathUtil.IsFront(a, b) || MathUtil.IsFront(b, a);
+        return MathUtil.IsFront(target, source);
     }
 
     /// <summary>

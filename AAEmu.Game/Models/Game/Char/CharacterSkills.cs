@@ -294,6 +294,20 @@ public class CharacterSkills(Character owner)
     }
 
     /// <summary>
+    /// Closes the Combo follow-up window opened by an accepted cast that was later refunded.
+    /// </summary>
+    public void CancelComboOpenedBy(uint skillId)
+    {
+        if (skillId == 0)
+            return;
+        lock (_comboFollowUpLock)
+        {
+            SkillComboRules.CloseFollowUpOpenedBy(
+                skillId, _comboFollowUpExpires, SkillComboRules.NextFollowUp);
+        }
+    }
+
+    /// <summary>
     /// Whether the character holds <paramref name="skillId"/> — learned, buff-granted, the
     /// currently selected Heir successor, or an open Combo follow-up window for that id.
     /// </summary>

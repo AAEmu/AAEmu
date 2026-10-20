@@ -34,12 +34,14 @@ public static class SkillBlinkLanding
                 character.ArmBlinkMoveSuppress(worldX, worldY, worldZ);
                 // Broadcast so allies watching Grasping Void (and the caster) all see the hop.
                 character.BroadcastPacket(packet, true);
+                (character.SkillTask?.Skill)?.NoteCasterSoftMoved();
                 break;
             case Npc npc when ZoneOwnedUnitRules.IsDrivenByZone(WorldIntegration.ZoneAuthority, npc.IsZoneMirror):
                 WorldIntegration.RelayBlinkToZone?.Invoke(npc.ObjId, npc.ObjId, move3D, worldX, worldY, worldZ);
                 return;
             default:
                 unit.BroadcastPacket(packet, true);
+                (unit.SkillTask?.Skill)?.NoteCasterSoftMoved();
                 break;
         }
 

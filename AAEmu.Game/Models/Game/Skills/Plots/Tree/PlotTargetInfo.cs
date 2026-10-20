@@ -209,10 +209,6 @@ public class PlotTargetInfo
         // Sliding it can cross into the next 64 m cell. A shape search walks only the region it
         // is handed, and then a unit standing inside the shape is missed.
         BindStandToItsRegion(posUnit, state);
-        // A repeating hop is one sample of a charge. The next search reads this stand and
-        // includes the segment just slid, not only the landing point.
-        if (plotEvent.Tickets >= 2 && args.Distance != 0)
-            PlotAreaSweepMemory.Remember(posUnit, slideFromX, slideFromY);
 
         if (args.MaxTargets == 0)
         {
@@ -245,7 +241,7 @@ public class PlotTargetInfo
                 WorldManager.GetAroundByShape<Unit>(searchOrigin, args.Shape, trace),
             _ => WorldManager.GetAroundByShape<Unit>(posUnit, args.Shape, trace)
         };
-        candidates = IncludeChargeSweep(candidates, posUnit, args);
+        candidates = IncludeChargeSweep(candidates, posUnit, args, slideFromX, slideFromY);
         var unitsInRange = FilterTargets(candidates, state, args, plotEvent, trace).Take(args.MaxTargets).ToList();
         // TODO : Filter min distance
         // TODO : Compute Unit Relation
@@ -278,12 +274,19 @@ public class PlotTargetInfo
 
     /// <summary>
     /// Units the landing sphere missed but that still stand inside the radius of the hop that landed here.
+    /// Sweeps this hop's own slide (<paramref name="fromX"/>/<paramref name="fromY"/> → landing), not the
+    /// previous stand's remembered start (that would cover two hops).
     /// </summary>
-    private List<Unit> IncludeChargeSweep(List<Unit> candidates, BaseUnit posUnit, PlotTargetAreaParams args)
+    private List<Unit> IncludeChargeSweep(
+        List<Unit> candidates,
+        BaseUnit posUnit,
+        PlotTargetAreaParams args,
+        float fromX,
+        float fromY)
     {
         if (args.Shape is not { Type: AreaShapeType.Sphere } || args.Shape.Value1 <= 0f)
             return candidates;
-        if (!PlotAreaSweepMemory.TryGet(PreviousTarget, out var fromX, out var fromY))
+        if (args.Distance == 0)
             return candidates;
 
         var end = posUnit.Transform.World.Position;

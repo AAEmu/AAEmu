@@ -706,6 +706,16 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
+    /// Clears a soft-blink move suppress so a later server move (Shadow Step, portal, GM /move)
+    /// is not rejected or re-blinked to the previous landing.
+    /// </summary>
+    public void ClearBlinkMoveSuppress()
+    {
+        _blinkSuppressUntilUtc = DateTime.MinValue;
+        _blinkReassertUtc = DateTime.MinValue;
+    }
+
+    /// <summary>
     /// True when this move should be ignored because it is still the pre-blink cast stand.
     /// Clears early once the client reports near the landing.
     /// </summary>
