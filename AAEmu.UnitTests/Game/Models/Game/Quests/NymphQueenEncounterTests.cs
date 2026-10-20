@@ -2,10 +2,13 @@
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 
 using Microsoft.Extensions.Time.Testing;
 
@@ -81,8 +84,17 @@ public class NymphQueenEncounterTests
     public async Task Tick_SuccessfulConversation_RestoresSpawnerOnceWithoutFailingQuest()
     {
         var owner = CreatePlayer(1);
-        var originalSpawner = new TestSpawner();
-        var original = new Npc { TemplateId = 9385, Spawner = originalSpawner };
+        var world = new WorldInstance(new WorldTemplate { Name = "test" }, 0, true, uint.MaxValue);
+        var factory = new QueenSpawnFactory();
+        var originalSpawner = new TestSpawner
+        {
+            ParentWorld = world, SpawnerId = 10469, UnitId = 9385,
+            Template = new NpcSpawnerTemplate { Id = 10469, MaxPopulation = 1 },
+            SpawnableNpcs = [factory]
+        };
+        var original = new Npc { ObjId = 10, TemplateId = 9385, Spawner = originalSpawner };
+        originalSpawner.SpawnedNpcs[10469] = [original];
+        world.SetNpc(original.ObjId, original);
         var replacementSpawner = new TestSpawner();
         var replacement = new Npc { TemplateId = 8993, Spawner = replacementSpawner };
         var clock = new FakeTimeProvider();
@@ -106,6 +118,14 @@ public class NymphQueenEncounterTests
         await Assert.That(originalSpawner.Removals).IsEqualTo(1);
         quests.FailQuest(Any<ICharacter>(), Any<uint>()).WasNeverCalled();
         tasks.Cancel(Any<AAEmu.Game.Models.Tasks.Task>()).WasCalled(Times.Once);
+        var restored = originalSpawner.SpawnedNpcs[10469].Single();
+        await Assert.That(factory.SpawnCalls).IsEqualTo(1);
+        await Assert.That(restored.TemplateId).IsEqualTo(9385u);
+        await Assert.That(restored.Faction.Id).IsEqualTo(FactionsEnum.Friendly);
+        await Assert.That(ReferenceEquals(world.GetNpc(restored.ObjId), restored)).IsTrue();
+        await Assert.That(world.GetNpc(original.ObjId)).IsNull();
+        await Assert.That(restored.Encounter).IsNull();
+        await Assert.That(world.GetAllNpcs().Count).IsEqualTo(1);
     }
 
     [Test]
@@ -208,6 +228,27 @@ public class NymphQueenEncounterTests
         public override void Despawn(Npc npc)
         {
             Removals++;
+            SpawnedNpcs.TryRemove(SpawnerId, out _);
+            ParentWorld?.RemoveObject(npc);
+        }
+    }
+
+    // Keep the real DoSpawn population handling; replace only the world NPC factory.
+    private sealed class QueenSpawnFactory : NpcSpawnerNpc
+    {
+        public int SpawnCalls { get; private set; }
+
+        public override List<Npc> Spawn(NpcSpawner spawner, uint ownerId = 0)
+        {
+            SpawnCalls++;
+            var npc = new Npc
+            {
+                ObjId = (uint)(100 + SpawnCalls), TemplateId = spawner.UnitId,
+                Spawner = spawner, ParentWorld = spawner.ParentWorld,
+                Faction = new SystemFaction { Id = FactionsEnum.Friendly }
+            };
+            spawner.ParentWorld.SetNpc(npc.ObjId, npc);
+            return [npc];
         }
     }
 }

@@ -11,6 +11,59 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills.Effects;
 public class KillNpcWithoutCorpseEffectTests
 {
     [Test]
+    public async Task GetRemovalTargets_DifferentCasterAndRepeatedNeighbors_IncludesTargetOnce()
+    {
+        var caster = new Npc { TemplateId = 1 };
+        var target = new Npc { TemplateId = 9385 };
+        var neighbor = new Npc { TemplateId = 9385 };
+        var effect = new KillNpcWithoutCorpseEffect { NpcId = 9385 };
+
+        var targets = effect.GetRemovalTargets(caster, target, [neighbor, neighbor, caster]).ToArray();
+
+        await Assert.That(targets.Length).IsEqualTo(2);
+        await Assert.That(targets.Contains(target)).IsTrue();
+        await Assert.That(targets.Contains(neighbor)).IsTrue();
+        await Assert.That(targets.Contains(caster)).IsFalse();
+        await Assert.That(effect.GetRemovalTargets(target, target, [target]).Count()).IsEqualTo(1);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task CreditDefeat_RecordedTeamTakesTaggingRights_PrefersTeamWithTaggerFallback(bool teamMissing)
+    {
+        var npc = new RetreatingNpc();
+        var first = new Character(new UnitCustomModelParams()) { ObjId = 1 };
+        var winner = new Character(new UnitCustomModelParams()) { ObjId = 2 };
+        var nearby = new Character(new UnitCustomModelParams()) { ObjId = 3 };
+        npc.CharacterTagging.AddTagger(first, 1);
+        // Arrange the tagging snapshot left by a different party crossing the damage threshold.
+        typeof(Tagging).GetField("_tagTeam", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(npc.CharacterTagging, 42u);
+        var team = new Team { Id = 42 };
+        team.Members[0] = new TeamMember(winner);
+        team.Members[1] = new TeamMember(nearby);
+        var teams = Mock.Of<ITeamManager>();
+        teams.GetActiveTeam(42).Returns(teamMissing ? null : team);
+        var quests = Mock.Of<IQuestManager>();
+
+        KillNpcWithoutCorpseEffect.CreditDefeat(npc, quests.Object, teams.Object, false);
+
+        if (teamMissing)
+        {
+            quests.DoOnMonsterHuntEvents(first, npc).WasCalled(Times.Once);
+            quests.DoOnMonsterHuntEvents(winner, npc).WasNeverCalled();
+        }
+        else
+        {
+            quests.DoOnMonsterHuntEvents(first, npc).WasNeverCalled();
+            quests.DoOnMonsterHuntEvents(winner, npc).WasCalled(Times.Once);
+            quests.DoOnMonsterHuntEvents(nearby, npc).WasCalled(Times.Once);
+        }
+        await Task.CompletedTask;
+    }
+
+    [Test]
     public async Task CreditDefeat_RetreatAtHalfHealth_CreditsTaggerWithoutKillingNpc()
     {
         var npc = new RetreatingNpc { Hp = 50 };

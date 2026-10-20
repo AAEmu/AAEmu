@@ -34,14 +34,21 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
         else
         {
             var npcs = WorldManager.GetAround<Npc>(target, Radius);
-            if (caster is Npc thisNpc)
-                npcs.Add(thisNpc);
-            if (npcs == null) { return; }
-            foreach (var npc in npcs.Where(npc => npc.TemplateId == NpcId))
+            foreach (var npc in GetRemovalTargets(caster, target, npcs))
             {
                 RemoveEffectsAndDelete(npc);
             }
         }
+    }
+
+    internal IEnumerable<Npc> GetRemovalTargets(BaseUnit caster, BaseUnit target, IEnumerable<Npc> nearby)
+    {
+        var candidates = new HashSet<Npc>(nearby ?? []);
+        if (caster is Npc casterNpc)
+            candidates.Add(casterNpc);
+        if (target is Npc targetNpc)
+            candidates.Add(targetNpc);
+        return candidates.Where(npc => npc.TemplateId == NpcId);
     }
 
     private void RemoveEffectsAndDelete(Unit unit)
@@ -72,20 +79,22 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
     {
         var players = new HashSet<Character>();
         var tagger = npc.CharacterTagging.Tagger;
-        if (tagger != null)
+        var tagTeam = npc.CharacterTagging.TagTeam;
+        var team = tagTeam != 0 ? teamManager.GetActiveTeam(tagTeam) : null;
+        if (team == null && tagger != null)
         {
             players.Add(tagger);
             // Retreats at 50% health can happen before a party earns tagging rights.
-            var team = teamManager.GetTeamByObjId(tagger.ObjId);
-            if (team != null)
+            team = teamManager.GetTeamByObjId(tagger.ObjId);
+        }
+        if (team != null)
+        {
+            foreach (var member in team.Members)
             {
-                foreach (var member in team.Members)
+                if (member?.Character != null &&
+                    member.Character.GetDistanceTo(npc, true) <= LootingContainer.MaxLootingRange)
                 {
-                    if (member?.Character != null &&
-                        member.Character.GetDistanceTo(npc, true) <= LootingContainer.MaxLootingRange)
-                    {
-                        players.Add(member.Character);
-                    }
+                    players.Add(member.Character);
                 }
             }
         }
