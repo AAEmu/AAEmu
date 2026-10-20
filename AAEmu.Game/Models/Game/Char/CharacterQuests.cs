@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Concurrent;
 using System.Data;
 using AAEmu.Game.Core.Managers;
@@ -43,7 +43,10 @@ public class CharacterQuests(Character owner)
     public void BindPlayingCinema(uint cinemaId)
     {
         if (cinemaId != 0)
+        {
+            DismountForCinema(cinemaId);
             Owner.CurrentlyPlayingCinemaId = cinemaId;
+        }
     }
 
     /// <summary>
@@ -57,9 +60,16 @@ public class CharacterQuests(Character owner)
 
         var alreadyPlaying = QuestCinemaBindRules.ShouldCreditOnEnterProgress(
             Owner.CurrentlyPlayingCinemaId, cinemaId);
+        DismountForCinema(cinemaId);
         Owner.CurrentlyPlayingCinemaId = cinemaId;
         if (alreadyPlaying)
             Owner.Events.OnCinemaStarted(Owner, new OnCinemaStartedArgs { CinemaId = cinemaId });
+    }
+
+    private void DismountForCinema(uint cinemaId)
+    {
+        if (cinemaId != 0 && Owner.ForceDismount())
+            Logger.Info("Dismounted {0} before cinema {1}", Owner.Name, cinemaId);
     }
 
     public void EnqueueCinemaEndEffects(uint cinemaId, QuestComponentTemplate component)
@@ -1469,27 +1479,36 @@ public class CharacterQuests(Character owner)
                 questIdLink = detail.QuestId;
         }
 
-        var fired = false;
         if (questIdLink != 0)
         {
-            foreach (var sign in SphereQuestManager.GetSpheresForQuest(questIdLink))
-            {
+            // quest_area_sphere.g and quest_sign_sphere.g are separate authored volumes.
+            // An area volume can be smaller than the sign volume for the same objective, so
+            // leaving the former must not clear the objective while the player is still inside
+            // the latter. Match the objective component as well: one area sphere may share a
+            // quest with several independent sphere objectives.
+            var matchingSigns = QuestAreaSphereExitRules.MatchingSigns(
+                SphereQuestManager.GetSpheresForQuest(questIdLink), componentId);
+
+            if (QuestAreaSphereExitRules.PlayerRemainsInMatchingSign(matchingSigns, pos))
+                return;
+
+            foreach (var sign in matchingSigns)
                 QuestManager.Instance.DoOnExitSphereEvents(Owner, sign, pos);
-                fired = true;
-            }
+
+            if (matchingSigns.Count > 0)
+                return;
         }
 
-        if (!fired)
+        // No sign geometry is available for this area sphere; preserve the area sphere as the
+        // event source so objectives can still use the world-server volume as their trigger.
+        var eventSphere = new SphereQuest
         {
-            var eventSphere = new SphereQuest
-            {
-                SphereId = sphereId,
-                QuestId = questIdLink,
-                ComponentId = componentId,
-                ZoneId = Owner.Transform.ZoneId
-            };
-            QuestManager.Instance.DoOnExitSphereEvents(Owner, eventSphere, pos);
-        }
+            SphereId = sphereId,
+            QuestId = questIdLink,
+            ComponentId = componentId,
+            ZoneId = Owner.Transform.ZoneId
+        };
+        QuestManager.Instance.DoOnExitSphereEvents(Owner, eventSphere, pos);
     }
 
     /// <summary>

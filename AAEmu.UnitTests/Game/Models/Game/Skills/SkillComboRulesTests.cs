@@ -154,4 +154,43 @@ public class SkillComboRulesTests
         await Assert.That(expires.ContainsKey(Second)).IsFalse();
         await Assert.That(expires.ContainsKey(88u)).IsTrue();
     }
+
+    [Test]
+    public async Task RemapHoldRepeat_RootPressAdvancesToOpenFollowUp()
+    {
+        var now = DateTime.UtcNow;
+        var expires = new Dictionary<uint, DateTime>();
+        int Window(uint id) => id == Root || id == Second ? 1000 : 0;
+        SkillComboRules.ApplyAcceptedCast(Root, now, expires, NextOf, Window);
+
+        await Assert.That(SkillComboRules.RemapHoldRepeatToOpenFollowUp(
+            Root, startAutoAttack: true, NextOf, expires, now)).IsEqualTo(Second);
+        await Assert.That(SkillComboRules.RemapHoldRepeatToOpenFollowUp(
+            Root, startAutoAttack: false, NextOf, expires, now)).IsEqualTo(Root);
+        await Assert.That(SkillComboRules.RemapHoldRepeatToOpenFollowUp(
+            Second, startAutoAttack: true, NextOf, expires, now)).IsEqualTo(Second);
+    }
+
+    [Test]
+    public async Task RemapHoldRepeat_SkipsConsumedLinkToLaterOpen()
+    {
+        var now = DateTime.UtcNow;
+        var expires = new Dictionary<uint, DateTime>();
+        int Window(uint id) => id == Root || id == Second ? 1000 : 0;
+        SkillComboRules.ApplyAcceptedCast(Root, now, expires, NextOf, Window);
+        SkillComboRules.ApplyAcceptedCast(Second, now, expires, NextOf, Window);
+
+        await Assert.That(SkillComboRules.RemapHoldRepeatToOpenFollowUp(
+            Root, startAutoAttack: true, NextOf, expires, now)).IsEqualTo(Third);
+    }
+
+    [Test]
+    public async Task RemapHoldRepeat_NoOpenWindow_LeavesRoot()
+    {
+        var now = DateTime.UtcNow;
+        var expires = new Dictionary<uint, DateTime>();
+
+        await Assert.That(SkillComboRules.RemapHoldRepeatToOpenFollowUp(
+            Root, startAutoAttack: true, NextOf, expires, now)).IsEqualTo(Root);
+    }
 }

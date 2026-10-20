@@ -44,6 +44,9 @@ public class Plot
             var previousIsFollowUp = prevSkill != null &&
                                      SkillComboRules.IsComboFollowUpOf(
                                          skill.Id, prevSkill.Id, SkillComboRules.NextFollowUp);
+            var incomingIsFollowUp = prevSkill != null &&
+                                     SkillComboRules.IsComboFollowUpOf(
+                                         prevSkill.Id, skill.Id, SkillComboRules.NextFollowUp);
             var previousMustYield = SkillCastOverlapRules.PreviousPlotMustYield(
                 prev.IsCasting, prev.HasFired, prev.WaitingOnChannel);
             if (SkillCastOverlapRules.ShouldCancelPreviousPlot(
@@ -54,7 +57,8 @@ public class Plot
                         previousMustYield,
                         prevHold,
                         incomingHold),
-                    previousIsFollowUp))
+                    previousIsFollowUp,
+                    incomingIsFollowUp))
                 prev.RequestCancellation();
         }
 

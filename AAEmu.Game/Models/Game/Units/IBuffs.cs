@@ -29,6 +29,15 @@ public interface IBuffs
     IEnumerable<Buff> GetManaShieldEffects();
     void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs, bool includeAllPassives);
     int GetBuffCountById(uint buffId);
+    /// <summary>
+    /// Live instance that already published <c>SCBuffCreated</c> for this caster's
+    /// <see cref="BuffStackRule.MultipleDecreaseOne"/> family, if any.
+    /// </summary>
+    Buff FindAnnouncedInstance(uint buffId, uint casterKey);
+    /// <summary>How many live instances <paramref name="casterKey"/> holds of <paramref name="buffId"/>.</summary>
+    int CountLiveInstancesForCaster(uint buffId, uint casterKey);
+    /// <summary>Every live instance <paramref name="casterKey"/> holds of <paramref name="buffId"/>.</summary>
+    List<Buff> GetLiveInstancesForCaster(uint buffId, uint casterKey);
     IEnumerable<Buff> GetBuffsRequiring(uint buffId);
     Buff GetEffectByIndex(uint index);
     Buff GetEffectByTemplate(BuffTemplate template);

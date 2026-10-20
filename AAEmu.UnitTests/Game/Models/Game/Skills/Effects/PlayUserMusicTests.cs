@@ -366,6 +366,9 @@ public class PlayUserMusicTests : IDisposable
         public IEnumerable<Buff> GetManaShieldEffects() => [];
         public void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs, bool includeAllPassives) { }
         public int GetBuffCountById(uint buffId) => _active.Contains(buffId) ? 1 : 0;
+        public Buff FindAnnouncedInstance(uint buffId, uint casterKey) => null;
+        public int CountLiveInstancesForCaster(uint buffId, uint casterKey) => 0;
+        public List<Buff> GetLiveInstancesForCaster(uint buffId, uint casterKey) => [];
         public IEnumerable<Buff> GetBuffsRequiring(uint buffId) => [];
         public Buff GetEffectByIndex(uint index) => null;
         public Buff GetEffectByTemplate(BuffTemplate template) => null;

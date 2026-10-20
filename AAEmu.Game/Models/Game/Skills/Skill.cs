@@ -1593,10 +1593,10 @@ public class Skill
         totalDelay += SkillEffectTravelRules.TravelDelayMs(Template.EffectSpeed, unit.GetDistanceTo(target));
         if (Template.FireAnim != null && Template.UseAnimTime)
         {
-            // attack_anim_speed_mul (119) is the animation's own view of the rating that already paced this
-            // delay through global_cooldown_mul; a unit without one keeps that factor, and a unit with
-            // neither keeps 1.0.
-            var animFactor = SpeedMultiplierRules.AnimationFactor(unit.AttackAnimSpeedRating, unit.GlobalCooldownMul / 100.0);
+            // General attack_speed_mul (218) paces fire-anim sync the same way it paces the shared GCD;
+            // attack_anim_speed_mul (119) is the animation-specific fallback, then global_cooldown_mul.
+            var animFactor = SpeedMultiplierRules.AnimationFactor(
+                unit.AttackSpeedRating, unit.AttackAnimSpeedRating, unit.GlobalCooldownMul / 100.0);
             totalDelay += (int)(Template.FireAnim.CombatSyncTime * animFactor);
         }
 
@@ -3178,25 +3178,71 @@ public class Skill
         if (Template.IgnoreGlobalCooldown)
             return false;
 
-        if (!SkillCastOverlapRules.ArmsSharedGlobalCooldown(Template.CastingTime, Template.CustomGcd, Template.DefaultGcd))
-            return false;
+        var hasWeaponGcd = Template.WeaponGcdId > 0;
+        var usesWeaponSpeedForGcd = hasWeaponGcd || UsesRangedWeaponForGcd;
+        var weaponGcdSlot = GetWeaponGcdEquipmentSlot();
 
-        // Length order of authority is custom_gcd → weapon_gcd_id → default_gcd: see SkillGcdRules.
-        // weapon_gcd_id names a holdables row (15 한손창 1100 ms, 16 양손창 1200 ms, 17 양손지팡이 1300 ms
-        // on 327 skills, none of which carry a custom_gcd), so those skills follow their weapon class
-        // instead of the flat server default.
-        var weaponGcdSpeed = Template.WeaponGcdId > 0
-            ? ItemManager.Instance.GetHoldable((uint)Template.WeaponGcdId)?.Speed ?? 0
+        // weapon_gcd_id selects Mainhand (15), Offhand (16), or Ranged (17). Ranged skills that arm a GCD
+        // without that marker also use the ranged slot. default_gcd takes priority over custom_gcd. If a
+        // weapon slot is selected, its speed scales the default GCD; otherwise the caster-specific server
+        // default is used. With default_gcd unset, custom_gcd scales by weapon speed, or weapon speed itself
+        // is the base. Skills with no authored GCD fields also use the caster-specific server default.
+        var equippedWeaponGcdSpeed = usesWeaponSpeedForGcd && weaponGcdSlot is { } slot
+            ? GetEquippedWeaponGcdSpeed(unit, slot)
             : 0;
+        var useDefaultGcd = Template.DefaultGcd ||
+                            (usesWeaponSpeedForGcd && equippedWeaponGcdSpeed <= 0 && Template.CustomGcd <= 0);
         var gcd = SkillGcdRules.ResolveSharedGcd(
-            Template.CustomGcd, Template.DefaultGcd, weaponGcdSpeed, unit is Npc);
+            Template.CustomGcd, useDefaultGcd, equippedWeaponGcdSpeed, unit is Npc);
         if (gcd <= 0)
             return false;
-        var gcdMul = SkillGcdRules.SharedGcdMultiplier(
-            Template.UseWeaponCooldownTime, unit.GlobalCooldownMul, unit.CastTimeMul);
+        var gcdMul = SkillGcdRules.AttackSpeedGcdMultiplier(unit.AttackSpeedRating, unit.GlobalCooldownMul);
         unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * gcdMul * GlobalCooldownFactor(unit));
         return true;
     }
+
+    /// <summary>
+    /// Plot-authored GlobalCooldown specials scale by equipped weapon speed and attack speed the same way
+    /// the press-armed shared GCD does.
+    /// </summary>
+    internal double ResolvePlotGlobalCooldownMilliseconds(Unit unit, int authoredDurationMs)
+    {
+        if (authoredDurationMs == 0)
+            return 0;
+
+        var usesWeaponSpeedForGcd = Template.WeaponGcdId > 0 || UsesRangedWeaponForGcd;
+        var weaponGcdSpeed = usesWeaponSpeedForGcd && GetWeaponGcdEquipmentSlot() is { } slot
+            ? GetEquippedWeaponGcdSpeed(unit, slot)
+            : 0;
+        var weaponSpeedMultiplier = weaponGcdSpeed > 0
+            ? weaponGcdSpeed / (double)SkillGcdRules.PlayerDefaultGcd
+            : 1.0;
+        var attackSpeedMultiplier = SkillGcdRules.AttackSpeedGcdMultiplier(
+            unit.AttackSpeedRating, unit.GlobalCooldownMul);
+
+        return authoredDurationMs * weaponSpeedMultiplier * attackSpeedMultiplier * GlobalCooldownFactor(unit);
+    }
+
+    private EquipmentItemSlot? GetWeaponGcdEquipmentSlot() => (WeaponGcdId)Template.WeaponGcdId switch
+    {
+        WeaponGcdId.Mainhand => EquipmentItemSlot.Mainhand,
+        WeaponGcdId.Offhand => EquipmentItemSlot.Offhand,
+        WeaponGcdId.Ranged => EquipmentItemSlot.Ranged,
+        _ when Template.WeaponGcdId <= 0 && UsesRangedWeaponForGcd => EquipmentItemSlot.Ranged,
+        _ => null
+    };
+
+    private static int GetEquippedWeaponGcdSpeed(Unit unit, EquipmentItemSlot slot)
+    {
+        var weapon = unit.Equipment?.GetItemBySlot((int)slot);
+        return weapon?.Template is WeaponTemplate weaponTemplate
+            ? weaponTemplate.HoldableTemplate?.Speed ?? 0
+            : 0;
+    }
+
+    private bool UsesRangedWeaponForGcd =>
+        (DamageType)Template.DamageTypeId == DamageType.Ranged ||
+        Template.WeaponSlotForRangeId == (int)EquipmentItemSlot.Ranged;
 
     /// <summary>
     /// The caster's <c>skill_modifiers</c> factor for the armed global cooldown (attribute 15,
