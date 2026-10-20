@@ -128,7 +128,7 @@ public class BuffLifetimeRulesTests
     [Test]
     public async Task Extend_HoldsTheInstanceAtItsCeilingToo()
     {
-        // Extend adds remaining + incoming. Conflagration (duration = max_life_time = 7 s) would otherwise
+        // Extend adds remaining + incoming. A buff with duration = max_life_time would otherwise
         // grow past the client bar on every re-apply while the UI already sits at the ceiling.
         var owner = new Unit { ObjId = 1 };
         var caster = new Unit { ObjId = 2 };

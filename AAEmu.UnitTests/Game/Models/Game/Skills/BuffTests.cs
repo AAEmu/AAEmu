@@ -477,7 +477,7 @@ public class BuffTests
     [Test]
     public async Task Start_MarksTheInstanceAnnouncedAfterTheFirstCreate()
     {
-        // Instinct/Mark (24879): refresh re-runs Start; Create must be once so the hover FX is not stacked.
+        // Refresh re-runs Start; Create must be once so the hover FX is not stacked.
         // CreateBonusBuff sets Passive to skip Create; this path needs a non-passive instance.
         var owner = new Unit { ObjId = 1 };
         var caster = new Unit { ObjId = 2 };

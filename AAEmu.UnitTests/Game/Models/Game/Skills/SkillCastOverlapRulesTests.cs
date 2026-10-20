@@ -54,7 +54,7 @@ public class SkillCastOverlapRulesTests
     [Test]
     public async Task IncomingComboFollowUp_DoesNotCancelParentPlot()
     {
-        // Vital Blade 39008 (custom_gcd 500) is not IsInstantComboHit; still must not cancel 39007.
+        // A Combo follow-up with custom_gcd 500 is not IsInstantComboHit; still must not cancel its parent.
         await Assert.That(SkillCastOverlapRules.ShouldCancelPreviousPlot(
             previousWasBusy: true,
             incomingIsInstantCombo: false,

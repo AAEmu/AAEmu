@@ -1,14 +1,14 @@
 ﻿namespace AAEmu.Game.Models.Game.Skills;
 
 /// <summary>
-/// Hold-to-repeat and plot-only combo hits (Flamebolt 10752 + 24894/24895).
+/// Hold-to-repeat and plot-only combo hits with a tiny custom GCD.
 /// The client starts each hit. Instant follow-ups skip the 150 ms anti-spam
 /// and must not cancel the in-flight plot.
 /// </summary>
 public static class SkillCastOverlapRules
 {
     /// <summary>
-    /// Instant plot hits with a tiny custom GCD (Flamebolt 24894/24895 are 0 ms / 10 ms).
+    /// Instant plot hits with a tiny custom GCD (0 ms / 10 ms class).
     /// </summary>
     public static bool IsInstantComboHit(int castingTime, int customGcd) =>
         castingTime <= 0 && customGcd > 0 && customGcd <= 50;
