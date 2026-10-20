@@ -11,7 +11,6 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Models;
-using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -27,7 +26,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 public partial class Npc : Unit
 {
     internal object EncounterSync { get; } = new();
-    internal NymphQueenEncounter Encounter { get; set; }
+    internal INpcEncounter Encounter { get; set; }
 
     public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
     {
@@ -36,9 +35,7 @@ public partial class Npc : Unit
         {
             if (!encounter.CanDamage(attacker))
                 return;
-            // The encounter is a surrender at half health, even for a lethal hit.
-            value = Math.Min(value, Math.Max(0, Hp - Math.Max(1, MaxHp / 2)));
-            encounter.RecordDamage(attacker, value);
+            value = encounter.AdjustDamage(attacker, value);
         }
         base.ReduceCurrentHp(attacker, value, killReason);
     }

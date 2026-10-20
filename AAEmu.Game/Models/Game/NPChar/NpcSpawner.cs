@@ -8,7 +8,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Containers;
-using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -22,7 +21,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawner : Spawner<Npc>
 {
-    internal NymphQueenEncounter Encounter { get; set; }
+    internal INpcEncounter Encounter { get; set; }
 
     internal Npc RestoreQuestNpc()
     {
@@ -55,7 +54,7 @@ public class NpcSpawner : Spawner<Npc>
         }
     }
 
-    internal void CompleteEncounter(NymphQueenEncounter encounter, bool respawn)
+    internal void CompleteEncounter(INpcEncounter encounter, bool respawn)
     {
         lock (_spawnLock)
         {

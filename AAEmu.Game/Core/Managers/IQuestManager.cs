@@ -7,6 +7,9 @@ namespace AAEmu.Game.Core.Managers;
 
 public interface IQuestManager : ILoadable
 {
+    bool TryAcceptQuest(QuestAcceptance request, Func<QuestAcceptance, bool> accept);
+    void NotifyQuestLoaded(Quest quest);
+    void NotifyQuestRemoved(Quest quest, bool update);
     void FailQuest(ICharacter owner, uint questId);
     void DoOnMonsterHuntEvents(ICharacter owner, Npc npc);
     bool CheckGroupItem(uint groupId, uint itemId);

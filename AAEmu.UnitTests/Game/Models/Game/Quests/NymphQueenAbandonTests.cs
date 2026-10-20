@@ -4,6 +4,10 @@ using System.Net.Sockets;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Scripts;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 
@@ -15,9 +19,10 @@ public class NymphQueenAbandonTests
         var session = new RecordingSession();
         var owner = new Character(null) { Connection = new GameConnection(session) };
         var quests = new CharacterQuests(owner);
+        owner.Quests = quests;
         quests.SetCompletedQuestFlag(2007, true);
 
-        quests.RefreshAbandonedNymphQueenQuest(2008, true);
+        CreateManager().NotifyQuestRemoved(CreateQuest(owner, 2008), true);
 
         await Assert.That(session.Packets.Count).IsEqualTo(1);
         // The reset body ends with quest ID, the eight-byte completion mask and block ID.
@@ -40,12 +45,28 @@ public class NymphQueenAbandonTests
         var session = new RecordingSession();
         var owner = new Character(null) { Connection = new GameConnection(session) };
         var quests = new CharacterQuests(owner);
+        owner.Quests = quests;
         quests.SetCompletedQuestFlag(questId, completed);
 
-        quests.RefreshAbandonedNymphQueenQuest(questId, update);
+        CreateManager().NotifyQuestRemoved(CreateQuest(owner, questId), update);
 
         await Assert.That(session.Packets.Count).IsEqualTo(0);
         await Assert.That(quests.HasQuestCompleted(questId)).IsEqualTo(completed);
+    }
+
+    private static QuestManager CreateManager()
+    {
+        var tasks = Mock.Of<ITaskManager>().Object;
+        var script = new NymphQueenQuestScript(new Lazy<IQuestManager>(() => Mock.Of<IQuestManager>().Object),
+            tasks, Mock.Of<ITeamManager>().Object, TimeProvider.System, new());
+        return new QuestManager(tasks, Mock.Of<IZoneManager>().Object, [script]);
+    }
+
+    private static Quest CreateQuest(Character owner, uint id)
+    {
+        return new Quest(null, owner, Mock.Of<IQuestManager>().Object, Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object, Mock.Of<IExpressTextManager>().Object, Mock.Of<IWorldManager>().Object)
+            { TemplateId = id };
     }
 
     private sealed class RecordingSession : ISession

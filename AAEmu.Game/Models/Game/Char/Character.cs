@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Data;
 using System.Drawing;
 
@@ -40,7 +40,6 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public partial class Character : Unit, ICharacter
 {
-    internal Quests.NymphQueenEncounter NymphQueenEncounter { get; set; }
     public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Character; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Character;
 
@@ -293,7 +292,7 @@ public partial class Character : Unit, ICharacter
         {
             if (field == value) return;
             if (!value)
-                NymphQueenEncounter?.OwnerUnavailable(this);
+                Events.OnOffline(this, EventArgs.Empty);
             // TODO - GUILD STATUS CHANGE
             FriendMananger.Instance.SendStatusChange(this, true, value);
             // Set _isOnline BEFORE the SetOffline side effect so anything it triggers

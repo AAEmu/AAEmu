@@ -16,6 +16,13 @@ namespace AAEmu.Game.Models.Game.Quests;
 
 public partial class Quest : PacketMarshaler
 {
+    internal event Action<Quest> Removing;
+
+    internal void NotifyRemoving()
+    {
+        Removing?.Invoke(this);
+    }
+
     private const int MaxObjectiveCount = 5;
     private readonly IQuestManager _questManager;
     private readonly ITaskManager _taskManager;

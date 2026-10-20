@@ -10,12 +10,12 @@ using AAEmu.Game.Models.Game.Units;
 
 using NLog;
 
-namespace AAEmu.Game.Models.Game.Quests;
+namespace AAEmu.Game.Models.Game.Quests.Scripts;
 
 /// <summary>
 /// Owns the shared Lympheroda encounter, including its temporary dialogue NPC.
 /// </summary>
-internal sealed class NymphQueenEncounter
+internal sealed class NymphQueenEncounter : INpcEncounter
 {
     internal const uint QuestId = 2008;
     internal const uint LympherodaId = 9385;
@@ -55,23 +55,26 @@ internal sealed class NymphQueenEncounter
         _spawner.Encounter = this;
     }
 
-    public static bool AcceptQuest(Character owner, Npc npc, uint questId, Func<bool> accept)
+    public static bool AcceptQuest(Character owner, Npc npc, Func<bool> accept,
+        IQuestManager questManager, ITaskManager taskManager, ITeamManager teamManager,
+        TimeProvider clock, NymphQueenEncounterConfig config)
     {
-        if (questId != QuestId || npc.TemplateId != LympherodaId || npc.Spawner == null)
+        if (npc.TemplateId != LympherodaId || npc.Spawner == null)
             return accept();
 
         lock (npc.EncounterSync)
         {
-            var encounter = npc.Encounter;
+            if (npc.Encounter != null && npc.Encounter is not NymphQueenEncounter)
+                return false;
+            var encounter = npc.Encounter as NymphQueenEncounter;
             if (encounter == null)
             {
-                var team = TeamManager.Instance.GetTeamByObjId(owner.ObjId);
+                var team = teamManager.GetTeamByObjId(owner.ObjId);
                 var allowed = team?.Members.Where(m => m?.Character != null && m.Character.IsOnline &&
                     m.Character.ParentWorld == npc.ParentWorld &&
                     Vector3.Distance(m.Character.Transform.World.Position, npc.Transform.World.Position) <= 100)
                     .Select(m => m.Character.Id).ToArray() ?? [];
-                encounter = new NymphQueenEncounter(npc, owner, allowed, QuestManager.Instance,
-                    TaskManager.Instance, TimeProvider.System, AppConfiguration.Instance.NymphQueenEncounter);
+                encounter = new NymphQueenEncounter(npc, owner, allowed, questManager, taskManager, clock, config);
             }
             return encounter.TryAccept(owner, accept);
         }
@@ -105,8 +108,7 @@ internal sealed class NymphQueenEncounter
             UpdateCompletions();
             _quests.Remove(player);
             _state.RemoveParticipant(player.Id);
-            if (player.NymphQueenEncounter == this)
-                player.NymphQueenEncounter = null;
+            Unsubscribe(player, quest);
             if (player == _owner && !_state.OwnerCompleted)
                 BeginReset();
         }
@@ -131,7 +133,8 @@ internal sealed class NymphQueenEncounter
             }
 
             _quests.Add(player, player.Quests.ActiveQuests[QuestId]);
-            player.NymphQueenEncounter = this;
+            _quests[player].Removing += OnQuestRemoving;
+            player.Events.OnOffline += OnPlayerOffline;
             if (player == _owner)
                 _taskManager.Schedule(_task, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
             Logger.Info($"Nymph Queen encounter accepted: owner={_owner.Id}, player={player.Id}, npc={_original.ObjId}");
@@ -144,6 +147,19 @@ internal sealed class NymphQueenEncounter
         var player = attacker as Character ?? attacker?.GetOwnerCharacter();
         lock (_sync)
             return player != null && _state.CanDamage(player.Id);
+    }
+
+    public int AdjustDamage(BaseUnit attacker, int amount)
+    {
+        lock (_sync)
+        {
+            if (!CanDamage(attacker))
+                return 0;
+            // Surrender at half health, including hits that would otherwise be lethal.
+            amount = Math.Min(amount, Math.Max(0, _original.Hp - Math.Max(1, _original.MaxHp / 2)));
+            RecordDamage(attacker, amount);
+            return amount;
+        }
     }
 
     public void RecordDamage(BaseUnit attacker, int amount)
@@ -209,7 +225,8 @@ internal sealed class NymphQueenEncounter
                 if (_quests.TryGetValue(player, out var quest) && IsCurrentQuest(player, quest))
                     FailParticipant(player, quest);
                 _state.RemoveParticipant(player.Id);
-                player.NymphQueenEncounter = null;
+                if (_quests.Remove(player, out var removed))
+                    Unsubscribe(player, removed);
             }
         }
     }
@@ -269,8 +286,9 @@ internal sealed class NymphQueenEncounter
 
     internal static void RecoverInterruptedQuest(Quest quest)
     {
-        if (quest.TemplateId == QuestId && quest.Step is QuestComponentKind.Start or QuestComponentKind.Supply or
-            QuestComponentKind.Progress && !HasCompletedConversation(quest))
+        if (quest.TemplateId != QuestId || HasCompletedConversation(quest))
+            return;
+        if (quest.Step is QuestComponentKind.Start or QuestComponentKind.Supply or QuestComponentKind.Progress)
         {
             quest.Step = QuestComponentKind.Fail;
             quest.Status = QuestStatus.Failed;
@@ -325,11 +343,27 @@ internal sealed class NymphQueenEncounter
         _taskManager.Cancel(_task);
         _original.Encounter = null;
         _spawner.CompleteEncounter(this, respawn);
-        foreach (var player in _quests.Keys)
-        {
-            if (player.NymphQueenEncounter == this)
-                player.NymphQueenEncounter = null;
-        }
+        foreach (var (player, quest) in _quests)
+            Unsubscribe(player, quest);
+        _quests.Clear();
+    }
+
+    private void OnQuestRemoving(Quest quest)
+    {
+        if (quest.Owner is Character player)
+            QuestRemoved(player, quest);
+    }
+
+    private void OnPlayerOffline(object sender, EventArgs args)
+    {
+        if (sender is Character player)
+            OwnerUnavailable(player);
+    }
+
+    private void Unsubscribe(Character player, Quest quest)
+    {
+        quest.Removing -= OnQuestRemoving;
+        player.Events.OnOffline -= OnPlayerOffline;
     }
 
     private sealed class EncounterTask(NymphQueenEncounter encounter) : AAEmu.Game.Models.Tasks.Task

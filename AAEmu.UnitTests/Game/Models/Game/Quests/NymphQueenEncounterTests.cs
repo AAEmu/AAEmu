@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Scripts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -16,6 +17,49 @@ namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 
 public class NymphQueenEncounterTests
 {
+    [Test]
+    public async Task OfflineEvent_UnfinishedOwner_FailsBeforeSaveAndUnsubscribesAfterReset()
+    {
+        var owner = CreatePlayer(1);
+        var spawner = new TestSpawner();
+        var original = new Npc { TemplateId = 9385, Spawner = spawner };
+        var clock = new FakeTimeProvider();
+        var quests = Mock.Of<IQuestManager>();
+        var encounter = new NymphQueenEncounter(original, owner, [], quests.Object,
+            Mock.Of<ITaskManager>().Object, clock, new());
+        encounter.TryAccept(owner, () => AddQuest(owner, quests.Object));
+
+        owner.Events.OnOffline(owner, EventArgs.Empty);
+        await Assert.That(owner.Quests.ActiveQuests[2008].Status).IsEqualTo(QuestStatus.Failed);
+        quests.FailQuest(owner, 2008).WasCalled(Times.Once);
+        clock.Advance(TimeSpan.FromSeconds(5));
+        encounter.Tick();
+        AddQuest(owner, quests.Object);
+        owner.Events.OnOffline(owner, EventArgs.Empty);
+        owner.Quests.ActiveQuests[2008].NotifyRemoving();
+
+        quests.FailQuest(owner, 2008).WasCalled(Times.Once);
+        await Assert.That(owner.Quests.ActiveQuests[2008].Status).IsEqualTo(QuestStatus.Progress);
+        await Assert.That(spawner.Removals).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task AdjustDamage_EncounterPolicy_CapsSurrenderAndRejectsOutsiders()
+    {
+        var owner = CreatePlayer(1);
+        var original = new SurrenderingNpc { Hp = 100, Spawner = new TestSpawner() };
+        var quests = Mock.Of<IQuestManager>();
+        var encounter = new NymphQueenEncounter(original, owner, [], quests.Object,
+            Mock.Of<ITaskManager>().Object, new FakeTimeProvider(), new());
+        encounter.TryAccept(owner, () => AddQuest(owner, quests.Object));
+        var policy = original.Encounter;
+
+        await Assert.That(policy.AdjustDamage(owner, 1000)).IsEqualTo(50);
+        await Assert.That(policy.AdjustDamage(CreatePlayer(2), 10)).IsEqualTo(0);
+        original.Hp = 50;
+        await Assert.That(policy.AdjustDamage(owner, 10)).IsEqualTo(0);
+    }
+
     [Test]
     public async Task QuestRemoved_AbandonedOrRemovedByGm_ResetsAndDoesNotFailReplacementQuest()
     {
@@ -29,15 +73,14 @@ public class NymphQueenEncounterTests
         encounter.TryAccept(owner, () => AddQuest(owner, quests.Object));
         var previousQuest = owner.Quests.ActiveQuests[2008];
 
-        encounter.QuestRemoved(owner, previousQuest);
+        previousQuest.NotifyRemoving();
         AddQuest(owner, quests.Object);
-        encounter.QuestRemoved(owner, previousQuest);
+        previousQuest.NotifyRemoving();
         clock.Advance(TimeSpan.FromSeconds(5));
         encounter.Tick();
 
         await Assert.That(spawner.Removals).IsEqualTo(1);
         await Assert.That(spawner.Encounter).IsNull();
-        await Assert.That(owner.NymphQueenEncounter).IsNull();
         quests.FailQuest(owner, 2008).WasNeverCalled();
         await Assert.That(owner.Quests.ActiveQuests[2008].Status).IsEqualTo(QuestStatus.Progress);
     }
@@ -114,7 +157,6 @@ public class NymphQueenEncounterTests
         encounter.Tick();
 
         await Assert.That(originalSpawner.Encounter).IsNull();
-        await Assert.That(owner.NymphQueenEncounter).IsNull();
         await Assert.That(originalSpawner.Removals).IsEqualTo(1);
         quests.FailQuest(Any<ICharacter>(), Any<uint>()).WasNeverCalled();
         tasks.Cancel(Any<AAEmu.Game.Models.Tasks.Task>()).WasCalled(Times.Once);
@@ -220,6 +262,11 @@ public class NymphQueenEncounterTests
             Mock.Of<ISkillManager>().Object, Mock.Of<IExpressTextManager>().Object, Mock.Of<IWorldManager>().Object)
         { TemplateId = 2008, Step = QuestComponentKind.Progress, Status = QuestStatus.Progress };
         return true;
+    }
+
+    private sealed class SurrenderingNpc : Npc
+    {
+        public override int MaxHp { get; set; } = 100;
     }
 
     private sealed class TestSpawner : NpcSpawner

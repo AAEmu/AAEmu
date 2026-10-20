@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
@@ -8,6 +8,8 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Scripts;
 using AAEmu.Game.Services;
 using AAEmu.Game.Services.WebApi;
 using AAEmu.Game.Utils.DB;
@@ -17,6 +19,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 using NLog;
 using NLog.Config;
@@ -222,6 +225,12 @@ public static class Program
 
                 services.AddSingleton<QuestManager>();
                 services.AddSingleton<IQuestManager>(sp => sp.GetRequiredService<QuestManager>());
+                services.AddSingleton(sp => new Lazy<IQuestManager>(sp.GetRequiredService<IQuestManager>));
+                services.AddSingleton<NymphQueenQuestScript>(sp => new NymphQueenQuestScript(
+                    sp.GetRequiredService<Lazy<IQuestManager>>(), sp.GetRequiredService<ITaskManager>(),
+                    sp.GetRequiredService<ITeamManager>(), sp.GetRequiredService<TimeProvider>(),
+                    sp.GetRequiredService<IOptions<AppConfiguration>>().Value.NymphQueenEncounter));
+                services.AddSingleton<IQuestScript>(sp => sp.GetRequiredService<NymphQueenQuestScript>());
 
                 services.AddSingleton<RadarManager>();
                 services.AddSingleton<IRadarManager>(sp => sp.GetRequiredService<RadarManager>());

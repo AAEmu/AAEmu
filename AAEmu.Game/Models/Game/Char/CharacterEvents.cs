@@ -9,6 +9,7 @@ public class CharacterEvents : UnitEvents
     public EventHandler<OnDungeonLeaveArgs> OnDungeonLeave = delegate { };
     public EventHandler<OnTeamLeaveArgs> OnTeamKick = delegate { };
     public EventHandler<OnDisconnectArgs> OnDisconnect = delegate { };
+    public EventHandler OnOffline = delegate { };
 }
 
 public class OnTeamJoinArgs : EventArgs
