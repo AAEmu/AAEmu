@@ -474,6 +474,28 @@ public class BuffTests
         await Assert.That(live.EndTime).IsEqualTo(DateTime.MinValue);
     }
 
+    [Test]
+    public async Task Start_MarksTheInstanceAnnouncedAfterTheFirstCreate()
+    {
+        // Instinct/Mark (24879): refresh re-runs Start; Create must be once so the hover FX is not stacked.
+        // CreateBonusBuff sets Passive to skip Create; this path needs a non-passive instance.
+        var owner = new Unit { ObjId = 1 };
+        var caster = new Unit { ObjId = 2 };
+        var template = new BuffTemplate();
+        var buff = new Buff(owner, caster, new SkillCasterUnit(2), template, null, DateTime.UtcNow)
+        {
+            Index = 10u,
+            Passive = false,
+            AbLevel = 1
+        };
+
+        await Assert.That(buff.AnnouncedToClient).IsFalse();
+        template.Start(caster, owner, buff);
+        await Assert.That(buff.AnnouncedToClient).IsTrue();
+        template.Start(caster, owner, buff);
+        await Assert.That(buff.AnnouncedToClient).IsTrue();
+    }
+
     #endregion
 
     #region Zone relay

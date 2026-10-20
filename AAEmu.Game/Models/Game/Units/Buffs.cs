@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
@@ -484,6 +484,37 @@ public class Buffs : IBuffs
         return instances;
     }
 
+    /// <inheritdoc />
+    public Buff FindAnnouncedInstance(uint buffId, uint casterKey)
+    {
+        lock (_lock)
+        {
+            foreach (var effect in _effects)
+            {
+                if (effect is { AnnouncedToClient: true, InUse: true }
+                    && effect.Template.BuffId == buffId
+                    && CasterKeyOf(effect) == casterKey)
+                    return effect;
+            }
+        }
+
+        return null;
+    }
+
+    /// <inheritdoc />
+    public int CountLiveInstancesForCaster(uint buffId, uint casterKey)
+    {
+        lock (_lock)
+            return LiveInstancesOf(buffId, casterKey).Count;
+    }
+
+    /// <inheritdoc />
+    public List<Buff> GetLiveInstancesForCaster(uint buffId, uint casterKey)
+    {
+        lock (_lock)
+            return LiveInstancesOf(buffId, casterKey);
+    }
+
     /// <summary>
     /// Which caster an instance belongs to, for the rules that keep one instance per caster.
     /// </summary>
@@ -736,10 +767,8 @@ public class Buffs : IBuffs
                 case BuffStackRule.Extend:
                     {
                         // Extend ADDS the incoming duration to what is left of the live instance; refresh
-                        // replaces it. One instance for the whole family, like Refresh: the 95 shipped
-                        // rows are single-source consumables or world effects (4841 연료 주입, 5209 맑은
-                        // 정신, 2287 강력한 화염), where a second caster's application is the same effect
-                        // continuing rather than a second effect to hold alongside.
+                        // replaces it. It keeps one instance for the whole family, while increasing its
+                        // application count up to max_stack. max_life_time independently caps the total timer.
                         var live = FindLiveInstance(buff.Template.BuffId);
                         if (live != null)
                         {

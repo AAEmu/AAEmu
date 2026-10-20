@@ -474,6 +474,13 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
     {
         var character = Connection.ActiveChar;
         var world = character?.ParentWorld ?? WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
+        // Hold-repeat of a combo root often keeps the root id on the wire while a Combo window
+        // is open; advance to the open follow-up before the learn / Use gates.
+        var requestedSkillId = skillId;
+        skillId = character.Skills.RemapHoldRepeatCombo(skillId);
+        if (skillId != requestedSkillId)
+            Logger.Debug("ZoneAuthority hold/combo remap {0} → {1}", requestedSkillId, skillId);
+
         var template = SkillManager.Instance.GetSkillTemplate(skillId);
         skillObject ??= new SkillObject();
 

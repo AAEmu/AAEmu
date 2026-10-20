@@ -1,11 +1,12 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using MySql.Data.MySqlClient;
 using NLog;
-
-using AAEmu.Game.GameData;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -84,7 +85,7 @@ public class CharacterSkills(Character owner)
         {
             Id = template.Id,
             Template = template,
-            Level = template.LevelStep > 0 ? (byte)((Owner.GetAbLevel(template.AbilityId) - template.AbilityLevel) / template.LevelStep + 1) : (byte)1
+            Level = SkillRankRules.ForUnit(template, Owner)
         };
         Skills.Add(skill.Id, skill);
 
@@ -281,6 +282,9 @@ public class CharacterSkills(Character owner)
         if (skillId == 0)
             return;
         var now = DateTime.UtcNow;
+        var castTimeMul = Owner.CastTimeMul;
+        var globalCooldownMul = Owner.GlobalCooldownMul;
+        var attackSpeedRating = Owner.AttackSpeedRating;
         lock (_comboFollowUpLock)
         {
             SkillComboRules.PruneExpiredFollowUps(_comboFollowUpExpires, now);
@@ -289,8 +293,56 @@ public class CharacterSkills(Character owner)
                 now,
                 _comboFollowUpExpires,
                 SkillComboRules.NextFollowUp,
-                SkillComboRules.ComboWindowMs);
+                id => SkillComboRules.ComboWindowMs(
+                    id, ResolveEquippedWeaponGcdSpeed(id), castTimeMul, globalCooldownMul, attackSpeedRating));
         }
+    }
+
+    /// <summary>
+    /// Hold-repeat of a <c>start_autoattack</c> root that still has an open Combo window is remapped
+    /// onto that follow-up so the chain advances when the client keeps sending the root id.
+    /// </summary>
+    public uint RemapHoldRepeatCombo(uint skillId)
+    {
+        if (skillId == 0)
+            return skillId;
+        var template = SkillManager.Instance?.GetSkillTemplate(skillId);
+        if (template is not { StartAutoAttack: true })
+            return skillId;
+
+        var now = DateTime.UtcNow;
+        lock (_comboFollowUpLock)
+        {
+            SkillComboRules.PruneExpiredFollowUps(_comboFollowUpExpires, now);
+            return SkillComboRules.RemapHoldRepeatToOpenFollowUp(
+                skillId, startAutoAttack: true, SkillComboRules.NextFollowUp, _comboFollowUpExpires, now);
+        }
+    }
+
+    /// <summary>
+    /// Equipped holdable speed for the skill's <c>weapon_gcd_id</c> slot (15 Mainhand / 16 Offhand /
+    /// 17 Ranged). Matches the press-armed shared GCD base.
+    /// </summary>
+    private int ResolveEquippedWeaponGcdSpeed(uint skillId)
+    {
+        var template = SkillManager.Instance?.GetSkillTemplate(skillId);
+        if (template is not { WeaponGcdId: > 0 })
+            return 0;
+
+        var slot = (WeaponGcdId)template.WeaponGcdId switch
+        {
+            WeaponGcdId.Mainhand => EquipmentItemSlot.Mainhand,
+            WeaponGcdId.Offhand => EquipmentItemSlot.Offhand,
+            WeaponGcdId.Ranged => EquipmentItemSlot.Ranged,
+            _ => (EquipmentItemSlot?)null
+        };
+        if (slot is null)
+            return 0;
+
+        var weapon = Owner.Equipment?.GetItemBySlot((int)slot.Value);
+        return weapon?.Template is WeaponTemplate weaponTemplate
+            ? weaponTemplate.HoldableTemplate?.Speed ?? 0
+            : 0;
     }
 
     /// <summary>
@@ -315,8 +367,9 @@ public class CharacterSkills(Character owner)
     /// Combo follow-ups (special type 48) are never book entries: the client swaps the bar and sends
     /// an ordinary cast for the next id. Accepting every later hit of a learned root would let a
     /// short-cooldown follow-up be cast without its root — windows open only when the prior link
-    /// is accepted. The window is <c>value2 + max(casting_time, shared GCD)</c> of that prior hit,
-    /// and it survives other skills cast in between (blink return after an attack).
+    /// is accepted. The window is <c>value2 + max(cast, shared GCD)</c> of that prior hit (both
+    /// halves × cast speed; catalog <c>weapon_gcd_id</c> only when it decides the GCD base), and it
+    /// survives other skills cast in between (blink return after an attack).
     /// </remarks>
     public bool HasSkill(uint skillId)
     {

@@ -42,7 +42,10 @@ public class BuffLifetimeRulesTests
         var skillManager = new SkillManager(Mock.Of<IAnimationManager>().Object, Mock.Of<IPlotManager>().Object);
         SetField(skillManager, "_buffs", new Dictionary<uint, BuffTemplate>
         {
-            [CappedBuffId] = new BuffTemplate { Id = CappedBuffId, Duration = 8000, MaxLifeTime = 4000u }
+            [CappedBuffId] = new BuffTemplate
+            {
+                Id = CappedBuffId, Duration = 8000, MaxLifeTime = 4000u, StackRule = BuffStackRule.Extend
+            }
         });
         SetField(skillManager, "_buffTags", new Dictionary<uint, List<uint>>());
         SetField(skillManager, "_taggedBuffs", new Dictionary<uint, List<uint>>());
@@ -123,10 +126,10 @@ public class BuffLifetimeRulesTests
     }
 
     [Test]
-    public async Task Refresh_HoldsTheInstanceAtItsCeilingToo()
+    public async Task Extend_HoldsTheInstanceAtItsCeilingToo()
     {
-        // The stack rule decides what a second application does to the timer, and neither branch may take
-        // the instance back past the ceiling: Refresh replaces the duration, Extend adds to what is left.
+        // Extend adds remaining + incoming. Conflagration (duration = max_life_time = 7 s) would otherwise
+        // grow past the client bar on every re-apply while the UI already sits at the ceiling.
         var owner = new Unit { ObjId = 1 };
         var caster = new Unit { ObjId = 2 };
         var template = SkillManager.Instance.GetBuffTemplate(CappedBuffId);

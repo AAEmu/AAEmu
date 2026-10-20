@@ -86,12 +86,13 @@ public class CharacterSkillsComboHoldTests
     }
 
     [Test]
-    public async Task InstantLink_WindowIsValue2Only()
+    public async Task InstantLink_WindowIncludesDefaultSharedGcd()
     {
         var character = NewCharacter();
         character.Skills.NoteSkillFired(Second);
 
-        await Assert.That(SkillComboRules.ComboWindowMs(Second)).IsEqualTo(1000);
+        // value2 1000 + player default shared GCD 1000 (no custom_gcd / weapon slot).
+        await Assert.That(SkillComboRules.ComboWindowMs(Second)).IsEqualTo(2000);
         Backdate(character, millisecondsAgo: 500);
         await Assert.That(character.Skills.HasSkill(Third)).IsTrue();
         await Assert.That(character.Skills.HasSkill(Root)).IsFalse();
@@ -110,6 +111,75 @@ public class CharacterSkillsComboHoldTests
 
         Backdate(character, millisecondsAgo: 2201);
         await Assert.That(character.Skills.HasSkill(GcdSecond)).IsFalse();
+    }
+
+    [Test]
+    public async Task CustomGcd_ScalesByEquippedWeaponSpeedWhenWeaponGcdIdSet()
+    {
+        // With default_gcd unset, custom_gcd × (equipped speed / 1000) is the shared lock.
+        var withWeaponClass = new SkillTemplate
+        {
+            CastingTime = 0, CustomGcd = 250, WeaponGcdId = 15, DefaultGcd = false
+        };
+        var noWeaponClass = new SkillTemplate
+        {
+            CastingTime = 0, CustomGcd = 250, WeaponGcdId = 0, DefaultGcd = false
+        };
+
+        await Assert.That(SkillComboRules.FollowUpReadyDelayMs(withWeaponClass, equippedWeaponGcdSpeed: 1300))
+            .IsEqualTo(325);
+        await Assert.That(SkillComboRules.FollowUpReadyDelayMs(withWeaponClass, equippedWeaponGcdSpeed: 1100))
+            .IsEqualTo(275);
+        await Assert.That(SkillComboRules.FollowUpReadyDelayMs(noWeaponClass, equippedWeaponGcdSpeed: 1300))
+            .IsEqualTo(250);
+    }
+
+    [Test]
+    public async Task EquippedWeaponGcd_DecidesReadyDelayWhenCustomIsUnset()
+    {
+        var weaponPaced = new SkillTemplate
+        {
+            CastingTime = 0,
+            CustomGcd = 0,
+            DefaultGcd = false,
+            WeaponGcdId = 15
+        };
+
+        await Assert.That(SkillComboRules.FollowUpReadyDelayMs(weaponPaced, equippedWeaponGcdSpeed: 1100))
+            .IsEqualTo(1100);
+        // Empty slot + no custom → player default shared GCD.
+        await Assert.That(SkillComboRules.FollowUpReadyDelayMs(weaponPaced, equippedWeaponGcdSpeed: 0))
+            .IsEqualTo(1000);
+    }
+
+    [Test]
+    public async Task DefaultGcd_UsesEquippedWeaponSpeedOverCustomGcd()
+    {
+        // Triple Slash shape: default_gcd + weapon_gcd_id 15 → equipped mainhand speed wins.
+        var hit = Chained(Second, Third, castingTime: 0, customGcd: 700);
+        hit.WeaponGcdId = 15;
+        hit.DefaultGcd = true;
+        typeof(SkillManager).GetField("_skills", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(SkillManager.Instance, new Dictionary<uint, SkillTemplate>
+            {
+                [Second] = hit,
+                [Third] = new SkillTemplate { Id = Third, AbilityId = AbilityType.Magic },
+            });
+
+        await Assert.That(SkillComboRules.ComboWindowMs(Second, equippedWeaponGcdSpeed: 800)).IsEqualTo(1800);
+        await Assert.That(SkillComboRules.ComboWindowMs(Second, equippedWeaponGcdSpeed: 1100)).IsEqualTo(2100);
+        await Assert.That(SkillComboRules.ComboWindowMs(Second, equippedWeaponGcdSpeed: 0)).IsEqualTo(2000);
+    }
+
+    [Test]
+    public async Task CastTimeMul_ScalesCastOnly_NotSharedGcd()
+    {
+        // Cast must outrun the player default shared GCD (1000) or Max(cast, gcd) hides the cast mul.
+        var castHit = new SkillTemplate { CastingTime = 2000, CustomGcd = 0, DefaultGcd = false };
+        var gcdHit = new SkillTemplate { CastingTime = 0, CustomGcd = 1000, WeaponGcdId = 0 };
+
+        await Assert.That(SkillComboRules.FollowUpReadyDelayMs(castHit, castTimeMul: 0.8f)).IsEqualTo(1600);
+        await Assert.That(SkillComboRules.FollowUpReadyDelayMs(gcdHit, castTimeMul: 0.8f)).IsEqualTo(1000);
     }
 
     [Test]

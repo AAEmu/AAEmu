@@ -52,6 +52,19 @@ public class SkillCastOverlapRulesTests
     }
 
     [Test]
+    public async Task IncomingComboFollowUp_DoesNotCancelParentPlot()
+    {
+        // Vital Blade 39008 (custom_gcd 500) is not IsInstantComboHit; still must not cancel 39007.
+        await Assert.That(SkillCastOverlapRules.ShouldCancelPreviousPlot(
+            previousWasBusy: true,
+            incomingIsInstantCombo: false,
+            incomingSameSkill: false,
+            sportFishWouldCancel: true,
+            previousIsComboFollowUpOfIncoming: false,
+            incomingIsComboFollowUpOfPrevious: true)).IsFalse();
+    }
+
+    [Test]
     public async Task FiredProjectile_IsNotCancelledByAnotherSkill()
     {
         var yield = SkillCastOverlapRules.PreviousPlotMustYield(

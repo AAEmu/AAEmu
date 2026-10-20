@@ -47,14 +47,20 @@ public static class SkillCastOverlapRules
     /// (hold / GCD next). Those must finish their own Fired/Damaged.
     /// Fishing hold swap still goes through <paramref name="sportFishWouldCancel"/>.
     /// </summary>
+    /// <param name="incomingIsComboFollowUpOfPrevious">
+    /// True when the new skill is the Combo next-hit of the busy plot. Instant-combo only
+    /// covers custom_gcd ≤ 50; longer Combo links still must not cancel their parent.
+    /// </param>
     public static bool ShouldCancelPreviousPlot(
         bool previousWasBusy,
         bool incomingIsInstantCombo,
         bool incomingSameSkill,
         bool sportFishWouldCancel,
-        bool previousIsComboFollowUpOfIncoming = false)
+        bool previousIsComboFollowUpOfIncoming = false,
+        bool incomingIsComboFollowUpOfPrevious = false)
     {
-        if (incomingIsInstantCombo || incomingSameSkill || previousIsComboFollowUpOfIncoming)
+        if (incomingIsInstantCombo || incomingSameSkill || previousIsComboFollowUpOfIncoming ||
+            incomingIsComboFollowUpOfPrevious)
             return false;
         return sportFishWouldCancel;
     }

@@ -60,10 +60,13 @@ public class SkillController
             case SkillControllerKind.Dash:
                 Logger.Trace($"SkillController: create DashSkillController");
                 return new DashSkillController(template, owner, target) { State = SCState.Created };
+            case SkillControllerKind.Rotate when RotateSkillController.Supports(template):
+                Logger.Trace("SkillController: create RotateSkillController for 180-degree turn");
+                return new RotateSkillController(template, owner, target) { State = SCState.Created };
             default:
                 // The remaining kinds are named but have no controller on this server: rope is handled
                 // outside the controller system by ShipHarpoonRopeController (kind 5) and rope_ready (9) is
-                // its preparation step, while anchor/rotate/flowgraph/crawl are animation or hull kinds.
+                // its preparation step, while unsupported rotate/anchor/flowgraph/crawl stay animation or hull kinds.
                 // Naming the kind keeps a new row from looking like an unknown id in the log.
                 Logger.Debug("SkillController: kind {0} ({1}) has no controller on this server",
                     template.KindId, (SkillControllerKind)template.KindId);

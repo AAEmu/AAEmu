@@ -1,6 +1,8 @@
 using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -305,6 +307,69 @@ public class BuffStackAddBuffTests
     }
 
     [Test]
+    public async Task AddBuff_MultipleDecreaseOneFamily_AnnouncesOnlyTheFirstInstance()
+    {
+        // Client merges rule-7 Creates of the same buff id into one slot and orphans FX when a
+        // second Create arrives under a new index. Server keeps two timers but one wire face.
+        var owner = new RecordingUnit { ObjId = 1 };
+        var caster = new Unit { ObjId = 2 };
+
+        owner.Buffs.AddBuff(CreateLiveBuff(owner, caster, MultipleDecreaseOneCeiling2BuffId));
+        owner.Buffs.AddBuff(CreateLiveBuff(owner, caster, MultipleDecreaseOneCeiling2BuffId));
+
+        var instances = InstancesOf(owner, MultipleDecreaseOneCeiling2BuffId);
+        await Assert.That(instances.Count).IsEqualTo(2);
+        await Assert.That(instances.Count(i => i.AnnouncedToClient)).IsEqualTo(1);
+        await Assert.That(owner.Packets.OfType<SCBuffCreatedPacket>().Count()).IsEqualTo(1);
+        await Assert.That(owner.Packets.OfType<SCBuffUpdatedPacket>().Count()).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Exit_NonAnnouncedRule7Sibling_DoesNotRemoveTheWireFace()
+    {
+        var owner = new RecordingUnit { ObjId = 1 };
+        var caster = new Unit { ObjId = 2 };
+
+        owner.Buffs.AddBuff(CreateLiveBuff(owner, caster, MultipleDecreaseOneCeiling2BuffId));
+        owner.Buffs.AddBuff(CreateLiveBuff(owner, caster, MultipleDecreaseOneCeiling2BuffId));
+        var instances = InstancesOf(owner, MultipleDecreaseOneCeiling2BuffId);
+        var face = instances.Single(i => i.AnnouncedToClient);
+        var sibling = instances.Single(i => !i.AnnouncedToClient);
+        owner.Packets.Clear();
+
+        sibling.Exit();
+
+        await Assert.That(InstancesOf(owner, MultipleDecreaseOneCeiling2BuffId).Count).IsEqualTo(1);
+        await Assert.That(face.AnnouncedToClient).IsTrue();
+        await Assert.That(owner.Packets.OfType<SCBuffRemovedPacket>().Count()).IsEqualTo(0);
+        await Assert.That(owner.Packets.OfType<SCBuffUpdatedPacket>().Count()).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Exit_AnnouncedRule7FaceWithSibling_TransfersTheWireIndex()
+    {
+        var owner = new RecordingUnit { ObjId = 1 };
+        var caster = new Unit { ObjId = 2 };
+
+        owner.Buffs.AddBuff(CreateLiveBuff(owner, caster, MultipleDecreaseOneCeiling2BuffId));
+        owner.Buffs.AddBuff(CreateLiveBuff(owner, caster, MultipleDecreaseOneCeiling2BuffId));
+        var instances = InstancesOf(owner, MultipleDecreaseOneCeiling2BuffId);
+        var face = instances.Single(i => i.AnnouncedToClient);
+        var faceIndex = face.Index;
+        var sibling = instances.Single(i => !i.AnnouncedToClient);
+        owner.Packets.Clear();
+
+        face.Exit();
+
+        var left = InstancesOf(owner, MultipleDecreaseOneCeiling2BuffId).Single();
+        await Assert.That(left.Index).IsEqualTo(faceIndex);
+        await Assert.That(left.AnnouncedToClient).IsTrue();
+        await Assert.That(ReferenceEquals(left, sibling)).IsTrue();
+        await Assert.That(owner.Packets.OfType<SCBuffRemovedPacket>().Count()).IsEqualTo(0);
+        await Assert.That(owner.Packets.OfType<SCBuffUpdatedPacket>().Count()).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task AddBuff_MultipleDecreaseOneFamily_LosesExactlyOneInstanceWhenOneExpires()
     {
         // The point of the rule: one expiry takes one stack off, not the family.
@@ -561,6 +626,14 @@ public class BuffStackAddBuffTests
             AbLevel = 1
         };
 
+    private static Buff CreateLiveBuff(BaseUnit owner, BaseUnit caster, uint buffId) =>
+        new(owner, caster, new SkillCasterUnit(caster.ObjId),
+            SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow)
+        {
+            Passive = false,
+            AbLevel = 1
+        };
+
     private static List<Buff> InstancesOf(BaseUnit owner, uint buffId) =>
         owner.Buffs.GetEffectsByType(typeof(BuffTemplate))
             .Where(buff => buff.Template.BuffId == buffId)
@@ -572,4 +645,11 @@ public class BuffStackAddBuffTests
     private static void SetField(object target, string name, object value) =>
         target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!
             .SetValue(target, value);
+
+    private sealed class RecordingUnit : Unit
+    {
+        public List<GamePacket> Packets { get; } = [];
+
+        public override void BroadcastPacket(GamePacket packet, bool self) => Packets.Add(packet);
+    }
 }

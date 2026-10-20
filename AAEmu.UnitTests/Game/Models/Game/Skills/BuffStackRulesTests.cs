@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills;
+﻿using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
@@ -134,12 +134,11 @@ public class BuffStackRulesTests
     }
 
     [Test]
-    public async Task AccumulatesApplications_OnlyForMultiple()
+    public async Task AccumulatesApplications_MultipleAndExtend()
     {
-        // Rule 4 is the counting rule. Its max_stack runs to 10,000 (25024 따뜻한 히라마 스튜 재료),
-        // 9,999 (24702 향연수호전 자원사용함), 600 (24701 저승 공헌도) and 60 (20860 해풍 응용, the
-        // permanent sail-wind family), which is a count on one icon and not that many live instances.
+        // Multiple counts permanent/counter families; Extend counts timed re-applications under max_stack.
         await Assert.That(BuffStackRules.AccumulatesApplications(BuffStackRule.Multiple)).IsTrue();
+        await Assert.That(BuffStackRules.AccumulatesApplications(BuffStackRule.Extend)).IsTrue();
         await Assert.That(BuffStackRules.AccumulatesApplications(BuffStackRule.Independent)).IsFalse();
         await Assert.That(BuffStackRules.AccumulatesApplications(BuffStackRule.MultipleDecreaseOne)).IsFalse();
     }
@@ -236,10 +235,11 @@ public class BuffStackRulesTests
     public async Task WireStack_ReportsTheFamilyTotalForTheOneInstanceRules()
     {
         // Refresh and ChargeRefresh live as one instance per family, so the family total is the count the
-        // icon carries — sail trim at sixty stacks among them.
+        // icon carries — sail trim at sixty stacks among them. Extend keeps the count on the instance, so
+        // other casters' applications are not folded into this icon.
         await Assert.That(BuffStackRules.WireStack(BuffStackRule.Refresh, 1, 60)).IsEqualTo(60u);
         await Assert.That(BuffStackRules.WireStack(BuffStackRule.ChargeRefresh, 1, 3)).IsEqualTo(3u);
-        await Assert.That(BuffStackRules.WireStack(BuffStackRule.Extend, 1, 4)).IsEqualTo(4u);
+        await Assert.That(BuffStackRules.WireStack(BuffStackRule.Extend, 1, 4)).IsEqualTo(1u);
     }
 
     [Test]

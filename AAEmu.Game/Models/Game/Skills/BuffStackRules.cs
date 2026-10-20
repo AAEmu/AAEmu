@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills.Buffs;
+﻿using AAEmu.Game.Models.Game.Skills.Buffs;
 
 namespace AAEmu.Game.Models.Game.Skills;
 
@@ -104,15 +104,12 @@ public static class BuffStackRules
 
     /// <summary>
     /// Whether a caster's repeat application adds to the count its live instance carries, rather than
-    /// replacing that instance. Only <see cref="BuffStackRule.Multiple"/> accumulates: its ceilings run
-    /// to 10,000 (25024 따뜻한 히라마 스튜 재료, 25389 범람하는 영혼), 9,999 (24702 향연수호전 자원사용함), 600
-    /// (24701 저승 공헌도) and 500 (29594 고대 유적의 촛불) on counter families, and to 60 on the
-    /// permanent sail-wind family (20860 해풍 응용). Those are counts on one icon, not that many live
-    /// instances — one instance per application would put up to ten thousand Buff records and icons on
-    /// the unit, which is the grid the remarks above forbid.
+    /// replacing that instance. Multiple accumulates counters and persistent families; Extend accumulates
+    /// timed applications while adding their durations, subject to both <c>max_stack</c> and
+    /// <c>max_life_time</c>.
     /// </summary>
     public static bool AccumulatesApplications(BuffStackRule rule) =>
-        rule == BuffStackRule.Multiple;
+        rule is BuffStackRule.Multiple or BuffStackRule.Extend;
 
     /// <summary>
     /// Whether every application gets its own live instance, so an expiry takes exactly one of them.
@@ -126,6 +123,13 @@ public static class BuffStackRules
     /// </remarks>
     public static bool IsInstancePerApplication(BuffStackRule rule) =>
         rule == BuffStackRule.MultipleDecreaseOne;
+
+    /// <summary>
+    /// <c>SCBuffUpdated.reason</c> the client uses when a
+    /// <see cref="BuffStackRule.MultipleDecreaseOne"/> family's stack count changes: it resets
+    /// elapsed so the single wire face's timer matches the latest application.
+    /// </summary>
+    public const byte ClientStackChangedReason = 3;
 
     /// <summary>
     /// Ceiling on how many live instances one caster may hold, from the template's <c>max_stack</c>.
@@ -175,7 +179,8 @@ public static class BuffStackRules
 
     /// <summary>
     /// The number both wire forms report for one live instance: the applications that instance
-    /// represents when instances are per caster, and the family total for the one-instance rules.
+    /// represents when instances are per caster or use Extend, and the family total for other
+    /// one-instance rules.
     /// </summary>
     /// <remarks>
     /// Instances share a <c>buffId</c>, so the family total is the same on every one of them. That is
@@ -184,7 +189,7 @@ public static class BuffStackRules
     /// the "grid of identical icons that all report the same total" the remarks describe.
     /// </remarks>
     public static uint WireStack(BuffStackRule rule, int instanceStack, int familyTotal) =>
-        IsCasterScoped(rule)
+        IsCasterScoped(rule) || rule == BuffStackRule.Extend
             ? (uint)Math.Max(1, instanceStack)
             : (uint)Math.Max(1, familyTotal);
 }

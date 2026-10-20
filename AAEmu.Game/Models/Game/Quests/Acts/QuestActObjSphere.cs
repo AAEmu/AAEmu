@@ -30,15 +30,14 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
     public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
+        // Visit objective: progress sticks after leave. Stay-inside objectives use QuestActCheckSphere.
         quest.Owner.Events.OnEnterSphere += questAct.OnEnterSphere;
-        quest.Owner.Events.OnExitSphere += questAct.OnExitSphere;
         ((GameObject)quest.Owner).ParentWorld.SphereQuestManager.AddSphereQuestTriggers(quest.Owner, quest, questAct.QuestComponent.Template.Id, NpcId);
     }
 
     public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         ((GameObject)quest.Owner).ParentWorld.SphereQuestManager.RemoveSphereQuestTriggers(quest.Owner.Id, quest.TemplateId);
-        quest.Owner.Events.OnExitSphere -= questAct.OnExitSphere;
         quest.Owner.Events.OnEnterSphere -= questAct.OnEnterSphere;
         base.FinalizeAction(quest, questAct);
     }
@@ -50,15 +49,6 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnEnterSphere: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ComponentId {args.SphereQuest.ComponentId}");
         SetObjective(questAct, 1);
-    }
-
-    public override void OnExitSphere(QuestAct questAct, object sender, OnExitSphereArgs args)
-    {
-        if (questAct.Id != ActId || args.SphereQuest.ComponentId != questAct.QuestComponent.Template.Id)
-            return;
-
-        Logger.Debug($"{QuestActTemplateName}({DetailId}).OnExitSphere: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ComponentId {args.SphereQuest.ComponentId}");
-        SetObjective(questAct, 0);
     }
 
 }

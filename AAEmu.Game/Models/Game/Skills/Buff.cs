@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -79,6 +79,19 @@ public class Buff
     /// can take the Zone process down instead of logging an invalid buff id.
     /// </summary>
     public bool RelayedToZone { get; set; }
+
+    /// <summary>
+    /// Set after the first <c>SCBuffCreated</c> for this instance. Refresh / overwrite / stack
+    /// growth re-run <see cref="BuffTemplate.Start"/> and must not Create again — the client
+    /// stacks FX per Create and a later Remove only clears one (hover particles).
+    /// <para>
+    /// For <see cref="BuffStackRule.MultipleDecreaseOne"/> the client also merges every Create of
+    /// the same buff id into one slot: a second Create with a new index zeroes the FX handle
+    /// without destroying the particle. Only one instance of that family may ever be announced;
+    /// siblings publish stack changes through <see cref="NotifyFamilyStackChanged"/>.
+    /// </para>
+    /// </summary>
+    public bool AnnouncedToClient { get; set; }
 
     /// <summary>
     /// One unit this aura is holding its slave buff on, and the instance it applied.
@@ -385,7 +398,7 @@ public class Buff
                     Template.Start(Caster, Owner, this);
 
                     if (Duration == 0)
-                        Duration = Template.GetDuration(AbLevel);
+                        Duration = BuffLifetimeRules.ClampedDuration(Template.GetDuration(AbLevel), Template.MaxLifeTime);
                     if (StartTime == DateTime.MinValue)
                     {
                         StartTime = DateTime.UtcNow;
@@ -415,6 +428,16 @@ public class Buff
                 }
             case EffectState.Acting:
                 {
+                    // Timed instances must stop when EndTime elapses even if the tick counter was
+                    // armed as "infinite" (_count == -1) or still has leftover ticks after an Extend
+                    // that the client already capped at max_life_time.
+                    if (Duration > 0 && EndTime != DateTime.MinValue && DateTime.UtcNow >= EndTime)
+                    {
+                        State = EffectState.Finishing;
+                        FinishBuff(replace, fireTimeout: true);
+                        return;
+                    }
+
                     if (_count == -1)
                     {
                         if (Template.OnActionTime)
@@ -508,6 +531,7 @@ public class Buff
 
     public void OverwriteWith(Buff newBuff)
     {
+        var grewStack = false;
         lock (_lock)
         {
             var remaining = GetTimeLeft();
@@ -534,12 +558,23 @@ public class Buff
                 // Extend: new Duration = remaining time (from old timer) + newBuff.Duration. GetTimeLeft()
                 // answers -1 for a permanent instance, so the sum goes through the rule, which floors that
                 // sentinel at zero instead of shaving a millisecond off the incoming duration.
-                Duration = BuffStackRules.ExtendedDuration(newBuff.Duration, remaining);
+                // max_life_time caps the summed timer; max_stack caps applications.
+                Duration = BuffLifetimeRules.ClampedDuration(
+                    BuffStackRules.ExtendedDuration(newBuff.Duration, remaining),
+                    Template.MaxLifeTime);
+
+                if (BuffStackRules.CanGrow(Stack, Template.MaxStack))
+                {
+                    Stack++;
+                    grewStack = true;
+                }
             }
             else
             {
                 // Refresh: new Duration = newBuff.Duration.
                 Duration = newBuff.Duration;
+                // max_life_time is the client-visible ceiling. Keep it on refresh too.
+                Duration = BuffLifetimeRules.ClampedDuration(Duration, Template.MaxLifeTime);
             }
 
             if (!BuffStackRules.ShouldScheduleDispel(Duration, Template.Tick))
@@ -562,6 +597,10 @@ public class Buff
                 SetInUse(true, true);
             }
         }
+
+        // Rebuild stack-scaled modifiers after the updated duration and stack are committed.
+        if (grewStack && InUse)
+            Template.Start(Caster, Owner, this);
 
         NotifyUpdated(reason: 1); // refresh/overwrite
     }
@@ -614,6 +653,33 @@ public class Buff
             ? 0
             : (int)Math.Max(0, (DateTime.UtcNow - StartTime).TotalMilliseconds);
         var stack = StackCount;
+
+        Owner.BroadcastPacket(
+            new SCBuffUpdatedPacket(Owner.ObjId, (int)Index, stack, (uint)Charge, elapsedMs, reason),
+            true);
+
+        if (WorldIntegration.ZoneAuthority && !ZoneAuthored)
+            WorldIntegration.RelayBuffUpdatedToZone?.Invoke(
+                Owner.ObjId, (int)Index, stack, (uint)Charge, elapsedMs, reason);
+    }
+
+    /// <summary>
+    /// <see cref="BuffStackRule.MultipleDecreaseOne"/>: push the caster family's live count on the
+    /// one wire face. The client stores a single slot per buff id for that rule, so siblings must
+    /// not Create — they refresh this face with <see cref="BuffStackRules.ClientStackChangedReason"/>.
+    /// </summary>
+    public void NotifyFamilyStackChanged()
+    {
+        if (Owner == null || Passive || !AnnouncedToClient)
+            return;
+
+        var casterKey = Caster?.ObjId ?? SkillCaster?.ObjId ?? 0;
+        var familyCount = Owner.Buffs.CountLiveInstancesForCaster(Template.BuffId, casterKey);
+        var stack = (uint)Math.Max(1, familyCount);
+        var elapsedMs = StartTime == DateTime.MinValue
+            ? 0
+            : (int)Math.Max(0, (DateTime.UtcNow - StartTime).TotalMilliseconds);
+        var reason = BuffStackRules.ClientStackChangedReason;
 
         Owner.BroadcastPacket(
             new SCBuffUpdatedPacket(Owner.ObjId, (int)Index, stack, (uint)Charge, elapsedMs, reason),

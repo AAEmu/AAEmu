@@ -435,31 +435,30 @@ public class BuffTemplate
 
         if (!buff.Passive)
         {
-            owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
-            if (WorldIntegration.ZoneAuthority && !buff.ZoneAuthored)
+            // Start re-runs on refresh, overwrite and stack growth. Create is once per wire face:
+            // a second SCBuffCreated stacks client FX (hover particles) that Remove cannot
+            // fully clear. Duration/charge/stack changes go out as SCBuffUpdated instead.
+            //
+            // MultipleDecreaseOne is stricter: the client merges every Create of the same buff id
+            // into one slot and, on a new index, zeroes the FX handle without destroying the
+            // particle. Only the first live instance of a caster's family may Create; siblings
+            // refresh that face's stack count.
+            if (BuffStackRules.IsInstancePerApplication(StackRule))
             {
-                if (!MoveSpeedMulRules.ShouldRelayToZone(Bonuses))
+                var casterKey = buff.Caster?.ObjId ?? buff.SkillCaster?.ObjId ?? 0;
+                var face = owner.Buffs.FindAnnouncedInstance(BuffId, casterKey);
+                if (face != null && !ReferenceEquals(face, buff))
                 {
-                    // Basic engine rating is already the 1000 baseline; sending it would double the hull.
-                    if (owner is Slave)
-                        Logger.Info("SlaveBuffAdd slave={0} buff={1} index={2} zoneRelay=skip",
-                            owner.ObjId, Id, buff.Index);
+                    face.NotifyFamilyStackChanged();
                 }
-                else if (BuffCreatedWire.IsZoneSafe(buff, out var unsafeReason))
+                else if (!buff.AnnouncedToClient)
                 {
-                    var body = new PacketStream();
-                    BuffCreatedWire.Write(body, buff, forZone: true);
-                    if (owner is Slave)
-                        Logger.Info("SlaveBuffAdd slave={0} buff={1} index={2} stack={3} caster={4}",
-                            owner.ObjId, Id, buff.Index, buff.StackCount, buff.SkillCaster?.ObjId ?? 0);
-                    WorldIntegration.RelayBuffCreatedToZone?.Invoke(owner.ObjId, body.GetBytes());
-                    buff.RelayedToZone = true;
+                    AnnounceBuffCreated(owner, buff);
                 }
-                else
-                {
-                    // Skip invalid unit references instead of forwarding an unsafe buff.
-                    Logger.Warn($"Not relaying buff {Id} to zone: {unsafeReason}.");
-                }
+            }
+            else if (!buff.AnnouncedToClient)
+            {
+                AnnounceBuffCreated(owner, buff);
             }
         }
 
@@ -601,13 +600,38 @@ public class BuffTemplate
 
         if (!buff.Passive && !replaced)
         {
-            owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, buff.Index), true);
-            if (notifyZone && WorldIntegration.ZoneAuthority)
+            if (BuffStackRules.IsInstancePerApplication(StackRule))
             {
-                if (BuffCreatedWire.ShouldRelayRemoved(buff, out var skipRemove))
-                    WorldIntegration.RelayBuffRemovedToZone?.Invoke(owner.ObjId, buff.Index);
-                else if (!buff.ZoneAuthored)
-                    Logger.Warn($"Not relaying buff remove {Id} index {buff.Index} to zone: {skipRemove}.");
+                // One wire face per caster family. A sibling that never Created must not Remove
+                // (unknown index). When the face itself ends with siblings left, hand the wire
+                // index to a survivor so the client keeps one slot and its FX handle intact.
+                var casterKey = buff.Caster?.ObjId ?? buff.SkillCaster?.ObjId ?? 0;
+                if (buff.AnnouncedToClient)
+                {
+                    var heirs = owner.Buffs.GetLiveInstancesForCaster(BuffId, casterKey);
+                    if (heirs.Count > 0)
+                    {
+                        var heir = heirs[0];
+                        heir.Index = buff.Index;
+                        heir.AnnouncedToClient = true;
+                        heir.RelayedToZone = buff.RelayedToZone;
+                        buff.AnnouncedToClient = false;
+                        heir.NotifyFamilyStackChanged();
+                    }
+                    else
+                    {
+                        RemoveBuffFromClient(owner, buff, notifyZone);
+                    }
+                }
+                else
+                {
+                    var face = owner.Buffs.FindAnnouncedInstance(BuffId, casterKey);
+                    face?.NotifyFamilyStackChanged();
+                }
+            }
+            else
+            {
+                RemoveBuffFromClient(owner, buff, notifyZone);
             }
         }
 
@@ -644,5 +668,48 @@ public class BuffTemplate
     public double GetTick()
     {
         return Tick;
+    }
+
+    private void AnnounceBuffCreated(BaseUnit owner, Buff buff)
+    {
+        owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
+        buff.AnnouncedToClient = true;
+        if (WorldIntegration.ZoneAuthority && !buff.ZoneAuthored)
+        {
+            if (!MoveSpeedMulRules.ShouldRelayToZone(Bonuses))
+            {
+                // Basic engine rating is already the 1000 baseline; sending it would double the hull.
+                if (owner is Slave)
+                    Logger.Info("SlaveBuffAdd slave={0} buff={1} index={2} zoneRelay=skip",
+                        owner.ObjId, Id, buff.Index);
+            }
+            else if (BuffCreatedWire.IsZoneSafe(buff, out var unsafeReason))
+            {
+                var body = new PacketStream();
+                BuffCreatedWire.Write(body, buff, forZone: true);
+                if (owner is Slave)
+                    Logger.Info("SlaveBuffAdd slave={0} buff={1} index={2} stack={3} caster={4}",
+                        owner.ObjId, Id, buff.Index, buff.StackCount, buff.SkillCaster?.ObjId ?? 0);
+                WorldIntegration.RelayBuffCreatedToZone?.Invoke(owner.ObjId, body.GetBytes());
+                buff.RelayedToZone = true;
+            }
+            else
+            {
+                // Skip invalid unit references instead of forwarding an unsafe buff.
+                Logger.Warn($"Not relaying buff {Id} to zone: {unsafeReason}.");
+            }
+        }
+    }
+
+    private void RemoveBuffFromClient(BaseUnit owner, Buff buff, bool notifyZone)
+    {
+        owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, buff.Index), true);
+        if (notifyZone && WorldIntegration.ZoneAuthority)
+        {
+            if (BuffCreatedWire.ShouldRelayRemoved(buff, out var skipRemove))
+                WorldIntegration.RelayBuffRemovedToZone?.Invoke(owner.ObjId, buff.Index);
+            else if (!buff.ZoneAuthored)
+                Logger.Warn($"Not relaying buff remove {Id} index {buff.Index} to zone: {skipRemove}.");
+        }
     }
 }

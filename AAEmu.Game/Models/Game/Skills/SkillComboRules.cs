@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
@@ -101,33 +101,58 @@ public static class SkillComboRules
     /// client can send the next link, or 0 when it has no Combo link.
     /// </summary>
     /// <remarks>
-    /// The window is measured from when the cast is accepted. The client cannot send the follow-up
-    /// until that hit's cast bar and/or shared GCD have finished — cast-time hits used to burn
-    /// <c>value2</c> before the next press; plot-only chains with <c>custom_gcd</c> longer than
-    /// <c>value2</c> (Mana Bolt under Serpent Glare) did the same on the GCD. Adding
-    /// <c>max(casting_time, shared GCD)</c> keeps the next link open through that wait and still
-    /// closes it so a later link cannot be sent on its own.
+    /// The window is measured from when the cast is accepted. Ready delay matches the press-armed
+    /// shared GCD: cast bars scale by cast speed; the GCD base follows equipped weapon speed and
+    /// <see cref="SkillGcdRules.AttackSpeedGcdMultiplier"/> (cast speed does not scale the GCD).
     /// </remarks>
-    public static int ComboWindowMs(uint skillId)
+    public static int ComboWindowMs(
+        uint skillId,
+        int equippedWeaponGcdSpeed = 0,
+        float castTimeMul = 1f,
+        float globalCooldownMul = 100f,
+        long attackSpeedRating = 0)
     {
         var template = SkillManager.Instance?.GetSkillTemplate(skillId);
         if (template == null || !TryGetComboFollowUp(template, out _, out var ms) || ms <= 0)
             return 0;
-        return ms + FollowUpReadyDelayMs(template);
+        return ms + FollowUpReadyDelayMs(
+            template, equippedWeaponGcdSpeed, castTimeMul, globalCooldownMul, attackSpeedRating);
     }
 
     /// <summary>
     /// Milliseconds after accept before the client may send this skill's Combo follow-up.
     /// </summary>
-    public static int FollowUpReadyDelayMs(SkillTemplate template)
+    /// <param name="equippedWeaponGcdSpeed">
+    /// Equipped holdable speed for the skill's <c>weapon_gcd_id</c> slot (15/16/17), or 0 when the
+    /// skill does not select a weapon slot / the slot is empty.
+    /// </param>
+    /// <param name="castTimeMul">Caster cast-speed factor (baseline 1). Scales <c>casting_time</c> only.</param>
+    /// <param name="globalCooldownMul">
+    /// Caster attr-74 interval percent (baseline 100). Shared GCD fallback when attack-speed rating is 0.
+    /// </param>
+    /// <param name="attackSpeedRating">Caster attr-218 sum; 0 uses <paramref name="globalCooldownMul"/>.</param>
+    public static int FollowUpReadyDelayMs(
+        SkillTemplate template,
+        int equippedWeaponGcdSpeed = 0,
+        float castTimeMul = 1f,
+        float globalCooldownMul = 100f,
+        long attackSpeedRating = 0)
     {
         if (template == null)
             return 0;
-        var castMs = Math.Max(0, template.CastingTime);
-        // Weapon-class GCD needs the caster's holdable; combo gates only see the template, and the
-        // shipped caster chains that hit this path author custom_gcd outright.
-        var gcdMs = SkillGcdRules.ResolveSharedGcd(
-            template.CustomGcd, template.DefaultGcd, weaponGcdSpeed: 0, isNpc: false);
+
+        var castMul = Math.Max(0f, castTimeMul);
+        var castMs = (int)Math.Round(Math.Max(0, template.CastingTime) * castMul);
+
+        var usesWeaponSpeed = template.WeaponGcdId > 0;
+        var weaponGcdSpeed = usesWeaponSpeed ? Math.Max(0, equippedWeaponGcdSpeed) : 0;
+        var useDefaultGcd = template.DefaultGcd ||
+                            (usesWeaponSpeed && weaponGcdSpeed <= 0 && template.CustomGcd <= 0);
+        var gcdBase = SkillGcdRules.ResolveSharedGcd(
+            template.CustomGcd, useDefaultGcd, weaponGcdSpeed, isNpc: false);
+        var gcdMul = SkillGcdRules.AttackSpeedGcdMultiplier(attackSpeedRating, globalCooldownMul);
+        var gcdMs = (int)Math.Round(gcdBase * gcdMul);
+
         return Math.Max(castMs, gcdMs);
     }
 
@@ -234,5 +259,36 @@ public static class SkillComboRules
         var next = nextFollowUp(skillId);
         if (next is uint nextId && nextId != 0)
             followUpExpiresAt.Remove(nextId);
+    }
+
+    /// <summary>
+    /// Hold-to-repeat (<c>start_autoattack</c>) sometimes keeps sending the root id even while a
+    /// Combo follow-up window is open (client never swaps the bar). Map that press onto the open
+    /// link so the chain advances; a press that already names an open follow-up is left alone.
+    /// </summary>
+    public static uint RemapHoldRepeatToOpenFollowUp(
+        uint skillId,
+        bool startAutoAttack,
+        Func<uint, uint?> nextFollowUp,
+        IReadOnlyDictionary<uint, DateTime> followUpExpiresAt,
+        DateTime now)
+    {
+        if (skillId == 0 || !startAutoAttack || nextFollowUp == null || followUpExpiresAt == null)
+            return skillId;
+
+        if (IsOpenComboFollowUp(skillId, followUpExpiresAt, now))
+            return skillId;
+
+        var next = nextFollowUp(skillId);
+        if (next is not uint first || first == 0)
+            return skillId;
+
+        foreach (var id in WalkChain(first, nextFollowUp))
+        {
+            if (IsOpenComboFollowUp(id, followUpExpiresAt, now))
+                return id;
+        }
+
+        return skillId;
     }
 }

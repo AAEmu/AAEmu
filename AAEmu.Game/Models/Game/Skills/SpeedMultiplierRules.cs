@@ -1,19 +1,14 @@
-namespace AAEmu.Game.Models.Game.Skills;
+﻿﻿namespace AAEmu.Game.Models.Game.Skills;
 
 /// <summary>
-/// The attack-speed ratings behind a unit's attack interval: <c>attack_speed_mul</c>
-/// (<c>enum_unit_attribute</c> 218), the melee and ranged views <c>melee_speed_mul</c>/<c>ranged_speed_mul</c>
-/// (54/55), the animation view <c>attack_anim_speed_mul</c> (119) and the pre-existing
-/// <c>global_cooldown_mul</c> (74).
+/// The speed ratings used by combat timing: general <c>attack_speed_mul</c> (218), melee/ranged weapon
+/// interval views (54/55), animation-specific speed (119), and the existing global-cooldown multiplier (74).
 /// </summary>
 /// <remarks>
-/// All five ids are one rating seen from five sides, and the content DB proves it: for the 390 buff rows
-/// that carry 54, the rows for 74 and 119 store the identical value (<c>select owner_id, value from
-/// unit_modifiers where owner_type='Buff' and unit_attribute_id in (54,74,119)</c> agrees on 377 and 384 of
-/// them, and 55 agrees with 74 on 373). Only 218 is a family of its own: 75 buff rows carry it and just
-/// four of them also carry 74. So an attack interval takes the newest rating the unit has and never two of
-/// them at once — <see cref="AttackIntervalFactor"/> — which is also why 54/55 can be consumed here without
-/// squaring the <c>global_cooldown_mul</c> factor the weapon-speed branch already applied.
+/// These database attributes can mirror one another on buffs, so combat timing selects the rating for its
+/// purpose instead of multiplying aliases together: 218 drives shared skill GCD and animation speed; 54/55
+/// can adjust melee/ranged weapon intervals; 119 is the animation-specific fallback; and 74 is the existing
+/// global-cooldown fallback.
 ///
 /// The direction is the one <c>Character.GlobalCooldownMul</c> already implements for 74: the stored value
 /// is a per-mille delta on a rate of 1000 (a <c>unit_modifiers</c> row of -700 means "70% slower"), and the
@@ -38,22 +33,24 @@ public static class SpeedMultiplierRules
     public static long ClampRating(long rating) => Math.Clamp(rating, MinRating, MaxRating);
 
     /// <summary>
-    /// The factor an attack interval is multiplied by for a unit carrying <paramref name="rating"/>:
+    /// The factor an interval is multiplied by for a unit carrying <paramref name="rating"/>:
     /// 1000/(1000 + rating), so -666 is 2.99x slower and +2000 is 0.33x.
     /// </summary>
     /// <remarks>
-    /// The <c>100000f / (rating + 1000f)</c> form and the truncation to a whole percent are not decoration.
-    /// They are the arithmetic <c>Character.GlobalCooldownMul</c> already applies to weapon speed and to the
-    /// GCD, so a rating that arrives here from 54/55/119/218 produces bit-identical numbers to the same
-    /// rating arriving through 74 — which is what makes consuming 54/55 provably neutral on the 377 buff rows
-    /// where the two agree.
+    /// The <c>100000f / (rating + 1000f)</c> form and truncation to a whole percent match the existing
+    /// <c>Character.GlobalCooldownMul</c> calculation for legacy callers.
     /// </remarks>
     public static double DelayFactor(long rating) => (int)(100000f / (ClampRating(rating) + 1000f)) / 100f;
 
     /// <summary>
-    /// The pace of an attack: the general attack-speed rating when the unit carries one, otherwise the rating
-    /// for that attack's own type, otherwise <paramref name="fallbackFactor"/> — the factor the caller
-    /// already had, which is how a unit with none of these rows keeps its current interval exactly.
+    /// The continuous interval factor for the general attack-speed rating. Keeping the fractional percent
+    /// gives a +177 rating 84.96% of the base interval, which the client displays as 85%.
+    /// </summary>
+    public static double AttackSpeedDelayFactor(long rating) => 1000d / (ClampRating(rating) + Baseline);
+
+    /// <summary>
+    /// General attack-speed selection for callers that model animation/GCD timing: the general rating when
+    /// present, otherwise a supplied type rating, otherwise <paramref name="fallbackFactor"/>.
     /// </summary>
     /// <param name="attackSpeedRating">Sum of the unit's <c>attack_speed_mul</c> (218) rows; 0 when absent.</param>
     /// <param name="typeRating">
@@ -72,6 +69,13 @@ public static class SpeedMultiplierRules
     }
 
     /// <summary>
+    /// Weapon swing interval selection. General attack speed is intentionally excluded because it controls
+    /// attack animation completion and shared skill GCD, not the interval between auto-attacks.
+    /// </summary>
+    public static double WeaponIntervalFactor(long typeRating, double fallbackFactor) =>
+        typeRating != 0 ? DelayFactor(typeRating) : fallbackFactor;
+
+    /// <summary>
     /// The pace of the animation a skill plays, which the server turns into the combat-sync delay before the
     /// hit lands. <c>attack_anim_speed_mul</c> (119) is the animation's own view of the same rating; a unit
     /// without one falls back to <paramref name="fallbackFactor"/>, the <c>global_cooldown_mul</c> factor the
@@ -79,4 +83,14 @@ public static class SpeedMultiplierRules
     /// </summary>
     public static double AnimationFactor(long animationSpeedRating, double fallbackFactor) =>
         animationSpeedRating != 0 ? DelayFactor(animationSpeedRating) : fallbackFactor;
+
+    /// <summary>
+    /// General attack speed paces skill animations when present. The animation-specific rating remains a
+    /// fallback for content that supplies it directly, followed by the existing global-cooldown multiplier.
+    /// These attributes are alternate views of speed and must not be multiplied together.
+    /// </summary>
+    public static double AnimationFactor(long attackSpeedRating, long animationSpeedRating, double fallbackFactor) =>
+        attackSpeedRating != 0
+            ? AttackSpeedDelayFactor(attackSpeedRating)
+            : AnimationFactor(animationSpeedRating, fallbackFactor);
 }
