@@ -34,4 +34,10 @@ public static class AreaTriggerCloutRules
     /// </summary>
     public static bool WaitUntilOwnerVisible(bool ownerVisible) => !ownerVisible;
 
+    /// <summary>
+    /// When the arm pulse ran before the owner was visible, <c>Doodad.Spawn</c> must pulse again
+    /// so a short clout is not left waiting for the manager's 200 ms tick.
+    /// </summary>
+    public static bool NeedsPostSpawnPulse(bool ownerWasVisibleAtArm) => !ownerWasVisibleAtArm;
+
 }

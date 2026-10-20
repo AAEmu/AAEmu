@@ -1350,6 +1350,30 @@ public class Doodad : BaseUnit
     {
         base.Spawn();
         FishSchoolManager.Instance.Track(this);
+        // Clouts from InitDoodad arm before IsVisible; AddAreaTrigger's first pulse is a no-op.
+        // Without a pulse now, a 120 ms clout can expire before the manager's next 200 ms tick.
+        PulseAttachedAreaTriggers();
+    }
+
+    /// <summary>
+    /// Runs the first real area-trigger pulse after this doodad becomes visible.
+    /// </summary>
+    private void PulseAttachedAreaTriggers()
+    {
+        if (AttachAreaTriggers.Count == 0)
+            return;
+
+        foreach (var trigger in AttachAreaTriggers.ToList())
+        {
+            try
+            {
+                trigger.Tick(TimeSpan.Zero);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Error pulsing AreaTrigger after Spawn obj={0}", ObjId);
+            }
+        }
     }
 
     /// <summary>

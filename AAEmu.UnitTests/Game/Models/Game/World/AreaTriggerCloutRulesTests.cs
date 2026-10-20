@@ -49,4 +49,12 @@ public class AreaTriggerCloutRulesTests
         await Assert.That(AreaTriggerCloutRules.WaitUntilOwnerVisible(ownerVisible)).IsEqualTo(expected);
     }
 
+    [Test]
+    [Arguments(false, true)]
+    [Arguments(true, false)]
+    public async Task NeedsPostSpawnPulse_WhenArmRanBeforeVisible(bool ownerWasVisibleAtArm, bool expected)
+    {
+        await Assert.That(AreaTriggerCloutRules.NeedsPostSpawnPulse(ownerWasVisibleAtArm)).IsEqualTo(expected);
+    }
+
 }
