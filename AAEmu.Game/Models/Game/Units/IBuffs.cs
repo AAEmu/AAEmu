@@ -11,6 +11,7 @@ public interface IBuffs
     void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0);
     void AddBuff(uint buffId, BaseUnit caster);
     bool CheckBuff(uint id);
+    bool HasTransformSourceBelowCeiling(uint transformTargetBuffId);
     bool CheckBuffImmune(BuffTemplate candidate, BaseUnit caster, Skill castingSkill = null);
     bool CheckBuffs(List<uint> ids);
     bool CheckBuffTag(uint tagId);

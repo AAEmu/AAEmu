@@ -1056,6 +1056,7 @@ public partial class Character : Unit, ICharacter
 
     public const int MaxActionSlots = 85;
     public ActionSlot[] Slots { get; set; }
+    public ActionSlotShortcutMemory ActionShortcuts { get; } = new();
     public Inventory Inventory { get; set; }
     public byte NumInventorySlots { get; set; }
     public short NumBankSlots { get; set; }
@@ -3514,6 +3515,95 @@ public partial class Character : Unit, ICharacter
     {
         Slots[slot].Type = type;
         Slots[slot].ActionId = itemId;
+    }
+
+    /// <summary>
+    /// The shortcut about to be cleared is for an item that casts a skill or grants a buff.
+    /// Those clears arrive immediately before the item itself is moved.
+    /// </summary>
+    public bool SkillItemShortcutKeeps(byte slot)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return false;
+        var current = Slots[slot];
+        if (current == null)
+            return false;
+
+        var template = current.Type switch
+        {
+            ActionSlotType.ItemId => Inventory?.GetItemById(current.ActionId)?.Template,
+            ActionSlotType.ItemType => ItemManager.Instance.GetTemplate((uint)current.ActionId),
+            _ => null
+        };
+        return ActionSlotShortcutRules.KeepsShortcut(template?.UseSkillId ?? 0, template?.BuffId ?? 0);
+    }
+
+    public void RememberSkillItemShortcutClear(byte slot, bool keepsShortcut, DateTime utc)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return;
+        var current = Slots[slot];
+        ActionShortcuts.Remember(slot, current?.Type ?? ActionSlotType.None, current?.ActionId ?? 0, keepsShortcut, utc);
+    }
+
+    /// <summary>
+    /// Puts back shortcuts cleared for this item when the clear and the move are one gesture.
+    /// </summary>
+    public bool RestoreSkillItemShortcuts(ulong itemId, uint templateId, DateTime utc)
+    {
+        if (Slots == null)
+            return false;
+        return ActionSlotShortcutRules.ApplyRestore(Slots, ActionShortcuts.TakeRestores(itemId, templateId, utc));
+    }
+
+    public void NoteSkillItemMoved(ulong itemId, uint templateId, DateTime utc) =>
+        ActionShortcuts.NoteMove(itemId, templateId, utc);
+
+    public void NoteSkillItemUsed(ulong itemId, uint templateId, DateTime utc) =>
+        ActionShortcuts.NoteUse(itemId, templateId, utc);
+
+    /// <summary>
+    /// The shortcut still names an item that just changed slots, so the clear arrived after the move.
+    /// </summary>
+    public bool SkillItemShortcutWasJustMoved(byte slot, DateTime utc)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return false;
+        var current = Slots[slot];
+        if (current == null)
+            return false;
+        return ActionShortcuts.WasMoved(current.Type, current.ActionId, utc);
+    }
+
+    /// <summary>
+    /// The shortcut names an item whose use-skill just ran; the client clear is the use, not a drag-off.
+    /// </summary>
+    public bool SkillItemShortcutWasJustUsed(byte slot, DateTime utc)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return false;
+        var current = Slots[slot];
+        if (current == null)
+            return false;
+        return ActionShortcuts.WasUsed(current.Type, current.ActionId, utc);
+    }
+
+    /// <summary>
+    /// True when any hotbar slot still names this item (by id or template).
+    /// </summary>
+    public bool HasSkillItemShortcut(ulong itemId, uint templateId)
+    {
+        if (Slots == null)
+            return false;
+        foreach (var slot in Slots)
+        {
+            if (slot == null)
+                continue;
+            if (ActionSlotShortcutRules.MatchesMove(slot.Type, slot.ActionId, itemId, templateId))
+                return true;
+        }
+
+        return false;
     }
 
     public void SetOption(ushort key, string value)

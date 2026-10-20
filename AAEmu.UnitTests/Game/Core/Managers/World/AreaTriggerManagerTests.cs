@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.World;
 
@@ -19,5 +20,12 @@ public class AreaTriggerManagerTests
         var tick = AreaTriggerManager.ShouldTick(ownerRegionHasPlayers, hasOccupants);
 
         await Assert.That(tick).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task LightningCloutDuration_NeedsImmediatePulseAgainstManagerInterval()
+    {
+        // Shipped doodad_func_clouts duration 120 / tick 100 (62 rows) vs manager 200 ms.
+        await Assert.That(AreaTriggerCloutRules.NeedsImmediatePulse(120, 200)).IsTrue();
     }
 }

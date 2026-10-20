@@ -133,6 +133,62 @@ public class SkillControllerTests
     }
 
     [Test]
+    public async Task ASelfAnchoredLeapRunsBackAlongTheFacing()
+    {
+        // Backdraft's row shape: kind 2, 700 ms, value4 −5000, and the skill selects its own caster as the
+        // target. owner→target has no direction (atan2(0,0) is world +X), so the step goes along the facing:
+        // facing −X (yaw 90°) and a negative offset land the caster at +X, still facing −X.
+        var (player, _) = CreateCast();
+        player.Transform.Local.SetRotationDegree(0f, 0f, 90f);
+
+        var row = LeapRow(id: 12742, value4: -5000);
+        row.Value[2] = 700;
+        var controller = SkillController.CreateSkillController(row, player, player);
+        player.ActiveSkillController = controller;
+
+        ((LinearMoveSkillController)controller).MoveTowards(10f);
+
+        var position = player.Transform.Local.Position;
+        await Assert.That(position.X).IsEqualTo(5f).Within(0.05f);
+        await Assert.That(Math.Abs(position.Y)).IsLessThan(0.05f);
+        await Assert.That(player.Transform.Local.Rotation.Z).IsEqualTo(MathF.PI / 2f).Within(1e-3f);
+    }
+
+    [Test]
+    public async Task ASelfAnchoredLeapWithAPositiveOffsetRunsForward()
+    {
+        // Tactical Move's row shape: value4 +6000 on a self-cast. Yaw 0 faces +Y.
+        var (player, _) = CreateCast();
+
+        var controller = SkillController.CreateSkillController(LeapRow(id: 12936, value4: 6000), player, player);
+        player.ActiveSkillController = controller;
+
+        ((LinearMoveSkillController)controller).MoveTowards(10f);
+
+        var position = player.Transform.Local.Position;
+        await Assert.That(position.Y).IsEqualTo(6f).Within(0.05f);
+        await Assert.That(Math.Abs(position.X)).IsLessThan(0.05f);
+    }
+
+    [Test]
+    public async Task ATargetedLeapLandsPastTheTargetOnTheOwnerTargetLine()
+    {
+        // Target at +Y 20 m, offset −25 m: the landing is 5 m short of the owner on the far side of it, i.e.
+        // at Y −5 — not a point computed from a degree value fed to a radian helper.
+        var (player, target) = CreateCast();
+        target.Transform.Local.SetPosition(0f, 20f, 0f);
+
+        var controller = SkillController.CreateSkillController(LeapRow(), player, target);
+        player.ActiveSkillController = controller;
+
+        ((LinearMoveSkillController)controller).MoveTowards(10f);
+
+        var position = player.Transform.Local.Position;
+        await Assert.That(Math.Abs(position.X)).IsLessThan(0.05f);
+        await Assert.That(position.Y).IsEqualTo(-5f).Within(0.05f);
+    }
+
+    [Test]
     public async Task AnNpcLeapStillWorks()
     {
         // The path that already existed: an NPC leap is created and moved exactly as before.

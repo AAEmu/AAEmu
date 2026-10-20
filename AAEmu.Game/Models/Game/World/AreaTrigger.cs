@@ -26,6 +26,20 @@ public class AreaTrigger
 
     public uint SkillId { get; set; }
     public uint TlId { get; set; }
+
+    /// <summary>Plot that spawned this hazard. Zero for a clout that is not a plot summon.</summary>
+    public uint PlotId { get; set; }
+
+    public uint PlotEventId { get; set; }
+
+    /// <summary>
+    /// A plot-summoned hazard reports its hit as that plot cast. A skill-timeline lookup misses once
+    /// the cast bar belongs to the plot, and the client then drops both the number and the health change.
+    /// </summary>
+    public static CastAction CreateHitCast(uint plotId, ushort tlId, uint plotEventId, uint skillId) =>
+        plotId != 0
+            ? new CastPlot(plotId, tlId, plotEventId, skillId)
+            : new CastSkill(skillId, tlId);
     public SkillTargetRelation TargetRelation { get; set; }
     public uint TargetBuffTagId { get; set; }
     public uint TargetNoBuffTagId { get; set; }
@@ -42,11 +56,16 @@ public class AreaTrigger
 
     private void UpdateUnits()
     {
-        if (Owner == null || Shape == null || !Owner.IsVisible)
+        if (Owner == null || Shape == null)
         {
             AreaTriggerManager.Instance.RemoveAreaTrigger(this);
             return;
         }
+
+        // Initial-phase clouts pulse before Spawn. Dropping the trigger there means nobody
+        // can enter after the doodad becomes visible.
+        if (AreaTriggerCloutRules.WaitUntilOwnerVisible(Owner.IsVisible))
+            return;
 
         // Get units currently in the shape
         var currentUnitsInShape = WorldManager.GetAroundByShape<Unit>(Owner, Shape) ?? [];
@@ -84,33 +103,40 @@ public class AreaTrigger
         Units = currentUnitsInShape;
     }
 
+    private bool HasRegisteredEffects => EffectsPerBuff.Count > 0 && EffectsPerBuff.Values.Any(list => list is { Count: > 0 });
+
     private void OnEnter(Unit unit)
     {
-        if (Caster == null || Owner == null || unit == null || InsideBuffTemplate == null)
-        {
+        if (Caster == null || Owner == null || unit == null)
             return;
-        }
 
-        if (IsValidTarget(unit) && TriggeredUnits.Add(unit))
+        if (!AreaTriggerCloutRules.TracksOccupantsWithoutBuff(InsideBuffTemplate != null, HasRegisteredEffects))
+            return;
+
+        if (!IsValidTarget(unit) || !TriggeredUnits.Add(unit))
+            return;
+
+        if (InsideBuffTemplate == null)
+            return;
+
+        unit.IncrementTriggerCount(InsideBuffTemplate.BuffId);
+        if (unit.GetTriggerCount(InsideBuffTemplate.BuffId) == 1)
         {
-            unit.IncrementTriggerCount(InsideBuffTemplate.BuffId);
-            if (unit.GetTriggerCount(InsideBuffTemplate.BuffId) == 1)
-            {
-                InsideBuffTemplate.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.UtcNow);
-            }
+            InsideBuffTemplate.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.UtcNow);
         }
     }
 
     private void OnLeave(Unit unit)
     {
-        if (InsideBuffTemplate != null && unit != null && TriggeredUnits.Remove(unit))
-        {
-            unit.DecrementTriggerCount(InsideBuffTemplate.BuffId);
-            if (unit.GetTriggerCount(InsideBuffTemplate.BuffId) == 0)
-            {
-                unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
-            }
-        }
+        if (unit == null || !TriggeredUnits.Remove(unit))
+            return;
+
+        if (InsideBuffTemplate == null)
+            return;
+
+        unit.DecrementTriggerCount(InsideBuffTemplate.BuffId);
+        if (unit.GetTriggerCount(InsideBuffTemplate.BuffId) == 0)
+            unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
     }
 
     public void OnDelete()
@@ -132,39 +158,63 @@ public class AreaTrigger
 
     private void ApplyEffects()
     {
-        if (InsideBuffTemplate == null || Caster == null)
-        {
+        if (Caster == null)
             return;
-        }
 
-        if (!EffectsPerBuff.ContainsKey(InsideBuffTemplate.BuffId))
-        {
+        if (!AreaTriggerCloutRules.AppliesEffectsOnTick(InsideBuffTemplate != null, HasRegisteredEffects))
             return;
-        }
 
         foreach (var unit in TriggeredUnits)
         {
-            foreach (var effect in EffectsPerBuff[InsideBuffTemplate.BuffId])
+            foreach (var effect in EnumerateEffectsForTick())
             {
-                if (effect is BuffEffect buffEffect && unit.Buffs.CheckBuff(buffEffect.BuffId))
-                {
+                if (effect == null)
                     continue;
-                }
 
-                var eff = unit.Buffs.GetEffectFromBuffId(InsideBuffTemplate.BuffId);
-                CastAction castAction = null;
-                if (eff != null)
+                if (effect is BuffEffect buffEffect && unit.Buffs.CheckBuff(buffEffect.BuffId))
+                    continue;
+
+                CastAction castAction;
+                if (InsideBuffTemplate != null)
                 {
-                    castAction = new CastBuff(eff);
+                    var eff = unit.Buffs.GetEffectFromBuffId(InsideBuffTemplate.BuffId);
+                    castAction = eff != null
+                        ? new CastBuff(eff)
+                        : CreateHitCast(PlotId, (ushort)TlId, PlotEventId, SkillId);
                 }
                 else
                 {
-                    castAction = new CastSkill(SkillId, 0);
+                    castAction = CreateHitCast(PlotId, (ushort)TlId, PlotEventId, SkillId);
                 }
 
-                effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), castAction, new EffectSource(), new SkillObject(), DateTime.UtcNow);
+                effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId),
+                    castAction, CreateEffectSource(), new SkillObject(), DateTime.UtcNow);
             }
         }
+    }
+
+    private IEnumerable<EffectTemplate> EnumerateEffectsForTick()
+    {
+        if (InsideBuffTemplate != null
+            && EffectsPerBuff.TryGetValue(InsideBuffTemplate.BuffId, out var keyed)
+            && keyed != null)
+        {
+            return keyed;
+        }
+
+        // Buff-less clouts key their effect list under buff_id 0 (or any single entry).
+        return EffectsPerBuff.Values.SelectMany(list => list ?? []);
+    }
+
+    private EffectSource CreateEffectSource()
+    {
+        if (SkillId == 0 || Caster is not Unit unitCaster)
+            return new EffectSource();
+
+        var template = SkillManager.Instance.GetSkillTemplate(SkillId);
+        return template == null
+            ? new EffectSource()
+            : new EffectSource(new Skill(template, unitCaster));
     }
 
     // Called every 50ms

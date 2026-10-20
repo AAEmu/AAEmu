@@ -204,6 +204,33 @@ public class Skill
     public bool PlayerAuthoredPlotCast { get; set; }
 
     /// <summary>
+    /// The <c>inputDirection</c> byte the client sent with this cast (0 on every skill that does not ship
+    /// <c>use_input_direction</c>). <c>SCPlotEvent</c> echoes it unchanged: the client orients its own
+    /// controller run and the plot FX off that byte, so a server-derived yaw in its place sent Backdraft's
+    /// leap and Ceaseless Fire's stream along whatever the body yaw had rounded to.
+    /// </summary>
+    public byte ClientInputDirection { get; set; }
+
+    /// <summary>
+    /// Timeline id captured when the plot graph starts. <see cref="TlId"/> is cleared when the cast
+    /// bar ends, while a summoned hazard can still be ticking; floaters keep matching this id.
+    /// </summary>
+    public ushort PlotCastTlId { get; private set; }
+
+    /// <summary>Plot and event that last applied an effect on this cast. A summoned hazard repeats them.</summary>
+    public uint PlotCastPlotId { get; private set; }
+
+    public uint PlotCastEventId { get; private set; }
+
+    public void NotePlotCast(uint plotId, uint eventId)
+    {
+        if (plotId == 0)
+            return;
+        PlotCastPlotId = plotId;
+        PlotCastEventId = eventId;
+    }
+
+    /// <summary>
     /// How many times over the skill's labor cost applies to this cast.
     /// </summary>
     /// <remarks>
@@ -650,6 +677,7 @@ public class Skill
             // skill clears TlId as soon as its cast ends, so the id the client matches plot packets against
             // has to travel with the plot (PlotState.CastTlId).
             var plotTlId = TlId;
+            PlotCastTlId = plotTlId;
             if (PlayerAuthoredPlotCast)
             {
                 // The only other place a Started is sent is the cast-time branch below, and this cast has no

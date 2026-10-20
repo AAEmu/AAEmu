@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Units;
 
 using NLog;
@@ -83,14 +84,23 @@ public class PlotTree(uint plotId)
                 if (node?.ParentNextEvent?.Channeling == true)
                     state.WaitingOnChannel = false;
 
-                if (state.Tickets.TryGetValue(node.Event.Id, out var value))
-                    state.Tickets[node.Event.Id] = ++value;
-                else
-                    state.Tickets.TryAdd(node.Event.Id, 1);
-
                 var selfLoop = node.Children.Exists(c => c.Event.Id == node.Event.Id);
-                if (PlotTicketGate.IsExhausted(
-                        state.Tickets[node.Event.Id], node.Event.Tickets, selfLoop))
+                int visit;
+                if (selfLoop)
+                {
+                    visit = state.TicketChains.NextSelf(node.Event.Id, item.targetInfo.TicketChain);
+                }
+                else if (state.Tickets.TryGetValue(node.Event.Id, out var value))
+                {
+                    state.Tickets[node.Event.Id] = visit = ++value;
+                }
+                else
+                {
+                    state.Tickets.TryAdd(node.Event.Id, 1);
+                    visit = 1;
+                }
+
+                if (PlotTicketGate.IsExhausted(visit, node.Event.Tickets, selfLoop))
                 {
                     continue;
                 }
@@ -129,7 +139,7 @@ public class PlotTree(uint plotId)
                         {
                             foreach (var target in item.targetInfo.EffectedTargets)
                             {
-                                var targetInfo = new PlotTargetInfo(item.targetInfo.Source, target);
+                                var targetInfo = ChildTarget(state, node, child, item.targetInfo, target);
                                 schedule.Enqueue(
                                     (child, targetInfo),
                                     now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo))
@@ -138,7 +148,7 @@ public class PlotTree(uint plotId)
                         }
                         else
                         {
-                            var targetInfo = new PlotTargetInfo(item.targetInfo.Source, item.targetInfo.Target);
+                            var targetInfo = ChildTarget(state, node, child, item.targetInfo, item.targetInfo.Target);
                             schedule.Enqueue(
                                 (child, targetInfo),
                                 now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo))
@@ -160,6 +170,20 @@ public class PlotTree(uint plotId)
         DoPlotEnd(state);
         Logger.Trace($"Tree with ID {PlotId} has finished executing took {treeWatch.ElapsedMilliseconds}ms");
     }
+
+    /// <summary>
+    /// A child that repeats its parent stays on that charge's ticket chain. Any other child starts one.
+    /// </summary>
+    private static PlotTargetInfo ChildTarget(
+        PlotState state, PlotNode parent, PlotNode child, PlotTargetInfo parentInfo, BaseUnit target)
+    {
+        var info = new PlotTargetInfo(parentInfo.Source, target);
+        info.TicketChain = child.Event?.Id == parent.Event?.Id
+            ? parentInfo.TicketChain
+            : state.TicketChains.Allocate();
+        return info;
+    }
+
     /// <summary>
     /// Bite and cancel both cut the channel wait. The wait is the child entered by a
     /// channeling edge — not the bite-roll loop queued next to it. Ending that wait runs
@@ -224,7 +248,7 @@ public class PlotTree(uint plotId)
 
         foreach (var child in PlotBranchRules.SelectEligible(eligible, Random.Shared.Next))
         {
-            var childInfo = new PlotTargetInfo(targetInfo.Source, targetInfo.Target);
+            var childInfo = ChildTarget(state, parent, child, targetInfo, targetInfo.Target);
             var delay = child.ComputeDelayMs(state, childInfo);
             if (delay > 0)
             {
@@ -311,14 +335,11 @@ public class PlotTree(uint plotId)
             return;
         }
 
-        // Plot-only arms CD at press. A cancel before the plot commits refunds that arm.
-        // A cancel after an effect, the fire moment, or a channel keeps it.
-        if (state.CancellationRequested())
-        {
-            if (SkillCooldownCancelRules.ShouldRefundCancelledPlot(state.HasFired))
-                state.ActiveSkill.RefundCooldownsOnCancel(state.Caster);
-        }
-        else
+        // Plot-only arms CD at press. Refund when the graph never committed — cancel mid-setup
+        // or a natural early exit (Bladefall Range fail with no fail child). After commit, keep it.
+        if (SkillCooldownCancelRules.ShouldRefundPlotEnd(state.HasFired))
+            state.ActiveSkill.RefundCooldownsOnCancel(state.Caster);
+        else if (!state.CancellationRequested())
             state.ActiveSkill.ArmCooldowns(state.Caster);
 
         if (state.Caster is Character { IgnoreSkillCooldowns: true } character)

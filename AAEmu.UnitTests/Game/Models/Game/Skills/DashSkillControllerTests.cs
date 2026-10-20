@@ -80,12 +80,29 @@ public class DashSkillControllerTests
         player.ActiveSkillController = controller;
         var start = player.Transform.Local.ClonePosition();
 
-        // Facing +X (yaw 0), a forward offset: the run goes that way and nowhere else.
+        // Yaw 0 faces +Y (what AddDistanceToFront walks); a forward offset runs that way and nowhere else.
+        // The raw-yaw (cos, sin) form used to send the dash down the unit's right side.
         ((LinearMoveSkillController)controller).MoveTowards(4f);
 
         var position = player.Transform.Local.Position;
-        await Assert.That(position.X - start.X).IsGreaterThan(1f);
-        await Assert.That(Math.Abs(position.Y - start.Y)).IsLessThan(0.01f);
+        await Assert.That(position.Y - start.Y).IsGreaterThan(1f);
+        await Assert.That(Math.Abs(position.X - start.X)).IsLessThan(0.01f);
+    }
+
+    [Test]
+    public async Task ADashFollowsTheFacingItStartsWith()
+    {
+        // Facing −X (yaw 90°): the run goes −X, not +Y.
+        var player = Caster(yaw: 90f);
+        var target = new Unit { ObjId = 200, Hp = 1000, MaxHp = 1000 };
+
+        var controller = SkillController.CreateSkillController(DashRow(value4: 8000), player, target);
+        player.ActiveSkillController = controller;
+
+        ((LinearMoveSkillController)controller).MoveTowards(4f);
+
+        await Assert.That(player.Transform.Local.Position.X).IsLessThan(-1f);
+        await Assert.That(Math.Abs(player.Transform.Local.Position.Y)).IsLessThan(0.01f);
     }
 
     [Test]
@@ -100,7 +117,9 @@ public class DashSkillControllerTests
 
         ((LinearMoveSkillController)controller).MoveTowards(4f);
 
-        await Assert.That(player.Transform.Local.Position.X).IsLessThan(-1f);
+        await Assert.That(player.Transform.Local.Position.Y).IsLessThan(-1f);
+        // Stepping back is not turning around: the facing the dash started with is kept.
+        await Assert.That(Math.Abs(player.Transform.Local.Rotation.Z)).IsLessThan(1e-3f);
     }
 
     [Test]
@@ -137,8 +156,8 @@ public class DashSkillControllerTests
 
         ((LinearMoveSkillController)controller).MoveTowards(0.1f);
 
-        await Assert.That(player.Transform.Local.Position.X).IsGreaterThan(0f);
-        await Assert.That(player.Transform.Local.Position.X).IsLessThan(0.5f);
+        await Assert.That(player.Transform.Local.Position.Y).IsGreaterThan(0f);
+        await Assert.That(player.Transform.Local.Position.Y).IsLessThan(0.5f);
                 // Still going: one step of 0.1 m does not finish a 0.5 m dash. (Execute() is what moves a controller
         // to Running, and this test drives the step directly instead of through the tick manager.)
         await Assert.That(controller.State).IsNotEqualTo(SkillController.SCState.Ended);

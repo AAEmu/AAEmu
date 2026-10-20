@@ -1,4 +1,5 @@
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
@@ -31,6 +32,35 @@ public class SkillCooldownCancelRulesTests
     {
         await Assert.That(SkillCooldownCancelRules.ShouldRefundCancelledPlot(hasFired: false)).IsTrue();
         await Assert.That(SkillCooldownCancelRules.ShouldRefundCancelledPlot(hasFired: true)).IsFalse();
+    }
+
+    [Test]
+    public async Task PlotEnd_RefundsWhenTheGraphNeverCommitted()
+    {
+        await Assert.That(SkillCooldownCancelRules.ShouldRefundPlotEnd(hasFired: false)).IsTrue();
+        await Assert.That(SkillCooldownCancelRules.ShouldRefundPlotEnd(hasFired: true)).IsFalse();
+    }
+
+    [Test]
+    [Arguments(SpecialType.GlobalCooldown, false)]
+    [Arguments(SpecialType.AutoAttack, false)]
+    [Arguments(SpecialType.CancelStealth, false)]
+    [Arguments(SpecialType.CancelOngoingBuff, false)]
+    [Arguments(SpecialType.SetVariable, false)]
+    [Arguments(SpecialType.Cooldown, true)]
+    [Arguments(SpecialType.Anim, true)]
+    public async Task SetupOnlySpecials_DoNotCommitThePlot(SpecialType type, bool counts)
+    {
+        await Assert.That(SkillCooldownCancelRules.IsSetupOnlySpecial(type)).IsEqualTo(!counts);
+        await Assert.That(SkillCooldownCancelRules.CountsTowardPlotCommit("SpecialEffect", type)).IsEqualTo(counts);
+    }
+
+    [Test]
+    public async Task NonSpecialPlotEffects_AlwaysCommit()
+    {
+        await Assert.That(SkillCooldownCancelRules.CountsTowardPlotCommit("DamageEffect", null)).IsTrue();
+        await Assert.That(SkillCooldownCancelRules.CountsTowardPlotCommit("BuffEffect", null)).IsTrue();
+        await Assert.That(SkillCooldownCancelRules.CountsTowardPlotCommit("SkillController", null)).IsTrue();
     }
 
     [Test]

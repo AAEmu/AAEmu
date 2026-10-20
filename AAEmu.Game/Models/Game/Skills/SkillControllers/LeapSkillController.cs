@@ -4,6 +4,8 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
+using NLog;
+
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
 /// <summary>
@@ -13,6 +15,8 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 /// </summary>
 public class LeapSkillController : LinearMoveSkillController
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     public int Angle { get; set; }
     public int Speed { get; set; }
     public int Duration { get; set; }
@@ -36,9 +40,26 @@ public class LeapSkillController : LinearMoveSkillController
         DistanceOffset = template.Value[3];
         Direction = (LeapDirection)template.Value[6];
 
-        var angle = (float)MathUtil.CalculateAngleFrom(owner.Transform.World.Position, target.Transform.World.Position);
-        (_endPosition.X, _endPosition.Y) = MathUtil.AddDistanceToFront(DistanceOffset / 1000f, target.Transform.World.Position.X, target.Transform.World.Position.Y, angle);
-        _endPosition.Z = target.Transform.World.Position.Z;
+        var ownerPos = owner.Transform.World.Position;
+        var targetPos = target.Transform.World.Position;
+        var offset = DistanceOffset / 1000f;
+        if (LinearMoveFacingRules.LeapRunsAlongFacing(owner.ObjId, target.ObjId, ownerPos, targetPos))
+        {
+            // Self-anchored leap: no owner→target direction exists (atan2(0,0) would pin it to world +X),
+            // so the offset runs along the owner's facing — backward for a negative row.
+            var heading = LinearMoveFacingRules.HeadingAlongFacing(owner.Transform.World.Rotation.Z, offset);
+            (_endPosition.X, _endPosition.Y) = MathUtil.AddDistanceToFront(Math.Abs(offset), ownerPos.X, ownerPos.Y, heading);
+            _endPosition.Z = ownerPos.Z;
+            FacesTravelDirection = LinearMoveFacingRules.TurnsIntoTravel(offset);
+            Logger.Debug("Leap {0}: self-anchored, yaw {1:F1}° offset {2:F2} m → ({3:F1},{4:F1})",
+                template.Id, owner.Transform.World.Rotation.Z.RadToDeg(), offset, _endPosition.X, _endPosition.Y);
+        }
+        else
+        {
+            var angle = (float)MathUtil.CalculateAngleFrom(ownerPos, targetPos).DegToRad();
+            (_endPosition.X, _endPosition.Y) = MathUtil.AddDistanceToFront(offset, targetPos.X, targetPos.Y, angle);
+            _endPosition.Z = targetPos.Z;
+        }
 
         EndPosition = _endPosition;
 

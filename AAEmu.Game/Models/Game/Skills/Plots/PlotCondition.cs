@@ -409,10 +409,18 @@ public class PlotCondition
     {
         // Param1 = Min range
         // Param2 = Max range
+        var plotState = skill?.ActivePlotState ?? (caster as Unit)?.ActivePlotState;
         var range = caster.GetDistanceTo(target);
+        if (target != null && plotState?.MoveOrigin is { } moveOrigin &&
+            plotState.WasSelectedFromMoveOrigin(target.ObjId))
+        {
+            range = MathUtil.CalculateDistance(
+                new System.Numerics.Vector3(moveOrigin.X, moveOrigin.Y, moveOrigin.Z),
+                target.Transform.World.Position,
+                false);
+        }
 
         var effectiveMax = (float)maxRange;
-        var plotState = skill?.ActivePlotState ?? (caster as Unit)?.ActivePlotState;
         if (target != null && plotState != null &&
             plotState.AreaSelectionRadius.TryGetValue(target.ObjId, out var selectionRadius) &&
             selectionRadius > effectiveMax)

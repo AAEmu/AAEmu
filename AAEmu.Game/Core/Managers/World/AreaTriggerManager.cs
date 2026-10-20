@@ -39,11 +39,27 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>, IAreaTriggerMan
         {
             _addQueue.Add(trigger);
         }
+
+        // Manager ticks every 200 ms. Short clouts (e.g. duration 120 / tick 100 lightning bolts)
+        // expire before that, so pulse once on arm: enter + first effect land in the same frame.
+        try
+        {
+            trigger.Tick(TimeSpan.Zero);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Error pulsing AreaTrigger on add");
+        }
     }
 
     public void RemoveAreaTrigger(AreaTrigger trigger)
     {
         trigger.OnDelete();
+        // Drop a not-yet-promoted add so a late manager tick cannot re-enter after duration ends.
+        lock (_addLock)
+        {
+            _addQueue.Remove(trigger);
+        }
         lock (_remLock)
         {
             _removeQueue.Add(trigger);

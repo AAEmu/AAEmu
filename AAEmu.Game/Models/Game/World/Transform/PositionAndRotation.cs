@@ -78,6 +78,10 @@ public class PositionAndRotation
     
     public static (short, short, short) ToRollPitchYawShorts(Quaternion q)
     {
+        // Wire carries only xyz; the reader rebuilds W as +sqrt(1-|v|^2). A long-arc quat (W<0)
+        // must be flipped first or SE headings (~225 / 236 deg) come back as the short-arc opposite.
+        if (q.W < 0f)
+            q = new Quaternion(-q.X, -q.Y, -q.Z, -q.W);
         return ((short)(q.X * short.MaxValue), (short)(q.Y * short.MaxValue), (short)(q.Z * short.MaxValue));
     }
 

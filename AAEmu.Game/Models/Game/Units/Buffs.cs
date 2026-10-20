@@ -285,6 +285,34 @@ public class Buffs : IBuffs
         return false;
     }
 
+    /// <summary>
+    /// True when a live buff names <paramref name="transformTargetBuffId"/> as its
+    /// <c>transform_buff_id</c> and is still below that buff's stack ceiling.
+    /// </summary>
+    public bool HasTransformSourceBelowCeiling(uint transformTargetBuffId)
+    {
+        if (transformTargetBuffId == 0)
+            return false;
+
+        Buff[] effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        foreach (var effect in effects)
+        {
+            if (effect is not { InUse: true })
+                continue;
+            if (effect.Template.TransformBuffId != transformTargetBuffId)
+                continue;
+            if (effect.Template.MaxStack > 1 && effect.Stack < effect.Template.MaxStack)
+                return true;
+        }
+
+        return false;
+    }
+
     public bool CheckBuffTag(uint tagId)
     {
         var buffs = SkillManager.Instance.GetBuffsByTagId(tagId);

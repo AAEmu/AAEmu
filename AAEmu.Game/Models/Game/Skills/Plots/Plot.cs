@@ -96,8 +96,10 @@ public class Plot
             // Trigger item use if not cancelled
             if (!state.CancellationRequested())
                 player.ItemUse(skillItem.SkillSourceItem);
-            // Free the item from lock
-            player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemUnlock, new ItemUpdate(skillItem.SkillSourceItem), []));
+            // Empty task list. UpdateDetail corrupts an equipped plot-skill piece until re-equip.
+            // A charge-clock rewrite did not release the hotbar and dropped a hide the plot had
+            // just applied. SkillEnded is not sent: this cast never opened a client timeline.
+            player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemUnlock, [], []));
         }
     }
 }

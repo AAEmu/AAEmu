@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Interactions;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -35,10 +36,15 @@ public class InteractionEffect : EffectTemplate
         var action = (IWorldInteraction)Activator.CreateInstance(classType);
         if (source is { Skill: { } } && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
         {
-            if (action is ISkillObjectWorldInteraction withSkillObject)
-                withSkillObject.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId, skillObject);
+            var skillId = source.Skill.Template.Id;
+            var castTlId = source.Skill.PlotCastTlId;
+            if (action is SummonDoodad summon)
+                summon.Execute(caster, casterObj, target, targetObj, skillId, DoodadId, null, castTlId,
+                    source.Skill.PlotCastPlotId, source.Skill.PlotCastEventId);
+            else if (action is ISkillObjectWorldInteraction withSkillObject)
+                withSkillObject.Execute(caster, casterObj, target, targetObj, skillId, DoodadId, skillObject);
             else
-                action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
+                action?.Execute(caster, casterObj, target, targetObj, skillId, DoodadId);
         }
 
         if (caster is not Character character) { return; }

@@ -61,6 +61,15 @@ public static class CrowdControlRules
     public static bool BlocksMovement(in EnforcedState state) => state.CannotMove;
 
     /// <summary>
+    /// Whether a mover whose packet <see cref="BlocksMovement"/> refuses may still turn in place. A root
+    /// takes the walk, not the facing; stun and sleep take both. Backdraft's own 600 ms root lands before
+    /// the client's snap-to-camera move arrives, and dropping that turn fired its backward leap along the
+    /// yaw the body had before the player aimed.
+    /// </summary>
+    public static bool AllowsTurningInPlace(in EnforcedState state) =>
+        state.IsRooted && !state.IsStunned && !state.IsAsleep;
+
+    /// <summary>
     /// The failure a cast by this state produces, or <see langword="null"/> when the cast may proceed.
     /// </summary>
     /// <remarks>

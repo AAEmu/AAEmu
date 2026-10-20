@@ -35,21 +35,11 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
 
         var areaTrigger = new AreaTrigger { Shape = WorldManager.Instance.GetAreaShapeById(AoeShapeId) };
 
-        if (UseOriginSource)
-        {
-            // будем проверять на дистанции 4 м от персонажа
-            var doodads = WorldManager.GetAround<Doodad>(caster, 4f);
-            foreach (var d in doodads)
-            {
-                areaTrigger.Owner = d; // нам главное, чтобы рядом был doodad от которого будет искаться на кого наложить бафф
-                break;
-            }
-            areaTrigger.Owner ??= owner;
-        }
-        else
-        {
-            areaTrigger.Owner = owner;
-        }
+        // Shape origin is always the phase-owning doodad. A prior "any doodad within 4 m of the
+        // caster" search (when UseOriginSource was true) latched onto unrelated props — e.g. the
+        // storm VFX next to the player — and left skill-summoned hazard bolts damaging the wrong
+        // point. UseOriginSource remains loaded for content parity; it does not relocate the shape.
+        areaTrigger.Owner = owner;
 
         areaTrigger.Caster = caster is Character ? caster : owner;
 
@@ -58,6 +48,12 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
         areaTrigger.TargetBuffTagId = TargetBuffTagId;
         areaTrigger.TargetNoBuffTagId = TargetNoBuffTagId;
         areaTrigger.TickRate = Tick;
+        // Skill-summoned hazards (lightning bolts, etc.) carry the casting skill on the doodad so
+        // SCUnitDamaged floaters and level/modifier math attribute to that cast, not skill 0.
+        areaTrigger.SkillId = owner.OwnerSkillId;
+        areaTrigger.TlId = owner.OwnerCastTlId;
+        areaTrigger.PlotId = owner.OwnerPlotId;
+        areaTrigger.PlotEventId = owner.OwnerPlotEventId;
         areaTrigger.EffectsPerBuff = new Dictionary<uint, List<EffectTemplate>> { { BuffId, Effects.Select(eid => SkillManager.Instance.GetEffectTemplate(eid)).ToList() } };
 
         AreaTriggerManager.Instance.AddAreaTrigger(areaTrigger);

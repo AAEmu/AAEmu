@@ -965,6 +965,31 @@ public class Inventory
                     CollectionDiscoverySource.Equipped);
         }
 
+        if (Owner is Character mover && itemTasks.Count > 0)
+        {
+            var movedAt = DateTime.UtcNow;
+            if (fromItem != null)
+                mover.NoteSkillItemMoved(fromItem.Id, fromItem.TemplateId, movedAt);
+            if (itemInTargetSlot != null)
+                mover.NoteSkillItemMoved(itemInTargetSlot.Id, itemInTargetSlot.TemplateId, movedAt);
+            var restored = false;
+            if (fromItem != null)
+                restored |= mover.RestoreSkillItemShortcuts(fromItem.Id, fromItem.TemplateId, movedAt);
+            if (itemInTargetSlot != null)
+                restored |= mover.RestoreSkillItemShortcuts(itemInTargetSlot.Id, itemInTargetSlot.TemplateId, movedAt);
+            // Resync even when nothing was restored: the client often greys a skill-item icon on
+            // unequip without a clear packet, while the server still holds the shortcut.
+            var resync = restored ||
+                         fromItem != null && ActionSlotShortcutRules.KeepsShortcut(
+                             fromItem.Template?.UseSkillId ?? 0, fromItem.Template?.BuffId ?? 0) &&
+                         mover.HasSkillItemShortcut(fromItem.Id, fromItem.TemplateId) ||
+                         itemInTargetSlot != null && ActionSlotShortcutRules.KeepsShortcut(
+                             itemInTargetSlot.Template?.UseSkillId ?? 0, itemInTargetSlot.Template?.BuffId ?? 0) &&
+                         mover.HasSkillItemShortcut(itemInTargetSlot.Id, itemInTargetSlot.TemplateId);
+            if (resync)
+                mover.SendPacket(new SCActionSlotsPacket(mover.Slots));
+        }
+
         return itemTasks.Count > 0;
     }
 

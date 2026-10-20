@@ -83,8 +83,17 @@ public class MathUtil
 
     public static double ConvertSbyteDirectionToDegree(sbyte direction)
     {
+        // Movement facing bytes 64..85 are the same headings as -180..-121 deg. Keeping them in
+        // (180, 239] left Transform yaw with W<0 on ToQuaternion, so doodad xyz-shorts (no W on
+        // the wire) rebuilt the supplementary angle — SE telegraphs aimed NW. Principal form
+        // matches the signed write path (res>85 already remaps on encode).
         var angle = direction * (360f / 128);
-        return angle % 360f;
+        angle %= 360f;
+        if (angle > 180f)
+            angle -= 360f;
+        else if (angle <= -180f)
+            angle += 360f;
+        return angle;
     }
 
     public static sbyte ConvertDegreeToSByteDirection(double degree)
@@ -320,6 +329,25 @@ public class MathUtil
         if (res > 85)
             res = (sbyte)((degree - 360) / (360f / 128));
         return res;
+    }
+
+    /// <summary>
+    /// Same 128-step facing byte as <see cref="ConvertRadianToDirection"/>, rounded to the nearest
+    /// step. Truncating a value that float dust left just under an integer drops one step.
+    /// </summary>
+    public static sbyte ConvertRadianToDirectionRounded(double radian)
+    {
+        var degree = radian.RadToDeg();
+        degree %= 360.0;
+        if (degree < 0)
+            degree += 360.0;
+        const double step = 360.0 / 128.0;
+        var res = (int)Math.Round(degree / step, MidpointRounding.AwayFromZero);
+        if (res >= 128)
+            res -= 128;
+        if (res > 85)
+            res = (int)Math.Round((degree - 360.0) / step, MidpointRounding.AwayFromZero);
+        return (sbyte)res;
     }
 
     public static float DistanceSqVectors(Vector3 loc, Vector3 loc2, bool includeZAxis = false)

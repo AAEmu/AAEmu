@@ -82,8 +82,19 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
         // Nothing that legitimately moves a unit goes through this packet: Leap and Dash advance the
         // owner themselves (they build their own UnitMoveType and broadcast SCOneUnitMovement from
         // Server-side), and a seat ride is a buff, not a CS move. Rejecting here cannot strand either.
-        if (CrowdControlRules.BlocksMovement(CrowdControlRules.ReadState(character)))
+        var crowdControl = CrowdControlRules.ReadState(character);
+        if (CrowdControlRules.BlocksMovement(crowdControl))
         {
+            // A rooted player still turns in place: keep the facing the packet carries (position stays
+            // where the server has it) so a cast fired through the root — Backdraft roots itself for
+            // 600 ms and then leaps backward — runs from the yaw the player aimed, not a stale one.
+            if (CrowdControlRules.AllowsTurningInPlace(crowdControl) &&
+                _moveType is UnitMoveType rootedTurn && _objId == character.ObjId)
+            {
+                character.Transform.Local.SetZRotation(
+                    (float)MathUtil.ConvertDirectionToRadian(rootedTurn.RotationZ));
+            }
+
             // Debug, not Warn: a rooted player holding a movement key repeats this every tick.
             Logger.Debug(
                 "Rejected movement type {0} for {1} ({2}): the mover is stunned, asleep or rooted",

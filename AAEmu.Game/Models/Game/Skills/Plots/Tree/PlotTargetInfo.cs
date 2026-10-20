@@ -28,6 +28,8 @@ public class PlotTargetInfo
         .ToArray();
 
     public BaseUnit Source { get; set; }
+    /// <summary>Which self-next loop this step belongs to. Copied when the event enqueues itself.</summary>
+    public int TicketChain { get; set; }
     /// <summary>enum_plot_area_target_kinds: which unit an area shape is aimed at.</summary>
     private BaseUnit ResolveAreaAnchor(AreaShape shape, PlotState state, BaseUnit currentPosition) =>
         shape.AreaTargetKind switch
@@ -179,6 +181,21 @@ public class PlotTargetInfo
             posUnit.Transform.Local.SetPosition(ox, oy, oz);
             posUnit.Transform.Local.SetZRotation(oYaw);
         }
+
+        // A move controller that delays its children has already carried the caster off the shot.
+        // The stand built from the caster is put back on the pose captured when that move started,
+        // ahead of the plot's own angle and distance nudge.
+        var pinnedToMoveOrigin = false;
+        if (state.MoveOrigin is { } moveOrigin &&
+            PlotMoveOriginRules.PinsCasterStand(PreviousTarget?.ObjId == state.Caster?.ObjId, true))
+        {
+            posUnit.Transform.Local.SetPosition(moveOrigin.X, moveOrigin.Y, moveOrigin.Z);
+            posUnit.Transform.Local.SetZRotation(moveOrigin.YawRad);
+            pinnedToMoveOrigin = true;
+        }
+
+        var slideFromX = posUnit.Transform.World.Position.X;
+        var slideFromY = posUnit.Transform.World.Position.Y;
         var degrees = (float)args.Angle;
         posUnit.Transform.Local.Rotate(0, 0, degrees.DegToRad() * -1f);
         // posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll(((float)args.Angle).DegToRad() * -1f, 0f, 0f));
@@ -188,6 +205,14 @@ public class PlotTargetInfo
         }
         posUnit.Transform.Local.SetHeight(ResolvePlotLandHeight(
             PreviousTarget, posUnit, args.HeightOffset));
+        // The stand was cloned from the previous target, so it still carries that unit's region.
+        // Sliding it can cross into the next 64 m cell. A shape search walks only the region it
+        // is handed, and then a unit standing inside the shape is missed.
+        BindStandToItsRegion(posUnit, state);
+        // A repeating hop is one sample of a charge. The next search reads this stand and
+        // includes the segment just slid, not only the landing point.
+        if (plotEvent.Tickets >= 2 && args.Distance != 0)
+            PlotAreaSweepMemory.Remember(posUnit, slideFromX, slideFromY);
 
         if (args.MaxTargets == 0)
         {
@@ -201,7 +226,16 @@ public class PlotTargetInfo
         // and is aimed at whatever area_target_kind_id names. Handing it the centred-box path put the
         // aimed-at unit exactly on the rectangle's diagonal, where the strict point-in-triangle test
         // drops it — the search came back empty and every per-target edge behind it enqueued nothing.
+        var standOnMoveOrigin = state.MoveOrigin is { } originPose &&
+                                PlotMoveOriginRules.StandSitsOnOrigin(
+                                    true,
+                                    posUnit.Transform.World.Position.X,
+                                    posUnit.Transform.World.Position.Y,
+                                    originPose.X,
+                                    originPose.Y);
         var searchOrigin = IsCone(args.Shape) ? ResolveConeOrigin(args.Shape, state, posUnit) : posUnit;
+        if (IsCone(args.Shape) && PlotMoveOriginRules.ConeSearchesFromStand(standOnMoveOrigin))
+            searchOrigin = posUnit;
         var trace = AreaDebug ? new List<(string step, int left)>() : null;
         var candidates = args.Shape switch
         {
@@ -211,6 +245,7 @@ public class PlotTargetInfo
                 WorldManager.GetAroundByShape<Unit>(searchOrigin, args.Shape, trace),
             _ => WorldManager.GetAroundByShape<Unit>(posUnit, args.Shape, trace)
         };
+        candidates = IncludeChargeSweep(candidates, posUnit, args);
         var unitsInRange = FilterTargets(candidates, state, args, plotEvent, trace).Take(args.MaxTargets).ToList();
         // TODO : Filter min distance
         // TODO : Compute Unit Relation
@@ -218,6 +253,11 @@ public class PlotTargetInfo
         // unitsInRange = unitsInRange.Where(u => u.);
 
         RememberSelectionRadius(state, args.Shape, unitsInRange);
+        if (pinnedToMoveOrigin || standOnMoveOrigin)
+        {
+            foreach (var unit in unitsInRange)
+                state.NoteMoveOriginSelection(unit.ObjId);
+        }
 
         if (AreaDebug)
             LogAreaSearch(plotEvent, args, searchOrigin, state, candidates.Count, trace, unitsInRange.Count, args.MaxTargets);
@@ -234,6 +274,44 @@ public class PlotTargetInfo
         }
 
         return posUnit;
+    }
+
+    /// <summary>
+    /// Units the landing sphere missed but that still stand inside the radius of the hop that landed here.
+    /// </summary>
+    private List<Unit> IncludeChargeSweep(List<Unit> candidates, BaseUnit posUnit, PlotTargetAreaParams args)
+    {
+        if (args.Shape is not { Type: AreaShapeType.Sphere } || args.Shape.Value1 <= 0f)
+            return candidates;
+        if (!PlotAreaSweepMemory.TryGet(PreviousTarget, out var fromX, out var fromY))
+            return candidates;
+
+        var end = posUnit.Transform.World.Position;
+        var hopX = end.X - fromX;
+        var hopY = end.Y - fromY;
+        var hop = MathF.Sqrt((hopX * hopX) + (hopY * hopY));
+        if (hop <= 0.05f)
+            return candidates;
+
+        var wide = WorldManager.GetAround<Unit>(posUnit, args.Shape.Value1 + hop, true);
+        var seen = new HashSet<uint>(candidates.Count);
+        foreach (var unit in candidates)
+            seen.Add(unit.ObjId);
+
+        var radius = args.Shape.Value1;
+        foreach (var unit in wide)
+        {
+            if (!seen.Add(unit.ObjId))
+                continue;
+            var pos = unit.Transform.World.Position;
+            var model = unit.ModelSize;
+            var radiusSq = (radius * radius) + (model * model);
+            if (!PlotChargeSweepRules.WithinRadiusSq(pos.X, pos.Y, fromX, fromY, end.X, end.Y, radiusSq))
+                continue;
+            candidates.Add(unit);
+        }
+
+        return candidates;
     }
 
     private static void RememberMarkedVictims(PlotState state, IPlotTargetParams args, PlotEventTemplate plotEvent,
@@ -300,6 +378,7 @@ public class PlotTargetInfo
         // which kept markers at rifts (balls never "landed"); army SpawnEffect copied that Z.
         posUnit.Transform.Local.SetHeight(ResolvePlotLandHeight(
             PreviousTarget, posUnit, args.HeightOffset));
+        BindStandToItsRegion(posUnit, state);
 
         if (args.MaxTargets == 0)
         {
@@ -511,6 +590,21 @@ public class PlotTargetInfo
 
         return new PlotTargetRules.UnitFacts(
             candidate.Hp == 0, isCasterPet, isCasterPetOwner, isCasterSlave, ownsAPet);
+    }
+
+    /// <summary>
+    /// Point the stand at the region that contains its world position. The clone starts with the
+    /// previous target's region, and <see cref="WorldManager.GetAround{T}(GameObject,float,bool)"/>
+    /// only walks that region.
+    /// </summary>
+    private static void BindStandToItsRegion(BaseUnit stand, PlotState state)
+    {
+        var world = state.Caster?.ParentWorld;
+        if (world == null || stand?.Transform == null)
+            return;
+        var region = world.GetRegionByPos(stand.Transform.World.Position);
+        if (region != null)
+            stand.Region = region;
     }
 
     private static IEnumerable<Unit> FilterTargets(IEnumerable<Unit> units, PlotState state, IPlotTargetParams args, PlotEventTemplate plotEvent,

@@ -1,3 +1,5 @@
+﻿using System.Numerics;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -182,7 +184,12 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         HarpoonMechanicsDebug.LogCsStartSkillIfHarpoon(skillId, flag, flagType, skillCaster, skillCastTarget, skillObject);
 
         var activeCharacter = Connection.ActiveChar;
+        // Stamp activity before the plot-aim walk. A cast that is still inside Read must not look idle.
         activeCharacter.LastPacketActivityTime = DateTime.UtcNow;
+
+        // Frontal plots/FX plant Area stands from the caster Transform yaw. Apply the client's aim
+        // before Use so CastOrigin and every Area edge match the look/camera, not a stale body yaw.
+        ApplyCastFacing(activeCharacter, skillId, skillCastTarget, inputDirection);
 
         // Heir successors are not ordinary learned skills. Gate them before the Zone-authority/local
         // split so neither path nor the generic valid-template fallback can cast an unselected variant.
@@ -219,7 +226,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
                 feet?.X ?? 0f, feet?.Y ?? 0f, MathF.Sqrt(dx * dx + dy * dy));
         }
         else
-            Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
+            Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}, inputDirection={inputDirection}");
 
         // Skillsaver apply: stash slot before zone/local split so ActivateSavedAbilitySet can finish it.
         if (skillId == CharacterAbilitySets.ActivateSkillId)
@@ -232,7 +239,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         if (WorldIntegration.ZoneAuthority &&
             Environment.GetEnvironmentVariable("AAEMU_FORCE_LOCAL_SKILLS") != "1")
         {
-            HandleZoneAuthorityCast(skillId, skillCaster, skillCastTarget, skillObject);
+            HandleZoneAuthorityCast(skillId, skillCaster, skillCastTarget, skillObject, inputDirection);
             return;
         }
 
@@ -253,6 +260,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             // Mount or Slave skill
             Logger.Trace($"SkillCasterMount - MountSkillTemplateId {scm.MountSkillTemplateId}");
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skill.ClientInputDirection = inputDirection;
 
             var caster = world.GetBaseUnit(skillCaster.ObjId);
             var mate = caster as Mate;
@@ -299,6 +307,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         {
             // Is it a common skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
+            skill.ClientInputDirection = inputDirection;
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false,
                 out skillResultErrorValueUShort, out skillResultErrorValue);
             if (skillResult == SkillResult.Success && skillId < 5000 && skillCaster.ObjId == Connection.ActiveChar.ObjId)
@@ -320,14 +329,23 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             // item fire for a member whose guild has not reached it.
             // si.ItemTemplateId = item.TemplateId;
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skill.ClientInputDirection = inputDirection;
             skillResult = skill.Use(player, skillCaster, skillCastTarget, skillObject, false,
                 out skillResultErrorValueUShort, out skillResultErrorValue);
+            if (skillResult == SkillResult.Success)
+            {
+                var templateId = si.SkillSourceItem.TemplateId != 0
+                    ? si.SkillSourceItem.TemplateId
+                    : si.ItemTemplateId;
+                player.NoteSkillItemUsed(si.ItemId, templateId, DateTime.UtcNow);
+            }
         }
         else if (Connection.ActiveChar.Skills.HasSkill(skillId))
         {
             // Is it one of our learned character skills, or one a live buff grants?
             var template = SkillManager.Instance.GetSkillTemplate(skillId);
             skill = new Skill(template, Connection.ActiveChar);
+            skill.ClientInputDirection = inputDirection;
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false,
                 out skillResultErrorValueUShort, out skillResultErrorValue);
         }
@@ -335,6 +353,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         {
             // The selected Heir successor of a learned base skill.
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skill.ClientInputDirection = inputDirection;
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false,
                 out skillResultErrorValueUShort, out skillResultErrorValue);
         }
@@ -349,6 +368,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             // interactions arrive here.
             var fallbackTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
             skill = new Skill(fallbackTemplate);
+            skill.ClientInputDirection = inputDirection;
             if (!SkillUseConditionRules.AllowsUnlearnedCast(
                     fallbackTemplate?.AbilityId ?? 0,
                     isItemCast: false,
@@ -391,7 +411,58 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         Connection.ActiveChar.SendPacket(packet);
     }
 
-    private void HandleZoneAuthorityCast(uint skillId, SkillCaster skillCaster, SkillCastTarget skillCastTarget, SkillObject skillObject)
+    /// <summary>
+    /// Plants the cast aim on the character's Transform before skill Use. Ground aim points win;
+    /// unit tab-targets are ignored. <paramref name="inputDirection"/> is the camera look and is
+    /// planted for <c>use_input_direction</c> skills only — the client leaves the byte at zero on
+    /// every other cast, so frontal plots (Sonic Wave, Ghastly Pack) keep the body facing the last
+    /// move set. Artifact feed/replace and craft-sheet casts overload that byte, so they never treat
+    /// it as facing.
+    /// </summary>
+    private static void ApplyCastFacing(
+        Character character,
+        uint skillId,
+        SkillCastTarget skillCastTarget,
+        byte inputDirection)
+    {
+        if (character?.Transform == null)
+            return;
+
+        var template = SkillManager.Instance.GetSkillTemplate(skillId);
+        var inputDirectionOverloaded =
+            skillId == CharacterEquipSlotReinforces.ReplaceEffectSkillId ||
+            skillId == CharacterEquipSlotReinforces.FeedSkillId ||
+            CraftOrderContent.IsMakeSheetSkill(skillId);
+        var useInputDirection = !inputDirectionOverloaded && template is { UseInputDirection: true };
+
+        Vector3? aimWorldPos = null;
+        switch (skillCastTarget)
+        {
+            case SkillCastPositionTarget pos:
+                aimWorldPos = new Vector3(pos.PosX, pos.PosY, pos.PosZ);
+                break;
+            case SkillCastPosition2Target pos2:
+                aimWorldPos = new Vector3(pos2.PosX, pos2.PosY, pos2.PosZ);
+                break;
+            case SkillCastPosition3Target pos3:
+                aimWorldPos = new Vector3(pos3.PosX, pos3.PosY, pos3.PosZ);
+                break;
+            // SkillCastUnitTarget deliberately omitted: tab-select must not redirect look-aimed
+            // frontal plot cuboids (Sonic Wave). See SkillCastFacingRules.AimFromUnitTarget.
+        }
+
+        if (!SkillCastFacingRules.TryResolveCastYaw(
+                character.Transform.World.Position,
+                aimWorldPos,
+                inputDirection,
+                useInputDirection,
+                out var yawRadians))
+            return;
+
+        character.Transform.Local.SetZRotation(yawRadians);
+    }
+
+    private void HandleZoneAuthorityCast(uint skillId, SkillCaster skillCaster, SkillCastTarget skillCastTarget, SkillObject skillObject, byte inputDirection)
     {
         var character = Connection.ActiveChar;
         var world = character?.ParentWorld ?? WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
@@ -483,6 +554,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         }
 
         var skill = new Skill(template);
+        skill.ClientInputDirection = inputDirection;
 
         // An action the player picked off an NPC's interaction bar is a player cast whose plot graph is the
         // only thing that moves the client's bar: the skill has no casting time, so the Started that would
