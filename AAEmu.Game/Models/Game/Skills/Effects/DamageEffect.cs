@@ -76,6 +76,9 @@ public class DamageEffect : EffectTemplate
             return;
         }
 
+        if (trg is Npc { Encounter: { } encounter } && !encounter.CanDamage(caster))
+            return;
+
         // Null check here as for some reason, in rare occasions we get null as the caster here
         if (caster == null)
         {

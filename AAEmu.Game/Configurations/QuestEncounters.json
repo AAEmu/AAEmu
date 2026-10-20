@@ -1,0 +1,7 @@
+{
+    "NymphQueenEncounter": {
+        "CombatInactivitySeconds": 60,
+        "DialogueSeconds": 50,
+        "ResetDelaySeconds": 5
+    }
+}

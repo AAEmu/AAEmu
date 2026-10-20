@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -21,6 +22,53 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawner : Spawner<Npc>
 {
+    internal NymphQueenEncounter Encounter { get; set; }
+
+    internal Npc RestoreQuestNpc()
+    {
+        lock (_spawnLock)
+        {
+            if (Encounter != null || ParentWorld == null || Template == null)
+                return null;
+
+            if (SpawnedNpcs.TryGetValue(SpawnerId, out var spawned))
+            {
+                var existing = spawned.FirstOrDefault(n => ReferenceEquals(ParentWorld.GetNpc(n.ObjId), n));
+                if (existing != null)
+                    return existing;
+                // Scripted deletion can leave a stale population entry and a scheduled-spawn flag.
+                SpawnedNpcs.TryRemove(SpawnerId, out _);
+            }
+
+            IsSpawnScheduled = false;
+            _scheduledCount = 0;
+            _npcsInZoneCache.Clear();
+            try
+            {
+                return Spawn(0);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Failed to restore quest NPC {UnitId} from spawner {SpawnerId}.");
+                return null;
+            }
+        }
+    }
+
+    internal void CompleteEncounter(NymphQueenEncounter encounter, bool respawn)
+    {
+        lock (_spawnLock)
+        {
+            if (Encounter != encounter)
+                return;
+            Encounter = null;
+            if (respawn)
+            {
+                IsSpawnScheduled = false;
+                DoSpawn();
+            }
+        }
+    }
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
@@ -72,6 +120,8 @@ public class NpcSpawner : Spawner<Npc>
     /// </summary>
     public void Update()
     {
+        if (Encounter != null)
+            return;
         try
         {
             lock (_spawnLock)
@@ -920,6 +970,8 @@ public class NpcSpawner : Spawner<Npc>
     /// </summary>
     public void DoSpawn()
     {
+        if (Encounter != null)
+            return;
         // Check if template exists
         if (Template == null)
         {
@@ -1334,7 +1386,10 @@ public class NpcSpawner : Spawner<Npc>
                     npc.Ai.OnAggroTargetChanged();
                 }
 
-                if (effect.LifeTime > 0)
+                if (caster is Npc { Encounter: { } encounter })
+                    encounter.AttachReplacement(npc);
+
+                if (effect.LifeTime > 0 && npc.Encounter == null)
                 {
                     TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), TimeSpan.FromSeconds(effect.LifeTime));
                 }

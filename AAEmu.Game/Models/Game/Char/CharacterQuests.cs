@@ -68,6 +68,28 @@ public class CharacterQuests(Character owner)
     /// <returns></returns>
     public bool AddQuest(uint questId, bool forcibly = false, QuestAcceptorType questAcceptorType = QuestAcceptorType.Unknown, uint acceptorId = 0)
     {
+        if (questId != NymphQueenEncounter.QuestId)
+            return AddQuestCore(questId, forcibly, questAcceptorType, acceptorId);
+
+        if (!forcibly && (questAcceptorType != QuestAcceptorType.Npc || acceptorId != NymphQueenEncounter.LympherodaId))
+            return false;
+
+        if (forcibly && ActiveQuests.ContainsKey(questId))
+            DropQuest(questId, true);
+
+        var npc = NymphQueenEncounter.FindQuestNpc(Owner, forcibly);
+        if (npc == null)
+        {
+            Owner.SendMessage("The Nymph Queen is unavailable. Wait for the encounter to reset and try again.");
+            return false;
+        }
+        Owner.CurrentTarget = npc;
+        return NymphQueenEncounter.AcceptQuest(Owner, npc, questId,
+            () => AddQuestCore(questId, forcibly, QuestAcceptorType.Npc, npc.TemplateId));
+    }
+
+    private bool AddQuestCore(uint questId, bool forcibly, QuestAcceptorType questAcceptorType, uint acceptorId)
+    {
         if (ActiveQuests.ContainsKey(questId))
         {
             if (forcibly)
@@ -168,6 +190,8 @@ public class CharacterQuests(Character owner)
     {
         var npc = Owner.ParentWorld.GetNpc(npcObjId);
         Owner.CurrentTarget = npc;
+        if (npc == null)
+            return false;
         return AddQuest(questId, false, QuestAcceptorType.Npc, npc.TemplateId);
     }
 
@@ -236,6 +260,8 @@ public class CharacterQuests(Character owner)
     public void DropQuest(uint questId, bool update, bool forcibly = false)
     {
         if (!ActiveQuests.TryGetValue(questId, out var quest)) { return; }
+
+        Owner.NymphQueenEncounter?.QuestRemoved(Owner, quest);
 
         quest.SkipUpdatePackets(); // make sure no further "update packets" are send to the player
         quest.Cleanup();
@@ -542,6 +568,7 @@ public class CharacterQuests(Character owner)
                     var oldStatus = quest.Status;
                     quest.ReadData((byte[])reader.GetValue("data"));
                     quest.Status = oldStatus;
+                    NymphQueenEncounter.RecoverInterruptedQuest(quest);
                     ActiveQuests.Add(quest.TemplateId, quest);
                     quest.QuestInitialized();
                     quest.RequestEvaluation();
