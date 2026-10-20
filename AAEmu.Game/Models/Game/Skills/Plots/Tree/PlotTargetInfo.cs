@@ -241,7 +241,7 @@ public class PlotTargetInfo
                 WorldManager.GetAroundByShape<Unit>(searchOrigin, args.Shape, trace),
             _ => WorldManager.GetAroundByShape<Unit>(posUnit, args.Shape, trace)
         };
-        candidates = IncludeChargeSweep(candidates, posUnit, args, slideFromX, slideFromY);
+        candidates = IncludeChargeSweep(candidates, posUnit, args, plotEvent.Tickets, slideFromX, slideFromY);
         var unitsInRange = FilterTargets(candidates, state, args, plotEvent, trace).Take(args.MaxTargets).ToList();
         // TODO : Filter min distance
         // TODO : Compute Unit Relation
@@ -274,19 +274,21 @@ public class PlotTargetInfo
 
     /// <summary>
     /// Units the landing sphere missed but that still stand inside the radius of the hop that landed here.
-    /// Sweeps this hop's own slide (<paramref name="fromX"/>/<paramref name="fromY"/> → landing), not the
-    /// previous stand's remembered start (that would cover two hops).
+    /// Only repeating hops (<paramref name="tickets"/> ≥ 2) sweep; a one-shot Area with distance is a
+    /// circle at the stand, not a corridor from the caster. The sweep uses this hop's own slide
+    /// (<paramref name="fromX"/>/<paramref name="fromY"/> → landing).
     /// </summary>
     private List<Unit> IncludeChargeSweep(
         List<Unit> candidates,
         BaseUnit posUnit,
         PlotTargetAreaParams args,
+        int tickets,
         float fromX,
         float fromY)
     {
-        if (args.Shape is not { Type: AreaShapeType.Sphere } || args.Shape.Value1 <= 0f)
+        if (!PlotChargeSweepRules.ShouldSweepHop(tickets, args.Distance))
             return candidates;
-        if (args.Distance == 0)
+        if (args.Shape is not { Type: AreaShapeType.Sphere } || args.Shape.Value1 <= 0f)
             return candidates;
 
         var end = posUnit.Transform.World.Position;

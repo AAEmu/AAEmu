@@ -6,6 +6,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 /// </summary>
 public static class PlotChargeSweepRules
 {
+    /// <summary>
+    /// True when this Area step should sweep the slide segment (repeating hop with a slide distance).
+    /// One-shot Areas with a distance are a circle at the stand, not a corridor.
+    /// </summary>
+    public static bool ShouldSweepHop(int tickets, int distanceMm) =>
+        tickets >= 2 && distanceMm != 0;
+
     public static bool WithinRadiusSq(
         float pointX, float pointY,
         float startX, float startY,

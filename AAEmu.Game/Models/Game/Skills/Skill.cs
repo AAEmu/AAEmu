@@ -1465,6 +1465,8 @@ public class Skill
         }
 
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+        // Channel buff / effects start here; a mid-channel Stop must not refund.
+        _castCommitted = true;
         RelayZoneSkillFiredIfNeeded(casterCaster, targetCaster, skillObject);
 
         // Per-tick mana drain (channeling_mana), one tick per channeling_tick, cancelled at channel end.
@@ -3050,12 +3052,14 @@ public class Skill
             _accountCooldownToken = 0;
         }
 
+        // Shared GCD is written on the casting unit (mount for mount skills); Use() reads that same
+        // clock. Skill CD above stays on the cooldown owner (the rider).
         var clearedGcd = false;
         if (_gcdArmed)
         {
-            if (SkillCooldownCancelRules.StillOwnsCooldown(_gcdToken, owner.GlobalCooldownToken))
+            if (SkillCooldownCancelRules.StillOwnsCooldown(_gcdToken, unit.GlobalCooldownToken))
             {
-                owner.GlobalCooldown = DateTime.MinValue;
+                unit.GlobalCooldown = DateTime.MinValue;
                 clearedGcd = true;
             }
 
@@ -3138,7 +3142,8 @@ public class Skill
     /// <summary>
     /// Arms the shared GCD once per accepted cast. Cast-time skills call this at SkillStarted;
     /// instant and plot-only paths call it from Cast / ApplyPlotOnlyFireCosts. A second call is a no-op.
-    /// Claims a token only when a GCD was actually written, on the cooldown-owner unit the refund checks.
+    /// Writes and claims on the casting unit (the same clock <see cref="Use"/> checks); refunds clear
+    /// that unit. Skill CD ownership (rider for mounts) is separate.
     /// </summary>
     private void EnsureGlobalCooldownArmed(Unit unit)
     {
@@ -3146,13 +3151,11 @@ public class Skill
             return;
         if (!SkillGcdArmRules.ShouldArmOnAccept(_bypassGcd, TlId))
             return;
-
-        var owner = SkillCooldownOwnershipRules.CooldownOwner(unit, !_bypassGcd, ResolveCooldownOwnerUnit) ?? unit;
-        if (!TryApplyGlobalCooldown(owner))
+        if (!TryApplyGlobalCooldown(unit))
             return;
 
         _gcdArmed = true;
-        _gcdToken = owner.ClaimGlobalCooldown();
+        _gcdToken = unit.ClaimGlobalCooldown();
     }
 
     /// <summary>

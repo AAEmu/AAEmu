@@ -24,4 +24,13 @@ public class PlotChargeSweepRulesTests
     {
         await Assert.That(PlotChargeSweepRules.WithinRadiusSq(10f, 8f, 5.5f, 0f, 16f, 0f, 36f)).IsFalse();
     }
+
+    [Test]
+    public async Task ShouldSweepHop_OnlyRepeatingSlides()
+    {
+        await Assert.That(PlotChargeSweepRules.ShouldSweepHop(tickets: 2, distanceMm: 5000)).IsTrue();
+        await Assert.That(PlotChargeSweepRules.ShouldSweepHop(tickets: 5, distanceMm: 1000)).IsTrue();
+        await Assert.That(PlotChargeSweepRules.ShouldSweepHop(tickets: 1, distanceMm: 22000)).IsFalse();
+        await Assert.That(PlotChargeSweepRules.ShouldSweepHop(tickets: 2, distanceMm: 0)).IsFalse();
+    }
 }
