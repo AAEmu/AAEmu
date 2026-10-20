@@ -100,4 +100,16 @@ public static class SkillAreaRules
     /// <summary>Whether a selection narrows the gathered set to the caster-to-target corridor.</summary>
     public static bool UsesCorridor(SkillTargetSelection selection)
         => selection == SkillTargetSelection.Line;
+
+    /// <summary>
+    /// Whether the unit the area is gathered around must be kept in the hit list.
+    /// </summary>
+    /// <remarks>
+    /// <c>WorldManager.GetAround</c> excludes the search center by ObjId. An AoE whose radius is
+    /// measured from the cast target (Target-selection skills) would otherwise land on neighbours
+    /// only and miss the unit the skill was aimed at. Source selection already re-added the center;
+    /// Target and Location need the same keep.
+    /// </remarks>
+    public static bool IncludesAreaCenterUnit(float areaRadius)
+        => areaRadius > 0f;
 }

@@ -1880,13 +1880,13 @@ public class Skill
         if (areaRadius > 0)
         {
             var units = WorldManager.GetAround<BaseUnit>(targetSelf, areaRadius, true);
-            if (Template.TargetSelection == SkillTargetSelection.Source)
-                units.Add(targetSelf); // Add main target as well
+            // GetAround excludes the search center; keep the cast target so Target-selection AoEs
+            // actually hit the unit they land on.
+            if (SkillAreaRules.IncludesAreaCenterUnit(areaRadius))
+                units.Add(targetSelf);
             units = FilterAoeUnits(caster, targetSelf, units).ToList();
 
             possibleTargets.AddRange(units);
-            // TODO : Need to check if this is needed
-            //if (targetSelf is Unit) targets.Add(targetSelf);
         }
         else
         {

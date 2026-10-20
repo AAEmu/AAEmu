@@ -91,4 +91,13 @@ public class SkillAreaRulesTests
         await Assert.That(SkillAreaRules.UsesCorridor(SkillTargetSelection.Source)).IsFalse();
         await Assert.That(SkillAreaRules.UsesCorridor(SkillTargetSelection.Location)).IsFalse();
     }
+
+    [Test]
+    public async Task AreaGather_KeepsTheCenterUnitWhenThereIsARadius()
+    {
+        // GetAround drops the search center; a positive-radius Target AoE must still hit that unit.
+        await Assert.That(SkillAreaRules.IncludesAreaCenterUnit(3f)).IsTrue();
+        await Assert.That(SkillAreaRules.IncludesAreaCenterUnit(0.1f)).IsTrue();
+        await Assert.That(SkillAreaRules.IncludesAreaCenterUnit(0f)).IsFalse();
+    }
 }
