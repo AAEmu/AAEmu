@@ -288,12 +288,15 @@ public class PlotTree(uint plotId)
     /// Skill.ActivePlotState and the tree's own end path never had to undo it. Clear it here too, so a
     /// finished skill does not keep handing SetVariable / PlotCondition a plot state that is over; both
     /// read skill.ActivePlotState before the caster's.
+    /// Empty graphs still complete successfully: mark fired so plot-end keeps the press-time CD
+    /// instead of treating the end as an uncommitted range-gate refund.
     /// </remarks>
     public static void EndPlotWithoutTree(PlotState state)
     {
         if (state == null)
             return;
 
+        state.MarkFired();
         DoPlotEnd(state);
 
         state.ActiveSkill?.ReleaseActivePlotState(state);
