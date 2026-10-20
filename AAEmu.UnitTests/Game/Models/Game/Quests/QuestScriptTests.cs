@@ -76,10 +76,13 @@ public class QuestScriptTests
     }
 
     [Test]
+    [Arguments(2008u, QuestComponentKind.Start, QuestStatus.Failed)]
+    [Arguments(2008u, QuestComponentKind.Supply, QuestStatus.Failed)]
     [Arguments(2008u, QuestComponentKind.Progress, QuestStatus.Failed)]
+    [Arguments(2008u, QuestComponentKind.Reward, QuestStatus.Progress)]
     [Arguments(2008u, QuestComponentKind.Ready, QuestStatus.Progress)]
     [Arguments(123u, QuestComponentKind.Progress, QuestStatus.Progress)]
-    public async Task NotifyQuestLoaded_RegisteredRecovery_PreservesReadyAndUnrelatedQuests(uint id,
+    public async Task NotifyQuestLoaded_ReconnectWithoutNpc_FailsInterruptedAndPreservesCompletedQuests(uint id,
         QuestComponentKind step, QuestStatus expected)
     {
         var tasks = Mock.Of<ITaskManager>().Object;
@@ -91,8 +94,32 @@ public class QuestScriptTests
             { TemplateId = id, Step = step, Status = QuestStatus.Progress };
 
         manager.NotifyQuestLoaded(quest);
+        manager.NotifyQuestLoaded(quest);
 
         await Assert.That(quest.Status).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task NotifyQuestLoaded_RepeatedValidation_DoesNotAllocate()
+    {
+        var tasks = Mock.Of<ITaskManager>().Object;
+        var script = new NymphQueenQuestScript(new Lazy<IQuestManager>(() => Mock.Of<IQuestManager>().Object),
+            tasks, Mock.Of<ITeamManager>().Object, TimeProvider.System, new());
+        var manager = new QuestManager(tasks, Mock.Of<IZoneManager>().Object, [script]);
+        var quest = new Quest(null, new Character(null), manager, tasks, Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object, Mock.Of<IWorldManager>().Object)
+            { TemplateId = 2008, Step = QuestComponentKind.Progress, Status = QuestStatus.Progress };
+        quest.QuestSteps[QuestComponentKind.Progress] = new QuestStep(QuestComponentKind.Progress, quest);
+        for (var i = 0; i < 100; i++)
+            manager.NotifyQuestLoaded(quest);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++)
+            manager.NotifyQuestLoaded(quest);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        await Assert.That(allocated).IsEqualTo(0L);
+        await Assert.That(quest.Status).IsEqualTo(QuestStatus.Failed);
     }
 
     private sealed class RejectingScript : IQuestScript

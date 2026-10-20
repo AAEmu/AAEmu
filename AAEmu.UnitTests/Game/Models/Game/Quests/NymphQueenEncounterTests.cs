@@ -18,9 +18,10 @@ namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 public class NymphQueenEncounterTests
 {
     [Test]
-    public async Task OfflineEvent_UnfinishedOwner_FailsBeforeSaveAndUnsubscribesAfterReset()
+    public async Task Tick_OfflineOwner_WaitsForTimeoutAndDoesNotFailReplacementQuest()
     {
         var owner = CreatePlayer(1);
+        owner.Hp = 1;
         var spawner = new TestSpawner();
         var original = new Npc { TemplateId = 9385, Spawner = spawner };
         var clock = new FakeTimeProvider();
@@ -29,14 +30,19 @@ public class NymphQueenEncounterTests
             Mock.Of<ITaskManager>().Object, clock, new());
         encounter.TryAccept(owner, () => AddQuest(owner, quests.Object));
 
-        owner.Events.OnOffline(owner, EventArgs.Empty);
-        await Assert.That(owner.Quests.ActiveQuests[2008].Status).IsEqualTo(QuestStatus.Failed);
+        // A disconnected character is not failed through an offline event or poll.
+        await Assert.That(owner.IsOnline).IsFalse();
+        encounter.Tick();
+        quests.FailQuest(owner, 2008).WasNeverCalled();
+        await Assert.That(owner.Quests.ActiveQuests[2008].Status).IsEqualTo(QuestStatus.Progress);
+        clock.Advance(TimeSpan.FromSeconds(60));
+        encounter.Tick();
         quests.FailQuest(owner, 2008).WasCalled(Times.Once);
+        var previousQuest = owner.Quests.ActiveQuests[2008];
+        AddQuest(owner, quests.Object);
         clock.Advance(TimeSpan.FromSeconds(5));
         encounter.Tick();
-        AddQuest(owner, quests.Object);
-        owner.Events.OnOffline(owner, EventArgs.Empty);
-        owner.Quests.ActiveQuests[2008].NotifyRemoving();
+        previousQuest.NotifyRemoving();
 
         quests.FailQuest(owner, 2008).WasCalled(Times.Once);
         await Assert.That(owner.Quests.ActiveQuests[2008].Status).IsEqualTo(QuestStatus.Progress);
@@ -171,7 +177,7 @@ public class NymphQueenEncounterTests
     }
 
     [Test]
-    public async Task AbandonCombat_RepeatedReturnAndDisconnect_FailsOnceAndSchedulesOneReset()
+    public async Task AbandonCombat_RepeatedReturnAndTick_FailsOnceAndSchedulesOneReset()
     {
         var owner = CreatePlayer(1);
         var spawner = new TestSpawner();
@@ -183,7 +189,7 @@ public class NymphQueenEncounterTests
 
         encounter.AbandonCombat();
         encounter.AbandonCombat();
-        encounter.OwnerUnavailable(owner);
+        encounter.Tick();
 
         quests.FailQuest(owner, 2008).WasCalled(Times.Once);
         await Assert.That(owner.Quests.ActiveQuests[2008].Status).IsEqualTo(QuestStatus.Failed);

@@ -37,6 +37,8 @@ public sealed class NymphQueenQuestScript(Lazy<IQuestManager> questManager, ITas
 
     public void OnLoaded(Quest quest)
     {
+        // Character selection reloads quests before sending them to the client.
+        // A persisted quest cannot resume its previous runtime NPC encounter.
         NymphQueenEncounter.RecoverInterruptedQuest(quest);
     }
 

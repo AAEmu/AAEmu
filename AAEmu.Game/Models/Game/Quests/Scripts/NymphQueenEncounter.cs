@@ -31,6 +31,7 @@ internal sealed class NymphQueenEncounter : INpcEncounter
     private readonly TimeProvider _clock;
     private readonly SharedQuestEncounter _state;
     private readonly EncounterTask _task;
+    private readonly Action<Quest> _onQuestRemoving;
     private Npc _replacement;
     private bool _originalRemoved;
     private bool _resetApplied;
@@ -51,6 +52,7 @@ internal sealed class NymphQueenEncounter : INpcEncounter
             TimeSpan.FromSeconds(Math.Max(1, config.DialogueSeconds)),
             TimeSpan.FromSeconds(Math.Max(1, config.ResetDelaySeconds)));
         _task = new EncounterTask(this);
+        _onQuestRemoving = OnQuestRemoving;
         original.Encounter = this;
         _spawner.Encounter = this;
     }
@@ -108,7 +110,7 @@ internal sealed class NymphQueenEncounter : INpcEncounter
             UpdateCompletions();
             _quests.Remove(player);
             _state.RemoveParticipant(player.Id);
-            Unsubscribe(player, quest);
+            Unsubscribe(quest);
             if (player == _owner && !_state.OwnerCompleted)
                 BeginReset();
         }
@@ -133,8 +135,7 @@ internal sealed class NymphQueenEncounter : INpcEncounter
             }
 
             _quests.Add(player, player.Quests.ActiveQuests[QuestId]);
-            _quests[player].Removing += OnQuestRemoving;
-            player.Events.OnOffline += OnPlayerOffline;
+            _quests[player].Removing += _onQuestRemoving;
             if (player == _owner)
                 _taskManager.Schedule(_task, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
             Logger.Info($"Nymph Queen encounter accepted: owner={_owner.Id}, player={player.Id}, npc={_original.ObjId}");
@@ -213,24 +214,6 @@ internal sealed class NymphQueenEncounter : INpcEncounter
         }
     }
 
-    public void OwnerUnavailable(Character player)
-    {
-        lock (_sync)
-        {
-            UpdateCompletions();
-            if (player == _owner && !_state.OwnerCompleted)
-                BeginReset();
-            else if (player != _owner && _state.UnfinishedParticipants.Contains(player.Id))
-            {
-                if (_quests.TryGetValue(player, out var quest) && IsCurrentQuest(player, quest))
-                    FailParticipant(player, quest);
-                _state.RemoveParticipant(player.Id);
-                if (_quests.Remove(player, out var removed))
-                    Unsubscribe(player, removed);
-            }
-        }
-    }
-
     public bool AbandonCombat()
     {
         lock (_sync)
@@ -251,7 +234,7 @@ internal sealed class NymphQueenEncounter : INpcEncounter
             if (_restored)
                 return;
             UpdateCompletions();
-            var ownerAvailable = _owner.IsOnline && !_owner.IsDead &&
+            var ownerAvailable = !_owner.IsDead &&
                 _owner.ParentWorld == _original.ParentWorld &&
                 _quests.TryGetValue(_owner, out var quest) && IsCurrentQuest(_owner, quest);
             _state.Tick(_clock.GetUtcNow().UtcDateTime, ownerAvailable);
@@ -271,18 +254,29 @@ internal sealed class NymphQueenEncounter : INpcEncounter
 
     private void UpdateCompletions()
     {
-        foreach (var (player, quest) in _quests.ToArray())
+        foreach (var (player, quest) in _quests)
         {
             if (HasCompletedConversation(quest))
                 _state.Complete(player.Id);
         }
     }
 
-    private static bool HasCompletedConversation(Quest quest) =>
-        quest.Step is QuestComponentKind.Ready or QuestComponentKind.Reward ||
-        (quest.QuestSteps.TryGetValue(QuestComponentKind.Progress, out var progress) &&
-        progress.Components.Values.SelectMany(c => c.Acts).Any(a =>
-            a.Template is QuestActObjTalk { NpcId: NepherodaId } && a.GetObjective(quest) > 0));
+    private static bool HasCompletedConversation(Quest quest)
+    {
+        if (quest.Step is QuestComponentKind.Ready or QuestComponentKind.Reward)
+            return true;
+        if (!quest.QuestSteps.TryGetValue(QuestComponentKind.Progress, out var progress))
+            return false;
+        foreach (var component in progress.Components.Values)
+        {
+            foreach (var act in component.Acts)
+            {
+                if (act.Template is QuestActObjTalk { NpcId: NepherodaId } && act.GetObjective(quest) > 0)
+                    return true;
+            }
+        }
+        return false;
+    }
 
     internal static void RecoverInterruptedQuest(Quest quest)
     {
@@ -344,7 +338,7 @@ internal sealed class NymphQueenEncounter : INpcEncounter
         _original.Encounter = null;
         _spawner.CompleteEncounter(this, respawn);
         foreach (var (player, quest) in _quests)
-            Unsubscribe(player, quest);
+            Unsubscribe(quest);
         _quests.Clear();
     }
 
@@ -354,16 +348,9 @@ internal sealed class NymphQueenEncounter : INpcEncounter
             QuestRemoved(player, quest);
     }
 
-    private void OnPlayerOffline(object sender, EventArgs args)
+    private void Unsubscribe(Quest quest)
     {
-        if (sender is Character player)
-            OwnerUnavailable(player);
-    }
-
-    private void Unsubscribe(Character player, Quest quest)
-    {
-        quest.Removing -= OnQuestRemoving;
-        player.Events.OnOffline -= OnPlayerOffline;
+        quest.Removing -= _onQuestRemoving;
     }
 
     private sealed class EncounterTask(NymphQueenEncounter encounter) : AAEmu.Game.Models.Tasks.Task

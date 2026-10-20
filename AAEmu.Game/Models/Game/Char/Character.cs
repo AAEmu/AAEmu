@@ -291,8 +291,6 @@ public partial class Character : Unit, ICharacter
         set
         {
             if (field == value) return;
-            if (!value)
-                Events.OnOffline(this, EventArgs.Empty);
             // TODO - GUILD STATUS CHANGE
             FriendMananger.Instance.SendStatusChange(this, true, value);
             // Set _isOnline BEFORE the SetOffline side effect so anything it triggers

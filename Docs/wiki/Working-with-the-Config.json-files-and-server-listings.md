@@ -1,4 +1,4 @@
-# Working with Config Files and Server Listings
+﻿# Working with Config Files and Server Listings
 
 - Audience: Contributors, players, and testers
 - Last verified against: `develop` on February 28, 2026
@@ -102,14 +102,17 @@ in Game's `Config.Local.json`:
 ```
 
 Only participant damage refreshes the combat timer. Retreat at half health
-starts Nepheroda's dialogue window. Leaving combat, owner death or disconnect,
+starts Nepheroda's dialogue window. Leaving combat, owner death,
 or expiry of a timer fails unfinished participants and restores one friendly
 Lympheroda after the reset delay. Abandon the failed quest before accepting it
 again. After a successful conversation, quest credit is retained for the final
 turn-in to Opheila, and the encounter resets for the next challenger.
 
-Server restart interrupts active encounters: unfinished combat/dialogue quests
-are marked failed on character load. Quests ready for final turn-in are retained.
+Each character selection revalidates persisted encounter quests before sending
+them to the client. Unfinished combat/dialogue quests are marked failed, including
+after a disconnect, a missing NPC, or a server restart. Completed conversation
+credit and quests ready for final turn-in are retained. No offline event is needed;
+the encounter timers still recover abandoned NPCs.
 Timer values are seconds and are clamped to a minimum of one second.
 
 Abandoning or removing quest 2008 also resets its active encounter. Wait for the
