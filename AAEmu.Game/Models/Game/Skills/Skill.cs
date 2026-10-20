@@ -1593,10 +1593,10 @@ public class Skill
         totalDelay += SkillEffectTravelRules.TravelDelayMs(Template.EffectSpeed, unit.GetDistanceTo(target));
         if (Template.FireAnim != null && Template.UseAnimTime)
         {
-            // attack_anim_speed_mul (119) is the animation's own view of the rating that already paced this
-            // delay through global_cooldown_mul; a unit without one keeps that factor, and a unit with
-            // neither keeps 1.0.
-            var animFactor = SpeedMultiplierRules.AnimationFactor(unit.AttackAnimSpeedRating, unit.GlobalCooldownMul / 100.0);
+            // General attack_speed_mul (218) paces fire-anim sync the same way it paces the shared GCD;
+            // attack_anim_speed_mul (119) is the animation-specific fallback, then global_cooldown_mul.
+            var animFactor = SpeedMultiplierRules.AnimationFactor(
+                unit.AttackSpeedRating, unit.AttackAnimSpeedRating, unit.GlobalCooldownMul / 100.0);
             totalDelay += (int)(Template.FireAnim.CombatSyncTime * animFactor);
         }
 

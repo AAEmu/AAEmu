@@ -430,9 +430,18 @@ public class Buff
                 {
                     // Timed instances must stop when EndTime elapses even if the tick counter was
                     // armed as "infinite" (_count == -1) or still has leftover ticks after an Extend
-                    // that the client already capped at max_life_time.
+                    // that the client already capped at max_life_time. Deliver one last OnActionTime
+                    // pulse at the expiry edge (the schedule's final due tick) before finishing.
                     if (Duration > 0 && EndTime != DateTime.MinValue && DateTime.UtcNow >= EndTime)
                     {
+                        if (Template.OnActionTime && (_count == -1 || _count > 0))
+                        {
+                            if (_count > 0)
+                                _count = 0;
+                            TickIndex++;
+                            Template.TimeToTimeApply(Caster, Owner, this);
+                        }
+
                         State = EffectState.Finishing;
                         FinishBuff(replace, fireTimeout: true);
                         return;

@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills;
+﻿using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
@@ -92,5 +92,13 @@ public class SpeedMultiplierRulesTests
         await Assert.That(SpeedMultiplierRules.AnimationFactor(0, 3.33)).IsEqualTo(3.33);
         await Assert.That(SpeedMultiplierRules.AnimationFactor(0, 1.0)).IsEqualTo(1.0);
         await Assert.That(SpeedMultiplierRules.AnimationFactor(-700, 1.0)).IsEqualTo(2.99).Within(Epsilon);
+    }
+
+    [Test]
+    public async Task AnimationFactor_GeneralAttackSpeedOutranksAnimationAndFallback()
+    {
+        await Assert.That(SpeedMultiplierRules.AnimationFactor(1000, -700, 3.33)).IsEqualTo(0.5).Within(Epsilon);
+        await Assert.That(SpeedMultiplierRules.AnimationFactor(0, -700, 3.33)).IsEqualTo(2.99).Within(Epsilon);
+        await Assert.That(SpeedMultiplierRules.AnimationFactor(0, 0, 3.33)).IsEqualTo(3.33);
     }
 }

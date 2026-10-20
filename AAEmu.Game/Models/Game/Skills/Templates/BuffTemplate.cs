@@ -612,7 +612,10 @@ public class BuffTemplate
                     if (heirs.Count > 0)
                     {
                         var heir = heirs[0];
-                        heir.Index = buff.Index;
+                        // Wire face index moves to the survivor; re-key index-scoped bonuses so
+                        // later RemoveBonuses still finds them (they were registered under the
+                        // survivor's original Index).
+                        RetargetBonusIndex(owner, heir, buff.Index);
                         heir.AnnouncedToClient = true;
                         heir.RelayedToZone = buff.RelayedToZone;
                         buff.AnnouncedToClient = false;
@@ -668,6 +671,37 @@ public class BuffTemplate
     public double GetTick()
     {
         return Tick;
+    }
+
+    /// <summary>
+    /// Moves unit bonuses registered under <paramref name="buff"/>.Index onto <paramref name="newIndex"/>
+    /// and updates the buff's Index. No-op when the indices already match.
+    /// </summary>
+    private static void RetargetBonusIndex(BaseUnit owner, Buff buff, uint newIndex)
+    {
+        if (buff.Index == newIndex)
+            return;
+
+        if (owner is Unit unit)
+        {
+            if (unit.Bonuses != null && unit.Bonuses.Remove(buff.Index, out var bonuses))
+            {
+                if (unit.Bonuses.TryGetValue(newIndex, out var existing))
+                    existing.AddRange(bonuses);
+                else
+                    unit.Bonuses[newIndex] = bonuses;
+            }
+
+            if (unit.DynamicBonuses != null && unit.DynamicBonuses.Remove(buff.Index, out var dynamicBonuses))
+            {
+                if (unit.DynamicBonuses.TryGetValue(newIndex, out var existingDynamic))
+                    existingDynamic.AddRange(dynamicBonuses);
+                else
+                    unit.DynamicBonuses[newIndex] = dynamicBonuses;
+            }
+        }
+
+        buff.Index = newIndex;
     }
 
     private void AnnounceBuffCreated(BaseUnit owner, Buff buff)
