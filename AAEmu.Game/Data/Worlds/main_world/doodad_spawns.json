@@ -385730,6 +385730,83 @@
   {
     "UnitId": 3848, // Old Memoria Lake Tree
     "Position": {
+      "X": 9097.6,
+      "Y": 9063.8,
+      "Z": 193.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 126.6
+    }
+  },
+  {
+    "UnitId": 3848, // Old Memoria Lake Tree
+    "Position": {
+      "X": 9088.3,
+      "Y": 9059.7,
+      "Z": 194.7,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 3848, // Old Memoria Lake Tree
+    "Position": {
+      "X": 9063.3,
+      "Y": 9087.7,
+      "Z": 196.5,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -53.4
+    }
+  },
+  {
+    "UnitId": 3848, // Old Memoria Lake Tree
+    "Position": {
+      "X": 9087.8,
+      "Y": 9070.8,
+      "Z": 192.2,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 61.9
+    }
+  },
+  {
+    "UnitId": 3848, // Old Memoria Lake Tree
+    "Position": {
+      "X": 9064.6,
+      "Y": 9098.9,
+      "Z": 194.1,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 42.2
+    }
+  },
+  {
+    "UnitId": 3848, // Old Memoria Lake Tree
+    "Position": {
+      "X": 9062.2,
+      "Y": 9114.8,
+      "Z": 193.9,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -16.9
+    }
+  },
+  {
+    "UnitId": 3848, // Old Memoria Lake Tree
+    "Position": {
+      "X": 9048.9,
+      "Y": 9120.5,
+      "Z": 196.3,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 30.9
+    }
+  },
+  {
+    "UnitId": 3848, // Old Memoria Lake Tree
+    "Position": {
       "X": 9078.5,
       "Y": 9125.3,
       "Z": 190.2,
