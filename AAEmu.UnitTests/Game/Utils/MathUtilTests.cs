@@ -82,8 +82,10 @@ public class MathUtilTests
     [Arguments(0, 0)]
     [Arguments(28, 78.75)]
     [Arguments(56, 157.5)]
-    [Arguments(85, 239.0625)]
-    [Arguments(113, 317.8125)]
+    [Arguments(80, -135)] // SE: was +225 before principal wrap
+    [Arguments(85, -120.9375f)] // was +239.0625
+    [Arguments(113, -42.1875f)] // was +317.8125
+    [Arguments(-32, -90)]
     public async Task ConvertSbyteDirectionToDegree_ValidDirections_ReturnsExpectedDegree(sbyte direction, float expected)
     {
         // Act
@@ -91,6 +93,15 @@ public class MathUtilTests
 
         // Assert
         await Assert.That(result).IsEqualTo(expected).Within(0.00001f);
+    }
+
+    [Test]
+    public async Task ConvertDirectionToRadian_SoutheastByte_IsPrincipalNegativeYaw()
+    {
+        // Byte 80 is SE on the 128-step circle. Planting +225° made doodad shorts flip the facing.
+        var yaw = MathUtil.ConvertDirectionToRadian(80);
+        await Assert.That(yaw).IsEqualTo(-Math.PI * 0.75).Within(1e-9);
+        await Assert.That(Math.Cos(yaw * 0.5)).IsGreaterThan(0); // W > 0 on ToQuaternion
     }
 
     [Test]

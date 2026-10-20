@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -260,44 +260,75 @@ public class CharacterSkills(Character owner)
         return ids;
     }
 
-    private uint _lastComboSkillId;
-    private DateTime _lastComboAt = DateTime.MinValue;
+    /// <summary>
+    /// Open Combo follow-up windows: follow-up skill id → UTC expiry. Intervening casts do not
+    /// clear other entries (dash → attack → return must still accept the recall).
+    /// </summary>
+    private readonly Dictionary<uint, DateTime> _comboFollowUpExpires = [];
 
     /// <summary>
-    /// Records the last accepted cast so the next Combo link can be gated on that link's window.
+    /// Guards prune / consume / open / check of <see cref="_comboFollowUpExpires"/>. Packet
+    /// <c>HasSkill</c> and scheduled cast accept (<c>NoteSkillFired</c>) can race.
+    /// </summary>
+    private readonly object _comboFollowUpLock = new();
+
+    /// <summary>
+    /// Records an accepted cast: consumes this id's follow-up window if any, and opens the next
+    /// Combo link's window when this skill names one.
     /// </summary>
     public void NoteSkillFired(uint skillId)
     {
         if (skillId == 0)
             return;
-        _lastComboSkillId = skillId;
-        _lastComboAt = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        lock (_comboFollowUpLock)
+        {
+            SkillComboRules.PruneExpiredFollowUps(_comboFollowUpExpires, now);
+            SkillComboRules.ApplyAcceptedCast(
+                skillId,
+                now,
+                _comboFollowUpExpires,
+                SkillComboRules.NextFollowUp,
+                SkillComboRules.ComboWindowMs);
+        }
+    }
+
+    /// <summary>
+    /// Closes the Combo follow-up window opened by an accepted cast that was later refunded.
+    /// </summary>
+    public void CancelComboOpenedBy(uint skillId)
+    {
+        if (skillId == 0)
+            return;
+        lock (_comboFollowUpLock)
+        {
+            SkillComboRules.CloseFollowUpOpenedBy(
+                skillId, _comboFollowUpExpires, SkillComboRules.NextFollowUp);
+        }
     }
 
     /// <summary>
     /// Whether the character holds <paramref name="skillId"/> — learned, buff-granted, the
-    /// currently selected Heir successor, or the next Combo link after the last accepted cast
-    /// while that link's window is still open.
+    /// currently selected Heir successor, or an open Combo follow-up window for that id.
     /// </summary>
     /// <remarks>
     /// Combo follow-ups (special type 48) are never book entries: the client swaps the bar and sends
     /// an ordinary cast for the next id. Accepting every later hit of a learned root would let a
-    /// short-cooldown follow-up be cast without its root. The window is
-    /// <c>value2 + casting_time</c> of the previous hit, so a cast-time chain (the follow-up arrives
-    /// after the cast) still fits and an open follow-up with no prior link is refused.
+    /// short-cooldown follow-up be cast without its root — windows open only when the prior link
+    /// is accepted. The window is <c>value2 + max(casting_time, shared GCD)</c> of that prior hit,
+    /// and it survives other skills cast in between (blink return after an attack).
     /// </remarks>
     public bool HasSkill(uint skillId)
     {
         if (Skills.ContainsKey(skillId) || TemporarySkills.ContainsKey(skillId) || IsActiveHeirSuccessor(skillId))
             return true;
 
-        return SkillComboRules.IsNextComboWithinWindow(
-            skillId,
-            _lastComboSkillId,
-            _lastComboAt,
-            DateTime.UtcNow,
-            SkillComboRules.NextFollowUp,
-            SkillComboRules.ComboWindowMs);
+        var now = DateTime.UtcNow;
+        lock (_comboFollowUpLock)
+        {
+            SkillComboRules.PruneExpiredFollowUps(_comboFollowUpExpires, now);
+            return SkillComboRules.IsOpenComboFollowUp(skillId, _comboFollowUpExpires, now);
+        }
     }
 
     private void ReconcileBuffGrants()
@@ -342,13 +373,9 @@ public class CharacterSkills(Character owner)
         if (!TemporarySkills.TryAdd(skillId, skill))
             return;
 
-        // A passive buff applies during character load, before the client is in the world —
-        // Character.Connection is set on character select — and the grant goes out with the login skill
-        // list (SCUnitState) instead. This is the same reason BuffTemplate.Start skips SCBuffCreated for
-        // passives. SCSkillLearned is the packet the learn path (and CharacterSkills.ResendLearnedToOwner)
-        // already uses for a skill the character has: 10.0.2.13 reads the single skill id it writes.
-        if (Owner.Connection != null)
-            Owner.SendPacket(new SCSkillLearnedPacket(skill));
+        // Do not send SCSkillLearned: each one posts chat SKILL_LEARNED, and a buff_swap / combo
+        // grant is a bar replacement, not a permanent learn. The client already knows the skill id
+        // from buff_swap_skills / buff_skills; TemporarySkills is the server-side HasSkill table.
     }
 
     private void ReconcileGrantedPassives(List<BuffGrantSet> holders)

@@ -22,9 +22,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 /// A player who may not play through a placed instrument is refused: no MIDI announcement and no
 /// buff leave the server, so a stranger at somebody's piano changes nothing. When nothing in reach
 /// is an instrument at all, the play is refused the same way, with the shipped
-/// <see cref="ErrorMessageType.MustEquipInstrumentItem"/> message — the same requirement the client
-/// itself evaluates before allowing the skill (a musical-slot weapon has to carry an
-/// <c>instrument_sounds</c> row, see <c>UnitReqs</c>).
+/// <see cref="ErrorMessageType.MustEquipInstrumentItem"/> message — Play Score needs an
+/// <c>instrument_sounds</c> row (item or doodad). That is separate from Songcraft's
+/// <c>equip_ranged</c> gate, which keys off <c>item_weapons.useAsStat</c>.
 ///
 /// The buff is applied only when it is not on the player already, so a repeated play of the same
 /// instrument applies it exactly once. The MIDI is announced on every play, including one that

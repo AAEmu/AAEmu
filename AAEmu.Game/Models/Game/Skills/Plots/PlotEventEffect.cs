@@ -108,6 +108,8 @@ public class PlotEventEffect
         if (template == null || target == null)
             return;
 
+        state.ActiveSkill?.NotePlotCast(evt.PlotId, evt.Id);
+
         if (channeled && buffEffect != null)
             state.ChanneledBuffs.Add((target, buffEffect.BuffId));
 

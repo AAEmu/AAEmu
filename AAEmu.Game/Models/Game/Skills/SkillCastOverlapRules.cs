@@ -31,6 +31,18 @@ public static class SkillCastOverlapRules
         customGcd > 0 || defaultGcd;
 
     /// <summary>
+    /// A new cast takes over a plot that is still winding up, or one that is waiting on a channel.
+    /// A plot that has already fired keeps running: its projectile is in the air and its cooldown
+    /// is already armed, and the next skill must not erase the hit.
+    /// </summary>
+    public static bool PreviousPlotMustYield(bool isCasting, bool hasFired, bool waitingOnChannel)
+    {
+        if (waitingOnChannel)
+            return true;
+        return isCasting && !hasFired;
+    }
+
+    /// <summary>
     /// A new plot cancels a busy one, except combo hits and a repeat of the same skill
     /// (hold / GCD next). Those must finish their own Fired/Damaged.
     /// Fishing hold swap still goes through <paramref name="sportFishWouldCancel"/>.

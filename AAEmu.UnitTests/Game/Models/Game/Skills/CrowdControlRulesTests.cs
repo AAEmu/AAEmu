@@ -99,6 +99,19 @@ public class CrowdControlRulesTests
     }
 
     [Test]
+    public async Task AllowsTurningInPlace_RootOnlyKeepsTheFacing()
+    {
+        // A root takes the walk, not the facing; stun and sleep take both. Backdraft roots its caster
+        // before the client's snap-to-camera turn arrives, and that turn is what its leap runs from.
+        await Assert.That(CrowdControlRules.AllowsTurningInPlace(State(rooted: true))).IsTrue();
+        await Assert.That(CrowdControlRules.AllowsTurningInPlace(State(rooted: true, silenced: true))).IsTrue();
+        await Assert.That(CrowdControlRules.AllowsTurningInPlace(State(rooted: true, stunned: true))).IsFalse();
+        await Assert.That(CrowdControlRules.AllowsTurningInPlace(State(rooted: true, asleep: true))).IsFalse();
+        await Assert.That(CrowdControlRules.AllowsTurningInPlace(State(stunned: true))).IsFalse();
+        await Assert.That(CrowdControlRules.AllowsTurningInPlace(CrowdControlRules.EnforcedState.None)).IsFalse();
+    }
+
+    [Test]
     public async Task BlocksMovement_ASilenceLeavesTheWalkAlone()
     {
         // 198 shipped buffs are silence-only. Blocking movement on them would root the caster as well.

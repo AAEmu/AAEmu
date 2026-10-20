@@ -19,17 +19,22 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// </remarks>
 public static class AccountCooldowns
 {
-    private static readonly ConcurrentDictionary<uint, ConcurrentDictionary<uint, DateTime>> Store = new();
+    private static readonly ConcurrentDictionary<uint, ConcurrentDictionary<uint, AccountCooldown>> Store = new();
+    private static long _nextOwnerToken;
 
-    /// <summary>Arms (or re-arms) one skill's account cooldown for an account.</summary>
-    public static void Arm(uint accountId, uint skillId, uint duration)
+    private readonly record struct AccountCooldown(DateTime EndTime, long OwnerToken);
+
+    /// <summary>Arms (or re-arms) one skill's account cooldown for an account. Returns the owner token, or 0 when skipped.</summary>
+    public static long Arm(uint accountId, uint skillId, uint duration)
     {
         if (accountId == 0 || skillId == 0)
-            return;
+            return 0;
 
         var endTime = DateTime.UtcNow + TimeSpan.FromMilliseconds(duration);
-        var skills = Store.GetOrAdd(accountId, _ => new ConcurrentDictionary<uint, DateTime>());
-        skills[skillId] = endTime;
+        var token = Interlocked.Increment(ref _nextOwnerToken);
+        var skills = Store.GetOrAdd(accountId, _ => new ConcurrentDictionary<uint, AccountCooldown>());
+        skills[skillId] = new AccountCooldown(endTime, token);
+        return token;
     }
 
     /// <summary>True while the account still has this skill on cooldown.</summary>
@@ -38,10 +43,10 @@ public static class AccountCooldowns
         if (accountId == 0 || skillId == 0 || !Store.TryGetValue(accountId, out var skills))
             return false;
 
-        if (!skills.TryGetValue(skillId, out var endTime))
+        if (!skills.TryGetValue(skillId, out var entry))
             return false;
 
-        if (endTime > DateTime.UtcNow)
+        if (entry.EndTime > DateTime.UtcNow)
             return true;
 
         skills.TryRemove(skillId, out _);
@@ -52,13 +57,31 @@ public static class AccountCooldowns
     public static TimeSpan GetRemaining(uint accountId, uint skillId)
     {
         if (accountId == 0 || skillId == 0 || !Store.TryGetValue(accountId, out var skills) ||
-            !skills.TryGetValue(skillId, out var endTime))
+            !skills.TryGetValue(skillId, out var entry))
             return TimeSpan.Zero;
 
-        return endTime > DateTime.UtcNow ? endTime - DateTime.UtcNow : TimeSpan.Zero;
+        return entry.EndTime > DateTime.UtcNow ? entry.EndTime - DateTime.UtcNow : TimeSpan.Zero;
     }
 
     /// <summary>Drops every cooldown held for an account (used by tests and account teardown).</summary>
     public static void Clear(uint accountId)
         => Store.TryRemove(accountId, out _);
+
+    /// <summary>Clears one skill's account cooldown (cancelled cast that had armed it at accept).</summary>
+    public static void ClearSkill(uint accountId, uint skillId)
+    {
+        if (accountId == 0 || skillId == 0 || !Store.TryGetValue(accountId, out var skills))
+            return;
+        skills.TryRemove(skillId, out _);
+    }
+
+    /// <summary>Clears the skill only while <paramref name="ownerToken"/> is still the arm that wrote it.</summary>
+    public static bool ClearIfOwner(uint accountId, uint skillId, long ownerToken)
+    {
+        if (accountId == 0 || skillId == 0 || ownerToken == 0 || !Store.TryGetValue(accountId, out var skills))
+            return false;
+        if (!skills.TryGetValue(skillId, out var entry) || entry.OwnerToken != ownerToken)
+            return false;
+        return skills.TryRemove(new KeyValuePair<uint, AccountCooldown>(skillId, entry));
+    }
 }

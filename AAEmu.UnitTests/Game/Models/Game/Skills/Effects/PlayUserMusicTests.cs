@@ -342,6 +342,7 @@ public class PlayUserMusicTests : IDisposable
         }
 
         public bool CheckBuff(uint id) => _active.Contains(id);
+        public bool HasTransformSourceBelowCeiling(uint transformTargetBuffId) => false;
 
         public void RemoveBuff(uint buffId, bool notifyZone = true)
         {

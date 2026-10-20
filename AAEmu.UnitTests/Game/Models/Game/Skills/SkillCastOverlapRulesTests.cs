@@ -52,6 +52,37 @@ public class SkillCastOverlapRulesTests
     }
 
     [Test]
+    public async Task FiredProjectile_IsNotCancelledByAnotherSkill()
+    {
+        var yield = SkillCastOverlapRules.PreviousPlotMustYield(
+            isCasting: false, hasFired: true, waitingOnChannel: false);
+        var sport = SportFishCombat.ShouldCancelPreviousPlot(yield, previousWasHold: false, incomingIsHold: false);
+        await Assert.That(SkillCastOverlapRules.ShouldCancelPreviousPlot(
+            yield, incomingIsInstantCombo: false, incomingSameSkill: false, sportFishWouldCancel: sport)).IsFalse();
+    }
+
+    [Test]
+    public async Task FiredProjectile_DoesNotYieldToTheNextCast()
+    {
+        await Assert.That(SkillCastOverlapRules.PreviousPlotMustYield(
+            isCasting: false, hasFired: true, waitingOnChannel: false)).IsFalse();
+    }
+
+    [Test]
+    public async Task CastThatHasNotFired_Yields()
+    {
+        await Assert.That(SkillCastOverlapRules.PreviousPlotMustYield(
+            isCasting: true, hasFired: false, waitingOnChannel: false)).IsTrue();
+    }
+
+    [Test]
+    public async Task ChannelWait_StillYieldsAfterItHasFired()
+    {
+        await Assert.That(SkillCastOverlapRules.PreviousPlotMustYield(
+            isCasting: false, hasFired: true, waitingOnChannel: true)).IsTrue();
+    }
+
+    [Test]
     public async Task OtherSkill_StillCancelsABusyPlot()
     {
         await Assert.That(SkillCastOverlapRules.ShouldCancelPreviousPlot(

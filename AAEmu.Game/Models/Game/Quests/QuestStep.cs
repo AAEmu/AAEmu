@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests;
@@ -91,6 +92,9 @@ public class QuestStep(QuestComponentKind step, Quest parent)
             }
         }
 
+        // Result of the acts themselves, before the score / let-it-done overrides below
+        var actsMet = res;
+
         // Override result for score quests
         if (ThisStep == QuestComponentKind.Progress && Parent.Template.Score > 0)
         {
@@ -121,14 +125,37 @@ public class QuestStep(QuestComponentKind step, Quest parent)
                 : QuestStatus.Progress;
         }
 
-        // Handle Supply/Reward Distribution
-        res &= Parent.DistributeRewards(true);
+        // Score quests already folded their threshold into res. A non-score LetItDone step
+        // replaced res with the overachieve gate (3/2); an exact count must still count.
+        var objectiveMet = Parent.Template.Score > 0 ? res : actsMet;
 
-        // LetItBeDone type of quests, are always forced forward using the Report Acts
+        // Handle Supply/Reward Distribution
+        var rewardsDistributed = Parent.DistributeRewards(true);
+        res &= rewardsDistributed;
+
+        // LetItDone Progress normally waits for a Report act. Quests that only have
+        // QuestActConAutoComplete (no report) leave Progress once their objectives are met.
         if (ThisStep == QuestComponentKind.Progress && Parent.Template.LetItDone)
-            res = false;
+        {
+            res = QuestLetItDoneAdvanceRules.ResolveProgressResult(
+                rewardsDistributed,
+                objectiveMet,
+                QuestLetItDoneAdvanceRules.AutoCompletesWithoutReport(AllActTemplates()));
+        }
 
         return res;
+    }
+
+    private IEnumerable<QuestActTemplate> AllActTemplates()
+    {
+        foreach (var step in Parent.QuestSteps.Values)
+        {
+            foreach (var component in step.Components.Values)
+            {
+                foreach (var act in component.Acts)
+                    yield return act.Template;
+            }
+        }
     }
 
     /// <summary>

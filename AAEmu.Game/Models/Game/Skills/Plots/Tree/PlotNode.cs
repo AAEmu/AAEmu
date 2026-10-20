@@ -2,8 +2,12 @@
 using AAEmu.Game;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Static;
+using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Templates;
 
 using NLog;
 
@@ -66,6 +70,8 @@ public class PlotNode
             }
         }
 
+        RememberMoveOrigin(state);
+
         var (castingMs, channelingMs) = PlotChannelingRules.NextEdgeDurations(
             Event.NextEvents.Select(nextEvent => (nextEvent.Casting, nextEvent.Channeling, nextEvent.Delay)));
         var animCs = PlotNextEvent.AnimCsTimeMs(Event.Effects);
@@ -99,6 +105,13 @@ public class PlotNode
                 state.ActiveSkill?.ApplyPlotOnlyFireCosts(state.Caster);
         }
 
+        if (SkillCooldownCancelRules.PlotCommitted(
+                HasCommittingEffects(),
+                openedCastBar: castTime > 0,
+                fireMoment: (ParentNextEvent?.Casting ?? false) && castTime <= 0,
+                enteredChannel: ParentNextEvent?.Channeling ?? false))
+            state.MarkFired();
+
         if (ParentNextEvent?.Channeling ?? false)
             state.IsChanneling = false;
         else
@@ -129,8 +142,13 @@ public class PlotNode
             // target is often a synthetic position and therefore cannot stand in for this list.
             var targetUnitIds = PlotTargetInfo.RealTargetUnitIds(targetInfo.EffectedTargets);
 
+            // Echo the client's own CSStartSkill.inputDirection (0 unless the skill ships
+            // use_input_direction). The client orients its controller run and FX off this byte; a
+            // server-derived yaw here sent Backdraft and Ceaseless Fire off at the body's rounded heading.
+            var inputDirection = skill?.ClientInputDirection ?? 0;
+
             var packet = new SCPlotEventPacket(state.CastTlId, Event.Id, skill.Template.Id, casterPlotObj,
-                targetPlotObj, unkId, castWire, flag, 0, targetUnitIds, channelingTime: channelWire);
+                targetPlotObj, unkId, castWire, flag, 0, targetUnitIds, inputDirection, channelWire);
             state.LastClientEvent = new PlotClientEvent
             {
                 Tl = state.CastTlId,
@@ -142,7 +160,8 @@ public class PlotNode
                 CastWire = castWire,
                 Flag = flag,
                 TargetUnitIds = targetUnitIds,
-                ChannelWire = channelWire
+                ChannelWire = channelWire,
+                InputDirection = inputDirection
             };
 
             if (packets != null)
@@ -171,6 +190,49 @@ public class PlotNode
                     "Post-plot action error - check logs"));
                 Logger.Error(e, "Post-plot action failed for event {0}", Event.Id);
             }
+        }
+    }
+
+    /// <summary>
+    /// Effects that should lock the skill cooldown for this plot. Setup specials on the start
+    /// node (GCD, auto-attack, stealth cancel, SetVariable) are ignored so a later Range fail
+    /// can still refund the press-armed timer.
+    /// </summary>
+    private bool HasCommittingEffects()
+    {
+        foreach (var effect in Event?.Effects ?? [])
+        {
+            SpecialType? specialType = null;
+            if (string.Equals(effect.ActualType, "SpecialEffect", StringComparison.Ordinal) &&
+                SkillManager.Instance?.GetEffectTemplate(effect.ActualId, effect.ActualType) is SpecialEffect special)
+                specialType = special.SpecialEffectTypeId;
+
+            if (SkillCooldownCancelRules.CountsTowardPlotCommit(effect.ActualType, specialType))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// First move controller that tells the plot to wait captures the caster where the shot was fired.
+    /// The leap itself has not stepped yet; a later controller must not overwrite that pose.
+    /// </summary>
+    private void RememberMoveOrigin(PlotState state)
+    {
+        if (state == null || state.HasMoveOrigin || state.Caster == null)
+            return;
+
+        foreach (var eff in Event.Effects)
+        {
+            if (eff.ActualType != "SkillController")
+                continue;
+            if (SkillManager.Instance?.GetEffectTemplate(eff.ActualId, eff.ActualType) is not SkillControllerTemplate controller)
+                continue;
+            if (!PlotMoveOriginRules.RemembersOrigin(controller.Value[4]))
+                continue;
+            state.RememberMoveOrigin(state.Caster);
+            return;
         }
     }
 

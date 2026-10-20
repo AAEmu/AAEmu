@@ -61,6 +61,13 @@ public class BuffEffect : EffectTemplate
         // the tag, e.g. 4627 가벼운 발걸음 needs tag 831 무겁다.
         if (target.Buffs.GetMissingRequiredBuffTag(Buff) > 0)
             return; // TODO send error?
+        // Soulslake / tension: the ICD also triggers the transform target. Hold it until the stack
+        // ceiling transforms, or until that buff is already live (refresh).
+        if (BuffTransformDeferRules.ShouldDefer(
+                Buff.Id,
+                target.Buffs.CheckBuff(Buff.Id),
+                target.Buffs.HasTransformSourceBelowCeiling(Buff.Id)))
+            return;
         if (target.Buffs.CheckBuffImmune(Buff, caster, source.Skill))
         {
             target.Buffs.BroadcastBuffImmune(caster, castObj, casterObj);

@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Units;
+﻿using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Core.Packets.G2C;
@@ -17,10 +18,11 @@ public sealed class PlotClientEvent
     public byte Flag { get; init; }
     public uint[] TargetUnitIds { get; init; } = [];
     public ushort ChannelWire { get; init; }
+    public byte InputDirection { get; init; }
 
     public SCPlotEventPacket ToPacket() => new(
         Tl, EventId, SkillId, Caster, Target, UnkId, CastWire, Flag, 0, TargetUnitIds,
-        channelingTime: ChannelWire);
+        InputDirection, ChannelWire);
 }
 
 public class PlotState(
@@ -34,7 +36,16 @@ public class PlotState(
 {
     private bool _cancellationRequest = false;
     private bool _finishChanneling = false;
+    /// <summary>
+    /// True once this plot has applied an effect, finished its cast, or entered a channel.
+    /// A cancel after that keeps the cooldown the cast armed.
+    /// </summary>
+    public bool HasFired { get; private set; }
     public Dictionary<uint, int> Tickets { get; set; } = [];
+    /// <summary>
+    /// Self-next loops count visits per chain. A second charge that reuses the same event keeps its own budget.
+    /// </summary>
+    public PlotTicketLedger TicketChains { get; } = new();
     public int[] Variables { get; set; } = new int[12];
     /// <summary>
     /// Hit count from the latest plot target update (Area/RandomUnit/…). Consumed by
@@ -44,6 +55,11 @@ public class PlotState(
     public byte CombatDiceRoll { get; set; }
     public bool IsCasting { get; set; }
     public bool IsChanneling { get; set; }
+    /// <summary>
+    /// True while a child entered by a channeling edge is still waiting. A fired projectile
+    /// delay is not a channel, so the next skill must not treat it as one.
+    /// </summary>
+    public bool WaitingOnChannel { get; set; }
     public PlotClientEvent LastClientEvent { get; set; }
     public DateTime LastIgnoredStopRefreshUtc { get; set; }
 
@@ -97,7 +113,34 @@ public class PlotState(
     /// </remarks>
     public Dictionary<uint, float> AreaSelectionRadius { get; } = [];
 
+    /// <summary>
+    /// Caster pose when a move controller with the plot-wait flag started. Later area stands whose
+    /// basis is still the caster, and cones sitting on that pose, search from here.
+    /// </summary>
+    public SavedPosition? MoveOrigin { get; private set; }
+
+    private readonly HashSet<uint> _selectedFromMoveOrigin = [];
+
+    public bool HasMoveOrigin => MoveOrigin.HasValue;
+
+    public void RememberMoveOrigin(BaseUnit unit)
+    {
+        if (MoveOrigin != null || unit == null)
+            return;
+        MoveOrigin = SavedPositionRules.Capture(unit);
+    }
+
+    public void NoteMoveOriginSelection(uint objId)
+    {
+        if (objId != 0 && objId != uint.MaxValue)
+            _selectedFromMoveOrigin.Add(objId);
+    }
+
+    public bool WasSelectedFromMoveOrigin(uint objId) => _selectedFromMoveOrigin.Contains(objId);
+
     public bool CancellationRequested() => _cancellationRequest;
+
+    public void MarkFired() => HasFired = true;
 
     /// <summary>
     /// Start of the cast or channel bar the plot last advertised to the client, and how long that bar runs.

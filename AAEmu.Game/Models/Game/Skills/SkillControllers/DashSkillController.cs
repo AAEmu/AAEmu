@@ -61,12 +61,13 @@ public class DashSkillController : LinearMoveSkillController
         // arrived, or the run would end before it started.
         ArrivalThreshold = 0.01f;
 
-        // A dash is not aimed at anybody: it is a run in the direction the unit already faces. Transform
-        // rotation is in radians (the leap controller's SetRotationDegree call and CalculateAngleFrom's
-        // RadToDeg both say so), so this is AddDistanceToFront with the unit the helper expects.
-        var yaw = owner.Transform.Local.Rotation.Z;
-        var (endX, endY) = MathUtil.AddDistanceToFront(Distance, owner.Transform.Local.Position.X,
-            owner.Transform.Local.Position.Y, yaw);
+        // A dash is not aimed at anybody: it is a run along the unit's facing. The unit's front is what
+        // PositionAndRotation.AddDistanceToFront walks (yaw 0 = +Y); MathUtil's (cos, sin) helper measures
+        // from +X, so handing it the raw yaw ran the dash along the unit's right side.
+        var heading = LinearMoveFacingRules.HeadingAlongFacing(owner.Transform.Local.Rotation.Z, Distance);
+        var (endX, endY) = MathUtil.AddDistanceToFront(Math.Abs(Distance), owner.Transform.Local.Position.X,
+            owner.Transform.Local.Position.Y, heading);
         EndPosition = new Vector3(endX, endY, owner.Transform.Local.Position.Z);
+        FacesTravelDirection = LinearMoveFacingRules.TurnsIntoTravel(Distance);
     }
 }

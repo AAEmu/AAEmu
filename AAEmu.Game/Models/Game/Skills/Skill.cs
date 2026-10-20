@@ -84,6 +84,43 @@ public class Skill
     }
 
     public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
+
+    /// <summary>
+    /// Continents XYZ at <see cref="Use"/>, before the plot graph or <c>skill_effects</c> run.
+    /// Plot-only blinks (plot 4211) apply save_pos <em>after</em> <c>move_to_ground</c>, so the
+    /// standing Transform at buff attach is already the landing — mark from this instead.
+    /// </summary>
+    public SavedPosition? CastOrigin { get; private set; }
+
+    /// <summary>
+    /// True after a soft blink / teleport effect has moved the caster on this cast
+    /// (<c>move_to_ground</c>, Blink, TeleportToUnit, …). Plot Area stands may then pin to
+    /// <see cref="CastOrigin"/>; leap controllers alone must not.
+    /// </summary>
+    public bool SoftMovedCaster { get; private set; }
+
+    /// <summary>Marks that a soft move/teleport effect relocated the caster on this cast.</summary>
+    public void NoteCasterSoftMoved() => SoftMovedCaster = true;
+
+    /// <summary>
+    /// True after <see cref="Cast"/> has committed (SkillFired / effects path). A Stop during the
+    /// cast bar still refunds; a Stop after fire keeps the cooldown.
+    /// </summary>
+    private bool _castCommitted;
+
+    /// <summary>
+    /// Ground-aim stand captured at <see cref="Use"/> for position-targeted casts
+    /// (<see cref="uint.MaxValue"/> marker). Plot teleports that lose the marker mid-graph
+    /// (OriginalSource retarget) still land on this aim via <see cref="MoveToGroundRules"/>.
+    /// </summary>
+    public SavedPosition? CastAim { get; private set; }
+
+    /// <summary>Doodads planted by cast-start telegraphs; despawned on cancel before fire.</summary>
+    private readonly List<Doodad> _castStartTelegraphs = [];
+    private bool _applyingCastStartTelegraphs;
+    /// <summary>True after <see cref="ApplyCastStartTelegraphs"/> ran (cast bar path). Instant / zeroed cast time leave this false so fire still plants the marker.</summary>
+    private bool _castStartTelegraphsApplied;
+
     /// <summary>
     /// The item a <see cref="SkillTargetType.Item"/> cast names, resolved from the client's
     /// <see cref="SkillCastItemTarget"/>. Null for every other target type.
@@ -101,8 +138,16 @@ public class Skill
     private bool _plotOnlyFireCostsApplied;
     /// <summary>Shared GCD armed once per accept (Use), not again at Cast fire.</summary>
     private bool _gcdArmed;
+    /// <summary>Token from <see cref="Unit.ClaimGlobalCooldown"/> for the GCD this cast wrote.</summary>
+    private long _gcdToken;
     /// <summary>Individual skill CD armed once per accept; Cast / plot-end must not re-arm.</summary>
     private bool _skillCooldownArmed;
+    /// <summary>Token from <see cref="UnitCooldowns.AddCooldown"/> for the skill timer this cast wrote.</summary>
+    private long _skillCooldownToken;
+    /// <summary>Token from <see cref="AccountCooldowns.Arm"/> when this cast armed an account cooldown.</summary>
+    private long _accountCooldownToken;
+    /// <summary>Charge-pool epoch observed when this cast spent a charge.</summary>
+    private long _chargeEpochAtSpend;
     private bool _zoneSkillFiredRelayed;
     private bool _zoneSkillEndedRelayed;
     private bool _laborConsumed;
@@ -173,6 +218,33 @@ public class Skill
     /// time), and an end that runs when the graph ends instead of while the graph is still on the bar.
     /// </remarks>
     public bool PlayerAuthoredPlotCast { get; set; }
+
+    /// <summary>
+    /// The <c>inputDirection</c> byte the client sent with this cast (0 on every skill that does not ship
+    /// <c>use_input_direction</c>). <c>SCPlotEvent</c> echoes it unchanged: the client orients its own
+    /// controller run and the plot FX off that byte, so a server-derived yaw in its place sent Backdraft's
+    /// leap and Ceaseless Fire's stream along whatever the body yaw had rounded to.
+    /// </summary>
+    public byte ClientInputDirection { get; set; }
+
+    /// <summary>
+    /// Timeline id captured when the plot graph starts. <see cref="TlId"/> is cleared when the cast
+    /// bar ends, while a summoned hazard can still be ticking; floaters keep matching this id.
+    /// </summary>
+    public ushort PlotCastTlId { get; private set; }
+
+    /// <summary>Plot and event that last applied an effect on this cast. A summoned hazard repeats them.</summary>
+    public uint PlotCastPlotId { get; private set; }
+
+    public uint PlotCastEventId { get; private set; }
+
+    public void NotePlotCast(uint plotId, uint eventId)
+    {
+        if (plotId == 0)
+            return;
+        PlotCastPlotId = plotId;
+        PlotCastEventId = eventId;
+    }
 
     /// <summary>
     /// How many times over the skill's labor cost applies to this cast.
@@ -321,7 +393,13 @@ public class Skill
         _zoneSkillEndedRelayed = false;
         _plotOnlyFireCostsApplied = false;
         _gcdArmed = false;
+        _gcdToken = 0;
         _skillCooldownArmed = false;
+        _skillCooldownToken = 0;
+        _accountCooldownToken = 0;
+        _castCommitted = false;
+        SoftMovedCaster = false;
+        _chargeEpochAtSpend = 0;
         _laborConsumed = false;
         _chargesAfterCast = -1;
         _zoneSkillCaster = null;
@@ -395,8 +473,9 @@ public class Skill
             }
         }
 
-        // Cancel buffs if Template asks for it
-        if (Template.CancelOngoingBuffs)
+        // Cancel buffs if Template asks for it — player presses only. Nested SkillUse / auto-attack /
+        // item-proc / NPC event casts pass bypassGcd and must not wipe remove_on_start_skill songs.
+        if (SkillStartCancelOngoingRules.ShouldApply(_bypassGcd, Template.CancelOngoingBuffs))
         {
             if (caster is Units.Mate)
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill, Template.CancelOngoingBuffExceptionTagId);
@@ -511,6 +590,13 @@ public class Skill
         // if (caster is Character)
         Logger.Debug($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
 
+        // Snapshot before any plot effect moves the caster (save_pos must mark cast-start, not landing).
+        if (caster is Unit castUnit)
+            CastOrigin = SavedPositionRules.FromUnit(castUnit);
+        // Position casts: keep the aim stand even if the plot later retargets OriginalSource.
+        if (target is { ObjId: uint.MaxValue, Transform: not null })
+            CastAim = SavedPositionRules.Capture(target);
+
         // Hold / reel kit ships a plot but is not flagged plot_only. Cast() after the plot
         // starts EndSkill's the TlId while the graph is still on the bar.
         if (Template.Plot != null
@@ -609,6 +695,7 @@ public class Skill
             // skill clears TlId as soon as its cast ends, so the id the client matches plot packets against
             // has to travel with the plot (PlotState.CastTlId).
             var plotTlId = TlId;
+            PlotCastTlId = plotTlId;
             if (PlayerAuthoredPlotCast)
             {
                 // The only other place a Started is sent is the cast-time branch below, and this cast has no
@@ -726,6 +813,8 @@ public class Skill
                 BaseCastTimeDiv10 = (ushort)(castTime / 10),
                 RealCastTimeDiv10 = (ushort)(castTime / 10), // calculate with adjustments
             }, true);
+            // SourceToPos SpawnDoodad telegraphs (Meteor circle) land with the cast bar, not at fire.
+            ApplyCastStartTelegraphs(caster, casterCaster, target, targetCaster, skillObject);
 
             unit.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
             _activeCasterCaster = casterCaster;
@@ -1376,6 +1465,8 @@ public class Skill
         }
 
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+        // Channel buff / effects start here; a mid-channel Stop must not refund.
+        _castCommitted = true;
         RelayZoneSkillFiredIfNeeded(casterCaster, targetCaster, skillObject);
 
         // Per-tick mana drain (channeling_mana), one tick per channeling_tick, cancelled at channel end.
@@ -1414,13 +1505,22 @@ public class Skill
         var channelTargetCaster = _channelingTargetCaster ?? new SkillCastUnitTarget(channelTarget.ObjId);
         var channelSkillObject = _channelingSkillObject ?? new SkillObject();
 
+        // A channel that ran its full time ends its channeling buffs as timed out: their timeout triggers
+        // are the channel's result (quest 1107: buff 938 of skill 12222 casts the capture skill 12113 on
+        // timeout). An interrupted channel ends them as dispelled, as before.
         if (Template.ChannelingBuffId != 0)
         {
-            caster.Buffs.RemoveEffect(Template.ChannelingBuffId, Template.Id);
+            if (completedNaturally)
+                caster.Buffs.TimeoutEffect(Template.ChannelingBuffId, Template.Id);
+            else
+                caster.Buffs.RemoveEffect(Template.ChannelingBuffId, Template.Id);
         }
         if (Template.ChannelingTargetBuffId != 0)
         {
-            channelTarget.Buffs.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
+            if (completedNaturally)
+                channelTarget.Buffs.TimeoutEffect(Template.ChannelingTargetBuffId, Template.Id);
+            else
+                channelTarget.Buffs.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
         }
 
         (channelDoodad ?? _channelingDoodad)?.Delete();
@@ -1489,8 +1589,8 @@ public class Skill
         var totalDelay = 0;
         if (Template.EffectDelay > 0)
             totalDelay += Template.EffectDelay;
-        if (Template.EffectSpeed > 0)
-            totalDelay += (int)(unit.GetDistanceTo(target) / Template.EffectSpeed * 1000.0f);
+        // effect_speed is travel speed in m/s. Near-zero quest rows must not schedule a multi-minute wait.
+        totalDelay += SkillEffectTravelRules.TravelDelayMs(Template.EffectSpeed, unit.GetDistanceTo(target));
         if (Template.FireAnim != null && Template.UseAnimTime)
         {
             // attack_anim_speed_mul (119) is the animation's own view of the rating that already paced this
@@ -1512,6 +1612,7 @@ public class Skill
         if (fireAnimId > 0)
             firedPacket.FireAnimId = fireAnimId;
         caster.BroadcastPacket(firedPacket, true);
+        _castCommitted = true;
 
         // ZoneAuthority: bridge fire to Zone at the same moment as SC SkillFired (not for plot_only — Use never reaches here).
         RelayZoneSkillFiredIfNeeded(casterCaster, targetCaster, skillObject);
@@ -1694,6 +1795,76 @@ public class Skill
     {
         using var inventoryEffect = (caster as Character)?.Inventory?.EnterSkillEffect();
         ApplyEffectsCore(caster, casterCaster, targetSelf, targetCaster, skillObject);
+        // Fire committed — keep telegraphs that stay as lasting marks (Meteor crater).
+        _castStartTelegraphs.Clear();
+    }
+
+    /// <summary>
+    /// Plants <c>source_to_pos</c> SpawnDoodad telegraphs when the cast bar starts.
+    /// </summary>
+    private void ApplyCastStartTelegraphs(
+        BaseUnit caster,
+        SkillCaster casterCaster,
+        BaseUnit target,
+        SkillCastTarget targetCaster,
+        SkillObject skillObject)
+    {
+        _castStartTelegraphsApplied = true;
+        var telegraphs = Template.Effects.Where(SkillCastStartEffectRules.IsCastStartTelegraph).ToList();
+        if (telegraphs.Count == 0)
+            return;
+
+        _applyingCastStartTelegraphs = true;
+        try
+        {
+            foreach (var effect in telegraphs)
+            {
+                if (effect.Chance < 100 && Random.Shared.Next(100) > effect.Chance)
+                    continue;
+                effect.Template?.Apply(
+                    caster,
+                    casterCaster,
+                    target,
+                    EffectCastTarget(target, targetCaster),
+                    new CastSkill(Template.Id, TlId),
+                    new EffectSource(this),
+                    skillObject,
+                    DateTime.UtcNow);
+            }
+        }
+        finally
+        {
+            _applyingCastStartTelegraphs = false;
+        }
+    }
+
+    /// <summary>Records a cast-start telegraph doodad so a cancel before fire can despawn it.</summary>
+    internal void RegisterCastStartTelegraph(Doodad doodad)
+    {
+        if (_applyingCastStartTelegraphs && doodad != null)
+            _castStartTelegraphs.Add(doodad);
+    }
+
+    /// <summary>Test hook: records the cast-start mark without going through <see cref="Use"/>.</summary>
+    public void RecordCastOriginForTests(SavedPosition origin) => CastOrigin = origin;
+
+    /// <summary>Test hook: records the ground aim without going through <see cref="Use"/>.</summary>
+    public void RecordCastAimForTests(SavedPosition aim) => CastAim = aim;
+
+    private void ClearCastStartTelegraphs()
+    {
+        foreach (var doodad in _castStartTelegraphs)
+        {
+            try
+            {
+                doodad.Delete();
+            }
+            catch (Exception e)
+            {
+                Logger.Warn(e, "Failed to clear cast-start telegraph doodad {0}", doodad.ObjId);
+            }
+        }
+        _castStartTelegraphs.Clear();
     }
 
     private void ApplyEffectsCore(BaseUnit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -1983,6 +2154,11 @@ public class Skill
                 {
                     continue;
                 }
+
+                // Cast-start telegraphs already ran at SkillStarted; re-applying would duplicate the marker.
+                // Instant / cast-time-collapsed casts never ran that pass — still plant at fire.
+                if (!SkillCastStartEffectRules.AppliesAtFire(effect, _castStartTelegraphsApplied))
+                    continue;
 
                 // start_casting_use_chance..end_casting_use_chance: the shipped rows are the default 1..100
                 // except four, and effects land after the cast, so the end value is the one that applies.
@@ -2565,6 +2741,7 @@ public class Skill
     {
         if (caster is not Unit unit) { return; }
         Cancelled = true;
+        ClearCastStartTelegraphs();
         if (Template.ChannelingTime > 0)
         {
             EndChanneling(caster, channelDoodad, casterCaster);
@@ -2585,8 +2762,11 @@ public class Skill
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
 
-        if (caster is Character character && character.IgnoreSkillCooldowns)
-            character.ResetSkillCooldown(Template.Id, false);
+        // Cast-time / plot skills arm CD+GCD at accept; a cancel before the cast commits must clear them
+        // (GM IgnoreSkillCooldowns already did this — every cancel needs the same refund).
+        // A plot that already applied its effect, or a no-plot cast that already fired, keeps the cooldown.
+        if (SkillCooldownCancelRules.ShouldRefundOnStop(ActivePlotState?.HasFired ?? false, _castCommitted))
+            RefundCooldownsOnCancel(unit);
     }
 
     public SkillHitType RollCombatDice(BaseUnit attacker, BaseUnit target)
@@ -2763,7 +2943,7 @@ public class Skill
         if (unit == null)
             return;
 
-        // Combo follow-ups are gated on the last accepted cast; note every accept path.
+        // Combo follow-ups are gated on open windows from accepted casts; note every accept path.
         if (unit is Character character)
             character.Skills.NoteSkillFired(Template.Id);
 
@@ -2820,6 +3000,7 @@ public class Skill
             {
                 _chargesAfterCast = owner.Cooldowns.ConsumeCharge(
                     Template.Id, Template.ChargeCount, Template.ChargeCooldownTime);
+                _chargeEpochAtSpend = owner.Cooldowns.ChargeEpoch(Template.Id);
             }
 
             // Charges left: the skill is usable again right away, so neither its own cooldown nor its
@@ -2828,10 +3009,75 @@ public class Skill
                 return;
         }
 
-        owner.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
+        _skillCooldownToken = owner.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
 
         if (Template.AccountCooldown && owner is Character character)
-            AccountCooldowns.Arm(character.AccountId, Template.Id, duration);
+            _accountCooldownToken = AccountCooldowns.Arm(character.AccountId, Template.Id, duration);
+    }
+
+    /// <summary>
+    /// Clears skill CD, cooldown tags, account CD, spent charge and shared GCD that this cast armed at
+    /// accept. Called from <see cref="Stop"/> and from a cancelled plot end so a stopped cast does not
+    /// leave the skill grey for its full cooldown. Also closes any Combo follow-up window this accept
+    /// opened, so a cancelled root cannot unlock the next hold-hit for free.
+    /// </summary>
+    internal void RefundCooldownsOnCancel(Unit unit)
+    {
+        if (unit == null || !SkillCooldownCancelRules.ShouldRefundOnCancel(_skillCooldownArmed, _gcdArmed))
+            return;
+
+        var owner = SkillCooldownOwnershipRules.CooldownOwner(unit, !_bypassGcd, ResolveCooldownOwnerUnit);
+        if (owner == null)
+            return;
+
+        var clearedSkill = false;
+        if (_skillCooldownArmed)
+        {
+            clearedSkill = owner.Cooldowns.TryRemoveOwnedCooldown(
+                Template.Id, _skillCooldownToken, Template.CooldownTags);
+            if (Template.AccountCooldown && owner is Character accountOwner)
+                AccountCooldowns.ClearIfOwner(accountOwner.AccountId, Template.Id, _accountCooldownToken);
+
+            // A charge spent at accept is restored only while no later cast has spent another.
+            if (Template.ChargeCount > 1 && _chargesAfterCast >= 0 &&
+                SkillCooldownCancelRules.StillOwnsCooldown(
+                    _chargeEpochAtSpend, owner.Cooldowns.ChargeEpoch(Template.Id)))
+            {
+                owner.Cooldowns.ChangeChargeCount(Template.Id, Template.ChargeCount, +1);
+                _chargesAfterCast = -1;
+            }
+
+            _skillCooldownArmed = false;
+            _skillCooldownToken = 0;
+            _accountCooldownToken = 0;
+        }
+
+        // Shared GCD is written on the casting unit (mount for mount skills); Use() reads that same
+        // clock. Skill CD above stays on the cooldown owner (the rider).
+        var clearedGcd = false;
+        if (_gcdArmed)
+        {
+            if (SkillCooldownCancelRules.StillOwnsCooldown(_gcdToken, unit.GlobalCooldownToken))
+            {
+                unit.GlobalCooldown = DateTime.MinValue;
+                clearedGcd = true;
+            }
+
+            _gcdArmed = false;
+            _gcdToken = 0;
+        }
+
+        if (owner is Character character)
+        {
+            character.Skills.CancelComboOpenedBy(Template.Id);
+            if (clearedSkill || clearedGcd)
+            {
+                var tagId = clearedSkill ? Template.CooldownTags?.FirstOrDefault(t => t > 0) ?? 0 : 0;
+                character.SendPacket(new SCSkillCooldownResetPacket(
+                    character, Template.Id, (uint)tagId, gcd: clearedGcd,
+                    resetSkillTagCooldown: tagId > 0));
+            }
+        }
     }
 
     /// <summary>
@@ -2896,6 +3142,8 @@ public class Skill
     /// <summary>
     /// Arms the shared GCD once per accepted cast. Cast-time skills call this at SkillStarted;
     /// instant and plot-only paths call it from Cast / ApplyPlotOnlyFireCosts. A second call is a no-op.
+    /// Writes and claims on the casting unit (the same clock <see cref="Use"/> checks); refunds clear
+    /// that unit. Skill CD ownership (rider for mounts) is separate.
     /// </summary>
     private void EnsureGlobalCooldownArmed(Unit unit)
     {
@@ -2903,27 +3151,35 @@ public class Skill
             return;
         if (!SkillGcdArmRules.ShouldArmOnAccept(_bypassGcd, TlId))
             return;
-        ApplyGlobalCooldown(unit);
+        if (!TryApplyGlobalCooldown(unit))
+            return;
+
         _gcdArmed = true;
+        _gcdToken = unit.ClaimGlobalCooldown();
     }
 
-    private void ApplyGlobalCooldown(Unit unit)
+    /// <summary>
+    /// Writes the shared GCD on <paramref name="unit"/> when this skill arms one. Returns false when
+    /// the skill is exempt (basic attacks, <c>ignore_global_cooldown</c>, zero length) so callers do
+    /// not claim a refund token for a clock that was never set.
+    /// </summary>
+    private bool TryApplyGlobalCooldown(Unit unit)
     {
         // Basic attacks are weapon-speed paced (StartAutoSkill / UseAutoAttackSkillTask), not GCD.
         // Skill 2 has default_gcd in DB; applying it made the hotbar feel dead and blocked the
         // auto-attack loop (task ticks skip while GlobalCooldown is active). Skill 4 already
         // ignore_global_cooldown in DB — match that for 2/3.
         if (Template.Id is 2 or 3 or 4)
-            return;
+            return false;
 
         // A skill flagged ignore_global_cooldown neither waits for the GCD nor arms it. The wait side was
         // already honoured in Use(); arming it here anyway meant 8659 skills put every OTHER skill on a
         // cooldown they themselves are declared to sit outside of — Backdraft (44200) among them.
         if (Template.IgnoreGlobalCooldown)
-            return;
+            return false;
 
         if (!SkillCastOverlapRules.ArmsSharedGlobalCooldown(Template.CastingTime, Template.CustomGcd, Template.DefaultGcd))
-            return;
+            return false;
 
         // Length order of authority is custom_gcd → weapon_gcd_id → default_gcd: see SkillGcdRules.
         // weapon_gcd_id names a holdables row (15 한손창 1100 ms, 16 양손창 1200 ms, 17 양손지팡이 1300 ms
@@ -2935,10 +3191,11 @@ public class Skill
         var gcd = SkillGcdRules.ResolveSharedGcd(
             Template.CustomGcd, Template.DefaultGcd, weaponGcdSpeed, unit is Npc);
         if (gcd <= 0)
-            return;
+            return false;
         var gcdMul = SkillGcdRules.SharedGcdMultiplier(
             Template.UseWeaponCooldownTime, unit.GlobalCooldownMul, unit.CastTimeMul);
         unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * gcdMul * GlobalCooldownFactor(unit));
+        return true;
     }
 
     /// <summary>

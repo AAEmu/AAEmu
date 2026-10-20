@@ -685,6 +685,73 @@ public partial class Character : Unit, ICharacter
     public bool HasPhysTimeAnchor => PhysTimeAnchorTick != 0;
     public uint CurrentPhysTime => PhysTimeAnchor + (uint)(Environment.TickCount64 - PhysTimeAnchorTick);
 
+    // Soft blink: drop CSMoveUnit still reporting the cast stand until the client lands or the window ends.
+    private DateTime _blinkSuppressUntilUtc = DateTime.MinValue;
+    private DateTime _blinkReassertUtc = DateTime.MinValue;
+    private float _blinkLandX;
+    private float _blinkLandY;
+    private float _blinkLandZ;
+
+    /// <summary>
+    /// Arms a short window that rejects client moves still far from a soft-blink landing.
+    /// Does not use <see cref="GameObject.DisabledSetPosition"/> / <c>SCTeleportUnit</c> (no load screen).
+    /// </summary>
+    public void ArmBlinkMoveSuppress(float landX, float landY, float landZ, TimeSpan? window = null)
+    {
+        _blinkLandX = landX;
+        _blinkLandY = landY;
+        _blinkLandZ = landZ;
+        _blinkSuppressUntilUtc = DateTime.UtcNow + (window ?? BlinkStaleMoveRules.SuppressWindow);
+        _blinkReassertUtc = DateTime.MinValue;
+    }
+
+    /// <summary>
+    /// Clears a soft-blink move suppress so a later server move (Shadow Step, portal, GM /move)
+    /// is not rejected or re-blinked to the previous landing.
+    /// </summary>
+    public void ClearBlinkMoveSuppress()
+    {
+        _blinkSuppressUntilUtc = DateTime.MinValue;
+        _blinkReassertUtc = DateTime.MinValue;
+    }
+
+    /// <summary>
+    /// True when this move should be ignored because it is still the pre-blink cast stand.
+    /// Clears early once the client reports near the landing.
+    /// </summary>
+    public bool ShouldDropStaleBlinkMove(float moveX, float moveY)
+    {
+        var now = DateTime.UtcNow;
+        if (now >= _blinkSuppressUntilUtc)
+            return false;
+        if (!BlinkStaleMoveRules.IsStaleAwayFromLanding(moveX, moveY, _blinkLandX, _blinkLandY))
+        {
+            _blinkSuppressUntilUtc = DateTime.MinValue;
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Re-send soft blink so a stand CSMove that we refuse cannot leave the client / zone at the cast feet.
+    /// Rate-limited; call only after <see cref="ShouldDropStaleBlinkMove"/> is true.
+    /// </summary>
+    public void ReassertBlinkLandingIfDue()
+    {
+        var now = DateTime.UtcNow;
+        if (now < _blinkReassertUtc)
+            return;
+        _blinkReassertUtc = now.AddMilliseconds(200);
+        BroadcastPacket(
+            new SCBlinkUnitPacket(ObjId, 0f, 0f, true, _blinkLandX, _blinkLandY, _blinkLandZ),
+            true);
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayBlinkToZone?.Invoke(
+                ObjId, ObjId, true, _blinkLandX, _blinkLandY, _blinkLandZ);
+        }
+    }
+
     private readonly Dictionary<ushort, string> _options;
     private readonly object _optionsLock = new();
     private readonly object _uiDataSaveLock = new();
@@ -999,6 +1066,7 @@ public partial class Character : Unit, ICharacter
 
     public const int MaxActionSlots = 85;
     public ActionSlot[] Slots { get; set; }
+    public ActionSlotShortcutMemory ActionShortcuts { get; } = new();
     public Inventory Inventory { get; set; }
     public byte NumInventorySlots { get; set; }
     public short NumBankSlots { get; set; }
@@ -3457,6 +3525,121 @@ public partial class Character : Unit, ICharacter
     {
         Slots[slot].Type = type;
         Slots[slot].ActionId = itemId;
+    }
+
+    /// <summary>
+    /// The shortcut about to be cleared is for an item that casts a skill or grants a buff.
+    /// Those clears arrive immediately before the item itself is moved.
+    /// </summary>
+    public bool SkillItemShortcutKeeps(byte slot)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return false;
+        var current = Slots[slot];
+        if (current == null)
+            return false;
+
+        var template = current.Type switch
+        {
+            ActionSlotType.ItemId => Inventory?.GetItemById(current.ActionId)?.Template,
+            ActionSlotType.ItemType => ItemManager.Instance.GetTemplate((uint)current.ActionId),
+            _ => null
+        };
+        return ActionSlotShortcutRules.KeepsShortcut(template?.UseSkillId ?? 0, template?.BuffId ?? 0);
+    }
+
+    public void RememberSkillItemShortcutClear(byte slot, bool keepsShortcut, DateTime utc)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return;
+        var current = Slots[slot];
+        ActionShortcuts.Remember(slot, current?.Type ?? ActionSlotType.None, current?.ActionId ?? 0, keepsShortcut, utc);
+    }
+
+    /// <summary>
+    /// Puts back shortcuts cleared for this item when the clear and the move are one gesture.
+    /// </summary>
+    public bool RestoreSkillItemShortcuts(ulong itemId, uint templateId, DateTime utc)
+    {
+        if (Slots == null)
+            return false;
+        return ActionSlotShortcutRules.ApplyRestore(Slots, ActionShortcuts.TakeRestores(itemId, templateId, utc));
+    }
+
+    public void NoteSkillItemMoved(ulong itemId, uint templateId, DateTime utc) =>
+        ActionShortcuts.NoteMove(itemId, templateId, utc);
+
+    public void NoteSkillItemUsed(ulong itemId, uint templateId, DateTime utc) =>
+        ActionShortcuts.NoteUse(itemId, templateId, utc);
+
+    /// <summary>
+    /// The shortcut still names an item that just changed slots, so the clear arrived after the move.
+    /// </summary>
+    public bool SkillItemShortcutWasJustMoved(byte slot, DateTime utc)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return false;
+        var current = Slots[slot];
+        if (current == null)
+            return false;
+        return ActionShortcuts.WasMoved(current.Type, current.ActionId, utc);
+    }
+
+    /// <summary>
+    /// The shortcut names an item whose use-skill just ran; the client clear is the use, not a drag-off.
+    /// </summary>
+    public bool SkillItemShortcutWasJustUsed(byte slot, DateTime utc)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return false;
+        var current = Slots[slot];
+        if (current == null)
+            return false;
+        return ActionShortcuts.WasUsed(current.Type, current.ActionId, utc);
+    }
+
+    /// <summary>
+    /// True when any hotbar slot still names this item (by id or template).
+    /// </summary>
+    public bool HasSkillItemShortcut(ulong itemId, uint templateId)
+    {
+        if (Slots == null)
+            return false;
+        foreach (var slot in Slots)
+        {
+            if (slot == null)
+                continue;
+            if (ActionSlotShortcutRules.MatchesMove(slot.Type, slot.ActionId, itemId, templateId))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// True when another hotbar slot already holds the same item this slot names — the client
+    /// placed it elsewhere before clearing here (hotbar drag), so the clear is not a use-clear.
+    /// </summary>
+    public bool SkillItemShortcutExistsOnOtherSlot(byte slot)
+    {
+        if (Slots == null || slot >= Slots.Length)
+            return false;
+        var current = Slots[slot];
+        if (current == null || current.Type is not (ActionSlotType.ItemId or ActionSlotType.ItemType))
+            return false;
+
+        for (var i = 0; i < Slots.Length; i++)
+        {
+            if (i == slot)
+                continue;
+            var other = Slots[i];
+            if (other == null || other.Type != current.Type)
+                continue;
+            if (other.ActionId == current.ActionId)
+                return true;
+        }
+
+        return false;
     }
 
     public void SetOption(ushort key, string value)

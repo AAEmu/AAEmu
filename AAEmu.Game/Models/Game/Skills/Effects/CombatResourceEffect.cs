@@ -1,3 +1,4 @@
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -37,6 +38,8 @@ public class CombatResourceEffect : EffectTemplate
             ? MinCombatResource
             : Random.Shared.Next(Math.Min(MinCombatResource, MaxCombatResource), Math.Max(MinCombatResource, MaxCombatResource) + 1);
 
+        amount = ResolveAmount(amount, resourceId, castObj, source, caster);
+
         if (amount == 0)
             return;
 
@@ -47,8 +50,34 @@ public class CombatResourceEffect : EffectTemplate
 
         // combat_resources.resouece_send_type_id decides the audience: 1 Self, 2 Broadcast.
         var resource = CombatResourceGameData.Instance.Get(resourceId);
-        var updateTime = ResetRemainTime ? 0 : (int)(DateTime.UtcNow - time).TotalMilliseconds;
+        // reset_remain_time restarts the drain window; the client draws that countdown from updateTime.
+        // Hatred's cycle is 5 s, Fury-time's is 30 s — sending 0 left the timer UI dead on every builder.
+        var updateTime = ResetRemainTime
+            ? resource?.RecoveryCycle ?? 0
+            : unit.GetCombatResourceDecayRemainingMs(resourceId);
         unit.BroadcastCombatResource(resource, after, updateTime);
+    }
+
+    private int ResolveAmount(int amount, int resourceId, CastAction castObj, EffectSource source, BaseUnit caster)
+    {
+        var resourceMax = CombatResourceGameData.Instance.GetMax(resourceId);
+
+        // Buff tick (CastBuff): keep the authored combat_resource_effects amount.
+        if (castObj is CastBuff)
+            return CombatResourceGrantRules.ResolveBuffTickAmount(amount, resourceMax);
+
+        // Plot grant: skill_effects for the same pool win when the plot amount is not among them.
+        if (castObj is not CastPlot || amount <= 0 || source?.Skill?.Template == null)
+            return amount;
+
+        var skill = source.Skill;
+        return CombatResourceGrantRules.ResolvePlotAmount(
+            amount,
+            resourceId,
+            skill.Template.CombatResourceId,
+            skill.Template.Effects,
+            tagId => SkillManager.Instance.GetBuffsByTagId(tagId),
+            buffIds => caster.Buffs != null && caster.Buffs.CheckBuffs(buffIds));
     }
 
     /// <summary>

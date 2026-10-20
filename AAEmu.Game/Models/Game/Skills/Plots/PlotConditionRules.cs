@@ -1,5 +1,6 @@
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots;
 
@@ -71,6 +72,23 @@ public static class PlotConditionRules
     }
 
     /// <summary>
+    /// Plot <c>direction</c>: does <paramref name="target"/> face <paramref name="source"/>?
+    /// </summary>
+    /// <remarks>
+    /// Content reads <c>direction(source, target)</c> as "target faces source" (e.g. NOT gates that
+    /// require the foe to look away for a back-attack branch). Call sites pass the plot condition's
+    /// caster as <paramref name="source"/> and its target as <paramref name="target"/>. Thrash /
+    /// Relentless rows that wire source=target → target=source still reduce to the same one-way
+    /// facing check once the arguments are swapped at the call site.
+    /// </remarks>
+    public static bool DirectionEngaged(BaseUnit source, BaseUnit target)
+    {
+        if (source == null || target == null)
+            return false;
+        return MathUtil.IsFront(target, source);
+    }
+
+    /// <summary>
     /// Plot <c>relation</c> check, resolved exactly as skill target selection resolves it (kinds 1 friendly,
     /// 3 raid, 4 hostile, 5 others, 6 friendly_for_debuff, 8 family, 10 expedition_member).
     /// </summary>
@@ -136,5 +154,25 @@ public static class PlotConditionRules
         if (elapsedMs >= windowMs)
             return 100;
         return (int)(elapsedMs * 100 / windowMs);
+    }
+
+    /// <summary>
+    /// Plot <c>visible</c> (kind 16): can this target be seen for a launch / hit gate?
+    /// </summary>
+    /// <remarks>
+    /// Area and RandomArea plot steps plant a synthetic <see cref="BaseUnit"/> (ObjId
+    /// <see cref="uint.MaxValue"/>) at the aim point; those markers never call <c>Show()</c>, so
+    /// <c>IsVisible</c> stays false. Skills such as Hammer Toss retarget "target → location" then
+    /// gate the launch on visible with <c>notify_failure</c>, which used to refuse every cast with
+    /// <c>SkillCannotUseHere</c>. Only that marker is exempt. A doodad is also not a
+    /// <see cref="Unit"/>, and a hidden doodad must still fail the same way a hidden unit does.
+    /// </remarks>
+    public static bool VisibleTargetPasses(BaseUnit target, bool hasStealthBuffTag, bool isSpawnVisible)
+    {
+        if (target is null)
+            return false;
+        if (target.ObjId == uint.MaxValue)
+            return true;
+        return !hasStealthBuffTag && isSpawnVisible;
     }
 }

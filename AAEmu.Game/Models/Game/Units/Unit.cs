@@ -411,6 +411,11 @@ public class Unit : BaseUnit, IUnit
     public SkillTask AutoAttackTask { get; set; }
     public DateTime GlobalCooldown { get; set; }
     public bool IsGlobalCooldownDone => GlobalCooldown > DateTime.UtcNow;
+    private long _globalCooldownToken;
+    /// <summary>Token of the cast that last wrote <see cref="GlobalCooldown"/>.</summary>
+    public long GlobalCooldownToken => Volatile.Read(ref _globalCooldownToken);
+    /// <summary>Stamps a new owner for the shared GCD and returns that token.</summary>
+    public long ClaimGlobalCooldown() => Interlocked.Increment(ref _globalCooldownToken);
     public object GcdLock { get; set; }
     public DateTime SkillLastUsed { get; set; }
 
@@ -605,6 +610,18 @@ public class Unit : BaseUnit, IUnit
     }
 
     /// <summary>
+    /// Milliseconds left on the resource's decay window, or 0 when the pool is idle / untimed.
+    /// Pushed as <c>SCCombatResourcePoint.updateTime</c> when a grant does not reset the window.
+    /// </summary>
+    public int GetCombatResourceDecayRemainingMs(int combatResourceId)
+    {
+        if (!_combatResourceDecayAt.TryGetValue(combatResourceId, out var at))
+            return 0;
+        var left = (int)(at - DateTime.UtcNow).TotalMilliseconds;
+        return left > 0 ? left : 0;
+    }
+
+    /// <summary>
     /// Holds or drops the resource's bar buff. The client draws the pip UI off this buff, so without it the
     /// point packets arrive against a bar that was never shown.
     /// </summary>
@@ -660,7 +677,8 @@ public class Unit : BaseUnit, IUnit
 
         CombatResourcePointLog?.Add((resource.Id, amount));
 
-        var packet = new SCCombatResourcePointPacket(ObjId, resource.Id, (ulong)Math.Max(0, amount), updateTimeMs);
+        var packet = new SCCombatResourcePointPacket(
+            ObjId, resource.Id, CombatResourceRules.ToWirePoint(amount), updateTimeMs);
         if (resource.SendTypeId == 2)
             BroadcastPacket(packet, true);
         else

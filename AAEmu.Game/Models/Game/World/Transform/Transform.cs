@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -138,6 +138,23 @@ public class Transform : IDisposable
         var inverseParentRotation = Quaternion.Inverse(parentWorld.ToQuaternion());
         var parentScale = _parentTransform.GameObject is BaseUnit unit ? unit.Scale : 1f;
         return Vector3.Transform(world - parentWorld.Position, inverseParentRotation) / parentScale;
+    }
+
+    /// <summary>
+    /// Inverse of <see cref="GetLocalFromWorld"/>: carrier-local packet coordinates → world space.
+    /// Identity when unparented. Used when a <c>StandingOnObject</c> move must be compared to a
+    /// world-space blink landing.
+    /// </summary>
+    public Vector3 GetWorldFromLocal(float x, float y, float z)
+    {
+        var local = new Vector3(x, y, z);
+        if (_parentTransform == null)
+            return local;
+
+        var parentWorld = _parentTransform.World;
+        var parentRotation = parentWorld.ToQuaternion();
+        var parentScale = _parentTransform.GameObject is BaseUnit unit ? unit.Scale : 1f;
+        return Vector3.Transform(local * parentScale, parentRotation) + parentWorld.Position;
     }
 
     /// <summary>

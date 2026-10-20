@@ -45,4 +45,15 @@ public class CombatResourceRulesTests
         await Assert.That(CombatResourceRules.Ceiling(0, 1500)).IsEqualTo(0);
         await Assert.That(CombatResourceRules.Ceiling(-1, 1500)).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task ToWirePoint_ScalesContentAmountForTheClient()
+    {
+        // Content amount 10 must leave the wire as 1000; a raw 10 is shown as 0 after the client's /100.
+        await Assert.That(CombatResourceRules.ToWirePoint(0)).IsEqualTo(0uL);
+        await Assert.That(CombatResourceRules.ToWirePoint(1)).IsEqualTo(100uL);
+        await Assert.That(CombatResourceRules.ToWirePoint(10)).IsEqualTo(1000uL);
+        await Assert.That(CombatResourceRules.ToWirePoint(60)).IsEqualTo(6000uL);
+        await Assert.That(CombatResourceRules.ToWirePoint(-3)).IsEqualTo(0uL);
+    }
 }

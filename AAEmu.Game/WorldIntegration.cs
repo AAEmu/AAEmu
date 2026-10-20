@@ -1186,6 +1186,32 @@ public static class WorldIntegration
     }
 
     /// <summary>
+    /// Removes an npc at once, Zone unit included: WZUnitRemoved, then the mirror is deleted (SCUnitsRemoved
+    /// to the clients). For an npc a skill makes vanish on the spot (kill_npc_without_corpse_effects): a
+    /// living zone npc ignores WZNpcStartDespawn, so <see cref="DeleteNpcMirror"/> left it fighting until the
+    /// SpawnManager fallback forced this same teardown 15 s later (quest 1107: the captured tiger stayed
+    /// and kept attacking after its box appeared).
+    /// </summary>
+    public static void RemoveNpcNow(Npc npc)
+    {
+        if (npc == null || npc.ObjId == 0)
+            return;
+
+        if (!ZoneAuthority || RelayUnitRemovedToZone == null)
+        {
+            DeleteNpcMirror(npc, notifyZone: ZoneAuthority);
+            return;
+        }
+
+        CancelNpcHandoff(npc.ObjId);
+        npc.ParentWorld?.SpawnManager?.CancelDespawn(npc);
+        // The relay owns the zone marker, the unit registration and the deferred id release, as on the
+        // SpawnManager fallback path; the id must not be released here.
+        RelayUnitRemovedToZone.Invoke(npc.ObjId);
+        npc.Delete();
+    }
+
+    /// <summary>
     /// Retires a World-side NPC. Zone-created mirrors stay allocated until <c>ZWRemoveNpc</c>
     /// confirms; World-authored units (and failed pre-handoff spawns) delete and release now.
     /// </summary>

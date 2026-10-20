@@ -1,0 +1,145 @@
+﻿using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Templates;
+
+namespace AAEmu.UnitTests.Game.Models.Game.Skills;
+
+public class CombatResourceGrantRulesTests
+{
+    [Test]
+    public async Task BuffTick_KeepsAuthoredAmount()
+    {
+        // Content amounts stand as authored — do not invent a +1 for ceiling-sized ticks.
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(10, 10)).IsEqualTo(10);
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(45, 10)).IsEqualTo(45);
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(5, 10)).IsEqualTo(5);
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(1, 1)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Plot_MismatchedEnhancedGrant_UsesSkillEffectsAmount()
+    {
+        // Mana Bolt under Fury: plot +4, skill_effects +1 (synergy icon "1회씩 누적").
+        var effects = new List<SkillEffect>
+        {
+            CreEffect(resourceId: 15, amount: 1, sourceBuffTagId: 3744)
+        };
+
+        var resolved = CombatResourceGrantRules.ResolvePlotAmount(
+            plotAmount: 4,
+            resourceId: 15,
+            skillOwnedResourceId: 0,
+            effects,
+            _ => [22982u],
+            _ => true);
+
+        await Assert.That(resolved).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Plot_MatchingGrant_KeepsPlotAmount()
+    {
+        var effects = new List<SkillEffect>
+        {
+            CreEffect(resourceId: 15, amount: 1, sourceBuffTagId: 3744)
+        };
+
+        var resolved = CombatResourceGrantRules.ResolvePlotAmount(
+            plotAmount: 1,
+            resourceId: 15,
+            skillOwnedResourceId: 0,
+            effects,
+            _ => [22982u],
+            _ => true);
+
+        await Assert.That(resolved).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Plot_Spend_NeverOverridden()
+    {
+        var effects = new List<SkillEffect>
+        {
+            CreEffect(resourceId: 11, amount: 1, sourceBuffTagId: 0)
+        };
+
+        var resolved = CombatResourceGrantRules.ResolvePlotAmount(
+            plotAmount: -15,
+            resourceId: 11,
+            skillOwnedResourceId: 0,
+            effects,
+            _ => [],
+            _ => false);
+
+        await Assert.That(resolved).IsEqualTo(-15);
+    }
+
+    [Test]
+    public async Task Plot_TaggedGrantPreferred_WhenSeveralPass()
+    {
+        // Sage poem: skill_effects +1 (untagged) and +3 (tagged); plot +3 must keep 3 when the tag is up.
+        var effects = new List<SkillEffect>
+        {
+            CreEffect(resourceId: 11, amount: 1, sourceBuffTagId: 0),
+            CreEffect(resourceId: 11, amount: 3, sourceBuffTagId: 1898)
+        };
+
+        var resolved = CombatResourceGrantRules.ResolvePlotAmount(
+            plotAmount: 5,
+            resourceId: 11,
+            skillOwnedResourceId: 0,
+            effects,
+            tag => tag == 1898 ? [1u] : [],
+            ids => ids is { Count: > 0 });
+
+        await Assert.That(resolved).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task Plot_NoSkillEffectsGrant_KeepsPlotAmount()
+    {
+        var resolved = CombatResourceGrantRules.ResolvePlotAmount(
+            plotAmount: 4,
+            resourceId: 15,
+            skillOwnedResourceId: 0,
+            skillEffects: [],
+            _ => [],
+            _ => false);
+
+        await Assert.That(resolved).IsEqualTo(4);
+    }
+
+    [Test]
+    public async Task Plot_SourceBuffTagGate_SkipsClosedGrant()
+    {
+        var effects = new List<SkillEffect>
+        {
+            CreEffect(resourceId: 15, amount: 1, sourceBuffTagId: 3744)
+        };
+
+        // Tag not present → no passing skill_effects grant → plot amount stands.
+        var resolved = CombatResourceGrantRules.ResolvePlotAmount(
+            plotAmount: 4,
+            resourceId: 15,
+            skillOwnedResourceId: 0,
+            effects,
+            _ => [],
+            _ => false);
+
+        await Assert.That(resolved).IsEqualTo(4);
+    }
+
+    private static SkillEffect CreEffect(int resourceId, int amount, uint sourceBuffTagId) =>
+        new()
+        {
+            SourceBuffTagId = sourceBuffTagId,
+            Template = new CombatResourceEffect
+            {
+                CombatResourceId = resourceId,
+                MinCombatResource = amount,
+                MaxCombatResource = amount,
+                Chance = 100,
+                ResetRemainTime = true
+            }
+        };
+}

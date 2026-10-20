@@ -3,6 +3,8 @@ using AAEmu.Game;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Units;
 
 using NLog;
@@ -79,15 +81,26 @@ public class PlotTree(uint plotId)
                 nodeWatch.Start();
                 var now = DateTime.UtcNow;
                 var node = item.node;
-
-                if (state.Tickets.TryGetValue(node.Event.Id, out var value))
-                    state.Tickets[node.Event.Id] = ++value;
-                else
-                    state.Tickets.TryAdd(node.Event.Id, 1);
+                if (node?.ParentNextEvent?.Channeling == true)
+                    state.WaitingOnChannel = false;
 
                 var selfLoop = node.Children.Exists(c => c.Event.Id == node.Event.Id);
-                if (PlotTicketGate.IsExhausted(
-                        state.Tickets[node.Event.Id], node.Event.Tickets, selfLoop))
+                int visit;
+                if (selfLoop)
+                {
+                    visit = state.TicketChains.NextSelf(node.Event.Id, item.targetInfo.TicketChain);
+                }
+                else if (state.Tickets.TryGetValue(node.Event.Id, out var value))
+                {
+                    state.Tickets[node.Event.Id] = visit = ++value;
+                }
+                else
+                {
+                    state.Tickets.TryAdd(node.Event.Id, 1);
+                    visit = 1;
+                }
+
+                if (PlotTicketGate.IsExhausted(visit, node.Event.Tickets, selfLoop))
                 {
                     continue;
                 }
@@ -119,11 +132,14 @@ public class PlotTree(uint plotId)
 
                     foreach (var child in PlotBranchRules.SelectChildren(node.Children, condition, Random.Shared.Next))
                     {
+                        if (child.ParentNextEvent?.Channeling == true)
+                            state.WaitingOnChannel = true;
+
                         if (child.ParentNextEvent?.PerTarget ?? false)
                         {
                             foreach (var target in item.targetInfo.EffectedTargets)
                             {
-                                var targetInfo = new PlotTargetInfo(item.targetInfo.Source, target);
+                                var targetInfo = ChildTarget(state, node, child, item.targetInfo, target);
                                 schedule.Enqueue(
                                     (child, targetInfo),
                                     now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo))
@@ -132,7 +148,7 @@ public class PlotTree(uint plotId)
                         }
                         else
                         {
-                            var targetInfo = new PlotTargetInfo(item.targetInfo.Source, item.targetInfo.Target);
+                            var targetInfo = ChildTarget(state, node, child, item.targetInfo, item.targetInfo.Target);
                             schedule.Enqueue(
                                 (child, targetInfo),
                                 now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo))
@@ -154,6 +170,20 @@ public class PlotTree(uint plotId)
         DoPlotEnd(state);
         Logger.Trace($"Tree with ID {PlotId} has finished executing took {treeWatch.ElapsedMilliseconds}ms");
     }
+
+    /// <summary>
+    /// A child that repeats its parent stays on that charge's ticket chain. Any other child starts one.
+    /// </summary>
+    private static PlotTargetInfo ChildTarget(
+        PlotState state, PlotNode parent, PlotNode child, PlotTargetInfo parentInfo, BaseUnit target)
+    {
+        var info = new PlotTargetInfo(parentInfo.Source, target);
+        info.TicketChain = child.Event?.Id == parent.Event?.Id
+            ? parentInfo.TicketChain
+            : state.TicketChains.Allocate();
+        return info;
+    }
+
     /// <summary>
     /// Bite and cancel both cut the channel wait. The wait is the child entered by a
     /// channeling edge — not the bite-roll loop queued next to it. Ending that wait runs
@@ -218,7 +248,7 @@ public class PlotTree(uint plotId)
 
         foreach (var child in PlotBranchRules.SelectEligible(eligible, Random.Shared.Next))
         {
-            var childInfo = new PlotTargetInfo(targetInfo.Source, targetInfo.Target);
+            var childInfo = ChildTarget(state, parent, child, targetInfo, targetInfo.Target);
             var delay = child.ComputeDelayMs(state, childInfo);
             if (delay > 0)
             {
@@ -258,12 +288,15 @@ public class PlotTree(uint plotId)
     /// Skill.ActivePlotState and the tree's own end path never had to undo it. Clear it here too, so a
     /// finished skill does not keep handing SetVariable / PlotCondition a plot state that is over; both
     /// read skill.ActivePlotState before the caster's.
+    /// Empty graphs still complete successfully: mark fired so plot-end keeps the press-time CD
+    /// instead of treating the end as an uncommitted range-gate refund.
     /// </remarks>
     public static void EndPlotWithoutTree(PlotState state)
     {
         if (state == null)
             return;
 
+        state.MarkFired();
         DoPlotEnd(state);
 
         state.ActiveSkill?.ReleaseActivePlotState(state);
@@ -305,7 +338,12 @@ public class PlotTree(uint plotId)
             return;
         }
 
-        state.ActiveSkill.ArmCooldowns(state.Caster);
+        // Plot-only arms CD at press. Refund when the graph never committed — cancel mid-setup
+        // or a natural early exit (Bladefall Range fail with no fail child). After commit, keep it.
+        if (SkillCooldownCancelRules.ShouldRefundPlotEnd(state.HasFired))
+            state.ActiveSkill.RefundCooldownsOnCancel(state.Caster);
+        else if (!state.CancellationRequested())
+            state.ActiveSkill.ArmCooldowns(state.Caster);
 
         if (state.Caster is Character { IgnoreSkillCooldowns: true } character)
             character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);

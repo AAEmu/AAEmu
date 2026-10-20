@@ -36,6 +36,13 @@ public abstract class LinearMoveSkillController : SkillController
     protected float ArrivalThreshold { get; set; } = 1f;
 
     /// <summary>
+    /// Whether each step turns the owner to face its travel direction. A backward run (Backdraft, the
+    /// negative dash rows) keeps the facing it started with — the owner is stepping away from what it
+    /// looks at, not turning around.
+    /// </summary>
+    protected bool FacesTravelDirection { get; set; } = true;
+
+    /// <summary>
     /// Set while the controller is walking its owner. A controller that already ended (the owner died, a
     /// root landed, the end position was reached) must not move anybody again.
     /// </summary>
@@ -139,7 +146,8 @@ public abstract class LinearMoveSkillController : SkillController
 
         var angle = MathUtil.CalculateAngleFrom(Owner.Transform.Local.Position, EndPosition);
         var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());
-        Owner.Transform.Local.SetRotationDegree(0f, 0f, (float)angle - 90);
+        if (FacesTravelDirection)
+            Owner.Transform.Local.SetRotationDegree(0f, 0f, (float)angle - 90);
         var (rx, ry, rz) = Owner.Transform.Local.ToRollPitchYawSBytesMovement();
 
         moveType.X = Owner.Transform.Local.Position.X;

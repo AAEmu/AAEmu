@@ -4,7 +4,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -54,25 +53,15 @@ public class SpawnDoodad : SpecialEffectAction
 
         var doodad = DoodadManager.Instance.Create(caster.ParentWorld, 0, (uint)doodadId, caster, true);
 
-        doodad.Transform = caster.Transform.CloneDetached(doodad);
-        var rpy = target.Transform.World.ToRollPitchYawDegrees();
-        switch (skill?.Template.TargetSelection ?? 0)
-        {
-            case SkillTargetSelection.Source:
-                doodad.Transform = caster.Transform.CloneDetached(doodad);
-                break;
-            case SkillTargetSelection.Target:
-                doodad.Transform = target.Transform.CloneDetached(doodad);
-                break;
-            case SkillTargetSelection.Line:
-            case SkillTargetSelection.Location:
-            default:
-                doodad.Transform = caster.Transform.CloneDetached(doodad);
-                break;
-        }
-        var (xx, yy) = MathUtil.AddDistanceToFrontDeg(1f, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, rpy.Z + 90f); //  + 90f to Front
-        var zz = doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position); // WorldManager.Instance.GetHeight(doodad.Transform);
-        doodad.SetPosition(xx, yy, zz, rpy.X, rpy.Y, rpy.Z);
+        // The plot target is the stand (an area location already sits on the cuboid). Copying that
+        // transform keeps its radian yaw. The old path rewrote yaw with degree values and, for a
+        // self-cast, snapped the doodad back onto the caster, so a corridor decal pointed off the wave.
+        var anchor = SpawnDoodadPlacementRules.Anchor(caster, target);
+        doodad.Transform = anchor.Transform.CloneDetached(doodad);
+        if (SpawnDoodadPlacementRules.NudgeOffCaster(caster, target))
+            doodad.Transform.Local.AddDistanceToFront(SpawnDoodadPlacementRules.CasterClearanceMetres);
+        var zz = doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position);
+        doodad.Transform.Local.SetHeight(zz);
         doodad.InitDoodad();
         if (DeferredDoodadSpawnRules.ShouldDeferSpawn(delay))
         {
@@ -85,5 +74,7 @@ public class SpawnDoodad : SpecialEffectAction
         {
             doodad.Spawn();
         }
+
+        skill?.RegisterCastStartTelegraph(doodad);
     }
 }

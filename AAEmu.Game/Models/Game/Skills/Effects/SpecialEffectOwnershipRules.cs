@@ -172,7 +172,7 @@ public static class SpecialEffectOwnershipRules
         [SpecialType.OpacityControl] = SpecialEffectOwnership.ClientVisual, // 42: 121 rows, 73 skills; every viewer replays the fired skill
         // 48 combo: 149 rows, 146 skills. value1 names the next hold-hit and value2 its window; the
         // client starts that skill as an ordinary cast. World does not schedule the follow-up; it
-        // accepts the next link while the previous hit's window is open
+        // accepts the next link while value2 plus that hit's cast/GCD wait is open
         // (<see cref="SkillComboRules.ComboWindowMs"/>).
         [SpecialType.Combo] = SpecialEffectOwnership.ClientVisual,
         // 76/77/78: the fishing line. 76 sits on the fail and hook events of fishing plots (52 rows,

@@ -440,7 +440,12 @@ public class ItemContainer
             // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
             if (ContainerType != SlotType.None)
             {
-                itemTasks.Add(new ItemAdd(item));
+                // Equipment → Inventory must be one SwapSlot so the client rebinds the action bar.
+                // RemoveSlot + Add never runs that apply path (2H force-unequip greys skill items).
+                if (ItemContainerMoveRules.UsesSwapSlot(sourceSlotType, ContainerType))
+                    itemTasks.Add(new ItemMove(sourceSlotType, sourceSlot, item.Id, ContainerType, (byte)newSlot, 0));
+                else
+                    itemTasks.Add(new ItemAdd(item));
             }
 
             if (sourceContainer != this)
@@ -450,12 +455,15 @@ public class ItemContainer
             }
         }
 
+        var usedSwapSlot = ItemContainerMoveRules.UsesSwapSlot(sourceSlotType, ContainerType);
+
         // Item Tasks
         if (sourceContainer != null && sourceContainer != this)
         {
             sourceContainer.Items.Remove(item);
             sourceContainer.UpdateFreeSlotCount();
-            if (sourceContainer.ContainerType != SlotType.Mail)
+            // SwapSlot already moved the item off the source slot; do not also Seize it.
+            if (sourceContainer.ContainerType != SlotType.Mail && !usedSwapSlot)
             {
                 sourceItemTasks.Add(new ItemRemoveSlot(item.Id, sourceSlotType, sourceSlot));
             }
@@ -472,6 +480,18 @@ public class ItemContainer
             if (sourceItemTasks.Count > 0)
             {
                 sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks, []));
+            }
+
+            // Force-unequip never goes through SplitOrMoveItem's shortcut note/resync.
+            if (usedSwapSlot &&
+                Owner is Character mover &&
+                ActionSlotShortcutRules.KeepsShortcut(item.Template?.UseSkillId ?? 0, item.Template?.BuffId ?? 0))
+            {
+                var movedAt = DateTime.UtcNow;
+                mover.NoteSkillItemMoved(item.Id, item.TemplateId, movedAt);
+                var restored = mover.RestoreSkillItemShortcuts(item.Id, item.TemplateId, movedAt);
+                if (restored || mover.HasSkillItemShortcut(item.Id, item.TemplateId))
+                    mover.SendPacket(new SCActionSlotsPacket(mover.Slots));
             }
         }
 

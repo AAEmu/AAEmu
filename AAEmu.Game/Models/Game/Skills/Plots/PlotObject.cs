@@ -59,9 +59,11 @@ public class PlotObject : PacketMarshaler
     private static void WritePositionPose(PacketStream stream, Transform position)
     {
         stream.WritePosition(position.Local.Position);
-        var ypr = position.Local.ToRollPitchYawSBytes();
-        stream.Write(ypr.Item1);
-        stream.Write(ypr.Item2);
-        stream.Write(ypr.Item3);
+        // Axis-angle × 127 (client plot pose), not the 128-step Euler facing byte.
+        var (rx, ry, rz) = PlotPoseRotationWire.Encode(position.Local.ToQuaternion());
+        stream.Write(rx);
+        stream.Write(ry);
+        stream.Write(rz);
     }
 }
+

@@ -94,4 +94,64 @@ public class SkillComboRulesTests
         await Assert.That(SkillComboRules.IsNextComboWithinWindow(
             Second, 0, firedAt, firedAt, NextOf, Window)).IsFalse();
     }
+
+    [Test]
+    public async Task ApplyAcceptedCast_KeepsPriorWindowsWhenAnotherSkillFires()
+    {
+        var now = DateTime.UtcNow;
+        var expires = new Dictionary<uint, DateTime>();
+        int Window(uint id) => id == Root || id == Second ? 1000 : 0;
+
+        SkillComboRules.ApplyAcceptedCast(Root, now, expires, NextOf, Window);
+        await Assert.That(SkillComboRules.IsOpenComboFollowUp(Second, expires, now)).IsTrue();
+
+        SkillComboRules.ApplyAcceptedCast(99, now, expires, NextOf, Window);
+        await Assert.That(SkillComboRules.IsOpenComboFollowUp(Second, expires, now)).IsTrue();
+    }
+
+    [Test]
+    public async Task ApplyAcceptedCast_ConsumesFollowUpAndOpensNext()
+    {
+        var now = DateTime.UtcNow;
+        var expires = new Dictionary<uint, DateTime>();
+        int Window(uint id) => id == Root || id == Second ? 1000 : 0;
+
+        SkillComboRules.ApplyAcceptedCast(Root, now, expires, NextOf, Window);
+        SkillComboRules.ApplyAcceptedCast(Second, now, expires, NextOf, Window);
+
+        await Assert.That(SkillComboRules.IsOpenComboFollowUp(Second, expires, now)).IsFalse();
+        await Assert.That(SkillComboRules.IsOpenComboFollowUp(Third, expires, now)).IsTrue();
+    }
+
+    [Test]
+    public async Task PruneExpiredFollowUps_DropsPastWindows()
+    {
+        var now = DateTime.UtcNow;
+        var expires = new Dictionary<uint, DateTime>
+        {
+            [Second] = now.AddMilliseconds(-1),
+            [Third] = now.AddMilliseconds(500)
+        };
+
+        SkillComboRules.PruneExpiredFollowUps(expires, now);
+        await Assert.That(expires.ContainsKey(Second)).IsFalse();
+        await Assert.That(expires.ContainsKey(Third)).IsTrue();
+    }
+
+    [Test]
+    public async Task CloseFollowUpOpenedBy_DropsNextWindowOnly()
+    {
+        var now = DateTime.UtcNow;
+        var expires = new Dictionary<uint, DateTime>();
+        int Window(uint id) => id == Root || id == Second ? 1000 : 0;
+
+        SkillComboRules.ApplyAcceptedCast(Root, now, expires, NextOf, Window);
+        SkillComboRules.ApplyAcceptedCast(99, now, expires, _ => 88u, _ => 1000);
+        await Assert.That(expires.ContainsKey(Second)).IsTrue();
+        await Assert.That(expires.ContainsKey(88u)).IsTrue();
+
+        SkillComboRules.CloseFollowUpOpenedBy(Root, expires, NextOf);
+        await Assert.That(expires.ContainsKey(Second)).IsFalse();
+        await Assert.That(expires.ContainsKey(88u)).IsTrue();
+    }
 }

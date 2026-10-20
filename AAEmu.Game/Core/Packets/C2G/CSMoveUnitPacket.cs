@@ -82,8 +82,19 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
         // Nothing that legitimately moves a unit goes through this packet: Leap and Dash advance the
         // owner themselves (they build their own UnitMoveType and broadcast SCOneUnitMovement from
         // Server-side), and a seat ride is a buff, not a CS move. Rejecting here cannot strand either.
-        if (CrowdControlRules.BlocksMovement(CrowdControlRules.ReadState(character)))
+        var crowdControl = CrowdControlRules.ReadState(character);
+        if (CrowdControlRules.BlocksMovement(crowdControl))
         {
+            // A rooted player still turns in place: keep the facing the packet carries (position stays
+            // where the server has it) so a cast fired through the root — Backdraft roots itself for
+            // 600 ms and then leaps backward — runs from the yaw the player aimed, not a stale one.
+            if (CrowdControlRules.AllowsTurningInPlace(crowdControl) &&
+                _moveType is UnitMoveType rootedTurn && _objId == character.ObjId)
+            {
+                character.Transform.Local.SetZRotation(
+                    (float)MathUtil.ConvertDirectionToRadian(rootedTurn.RotationZ));
+            }
+
             // Debug, not Warn: a rooted player holding a movement key repeats this every tick.
             Logger.Debug(
                 "Rejected movement type {0} for {1} ({2}): the mover is stunned, asleep or rooted",
@@ -107,6 +118,24 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 character.AttachedPoint != AttachPointKind.None,
                 character.Transform.Parent?.GameObject is Slave);
             var isSelfActorMove = _moveType is UnitMoveType && _objId == character.ObjId;
+
+            // Soft blink planted World+WZ at the aim; cast-window CSMoveUnit still reports the stand.
+            // Drop before RelayMoveToZone — relaying first undoes WZBlink and the zone snaps the
+            // player back (Grasping Void cast time leaves a queue of stand moves after the hop).
+            // StandingOnObject moves are carrier-local; compare in world space against the landing.
+            if (isSelfActorMove && _moveType is UnitMoveType earlyUmt)
+            {
+                var (blinkX, blinkY) = WorldXyForBlinkStaleCheck(character, earlyUmt);
+                if (character.ShouldDropStaleBlinkMove(blinkX, blinkY))
+                {
+                    character.PhysTimeAnchor = _moveType.Time;
+                    character.PhysTimeAnchorTick = Environment.TickCount64;
+                    character.ReassertBlinkLandingIfDue();
+                    character.Transform.FinalizeTransform();
+                    return;
+                }
+            }
+
             // Ships: type 5 helm → zone. Land carts: type 2 (CanControlMovement already gates
             // VehicleMoveType to client-driven kinds, so a skip flag here can never be true).
             if (BoatHelmSeatRules.ShouldForwardActorMoveToZone(seatedOnSlave) || !isSelfActorMove)
@@ -365,6 +394,13 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 
                         // Player moved
                         player.SetPlayerMoved();
+
+                        var (blinkX, blinkY) = WorldXyForBlinkStaleCheck(player, dmt);
+                        if (player.ShouldDropStaleBlinkMove(blinkX, blinkY))
+                        {
+                            player.ReassertBlinkLandingIfDue();
+                            return;
+                        }
                     }
 
                     var isStandingOnObject = dmt.Flags.HasFlag(MoveTypeFlags.StandingOnObject);
@@ -578,6 +614,20 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
     private static bool IsStandingOnSomething(UnitMoveType umt)
         => umt.Flags.HasFlag(MoveTypeFlags.StandingOnObject) ||
            ((MoveTypeActorFlags)umt.ActorFlags).HasFlag(MoveTypeActorFlags.StandingOnObject);
+
+    /// <summary>
+    /// Soft-blink landings are world-space; a <see cref="IsStandingOnSomething"/> packet carries
+    /// carrier-local XYZ. Convert before the stale-stand distance check or a valid deck arrival
+    /// looks kilometres away and the server re-asserts the blink for the whole suppress window.
+    /// </summary>
+    private static (float x, float y) WorldXyForBlinkStaleCheck(Character character, UnitMoveType umt)
+    {
+        var carrierLocal = IsStandingOnSomething(umt) && character.Transform.Parent != null;
+        if (!carrierLocal)
+            return BlinkStaleMoveRules.MoveXyForLandingCompare(umt.X, umt.Y, false, 0f, 0f);
+        var world = character.Transform.GetWorldFromLocal(umt.X, umt.Y, umt.Z);
+        return BlinkStaleMoveRules.MoveXyForLandingCompare(umt.X, umt.Y, true, world.X, world.Y);
+    }
 
     /// <summary>Nearest live boat within <see cref="SlaveOccupancyRules.StandingHintRadiusMetres"/>.</summary>
     private static Slave FindStandingHull(Character character)

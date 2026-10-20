@@ -1,5 +1,4 @@
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -56,19 +55,9 @@ public class MoveToSavedPos : SpecialEffectAction
         }
 
         var point = saved.Value;
-        // Same landing the return point and house recall effects use: it stands the character up, writes
-        // the local transform, sends SCTeleportUnit and repaints the neighbourhood. stayInZone keeps it
-        // from re-resolving the zone from coordinates that the guard above already proved local.
-        SkillTeleportLanding.Apply(
-            character,
-            character.Transform.WorldId,
-            point.ZoneId,
-            point.InstanceId,
-            point.X,
-            point.Y,
-            point.Z,
-            point.YawRad,
-            TeleportReason.MoveToLocation,
-            stayInZone: true);
+        // Soft blink — same packet as the first cast. CanReturnTo already proved same zone/instance;
+        // the full teleport restream looks like loading a zone for a hop that never left it.
+        SkillBlinkLanding.Apply(character, point.X, point.Y, point.Z, move3D: true);
+        skill?.NoteCasterSoftMoved();
     }
 }

@@ -50,12 +50,15 @@ public class TeleportToUnit : SpecialEffectAction
                 // old spot and pulls it back, which reads as "the skill does not teleport me". Land the
                 // character server-side the same way the Blink effect does and tell the zone. The landing
                 // is world-space; SetPosition writes the local transform, so convert for a parented rider.
+                // Clear any prior soft-blink suppress so this landing is not re-blinked away.
+                character.ClearBlinkMoveSuppress();
                 var local = character.Transform.GetLocalFromWorld(endX, endY, targetPosition.Z);
                 character.SetPosition(local.X, local.Y, local.Z,
                     character.Transform.Local.Rotation.X,
                     character.Transform.Local.Rotation.Y,
                     character.Transform.Local.Rotation.Z);
                 character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, false, endX, endY, targetPosition.Z));
+                skill?.NoteCasterSoftMoved();
                 if (WorldIntegration.ZoneAuthority)
                 {
                     WorldIntegration.RelayBlinkToZone?.Invoke(

@@ -132,6 +132,28 @@ public class BuffsSavedPositionTests
             owner.Transform.InstanceId)).IsFalse();
     }
 
+    [Test]
+    public async Task AddBuff_PrefersSkillCastOrigin_OverStandingTransform()
+    {
+        // Plot-only 급습: move first, then save_pos buff — standing XYZ is already the landing.
+        var (owner, caster) = CreateUnits();
+        owner.Transform.Local.Position = new System.Numerics.Vector3(999f, 888f, 77f);
+
+        var skill = new Skill();
+        typeof(Skill).GetProperty(nameof(Skill.CastOrigin))!
+            .SetValue(skill, new SavedPosition(SavedZoneId, 0, 100f, 200f, 30f, 0f));
+
+        var buff = CreateBuff(owner, caster, MarkingBuffId);
+        buff.Skill = skill;
+        owner.Buffs.AddBuff(buff);
+
+        await Assert.That(buff.SavedPosition).IsNotNull();
+        var saved = buff.SavedPosition!.Value;
+        await Assert.That(saved.X).IsEqualTo(100f);
+        await Assert.That(saved.Y).IsEqualTo(200f);
+        await Assert.That(saved.Z).IsEqualTo(30f);
+    }
+
     private static (BaseUnit Owner, BaseUnit Caster) CreateUnits()
     {
         var owner = new BaseUnit { ObjId = 1 };

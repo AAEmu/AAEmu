@@ -2,11 +2,14 @@ using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots;
 
 public class PlotEventCondition
 {
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
     public PlotCondition Condition { get; set; }
     public int Position { get; set; }
     public PlotEffectSource SourceId { get; set; }
@@ -22,7 +25,16 @@ public class PlotEventCondition
         // that here" line rather than a silent no-op. The column is present in 10.0.2.13 and the loader now
         // binds it, so honour it: anything else leaves a skill that simply does nothing with no reason given.
         if (NotifyFailure && state?.Caster is Char.Character character)
+        {
+            var kind = Condition?.Kind.ToString() ?? "?";
+            var dist = targetInfo?.Source != null && targetInfo.Target != null
+                ? targetInfo.Source.GetDistanceTo(targetInfo.Target)
+                : -1f;
+            Logger.Debug(
+                "Plot notify_failure SkillCannotUseHere condKind={0} src={1} tgt={2} dist={3:F2} skill={4}",
+                kind, SourceId, TargetId, dist, state.ActiveSkill?.Template?.Id ?? 0);
             character.SendErrorMessage(ErrorMessageType.SkillCannotUseHere);
+        }
 
         return false;
 

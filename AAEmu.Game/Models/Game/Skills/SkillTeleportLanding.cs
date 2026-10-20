@@ -115,6 +115,11 @@ public static class SkillTeleportLanding
         if (character.ParentWorld != null)
             character.ForceDismount();
 
+        // A soft-blink suppress from an earlier hop must not drop portal / recall / GM moves or
+        // re-blink the character to the old landing.
+        character.ClearBlinkMoveSuppress();
+        character.SkillTask?.Skill?.NoteCasterSoftMoved();
+
         var loadedInstance = !stayInZone &&
                              ReturnTeleportRules.NeedsInstanceLoad(character.Transform.InstanceId, instanceId);
 

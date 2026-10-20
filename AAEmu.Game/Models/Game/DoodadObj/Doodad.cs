@@ -214,6 +214,25 @@ public class Doodad : BaseUnit
     /// ObjId of the owner
     /// </summary>
     public uint OwnerObjId { get; set; }
+
+    /// <summary>
+    /// Skill that summoned this doodad (plot InteractionEffect / SummonDoodad), when any.
+    /// Clout area triggers reuse it so damage floaters and modifiers attribute to that cast.
+    /// </summary>
+    public uint OwnerSkillId { get; set; }
+
+    /// <summary>
+    /// Plot cast timeline that summoned this doodad. Clout pulses copy it onto the
+    /// area trigger so damage floaters stay on that cast.
+    /// </summary>
+    public ushort OwnerCastTlId { get; set; }
+
+    /// <summary>Plot that summoned this doodad, when the summon was a plot effect.</summary>
+    public uint OwnerPlotId { get; set; }
+
+    /// <summary>Plot event that summoned this doodad.</summary>
+    public uint OwnerPlotEventId { get; set; }
+
     /// <summary>
     /// ObjId of the parent object this Doodad is a child of (on top of)
     /// </summary>
@@ -1331,6 +1350,30 @@ public class Doodad : BaseUnit
     {
         base.Spawn();
         FishSchoolManager.Instance.Track(this);
+        // Clouts from InitDoodad arm before IsVisible; AddAreaTrigger's first pulse is a no-op.
+        // Without a pulse now, a 120 ms clout can expire before the manager's next 200 ms tick.
+        PulseAttachedAreaTriggers();
+    }
+
+    /// <summary>
+    /// Runs the first real area-trigger pulse after this doodad becomes visible.
+    /// </summary>
+    private void PulseAttachedAreaTriggers()
+    {
+        if (AttachAreaTriggers.Count == 0)
+            return;
+
+        foreach (var trigger in AttachAreaTriggers.ToList())
+        {
+            try
+            {
+                trigger.Tick(TimeSpan.Zero);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Error pulsing AreaTrigger after Spawn obj={0}", ObjId);
+            }
+        }
     }
 
     /// <summary>
