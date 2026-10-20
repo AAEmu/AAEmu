@@ -275,12 +275,28 @@ public class CharacterQuests(Character owner)
             SetCompletedQuestFlag(questId, false);
         }
 
+        RefreshAbandonedNymphQueenQuest(questId, update);
+
         quest.Owner.SendDebugMessage($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
         Logger.Warn($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
 
         QuestManager.Instance.RemoveQuestTimer(Owner.Id, questId);
 
         QuestIdManager.Instance.ReleaseId((uint)quest.Id);
+    }
+
+    internal void RefreshAbandonedNymphQueenQuest(uint questId, bool update)
+    {
+        if (!update || questId != NymphQueenEncounter.QuestId || HasQuestCompleted(questId))
+            return;
+
+        // Dropping a ready quest removes the journal entry but leaves the client's
+        // completion cache stale until relog unless its quest block is refreshed.
+        var blockId = (ushort)(questId / 64);
+        var body = new byte[8];
+        if (CompletedQuests.TryGetValue(blockId, out var block))
+            block.Body.CopyTo(body, 0);
+        Owner.SendPacket(new SCQuestContextResetPacket(questId, body, blockId));
     }
 
     /// <summary>
