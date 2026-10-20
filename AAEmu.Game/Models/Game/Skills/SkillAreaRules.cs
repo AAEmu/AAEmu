@@ -1,3 +1,4 @@
+﻿using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
 
@@ -100,4 +101,27 @@ public static class SkillAreaRules
     /// <summary>Whether a selection narrows the gathered set to the caster-to-target corridor.</summary>
     public static bool UsesCorridor(SkillTargetSelection selection)
         => selection == SkillTargetSelection.Line;
+
+    /// <summary>
+    /// Whether the unit the area is gathered around must be kept in the hit list.
+    /// </summary>
+    /// <remarks>
+    /// <c>WorldManager.GetAround</c> excludes the search center by ObjId. An AoE whose radius is
+    /// measured from the cast target (Target-selection skills) would otherwise land on neighbours
+    /// only and miss the unit the skill was aimed at. Source selection already re-added the center;
+    /// Target needs the same keep.
+    /// <para>
+    /// Location casts use a temporary position marker (<see cref="uint.MaxValue"/>) as the gather
+    /// center. That marker is not a hittable unit: adding it would pass faction filters, sort at
+    /// distance zero, and steal a <c>target_area_count</c> slot from a real enemy.
+    /// </para>
+    /// </remarks>
+    public static bool IncludesAreaCenterUnit(float areaRadius, BaseUnit centerUnit)
+        => areaRadius > 0f && IsHittableAreaCenter(centerUnit);
+
+    /// <summary>
+    /// Whether <paramref name="centerUnit"/> is a real unit that can occupy an AoE hit slot.
+    /// </summary>
+    public static bool IsHittableAreaCenter(BaseUnit centerUnit)
+        => centerUnit is { ObjId: > 0 and not uint.MaxValue };
 }

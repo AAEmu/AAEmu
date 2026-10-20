@@ -1992,6 +1992,11 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             Logger.Info($"Loaded {_templates.Count} item templates (with {invalidItemCount} unused) ...");
         }
 
+        // SkillManager.Load (and OnSkillsLoaded) finishes before this Load runs under the orchestrator,
+        // so the subscription above often misses the event. Bind here as well so item_procs always
+        // receive their SkillTemplate; without it every combat proc skips with "no skill template".
+        BindProcSkillTemplates();
+
         OnItemsLoaded?.Invoke(this, EventArgs.Empty);
         _loaded = true;
         LoadUserItems();
@@ -2961,11 +2966,22 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return res;
     }
 
-    private void OnSkillsLoaded(object sender, EventArgs e)
+    private void OnSkillsLoaded(object sender, EventArgs e) => BindProcSkillTemplates();
+
+    /// <summary>
+    /// Resolves <c>item_procs.skill_id</c> into each template's <see cref="ItemProcTemplate.SkillTemplate"/>.
+    /// Safe to call more than once; also runs at the end of <see cref="Load"/> because
+    /// <see cref="OnSkillsLoaded"/> can fire before this manager has subscribed.
+    /// </summary>
+    private void BindProcSkillTemplates()
     {
-        foreach (var procTemplate in _itemProcTemplates.Values)
+        var missing = ItemProcSkillBindRules.Bind(_itemProcTemplates.Values, skillManager.GetSkillTemplate);
+        if (missing > 0)
         {
-            procTemplate.SkillTemplate = skillManager.GetSkillTemplate(procTemplate.SkillId);
+            Logger.Warn(
+                "{0} of {1} item_procs have no skill template after bind",
+                missing,
+                _itemProcTemplates.Count);
         }
     }
 

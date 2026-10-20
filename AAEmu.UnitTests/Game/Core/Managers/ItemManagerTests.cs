@@ -520,6 +520,30 @@ public class ItemManagerTests
         await Assert.That(result).IsNull();
     }
 
+    [Test]
+    public async Task BindProcSkillTemplates_AfterMissedOnSkillsLoaded_FillsSkillTemplate()
+    {
+        // Boot finishes SkillManager.Load (and OnSkillsLoaded) before ItemManager has subscribed.
+        // The end-of-Load bind is what fills SkillTemplate in that race; without it every combat
+        // proc stays null and never fires.
+        var skill = new SkillTemplate { Id = 100 };
+        var mockSkill = Mock.Of<ISkillManager>();
+        mockSkill.GetSkillTemplate(100u).Returns(skill);
+
+        var manager = CreateItemManager(mockSkill);
+        var proc = new ItemProcTemplate { Id = 50, SkillId = 100 };
+        SetPrivateField(manager, "_itemProcTemplates", new Dictionary<uint, ItemProcTemplate> { { 50, proc } });
+
+        await Assert.That(proc.SkillTemplate).IsNull();
+
+        var bind = typeof(ItemManager).GetMethod(
+            "BindProcSkillTemplates",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        bind!.Invoke(manager, null);
+
+        await Assert.That(proc.SkillTemplate).IsSameReferenceAs(skill);
+    }
+
     #endregion
 
     #region GetEquippedItemSet Tests

@@ -1,4 +1,5 @@
-using AAEmu.Game.Models.Game.Skills;
+﻿using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
@@ -90,5 +91,27 @@ public class SkillAreaRulesTests
         await Assert.That(SkillAreaRules.UsesCorridor(SkillTargetSelection.Target)).IsFalse();
         await Assert.That(SkillAreaRules.UsesCorridor(SkillTargetSelection.Source)).IsFalse();
         await Assert.That(SkillAreaRules.UsesCorridor(SkillTargetSelection.Location)).IsFalse();
+    }
+
+    [Test]
+    public async Task AreaGather_KeepsTheCenterUnitWhenThereIsARadius()
+    {
+        // GetAround drops the search center; a positive-radius Target AoE must still hit that unit.
+        var target = new Unit { ObjId = 42 };
+        await Assert.That(SkillAreaRules.IncludesAreaCenterUnit(3f, target)).IsTrue();
+        await Assert.That(SkillAreaRules.IncludesAreaCenterUnit(0.1f, target)).IsTrue();
+        await Assert.That(SkillAreaRules.IncludesAreaCenterUnit(0f, target)).IsFalse();
+    }
+
+    [Test]
+    public async Task AreaGather_DoesNotKeepALocationPositionPlaceholder()
+    {
+        // Location casts gather around a temporary ObjId=MaxValue marker. Adding it would steal a
+        // target_area_count slot (distance zero) from a real enemy and deal no damage.
+        var placeholder = new BaseUnit { ObjId = uint.MaxValue };
+        await Assert.That(SkillAreaRules.IsHittableAreaCenter(placeholder)).IsFalse();
+        await Assert.That(SkillAreaRules.IncludesAreaCenterUnit(5f, placeholder)).IsFalse();
+        await Assert.That(SkillAreaRules.IncludesAreaCenterUnit(5f, null)).IsFalse();
+        await Assert.That(SkillAreaRules.IncludesAreaCenterUnit(5f, new BaseUnit { ObjId = 0 })).IsFalse();
     }
 }
