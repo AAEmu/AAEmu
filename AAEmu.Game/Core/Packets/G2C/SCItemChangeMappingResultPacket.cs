@@ -10,19 +10,20 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// item supplies the old grade and gear score, the second is what the player ends up holding.
 /// </summary>
 /// <remarks>
-/// Layout from the 10.0.2.13 serializer : two item structs back to back
-/// (the second at struct+0xe0, i.e. directly after the first), an i32 at +0x1b4 and the
-/// <c>result</c> byte last. Sending the same item twice on a failure is what the client expects -
-/// it still needs a valid second item to build the link from.
+/// Layout: two item structs, then the <c>item_change_mapping_groups</c> id the attempt used, then
+/// the <c>result</c> byte. The client looks that group id up before it fires the result UI; sending
+/// anything else (for example the pity bonus rate) makes the lookup miss and the popup never open.
+/// Displayed bonus rate comes from <c>mappingFailBonus</c> on the second item's detail block
+/// (<c>100 * mappingFailBonus</c>), not from a separate wire field.
 /// </remarks>
-public class SCItemChangeMappingResultPacket(Item oldItem, Item newItem, int bonusRate, ItemChangeMappingResult result)
+public class SCItemChangeMappingResultPacket(Item oldItem, Item newItem, uint mappingGroupId, ItemChangeMappingResult result)
     : GamePacket(SCOffsets.SCItemChangeMappingResultPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(oldItem);
         stream.Write(newItem);
-        stream.Write(bonusRate);
+        stream.Write(mappingGroupId);
         stream.Write((byte)result);
 
         return stream;

@@ -20,9 +20,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 /// <remarks>
 /// <para>
 /// <c>value1</c> is the <c>item_change_mapping_groups</c> row the scroll belongs to; the group's
-/// <c>success</c> / <c>disable</c> / <c>fail_bonus</c> are per 10000. Every failure adds
-/// <c>fail_bonus</c> to the item's own accumulated bonus, which is why the item carries
-/// <c>mappingFailBonus</c> in its detail block - retail's pity counter.
+/// <c>success</c> / <c>disable</c> / <c>fail_bonus</c> are per 10000. Every failure bumps the
+/// item's <c>mappingFailBonus</c> (retail pity). That counter rides in the item detail for the
+/// client's bonus readout; the result packet itself carries the group id so the client can look
+/// the group up before opening the popup.
 /// </para>
 /// <para>
 /// When the group is <c>selectable</c> the player picks which candidate to aim for and the client
@@ -103,8 +104,8 @@ public class ItemChangeMapping : SpecialEffectAction
             return;
         }
 
-        // The accumulated pity bonus is what the awaken tab shows as "bonusRate" next to the base
-        // success chance, so it goes out in the result packet either way.
+        // Pity is applied to the roll here; the result packet carries the group id (so the client can
+        // look the group up) and the item's own mappingFailBonus detail (the tab's bonusRate readout).
         var bonusRate = equipItem.MappingFailBonus * group.FailBonus;
         var succeeded = Random.Shared.Next(10000) < group.Success + bonusRate;
 
@@ -120,7 +121,7 @@ public class ItemChangeMapping : SpecialEffectAction
 
             equipItem.IsDirty = true;
             owner.SendPacket(new SCItemDetailUpdatedPacket(equipItem));
-            owner.SendPacket(new SCItemChangeMappingResultPacket(equipItem, equipItem, bonusRate,
+            owner.SendPacket(new SCItemChangeMappingResultPacket(equipItem, equipItem, group.Id,
                 disabled ? ItemChangeMappingResult.FailDisableEnchant : ItemChangeMappingResult.Fail));
 
             Logger.Debug("ItemChangeMapping: {0} failed on item {1} (group {2}, disabled {3}, fails {4})",
@@ -139,7 +140,7 @@ public class ItemChangeMapping : SpecialEffectAction
             return;
         }
 
-        ApplySuccess(owner, equipItem, mapping, group, bonusRate);
+        ApplySuccess(owner, equipItem, mapping, group);
     }
 
     /// <summary>
@@ -175,7 +176,7 @@ public class ItemChangeMapping : SpecialEffectAction
     /// take the new one, which is what its two-item result packet is shaped for.
     /// </summary>
     private static void ApplySuccess(Character owner, EquipItem equipItem,
-        ItemChangeMappingData mapping, ItemChangeMappingGroup group, int bonusRate)
+        ItemChangeMappingData mapping, ItemChangeMappingGroup group)
     {
         var oldTemplateId = equipItem.TemplateId;
 
@@ -274,7 +275,7 @@ public class ItemChangeMapping : SpecialEffectAction
             owner.UpdateGearBonuses(null, null);
         }
 
-        owner.SendPacket(new SCItemChangeMappingResultPacket(oldSnapshot, equipItem, bonusRate,
+        owner.SendPacket(new SCItemChangeMappingResultPacket(oldSnapshot, equipItem, group.Id,
             ItemChangeMappingResult.Success));
 
         // The piece was rewritten in place, so no add or remove reached the quest observer and the

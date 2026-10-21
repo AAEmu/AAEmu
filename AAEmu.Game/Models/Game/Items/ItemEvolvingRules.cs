@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Items;
+﻿namespace AAEmu.Game.Models.Game.Items;
 
 /// <summary>
 /// How much of a synthesis feed the ladder can still buy, and what one grade step costs.
@@ -41,6 +41,27 @@ public static class ItemEvolvingRules
 
         needed = currentGradeExp;
         return true;
+    }
+
+    /// <summary>
+    /// Experience a feed can still buy from the current grade up to and including the ladder top.
+    /// </summary>
+    /// <remarks>
+    /// The top grade's own <c>grade_exp</c> is part of the room: Eternal (and any other ceiling)
+    /// still accepts synthesis for its bar and for the stats that fill grants, but the bar never
+    /// tips into a higher grade. Past that ceiling is overflow the window reports and the feed
+    /// must not purchase.
+    /// </remarks>
+    public static uint ExpRoomToLadderCap(byte grade, byte ladderTop, uint sectionExp, Func<byte, uint> gradeExp)
+    {
+        if (gradeExp == null || grade > ladderTop)
+            return 0;
+
+        var remaining = 0u;
+        for (var g = grade; g <= ladderTop && g < byte.MaxValue; g++)
+            remaining += gradeExp((byte)g);
+
+        return remaining > sectionExp ? remaining - sectionExp : 0;
     }
 
     /// <summary>

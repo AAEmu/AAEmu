@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
@@ -275,24 +275,30 @@ public class ItemEnchantGameData : Singleton<ItemEnchantGameData>, IGameDataLoad
             grade++;
         }
 
+        // Awaken carry-in can overshoot the ceiling bar; keep the same 100% cap synthesis uses.
+        if (grade >= top)
+        {
+            var ceiling = GetGradeExp(categoryId, grade);
+            if (ceiling > 0 && left > ceiling)
+                left = ceiling;
+        }
+
         return (grade, left);
     }
 
     /// <summary>
-    /// What a pool charges to climb from where a piece stands to the top of its ladder. Anything fed
-    /// beyond this is the overflow the synthesis window reports, and buys nothing.
+    /// What a pool still buys from where a piece stands through the top grade's own bar. Anything
+    /// fed past that is the overflow the synthesis window reports, and buys nothing.
     /// </summary>
+    /// <remarks>
+    /// The top rung is included on purpose: Eternal (and every other ceiling with a priced bar)
+    /// still accepts synthesis so the bar and its stats can fill; the grade simply never tips.
+    /// Stopping at <c>grade &gt;= top ⇒ 0</c> refused those feeds with <c>ItemCannotUse</c>.
+    /// </remarks>
     public uint GetExpToMaxGrade(uint categoryId, byte grade, uint sectionExp)
     {
-        var top = GetLadderTop(categoryId);
-        if (grade >= top)
-            return 0;
-
-        var remaining = 0u;
-        for (var g = grade; g < top && g < byte.MaxValue; g++)
-            remaining += GetGradeExp(categoryId, (byte)g);
-
-        return remaining > sectionExp ? remaining - sectionExp : 0;
+        return ItemEvolvingRules.ExpRoomToLadderCap(
+            grade, GetLadderTop(categoryId), sectionExp, g => GetGradeExp(categoryId, g));
     }
 
     /// <returns>
