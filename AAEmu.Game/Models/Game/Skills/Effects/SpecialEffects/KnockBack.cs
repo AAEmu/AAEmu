@@ -73,10 +73,13 @@ public class KnockBack : SpecialEffectAction
         if (!KnockBackRules.TryServerAuthoritySlide(impulse, horizontalMagnitude, out var delta))
             return;
 
+        // Slide is computed in world space; SetPosition writes Local — convert when parented
+        // (deck stander, seat, house bond) so the parent offset is not applied twice.
         var p = trg.Transform.World.Position;
-        trg.SetPosition(p.X + delta.X, p.Y + delta.Y, p.Z,
-            trg.Transform.World.Rotation.X,
-            trg.Transform.World.Rotation.Y,
-            trg.Transform.World.Rotation.Z);
+        var local = trg.Transform.GetLocalFromWorld(p.X + delta.X, p.Y + delta.Y, p.Z);
+        trg.SetPosition(local.X, local.Y, local.Z,
+            trg.Transform.Local.Rotation.X,
+            trg.Transform.Local.Rotation.Y,
+            trg.Transform.Local.Rotation.Z);
     }
 }
