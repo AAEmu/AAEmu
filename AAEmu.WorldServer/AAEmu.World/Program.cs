@@ -1002,9 +1002,10 @@ public static class Program
             if (zone == null)
                 return;
 
-            var local = ZoneCoordBoundary.ToZoneLocal(zone.ZoneId, new System.Numerics.Vector3(x, y, z));
-            zone.SendPacket(new WZKnockBackUnitPacket(unitId, local.X, local.Y, local.Z));
-            Logger.Info("WZKnockBackUnit → zone unit={0} pos=({1:F1},{2:F1},{3:F1})", unitId, local.X, local.Y, local.Z);
+            // Body is an impulse vector (same shape the client applies to its physics), not a
+            // position — never run it through the zone-local coordinate rewrite.
+            zone.SendPacket(new WZKnockBackUnitPacket(unitId, x, y, z));
+            Logger.Info("WZKnockBackUnit → zone unit={0} impulse=({1:F1},{2:F1},{3:F1})", unitId, x, y, z);
         };
         WorldIntegration.RelayBlinkToZone = (unitId, baseUnitId, move3D, x, y, z) =>
         {

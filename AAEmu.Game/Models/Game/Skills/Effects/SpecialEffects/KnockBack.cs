@@ -1,7 +1,6 @@
 ﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 
 using WorldIntegration = AAEmu.Game.WorldIntegration;
 
@@ -30,44 +29,35 @@ public class KnockBack : SpecialEffectAction
         if (target is not Unit trg || trg.Hp <= 0)
             return;
 
-        // value1 = distance (meters when small; mm when large — same heuristic as leap/teleport SE).
-        var distance = value1 > 100 ? value1 / 1000f : value1;
-        if (distance <= 0f)
-            distance = 1f;
+        // buffs.knockback_immune is the only shipped resist; everything else (stacking from a pack,
+        // damping, mass) is the client's physics, exactly as retail.
+        if (trg.Buffs.CheckKnockbackImmune())
+        {
+            Logger.Debug("KnockBack refused on {0}: knockback_immune", trg.ObjId);
+            return;
+        }
 
         var from = caster.Transform.World.Position;
         var to = trg.Transform.World.Position;
-        var dx = to.X - from.X;
-        var dy = to.Y - from.Y;
-        var len = MathF.Sqrt(dx * dx + dy * dy);
-        if (len < 0.001f)
+        if (!KnockBackRules.TryImpulse(from, to, value1, value2, out var impulse))
         {
-            // Degenerate: push along caster facing.
-            var (px, py) = MathUtil.AddDistanceToFront(distance, to.X, to.Y, caster.Transform.World.Rotation.Z);
-            dx = px - to.X;
-            dy = py - to.Y;
-            len = MathF.Sqrt(dx * dx + dy * dy);
+            var (dirX, dirY) = KnockBackRules.DirectionFromYaw(caster.Transform.World.Rotation.Z);
+            impulse = KnockBackRules.ImpulseAlong(dirX, dirY, value1, value2);
         }
 
-        var nx = dx / len;
-        var ny = dy / len;
-        var zLift = value3 > 100 ? value3 / 1000f : value3;
-        var destX = to.X + nx * distance;
-        var destY = to.Y + ny * distance;
-        var destZ = to.Z + MathF.Max(0f, zLift);
+        // SC body is the impulse vector the client applies to the target's physics. The server does
+        // not move the transform: the client integrates the impulse and reports the new position.
+        trg.BroadcastPacket(new SCKnockBackUnitPacket(trg.ObjId, impulse.X, impulse.Y, impulse.Z), true);
 
-        trg.BroadcastPacket(new SCKnockBackUnitPacket(trg.ObjId, destX, destY, destZ), true);
-
-        // Players are World-owned for movement; NPCs under ZoneAuthority get position from Zone.
-        if (trg is Character || !WorldIntegration.ZoneAuthority)
+        if (trg is Character character)
         {
-            trg.SetPosition(destX, destY, destZ,
-                trg.Transform.World.Rotation.X,
-                trg.Transform.World.Rotation.Y,
-                trg.Transform.World.Rotation.Z);
+            Logger.Debug("KnockBack player={0} horizontal={1} vertical={2} impulse=({3:F1},{4:F1},{5:F1})",
+                character.Name, value1, value2, impulse.X, impulse.Y, impulse.Z);
         }
 
-        if (WorldIntegration.ZoneAuthority)
-            WorldIntegration.RelayKnockBackToZone?.Invoke(trg.ObjId, destX, destY, destZ);
+        // Zone-owned units get the same impulse so the dedicate physics moves them; the SC
+        // broadcast alone only reaches the clients' visual copies.
+        if (WorldIntegration.ZoneAuthority && trg is not Character)
+            WorldIntegration.RelayKnockBackToZone?.Invoke(trg.ObjId, impulse.X, impulse.Y, impulse.Z);
     }
 }
