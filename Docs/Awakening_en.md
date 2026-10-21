@@ -81,14 +81,14 @@ Everything else an awakening touches (`TemplateId`, `Grade`, `EvolvingExp`,
    succeeded = Random(10000) < group.success + bonusRate
    ```
 
-   `bonusRate` is what the awaken tab shows as "bonusRate" next to the base chance, so it
-   goes out in the result packet **either way**.
+   The awaken tab's "bonusRate" readout is `100 * mappingFailBonus` from the item detail;
+   the roll uses `MappingFailBonus * group.fail_bonus` against the 10000-scale success chance.
 5. **On failure**:
    - `Random(10000) < group.disable` additionally locks the piece (`EnchantDisabled`).
    - `MappingFailBonus++`, capped at what a byte holds. A group with `fail_bonus = 0` never
      moves it anyway.
    - `SCItemDetailUpdatedPacket`, then `SCItemChangeMappingResultPacket` with the **same
-     item sent twice** and result `Fail` / `FailDisableEnchant`.
+     item sent twice**, the **mapping group id**, and result `Fail` / `FailDisableEnchant`.
 6. **Class guard before applying a success**:
 
    ```csharp
@@ -211,18 +211,20 @@ piece, not the tier.
 | --- | --- |
 | `SCItemTaskSuccessPacket(ItemTaskType.EnchantMagical /* 51 */, [ItemAdd(equipItem)], [])` | The item is **re-stated, not swapped** |
 | `SCItemDetailUpdatedPacket` | On failure only - the pity counter changed |
-| `SCItemChangeMappingResultPacket` | `oldItem` struct, `newItem` struct, `bonusRate` i32, `result` u8 |
+| `SCItemChangeMappingResultPacket` | `oldItem` struct, `newItem` struct, `mappingGroupId` u32, `result` u8 |
 
 **Why re-stated and not swapped.** The `Take` body carries the full item and overwrites the
 entry already in that slot. Pairing it with a removal - the obvious way to express "this
 became something else" - **destroys the item instead**: `Seize` names the id in its remove
 field, and the client acts on that whatever follows it in the same packet.
 
-**The result packet's shape** (10.0.2.13 serializer, the client serializer): two item
-structs back to back (the second at struct `+0xe0`, directly after the first), an i32 at
-`+0x1b4`, and the `result` byte last. The client turns it into
-`ITEM_CHANGE_MAPPING_RESULT(result, oldGrade, oldGearScore, itemLink, bonusRate)` - the
-first item supplies the old grade and gear score, the second is what the player ends up
+**The result packet's shape**: two item structs, then the `item_change_mapping_groups` id
+the attempt used, then the `result` byte. The client looks that group id up before it opens
+the result UI - a miss (for example sending the pity bonus rate there) means **no popup**.
+Displayed bonus rate comes from `mappingFailBonus` on the second item
+(`100 * mappingFailBonus`), not from a separate field. The client turns a successful parse
+into `ITEM_CHANGE_MAPPING_RESULT(result, oldGrade, oldGearScore, itemLink, bonusRate)` -
+the first item supplies the old grade and gear score, the second is what the player ends up
 holding. **Sending the same item twice on a failure is what the client expects**; it still
 needs a valid second item to build the link from.
 
@@ -250,7 +252,8 @@ disabled, so the restore item is not burned for nothing.
    odds - the recipes hold none.
 2. A player's pick is a request: it must be one of the candidates already resolved for this
    group, item and grade.
-3. `bonusRate = MappingFailBonus * fail_bonus` goes out on **every** result, success or not.
+3. The result packet's u32 after the items is the **mapping group id**, not the pity bonus.
+   Bonus display rides on the item's `mappingFailBonus` detail.
 4. Never cross item classes, even if a data row asks for it.
 5. The old piece has to be snapshotted **before** the rewrite; the client reads the old grade
    and gear score off it.
