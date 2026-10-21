@@ -26,6 +26,13 @@ public class Configurations : PacketMarshaler
     public string Value { get; set; }
 }
 
+public class NymphQueenEncounterConfig
+{
+    public int CombatInactivitySeconds { get; set; } = 60;
+    public int DialogueSeconds { get; set; } = 50;
+    public int ResetDelaySeconds { get; set; } = 5;
+}
+
 public class WorldConfig
 {
     /// <summary>
