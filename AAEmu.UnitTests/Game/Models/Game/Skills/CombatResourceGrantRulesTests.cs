@@ -37,6 +37,39 @@ public class CombatResourceGrantRulesTests
     }
 
     [Test]
+    public async Task IsPeriodicBuffTick_CastBuffWithoutTriggerFlag_IsTrue()
+    {
+        // BuffTemplate.TimeToTimeApply builds EffectSource(buff) with FromBuffTrigger left false.
+        var cast = new CastBuff(buff: null);
+        var source = new EffectSource();
+        await Assert.That(CombatResourceGrantRules.IsPeriodicBuffTick(cast, source)).IsTrue();
+        await Assert.That(CombatResourceGrantRules.IsPeriodicBuffTick(cast, null)).IsTrue();
+    }
+
+    [Test]
+    public async Task IsPeriodicBuffTick_FromBuffTrigger_IsFalse()
+    {
+        // BuffTrigger.Fire sets FromBuffTrigger; a ceiling-sized timeout/event grant must stay intact.
+        var cast = new CastBuff(buff: null);
+        var source = new EffectSource { FromBuffTrigger = true };
+        await Assert.That(CombatResourceGrantRules.IsPeriodicBuffTick(cast, source)).IsFalse();
+    }
+
+    [Test]
+    public async Task BuffTrigger_CeilingSizedGrant_StaysAuthored()
+    {
+        // Gate: only periodic ticks call ResolveBuffTickAmount; trigger path leaves the amount alone.
+        var amount = 10;
+        var resourceMax = 10;
+        var fromTrigger = !CombatResourceGrantRules.IsPeriodicBuffTick(
+            new CastBuff(buff: null),
+            new EffectSource { FromBuffTrigger = true });
+        await Assert.That(fromTrigger).IsTrue();
+        await Assert.That(amount).IsEqualTo(10);
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(amount, resourceMax)).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task Plot_MismatchedEnhancedGrant_UsesSkillEffectsAmount()
     {
         // Mana Bolt under Fury: plot +4, skill_effects +1 (synergy icon "1회씩 누적").

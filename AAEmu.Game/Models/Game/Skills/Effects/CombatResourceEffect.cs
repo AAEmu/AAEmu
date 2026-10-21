@@ -62,8 +62,8 @@ public class CombatResourceEffect : EffectTemplate
     {
         var resourceMax = CombatResourceGameData.Instance.GetMax(resourceId);
 
-        // Buff tick (CastBuff): ceiling-sized grants become +1 (Fury Hatred tick, stealth 살기).
-        if (castObj is CastBuff)
+        // Periodic buff tick only — BuffTrigger also uses CastBuff but must keep its authored grant.
+        if (CombatResourceGrantRules.IsPeriodicBuffTick(castObj, source))
             return CombatResourceGrantRules.ResolveBuffTickAmount(amount, resourceMax);
 
         // Plot grant: skill_effects for the same pool win when the plot amount is not among them.

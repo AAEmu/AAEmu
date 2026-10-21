@@ -17,18 +17,26 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// passing skill_effects grant for the same pool, that amount is authoritative.
 /// </item>
 /// <item>
-/// A buff-tick grant whose amount is at least the pool ceiling would refill the bar every tick and
-/// erase any gradual build. Shipped cases: Fury (Hatred max 10, tick +10 → +1/s) and Assassin stealth
-/// stages (살기 max 10, tick +45/+90 → would clamp-fill every second without this). One-shot
-/// skill/plot fills that also equal the ceiling (Miracle, Cadence convert, …) are not CastBuff and
-/// are left alone.
+/// A periodic buff-tick grant whose amount is at least the pool ceiling would refill the bar every
+/// tick and erase any gradual build. Shipped cases: Fury (Hatred max 10, tick +10 → +1/s) and
+/// Assassin stealth stages (살기 max 10, tick +45/+90 → would clamp-fill every second without this).
+/// Only <c>BuffTemplate.TimeToTimeApply</c> / area ticks use this — <c>BuffTrigger</c> also wraps
+/// <c>CastBuff</c> but sets <see cref="EffectSource.FromBuffTrigger"/>, and those one-shot grants
+/// keep their authored amount. Skill/plot fills that equal the ceiling are not ticks either.
 /// </item>
 /// </list>
 /// </remarks>
 public static class CombatResourceGrantRules
 {
     /// <summary>
-    /// Buff-tick path: a grant at or above the pool ceiling is +1, not a clamp-refill.
+    /// True for <c>BuffTemplate</c> tick / area-tick applications, not for <c>BuffTrigger.Fire</c>.
+    /// </summary>
+    public static bool IsPeriodicBuffTick(CastAction castObj, EffectSource source) =>
+        castObj is CastBuff && source is not { FromBuffTrigger: true };
+
+    /// <summary>
+    /// Periodic buff-tick path: a grant at or above the pool ceiling is +1, not a clamp-refill.
+    /// Call only when <see cref="IsPeriodicBuffTick"/> is true.
     /// </summary>
     public static int ResolveBuffTickAmount(int amount, int resourceMax)
     {
