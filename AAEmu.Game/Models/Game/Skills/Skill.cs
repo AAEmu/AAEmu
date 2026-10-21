@@ -1704,11 +1704,29 @@ public class Skill
         if (caster is not Unit unit)
             return defaultId;
 
-        var items = ItemManager.Instance;
         var mainhand = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
         var ranged = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Ranged);
         var mainHoldable = (mainhand?.Template as WeaponTemplate)?.HoldableTemplate;
         var rangedHoldable = (ranged?.Template as WeaponTemplate)?.HoldableTemplate;
+
+        // Const holdable ids are only needed when an instrument/shotgun column is authored.
+        // Skip ItemManager entirely otherwise so unit hosts that never build that singleton
+        // (e.g. channeling tests) still resolve twohand/dual from equipped pose alone.
+        uint stringHoldableId = 0;
+        uint percussionHoldableId = 0;
+        uint tubeHoldableId = 0;
+        uint shotgunHoldableId = 0;
+        if (Template.ShotGunFireAnimId != 0 ||
+            Template.StringInstrumentFireAnimId != 0 ||
+            Template.PercussionInstrumentFireAnimId != 0 ||
+            Template.TubeInstrumentFireAnimId != 0)
+        {
+            var items = ItemManager.Instance;
+            stringHoldableId = items.GetConstHoldableId("string_instrument");
+            percussionHoldableId = items.GetConstHoldableId("percussion_instrument");
+            tubeHoldableId = items.GetConstHoldableId("tube_instrument");
+            shotgunHoldableId = items.GetConstHoldableId("shot_gun");
+        }
 
         return SkillFireAnimRules.ResolveFireAnimId(
             defaultId,
@@ -1722,10 +1740,10 @@ public class Skill
             mainHoldable?.Id ?? 0,
             mainHoldable?.PoseId ?? 0,
             rangedHoldable?.Id ?? 0,
-            items.GetConstHoldableId("string_instrument"),
-            items.GetConstHoldableId("percussion_instrument"),
-            items.GetConstHoldableId("tube_instrument"),
-            items.GetConstHoldableId("shot_gun"));
+            stringHoldableId,
+            percussionHoldableId,
+            tubeHoldableId,
+            shotgunHoldableId);
     }
 
     private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, BaseUnit targetSelf, IEnumerable<BaseUnit> units)
