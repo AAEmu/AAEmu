@@ -17,19 +17,23 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// passing skill_effects grant for the same pool, that amount is authoritative.
 /// </item>
 /// <item>
-/// Buff-tick grants keep their authored <c>combat_resource_effects</c> amount. Replacing a
-/// ceiling-sized tick with a literal +1 invents a value that is not in content.
+/// A buff-tick grant whose amount is at least the pool ceiling would refill the bar every tick and
+/// erase any gradual build. Shipped cases: Fury (Hatred max 10, tick +10 → +1/s) and Assassin stealth
+/// stages (살기 max 10, tick +45/+90 → would clamp-fill every second without this). One-shot
+/// skill/plot fills that also equal the ceiling (Miracle, Cadence convert, …) are not CastBuff and
+/// are left alone.
 /// </item>
 /// </list>
 /// </remarks>
 public static class CombatResourceGrantRules
 {
     /// <summary>
-    /// Buff-tick path: keep the authored grant amount from content.
+    /// Buff-tick path: a grant at or above the pool ceiling is +1, not a clamp-refill.
     /// </summary>
     public static int ResolveBuffTickAmount(int amount, int resourceMax)
     {
-        _ = resourceMax;
+        if (amount > 0 && resourceMax > 1 && amount >= resourceMax)
+            return 1;
         return amount;
     }
 

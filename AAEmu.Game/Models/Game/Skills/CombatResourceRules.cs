@@ -37,4 +37,23 @@ public static class CombatResourceRules
     /// <summary>Content amount → the u64 the client expects on <c>SCCombatResourcePoint</c>.</summary>
     public static ulong ToWirePoint(int amount) =>
         (ulong)Math.Max(0, (long)amount * WirePointScale);
+
+    /// <summary>
+    /// <c>SCCombatResourcePoint.updateTime</c> is elapsed milliseconds into
+    /// <c>combat_resources.recovery_cycle</c>. The client adds frame delta to that value and draws
+    /// remaining as cycle − elapsed; sending the cycle itself therefore empties the HUD timer.
+    /// </summary>
+    /// <param name="resetRemainTime"><c>combat_resource_effects.reset_remain_time</c> — restart at 0.</param>
+    /// <param name="recoveryCycleMs">Authored <c>recovery_cycle</c>, or 0 when the pool is untimed.</param>
+    /// <param name="remainingMs">Server-side ms left on the current decay window.</param>
+    public static int ToWireUpdateTime(bool resetRemainTime, int recoveryCycleMs, int remainingMs)
+    {
+        if (resetRemainTime || recoveryCycleMs <= 0)
+            return 0;
+
+        var elapsed = recoveryCycleMs - Math.Max(0, remainingMs);
+        if (elapsed <= 0)
+            return 0;
+        return elapsed > recoveryCycleMs ? recoveryCycleMs : elapsed;
+    }
 }

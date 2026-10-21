@@ -234,6 +234,13 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         if (skillId == BlessUthstinRules.SelectSkillId)
             StashBlessUthstinSelectPage(activeCharacter, skillObject);
 
+        // Hold-repeat of a start_autoattack combo root often keeps sending the root id while a Combo
+        // window is open; advance to the open follow-up before either cast path (Zone or local).
+        var requestedSkillId = skillId;
+        skillId = activeCharacter.Skills.RemapHoldRepeatCombo(skillId);
+        if (skillId != requestedSkillId)
+            Logger.Debug("Hold/combo remap {0} → {1}", requestedSkillId, skillId);
+
         // ZoneAuthority: Zone owns cast/effects. Forward WZSkillStarted + emit SC cast UX only.
         // Local Skill.Use builds plot CompressedGamePackets (DD04) that desync the client (sc error / zip fail).
         if (WorldIntegration.ZoneAuthority &&
@@ -474,12 +481,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
     {
         var character = Connection.ActiveChar;
         var world = character?.ParentWorld ?? WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
-        // Hold-repeat of a combo root often keeps the root id on the wire while a Combo window
-        // is open; advance to the open follow-up before the learn / Use gates.
-        var requestedSkillId = skillId;
-        skillId = character.Skills.RemapHoldRepeatCombo(skillId);
-        if (skillId != requestedSkillId)
-            Logger.Debug("ZoneAuthority hold/combo remap {0} → {1}", requestedSkillId, skillId);
+        // Remap already ran in Execute() so both Zone and local paths share one hold-repeat map.
 
         var template = SkillManager.Instance.GetSkillTemplate(skillId);
         skillObject ??= new SkillObject();

@@ -153,9 +153,9 @@ public class CharacterSkillsComboHoldTests
     }
 
     [Test]
-    public async Task DefaultGcd_UsesEquippedWeaponSpeedOverCustomGcd()
+    public async Task CustomGcd_ScalesComboWindowEvenWhenDefaultGcdSet()
     {
-        // Triple Slash shape: default_gcd + weapon_gcd_id 15 → equipped mainhand speed wins.
+        // Whirlwind / Triple Slash shape: default_gcd + custom_gcd + weapon slot → custom × speed / 1000.
         var hit = Chained(Second, Third, castingTime: 0, customGcd: 700);
         hit.WeaponGcdId = 15;
         hit.DefaultGcd = true;
@@ -166,9 +166,10 @@ public class CharacterSkillsComboHoldTests
                 [Third] = new SkillTemplate { Id = Third, AbilityId = AbilityType.Magic },
             });
 
-        await Assert.That(SkillComboRules.ComboWindowMs(Second, equippedWeaponGcdSpeed: 800)).IsEqualTo(1800);
-        await Assert.That(SkillComboRules.ComboWindowMs(Second, equippedWeaponGcdSpeed: 1100)).IsEqualTo(2100);
-        await Assert.That(SkillComboRules.ComboWindowMs(Second, equippedWeaponGcdSpeed: 0)).IsEqualTo(2000);
+        // value2 1000 + ready delay (700×800/1000=560) → 1560; 1100 → 1770; empty slot → 1700.
+        await Assert.That(SkillComboRules.ComboWindowMs(Second, equippedWeaponGcdSpeed: 800)).IsEqualTo(1560);
+        await Assert.That(SkillComboRules.ComboWindowMs(Second, equippedWeaponGcdSpeed: 1100)).IsEqualTo(1770);
+        await Assert.That(SkillComboRules.ComboWindowMs(Second, equippedWeaponGcdSpeed: 0)).IsEqualTo(1700);
     }
 
     [Test]

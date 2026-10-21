@@ -3225,10 +3225,9 @@ public class Skill
         var weaponGcdSlot = GetWeaponGcdEquipmentSlot();
 
         // weapon_gcd_id selects Mainhand (15), Offhand (16), or Ranged (17). Ranged skills that arm a GCD
-        // without that marker also use the ranged slot. default_gcd takes priority over custom_gcd. If a
-        // weapon slot is selected, its speed scales the default GCD; otherwise the caster-specific server
-        // default is used. With default_gcd unset, custom_gcd scales by weapon speed, or weapon speed itself
-        // is the base. Skills with no authored GCD fields also use the caster-specific server default.
+        // without that marker also use the ranged slot. custom_gcd (when authored) is the reduced recovery
+        // and scales by weapon speed; default_gcd alone uses full weapon speed or the caster server default.
+        // Skills with no authored GCD fields also use the caster-specific server default.
         var equippedWeaponGcdSpeed = usesWeaponSpeedForGcd && weaponGcdSlot is { } slot
             ? GetEquippedWeaponGcdSpeed(unit, slot)
             : 0;

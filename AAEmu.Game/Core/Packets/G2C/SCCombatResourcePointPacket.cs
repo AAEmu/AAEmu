@@ -9,6 +9,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// <remarks>
 /// Body: bc unit, i32 resource type, u64 point, i32 updateTime. <paramref name="point"/> is already in
 /// client centi-points (<see cref="AAEmu.Game.Models.Game.Skills.CombatResourceRules.ToWirePoint"/>).
+/// <paramref name="updateTime"/> is elapsed ms into <c>recovery_cycle</c> (0 restarts the HUD timer);
+/// see <see cref="AAEmu.Game.Models.Game.Skills.CombatResourceRules.ToWireUpdateTime"/>.
 /// </remarks>
 public class SCCombatResourcePointPacket(uint objId, int combatResourceId, ulong point, int updateTime)
     : GamePacket(SCOffsets.SCCombatResourcePointPacket, 1)
