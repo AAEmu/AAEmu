@@ -1591,20 +1591,28 @@ public class Skill
             totalDelay += Template.EffectDelay;
         // effect_speed is travel speed in m/s. Near-zero quest rows must not schedule a multi-minute wait.
         totalDelay += SkillEffectTravelRules.TravelDelayMs(Template.EffectSpeed, unit.GetDistanceTo(target));
-        if (Template.FireAnim != null && Template.UseAnimTime)
+        // Auto-attacks use the equipped holdable swing; other skills pick fire_anim_id (or a
+        // pose/instrument/shotgun override) from the skill row via SkillFireAnimRules.
+        var weaponAnimId = GetWeaponAttackAnimId(caster);
+        var isAutoAttackWeaponAnim = weaponAnimId > 0;
+        var fireAnimId = isAutoAttackWeaponAnim ? weaponAnimId : ResolvePoseFireAnimId(caster);
+
+        if (SkillFireAnimRules.ArmsUseAnimTimeDelay(Template.UseAnimTime, isAutoAttackWeaponAnim))
         {
-            // General attack_speed_mul (218) paces fire-anim sync the same way it paces the shared GCD;
-            // attack_anim_speed_mul (119) is the animation-specific fallback, then global_cooldown_mul.
-            var animFactor = SpeedMultiplierRules.AnimationFactor(
-                unit.AttackSpeedRating, unit.AttackAnimSpeedRating, unit.GlobalCooldownMul / 100.0);
-            totalDelay += (int)(Template.FireAnim.CombatSyncTime * animFactor);
+            // Prefer the resolved clip's combat-sync when a pose override won; fall back to the
+            // default FireAnim row. General attack_speed_mul (218) paces this the same way it
+            // paces the shared GCD; attack_anim_speed_mul (119) is the animation-specific fallback.
+            var fireAnim = fireAnimId != 0
+                ? AnimationManager.Instance.GetAnimation(fireAnimId) ?? Template.FireAnim
+                : Template.FireAnim;
+            if (fireAnim != null)
+            {
+                var animFactor = SpeedMultiplierRules.AnimationFactor(
+                    unit.AttackSpeedRating, unit.AttackAnimSpeedRating, unit.GlobalCooldownMul / 100.0);
+                totalDelay += (int)(fireAnim.CombatSyncTime * animFactor);
+            }
         }
 
-        // Auto-attacks use the equipped holdable animation. Other ranged skills can carry a
-        // separate shotgun fire animation in the skill row; select it from the actual ranged
-        // holdable instead of always sending the bow/default fire_anim_id.
-        var weaponAnimId = GetWeaponAttackAnimId(caster);
-        var fireAnimId = weaponAnimId > 0 ? weaponAnimId : GetRangedSkillFireAnimId(caster);
         var firedPacket = new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
         {
             ComputedDelay = (short)totalDelay
@@ -1687,23 +1695,57 @@ public class Skill
     }
 
     /// <summary>
-    /// Resolves the optional shotgun-specific animation carried by a ranged skill template.
-    /// A zero result keeps the ordinary <c>fire_anim_id</c> selected by the packet.
+    /// Picks the skill-row fire-anim for the caster's current loadout (pose / dual / instrument /
+    /// shotgun columns). Auto-attacks never reach here — they already took the holdable swing.
     /// </summary>
-    private uint GetRangedSkillFireAnimId(BaseUnit caster)
+    private uint ResolvePoseFireAnimId(BaseUnit caster)
     {
-        if (Template.ShotGunFireAnimId == 0 || caster is not Unit unit)
-            return 0;
+        var defaultId = Template.FireAnim?.Id ?? 0;
+        if (caster is not Unit unit)
+            return defaultId;
 
-        var shotgunHoldableId = ItemManager.Instance.GetConstHoldableId("shot_gun");
-        if (shotgunHoldableId == 0)
-            return 0;
+        var mainhand = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
+        var ranged = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Ranged);
+        var musical = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Musical);
+        var mainHoldable = (mainhand?.Template as WeaponTemplate)?.HoldableTemplate;
+        var rangedHoldable = (ranged?.Template as WeaponTemplate)?.HoldableTemplate;
+        var musicalHoldable = (musical?.Template as WeaponTemplate)?.HoldableTemplate;
 
-        var rangedWeapon = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Ranged);
-        return rangedWeapon?.Template is WeaponTemplate rangedTemplate &&
-               rangedTemplate.HoldableTemplate?.Id == shotgunHoldableId
-            ? Template.ShotGunFireAnimId
-            : 0;
+        // Const holdable ids are only needed when an instrument/shotgun column is authored.
+        // Skip ItemManager entirely otherwise so unit hosts that never build that singleton
+        // (e.g. channeling tests) still resolve twohand/dual from equipped pose alone.
+        uint stringHoldableId = 0;
+        uint percussionHoldableId = 0;
+        uint tubeHoldableId = 0;
+        uint shotgunHoldableId = 0;
+        if (Template.ShotGunFireAnimId != 0 ||
+            Template.StringInstrumentFireAnimId != 0 ||
+            Template.PercussionInstrumentFireAnimId != 0 ||
+            Template.TubeInstrumentFireAnimId != 0)
+        {
+            var items = ItemManager.Instance;
+            stringHoldableId = items.GetConstHoldableId("string_instrument");
+            percussionHoldableId = items.GetConstHoldableId("percussion_instrument");
+            tubeHoldableId = items.GetConstHoldableId("tube_instrument");
+            shotgunHoldableId = items.GetConstHoldableId("shot_gun");
+        }
+
+        return SkillFireAnimRules.ResolveFireAnimId(
+            defaultId,
+            Template.TwoHandFireAnimId,
+            Template.DualWieldFireAnimId,
+            Template.ShotGunFireAnimId,
+            Template.StringInstrumentFireAnimId,
+            Template.PercussionInstrumentFireAnimId,
+            Template.TubeInstrumentFireAnimId,
+            unit.GetWeaponWieldKind(),
+            mainHoldable?.PoseId ?? 0,
+            rangedHoldable?.Id ?? 0,
+            musicalHoldable?.Id ?? 0,
+            stringHoldableId,
+            percussionHoldableId,
+            tubeHoldableId,
+            shotgunHoldableId);
     }
 
     private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, BaseUnit targetSelf, IEnumerable<BaseUnit> units)

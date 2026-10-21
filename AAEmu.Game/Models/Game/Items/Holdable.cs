@@ -31,6 +31,12 @@ public class Holdable
     public int StatMultiplier { get; set; }
 
     /// <summary>
+    /// <c>holdables.pose_id</c> → <c>enum_anim_poses</c> (fist / onehand / twohand / staff / …).
+    /// Skill fire-anim pose columns key off this, not off <see cref="SlotTypeId"/>.
+    /// </summary>
+    public uint PoseId { get; set; }
+
+    /// <summary>
     /// <c>holdables.element_id</c> → <c>item_elements.id</c>. 0 means the holdable carries no attack element.
     /// </summary>
     public uint ElementId { get; set; }
