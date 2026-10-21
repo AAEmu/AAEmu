@@ -1706,8 +1706,10 @@ public class Skill
 
         var mainhand = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
         var ranged = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Ranged);
+        var musical = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Musical);
         var mainHoldable = (mainhand?.Template as WeaponTemplate)?.HoldableTemplate;
         var rangedHoldable = (ranged?.Template as WeaponTemplate)?.HoldableTemplate;
+        var musicalHoldable = (musical?.Template as WeaponTemplate)?.HoldableTemplate;
 
         // Const holdable ids are only needed when an instrument/shotgun column is authored.
         // Skip ItemManager entirely otherwise so unit hosts that never build that singleton
@@ -1737,9 +1739,9 @@ public class Skill
             Template.PercussionInstrumentFireAnimId,
             Template.TubeInstrumentFireAnimId,
             unit.GetWeaponWieldKind(),
-            mainHoldable?.Id ?? 0,
             mainHoldable?.PoseId ?? 0,
             rangedHoldable?.Id ?? 0,
+            musicalHoldable?.Id ?? 0,
             stringHoldableId,
             percussionHoldableId,
             tubeHoldableId,

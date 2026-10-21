@@ -25,6 +25,10 @@ public static class SkillFireAnimRules
     /// win when the matching holdable is equipped and the skill authored that column; otherwise the
     /// wield kind + holdable pose pick between the two-hand, dual-wield, and default columns.
     /// </summary>
+    /// <remarks>
+    /// Instruments live in <c>EquipmentItemSlot.Musical</c>, not mainhand — pass that slot's
+    /// holdable id as <paramref name="musicalHoldableId"/>. Shotguns are the ranged slot.
+    /// </remarks>
     public static uint ResolveFireAnimId(
         uint defaultFireAnimId,
         uint twoHandFireAnimId,
@@ -34,28 +38,28 @@ public static class SkillFireAnimRules
         uint percussionInstrumentFireAnimId,
         uint tubeInstrumentFireAnimId,
         WeaponWieldKind wieldKind,
-        uint mainhandHoldableId,
         uint mainhandPoseId,
         uint rangedHoldableId,
+        uint musicalHoldableId,
         uint stringInstrumentHoldableId,
         uint percussionInstrumentHoldableId,
         uint tubeInstrumentHoldableId,
         uint shotGunHoldableId)
     {
-        if (mainhandHoldableId != 0)
+        if (musicalHoldableId != 0)
         {
             if (stringInstrumentHoldableId != 0 &&
-                mainhandHoldableId == stringInstrumentHoldableId &&
+                musicalHoldableId == stringInstrumentHoldableId &&
                 stringInstrumentFireAnimId != 0)
                 return stringInstrumentFireAnimId;
 
             if (percussionInstrumentHoldableId != 0 &&
-                mainhandHoldableId == percussionInstrumentHoldableId &&
+                musicalHoldableId == percussionInstrumentHoldableId &&
                 percussionInstrumentFireAnimId != 0)
                 return percussionInstrumentFireAnimId;
 
             if (tubeInstrumentHoldableId != 0 &&
-                mainhandHoldableId == tubeInstrumentHoldableId &&
+                musicalHoldableId == tubeInstrumentHoldableId &&
                 tubeInstrumentFireAnimId != 0)
                 return tubeInstrumentFireAnimId;
         }

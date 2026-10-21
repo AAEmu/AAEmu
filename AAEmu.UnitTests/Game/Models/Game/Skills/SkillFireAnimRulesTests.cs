@@ -22,9 +22,9 @@ public class SkillFireAnimRulesTests
 
     private static uint Resolve(
         WeaponWieldKind wield,
-        uint mainhandHoldableId = 0,
         uint mainhandPoseId = 0,
         uint rangedHoldableId = 0,
+        uint musicalHoldableId = 0,
         uint defaultId = DefaultOneHand,
         uint twoHandId = TwoHand,
         uint dualId = DualWield,
@@ -34,7 +34,7 @@ public class SkillFireAnimRulesTests
         uint tubeId = TubeInstrument) =>
         SkillFireAnimRules.ResolveFireAnimId(
             defaultId, twoHandId, dualId, shotGunId, stringId, percussionId, tubeId,
-            wield, mainhandHoldableId, mainhandPoseId, rangedHoldableId,
+            wield, mainhandPoseId, rangedHoldableId, musicalHoldableId,
             StringHoldable, PercussionHoldable, TubeHoldable, ShotGunHoldable);
 
     [Test]
@@ -92,14 +92,20 @@ public class SkillFireAnimRulesTests
     }
 
     [Test]
-    public async Task Instrument_OverridesWieldWhenMainhandMatches()
+    public async Task Instrument_OverridesFromMusicalSlot_NotMainhand()
     {
-        await Assert.That(Resolve(WeaponWieldKind.TwoHanded, mainhandHoldableId: StringHoldable))
+        // Instruments equip to EquipmentItemSlot.Musical; a mainhand match must not win.
+        await Assert.That(Resolve(WeaponWieldKind.OneHanded, musicalHoldableId: StringHoldable))
             .IsEqualTo(StringInstrument);
-        await Assert.That(Resolve(WeaponWieldKind.TwoHanded, mainhandHoldableId: PercussionHoldable))
+        await Assert.That(Resolve(WeaponWieldKind.OneHanded, musicalHoldableId: PercussionHoldable))
             .IsEqualTo(PercussionInstrument);
-        await Assert.That(Resolve(WeaponWieldKind.TwoHanded, mainhandHoldableId: TubeHoldable))
+        await Assert.That(Resolve(WeaponWieldKind.OneHanded, musicalHoldableId: TubeHoldable))
             .IsEqualTo(TubeInstrument);
+        await Assert.That(Resolve(
+                WeaponWieldKind.TwoHanded,
+                mainhandPoseId: (uint)AnimPose.TwoHand,
+                musicalHoldableId: 0))
+            .IsEqualTo(TwoHand);
     }
 
     [Test]
