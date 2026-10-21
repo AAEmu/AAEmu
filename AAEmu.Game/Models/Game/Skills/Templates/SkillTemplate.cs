@@ -154,6 +154,16 @@ public class SkillTemplate
     public int TargetUnitParam { get; set; }
     public uint ShotGunStartAnimId { get; set; }
     public uint ShotGunFireAnimId { get; set; }
+    /// <summary><c>skills.twohand_fire_anim_id</c> — override when mainhand pose is <c>twohand</c>.</summary>
+    public uint TwoHandFireAnimId { get; set; }
+    /// <summary><c>skills.dual_wield_fire_anim_id</c> — override when the caster is dual-wielding.</summary>
+    public uint DualWieldFireAnimId { get; set; }
+    /// <summary><c>skills.string_instrument_fire_anim_id</c>.</summary>
+    public uint StringInstrumentFireAnimId { get; set; }
+    /// <summary><c>skills.percussion_instrument_fire_anim_id</c>.</summary>
+    public uint PercussionInstrumentFireAnimId { get; set; }
+    /// <summary><c>skills.tube_instrument_fire_anim_id</c>.</summary>
+    public uint TubeInstrumentFireAnimId { get; set; }
     public int CombatResourceId { get; set; }
     public bool UseInputDirection { get; set; }
     public long UseConditionBits { get; set; }

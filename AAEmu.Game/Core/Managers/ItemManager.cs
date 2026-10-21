@@ -835,6 +835,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             AnimL2Id = reader.GetUInt32("anim_l2_id", 0),
                             AnimR3Id = reader.GetUInt32("anim_r3_id", 0),
                             AnimL3Id = reader.GetUInt32("anim_l3_id", 0),
+                            PoseId = reader.GetUInt32("pose_id", 0),
                             ElementId = reader.GetUInt32("element_id", 0)
                         };
 

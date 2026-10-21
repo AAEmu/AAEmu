@@ -789,6 +789,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.TargetUnitParam = reader.GetInt32("target_unit_param", 0);
                         template.ShotGunStartAnimId = reader.GetUInt32("shot_gun_start_anim_id", 0);
                         template.ShotGunFireAnimId = reader.GetUInt32("shot_gun_fire_anim_id", 0);
+                        template.TwoHandFireAnimId = reader.GetUInt32("twohand_fire_anim_id", 0);
+                        template.DualWieldFireAnimId = reader.GetUInt32("dual_wield_fire_anim_id", 0);
+                        template.StringInstrumentFireAnimId = reader.GetUInt32("string_instrument_fire_anim_id", 0);
+                        template.PercussionInstrumentFireAnimId = reader.GetUInt32("percussion_instrument_fire_anim_id", 0);
+                        template.TubeInstrumentFireAnimId = reader.GetUInt32("tube_instrument_fire_anim_id", 0);
                         template.CombatResourceId = reader.GetInt32("combat_resource_id", 0);
                         template.UseInputDirection = reader.GetBoolean("use_input_direction", false);
                         template.UseConditionBits = reader.GetInt64("use_condition_bits", 0);
