@@ -50,11 +50,11 @@ public class CombatResourceEffect : EffectTemplate
 
         // combat_resources.resouece_send_type_id decides the audience: 1 Self, 2 Broadcast.
         var resource = CombatResourceGameData.Instance.Get(resourceId);
-        // reset_remain_time restarts the drain window; the client draws that countdown from updateTime.
-        // Hatred's cycle is 5 s, Fury-time's is 30 s — sending 0 left the timer UI dead on every builder.
-        var updateTime = ResetRemainTime
-            ? resource?.RecoveryCycle ?? 0
-            : unit.GetCombatResourceDecayRemainingMs(resourceId);
+        // updateTime is elapsed ms into recovery_cycle (0 = restart), not remaining and not the cycle length.
+        var updateTime = CombatResourceRules.ToWireUpdateTime(
+            ResetRemainTime,
+            resource?.RecoveryCycle ?? 0,
+            unit.GetCombatResourceDecayRemainingMs(resourceId));
         unit.BroadcastCombatResource(resource, after, updateTime);
     }
 
@@ -62,8 +62,8 @@ public class CombatResourceEffect : EffectTemplate
     {
         var resourceMax = CombatResourceGameData.Instance.GetMax(resourceId);
 
-        // Buff tick (CastBuff): keep the authored combat_resource_effects amount.
-        if (castObj is CastBuff)
+        // Periodic buff tick only — BuffTrigger also uses CastBuff but must keep its authored grant.
+        if (CombatResourceGrantRules.IsPeriodicBuffTick(castObj, source))
             return CombatResourceGrantRules.ResolveBuffTickAmount(amount, resourceMax);
 
         // Plot grant: skill_effects for the same pool win when the plot amount is not among them.

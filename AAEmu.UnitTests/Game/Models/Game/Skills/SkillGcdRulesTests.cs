@@ -21,17 +21,19 @@ public class SkillGcdRulesTests
     }
 
     [Test]
-    public async Task DefaultGcd_TakesPriorityOverCustomGcd()
+    public async Task CustomGcd_TakesPriorityOverDefaultGcd()
     {
-        // 10501 제압 carries custom_gcd 500 next to default_gcd and weapon_gcd_id 16.
+        // 13282 회오리 베기 / 10501 제압: custom_gcd is the reduced recovery even when default_gcd is set.
+        await Assert.That(SkillGcdRules.ResolveSharedGcd(200, defaultGcd: true, weaponGcdSpeed: 1200, isNpc: false))
+            .IsEqualTo(240);
         await Assert.That(SkillGcdRules.ResolveSharedGcd(500, defaultGcd: true, weaponGcdSpeed: 1200, isNpc: false))
-            .IsEqualTo(1200);
+            .IsEqualTo(600);
         await Assert.That(SkillGcdRules.ResolveSharedGcd(500, defaultGcd: true, weaponGcdSpeed: 1300, isNpc: false))
-            .IsEqualTo(1300);
+            .IsEqualTo(650);
         await Assert.That(SkillGcdRules.ResolveSharedGcd(700, defaultGcd: true, weaponGcdSpeed: 0, isNpc: false))
-            .IsEqualTo(1000);
+            .IsEqualTo(700);
 
-        // With default_gcd unset, custom_gcd remains the base and scales with weapon speed.
+        // With default_gcd unset, custom_gcd still scales with weapon speed the same way.
         await Assert.That(SkillGcdRules.ResolveSharedGcd(700, defaultGcd: false, weaponGcdSpeed: 1300, isNpc: false))
             .IsEqualTo(910);
     }
@@ -57,12 +59,12 @@ public class SkillGcdRulesTests
     }
 
     [Test]
-    public async Task TripleSlashShape_DaggerIsFasterThanNodachi()
+    public async Task CustomGcd_ScalesFasterOnDaggerThanNodachi()
     {
-        // 18131: custom_gcd 700, default_gcd t, weapon_gcd_id 15 → equipped mainhand speed wins.
+        // 18131: custom_gcd 700 × equipped mainhand / 1000 (default_gcd set does not override).
         await Assert.That(SkillGcdRules.ResolveSharedGcd(700, defaultGcd: true, weaponGcdSpeed: 800, isNpc: false))
-            .IsEqualTo(800);
+            .IsEqualTo(560);
         await Assert.That(SkillGcdRules.ResolveSharedGcd(700, defaultGcd: true, weaponGcdSpeed: 1100, isNpc: false))
-            .IsEqualTo(1100);
+            .IsEqualTo(770);
     }
 }

@@ -611,7 +611,7 @@ public class Unit : BaseUnit, IUnit
 
     /// <summary>
     /// Milliseconds left on the resource's decay window, or 0 when the pool is idle / untimed.
-    /// Pushed as <c>SCCombatResourcePoint.updateTime</c> when a grant does not reset the window.
+    /// Converted to wire elapsed via <see cref="CombatResourceRules.ToWireUpdateTime"/>.
     /// </summary>
     public int GetCombatResourceDecayRemainingMs(int combatResourceId)
     {
@@ -691,8 +691,14 @@ public class Unit : BaseUnit, IUnit
         foreach (var resource in CombatResourceGameData.Instance.All)
         {
             var amount = GetCombatResource(resource.Id);
-            if (amount != 0)
-                BroadcastCombatResource(resource, amount, updateTimeMs: 0);
+            if (amount == 0)
+                continue;
+            // Carry mid-cycle elapsed so the HUD timer matches the server window after login / ability sync.
+            var updateTime = CombatResourceRules.ToWireUpdateTime(
+                resetRemainTime: false,
+                resource.RecoveryCycle,
+                GetCombatResourceDecayRemainingMs(resource.Id));
+            BroadcastCombatResource(resource, amount, updateTime);
         }
     }
 

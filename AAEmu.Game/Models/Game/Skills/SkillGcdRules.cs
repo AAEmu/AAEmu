@@ -38,30 +38,19 @@ public static class SkillGcdRules
     /// The base GCD in milliseconds before <see cref="AttackSpeedGcdMultiplier"/> is applied.
     /// </summary>
     /// <remarks>
-    /// Resolution order:
+    /// Resolution order (matches the client skill columns and hold-repeat pacing):
     /// <list type="number">
-    /// <item><c>default_gcd</c> — takes priority over <c>custom_gcd</c> and uses the selected weapon's
-    /// speed when available, otherwise the server default (1,000 ms for a player caster, 1,500 ms for an NPC).</item>
-    /// <item><c>custom_gcd</c> — the skill's base recovery (3,407 rows). If the skill uses weapon speed,
-    /// the base recovery is multiplied by equipped weapon speed / 1,000 ms.</item>
-    /// <item><c>weapon_gcd_id</c> — selects the weapon slot whose speed drives the GCD: 15 Mainhand,
-    /// 16 Offhand, and 17 Ranged. Ranged skills that arm a GCD without this marker also use the ranged
-    /// slot. If the selected slot has no weapon and no custom GCD is authored, the skill falls through
-    /// to the server default. The data has 327 populated rows and uses these three values; 140 of those
-    /// rows also author <c>custom_gcd</c>, which is scaled by the selected weapon speed when default_gcd is false.</item>
+    /// <item><c>custom_gcd</c> — when authored, this is the reduced recovery the tooltip names.
+    /// With a <c>weapon_gcd_id</c> slot equipped, the base is multiplied by weapon speed / 1,000 ms
+    /// (Whirlwind Slash 13282: custom 200 × 2H speed). <c>default_gcd</c> does not override it.</item>
+    /// <item><c>default_gcd</c> — full weapon speed when a slot is selected, otherwise the server
+    /// default (1,000 ms player / 1,500 ms NPC).</item>
+    /// <item><c>weapon_gcd_id</c> alone — that slot's equipped speed when neither flag authored a length.</item>
     /// </list>
-    /// When both <c>default_gcd</c> and <c>custom_gcd</c> are set, the default GCD wins.
     /// An unknown positive weapon slot selector falls through to the default rather than inventing a length.
     /// </remarks>
     public static int ResolveSharedGcd(int customGcd, bool defaultGcd, int weaponGcdSpeed, bool isNpc)
     {
-        if (defaultGcd)
-        {
-            if (weaponGcdSpeed > 0)
-                return weaponGcdSpeed;
-
-            return isNpc ? NpcDefaultGcd : PlayerDefaultGcd;
-        }
         if (customGcd > 0)
         {
             if (weaponGcdSpeed <= 0)
@@ -70,6 +59,13 @@ public static class SkillGcdRules
             return (int)Math.Round(
                 customGcd * (double)weaponGcdSpeed / PlayerDefaultGcd,
                 MidpointRounding.AwayFromZero);
+        }
+        if (defaultGcd)
+        {
+            if (weaponGcdSpeed > 0)
+                return weaponGcdSpeed;
+
+            return isNpc ? NpcDefaultGcd : PlayerDefaultGcd;
         }
         if (weaponGcdSpeed > 0)
             return weaponGcdSpeed;

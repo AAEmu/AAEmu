@@ -7,13 +7,66 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 public class CombatResourceGrantRulesTests
 {
     [Test]
-    public async Task BuffTick_KeepsAuthoredAmount()
+    public async Task BuffTick_CeilingSizedGrant_IsOne()
     {
-        // Content amounts stand as authored — do not invent a +1 for ceiling-sized ticks.
-        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(10, 10)).IsEqualTo(10);
-        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(45, 10)).IsEqualTo(45);
+        // Fury tick CRE 472 stores +10 on a max-10 Hatred pool; tooltip is +1/sec after the +5 start.
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(10, 10)).IsEqualTo(1);
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(24, 24)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task BuffTick_OverCeilingGrant_IsOne()
+    {
+        // Assassin stealth stages tick +45/+90 into 살기 (max 10).
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(45, 10)).IsEqualTo(1);
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(90, 10)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task BuffTick_OrdinaryGrant_Unchanged()
+    {
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(1, 10)).IsEqualTo(1);
         await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(5, 10)).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task BuffTick_MaxOnePool_Unchanged()
+    {
+        // A max-1 pool whose tick stores 1 is a real +1, not a sentinel refill.
         await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(1, 1)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task IsPeriodicBuffTick_CastBuffWithoutTriggerFlag_IsTrue()
+    {
+        // BuffTemplate.TimeToTimeApply builds EffectSource(buff) with FromBuffTrigger left false.
+        var cast = new CastBuff(buff: null);
+        var source = new EffectSource();
+        await Assert.That(CombatResourceGrantRules.IsPeriodicBuffTick(cast, source)).IsTrue();
+        await Assert.That(CombatResourceGrantRules.IsPeriodicBuffTick(cast, null)).IsTrue();
+    }
+
+    [Test]
+    public async Task IsPeriodicBuffTick_FromBuffTrigger_IsFalse()
+    {
+        // BuffTrigger.Fire sets FromBuffTrigger; a ceiling-sized timeout/event grant must stay intact.
+        var cast = new CastBuff(buff: null);
+        var source = new EffectSource { FromBuffTrigger = true };
+        await Assert.That(CombatResourceGrantRules.IsPeriodicBuffTick(cast, source)).IsFalse();
+    }
+
+    [Test]
+    public async Task BuffTrigger_CeilingSizedGrant_StaysAuthored()
+    {
+        // Gate: only periodic ticks call ResolveBuffTickAmount; trigger path leaves the amount alone.
+        var amount = 10;
+        var resourceMax = 10;
+        var fromTrigger = !CombatResourceGrantRules.IsPeriodicBuffTick(
+            new CastBuff(buff: null),
+            new EffectSource { FromBuffTrigger = true });
+        await Assert.That(fromTrigger).IsTrue();
+        await Assert.That(amount).IsEqualTo(10);
+        await Assert.That(CombatResourceGrantRules.ResolveBuffTickAmount(amount, resourceMax)).IsEqualTo(1);
     }
 
     [Test]
