@@ -2432,12 +2432,6 @@ public partial class Character : Unit, ICharacter
     /// </summary>
     public DateTime LastPacketActivityTime { get; set; } = DateTime.UtcNow;
 
-    /// <summary>
-    /// UTC until which this character's own <c>CSMoveUnit</c> reports are accepted even while
-    /// stun/sleep/root would normally drop them — armed by knockback so the impulse settle can land.
-    /// </summary>
-    public DateTime KnockbackMoveAcceptUntil { get; set; }
-
     public Character(UnitCustomModelParams modelParams, ICharacterOptionStore optionStore = null)
     {
         _options = [];

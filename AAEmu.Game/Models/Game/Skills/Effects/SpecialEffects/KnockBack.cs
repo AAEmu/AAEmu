@@ -45,14 +45,13 @@ public class KnockBack : SpecialEffectAction
             impulse = KnockBackRules.ImpulseAlong(dirX, dirY, value1, value2);
         }
 
-        // SC body is the impulse vector the client applies to the target's physics. The server does
-        // not move the transform for players: the client integrates the impulse and reports the new
-        // position (accepted even under stun/root for a short grace — see KnockBackRules).
+        // SC = impulse for client physics. Server XY slide keeps combat/AOI honest without opening a
+        // crowd-control CSMoveUnit bypass (a grace window was rejected as a movement cheat path).
         trg.BroadcastPacket(new SCKnockBackUnitPacket(trg.ObjId, impulse.X, impulse.Y, impulse.Z), true);
 
         if (trg is Character character)
         {
-            character.KnockbackMoveAcceptUntil = DateTime.UtcNow + KnockBackRules.MovementReportGrace;
+            ApplyServerAuthoritySlide(trg, impulse, value1);
             Logger.Debug("KnockBack player={0} horizontal={1} vertical={2} impulse=({3:F1},{4:F1},{5:F1})",
                 character.Name, value1, value2, impulse.X, impulse.Y, impulse.Z);
             return;
@@ -65,14 +64,19 @@ public class KnockBack : SpecialEffectAction
             return;
         }
 
-        // Standalone World: no dedicate and clients cannot move NPCs — slide the server transform.
-        if (KnockBackRules.TryStandaloneNpcSlide(impulse, value1, out var delta))
-        {
-            var p = trg.Transform.World.Position;
-            trg.SetPosition(p.X + delta.X, p.Y + delta.Y, p.Z,
-                trg.Transform.World.Rotation.X,
-                trg.Transform.World.Rotation.Y,
-                trg.Transform.World.Rotation.Z);
-        }
+        // Standalone World: no dedicate and clients cannot move NPCs — same server slide.
+        ApplyServerAuthoritySlide(trg, impulse, value1);
+    }
+
+    private static void ApplyServerAuthoritySlide(Unit trg, System.Numerics.Vector3 impulse, int horizontalMagnitude)
+    {
+        if (!KnockBackRules.TryServerAuthoritySlide(impulse, horizontalMagnitude, out var delta))
+            return;
+
+        var p = trg.Transform.World.Position;
+        trg.SetPosition(p.X + delta.X, p.Y + delta.Y, p.Z,
+            trg.Transform.World.Rotation.X,
+            trg.Transform.World.Rotation.Y,
+            trg.Transform.World.Rotation.Z);
     }
 }

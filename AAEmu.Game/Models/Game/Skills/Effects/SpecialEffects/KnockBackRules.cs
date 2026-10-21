@@ -3,11 +3,10 @@
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
 /// <summary>
-/// Knockback is a physics impulse, not a landing position. The client hands the three floats of
-/// <c>SCKnockBackUnit</c> to its actor physics as an impulse vector (scaled by the unit's mass
-/// against a reference mass) and the engine moves the character; the resulting position comes
-/// back through the normal client movement report. The server therefore never writes a
-/// knockback landing into the transform.
+/// Knockback is a physics impulse on the wire, not a continent landing plant. The three floats of
+/// <c>SCKnockBackUnit</c> are handed to the client's actor physics (mass-scaled). The server keeps
+/// combat/AOI honest with a short XY slide derived from the authored horizontal magnitude — it does
+/// not open a crowd-control movement bypass for client-reported settles.
 ///
 /// <c>special_effects</c> type 13: <c>value1</c> is the horizontal impulse magnitude in the
 /// client's impulse units (the client's own internal nudges use 100; shipped rows run roughly
@@ -20,23 +19,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 public static class KnockBackRules
 {
     /// <summary>
-    /// How long after an impulse the server still accepts the target's own movement reports even when
-    /// stun/sleep/root would normally drop them. The client integrates the impulse under those states;
-    /// without this window combat/AOI keep the pre-knock position until the CC ends.
+    /// Server-authority XY slide so range/AOI track the shove without trusting a client move under
+    /// stun/root. Metres come from the historical distance heuristic on the authored horizontal
+    /// magnitude (values above 100 are thousandths of a metre). Z is left to client physics.
     /// </summary>
-    public static readonly TimeSpan MovementReportGrace = TimeSpan.FromMilliseconds(1500);
-
-    /// <summary>Whether <paramref name="now"/> is still inside a knockback movement-report grace.</summary>
-    public static bool AcceptsMovementReport(DateTime graceUntilUtc, DateTime nowUtc) =>
-        graceUntilUtc > nowUtc;
-
-    /// <summary>
-    /// Standalone World (no ZoneAuthority) has no dedicate physics and clients cannot
-    /// <c>CSMoveUnit</c> ordinary NPCs — slide the server transform along the impulse XY so range/AOI
-    /// track the client visual. Metres come from the historical distance heuristic on the authored
-    /// horizontal magnitude (values above 100 are thousandths of a metre).
-    /// </summary>
-    public static bool TryStandaloneNpcSlide(Vector3 impulse, int horizontalMagnitude, out Vector3 delta)
+    public static bool TryServerAuthoritySlide(Vector3 impulse, int horizontalMagnitude, out Vector3 delta)
     {
         var hLen = MathF.Sqrt(impulse.X * impulse.X + impulse.Y * impulse.Y);
         if (hLen < 0.001f)
