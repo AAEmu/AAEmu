@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+using AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
@@ -79,11 +80,14 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
         // and not on the unit being moved, because the state belongs to the player who sent the packet:
         // a rooted driver must not steer a hull either, or the root would only block the walk animation.
         //
-        // Nothing that legitimately moves a unit goes through this packet: Leap and Dash advance the
-        // owner themselves (they build their own UnitMoveType and broadcast SCOneUnitMovement from
-        // Server-side), and a seat ride is a buff, not a CS move. Rejecting here cannot strand either.
+        // Knockback is the exception: SCKnockBack is integrated by client physics and the settle comes
+        // back as CSMoveUnit on the player's own objId. While KnockbackMoveAcceptUntil is live those
+        // self-reports pass so combat/AOI track the shove even if a stun/root landed with the hit.
+        // Leap and Dash still advance server-side (SCOneUnitMovement); a seat ride is a buff, not a CS move.
         var crowdControl = CrowdControlRules.ReadState(character);
-        if (CrowdControlRules.BlocksMovement(crowdControl))
+        var knockbackSettle = _objId == character.ObjId &&
+            KnockBackRules.AcceptsMovementReport(character.KnockbackMoveAcceptUntil, DateTime.UtcNow);
+        if (CrowdControlRules.BlocksMovement(crowdControl) && !knockbackSettle)
         {
             // A rooted player still turns in place: keep the facing the packet carries (position stays
             // where the server has it) so a cast fired through the root — Backdraft roots itself for

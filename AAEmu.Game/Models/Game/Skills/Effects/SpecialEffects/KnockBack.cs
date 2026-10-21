@@ -46,18 +46,33 @@ public class KnockBack : SpecialEffectAction
         }
 
         // SC body is the impulse vector the client applies to the target's physics. The server does
-        // not move the transform: the client integrates the impulse and reports the new position.
+        // not move the transform for players: the client integrates the impulse and reports the new
+        // position (accepted even under stun/root for a short grace — see KnockBackRules).
         trg.BroadcastPacket(new SCKnockBackUnitPacket(trg.ObjId, impulse.X, impulse.Y, impulse.Z), true);
 
         if (trg is Character character)
         {
+            character.KnockbackMoveAcceptUntil = DateTime.UtcNow + KnockBackRules.MovementReportGrace;
             Logger.Debug("KnockBack player={0} horizontal={1} vertical={2} impulse=({3:F1},{4:F1},{5:F1})",
                 character.Name, value1, value2, impulse.X, impulse.Y, impulse.Z);
+            return;
         }
 
-        // Zone-owned units get the same impulse so the dedicate physics moves them; the SC
-        // broadcast alone only reaches the clients' visual copies.
-        if (WorldIntegration.ZoneAuthority && trg is not Character)
+        // Zone-owned NPCs: dedicate physics applies the same impulse.
+        if (WorldIntegration.ZoneAuthority)
+        {
             WorldIntegration.RelayKnockBackToZone?.Invoke(trg.ObjId, impulse.X, impulse.Y, impulse.Z);
+            return;
+        }
+
+        // Standalone World: no dedicate and clients cannot move NPCs — slide the server transform.
+        if (KnockBackRules.TryStandaloneNpcSlide(impulse, value1, out var delta))
+        {
+            var p = trg.Transform.World.Position;
+            trg.SetPosition(p.X + delta.X, p.Y + delta.Y, p.Z,
+                trg.Transform.World.Rotation.X,
+                trg.Transform.World.Rotation.Y,
+                trg.Transform.World.Rotation.Z);
+        }
     }
 }

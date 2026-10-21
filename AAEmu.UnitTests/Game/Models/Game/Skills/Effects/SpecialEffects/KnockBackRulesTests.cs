@@ -67,4 +67,23 @@ public class KnockBackRulesTests
         await Assert.That(x).IsEqualTo(0f).Within(0.001f);
         await Assert.That(y).IsEqualTo(1f).Within(0.001f);
     }
+
+    [Test]
+    public async Task AcceptsMovementReport_OnlyInsideGrace()
+    {
+        var until = new DateTime(2026, 10, 22, 0, 0, 1, DateTimeKind.Utc);
+        await Assert.That(KnockBackRules.AcceptsMovementReport(until, until.AddMilliseconds(-1))).IsTrue();
+        await Assert.That(KnockBackRules.AcceptsMovementReport(until, until)).IsFalse();
+        await Assert.That(KnockBackRules.AcceptsMovementReport(until, until.AddMilliseconds(1))).IsFalse();
+    }
+
+    [Test]
+    public async Task TryStandaloneNpcSlide_MapsMagnitudeToMetresAlongImpulse()
+    {
+        var ok = KnockBackRules.TryStandaloneNpcSlide(new Vector3(500f, 0f, 171f), 500, out var delta);
+        await Assert.That(ok).IsTrue();
+        await Assert.That(delta.X).IsEqualTo(0.5f).Within(0.001f);
+        await Assert.That(delta.Y).IsEqualTo(0f).Within(0.001f);
+        await Assert.That(delta.Z).IsEqualTo(0f).Within(0.001f);
+    }
 }

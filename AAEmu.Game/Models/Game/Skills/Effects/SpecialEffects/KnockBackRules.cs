@@ -20,6 +20,44 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 public static class KnockBackRules
 {
     /// <summary>
+    /// How long after an impulse the server still accepts the target's own movement reports even when
+    /// stun/sleep/root would normally drop them. The client integrates the impulse under those states;
+    /// without this window combat/AOI keep the pre-knock position until the CC ends.
+    /// </summary>
+    public static readonly TimeSpan MovementReportGrace = TimeSpan.FromMilliseconds(1500);
+
+    /// <summary>Whether <paramref name="now"/> is still inside a knockback movement-report grace.</summary>
+    public static bool AcceptsMovementReport(DateTime graceUntilUtc, DateTime nowUtc) =>
+        graceUntilUtc > nowUtc;
+
+    /// <summary>
+    /// Standalone World (no ZoneAuthority) has no dedicate physics and clients cannot
+    /// <c>CSMoveUnit</c> ordinary NPCs — slide the server transform along the impulse XY so range/AOI
+    /// track the client visual. Metres come from the historical distance heuristic on the authored
+    /// horizontal magnitude (values above 100 are thousandths of a metre).
+    /// </summary>
+    public static bool TryStandaloneNpcSlide(Vector3 impulse, int horizontalMagnitude, out Vector3 delta)
+    {
+        var hLen = MathF.Sqrt(impulse.X * impulse.X + impulse.Y * impulse.Y);
+        if (hLen < 0.001f)
+        {
+            delta = Vector3.Zero;
+            return false;
+        }
+
+        var abs = Math.Abs(horizontalMagnitude);
+        var metres = abs > 100 ? abs / 1000f : abs;
+        if (metres <= 0f)
+        {
+            delta = Vector3.Zero;
+            return false;
+        }
+
+        delta = new Vector3(impulse.X / hLen * metres, impulse.Y / hLen * metres, 0f);
+        return true;
+    }
+
+    /// <summary>
     /// Impulse vector for a target pushed away from <paramref name="caster"/>. Returns false when the
     /// two stand on the same spot so the caller can fall back to the caster's facing.
     /// </summary>
