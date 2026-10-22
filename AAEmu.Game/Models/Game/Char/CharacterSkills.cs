@@ -75,7 +75,15 @@ public class CharacterSkills(Character owner)
         if (Skills.TryGetValue(skillId, out var skill))
             Owner.SendPacket(new SCSkillLearnedPacket(skill));
         else
+        {
             AddSkill(template, 1, true);
+            // Tree passives key off skills unlocked in the tree — a player learn can cross req_points.
+            // Not done inside AddSkill(template): Load / ability-seed / skillsaver restore with
+            // packet=false and refresh once after the whole book is in (mid-Load refresh races saved
+            // passives; ability-seed hosts often have no SkillManager yet).
+            RefreshAutoGrantedPassives(notify: true);
+        }
+
         return true;
     }
 
@@ -96,16 +104,7 @@ public class CharacterSkills(Character owner)
         Skills.Add(skill.Id, skill);
 
         if (packet)
-        {
             Owner.SendPacket(new SCSkillLearnedPacket(skill));
-
-            // Auto-granted passives key off skills unlocked in the tree (passive_buffs.req_points).
-            // Only on a player-visible learn — skill-book Load / skillsaver / char-create restore with
-            // packet=false and call RefreshAutoGrantedPassives once after every saved row is in.
-            // Refreshing mid-Load can insert a saved passive before its row is read, then
-            // PassiveBuffs.Add throws and blocks login.
-            RefreshAutoGrantedPassives(notify: true);
-        }
     }
 
     /// <summary>
@@ -192,7 +191,19 @@ public class CharacterSkills(Character owner)
     /// </remarks>
     public void RefreshAutoGrantedPassives(bool notify = false)
     {
-        foreach (var passiveId in SkillManager.Instance.GetAutoGrantablePassiveBuffIds(Owner.Level, PassiveBuffs.Keys))
+        // Ability-swap / combat-resource unit hosts never install SkillManager; Singleton throws
+        // InvalidOperationException instead of returning null. Live World always has one.
+        IReadOnlyList<uint> candidates;
+        try
+        {
+            candidates = SkillManager.Instance.GetAutoGrantablePassiveBuffIds(Owner.Level, PassiveBuffs.Keys);
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+
+        foreach (var passiveId in candidates)
             AddBuff(passiveId, notify);
     }
 

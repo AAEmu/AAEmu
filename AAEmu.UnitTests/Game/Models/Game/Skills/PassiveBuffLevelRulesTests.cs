@@ -349,12 +349,16 @@ public class PassiveBuffLevelRulesTests
         character.Skills.RefreshAutoGrantedPassives();
         await Assert.That(character.Skills.PassiveBuffs.ContainsKey(ActiveReqPointsPassiveId)).IsFalse();
 
+        // packet=false restores/seeds without refresh (same as skill-book Load). Player learn goes
+        // through AddSkill(uint), which refreshes after each new skill — mirror that here.
         character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillIdA), 1, packet: false);
         character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillIdB), 1, packet: false);
         character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillIdC), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
         await Assert.That(character.Skills.PassiveBuffs.ContainsKey(ActiveReqPointsPassiveId)).IsFalse();
 
         character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillIdD), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
 
         await Assert.That(character.Skills.PassiveBuffs.ContainsKey(ActiveReqPointsPassiveId)).IsTrue();
         await Assert.That(character.Buffs.CheckBuff(ActiveReqPointsPassiveBuffId)).IsTrue();
@@ -373,9 +377,11 @@ public class PassiveBuffLevelRulesTests
 
         character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillOnePointIdA), 1, packet: false);
         character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillOnePointIdB), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
         await Assert.That(character.Skills.PassiveBuffs.ContainsKey(InactiveTreePassiveId)).IsFalse();
 
         character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillOnePointIdC), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
 
         await Assert.That(character.Skills.PassiveBuffs.ContainsKey(InactiveTreePassiveId)).IsTrue();
         await Assert.That(character.Buffs.CheckBuff(InactiveTreePassiveBuffId)).IsTrue();
@@ -397,6 +403,7 @@ public class PassiveBuffLevelRulesTests
         await Assert.That(character.Skills.PassiveBuffs.ContainsKey(GeneralReqPointsPassiveId)).IsFalse();
 
         character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(GeneralSkillIdC), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
 
         await Assert.That(character.Skills.PassiveBuffs.ContainsKey(GeneralReqPointsPassiveId)).IsTrue();
         await Assert.That(character.Buffs.CheckBuff(GeneralReqPointsPassiveBuffId)).IsTrue();

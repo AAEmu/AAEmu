@@ -185,6 +185,8 @@ public class CharacterAbilities
         {
             foreach (var template in SkillManager.Instance.GetStartAbilitySkills(abilityId))
                 Owner.Skills.AddSkill(template, 1, true);
+            // Starters can meet a tree passive's req_points; grant once after the batch.
+            Owner.Skills.RefreshAutoGrantedPassives(notify: true);
         }
 
         Owner.SyncCombatResourcesAfterAbilityChange();
