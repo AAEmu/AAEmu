@@ -3,6 +3,11 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
+/// <summary>
+/// Shares <see cref="PassiveTreeAutoGrantRules.OverrideEnabled"/> with
+/// <see cref="PassiveBuffLevelRulesTests"/> — must not run beside that suite or the env-hook asserts race.
+/// </summary>
+[NotInParallel]
 public class PassiveTreeAutoGrantRulesTests
 {
     [After(Test)]
