@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
@@ -104,10 +104,12 @@ public class BuffSelfGrantReapplyTests
             [CooldownMarkerBuffId] = [CooldownTagId],
             [TaggedCandidateId] = [CooldownTagId]
         });
+        // Carrier counts match shipped tagged_buffs: 919 and 344 are shared (refresh/extend must
+        // still land), while 4447 is exclusive to the cooldown marker (re-apply is refused).
         SetField(skillManager, "_taggedBuffs", new Dictionary<uint, List<uint>>
         {
-            [FreezeTagId] = [FreezeBuffId],
-            [PrisonerTagId] = [PrisonerBuffId],
+            [FreezeTagId] = [FreezeBuffId, 5802u, 5826u],
+            [PrisonerTagId] = [PrisonerBuffId, 2028u, 3623u, 4868u, 8038u],
             [CooldownTagId] = [CooldownMarkerBuffId, TaggedCandidateId]
         });
         // tagged_immune_buffs: while the key buff is up, a candidate carrying the value tag is refused.

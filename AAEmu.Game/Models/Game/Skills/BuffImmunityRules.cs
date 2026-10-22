@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills.Buffs;
+﻿using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -68,6 +68,10 @@ public static class BuffImmunityRules
     /// Resolves <c>immune_except_creator_relation_id</c> against the caster's relation to the owner.
     /// Called only for a grant whose relation check is on and whose relation id is configured.
     /// </param>
+    /// <param name="buffsPerTag">
+    /// How many buffs carry a tag (<c>tagged_buffs</c>). Used to keep exclusive-tag ICD / cooldown
+    /// self-gates refused while shared-tag refresh rows (중독 under tag 14) still re-apply.
+    /// </param>
     public static bool IsRefusedByTagImmunity(
         IReadOnlyCollection<uint> candidateTags,
         BuffTemplate candidate,
@@ -75,7 +79,8 @@ public static class BuffImmunityRules
         Func<uint, IReadOnlyList<uint>> grantedImmunityTags,
         uint casterObjId,
         IReadOnlyCollection<uint> casterSkillTags,
-        Func<uint, bool> casterRelationMatches)
+        Func<uint, bool> casterRelationMatches,
+        Func<uint, int> buffsPerTag = null)
     {
         if (candidateTags == null || candidateTags.Count == 0 || candidate == null || activeBuffs == null ||
             grantedImmunityTags == null)
@@ -89,14 +94,15 @@ public static class BuffImmunityRules
             if (template == null)
                 continue;
 
-            // The buff's own row: it refreshes, stacks or extends itself rather than being refused by the
-            // tag it carries — unless its re-application is only a replacement of the instance already up,
-            // which is what a self-gate (the 60-second 쿨타임 체크용 markers) exists to refuse.
-            if (template.BuffId == candidate.Id && ownGrantStepsAside)
-                continue;
-
             var granting = grantedImmunityTags(template.BuffId);
             if (granting == null || granting.Count == 0)
+                continue;
+
+            // The buff's own row: it refreshes, stacks or extends itself rather than being refused by the
+            // tag it carries — unless the overlapping immune tag is exclusive to this buff (ICD /
+            // cooldown self-gates), where refusing the re-application is the whole of what the row says.
+            if (template.BuffId == candidate.Id && ownGrantStepsAside &&
+                !IsExclusiveTagSelfGate(candidateTags, granting, buffsPerTag))
                 continue;
 
             if (!CarriesAnyTag(candidateTags, granting))
@@ -140,15 +146,17 @@ public static class BuffImmunityRules
     /// <para>
     /// 283 <c>tagged_immune_buffs</c> rows name a tag the granting buff carries itself: 260 refresh, 3
     /// charge_refresh, 1 multiple, 3 extend (631/2028 수감자 over 1 800 000 ms, 16380 기녀의 선율에 매혹됨)
-    /// and 16 independent. For the first 266 the row refuses *other* buffs and the buff goes on taking its
-    /// own stack path, which is what this answers true for. Without that the immunity check — which runs
-    /// before <c>Buffs.AddBuff</c> reaches its stack rule — turns a refresh or an extend into a refusal.
+    /// and 16 independent. For shared-tag refresh/extend/charge_refresh rows the grant refuses *other*
+    /// buffs and the buff goes on taking its own stack path, which is what this answers true for. Without
+    /// that the immunity check — which runs before <c>Buffs.AddBuff</c> reaches its stack rule — turns a
+    /// refresh or an extend into a refusal.
     /// </para>
     /// <para>
-    /// The other 17 rows are self-gates: their tag is carried by that same buff and nothing else, so
+    /// The remaining rows are self-gates: their tag is carried by that same buff and nothing else, so
     /// refusing the re-application is the whole of what the row says. 16 of them are
-    /// <see cref="BuffStackRule.Independent"/>, twelve of those the 60-second 쿨타임 체크용 markers, whose
-    /// grant has to stand or a recast would restart the cooldown it exists to hold. A
+    /// <see cref="BuffStackRule.Independent"/> (twelve the 60-second 쿨타임 체크용 markers). Exclusive-tag
+    /// <see cref="BuffStackRule.Refresh"/> ICD dummies (22277 광란 더미버프, 28673 암투 전투 자원 면역 버프)
+    /// are the same shape under Refresh — see <see cref="IsExclusiveTagSelfGate"/>. A
     /// <see cref="BuffStackRule.Multiple"/> family at a ceiling of one restarts the same way, while
     /// one with room grows the live count instead. <see cref="BuffStackRule.ChargeExtend"/> is not
     /// implemented, so a re-application of it is a replacement too.
@@ -167,6 +175,45 @@ public static class BuffImmunityRules
             BuffStackRule.Multiple => maxStack > 1,
             _ => false,
         };
+
+    /// <summary>
+    /// Whether overlapping immune tags are carried only by this buff — the Independent cooldown-marker
+    /// shape, also used by Refresh ICD dummies so a re-hit cannot restart their 1-second gate.
+    /// </summary>
+    public static bool IsExclusiveTagSelfGate(
+        IReadOnlyCollection<uint> candidateTags,
+        IReadOnlyList<uint> grantingTags,
+        Func<uint, int> buffsPerTag)
+    {
+        if (candidateTags == null || candidateTags.Count == 0 || grantingTags == null ||
+            grantingTags.Count == 0 || buffsPerTag == null)
+            return false;
+
+        var hit = false;
+        for (var i = 0; i < grantingTags.Count; i++)
+        {
+            var tagId = grantingTags[i];
+            if (!CarriesTag(candidateTags, tagId))
+                continue;
+
+            hit = true;
+            if (buffsPerTag(tagId) != 1)
+                return false;
+        }
+
+        return hit;
+    }
+
+    private static bool CarriesTag(IReadOnlyCollection<uint> candidateTags, uint tagId)
+    {
+        foreach (var candidateTag in candidateTags)
+        {
+            if (candidateTag == tagId)
+                return true;
+        }
+
+        return false;
+    }
 
     private static bool CarriesAnyTag(IReadOnlyCollection<uint> candidateTags, IReadOnlyList<uint> grantingTags)
     {
