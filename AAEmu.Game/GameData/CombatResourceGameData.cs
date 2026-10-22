@@ -1,6 +1,8 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
@@ -86,11 +88,13 @@ public class CombatResourceGameData : Singleton<CombatResourceGameData>, IGameDa
 
     private Dictionary<int, CombatResource> _resources;
     private Dictionary<int, HashSet<int>> _resourceIdsByAbility;
+    private Dictionary<int, List<BonusTemplate>> _unitModifiers;
 
     public void Load(SqliteConnection connection)
     {
         _resources = [];
         _resourceIdsByAbility = [];
+        _unitModifiers = [];
 
         using (var command = connection.CreateCommand())
         {
@@ -150,7 +154,53 @@ public class CombatResourceGameData : Singleton<CombatResourceGameData>, IGameDa
             }
         }
 
-        Logger.Info("Loaded {0} combat resources", _resources.Count);
+        using (var modifierCommand = connection.CreateCommand())
+        {
+            // 11 shipped rows: owner_id is a combat_resources id (not a buff id). value is 0 and the
+            // per-point rate lives in linear_level_bonus — see CombatResourceModifierRules.
+            modifierCommand.CommandText =
+                "SELECT * FROM unit_modifiers WHERE owner_type = 'CombatResource'";
+            modifierCommand.Prepare();
+            var attributeIds = new List<long>();
+            using var sqliteReader = modifierCommand.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                if (!reader.GetBoolean("enable", true))
+                    continue;
+
+                var resourceId = reader.GetInt32("owner_id", 0);
+                if (resourceId <= 0)
+                    continue;
+
+                var attributeId = reader.GetUInt32("unit_attribute_id", 0);
+                attributeIds.Add(attributeId);
+                var template = new BonusTemplate
+                {
+                    Attribute = (UnitAttribute)attributeId,
+                    ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
+                    Value = reader.GetInt64("value", 0),
+                    LinearLevelBonus = reader.GetInt32("linear_level_bonus", 0)
+                };
+                if (!_unitModifiers.TryGetValue(resourceId, out var list))
+                {
+                    list = [];
+                    _unitModifiers[resourceId] = list;
+                }
+
+                list.Add(template);
+            }
+
+            var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+            if (unknownIds.Count > 0)
+                Logger.Warn(UnitAttributeLoadRules.Warning(
+                    "unit_modifiers (owner_type='CombatResource')", unknownIds));
+        }
+
+        Logger.Info(
+            "Loaded {0} combat resources, {1} with unit modifiers",
+            _resources.Count,
+            _unitModifiers.Count);
     }
 
     public void PostLoad()
@@ -168,26 +218,43 @@ public class CombatResourceGameData : Singleton<CombatResourceGameData>, IGameDa
     /// <summary>Resources that start non-empty, so a unit only has to be seeded with those.</summary>
     public IEnumerable<CombatResource> WithDefaultPoint => All.Where(r => r.DefaultPoint > 0);
 
+    /// <summary>
+    /// <c>unit_modifiers</c> rows owned by this combat resource, or an empty list when none.
+    /// </summary>
+    public IReadOnlyList<BonusTemplate> GetUnitModifiers(int combatResourceId) =>
+        _unitModifiers != null && _unitModifiers.TryGetValue(combatResourceId, out var list)
+            ? list
+            : [];
+
     /// <summary>Replaces loaded tables so unit tests can drive seed/publish without SQLite.</summary>
     internal void SeedForTests(
         IEnumerable<CombatResource> resources,
-        IReadOnlyDictionary<int, HashSet<int>> resourceIdsByAbility)
+        IReadOnlyDictionary<int, HashSet<int>> resourceIdsByAbility,
+        IReadOnlyDictionary<int, List<BonusTemplate>> unitModifiers = null)
     {
         _resources = [];
         foreach (var resource in resources ?? [])
             _resources[resource.Id] = resource;
 
         _resourceIdsByAbility = [];
-        if (resourceIdsByAbility == null)
+        if (resourceIdsByAbility != null)
+        {
+            foreach (var (abilityId, ids) in resourceIdsByAbility)
+                _resourceIdsByAbility[abilityId] = ids != null ? [..ids] : [];
+        }
+
+        _unitModifiers = [];
+        if (unitModifiers == null)
             return;
-        foreach (var (abilityId, ids) in resourceIdsByAbility)
-            _resourceIdsByAbility[abilityId] = ids != null ? [..ids] : [];
+        foreach (var (resourceId, modifiers) in unitModifiers)
+            _unitModifiers[resourceId] = modifiers != null ? [..modifiers] : [];
     }
 
     internal void ClearForTests()
     {
         _resources = [];
         _resourceIdsByAbility = [];
+        _unitModifiers = [];
     }
 
     /// <summary>
