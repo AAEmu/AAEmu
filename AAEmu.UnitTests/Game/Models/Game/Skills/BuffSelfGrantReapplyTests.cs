@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
@@ -33,6 +33,8 @@ public class BuffSelfGrantReapplyTests
     private const uint PrisonerTagId = 344; // 수감자, carried by 631/2028/3623/4868/8038
     private const uint CooldownMarkerBuffId = 25466; // 쿨타임 체크용: stack_rule_id 6 independent, max_stack 1, 60 000 ms
     private const uint CooldownTagId = 4447; // carried by 25466 alone
+    private const uint DeliriumIcdBuffId = 22277; // 광란 더미버프: Refresh max_stack 1, 1000 ms, exclusive tag 3714
+    private const uint DeliriumIcdTagId = 3714; // carried by 22277 alone
     private const uint TaggedCandidateId = 91001; // a second buff carrying 4447
     private const uint OwnerObjId = 1u;
     private const uint CasterObjId = 2u;
@@ -40,6 +42,7 @@ public class BuffSelfGrantReapplyTests
     private const int FreezeDurationMs = 6000;
     private const int PrisonerDurationMs = 1800000;
     private const int CooldownMarkerDurationMs = 60000;
+    private const int DeliriumIcdDurationMs = 1000;
 
     private FieldInfo _skillManagerField;
     private FieldInfo _buffGameDataField;
@@ -88,6 +91,13 @@ public class BuffSelfGrantReapplyTests
                 StackRule = BuffStackRule.Independent,
                 MaxStack = 1
             },
+            [DeliriumIcdBuffId] = new()
+            {
+                Id = DeliriumIcdBuffId,
+                Duration = DeliriumIcdDurationMs,
+                StackRule = BuffStackRule.Refresh,
+                MaxStack = 1
+            },
             [TaggedCandidateId] = new()
             {
                 Id = TaggedCandidateId,
@@ -102,21 +112,28 @@ public class BuffSelfGrantReapplyTests
             [FreezeBuffId] = [FreezeTagId],
             [PrisonerBuffId] = [PrisonerTagId],
             [CooldownMarkerBuffId] = [CooldownTagId],
+            [DeliriumIcdBuffId] = [DeliriumIcdTagId],
             [TaggedCandidateId] = [CooldownTagId]
         });
+        // Carrier counts match shipped tagged_buffs: 919 and 344 are shared (refresh/extend must
+        // still land); 3714 is exclusive to the ICD dummy; 4447 is shared here only so the
+        // "another buff carrying the marker tag" case stays covered (Independent refuses without
+        // needing exclusivity).
         SetField(skillManager, "_taggedBuffs", new Dictionary<uint, List<uint>>
         {
-            [FreezeTagId] = [FreezeBuffId],
-            [PrisonerTagId] = [PrisonerBuffId],
+            [FreezeTagId] = [FreezeBuffId, 5802u, 5826u],
+            [PrisonerTagId] = [PrisonerBuffId, 2028u, 3623u, 4868u, 8038u],
+            [DeliriumIcdTagId] = [DeliriumIcdBuffId],
             [CooldownTagId] = [CooldownMarkerBuffId, TaggedCandidateId]
         });
         // tagged_immune_buffs: while the key buff is up, a candidate carrying the value tag is refused.
-        // Each of the three names a tag its own buff carries.
+        // Each of the four names a tag its own buff carries.
         SetField(skillManager, "_buffImmunityTags", new Dictionary<uint, List<uint>>
         {
             [FreezeBuffId] = [FreezeTagId],
             [PrisonerBuffId] = [PrisonerTagId],
-            [CooldownMarkerBuffId] = [CooldownTagId]
+            [CooldownMarkerBuffId] = [CooldownTagId],
+            [DeliriumIcdBuffId] = [DeliriumIcdTagId]
         });
         SetField(skillManager, "_requiredBuffTags", new Dictionary<uint, List<uint>>());
         _skillManagerField.SetValue(null, skillManager);
@@ -198,6 +215,29 @@ public class BuffSelfGrantReapplyTests
         await Assert.That(owner.Buffs.GetEffectFromBuffId(CooldownMarkerBuffId)).IsSameReferenceAs(live);
         await Assert.That(live.GetTimeLeft()).IsLessThanOrEqualTo(before);
         await Assert.That(live.GetTimeLeft()).IsLessThan(CooldownMarkerDurationMs - 15000);
+    }
+
+    [Test]
+    public async Task Reapply_ExclusiveRefreshIcd_IsRefusedAndKeepsItsTimer()
+    {
+        // 22277 광란 더미버프 (and 28673): Refresh max_stack 1 with exclusive tag 3714. OwnGrantStepsAside
+        // would otherwise let BuffEffect.Apply refresh the live instance through CheckBuffImmune's
+        // buffsPerTag lookup — which is the continuous-attack combat-resource stall. Age it, re-apply
+        // through the same path the game uses, and the remaining time must not jump back to a full second.
+        var (owner, caster) = CreateUnits();
+        var live = AddDirectly(owner, caster, DeliriumIcdBuffId);
+        AgeBy(live, DeliriumIcdDurationMs - 400); // ~400 ms left
+        var before = live.GetTimeLeft();
+
+        await Assert.That(owner.Buffs.CheckBuffImmune(SkillManager.Instance.GetBuffTemplate(DeliriumIcdBuffId),
+            caster)).IsTrue();
+
+        ApplyThroughEffectPath(caster, owner, DeliriumIcdBuffId);
+
+        await Assert.That(owner.Buffs.GetBuffCountById(DeliriumIcdBuffId)).IsEqualTo(1);
+        await Assert.That(owner.Buffs.GetEffectFromBuffId(DeliriumIcdBuffId)).IsSameReferenceAs(live);
+        await Assert.That(live.GetTimeLeft()).IsLessThanOrEqualTo(before);
+        await Assert.That(live.GetTimeLeft()).IsLessThan(DeliriumIcdDurationMs - 400);
     }
 
     [Test]

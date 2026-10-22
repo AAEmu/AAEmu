@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills;
+﻿using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -15,14 +15,17 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 /// 919 차가운 발걸음; 5936 속이 거북한 거북 refuses tag 216 무적 면역 and carries
 /// <c>immune_except_creator='t'</c> with <c>immune_except_skill_tag_id</c> 1053 놀이기구 사용; 20248
 /// carries <c>immune_except_creator_relation_check='t'</c> with relation 8 (family); 4627 가벼운 발걸음
-/// requires tag 831 무겁다. Of the 283 rows that name a tag their own buff carries, 266 (260 refresh, 3
-/// charge_refresh, 3 extend) let the buff's own re-application through and 17 (16 independent, 1 multiple at
-/// max_stack 1) refuse it, because for those the refusal is the whole of what the row says.
+/// requires tag 831 무겁다. Shared-tag refresh/extend/charge_refresh self-rows still re-apply; exclusive-tag
+/// self-gates refuse (Independent cooldown markers, Refresh ICD dummies 22277/28673, Multiple at max_stack 1).
 /// </remarks>
 public class BuffImmunityRulesTests
 {
     private const uint FreezeBuffId = 93; // 동결
     private const uint FreezeTagId = 919; // 차가운 발걸음
+    private const uint DeliriumIcdBuffId = 22277; // 광란 더미버프
+    private const uint DeliriumIcdTagId = 3714;
+    private const uint AdrenalineIcdBuffId = 28673; // 암투 전투 자원 면역 버프
+    private const uint AdrenalineIcdTagId = 5164;
     private const uint RideBuffId = 5936; // 속이 거북한 거북
     private const uint InvincibleImmuneTagId = 216; // 무적 면역
     private const uint RideSkillTagId = 1053; // 놀이기구 사용
@@ -114,15 +117,16 @@ public class BuffImmunityRulesTests
     [Test]
     public async Task TheSameBuffIdWhileItIsUp_IsNotRefusedByItsOwnGrant()
     {
-        // 93 동결 carries tag 919 and is immune to 919. The row refuses *other* buffs: a second freeze has
-        // to refresh (stack_rule_id 1, max_stack 10) instead of being turned away at the immunity gate.
+        // 93 동결 carries tag 919 and is immune to 919. Tag 919 is shared (11 carriers), so the row
+        // refuses *other* buffs and a second freeze still refreshes (stack_rule_id 1, max_stack 10).
         var refused = Refused(
             [FreezeTagId],
             [ActiveBuff(FreezeBuffId, CreatorObjId)],
             new Dictionary<uint, List<uint>> { [FreezeBuffId] = [FreezeTagId] },
             candidateBuffId: FreezeBuffId,
             candidateStackRule: BuffStackRule.Refresh,
-            candidateMaxStack: 10);
+            candidateMaxStack: 10,
+            buffsPerTag: _ => 11);
 
         await Assert.That(refused).IsFalse();
     }
@@ -130,16 +134,17 @@ public class BuffImmunityRulesTests
     [Test]
     public async Task AnExtendSelfGrantingRow_IsNotRefusedByItsOwnGrant()
     {
-        // 631 수감자 (stack_rule_id 5, max_stack 1, 1 800 000 ms) is immune to the tag it carries: the
-        // re-application has to reach Buffs.AddBuff, where Buff.OverwriteWith adds the new duration to what
-        // is left of the old one. Refusing it here is what stopped that extend.
+        // 631 수감자 (stack_rule_id 5, max_stack 1, 1 800 000 ms) is immune to tag 344, which five
+        // prisoner rows share: the re-application has to reach Buffs.AddBuff, where Buff.OverwriteWith
+        // adds the new duration to what is left of the old one.
         var refused = Refused(
             [PrisonerTagId],
             [ActiveBuff(PrisonerBuffId, CreatorObjId)],
             new Dictionary<uint, List<uint>> { [PrisonerBuffId] = [PrisonerTagId] },
             candidateBuffId: PrisonerBuffId,
             candidateStackRule: BuffStackRule.Extend,
-            candidateMaxStack: 1);
+            candidateMaxStack: 1,
+            buffsPerTag: _ => 5);
 
         await Assert.That(refused).IsFalse();
     }
@@ -176,6 +181,49 @@ public class BuffImmunityRulesTests
             candidateMaxStack: 1);
 
         await Assert.That(refused).IsTrue();
+    }
+
+    [Test]
+    public async Task AnExclusiveRefreshIcdSelfGate_IsRefusedByItsOwnGrant()
+    {
+        // 22277 광란 더미버프 / 28673 암투 전투 자원 면역 버프: Refresh max_stack 1 with a tag nothing else
+        // carries. Refreshing would restart the 1-second combat-resource gate during continuous attacks.
+        var deliriumRefused = Refused(
+            [DeliriumIcdTagId],
+            [ActiveBuff(DeliriumIcdBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [DeliriumIcdBuffId] = [DeliriumIcdTagId] },
+            candidateBuffId: DeliriumIcdBuffId,
+            candidateStackRule: BuffStackRule.Refresh,
+            candidateMaxStack: 1,
+            buffsPerTag: _ => 1);
+        var adrenalineRefused = Refused(
+            [AdrenalineIcdTagId],
+            [ActiveBuff(AdrenalineIcdBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [AdrenalineIcdBuffId] = [AdrenalineIcdTagId] },
+            candidateBuffId: AdrenalineIcdBuffId,
+            candidateStackRule: BuffStackRule.Refresh,
+            candidateMaxStack: 1,
+            buffsPerTag: _ => 1);
+
+        await Assert.That(deliriumRefused).IsTrue();
+        await Assert.That(adrenalineRefused).IsTrue();
+    }
+
+    [Test]
+    public async Task ASharedTagRefreshSelfGrant_IsNotRefusedByItsOwnGrant()
+    {
+        // 146 중독 shares tag 14 with many disease rows: the self-immune row refuses *other* buffs, and
+        // the poison still refreshes when reapplied.
+        var refused = Refused(
+            [14u],
+            [ActiveBuff(146u, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [146u] = [14u] },
+            candidateBuffId: 146u,
+            candidateStackRule: BuffStackRule.Refresh,
+            candidateMaxStack: 1,
+            buffsPerTag: _ => 118);
+
+        await Assert.That(refused).IsFalse();
     }
 
     [Test]
@@ -475,7 +523,8 @@ public class BuffImmunityRulesTests
         Func<uint, bool> relationMatches = null,
         uint candidateBuffId = 0,
         BuffStackRule candidateStackRule = BuffStackRule.Refresh,
-        int candidateMaxStack = 1)
+        int candidateMaxStack = 1,
+        Func<uint, int> buffsPerTag = null)
     {
         return BuffImmunityRules.IsRefusedByTagImmunity(
             candidateTags,
@@ -484,7 +533,8 @@ public class BuffImmunityRulesTests
             buffId => immunityTable.TryGetValue(buffId, out var tags) ? tags : [],
             casterObjId,
             casterSkillTags ?? [],
-            relationMatches ?? (_ => false));
+            relationMatches ?? (_ => false),
+            buffsPerTag);
     }
 
     /// <summary>

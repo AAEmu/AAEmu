@@ -111,7 +111,8 @@ public class Buffs : IBuffs
             SkillManager.Instance.GetBuffImmunityTags,
             caster?.ObjId ?? 0,
             casterSkillTags,
-            casterRelationMatches);
+            casterRelationMatches,
+            tagId => SkillManager.Instance.GetBuffsByTagId(tagId)?.Count ?? 0);
     }
 
     /// <summary>

@@ -487,6 +487,7 @@ public class Unit : BaseUnit, IUnit
         CombatResources[combatResourceId] = updated;
         ArmCombatResourceDecay(combatResourceId, updated, resetDecayTimer);
         SyncCombatResourceBuff(combatResourceId, updated);
+        SyncCombatResourceModifiers();
         return updated;
     }
 
@@ -527,6 +528,8 @@ public class Unit : BaseUnit, IUnit
             ArmCombatResourceDecay(resource.Id, CombatResources[resource.Id], restart: true);
             SyncCombatResourceBuff(resource.Id, CombatResources[resource.Id]);
         }
+
+        SyncCombatResourceModifiers();
     }
 
     private void DropCombatResource(int resourceId)
@@ -534,6 +537,7 @@ public class Unit : BaseUnit, IUnit
         CombatResources.Remove(resourceId);
         _combatResourceDecayAt.Remove(resourceId);
         SyncCombatResourceBuff(resourceId, 0);
+        SyncCombatResourceModifiers();
         var resource = CombatResourceGameData.Instance.Get(resourceId);
         if (resource != null)
             BroadcastCombatResource(resource, 0, updateTimeMs: 0);
@@ -660,6 +664,29 @@ public class Unit : BaseUnit, IUnit
         }
 
         Buffs.RemoveBuff(resource.BuffId);
+    }
+
+    /// <summary>
+    /// Rebuilds the CombatResource-owned <c>unit_modifiers</c> into <see cref="CombatResourceModifierRules.BonusIndex"/>.
+    /// Amount is the linear-level input (see that rules class); empty pools contribute nothing.
+    /// </summary>
+    private void SyncCombatResourceModifiers()
+    {
+        Bonuses[CombatResourceModifierRules.BonusIndex] = [];
+        foreach (var (resourceId, amount) in CombatResources)
+        {
+            if (amount <= 0)
+                continue;
+
+            foreach (var template in CombatResourceGameData.Instance.GetUnitModifiers(resourceId))
+            {
+                var value = CombatResourceModifierRules.ScaledModifier(
+                    template.Value, template.LinearLevelBonus, amount);
+                if (value == 0)
+                    continue;
+                AddBonus(CombatResourceModifierRules.BonusIndex, new Bonus { Template = template, Value = value });
+            }
+        }
     }
 
     internal List<(int Id, int Amount)> CombatResourcePointLog { get; private set; }
