@@ -143,7 +143,8 @@ public class OpenPortalCascadeTests
 
         public CascadingPortalManager()
             : base(Mock.Of<ILocalizationManager>().Object, Mock.Of<IWorldManager>().Object,
-                Mock.Of<IZoneManager>().Object, Mock.Of<INpcManager>().Object, Mock.Of<IObjectIdManager>().Object)
+                Mock.Of<IZoneManager>().Object, Mock.Of<INpcManager>().Object, Mock.Of<IObjectIdManager>().Object,
+                Mock.Of<ITaskManager>().Object)
         {
         }
 

@@ -6,7 +6,8 @@ namespace AAEmu.Game.Models.Game.Teleport;
 /// <summary>
 /// Level-pack return points live in <c>level_design/zone/{zoneKey}/world_server/return_point.g</c>.
 /// Object names are <c>ReturnPoint_{editor_name}</c>; compact <c>return_points.id</c> is the
-/// SpecialEffect Return value. JSON worldgates/recalls win when they already have that id.
+/// SpecialEffect Return value. JSON worldgates and the Memory Tome book (built from the same
+/// <c>.g</c> + subzone containment) win when they already have that id.
 /// </summary>
 public static partial class ReturnPointFileRules
 {

@@ -29,7 +29,7 @@ using Portal = AAEmu.Game.Models.Game.Portal;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class PortalManager(ILocalizationManager localizationManager, IWorldManager worldManager, IZoneManager zoneManager, INpcManager npcManager, IObjectIdManager objectIdManager) : Singleton<PortalManager>, IPortalManager
+public class PortalManager(ILocalizationManager localizationManager, IWorldManager worldManager, IZoneManager zoneManager, INpcManager npcManager, IObjectIdManager objectIdManager, ITaskManager taskManager) : Singleton<PortalManager>, IPortalManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -180,50 +180,14 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
 
         #region FileManager
 
-        var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "recalls.json");
+        // Memory Tome destinations: return_point.g + subzone_area.xml + district kind filter,
+        // then propagate into child sub_zones (parent_sub_zone_id) so nested-district visits keep working.
+
+        var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "respawns.json");
         if (!File.Exists(filePath))
             throw new IOException($"File {filePath} doesn't exists !");
 
         var contents = FileManager.GetFileContents(filePath);
-
-        if (string.IsNullOrWhiteSpace(contents))
-            throw new IOException($"File {filePath} is empty !");
-
-        if (JsonHelper.TryDeserializeObject(contents, out List<Portal> recalls, out _))
-            foreach (var recall in recalls)
-            {
-                recall.Name = localizationManager.Get("return_points", "name", recall.Id, recall.Name);
-
-                var rp = new List<Portal>();
-                if (!_recalls.TryGetValue(recall.SubZoneId, out var value))
-                {
-                    rp.Add(recall);
-                    _recalls.Add(recall.SubZoneId, rp);
-                }
-                else
-                {
-                    value.Add(recall);
-                }
-
-                if (!_recallsKey.ContainsKey(recall.Id))
-                {
-                    _recallsKey.Add(recall.Id, recall.SubZoneId);
-                }
-                else
-                {
-                    //
-                }
-            }
-        else
-            throw new GameException($"PortalManager: Parse {filePath} file");
-
-        Logger.Info($"Loaded {_recalls.Count} Recall Portals");
-
-        filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "respawns.json");
-        if (!File.Exists(filePath))
-            throw new IOException($"File {filePath} doesn't exists !");
-
-        contents = FileManager.GetFileContents(filePath);
 
         if (string.IsNullOrWhiteSpace(contents))
             throw new IOException($"File {filePath} is empty !");
@@ -327,6 +291,9 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
                 }
             }
 
+            var bookEligibleReturnPointIds = LoadBookEligibleReturnPointIds(connection);
+            var subZoneChildren = LoadSubZoneChildrenByParent(connection);
+
             var editorNameToId = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
             using (var command = connection.CreateCommand())
             {
@@ -342,10 +309,195 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
                 }
             }
 
+            BuildRecallBookFromLevelFiles(editorNameToId, bookEligibleReturnPointIds);
+            PropagateRecallsToDescendantSubZones(subZoneChildren);
             LoadLevelReturnPoints(editorNameToId);
         }
         Logger.Info("Loaded Portal Info");
         #endregion
+    }
+
+    /// <summary>
+    /// Return-point ids named by at least one district whose kind is
+    /// <see cref="RecallBookRules.ReturnDistrictKindName"/> — the Memory Tome eligibility set.
+    /// </summary>
+    private static HashSet<uint> LoadBookEligibleReturnPointIds(Microsoft.Data.Sqlite.SqliteConnection connection)
+    {
+        var eligible = new HashSet<uint>();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT DISTINCT drp.return_point_id
+            FROM district_return_points drp
+            INNER JOIN districts d ON d.id = drp.district_id
+            INNER JOIN enum_district_kinds k ON k.id = d.kind_id
+            WHERE k.name = @kind
+            """;
+        command.Parameters.AddWithValue("@kind", RecallBookRules.ReturnDistrictKindName);
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+            eligible.Add(reader.GetUInt32("return_point_id"));
+        return eligible;
+    }
+
+    /// <summary>
+    /// Memory Tome book: eligible return points from <c>return_point.g</c>, keyed by every
+    /// <c>subzone_area.xml</c> polygon that contains them (<c>CSNotifySubZone</c> id).
+    /// </summary>
+    private void BuildRecallBookFromLevelFiles(
+        IReadOnlyDictionary<string, uint> editorNameToId,
+        IReadOnlySet<uint> bookEligibleReturnPointIds)
+    {
+        var roots = EnumerateZoneGameDataRoots();
+        if (roots.Count == 0)
+        {
+            Logger.Warn(
+                "ZoneGameDataRoot is not configured — Memory Tome destinations are not loaded from level files");
+            return;
+        }
+
+        var areasByZone = new Dictionary<uint, List<SubZoneAreaFileRules.LocalArea>>();
+        foreach (var area in SubZoneAreaGCatalog.LoadFromRoots(roots))
+        {
+            if (!areasByZone.TryGetValue(area.ZoneKey, out var list))
+            {
+                list = [];
+                areasByZone[area.ZoneKey] = list;
+            }
+
+            list.Add(area);
+        }
+
+        var bookEntries = 0;
+        var uncontained = 0;
+        foreach (var local in ReturnPointGCatalog.LoadFromRoots(roots))
+        {
+            if (!ReturnPointFileRules.TryGetReturnPointId(editorNameToId, local.EditorName, out var id))
+                continue;
+            if (!RecallBookRules.IsBookEligible(id, bookEligibleReturnPointIds))
+                continue;
+            if (_worldGatesKey.ContainsKey(id))
+                continue;
+
+            var worldTemplate = worldManager.GetWorldTemplateByZoneKey(local.ZoneKey);
+            if (worldTemplate?.XmlWorldZones == null || !worldTemplate.XmlWorldZones.ContainsKey(local.ZoneKey))
+            {
+                Logger.Warn("return_point.g book skip {0} zone {1}: zone template not loaded",
+                    local.EditorName, local.ZoneKey);
+                continue;
+            }
+
+            var subZoneIds = RecallBookRules.SubZonesForReturnPoint(
+                local.X, local.Y, local.ZoneKey, areasByZone);
+            if (subZoneIds.Count == 0)
+            {
+                uncontained++;
+                continue;
+            }
+
+            var world = zoneManager.ConvertToWorldCoordinates(
+                local.ZoneKey,
+                new Vector3(local.X, local.Y, local.Z));
+            var name = localizationManager.Get("return_points", "name", id, local.EditorName);
+            var zRot = local.ZRotRadians;
+            var yaw = ReturnPointFileRules.YawDegreesFromZRot(zRot);
+
+            foreach (var subZoneId in subZoneIds)
+            {
+                var portal = new Portal
+                {
+                    Id = id,
+                    Type = id,
+                    Name = name,
+                    ZoneId = local.ZoneKey,
+                    X = world.X,
+                    Y = world.Y,
+                    Z = world.Z,
+                    ZRot = zRot,
+                    Yaw = yaw,
+                    SubZoneId = subZoneId
+                };
+                AddRecall(portal);
+                bookEntries++;
+            }
+        }
+
+        Logger.Info(
+            "Loaded Memory Tome from level files: {0} subzone entries ({1} return points), {2} eligible points outside any subzone",
+            bookEntries, _recallsKey.Count, uncontained);
+    }
+
+    private static Dictionary<uint, List<uint>> LoadSubZoneChildrenByParent(
+        Microsoft.Data.Sqlite.SqliteConnection connection)
+    {
+        var rows = new List<(uint Id, uint ParentSubZoneId)>();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, parent_sub_zone_id FROM sub_zones";
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+            rows.Add((reader.GetUInt32("id"), reader.GetUInt32("parent_sub_zone_id")));
+        return RecallBookRules.BuildChildrenByParent(rows);
+    }
+
+    /// <summary>
+    /// Copy each containment-keyed destination onto every nested child subzone so a visit to a
+    /// nested district still fills the book without a shipped recalls overlay.
+    /// </summary>
+    private void PropagateRecallsToDescendantSubZones(IReadOnlyDictionary<uint, List<uint>> childrenByParent)
+    {
+        if (childrenByParent == null || childrenByParent.Count == 0 || _recalls.Count == 0)
+            return;
+
+        // Snapshot parents that already have containment entries — do not iterate while mutating.
+        var roots = _recalls.Keys.ToArray();
+        var added = 0;
+        foreach (var root in roots)
+        {
+            if (!_recalls.TryGetValue(root, out var portals) || portals.Count == 0)
+                continue;
+            var descendants = RecallBookRules.DescendantSubZones(root, childrenByParent);
+            foreach (var child in descendants)
+            {
+                foreach (var proto in portals.ToArray())
+                {
+                    var before = _recalls.TryGetValue(child, out var list) ? list.Count : 0;
+                    AddRecall(CloneRecallForSubZone(proto, child));
+                    var after = _recalls.TryGetValue(child, out list) ? list.Count : 0;
+                    if (after > before)
+                        added++;
+                }
+            }
+        }
+
+        Logger.Info("Memory Tome child-subzone propagation: {0} nested entries", added);
+    }
+
+    private static Portal CloneRecallForSubZone(Portal proto, uint subZoneId) =>
+        new()
+        {
+            Id = proto.Id,
+            Type = proto.Type,
+            Name = proto.Name,
+            ZoneId = proto.ZoneId,
+            X = proto.X,
+            Y = proto.Y,
+            Z = proto.Z,
+            ZRot = proto.ZRot,
+            Yaw = proto.Yaw,
+            SubZoneId = subZoneId
+        };
+
+    private void AddRecall(Portal portal)
+    {
+        if (!_recalls.TryGetValue(portal.SubZoneId, out var list))
+        {
+            list = [];
+            _recalls[portal.SubZoneId] = list;
+        }
+
+        if (list.All(p => p.Id != portal.Id))
+            list.Add(portal);
+        _recallsKey.TryAdd(portal.Id, portal.SubZoneId);
     }
 
     private void LoadLevelReturnPoints(IReadOnlyDictionary<string, uint> editorNameToId)
@@ -603,13 +755,25 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         exit.LinkedPortal = entrance;
 
         // A previous pair for the same book entry is now redundant: the new one serves the same
-        // destination. Removing it bounds a live portal set to one pair per book entry, which is
-        // what a client-side expiry would have achieved, without inventing a duration that no
-        // shipped content or protocol value provides.
+        // destination. Removing it bounds a live portal set to one pair per book entry.
         DeleteOwnerPortals(owner, portalInfo);
 
         RegisterLivePortal(owner, entrance);
         RegisterLivePortal(owner, exit);
+
+        // open_portal_effects has no lifetime column. Duration is pinned from the OpenPortal
+        // skill description: 30 s, or 60 s when Death (Occultism) ability is level 20+.
+        SchedulePortalExpiry(owner, entrance);
+    }
+
+    /// <summary>
+    /// Arms the worldgate kill timer on the entrance; deleting it cascades to the linked exit.
+    /// </summary>
+    protected virtual void SchedulePortalExpiry(Character owner, Models.Game.Units.Portal entrance)
+    {
+        var deathLevel = owner.Abilities?.GetAbilityLevel(PortalOpenDurationRules.ExtendedAbility) ?? 0;
+        var lifetime = PortalOpenDurationRules.DurationFor(deathLevel);
+        taskManager.Schedule(new KillPortalTask(entrance), lifetime);
     }
 
     /// <summary>

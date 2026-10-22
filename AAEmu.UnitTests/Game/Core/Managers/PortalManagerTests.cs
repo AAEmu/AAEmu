@@ -15,7 +15,7 @@ public class PortalManagerTests
         var mockZone = Mock.Of<IZoneManager>();
         var mockNpc = Mock.Of<INpcManager>();
         var mockObjId = Mock.Of<IObjectIdManager>();
-        var manager = new PortalManager(mockLocale.Object, mockWorld.Object, mockZone.Object, mockNpc.Object, mockObjId.Object);
+        var manager = new PortalManager(mockLocale.Object, mockWorld.Object, mockZone.Object, mockNpc.Object, mockObjId.Object, Mock.Of<ITaskManager>().Object);
 
         await Assert.That(manager).IsNotNull();
         Mock.VerifyNoOtherCalls(mockLocale);
