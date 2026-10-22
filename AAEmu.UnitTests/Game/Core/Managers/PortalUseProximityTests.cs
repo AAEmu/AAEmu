@@ -175,7 +175,8 @@ public sealed class PortalUseProximityTests
         IZoneManager zoneManager,
         INpcManager npcManager,
         IObjectIdManager objectIdManager)
-        : PortalManager(localizationManager, worldManager, zoneManager, npcManager, objectIdManager)
+        : PortalManager(localizationManager, worldManager, zoneManager, npcManager, objectIdManager,
+            Mock.Of<ITaskManager>().Object)
     {
         public List<Landing> Landings { get; } = [];
 

@@ -46,15 +46,24 @@ portal packets already present in the tree.
    gimmick grasp). The guard runs before the ownership check, so a remote probe does not get an
    answer that depends on the portal's owner.
 
+## Portal open duration (skill description, not a content column)
+
+Re-audited 2026-10-22 against compact + the client loader:
+
+- `open_portal_effects` columns are only `id, distance, enter_portal_npc_id, exit_portal_npc_id,
+  faction_permission` — the client `LoadOpenPortalEffectDescs` SELECT is identical; no lifetime field.
+- Inland/outland reagent tables have no duration. Portal NPC templates have no life/despawn timer.
+  No `content_configs` name covers worldgate open time. `slaves.portal_time` is ship boarding FX, not
+  this path. Buffs on cosmetic portal NPCs are duration 0.
+- Every `OpenPortalEffect` skill (11216 and the themed variants) embeds the same prose in `skills.desc`:
+  open for **30 seconds**, or **60 seconds** when Death (Occultism / 죽음) ability is level **20+**.
+
+`PortalOpenDurationRules` pins those skill-description values and `OpenPortal` schedules
+`KillPortalTask` on the entrance (cascade deletes the exit). Owner delete / CSDeletePortal / logout
+still clean up early. A **use cooldown** (`cannot_reuse_portal_in_delay_time`) remains unidentified.
+
 ## Deliberately not claimed
 
-- **Temporary portal lifetime / use cooldown:** the shipped `open_portal_effects` and reagent tables
-  have no lifetime or cooldown column, and no additional authoritative field was found. The previous
-  hardcoded 30-second `KillPortalTask` schedule was therefore removed; as a deliberate consequence,
-  a successful cast no longer auto-expires its two live NPC units and chained casts can create more
-  pairs. Owner deletion, CSDeletePortal and logout/disconnect now clean them up. A real expiry or
-  use cooldown still needs a separately evidenced content or protocol source. The now-unreferenced
-  `KillPortalTask` class was removed rather than left as a misleading dead expiry path.
 - **Book-variant selection:** the `SavePortal` special-effect rows and `SkillObjectUnk2` shape do not
   establish a complete variant mapping for the value fields. Private creation and rename are wired;
   district/expedition variant selection is left to that missing evidence.

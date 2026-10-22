@@ -187,8 +187,8 @@ public class OpenPortalLifecycleTests
     [Test]
     public async Task OpenPortal_ClosesTheOwnersPreviousPairForTheSameBookEntry()
     {
-        // Without a client-side expiry a repeated cast would leave one live pair per cast. Opening
-        // a new pair for the same book entry retires the previous one, bounding it to one pair.
+        // A repeated cast before the open-duration timer fires would leave one live pair per cast.
+        // Opening a new pair for the same book entry retires the previous one.
         var (manager, owner) = CreateManager();
         manager.OpenPortal(owner,
             new SkillObjectUnk1 { Id = (int)BookPortalId, X = 10f, Y = 20f, Z = 30f }, CreateEffect());
@@ -247,7 +247,8 @@ public class OpenPortalLifecycleTests
 
     private sealed class RecordingPortalManager(INpcManager npcManager)
         : PortalManager(Mock.Of<ILocalizationManager>().Object, Mock.Of<IWorldManager>().Object,
-            Mock.Of<IZoneManager>().Object, npcManager, Mock.Of<IObjectIdManager>().Object)
+            Mock.Of<IZoneManager>().Object, npcManager, Mock.Of<IObjectIdManager>().Object,
+            Mock.Of<ITaskManager>().Object)
     {
         public List<AAEmu.Game.Models.Game.Units.Portal> Created { get; } = [];
         public List<AAEmu.Game.Models.Game.Units.Portal> Deleted { get; } = [];

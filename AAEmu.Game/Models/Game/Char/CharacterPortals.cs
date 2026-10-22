@@ -469,8 +469,8 @@ public class CharacterPortals(Character owner)
 
             foreach (var portal in portals)
             {
-                // recalls.json Id == return_point_id. The client book entry uses district_id as
-                // wire id and return_point_id as wire type (SC 0x089 capture: id=district, type=240).
+                // Portal.Id is return_point_id. The client book entry uses district_id as
+                // wire id and return_point_id as wire type (SC 0x089: id=district, type=return_point).
                 var districtId = PortalManager.Instance.GetDistrictIdByReturnPoint(portal.Id, Owner.Faction.Id);
                 if (districtId == 0)
                     districtId = portal.Id;

@@ -109,7 +109,8 @@ public class OpenPortalEffectTests
             Mock.Of<IWorldManager>().Object,
             zoneManager,
             npcManager.Object,
-            Mock.Of<IObjectIdManager>().Object);
+            Mock.Of<IObjectIdManager>().Object,
+            Mock.Of<ITaskManager>().Object);
         // The reagent tables are loaded from content on startup; emptying them keeps OpenPortal from
         // spawning a portal NPC, so the zone lookup above is the last thing it does.
         SetField(portalManager, "_openPortalInlandReagents", new Dictionary<uint, OpenPortalReagents>());
