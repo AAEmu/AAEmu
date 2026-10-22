@@ -856,14 +856,12 @@ public class HousingManager(
         if (wronglyLearned.Count == 0)
             return;
 
-        foreach (var skillId in wronglyLearned)
-            character.Skills.ForgetPermanentSkill(skillId, notifyClient: false);
-
-        // One General reset clears the client's learned copies; combat trees are untouched.
-        character.BroadcastPacket(new SCSkillsResetPacket(character.ObjId, AbilityType.General), true);
+        // Reset+restore: SCSkillsReset(General) alone would wipe every permanent General learn on
+        // the client while the server kept them. DemoteHouseGrantedSkills re-SCSkillLearned the rest.
+        var demoted = character.Skills.DemoteHouseGrantedSkills(wronglyLearned);
         Logger.Info(
             "Demoted {0} house skill(s) for {1} on house {2}: [{3}]",
-            wronglyLearned.Count, character.Name, house.Id, string.Join(",", wronglyLearned));
+            demoted, character.Name, house.Id, string.Join(",", wronglyLearned));
     }
 
     private void SendHouseTaxInfo(Character character, House house)

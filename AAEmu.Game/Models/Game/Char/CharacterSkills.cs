@@ -547,8 +547,9 @@ public class CharacterSkills(Character owner)
     /// remodel/finish skills that must not sit in the book (they spend <c>skill_points</c>).
     /// </summary>
     /// <param name="notifyClient">
-    /// When true, sends <c>SCSkillsReset</c> for that skill's ability. Callers that demote several
-    /// General house skills at once should pass false and send one General reset themselves.
+    /// When true, sends <c>SCSkillsReset</c> for that skill's ability — which clears the client's
+    /// entire ability book. Prefer <see cref="DemoteHouseGrantedSkills"/> for house demotes so
+    /// remaining General skills are re-learned after one shared reset.
     /// </param>
     public bool ForgetPermanentSkill(uint skillId, bool notifyClient = true)
     {
@@ -562,6 +563,63 @@ public class CharacterSkills(Character owner)
         if (notifyClient)
             Owner.BroadcastPacket(new SCSkillsResetPacket(Owner.ObjId, skill.Template.AbilityId), true);
         return true;
+    }
+
+    /// <summary>
+    /// Drops wrongly permanent-learned house remodel/finish skills, then syncs the client General
+    /// book: one <c>SCSkillsReset(General)</c> clears it, then every remaining General skill and
+    /// passive is re-sent so permanent non-house General learns are not wiped.
+    /// </summary>
+    /// <remarks>
+    /// Needed for a live World upgrade where the skill book still holds old house learns — after a
+    /// normal relog, <see cref="Load"/> already demotes them and this path is a no-op. There is no
+    /// per-skill unlearn packet; reset-then-restore is the only wire shape that keeps the client
+    /// aligned without a relog.
+    /// </remarks>
+    /// <returns>How many house skills were removed from the permanent book.</returns>
+    public int DemoteHouseGrantedSkills(IEnumerable<uint> houseSkillIds)
+    {
+        var demoted = 0;
+        foreach (var skillId in houseSkillIds)
+        {
+            if (ForgetPermanentSkill(skillId, notifyClient: false))
+                demoted++;
+        }
+
+        if (demoted == 0)
+            return 0;
+
+        Owner.BroadcastPacket(new SCSkillsResetPacket(Owner.ObjId, AbilityType.General), true);
+        ResendLearnedForAbility(AbilityType.General);
+        return demoted;
+    }
+
+    /// <summary>
+    /// Re-sends learned skills and passives for one ability after <c>SCSkillsReset</c> cleared that
+    /// tree on the client. Temporary grants are included: the reset wiped the same list.
+    /// </summary>
+    public void ResendLearnedForAbility(AbilityType ability)
+    {
+        foreach (var skill in Skills.Values)
+        {
+            if (skill.Template.AbilityId != ability || ReplacedSkillIds.Contains(skill.Id))
+                continue;
+            Owner.SendPacket(new SCSkillLearnedPacket(skill));
+        }
+
+        foreach (var skill in TemporarySkills.Values)
+        {
+            if (skill.Template.AbilityId != ability || ReplacedSkillIds.Contains(skill.Id))
+                continue;
+            Owner.SendPacket(new SCSkillLearnedPacket(skill));
+        }
+
+        foreach (var buff in PassiveBuffs.Values)
+        {
+            if (buff.Template.AbilityId != ability)
+                continue;
+            Owner.SendPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id));
+        }
     }
 
     /// <summary>
