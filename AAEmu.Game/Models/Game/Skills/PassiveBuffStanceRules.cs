@@ -1,4 +1,4 @@
-﻿sing AAEmu.Game.Models.Game.Skills.Buffs;
+﻿using AAEmu.Game.Models.Game.Skills.Buffs;
 
 namespace AAEmu.Game.Models.Game.Skills;
 
