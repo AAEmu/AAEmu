@@ -699,6 +699,11 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
     private readonly Dictionary<uint, HousingRebuildTarget> _rebuildTargets = [];
     private readonly Dictionary<uint, HousingRebuildPack> _rebuildPacks = [];
     private readonly Dictionary<uint, uint> _rebuildTargetBySkill = [];
+    /// <summary>
+    /// Remodel start skills plus every housing build-step skill. General house skills — castable
+    /// unlearned, must never be permanently saved (their <c>skill_points</c> would spend the pool).
+    /// </summary>
+    private readonly HashSet<uint> _houseGrantedSkills = [];
 
     /// <summary>
     /// The rebuild content: what a house may be changed into, which pack offers it, what it costs. The pack a
@@ -788,8 +793,23 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                      _rebuildTargets.Values, _rebuildPacks.Values))
             _rebuildTargetBySkill[skillId] = targetId;
 
-        Logger.Info("Loaded {0} housing rebuild targets in {1} packs ({2} start skills)",
-            _rebuildTargets.Count, _rebuildPacks.Count, _rebuildTargetBySkill.Count);
+        _houseGrantedSkills.Clear();
+        foreach (var skillId in _rebuildTargetBySkill.Keys)
+            _houseGrantedSkills.Add(skillId);
+        foreach (var target in _rebuildTargets.Values)
+        {
+            if (target.SkillId != 0)
+                _houseGrantedSkills.Add(target.SkillId);
+            var housing = GetTemplate(target.HousingId);
+            if (housing?.BuildSteps == null)
+                continue;
+            foreach (var step in housing.BuildSteps.Values)
+                if (step.SkillId != 0)
+                    _houseGrantedSkills.Add(step.SkillId);
+        }
+
+        Logger.Info("Loaded {0} housing rebuild targets in {1} packs ({2} start skills, {3} house-granted)",
+            _rebuildTargets.Count, _rebuildPacks.Count, _rebuildTargetBySkill.Count, _houseGrantedSkills.Count);
     }
 
     private readonly Dictionary<uint, uint> _rebuildPackByHousing = [];
@@ -804,6 +824,12 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
     /// </summary>
     public bool IsRebuildSkill(uint skillId) =>
         skillId != 0 && _rebuildTargetBySkill.ContainsKey(skillId);
+
+    /// <summary>
+    /// Whether this skill is a house remodel/finish skill that must not be permanently learned.
+    /// </summary>
+    public bool IsHouseGrantedSkill(uint skillId) =>
+        skillId != 0 && _houseGrantedSkills.Contains(skillId);
 
     /// <summary>
     /// The pack row Confirm asked for: the house's pack, the shared start skill, and the housing

@@ -77,6 +77,15 @@ public static class HousingRebuildLanding
     /// <summary>Those of <paramref name="required"/> the character does not know yet.</summary>
     public static IReadOnlyList<uint> MissingSkills(IEnumerable<uint> required, Func<uint, bool> knows) =>
         required.Where(skillId => !knows(skillId)).ToList();
+
+    /// <summary>
+    /// House remodel/finish skills are General (<c>ability_id = 0</c>). The cast path already accepts
+    /// unlearned General skills, so they must never be permanently learned — their templates carry
+    /// <c>skill_points = 1</c>, and a permanent learn makes both client and server spend the combat pool.
+    /// </summary>
+    public static IReadOnlyList<uint> WronglyLearnedHouseSkills(
+        IEnumerable<uint> required, Func<uint, bool> permanentlyLearned) =>
+        required.Where(skillId => permanentlyLearned(skillId)).ToList();
 }
 
 /// <summary>

@@ -40,8 +40,8 @@ public class HousingRebuildLandingTests
     [Test]
     public async Task RequiredSkills_KeepsTargetsThatShareAStartSkill()
     {
-        // Three targets of one pack share the skill that starts them: the skill is learned once, and the
-        // target is named by the cast, not by the skill.
+        // Three targets of one pack share the skill that starts them; the target is named by the cast.
+        // These General skills are cast unlearned — they must not be permanently taught.
         var skills = HousingRebuildLanding.RequiredSkills([28829, 28829, 28829], [29291]);
 
         await Assert.That(skills).IsEquivalentTo(new uint[] { 28829, 29291 });
@@ -63,6 +63,25 @@ public class HousingRebuildLandingTests
         var missing = HousingRebuildLanding.MissingSkills([28829], _ => true);
 
         await Assert.That(missing).IsEmpty();
+    }
+
+    [Test]
+    public async Task WronglyLearnedHouseSkills_ListsOnlyPermanentLearns()
+    {
+        var permanent = new HashSet<uint> { 28829 };
+
+        var wrong = HousingRebuildLanding.WronglyLearnedHouseSkills(
+            [28829, 29291], permanent.Contains);
+
+        await Assert.That(wrong).IsEquivalentTo(new uint[] { 28829 });
+    }
+
+    [Test]
+    public async Task WronglyLearnedHouseSkills_IsEmptyWhenNoneArePermanent()
+    {
+        var wrong = HousingRebuildLanding.WronglyLearnedHouseSkills([28829, 29291], _ => false);
+
+        await Assert.That(wrong).IsEmpty();
     }
 }
 

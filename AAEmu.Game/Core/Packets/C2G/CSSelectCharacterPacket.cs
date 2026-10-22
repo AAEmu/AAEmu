@@ -150,7 +150,7 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             Connection.SendPacket(new SCBattleFieldRecordsPacket());
             Connection.SendPacket(new SCFavoriteCraftsPacket(character.FavoriteCrafts.GetWireCraftTypes()));
             Connection.SendPacket(new SCCharacterPrivacyStatusUpdatePacket(true, character.PrivacyStatus));
-            Connection.SendPacket(new SCUpdateAdditionalSkillPointPacket());
+            Connection.SendPacket(new SCUpdateAdditionalSkillPointPacket(character.AdditionalSkillPoint));
 
             foreach (var houseBatch in houses.Chunk(SCHouseDataPacket.MaxEntries))
                 Connection.SendPacket(new SCHouseDataPacket(houseBatch));

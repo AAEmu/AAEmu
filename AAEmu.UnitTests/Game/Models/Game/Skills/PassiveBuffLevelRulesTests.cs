@@ -33,6 +33,24 @@ public class PassiveBuffLevelRulesTests
     private const uint ActiveLevelFortyPassiveBuffId = 9002;
     private const uint AlwaysPassiveId = 110;             // shipped row: level 1, general, not active
     private const uint AlwaysPassiveBuffId = 934590;
+    private const uint ActiveReqPointsPassiveId = 9101;   // active, needs 4 skills unlocked in the tree
+    private const uint ActiveReqPointsPassiveBuffId = 9102;
+    private const uint TreeSkillIdA = 9201;
+    private const uint TreeSkillIdB = 9202;
+    private const uint TreeSkillIdC = 9203;
+    private const uint TreeSkillIdD = 9204;
+    // Gunslinger-shaped: active='f', req_points=3 — must still auto-grant once the tree qualifies.
+    private const uint InactiveTreePassiveId = 9301;
+    private const uint InactiveTreePassiveBuffId = 9302;
+    private const uint TreeSkillOnePointIdA = 9303;
+    private const uint TreeSkillOnePointIdB = 9304;
+    private const uint TreeSkillOnePointIdC = 9305;
+    // General passive with req_points — must use total skill-point investment, not skill count.
+    private const uint GeneralReqPointsPassiveId = 9401;
+    private const uint GeneralReqPointsPassiveBuffId = 9402;
+    private const uint GeneralSkillIdA = 9403;
+    private const uint GeneralSkillIdB = 9404;
+    private const uint GeneralSkillIdC = 9405;
 
     private SingletonScope<SkillManager> _skills;
     private SingletonScope<BuffGameData> _buffGameData;
@@ -41,6 +59,8 @@ public class PassiveBuffLevelRulesTests
     [Before(Test)]
     public void InstallContentLookups()
     {
+        // Default production mode for these tests unless a case opts into click-to-learn.
+        PassiveTreeAutoGrantRules.OverrideEnabled = true;
         WorldIntegration.ZoneAuthority = false;
 
         var manager = TestManagers.CreateSkillManager();
@@ -49,7 +69,10 @@ public class PassiveBuffLevelRulesTests
             [LevelFortyPassiveBuffId] = new BuffTemplate { Id = LevelFortyPassiveBuffId },
             [ActivePassiveBuffId] = new BuffTemplate { Id = ActivePassiveBuffId },
             [ActiveLevelFortyPassiveBuffId] = new BuffTemplate { Id = ActiveLevelFortyPassiveBuffId },
-            [AlwaysPassiveBuffId] = new BuffTemplate { Id = AlwaysPassiveBuffId }
+            [AlwaysPassiveBuffId] = new BuffTemplate { Id = AlwaysPassiveBuffId },
+            [ActiveReqPointsPassiveBuffId] = new BuffTemplate { Id = ActiveReqPointsPassiveBuffId },
+            [InactiveTreePassiveBuffId] = new BuffTemplate { Id = InactiveTreePassiveBuffId },
+            [GeneralReqPointsPassiveBuffId] = new BuffTemplate { Id = GeneralReqPointsPassiveBuffId }
         });
         SetField(manager, "_passiveBuffs", new Dictionary<uint, PassiveBuffTemplate>
         {
@@ -72,11 +95,70 @@ public class PassiveBuffLevelRulesTests
             {
                 Id = AlwaysPassiveId, Level = 1, AbilityId = AbilityType.General,
                 BuffId = AlwaysPassiveBuffId
+            },
+            [ActiveReqPointsPassiveId] = new PassiveBuffTemplate
+            {
+                Id = ActiveReqPointsPassiveId, Level = 1, AbilityId = AbilityType.Hatred,
+                BuffId = ActiveReqPointsPassiveBuffId, Active = true, ReqPoints = 4
+            },
+            [InactiveTreePassiveId] = new PassiveBuffTemplate
+            {
+                Id = InactiveTreePassiveId, Level = 1, AbilityId = AbilityType.Madness,
+                BuffId = InactiveTreePassiveBuffId, Active = false, ReqPoints = 3
+            },
+            [GeneralReqPointsPassiveId] = new PassiveBuffTemplate
+            {
+                Id = GeneralReqPointsPassiveId, Level = 1, AbilityId = AbilityType.General,
+                BuffId = GeneralReqPointsPassiveBuffId, Active = false, ReqPoints = 3, SkillPoints = 0
+            }
+        });
+        SetField(manager, "_skills", new Dictionary<uint, SkillTemplate>
+        {
+            [GeneralSkillIdA] = new SkillTemplate
+            {
+                Id = GeneralSkillIdA, AbilityId = AbilityType.General, SkillPoints = 1
+            },
+            [GeneralSkillIdB] = new SkillTemplate
+            {
+                Id = GeneralSkillIdB, AbilityId = AbilityType.General, SkillPoints = 1
+            },
+            [GeneralSkillIdC] = new SkillTemplate
+            {
+                Id = GeneralSkillIdC, AbilityId = AbilityType.General, SkillPoints = 1
+            },
+            [TreeSkillIdA] = new SkillTemplate
+            {
+                Id = TreeSkillIdA, AbilityId = AbilityType.Hatred, SkillPoints = 1
+            },
+            [TreeSkillIdB] = new SkillTemplate
+            {
+                Id = TreeSkillIdB, AbilityId = AbilityType.Hatred, SkillPoints = 1
+            },
+            [TreeSkillIdC] = new SkillTemplate
+            {
+                Id = TreeSkillIdC, AbilityId = AbilityType.Hatred, SkillPoints = 1
+            },
+            [TreeSkillIdD] = new SkillTemplate
+            {
+                Id = TreeSkillIdD, AbilityId = AbilityType.Hatred, SkillPoints = 1
+            },
+            [TreeSkillOnePointIdA] = new SkillTemplate
+            {
+                Id = TreeSkillOnePointIdA, AbilityId = AbilityType.Madness, SkillPoints = 1
+            },
+            [TreeSkillOnePointIdB] = new SkillTemplate
+            {
+                Id = TreeSkillOnePointIdB, AbilityId = AbilityType.Madness, SkillPoints = 1
+            },
+            [TreeSkillOnePointIdC] = new SkillTemplate
+            {
+                Id = TreeSkillOnePointIdC, AbilityId = AbilityType.Madness, SkillPoints = 1
             }
         });
         SetField(manager, "_buffGrants", new Dictionary<uint, BuffGrantSet>());
         SetField(manager, "_buffTags", new Dictionary<uint, List<uint>>());
         SetField(manager, "_buffBreakers", new Dictionary<uint, List<uint>>());
+        SetField(manager, "_buffTriggers", new Dictionary<uint, List<BuffTriggerTemplate>>());
 
         var buffGameData = new BuffGameData();
         SetField(buffGameData, "_buffModifiers", new Dictionary<uint, List<BuffModifier>>());
@@ -91,6 +173,7 @@ public class PassiveBuffLevelRulesTests
     [After(Test)]
     public void RestoreContentLookups()
     {
+        PassiveTreeAutoGrantRules.OverrideEnabled = null;
         _experience.Dispose();
         _buffGameData.Dispose();
         _skills.Dispose();
@@ -135,27 +218,74 @@ public class PassiveBuffLevelRulesTests
     }
 
     [Test]
-    public async Task AutoGranted_OnlyTheActiveRowsTheCharacterReached()
+    public async Task AutoGranted_ActiveRowsAndTreeReqPointsPassives()
     {
         var templates = new[]
         {
             SkillManager.Instance.GetPassiveBuffTemplate(LevelFortyPassiveId),
             SkillManager.Instance.GetPassiveBuffTemplate(ActivePassiveId),
             SkillManager.Instance.GetPassiveBuffTemplate(ActiveLevelFortyPassiveId),
-            SkillManager.Instance.GetPassiveBuffTemplate(AlwaysPassiveId)
+            SkillManager.Instance.GetPassiveBuffTemplate(AlwaysPassiveId),
+            SkillManager.Instance.GetPassiveBuffTemplate(InactiveTreePassiveId)
         };
 
         var atOne = PassiveBuffLevelRules.AutoGranted(templates, 1, new HashSet<uint>());
         var atForty = PassiveBuffLevelRules.AutoGranted(templates, 40, new HashSet<uint>());
         var alreadyHeld = PassiveBuffLevelRules.AutoGranted(templates, 40, new HashSet<uint> { ActivePassiveId });
 
-        await Assert.That(atOne).IsEquivalentTo(new[] { ActivePassiveId });
-        await Assert.That(atForty).IsEquivalentTo(new[] { ActivePassiveId, ActiveLevelFortyPassiveId });
-        // A row that is not active is never handed out by the game, however old the character is.
+        // Active + tree-gated (req_points>0) even when active='f'. Click-only general rows stay out.
+        await Assert.That(atOne).IsEquivalentTo(new[] { ActivePassiveId, InactiveTreePassiveId });
+        await Assert.That(atForty).IsEquivalentTo(new[] { ActivePassiveId, ActiveLevelFortyPassiveId, InactiveTreePassiveId });
         await Assert.That(atForty).DoesNotContain(AlwaysPassiveId);
         await Assert.That(atForty).DoesNotContain(LevelFortyPassiveId);
         await Assert.That(alreadyHeld).DoesNotContain(ActivePassiveId);
         await Assert.That(alreadyHeld).Contains(ActiveLevelFortyPassiveId);
+        await Assert.That(alreadyHeld).Contains(InactiveTreePassiveId);
+    }
+
+    [Test]
+    public async Task AutoGranted_ClickMode_ExcludesTreeReqPointsPassives()
+    {
+        PassiveTreeAutoGrantRules.OverrideEnabled = false;
+        var templates = new[]
+        {
+            SkillManager.Instance.GetPassiveBuffTemplate(ActivePassiveId),
+            SkillManager.Instance.GetPassiveBuffTemplate(InactiveTreePassiveId),
+            SkillManager.Instance.GetPassiveBuffTemplate(AlwaysPassiveId)
+        };
+
+        var granted = PassiveBuffLevelRules.AutoGranted(templates, 20, new HashSet<uint>());
+
+        await Assert.That(granted).IsEquivalentTo(new[] { ActivePassiveId });
+        await Assert.That(granted).DoesNotContain(InactiveTreePassiveId);
+        await Assert.That(granted).DoesNotContain(AlwaysPassiveId);
+    }
+
+    [Test]
+    public async Task ClickMode_TreePassive_LearnsBySkillCount_EvenWhenSkillPointPoolIsSpent()
+    {
+        // AAEMU_PASSIVE_TREE_AUTO_GRANT=0: player picks which tree passives to take. Gate is skills
+        // unlocked in that tree; skill_points=0 so a spent shared pool must not refuse the click.
+        PassiveTreeAutoGrantRules.OverrideEnabled = false;
+        var character = CreateCharacter(level: 5); // stub budget = level*10 = 50
+        character.Ability1 = AbilityType.Madness;
+
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillOnePointIdA), 1, packet: false);
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillOnePointIdB), 1, packet: false);
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillOnePointIdC), 1, packet: false);
+        // Click mode: tree qualifies but nothing is auto-granted.
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(InactiveTreePassiveId)).IsFalse();
+
+        // Spend the remaining pool (47 left) so a pre-fix SkillPoints check would refuse.
+        var skillsField = typeof(SkillManager).GetField("_skills", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var skills = (Dictionary<uint, SkillTemplate>)skillsField.GetValue(SkillManager.Instance)!;
+        skills[9501] = new SkillTemplate { Id = 9501, AbilityId = AbilityType.General, SkillPoints = 47 };
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(9501), 1, packet: false);
+
+        character.Skills.AddBuff(InactiveTreePassiveId, notify: false);
+
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(InactiveTreePassiveId)).IsTrue();
+        await Assert.That(character.Buffs.CheckBuff(InactiveTreePassiveBuffId)).IsTrue();
     }
 
     [Test]
@@ -206,6 +336,77 @@ public class PassiveBuffLevelRulesTests
         await Assert.That(PassiveBuffLevelRules.AbLevelFor(0)).IsEqualTo(1u);
         await Assert.That(PassiveBuffLevelRules.AbLevelFor(-7)).IsEqualTo(1u);
         await Assert.That(PassiveBuffLevelRules.AbLevelFor(55)).IsEqualTo(55u);
+    }
+
+    [Test]
+    public async Task AddSkill_AutoGrantsActivePassiveOnceTreeSkillCountIsMet()
+    {
+        // Empowers the shipped pattern: active passives like Twin Strike Mastery (req_points=4)
+        // unlock when four skills in that tree are learned — not when one skill's point cost sums to 4.
+        var character = CreateCharacter(level: 20);
+        character.Ability1 = AbilityType.Hatred;
+
+        character.Skills.RefreshAutoGrantedPassives();
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(ActiveReqPointsPassiveId)).IsFalse();
+
+        // packet=false restores/seeds without refresh (same as skill-book Load). Player learn goes
+        // through AddSkill(uint), which refreshes after each new skill — mirror that here.
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillIdA), 1, packet: false);
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillIdB), 1, packet: false);
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillIdC), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(ActiveReqPointsPassiveId)).IsFalse();
+
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillIdD), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
+
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(ActiveReqPointsPassiveId)).IsTrue();
+        await Assert.That(character.Buffs.CheckBuff(ActiveReqPointsPassiveBuffId)).IsTrue();
+    }
+
+    [Test]
+    public async Task AddSkill_AutoGrantsInactiveTreePassiveOnceSkillCountIsMet()
+    {
+        // Gunslinger Arcane Protection shape: active='f', req_points=3. Three skills unlocked in the
+        // tree must grant it without a manual CSLearnBuff click.
+        var character = CreateCharacter(level: 20);
+        character.Ability1 = AbilityType.Madness;
+
+        character.Skills.RefreshAutoGrantedPassives();
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(InactiveTreePassiveId)).IsFalse();
+
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillOnePointIdA), 1, packet: false);
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillOnePointIdB), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(InactiveTreePassiveId)).IsFalse();
+
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(TreeSkillOnePointIdC), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
+
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(InactiveTreePassiveId)).IsTrue();
+        await Assert.That(character.Buffs.CheckBuff(InactiveTreePassiveBuffId)).IsTrue();
+    }
+
+    [Test]
+    public async Task AddBuff_GeneralReqPoints_UsesTotalSkillPointInvestment()
+    {
+        // Thirteen shipped general rows carry req_points>0 (e.g. 2–8). Those gate on total
+        // skill points spent, not on a combat-tree skill count. Auto-grant must not skip that.
+        var character = CreateCharacter(level: 20);
+
+        character.Skills.AddBuff(GeneralReqPointsPassiveId, notify: false);
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(GeneralReqPointsPassiveId)).IsFalse();
+
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(GeneralSkillIdA), 1, packet: false);
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(GeneralSkillIdB), 1, packet: false);
+        character.Skills.AddBuff(GeneralReqPointsPassiveId, notify: false);
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(GeneralReqPointsPassiveId)).IsFalse();
+
+        character.Skills.AddSkill(SkillManager.Instance.GetSkillTemplate(GeneralSkillIdC), 1, packet: false);
+        character.Skills.RefreshAutoGrantedPassives();
+
+        await Assert.That(character.Skills.PassiveBuffs.ContainsKey(GeneralReqPointsPassiveId)).IsTrue();
+        await Assert.That(character.Buffs.CheckBuff(GeneralReqPointsPassiveBuffId)).IsTrue();
     }
 
     [Test]

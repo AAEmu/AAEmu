@@ -542,6 +542,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `crime_point` int NOT NULL DEFAULT '0',
   `crime_record` int NOT NULL DEFAULT '0',
   `jury_point` int NOT NULL DEFAULT '0',
+  `additional_skill_point` int unsigned NOT NULL DEFAULT '0' COMMENT 'Permanent bonus skill points from SpecialType.AdditionalSkillPoint',
   `hostile_faction_kills` int NOT NULL DEFAULT '0',
   `pvp_honor` int NOT NULL DEFAULT '0',
   `died_in_pvp` tinyint(1) NOT NULL DEFAULT '0',

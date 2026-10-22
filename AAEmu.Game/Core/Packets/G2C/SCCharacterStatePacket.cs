@@ -107,7 +107,7 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
             stream.Write((byte)state.PurchaseType);         // v.purchaseType (u8)
         }
         stream.Write(0u);
-        stream.Write(0u);                                   // additionalSkillPoint
+        stream.Write(character.AdditionalSkillPoint);       // additionalSkillPoint
 
         return stream;
     }

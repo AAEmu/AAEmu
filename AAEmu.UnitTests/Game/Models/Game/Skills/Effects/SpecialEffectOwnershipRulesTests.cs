@@ -64,6 +64,7 @@ public class SpecialEffectOwnershipRulesTests
         SpecialType.ChangeVisualRace, SpecialType.ChangeVisualRaceExpiredTime, SpecialType.SaveExpeditionPortal,
         SpecialType.TeleportExpeditionPortal, SpecialType.VariableCashCharge, SpecialType.AdditionalSkillPoint,
         SpecialType.ChangeForceAttackState, SpecialType.GainAppellationStampLifespan,
+
     ];
 
     /// <summary>

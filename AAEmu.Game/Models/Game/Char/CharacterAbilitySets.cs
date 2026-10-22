@@ -581,6 +581,10 @@ public sealed class CharacterAbilitySets(Character owner)
             // Silent: SCBuffLearned → client "Learned …" chat; skillsaver restore uses AbilitySetUpdated.
             Owner.Skills.AddBuff(buffId, notify: false);
         }
+
+        // Snapshot skills already refreshed auto-grants one-by-one; one more pass covers any
+        // req_points threshold crossed by the restored loadout as a whole.
+        Owner.Skills.RefreshAutoGrantedPassives();
     }
 
     private bool TryValidateWritableSlot(sbyte slotIndex, out byte slot)
