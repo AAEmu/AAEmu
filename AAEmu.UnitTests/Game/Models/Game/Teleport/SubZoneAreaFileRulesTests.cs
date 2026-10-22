@@ -62,11 +62,36 @@ public class SubZoneAreaFileRulesTests
     }
 
     [Test]
-    public async Task Parse_SkipsBadXmlAndZeroZone()
+    public async Task Parse_SkipsZeroZoneAndEmptyInput()
     {
-        await Assert.That(SubZoneAreaFileRules.Parse("not xml", 1).Count).IsEqualTo(0);
         await Assert.That(SubZoneAreaFileRules.Parse("<Objects/>", 0).Count).IsEqualTo(0);
         await Assert.That(SubZoneAreaFileRules.Parse(null, 1).Count).IsEqualTo(0);
+        await Assert.That(SubZoneAreaFileRules.Parse("  ", 1).Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Parse_MalformedXml_Throws()
+    {
+        await Assert.That(() => SubZoneAreaFileRules.Parse("not xml", 1))
+            .Throws<System.Xml.XmlException>();
+    }
+
+    [Test]
+    public async Task Catalog_MalformedXml_IsSkippedWithoutThrowing()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "aaemu-sz-bad-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(root, "worlds", "main_world", "level_design", "zone", "183", "client");
+        Directory.CreateDirectory(dir);
+        await File.WriteAllTextAsync(Path.Combine(dir, "subzone_area.xml"), "not xml");
+        try
+        {
+            var areas = SubZoneAreaGCatalog.LoadFromRoots([root]);
+            await Assert.That(areas.Count).IsEqualTo(0);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
     }
 
     [Test]

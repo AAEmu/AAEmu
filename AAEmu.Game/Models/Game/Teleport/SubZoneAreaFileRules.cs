@@ -19,15 +19,8 @@ public static class SubZoneAreaFileRules
         if (string.IsNullOrWhiteSpace(xml) || zoneKey == 0)
             return list;
 
-        XDocument doc;
-        try
-        {
-            doc = XDocument.Parse(xml);
-        }
-        catch
-        {
-            return list;
-        }
+        // Malformed XML throws so SubZoneAreaGCatalog can log the broken file path.
+        var doc = XDocument.Parse(xml);
 
         foreach (var entity in doc.Root?.Elements("Entity") ?? [])
         {
