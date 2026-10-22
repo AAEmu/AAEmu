@@ -96,12 +96,16 @@ public class CharacterSkills(Character owner)
         Skills.Add(skill.Id, skill);
 
         if (packet)
+        {
             Owner.SendPacket(new SCSkillLearnedPacket(skill));
 
-        // Auto-granted passives key off skills unlocked in the tree (passive_buffs.req_points).
-        // Learning a skill can cross that threshold without a level-up. Notify only when this learn
-        // was player-visible (packet) — skillsaver / char-create restores stay silent.
-        RefreshAutoGrantedPassives(notify: packet);
+            // Auto-granted passives key off skills unlocked in the tree (passive_buffs.req_points).
+            // Only on a player-visible learn — skill-book Load / skillsaver / char-create restore with
+            // packet=false and call RefreshAutoGrantedPassives once after every saved row is in.
+            // Refreshing mid-Load can insert a saved passive before its row is read, then
+            // PassiveBuffs.Add throws and blocks login.
+            RefreshAutoGrantedPassives(notify: true);
+        }
     }
 
     /// <summary>
@@ -661,7 +665,10 @@ public class CharacterSkills(Character owner)
                                 break;
                             }
 
-                            AddSkill(skillId);
+                            // packet=false: restore only — do not auto-grant or spend the learn path mid-Load.
+                            var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
+                            if (skillTemplate != null)
+                                AddSkill(skillTemplate, 1, packet: false);
                             break;
                         case SkillType.Buff:
                             var buffId = reader.GetUInt32("id");
@@ -670,6 +677,8 @@ public class CharacterSkills(Character owner)
                             // thrown on the null template.
                             var passiveTemplate = SkillManager.Instance.GetPassiveBuffTemplate(buffId);
                             if (passiveTemplate == null)
+                                break;
+                            if (PassiveBuffs.ContainsKey(buffId))
                                 break;
                             var buff = new PassiveBuff { Id = buffId, Template = passiveTemplate };
                             PassiveBuffs.Add(buff.Id, buff);
