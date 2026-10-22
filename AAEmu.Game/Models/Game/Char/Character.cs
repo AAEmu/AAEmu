@@ -952,6 +952,13 @@ public partial class Character : Unit, ICharacter
         }
     }
     public int JuryPoint { get; set; }
+
+    /// <summary>
+    /// Permanent bonus skill points from <see cref="SpecialType.AdditionalSkillPoint"/> (stone / test item).
+    /// Added on top of <c>levels.skill_points</c> for the learn budget.
+    /// </summary>
+    public uint AdditionalSkillPoint { get; set; }
+
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
     public DateTime DeleteTime { get; set; }
@@ -4087,6 +4094,7 @@ public partial class Character : Unit, ICharacter
                     character.TotalPlayTime = reader.GetUInt32("total_play_time");
                     character.CrimeRecord = reader.GetInt32("crime_record");
                     character.JuryPoint = reader.GetInt32("jury_point");
+                    character.AdditionalSkillPoint = reader.GetUInt32("additional_skill_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                     character.DiedInPvp = reader.GetBoolean("died_in_pvp");
@@ -4224,6 +4232,7 @@ public partial class Character : Unit, ICharacter
                     character.TotalPlayTime = reader.GetUInt32("total_play_time");
                     character.CrimeRecord = reader.GetInt32("crime_record");
                     character.JuryPoint = reader.GetInt16("jury_point");
+                    character.AdditionalSkillPoint = reader.GetUInt32("additional_skill_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                     character.DiedInPvp = reader.GetBoolean("died_in_pvp");
@@ -4603,7 +4612,7 @@ public partial class Character : Unit, ICharacter
                     "`hp`,`mp`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
                     "`faction_id`,`faction_name`,`expedition_id`,`expedition_rejoin_until`,`family`,`family_rejoin_until`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
-                    "`money`,`money2`,`aa_point`,`bank_aa_point`,`honor_point`,`vocation_point`,`leadership_point`,`leadership_period_point`,`accumulated_leadership_point`,`daily_leadership_point`,`last_daily_leadership_point_time`,`mobilization_order_today_count`,`mobilization_order_total_count`,`last_mobilization_order_time`,`last_mobilization_accept_time`,`last_mobilization_not_recv_time`,`crime_point`,`crime_record`,`jury_point`," +
+                    "`money`,`money2`,`aa_point`,`bank_aa_point`,`honor_point`,`vocation_point`,`leadership_point`,`leadership_period_point`,`accumulated_leadership_point`,`daily_leadership_point`,`last_daily_leadership_point_time`,`mobilization_order_today_count`,`mobilization_order_total_count`,`last_mobilization_order_time`,`last_mobilization_accept_time`,`last_mobilization_not_recv_time`,`crime_point`,`crime_record`,`jury_point`,`additional_skill_point`," +
                     "`hostile_faction_kills`,`pvp_honor`,`died_in_pvp`,`died_in_pvp_war_zone`," +
                     "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
                     "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`,`total_play_time`,`privacy_status`," +
@@ -4616,7 +4625,7 @@ public partial class Character : Unit, ICharacter
                     "@hp,@mp,@consumed_lp,@ability1,@ability2,@ability3," +
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
                     "@faction_id,@faction_name,@expedition_id,@expedition_rejoin_until,@family,@family_rejoin_until,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
-                    "@money,@money2,@aa_point,@bank_aa_point,@honor_point,@vocation_point,@leadership_point,@leadership_period_point,@accumulated_leadership_point,@daily_leadership_point,@last_daily_leadership_point_time,@mobilization_order_today_count,@mobilization_order_total_count,@last_mobilization_order_time,@last_mobilization_accept_time,@last_mobilization_not_recv_time,@crime_point,@crime_record,@jury_point," +
+                    "@money,@money2,@aa_point,@bank_aa_point,@honor_point,@vocation_point,@leadership_point,@leadership_period_point,@accumulated_leadership_point,@daily_leadership_point,@last_daily_leadership_point_time,@mobilization_order_today_count,@mobilization_order_total_count,@last_mobilization_order_time,@last_mobilization_accept_time,@last_mobilization_not_recv_time,@crime_point,@crime_record,@jury_point,@additional_skill_point," +
                     "@hostile_faction_kills,@pvp_honor,@died_in_pvp,@died_in_pvp_war_zone," +
                     "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
                     "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time,@total_play_time,@privacy_status," +
@@ -4696,6 +4705,7 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@crime_point", CrimePoint);
                 command.Parameters.AddWithValue("@crime_record", CrimeRecord);
                 command.Parameters.AddWithValue("@jury_point", JuryPoint);
+                command.Parameters.AddWithValue("@additional_skill_point", AdditionalSkillPoint);
                 command.Parameters.AddWithValue("@hostile_faction_kills", HostileFactionKills);
                 command.Parameters.AddWithValue("@pvp_honor", HonorGainedInCombat);
                 command.Parameters.AddWithValue("@died_in_pvp", DiedInPvp);
@@ -4978,6 +4988,19 @@ public partial class Character : Unit, ICharacter
 
         // constructor initializes this reserved i16 field to zero as well.
         SendPacket(new SCCrimeChangedPacket(amount, CrimePoint, CrimeRecord, crimeScore: 0));
+    }
+
+    /// <summary>
+    /// Permanently adds bonus skill points (SpecialType.AdditionalSkillPoint) and pushes the client total.
+    /// </summary>
+    public bool TryAddAdditionalSkillPoints(int amount)
+    {
+        if (!AdditionalSkillPointBudgetRules.TryAdd(AdditionalSkillPoint, amount, out var next))
+            return false;
+
+        AdditionalSkillPoint = next;
+        SendPacket(new SCUpdateAdditionalSkillPointPacket(AdditionalSkillPoint));
+        return true;
     }
 
     /// <summary>

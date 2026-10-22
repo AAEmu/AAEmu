@@ -1911,6 +1911,12 @@ public class Unit : BaseUnit, IUnit
             var effect = new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow);
             Buffs.AddBuff(effect);
         }
+
+        // Stance-gated passives (Empowered Malice / Twin Strike / Rending Mastery) pick their child
+        // on Started using the owner stance tag. Re-apply them now that the stance buff matches the
+        // loadout — otherwise the child from the first learn sticks across equip changes.
+        if (this is Character character)
+            character.Skills?.ReapplyStanceGatedPassives();
     }
 
     private void ApplyEquipItemSetBonuses()

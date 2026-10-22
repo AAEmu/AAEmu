@@ -221,7 +221,7 @@ public static class SpecialEffectOwnershipRules
         [SpecialType.ChangeVisualRace] = SpecialEffectOwnership.Unsupported, // 189: 10 rows, 10 skills, no class
         [SpecialType.ChangeVisualRaceExpiredTime] = SpecialEffectOwnership.Unsupported, // 190: 1 row, no class
         [SpecialType.VariableCashCharge] = SpecialEffectOwnership.Unsupported, // 193: 1 row, cash flow, no class
-        [SpecialType.AdditionalSkillPoint] = SpecialEffectOwnership.Unsupported, // 194: 2 rows; SCUpdateAdditionalSkillPoint only ever sends 0
+        [SpecialType.AdditionalSkillPoint] = SpecialEffectOwnership.Gameplay, // 194: 2 rows (stone / test item); permanent bonus SP
         [SpecialType.GainAppellationStampLifespan] = SpecialEffectOwnership.Unsupported, // 196: 2 rows, 2 skills, no class
     };
 

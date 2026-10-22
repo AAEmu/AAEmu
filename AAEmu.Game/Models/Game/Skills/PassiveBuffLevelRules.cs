@@ -29,10 +29,13 @@ public static class PassiveBuffLevelRules
         template != null && MeetsLevel(template.Level, characterLevel);
 
     /// <summary>
-    /// The <c>active='t'</c> passives a character is old enough for and does not hold yet, ascending by id
-    /// so that a level-up grants them in a stable order. Whether one may actually be learned is still the
-    /// caller's business: <c>CharacterSkills.AddBuff</c> applies the ability-tree and point requirements to
-    /// these the same way it does to a client request.
+    /// Passives the server should try to hand out without a client click, ascending by id for a stable
+    /// grant order. See <see cref="PassiveTreeAutoGrantRules"/> — with tree auto-grant on (default),
+    /// both <c>active='t'</c> rows and every <c>req_points &gt; 0</c> tree passive qualify; with it off,
+    /// only always-on actives (<c>active</c> and <c>req_points = 0</c>) stay here and tree passives
+    /// wait for <c>CSLearnBuff</c>. Paid general passives (<c>active='f'</c>, <c>req_points = 0</c>)
+    /// never auto. <c>CharacterSkills.AddBuff</c> still applies ability-tree, skill-count / point, and
+    /// budget gates.
     /// </summary>
     public static IReadOnlyList<uint> AutoGranted(
         IEnumerable<PassiveBuffTemplate> templates, int characterLevel, ICollection<uint> learned)
@@ -43,7 +46,9 @@ public static class PassiveBuffLevelRules
         var granted = new SortedSet<uint>();
         foreach (var template in templates)
         {
-            if (template == null || !template.Active || !MeetsLevel(template.Level, characterLevel))
+            if (template == null || !MeetsLevel(template.Level, characterLevel))
+                continue;
+            if (!PassiveTreeAutoGrantRules.IsAutoGrantCandidate(template))
                 continue;
             if (learned != null && learned.Contains(template.Id))
                 continue;

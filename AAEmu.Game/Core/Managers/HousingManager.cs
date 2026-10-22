@@ -820,13 +820,12 @@ public class HousingManager(
     }
 
     /// <summary>
-    /// Teaches the owner the pack's own skills if they are missing.
+    /// Drops pack remodel/finish skills that were wrongly saved as permanent learns.
     /// </summary>
     /// <remarks>
-    /// Remodelling is a cast: the client starts the target's skill at the house and finishes the target's
-    /// completion stage with the step's skill, and both are refused by the cast path when the character does
-    /// not know them. They are house skills, not ability skills (their templates carry no ability), so the
-    /// house the character owns is what hands them over.
+    /// Remodelling is a cast of General (<c>ability_id = 0</c>) skills. The cast path already accepts
+    /// unlearned General skills, so the house must not permanently teach them — those templates ship
+    /// <c>skill_points = 1</c> and a permanent learn spends the combat pool on the client and server.
     /// </remarks>
     private void GrantRebuildSkills(Character character, House house)
     {
@@ -852,19 +851,19 @@ public class HousingManager(
         }
 
         var required = HousingRebuildLanding.RequiredSkills(targetSkills, completionSkills);
-        foreach (var skillId in HousingRebuildLanding.MissingSkills(required, character.Skills.HasSkill))
-        {
-            var template = skillManager.GetSkillTemplate(skillId);
-            if (template == null)
-            {
-                Logger.Warn("House {0} offers rebuild skill {1}, which has no template - not taught",
-                    house.Id, skillId);
-                continue;
-            }
+        var wronglyLearned = HousingRebuildLanding.WronglyLearnedHouseSkills(
+            required, character.Skills.Skills.ContainsKey);
+        if (wronglyLearned.Count == 0)
+            return;
 
-            character.Skills.AddSkill(template, 1, true);
-            Logger.Info("Taught {0} rebuild skill {1} for house {2}", character.Name, skillId, house.Id);
-        }
+        foreach (var skillId in wronglyLearned)
+            character.Skills.ForgetPermanentSkill(skillId, notifyClient: false);
+
+        // One General reset clears the client's learned copies; combat trees are untouched.
+        character.BroadcastPacket(new SCSkillsResetPacket(character.ObjId, AbilityType.General), true);
+        Logger.Info(
+            "Demoted {0} house skill(s) for {1} on house {2}: [{3}]",
+            wronglyLearned.Count, character.Name, house.Id, string.Join(",", wronglyLearned));
     }
 
     private void SendHouseTaxInfo(Character character, House house)
