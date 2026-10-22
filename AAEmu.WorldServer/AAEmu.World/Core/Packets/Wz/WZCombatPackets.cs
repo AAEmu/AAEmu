@@ -116,15 +116,16 @@ public class WZBlinkUnitPacket(uint unitId, uint unitId2, bool move3D, ulong x, 
     }
 }
 
-public class WZKnockBackUnitPacket(uint unitId, float posx, float posy, float posz)
+/// <summary>Impulse vector applied to the unit's physics (not a position).</summary>
+public class WZKnockBackUnitPacket(uint unitId, float impulseX, float impulseY, float impulseZ)
     : ZonePacket(WzOpcodes.KnockBackUnit)
 {
     protected override void WriteBody(PacketStream stream)
     {
         stream.WriteBc(unitId);
-        stream.Write(posx);
-        stream.Write(posy);
-        stream.Write(posz);
+        stream.Write(impulseX);
+        stream.Write(impulseY);
+        stream.Write(impulseZ);
     }
 }
 

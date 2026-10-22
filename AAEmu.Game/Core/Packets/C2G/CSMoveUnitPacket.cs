@@ -81,7 +81,8 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
         //
         // Nothing that legitimately moves a unit goes through this packet: Leap and Dash advance the
         // owner themselves (they build their own UnitMoveType and broadcast SCOneUnitMovement from
-        // Server-side), and a seat ride is a buff, not a CS move. Rejecting here cannot strand either.
+        // Server-side), knockback slides the transform server-side from SCKnockBack, and a seat ride
+        // is a buff, not a CS move. Rejecting here cannot strand either.
         var crowdControl = CrowdControlRules.ReadState(character);
         if (CrowdControlRules.BlocksMovement(crowdControl))
         {

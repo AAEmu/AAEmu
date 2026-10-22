@@ -1,7 +1,6 @@
 ﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 
 using WorldIntegration = AAEmu.Game.WorldIntegration;
 
@@ -30,44 +29,57 @@ public class KnockBack : SpecialEffectAction
         if (target is not Unit trg || trg.Hp <= 0)
             return;
 
-        // value1 = distance (meters when small; mm when large — same heuristic as leap/teleport SE).
-        var distance = value1 > 100 ? value1 / 1000f : value1;
-        if (distance <= 0f)
-            distance = 1f;
+        // buffs.knockback_immune is the only shipped resist; everything else (stacking from a pack,
+        // damping, mass) is the client's physics, exactly as retail.
+        if (trg.Buffs.CheckKnockbackImmune())
+        {
+            Logger.Debug("KnockBack refused on {0}: knockback_immune", trg.ObjId);
+            return;
+        }
 
         var from = caster.Transform.World.Position;
         var to = trg.Transform.World.Position;
-        var dx = to.X - from.X;
-        var dy = to.Y - from.Y;
-        var len = MathF.Sqrt(dx * dx + dy * dy);
-        if (len < 0.001f)
+        if (!KnockBackRules.TryImpulse(from, to, value1, value2, out var impulse))
         {
-            // Degenerate: push along caster facing.
-            var (px, py) = MathUtil.AddDistanceToFront(distance, to.X, to.Y, caster.Transform.World.Rotation.Z);
-            dx = px - to.X;
-            dy = py - to.Y;
-            len = MathF.Sqrt(dx * dx + dy * dy);
+            var (dirX, dirY) = KnockBackRules.DirectionFromYaw(caster.Transform.World.Rotation.Z);
+            impulse = KnockBackRules.ImpulseAlong(dirX, dirY, value1, value2);
         }
 
-        var nx = dx / len;
-        var ny = dy / len;
-        var zLift = value3 > 100 ? value3 / 1000f : value3;
-        var destX = to.X + nx * distance;
-        var destY = to.Y + ny * distance;
-        var destZ = to.Z + MathF.Max(0f, zLift);
+        // SC = impulse for client physics. Server XY slide keeps combat/AOI honest without opening a
+        // crowd-control CSMoveUnit bypass (a grace window was rejected as a movement cheat path).
+        trg.BroadcastPacket(new SCKnockBackUnitPacket(trg.ObjId, impulse.X, impulse.Y, impulse.Z), true);
 
-        trg.BroadcastPacket(new SCKnockBackUnitPacket(trg.ObjId, destX, destY, destZ), true);
-
-        // Players are World-owned for movement; NPCs under ZoneAuthority get position from Zone.
-        if (trg is Character || !WorldIntegration.ZoneAuthority)
+        if (trg is Character character)
         {
-            trg.SetPosition(destX, destY, destZ,
-                trg.Transform.World.Rotation.X,
-                trg.Transform.World.Rotation.Y,
-                trg.Transform.World.Rotation.Z);
+            ApplyServerAuthoritySlide(trg, impulse, value1);
+            Logger.Debug("KnockBack player={0} horizontal={1} vertical={2} impulse=({3:F1},{4:F1},{5:F1})",
+                character.Name, value1, value2, impulse.X, impulse.Y, impulse.Z);
+            return;
         }
 
+        // Zone-owned NPCs: dedicate physics applies the same impulse.
         if (WorldIntegration.ZoneAuthority)
-            WorldIntegration.RelayKnockBackToZone?.Invoke(trg.ObjId, destX, destY, destZ);
+        {
+            WorldIntegration.RelayKnockBackToZone?.Invoke(trg.ObjId, impulse.X, impulse.Y, impulse.Z);
+            return;
+        }
+
+        // Standalone World: no dedicate and clients cannot move NPCs — same server slide.
+        ApplyServerAuthoritySlide(trg, impulse, value1);
+    }
+
+    private static void ApplyServerAuthoritySlide(Unit trg, System.Numerics.Vector3 impulse, int horizontalMagnitude)
+    {
+        if (!KnockBackRules.TryServerAuthoritySlide(impulse, horizontalMagnitude, out var delta))
+            return;
+
+        // Slide is computed in world space; SetPosition writes Local — convert when parented
+        // (deck stander, seat, house bond) so the parent offset is not applied twice.
+        var p = trg.Transform.World.Position;
+        var local = trg.Transform.GetLocalFromWorld(p.X + delta.X, p.Y + delta.Y, p.Z);
+        trg.SetPosition(local.X, local.Y, local.Z,
+            trg.Transform.Local.Rotation.X,
+            trg.Transform.Local.Rotation.Y,
+            trg.Transform.Local.Rotation.Z);
     }
 }
