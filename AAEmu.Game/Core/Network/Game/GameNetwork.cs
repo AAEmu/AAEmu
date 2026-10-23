@@ -265,6 +265,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSCleanupLogicLinkPacket, 1, typeof(CSCleanupLogicLinkPacket));
         RegisterPacket(CSOffsets.CSExecuteCraft, 1, typeof(CSExecuteCraft));
         RegisterPacket(CSOffsets.CSChangeAppellationPacket, 1, typeof(CSChangeAppellationPacket));
+        RegisterPacket(CSOffsets.CSSetAppellationStampPacket, 1, typeof(CSSetAppellationStampPacket));
         RegisterPacket(CSOffsets.CSCreateShipyardPacket, 1, typeof(CSCreateShipyardPacket));
         RegisterPacket(CSOffsets.CSRestartMainQuestPacket, 1, typeof(CSRestartMainQuestPacket));
         RegisterPacket(CSOffsets.CSSetLpManageCharacterPacket, 1, typeof(CSSetLpManageCharacterPacket));
