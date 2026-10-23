@@ -36,7 +36,10 @@ public class SkillUse : SpecialEffectAction
         }
 
         //target = ((Unit)caster).CurrentTarget;
-        var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
+        var useSkillTemplate = SkillManager.Instance.GetSkillTemplate((uint)skillId);
+        if (useSkillTemplate == null)
+            return;
+        var useSkill = new Skill(useSkillTemplate);
         targetObj = new SkillCastUnitTarget(target?.ObjId ?? 0);
         caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill);//Not sure if it belongs here.
         TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(delay));

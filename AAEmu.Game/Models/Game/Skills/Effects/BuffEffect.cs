@@ -20,6 +20,9 @@ public class BuffEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
+        if (Buff == null)
+            return;
+
         if (target is Unit trg)
         {
             var hitType = SkillHitType.Invalid;
