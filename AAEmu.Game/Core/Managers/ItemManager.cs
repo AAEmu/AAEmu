@@ -600,14 +600,10 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         if (item.Template.FixedGrade >= 0)
             item.Grade = (byte)item.Template.FixedGrade;
 
-        // Constructors run before the final grade is assigned. Initialize equipment only now,
-        // including synthesis effects for items granted directly at a higher grade by a GM.
+        // Constructors run before the final grade is assigned. Initialize durability only now;
+        // synthesis attributes are initialized explicitly for GM grants, not ordinary loot/crafts.
         if (item is EquipItem equipment)
-        {
             equipment.Durability = equipment.MaxDurability;
-            if (template is EquipItemTemplate { RndAttrCategoryId: > 0 } equipTemplate)
-                ItemEvolving.TopUpAttributes(equipment, equipTemplate.RndAttrCategoryId);
-        }
         item.CreateTime = DateTime.UtcNow;
 
         // The factory deliberately does not arm the template's expiry columns. The delivery paths
@@ -625,6 +621,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         }
 
         return item;
+    }
+
+    internal static void InitializeGrantedSynthesisAttributes(EquipItem equipment)
+    {
+        if (equipment?.Template is EquipItemTemplate { RndAttrCategoryId: > 0 } template)
+            ItemEvolving.TopUpAttributes(equipment, template.RndAttrCategoryId);
     }
 
     public bool AddItem(Item item)

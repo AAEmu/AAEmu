@@ -10,6 +10,8 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -29,12 +31,27 @@ public class ItemSocketingBatchTests
         long expectedMoney, short expectedLabor)
     {
         using var fixture = new Fixture(money, labor, failSecond);
-        var skill = new Skill(new SkillTemplate { Id = 42, ConsumeLaborPower = 500 });
-        new ItemSocketing().Execute(fixture.Owner,
-            new SkillItem(0, fixture.Gem.Id, fixture.Gem.TemplateId), fixture.Owner,
-            new SkillCastItemTarget { Id = fixture.Gear.Id }, null, skill,
-            new SkillObjectExtraValues { Values = [3 << 8, 0] }, DateTime.UtcNow,
-            ItemSocketingRules.ModeInstall, 0, 0, 0);
+        var effect = new SkillEffect
+        {
+            Template = new SpecialEffect
+            {
+                SpecialEffectTypeId = SpecialType.ItemSocketing,
+                Value1 = ItemSocketingRules.ModeInstall
+            },
+            StartLevel = 1,
+            EndLevel = 1,
+            Chance = 100,
+            ApplicationMethod = SkillEffectApplicationMethod.Target,
+            ConsumeSourceItem = true,
+            ConsumeItemCount = 1
+        };
+        var skill = new Skill(new SkillTemplate { Id = 42, ConsumeLaborPower = 500, Effects = [effect] })
+        {
+            Level = 1
+        };
+        skill.ApplyEffects(fixture.Owner, new SkillItem(0, fixture.Gem.Id, fixture.Gem.TemplateId),
+            fixture.Owner, new SkillCastItemTarget { ObjId = fixture.Owner.ObjId, Id = fixture.Gear.Id },
+            new SkillObjectExtraValues { Values = [3 << 8, 0] });
 
         await Assert.That(fixture.Gear.UsedRndAttrGroupIds.Any()).IsFalse();
         await Assert.That(fixture.Gear.GemIds.Count(id => id != 0)).IsEqualTo(expectedSockets);
@@ -69,6 +86,7 @@ public class ItemSocketingBatchTests
                 Mock.Of<IContainerIdManager>().Object, Mock.Of<ILocalizationManager>().Object,
                 Mock.Of<ITaskManager>().Object, Mock.Of<IWorldManager>().Object);
             ReplaceSingleton(items);
+            ReplaceSingleton(new SkillManager(Mock.Of<IAnimationManager>().Object, Mock.Of<IPlotManager>().Object));
             ReplaceSingleton(new QuestManager(Mock.Of<ITaskManager>().Object, Mock.Of<IZoneManager>().Object));
             var formulas = new FormulaManager();
             ReplaceSingleton(formulas);
@@ -81,7 +99,12 @@ public class ItemSocketingBatchTests
                 [1] = [0, 10000, failSecond ? 0u : 10000u, 10000, 10000, 10000, 10000, 10000, 10000, 10000]
             });
             Set(items, "_socketChanceFailBreaks", new HashSet<uint>());
-            Owner = new LaborCharacter { Id = 71, Money = money };
+            Set(items, "_templates", new Dictionary<uint, ItemTemplate>
+            {
+                [100] = new ItemTemplate { Id = 100, UseSkillId = 42, MaxCount = 1000 },
+                [200] = new EquipItemTemplate { Id = 200, MaxCount = 1 }
+            });
+            Owner = new LaborCharacter { Id = 71, ObjId = 71, Level = 1, Money = money };
             Owner.SetLabor(labor);
             var inventory = (Inventory)RuntimeHelpers.GetUninitializedObject(typeof(Inventory));
             typeof(Inventory).GetField(nameof(Inventory.Owner))!.SetValue(inventory, Owner);
