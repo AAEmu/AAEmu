@@ -391,8 +391,8 @@ public class Inventory
 
     /// <summary>Plans exact bag credits for a caller-owned database transaction.</summary>
     public bool TryPlanBagAcquisition(IItemManager itemManager, IEnumerable<ItemAcquisitionRequest> requests,
-        DateTime utcNow, out ItemAcquisitionPlan plan) =>
-        ItemAcquisitionPlan.TryCreate(this, itemManager, requests, utcNow, out plan);
+        DateTime utcNow, out ItemAcquisitionPlan plan, ItemConsumptionPlan consumption = null) =>
+        ItemAcquisitionPlan.TryCreate(this, itemManager, requests, utcNow, out plan, consumption);
 
     /// <summary>
     /// Plans a debit from one exact live bag stack. A different stack of the same template is never

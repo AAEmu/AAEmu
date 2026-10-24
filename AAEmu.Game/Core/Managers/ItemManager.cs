@@ -21,6 +21,7 @@ using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -598,6 +599,15 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
         if (item.Template.FixedGrade >= 0)
             item.Grade = (byte)item.Template.FixedGrade;
+
+        // Constructors run before the final grade is assigned. Initialize equipment only now,
+        // including synthesis effects for items granted directly at a higher grade by a GM.
+        if (item is EquipItem equipment)
+        {
+            equipment.Durability = equipment.MaxDurability;
+            if (template is EquipItemTemplate { RndAttrCategoryId: > 0 } equipTemplate)
+                ItemEvolving.TopUpAttributes(equipment, equipTemplate.RndAttrCategoryId);
+        }
         item.CreateTime = DateTime.UtcNow;
 
         // The factory deliberately does not arm the template's expiry columns. The delivery paths

@@ -16,6 +16,103 @@ namespace AAEmu.UnitTests.Game.Models.Game.Items;
 public class InventoryMutationTests
 {
     [Test]
+    public async Task SelectiveOpening_RejectsFiveHundredWhenOnlyFiveExist()
+    {
+        var (inventory, _, source) = CreateInventory(5);
+        source.Template.UseSkillId = 42;
+        var persistCalls = 0;
+        var error = SelectiveItemOpening.Open((Character)inventory.Owner, source.Id,
+            new SelectiveItemEffectTemplate
+            {
+                SkillId = 42, Elems = [new() { ItemId = 20, Count = 1 }]
+            }, 500, [1], CreateItemManager().Object, _ => persistCalls++);
+
+        await Assert.That(error).IsEqualTo((AAEmu.Game.Models.Game.ErrorMessageType?)AAEmu.Game.Models.Game.ErrorMessageType.NotEnoughItem);
+        await Assert.That(source.Count).IsEqualTo(5);
+        await Assert.That(persistCalls).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task SelectiveOpening_DatabaseFailureKeepsSourceAndDiscardsAllRewards()
+    {
+        var (inventory, bag, source) = CreateInventory(5);
+        source.Template.UseSkillId = 42;
+        var items = CreateItemManager();
+        var rewardTemplate = new ItemTemplate { Id = 20, MaxCount = 100, FixedGrade = -1 };
+        var reward = new Item(9002, rewardTemplate, 3);
+        items.GetTemplate(20).Returns(rewardTemplate);
+        items.Create(20, 3, 0, true).Returns(reward);
+        var released = false;
+        items.ReleaseId(reward.Id).Callback(() => released = true);
+        IReadOnlyList<ItemPersistenceSnapshot> captured = null;
+        var error = SelectiveItemOpening.Open((Character)inventory.Owner, source.Id,
+            new SelectiveItemEffectTemplate { SkillId = 42, Elems = [new() { ItemId = 20, Count = 1 }] },
+            3, [1], items.Object, snapshots =>
+            {
+                captured = snapshots;
+                throw new InvalidOperationException("Simulated transaction failure");
+            });
+
+        await Assert.That(error).IsEqualTo((AAEmu.Game.Models.Game.ErrorMessageType?)AAEmu.Game.Models.Game.ErrorMessageType.ItemCannotUse);
+        await Assert.That(source.Count).IsEqualTo(5);
+        await Assert.That(bag.Items).HasCount().EqualTo(1);
+        await Assert.That(captured).HasCount().EqualTo(2);
+        await Assert.That(captured[0].Desired.Count).IsEqualTo(2);
+        await Assert.That(captured[1].Desired.Count).IsEqualTo(3);
+        await Assert.That(reward._holdingContainer).IsNull();
+        await Assert.That(released).IsTrue();
+    }
+
+    [Test]
+    public async Task OpeningReward_CanUseTheSlotItsConsumedSourceWillFree()
+    {
+        var (inventory, bag, source) = CreateInventory(5);
+        bag.ContainerSize = 1;
+        source.Slot = 0;
+        bag.UpdateFreeSlotCount();
+        var items = CreateItemManager();
+        var rewardTemplate = new ItemTemplate { Id = 20, MaxCount = 100, FixedGrade = -1 };
+        var reward = new Item(9002, rewardTemplate, 5);
+        items.GetTemplate(20).Returns(rewardTemplate);
+        items.Create(20, 5, 0, true).Returns(reward);
+        using (inventory.AcquireMutation())
+        {
+            var planned = inventory.TryPlanExactBagConsumption(source.Id, 5, out var consumption);
+            await Assert.That(planned).IsTrue();
+            planned = inventory.TryPlanBagAcquisition(items.Object, [new(20, 5, 0)],
+                DateTime.UtcNow, out var acquisition, consumption);
+            await Assert.That(planned).IsTrue();
+            using (acquisition)
+            {
+                var snapshots = acquisition.CapturePersistenceSnapshots();
+                await Assert.That(snapshots[0].Desired.Slot).IsEqualTo(0);
+                await Assert.That(source.Count).IsEqualTo(5);
+                await Assert.That(reward._holdingContainer).IsNull();
+            }
+        }
+    }
+
+    [Test]
+    public async Task SelectiveOpening_FullBagRejectsWholeBatchBeforeSpendingSource()
+    {
+        var (inventory, bag, source) = CreateInventory(5);
+        source.Slot = 0;
+        source.Template.UseSkillId = 42;
+        bag.ContainerSize = 1;
+        bag.UpdateFreeSlotCount();
+        var items = CreateItemManager();
+        items.GetTemplate(20).Returns(new ItemTemplate { Id = 20, MaxCount = 100, FixedGrade = -1 });
+        var persists = 0;
+        var error = SelectiveItemOpening.Open((Character)inventory.Owner, source.Id,
+            new SelectiveItemEffectTemplate { SkillId = 42, Elems = [new() { ItemId = 20, Count = 1 }] },
+            3, [1], items.Object, _ => persists++);
+
+        await Assert.That(error).IsEqualTo((AAEmu.Game.Models.Game.ErrorMessageType?)AAEmu.Game.Models.Game.ErrorMessageType.BagFull);
+        await Assert.That(source.Count).IsEqualTo(5);
+        await Assert.That(persists).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task BagConsumptionPlan_DoesNotMutateUntilCommittedApply()
     {
         var (inventory, _, item) = CreateInventory(itemCount: 5);

@@ -142,7 +142,7 @@ stones / bag room, is refused and leaves the piece alone.
 - `SCItemDetailUpdatedPacket` - and **nothing else carrying the piece** (section 6).
 - `UpdateGearBonuses(null, null)` if the piece is currently worn, since gear bonuses are
   otherwise only summed at equip time.
-- The result packet, plus the run-closing second one on multi-install (section 7).
+- One result packet for each attempted gem; no artificial failure to close the run (section 7).
 - `SCSkillEndedPacket` broadcast.
 
 ---
@@ -159,7 +159,7 @@ parameters:
     item_used_socket        = filled sockets
     item_socketing_cost_mul = 0        // no shipped table carries it, so it stays neutral
 
-cost = formula.Evaluate(parameters)    // NaN or <= 0 -> free
+formula.TryEvaluate(parameters, out cost) // invalid/missing formula rejects the request
 ```
 
 So the price climbs with the gear's level, the gem's level **and** how many sockets are
@@ -209,18 +209,18 @@ arrives in the cast's extra values - a byte for "all", then the count as an int,
 for three shows up as `0x00000300` in the first of the thirteen values:
 
 ```csharp
-requested = (extras.Values[0] >> 8) & 0xFF;
+requested = (uint)extras.Values[0] >> 8 | (uint)extras.Values[1] << 24;
 ```
 
-The tab keeps that tally and **takes no further press while it stands above zero**. A
-successful result takes one off it; only an unsuccessful one clears it outright. One cast
-seats one gem, so a press for several would leave the rest of the tally hanging and the tab
-shut. Closing the run off explicitly hands it straight back:
+Before rolling, the server checks the entire requested batch under the character's inventory
+mutation lock: enough gems in the selected stack, enough sockets, the gem's target level,
+the full labor cost, and the sum of formula 38 evaluated for every following socket.
+Insufficient resources reject the whole request without changing items, money or labor.
 
-```csharp
-if (requested > 1 && result != 0)
-    send SCItemSocketingLunagemResultPacket(0, itemId, gemTemplateId, kind, false);
-```
+One cast performs the requested attempts and sends a real result for each. A failed roll
+ends the run and applies the gem's own fail-break rule. Only attempts actually made cost
+money, labor and gems. The effect owns source consumption, so Skill.ApplyEffectsCore
+must not consume another gem; the labor charge is also idempotent at EndSkill.
 
 ### Why the piece goes out only on the detail packet
 
@@ -263,5 +263,5 @@ it is stored, persisted and shown, and that is the whole of it.
    item.
 8. `kind` is a real field in the result packet; dropping it desynchronises everything after
    it.
-9. A multi-gem press needs the closing `result = 0` packet, or the tab stays shut.
+9. Each batch attempt sends its actual result; never add a synthetic closing failure packet.
 10. Dawnstone is item **327** and is checked by template id, not by any flag.

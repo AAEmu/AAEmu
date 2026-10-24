@@ -25,6 +25,7 @@ public sealed class ItemAcquisitionPlan : IDisposable
     private int _committed;
     private int _applied;
     private int _disposed;
+    private HashSet<Item> _releasedItems = [];
 
     private ItemAcquisitionPlan(Inventory inventory, ItemContainer container, IItemManager itemManager,
         IReadOnlyList<PlannedAcquisition> entries)
@@ -36,7 +37,8 @@ public sealed class ItemAcquisitionPlan : IDisposable
     }
 
     internal static bool TryCreate(Inventory inventory, IItemManager itemManager,
-        IEnumerable<ItemAcquisitionRequest> requests, DateTime utcNow, out ItemAcquisitionPlan plan)
+        IEnumerable<ItemAcquisitionRequest> requests, DateTime utcNow, out ItemAcquisitionPlan plan,
+        ItemConsumptionPlan consumption = null)
     {
         plan = null;
         ArgumentNullException.ThrowIfNull(inventory);
@@ -47,7 +49,13 @@ public sealed class ItemAcquisitionPlan : IDisposable
         var bag = inventory.Bag;
         var entries = new List<PlannedAcquisition>();
         var created = new List<Item>();
-        var reservedSlots = bag.Items.Where(item => item != null).Select(item => item.Slot).ToHashSet();
+        var consumedItems = consumption?.Entries.Select(entry => entry.Item).ToHashSet() ?? [];
+        if (consumption != null && consumption.Entries.Any(entry => !entry.MatchesLiveState(bag)))
+            return false;
+        var releasedItems = consumption?.Entries.Where(entry => entry.RemainingCount == 0)
+            .Select(entry => entry.Item).ToHashSet() ?? [];
+        var reservedSlots = bag.Items.Where(item => item != null && !releasedItems.Contains(item))
+            .Select(item => item.Slot).ToHashSet();
         try
         {
             var normalizedRequests = new List<ItemAcquisitionRequest>();
@@ -74,7 +82,7 @@ public sealed class ItemAcquisitionPlan : IDisposable
                 var grade = request.Grade;
                 var remaining = request.Count;
                 foreach (var item in bag.Items
-                             .Where(item => item != null && item.TemplateId == request.TemplateId && item.Grade == grade &&
+                             .Where(item => item != null && !consumedItems.Contains(item) && item.TemplateId == request.TemplateId && item.Grade == grade &&
                                             item.HasDefaultDetail && item.MadeUnitId == 0)
                              .OrderBy(item => item.Slot).ThenBy(item => item.Id))
                 {
@@ -107,7 +115,7 @@ public sealed class ItemAcquisitionPlan : IDisposable
 
             if (entries.Count == 0)
                 return false;
-            plan = new ItemAcquisitionPlan(inventory, bag, itemManager, entries);
+            plan = new ItemAcquisitionPlan(inventory, bag, itemManager, entries) { _releasedItems = releasedItems };
             created.Clear();
             return true;
         }
@@ -133,6 +141,8 @@ public sealed class ItemAcquisitionPlan : IDisposable
     public ItemAcquisitionPublication ApplyCommitted(ItemTaskType taskType)
     {
         EnsureLease();
+        if (_releasedItems.Any(item => _container.Items.Contains(item)))
+            throw new InvalidOperationException("Apply the committed consumption before reusing its bag slots.");
         if (_snapshots == null)
             throw new InvalidOperationException("Capture and persist this plan before applying it.");
         if (Volatile.Read(ref _committed) == 0)
@@ -173,7 +183,8 @@ public sealed class ItemAcquisitionPlan : IDisposable
 
     private void ValidateLiveState()
     {
-        var occupiedSlots = _container.Items.Where(item => item != null).Select(item => item.Slot).ToHashSet();
+        var occupiedSlots = _container.Items.Where(item => item != null && !_releasedItems.Contains(item))
+            .Select(item => item.Slot).ToHashSet();
         foreach (var entry in _entries)
         {
             if (entry.IsNew)

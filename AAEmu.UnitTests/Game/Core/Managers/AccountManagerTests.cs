@@ -5,6 +5,29 @@ namespace AAEmu.UnitTests.Game.Core.Managers;
 public class AccountManagerTests
 {
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task IdleSweep_KeepsANewHandshakeButClosesAnExpiredConnection(bool expired)
+    {
+        var session = Mock.Of<AAEmu.Commons.Network.Core.ISession>();
+        var closed = false;
+        session.Close().Callback(() => closed = true);
+        var connection = new AAEmu.Game.Core.Network.Connections.GameConnection(session.Object);
+        if (expired)
+            connection.LastPing = DateTime.UtcNow.AddMinutes(-1);
+        var manager = new AccountManager(Mock.Of<ITickManager>().Object, Mock.Of<ITimedRewardsManager>().Object);
+        var accounts = (System.Collections.Concurrent.ConcurrentDictionary<uint,
+            AAEmu.Game.Core.Network.Connections.GameConnection>)typeof(AccountManager)
+            .GetField("_accounts", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(manager)!;
+        accounts[1] = connection;
+        typeof(AccountManager).GetMethod("RemoveDeadConnections",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(manager, [TimeSpan.FromSeconds(30)]);
+        await Assert.That(closed).IsEqualTo(expired);
+    }
+
+    [Test]
     public async Task Constructor_DoesNotCallDeps()
     {
         var mockTick = Mock.Of<ITickManager>();
