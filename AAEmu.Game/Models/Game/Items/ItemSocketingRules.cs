@@ -15,6 +15,46 @@ public static class ItemSocketingRules
     public const int ModeRemove = 0;
     public const int ModeExtract = 2;
 
+    public static int RequestedInstallAttempts(Skills.SkillObject skillObject)
+    {
+        if (skillObject is not Skills.SkillObjectExtraValues extras || extras.Values.Length == 0)
+            return 1;
+        // isAll u8, then an unaligned u32 count. Never truncate a bad count to a byte.
+        var count = (uint)extras.Values[0] >> 8;
+        if (extras.Values.Length > 1)
+            count |= (uint)extras.Values[1] << 24;
+        return count > int.MaxValue ? -1 : (int)count;
+    }
+
+    public static ErrorMessageType? PlanInstallCosts(int attempts, int availableGems, int usedSockets,
+        int socketLimit, Func<uint, long> price, out long[] costs, out long total)
+    {
+        costs = [];
+        total = 0;
+        if (attempts < 1 || usedSockets < 0 || socketLimit > EquipItem.SocketSlots ||
+            attempts > socketLimit - usedSockets)
+            return ErrorMessageType.ItemCannotUse;
+        if (availableGems < attempts)
+            return ErrorMessageType.NotEnoughItem;
+        try
+        {
+            costs = new long[attempts];
+            for (var i = 0; i < attempts; i++)
+            {
+                var cost = price((uint)(usedSockets + i));
+                if (cost < 0)
+                    return ErrorMessageType.ItemCannotUse;
+                costs[i] = cost;
+                total = checked(total + cost);
+            }
+            return null;
+        }
+        catch (OverflowException)
+        {
+            return ErrorMessageType.ItemCannotUse;
+        }
+    }
+
     /// <summary>
     /// Extract (and other socketing) stones must grant the cast skill. A BindOnPickup item that
     /// starts a mismatched skill must not pay the stone cost.

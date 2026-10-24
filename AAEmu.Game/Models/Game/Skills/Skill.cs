@@ -257,6 +257,9 @@ public class Skill
     /// </remarks>
     public int LaborUnits { get; set; } = 1;
 
+    // A batch effect consumes its exact source stack after validating the whole batch.
+    internal bool SourceItemConsumptionHandled { get; set; }
+
     /// <summary>
     /// Multiplier that can be added as an additional modifier to casting times
     /// </summary>
@@ -2461,6 +2464,8 @@ public class Skill
                 foreach (var (item, amount) in consumedItems)
                     if (item?._holdingContainer != null)
                     {
+                        if (SourceItemConsumptionHandled && casterCaster is SkillItem source && item.Id == source.ItemId)
+                            continue;
                         item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
                     }
 

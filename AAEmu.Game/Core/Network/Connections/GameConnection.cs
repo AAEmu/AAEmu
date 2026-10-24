@@ -55,7 +55,8 @@ public class GameConnection
 
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
-    public DateTime LastPing { get; set; }
+    // Allow the handshake to finish before the first client ping arrives.
+    public DateTime LastPing { get; set; } = DateTime.UtcNow;
 
     public GameConnection(ISession session)
     {

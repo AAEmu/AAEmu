@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -36,18 +36,23 @@ public class ItemSocketing : SpecialEffectAction
 
         if (caster is not Character owner)
         {
+            skill.Cancelled = true;
             Logger.Error($"Special effects: ItemSocketing caster {caster.Id} is not a character");
             return;
         }
 
         if (casterObj is not SkillItem gemSkillItem)
         {
+            skill.Cancelled = true;
+            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
             Logger.Error($"Special effects: ItemSocketing casterObj {casterObj} is not a SkillItem");
             return;
         }
 
         if (targetObj is not SkillCastItemTarget skillTargetItem)
         {
+            skill.Cancelled = true;
+            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
             Logger.Error($"Special effects: ItemSocketing targetObj {targetObj} is not a SkillCastItemTarget");
             return;
         }
@@ -58,12 +63,16 @@ public class ItemSocketing : SpecialEffectAction
 
         if (targetItem is null || gemItem is null)
         {
+            skill.Cancelled = true;
+            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
             Logger.Warn($"Special effects: ItemSocketing targetItem {skillTargetItem.Id} or gemItem {gemSkillItem.ItemId} not found in bag/equipment");
             return;
         }
 
         if (targetItem is not EquipItem equipItem)
         {
+            skill.Cancelled = true;
+            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
             Logger.Warn($"Special effects: ItemSocketing targetItem {skillTargetItem.Id} was not a EquipItem");
             return;
         }
@@ -92,17 +101,22 @@ public class ItemSocketing : SpecialEffectAction
     private void InstallGem(Character owner, EquipItem equipItem, Item gemItem, Skill skill,
         SkillObject skillObject)
     {
-        byte result = 0;
-        var gemCount = 0u;
-        foreach (var gem in equipItem.GemIds)
+        using var mutation = owner.Inventory.AcquireMutation();
+        void Refuse(ErrorMessageType error)
         {
-            if (gem != 0)
-                gemCount++;
+            skill.Cancelled = true;
+            owner.SendErrorMessage(error);
+            owner.SendPacket(new SCItemSocketingLunagemResultPacket(0, equipItem.Id,
+                gemItem.TemplateId, KindInstall, false));
         }
-
-        // A piece only has so many sockets, and how many follows its slot and its grade. The
-        // window greys its own button when the run is full, so this only catches a stale window
-        // or a hand-built request.
+        if (!ReferenceEquals(owner.Inventory.Bag.GetItemByItemId(gemItem.Id), gemItem) ||
+            !ReferenceEquals(owner.Inventory.GetItemById(equipItem.Id), equipItem) ||
+            !ItemSocketingRules.IsStoneForSkill(gemItem.Template?.UseSkillId ?? 0, skill.Template.Id))
+        {
+            Refuse(ErrorMessageType.ItemCannotUse);
+            return;
+        }
+        var gemCount = equipItem.GemIds.Count(id => id != 0);
         var slotTypeId = equipItem.Template switch
         {
             WeaponTemplate weapon => weapon.HoldableTemplate?.SlotTypeId ?? 0,
@@ -110,64 +124,83 @@ public class ItemSocketing : SpecialEffectAction
             AccessoryTemplate accessory => accessory.SlotTemplate?.SlotTypeId ?? 0,
             _ => 0u
         };
-
-        if (gemCount >= ItemManager.Instance.GetSocketNumLimit(slotTypeId, equipItem.Grade))
+        var attempts = ItemSocketingRules.RequestedInstallAttempts(skillObject);
+        var error = ItemSocketingRules.PlanInstallCosts(attempts, gemItem.Count, gemCount,
+            (int)Math.Min((uint)EquipItem.SocketSlots,
+                ItemManager.Instance.GetSocketNumLimit(slotTypeId, equipItem.Grade)),
+            used => SocketingCost(equipItem, gemItem, used), out var costs, out var totalCost);
+        if (error.HasValue)
         {
-            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+            Refuse(error.Value);
             return;
         }
-
-        // item_socket_level_limits: a gem may only be seated into a piece of at least its level
-        // (the socket_target_level refusal). Zero, which most gems carry, means no restriction.
         var levelLimit = ItemManager.Instance.GetSocketLevelLimit(gemItem.TemplateId);
         if (levelLimit > 0 && (equipItem.Template?.Level ?? 0) < levelLimit)
         {
-            owner.SendErrorMessage(ErrorMessageType.SocketTargetLevel);
+            Refuse(ErrorMessageType.SocketTargetLevel);
             return;
         }
-
-        // Formula 38 prices the attempt: it climbs with the gear's level, the gem's own level and
-        // how many sockets are already filled. Charged before the roll, so a player who cannot
-        // cover it keeps both their coin and their gem - and a failure that clears the item is
-        // still paid for, the same way a failed regrade is.
-        var socketCost = SocketingCost(equipItem, gemItem, gemCount);
-        if (socketCost > 0)
+        skill.LaborUnits = attempts;
+        if (!skill.CanAffordLabor(owner))
         {
-            if (owner.Money < socketCost)
+            Refuse(ErrorMessageType.NotEnoughLaborPower);
+            return;
+        }
+        if (owner.Money < totalCost)
+        {
+            Refuse(ErrorMessageType.NotEnoughMoney);
+            return;
+        }
+        // Preflight covers the entire request. A genuine failed roll ends the run;
+        // only the attempts actually made are paid and consumed.
+        var gems = ItemSocketingRules.CompactAfterClear(equipItem.GemIds, []);
+        var results = new List<byte>();
+        long paid = 0;
+        for (var i = 0; i < attempts; i++)
+        {
+            paid = checked(paid + costs[i]);
+            var success = Random.Shared.Next(10000) <
+                ItemManager.Instance.GetSocketChance(gemItem.TemplateId, (uint)(gemCount + i));
+            results.Add(success ? (byte)1 : (byte)0);
+            if (success)
+                gems[gemCount + i] = gemItem.TemplateId;
+            else
             {
-                owner.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
-                return;
+                if (ItemManager.Instance.GetSocketFailBreaks(gemItem.TemplateId))
+                    Array.Clear(gems);
+                break;
             }
-
-            owner.SubtractMoney(SlotType.Inventory, socketCost);
         }
-
-        var gemRoll = Random.Shared.Next(0, 10000);
-        var gemChance = ItemManager.Instance.GetSocketChance(gemItem.TemplateId, gemCount);
-
-        if (gemRoll < gemChance)
+        skill.LaborUnits = results.Count;
+        if (!skill.TryConsumeLabor(owner))
         {
-            equipItem.GemIds[gemCount] = gemItem.TemplateId;
-            result = 1;
+            Refuse(ErrorMessageType.NotEnoughLaborPower);
+            return;
         }
-        else if (ItemManager.Instance.GetSocketFailBreaks(gemItem.TemplateId))
-        {
-            // Only the rows that say so take the rest of the piece's gems down with the attempt.
-            for (var i = 0; i < equipItem.GemIds.Length; i++)
-                equipItem.GemIds[i] = 0;
-        }
-
-        Finish(owner, equipItem, gemItem.TemplateId, KindInstall, result != 0, result, skill, skillObject,
-            installedAttempt: true);
+        if (paid > 0 && !owner.SubtractMoney(SlotType.Inventory, paid, ItemTaskType.Socketing))
+            throw new InvalidOperationException("Socketing money changed under the inventory mutation lease.");
+        var consumed = owner.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents,
+            gemItem.TemplateId, results.Count, gemItem);
+        if (consumed != results.Count)
+            throw new InvalidOperationException("Socketing source changed under the inventory mutation lease.");
+        skill.SourceItemConsumptionHandled = true;
+        equipItem.GemIds = gems;
+        equipItem.IsDirty = true;
+        owner.SendPacket(new SCItemDetailUpdatedPacket(equipItem));
+        if (equipItem.SlotType == SlotType.Equipment)
+            owner.UpdateGearBonuses(null, null);
+        foreach (var result in results)
+            owner.SendPacket(new SCItemSocketingLunagemResultPacket(result, equipItem.Id,
+                gemItem.TemplateId, KindInstall, result != 0));
+        Logger.Info("ItemSocketing batch: character={0} item={1} requested={2} attempted={3} gold={4} labor={5}",
+            owner.Id, equipItem.Id, attempts, results.Count, paid, skill.GetLaborCost(owner));
     }
-
     private void RemoveAll(Character owner, EquipItem equipItem, Item stone, Skill skill)
     {
         for (var i = 0; i < equipItem.GemIds.Length; i++)
             equipItem.GemIds[i] = 0;
 
-        Finish(owner, equipItem, stone.TemplateId, KindClear, success: true, result: 1, skill,
-            skillObject: null, installedAttempt: false);
+        Finish(owner, equipItem, stone.TemplateId, KindClear, success: true, result: 1, skill);
     }
 
     private void ExtractGems(Character owner, EquipItem equipItem, Item stone, Skill skill,
@@ -259,8 +292,7 @@ public class ItemSocketing : SpecialEffectAction
             owner.Name, slots.Count, equipItem.Id, stone.TemplateId, string.Join(",", slots),
             returns.Values.Sum(), isAll);
 
-        Finish(owner, equipItem, noticeType, KindClear, success: true, result: 1, skill,
-            skillObject: null, installedAttempt: false);
+        Finish(owner, equipItem, noticeType, KindClear, success: true, result: 1, skill);
     }
 
     /// <summary>
@@ -288,7 +320,7 @@ public class ItemSocketing : SpecialEffectAction
     }
 
     private void Finish(Character owner, EquipItem equipItem, uint type, byte kind, bool success,
-        byte result, Skill skill, SkillObject skillObject, bool installedAttempt)
+        byte result, Skill skill)
     {
         equipItem.IsDirty = true;
 
@@ -302,19 +334,6 @@ public class ItemSocketing : SpecialEffectAction
             owner.UpdateGearBonuses(null, null);
 
         owner.SendPacket(new SCItemSocketingLunagemResultPacket(result, equipItem.Id, type, kind, success));
-
-        // The tab keeps a tally of the run the player asked for and takes no further press while it
-        // stands above zero. A successful result takes one off it; only an unsuccessful one clears
-        // it outright. One cast seats one gem, so a press for several would leave the rest of that
-        // tally hanging and the tab shut - closing the run off here hands it straight back.
-        if (installedAttempt)
-        {
-            var requested = RequestedAttempts(skillObject);
-            if (requested > 1 && result != 0)
-            {
-                owner.SendPacket(new SCItemSocketingLunagemResultPacket(0, equipItem.Id, type, kind, false));
-            }
-        }
 
         owner.BroadcastPacket(new SCSkillEndedPacket(skill.TlId), true);
     }
@@ -336,30 +355,13 @@ public class ItemSocketing : SpecialEffectAction
     }
 
     /// <summary>
-    /// How many gems the tab asked to seat with one press.
-    /// </summary>
-    /// <remarks>
-    /// It sends its spinner along in the cast's extra values - a byte for "all", then the count as
-    /// an int, so a press for three arrives as 0x00000300 in the first of the thirteen. Casts logged
-    /// from the tab carry one through six there and nothing else, which is the range it offers.
-    /// </remarks>
-    private static int RequestedAttempts(SkillObject skillObject)
-    {
-        if (skillObject is not SkillObjectExtraValues extras || extras.Values.Length == 0)
-            return 1;
-
-        var requested = (extras.Values[0] >> 8) & 0xFF;
-        return requested < 1 ? 1 : requested;
-    }
-
-    /// <summary>
     /// Evaluates <c>item_socketing_cost</c> (formula 38) for the socket being filled.
     /// </summary>
     private static long SocketingCost(EquipItem equipItem, Item gemItem, uint usedSockets)
     {
         var formula = FormulaManager.Instance.GetFormula((uint)FormulaKind.ItemSocketingCost);
         if (formula == null)
-            return 0;
+            return -1;
 
         var parameters = new Dictionary<string, double>
         {
@@ -369,10 +371,11 @@ public class ItemSocketing : SpecialEffectAction
             { "item_socketing_cost_mul", 0 }
         };
 
-        var cost = formula.Evaluate(parameters);
-        if (double.IsNaN(cost) || cost <= 0)
-            return 0;
+        if (!formula.TryEvaluate(parameters, out var cost))
+            return -1;
+        if (!double.IsFinite(cost) || cost < 0 || cost >= long.MaxValue)
+            return -1;
 
-        return cost > long.MaxValue ? long.MaxValue : (long)cost;
+        return (long)cost;
     }
 }
