@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Game.Units;
 
@@ -851,6 +852,9 @@ public class ItemContainer
                 Logger.Error($"Failed to add item with ID {templateId}, possible duplicate entries!");
                 return false;
             }
+
+            if (taskType == ItemTaskType.Gm && newItem is EquipItem grantedEquipment)
+                ItemManager.InitializeGrantedSynthesisAttributes(grantedEquipment);
 
             // Add name if marked as crafter (single stack items only)
             if (crafterId > 0 && newItem.Template.MaxCount == 1)
