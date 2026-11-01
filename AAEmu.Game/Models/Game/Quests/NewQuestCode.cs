@@ -84,7 +84,20 @@ public partial class Quest
 
         // Send update to player
         if (!_skipUpdatePacket)
-            Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+        {
+            var cId = ComponentId;
+            // Fill in ComponentId when Step completes
+            if (res)
+            {
+                // TODO: Probably need a special check here for multiple component steps
+                var comps = questStep.Components.Values.FirstOrDefault();
+                if (comps != null)
+                {
+                    cId = comps.Template.Id;
+                }
+            }
+            Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, cId));
+        }
 
         return res;
     }
