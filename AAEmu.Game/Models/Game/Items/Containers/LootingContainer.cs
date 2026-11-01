@@ -215,6 +215,10 @@ public class LootingContainer(IBaseUnit owner)
                     foreach (var singleItemInGroup in selectByGroup)
                     {
                         var item = ItemManager.Instance.Create(singleItemInGroup.itemId, singleItemInGroup.count, singleItemInGroup.grade, false);
+                        // A loot pack can reference an item id that has no template; Create returns null.
+                        // Skip it instead of adding null, otherwise RegisterItems dereferences Item.Id and throws.
+                        if (item == null)
+                            continue;
                         resultsToAdd.Add(item);
                     }
                     RegisterItems(resultsToAdd);
