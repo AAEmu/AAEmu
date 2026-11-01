@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -11,5 +12,7 @@ public class CSStartedCinemaPacket() : GamePacket(CSOffsets.CSStartedCinemaPacke
         // Empty struct
         Logger.Warn("StartedCinema");
         Connection.ActiveChar.Events.OnCinemaStarted(Connection.ActiveChar, new OnCinemaStartedArgs { CinemaId = Connection.ActiveChar.CurrentlyPlayingCinemaId });
+        Connection.ActiveChar.ForceDismount();
+        Connection.ActiveChar.RemoveAndDespawnActiveOwnedMatesSlaves();
     }
 }
