@@ -523,15 +523,19 @@ public class Simulation : Patrol
                     var time = 100.0;
                     if (SkillId > 0)
                     {
-                        npc.UseSkill(SkillId, npc);
-                        var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
-                        if (Timeout > 0)
+                        var skillTemplate = SkillManager.Instance.GetSkillTemplate(SkillId);
+                        if (skillTemplate != null)
                         {
-                            time = Timeout * 1000;
-                        }
-                        else if (useSkill.Template.CastingTime != 0 && useSkill.Template.CooldownTime != 0)
-                        {
-                            time = useSkill.Template.CastingTime + useSkill.Template.CooldownTime;
+                            npc.UseSkill(SkillId, npc);
+                            var useSkill = new Skill(skillTemplate);
+                            if (Timeout > 0)
+                            {
+                                time = Timeout * 1000;
+                            }
+                            else if (useSkill.Template.CastingTime != 0 && useSkill.Template.CooldownTime != 0)
+                            {
+                                time = useSkill.Template.CastingTime + useSkill.Template.CooldownTime;
+                            }
                         }
 
                         SkillId = 0;
@@ -584,15 +588,19 @@ public class Simulation : Patrol
                     var time = 100.0;
                     if (SkillId > 0)
                     {
-                        npc.UseSkill(SkillId, npc);
-                        var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
-                        if (Timeout > 0)
+                        var skillTemplate = SkillManager.Instance.GetSkillTemplate(SkillId);
+                        if (skillTemplate != null)
                         {
-                            time = Timeout * 1000;
-                        }
-                        else if (useSkill.Template.CastingTime != 0 && useSkill.Template.CooldownTime != 0)
-                        {
-                            time = useSkill.Template.CastingTime + useSkill.Template.CooldownTime;
+                            npc.UseSkill(SkillId, npc);
+                            var useSkill = new Skill(skillTemplate);
+                            if (Timeout > 0)
+                            {
+                                time = Timeout * 1000;
+                            }
+                            else if (useSkill.Template.CastingTime != 0 && useSkill.Template.CooldownTime != 0)
+                            {
+                                time = useSkill.Template.CastingTime + useSkill.Template.CooldownTime;
+                            }
                         }
 
                         SkillId = 0;
