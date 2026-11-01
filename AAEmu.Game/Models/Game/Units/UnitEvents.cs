@@ -110,6 +110,7 @@ public class OnItemGroupGatherArgs : EventArgs
 
 public class OnTalkMadeArgs : EventArgs
 {
+    public uint NpcObjId { get; set; }
     public uint QuestId { get; set; } // QuestContextId
     public uint NpcId { get; set; } // Npc.TemplateId
     public uint QuestComponentId { get; set; }

@@ -16,6 +16,13 @@ namespace AAEmu.Game.Models.Game.Quests;
 
 public partial class Quest : PacketMarshaler
 {
+    internal event Action<Quest> Removing;
+
+    internal void NotifyRemoving()
+    {
+        Removing?.Invoke(this);
+    }
+
     private const int MaxObjectiveCount = 5;
     private readonly IQuestManager _questManager;
     private readonly ITaskManager _taskManager;
@@ -290,7 +297,10 @@ public partial class Quest : PacketMarshaler
         {
             if (component.NpcId > 0)
             {
-                var npc = ((Character)Owner).ParentWorld.GetNpcByTemplateId(component.NpcId);
+                var character = (Character)Owner;
+                var npc = character.CurrentTarget is NPChar.Npc target && target.TemplateId == component.NpcId
+                    ? target
+                    : character.ParentWorld.GetNpcByTemplateId(component.NpcId);
                 npc?.SetFaction(FactionsEnum.Monstrosity); // TODO mb Hostile
             }
         }

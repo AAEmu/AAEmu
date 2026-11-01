@@ -133,9 +133,13 @@ public partial class QuestManager
         if (npc == null)
             return;
 
+        if (npc.Encounter != null && !npc.Encounter.CanTalk(sourcePlayer.Id, targetPlayer.Id))
+            return;
+
         // Trigger talk to NPC event
         targetPlayer.Events?.OnTalkMade(targetPlayer, new OnTalkMadeArgs
         {
+            NpcObjId = npcObjId,
             QuestId = questContextId,
             NpcId = npc.TemplateId,
             QuestComponentId = questComponentId,
