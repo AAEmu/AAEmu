@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -6,7 +7,11 @@ namespace AAEmu.Game.Core.Managers;
 
 public interface IQuestManager : ILoadable
 {
+    bool TryAcceptQuest(QuestAcceptance request, Func<QuestAcceptance, bool> accept);
+    void NotifyQuestLoaded(Quest quest);
+    void NotifyQuestRemoved(Quest quest, bool update);
     void FailQuest(ICharacter owner, uint questId);
+    void DoOnMonsterHuntEvents(ICharacter owner, Npc npc);
     bool CheckGroupItem(uint groupId, uint itemId);
     bool CheckGroupNpc(uint groupId, uint npcId);
     List<QuestActTemplate> GetActsInComponent(uint id);

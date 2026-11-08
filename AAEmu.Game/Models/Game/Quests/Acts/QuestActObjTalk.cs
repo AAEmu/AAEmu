@@ -47,6 +47,11 @@ public class QuestActObjTalk(QuestComponentTemplate parentComponent) : QuestActT
             return;
 
         var player = questAct.QuestComponent.Parent.Parent.Owner;
+        if (args.SourcePlayer is Char.Character sourcePlayer &&
+            sourcePlayer.ParentWorld?.GetNpc(args.NpcObjId)?.Encounter is { } encounter &&
+            !encounter.CanTalk(sourcePlayer.Id, player.Id))
+            return;
+
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnTalkMade: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {player.Name} ({player.Id}), NpcId {args.NpcId}, Source {args.SourcePlayer.Name} ({args.SourcePlayer.Id})");
         SetObjective(questAct, 1);
 

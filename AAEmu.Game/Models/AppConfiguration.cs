@@ -30,6 +30,7 @@ public partial class AppConfiguration
     public string DiscordToken { get; set; }
     public ExpeditionConfig Expedition { get; set; }
     public WorldConfig World { get; set; }
+    public NymphQueenEncounterConfig NymphQueenEncounter { get; set; } = new();
     public DungeonsConfig Dungeons { get; set; }
     public Dictionary<string, int> AccessLevel { get; set; } = [];
     public AccountConfig Account { get; set; }
