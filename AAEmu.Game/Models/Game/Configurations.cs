@@ -195,6 +195,10 @@ public class WorldConfig
     /// Level at which a player starts losing exp and durability on death
     /// </summary>
     public int MinimumExpLossLevel { get; set; } = 10;
+
+    public int GladiatorKillScore { get; set; } = 30;
+
+    public int GladiatorAssistScore { get; set; } = 15;
 }
 
 public class DungeonLoadConfig
