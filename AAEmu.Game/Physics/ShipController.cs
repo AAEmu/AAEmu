@@ -66,7 +66,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
         public const float TurnSpeedSlowdownFrac = 0.1f;
         /// <summary>Response rate for smoothing <see cref="Slave.TurnSpeedVelocityMul"/> toward the target (higher = snappier).</summary>
         public const float TurnSpeedVelocityMulResponse = 5.5f;
-        /// <summary>Exponential damping (1/s) for velocity perpendicular to bow in XZ on open water — keeps brief sideways drift after hull impulses without a separate lateral state on <see cref="Slave"/>.</summary>
+        /// <summary>Exponential damping (1/s) for velocity perpendicular to bow in XY on open water — keeps brief sideways drift after hull impulses without a separate lateral state on <see cref="Slave"/>.</summary>
         public const float LateralVelocityDampPerSec = 5f;
         /// <summary>Minimum hull submergence (m) before upright stabilization starts applying torque.</summary>
         public const float UprightStabilizeMinSubmergedMeters = 0.04f;
@@ -179,7 +179,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
         return (x * inv, y * inv);
     }
 
-    /// <summary>Normalized wind direction on water plane (physics XZ = game horizontal X,Y).</summary>
+    /// <summary>Normalized wind direction on water plane (horizontal X,Y).</summary>
     private static (float wx, float wy) GetWindDirNormalized(Slave slave)
     {
         var f = slave.CachedWaterFlow;
@@ -274,20 +274,16 @@ public class ShipController(World world, ShipModelV1 shipModel)
         // Set starting position and rotation
         Hull.Position = initialPosition;
         Hull.Orientation = initialOrientation;
-        // Ship shape
-        // Interpretation:
-        // - MassBoxSizeY = length (forward/back)
-        // - MassBoxSizeX = beam (right/left)
-        // Axis mapping to physics box local axes:
-        // - local +X uses MassBoxSizeX (beam)
-        // - local +Y uses MassBoxSizeZ (height)
-        // - local +Z uses MassBoxSizeY (length)
+        // Ship shape, using the game's axes directly (Z up):
+        // - local +X uses MassBoxSizeX (beam, right/left)
+        // - local +Y uses MassBoxSizeY (length, forward/back; bow faces +Y like the game's front)
+        // - local +Z uses MassBoxSizeZ (height)
         var sizeZ = ShipMassBoxDefaults.GetSizeZ(ShipModel.MassBoxSizeZ);
         var centerZ = ShipMassBoxDefaults.GetCenterZ(ShipModel.MassCenterZ, ShipModel.MassBoxSizeZ);
 
-        var shipBoxShape = new BoxShape(ShipModel.MassBoxSizeX, sizeZ, ShipModel.MassBoxSizeY);
+        var shipBoxShape = new BoxShape(ShipModel.MassBoxSizeX, ShipModel.MassBoxSizeY, sizeZ);
         // Center offset
-        var shipCenterPoint = new TransformedShape(shipBoxShape, new JVector(ShipModel.MassCenterX, centerZ, ShipModel.MassCenterY));
+        var shipCenterPoint = new TransformedShape(shipBoxShape, new JVector(ShipModel.MassCenterX, ShipModel.MassCenterY, centerZ));
         // Add shape
         Hull.AddShape(shipCenterPoint);
         // Set Mass
@@ -328,11 +324,10 @@ public class ShipController(World world, ShipModelV1 shipModel)
         var isGroundedForSpeedCaps = isGrounded || isShallowForCaps;
 
         // Still compute movement direction for stern/bow logic.
-        var rpy0 = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
-        var heading0 = rpy0.Item1 + MathUtil.HalfPi;
+        var heading0 = PhysicsUtil.GetYaw(rigidBody.Orientation) + MathUtil.HalfPi;
         var dirX0 = MathF.Cos(heading0);
-        var dirZ0 = MathF.Sin(heading0);
-        var along0 = rigidBody.Velocity.X * dirX0 + rigidBody.Velocity.Z * dirZ0;
+        var dirY0 = MathF.Sin(heading0);
+        var along0 = rigidBody.Velocity.X * dirX0 + rigidBody.Velocity.Y * dirY0;
         var movingBackward0 = along0 < -0.05f || (MathF.Abs(along0) <= 0.05f && slave.ThrottleRequest < 0);
         var isEscapeInputOnGround = false;
         var escapeThrottleSignOnGround = 0;
@@ -427,8 +422,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
         var throttleNorm = slave.Throttle * 0.00787401575f; // sbyte -> float
         var steeringNorm = slave.Steering * 0.00787401575f; // sbyte -> float
 
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
-        var slaveRotRad = rpy.Item1 + MathUtil.HalfPi; // bow heading in physics XZ; reused for wind + velocity
+        var slaveRotRad = PhysicsUtil.GetYaw(rigidBody.Orientation) + MathUtil.HalfPi; // bow heading in world XY; reused for wind + velocity
 
         // Clamp speed between min and max Velocity (wind: ±15% of max speed when within ±15° of with/against wind)
         var windMul = GetWindSpeedMul(slave, slaveRotRad);
@@ -660,47 +654,48 @@ public class ShipController(World world, ShipModelV1 shipModel)
 
         var forceThrottle = slave.Speed * slave.MoveSpeedMul / 4f * slave.TurnSpeedVelocityMul; // Not sure if correct, but it feels correct
 
-        // Longitudinal speed from Slave.Speed; preserve damped lateral XZ (perpendicular to bow) so hull impulses can briefly show sideways motion.
+        // Longitudinal speed from Slave.Speed; preserve damped lateral XY (perpendicular to bow) so hull impulses can briefly show sideways motion.
         // On land/shore keep the old overwrite-only model (avoids odd sliding while beached).
         var fx = MathF.Cos(slaveRotRad);
-        var fz = MathF.Sin(slaveRotRad);
+        var fy = MathF.Sin(slaveRotRad);
         if (!isGrounded)
         {
             var v = rigidBody.Velocity;
             // Do not zero vertical velocity (lets ships fall off waterfalls),
             // but damp it when submerged to prevent buoyancy oscillations / runaway upward launch.
-            var submergedNow = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);
+            var submergedNow = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Z);
             if (submergedNow > 0.01f)
             {
-                v.Y *= MathF.Exp(-ShipMotionDefaults.WaterVerticalVelocityDampPerSec * MathF.Max(0f, dtSec));
-                v.Y = Math.Clamp(v.Y, -18f, 6f);
+                v.Z *= MathF.Exp(-ShipMotionDefaults.WaterVerticalVelocityDampPerSec * MathF.Max(0f, dtSec));
+                v.Z = Math.Clamp(v.Z, -18f, 6f);
             }
-            var alongDot = v.X * fx + v.Z * fz;
+            var alongDot = v.X * fx + v.Y * fy;
             var perpX = v.X - alongDot * fx;
-            var perpZ = v.Z - alongDot * fz;
+            var perpY = v.Y - alongDot * fy;
             var lateralDamp = MathF.Exp(-ShipMotionDefaults.LateralVelocityDampPerSec * MathF.Max(0f, dtSec));
             rigidBody.Velocity = new JVector(
                 forceThrottle * fx + perpX * lateralDamp,
-                v.Y,
-                forceThrottle * fz + perpZ * lateralDamp);
+                forceThrottle * fy + perpY * lateralDamp,
+                v.Z);
         }
         else
         {
             var v = rigidBody.Velocity;
-            rigidBody.Velocity = new JVector(forceThrottle * fx, v.Y, forceThrottle * fz);
+            rigidBody.Velocity = new JVector(forceThrottle * fx, forceThrottle * fy, v.Z);
         }
 
         var speedToAlongVel = slave.MoveSpeedMul / 4f * MathF.Max(0.001f, slave.TurnSpeedVelocityMul);
-        ShipHarpoonTowPhysics.ApplyTerrainHookTow(slave, rigidBody, dtSec, fx, fz, speedToAlongVel, maxForward, maxBackward);
+        ShipHarpoonTowPhysics.ApplyTerrainHookTow(slave, rigidBody, dtSec, fx, fy, speedToAlongVel, maxForward, maxBackward);
 
         if (!isGrounded)
         {
-            var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);
+            var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Z);
             if (submerged >= ShipMotionDefaults.UprightStabilizeMinSubmergedMeters)
                 ApplyWaterUprightStabilization(rigidBody, dtSec);
         }
 
-        rigidBody.AngularVelocity = new JVector(0, slave.RotSpeed * -1f, 0);
+        // Yaw only, about world up (+Z). RotSpeed > 0 decreases yaw (turns toward +X).
+        rigidBody.AngularVelocity = new JVector(0, 0, slave.RotSpeed * -1f);
 
         //Logger.Debug($"Slave: {slave.Name}, Throttle: {throttleFloatVal:F1} ({slave.ThrottleRequest}), Steering {steeringFloatVal:F1} ({slave.SteeringRequest}), speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}");
     }
@@ -735,7 +730,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
     }
 
     /// <summary>
-    /// Nudges <paramref name="body"/> so local +Y matches world up (shortest path), limited per frame.
+    /// Nudges <paramref name="body"/> so local +Z matches world up (shortest path), limited per frame.
     /// Collision/physics can leave pitch/roll in the quaternion while angular velocity is yaw-only; this corrects that on open water.
     /// </summary>
     private static void ApplyWaterUprightStabilization(RigidBody body, float dtSec)
@@ -745,8 +740,8 @@ public class ShipController(World world, ShipModelV1 shipModel)
 
         var jo = body.Orientation;
         var q = Quaternion.Normalize(new Quaternion(jo.X, jo.Y, jo.Z, jo.W));
-        var bodyUp = Vector3.Transform(Vector3.UnitY, q);
-        var worldUp = Vector3.UnitY;
+        var bodyUp = Vector3.Transform(Vector3.UnitZ, q);
+        var worldUp = Vector3.UnitZ;
 
         var axis = Vector3.Cross(bodyUp, worldUp);
         var lenSq = axis.LengthSquared();
@@ -761,7 +756,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
             {
                 axis = Vector3.Normalize(Vector3.Cross(bodyUp, Vector3.UnitX));
                 if (axis.LengthSquared() < 1e-12f)
-                    axis = Vector3.Normalize(Vector3.Cross(bodyUp, Vector3.UnitZ));
+                    axis = Vector3.Normalize(Vector3.Cross(bodyUp, Vector3.UnitY));
                 angle = MathF.PI;
             }
             else

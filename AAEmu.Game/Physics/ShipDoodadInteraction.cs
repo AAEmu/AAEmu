@@ -18,8 +18,8 @@ namespace AAEmu.Game.Physics;
 /// <summary>
 /// Resolves ship hull vs static-structure doodads (piers, harbor props, etc.). Client meshes are not in the heightmap,
 /// so <see cref="HeightMaps.HeightmapDetection"/> never sees them; retail uses <c>collide_ship</c> / <c>no_collision</c> on doodad templates.
-/// Uses the same XZ OBB SAT convention as <see cref="ShipShipInteraction"/>; obstacle is treated as infinite mass (only the ship moves).
-/// Separation/damping XZ step is shared with cliffs via <see cref="ShipStaticObstacleContact"/>.
+/// Uses the same XY OBB SAT convention as <see cref="ShipShipInteraction"/>; obstacle is treated as infinite mass (only the ship moves).
+/// Separation/damping XY step is shared with cliffs via <see cref="ShipStaticObstacleContact"/>.
 /// </summary>
 public sealed class ShipDoodadInteraction
 {
@@ -42,7 +42,7 @@ public sealed class ShipDoodadInteraction
         public const int MaxPairIterations = 10;
         /// <summary>Ignore overlaps with penetration below this (m) to reduce jitter from marginal contacts.</summary>
         public const float MinPenetrationToAct = 0.05f;
-        /// <summary>Minimum vertical (Jitter Y) AABB overlap (m) between hull and obstacle column before XZ SAT runs.</summary>
+        /// <summary>Minimum vertical (Z) AABB overlap (m) between hull and obstacle column before XY SAT runs.</summary>
         public const float MinVerticalOverlap = 0.12f;
         /// <summary>Multiplier on computed penetration when pushing the ship out along the contact normal.</summary>
         public const float SeparationPushMultiplier = 1.18f;
@@ -115,8 +115,8 @@ public sealed class ShipDoodadInteraction
         var dPy = w.Position.Z;
         var dMinY = dPy - halfH;
         var dMaxY = dPy + halfH;
-        var overlapY = MathF.Min(bbA.Max.Y, dMaxY) - MathF.Max(bbA.Min.Y, dMinY);
-        if (overlapY < DoodadObstacleDefaults.MinVerticalOverlap)
+        var overlapZ = MathF.Min(bbA.Max.Z, dMaxY) - MathF.Max(bbA.Min.Z, dMinY);
+        if (overlapZ < DoodadObstacleDefaults.MinVerticalOverlap)
             return false;
 
         var r = GetObstacleFootprintHalfExtent(doodad);
@@ -124,8 +124,7 @@ public sealed class ShipDoodadInteraction
         var bx = w.Position.X;
         var bz = w.Position.Y;
 
-        var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(body.Orientation));
-        var bowA = rpyA.Item1 + MathUtil.HalfPi;
+        var bowA = PhysicsUtil.GetYaw(body.Orientation) + MathUtil.HalfPi;
 
         var halfLenA = ma.MassBoxSizeY * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateLength;
         var satHalfWidA = ma.MassBoxSizeX * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateBeam *
@@ -135,13 +134,13 @@ public sealed class ShipDoodadInteraction
         for (var iter = 0; iter < DoodadObstacleDefaults.MaxPairIterations; iter++)
         {
             bbA = body.Shapes[0].WorldBoundingBox;
-            overlapY = MathF.Min(bbA.Max.Y, dMaxY) - MathF.Max(bbA.Min.Y, dMinY);
-            if (overlapY < DoodadObstacleDefaults.MinVerticalOverlap)
+            overlapZ = MathF.Min(bbA.Max.Z, dMaxY) - MathF.Max(bbA.Min.Z, dMinY);
+            if (overlapZ < DoodadObstacleDefaults.MinVerticalOverlap)
                 break;
 
-            ShipShipInteraction.GetMassBoxCenterXz(body, ma, ship.Scale, out var ax, out var az);
+            ShipShipInteraction.GetMassBoxCenterXy(body, ma, ship.Scale, out var ax, out var az);
 
-            if (!ShipShipInteraction.TryObbXzMinPenetration(
+            if (!ShipShipInteraction.TryObbXyMinPenetration(
                     ax, az, bowA, halfLenA, satHalfWidA,
                     bx, bz, bowB, r, r,
                     out var penetration,
@@ -164,7 +163,7 @@ public sealed class ShipDoodadInteraction
             }
 
             var move = penetration * DoodadObstacleDefaults.SeparationPushMultiplier + DoodadObstacleDefaults.SeparationSlackMeters;
-            ShipStaticObstacleContact.ApplySeparationAndSurfaceDampXz(
+            ShipStaticObstacleContact.ApplySeparationAndSurfaceDampXy(
                 body,
                 ship,
                 nx,

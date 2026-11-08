@@ -56,7 +56,7 @@ public class Buoyancy : ForceGenerator
     public JVector Flow { get; set; }
 
     private DefineFluidArea _fluidArea;
-    private float WaterSurfaceLevel => FluidBox.Max.Y;
+    private float WaterSurfaceLevel => FluidBox.Max.Z;
 
     /// <summary>
     /// Creates a new instance of the FluidVolume class.
@@ -225,18 +225,18 @@ public class Buoyancy : ForceGenerator
                 waterSurfaceLevel = slave.CachedWaterSurface;
             }
 
-            var depth = waterSurfaceLevel - body.Position.Y;
+            var depth = waterSurfaceLevel - body.Position.Z;
             if (depth <= 0) continue;
 
             ApplyDrag(body, slave.ShipController.ShipModel.MassBoxSizeX, slave.ShipController.ShipModel.MassBoxSizeY, slave.ShipController.ShipModel.MassBoxSizeZ);
             // Calculate submerged depth and buoyancy force
-            var submergedDepth = Math.Max(0, waterSurfaceLevel - body.Position.Y);
+            var submergedDepth = Math.Max(0, waterSurfaceLevel - body.Position.Z);
             var isOnWater = submergedDepth > 0;
 
             if (isOnWater)
             {
                 // Apply buoyancy and drag forces
-                var buoyancyForce = new JVector(0, submergedDepth * body.Mass * Density * ShipWaterDensityMul * 9.81f, 0);
+                var buoyancyForce = new JVector(0, 0, submergedDepth * body.Mass * Density * ShipWaterDensityMul * 9.81f);
                 body.AddForce(buoyancyForce);
 
                 var dragForce = new JVector(-body.Velocity.X * Density, -body.Velocity.Y * Density, -body.Velocity.Z * Density);

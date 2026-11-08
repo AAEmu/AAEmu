@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Physics;
 using AAEmu.Game.Physics.Debug;
 using AAEmu.Game.Physics.Forces;
@@ -85,13 +86,14 @@ public class PhysicsManager
     /// </summary>
     public void Initialize()
     {
+        // The physics world uses the game's axes directly: X = east, Y = north, Z = up.
         _physWorld = new Jitter2.World();
-        _physWorld.Gravity = new JVector(0, -9.81f, 0);
+        _physWorld.Gravity = new JVector(0, 0, -9.81f);
 
         _buoyancy = new Buoyancy(_physWorld) {
             FluidBox = new JBoundingBox(
                 new JVector(0, 0, 0), // Bottom
-                new JVector(SimulationWorld.Template.CellX * WorldManager.CELL_SIZE, SimulationWorld.Template.OceanLevel, SimulationWorld.Template.CellY * WorldManager.CELL_SIZE) // Surface
+                new JVector(SimulationWorld.Template.CellX * WorldManager.CELL_SIZE, SimulationWorld.Template.CellY * WorldManager.CELL_SIZE, SimulationWorld.Template.OceanLevel) // Surface
             )
         };
         _buoyancy.UseOwnFluidArea(CustomWater);
@@ -283,8 +285,7 @@ public class PhysicsManager
                                 var recoilDv = ShipHarpoonRopeController.TickTensionTearAndGetHullRecoilDeltaV(slave, dtSec);
                                 if (slave.RigidBody != null && (recoilDv.X * recoilDv.X + recoilDv.Y * recoilDv.Y) > 1e-8f)
                                 {
-                                    // RigidBody horizontal plane is XZ; rigid-body Z maps to world Y (see AddShip and SyncTransformWithRigidBody).
-                                    _ = new OneShotVelocityKick(_physWorld, slave.RigidBody, new JVector(recoilDv.X, 0f, recoilDv.Y));
+                                    _ = new OneShotVelocityKick(_physWorld, slave.RigidBody, new JVector(recoilDv.X, recoilDv.Y, 0f));
                                 }
                                 _shipShore.ResolveTerrainContacts(slave, physicsTotalDelta, _physWorld);
 
@@ -296,7 +297,7 @@ public class PhysicsManager
                                     if (!groundedNow)
                                     {
                                         var dtFlow = (float)physicsTotalDelta.TotalSeconds;
-                                        slave.RigidBody.Position += new JVector(flowDirection.X * dtFlow, flowDirection.Z * dtFlow, flowDirection.Y * dtFlow);
+                                        slave.RigidBody.Position += new JVector(flowDirection.X * dtFlow, flowDirection.Y * dtFlow, flowDirection.Z * dtFlow);
                                     }
                                 }
                                 shipsThisTick.Add(slave);
@@ -462,18 +463,12 @@ public class PhysicsManager
     {
         var slaveRigidBody = slave.RigidBody;
         var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
-        var yDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
-        var zDelta = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
-        //if (zDelta < -3)
-        //{
-        //    slaveRigidBody.Position = slaveRigidBody.Position with { Y = slave.Transform.World.Position.Z };
-        //    zDelta = 0;
-        //    Logger.Info($"SyncTransformWithRigidBody {slave.Name} -> {SimulationWorld.Name}, _waterLevel={DefaultWaterLevel}, OceanLevel={SimulationWorld.OceanLevel}, slave.Position.Z={slave.Transform.World.Position.Z}");
-        //}
+        var yDelta = slaveRigidBody.Position.Y - slave.Transform.World.Position.Y;
+        var zDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Z;
 
         slave.Transform.Local.Translate(xDelta, yDelta, zDelta);
         var rotation = slaveRigidBody.Orientation;
-        slave.Transform.Local.ApplyFromQuaternion(rotation.X, rotation.Z, rotation.Y, rotation.W);
+        slave.Transform.Local.ApplyFromQuaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
     }
 
     /// <summary>
@@ -489,8 +484,8 @@ public class PhysicsManager
             return;
         }
 
-        var pos = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Z, slave.Transform.World.Position.Y);
-        var rot = JQuaternion.CreateRotationY(slave.Transform.World.Rotation.Z);
+        var pos = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Y, slave.Transform.World.Position.Z);
+        var rot = JQuaternion.CreateRotationZ(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
         var ctrl = new ShipController(_physWorld, shipModel);
@@ -660,7 +655,7 @@ public class PhysicsManager
         if (grounded)
             return 0f;
 
-        var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);
+        var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Z);
         const float submergedForFullAmp = 0.32f;
         var depthMul = Math.Clamp(submerged / submergedForFullAmp, 0f, 1f);
         if (depthMul <= 0f)
@@ -711,19 +706,18 @@ public class PhysicsManager
         var moveType = (ShipMoveType)MoveType.GetType(MoveTypeEnum.Ship);
         moveType.UseSlaveBase(slave);
 
-        // Get current rotation of the ship
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
+        // Current rotation of the ship, in game Euler angles (X = roll about the beam, Y = pitch about the length, Z = yaw)
+        var physRotation = PhysicsUtil.GetGameRotation(rigidBody.Orientation);
 
         // Visual-only bank (ship leans into turns). Applied to replicated rotation, not physics.
-        // Coordinate mapping is legacy: GetSlaveRotationFromDegrees reorders axes, so injecting into rpy.Item2 affects client-side roll.
         var maxBankDeg = ComputeVisualMaxBankDegFromShipModel(slave.ShipController?.ShipModel, slave.Scale);
         const float bankResponse = 7.5f; // higher = snappier
         var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
         var maxBankRad = maxBankDeg.DegToRad();
-        var yawRate = rigidBody.AngularVelocity.Y; // rad/s (see ShipController)
+        var yawRate = rigidBody.AngularVelocity.Z; // rad/s (see ShipController)
         var horizSpeed = MathF.Sqrt(
             rigidBody.Velocity.X * rigidBody.Velocity.X +
-            rigidBody.Velocity.Z * rigidBody.Velocity.Z);
+            rigidBody.Velocity.Y * rigidBody.Velocity.Y);
         var speedFactor = Math.Clamp(horizSpeed / 2.5f, 0f, 1f);
         var targetBank = Math.Clamp(-yawRate * 0.9f, -maxBankRad, maxBankRad) * speedFactor;
         var a = 1f - MathF.Exp(-bankResponse * dt);
@@ -734,7 +728,7 @@ public class PhysicsManager
         var wavePitchRad = ComputeVisualWavePitchOnWater(slave, rigidBody, dt);
 
         // Replication smoothing for clients only; rigid body and transform stay physics-accurate below.
-        // Horizontal (phys X,Z → packet X,Y) uses snappier lambdas; vertical / trim softer; bank softer still (turn lean jitter).
+        // Horizontal (X,Y) uses snappier lambdas; vertical / trim softer; bank softer still (turn lean jitter).
         const float repLambdaHorizFree = 22f;
         const float repLambdaHorizContact = 11f;
         const float repLambdaVertFree = 8f;
@@ -750,11 +744,11 @@ public class PhysicsManager
         var repAlphaB = 1f - MathF.Exp(-repLambdaB * dt);
 
         var tgtX = rigidBody.Position.X;
-        var tgtY = rigidBody.Position.Z;
-        var tgtZ = rigidBody.Position.Y;
+        var tgtY = rigidBody.Position.Y;
+        var tgtZ = rigidBody.Position.Z;
         var tgtVx = rigidBody.Velocity.X;
-        var tgtVy = rigidBody.Velocity.Z;
-        var tgtVz = rigidBody.Velocity.Y;
+        var tgtVy = rigidBody.Velocity.Y;
+        var tgtVz = rigidBody.Velocity.Z;
 
         if (!rep.Seeded)
         {
@@ -780,10 +774,15 @@ public class PhysicsManager
             rep.GroundPitchSmoothed += (slave.GroundPitchAngle - rep.GroundPitchSmoothed) * repAlphaV;
         }
 
-        var bankedRpy = (rpy.Item1, rpy.Item2 + rep.BankSmoothed, rpy.Item3 + rep.GroundPitchSmoothed + wavePitchRad);
-
-        // Physics yaw + euler; bank uses softer λ than vertical/trim.
-        var (rotZ, rotY, rotX) = MathUtil.GetSlaveRotationFromDegrees(bankedRpy.Item1, bankedRpy.Item2, bankedRpy.Item3);
+        // Physics rotation + visual trim: nose pitch (ground contact + waves) about the beam (X), turn bank about the length (Y).
+        var visualRotation = new Vector3(
+            physRotation.X + rep.GroundPitchSmoothed + wavePitchRad,
+            physRotation.Y + rep.BankSmoothed,
+            physRotation.Z);
+        var visualQuat = PositionAndRotation.ToQuaternion(visualRotation);
+        if (visualQuat.W < 0f)
+            visualQuat = Quaternion.Negate(visualQuat); // client rebuilds W as positive
+        var (rotX, rotY, rotZ) = PositionAndRotation.ToRollPitchYawShorts(visualQuat);
         moveType.RotationX = rotX;
         moveType.RotationY = rotY;
         moveType.RotationZ = rotZ;
@@ -793,8 +792,8 @@ public class PhysicsManager
         moveType.Z = rep.PosZ;
 
         moveType.AngVelX = rigidBody.AngularVelocity.X;
-        moveType.AngVelY = rigidBody.AngularVelocity.Z;
-        moveType.AngVelZ = rigidBody.AngularVelocity.Y;
+        moveType.AngVelY = rigidBody.AngularVelocity.Y;
+        moveType.AngVelZ = rigidBody.AngularVelocity.Z;
 
         const int velMultiplier = 2048;
         moveType.VelX = (short)(rep.VelPx * velMultiplier);
@@ -802,15 +801,11 @@ public class PhysicsManager
         moveType.VelZ = (short)(rep.VelPz * velMultiplier);
 
         // Do not allow the body to flip
-        //slave.RigidBody.Orientation = JMatrix.CreateFromYawPitchRoll(rpy.Item1, 0, 0); // TODO: Fix me with proper physics
+        //slave.RigidBody.Orientation = JQuaternion.CreateRotationZ(physRotation.Z); // TODO: Fix me with proper physics
 
         // Apply new Location/Rotation to GameObject
-        slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);
-        slave.Transform.Local.ApplyFromQuaternion(rigidBody.Orientation);
-        slave.Transform.Local.SetRotation(
-            slave.Transform.Local.Rotation.X,
-            slave.Transform.Local.Rotation.Y + rep.BankSmoothed,
-            slave.Transform.Local.Rotation.Z + rep.GroundPitchSmoothed + wavePitchRad);
+        slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Y, rigidBody.Position.Z);
+        slave.Transform.Local.SetRotation(visualRotation.X, visualRotation.Y, visualRotation.Z);
 
         // Send the packet
         slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
@@ -839,7 +834,7 @@ public class PhysicsManager
     /// <returns></returns>
     internal bool CustomWater(ref JVector area)
     {
-        return SimulationWorld?.IsWater(new Vector3(area.X, area.Z, area.Y), out _) ?? area.Y <= (SimulationWorld?.Template.OceanLevel ?? DefaultWaterLevel);
+        return SimulationWorld?.IsWater(new Vector3(area.X, area.Y, area.Z), out _) ?? area.Z <= (SimulationWorld?.Template.OceanLevel ?? DefaultWaterLevel);
     }
 
     /// <summary>

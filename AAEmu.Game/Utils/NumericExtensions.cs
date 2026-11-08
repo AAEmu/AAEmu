@@ -38,35 +38,35 @@ public static class NumericExtensions
     }
 
     /// <summary>
-    /// Converts JVector to System.Numerics.Vector3 (XZY → XYZ)
+    /// Converts JVector to System.Numerics.Vector3. Physics and game share the same axes (Z up).
     /// </summary>
     public static Vector3 ToVector(this JVector val)
     {
-        return new Vector3(val.X, val.Z, val.Y);
+        return new Vector3(val.X, val.Y, val.Z);
     }
 
     /// <summary>
-    /// Converts Vector3 to JVector (XYZ → XZY)
+    /// Converts Vector3 to JVector. Physics and game share the same axes (Z up).
     /// </summary>
     public static JVector ToJVector(this Vector3 val)
     {
-        return new JVector(val.X, val.Z, val.Y);
+        return new JVector(val.X, val.Y, val.Z);
     }
 
     /// <summary>
-    /// Removes height axis from JVector (set Y to zero)
+    /// Removes height axis from JVector (set Z to zero)
     /// </summary>
     public static JVector ToJVectorFix(this JVector val)
     {
-        return new JVector(val.X, 0f, val.Z);
+        return new JVector(val.X, val.Y, 0f);
     }
 
     /// <summary>
-    /// Removes height axis from Vector3 (set Y to zero)
+    /// Removes height axis from Vector3 (set Z to zero)
     /// </summary>
     public static JVector ToVectorFix(this Vector3 val)
     {
-        return new JVector(val.X, 0f, val.Z);
+        return new JVector(val.X, val.Y, 0f);
     }
 
     /// <summary>

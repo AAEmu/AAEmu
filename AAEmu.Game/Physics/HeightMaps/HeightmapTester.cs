@@ -21,7 +21,7 @@ public class HeightmapTester : IDynamicTreeProxy, IRayCastable
             WorldBoundingBox.Max.X - WorldBoundingBox.Min.X,
             WorldBoundingBox.Max.Y - WorldBoundingBox.Min.Y,
             WorldBoundingBox.Max.Z - WorldBoundingBox.Min.Z);
-        (MinIndex, _) = Jitter2.World.RequestId((int)WorldBoxSize.X * (int)WorldBoxSize.Z * 2);
+        (MinIndex, _) = Jitter2.World.RequestId((int)WorldBoxSize.X * (int)WorldBoxSize.Y * 2);
     }
 
     /// <summary>
@@ -80,11 +80,11 @@ public class HeightmapTester : IDynamicTreeProxy, IRayCastable
     /// Gets height at target position (stored data for that world position)
     /// </summary>
     /// <param name="x">nearest X world position to use</param>
-    /// <param name="z">nearest Y world position to use</param>
+    /// <param name="y">nearest Y world position to use</param>
     /// <returns></returns>
-    public float GetHeight(int x, int z)
+    public float GetHeight(int x, int y)
     {
-        return Heightmap?.GetHeight(x, z) ?? 0f;
+        return Heightmap?.GetHeight(x, y) ?? 0f;
     }
 
     /// <summary>
@@ -94,29 +94,30 @@ public class HeightmapTester : IDynamicTreeProxy, IRayCastable
     {
         const float MaxDistance = 100.0f;
 
+        // Walk the horizontal (X, Y) grid; height is on Z (world up).
         var dirX = direction.X;
-        var dirZ = direction.Z;
+        var dirY = direction.Y;
 
-        var len2 = dirX * dirX + dirZ * dirZ;
+        var len2 = dirX * dirX + dirY * dirY;
         var iLen = 1.0f / MathF.Sqrt(len2);
 
         dirX *= iLen;
-        dirZ *= iLen;
+        dirY *= iLen;
 
         var x = (int)Math.Floor(origin.X);
-        var z = (int)Math.Floor(origin.Z);
+        var y = (int)Math.Floor(origin.Y);
 
         var stepX = dirX > 0 ? 1 : -1;
-        var stepZ = dirZ > 0 ? 1 : -1;
+        var stepY = dirY > 0 ? 1 : -1;
 
         var nextX = dirX > 0 ? x + 1 - origin.X : origin.X - x;
-        var nextZ = dirZ > 0 ? z + 1 - origin.Z : origin.Z - z;
+        var nextY = dirY > 0 ? y + 1 - origin.Y : origin.Y - y;
 
         var tMaxX = dirX != 0 ? nextX / Math.Abs(dirX) : float.PositiveInfinity;
-        var tMaxZ = dirZ != 0 ? nextZ / Math.Abs(dirZ) : float.PositiveInfinity;
+        var tMaxY = dirY != 0 ? nextY / Math.Abs(dirY) : float.PositiveInfinity;
 
         var tDeltaX = direction.X != 0 ? 1f / Math.Abs(dirX) : float.PositiveInfinity;
-        var tDeltaZ = direction.Z != 0 ? 1f / Math.Abs(dirZ) : float.PositiveInfinity;
+        var tDeltaY = direction.Y != 0 ? 1f / Math.Abs(dirY) : float.PositiveInfinity;
 
         var t = 0f;
 
@@ -124,17 +125,17 @@ public class HeightmapTester : IDynamicTreeProxy, IRayCastable
         {
             // check if we are out of bounds
             //if (x < 0 || x + 1 >= Heightmap.Width || z < 0 || z + 1 >= Heightmap.Height)
-            if (x < WorldBoundingBox.Min.X || x > WorldBoundingBox.Max.X || WorldBoundingBox.Min.Z < 0 || z > WorldBoundingBox.Max.Z)
+            if (x < WorldBoundingBox.Min.X || x > WorldBoundingBox.Max.X || WorldBoundingBox.Min.Y < 0 || y > WorldBoundingBox.Max.Y)
                 goto continue_walk;
 
-            // check this quad!
-            var a = new JVector(x + 0, GetHeight(x + 0, z + 0), z + 0);
-            var b = new JVector(x + 1, GetHeight(x + 1, z + 0), z + 0);
-            var c = new JVector(x + 1, GetHeight(x + 1, z + 1), z + 1);
-            var d = new JVector(x + 0, GetHeight(x + 0, z + 1), z + 1);
+            // check this quad! (wound so RayCastTriangle's normal points up, +Z)
+            var a = new JVector(x + 0, y + 0, GetHeight(x + 0, y + 0));
+            var b = new JVector(x + 1, y + 0, GetHeight(x + 1, y + 0));
+            var c = new JVector(x + 1, y + 1, GetHeight(x + 1, y + 1));
+            var d = new JVector(x + 0, y + 1, GetHeight(x + 0, y + 1));
 
-            RayCastTriangle(origin, direction, a, b, c, out var normal0, out var lambda0);
-            RayCastTriangle(origin, direction, a, c, d, out var normal1, out var lambda1);
+            RayCastTriangle(origin, direction, a, c, b, out var normal0, out var lambda0);
+            RayCastTriangle(origin, direction, a, d, c, out var normal1, out var lambda1);
 
             if (lambda0 < float.MaxValue || lambda1 < float.MaxValue)
             {
@@ -154,7 +155,7 @@ public class HeightmapTester : IDynamicTreeProxy, IRayCastable
 
             continue_walk:
 
-            if (tMaxX < tMaxZ)
+            if (tMaxX < tMaxY)
             {
                 x += stepX;
                 t = tMaxX;
@@ -162,9 +163,9 @@ public class HeightmapTester : IDynamicTreeProxy, IRayCastable
             }
             else
             {
-                z += stepZ;
-                t = tMaxZ;
-                tMaxZ += tDeltaZ;
+                y += stepY;
+                t = tMaxY;
+                tMaxY += tDeltaY;
             }
         }
 

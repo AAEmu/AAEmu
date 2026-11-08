@@ -36,13 +36,13 @@ public sealed class ShipCliffInteraction
         public const float WallLeadBeyondEmergedProbeMeters = 1.15f;
         /// <summary>Minimum distance (m) along ascent for wall anchor (avoids wall through the hull when rock is very close).</summary>
         public const float WallAlongAscentMinMeters = 3.5f;
-        /// <summary>Vertical half-height (m) of the obstacle column for overlap tests (Jitter Y).</summary>
+        /// <summary>Vertical half-height (m) of the obstacle column for overlap tests (Z).</summary>
         public const float VerticalHalfHeightMeters = 22f;
         /// <summary>Max depenetration iterations per ship per pass — keep low to reduce elastic ping-pong.</summary>
         public const int MaxPairIterations = 3;
         /// <summary>Ignore overlaps with penetration below this (m) to reduce jitter from marginal contacts.</summary>
         public const float MinPenetrationToAct = 0.11f;
-        /// <summary>Minimum vertical (Jitter Y) AABB overlap (m) between hull and virtual wall column before face-normal resolve.</summary>
+        /// <summary>Minimum vertical (Z) AABB overlap (m) between hull and virtual wall column before face-normal resolve.</summary>
         public const float MinVerticalOverlap = 0.12f;
         /// <summary>Max horizontal depenetration step (m) per iteration — cap keeps contact from “popping”.</summary>
         public const float MaxSeparationStepMetersPerIteration = 0.095f;
@@ -122,11 +122,11 @@ public sealed class ShipCliffInteraction
         var body = ship.RigidBody!;
         var ma = ship.ShipController!.ShipModel;
 
-        var waterAtCenter = world.Water.GetWaterSurface(new Vector3(body.Position.X, body.Position.Z, body.Position.Y), out _);
-        if (body.Position.Y > waterAtCenter + CliffObstacleDefaults.AboveWaterlineSkipMeters)
+        var waterAtCenter = world.Water.GetWaterSurface(new Vector3(body.Position.X, body.Position.Y, body.Position.Z), out _);
+        if (body.Position.Z > waterAtCenter + CliffObstacleDefaults.AboveWaterlineSkipMeters)
             return;
 
-        ShipShipInteraction.GetMassBoxCenterXz(body, ma, ship.Scale, out var cx, out var cz);
+        ShipShipInteraction.GetMassBoxCenterXy(body, ma, ship.Scale, out var cx, out var cz);
 
         var d = CliffObstacleDefaults.GradientSampleMeters;
         var hxp = world.GetHeight(cx + d, cz);
@@ -147,7 +147,7 @@ public sealed class ShipCliffInteraction
         var ax = gx * invLen;
         var az = gz * invLen;
 
-        if (!TryGetFirstAboveWaterRockUphillDistance(world, cx, cz, ax, az, body.Position.Y, out var emergedS))
+        if (!TryGetFirstAboveWaterRockUphillDistance(world, cx, cz, ax, az, body.Position.Z, out var emergedS))
             return;
 
         var wallAlong = Math.Clamp(
@@ -157,12 +157,11 @@ public sealed class ShipCliffInteraction
         var bx = cx + ax * wallAlong;
         var bz = cz + az * wallAlong;
         var floorAtWall = world.GetHeight(bx, bz);
-        var waterAtWallPoint = world.Water.GetWaterSurface(new Vector3(bx, bz, body.Position.Y), out _);
+        var waterAtWallPoint = world.Water.GetWaterSurface(new Vector3(bx, bz, body.Position.Z), out _);
         if (floorAtWall < waterAtWallPoint + CliffObstacleDefaults.MinRockHeightAboveWaterMeters)
             return;
 
-        var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(body.Orientation));
-        var bowA = rpyA.Item1 + MathUtil.HalfPi;
+        var bowA = PhysicsUtil.GetYaw(body.Orientation) + MathUtil.HalfPi;
 
         var halfLenA = ma.MassBoxSizeY * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateLength;
         var satHalfWidA = ma.MassBoxSizeX * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateBeam *
@@ -176,18 +175,18 @@ public sealed class ShipCliffInteraction
         for (var iter = 0; iter < CliffObstacleDefaults.MaxPairIterations; iter++)
         {
             var bbA = body.Shapes[0].WorldBoundingBox;
-            var overlapY = MathF.Min(bbA.Max.Y, dMaxY) - MathF.Max(bbA.Min.Y, dMinY);
-            if (overlapY < CliffObstacleDefaults.MinVerticalOverlap)
+            var overlapZ = MathF.Min(bbA.Max.Z, dMaxY) - MathF.Max(bbA.Min.Z, dMinY);
+            if (overlapZ < CliffObstacleDefaults.MinVerticalOverlap)
                 break;
 
-            ShipShipInteraction.GetMassBoxCenterXz(body, ma, ship.Scale, out var acx, out var acz);
+            ShipShipInteraction.GetMassBoxCenterXy(body, ma, ship.Scale, out var acx, out var acz);
 
             // Face normal = uphill (ship → rock). Wall tangent ⊥ n ⇒ projected half-extent on n is only slab thickness.
             var nx = ax;
             var nz = az;
             var cA = acx * nx + acz * nz;
             var cB = bx * nx + bz * nz;
-            var rA = ShipShipInteraction.ProjectObbRadiusXz(halfLenA, satHalfWidA, bowA, nx, nz);
+            var rA = ShipShipInteraction.ProjectObbRadiusXy(halfLenA, satHalfWidA, bowA, nx, nz);
             var penetration = MathF.Min(cA + rA, cB + rB) - MathF.Max(cA - rA, cB - rB);
             if (penetration >= ShipStaticObstacleContact.MinPenetrationMetersForEnvHullDamage)
                 ship.StaticObstacleHullDamageContactActive = true;
@@ -198,7 +197,7 @@ public sealed class ShipCliffInteraction
             var move = (penetration * CliffObstacleDefaults.SeparationPushMultiplier + CliffObstacleDefaults.SeparationSlackMeters)
                 * CliffObstacleDefaults.OverlapResolveFractionPerIteration;
             move = MathF.Min(move, CliffObstacleDefaults.MaxSeparationStepMetersPerIteration);
-            ShipStaticObstacleContact.ApplySeparationAndSurfaceDampXz(
+            ShipStaticObstacleContact.ApplySeparationAndSurfaceDampXy(
                 body,
                 ship,
                 nx,

@@ -79,7 +79,7 @@ public sealed class ShipShoreInteraction
         if (slave.RigidBody == null)
             return;
 
-        var submergedDepth = Math.Max(0, slave.CachedWaterSurface - slave.RigidBody.Position.Y);
+        var submergedDepth = Math.Max(0, slave.CachedWaterSurface - slave.RigidBody.Position.Z);
         var isOnWater = submergedDepth > 0;
         // With Max(0, …), depth is never negative: !isOnWater implies depth == 0.
         var isOnLand = !isOnWater;
@@ -88,7 +88,7 @@ public sealed class ShipShoreInteraction
             return;
 
         var groundFriction = ShorePhysicsDefaults.GroundFriction;
-        var frictionForce = new JVector(-slave.RigidBody.Velocity.X * groundFriction, 0, -slave.RigidBody.Velocity.Z * groundFriction);
+        var frictionForce = new JVector(-slave.RigidBody.Velocity.X * groundFriction, -slave.RigidBody.Velocity.Y * groundFriction, 0);
         slave.RigidBody.AddForce(frictionForce);
 
         var dryDamp = ShorePhysicsDefaults.DryGroundCollisionDamping;
@@ -100,12 +100,13 @@ public sealed class ShipShoreInteraction
             slave.RigidBody.Velocity = JVector.Zero;
             slave.RigidBody.AngularVelocity = JVector.Zero;
 
-            var rollAngle = PhysicsUtil.GetYawPitchRollFromJMatrix(JMatrix.CreateFromQuaternion(slave.RigidBody.Orientation)).Item2;
+            // Roll = rotation about the hull length axis (game rotation Y).
+            var rollAngle = PhysicsUtil.GetGameRotation(slave.RigidBody.Orientation).Y;
             var rollDeadZone = ShorePhysicsDefaults.DryGroundRollDeadZoneRad;
             if (Math.Abs(rollAngle) < rollDeadZone)
             {
                 var rollTorqueMul = ShorePhysicsDefaults.DryGroundRollTorqueMul;
-                var correctionTorque = new JVector(0, 0, -rollAngle * slave.RigidBody.Mass * rollTorqueMul);
+                var correctionTorque = new JVector(0, -rollAngle * slave.RigidBody.Mass * rollTorqueMul, 0);
                 slave.RigidBody.AddForce(correctionTorque);
             }
 
@@ -136,7 +137,6 @@ public sealed class ShipShoreInteraction
     public void UpdateVisualGroundPitch(Slave slave, RigidBody rigidBody, TimeSpan deltaTime)
     {
         var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
 
         var groundPitchMaxDeg = ShorePhysicsDefaults.VisualGroundPitchMaxDeg;
         var groundPitchProbeDistance = ShorePhysicsDefaults.VisualGroundPitchProbeDistance;
@@ -144,11 +144,11 @@ public sealed class ShipShoreInteraction
         var targetGroundPitch = 0f;
         if (slave.ParentWorld != null && (slave.CachedFloorLevel > slave.CachedWaterSurface || slave.GroundContactLatched))
         {
-            var yaw = rpy.Item1 + MathUtil.HalfPi;
+            var yaw = PhysicsUtil.GetYaw(rigidBody.Orientation) + MathUtil.HalfPi;
             var cosYaw = MathF.Cos(yaw);
             var sinYaw = MathF.Sin(yaw);
             var cx = rigidBody.Position.X;
-            var cy = rigidBody.Position.Z;
+            var cy = rigidBody.Position.Y;
             var frontX = cx + cosYaw * groundPitchProbeDistance;
             var frontY = cy + sinYaw * groundPitchProbeDistance;
             var backX = cx - cosYaw * groundPitchProbeDistance;
@@ -194,16 +194,15 @@ public sealed class ShipShoreInteraction
         // This reduces the visible gap when the ship becomes grounded/beached.
         var boatBottomOffsetFrac = ShorePhysicsDefaults.BoatBottomOffsetFracOfSizeZ;
         var hullHeight = MathF.Max(0.01f, slave.ShipController.ShipModel.MassBoxSizeZ * slave.Scale);
-        var boatBottom = slave.RigidBody.Position.Y - hullHeight * boatBottomOffsetFrac;
+        var boatBottom = slave.RigidBody.Position.Z - hullHeight * boatBottomOffsetFrac;
 
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(slave.RigidBody.Orientation));
-        var heading = rpy.Item1 + MathUtil.HalfPi;
+        var heading = PhysicsUtil.GetYaw(slave.RigidBody.Orientation) + MathUtil.HalfPi;
         var dirX = MathF.Cos(heading);
-        var dirZ = MathF.Sin(heading);
+        var dirY = MathF.Sin(heading);
 
         var vX = slave.RigidBody.Velocity.X;
-        var vZ = slave.RigidBody.Velocity.Z;
-        var along = vX * dirX + vZ * dirZ;
+        var vY = slave.RigidBody.Velocity.Y;
+        var along = vX * dirX + vY * dirY;
         var movingBackward = along < -0.05f || (MathF.Abs(along) <= 0.05f && slave.ThrottleRequest < 0);
 
         var useSternProbe = slave.GroundContactLatched ? slave.GroundedByStern : movingBackward;
@@ -218,11 +217,11 @@ public sealed class ShipShoreInteraction
 
         var probeDist = distFromCenterToFace;
         var probeX = slave.RigidBody.Position.X + dirX * probeDist * probeSign;
-        var probeY = slave.RigidBody.Position.Z + dirZ * probeDist * probeSign;
+        var probeY = slave.RigidBody.Position.Y + dirY * probeDist * probeSign;
         var contactFloor = slave.ParentWorld.GetHeight(probeX, probeY);
         var rb = slave.RigidBody;
         var waterAtProbe = slave.ParentWorld.Water.GetWaterSurface(
-            new Vector3(probeX, probeY, rb.Position.Y),
+            new Vector3(probeX, probeY, rb.Position.Z),
             out _);
 
         // WALL/CLIFF logic removed per request.
@@ -256,7 +255,7 @@ public sealed class ShipShoreInteraction
             var v = slave.RigidBody.Velocity;
             var t = 1f - (enterDelta / preShoreBand);
             var damp = 1f - 0.85f * t;
-            slave.RigidBody.Velocity = new JVector(v.X, v.Y * damp, v.Z);
+            slave.RigidBody.Velocity = new JVector(v.X, v.Y, v.Z * damp);
         }
 
         if (!slave.GroundContactLatched)
@@ -273,8 +272,8 @@ public sealed class ShipShoreInteraction
 
         {
             var v = slave.RigidBody.Velocity;
-            if (MathF.Abs(v.Y) > 0.01f)
-                slave.RigidBody.Velocity = new JVector(v.X, 0f, v.Z);
+            if (MathF.Abs(v.Z) > 0.01f)
+                slave.RigidBody.Velocity = new JVector(v.X, v.Y, 0f);
         }
         slave.GroundContactLatchedTime += Math.Max(0f, (float)deltaTime.TotalSeconds);
 
@@ -284,9 +283,9 @@ public sealed class ShipShoreInteraction
 
         // Mass-box center (rigid body origin) above local waterline: stop vertical "pop" from penetration resolve.
         var waterAtCenter = slave.ParentWorld.Water.GetWaterSurface(
-            new Vector3(rb.Position.X, rb.Position.Z, rb.Position.Y),
+            new Vector3(rb.Position.X, rb.Position.Y, rb.Position.Z),
             out _);
-        var centerAboveWaterline = slave.RigidBody.Position.Y > waterAtCenter + 0.001f;
+        var centerAboveWaterline = slave.RigidBody.Position.Z > waterAtCenter + 0.001f;
 
         var penetrationEpsilon = ShorePhysicsDefaults.PenetrationEpsilon;
         var penetrationResponse = ShorePhysicsDefaults.PenetrationResponse;
@@ -297,17 +296,17 @@ public sealed class ShipShoreInteraction
         {
             var a = 1f - MathF.Exp(-penetrationResponse * dt);
             var step = MathF.Min(penetration * a, maxUpStepPerTick);
-            slave.RigidBody.Position += new JVector(0, step, 0);
+            slave.RigidBody.Position += new JVector(0, 0, step);
 
             var v = slave.RigidBody.Velocity;
-            if (MathF.Abs(v.Y) > 0.01f)
-                slave.RigidBody.Velocity = new JVector(v.X, 0f, v.Z);
+            if (MathF.Abs(v.Z) > 0.01f)
+                slave.RigidBody.Velocity = new JVector(v.X, v.Y, 0f);
         }
         else if (centerAboveWaterline)
         {
             var v = slave.RigidBody.Velocity;
-            if (v.Y > 0f)
-                slave.RigidBody.Velocity = new JVector(v.X, 0f, v.Z);
+            if (v.Z > 0f)
+                slave.RigidBody.Velocity = new JVector(v.X, v.Y, 0f);
         }
         var collisionForce = physWorld.Gravity * -1f;
         slave.RigidBody.AddForce(collisionForce);
@@ -325,7 +324,7 @@ public sealed class ShipShoreInteraction
             probeX, probeY, floorSmoothed,
             cliffX, cliffY, cliffFloor,
             boatCenterX: slave.RigidBody.Position.X,
-            boatCenterY: slave.RigidBody.Position.Z,
+            boatCenterY: slave.RigidBody.Position.Y,
             boatBottomZ: boatBottom,
             waterSurfaceZ: waterAtProbe,
             penetrationMeters: penetration);

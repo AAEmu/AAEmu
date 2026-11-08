@@ -44,8 +44,8 @@ public class WorldCell
         CellOffset = new Vector3(CellX * WorldManager.CELL_SIZE, CellY * WorldManager.CELL_SIZE, 0f);
         // Default bounding box
         BoundingBox = new JBoundingBox(
-            new JVector(CellOffset.X, 0f, CellOffset.Y), 
-            new JVector(CellOffset.X + WorldManager.CELL_SIZE, 0f, CellOffset.Y + WorldManager.CELL_SIZE)
+            new JVector(CellOffset.X, CellOffset.Y, 0f), 
+            new JVector(CellOffset.X + WorldManager.CELL_SIZE, CellOffset.Y + WorldManager.CELL_SIZE, 0f)
             );
         BaiLoader = new BaseBaiLoader[4, 4]
         {
@@ -191,8 +191,8 @@ public class WorldCell
 
         // Update bounding box
         BoundingBox = new JBoundingBox(
-            new JVector(CellOffset.X, MinHeight, CellOffset.Y), 
-            new JVector(CellOffset.X + WorldManager.CELL_SIZE, MaxHeight, CellOffset.Y + WorldManager.CELL_SIZE)
+            new JVector(CellOffset.X, CellOffset.Y, MinHeight), 
+            new JVector(CellOffset.X + WorldManager.CELL_SIZE, CellOffset.Y + WorldManager.CELL_SIZE, MaxHeight)
         );
 
         var cellFolder = Path.Combine("game", "worlds", Template.Name, "cells", cellFileName);

@@ -14,7 +14,7 @@ namespace AAEmu.Game.Physics;
 
 /// <summary>
 /// Ship–hull overlap resolution. Server motion overwrites <see cref="RigidBody.Velocity"/> each tick from <see cref="Slave.Speed"/>,
-/// so Jitter contacts do not prevent mesh-deep penetration — we depenetrate in XZ and damp closing speed.
+/// so Jitter contacts do not prevent mesh-deep penetration — we depenetrate in XY and damp closing speed.
 /// SAT overlap uses a tight mass box (near physics hull) so reaction does not start far before visuals meet.
 /// After overlap is detected, separation is scaled up to approximate client mesh extent without enlarging the hit test.
 /// Separation and velocity damping are mass-weighted; see <see cref="ShipShipInteraction.ShipHullPairDefaults.MassPushStrength"/>.
@@ -45,7 +45,7 @@ public sealed class ShipShipInteraction
         public const float ClosingSpeedDamp = 1f;
         /// <summary>Fraction of tangential relative motion removed at full ramp (lower = more slip).</summary>
         public const float TangentialSlipDamp = 0.86f;
-        /// <summary>Minimum vertical (Y) AABB overlap (m) required before attempting XZ SAT (cheap reject).</summary>
+        /// <summary>Minimum vertical (Z) AABB overlap (m) required before attempting XY SAT (cheap reject).</summary>
         public const float MinVerticalOverlap = 0.12f;
         /// <summary>Number of passes over all ship pairs per tick (extra passes help resolve chain overlaps).</summary>
         public const int ResolvePasses = 2;
@@ -77,8 +77,8 @@ public sealed class ShipShipInteraction
 
     /// <summary>
     /// Run after all ships have had <see cref="ShipController.ApplyForceAndTorque"/> for this frame.
-    /// Pair loop is O(N²); <see cref="TryResolvePair"/> cheaply rejects distant hulls via world AABB on XZ before SAT.
-    /// For very large N, add a spatial hash / uniform grid on XZ so only nearby indices are paired.
+    /// Pair loop is O(N²); <see cref="TryResolvePair"/> cheaply rejects distant hulls via world AABB on XY before SAT.
+    /// For very large N, add a spatial hash / uniform grid on XY so only nearby indices are paired.
     /// </summary>
     public void ResolveAllPairs(IReadOnlyList<Slave> ships, TimeSpan deltaTime)
     {
@@ -176,13 +176,11 @@ public sealed class ShipShipInteraction
         if (ma is null || mb is null)
             return;
 
-        var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyA.Orientation));
-        var rpyB = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyB.Orientation));
-        var bowA = rpyA.Item1 + MathUtil.HalfPi;
-        var bowB = rpyB.Item1 + MathUtil.HalfPi;
+        var bowA = PhysicsUtil.GetYaw(bodyA.Orientation) + MathUtil.HalfPi;
+        var bowB = PhysicsUtil.GetYaw(bodyB.Orientation) + MathUtil.HalfPi;
 
-        GetMassBoxCenterXz(bodyA, ma, sa.Scale, out var ax, out var az);
-        GetMassBoxCenterXz(bodyB, mb, sb.Scale, out var bx, out var bz);
+        GetMassBoxCenterXy(bodyA, ma, sa.Scale, out var ax, out var az);
+        GetMassBoxCenterXy(bodyB, mb, sb.Scale, out var bx, out var bz);
 
         var scaledDamage = GetSpeedScaledHullDamagePercent(impactSpeedMps);
         var aHitsWithNose = IsOtherShipInNoseCone(bx - ax, bz - az, bowA);
@@ -230,12 +228,12 @@ public sealed class ShipShipInteraction
         return (int)MathF.Round(f);
     }
 
-    /// <summary>True if world-space AABBs overlap on X and Z (conservative broadphase for hull SAT on XZ).</summary>
-    private static bool HaveWorldAabbOverlapXz(in JBoundingBox bbA, in JBoundingBox bbB)
+    /// <summary>True if world-space AABBs overlap on X and Y (conservative broadphase for hull SAT on XY).</summary>
+    private static bool HaveWorldAabbOverlapXy(in JBoundingBox bbA, in JBoundingBox bbB)
     {
         var ox = MathF.Min(bbA.Max.X, bbB.Max.X) - MathF.Max(bbA.Min.X, bbB.Min.X);
-        var oz = MathF.Min(bbA.Max.Z, bbB.Max.Z) - MathF.Max(bbA.Min.Z, bbB.Min.Z);
-        return ox > 0f && oz > 0f;
+        var oy = MathF.Min(bbA.Max.Y, bbB.Max.Y) - MathF.Max(bbA.Min.Y, bbB.Min.Y);
+        return ox > 0f && oy > 0f;
     }
 
     private static bool TryResolvePair(Slave sa, Slave sb, IReadOnlyList<Slave> allShipsThisTick, out float impactSpeedMps, out float maxPenetration)
@@ -254,17 +252,15 @@ public sealed class ShipShipInteraction
         var skipVelDampFromHarpoon = ShipHarpoonTowPhysics.AreBoatHullsLinkedByEngagedShipHarpoon(sa, sb, allShipsThisTick);
         var bbA = bodyA.Shapes[0].WorldBoundingBox;
         var bbB = bodyB.Shapes[0].WorldBoundingBox;
-        if (!HaveWorldAabbOverlapXz(in bbA, in bbB))
+        if (!HaveWorldAabbOverlapXy(in bbA, in bbB))
             return false;
 
-        var overlapY = MathF.Min(bbA.Max.Y, bbB.Max.Y) - MathF.Max(bbA.Min.Y, bbB.Min.Y);
-        if (overlapY < MinVerticalOverlap)
+        var overlapZ = MathF.Min(bbA.Max.Z, bbB.Max.Z) - MathF.Max(bbA.Min.Z, bbB.Min.Z);
+        if (overlapZ < MinVerticalOverlap)
             return false;
 
-        var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyA.Orientation));
-        var rpyB = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyB.Orientation));
-        var bowA = rpyA.Item1 + MathUtil.HalfPi;
-        var bowB = rpyB.Item1 + MathUtil.HalfPi;
+        var bowA = PhysicsUtil.GetYaw(bodyA.Orientation) + MathUtil.HalfPi;
+        var bowB = PhysicsUtil.GetYaw(bodyB.Orientation) + MathUtil.HalfPi;
 
         // Interpretation:
         // - MassBoxSizeY = length (forward/back)
@@ -279,17 +275,17 @@ public sealed class ShipShipInteraction
         {
             bbA = bodyA.Shapes[0].WorldBoundingBox;
             bbB = bodyB.Shapes[0].WorldBoundingBox;
-            if (!HaveWorldAabbOverlapXz(in bbA, in bbB))
+            if (!HaveWorldAabbOverlapXy(in bbA, in bbB))
                 break;
 
-            overlapY = MathF.Min(bbA.Max.Y, bbB.Max.Y) - MathF.Max(bbA.Min.Y, bbB.Min.Y);
-            if (overlapY < MinVerticalOverlap)
+            overlapZ = MathF.Min(bbA.Max.Z, bbB.Max.Z) - MathF.Max(bbA.Min.Z, bbB.Min.Z);
+            if (overlapZ < MinVerticalOverlap)
                 break;
 
-            GetMassBoxCenterXz(bodyA, ma, sa.Scale, out ax, out az);
-            GetMassBoxCenterXz(bodyB, mb, sb.Scale, out bx, out bz);
+            GetMassBoxCenterXy(bodyA, ma, sa.Scale, out ax, out az);
+            GetMassBoxCenterXy(bodyB, mb, sb.Scale, out bx, out bz);
 
-            if (!TryObbXzMinPenetration(
+            if (!TryObbXyMinPenetration(
                     ax, az, bowA, halfLenA, satHalfWidA,
                     bx, bz, bowB, halfLenB, satHalfWidB,
                     out penetration,
@@ -322,17 +318,17 @@ public sealed class ShipShipInteraction
 
             var va = bodyA.Velocity;
             var vb = bodyB.Velocity;
-            var relAlongN = (va.X - vb.X) * nx + (va.Z - vb.Z) * nz;
+            var relAlongN = (va.X - vb.X) * nx + (va.Y - vb.Y) * nz;
             peakImpactSpeedMps = Math.Max(peakImpactSpeedMps, MathF.Abs(relAlongN));
 
             GetPairMassWeights(bodyA.Mass, bodyB.Mass, out var wA, out var wB);
             var moveA = 2f * move * wA;
             var moveB = 2f * move * wB;
-            bodyA.Position -= new JVector(nx * moveA, 0f, nz * moveA);
-            bodyB.Position += new JVector(nx * moveB, 0f, nz * moveB);
+            bodyA.Position -= new JVector(nx * moveA, nz * moveA, 0f);
+            bodyB.Position += new JVector(nx * moveB, nz * moveB, 0f);
             hadResponse = true;
 
-            // Harpoon ship–ship tow relies on coordinated XZ velocity; overlap SAT is common — damping would zero it each tick.
+            // Harpoon ship–ship tow relies on coordinated XY velocity; overlap SAT is common — damping would zero it each tick.
             if (!skipVelDampFromHarpoon)
                 DampPairVelocities(bodyA, bodyB, nx, nz, penetration, wA, wB);
 
@@ -358,24 +354,24 @@ public sealed class ShipShipInteraction
         var va = bodyA.Velocity;
         var vb = bodyB.Velocity;
 
-        var closing = (va.X - vb.X) * nx + (va.Z - vb.Z) * nz;
+        var closing = (va.X - vb.X) * nx + (va.Y - vb.Y) * nz;
         if (closing > 0f)
         {
             var removeA = closing * weightA * ClosingSpeedDamp;
             var removeB = closing * weightB * ClosingSpeedDamp;
-            va = new JVector(va.X - nx * removeA, va.Y, va.Z - nz * removeA);
-            vb = new JVector(vb.X + nx * removeB, vb.Y, vb.Z + nz * removeB);
+            va = new JVector(va.X - nx * removeA, va.Y - nz * removeA, va.Z);
+            vb = new JVector(vb.X + nx * removeB, vb.Y + nz * removeB, vb.Z);
         }
 
         var tangentialBlend = Math.Clamp((penetrationDepth - MinPenetrationToAct) / TangentialRampDepthMeters, 0f, 1f);
         var tx = -nz;
         var tz = nx;
-        var relT = (va.X - vb.X) * tx + (va.Z - vb.Z) * tz;
+        var relT = (va.X - vb.X) * tx + (va.Y - vb.Y) * tz;
         var slipK = (1f - TangentialSlipDamp) * tangentialBlend;
         var slipA = relT * weightA * slipK;
         var slipB = relT * weightB * slipK;
-        va = new JVector(va.X - tx * slipA, va.Y, va.Z - tz * slipA);
-        vb = new JVector(vb.X + tx * slipB, vb.Y, vb.Z + tz * slipB);
+        va = new JVector(va.X - tx * slipA, va.Y - tz * slipA, va.Z);
+        vb = new JVector(vb.X + tx * slipB, vb.Y + tz * slipB, vb.Z);
 
         bodyA.Velocity = va;
         bodyB.Velocity = vb;
@@ -404,8 +400,8 @@ public sealed class ShipShipInteraction
         weightB = 1f - weightA;
     }
 
-    /// <summary>2D SAT on XZ for rectangles aligned with ship bow (same convention as <see cref="ShipController"/>).</summary>
-    internal static bool TryObbXzMinPenetration(
+    /// <summary>2D SAT on XY for rectangles aligned with ship bow (same convention as <see cref="ShipController"/>).</summary>
+    internal static bool TryObbXyMinPenetration(
         float ax, float az, float bowA, float halfLenA, float halfWidA,
         float bx, float bz, float bowB, float halfLenB, float halfWidB,
         out float minPenetration,
@@ -437,8 +433,8 @@ public sealed class ShipShipInteraction
 
             var cA = ax * nx + az * nz;
             var cB = bx * nx + bz * nz;
-            var rA = ProjectObbRadiusXz(halfLenA, halfWidA, bowA, nx, nz);
-            var rB = ProjectObbRadiusXz(halfLenB, halfWidB, bowB, nx, nz);
+            var rA = ProjectObbRadiusXy(halfLenA, halfWidA, bowA, nx, nz);
+            var rB = ProjectObbRadiusXy(halfLenB, halfWidB, bowB, nx, nz);
 
             var overlap = MathF.Min(cA + rA, cB + rB) - MathF.Max(cA - rA, cB - rB);
             if (overlap <= 0f)
@@ -460,20 +456,20 @@ public sealed class ShipShipInteraction
         return true;
     }
 
-    internal static float ProjectObbRadiusXz(float halfLen, float halfWid, float bow, float nx, float nz)
+    internal static float ProjectObbRadiusXy(float halfLen, float halfWid, float bow, float nx, float nz)
     {
         var d1 = MathF.Cos(bow) * nx + MathF.Sin(bow) * nz;
         var d2 = -MathF.Sin(bow) * nx + MathF.Cos(bow) * nz;
         return halfLen * MathF.Abs(d1) + halfWid * MathF.Abs(d2);
     }
 
-    /// <summary>World XZ of mass-box center (matches <see cref="ShipController"/> TransformedShape offset).</summary>
-    internal static void GetMassBoxCenterXz(RigidBody body, ShipModelV1 model, float scale, out float cx, out float cz)
+    /// <summary>World XY of mass-box center (matches <see cref="ShipController"/> TransformedShape offset).</summary>
+    internal static void GetMassBoxCenterXy(RigidBody body, ShipModelV1 model, float scale, out float cx, out float cz)
     {
-        var local = new JVector(model.MassCenterX * scale, model.MassCenterZ * scale, model.MassCenterY * scale);
+        var local = new JVector(model.MassCenterX * scale, model.MassCenterY * scale, model.MassCenterZ * scale);
         var w = RotateVectorByQuaternion(local, body.Orientation);
         cx = body.Position.X + w.X;
-        cz = body.Position.Z + w.Z;
+        cz = body.Position.Y + w.Y;
     }
 
     private static JVector RotateVectorByQuaternion(JVector v, JQuaternion q)
@@ -502,9 +498,8 @@ public sealed class ShipShipInteraction
         if (rb is null)
             return;
 
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
-        var bow = rpy.Item1 + MathUtil.HalfPi;
-        var alongPhys = rb.Velocity.X * MathF.Cos(bow) + rb.Velocity.Z * MathF.Sin(bow);
+        var bow = PhysicsUtil.GetYaw(rb.Orientation) + MathUtil.HalfPi;
+        var alongPhys = rb.Velocity.X * MathF.Cos(bow) + rb.Velocity.Y * MathF.Sin(bow);
         var denom = (slave.MoveSpeedMul / 4f) * slave.TurnSpeedVelocityMul;
         if (denom < 1e-5f)
             return;

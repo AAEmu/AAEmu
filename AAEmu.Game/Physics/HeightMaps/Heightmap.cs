@@ -10,12 +10,12 @@ public class Heightmap(float[,] heights)
     public float MinHeight { get; } = heights.Cast<float>().Min();
     public float MaxHeight { get; } = heights.Cast<float>().Max();
 
-    public float GetHeight(int x, int z) => RawHeights[x / 2, z / 2];
+    public float GetHeight(int x, int y) => RawHeights[x / 2, y / 2];
 
     public JBoundingBox GetBoundingBox()
     {
-        var min = new JVector(0, MinHeight, 0);
-        var max = new JVector(Width - 1, MaxHeight, Height - 1);
+        var min = new JVector(0, 0, MinHeight);
+        var max = new JVector(Width - 1, Height - 1, MaxHeight);
         return new JBoundingBox(min, max);
     }
 }
