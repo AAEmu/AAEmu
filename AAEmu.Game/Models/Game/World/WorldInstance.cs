@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Numerics;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;

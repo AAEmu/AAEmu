@@ -1,11 +1,11 @@
 ﻿using System.IO;
-using System.Numerics;
 using AAEmu.Commons.Exceptions;
 using NLog;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.CryEngine.Readers;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Loaders;
 
@@ -232,11 +232,11 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
             return ClientFileManager.GetFilesInDirectory(rootFolder, searchPattern, true).ToArray();
         }
 
-        Vector3 GetTargetOffsetByZoneOrPath(uint zoneKey, uint pathBlockX, uint pathBlockY)
+        JVector GetTargetOffsetByZoneOrPath(uint zoneKey, uint pathBlockX, uint pathBlockY)
         {
             if (zoneKey == 0 || !ParentWorldTemplate.XmlWorld.Zones.TryGetValue(zoneKey, out var xmlWorldZone))
-                return new Vector3(pathBlockX * 256f, pathBlockY * 256f, 0f);
-            return new Vector3(xmlWorldZone.OriginX * 1024f, xmlWorldZone.OriginY * 1024f, 0f);
+                return new JVector(pathBlockX * 256f, pathBlockY * 256f, 0f);
+            return new JVector(xmlWorldZone.OriginX * 1024f, xmlWorldZone.OriginY * 1024f, 0f);
         }
     }
 
@@ -261,7 +261,7 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
 
     public void InvalidateNavEdgeIndex() => _navEdgeIndex = null;
 
-    public NodeDescriptor FindClosestNetMissionNode(Vector3 pos)
+    public NodeDescriptor FindClosestNetMissionNode(JVector pos)
     {
         NodeDescriptor nearestNode = null;
         var nearestDistance = float.MaxValue;

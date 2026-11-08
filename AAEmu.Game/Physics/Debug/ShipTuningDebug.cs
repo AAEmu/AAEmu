@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Collections.Concurrent;
-using System.Numerics;
 
 using AAEmu.Game.Physics;
 using AAEmu.Game.Utils;
@@ -399,9 +398,9 @@ public static class ShipTuningDebug
         var hyE = geo.Hy + extra;
 
         // +Length / +Beam / +Up: local +Y / +X / +Z of physics box (see ShipController.Build).
-        var posLen = geo.ToWorld(new JVector(0f, hyE, 0f)).ToVector();
-        var posBeam = geo.ToWorld(new JVector(hxE, 0f, 0f)).ToVector();
-        var posUp = geo.ToWorld(new JVector(0f, 0f, hzE)).ToVector();
+        var posLen = geo.ToWorld(new JVector(0f, hyE, 0f));
+        var posBeam = geo.ToWorld(new JVector(hxE, 0f, 0f));
+        var posUp = geo.ToWorld(new JVector(0f, 0f, hzE));
 
         Span<JVector> cornerScratch = stackalloc JVector[MassBoxCornerCount];
         GetMassBoxWorldVerticalExtent(in geo, cornerScratch, out var minZ, out var maxZ);
@@ -480,7 +479,7 @@ public static class ShipTuningDebug
         FillMassBoxLocalCornersGame(geo.Hx, geo.Hy, geo.Hz, localCorners);
         for (var i = 0; i < MassBoxCornerCount; i++)
         {
-            var posGame = geo.ToWorld(localCorners[i]).ToVector();
+            var posGame = geo.ToWorld(localCorners[i]);
             UpdateMarker(ship.ParentWorld, set, i, templateId, zoneId, posGame);
         }
     }

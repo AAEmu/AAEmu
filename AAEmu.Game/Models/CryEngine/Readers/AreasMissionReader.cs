@@ -1,9 +1,9 @@
 ﻿using System.Collections.Concurrent;
-using System.Numerics;
 using NLog;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Models.CryEngine.Mission;
 using AAEmuGeoData.Scripts.CryEngine.Mission;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
@@ -18,7 +18,7 @@ public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiRe
     public List<AiShape> ForbiddenBoundariesList { get; } = [];
     public List<AiShape> ExtraLinkCostsList { get; } = [];
     public List<PolygonArea> DesignerPathsList { get; } = [];
-    public List<Vector3> Points { get; } = [];
+    public List<JVector> Points { get; } = [];
 
     // Helpers to remove duplicates
     public static ConcurrentBag<string> UsedAreaNames { get; set; } = [];

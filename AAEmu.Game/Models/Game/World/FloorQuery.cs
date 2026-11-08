@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using AAEmu.Game.Models;
 
 using NLog;

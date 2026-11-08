@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Numerics;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using Jitter2.LinearMath;

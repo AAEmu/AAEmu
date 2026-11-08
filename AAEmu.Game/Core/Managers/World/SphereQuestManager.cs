@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Numerics;
 using AAEmu.Game.GameData;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Char;

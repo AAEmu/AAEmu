@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.Utils;

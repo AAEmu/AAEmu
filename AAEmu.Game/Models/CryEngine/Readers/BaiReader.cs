@@ -2,6 +2,7 @@
 using System.Text;
 using NLog;
 using AAEmu.Commons.Exceptions;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
@@ -16,7 +17,7 @@ public abstract class BaiReader // : IDisposable
     /// <summary>
     /// This Vector3 gets added to every point read
     /// </summary>
-    public Vector3 ReaderPointOffset { get; set; } = Vector3.Zero;
+    public JVector ReaderPointOffset { get; set; } = JVector.Zero;
 
     public static bool IgnoreDuplicateAreaNames { get; set; } = true;
 
@@ -73,15 +74,15 @@ public abstract class BaiReader // : IDisposable
     /// Reads 3 singles as a Vector3 and adds the ReaderPointOffset and returns the result
     /// </summary>
     /// <returns></returns>
-    protected Vector3 ReadVector3(bool doNotAddOffset = false)
+    protected JVector ReadVector3(bool doNotAddOffset = false)
     {
         if (Reader == null)
-            return Vector3.Zero;
-        var v3 = new Vector3(Reader.ReadSingle(), Reader.ReadSingle(), Reader.ReadSingle());
+            return JVector.Zero;
+        var v3 = new JVector(Reader.ReadSingle(), Reader.ReadSingle(), Reader.ReadSingle());
         return doNotAddOffset ? v3 : v3 + ReaderPointOffset;
     }
 
-    protected void ReadPoints(List<Vector3> points)
+    protected void ReadPoints(List<JVector> points)
     {
         points.Clear();
         if (Reader == null)

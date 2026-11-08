@@ -825,7 +825,7 @@ public class PhysicsManager
     /// <returns></returns>
     internal bool CustomWater(ref JVector area)
     {
-        return SimulationWorld?.IsWater(area.ToVector(), out _) ?? area.Z <= (SimulationWorld?.Template.OceanLevel ?? DefaultWaterLevel);
+        return SimulationWorld?.IsWater(area, out _) ?? area.Z <= (SimulationWorld?.Template.OceanLevel ?? DefaultWaterLevel);
     }
 
     /// <summary>

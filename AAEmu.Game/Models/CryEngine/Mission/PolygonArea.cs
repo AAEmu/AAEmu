@@ -1,11 +1,12 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Models.CryEngine.Mission;
+using Jitter2.LinearMath;
 
 namespace AAEmuGeoData.Scripts.CryEngine.Mission;
 
 public class PolygonArea(uint zoneId) : AAEmu.Game.Models.CryEngine.Mission.Mission(zoneId)
 {
-    public List<Vector3> Points { get; set; } = [];
+    public List<JVector> Points { get; set; } = [];
     public NavigationType NavigationType { get; set; } = NavigationType.Unset;
     public int Type { get; set; }
     public double Height { get; set; }

@@ -1,4 +1,3 @@
-using System.Numerics;
 using Jitter2.LinearMath;
 using AAEmu.Game.Utils;
 

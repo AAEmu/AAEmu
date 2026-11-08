@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Numerics;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Utils;
 using Jitter2.LinearMath;

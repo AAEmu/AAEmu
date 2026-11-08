@@ -48,7 +48,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         return false;
     }
 
-    private static bool IsInPolygon(JVector point, List<Vector3> polygon)
+    private static bool IsInPolygon(JVector point, List<JVector> polygon)
     {
         var result = false;
         var a = polygon.Last();

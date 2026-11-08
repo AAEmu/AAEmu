@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using Jitter2.LinearMath;

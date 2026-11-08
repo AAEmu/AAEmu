@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.CryEngine.Loaders;
 using Jitter2.LinearMath;

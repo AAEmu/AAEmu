@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Models.CryEngine.Readers;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
@@ -7,9 +8,9 @@ public class NodeDescriptor(NetMissionReader netMission)
 {
     public NetMissionReader NetMission { get; } = netMission;
     public int Id { get; set; }
-    public Vector3 Dir { get; set; } = Vector3.Zero;
-    public Vector3 Up { get; set; } = Vector3.UnitZ;
-    public Vector3 Pos { get; set; } = Vector3.Zero;
+    public JVector Dir { get; set; } = JVector.Zero;
+    public JVector Up { get; set; } = JVector.UnitZ;
+    public JVector Pos { get; set; } = JVector.Zero;
     public int Index { get; set; }
     public int[] Obstacle { get; set; } = [];
     public byte Type { get; set; }

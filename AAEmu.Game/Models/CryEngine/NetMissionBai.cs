@@ -1,12 +1,12 @@
-using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine;
 
 public class NetMissionBai
 {
     public int Version { get; set; }
-    public Vector3 Minimum { get; set; } = Vector3.Zero;
-    public Vector3 Maximum { get; set; } = Vector3.Zero;
+    public JVector Minimum { get; set; } = JVector.Zero;
+    public JVector Maximum { get; set; } = JVector.Zero;
     public int NodeCount { get; set; }
     public List<NetMissionNode> Nodes { get; set; } = [];
     public int EdgesCount { get; set; }
@@ -17,8 +17,8 @@ public class NetMissionBai
     {
         Version = br.ReadInt32();
 
-        Minimum = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
-        Maximum = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+        Minimum = new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+        Maximum = new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
 
         NodeCount = br.ReadInt32();
         Nodes.Clear();
@@ -57,9 +57,9 @@ public class NetMissionNode
     public uint Id { get; set; }
     // public byte[] Unknown24; // 24 bytes
 
-    public Vector3 Direction { get; set; } = Vector3.Zero;
-    public Vector3 Up { get; set; } = Vector3.Zero;
-    public Vector3 Position { get; set; } = Vector3.Zero;
+    public JVector Direction { get; set; } = JVector.Zero;
+    public JVector Up { get; set; } = JVector.Zero;
+    public JVector Position { get; set; } = JVector.Zero;
 
     public int Index { get; set; }
     public int Obstacles0 { get; set; }
@@ -74,9 +74,9 @@ public class NetMissionNode
     public void Parse(BinaryReader br)
     {
         Id = br.ReadUInt32();
-        Direction = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
-        Up = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
-        Position = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+        Direction = new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+        Up = new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+        Position = new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
         Index = br.ReadInt32();
         Obstacles0 = br.ReadInt32();
         Obstacles1 = br.ReadInt32();
@@ -91,7 +91,7 @@ public class NetMissionEdge
 {
     public uint FromId { get; set; }
     public uint ToId { get; set; }
-    public Vector3 Position { get; set; } = Vector3.Zero;
+    public JVector Position { get; set; } = JVector.Zero;
     public float MaxPassRadius { get; set; }
     public float Exposure { get; set; }
     public float Length { get; set; }
@@ -106,7 +106,7 @@ public class NetMissionEdge
     {
         FromId = br.ReadUInt32();
         ToId = br.ReadUInt32();
-        Position = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+        Position = new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
         MaxPassRadius = br.ReadSingle();
         Exposure = br.ReadSingle();
         Length = br.ReadSingle();

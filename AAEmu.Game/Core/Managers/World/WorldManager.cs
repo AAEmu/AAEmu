@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.Exceptions;

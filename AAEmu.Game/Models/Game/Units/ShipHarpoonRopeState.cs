@@ -1,5 +1,4 @@
 using System;
-using System.Numerics;
 using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units;

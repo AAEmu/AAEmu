@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;

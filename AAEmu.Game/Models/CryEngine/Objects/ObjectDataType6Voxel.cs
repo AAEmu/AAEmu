@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.IO.Compression;
-using System.Numerics;
 using CgfConverter.Structs;
+using Jitter2.LinearMath;
 
 #nullable enable
 
@@ -12,8 +12,8 @@ public class ObjectDataType6Voxel() : ObjectDataBase(ObjectDataType.Voxel)
     public List<byte[]> ChunkData { get; set; } = [];
 
     // Main Header
-    public Vector3 BoundingBoxMin { get; set; }
-    public Vector3 BoundingBoxMax { get; set; }
+    public JVector BoundingBoxMin { get; set; }
+    public JVector BoundingBoxMax { get; set; }
     public int UnknownPadding1 { get; set; }
     public float CullDistance { get; set; }
     public int BitMask { get; set; }
@@ -47,7 +47,7 @@ public class ObjectDataType6Voxel() : ObjectDataBase(ObjectDataType.Voxel)
     public VoxelMeshReader? MeshReader { get; private set; }
     public VoxelMeshProcessor? MeshProcessor { get; private set; }
 
-    public bool Contains(Vector3 point, bool ignoreZ = false)
+    public bool Contains(JVector point, bool ignoreZ = false)
     {
         return point.X >= BoundingBoxMin.X && point.X <= BoundingBoxMax.X &&
                point.Y >= BoundingBoxMin.Y && point.Y <= BoundingBoxMax.Y &&
@@ -99,8 +99,8 @@ public class ObjectDataType6Voxel() : ObjectDataBase(ObjectDataType.Voxel)
                 return 0;
             }
 
-            BoundingBoxMin = new Vector3(BitConverter.ToSingle(Data, currentOffset), BitConverter.ToSingle(Data, currentOffset + 4), BitConverter.ToSingle(Data, currentOffset + 8)); currentOffset += 12;
-            BoundingBoxMax = new Vector3(BitConverter.ToSingle(Data, currentOffset), BitConverter.ToSingle(Data, currentOffset + 4), BitConverter.ToSingle(Data, currentOffset + 8)); currentOffset += 12;
+            BoundingBoxMin = new JVector(BitConverter.ToSingle(Data, currentOffset), BitConverter.ToSingle(Data, currentOffset + 4), BitConverter.ToSingle(Data, currentOffset + 8)); currentOffset += 12;
+            BoundingBoxMax = new JVector(BitConverter.ToSingle(Data, currentOffset), BitConverter.ToSingle(Data, currentOffset + 4), BitConverter.ToSingle(Data, currentOffset + 8)); currentOffset += 12;
             UnknownPadding1 = BitConverter.ToInt32(Data, currentOffset); currentOffset += 4;
             CullDistance = BitConverter.ToSingle(Data, currentOffset); currentOffset += 4;
             BitMask = BitConverter.ToInt32(Data, currentOffset); currentOffset += 4;

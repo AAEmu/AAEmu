@@ -1,5 +1,5 @@
 ﻿using System.Drawing;
-using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Objects;
 
@@ -13,8 +13,8 @@ public class VoxelMeshReader(System.IO.Stream DecompressedModelData)
     public List<byte[]> ChunksData { get; private set; } = [];
 
     // Parsed Data
-    public List<Vector3> Vertices { get; set; } = [];
-    public List<Vector3> Normals { get; set; } = [];
+    public List<JVector> Vertices { get; set; } = [];
+    public List<JVector> Normals { get; set; } = [];
     public List<ushort> Indices { get; set; } = [];
     public List<Color> ColorData { get; set; } = [];
     public List<ushort> SurfaceIds { get; set; } = [];

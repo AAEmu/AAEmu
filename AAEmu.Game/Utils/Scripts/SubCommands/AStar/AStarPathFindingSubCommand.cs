@@ -1,5 +1,4 @@
 ﻿using System.Drawing;
-using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;

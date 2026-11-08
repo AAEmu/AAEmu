@@ -5,7 +5,6 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Physics.Util;
 
-using System.Numerics;
 
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
@@ -122,7 +121,7 @@ public sealed class ShipCliffInteraction
         var body = ship.RigidBody!;
         var ma = ship.ShipController!.ShipModel;
 
-        var waterAtCenter = world.Water.GetWaterSurface(body.Position.ToVector(), out _);
+        var waterAtCenter = world.Water.GetWaterSurface(body.Position, out _);
         if (body.Position.Z > waterAtCenter + CliffObstacleDefaults.AboveWaterlineSkipMeters)
             return;
 
