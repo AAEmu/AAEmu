@@ -800,9 +800,6 @@ public class PhysicsManager
         moveType.VelY = (short)(rep.VelPy * velMultiplier);
         moveType.VelZ = (short)(rep.VelPz * velMultiplier);
 
-        // Do not allow the body to flip
-        //slave.RigidBody.Orientation = JQuaternion.CreateRotationZ(physRotation.Z); // TODO: Fix me with proper physics
-
         // Apply new Location/Rotation to GameObject
         slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Y, rigidBody.Position.Z);
         slave.Transform.Local.SetRotation(visualRotation.X, visualRotation.Y, visualRotation.Z);

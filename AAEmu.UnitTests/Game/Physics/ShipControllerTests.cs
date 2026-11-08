@@ -114,4 +114,68 @@ public class ShipControllerTests
         await Assert.That(controller.Hull.Position.X).IsEqualTo(100f).Within(0.0001f);
         await Assert.That(controller.Hull.Position.Y).IsEqualTo(200f).Within(0.0001f);
     }
+
+    [Test]
+    public async Task Build_WhenCalled_HullHasInertiaOnlyAboutZ()
+    {
+        // Arrange
+        using var world = new Jitter2.World();
+
+        // Act
+        var controller = CreateShip(world);
+        var inverseInertia = controller.Hull.InverseInertia;
+
+        // Assert
+        await Assert.That(inverseInertia.M11).IsEqualTo(0f);
+        await Assert.That(inverseInertia.M22).IsEqualTo(0f);
+        await Assert.That(inverseInertia.M33).IsGreaterThan(0f);
+    }
+
+    [Test]
+    public async Task Hull_WithUpwardForceAtBow_StaysLevel()
+    {
+        // Arrange: a push like this would pitch a free box nose-up
+        using var world = new Jitter2.World();
+        world.Gravity = JVector.Zero;
+        var controller = CreateShip(world);
+        var bow = controller.Hull.Position + new JVector(0f, 4f, 0f);
+
+        // Act
+        for (var i = 0; i < 10; i++)
+        {
+            controller.Hull.AddForce(new JVector(0f, 0f, 50000f), bow);
+            world.Step(0.01f, false);
+        }
+
+        var rotation = PhysicsUtil.GetGameRotation(controller.Hull.Orientation);
+
+        // Assert
+        await Assert.That(rotation.X).IsEqualTo(0f).Within(0.0001f);
+        await Assert.That(rotation.Y).IsEqualTo(0f).Within(0.0001f);
+        await Assert.That(controller.Hull.Position.Z).IsGreaterThan(50f);
+    }
+
+    [Test]
+    public async Task Hull_WithSidewaysForceAtBow_StillYaws()
+    {
+        // Arrange
+        using var world = new Jitter2.World();
+        world.Gravity = JVector.Zero;
+        var controller = CreateShip(world);
+        var bow = controller.Hull.Position + new JVector(0f, 4f, 0f);
+
+        // Act: push the bow toward +X, which turns the ship toward +X (negative yaw)
+        for (var i = 0; i < 10; i++)
+        {
+            controller.Hull.AddForce(new JVector(50000f, 0f, 0f), bow);
+            world.Step(0.01f, false);
+        }
+
+        var rotation = PhysicsUtil.GetGameRotation(controller.Hull.Orientation);
+
+        // Assert
+        await Assert.That(rotation.Z).IsLessThan(-0.001f);
+        await Assert.That(rotation.X).IsEqualTo(0f).Within(0.0001f);
+        await Assert.That(rotation.Y).IsEqualTo(0f).Within(0.0001f);
+    }
 }
