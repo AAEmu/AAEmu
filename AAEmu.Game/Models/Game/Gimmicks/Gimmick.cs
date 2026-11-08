@@ -13,6 +13,8 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
+using Jitter2.LinearMath;
+
 namespace AAEmu.Game.Models.Game.Gimmicks;
 
 public class Gimmick : Unit
@@ -235,7 +237,7 @@ public class Gimmick : Unit
     /// <param name="deltaTime"></param>
     /// <param name="velocityZ"></param>
     /// <param name="isMovingDown"></param>
-    public void MoveAlongZAxis(Gimmick gimmick, ref Vector3 position, Vector3 target, float maxVelocity, float deltaTime, ref float velocityZ, ref bool isMovingDown)
+    public void MoveAlongZAxis(Gimmick gimmick, ref JVector position, JVector target, float maxVelocity, float deltaTime, ref float velocityZ, ref bool isMovingDown)
     {
         var distance = target - position;
         velocityZ = maxVelocity * Math.Sign(distance.Z);

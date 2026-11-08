@@ -462,7 +462,7 @@ public class PhysicsManager
     private void SyncTransformWithRigidBody(Slave slave)
     {
         var slaveRigidBody = slave.RigidBody;
-        slave.Transform.Local.Translate(slaveRigidBody.Position.ToVector() - slave.Transform.World.Position);
+        slave.Transform.Local.Translate(slaveRigidBody.Position - slave.Transform.World.Position);
         slave.Transform.Local.Rotation = PhysicsUtil.GetGameRotation(slaveRigidBody.Orientation);
     }
 
@@ -479,7 +479,7 @@ public class PhysicsManager
             return;
         }
 
-        var pos = slave.Transform.World.Position.ToJVector();
+        var pos = slave.Transform.World.Position;
         var rot = JQuaternion.CreateRotationZ(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
@@ -796,7 +796,7 @@ public class PhysicsManager
         moveType.VelZ = (short)(rep.VelPz * velMultiplier);
 
         // Apply new Location/Rotation to GameObject
-        slave.Transform.Local.SetPosition(rigidBody.Position.ToVector(), visualRotation);
+        slave.Transform.Local.SetPosition(rigidBody.Position, visualRotation);
 
         // Send the packet
         slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);

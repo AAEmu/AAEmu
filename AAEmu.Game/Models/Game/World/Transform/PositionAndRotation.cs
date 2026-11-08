@@ -2,31 +2,32 @@
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.World.Transform;
 
 public class PositionAndRotation
 {
     public bool IsLocal { get; set; } = true;
-    public Vector3 Position { get; set; }
-    public Vector3 Rotation { get; set; }
+    public JVector Position { get; set; }
+    public JVector Rotation { get; set; }
 
     private const float ToSByteDivider = 1f / 127f; // ~0.007874015748f ;
     private const float TwoPi = MathF.PI * 2f;
 
     public PositionAndRotation()
     {
-        Position = new Vector3();
-        Rotation = new Vector3();
+        Position = JVector.Zero;
+        Rotation = JVector.Zero;
     }
 
     public PositionAndRotation(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
     {
-        Position = new Vector3(posX, posY, posZ);
-        Rotation = new Vector3(rotX, rotY, rotZ);
+        Position = new JVector(posX, posY, posZ);
+        Rotation = new JVector(rotX, rotY, rotZ);
     }
 
-    public PositionAndRotation(Vector3 position, Vector3 rotation)
+    public PositionAndRotation(JVector position, JVector rotation)
     {
         Position = position;
         Rotation = rotation;
@@ -37,35 +38,35 @@ public class PositionAndRotation
         return new PositionAndRotation(Position.X, Position.Y, Position.Z, Rotation.X, Rotation.Y, Rotation.Z);
     }
 
-    public Vector3 ToRollPitchYawDegrees()
+    public JVector ToRollPitchYawDegrees()
     {
-        return new Vector3(Rotation.X.RadToDeg(), Rotation.Y.RadToDeg(), Rotation.Z.RadToDeg());
+        return new JVector(Rotation.X.RadToDeg(), Rotation.Y.RadToDeg(), Rotation.Z.RadToDeg());
     }
 
     public void SetPosition(float x, float y, float z)
     {
-        Position = new Vector3(x, y, z);
+        Position = new JVector(x, y, z);
     }
 
-    public void SetPosition(Vector3 pos)
+    public void SetPosition(JVector pos)
     {
         Position = pos;
     }
 
     public void SetHeight(float z)
     {
-        Position = new Vector3(Position.X, Position.Y, z);
+        Position = new JVector(Position.X, Position.Y, z);
     }
 
-    public void SetPosition(Vector3 xyz, Vector3 rpy)
+    public void SetPosition(JVector xyz, JVector rpy)
     {
         Position = xyz;
         Rotation = rpy;
     }
     public void SetPosition(float x, float y, float z, float roll, float pitch, float yaw)
     {
-        Position = new Vector3(x, y, z);
-        Rotation = new Vector3(roll, pitch, yaw);
+        Position = new JVector(x, y, z);
+        Rotation = new JVector(roll, pitch, yaw);
     }
 
     public (short, short, short) ToRollPitchYawShorts()
@@ -89,7 +90,7 @@ public class PositionAndRotation
         return ToRollPitchYawSBytes(euler);
     }
     
-    public static (sbyte Roll, sbyte Pitch, sbyte Yaw) ToRollPitchYawSBytes(Vector3 v)
+    public static (sbyte Roll, sbyte Pitch, sbyte Yaw) ToRollPitchYawSBytes(JVector v)
     {
         // MathF.Round is used to round the float to the nearest integer to avoid issues with floating point precision
         // and round-tripping.
@@ -99,12 +100,12 @@ public class PositionAndRotation
         return (roll, pitch, yaw);
     }
     
-    public static Vector3 FromRollPitchYawSBytes(sbyte roll, sbyte pitch, sbyte yaw)
+    public static JVector FromRollPitchYawSBytes(sbyte roll, sbyte pitch, sbyte yaw)
     {
         var x = roll * ToSByteDivider * TwoPi;
         var y = pitch * ToSByteDivider * TwoPi;
         var z = yaw * ToSByteDivider * TwoPi;
-        return new Vector3(x, y, z); // Rotation.X/Y/Z in radians
+        return new JVector(x, y, z); // Rotation.X/Y/Z in radians
     }
     
     public (sbyte, sbyte, sbyte) ToRollPitchYawSBytesMovement()
@@ -122,12 +123,12 @@ public class PositionAndRotation
 
     public void SetRotation(float roll, float pitch, float yaw)
     {
-        Rotation = new Vector3(roll, pitch, yaw);
+        Rotation = new JVector(roll, pitch, yaw);
     }
 
     public void SetRotationDegree(float roll, float pitch, float yaw)
     {
-        Rotation = new Vector3(roll.DegToRad(), pitch.DegToRad(), yaw.DegToRad());
+        Rotation = new JVector(roll.DegToRad(), pitch.DegToRad(), yaw.DegToRad());
     }
 
     /// <summary>
@@ -136,25 +137,25 @@ public class PositionAndRotation
     /// <param name="rotZ"></param>
     public void SetZRotation(float rotZ)
     {
-        Rotation = new Vector3(Rotation.X, Rotation.Y, rotZ);
+        Rotation = new JVector(Rotation.X, Rotation.Y, rotZ);
     }
 
     public void SetZRotation(short rotZ)
     {
-        Rotation = new Vector3(Rotation.X, Rotation.Y,
+        Rotation = new JVector(Rotation.X, Rotation.Y,
             (float)MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation(rotZ)));
     }
 
     public void SetZRotation(sbyte rotZ)
     {
-        Rotation = new Vector3(Rotation.X, Rotation.Y, (float)MathUtil.ConvertDirectionToRadian(rotZ));
+        Rotation = new JVector(Rotation.X, Rotation.Y, (float)MathUtil.ConvertDirectionToRadian(rotZ));
     }
 
     /// <summary>
     /// Move position by a given offset
     /// </summary>
     /// <param name="offset">Amount to offset</param>
-    public void Translate(Vector3 offset)
+    public void Translate(JVector offset)
     {
         // TODO: Take into account isLocal = false ?
         Position += offset;
@@ -167,9 +168,9 @@ public class PositionAndRotation
     /// <param name="offsetY"></param>
     /// <param name="offsetZ"></param>
     public void Translate(float offsetX, float offsetY, float offsetZ) =>
-        Translate(new Vector3(offsetX, offsetY, offsetZ));
+        Translate(new JVector(offsetX, offsetY, offsetZ));
 
-    public void Rotate(Vector3 offset)
+    public void Rotate(JVector offset)
     {
         // Is this correct ?
         Rotation += offset;
@@ -178,7 +179,7 @@ public class PositionAndRotation
     public void Rotate(float roll, float pitch, float yaw)
     {
         // Is this correct ?
-        Rotation += new Vector3(roll, pitch, yaw);
+        Rotation += new JVector(roll, pitch, yaw);
     }
 
     /// <summary>
@@ -190,7 +191,7 @@ public class PositionAndRotation
     {
         // TODO: Use Quaternion to do a proper InFront, currently height is ignored
         // TODO: Take into account IsLocal = false
-        var off = new Vector3(-distance * MathF.Sin(Rotation.Z), distance * MathF.Cos(Rotation.Z), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
+        var off = new JVector(-distance * MathF.Sin(Rotation.Z), distance * MathF.Cos(Rotation.Z), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
         Translate(off);
     }
 
@@ -203,7 +204,7 @@ public class PositionAndRotation
     {
         // TODO: Use Quaternion to do a proper InFront, currently height is ignored
         // TODO: Take into account IsLocal = false
-        var off = new Vector3(distance * MathF.Cos(Rotation.Z), distance * MathF.Sin(Rotation.Z), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
+        var off = new JVector(distance * MathF.Cos(Rotation.Z), distance * MathF.Sin(Rotation.Z), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
         Translate(off);
     }
 
@@ -243,19 +244,19 @@ public class PositionAndRotation
         var off = new Vector3(offX, offY, offZ);
         */
 
-        var off = new Vector3(right, front, up);
+        var off = new JVector(right, front, up);
         Translate(off);
     }
 
-    public void AddDistance(Vector3 move) => AddDistance(move.X, move.Y, move.Z);
-    public void SubDistance(Vector3 move) => AddDistance(-move.X, -move.Y, -move.Z);
+    public void AddDistance(JVector move) => AddDistance(move.X, move.Y, move.Z);
+    public void SubDistance(JVector move) => AddDistance(-move.X, -move.Y, -move.Z);
 
     /// <summary>
 
     /// Rotates Transform to make it face towards targetPosition's direction
     /// </summary>
     /// <param name="targetPosition"></param>
-    public static void LookAt(Vector3 targetPosition)
+    public static void LookAt(JVector targetPosition)
     {
         // TODO: Fix this as it's still wrong
         /*
@@ -273,9 +274,9 @@ public class PositionAndRotation
     /// Clones current Position into a new Vector3
     /// </summary>
     /// <returns></returns>
-    public Vector3 ClonePosition()
+    public JVector ClonePosition()
     {
-        return new Vector3(Position.X, Position.Y, Position.Z);
+        return new JVector(Position.X, Position.Y, Position.Z);
     }
 
     public override string ToString()
@@ -287,7 +288,7 @@ public class PositionAndRotation
 
     public bool IsOrigin()
     {
-        return Position.Equals(Vector3.Zero);
+        return Position.Equals(JVector.Zero);
     }
 
     /// <summary>
@@ -299,7 +300,7 @@ public class PositionAndRotation
         return ToQuaternion(Rotation);
     }
 
-    public static Quaternion ToQuaternion(Vector3 rotationVector3) // yaw (Z), pitch (Y), roll (X)
+    public static Quaternion ToQuaternion(JVector rotationVector3) // yaw (Z), pitch (Y), roll (X)
     {
         // Abbreviations for the various angular functions
         var cy = MathF.Cos(rotationVector3.Z * 0.5f);
@@ -325,9 +326,9 @@ public class PositionAndRotation
     /// <param name="y"></param>
     /// <param name="z"></param>
     /// <param name="w"></param>
-    public static Vector3 FromQuaternion(float x, float y, float z, float w)
+    public static JVector FromQuaternion(float x, float y, float z, float w)
     {
-        Vector3 angles;
+        JVector angles;
 
         // roll (x-axis rotation)
         var sinRCosP = 2f * (w * x + y * z);
@@ -346,7 +347,7 @@ public class PositionAndRotation
         return angles;
     }
 
-    public static Vector3 FromQuaternion(Quaternion q)
+    public static JVector FromQuaternion(Quaternion q)
     {
         return FromQuaternion(q.X, q.Y, q.Z, q.W);
     }
@@ -370,7 +371,7 @@ public class PositionAndRotation
         return new WorldPos((long)(Position.X * 4096) << 32, (long)(Position.Y * 4096) << 32, Position.Z);
     }
 
-    public static (float, float, float) AddDistanceToFront(float travelDist, float targetDist, Vector3 position, Vector3 other)
+    public static (float, float, float) AddDistanceToFront(float travelDist, float targetDist, JVector position, JVector other)
     {
         var distRatio = travelDist / targetDist;
         var newX = (other.X - position.X) * distRatio + position.X;
@@ -382,14 +383,14 @@ public class PositionAndRotation
 
     public void ApplyWorldSpawnPosition(WorldSpawnPosition wsp)
     {
-        Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
-        Rotation = new Vector3(wsp.Roll, wsp.Pitch, wsp.Yaw);
+        Position = new JVector(wsp.X, wsp.Y, wsp.Z);
+        Rotation = new JVector(wsp.Roll, wsp.Pitch, wsp.Yaw);
     }
 
     public void ApplyWorldSpawnPositionWithDeg(WorldSpawnPosition wsp)
     {
-        Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
-        Rotation = new Vector3(wsp.Roll.DegToRad(), wsp.Pitch.DegToRad(), wsp.Yaw.DegToRad());
+        Position = new JVector(wsp.X, wsp.Y, wsp.Z);
+        Rotation = new JVector(wsp.Roll.DegToRad(), wsp.Pitch.DegToRad(), wsp.Yaw.DegToRad());
     }
 
 }

@@ -80,6 +80,16 @@ public static class NumericExtensions
     }
 
     /// <summary>
+    /// Converts a world position into an X Y index for cells
+    /// </summary>
+    /// <param name="pos"></param>
+    /// <returns>(cellX, cellY)</returns>
+    public static (int, int) ToCellIndex(this JVector pos)
+    {
+        return ((int)Math.Floor(pos.X / 1024), (int)Math.Floor(pos.Y / 1024));
+    }
+
+    /// <summary>
     /// Converts a world position into an X Y index for chunks (paths)
     /// </summary>
     /// <param name="pos"></param>
