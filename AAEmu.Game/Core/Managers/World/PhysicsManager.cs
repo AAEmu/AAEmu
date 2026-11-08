@@ -297,7 +297,7 @@ public class PhysicsManager
                                     if (!groundedNow)
                                     {
                                         var dtFlow = (float)physicsTotalDelta.TotalSeconds;
-                                        slave.RigidBody.Position += new JVector(flowDirection.X * dtFlow, flowDirection.Y * dtFlow, flowDirection.Z * dtFlow);
+                                        slave.RigidBody.Position += (flowDirection * dtFlow).ToJVector();
                                     }
                                 }
                                 shipsThisTick.Add(slave);
@@ -462,13 +462,8 @@ public class PhysicsManager
     private void SyncTransformWithRigidBody(Slave slave)
     {
         var slaveRigidBody = slave.RigidBody;
-        var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
-        var yDelta = slaveRigidBody.Position.Y - slave.Transform.World.Position.Y;
-        var zDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Z;
-
-        slave.Transform.Local.Translate(xDelta, yDelta, zDelta);
-        var rotation = slaveRigidBody.Orientation;
-        slave.Transform.Local.ApplyFromQuaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
+        slave.Transform.Local.Translate(slaveRigidBody.Position.ToVector() - slave.Transform.World.Position);
+        slave.Transform.Local.Rotation = PhysicsUtil.GetGameRotation(slaveRigidBody.Orientation);
     }
 
     /// <summary>
@@ -484,7 +479,7 @@ public class PhysicsManager
             return;
         }
 
-        var pos = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Y, slave.Transform.World.Position.Z);
+        var pos = slave.Transform.World.Position.ToJVector();
         var rot = JQuaternion.CreateRotationZ(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
@@ -801,8 +796,7 @@ public class PhysicsManager
         moveType.VelZ = (short)(rep.VelPz * velMultiplier);
 
         // Apply new Location/Rotation to GameObject
-        slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Y, rigidBody.Position.Z);
-        slave.Transform.Local.SetRotation(visualRotation.X, visualRotation.Y, visualRotation.Z);
+        slave.Transform.Local.SetPosition(rigidBody.Position.ToVector(), visualRotation);
 
         // Send the packet
         slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
@@ -831,7 +825,7 @@ public class PhysicsManager
     /// <returns></returns>
     internal bool CustomWater(ref JVector area)
     {
-        return SimulationWorld?.IsWater(new Vector3(area.X, area.Y, area.Z), out _) ?? area.Z <= (SimulationWorld?.Template.OceanLevel ?? DefaultWaterLevel);
+        return SimulationWorld?.IsWater(area.ToVector(), out _) ?? area.Z <= (SimulationWorld?.Template.OceanLevel ?? DefaultWaterLevel);
     }
 
     /// <summary>

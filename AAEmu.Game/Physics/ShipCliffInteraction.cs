@@ -122,7 +122,7 @@ public sealed class ShipCliffInteraction
         var body = ship.RigidBody!;
         var ma = ship.ShipController!.ShipModel;
 
-        var waterAtCenter = world.Water.GetWaterSurface(new Vector3(body.Position.X, body.Position.Y, body.Position.Z), out _);
+        var waterAtCenter = world.Water.GetWaterSurface(body.Position.ToVector(), out _);
         if (body.Position.Z > waterAtCenter + CliffObstacleDefaults.AboveWaterlineSkipMeters)
             return;
 

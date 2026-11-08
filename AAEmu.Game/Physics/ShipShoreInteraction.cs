@@ -283,7 +283,7 @@ public sealed class ShipShoreInteraction
 
         // Mass-box center (rigid body origin) above local waterline: stop vertical "pop" from penetration resolve.
         var waterAtCenter = slave.ParentWorld.Water.GetWaterSurface(
-            new Vector3(rb.Position.X, rb.Position.Y, rb.Position.Z),
+            rb.Position.ToVector(),
             out _);
         var centerAboveWaterline = slave.RigidBody.Position.Z > waterAtCenter + 0.001f;
 

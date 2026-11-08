@@ -178,4 +178,26 @@ public class ShipControllerTests
         await Assert.That(rotation.X).IsEqualTo(0f).Within(0.0001f);
         await Assert.That(rotation.Y).IsEqualTo(0f).Within(0.0001f);
     }
+
+    [Test]
+    [Arguments(0f, 0f, 2f)]
+    [Arguments(90f, -2f, 0f)]
+    [Arguments(180f, 0f, -2f)]
+    public async Task GetMassBoxCenterXy_WithBowOffset_RotatesOffsetWithHeading(float yawDeg, float expectedDx, float expectedDy)
+    {
+        // Arrange: mass center 2 m toward the bow (+Y in hull space)
+        using var world = new Jitter2.World();
+        var model = CreateShipModel();
+        model.MassCenterY = 2f;
+        var controller = new ShipController(world, model);
+        GC.SuppressFinalize(controller);
+        controller.Build(new JVector(100f, 200f, 50f), JQuaternion.CreateRotationZ(yawDeg.DegToRad()));
+
+        // Act
+        ShipShipInteraction.GetMassBoxCenterXy(controller.Hull, model, 1f, out var cx, out var cy);
+
+        // Assert
+        await Assert.That(cx - 100f).IsEqualTo(expectedDx).Within(0.0001f);
+        await Assert.That(cy - 200f).IsEqualTo(expectedDy).Within(0.0001f);
+    }
 }

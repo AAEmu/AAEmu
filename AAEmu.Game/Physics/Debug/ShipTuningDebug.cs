@@ -204,8 +204,12 @@ public static class ShipTuningDebug
         }
     }
 
-    /// <summary>Half-extents (local X = beam, Y = length, Z = height), box center and rotation — same basis as <see cref="ShipController.Build"/>.</summary>
-    private readonly record struct MassBoxGameGeometry(float Hx, float Hy, float Hz, Vector3 CenterGame, Matrix4x4 RotGame);
+    /// <summary>Half-extents (local X = beam, Y = length, Z = height), box center and hull orientation — same basis as <see cref="ShipController.Build"/>.</summary>
+    private readonly record struct MassBoxGameGeometry(float Hx, float Hy, float Hz, JVector Center, JQuaternion Orientation)
+    {
+        /// <summary>World position of a point given in the hull's local axes, relative to the mass-box center.</summary>
+        public JVector ToWorld(in JVector local) => Center + JVector.Transform(local, Orientation);
+    }
 
     private static bool TryGetMassBoxGameGeometry(Slave ship, out MassBoxGameGeometry geo)
     {
@@ -219,37 +223,35 @@ public static class ShipTuningDebug
         var hx = model.MassBoxSizeX * scale * 0.5f;
         var hy = model.MassBoxSizeY * scale * 0.5f;
         var hz = ShipController.ShipMassBoxDefaults.GetSizeZ(model.MassBoxSizeZ) * scale * 0.5f;
-        var rotGame = GetTransformRotationMatrix(ship.Transform.Local.Rotation);
-        var posGame0 = new Vector3(rb.Position.X, rb.Position.Y, rb.Position.Z);
-        var offsetLocal = new Vector3(
+        var offsetLocal = new JVector(
             model.MassCenterX * scale,
             model.MassCenterY * scale,
             ShipController.ShipMassBoxDefaults.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ) * scale);
-        var centerGame = posGame0 + Vector3.TransformNormal(offsetLocal, rotGame);
-        geo = new MassBoxGameGeometry(hx, hy, hz, centerGame, rotGame);
+        var center = rb.Position + JVector.Transform(offsetLocal, rb.Orientation);
+        geo = new MassBoxGameGeometry(hx, hy, hz, center, rb.Orientation);
         return true;
     }
 
-    private static void FillMassBoxLocalCornersGame(float hx, float hy, float hz, Span<Vector3> corners)
+    private static void FillMassBoxLocalCornersGame(float hx, float hy, float hz, Span<JVector> corners)
     {
-        corners[0] = new Vector3(+hx, +hy, +hz);
-        corners[1] = new Vector3(+hx, +hy, -hz);
-        corners[2] = new Vector3(+hx, -hy, +hz);
-        corners[3] = new Vector3(+hx, -hy, -hz);
-        corners[4] = new Vector3(-hx, +hy, +hz);
-        corners[5] = new Vector3(-hx, +hy, -hz);
-        corners[6] = new Vector3(-hx, -hy, +hz);
-        corners[7] = new Vector3(-hx, -hy, -hz);
+        corners[0] = new JVector(+hx, +hy, +hz);
+        corners[1] = new JVector(+hx, +hy, -hz);
+        corners[2] = new JVector(+hx, -hy, +hz);
+        corners[3] = new JVector(+hx, -hy, -hz);
+        corners[4] = new JVector(-hx, +hy, +hz);
+        corners[5] = new JVector(-hx, +hy, -hz);
+        corners[6] = new JVector(-hx, -hy, +hz);
+        corners[7] = new JVector(-hx, -hy, -hz);
     }
 
-    private static void GetMassBoxWorldVerticalExtent(in MassBoxGameGeometry g, Span<Vector3> cornerScratch, out float minZ, out float maxZ)
+    private static void GetMassBoxWorldVerticalExtent(in MassBoxGameGeometry g, Span<JVector> cornerScratch, out float minZ, out float maxZ)
     {
         FillMassBoxLocalCornersGame(g.Hx, g.Hy, g.Hz, cornerScratch);
         minZ = float.PositiveInfinity;
         maxZ = float.NegativeInfinity;
         for (var i = 0; i < MassBoxCornerCount; i++)
         {
-            var w = g.CenterGame + Vector3.TransformNormal(cornerScratch[i], g.RotGame);
+            var w = g.ToWorld(cornerScratch[i]);
             if (w.Z < minZ) minZ = w.Z;
             if (w.Z > maxZ) maxZ = w.Z;
         }
@@ -397,11 +399,11 @@ public static class ShipTuningDebug
         var hyE = geo.Hy + extra;
 
         // +Length / +Beam / +Up: local +Y / +X / +Z of physics box (see ShipController.Build).
-        var posLen = geo.CenterGame + Vector3.TransformNormal(new Vector3(0f, hyE, 0f), geo.RotGame);
-        var posBeam = geo.CenterGame + Vector3.TransformNormal(new Vector3(hxE, 0f, 0f), geo.RotGame);
-        var posUp = geo.CenterGame + Vector3.TransformNormal(new Vector3(0f, 0f, hzE), geo.RotGame);
+        var posLen = geo.ToWorld(new JVector(0f, hyE, 0f)).ToVector();
+        var posBeam = geo.ToWorld(new JVector(hxE, 0f, 0f)).ToVector();
+        var posUp = geo.ToWorld(new JVector(0f, 0f, hzE)).ToVector();
 
-        Span<Vector3> cornerScratch = stackalloc Vector3[MassBoxCornerCount];
+        Span<JVector> cornerScratch = stackalloc JVector[MassBoxCornerCount];
         GetMassBoxWorldVerticalExtent(in geo, cornerScratch, out var minZ, out var maxZ);
 
         if (setLen != null)
@@ -474,11 +476,11 @@ public static class ShipTuningDebug
             set.TemplateId = templateId;
         }
 
-        Span<Vector3> localCorners = stackalloc Vector3[MassBoxCornerCount];
+        Span<JVector> localCorners = stackalloc JVector[MassBoxCornerCount];
         FillMassBoxLocalCornersGame(geo.Hx, geo.Hy, geo.Hz, localCorners);
         for (var i = 0; i < MassBoxCornerCount; i++)
         {
-            var posGame = geo.CenterGame + Vector3.TransformNormal(localCorners[i], geo.RotGame);
+            var posGame = geo.ToWorld(localCorners[i]).ToVector();
             UpdateMarker(ship.ParentWorld, set, i, templateId, zoneId, posGame);
         }
     }
@@ -687,15 +689,6 @@ public static class ShipTuningDebug
     private static bool CanReceive(Character c)
     {
         return CharacterManager.Instance.GetEffectiveAccessLevel(c) >= MinAccessLevel;
-    }
-
-    private static Matrix4x4 GetTransformRotationMatrix(Vector3 rpy)
-    {
-        // Use the project's own Euler->Quaternion conversion.
-        // PositionAndRotation stores Euler as (roll=X, pitch=Y, yaw=Z) in radians,
-        // with yaw around +Z (up). This matches how Transform is intended to behave.
-        var q = Quaternion.Normalize(PositionAndRotation.ToQuaternion(rpy));
-        return Matrix4x4.CreateFromQuaternion(q);
     }
 
     #endregion
