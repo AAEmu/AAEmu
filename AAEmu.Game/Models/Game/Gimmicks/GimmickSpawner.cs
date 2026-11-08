@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
 using NLog;
+using Jitter2.LinearMath;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 
@@ -85,7 +86,7 @@ public class GimmickSpawner : Spawner<Gimmick>
         {
             case OffsetCoordinateType.Unk0:
                 var (newX0, newY0, newZ0) = PositionAndRotation.AddDistanceToFront(1, 1, gimmick.Transform.World.Position, gimmick.Transform.World.Position);
-                gimmick.Transform.World.Position = new Vector3(newX0, newY0, newZ0);
+                gimmick.Transform.World.Position = new JVector(newX0, newY0, newZ0);
                 break;
             case OffsetCoordinateType.Unk1:
                 break;

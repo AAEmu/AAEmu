@@ -297,7 +297,7 @@ public class PhysicsManager
                                     if (!groundedNow)
                                     {
                                         var dtFlow = (float)physicsTotalDelta.TotalSeconds;
-                                        slave.RigidBody.Position += (flowDirection * dtFlow).ToJVector();
+                                        slave.RigidBody.Position += flowDirection * dtFlow;
                                     }
                                 }
                                 shipsThisTick.Add(slave);

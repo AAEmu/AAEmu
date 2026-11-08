@@ -215,11 +215,7 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     public bool IsWater(JVector point, out JVector flowDirection)
     {
         if (Water != null)
-        {
-            var isWater = Water.IsWater(point, out Vector3 flow);
-            flowDirection = flow;
-            return isWater;
-        }
+            return Water.IsWater(point, out flowDirection);
 
         flowDirection = JVector.Zero;
 

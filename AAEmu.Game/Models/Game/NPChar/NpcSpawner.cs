@@ -16,6 +16,8 @@ using AAEmu.Game.Models.Tasks.World;
 using Newtonsoft.Json;
 
 using NLog;
+using Jitter2.LinearMath;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.NPChar;
 
@@ -470,7 +472,7 @@ public class NpcSpawner : Spawner<Npc>
         var players = WorldManager.Instance.GetAllCharacters();
         foreach (var player in players)
         {
-            var distance = Vector3.DistanceSquared(player.Transform.World.Position, new Vector3(Position.X, Position.Y, Position.Z));
+            var distance = JVectorExtensions.DistanceSquared(player.Transform.World.Position, new JVector(Position.X, Position.Y, Position.Z));
             if (distance <= testRadius)
             {
                 // Обновляем кэш

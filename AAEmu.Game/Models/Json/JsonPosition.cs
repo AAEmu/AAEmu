@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Json;
 
@@ -11,8 +12,8 @@ public class JsonPosition
     public float Pitch { get; set; }
     public float Yaw { get; set; }
 
-    public Vector3 AsVector3()
+    public JVector AsPositionVector()
     {
-        return new Vector3(X, Y, Z);
+        return new JVector(X, Y, Z);
     }
 }
