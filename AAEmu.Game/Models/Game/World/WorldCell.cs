@@ -18,7 +18,7 @@ public class WorldCell
     public int CellY { get; init; }
     public bool Loaded { get; private set; }
     private readonly Lock _loadLock = new();
-    private Vector3 CellOffset { get; set; }
+    private JVector CellOffset { get; set; }
     internal ushort[,] HeightMap { get; private set; }
     private float MinHeight { get; set; }
     private float MaxHeight { get; set; }
@@ -41,7 +41,7 @@ public class WorldCell
         CellX = cellX;
         CellY = cellY;
         Template = template;
-        CellOffset = new Vector3(CellX * WorldManager.CELL_SIZE, CellY * WorldManager.CELL_SIZE, 0f);
+        CellOffset = new JVector(CellX * WorldManager.CELL_SIZE, CellY * WorldManager.CELL_SIZE, 0f);
         // Default bounding box
         BoundingBox = new JBoundingBox(
             new JVector(CellOffset.X, CellOffset.Y, 0f), 
@@ -255,5 +255,5 @@ public class WorldCell
         return GetHeightMapDataInCell(xx, yy);
     }
 
-    public Vector3 GetCellWorldOffset() => CellOffset;
+    public JVector GetCellWorldOffset() => CellOffset;
 }

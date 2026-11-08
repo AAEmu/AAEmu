@@ -100,6 +100,16 @@ public static class NumericExtensions
     }
 
     /// <summary>
+    /// Converts a world position into an X Y index for chunks (paths)
+    /// </summary>
+    /// <param name="pos"></param>
+    /// <returns>(chunkX, chunkY)</returns>
+    public static (int, int) ToPathsIndex(this JVector pos)
+    {
+        return ((int)Math.Floor(pos.X / 256), (int)Math.Floor(pos.Y / 256));
+    }
+
+    /// <summary>
     /// Converts a world position into an X Y offset within it's cell
     /// </summary>
     /// <param name="pos"></param>

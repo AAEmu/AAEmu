@@ -11,6 +11,7 @@ using AAEmu.Game.Utils;
 
 using NLog;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
@@ -18,7 +19,7 @@ public class WanderingSkillController : SkillController
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Vector3 _currentWaypoint;
+    private JVector _currentWaypoint;
     private readonly float _duration;
     private readonly float _changeInterval;
     private DateTime _startTime;
@@ -136,7 +137,7 @@ public class WanderingSkillController : SkillController
         var angle = _random.NextDouble() * 2 * Math.PI;
         var dist = 5f + (float)(_random.NextDouble() * 5f);
 
-        _currentWaypoint = new Vector3(
+        _currentWaypoint = new JVector(
             currentPos.X + (float)(Math.Cos(angle) * dist),
             currentPos.Y + (float)(Math.Sin(angle) * dist),
             currentPos.Z);

@@ -3,6 +3,7 @@ using System.Numerics;
 using AAEmu.Game.Models;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -41,12 +42,12 @@ public sealed class FloorQuery
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     private readonly WorldTemplate _worldTemplate;
-    private readonly Func<Vector3, float> _geoHeight;
+    private readonly Func<JVector, float> _geoHeight;
     private readonly Func<float, float, float> _terrainHeight;
     private readonly Func<bool> _geoDataEnabled;
     private readonly Func<bool> _heightMapsEnabled;
     private readonly Func<FloorPolicyMode> _floorPolicyMode;
-    private readonly Func<Vector3, float, float?> _navSurfaceHeight;
+    private readonly Func<JVector, float, float?> _navSurfaceHeight;
     private readonly Func<bool> _floorDebug;
 
     /// <summary>Last hit from <see cref="QueryFloor"/> — same data as return value; for GM /height.</summary>
@@ -70,12 +71,12 @@ public sealed class FloorQuery
     /// </summary>
     public FloorQuery(
         WorldTemplate worldTemplate,
-        Func<Vector3, float> geoHeight,
+        Func<JVector, float> geoHeight,
         Func<float, float, float> terrainHeight,
         Func<bool> geoDataEnabled,
         Func<bool> heightMapsEnabled,
         Func<FloorPolicyMode> floorPolicyMode = null,
-        Func<Vector3, float, float?> navSurfaceHeight = null,
+        Func<JVector, float, float?> navSurfaceHeight = null,
         Func<bool> floorDebug = null)
     {
         _worldTemplate = worldTemplate;
@@ -96,7 +97,7 @@ public sealed class FloorQuery
 
     public FloorHit QueryFloor(float x, float y, float zHint, FloorContext context = FloorContext.Move)
     {
-        var pos = new Vector3(x, y, zHint);
+        var pos = new JVector(x, y, zHint);
         var terrainZ = SampleTerrain(x, y);
         var navNodeZ = SampleNavNode(pos);
 
@@ -126,7 +127,7 @@ public sealed class FloorQuery
     public float? TryGetNavSurfaceHeight(float x, float y, float zHint, float maxVerticalSep = 8f, float maxXyRadius = 16f)
     {
         if (_navSurfaceHeight != null)
-            return _navSurfaceHeight(new Vector3(x, y, zHint), zHint);
+            return _navSurfaceHeight(new JVector(x, y, zHint), zHint);
 
         return NavSurfaceSampler.TrySample(_worldTemplate, x, y, zHint, maxVerticalSep, maxXyRadius);
     }
@@ -135,21 +136,21 @@ public sealed class FloorQuery
     /// After A*/ReducePath: rewrite waypoint Z from nav-surface edge lerp, not raw graph vertex Z.
     /// Path XY still comes from GeoData; this only smooths chase height. Move ticks reuse waypoint Z via <see cref="PathLocomotionZ"/>.
     /// </summary>
-    public Queue<Vector3> ApplyPathWaypointZ(IEnumerable<Vector3> path)
+    public Queue<JVector> ApplyPathWaypointZ(IEnumerable<JVector> path)
     {
         if (path == null)
-            return new Queue<Vector3>();
+            return new Queue<JVector>();
 
         if (_navSurfaceHeight != null)
         {
-            var result = new Queue<Vector3>();
+            var result = new Queue<JVector>();
             float? prevZ = null;
             foreach (var point in path)
             {
                 var zHint = prevZ ?? point.Z;
-                var surface = _navSurfaceHeight(new Vector3(point.X, point.Y, zHint), zHint);
+                var surface = _navSurfaceHeight(new JVector(point.X, point.Y, zHint), zHint);
                 var z = surface ?? point.Z;
-                result.Enqueue(new Vector3(point.X, point.Y, z));
+                result.Enqueue(new JVector(point.X, point.Y, z));
                 prevZ = z;
             }
 
@@ -186,7 +187,7 @@ public sealed class FloorQuery
     /// ByZHint policy: candidates + vertical window. Always considers nav-surface when GeoData is on
     /// unless outdoor early-out applies (terrain near zHint and nav near terrain).
     /// </summary>
-    private FloorHit QueryByZHint(Vector3 pos, float zHint, float terrainZ, float navNodeZ)
+    private FloorHit QueryByZHint(JVector pos, float zHint, float terrainZ, float navNodeZ)
     {
         var terrainCandidate = _heightMapsEnabled() ? terrainZ : 0f;
 
@@ -228,7 +229,7 @@ public sealed class FloorQuery
         }
     }
 
-    private float SampleNavNode(Vector3 pos)
+    private float SampleNavNode(JVector pos)
     {
         if (!_geoDataEnabled())
             return 0f;

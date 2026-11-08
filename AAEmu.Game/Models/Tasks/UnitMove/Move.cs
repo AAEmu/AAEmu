@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Route;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Tasks.UnitMove;
 
@@ -36,7 +37,7 @@ public class Move : Task
     {
         if (_npc.Hp > 0)
         {
-            _patrol?.MoveTo(_patrol, _npc, new Vector3(_targetX, _targetY, _targetZ));
+            _patrol?.MoveTo(_patrol, _npc, new JVector(_targetX, _targetY, _targetZ));
         }
     }
 }

@@ -23,6 +23,7 @@ using AAEmu.Game.Utils.DB;
 using NLog;
 
 using Portal = AAEmu.Game.Models.Game.Portal;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -490,7 +491,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             }
 
             // Calculate distance to player
-            var portalXyz = new Vector3(value.X, value.Y, value.Z);
+            var portalXyz = new JVector(value.X, value.Y, value.Z);
             var dist = MathUtil.CalculateDistance(currentPosition, portalXyz);
             if (dist >= distance)
             {

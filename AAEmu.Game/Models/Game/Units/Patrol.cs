@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Tasks.UnitMove;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -66,7 +67,7 @@ public abstract class Patrol
     /// 暂停巡航点
     /// Suspension of cruise points
     /// </summary>
-    protected Vector3 PausePosition { get; set; }
+    protected JVector PausePosition { get; set; }
 
     /// <summary>
     /// 上次任务

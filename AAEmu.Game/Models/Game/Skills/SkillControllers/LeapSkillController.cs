@@ -12,6 +12,7 @@ using AAEmu.Game.Utils;
 
 using NLog;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
@@ -23,7 +24,7 @@ public class LeapSkillController : SkillController
     public int DistanceOffset { get; set; }
 
     private readonly float _calculatedSpeed;
-    private Vector3 _endPosition;
+    private JVector _endPosition;
     public enum LeapDirection
     {
         Both = 0,
@@ -217,8 +218,8 @@ public class LeapSkillController : SkillController
     /// would land closer) collapse to the owner's current position so the SC ticks
     /// out cleanly without moving the unit. Both is unconstrained.
     /// </summary>
-    internal static Vector3 ApplyDirectionConstraint(
-        LeapDirection direction, Vector3 ownerPos, Vector3 candidateEnd, Vector3 targetPos)
+    internal static JVector ApplyDirectionConstraint(
+        LeapDirection direction, JVector ownerPos, JVector candidateEnd, JVector targetPos)
     {
         var ownerToTarget = MathUtil.CalculateDistance(ownerPos, targetPos, true);
         var endToTarget = MathUtil.CalculateDistance(candidateEnd, targetPos, true);

@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -68,7 +69,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
                 DoodadTemplate = reader.GetUInt32("doodad_template"),
                 CrimeKind = (CrimeKind)reader.GetUInt32("crime_type"),
                 ZoneKey = reader.GetUInt32("zone_key"),
-                Position = new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
+                Position = new JVector(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
                 CrimeTime = reader.GetDateTime("crime_time"),
                 ReportTime = reader.GetDateTime("report_time"),
                 UsedSkillId = reader.GetUInt32("skill_id"),
@@ -281,7 +282,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
     /// <param name="victimPlayerId"></param>
     /// <param name="sourceDoodadTemplateId"></param>
     /// <returns></returns>
-    private Doodad GenerateEvidence(Character criminal, uint evidenceDoodadTemplateId, Vector3 targetLocation, Vector3 targetRotation, uint victimPlayerId, uint sourceDoodadTemplateId)
+    private Doodad GenerateEvidence(Character criminal, uint evidenceDoodadTemplateId, JVector targetLocation, JVector targetRotation, uint victimPlayerId, uint sourceDoodadTemplateId)
     {
         // TODO: floor/water surface the bloodstain Z height?
         return DoodadManager.Instance.CreatePlayerDoodad(criminal, evidenceDoodadTemplateId,
@@ -319,7 +320,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
         return GenerateEvidence(criminalPlayer,
             DoodadConstants.SmallBloodstain,
             victimPlayer?.Transform.World.Position ?? criminal.Transform.World.Position,
-            victimPlayer?.Transform.World.Rotation ?? Vector3.Zero,
+            victimPlayer?.Transform.World.Rotation ?? JVector.Zero,
             victimPlayer?.Id ?? 0,
             0);
     }
@@ -341,7 +342,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
         return GenerateEvidence(criminalPlayer,
             DoodadConstants.LargeBloodstain,
             victimPlayer?.Transform.World.Position ?? criminal.Transform.World.Position,
-            victimPlayer?.Transform.World.Rotation ?? Vector3.Zero,
+            victimPlayer?.Transform.World.Rotation ?? JVector.Zero,
             victimPlayer?.Id ?? 0,
             0);
     }

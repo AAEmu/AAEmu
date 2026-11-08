@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.Scripts;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -41,7 +42,7 @@ public class TestNavMesh : ICommand
         Markers.Clear();
     }
 
-    private static void AddDoodadMarker(WorldInstance world, Vector3 pos, uint doodadTemplateId)
+    private static void AddDoodadMarker(WorldInstance world, JVector pos, uint doodadTemplateId)
     {
         var markerDoodad = DoodadManager.Instance.Create(world, 0, doodadTemplateId);
         markerDoodad.Transform.Local.SetPosition(pos);

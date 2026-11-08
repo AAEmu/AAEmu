@@ -2,6 +2,7 @@ using System.Numerics;
 
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Utils;
 
@@ -11,10 +12,10 @@ public class MathUtil
     public const float HalfPi = (float)(Math.PI / 2.0);
 
     /*www.demo2s.c o m*/
-    private static readonly Vector3 UnitXAxis = new(1, 0, 0);
-    private static readonly Vector3 UnitYAxis = new(0, 1, 0);
-    private static readonly Vector3 UnitZAxis = new(0, 0, 1);
-    public static Vector3 RotatePoint3D(Vector3 point, float xRotation, float yRotation, float zRotation)
+    private static readonly JVector UnitXAxis = new(1, 0, 0);
+    private static readonly JVector UnitYAxis = new(0, 1, 0);
+    private static readonly JVector UnitZAxis = new(0, 0, 1);
+    public static JVector RotatePoint3D(JVector point, float xRotation, float yRotation, float zRotation)
     {
         var xQ = new Quaternion(UnitXAxis, xRotation);
         var yQ = new Quaternion(UnitYAxis, yRotation);
@@ -24,7 +25,7 @@ public class MathUtil
         var xyzQc = new Quaternion(xyzQ.X, xyzQ.Y, xyzQ.Z, xyzQ.W);
         Quaternion.Conjugate(xyzQc);
         var q = xyzQ * pQ * xyzQc;
-        var rotatedPoint = new Vector3(q.X, q.Y, q.Z);
+        var rotatedPoint = new JVector(q.X, q.Y, q.Z);
         return rotatedPoint;
     }
 
@@ -40,11 +41,11 @@ public class MathUtil
         return angleToTarget - obj1.Transform.World.Rotation.Z.RadToDeg();
     }
 
-    public static double CalculateAngleFrom(Vector3 p1, Vector3 p2)
+    public static double CalculateAngleFrom(JVector p1, JVector p2)
     {
         return CalculateAngleFrom(p1.X, p1.Y, p2.X, p2.Y);
     }
-    public static double CalculateDirection(Vector3 obj1, Vector3 obj2)
+    public static double CalculateDirection(JVector obj1, JVector obj2)
     {
         var rad = Math.Atan2(obj2.Y - obj1.Y, obj2.X - obj1.X);
 
@@ -316,7 +317,7 @@ public class MathUtil
         return res;
     }
 
-    public static float DistanceSqVectors(Vector3 loc, Vector3 loc2, bool includeZAxis = false)
+    public static float DistanceSqVectors(JVector loc, JVector loc2, bool includeZAxis = false)
     {
         double dx = loc.X - loc2.X;
         double dy = loc.Y - loc2.Y;
@@ -330,7 +331,7 @@ public class MathUtil
         return (float)(dx * dx + dy * dy + dz * dz);
     }
 
-    public static float CalculateDistance(Vector3 loc, Vector3 loc2, bool includeZAxis = false)
+    public static float CalculateDistance(JVector loc, JVector loc2, bool includeZAxis = false)
     {
         double dx = loc.X - loc2.X;
         double dy = loc.Y - loc2.Y;
@@ -363,7 +364,7 @@ public class MathUtil
         return CalculateDistance(loc.Transform.World.Position, loc2.Transform.World.Position, includeZAxis);
     }
 
-    public static float GetDistance(Vector3 v1, Vector3 v2, bool point3d = false)
+    public static float GetDistance(JVector v1, JVector v2, bool point3d = false)
     {
         return point3d
             ?
@@ -372,7 +373,7 @@ public class MathUtil
             MathF.Sqrt(MathF.Pow(v1.X - v2.X, 2) + MathF.Pow(v1.Y - v2.Y, 2));
     }
 
-    public static Vector3 GetVectorFromQuat(Quaternion quat)
+    public static JVector GetVectorFromQuat(Quaternion quat)
     {
         double sqw = quat.W * quat.W;
         double sqx = quat.X * quat.X;
@@ -383,7 +384,7 @@ public class MathUtil
         var rotY = (float)Math.Atan2(2.0 * (quat.Y * quat.Z + quat.X * quat.W), -sqx - sqy + sqz + sqw);
         var rotZ = (float)Math.Asin(-2.0 * (quat.X * quat.Z - quat.Y * quat.W) / (sqx + sqy + sqz + sqw));
 
-        return new Vector3(rotX, rotY, rotZ);
+        return new JVector(rotX, rotY, rotZ);
     }
 
     private const double Pi = 3.14159;

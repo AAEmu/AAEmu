@@ -708,7 +708,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
                 continue;
 
             var hookWorld = ShipHarpoonRopeController.GetHookWorldPosition(child);
-            var dist = Vector3.Distance(child.Transform.World.Position, hookWorld);
+            var dist = JVectorExtensions.Distance(child.Transform.World.Position, hookWorld);
             var paid = st.RopeLength + ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
             if (paid <= dist + ShipHarpoonTowPhysics.SlackMarginMeters)
                 return true;

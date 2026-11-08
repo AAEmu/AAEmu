@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Framework;
 
@@ -25,8 +26,8 @@ public abstract class NpcAi
     public bool AlreadyTargeted { get; set; }
 
     public Npc Owner { get; set; }
-    public Vector3 IdlePosition { get; set; }
-    public Vector3 HomePosition { get; set; }
+    public JVector IdlePosition { get; set; }
+    public JVector HomePosition { get; set; }
     public AiParams Param { get; set; }
     public PathNode PathNode { get; set; }
 

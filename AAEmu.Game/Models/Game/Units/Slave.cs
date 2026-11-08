@@ -21,6 +21,7 @@ using Jitter2.Dynamics;
 
 using MySql.Data.MySqlClient;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -108,7 +109,7 @@ public class Slave : Unit
     public ShipController ShipController { get; set; }
     /// <summary>Ship harpoon rope / skill-controller sync (only meaningful for harpoon cannon slaves; default struct = disengaged, no heap alloc).</summary>
     public ShipHarpoonRopeState HarpoonRope;
-    public Vector3 CachedWaterFlow { get; set; }
+    public JVector CachedWaterFlow { get; set; }
     public float CachedWaterSurface { get; set; }
     public float CachedFloorLevel { get; set; }
 
@@ -947,8 +948,8 @@ public class Slave : Unit
             {
                 var doodad = DoodadManager.Instance.Create(ParentWorld, 0, dropDoodad.DoodadId, null, true);
                 var pos = Transform.World.Position;
-                var rng = new Vector3(Random.Shared.NextSingle() * 2f - 1f, Random.Shared.NextSingle() * 2f - 1f, 0);
-                rng = Vector3.Normalize(rng);
+                var rng = new JVector(Random.Shared.NextSingle() * 2f - 1f, Random.Shared.NextSingle() * 2f - 1f, 0);
+                rng = JVector.Normalize(rng);
                 rng *= Random.Shared.NextSingle() * dropDoodad.Radius;
                 pos += rng;
                 doodad.Transform.Local.SetPosition(pos);
@@ -976,7 +977,7 @@ public class Slave : Unit
             return;
         item.IsDestroyed = 1;
         item.RepairStartTime = DateTime.MinValue;
-        item.SummonLocation = Vector3.Zero;
+        item.SummonLocation = JVector.Zero;
         item.IsDirty = true;
         Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.MateDeath, new ItemUpdate(item), []));
     }

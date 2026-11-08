@@ -16,6 +16,7 @@ using AAEmu.Game.Utils;
 using NLog;
 
 using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units.Route;
 
@@ -39,11 +40,11 @@ public class Simulation : Patrol
     public bool AbandonTo { get; set; } = false; // to interrupt repeat()
     public bool Cycle { get; set; } // for non-stop movement along the route
     public bool Remove { get; set; } // удалить Npc в конце движения по маршруту
-    public Vector3 TargetPosition { get; set; } // Target position
+    public JVector TargetPosition { get; set; } // Target position
 
     // movement data
-    public Dictionary<string, List<Vector3>> Paths { get; set; } // available routes for Npc movement
-    public List<Vector3> Path { get; set; }       //  points for moving along the route
+    public Dictionary<string, List<JVector>> Paths { get; set; } // available routes for Npc movement
+    public List<JVector> Path { get; set; }       //  points for moving along the route
     public List<string> MovePath { get; set; }    //  points for moving along the route
     public List<string> RecordPath { get; set; }  //  данные для записи пути
     public int PointsCount { get; set; }          // кол-во поинтов в процессе записи пути
@@ -52,7 +53,7 @@ public class Simulation : Patrol
     public bool MoveToForward { get; set; }       // направление движения да - вперед, нет - назад
     public bool RunningMode { get; set; }         // режим движения да - бежать, нет - идти
     public int MoveStepIndex { get; set; }        // текущ. чекпоинт (куда бежим сейчас)
-    private Vector3 OldPos { get; set; } = Vector3.Zero;
+    private JVector OldPos { get; set; } = JVector.Zero;
     //*******************************************************
     private const string RecordFilesPath = @"./Data/Path/"; // путь где хранятся наши файлы
     private const string RecordFileExt = @".path"; // расширение по умолчанию
@@ -108,7 +109,7 @@ public class Simulation : Patrol
     /// <param name="target"></param>
     /// <param name="distance"></param>
     /// <returns></returns>
-    public static bool PosInRange(Npc npc, Vector3 target, int distance)
+    public static bool PosInRange(Npc npc, JVector target, int distance)
     {
         return MathUtil.CalculateDistance(npc.Transform.World.Position, target, true) <= distance;
     }
@@ -152,7 +153,7 @@ public class Simulation : Patrol
         return result;
     }
     //***************************************************************
-    public int GetMinCheckPoint(Npc npc, List<Vector3> pointsList)
+    public int GetMinCheckPoint(Npc npc, List<JVector> pointsList)
     {
         var result = -1;
         float minDist = -1;
@@ -246,7 +247,7 @@ public class Simulation : Patrol
     public void ParseMoveClient(Npc npc)
     {
         if (!SavePathEnabled) { return; }
-        TargetPosition = new Vector3(npc.Transform.World.Position.X, npc.Transform.World.Position.Y, npc.Transform.World.Position.Z);
+        TargetPosition = new JVector(npc.Transform.World.Position.X, npc.Transform.World.Position.Y, npc.Transform.World.Position.Z);
         var s = "|" + TargetPosition.X + "|" + TargetPosition.Y + "|" + TargetPosition.Z + "|";
         RecordPath.Add(s);
         PointsCount++;
@@ -299,10 +300,10 @@ public class Simulation : Patrol
         //Logger.Warn($"checkpoint #{i}");
         //Character.SendMessage($"[MoveTo] checkpoint #{i}");
         var s = MovePath[MoveStepIndex];
-        TargetPosition = new Vector3(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
+        TargetPosition = new JVector(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
         if (Math.Abs(OldPos.X - TargetPosition.X) > tolerance && Math.Abs(OldPos.Y - TargetPosition.Y) > tolerance && Math.Abs(OldPos.Z - TargetPosition.Z) > tolerance)
         {
-            OldPos = new Vector3(TargetPosition.X, TargetPosition.Y, TargetPosition.Z);
+            OldPos = new JVector(TargetPosition.X, TargetPosition.Y, TargetPosition.Z);
         }
         RepeatMove(this, npc, TargetPosition);
     }
@@ -343,15 +344,15 @@ public class Simulation : Patrol
         //Logger.Warn($"checkpoint #{i}");
         //Character.SendMessage($"[MoveTo] checkpoint #{i}");
         var s = MovePath[MoveStepIndex];
-        TargetPosition = new Vector3(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
+        TargetPosition = new JVector(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
         if (Math.Abs(OldPos.X - TargetPosition.X) > tolerance && Math.Abs(OldPos.Y - TargetPosition.Y) > tolerance && Math.Abs(OldPos.Z - TargetPosition.Z) > tolerance)
         {
-            OldPos = new Vector3(TargetPosition.X, TargetPosition.Y, TargetPosition.Z);
+            OldPos = new JVector(TargetPosition.X, TargetPosition.Y, TargetPosition.Z);
         }
         RepeatMove(this, npc, TargetPosition, timeout);
     }
 
-    public void MoveTo(Simulation sim, Npc npc, Vector3 target)
+    public void MoveTo(Simulation sim, Npc npc, JVector target)
     {
         var move = false;
         var distance = npc.BaseMoveSpeed * (100 / 1000.0f);
@@ -438,7 +439,7 @@ public class Simulation : Patrol
         }
     }*/
 
-    private void RepeatMove(Simulation sim, Npc npc, Vector3 target, double time = 100)
+    private void RepeatMove(Simulation sim, Npc npc, JVector target, double time = 100)
     {
         TaskManager.Instance.Schedule(new Move(sim ?? this, npc, target.X, target.Y, target.Z), TimeSpan.FromMilliseconds(time));
     }
@@ -626,7 +627,7 @@ public class Simulation : Patrol
                 break;
         }
 
-        TargetPosition = unit.ParentObj?.Transform?.World?.Position ?? Vector3.Zero;
+        TargetPosition = unit.ParentObj?.Transform?.World?.Position ?? JVector.Zero;
         RecordPath = [];
         Paths = [];
     }
@@ -679,19 +680,19 @@ public class Simulation : Patrol
 
     private void AddPaths()
     {
-        var route = new List<Vector3>();
+        var route = new List<JVector>();
         foreach (var s in MovePath)
         {
-            var xyz = new Vector3(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
+            var xyz = new JVector(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
             route.Add(xyz);
         }
 
         Paths.TryAdd(MoveFileName, route);
     }
 
-    private List<Vector3> GetPaths(string moveFileName)
+    private List<JVector> GetPaths(string moveFileName)
     {
-        var route = new List<Vector3>();
+        var route = new List<JVector>();
         if (Paths.TryGetValue(moveFileName, out var path))
         {
             route = path;

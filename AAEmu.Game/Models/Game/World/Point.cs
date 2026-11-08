@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -51,7 +52,7 @@ public class Point
         return new Point(WorldId, ZoneId, X, Y, Z, RotationX, RotationY, RotationZ);
     }
 
-    internal static bool OnSegment(Vector3 p, Vector3 q, Vector3 r)
+    internal static bool OnSegment(JVector p, JVector q, JVector r)
     {
         if (q.X <= Math.Max(p.X, r.X) &&
             q.X >= Math.Min(p.X, r.X) &&
@@ -68,7 +69,7 @@ public class Point
     // 0 --> p, q and r are colinear
     // 1 --> Clockwise
     // 2 --> Counterclockwise
-    internal static int FindTripletOrientation(Vector3 p, Vector3 q, Vector3 r)
+    internal static int FindTripletOrientation(JVector p, JVector q, JVector r)
     {
         var val = (q.Y - p.Y) * (r.X - q.X) -
                   (q.X - p.X) * (r.Y - q.Y);
@@ -83,8 +84,8 @@ public class Point
     // The function that returns true if
     // line segment 'p1q1' and 'p2q2' intersect.
     internal static bool IsLineIntersection(
-        (Vector3 p, Vector3 q) line1,
-        (Vector3 p, Vector3 q) line2)
+        (JVector p, JVector q) line1,
+        (JVector p, JVector q) line2)
     {
         // Find the four orientations needed for
         // general and special cases
@@ -134,7 +135,7 @@ public class Point
 
     // Returns true if the point p lies
     // inside the polygon[] with n vertices
-    public static bool IsInside(IReadOnlyList<Vector3> polygon, int n, Vector3 p)
+    public static bool IsInside(IReadOnlyList<JVector> polygon, int n, JVector p)
     {
         // There must be at least 3 vertices in polygon[]
         if (n < 3)
@@ -143,7 +144,7 @@ public class Point
         }
 
         // Create a point for line segment from p to infinite
-        var extreme = new Vector3(1000, p.Y, 0);
+        var extreme = new JVector(1000, p.Y, 0);
 
         // Count intersections of the above line
         // with sides of polygon

@@ -29,6 +29,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 using static AAEmu.Game.Models.Game.Units.Buffs;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -310,7 +311,7 @@ public class Unit : BaseUnit, IUnit
             IsUnderWater = false;
     }
 
-    public bool CheckMovedPosition(Vector3 oldPosition)
+    public bool CheckMovedPosition(JVector oldPosition)
     {
         var moved = !Transform.World.Position.X.Equals(oldPosition.X) || !Transform.World.Position.Y.Equals(oldPosition.Y) || !Transform.World.Position.Z.Equals(oldPosition.Z);
         if (moved)

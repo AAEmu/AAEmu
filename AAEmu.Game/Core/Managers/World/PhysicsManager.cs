@@ -290,7 +290,7 @@ public class PhysicsManager
                                 _shipShore.ResolveTerrainContacts(slave, physicsTotalDelta, _physWorld);
 
                                 // Apply current drift after shore resolve/cache refresh; never drag ships while beached/on land.
-                                var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
+                                var underPos = slave.Transform.World.Position + JVector.UnitZ * ((slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale);
                                 if (SimulationWorld.Water.IsWater(underPos, out var flowDirection) && flowDirection.LengthSquared() > 1e-10f)
                                 {
                                     var groundedNow = slave.GroundContactLatched || slave.CachedFloorLevel > slave.CachedWaterSurface;
@@ -770,7 +770,7 @@ public class PhysicsManager
         }
 
         // Physics rotation + visual trim: nose pitch (ground contact + waves) about the beam (X), turn bank about the length (Y).
-        var visualRotation = new Vector3(
+        var visualRotation = new JVector(
             physRotation.X + rep.GroundPitchSmoothed + wavePitchRad,
             physRotation.Y + rep.BankSmoothed,
             physRotation.Z);

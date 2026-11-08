@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Crime;
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -982,7 +983,7 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
         // Are we hacking here ?
         var error = $"{player?.Name ?? "unknown"} tried to join courtroom audience while not being near a seat";
         Logger.Warn(error);
-        SusManager.Instance.LogActivity(SusManager.CategoryCheating, player?.AccountId ?? 0, player?.Id ?? 0, player?.Transform.ZoneId ?? 0, player?.Transform.World.Position ?? Vector3.Zero,error);
+        SusManager.Instance.LogActivity(SusManager.CategoryCheating, player?.AccountId ?? 0, player?.Id ?? 0, player?.Transform.ZoneId ?? 0, player?.Transform.World.Position ?? JVector.Zero,error);
     }
 
     public void LeaveTrialAudience(Character player)

@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Flytrap;
 
@@ -74,7 +75,7 @@ public class FlytrapAttackBehavior : Behavior
 
         var gimmick = Ai.Owner.Gimmick;
         var gimmickPosition = Ai.Owner.Gimmick.Transform.World.Position;
-        if (gimmick.Target == Vector3.Zero)
+        if (gimmick.Target == JVector.Zero)
         {
             gimmick.Target = target.Transform.World.Position;
         }
@@ -96,15 +97,15 @@ public class FlytrapAttackBehavior : Behavior
                     // let's find the path to the abuser
                     Ai.Owner.FindPath((Unit)target);
                     // remember the new target coordinates
-                    Ai.PathNode.EndPointPos = new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                    Ai.PathNode.EndPointPos = new JVector(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                     gimmick.Target = target.Transform.World.Position;
                 }
             }
             // moving along the route points
-            if (Ai.PathNode?.FoundPath?.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
+            if (Ai.PathNode?.FoundPath?.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(JVector.Zero))
             {
                 // take the point to which we are moving
-                var routePoint = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
+                var routePoint = new JVector(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
                 // recalculate the distance, since the path is divided into points
                 var distanceToPoint = MathUtil.CalculateDistance(gimmickPosition, routePoint, true);
                 if (distanceToPoint > range)

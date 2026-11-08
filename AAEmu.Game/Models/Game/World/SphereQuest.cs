@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -45,9 +46,9 @@ public class SphereQuest
     public uint QuestId { get; set; }
     public uint ComponentId { get; set; }
     public float Radius { get; set; }
-    public Vector3 Xyz { get; set; } = Vector3.Zero;
+    public JVector Xyz { get; set; } = JVector.Zero;
 
-    public bool Contains(Vector3 pos)
+    public bool Contains(JVector pos)
     {
         return MathUtil.CalculateDistance(Xyz, pos, true) <= Radius;
     }
@@ -81,7 +82,7 @@ public class SphereQuestTrigger
     /// <summary>
     /// Last location of the Owner
     /// </summary>
-    public Vector3 LastCheckLocation { get; set; } = Vector3.Zero;
+    public JVector LastCheckLocation { get; set; } = JVector.Zero;
 
     /// <summary>
     /// Minimum time needed between checks
@@ -111,7 +112,7 @@ public class SphereQuestTrigger
                 {
                     // Normal distance check
                     oldInside = Sphere.Contains(LastCheckLocation);
-                    newInside = Sphere.Contains(Owner?.Transform?.World?.Position ?? Vector3.Zero);
+                    newInside = Sphere.Contains(Owner?.Transform?.World?.Position ?? JVector.Zero);
                 }
                 else
                 {
@@ -137,7 +138,7 @@ public class SphereQuestTrigger
                 }
             }
 
-            LastCheckLocation = Owner?.Transform?.World?.Position ?? Vector3.Zero;
+            LastCheckLocation = Owner?.Transform?.World?.Position ?? JVector.Zero;
             LastTick = DateTime.UtcNow;
         }
     }

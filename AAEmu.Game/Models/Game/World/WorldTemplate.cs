@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils;
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -237,7 +238,7 @@ public class WorldTemplate
         }
     }
 
-    public BaseBaiLoader GetBaiByPos(Vector3 pos)
+    public BaseBaiLoader GetBaiByPos(JVector pos)
     {
         if (ZoneBaiLoader.Count > 0)
             return GetZoneBaiByPos(pos);
@@ -254,7 +255,7 @@ public class WorldTemplate
     /// <summary>
     /// Resolves zone-scoped .bai for instance/dungeon worlds (see also <see cref="WorldCell.LoadBaiFiles"/>).
     /// </summary>
-    private BaseBaiLoader GetZoneBaiByPos(Vector3 pos)
+    private BaseBaiLoader GetZoneBaiByPos(JVector pos)
     {
         var sx = (int)(pos.X / WorldManager.REGION_SIZE);
         var sy = (int)(pos.Y / WorldManager.REGION_SIZE);
@@ -277,7 +278,7 @@ public class WorldTemplate
     /// Fallback when region zoneKey is missing from <see cref="ZoneBaiLoader"/> (zone boundary / data gap).
     /// Mirrors multi-zone scan in <see cref="AiGeodataManager.FindСlosestToTheCurrent"/>.
     /// </summary>
-    private BaseBaiLoader PickZoneBaiByNearestNode(Vector3 pos)
+    private BaseBaiLoader PickZoneBaiByNearestNode(JVector pos)
     {
         BaseBaiLoader bestBai = null;
         var bestDistSq = float.MaxValue;
@@ -288,7 +289,7 @@ public class WorldTemplate
             if (node == null)
                 continue;
 
-            var distSq = Vector3.DistanceSquared(node.Pos, pos);
+            var distSq = JVectorExtensions.DistanceSquared(node.Pos, pos);
             if (distSq < bestDistSq)
             {
                 bestDistSq = distSq;

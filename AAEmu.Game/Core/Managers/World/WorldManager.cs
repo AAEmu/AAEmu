@@ -24,6 +24,7 @@ using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers.World;
 
@@ -373,11 +374,11 @@ public class WorldManager(
 
     private static readonly Lock AutoWaterProbeLock = new();
     private static bool _autoWaterProbeEnabled;
-    private static Vector3 _autoWaterProbePos;
+    private static JVector _autoWaterProbePos;
     private static float _autoWaterProbeLastLen;
     private static DateTime _autoWaterProbeLastLogUtc;
 
-    public static void AutoWaterProbeEnable(Vector3 pos)
+    public static void AutoWaterProbeEnable(JVector pos)
     {
         lock (AutoWaterProbeLock)
         {
@@ -398,7 +399,7 @@ public class WorldManager(
 
     private void AutoWaterProbeTick(TimeSpan delta)
     {
-        Vector3 pos;
+        JVector pos;
         bool enabled;
         lock (AutoWaterProbeLock)
         {
@@ -765,7 +766,7 @@ public class WorldManager(
         // Fallback if FloorQuery was not wired (should not happen after world load)
         var height = 0f;
         if (AppConfiguration.Instance.World.GeoDataMode)
-            height = world?.GeoData.GetHeight(new Vector3(x, y, z)) ?? height;
+            height = world?.GeoData.GetHeight(new JVector(x, y, z)) ?? height;
 
         if (height != 0f || !AppConfiguration.Instance.HeightMapsEnable)
             return height;

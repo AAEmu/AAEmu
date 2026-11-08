@@ -7,6 +7,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers.World;
 
@@ -225,14 +226,14 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
     /// <param name="zoneId">zoneKey</param>
     /// <param name="point">offset inside the zone</param>
     /// <returns></returns>
-    public Vector3 ConvertToWorldCoordinates(uint zoneId, Vector3 point)
+    public JVector ConvertToWorldCoordinates(uint zoneId, JVector point)
     {
         var origin = GetZoneOriginCell(zoneId);
 
         var newX = origin.X * 1024f + point.X;
         var newY = origin.Y * 1024f + point.Y;
 
-        return new Vector3(newX, newY, point.Z);
+        return new JVector(newX, newY, point.Z);
     }
 
     public List<Climate> GetClimatesByZone(Zone zone)

@@ -27,9 +27,9 @@ public class Gimmick : Unit
     public uint GrasperUnitId { get; set; }
     public string ModelPath { get; set; }
     // public Quaternion Rot { get; set; } // углы должны быть в радианах
-    public Vector3 Vel { get; set; }
-    public Vector3 AngVel { get; private set; }
-    public Vector3 Target { get; set; } = Vector3.Zero;
+    public JVector Vel { get; set; }
+    public JVector AngVel { get; private set; }
+    public JVector Target { get; set; } = JVector.Zero;
     public float ScaleVel { get; set; }
     public uint Time { get; set; }
     public GimmickSpawner Spawner { get; set; }
@@ -42,8 +42,8 @@ public class Gimmick : Unit
     public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
     public TimeSpan TotalLifeTime { get; set; } = TimeSpan.Zero;
     private TimeSpan LastLifeTime { get; set; } = TimeSpan.Zero;
-    internal Vector3 LastPos { get; set; } = Vector3.Zero;
-    internal Vector3 LastRot { get; set; } = Vector3.Zero;
+    internal JVector LastPos { get; set; } = JVector.Zero;
+    internal JVector LastRot { get; set; } = JVector.Zero;
     private bool SkillStarted { get; set; }
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _skillStartedLock = new();
@@ -98,7 +98,7 @@ public class Gimmick : Unit
     /// <param name="other"></param>
     /// <param name="distance"></param>
     /// <param name="distanceZ"></param>
-    public void MoveTowards(Vector3 other, float distance, float distanceZ)
+    public void MoveTowards(JVector other, float distance, float distanceZ)
     {
         var oldPosition = Transform.Local.ClonePosition();
         var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
@@ -109,8 +109,8 @@ public class Gimmick : Unit
 
         var q = RotateBarrel(_pitch, _yaw, _roll);
         Transform.Local.ApplyFromQuaternion(q);
-        Vel = new Vector3(0, 0, -distanceZ);
-        AngVel = new Vector3(0f, 0f, 0f);
+        Vel = new JVector(0, 0, -distanceZ);
+        AngVel = new JVector(0f, 0f, 0f);
 
         if (CheckMovedPosition(oldPosition))
             BroadcastPacket(new SCGimmickMovementPacket(this), false);
@@ -207,7 +207,7 @@ public class Gimmick : Unit
         var deltaTime = (float)delta.TotalSeconds;
         var deltaPosition = Transform.World.Position - LastPos;
         Vel = deltaPosition * deltaTime;
-        AngVel = new Vector3(0f, 0f, 0f);
+        AngVel = new JVector(0f, 0f, 0f);
 
         // Time += (uint)delta.Milliseconds;
         Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
@@ -252,7 +252,7 @@ public class Gimmick : Unit
         else
         {
             position.Z = target.Z;
-            gimmick.Vel = Vector3.Zero;
+            gimmick.Vel = JVector.Zero;
             gimmick.IsMoving = false;
         }
     }

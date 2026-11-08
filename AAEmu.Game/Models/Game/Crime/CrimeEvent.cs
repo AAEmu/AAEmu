@@ -1,4 +1,5 @@
 using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Crime;
 
@@ -14,7 +15,7 @@ public class CrimeEvent
     public uint DoodadTemplate { get; set; }
     public CrimeKind CrimeKind { get; set; } = CrimeKind.Invalid;
     public uint ZoneKey { get; set; }
-    public Vector3 Position { get; set; } = Vector3.Zero;
+    public JVector Position { get; set; } = JVector.Zero;
     public DateTime CrimeTime { get; set; } = DateTime.UtcNow;
     public DateTime ReportTime { get; set; } = DateTime.UtcNow;
     public uint UsedSkillId { get; set; }

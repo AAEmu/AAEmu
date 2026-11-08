@@ -15,6 +15,7 @@ using AAEmu.Game.Models.StaticValues;
 
 using AAEmu.Game.Utils;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
 
@@ -79,7 +80,7 @@ public abstract class BaseCombatBehavior : Behavior
             {
                 var currentPosition = Ai.Owner.Transform.World.Position;
                 // Define a target far to the left 
-                var leftTarget = new Vector3(currentPosition.X - 10000, currentPosition.Y, currentPosition.Z);
+                var leftTarget = new JVector(currentPosition.X - 10000, currentPosition.Y, currentPosition.Z);
                 Ai.Owner.LookTowards(leftTarget);
                 Ai.Owner.MoveTowards(leftTarget, (float)speed, moveFlags);
                 return;
@@ -89,7 +90,7 @@ public abstract class BaseCombatBehavior : Behavior
             if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Right)))
             {
                 var currentPosition = Ai.Owner.Transform.World.Position;
-                var rightTarget = new Vector3(currentPosition.X + 10000, currentPosition.Y, currentPosition.Z);
+                var rightTarget = new JVector(currentPosition.X + 10000, currentPosition.Y, currentPosition.Z);
                 Ai.Owner.LookTowards(rightTarget);
                 Ai.Owner.MoveTowards(rightTarget, (float)speed, moveFlags);
                 return;
@@ -105,9 +106,9 @@ public abstract class BaseCombatBehavior : Behavior
                 if (runDirection.Length() == 0)
                 {
                     // Fallback in case we're exactly on top of the player: default to right
-                    runDirection = new Vector3(1, 0, 0);
+                    runDirection = new JVector(1, 0, 0);
                 }
-                runDirection = Vector3.Normalize(runDirection);
+                runDirection = JVector.Normalize(runDirection);
                 // Create a target far away in that direction
                 var runTarget = currentPosition + runDirection * 10000;
                 Ai.Owner.LookTowards(runTarget);
@@ -119,7 +120,7 @@ public abstract class BaseCombatBehavior : Behavior
             if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Descend)))
             {
                 var currentPosition = Ai.Owner.Transform.World.Position;
-                var descendTarget = new Vector3(currentPosition.X, currentPosition.Y - 10000, currentPosition.Z);
+                var descendTarget = new JVector(currentPosition.X, currentPosition.Y - 10000, currentPosition.Z);
                 Ai.Owner.LookTowards(descendTarget);
                 Ai.Owner.MoveTowards(descendTarget, (float)speed, moveFlags);
                 return;
@@ -159,14 +160,14 @@ public abstract class BaseCombatBehavior : Behavior
                     if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
                         Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId} @ {Ai.Owner.Transform}");
                     // Save the target's new coordinates
-                    Ai.PathNode.EndPointPos =  new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                    Ai.PathNode.EndPointPos =  new JVector(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                 }
             }
 
             // If there is a PathNode set, and we still have a target, then find the next point to move to
             if (Ai.PathNode != null)
             {
-                if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
+                if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(JVector.Zero))
                 {
                     var nextPathPoint = Ai.PathNode.FoundPath.Peek();
                     distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, nextPathPoint, true);

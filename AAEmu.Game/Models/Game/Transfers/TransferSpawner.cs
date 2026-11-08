@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Transfers;
 
@@ -80,8 +81,8 @@ public class TransferSpawner : Spawner<Transfer>
                     var point = transfer.TransferPath[0];
                     var point2 = transfer.TransferPath[1];
 
-                    var vPosition = new Vector3(point.X, point.Y, point.Z);
-                    var vTarget = new Vector3(point2.X, point2.Y, point2.Z);
+                    var vPosition = new JVector(point.X, point.Y, point.Z);
+                    var vTarget = new JVector(point2.X, point2.Y, point2.Z);
                     transfer.Angle = MathUtil.CalculateDirection(vPosition, vTarget);
 
                     //transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(transfer.Angle));

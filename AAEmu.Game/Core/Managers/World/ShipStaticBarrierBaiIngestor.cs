@@ -6,6 +6,7 @@ using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Mission;
 using AAEmu.Game.Models.CryEngine.Readers;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers.World;
 
@@ -234,7 +235,7 @@ internal static class ShipStaticBarrierBaiIngestor
         var cy = (minY + maxY) * 0.5f;
         try
         {
-            waterSurfaceRef = world.Water?.GetWaterSurface(new Vector3(cx, cy, vMaxZ), out _) ?? ocean;
+            waterSurfaceRef = world.Water?.GetWaterSurface(new JVector(cx, cy, vMaxZ), out _) ?? ocean;
         }
         catch
         {

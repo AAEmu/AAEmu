@@ -221,7 +221,7 @@ public sealed class ShipShoreInteraction
         var contactFloor = slave.ParentWorld.GetHeight(probeX, probeY);
         var rb = slave.RigidBody;
         var waterAtProbe = slave.ParentWorld.Water.GetWaterSurface(
-            new Vector3(probeX, probeY, rb.Position.Z),
+            new JVector(probeX, probeY, rb.Position.Z),
             out _);
 
         // WALL/CLIFF logic removed per request.

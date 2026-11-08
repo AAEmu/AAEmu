@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.v2.Controls;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -58,7 +59,7 @@ public class AiPathsManager : Singleton<AiPathsManager>, IAiPathsManager
 
                     var newPoint = new AiPathPoint
                     {
-                        Position = new Vector3(x, y, z),
+                        Position = new JVector(x, y, z),
                         Action = action,
                         Param = param
                     };

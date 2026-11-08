@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.NPChar;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.Utils;
 
@@ -11,10 +12,10 @@ public static class AiUtils
 {
 
     // This is taken from x2ai.lua
-    public static Vector3 CalcNextRoamingPosition(NpcAi ai)
+    public static JVector CalcNextRoamingPosition(NpcAi ai)
     {
         var maxRoamingDistance = 6;
-        var newPosition = new Vector3(
+        var newPosition = new JVector(
             (Random.Shared.NextSingle() - 0.5f) * maxRoamingDistance * 2 + ai.IdlePosition.X,
             (Random.Shared.NextSingle() - 0.5f) * maxRoamingDistance * 2 + ai.IdlePosition.Y,
             ai.IdlePosition.Z);

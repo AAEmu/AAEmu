@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -292,7 +293,7 @@ public partial class QuestManager
     /// <param name="owner"></param>
     /// <param name="sphereQuest"></param>
     /// <param name="oldPosition"></param>
-    public void DoOnEnterSphereEvents(ICharacter owner, SphereQuest sphereQuest, Vector3 oldPosition)
+    public void DoOnEnterSphereEvents(ICharacter owner, SphereQuest sphereQuest, JVector oldPosition)
     {
         // Check if there's an active quest attached to this sphere
         // var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
@@ -311,7 +312,7 @@ public partial class QuestManager
     /// <param name="owner"></param>
     /// <param name="sphereQuest"></param>
     /// <param name="oldPosition"></param>
-    public void DoOnExitSphereEvents(ICharacter owner, SphereQuest sphereQuest, Vector3 oldPosition)
+    public void DoOnExitSphereEvents(ICharacter owner, SphereQuest sphereQuest, JVector oldPosition)
     {
         // Check if there's an active quest attached to this sphere
         // var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
@@ -340,7 +341,7 @@ public partial class QuestManager
     /// <param name="player"></param>
     /// <param name="sphereQuestStarter"></param>
     /// <param name="oldPosition"></param>
-    public void DoOnEnterQuestStarterSphere(ICharacter player, SphereQuestStarter sphereQuestStarter, Vector3 oldPosition)
+    public void DoOnEnterQuestStarterSphere(ICharacter player, SphereQuestStarter sphereQuestStarter, JVector oldPosition)
     {
         if (player.Quests.HasQuestCompleted(sphereQuestStarter.QuestTemplateId) || player.Quests.HasQuest(sphereQuestStarter.QuestTemplateId))
             return;

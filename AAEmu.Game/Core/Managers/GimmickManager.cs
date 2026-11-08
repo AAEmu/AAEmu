@@ -9,6 +9,7 @@ using NLog;
 
 using static System.String;
 using Task = AAEmu.Game.Models.Tasks.Task;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -51,7 +52,7 @@ public class GimmickManager(WorldInstance parentWorld)
             Faction = new SystemFaction()
         };
         gimmick.Transform.ApplyWorldSpawnPosition(spawner.Position);
-        gimmick.Vel = new Vector3(0f, 0f, 0f);
+        gimmick.Vel = new JVector(0f, 0f, 0f);
         var spawnRotation = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
         // Apply Gimmick setting's rotation to the GameObject.Transform
         gimmick.Transform.Local.ApplyFromQuaternion(spawnRotation);

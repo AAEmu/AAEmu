@@ -20,6 +20,7 @@ using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.NPChar;
 
@@ -1155,7 +1156,7 @@ public partial class Npc : Unit
     /// <param name="actorFlags">ActorFlags to use for the movement packet</param>
     /// <param name="rangeTolerance">Makes the function return true if target distance is less than or equil to this value</param>
     /// <returns>True if withing rangeTolerance of other</returns>
-    public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
+    public bool MoveTowards(JVector other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
     {
         if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
             return false;
@@ -1208,7 +1209,7 @@ public partial class Npc : Unit
 
         // TODO: Implement proper use for Transform.World.AddDistanceToFront
         var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
-        var pathPeek = Ai.PathNode?.FoundPath is { Count: > 0 } q ? q.Peek() : Vector3.Zero;
+        var pathPeek = Ai.PathNode?.FoundPath is { Count: > 0 } q ? q.Peek() : JVector.Zero;
         var useLerpedZ = PathLocomotionZ.ShouldUseLerpedMoveHeight(
             AppConfiguration.Instance.World.GeoDataMode,
             ParentWorld.Template.ZoneBaiLoader.Count > 0,
@@ -1252,7 +1253,7 @@ public partial class Npc : Unit
         return false;
     }
 
-    public void LookTowards(Vector3 other, byte flags = 4)
+    public void LookTowards(JVector other, byte flags = 4)
     {
         //var oldPosition = Transform.Local.ClonePosition();
         //oldPosition.Z = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
@@ -1333,8 +1334,8 @@ public partial class Npc : Unit
 
     public void FindPath(Unit abuser)
     {
-        Ai.PathNode.StartPointPos = new Vector3(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
-        Ai.PathNode.EndPointPos = new Vector3(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
+        Ai.PathNode.StartPointPos = new JVector(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
+        Ai.PathNode.EndPointPos = new JVector(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
 
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
         var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);

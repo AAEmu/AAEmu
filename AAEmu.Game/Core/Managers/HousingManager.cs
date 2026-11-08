@@ -29,6 +29,7 @@ using AAEmu.Game.Utils;
 using MySql.Data.MySqlClient;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -159,8 +160,8 @@ public class HousingManager(
                         house.CoOwnerId = reader.GetUInt32("co_owner");
                         house.Name = reader.GetString("name");
                         house.Transform = new Transform(house, null,
-                            new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
-                            new Vector3(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"))
+                            new JVector(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
+                            new JVector(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"))
                         );
                         house.Transform.InstanceId = house.ParentWorld.Id; // Just to be sure
                         house.Transform.ZoneId = worldManager.GetZoneId(house.ParentWorld.Template, house.Transform.World.Position.X, house.Transform.World.Position.Y);
@@ -571,7 +572,7 @@ public class HousingManager(
         // can be offset.
         // To make the server and client agree on the rotation, we convert the float zRot to a sbyte, then back to a float.
         // The server then knows the rotation as one of the 256 unique rotations that the client can be sent.
-        var (_, _, yaw) = PositionAndRotation.ToRollPitchYawSBytes(new Vector3(0, 0, zRot));
+        var (_, _, yaw) = PositionAndRotation.ToRollPitchYawSBytes(new JVector(0, 0, zRot));
         zRot = PositionAndRotation.FromRollPitchYawSBytes(0, 0, yaw).Z;
         house.Transform.Local.SetRotation(0, 0, zRot);
 
@@ -1517,7 +1518,7 @@ public class HousingManager(
     /// <param name="parentObjId"></param>
     /// <param name="itemId"></param>
     /// <returns></returns>
-    public bool DecorateHouse(Character player, ushort houseTlId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId)
+    public bool DecorateHouse(Character player, ushort houseTlId, uint designId, JVector pos, Quaternion quat, uint parentObjId, ulong itemId)
     {
         // Check Player
         if (player == null)

@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.Scripts;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -156,9 +157,9 @@ public sealed class WaterDebugCmd : ICommand
             CommandManager.SendNormalText(cmd, messageOutput, line);
     }
 
-    private static bool TryParseXYZ(string[] args, int startIdx, out Vector3 pos)
+    private static bool TryParseXYZ(string[] args, int startIdx, out JVector pos)
     {
-        pos = Vector3.Zero;
+        pos = JVector.Zero;
         if (args.Length < startIdx + 3)
             return false;
         if (!float.TryParse(args[startIdx], out var x))
@@ -167,7 +168,7 @@ public sealed class WaterDebugCmd : ICommand
             return false;
         if (!float.TryParse(args[startIdx + 2], out var z))
             return false;
-        pos = new Vector3(x, y, z);
+        pos = new JVector(x, y, z);
         return true;
     }
 }

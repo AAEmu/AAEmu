@@ -3,6 +3,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar;
 
@@ -28,7 +29,7 @@ public class AStarPathFindingSubCommand : SubCommandBase
         }
 
         //if (PathNode.pos1.X > 0 && PathNode.pos1.Y > 0 && PathNode.pos2.X > 0 && PathNode.pos2.Y > 0)
-        if (npc.Ai.PathNode.StartPointPos != Vector3.Zero && npc.Ai.PathNode.EndPointPos != Vector3.Zero)
+        if (npc.Ai.PathNode.StartPointPos != JVector.Zero && npc.Ai.PathNode.EndPointPos != JVector.Zero)
         {
             npc.Ai.PathNode.ZoneKey = character.Transform.ZoneId;
             var resList = npc.Ai.PathNode.FindPath(npc.ParentWorld, npc.Ai.PathNode.StartPointPos, npc.Ai.PathNode.EndPointPos);

@@ -2,10 +2,11 @@
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCShowCommonFarmPacket(int farmType, int count, Vector3 pos)
+public class SCShowCommonFarmPacket(int farmType, int count, JVector pos)
     : GamePacket(SCOffsets.SCShowCommonFarmPacket, 1)
 {
     private readonly float _x = pos.X;

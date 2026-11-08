@@ -577,10 +577,10 @@ public static class ShipTuningDebug
                     set.TemplateId = templateId;
                 }
 
-                UpdateMarker(ship.ParentWorld, set, 0, templateId, zoneId, new Vector3(probeX, probeY, floorZ));
-                UpdateMarker(ship.ParentWorld, set, 1, templateId, zoneId, new Vector3(cliffX, cliffY, cliffZ));
-                UpdateMarker(ship.ParentWorld, set, 2, templateId, zoneId, new Vector3(boatCenterX, boatCenterY, boatBottomZ));
-                UpdateMarker(ship.ParentWorld, set, 3, templateId, zoneId, new Vector3(probeX, probeY, waterSurfaceZ));
+                UpdateMarker(ship.ParentWorld, set, 0, templateId, zoneId, new JVector(probeX, probeY, floorZ));
+                UpdateMarker(ship.ParentWorld, set, 1, templateId, zoneId, new JVector(cliffX, cliffY, cliffZ));
+                UpdateMarker(ship.ParentWorld, set, 2, templateId, zoneId, new JVector(boatCenterX, boatCenterY, boatBottomZ));
+                UpdateMarker(ship.ParentWorld, set, 3, templateId, zoneId, new JVector(probeX, probeY, waterSurfaceZ));
             }
         }
 
@@ -601,7 +601,7 @@ public static class ShipTuningDebug
 
     #region Marker spawn & lifecycle
 
-    private static void UpdateMarker(AAEmu.Game.Models.Game.World.WorldInstance world, MarkerSet set, int idx, uint templateId, uint zoneId, Vector3 pos)
+    private static void UpdateMarker(AAEmu.Game.Models.Game.World.WorldInstance world, MarkerSet set, int idx, uint templateId, uint zoneId, JVector pos)
     {
         var g = set.Markers[idx];
         if (g is null || g.ParentWorld != world)
@@ -635,7 +635,7 @@ public static class ShipTuningDebug
 
         g.Transform.Local.SetPosition(pos.X, pos.Y, pos.Z);
         g.Transform.FinalizeTransform();
-        g.Vel = Vector3.Zero;
+        g.Vel = JVector.Zero;
         g.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
         g.BroadcastPacket(new SCGimmickMovementPacket(g), false);
     }

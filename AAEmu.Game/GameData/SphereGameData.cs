@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Spheres;
 using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.GameData;
 
@@ -337,7 +338,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
     /// <param name="worldPosition"></param>
     /// <param name="requiredComponentId"></param>
     /// <returns>SphereQuest that was hit, null if none found</returns>
-    public SphereQuest IsInsideAreaSphere(uint sphereId, uint value2, Vector3 worldPosition, uint requiredComponentId = 0)
+    public SphereQuest IsInsideAreaSphere(uint sphereId, uint value2, JVector worldPosition, uint requiredComponentId = 0)
     {
         if (!_spheres.TryGetValue(sphereId, out var dbSphere))
             return null;

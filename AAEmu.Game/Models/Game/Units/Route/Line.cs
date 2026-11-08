@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units.Route;
 
@@ -11,7 +12,7 @@ public class Line : Patrol
 {
     private readonly float distance = 0f;
     private readonly float MovingDistance = 0.27f;
-    public Vector3 Position { get; set; }
+    public JVector Position { get; set; }
 
     public override void Execute(Npc npc)
     {

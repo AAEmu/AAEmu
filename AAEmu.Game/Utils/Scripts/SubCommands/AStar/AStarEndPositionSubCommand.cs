@@ -3,6 +3,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar;
 
@@ -46,7 +47,7 @@ public class AStarEndPositionSubCommand : SubCommandBase
         var y = GetOptionalParameterValue(parameters, "y", character.Transform.World.Position.Y);
         var z = GetOptionalParameterValue(parameters, "z", character.Transform.World.Position.Z);
 
-        npc.Ai.PathNode.EndPointPos = new Vector3(x, y, z);
+        npc.Ai.PathNode.EndPointPos = new JVector(x, y, z);
 
         messageOutput.SendMessage($"AStar: the endpoint is set X:{npc.Ai.PathNode.EndPointPos.X}, Y:{npc.Ai.PathNode.EndPointPos.Y}, Z:{npc.Ai.PathNode.EndPointPos.Z}");
     }

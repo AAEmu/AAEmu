@@ -11,6 +11,7 @@ using AAEmu.Game.Utils;
 
 using NLog;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
@@ -18,7 +19,7 @@ public class FloatingSkillController : SkillController
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Vector3 _endPosition;
+    private JVector _endPosition;
     private readonly float _speed;
     private readonly float _pullDistance;
     private readonly float _stopDistance;
@@ -69,11 +70,11 @@ public class FloatingSkillController : SkillController
 
             if (dist > _stopDistance)
             {
-                var direction = Vector3.Normalize(targetPos - ownerPos);
+                var direction = JVector.Normalize(targetPos - ownerPos);
                 direction.Z = 0;
                 if (direction.LengthSquared() < 0.01f)
-                    direction = new Vector3(1, 0, 0);
-                direction = Vector3.Normalize(direction);
+                    direction = new JVector(1, 0, 0);
+                direction = JVector.Normalize(direction);
                 _endPosition = ownerPos + direction * _pullDistance;
                 _endPosition.Z = ownerPos.Z;
             }

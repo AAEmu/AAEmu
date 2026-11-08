@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Models;
 
@@ -16,8 +17,8 @@ public class GameStance
     public float HeightPivot { get; set; }
     public float NormalSpeed { get; set; }
     public float MaxSpeed { get; set; }
-    public Vector3 Size { get; set; }
-    public Vector3 ModelOffset { get; set; }
-    public Vector3 ViewOffset { get; set; }
+    public JVector Size { get; set; }
+    public JVector ModelOffset { get; set; }
+    public JVector ViewOffset { get; set; }
     public bool UseCapsule { get; set; }
 }

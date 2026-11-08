@@ -2,6 +2,7 @@ using System.Numerics;
 
 using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.CryEngine.Loaders;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -26,7 +27,7 @@ public static class NavSurfaceSampler
         if (worldTemplate?.GeoData == null)
             return null;
 
-        var bai = worldTemplate.GetBaiByPos(new Vector3(x, y, zHint));
+        var bai = worldTemplate.GetBaiByPos(new JVector(x, y, zHint));
         if (bai == null)
             return null;
 
@@ -76,7 +77,7 @@ public static class NavSurfaceSampler
     /// <summary>
     /// Project point onto edge AB in XY. t clamped to [0,1]. Returns false if edge has zero XY length.
     /// </summary>
-    public static bool TryProjectOnEdgeXy(float x, float y, Vector3 a, Vector3 b,
+    public static bool TryProjectOnEdgeXy(float x, float y, JVector a, JVector b,
         out float t, out float projX, out float projY, out float distSq)
     {
         var abx = b.X - a.X;
@@ -118,10 +119,10 @@ public static class NavSurfaceSampler
     /// Uses each point's previous corrected Z as the vertical hint so slopes stay coherent.
     /// Points with no nearby surface keep their original Z.
     /// </summary>
-    public static List<Vector3> ApplyWaypointHeights(WorldTemplate worldTemplate, IEnumerable<Vector3> path,
+    public static List<JVector> ApplyWaypointHeights(WorldTemplate worldTemplate, IEnumerable<JVector> path,
         float maxVerticalSep = DefaultMaxVerticalSep, float maxXyRadius = DefaultMaxXyRadius)
     {
-        var result = new List<Vector3>();
+        var result = new List<JVector>();
         if (path == null)
             return result;
 
@@ -131,7 +132,7 @@ public static class NavSurfaceSampler
             var zHint = prevZ ?? point.Z;
             var surface = TrySample(worldTemplate, point.X, point.Y, zHint, maxVerticalSep, maxXyRadius);
             var z = surface ?? point.Z;
-            result.Add(new Vector3(point.X, point.Y, z));
+            result.Add(new JVector(point.X, point.Y, z));
             prevZ = z;
         }
 
@@ -141,9 +142,9 @@ public static class NavSurfaceSampler
     /// <summary>
     /// Same as <see cref="ApplyWaypointHeights"/> but keeps a queue for AI path consumers.
     /// </summary>
-    public static Queue<Vector3> ApplyWaypointHeightsQueue(WorldTemplate worldTemplate, IEnumerable<Vector3> path,
+    public static Queue<JVector> ApplyWaypointHeightsQueue(WorldTemplate worldTemplate, IEnumerable<JVector> path,
         float maxVerticalSep = DefaultMaxVerticalSep, float maxXyRadius = DefaultMaxXyRadius)
     {
-        return new Queue<Vector3>(ApplyWaypointHeights(worldTemplate, path, maxVerticalSep, maxXyRadius));
+        return new Queue<JVector>(ApplyWaypointHeights(worldTemplate, path, maxVerticalSep, maxXyRadius));
     }
 }
