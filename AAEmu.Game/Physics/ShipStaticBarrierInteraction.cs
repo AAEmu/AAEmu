@@ -15,14 +15,14 @@ namespace AAEmu.Game.Physics;
 
 /// <summary>
 /// Ship hull vs polyline barriers in <see cref="ShipStaticBarrierZones"/>.
-/// Each segment is a thin static OBB in XZ; same SAT + separation pattern as <see cref="ShipDoodadInteraction"/>.
+/// Each segment is a thin static OBB in XY; same SAT + separation pattern as <see cref="ShipDoodadInteraction"/>.
 /// </summary>
 public sealed class ShipStaticBarrierInteraction
 {
     private readonly List<(ShipStaticBarrier barrier, int segmentIndex)> _candidateBuffer = [];
     private readonly HashSet<(ShipStaticBarrier barrier, int segmentIndex)> _candidateDedupe = [];
 
-    /// <summary>Ship hull vs barrier segment resolution (XZ OBB SAT + separation).</summary>
+    /// <summary>Ship hull vs barrier segment resolution (XY OBB SAT + separation).</summary>
     public static class BarrierDefaults
     {
         /// <summary>Extra margin (m) on barrier <c>ZMin/ZMax</c> when testing hull AABB vs the obstacle vertical slab.</summary>
@@ -37,7 +37,7 @@ public sealed class ShipStaticBarrierInteraction
         /// <summary>Minimum OBB penetration (m) before applying motion (reduces jitter on hairline overlaps).</summary>
         public const float MinPenetrationToAct = 0.05f;
 
-        /// <summary>Minimum Jitter-Y overlap (m) between hull and barrier height range; XZ SAT is skipped below this.</summary>
+        /// <summary>Minimum vertical Z overlap (m) between hull and barrier height range; XY SAT is skipped below this.</summary>
         public const float MinVerticalOverlap = 0.12f;
 
         /// <summary>Multiplier on penetration when pushing along the contact normal; keep near 1 to avoid corner eject.</summary>
@@ -49,7 +49,7 @@ public sealed class ShipStaticBarrierInteraction
         /// <summary>Cap on one ApplySeparation step (m); same idea as <see cref="ShipCliffInteraction.CliffObstacleDefaults.MaxSeparationStepMetersPerIteration"/>.</summary>
         public const float MaxSeparationStepMetersPerIteration = 0.055f;
 
-        /// <summary>Max total XZ separation applied to one hull from all barrier segments this tick (m).</summary>
+        /// <summary>Max total XY separation applied to one hull from all barrier segments this tick (m).</summary>
         public const float MaxTotalSeparationBudgetPerTick = 0.22f;
 
         /// <summary>Fraction of velocity into the obstacle along the normal removed per iteration; lower = softer in tight slips.</summary>
@@ -109,7 +109,7 @@ public sealed class ShipStaticBarrierInteraction
             var halfBeam = model.MassBoxSizeX * ship.Scale * 0.5f;
             var shipPad = halfLen + halfBeam + BarrierDefaults.ShipBoundsPadMeters;
 
-            ShipShipInteraction.GetMassBoxCenterXz(ship.RigidBody, model, ship.Scale, out var scx, out var scz);
+            ShipShipInteraction.GetMassBoxCenterXy(ship.RigidBody, model, ship.Scale, out var scx, out var scz);
             grid!.Query(scx, scz, shipPad, _candidateBuffer, _candidateDedupe);
 
             var sepBudget = BarrierDefaults.MaxTotalSeparationBudgetPerTick;
@@ -170,8 +170,7 @@ public sealed class ShipStaticBarrierInteraction
         if (overlapY < BarrierDefaults.MinVerticalOverlap)
             return false;
 
-        var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(body.Orientation));
-        var bowA = rpyA.Item1 + MathUtil.HalfPi;
+        var bowA = PhysicsUtil.GetYaw(body.Orientation) + MathUtil.HalfPi;
 
         var halfLenA = ma.MassBoxSizeY * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateLength *
                        BarrierDefaults.SatShipObbTightenMul;
@@ -199,9 +198,9 @@ public sealed class ShipStaticBarrierInteraction
             if (overlapY < BarrierDefaults.MinVerticalOverlap)
                 break;
 
-            ShipShipInteraction.GetMassBoxCenterXz(body, ma, ship.Scale, out var ax, out var az);
+            ShipShipInteraction.GetMassBoxCenterXy(body, ma, ship.Scale, out var ax, out var az);
 
-            if (!ShipShipInteraction.TryObbXzMinPenetration(
+            if (!ShipShipInteraction.TryObbXyMinPenetration(
                     ax, az, bowA, halfLenA, satHalfWidA,
                     bx, bz, bowB, halfLenB, halfWidB,
                     out var penetration,
@@ -230,7 +229,7 @@ public sealed class ShipStaticBarrierInteraction
                 break;
 
             separationBudgetMeters -= move;
-            ShipStaticObstacleContact.ApplySeparationAndSurfaceDampXz(
+            ShipStaticObstacleContact.ApplySeparationAndSurfaceDampXy(
                 body,
                 ship,
                 nx,

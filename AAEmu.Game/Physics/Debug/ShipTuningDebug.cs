@@ -105,7 +105,7 @@ public static class ShipTuningDebug
     private static uint GetAxisBeamMarkerTemplateId() => 0; // firecracker_blue (assumed adjacent id)
 
     /// <summary>
-    /// EN: Axis marker for +Up (local +Y). Default id <c>28</c> (same id as shore marker; change if you need a distinct look). Disable with <see cref="AxisMarkersEnabled"/> or return <c>0</c>.
+    /// EN: Axis marker for +Up (local +Z). Default id <c>28</c> (same id as shore marker; change if you need a distinct look). Disable with <see cref="AxisMarkersEnabled"/> or return <c>0</c>.
     /// RU: Маркер оси +Up (локальная +Y). По умолчанию id <c>28</c> (тот же id, что у берега; поменяй, если нужен другой вид). Выключение — <see cref="AxisMarkersEnabled"/> или <c>return 0</c>.
     /// </summary>
     public static uint AxisUpMarkerTemplateId => GetAxisUpMarkerTemplateId();
@@ -204,7 +204,7 @@ public static class ShipTuningDebug
         }
     }
 
-    /// <summary>Half-extents (phys local X,Y,Z), box center and rotation in game space — same basis as <see cref="ShipController.Build"/>.</summary>
+    /// <summary>Half-extents (local X = beam, Y = length, Z = height), box center and rotation — same basis as <see cref="ShipController.Build"/>.</summary>
     private readonly record struct MassBoxGameGeometry(float Hx, float Hy, float Hz, Vector3 CenterGame, Matrix4x4 RotGame);
 
     private static bool TryGetMassBoxGameGeometry(Slave ship, out MassBoxGameGeometry geo)
@@ -217,30 +217,29 @@ public static class ShipTuningDebug
 
         var scale = MathF.Max(0.01f, ship.Scale);
         var hx = model.MassBoxSizeX * scale * 0.5f;
-        var hy = ShipController.ShipMassBoxDefaults.GetSizeZ(model.MassBoxSizeZ) * scale * 0.5f;
-        var hz = model.MassBoxSizeY * scale * 0.5f;
+        var hy = model.MassBoxSizeY * scale * 0.5f;
+        var hz = ShipController.ShipMassBoxDefaults.GetSizeZ(model.MassBoxSizeZ) * scale * 0.5f;
         var rotGame = GetTransformRotationMatrix(ship.Transform.Local.Rotation);
-        var posGame0 = rb.Position.ToVector();
-        var offsetLocalPhys = new JVector(
+        var posGame0 = new Vector3(rb.Position.X, rb.Position.Y, rb.Position.Z);
+        var offsetLocal = new Vector3(
             model.MassCenterX * scale,
-            ShipController.ShipMassBoxDefaults.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ) * scale,
-            model.MassCenterY * scale);
-        var offsetLocalGame = offsetLocalPhys.ToVector();
-        var centerGame = posGame0 + Vector3.TransformNormal(offsetLocalGame, rotGame);
+            model.MassCenterY * scale,
+            ShipController.ShipMassBoxDefaults.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ) * scale);
+        var centerGame = posGame0 + Vector3.TransformNormal(offsetLocal, rotGame);
         geo = new MassBoxGameGeometry(hx, hy, hz, centerGame, rotGame);
         return true;
     }
 
     private static void FillMassBoxLocalCornersGame(float hx, float hy, float hz, Span<Vector3> corners)
     {
-        corners[0] = new JVector(+hx, +hy, +hz).ToVector();
-        corners[1] = new JVector(+hx, +hy, -hz).ToVector();
-        corners[2] = new JVector(+hx, -hy, +hz).ToVector();
-        corners[3] = new JVector(+hx, -hy, -hz).ToVector();
-        corners[4] = new JVector(-hx, +hy, +hz).ToVector();
-        corners[5] = new JVector(-hx, +hy, -hz).ToVector();
-        corners[6] = new JVector(-hx, -hy, +hz).ToVector();
-        corners[7] = new JVector(-hx, -hy, -hz).ToVector();
+        corners[0] = new Vector3(+hx, +hy, +hz);
+        corners[1] = new Vector3(+hx, +hy, -hz);
+        corners[2] = new Vector3(+hx, -hy, +hz);
+        corners[3] = new Vector3(+hx, -hy, -hz);
+        corners[4] = new Vector3(-hx, +hy, +hz);
+        corners[5] = new Vector3(-hx, +hy, -hz);
+        corners[6] = new Vector3(-hx, -hy, +hz);
+        corners[7] = new Vector3(-hx, -hy, -hz);
     }
 
     private static void GetMassBoxWorldVerticalExtent(in MassBoxGameGeometry g, Span<Vector3> cornerScratch, out float minZ, out float maxZ)
@@ -397,10 +396,10 @@ public static class ShipTuningDebug
         var hxE = geo.Hx + extra;
         var hyE = geo.Hy + extra;
 
-        // +Length / +Beam / +Up: local +Z / +X / +Y of physics box (see ShipController.Build).
-        var posLen = geo.CenterGame + Vector3.TransformNormal(new JVector(0f, 0f, hzE).ToVector(), geo.RotGame);
-        var posBeam = geo.CenterGame + Vector3.TransformNormal(new JVector(hxE, 0f, 0f).ToVector(), geo.RotGame);
-        var posUp = geo.CenterGame + Vector3.TransformNormal(new JVector(0f, hyE, 0f).ToVector(), geo.RotGame);
+        // +Length / +Beam / +Up: local +Y / +X / +Z of physics box (see ShipController.Build).
+        var posLen = geo.CenterGame + Vector3.TransformNormal(new Vector3(0f, hyE, 0f), geo.RotGame);
+        var posBeam = geo.CenterGame + Vector3.TransformNormal(new Vector3(hxE, 0f, 0f), geo.RotGame);
+        var posUp = geo.CenterGame + Vector3.TransformNormal(new Vector3(0f, 0f, hzE), geo.RotGame);
 
         Span<Vector3> cornerScratch = stackalloc Vector3[MassBoxCornerCount];
         GetMassBoxWorldVerticalExtent(in geo, cornerScratch, out var minZ, out var maxZ);

@@ -6,12 +6,12 @@ using AAEmu.Game.Models.Game.World;
 namespace AAEmu.Game.Physics;
 
 /// <summary>
-/// Uniform grid over XZ for ship-barrier broadphase: each segment is inserted into every cell
+/// Uniform grid over XY for ship-barrier broadphase: each segment is inserted into every cell
 /// overlapping its axis-aligned bounds (expanded). Query uses the ship center ± shipPad box.
 /// </summary>
 internal sealed class ShipStaticBarrierSpatialGrid
 {
-    /// <summary>World XZ cell size (m).</summary>
+    /// <summary>World XY cell size (m).</summary>
     public const float CellSizeMeters = 128f;
 
     /// <summary>

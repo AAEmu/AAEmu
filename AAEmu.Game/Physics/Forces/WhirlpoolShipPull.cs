@@ -131,8 +131,7 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
 
             var dxy = dir * (speed * dt);
 
-            // Physics rigid-body horizontal plane is XZ; rigid-body Z maps to world Y.
-            body.Position += new JVector(dxy.X, 0f, dxy.Y);
+            body.Position += new JVector(dxy.X, dxy.Y, 0f);
 
             // Hull damage while affected by the whirlpool pull.
             _hullDamageAccSecBySlaveObjId.TryGetValue(slave.ObjId, out var acc);

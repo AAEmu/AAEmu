@@ -14,7 +14,7 @@ namespace AAEmu.Game.Physics;
 /// <summary>
 /// Siege AoE from a ground/world position uses <see cref="WorldManager.GetAround"/> pivot + <see cref="Unit.ModelSize"/>,
 /// which misses long ships when the shell lands on the hull away from the pivot. Adds hostile boats whose
-/// <c>ship_models</c> mass OBB (XZ) intersects the siege circle, without duplicating targets already collected.
+/// <c>ship_models</c> mass OBB (XY) intersects the siege circle, without duplicating targets already collected.
 /// </summary>
 public static class ShipSiegeAoEHit
 {
@@ -60,7 +60,7 @@ public static class ShipSiegeAoEHit
                 continue;
             if (!SkillTargetingUtil.IsRelationValid(template.TargetRelation, caster, ship))
                 continue;
-            if (!TrySiegePointHitsShipMassBoxXz(wx, wy, radius, ship))
+            if (!TrySiegePointHitsShipMassBoxXy(wx, wy, radius, ship))
                 continue;
 
             possibleTargets.Add(ship);
@@ -69,18 +69,17 @@ public static class ShipSiegeAoEHit
     }
 
     /// <summary>
-    /// World horizontal plane matches ship hull math: X with Jitter X, Y with Jitter Z (see <see cref="ShipShipInteraction.GetMassBoxCenterXz"/>).
+    /// Point vs ship mass-box footprint on the horizontal (X, Y) plane (see <see cref="ShipShipInteraction.GetMassBoxCenterXy"/>).
     /// </summary>
-    public static bool TrySiegePointHitsShipMassBoxXz(float worldX, float worldY, float radius, Slave ship)
+    public static bool TrySiegePointHitsShipMassBoxXy(float worldX, float worldY, float radius, Slave ship)
     {
         var body = ship.RigidBody;
         var model = ship.ShipController?.ShipModel;
         if (body is null || model is null || !ship.Template.IsABoat())
             return false;
 
-        ShipShipInteraction.GetMassBoxCenterXz(body, model, ship.Scale, out var cx, out var cz);
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(body.Orientation));
-        var bow = rpy.Item1 + MathUtil.HalfPi;
+        ShipShipInteraction.GetMassBoxCenterXy(body, model, ship.Scale, out var cx, out var cz);
+        var bow = PhysicsUtil.GetYaw(body.Orientation) + MathUtil.HalfPi;
         var halfLen = model.MassBoxSizeY * ship.Scale * 0.5f;
         var halfBeam = model.MassBoxSizeX * ship.Scale * 0.5f;
 

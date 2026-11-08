@@ -35,23 +35,24 @@ public class HeightmapDetection : IBroadPhaseFilter
         var max = collider.WorldBoundingBox.Max;
 
         var minX = Math.Max(0, (int)min.X);
-        var minZ = Math.Max(0, (int)min.Z);
+        var minY = Math.Max(0, (int)min.Y);
         var maxX = Math.Min(_heightmap.Width - 1, (int)max.X + 1);
-        var maxZ = Math.Min(_heightmap.Height - 1, (int)max.Z + 1);
+        var maxY = Math.Min(_heightmap.Height - 1, (int)max.Y + 1);
 
+        // Height is on Z (world up). Triangles are wound so that (C - A) x (B - A) points up (+Z).
         for (var x = minX; x < maxX; x++)
         {
-            for (var z = minZ; z < maxZ; z++)
+            for (var y = minY; y < maxY; y++)
             {
                 // First triangle of the quad
 
-                var index = 2 * (ulong)(x * _heightmap.Width + z);
+                var index = 2 * (ulong)(x * _heightmap.Width + y);
 
                 CollisionTriangle triangle;
 
-                triangle.A = new JVector(x + 0, _heightmap.GetHeight(x + 0, z + 0), z + 0);
-                triangle.B = new JVector(x + 1, _heightmap.GetHeight(x + 1, z + 0), z + 0);
-                triangle.C = new JVector(x + 1, _heightmap.GetHeight(x + 1, z + 1), z + 1);
+                triangle.A = new JVector(x + 0, y + 0, _heightmap.GetHeight(x + 0, y + 0));
+                triangle.B = new JVector(x + 1, y + 1, _heightmap.GetHeight(x + 1, y + 1));
+                triangle.C = new JVector(x + 1, y + 0, _heightmap.GetHeight(x + 1, y + 0));
 
                 var normal = JVector.Normalize((triangle.C - triangle.A) % (triangle.B - triangle.A));
 
@@ -65,9 +66,9 @@ public class HeightmapDetection : IBroadPhaseFilter
                 // Second triangle of the quad
 
                 index += 1;
-                triangle.A = new JVector(x + 0, _heightmap.GetHeight(x + 0, z + 0), z + 0);
-                triangle.B = new JVector(x + 1, _heightmap.GetHeight(x + 1, z + 1), z + 1);
-                triangle.C = new JVector(x + 0, _heightmap.GetHeight(x + 0, z + 1), z + 1);
+                triangle.A = new JVector(x + 0, y + 0, _heightmap.GetHeight(x + 0, y + 0));
+                triangle.B = new JVector(x + 0, y + 1, _heightmap.GetHeight(x + 0, y + 1));
+                triangle.C = new JVector(x + 1, y + 1, _heightmap.GetHeight(x + 1, y + 1));
 
                 normal = JVector.Normalize((triangle.C - triangle.A) % (triangle.B - triangle.A));
 

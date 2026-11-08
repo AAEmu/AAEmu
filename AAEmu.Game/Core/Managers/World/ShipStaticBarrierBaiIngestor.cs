@@ -32,13 +32,13 @@ internal static class ShipStaticBarrierBaiIngestor
     /// </summary>
     private static class Defaults
     {
-        /// <summary>Barrier floor: <c>WaterSurface + ZMinOffsetFromWaterSurface</c> (m, Jitter Y / game Z).</summary>
+        /// <summary>Barrier floor: <c>WaterSurface + ZMinOffsetFromWaterSurface</c> (m, world Z).</summary>
         public const float ZMinOffsetFromWaterSurface = -5f;
 
         /// <summary>Barrier ceiling: <c>WaterSurface + ZMaxOffsetFromWaterSurface</c> (m); defines vertical overlap range with the hull.</summary>
         public const float ZMaxOffsetFromWaterSurface = 15f;
 
-        /// <summary>Half-width (m) of each segment wall — OBB thickness in the horizontal (Jitter XZ) plane. Lower = contact closer to the polyline.</summary>
+        /// <summary>Half-width (m) of each segment wall — OBB thickness in the horizontal (XY) plane. Lower = contact closer to the polyline.</summary>
         public const float HalfThicknessMeters = 1.05f;
 
         /// <summary>Heightmap sample counts as “coastal / shallow” if <c>h ≤ WaterSurface + CoastalMaxAboveWater</c> (m).</summary>

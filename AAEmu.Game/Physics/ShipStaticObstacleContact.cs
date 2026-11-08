@@ -8,7 +8,7 @@ using Jitter2.LinearMath;
 namespace AAEmu.Game.Physics;
 
 /// <summary>
-/// Shared XZ separation + normal/tangential velocity damping for ship vs static obstacles (doodads, cliff proxy wall).
+/// Shared XY separation + normal/tangential velocity damping for ship vs static obstacles (doodads, cliff proxy wall).
 /// </summary>
 internal static class ShipStaticObstacleContact
 {
@@ -27,7 +27,7 @@ internal static class ShipStaticObstacleContact
     /// </summary>
     public const float MinPenetrationMetersForEnvHullDamage = 0.015f;
 
-    public static void ApplySeparationAndSurfaceDampXz(
+    public static void ApplySeparationAndSurfaceDampXy(
         RigidBody body,
         Slave ship,
         float nx,
@@ -37,21 +37,21 @@ internal static class ShipStaticObstacleContact
         float tangentialSlipDamp,
         byte replicationContactHoldTicks)
     {
-        body.Position -= new JVector(nx * moveMeters, 0f, nz * moveMeters);
+        body.Position -= new JVector(nx * moveMeters, nz * moveMeters, 0f);
 
         var va = body.Velocity;
-        var closing = va.X * nx + va.Z * nz;
+        var closing = va.X * nx + va.Y * nz;
         if (closing > 0f)
         {
-            va = new JVector(va.X - nx * closing * closingSpeedDamp, va.Y,
-                va.Z - nz * closing * closingSpeedDamp);
+            va = new JVector(va.X - nx * closing * closingSpeedDamp,
+                va.Y - nz * closing * closingSpeedDamp, va.Z);
         }
 
         var tx = -nz;
         var tz = nx;
-        var relT = va.X * tx + va.Z * tz;
+        var relT = va.X * tx + va.Y * tz;
         var slip = relT * (1f - tangentialSlipDamp);
-        va = new JVector(va.X - tx * slip, va.Y, va.Z - tz * slip);
+        va = new JVector(va.X - tx * slip, va.Y - tz * slip, va.Z);
         body.Velocity = va;
 
         if (replicationContactHoldTicks > 0 && ship.ShipController != null)

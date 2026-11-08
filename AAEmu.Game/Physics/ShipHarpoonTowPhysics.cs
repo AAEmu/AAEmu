@@ -213,7 +213,7 @@ public static class ShipHarpoonTowPhysics
                 continue;
 
             var hx = rigidBody.Position.X;
-            var hz = rigidBody.Position.Z;
+            var hz = rigidBody.Position.Y;
             var dx = hook.X - hx;
             var dz = hook.Y - hz;
             var len = MathF.Sqrt(dx * dx + dz * dz);
@@ -224,14 +224,14 @@ public static class ShipHarpoonTowPhysics
             dz /= len;
             var imp = accel * dtSec;
             sum.X += dx * imp;
-            sum.Z += dz * imp;
+            sum.Y += dz * imp;
         }
 
         if (sum.LengthSquared() < 1e-10f)
             return;
 
         var vx = rigidBody.Velocity.X + sum.X;
-        var vz = rigidBody.Velocity.Z + sum.Z;
+        var vz = rigidBody.Velocity.Y + sum.Y;
         var alongVel = vx * bowDirX + vz * bowDirZ;
         var mul = speedToAlongVelScale;
         if (mul < 1e-4f)
@@ -246,18 +246,18 @@ public static class ShipHarpoonTowPhysics
 
         rigidBody.Velocity = new JVector(
             alongVel * bowDirX + perpX,
-            rigidBody.Velocity.Y,
-            alongVel * bowDirZ + perpZ);
+            alongVel * bowDirZ + perpZ,
+            rigidBody.Velocity.Z);
 
         hull.Speed = alongVel / mul;
 
-        var sumLen = MathF.Sqrt(sum.X * sum.X + sum.Z * sum.Z);
+        var sumLen = MathF.Sqrt(sum.X * sum.X + sum.Y * sum.Y);
         if (sumLen < 1e-6f)
             return;
         var sx = sum.X / sumLen;
-        var sz = sum.Z / sumLen;
+        var sz = sum.Y / sumLen;
         var cross = bowDirX * sz - bowDirZ * sx;
-        // ShipController sets angular velocity as -RotSpeed on rigid body Y — negate cross so bow turns toward pull.
+        // ShipController sets angular velocity as -RotSpeed about world up (+Z) — negate cross so bow turns toward pull.
         hull.RotSpeed += Math.Clamp(-cross * TowYawAssistRadPerSec * dtSec, -0.85f, 0.85f);
     }
 
@@ -283,7 +283,7 @@ public static class ShipHarpoonTowPhysics
                 if (!TryBuildShipPairTowDelta(towHull, child, towRb, shipsThisTick, dtSec, out var basis, out var dvxTow, out var dvzTow, out var dvxBasis, out var dvzBasis, out var basisPullUx, out var basisPullUz, out var bowYawMassScale))
                     continue;
 
-                towRb.Velocity += new JVector(dvxTow, 0f, dvzTow);
+                towRb.Velocity += new JVector(dvxTow, dvzTow, 0f);
                 ResyncSlaveSpeedFromRigidBodyAlongBow(towHull, towRb);
                 // basisPull is (-dx,-dz) with (dx,dz) unit tow hull → hook; tug bow follows hook along rope.
                 ApplyShipPairBowYawTowardPull(towHull, towRb, -basisPullUx, -basisPullUz, dtSec, bowYawMassScale);
@@ -291,7 +291,7 @@ public static class ShipHarpoonTowPhysics
                 var bRb = basis.RigidBody;
                 if (bRb is null)
                     continue;
-                bRb.Velocity += new JVector(dvxBasis, 0f, dvzBasis);
+                bRb.Velocity += new JVector(dvxBasis, dvzBasis, 0f);
                 ResyncSlaveSpeedFromRigidBodyAlongBow(basis, bRb);
                 ApplyShipPairBowYawTowardPull(basis, bRb, basisPullUx, basisPullUz, dtSec, bowYawMassScale);
             }
@@ -353,7 +353,7 @@ public static class ShipHarpoonTowPhysics
             return false;
 
         var hx = towHullRb.Position.X;
-        var hz = towHullRb.Position.Z;
+        var hz = towHullRb.Position.Y;
         var dx = hook.X - hx;
         var dz = hook.Y - hz;
         var len = MathF.Sqrt(dx * dx + dz * dz);
@@ -369,8 +369,8 @@ public static class ShipHarpoonTowPhysics
         if (total < 1e-3f)
             return false;
 
-        var vTow = HorizontalSpeedXZ(towHullRb);
-        var vBasis = HorizontalSpeedXZ(basisRb);
+        var vTow = HorizontalSpeedXy(towHullRb);
+        var vBasis = HorizontalSpeedXy(basisRb);
         var sTow = mTow * (1f + ShipPairDominanceSpeedCoeff * vTow);
         var sBasis = mBasis * (1f + ShipPairDominanceSpeedCoeff * vBasis);
         var impulseMul = sTow >= sBasis ? ShipPairDominantTowHullMul : ShipPairDominantBasisHullMul;
@@ -413,31 +413,29 @@ public static class ShipHarpoonTowPhysics
         var px = pullUnitX / pl;
         var pz = pullUnitZ / pl;
 
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
-        var bowRad = rpy.Item1 + MathUtil.HalfPi;
+        var bowRad = PhysicsUtil.GetYaw(rb.Orientation) + MathUtil.HalfPi;
         var fx = MathF.Cos(bowRad);
         var fz = MathF.Sin(bowRad);
         var cross = fx * pz - fz * px;
-        // ShipController sets angular velocity from -RotSpeed on body Y — same sign as terrain tow pull assist.
+        // ShipController sets angular velocity from -RotSpeed about world up (+Z) — same sign as terrain tow pull assist.
         slave.RotSpeed += Math.Clamp(-cross * TowYawAssistRadPerSec * dtSec * yawMassScale, -0.85f, 0.85f);
     }
 
-    private static float HorizontalSpeedXZ(RigidBody rb)
+    private static float HorizontalSpeedXy(RigidBody rb)
     {
         var vx = rb.Velocity.X;
-        var vz = rb.Velocity.Z;
-        return MathF.Sqrt(vx * vx + vz * vz);
+        var vy = rb.Velocity.Y;
+        return MathF.Sqrt(vx * vx + vy * vy);
     }
 
-    /// <summary>Keeps <see cref="Slave.Speed"/> consistent with rigid-body XZ after an external velocity nudge (same bow convention as <see cref="ShipController"/>).</summary>
+    /// <summary>Keeps <see cref="Slave.Speed"/> consistent with rigid-body XY after an external velocity nudge (same bow convention as <see cref="ShipController"/>).</summary>
     private static void ResyncSlaveSpeedFromRigidBodyAlongBow(Slave slave, RigidBody rb)
     {
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
-        var bowRad = rpy.Item1 + MathUtil.HalfPi;
+        var bowRad = PhysicsUtil.GetYaw(rb.Orientation) + MathUtil.HalfPi;
         var fx = MathF.Cos(bowRad);
         var fz = MathF.Sin(bowRad);
         var mul = slave.MoveSpeedMul / 4f * MathF.Max(0.001f, slave.TurnSpeedVelocityMul);
-        var along = rb.Velocity.X * fx + rb.Velocity.Z * fz;
+        var along = rb.Velocity.X * fx + rb.Velocity.Y * fz;
         slave.Speed = along / mul;
     }
 }
