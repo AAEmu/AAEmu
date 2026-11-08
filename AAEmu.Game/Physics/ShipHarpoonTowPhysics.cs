@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Collections.Generic;
-using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
@@ -202,7 +201,7 @@ public static class ShipHarpoonTowPhysics
 
             var cannonPos = child.Transform.World.Position;
             var hook = ShipHarpoonRopeController.GetHookWorldPosition(child);
-            var dist = Vector3.Distance(cannonPos, hook);
+            var dist = JVectorExtensions.Distance(cannonPos, hook);
             var paid = st.RopeLength + ServerRopePaidLengthAdditiveMeters;
             if (paid > dist + SlackMarginMeters)
                 continue;
@@ -331,7 +330,7 @@ public static class ShipHarpoonTowPhysics
 
         var hook = ShipHarpoonRopeController.GetHookWorldPosition(harpoonChild);
         var cannonPos = harpoonChild.Transform.World.Position;
-        var dist = Vector3.Distance(cannonPos, hook);
+        var dist = JVectorExtensions.Distance(cannonPos, hook);
         var paid = st.RopeLength + ServerRopePaidLengthAdditiveMeters;
 
         // In flight: chord >> paid — no tow (otherwise MinStretch invented force and yaw before hook lands).

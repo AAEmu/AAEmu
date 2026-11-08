@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Gimmicks;
 
@@ -45,7 +46,7 @@ public class GimmickMovementElevator(Gimmick owner) : GimmickMovementHandler(own
         owner.Transform.Local.SetHeight(position.Z);
     }
 
-    public override void AfterMove(TimeSpan delta, Vector3 deltaPosition)
+    public override void AfterMove(TimeSpan delta, JVector deltaPosition)
     {
         base.AfterMove(delta, deltaPosition);
         if (owner.IsMoving)

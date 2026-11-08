@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.Utils;
@@ -10,6 +9,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -90,7 +90,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                 {
                                     var areaNode = areaNodes[j];
                                     var areaAttribs = XmlHelper.ReadNodeAttributes(areaNode);
-                                    var startVector = new Vector3();
+                                    var startVector = JVector.Zero;
 
                                     // GET ID
                                     if (areaAttribs.TryGetValue("Id", out var id))
@@ -108,7 +108,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                         }
                                         try
                                         {
-                                            startVector = new Vector3(float.Parse(posVals[0], CultureInfo.InvariantCulture), float.Parse(posVals[1], CultureInfo.InvariantCulture), float.Parse(posVals[2], CultureInfo.InvariantCulture));
+                                            startVector = new JVector(float.Parse(posVals[0], CultureInfo.InvariantCulture), float.Parse(posVals[1], CultureInfo.InvariantCulture), float.Parse(posVals[2], CultureInfo.InvariantCulture));
                                         }
                                         catch
                                         {
@@ -118,7 +118,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
                                     var worldOrigins = ZoneManager.Instance.GetZoneOriginCell(zone.ZoneKey);
 
-                                    var cellOffset = new Vector3 { X = (worldOrigins.X + cellXOffset) * 1024f, Y = (worldOrigins.Y + cellYOffset) * 1024f };
+                                    var cellOffset = new JVector { X = (worldOrigins.X + cellXOffset) * 1024f, Y = (worldOrigins.Y + cellYOffset) * 1024f };
 
                                     var pointsXml = areaNode.SelectNodes("Points/Point");
                                     for (var n = 0; n < pointsXml.Count; n++)
@@ -135,7 +135,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                             }
                                             try
                                             {
-                                                var vec = new Vector3(float.Parse(posVals[0], CultureInfo.InvariantCulture) + cellOffset.X, float.Parse(posVals[1], CultureInfo.InvariantCulture) + cellOffset.Y, float.Parse(posVals[2], CultureInfo.InvariantCulture));
+                                                var vec = new JVector(float.Parse(posVals[0], CultureInfo.InvariantCulture) + cellOffset.X, float.Parse(posVals[1], CultureInfo.InvariantCulture) + cellOffset.Y, float.Parse(posVals[2], CultureInfo.InvariantCulture));
                                                 vec.X += startVector.X;
                                                 vec.Y += startVector.Y;
                                                 vec.Z += startVector.Z;
@@ -212,7 +212,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                 {
                                     var areaNode = areaNodes[j];
                                     var areaAttribs = XmlHelper.ReadNodeAttributes(areaNode);
-                                    var startVector = Vector3.Zero;
+                                    var startVector = JVector.Zero;
 
                                     //GET ID
                                     if (areaAttribs.TryGetValue("Id", out var id))
@@ -230,7 +230,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                         }
                                         try
                                         {
-                                            startVector = new Vector3(float.Parse(posVals[0], CultureInfo.InvariantCulture), float.Parse(posVals[1], CultureInfo.InvariantCulture), float.Parse(posVals[2], CultureInfo.InvariantCulture));
+                                            startVector = new JVector(float.Parse(posVals[0], CultureInfo.InvariantCulture), float.Parse(posVals[1], CultureInfo.InvariantCulture), float.Parse(posVals[2], CultureInfo.InvariantCulture));
                                         }
                                         catch
                                         {
@@ -240,7 +240,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
                                     var worldOrigins = ZoneManager.Instance.GetZoneOriginCell(zone.ZoneKey);
 
-                                    var cellOffset = new Vector3 { X = (worldOrigins.X + cellXOffset) * 1024f, Y = (worldOrigins.Y + cellYOffset) * 1024f };
+                                    var cellOffset = new JVector { X = (worldOrigins.X + cellXOffset) * 1024f, Y = (worldOrigins.Y + cellYOffset) * 1024f };
 
                                     var pointsXml = areaNode.SelectNodes("Points/Point");
                                     for (var n = 0; n < pointsXml.Count; n++)
@@ -257,7 +257,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                             }
                                             try
                                             {
-                                                var vec = new Vector3(float.Parse(posVals[0], CultureInfo.InvariantCulture) + cellOffset.X, float.Parse(posVals[1], CultureInfo.InvariantCulture) + cellOffset.Y, float.Parse(posVals[2], CultureInfo.InvariantCulture));
+                                                var vec = new JVector(float.Parse(posVals[0], CultureInfo.InvariantCulture) + cellOffset.X, float.Parse(posVals[1], CultureInfo.InvariantCulture) + cellOffset.Y, float.Parse(posVals[2], CultureInfo.InvariantCulture));
                                                 vec.X += startVector.X;
                                                 vec.Y += startVector.Y;
                                                 vec.Z += startVector.Z;
@@ -301,7 +301,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
         foreach (var houseZoneTemplate in world.Template.HousingZones[zoneId])
         {
-            if (Point.IsInside(houseZoneTemplate.Points, houseZoneTemplate.Points.Count, new Vector3(x, y, 0)))
+            if (Point.IsInside(houseZoneTemplate.Points, houseZoneTemplate.Points.Count, new JVector(x, y, 0)))
             {
                 Logger.Debug($"Is in zone {zoneId} housezone name {houseZoneTemplate.Name} ({houseZoneTemplate.Id})");
                 found = true;
@@ -322,7 +322,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
     }
 
-    public List<uint> GetSubZoneByPosition(WorldTemplate worldTemplate, Vector3 pos)
+    public List<uint> GetSubZoneByPosition(WorldTemplate worldTemplate, JVector pos)
     {
         return GetSubZoneByPosition(worldTemplate, pos.X, pos.Y);
     }
@@ -343,7 +343,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
         {
             foreach (var subzoneTemplate in subZoneList)
             {
-                if (Point.IsInside(subzoneTemplate.Points, subzoneTemplate.Points.Count, new Vector3(x, y, 0)))
+                if (Point.IsInside(subzoneTemplate.Points, subzoneTemplate.Points.Count, new JVector(x, y, 0)))
                 {
                     //Logger.Debug("Is in zone {0} in subzone {1} subzone name {2}", zoneId, subzoneTemplate.Id, subzoneTemplate.Name);
                     found = true;

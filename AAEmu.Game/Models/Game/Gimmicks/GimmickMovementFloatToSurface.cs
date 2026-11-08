@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Gimmicks;
 
@@ -13,7 +14,7 @@ public class GimmickMovementFloatToSurface(Gimmick owner) : GimmickMovementHandl
 
         // Expected Upwards distance
         var movement = 2.5f * (float)delta.TotalSeconds; // maximum movement needed to do the 100m in 40 seconds
-        var checkPos = owner.Transform.World.Position + new Vector3(0f, 0f, movement + 1f);
+        var checkPos = owner.Transform.World.Position + new JVector(0f, 0f, movement + 1f);
         // Check if the new location is still inside water and apply if it is
         if (WorldManager.Instance.GetWorld(owner.Transform.InstanceId)?.Water?.IsWater(checkPos, out _) ?? false)
             owner.Transform.Local.Translate(0f, 0f, movement);

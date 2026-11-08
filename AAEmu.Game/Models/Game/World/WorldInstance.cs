@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Numerics;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -13,6 +12,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -203,7 +203,7 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     /// </summary>
     /// <param name="position"></param>
     /// <returns></returns>
-    public bool IsWater(Vector3 position) => IsWater(position, out _);
+    public bool IsWater(JVector position) => IsWater(position, out _);
 
     /// <summary>
     /// Checks if target position is inside a body of water and returns it's flow direction (if available)
@@ -211,12 +211,12 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     /// <param name="point"></param>
     /// <param name="flowDirection"></param>
     /// <returns></returns>
-    public bool IsWater(Vector3 point, out Vector3 flowDirection)
+    public bool IsWater(JVector point, out JVector flowDirection)
     {
         if (Water != null)
             return Water.IsWater(point, out flowDirection);
 
-        flowDirection = Vector3.Zero;
+        flowDirection = JVector.Zero;
 
         if (point.Z <= Template.OceanLevel)
             return true;
@@ -310,7 +310,7 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     /// </summary>
     /// <param name="pos"></param>
     /// <returns></returns>
-    public Region GetRegionByPos(Vector3 pos)
+    public Region GetRegionByPos(JVector pos)
     {
         var sectorX = (int)(pos.X / WorldManager.REGION_SIZE);
         var sectorY = (int)(pos.Y / WorldManager.REGION_SIZE);

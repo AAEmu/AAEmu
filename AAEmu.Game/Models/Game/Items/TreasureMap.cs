@@ -3,6 +3,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items.Templates;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Items;
 
@@ -98,8 +99,8 @@ public class TreasureMap : Item
         stream.Write(_mapPositionY);
     }
 
-    public Vector3 GetMapPosition(float z)
+    public JVector GetMapPosition(float z)
     {
-        return new Vector3((float)MapPositionX, (float)MapPositionY, z);
+        return new JVector((float)MapPositionX, (float)MapPositionY, z);
     }
 }

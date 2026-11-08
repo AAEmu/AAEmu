@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -37,8 +38,8 @@ public class Transfer : Unit
     public List<Character> AttachedCharacters { get; set; } = [];
     public DateTime SpawnTime { get; set; }
     public float RotationDegrees { get; set; }
-    public Vector3 Velocity { get; set; }
-    public Vector3 AngVel { get; set; }
+    public JVector Velocity { get; set; }
+    public JVector AngVel { get; set; }
     public int Steering { get; set; } = 1;
     public sbyte Throttle { get; set; } // ?
     public int PathPointIndex { get; set; }
@@ -432,10 +433,10 @@ public class Transfer : Unit
     public bool MoveToForward { get; set; }        // movement direction true -> forward, true -> back
     public int MoveStepIndex { get; set; }         // current checkpoint (where are we running now)
     //public float DeltaTime { get; set; } = 0.1f;
-    public Vector3 vPosition { get; set; }
-    public Vector3 vTarget { get; set; }
-    public Vector3 vDistance { get; set; }
-    public Vector3 vVelocity { get; set; }
+    public JVector vPosition { get; set; }
+    public JVector vTarget { get; set; }
+    public JVector vDistance { get; set; }
+    public JVector vVelocity { get; set; }
     public float Distance { get; set; }
     public float MaxVelocityForward { get; set; } = 5.4f;
     //public float MaxVelocityBackward { get; set; } = 0.25f;
@@ -481,7 +482,7 @@ public class Transfer : Unit
         //Logger.Warn("checkpoint #" + i);
         //Logger.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
         var s = transfer.TransferPath[transfer.MoveStepIndex];
-        transfer.vTarget = new Vector3(s.X, s.Y, s.Z);
+        transfer.vTarget = new JVector(s.X, s.Y, s.Z);
         // 1.начало пути
         if (MoveStepIndex == 0 && Steering == 0 && transfer.Template.WaitTime > 0)
         {
@@ -509,7 +510,7 @@ public class Transfer : Unit
         transfer.vTarget = transfer.Transform.World.ClonePosition();
         for (var i = 0; i < pointsList.Count; i++)
         {
-            transfer.vPosition = new Vector3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
+            transfer.vPosition = new JVector(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
 
             //Logger.Warn("#" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
 
@@ -537,15 +538,15 @@ public class Transfer : Unit
         transfer.Throttle = 0;
         transfer.Speed = 0;
         transfer.RotSpeed = 0;
-        transfer.Velocity = Vector3.Zero;
-        transfer.vVelocity = Vector3.Zero;
+        transfer.Velocity = JVector.Zero;
+        transfer.vVelocity = JVector.Zero;
     }
 
-    private static Vector3 Truncate(Vector3 steering, float maxForce)
+    private static JVector Truncate(JVector steering, float maxForce)
     {
         if (steering.Length() > maxForce)
         {
-            return Vector3.Normalize(steering) * maxForce;
+            return JVector.Normalize(steering) * maxForce;
         }
         return steering;
     }
@@ -600,11 +601,11 @@ public class Transfer : Unit
             return;
         }
 
-        transfer.vVelocity = Vector3.Normalize(transfer.vDistance) * transfer.VelAccel;
-        var desiredVelocity = Vector3.Normalize(transfer.vDistance) * MaxVelocityForward;
+        transfer.vVelocity = JVector.Normalize(transfer.vDistance) * transfer.VelAccel;
+        var desiredVelocity = JVector.Normalize(transfer.vDistance) * MaxVelocityForward;
         var steering = desiredVelocity - transfer.vVelocity;
         steering = Truncate(steering, MaxForce);
-        steering /= Mass;
+        steering *= 1f / Mass;
         transfer.vVelocity = Truncate(transfer.vVelocity + steering, MaxVelocityForward);
         transfer.vPosition += transfer.vVelocity;
 
@@ -618,11 +619,11 @@ public class Transfer : Unit
         {
             transfer.Angle += MathF.PI;
             //transfer.velAccel = vehicleModel.WheeledVehicleGearSpeedRatioReverse; // задний ход
-            transfer.AngVel = new Vector3(MaxVelocityForward, 0, 0);
+            transfer.AngVel = new JVector(MaxVelocityForward, 0, 0);
         }
         else
         {
-            transfer.AngVel = new Vector3(-MaxVelocityForward, 0, 0);
+            transfer.AngVel = new JVector(-MaxVelocityForward, 0, 0);
         }
         var rot = MathUtil.ConvertRadianToDirectionShort(transfer.Angle);
         transfer.Transform.World.SetZRotation((float)Angle);
@@ -641,7 +642,7 @@ public class Transfer : Unit
         // Added so whatever riding this, doesn't clip out of existence when moving
         transfer.Transform.FinalizeTransform();
         transfer.SetPosition(transfer.vPosition.X, transfer.vPosition.Y, transfer.vPosition.Z, 0, 0, (float)transfer.Angle);
-        transfer.Transform.World.SetPosition(transfer.vPosition, new Vector3(0, 0, (float)transfer.Angle));
+        transfer.Transform.World.SetPosition(transfer.vPosition, new JVector(0, 0, (float)transfer.Angle));
 
         // Keep bound carriage parts in sync server-side.
         // The client may initially render them attached at the station, but without server-side position updates
@@ -656,7 +657,7 @@ public class Transfer : Unit
             var cz = transfer.vPosition.Z;
 
             child.SetPosition(cx, cy, cz, 0, 0, (float)transfer.Angle);
-            child.Transform.World.SetPosition(new Vector3(cx, cy, cz), new Vector3(0, 0, (float)transfer.Angle));
+            child.Transform.World.SetPosition(new JVector(cx, cy, cz), new JVector(0, 0, (float)transfer.Angle));
             child.Rot = transfer.Rot;
 
             var childMove = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
@@ -699,7 +700,7 @@ public class Transfer : Unit
                     transfer.Steering = 0; // укажем на начальный путь
                     transfer.TransferPath = transfer.Routes[transfer.Steering];
                     var s = transfer.TransferPath[transfer.MoveStepIndex];
-                    transfer.vTarget = new Vector3(s.X, s.Y, s.Z);
+                    transfer.vTarget = new JVector(s.X, s.Y, s.Z);
                 }
                 else
                 {
@@ -709,7 +710,7 @@ public class Transfer : Unit
                     transfer.Steering++; // укажем на следующий участок пути
                     transfer.TransferPath = transfer.Routes[transfer.Steering];
                     var s = transfer.TransferPath[transfer.MoveStepIndex];
-                    transfer.vTarget = new Vector3(s.X, s.Y, s.Z);
+                    transfer.vTarget = new JVector(s.X, s.Y, s.Z);
                     // здесь будет пауза в конце участка пути, если она есть в базе данных
                     if (transfer.Steering != 0 && (transfer.Template.TransferAllPaths[transfer.Steering - 1].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0))
                     {
@@ -736,7 +737,7 @@ public class Transfer : Unit
                 // путь еще не закончился, продолжаем движение
                 transfer.MoveStepIndex++;
                 var s = transfer.TransferPath[transfer.MoveStepIndex];
-                transfer.vTarget = new Vector3(s.X, s.Y, s.Z);
+                transfer.vTarget = new JVector(s.X, s.Y, s.Z);
             }
         }
         else
@@ -775,7 +776,7 @@ public class Transfer : Unit
                 transfer.MoveStepIndex--;
                 //TransferPath = Routes[Steering];
                 var s = transfer.TransferPath[transfer.MoveStepIndex];
-                transfer.vTarget = new Vector3(s.X, s.Y, s.Z);
+                transfer.vTarget = new JVector(s.X, s.Y, s.Z);
             }
             else
             {
@@ -783,7 +784,7 @@ public class Transfer : Unit
                 transfer.MoveStepIndex++;
                 //TransferPath = Routes[Steering];
                 var s = transfer.TransferPath[transfer.MoveStepIndex];
-                vTarget = new Vector3(s.X, s.Y, s.Z);
+                vTarget = new JVector(s.X, s.Y, s.Z);
             }
         }
     }

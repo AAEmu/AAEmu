@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.PublicFarm;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -61,20 +62,20 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
         }
     }
 
-    public bool InPublicFarm(WorldTemplate worldTemplate, Vector3 pos)
+    public bool InPublicFarm(WorldTemplate worldTemplate, JVector pos)
     {
         var subZoneList = subZoneManager.GetSubZoneByPosition(worldTemplate, pos);
         return subZoneList.Count > 0 && subZoneList.Any(subZoneId => _farmZones.ContainsKey(subZoneId));
     }
 
-    private uint GetFarmSubZoneId(WorldInstance world, Vector3 pos)
+    private uint GetFarmSubZoneId(WorldInstance world, JVector pos)
     {
         var subZoneList = subZoneManager.GetSubZoneByPosition(world.Template, pos);
 
         return subZoneList.Count > 0 ? subZoneList.FirstOrDefault(subZoneId => _farmZones.ContainsKey(subZoneId)) : 0;
     }
 
-    public FarmGroupKind GetFarmType(WorldInstance world, Vector3 pos)
+    public FarmGroupKind GetFarmType(WorldInstance world, JVector pos)
     {
         var subZoneId = GetFarmSubZoneId(world, pos);
         return _farmZones.GetValueOrDefault(subZoneId, FarmGroupKind.Invalid);

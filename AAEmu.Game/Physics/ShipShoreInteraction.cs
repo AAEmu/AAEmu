@@ -5,7 +5,6 @@ using AAEmu.Game.Physics.Debug;
 using AAEmu.Game.Physics.Util;
 using AAEmu.Game.Utils;
 
-using System.Numerics;
 
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
@@ -221,7 +220,7 @@ public sealed class ShipShoreInteraction
         var contactFloor = slave.ParentWorld.GetHeight(probeX, probeY);
         var rb = slave.RigidBody;
         var waterAtProbe = slave.ParentWorld.Water.GetWaterSurface(
-            new Vector3(probeX, probeY, rb.Position.Z),
+            new JVector(probeX, probeY, rb.Position.Z),
             out _);
 
         // WALL/CLIFF logic removed per request.
@@ -283,7 +282,7 @@ public sealed class ShipShoreInteraction
 
         // Mass-box center (rigid body origin) above local waterline: stop vertical "pop" from penetration resolve.
         var waterAtCenter = slave.ParentWorld.Water.GetWaterSurface(
-            new Vector3(rb.Position.X, rb.Position.Y, rb.Position.Z),
+            rb.Position,
             out _);
         var centerAboveWaterline = slave.RigidBody.Position.Z > waterAtCenter + 0.001f;
 

@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Models.Game.Char;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Crime;
 
@@ -9,7 +10,7 @@ public class BountyDescription
     public string PlayerName { get; set; }
     public byte PlayerLevel { get; set; }
     public uint ZoneId { get; set; } // Zone key?
-    public Vector3 Pos { get; set; }
+    public JVector Pos { get; set; }
     public ulong BountyAmount { get; set; }
     public short CrimePoints { get; set; }
     public bool IsLive { get; set; }

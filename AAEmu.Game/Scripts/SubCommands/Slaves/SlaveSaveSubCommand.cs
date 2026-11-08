@@ -85,7 +85,7 @@ public class SlaveSaveSubCommand : SubCommandBase
                         foreach (var slaveSpawnerToFile in slaveSpawnersToFile.Where(n => n.UnitId == npc.TemplateId))
                         {
                             // If the position changed don't mark to be removed
-                            if (!npc.Transform.World.Position.Equals(slaveSpawnerToFile.Position.AsVector3()))
+                            if (!npc.Transform.World.Position.Equals(slaveSpawnerToFile.Position.AsPositionVector()))
                             {
                                 continue;
                             }

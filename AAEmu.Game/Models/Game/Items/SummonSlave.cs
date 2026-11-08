@@ -2,6 +2,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items.Templates;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Items;
 
@@ -27,7 +28,7 @@ public class SummonSlave : Item
     }
 
     // TODO: Actually use this location for saving the data in ItemDetails
-    public Vector3 SummonLocation { get; set; }
+    public JVector SummonLocation { get; set; }
 
     public SummonSlave()
     {

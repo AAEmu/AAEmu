@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -10,6 +8,7 @@ using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
@@ -19,7 +18,7 @@ public class DashSkillController : SkillController
     public int DistanceOffset { get; set; }
 
     private readonly float _calculatedSpeed;
-    private readonly Vector3 _endPosition;
+    private readonly JVector _endPosition;
 
     public enum DashDirection
     {

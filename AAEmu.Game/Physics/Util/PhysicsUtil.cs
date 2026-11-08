@@ -17,7 +17,7 @@ public class PhysicsUtil
     /// Game rotation (X = roll about the beam axis, Y = pitch about the length axis, Z = yaw) in radians,
     /// using the same Euler convention as <see cref="PositionAndRotation.FromQuaternion(float, float, float, float)"/>.
     /// </summary>
-    public static Vector3 GetGameRotation(JQuaternion q)
+    public static JVector GetGameRotation(JQuaternion q)
     {
         return PositionAndRotation.FromQuaternion(q.X, q.Y, q.Z, q.W);
     }

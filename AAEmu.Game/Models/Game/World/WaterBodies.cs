@@ -3,6 +3,8 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.CryEngine.Objects;
 using Newtonsoft.Json;
+using Jitter2.LinearMath;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -44,7 +46,7 @@ public class WaterBodies
     private const float RiverLikeMinAspectRatio = 2.5f;
     private const float RiverLikeMaxHalfWidthMeters = 130f;
 
-    internal static bool TryGetRiverLikePolygonMetrics(List<Vector3> points, out float lengthMeters,
+    internal static bool TryGetRiverLikePolygonMetrics(List<JVector> points, out float lengthMeters,
         out float maxHalfWidthMeters, out float meanFullWidthMeters, out float areaSqm, out float aspect,
         out Vector2 principalAxisUnit)
     {
@@ -61,7 +63,7 @@ public class WaterBodies
         var n = points.Count;
         if (n >= 2 && points[0] != points[^1])
         {
-            points = new List<Vector3>(points);
+            points = new List<JVector>(points);
             points.Add(points[0]);
             n = points.Count;
         }
@@ -126,7 +128,7 @@ public class WaterBodies
         return true;
     }
 
-    private static bool IsRiverLikePolygon(List<Vector3> points, out Vector2 axisUnit)
+    private static bool IsRiverLikePolygon(List<JVector> points, out Vector2 axisUnit)
     {
         axisUnit = Vector2.UnitX;
         if (!TryGetRiverLikePolygonMetrics(points, out var length, out var maxHalfWidth, out var meanFullWidth, out _,
@@ -143,7 +145,7 @@ public class WaterBodies
         return true;
     }
 
-    private static Vector2 GetMeanXY(List<Vector3> points)
+    private static Vector2 GetMeanXY(List<JVector> points)
     {
         var n = points.Count;
         if (n >= 2 && points[0] == points[^1])
@@ -151,7 +153,7 @@ public class WaterBodies
         return GetMeanXY(points, n);
     }
 
-    private static Vector2 GetMeanXY(List<Vector3> points, int n)
+    private static Vector2 GetMeanXY(List<JVector> points, int n)
     {
         double sx = 0d;
         double sy = 0d;
@@ -165,7 +167,7 @@ public class WaterBodies
         return new Vector2((float)(sx * inv), (float)(sy * inv));
     }
 
-    private static void GetCovarianceXY(List<Vector3> points, Vector2 mean, out float cxx, out float cxy, out float cyy)
+    private static void GetCovarianceXY(List<JVector> points, Vector2 mean, out float cxx, out float cxy, out float cyy)
     {
         var n = points.Count;
         if (n >= 2 && points[0] == points[^1])
@@ -173,7 +175,7 @@ public class WaterBodies
         GetCovarianceXY(points, n, mean, out cxx, out cxy, out cyy);
     }
 
-    private static void GetCovarianceXY(List<Vector3> points, int n, Vector2 mean, out float cxx, out float cxy, out float cyy)
+    private static void GetCovarianceXY(List<JVector> points, int n, Vector2 mean, out float cxx, out float cxy, out float cyy)
     {
         double sxx = 0d;
         double sxy = 0d;
@@ -291,9 +293,9 @@ public class WaterBodies
             return [.. Areas];
     }
 
-    public bool IsWater(Vector3 point, out Vector3 flowDirection)
+    public bool IsWater(JVector point, out JVector flowDirection)
     {
-        flowDirection = Vector3.Zero;
+        flowDirection = JVector.Zero;
 
         if (point.Z <= OceanLevel)
             return true;
@@ -302,7 +304,7 @@ public class WaterBodies
         {
             EnsureSpatialIndexUnderLock();
 
-            var totalFlow = Vector3.Zero;
+            var totalFlow = JVector.Zero;
             var targets = 0;
             var px = point.X;
             var py = point.Y;
@@ -311,7 +313,7 @@ public class WaterBodies
 
             if (_areaIndexByCell == null || !_areaIndexByCell.TryGetValue((cx, cy), out var inCell))
             {
-                flowDirection = Vector3.Zero;
+                flowDirection = JVector.Zero;
                 return false;
             }
 
@@ -332,18 +334,18 @@ public class WaterBodies
 
             if (targets > 0)
             {
-                flowDirection = totalFlow / targets;
+                flowDirection = totalFlow * (1f / targets);
                 return true;
             }
         }
 
-        flowDirection = Vector3.Zero;
+        flowDirection = JVector.Zero;
         return false;
     }
 
-    public float GetWaterSurface(Vector3 point, out Vector3 flowDirection)
+    public float GetWaterSurface(JVector point, out JVector flowDirection)
     {
-        flowDirection = Vector3.Zero;
+        flowDirection = JVector.Zero;
 
         if (point.Z <= OceanLevel)
             return OceanLevel;
@@ -389,7 +391,7 @@ public class WaterBodies
         return OceanLevel;
     }
 
-    private static Vector3 WaterPointToWorld(Vector3 cellOffset, Vector3 filePoint, float surfaceZ)
+    private static JVector WaterPointToWorld(JVector cellOffset, JVector filePoint, float surfaceZ)
     {
         const float localBand = WorldManager.CELL_SIZE * 2f;
         var xyCellLocal = filePoint.X <= localBand && filePoint.Y <= localBand &&
@@ -417,7 +419,7 @@ public class WaterBodies
         // Gameplay water comes from object.dat only.
     }
 
-    private void AddObjectDataFromWorldCell(ObjectDataBase prefab, Vector3 cellOffset, WorldCell worldCell, int prefabIdx)
+    private void AddObjectDataFromWorldCell(ObjectDataBase prefab, JVector cellOffset, WorldCell worldCell, int prefabIdx)
     {
         if (prefab is ObjectDataType1Brush)
             return;
@@ -449,14 +451,14 @@ public class WaterBodies
         if (!likeRiver)
             return;
 
-        List<Vector3> riverWorldPoints = null;
+        List<JVector> riverWorldPoints = null;
         if (water.ShapePointsList.Count >= 2)
         {
             riverWorldPoints = [];
             foreach (var sp in water.ShapePointsList)
                 riverWorldPoints.Add(WaterPointToWorld(cellOffset, sp, water.SurfaceHeight));
         }
-        else if (Vector3.Distance(water.StartPos, water.EndPos) > 0.5f)
+        else if (JVectorExtensions.Distance(water.StartPos, water.EndPos) > 0.5f)
         {
             riverWorldPoints =
             [
@@ -497,7 +499,7 @@ public class WaterBodies
         }
     }
 
-    private void AddPolygonFromPhysicsContour(WorldTemplate template, ObjectDataType11Water water, Vector3 cellOffset,
+    private void AddPolygonFromPhysicsContour(WorldTemplate template, ObjectDataType11Water water, JVector cellOffset,
         string name)
     {
         var newLake = new WaterBodyArea(name, WaterBodyAreaType.Polygon);

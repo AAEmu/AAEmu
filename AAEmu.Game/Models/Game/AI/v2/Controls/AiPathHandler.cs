@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
-using System.Numerics;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Controls;
 
@@ -33,7 +33,7 @@ public class AiPathHandler(NpcAi aiOwner)
     /// <summary>
     /// Currently targeted position for path movement
     /// </summary>
-    public Vector3 TargetPosition { get; set; } = Vector3.Zero;
+    public JVector TargetPosition { get; set; } = JVector.Zero;
 
     /// <summary>
     /// Does path movement and dequeuing as needed
@@ -53,13 +53,13 @@ public class AiPathHandler(NpcAi aiOwner)
         }
 
         // Are we there yet?
-        if (TargetPosition != Vector3.Zero && MathUtil.CalculateDistance(TargetPosition, Owner.Owner.Transform.World.Position, true) < Owner.Owner.Template.Scale)
+        if (TargetPosition != JVector.Zero && MathUtil.CalculateDistance(TargetPosition, Owner.Owner.Transform.World.Position, true) < Owner.Owner.Template.Scale)
         {
-            TargetPosition = Vector3.Zero;
+            TargetPosition = JVector.Zero;
         }
 
         // No current target? Set it!
-        if (TargetPosition == Vector3.Zero && AiPathPointsRemaining.Count > 0)
+        if (TargetPosition == JVector.Zero && AiPathPointsRemaining.Count > 0)
         {
             var nextPos = AiPathPointsRemaining.Dequeue();
             switch (nextPos.Action)
@@ -88,14 +88,14 @@ public class AiPathHandler(NpcAi aiOwner)
             }
 
             // Set next move point if it's not zero
-            if (!nextPos.Position.Equals(Vector3.Zero))
+            if (!nextPos.Position.Equals(JVector.Zero))
             {
                 TargetPosition = nextPos.Position;
             }
         }
 
         // We know where to go? Then go that direction
-        if (TargetPosition != Vector3.Zero)
+        if (TargetPosition != JVector.Zero)
         {
             var moveSpeed = Owner.GetRealMovementSpeed(AiPathSpeed);
             // var moveFlags = Owner.GetRealMovementFlags(moveSpeed);
@@ -112,7 +112,7 @@ public class AiPathHandler(NpcAi aiOwner)
 
     public bool HasUnhandledPathMovementData()
     {
-        return AiPathPointsRemaining.Count > 0 || AiPathLooping || TargetPosition != Vector3.Zero;
+        return AiPathPointsRemaining.Count > 0 || AiPathLooping || TargetPosition != JVector.Zero;
     }
 
     public bool HasPathMovementData()

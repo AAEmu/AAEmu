@@ -4,6 +4,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Expeditions;
 
@@ -20,7 +21,7 @@ public class ExpeditionMember : PacketMarshaler
     public uint Id3 { get; set; } // TODO mb system faction.Id?
     public byte[] Abilities { get; set; } = [11, 11, 11];
     public byte Role { get; set; }
-    public Vector3 Position { get; set; } = Vector3.Zero;
+    public JVector Position { get; set; } = JVector.Zero;
     public string Memo { get; set; }
     public DateTime TransferRequestedTime { get; set; }
 

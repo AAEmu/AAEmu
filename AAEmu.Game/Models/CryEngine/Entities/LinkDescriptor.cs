@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Models.CryEngine.Readers;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
@@ -8,7 +9,7 @@ public class LinkDescriptor(NetMissionReader baiReader)
     public NetMissionReader BaiReader { get; } = baiReader;
     public long SourceNode { get; set; }
     public long TargetNode { get; set; }
-    public Vector3 EdgeCenter { get; set; } = Vector3.Zero;
+    public JVector EdgeCenter { get; set; } = JVector.Zero;
     public double MaxPassRadius { get; set; }
     public double Exposure { get; set; }
     public double Length { get; set; }
@@ -42,10 +43,6 @@ public class LinkDescriptor(NetMissionReader baiReader)
                EndIndex == other.EndIndex &&
                IsPureTriangularLink == other.IsPureTriangularLink &&
                SimplePassabilityCheck == other.SimplePassabilityCheck &&
-#if NET10_0_OR_GREATER
-              Vector3.EqualsAll(EdgeCenter, other.EdgeCenter);
-#else
-              Vector3.Equals(EdgeCenter, other.EdgeCenter);
-#endif
+              EdgeCenter.Equals(other.EdgeCenter);
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.Drawing;
-using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
@@ -7,6 +6,8 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
+using Jitter2.LinearMath;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Scripts.SubCommands.Doodads;
 
@@ -75,7 +76,7 @@ public class DoodadRemovesSubCommand : SubCommandBase
         foreach (var doodad in doodads)
         {
             // Вычисляем расстояние между персонажем и текущим объектом Doodad
-            var distance = Vector3.Distance(character.Transform.World.Position, doodad.Transform.World.Position);
+            var distance = JVectorExtensions.Distance(character.Transform.World.Position, doodad.Transform.World.Position);
 
             // Если расстояние меньше текущего минимального, обновляем ближайший объект и минимальное расстояние
             if (!(distance < minDistance))
@@ -97,7 +98,7 @@ public class DoodadRemovesSubCommand : SubCommandBase
 
         // Фильтруем объекты, чтобы оставить только те, которые находятся в радиусе и имеют совпадающий ObjId с TemplateId
         var doodadsInRadius = doodads
-            .Where(doodad => Vector3.Distance(character.Transform.World.Position, doodad.Transform.World.Position) <= radius && doodad.TemplateId == templateId)
+            .Where(doodad => JVectorExtensions.Distance(character.Transform.World.Position, doodad.Transform.World.Position) <= radius && doodad.TemplateId == templateId)
             .ToList();
 
         return doodadsInRadius;

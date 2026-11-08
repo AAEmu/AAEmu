@@ -4,12 +4,13 @@ using AAEmu.Game.Models.Game.AI.Utils;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
 public class RoamingBehavior : BaseCombatBehavior
 {
-    private Vector3 _targetRoamPosition = Vector3.Zero;
+    private JVector _targetRoamPosition = JVector.Zero;
     private DateTime _nextRoaming;
     private bool _enter;
 
@@ -31,13 +32,13 @@ public class RoamingBehavior : BaseCombatBehavior
         if (!CheckAggression())
             CheckAlert();
 
-        if (_targetRoamPosition.Equals(Vector3.Zero) && DateTime.UtcNow > _nextRoaming)
+        if (_targetRoamPosition.Equals(JVector.Zero) && DateTime.UtcNow > _nextRoaming)
         {
             UpdateRoaming();
             Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
         }
 
-        if (_targetRoamPosition.Equals(Vector3.Zero))
+        if (_targetRoamPosition.Equals(JVector.Zero))
             return;
 
         var moveSpeed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
@@ -49,7 +50,7 @@ public class RoamingBehavior : BaseCombatBehavior
         if (dist < 1.0f)
         {
             Ai.Owner.StopMovement();
-            _targetRoamPosition = Vector3.Zero;
+            _targetRoamPosition = JVector.Zero;
             _nextRoaming = DateTime.UtcNow.AddSeconds(Random.Shared.Next(3, 6)); // Rand 3-6 would look nice ?
             Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, true), false);
         }

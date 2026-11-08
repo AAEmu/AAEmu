@@ -1,12 +1,13 @@
 ﻿using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
 public class ObstacleDataDescriptor(uint zoneId)
 {
     public uint ZoneId { get; } = zoneId;
-    public Vector3 Pos { get; set; } = Vector3.Zero;
-    public Vector3 Dir { get; set; } = Vector3.Zero;
+    public JVector Pos { get; set; } = JVector.Zero;
+    public JVector Dir { get; set; } = JVector.Zero;
     public double ApproxRadius { get; set; }
     public byte Flags { get; set; }
     public byte ApproxHeight { get; set; }

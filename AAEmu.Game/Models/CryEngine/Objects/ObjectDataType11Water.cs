@@ -1,4 +1,4 @@
-using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Objects;
 
@@ -13,18 +13,18 @@ public class ObjectDataType11Water() : ObjectDataBase(ObjectDataType.WaterVolume
     /// </summary>
     public WaterObjectVolumeType VolumeType { get; private set; }
     public ulong VolumeId { get; set; }
-    public Vector3 StartPos { get; private set; } = Vector3.Zero;
-    public Vector3 EndPos { get; private set; } = Vector3.Zero;
+    public JVector StartPos { get; private set; } = JVector.Zero;
+    public JVector EndPos { get; private set; } = JVector.Zero;
     private int ShapePointsCount { get; set; }
     private int PhysicsContourPointsCount { get; set; }
     /// <summary>
     /// This is a segment inside an existing water body
     /// </summary>
-    public List<Vector3> ShapePointsList { get; private set; } = [];
+    public List<JVector> ShapePointsList { get; private set; } = [];
     /// <summary>
     /// These points form the outer shape of the water body
     /// </summary>
-    public List<Vector3> PhysicsContourPointsList { get; private set; } = [];
+    public List<JVector> PhysicsContourPointsList { get; private set; } = [];
     public float Depth { get; private set; }
     public float Speed { get; private set; }
     public float SurfaceHeight { get; private set; }
@@ -33,7 +33,7 @@ public class ObjectDataType11Water() : ObjectDataBase(ObjectDataType.WaterVolume
     public float UTexEnd { get; set; }
     public float UTexBegin { get; set; }
     public float FogPlaneD { get; set; }
-    public Vector3 FogPlanePos { get; set; }
+    public JVector FogPlanePos { get; set; }
     public float FogColorB { get; set; }
     public float FogColorG { get; set; }
     public float FogColorR { get; set; }

@@ -1,9 +1,10 @@
 ﻿using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.ClientData;
 
 public class AABB
 {
-    public Vector3 Min = new();
-    public Vector3 Max = new();
+    public JVector Min = new();
+    public JVector Max = new();
 }

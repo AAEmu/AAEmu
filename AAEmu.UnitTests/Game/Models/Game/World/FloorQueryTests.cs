@@ -4,6 +4,7 @@ using System.Numerics;
 using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.CryEngine.Readers;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.UnitTests.Game.Models.Game.World;
 
@@ -65,11 +66,11 @@ public class FloorQueryTests
     [Test]
     public async Task GetFloor_MatchesLegacyWorldManagerPriority_ForFixedPoints()
     {
-        var samples = new (Vector3 pos, float nav, float terrain, float expected)[]
+        var samples = new (JVector pos, float nav, float terrain, float expected)[]
         {
-            (new Vector3(10, 10, 100), 120f, 100f, 120f),
-            (new Vector3(20, 20, 100), 0f, 105.5f, 105.5f),
-            (new Vector3(30, 30, 100), 99.25f, 80f, 99.25f),
+            (new JVector(10, 10, 100), 120f, 100f, 120f),
+            (new JVector(20, 20, 100), 0f, 105.5f, 105.5f),
+            (new JVector(30, 30, 100), 99.25f, 80f, 99.25f),
         };
 
         foreach (var (pos, nav, terrain, expected) in samples)
@@ -251,8 +252,8 @@ public class FloorQueryTests
     [Test]
     public async Task TryProjectOnEdgeXy_Midpoint_ReturnsHalfTAndLerpZ()
     {
-        var a = new Vector3(0, 0, 10);
-        var b = new Vector3(10, 0, 20);
+        var a = new JVector(0, 0, 10);
+        var b = new JVector(10, 0, 20);
         var ok = NavSurfaceSampler.TryProjectOnEdgeXy(5, 0, a, b, out var t, out var px, out var py, out var distSq);
 
         await Assert.That(ok).IsTrue();
@@ -282,9 +283,9 @@ public class FloorQueryTests
 
         var rawPath = new[]
         {
-            new Vector3(0, 0, 100),
-            new Vector3(5, 0, 200),
-            new Vector3(10, 0, 200),
+            new JVector(0, 0, 100),
+            new JVector(5, 0, 200),
+            new JVector(10, 0, 200),
         };
 
         var adjusted = floor.ApplyPathWaypointZ(rawPath).ToArray();
@@ -308,7 +309,7 @@ public class FloorQueryTests
             floorPolicyMode: () => FloorPolicyMode.ByZHint,
             navSurfaceHeight: (_, _) => null);
 
-        var raw = new[] { new Vector3(1, 2, 55f), new Vector3(3, 4, 66f) };
+        var raw = new[] { new JVector(1, 2, 55f), new JVector(3, 4, 66f) };
         var adjusted = floor.ApplyPathWaypointZ(raw).ToArray();
 
         await Assert.That(adjusted[0].Z).IsEqualTo(55f);
@@ -322,10 +323,10 @@ public class NavEdgeSpatialIndexTests
     public async Task ForEachNear_OnlyVisitsEdgesInRadiusCells()
     {
         var net = new NetMissionReader(Stream.Null, 0);
-        var nearA = new NodeDescriptor(net) { Id = 1, Pos = new Vector3(0, 0, 10) };
-        var nearB = new NodeDescriptor(net) { Id = 2, Pos = new Vector3(8, 0, 12) };
-        var farA = new NodeDescriptor(net) { Id = 3, Pos = new Vector3(200, 200, 10) };
-        var farB = new NodeDescriptor(net) { Id = 4, Pos = new Vector3(210, 200, 12) };
+        var nearA = new NodeDescriptor(net) { Id = 1, Pos = new JVector(0, 0, 10) };
+        var nearB = new NodeDescriptor(net) { Id = 2, Pos = new JVector(8, 0, 12) };
+        var farA = new NodeDescriptor(net) { Id = 3, Pos = new JVector(200, 200, 10) };
+        var farB = new NodeDescriptor(net) { Id = 4, Pos = new JVector(210, 200, 12) };
 
         var index = new NavEdgeSpatialIndex(cellSize: 16f);
         index.AddEdge(nearA, nearB);
@@ -341,8 +342,8 @@ public class NavEdgeSpatialIndexTests
     public async Task Index_MidEdgeProjection_MatchesSamplerMath()
     {
         var net = new NetMissionReader(Stream.Null, 0);
-        var a = new NodeDescriptor(net) { Id = 1, Pos = new Vector3(0, 0, 100) };
-        var b = new NodeDescriptor(net) { Id = 2, Pos = new Vector3(10, 0, 200) };
+        var a = new NodeDescriptor(net) { Id = 1, Pos = new JVector(0, 0, 100) };
+        var b = new NodeDescriptor(net) { Id = 2, Pos = new JVector(10, 0, 200) };
 
         var index = new NavEdgeSpatialIndex(cellSize: 16f);
         index.AddEdge(a, b);

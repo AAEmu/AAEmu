@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -26,6 +24,7 @@ using AAEmu.Game.Models.Tasks.Slave;
 using MySql.Data.MySqlClient;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -339,7 +338,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
         using var spawnPos = positionOverride ?? new Transform(null);
         spawnPos.InstanceId = World.Id;
-        var spawnOffsetPos = new Vector3();
+        var spawnOffsetPos = JVector.Zero;
 
         var dbId = 0u;
         var slaveName = string.Empty;

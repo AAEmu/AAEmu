@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Gimmicks;
 
@@ -20,7 +21,7 @@ public abstract class GimmickMovementHandler(Gimmick owner)
     /// </summary>
     /// <param name="delta"></param>
     /// <param name="deltaPosition"></param>
-    public virtual void AfterMove(TimeSpan delta, Vector3 deltaPosition)
+    public virtual void AfterMove(TimeSpan delta, JVector deltaPosition)
     {
         //
     }

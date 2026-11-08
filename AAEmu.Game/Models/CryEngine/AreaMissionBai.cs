@@ -1,7 +1,7 @@
-using System.Numerics;
 using System.Text;
 using NLog;
 using AAEmu.Commons.Exceptions;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine;
 
@@ -72,7 +72,7 @@ public class AreaMissionNode
     public uint VerticesCount { get; set; }
     public AreaMissionType NodeType { get; set; }
     public uint NodeIndex { get; set; }
-    public List<Vector3> Vtx { get; set; } = [];
+    public List<JVector> Vtx { get; set; } = [];
 
     public long DebugStartPos { get; set; }
     public long DebugEndPos { get; set; }
@@ -133,7 +133,7 @@ public class AreaMissionNode
 
         Vtx.Clear();
         for (var i = 0; i < VerticesCount; i++)
-            Vtx.Add(new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
+            Vtx.Add(new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
 
         if (NodeType == AreaMissionType.AIPath)
         {
@@ -164,7 +164,7 @@ public class AreaMissionNode
 
         Vtx.Clear();
         for (var i = 0; i < VerticesCount; i++)
-            Vtx.Add(new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
+            Vtx.Add(new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
 
         if (NodeType == AreaMissionType.AIPath)
         {

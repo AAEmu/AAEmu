@@ -1,4 +1,4 @@
-using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Objects;
 
@@ -6,7 +6,7 @@ public class ObjectDataType13Road() : ObjectDataBase(ObjectDataType.Road)
 {
     public override bool IsGeneric { get; protected init; } = false;
     private int ArrayCount { get; set; }
-    public List<Vector3> PointsList { get; private set; } = [];
+    public List<JVector> PointsList { get; private set; } = [];
 
     public override int ReadData(byte[] blockData, int offset)
     {

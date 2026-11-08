@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Objects
 {
@@ -101,7 +102,7 @@ namespace AAEmu.Game.Models.CryEngine.Objects
             return res;
         }
 
-        private List<Vector3> ParseVectorPayload(byte[] payloadData, int itemCount, int bytesPerItem)
+        private List<JVector> ParseVectorPayload(byte[] payloadData, int itemCount, int bytesPerItem)
         {
             if (bytesPerItem != 12)
             {
@@ -113,14 +114,14 @@ namespace AAEmu.Game.Models.CryEngine.Objects
                 // Mismatch in expected data size.
                 return [];
             }
-            var res = new List<Vector3>();
+            var res = new List<JVector>();
             for (int offset = 0; offset <= payloadData.Length - bytesPerItem; offset += bytesPerItem)
             {
                 // Format as -X, Z, Y from source file
                 var x = BitConverter.ToSingle(payloadData, offset);
                 var y = BitConverter.ToSingle(payloadData, offset + 4);
                 var z = BitConverter.ToSingle(payloadData, offset + 8);
-                res.Add(new Vector3(x, y, z));
+                res.Add(new JVector(x, y, z));
             }
             return res;
         }

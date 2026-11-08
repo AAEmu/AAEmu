@@ -3,6 +3,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units.Movements;
 
@@ -28,7 +29,7 @@ public abstract class MoveType : PacketMarshaler
     public float Y { get; set; }
     public float Z { get; set; }
     public Quaternion Rot { get; set; } // Z-axis rotation value must be in radians
-    public Vector3 Velocity { get; set; }
+    public JVector Velocity { get; set; }
     public short VelX { get; set; }
     public short VelY { get; set; }
     public short VelZ { get; set; }

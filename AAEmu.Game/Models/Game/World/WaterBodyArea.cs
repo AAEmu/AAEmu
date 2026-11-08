@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Numerics;
 using AAEmu.Game.Models.Game.World.Transform;
 using Newtonsoft.Json;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -47,10 +48,10 @@ public class WaterBodyArea
     private const float RiverCorridorEdgePaddingMeters = 1f;
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-    public List<Vector3> Points { get; set; }
+    public List<JVector> Points { get; set; }
 
     [JsonIgnore]
-    public List<Vector3> BorderPoints { get; set; }
+    public List<JVector> BorderPoints { get; set; }
     [JsonIgnore]
     public RectangleF _boundingBox = RectangleF.Empty;
     [JsonIgnore]
@@ -88,18 +89,18 @@ public class WaterBodyArea
     /// <param name="surfacePoint">Surface point of the water at the X,Y location provided by point</param>
     /// <param name="flowDirection">In case the water body is a LineArray, this returns the water-flow direction</param>
     /// <returns>Returns true if point is within the water area</returns>
-    public bool GetSurface(Vector3 point, out Vector3 surfacePoint, out Vector3 flowDirection)
+    public bool GetSurface(JVector point, out JVector surfacePoint, out JVector flowDirection)
     {
         if (!Contains(point.X, point.Y, out flowDirection))
         {
-            surfacePoint = Vector3.Zero;
+            surfacePoint = JVector.Zero;
             return false;
         }
         
         if (AreaType == WaterBodyAreaType.Polygon)
         {
             // For flat areas, just use the top
-            surfacePoint = new Vector3(point.X, point.Y, _highest);
+            surfacePoint = new JVector(point.X, point.Y, _highest);
         }
         else
         if (AreaType == WaterBodyAreaType.LineArray)
@@ -117,12 +118,12 @@ public class WaterBodyArea
                     closestPoint = Points[i];
                 }
             }
-            surfacePoint = new Vector3(point.X, point.Y, closestPoint.Z);
+            surfacePoint = new JVector(point.X, point.Y, closestPoint.Z);
         }
         else
         {
             // Fallback that shouldn't happen
-            surfacePoint = new Vector3(point.X, point.Y, _highest);
+            surfacePoint = new JVector(point.X, point.Y, _highest);
         }
         return true;
     }
@@ -147,15 +148,15 @@ public class WaterBodyArea
         {
             // If a line array, generate a border
             BorderPoints = [];
-            var otherSide = new List<Vector3>();
+            var otherSide = new List<JVector>();
             
-            var directionVector = Points.Count >= 2 ? Vector3.Normalize(Points[0] - Points[1]) : Vector3.Zero;
+            var directionVector = Points.Count >= 2 ? JVector.Normalize(Points[0] - Points[1]) : JVector.Zero;
             // going downstream 0 -> max
             for (var side = 0; side < Points.Count - 1; side++)
             {
-                directionVector = Vector3.Normalize(Points[side] - Points[side + 1]);
+                directionVector = JVector.Normalize(Points[side] - Points[side + 1]);
                 
-                var perpendicular = Vector3.Normalize(Vector3.Cross(directionVector, Vector3.UnitZ));
+                var perpendicular = JVector.Normalize(JVector.Cross(directionVector, JVector.UnitZ));
                 
                 var right = new PositionAndRotation(Points[side], directionVector);
                 right.AddDistance(perpendicular * RiverWidth * -1f);
@@ -228,9 +229,9 @@ public class WaterBodyArea
     /// <param name="y"></param>
     /// <param name="flowVector"></param>
     /// <returns></returns>
-    private bool Contains(float x, float y, out Vector3 flowVector)
+    private bool Contains(float x, float y, out JVector flowVector)
     {
-        flowVector = Vector3.Zero;
+        flowVector = JVector.Zero;
 
         if (!_boundingBox.Contains(x, y))
             return false;
@@ -253,7 +254,7 @@ public class WaterBodyArea
             return true;
 
         var axisUnit = axis / MathF.Sqrt(axisLenSq);
-        flowVector = new Vector3(axisUnit.X, axisUnit.Y, 0f) * FlowSpeedSigned;
+        flowVector = new JVector(axisUnit.X, axisUnit.Y, 0f) * FlowSpeedSigned;
         return true;
     }
 
@@ -285,15 +286,15 @@ public class WaterBodyArea
         return inside;
     }
 
-    private bool ContainsRiverCorridor(float x, float y, out Vector3 flowVector)
+    private bool ContainsRiverCorridor(float x, float y, out JVector flowVector)
     {
-        flowVector = Vector3.Zero;
+        flowVector = JVector.Zero;
         if (Points.Count < 2)
             return false;
 
-        var p = new Vector3(x, y, _highest);
+        var p = new JVector(x, y, _highest);
         var bestDist = float.PositiveInfinity;
-        var bestFlow = Vector3.Zero;
+        var bestFlow = JVector.Zero;
         var halfWidth = RiverWidth + RiverCorridorEdgePaddingMeters;
 
         for (var side = 0; side < Points.Count - 1; side++)
@@ -303,7 +304,7 @@ public class WaterBodyArea
                 continue;
             bestDist = d;
             var seg = Points[side + 1] - Points[side];
-            bestFlow = seg.LengthSquared() > 1e-12f ? Vector3.Normalize(seg) * FlowSpeedSigned : Vector3.Zero;
+            bestFlow = seg.LengthSquared() > 1e-12f ? JVector.Normalize(seg) * FlowSpeedSigned : JVector.Zero;
         }
 
         if (bestDist > halfWidth)
@@ -313,10 +314,10 @@ public class WaterBodyArea
         return true;
     }
 
-    public Vector3 GetCenter(bool atSurface)
+    public JVector GetCenter(bool atSurface)
     {
         var h = atSurface ? _highest : _lowest - Depth;
-        return new Vector3(_boundingBox.Left + _boundingBox.Width / 2f, _boundingBox.Top + _boundingBox.Height / 2f, h);
+        return new JVector(_boundingBox.Left + _boundingBox.Width / 2f, _boundingBox.Top + _boundingBox.Height / 2f, h);
     }
     
     // https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
@@ -327,7 +328,7 @@ public class WaterBodyArea
     /// <param name="w3"></param>
     /// <param name="p3"></param>
     /// <returns>Distance</returns>
-    public float MinimumDistanceToLine(Vector3 v3, Vector3 w3, Vector3 p3)
+    public float MinimumDistanceToLine(JVector v3, JVector w3, JVector p3)
     {
         var v = new Vector2(v3.X, v3.Y);
         var w = new Vector2(w3.X, w3.Y);

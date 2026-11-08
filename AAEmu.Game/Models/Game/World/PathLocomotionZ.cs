@@ -1,4 +1,5 @@
-using System.Numerics;
+using Jitter2.LinearMath;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -19,14 +20,14 @@ public static class PathLocomotionZ
         bool geoDataMode,
         bool hasZoneBai,
         bool hasPathQueue,
-        Vector3 moveTarget,
-        Vector3 pathPeek,
+        JVector moveTarget,
+        JVector pathPeek,
         float currentZ)
     {
         if (!geoDataMode)
             return false;
 
-        if (hasPathQueue && Vector3.DistanceSquared(pathPeek, moveTarget) <= WaypointMatchDistSq)
+        if (hasPathQueue && JVectorExtensions.DistanceSquared(pathPeek, moveTarget) <= WaypointMatchDistSq)
             return true;
 
         // Zone/.bai instances: trust lerp toward target Z (player or waypoint) on move ticks.

@@ -4,12 +4,13 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units.Movements;
 
 public class TransferData : MoveType
 {
-    public Vector3 AngVel { get; set; }
+    public JVector AngVel { get; set; }
     public int Steering { get; set; }
     public int PathPointIndex { get; set; }
     public float Speed { get; set; }
@@ -52,7 +53,7 @@ public class TransferData : MoveType
         (X, Y, Z) = stream.ReadPosition();
         WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongY(Y), Z);
         var tempVelocity = stream.ReadVector3Short();
-        Velocity = new Vector3(tempVelocity.X * 50f, tempVelocity.Y * 50f, tempVelocity.Z * 50f);
+        Velocity = new JVector(tempVelocity.X * 50f, tempVelocity.Y * 50f, tempVelocity.Z * 50f);
         Rot = stream.ReadQuaternionShort();
         AngVel = stream.ReadVector3Single();
         Steering = stream.ReadInt32();
@@ -66,7 +67,7 @@ public class TransferData : MoveType
         base.Write(stream);
         stream.WritePosition(X, Y, Z);
         //stream.WriteVector3Short(new Vector3(Velocity.X / 50f, Velocity.Y / 50f, Velocity.Z / 50f));
-        stream.WriteVector3Short(new Vector3(Velocity.X * 0.02f, Velocity.Y * 0.02f, Velocity.Z * 0.02f));
+        stream.WriteVector3Short(new JVector(Velocity.X * 0.02f, Velocity.Y * 0.02f, Velocity.Z * 0.02f));
         stream.WriteQuaternionShort(Rot);
         stream.WriteVector3Single(AngVel);
         stream.Write(Steering);

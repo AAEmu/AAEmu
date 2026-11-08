@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -23,7 +24,7 @@ public class CSCreateDoodadPacket() : GamePacket(CSOffsets.CSCreateDoodadPacket,
 
         Logger.Warn($"CreateDoodad, Id: {id}, X: {x}, Y: {y}, Z: {z}, zRot: {zRot}  ItemId: {itemId}");
 
-        var pos = new Vector3(x, y, z);
+        var pos = new JVector(x, y, z);
         var laborCost = 0;
 
         // Verify actual item

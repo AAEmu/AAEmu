@@ -3,6 +3,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -26,7 +27,7 @@ public class CSDecorateHousePacket() : GamePacket(CSOffsets.CSDecorateHousePacke
         var itemId = stream.ReadUInt64();
 
         // X, Y, Z are all relative to the house
-        var posVec = new Vector3(x, y, z);
+        var posVec = new JVector(x, y, z);
         var quat = new Quaternion(quatX, quatY, quatZ, quatW);
 
         Logger.Debug("DecorateHouse, houseId: {0}, designId: {1}, x: {2}, y: {3}, z: {4}, rot {5}, objId: {6}, itemId: {7}",

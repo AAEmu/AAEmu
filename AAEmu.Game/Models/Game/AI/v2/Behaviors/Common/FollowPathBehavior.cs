@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -68,7 +69,7 @@ public class FollowPathBehavior : BaseCombatBehavior
             Ai.GoToIdle();
         }
 
-        if (Ai.PathHandler.TargetPosition == Vector3.Zero && Ai.PathHandler.AiPathPoints.Count <= 0 && Ai.PathHandler.AiPathPointsRemaining.Count <= 0)
+        if (Ai.PathHandler.TargetPosition == JVector.Zero && Ai.PathHandler.AiPathPoints.Count <= 0 && Ai.PathHandler.AiPathPointsRemaining.Count <= 0)
         {
             Ai.GoToIdle();
         }

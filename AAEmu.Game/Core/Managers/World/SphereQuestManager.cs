@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Numerics;
 using AAEmu.Game.GameData;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Char;
@@ -8,6 +7,7 @@ using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.World;
 
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers.World;
 
@@ -23,7 +23,7 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
     private readonly List<SphereQuestStarter> _questStartingSpheres = [];
     private readonly List<SphereQuestStarter> _questSpheresBasic = [];
     // PlayerId, Pos
-    private readonly Dictionary<uint, Vector3> _questStartingLastPositionChecks = [];
+    private readonly Dictionary<uint, JVector> _questStartingLastPositionChecks = [];
 
     private readonly object _addLock = new();
     private readonly object _remLock = new();
@@ -198,9 +198,9 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
                 foreach (var (characterId, character) in playersInNearbyRegion)
                 {
                     var lastCheckLocation = _questStartingLastPositionChecks.GetValueOrDefault(characterId);
-                    var isNew = lastCheckLocation == Vector3.Zero;
+                    var isNew = lastCheckLocation == JVector.Zero;
                     var oldInside = questStartingSphere.Sphere.Contains(lastCheckLocation);
-                    var newInside = questStartingSphere.Sphere.Contains(character?.Transform?.World?.Position ?? Vector3.Zero);
+                    var newInside = questStartingSphere.Sphere.Contains(character?.Transform?.World?.Position ?? JVector.Zero);
 
                     if (!oldInside && newInside)
                     {
@@ -212,7 +212,7 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
                     //{
                     //    QuestManager.Instance.DoOnExitQuestStarterSphere(character, questStartingSphere, lastCheckLocation);
                     //}
-                    var newPos = character?.Transform?.World?.Position ?? Vector3.Zero;
+                    var newPos = character?.Transform?.World?.Position ?? JVector.Zero;
                     if (isNew)
                     {
                         _questStartingLastPositionChecks.TryAdd(characterId, newPos);
@@ -303,7 +303,7 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
                             var sphereX = float.Parse(posString[0], NumberStyles.Float, CultureInfo.InvariantCulture);
                             var sphereY = float.Parse(posString[1], NumberStyles.Float, CultureInfo.InvariantCulture);
                             var sphereZ = float.Parse(posString[2], NumberStyles.Float, CultureInfo.InvariantCulture);
-                            sphere.Xyz = new Vector3(sphereX, sphereY, sphereZ);
+                            sphere.Xyz = new JVector(sphereX, sphereY, sphereZ);
                         }
 
                         sphere.Radius = float.Parse(l4.AsSpan(7), NumberStyles.Float, CultureInfo.InvariantCulture);

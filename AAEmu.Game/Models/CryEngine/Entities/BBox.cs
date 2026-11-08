@@ -1,11 +1,12 @@
 ﻿using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
 public class BBox
 {
-    public Vector3 Min { get; set; } = Vector3.Zero;
-    public Vector3 Max { get; set; } = Vector3.Zero;
+    public JVector Min { get; set; } = JVector.Zero;
+    public JVector Max { get; set; } = JVector.Zero;
 
     public bool Equals(BBox other)
     {

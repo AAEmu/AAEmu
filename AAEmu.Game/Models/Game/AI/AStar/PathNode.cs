@@ -1,11 +1,11 @@
 ﻿// https://lsreg.ru/realizaciya-algoritma-poiska-a-na-c/
 
 using System.Collections.ObjectModel;
-using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.AStar;
 
@@ -22,27 +22,27 @@ public class PathNode
     /// <summary>
     /// The current point on the map.
     /// </summary>
-    public Vector3 CurrentTargetPos { get; set; }
+    public JVector CurrentTargetPos { get; set; }
 
     /// <summary>
     /// Coordinates of the start point on the map (for the script).
     /// </summary>
-    public Vector3 StartPointPos { get; set; } = Vector3.Zero;
+    public JVector StartPointPos { get; set; } = JVector.Zero;
 
     /// <summary>
     /// Coordinates of the end point on the map (for the script).
     /// </summary>
-    public Vector3 EndPointPos { get; set; } = Vector3.Zero;
+    public JVector EndPointPos { get; set; } = JVector.Zero;
 
     /// <summary>
     /// List of found points (for the script).
     /// </summary>
-    public Queue<Vector3> FoundPath { get; set; } = [];
+    public Queue<JVector> FoundPath { get; set; } = [];
 
     /// <summary>
     /// The coordinates of the point on the map. And the coordinates of the point on the map where the Npc goes.
     /// </summary>
-    public Vector3 Position { get; set; }
+    public JVector Position { get; set; }
 
     /// <summary>
     /// Path length from the start (G).
@@ -71,17 +71,17 @@ public class PathNode
     /// <param name="start"></param>
     /// <param name="goal"></param>
     /// <returns></returns>
-    public List<Vector3> FindPath(WorldInstance world, Vector3 start, Vector3 goal)
+    public List<JVector> FindPath(WorldInstance world, JVector start, JVector goal)
     {
         // Find the nearest point from the start point in the list of geodata points and start the search from it.
-        var posStart = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
+        var posStart = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new JVector(start.X, start.Y, start.Z));
         if (posStart != null)
             start = posStart.Pos; // replace it with the nearest point from the geodata
-        var posEnd = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(goal.X, goal.Y, goal.Z));
+        var posEnd = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new JVector(goal.X, goal.Y, goal.Z));
         if (posEnd != null)
             goal = posEnd.Pos;// replace it with the nearest point from the geodata
         EndPointPos = goal;
-        var rawDistance = Vector3.Distance(start, goal);
+        var rawDistance = JVectorExtensions.Distance(start, goal);
 
         // Step 1.
         var closedSet = new Collection<PathNode>();
@@ -118,7 +118,7 @@ public class PathNode
                 result.Add(EndPointPos);
                 result = AiGeoDataManager.DouglasPeuckerReduction(result, 2.0);
                 Position = result[0];
-                CurrentTargetPos = Vector3.Zero;
+                CurrentTargetPos = JVector.Zero;
                 return result;
             }
 
@@ -158,10 +158,10 @@ public class PathNode
     /// </summary>
     /// <param name="to"></param>
     /// <returns></returns>
-    private float GetDistanceFromStart(Vector3 to)
+    private float GetDistanceFromStart(JVector to)
     {
-        var fromVector = new Vector3(StartPointPos.X, StartPointPos.Y, StartPointPos.Z);
-        var toVector = new Vector3(to.X, to.Y, to.Z);
+        var fromVector = new JVector(StartPointPos.X, StartPointPos.Y, StartPointPos.Z);
+        var toVector = new JVector(to.X, to.Y, to.Z);
         return MathUtil.CalculateDistance(fromVector, toVector);
     }
 
@@ -170,11 +170,11 @@ public class PathNode
     /// </summary>
     /// <param name="from"></param>
     /// <returns></returns>
-    private float GetHeuristicPathLength(Vector3 from)
+    private float GetHeuristicPathLength(JVector from)
     {
         // point-to-point distance
-        var fromVector = new Vector3(from.X, from.Y, from.Z);
-        var toVector = new Vector3(EndPointPos.X, EndPointPos.Y, EndPointPos.Z);
+        var fromVector = new JVector(from.X, from.Y, from.Z);
+        var toVector = new JVector(EndPointPos.X, EndPointPos.Y, EndPointPos.Z);
         return MathUtil.CalculateDistance(fromVector, toVector);
     }
 
@@ -238,9 +238,9 @@ public class PathNode
     /// </summary>
     /// <param name="pathNode"></param>
     /// <returns></returns>
-    private static List<Vector3> GetPathForNode(PathNode pathNode)
+    private static List<JVector> GetPathForNode(PathNode pathNode)
     {
-        var result = new List<Vector3>();
+        var result = new List<JVector>();
         var currentNode = pathNode;
         while (currentNode != null)
         {

@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 using NLog;
+using Jitter2.LinearMath;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 
@@ -30,7 +31,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// </summary>
     /// <param name="point"></param>
     /// <returns></returns>
-    public bool CheckImpossibleWalk(Vector3 point)
+    public bool CheckImpossibleWalk(JVector point)
     {
         var bai = worldTemplate.GetBaiByPos(point);
         if (bai != null)
@@ -47,7 +48,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         return false;
     }
 
-    private static bool IsInPolygon(Vector3 point, List<Vector3> polygon)
+    private static bool IsInPolygon(JVector point, List<JVector> polygon)
     {
         var result = false;
         var a = polygon.Last();
@@ -82,13 +83,13 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="point2"></param>
     /// <param name="point3"></param>
     /// <returns></returns>
-    public static Vector3 TriangleCenter(Vector3 point1, Vector3 point2, Vector3 point3)
+    public static JVector TriangleCenter(JVector point1, JVector point2, JVector point3)
     {
         var x = (point1.X + point2.X + point3.X) / 3;
         var y = (point1.Y + point2.Y + point3.Y) / 3;
         var z = (point1.Z + point2.Z + point3.Z) / 3;
 
-        return new Vector3(x, y, z);
+        return new JVector(x, y, z);
     }
 
     #endregion A point in a polygon
@@ -96,7 +97,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     #region Path smoothing
 
     // https://www.codeproject.com/Articles/18936/A-C-Implementation-of-Douglas-Peucker-Line-Appro
-    public static List<Vector3> DouglasPeuckerReduction(List<Vector3> points, double tolerance)
+    public static List<JVector> DouglasPeuckerReduction(List<JVector> points, double tolerance)
     {
         if (points == null || points.Count < 3)
             return points;
@@ -117,7 +118,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
 
         DouglasPeuckerReduction(points, firstPointIndex, lastPointIndex, tolerance, ref pointIndexesToKeep);
 
-        var returnPoints = new List<Vector3>();
+        var returnPoints = new List<JVector>();
         pointIndexesToKeep.Sort();
         foreach (var index in pointIndexesToKeep)
         {
@@ -135,7 +136,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="lastPointIndex">The last point.</param>
     /// <param name="tolerance">The tolerance.</param>
     /// <param name="pointIndexesToKeep">The point index to keep.</param>
-    private static void DouglasPeuckerReduction(List<Vector3> points, int firstPointIndex, int lastPointIndex, double tolerance, ref List<int> pointIndexesToKeep)
+    private static void DouglasPeuckerReduction(List<JVector> points, int firstPointIndex, int lastPointIndex, double tolerance, ref List<int> pointIndexesToKeep)
     {
         double maxDistance = 0;
         var indexFarthest = 0;
@@ -170,7 +171,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="point2">The point2.</param>
     /// <param name="targetPoint">The point.</param>
     /// <returns></returns>
-    private static double PerpendicularDistance(Vector3 point1, Vector3 point2, Vector3 targetPoint)
+    private static double PerpendicularDistance(JVector point1, JVector point2, JVector targetPoint)
     {
         //Area = |(1/2)(x1y2 + x2y3 + x3y1 - x2y1 - x3y2 - x1y3)|   *Area of triangle
         //Base = v((x1-x2)²+(x1-x2)²)                               *Base of Triangle*
@@ -188,7 +189,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
 
     #region Finding the closest point
 
-    public NodeDescriptor FindСlosestToTheCurrent(uint zoneKey, Vector3 pos)
+    public NodeDescriptor FindСlosestToTheCurrent(uint zoneKey, JVector pos)
     {
         var posX = pos.X;
         var posY = pos.Y;
@@ -256,14 +257,14 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// </summary>
     /// <param name="pos"></param>
     /// <returns></returns>
-    public float GetHeight(Vector3 pos)
+    public float GetHeight(JVector pos)
     {
         float res;
         //var stopWatch = new Stopwatch();
         //stopWatch.Start();
         try
         {
-            var closestPoint = Vector3.Zero;
+            var closestPoint = JVector.Zero;
             var closestDistance = float.MaxValue;
 
             // Try to get height from .bai files data
@@ -317,7 +318,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
             if (closestDistance >= float.MaxValue) 
             {
                 // Fall back to raw heightmap data
-                closestPoint = new Vector3(pos.X, pos.Y, worldTemplate.GetRawHeightMapHeight((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y)));
+                closestPoint = new JVector(pos.X, pos.Y, worldTemplate.GetRawHeightMapHeight((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y)));
             }
 
             return closestPoint.Z;
@@ -332,13 +333,13 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         return res;
     }
 
-    private static float DistanceBetweenPoints(Vector3 point, Vector3 compareTo)
+    private static float DistanceBetweenPoints(JVector point, JVector compareTo)
     {
         return (compareTo.X - point.X) * (compareTo.X - point.X) +
                (compareTo.Y - point.Y) * (compareTo.Y - point.Y);
     }
 
-    private static Vector3 FindClosest(List<AiNavigation> searchIn, Vector3 compareTo)
+    private static JVector FindClosest(List<AiNavigation> searchIn, JVector compareTo)
     {
         return searchIn
             .Select(p => new { point = p.Position, distance = DistanceBetweenPoints(p.Position, compareTo) })
@@ -346,7 +347,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
             .First().point;
     }
 
-    private static Vector3 FindClosest(List<Vector3> searchIn, Vector3 compareTo)
+    private static JVector FindClosest(List<JVector> searchIn, JVector compareTo)
     {
         return searchIn
             .Select(p => new { point = p, distance = DistanceBetweenPoints(p, compareTo) })
@@ -360,7 +361,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="searchIn"></param>
     /// <param name="compareTo"></param>
     /// <returns>returns the index of the found point</returns>
-    public static uint FindClosestIndexPoint(List<Vector3> searchIn, Vector3 compareTo)
+    public static uint FindClosestIndexPoint(List<JVector> searchIn, JVector compareTo)
     {
         var minDistance = 0f;
         var pointN = 0u;
@@ -385,9 +386,9 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         // Nothing to load here anymore, everything
     }
 
-    public Queue<Vector3> ReducePath(List<Vector3> foundPath, int maxNodeSkipCount)
+    public Queue<JVector> ReducePath(List<JVector> foundPath, int maxNodeSkipCount)
     {
-        var res = new Queue<Vector3>();
+        var res = new Queue<JVector>();
         // Check for all node
         for (var startNodeIndex = 0; startNodeIndex < foundPath.Count; startNodeIndex++)
         {
@@ -428,14 +429,14 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="closedLoop">Is the shape a closed loop</param>
     /// <param name="maxHeightOffset">Maximum height difference required for the intersection to count as valid</param>
     /// <returns></returns>
-    private bool LinePassesThroughAiShape(Vector3 startPos, Vector3 endPos, AiShape shape, bool closedLoop, float maxHeightOffset)
+    private bool LinePassesThroughAiShape(JVector startPos, JVector endPos, AiShape shape, bool closedLoop, float maxHeightOffset)
     {
         for (var index = 0; index < shape.Points.Count + (closedLoop ? 0 : -1); index++)
         {
             var lineStart = shape.Points[index];
             var lineEnd = index < shape.Points.Count-1 ? shape.Points[index + 1] : shape.Points[0];
             var intersectionPoint = FindLineIntersection(startPos, endPos, lineStart, lineEnd); 
-            if (intersectionPoint != Vector3.Zero)
+            if (intersectionPoint != JVector.Zero)
             {
                 if (maxHeightOffset == 0f || MathF.Abs(intersectionPoint.Z - startPos.Z) <= maxHeightOffset || MathF.Abs(intersectionPoint.Z - endPos.Z) <= maxHeightOffset)
                     return true;
@@ -450,7 +451,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="startNode"></param>
     /// <param name="endNode"></param>
     /// <returns></returns>
-    private bool LinePassesThroughForbiddenArea(Vector3 startNode, Vector3 endNode)
+    private bool LinePassesThroughForbiddenArea(JVector startNode, JVector endNode)
     {
         // It should be enough to grab the starting node's bai data. Forbidden zones are defined if even part of the zone falls within the area
         var sourceBai = worldTemplate.GetBaiByPos(startNode);
@@ -487,13 +488,13 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="end2"></param>
     /// <returns>Returns the intersection point of line 1 in 2D space, or Zero if none was found</returns>
     /// <remarks>Based on the answer of https://stackoverflow.com/questions/1119451/how-to-tell-if-a-line-intersects-a-polygon-in-c#1120126</remarks>
-    private static Vector3 FindLineIntersection(Vector3 start1, Vector3 end1, Vector3 start2, Vector3 end2)
+    private static JVector FindLineIntersection(JVector start1, JVector end1, JVector start2, JVector end2)
     {
         var denominator = (end1.X - start1.X) * (end2.Y - start2.Y) - (end1.Y - start1.Y) * (end2.X - start2.X);
 
         // AB & CD are parallel 
         if (denominator == 0)
-            return Vector3.Zero;
+            return JVector.Zero;
 
         var numerator1 = (start1.Y - start2.Y) * (end2.X - start2.X) - (start1.X - start2.X) * (end2.Y - start2.Y);
         var r = numerator1 / denominator;
@@ -501,10 +502,10 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         var s = numerator2 / denominator;
 
         if (r < 0 || r > 1 || s < 0 || s > 1)
-            return Vector3.Zero;
+            return JVector.Zero;
 
         // Find intersection point
-        return new Vector3(start1.X + r * (end1.X - start1.X), start1.Y + r * (end1.Y - start1.Y), start1.Z + r * (end1.Z - start1.Z));
+        return new JVector(start1.X + r * (end1.X - start1.X), start1.Y + r * (end1.Y - start1.Y), start1.Z + r * (end1.Z - start1.Z));
     }
 
     /// <summary>
@@ -512,9 +513,9 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// </summary>
     /// <param name="pointsList"></param>
     /// <returns></returns>
-    public List<Vector3> StickToFloor(List<Vector3> pointsList)
+    public List<JVector> StickToFloor(List<JVector> pointsList)
     {
-        var res = new List<Vector3>();
+        var res = new List<JVector>();
         foreach (var point in pointsList)
         {
             var floor = worldTemplate.GetHeight(point.X, point.Y);
@@ -526,7 +527,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         return res;
     }
 
-    public Vector3 StickToFloor(Vector3 point)
+    public JVector StickToFloor(JVector point)
     {
         var floor = worldTemplate.GetHeight(point.X, point.Y);
         if (floor < point.Z)

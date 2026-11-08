@@ -1,6 +1,6 @@
-using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -12,7 +12,7 @@ public class SCCharacterBoundPacket(
     uint id,
     string name,
     uint zoneKey,
-    Vector3 pos,
+    JVector pos,
     float zRot,
     bool isFavorite)
     : GamePacket(SCOffsets.SCCharacterBoundPacket, 1)

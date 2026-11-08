@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -180,15 +181,15 @@ public class OnAbilityLevelUpArgs : EventArgs
 public class OnEnterSphereArgs : EventArgs
 {
     public SphereQuest SphereQuest { get; set; }
-    public Vector3 OldPosition { get; set; }
-    public Vector3 NewPosition { get; set; }
+    public JVector OldPosition { get; set; }
+    public JVector NewPosition { get; set; }
 }
 
 public class OnExitSphereArgs : EventArgs
 {
     public SphereQuest SphereQuest { get; set; }
-    public Vector3 OldPosition { get; set; }
-    public Vector3 NewPosition { get; set; }
+    public JVector OldPosition { get; set; }
+    public JVector NewPosition { get; set; }
 }
 
 public class OnZoneKillArgs : EventArgs

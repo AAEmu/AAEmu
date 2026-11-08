@@ -1,18 +1,18 @@
 using System.Drawing;
-using System.Numerics;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers.World.Debug;
 
 public static class WaterDebugSnapshot
 {
-    public static string FormatOneLine(Vector3 pos, bool isWater, Vector3 flow)
+    public static string FormatOneLine(JVector pos, bool isWater, JVector flow)
     {
         return $"[waterprobe] Pos ({pos.X:F1},{pos.Y:F1},{pos.Z:F1}) IsWater={isWater} flow=({flow.X:F3},{flow.Y:F3},{flow.Z:F3}) len={flow.Length():F3}";
     }
 
-    public static IEnumerable<string> Capture(WorldInstance world, Vector3 pos, bool includeClientDump)
+    public static IEnumerable<string> Capture(WorldInstance world, JVector pos, bool includeClientDump)
     {
         var w = world.Water;
         var template = world.Template;
@@ -93,7 +93,7 @@ public static class WaterDebugSnapshot
         }
     }
 
-    public static string CaptureOneLine(WorldInstance world, Vector3 pos)
+    public static string CaptureOneLine(WorldInstance world, JVector pos)
     {
         var isW = world.IsWater(pos, out var flow);
         return FormatOneLine(pos, isW, flow);

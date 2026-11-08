@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
@@ -8,6 +6,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -82,8 +81,8 @@ public class PhysicalExplosionEffect : EffectTemplate
     /// target is outside the explosion radius, inside the dead-zone hole, or when the
     /// resulting knock distance is below a perceptible threshold (0.5m).
     /// </summary>
-    internal static Vector3? ComputeKnockDisplacement(
-        Vector3 casterPos, Vector3 targetPos, float radius, float holeSize, float pressure)
+    internal static JVector? ComputeKnockDisplacement(
+        JVector casterPos, JVector targetPos, float radius, float holeSize, float pressure)
     {
         var direction = targetPos - casterPos;
         direction.Z = 0;
@@ -93,8 +92,8 @@ public class PhysicalExplosionEffect : EffectTemplate
             return null;
 
         if (direction.LengthSquared() < 0.01f)
-            direction = new Vector3(1, 0, 0);
-        direction = Vector3.Normalize(direction);
+            direction = new JVector(1, 0, 0);
+        direction = JVector.Normalize(direction);
 
         var falloff = radius > 0f ? 1f - (dist / radius) : 0f;
         var knockDist = (pressure / 1000f) * falloff;

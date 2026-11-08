@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.StaticValues;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -534,7 +535,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             Level = character.Level,
             Role = (byte)(owner ? 255 : 0),
             Memo = "",
-            Position = new Vector3(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z),
+            Position = new JVector(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z),
             ZoneId = character.Transform.ZoneId,
             Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3],
             ExpeditionId = expedition.Id,

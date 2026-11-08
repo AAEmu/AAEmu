@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -7,6 +5,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -46,8 +45,8 @@ public class KnockBack : SpecialEffectAction
         var direction = targetPos - casterPos;
         direction.Z = 0;
         if (direction.LengthSquared() < 0.01f)
-            direction = new Vector3(1, 0, 0);
-        direction = Vector3.Normalize(direction);
+            direction = new JVector(1, 0, 0);
+        direction = JVector.Normalize(direction);
 
         var endPos = targetPos + direction * knockDistMeters;
 
@@ -65,7 +64,7 @@ public class KnockBack : SpecialEffectAction
         }
     }
 
-    internal static void ApplyKnockbackToNpc(Npc npc, Vector3 endPos)
+    internal static void ApplyKnockbackToNpc(Npc npc, JVector endPos)
     {
         // 600ms suppression so the client knockback animation plays out and a follow-up
         // knockback isn't overridden by the NPC walking back.

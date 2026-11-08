@@ -2,6 +2,7 @@
 using System.Text;
 using AAEmu.Game.IO;
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Objects;
 
@@ -112,8 +113,8 @@ public class ObjectsFile(string fileName)
         if (br.BaseStream.Position + NodeHeaderSize > br.BaseStream.Length)
             return (br.BaseStream.Position, false);
         var unknownInt = br.ReadInt32();
-        var startPos = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
-        var endPos = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+        var startPos = new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+        var endPos = new JVector(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
         var objectDataBlockSize = br.ReadInt32();
         var childrenBitMask = br.ReadByte();
         var contentStartOffset = br.BaseStream.Position;

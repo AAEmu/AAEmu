@@ -1,10 +1,11 @@
 ﻿using System.Numerics;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
 public class RoadNode
 {
-    public Vector3 Pos { get; set; } = Vector3.Zero;
+    public JVector Pos { get; set; } = JVector.Zero;
     public double Width { get; set; }
     public double Offset { get; set; }
 

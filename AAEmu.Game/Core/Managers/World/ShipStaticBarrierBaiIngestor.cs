@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using AAEmu.Game.Models;
@@ -6,6 +5,7 @@ using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Mission;
 using AAEmu.Game.Models.CryEngine.Readers;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers.World;
 
@@ -234,7 +234,7 @@ internal static class ShipStaticBarrierBaiIngestor
         var cy = (minY + maxY) * 0.5f;
         try
         {
-            waterSurfaceRef = world.Water?.GetWaterSurface(new Vector3(cx, cy, vMaxZ), out _) ?? ocean;
+            waterSurfaceRef = world.Water?.GetWaterSurface(new JVector(cx, cy, vMaxZ), out _) ?? ocean;
         }
         catch
         {
@@ -284,7 +284,7 @@ internal static class ShipStaticBarrierBaiIngestor
         return false;
     }
 
-    private static float EstimateDeckBottomZ(List<Vector3> points, float waterSurfaceRef, float fallbackMinZ)
+    private static float EstimateDeckBottomZ(List<JVector> points, float waterSurfaceRef, float fallbackMinZ)
     {
         var zs = new List<float>(points.Count);
         for (var i = 0; i < points.Count; i++)
@@ -302,7 +302,7 @@ internal static class ShipStaticBarrierBaiIngestor
         return (zs.Count % 2 == 1) ? zs[mid] : (zs[mid - 1] + zs[mid]) * 0.5f;
     }
 
-    private static List<List<double>> ClosedPolylinePointsXy(List<Vector3> pts)
+    private static List<List<double>> ClosedPolylinePointsXy(List<JVector> pts)
     {
         var r = new List<List<double>>(pts.Count + 1);
         foreach (var p in pts)

@@ -3,6 +3,7 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Utils.DB;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -219,11 +220,11 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
                             HeightCollider = reader.GetFloat("height_collider"),
                             HeightPivot = reader.GetFloat("height_pivot"),
                             MaxSpeed = reader.GetFloat("max_speed"),
-                            ModelOffset = new Vector3(reader.GetFloat("model_offset_x"), reader.GetFloat("model_offset_y"), reader.GetFloat("model_offset_z")),
+                            ModelOffset = new JVector(reader.GetFloat("model_offset_x"), reader.GetFloat("model_offset_y"), reader.GetFloat("model_offset_z")),
                             NormalSpeed = reader.GetFloat("normal_speed"),
-                            Size = new Vector3(reader.GetFloat("size_x"), reader.GetFloat("size_y"), reader.GetFloat("size_z")),
+                            Size = new JVector(reader.GetFloat("size_x"), reader.GetFloat("size_y"), reader.GetFloat("size_z")),
                             UseCapsule = reader.GetBoolean("use_capsule", true),
-                            ViewOffset = new Vector3(reader.GetFloat("view_offset_x"), reader.GetFloat("view_offset_y"), reader.GetFloat("view_offset_z")),
+                            ViewOffset = new JVector(reader.GetFloat("view_offset_x"), reader.GetFloat("view_offset_y"), reader.GetFloat("view_offset_z")),
                         };
 
                         _gameStances.TryAdd(stance.Id, stance);

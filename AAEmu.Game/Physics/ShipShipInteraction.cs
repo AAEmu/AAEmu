@@ -467,24 +467,9 @@ public sealed class ShipShipInteraction
     internal static void GetMassBoxCenterXy(RigidBody body, ShipModelV1 model, float scale, out float cx, out float cz)
     {
         var local = new JVector(model.MassCenterX * scale, model.MassCenterY * scale, model.MassCenterZ * scale);
-        var w = RotateVectorByQuaternion(local, body.Orientation);
+        var w = JVector.Transform(local, body.Orientation);
         cx = body.Position.X + w.X;
         cz = body.Position.Y + w.Y;
-    }
-
-    private static JVector RotateVectorByQuaternion(JVector v, JQuaternion q)
-    {
-        var qx = q.X;
-        var qy = q.Y;
-        var qz = q.Z;
-        var qw = q.W;
-        var tx = 2f * (qy * v.Z - qz * v.Y);
-        var ty = 2f * (qz * v.X - qx * v.Z);
-        var tz = 2f * (qx * v.Y - qy * v.X);
-        return new JVector(
-            v.X + qw * tx + (qy * tz - qz * ty),
-            v.Y + qw * ty + (qz * tx - qx * tz),
-            v.Z + qw * tz + (qx * ty - qy * tx));
     }
 
     /// <summary>

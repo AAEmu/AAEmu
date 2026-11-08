@@ -1,5 +1,5 @@
-using System.Numerics;
 using CgfConverter.Structs;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.CryEngine.Objects;
 
@@ -47,9 +47,9 @@ public class ObjectDataBase(ObjectDataType prefabType)
         return Data.Length;
     }
     
-    protected Vector3 GetVector3(byte[] blockData, int offset)
+    protected JVector GetVector3(byte[] blockData, int offset)
     {
-        return new Vector3(
+        return new JVector(
             BitConverter.ToSingle(blockData, offset + 0),
             BitConverter.ToSingle(blockData, offset + 4),
             BitConverter.ToSingle(blockData, offset + 8)

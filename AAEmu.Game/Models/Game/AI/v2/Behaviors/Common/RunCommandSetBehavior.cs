@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -83,7 +84,7 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 Ai.LoadAiPathPoints(Ai.AiFileName, aiCommand.Param1 == 1);
                 if (aiCommand.Param1 == 1)
                 {
-                    Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint { Position = Vector3.Zero, Action = AiPathPointAction.ReturnToCommandSet, Param = string.Empty });
+                    Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint { Position = JVector.Zero, Action = AiPathPointAction.ReturnToCommandSet, Param = string.Empty });
                 }
                 Ai.GoToFollowPath();
                 if (aiCommand.Param1 == 1)

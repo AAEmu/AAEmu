@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -16,11 +17,11 @@ public class SusManager(IWorldManager worldManager) : Singleton<SusManager>, ISu
     public static string CategoryCheating => "Cheat";
     public static string CategoryRmt => "RMT";
     
-    private Dictionary<uint, (Vector3 pos, float skipTime)> LastPlayerPositions { get; } = [];
-    private Dictionary<uint, (Vector3 pos, float skipTime)> LastPetPositions { get; } = [];
+    private Dictionary<uint, (JVector pos, float skipTime)> LastPlayerPositions { get; } = [];
+    private Dictionary<uint, (JVector pos, float skipTime)> LastPetPositions { get; } = [];
     
     // ReSharper disable once MemberCanBePrivate.Global
-    public bool LogActivity(string category, uint accountId, uint playerId, uint zoneGroup, Vector3 position, string description)
+    public bool LogActivity(string category, uint accountId, uint playerId, uint zoneGroup, JVector position, string description)
     {
         try
         {
@@ -55,12 +56,12 @@ public class SusManager(IWorldManager worldManager) : Singleton<SusManager>, ISu
 
     public bool LogActivity(string category, Character player, string description)
     {
-        return LogActivity(category, player?.AccountId ?? 0, player?.Id ?? 0, player?.Transform?.ZoneId ?? 0, player?.Transform?.World?.Position ?? Vector3.Zero, description);
+        return LogActivity(category, player?.AccountId ?? 0, player?.Id ?? 0, player?.Transform?.ZoneId ?? 0, player?.Transform?.World?.Position ?? JVector.Zero, description);
     }
     
     public bool LogActivity(string category, string description)
     {
-        return LogActivity(category, 0, 0, 0, Vector3.Zero, description);
+        return LogActivity(category, 0, 0, 0, JVector.Zero, description);
     }
 
     #region movement_checks
@@ -82,7 +83,7 @@ public class SusManager(IWorldManager worldManager) : Singleton<SusManager>, ISu
 
         if (player.IsRiding == false &&
             player.DisabledSetPosition == false &&
-            deltaFlatPos != Vector3.Zero &&
+            deltaFlatPos != JVector.Zero &&
             last.skipTime <= 0f)
         {
             var observedSpeed = deltaFlatPos.Length() / deltaTime;
@@ -133,7 +134,7 @@ public class SusManager(IWorldManager worldManager) : Singleton<SusManager>, ISu
         var deltaFlatPos = deltaPos with { Z = 0 };
 
         if (pet.DisabledSetPosition == false &&
-            deltaFlatPos != Vector3.Zero &&
+            deltaFlatPos != JVector.Zero &&
             last.skipTime <= 0f)
         {
             var observedSpeed = deltaFlatPos.Length() / deltaTime;

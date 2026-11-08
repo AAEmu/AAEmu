@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+using Jitter2.LinearMath;
 
 // INFO
 // https://www.versluis.com/2020/09/what-is-yaw-pitch-and-roll-in-3d-axis-values/
@@ -26,7 +27,7 @@ public class Transform : IDisposable
     private List<Transform> _children;
     private Transform _stickyParentTransform;
     private List<Transform> _stickyChildren;
-    private Vector3 _lastFinalizePos; // Might use this later for cheat detection or delta movement
+    private JVector _lastFinalizePos; // Might use this later for cheat detection or delta movement
     private DateTime _lastFinalizeTime;
     private float _skipCheckTime;
     public List<Character> _debugTrackers;
@@ -113,7 +114,7 @@ public class Transform : IDisposable
         _localPosRot = new PositionAndRotation();
         //_stickyParentTransform = null; // TODO why are we doing this?
         _stickyChildren = [];
-        _lastFinalizePos = Vector3.Zero;
+        _lastFinalizePos = JVector.Zero;
         _lastFinalizeTime = DateTime.UtcNow;
         _skipCheckTime = 0f;
         _debugTrackers = [];
@@ -127,10 +128,10 @@ public class Transform : IDisposable
     public Transform(GameObject owningObject, Transform parentTransform, float x, float y, float z)
     {
         InternalInitializeTransform(owningObject, parentTransform, null);
-        Local.Position = new Vector3(x, y, z);
+        Local.Position = new JVector(x, y, z);
     }
 
-    public Transform(GameObject owningObject, Transform parentTransform, Vector3 position)
+    public Transform(GameObject owningObject, Transform parentTransform, JVector position)
     {
         InternalInitializeTransform(owningObject, parentTransform, null);
         Local.Position = position;
@@ -139,11 +140,11 @@ public class Transform : IDisposable
     public Transform(GameObject owningObject, Transform parentTransform, float posX, float posY, float posZ, float roll, float pitch, float yaw)
     {
         InternalInitializeTransform(owningObject, parentTransform, null);
-        Local.Position = new Vector3(posX, posY, posZ);
-        Local.Rotation = new Vector3(roll, pitch, yaw);
+        Local.Position = new JVector(posX, posY, posZ);
+        Local.Rotation = new JVector(roll, pitch, yaw);
     }
 
-    public Transform(GameObject owningObject, Transform parentTransform, Vector3 position, Vector3 rotation)
+    public Transform(GameObject owningObject, Transform parentTransform, JVector position, JVector rotation)
     {
         InternalInitializeTransform(owningObject, parentTransform, null);
         Local.Position = position;
@@ -156,8 +157,8 @@ public class Transform : IDisposable
         InstanceId = instanceId;
         // WorldId = worldId;
         ZoneId = zoneId;
-        Local.Position = new Vector3(posX, posY, posZ);
-        Local.Rotation = new Vector3(roll, pitch, yaw);
+        Local.Position = new JVector(posX, posY, posZ);
+        Local.Rotation = new JVector(roll, pitch, yaw);
     }
 
     public Transform(GameObject owningObject, Transform parentTransform, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw)
@@ -166,8 +167,8 @@ public class Transform : IDisposable
         InstanceId = instanceId;
         // WorldId = worldId;
         ZoneId = zoneId;
-        Local.Position = new Vector3(posX, posY, posZ);
-        Local.Rotation = new Vector3(0f, 0f, yaw);
+        Local.Position = new JVector(posX, posY, posZ);
+        Local.Rotation = new JVector(0f, 0f, yaw);
     }
 
     public Transform(GameObject owningObject, Transform parentTransform, uint zoneId, uint instanceId, PositionAndRotation posRot)
@@ -340,7 +341,7 @@ public class Transform : IDisposable
             // NLObP version of transformations
             // Convert current child world offset into local space and unscale it.
             child.Local.Position =
-                Vector3.Transform(child.Local.Position - World.Position, inverseParentRotation) / parentScale;
+                JVector.Transform(child.Local.Position - World.Position, inverseParentRotation) * (1f / parentScale);
 
             // Child has no parent, so child.Local == child.World
             var childWorldRotation = child.Local.ToQuaternion();
@@ -362,7 +363,7 @@ public class Transform : IDisposable
 
             // NLObP version of transformations
             // When detaching, convert local (unscaled) back into world space including parent scale.
-            child.Local.Position = Vector3.Transform(child.Local.Position * parentScale, parentRotation) + World.Position;
+            child.Local.Position = JVector.Transform(child.Local.Position * parentScale, parentRotation) + World.Position;
 
             var childLocalRotation = child.Local.ToQuaternion();
             // Transform the child's local rotation relative to the parent to world space, using the parent's rotation
@@ -388,7 +389,7 @@ public class Transform : IDisposable
         var parentQuatRotation = res.ToQuaternion();
         var parentScale = _parentTransform.GameObject is BaseUnit u ? u.Scale : 1f;
         // Local.Position is stored unscaled; scale it by parent's scale when composing world coordinates.
-        res.Translate(Vector3.Transform(Local.Position * parentScale, parentQuatRotation));
+        res.Translate(JVector.Transform(Local.Position * parentScale, parentQuatRotation));
 
         // Child has no parent, so child.Local == child.World
         var localRotation = Local.ToQuaternion();
@@ -413,8 +414,8 @@ public class Transform : IDisposable
             InstanceId = newInstanceId;
         // WorldId = wsp.WorldId;
         ZoneId = wsp.ZoneId;
-        Local.Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
-        Local.Rotation = new Vector3(wsp.Roll, wsp.Pitch, wsp.Yaw);
+        Local.Position = new JVector(wsp.X, wsp.Y, wsp.Z);
+        Local.Rotation = new JVector(wsp.Roll, wsp.Pitch, wsp.Yaw);
     }
 
     /// <summary>
@@ -425,7 +426,7 @@ public class Transform : IDisposable
         var deltaTime = DateTime.UtcNow - _lastFinalizeTime;
         // Timer to reduce log spam
         var worldPosDelta = World.ClonePosition() - _lastFinalizePos;
-        if (worldPosDelta == Vector3.Zero)
+        if (worldPosDelta == JVector.Zero)
             return;
 
         //else
@@ -719,7 +720,7 @@ public class Transform : IDisposable
         InstanceId = newInstanceId != 0 ? newInstanceId : sourceTransform.InstanceId;
         // WorldId = sourceTransform.WorldId;
         ZoneId = sourceTransform.ZoneId;
-        Local.Position = new Vector3(sourceTransform.World.Position.X, sourceTransform.World.Position.Y, sourceTransform.World.Position.Z);
-        Local.Rotation = new Vector3(sourceTransform.World.Rotation.X, sourceTransform.World.Rotation.Y, sourceTransform.World.Rotation.Z);
+        Local.Position = new JVector(sourceTransform.World.Position.X, sourceTransform.World.Position.Y, sourceTransform.World.Position.Z);
+        Local.Rotation = new JVector(sourceTransform.World.Rotation.X, sourceTransform.World.Rotation.Y, sourceTransform.World.Rotation.Z);
     }
 }

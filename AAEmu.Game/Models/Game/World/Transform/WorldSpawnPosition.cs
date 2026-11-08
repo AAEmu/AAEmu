@@ -4,6 +4,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 
 using Newtonsoft.Json;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.World.Transform;
 
@@ -71,9 +72,9 @@ public class WorldSpawnPosition
     /// Returns a Vector3 copy of the X Y and Z values
     /// </summary>
     /// <returns></returns>
-    public Vector3 AsPositionVector()
+    public JVector AsPositionVector()
     {
-        return new Vector3(X, Y, Z);
+        return new JVector(X, Y, Z);
     }
 
     public Quaternion AsRotationQuaternion()
@@ -93,6 +94,10 @@ public class WorldSpawnPosition
             case Vector2 vector2:
                 {
                     return Math.Abs(vector2.X - X) < Tolerance && Math.Abs(vector2.Y - Y) < Tolerance;
+                }
+            case JVector jVector:
+                {
+                    return Math.Abs(jVector.X - X) < Tolerance && Math.Abs(jVector.Y - Y) < Tolerance && Math.Abs(jVector.Z - Z) < Tolerance;
                 }
             case Vector3 vector3:
                 {

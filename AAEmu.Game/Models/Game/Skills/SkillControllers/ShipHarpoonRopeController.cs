@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -14,6 +13,8 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics;
 using AAEmu.Game.Physics.Debug;
 using NLog;
+using Jitter2.LinearMath;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
@@ -78,7 +79,7 @@ public static class ShipHarpoonRopeController
         var maxRange = launchTemplate != null ? Math.Max(0f, launchTemplate.MaxRange) : 0f;
 
         var origin = harpoonSlave.Transform.World.Position;
-        var initialLen = Vector3.Distance(origin, hookWorld);
+        var initialLen = JVectorExtensions.Distance(origin, hookWorld);
 
         harpoonSlave.HarpoonRope.IsEngaged = true;
         harpoonSlave.HarpoonRope.HookWorld = hookWorld;
@@ -222,12 +223,12 @@ public static class ShipHarpoonRopeController
     /// Per physics tick on a ship hull: breaks engaged harpoon ropes when tension exceeds threshold or stretch spikes (jerk).
     /// Returns a recoil delta-V to apply to the shooter hull (horizontal plane, world X/Y).
     /// </summary>
-    public static Vector3 TickTensionTearAndGetHullRecoilDeltaV(Slave hull, float dtSec)
+    public static JVector TickTensionTearAndGetHullRecoilDeltaV(Slave hull, float dtSec)
     {
         if (hull.AttachedSlaves.Count == 0 || dtSec <= 0f)
             return default;
 
-        var recoilSum = Vector3.Zero;
+        var recoilSum = JVector.Zero;
         foreach (var child in ShipHarpoonTowPhysics.EnumerateAttachedSlaveDescendants(hull))
         {
             var st = child.HarpoonRope;
@@ -239,7 +240,7 @@ public static class ShipHarpoonRopeController
 
             var cannonPos = child.Transform.World.Position;
             var hook = GetHookWorldPosition(child);
-            var dist = Vector3.Distance(cannonPos, hook);
+            var dist = JVectorExtensions.Distance(cannonPos, hook);
             var paid = st.RopeLength + ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
             var stretch = dist - paid;
             if (stretch <= 0f)
@@ -304,7 +305,7 @@ public static class ShipHarpoonRopeController
     }
 
     /// <summary>Current world hook; recomputes when the hit uses a moving basis unit (<see cref="ShipHarpoonRopeState.HookBasisObjId"/>).</summary>
-    public static Vector3 GetHookWorldPosition(Slave harpoonSlave)
+    public static JVector GetHookWorldPosition(Slave harpoonSlave)
     {
         var st = harpoonSlave.HarpoonRope;
         if (!st.IsEngaged)
@@ -318,7 +319,7 @@ public static class ShipHarpoonRopeController
 
         var basisRot = basis.Transform.World.ToQuaternion();
         var basisScale = basis.Scale;
-        return Vector3.Transform(st.HookLocalInBasis * basisScale, basisRot) + basis.Transform.World.Position;
+        return JVector.Transform(st.HookLocalInBasis * basisScale, basisRot) + basis.Transform.World.Position;
     }
 
     /// <summary>
@@ -335,7 +336,7 @@ public static class ShipHarpoonRopeController
         if (slave.HarpoonRope.MaxLaunchRange > 0f)
             return MathF.Min(len, slave.HarpoonRope.MaxLaunchRange + additive);
 
-        var chord = Vector3.Distance(slave.Transform.World.Position, GetHookWorldPosition(slave));
+        var chord = JVectorExtensions.Distance(slave.Transform.World.Position, GetHookWorldPosition(slave));
         var generousCap = chord + additive + ShipHarpoonTowPhysics.SlackMarginMeters + 40f;
         return MathF.Min(len, generousCap);
     }
@@ -345,7 +346,7 @@ public static class ShipHarpoonRopeController
         if (!slave.HarpoonRope.IsEngaged || slave.HarpoonRope.MaxLaunchRange <= 0f)
             return false;
 
-        var dist = Vector3.Distance(slave.Transform.World.Position, GetHookWorldPosition(slave));
+        var dist = JVectorExtensions.Distance(slave.Transform.World.Position, GetHookWorldPosition(slave));
         const float margin = 1.5f;
         if (dist <= slave.HarpoonRope.MaxLaunchRange + margin)
             return false;
@@ -370,7 +371,7 @@ public static class ShipHarpoonRopeController
     }
 
     /// <summary>Same basis-frame rules as <see cref="Skill"/> <c>SetInitialTarget</c> for position casts (hull hit = <c>ObjId1</c> + local).</summary>
-    private static bool TryResolveHookFromSkillTarget(SkillCastTarget target, BaseUnit caster, out Vector3 hookWorld, out uint hookBasisObjId, out Vector3 hookLocal)
+    private static bool TryResolveHookFromSkillTarget(SkillCastTarget target, BaseUnit caster, out JVector hookWorld, out uint hookBasisObjId, out JVector hookLocal)
     {
         hookBasisObjId = 0;
         hookLocal = default;
@@ -384,22 +385,22 @@ public static class ShipHarpoonRopeController
                     if (worldInst?.GetBaseUnit(p.ObjId1) is BaseUnit basisUnit)
                     {
                         hookBasisObjId = p.ObjId1;
-                        hookLocal = new Vector3(p.PosX, p.PosY, p.PosZ);
+                        hookLocal = new JVector(p.PosX, p.PosY, p.PosZ);
                         var basisRot = basisUnit.Transform.World.ToQuaternion();
-                        hookWorld = Vector3.Transform(hookLocal * basisUnit.Scale, basisRot) + basisUnit.Transform.World.Position;
+                        hookWorld = JVector.Transform(hookLocal * basisUnit.Scale, basisRot) + basisUnit.Transform.World.Position;
                         return true;
                     }
 
                     return false;
                 }
 
-                hookWorld = new Vector3(p.PosX, p.PosY, p.PosZ);
+                hookWorld = new JVector(p.PosX, p.PosY, p.PosZ);
                 return true;
             case SkillCastPosition2Target p2:
-                hookWorld = new Vector3(p2.PosX, p2.PosY, p2.PosZ);
+                hookWorld = new JVector(p2.PosX, p2.PosY, p2.PosZ);
                 return true;
             case SkillCastPosition3Target p3:
-                hookWorld = new Vector3(p3.PosX, p3.PosY, p3.PosZ);
+                hookWorld = new JVector(p3.PosX, p3.PosY, p3.PosZ);
                 return true;
             default:
                 return false;

@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -97,7 +98,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
         // TODO: Fix walking animation
         if (Ai.Owner.AggroTable.IsEmpty && Ai.PathHandler.AiPathPointsRemaining.Count == 0)
         {
-            Ai.PathHandler.TargetPosition = Vector3.Zero;
+            Ai.PathHandler.TargetPosition = JVector.Zero;
             Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
             Ai.Owner.CurrentGameStance = GameStanceType.Combat;
             Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint

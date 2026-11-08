@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -30,6 +28,7 @@ using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
 using NLog;
+using Jitter2.LinearMath;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 
@@ -584,8 +583,8 @@ public class Skill
                             // Hit in basis unit's local frame (e.g. harpoon on hull); Pos* are not world meters.
                             var basisRot = basisUnit.Transform.World.ToQuaternion();
                             var basisScale = basisUnit.Scale;
-                            var localHit = new Vector3(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                            var worldHit = Vector3.Transform(localHit * basisScale, basisRot) + basisUnit.Transform.World.Position;
+                            var localHit = new JVector(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                            var worldHit = JVector.Transform(localHit * basisScale, basisRot) + basisUnit.Transform.World.Position;
                             positionUnit.Transform.Local.SetPosition(worldHit.X, worldHit.Y, worldHit.Z);
                         }
                         else

@@ -225,7 +225,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             // _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
             // _mockWorld.IsWater(new Vector3(0f, 0f, 0f)).Returns(true); // real instance — water detection uses actual SimulationWorld
 
-            var area = position.ToJVector();
+            JVector area = position;
             var isWater = _boatPhysicsManager.CustomWater(ref area);
 
             await Assert.That(expected).IsEqualTo(isWater);

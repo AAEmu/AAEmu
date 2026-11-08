@@ -290,14 +290,14 @@ public class PhysicsManager
                                 _shipShore.ResolveTerrainContacts(slave, physicsTotalDelta, _physWorld);
 
                                 // Apply current drift after shore resolve/cache refresh; never drag ships while beached/on land.
-                                var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
+                                var underPos = slave.Transform.World.Position + JVector.UnitZ * ((slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale);
                                 if (SimulationWorld.Water.IsWater(underPos, out var flowDirection) && flowDirection.LengthSquared() > 1e-10f)
                                 {
                                     var groundedNow = slave.GroundContactLatched || slave.CachedFloorLevel > slave.CachedWaterSurface;
                                     if (!groundedNow)
                                     {
                                         var dtFlow = (float)physicsTotalDelta.TotalSeconds;
-                                        slave.RigidBody.Position += new JVector(flowDirection.X * dtFlow, flowDirection.Y * dtFlow, flowDirection.Z * dtFlow);
+                                        slave.RigidBody.Position += flowDirection * dtFlow;
                                     }
                                 }
                                 shipsThisTick.Add(slave);
@@ -462,13 +462,8 @@ public class PhysicsManager
     private void SyncTransformWithRigidBody(Slave slave)
     {
         var slaveRigidBody = slave.RigidBody;
-        var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
-        var yDelta = slaveRigidBody.Position.Y - slave.Transform.World.Position.Y;
-        var zDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Z;
-
-        slave.Transform.Local.Translate(xDelta, yDelta, zDelta);
-        var rotation = slaveRigidBody.Orientation;
-        slave.Transform.Local.ApplyFromQuaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
+        slave.Transform.Local.Translate(slaveRigidBody.Position - slave.Transform.World.Position);
+        slave.Transform.Local.Rotation = PhysicsUtil.GetGameRotation(slaveRigidBody.Orientation);
     }
 
     /// <summary>
@@ -484,7 +479,7 @@ public class PhysicsManager
             return;
         }
 
-        var pos = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Y, slave.Transform.World.Position.Z);
+        var pos = slave.Transform.World.Position;
         var rot = JQuaternion.CreateRotationZ(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
@@ -775,7 +770,7 @@ public class PhysicsManager
         }
 
         // Physics rotation + visual trim: nose pitch (ground contact + waves) about the beam (X), turn bank about the length (Y).
-        var visualRotation = new Vector3(
+        var visualRotation = new JVector(
             physRotation.X + rep.GroundPitchSmoothed + wavePitchRad,
             physRotation.Y + rep.BankSmoothed,
             physRotation.Z);
@@ -800,12 +795,8 @@ public class PhysicsManager
         moveType.VelY = (short)(rep.VelPy * velMultiplier);
         moveType.VelZ = (short)(rep.VelPz * velMultiplier);
 
-        // Do not allow the body to flip
-        //slave.RigidBody.Orientation = JQuaternion.CreateRotationZ(physRotation.Z); // TODO: Fix me with proper physics
-
         // Apply new Location/Rotation to GameObject
-        slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Y, rigidBody.Position.Z);
-        slave.Transform.Local.SetRotation(visualRotation.X, visualRotation.Y, visualRotation.Z);
+        slave.Transform.Local.SetPosition(rigidBody.Position, visualRotation);
 
         // Send the packet
         slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
@@ -834,7 +825,7 @@ public class PhysicsManager
     /// <returns></returns>
     internal bool CustomWater(ref JVector area)
     {
-        return SimulationWorld?.IsWater(new Vector3(area.X, area.Y, area.Z), out _) ?? area.Z <= (SimulationWorld?.Template.OceanLevel ?? DefaultWaterLevel);
+        return SimulationWorld?.IsWater(area, out _) ?? area.Z <= (SimulationWorld?.Template.OceanLevel ?? DefaultWaterLevel);
     }
 
     /// <summary>

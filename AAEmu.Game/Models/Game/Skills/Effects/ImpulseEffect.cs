@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -9,6 +7,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World;
+using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -46,7 +45,7 @@ public class ImpulseEffect : EffectTemplate
         if (target is Npc npcTarget && npcTarget.Template.NonPushableByActor)
             return;
 
-        var impulse = new Vector3(ImpulseX + VelImpulseX, ImpulseY + VelImpulseY, ImpulseZ + VelImpulseZ);
+        var impulse = new JVector(ImpulseX + VelImpulseX, ImpulseY + VelImpulseY, ImpulseZ + VelImpulseZ);
 
         if (impulse.LengthSquared() < 0.01f)
             return;
@@ -131,18 +130,18 @@ public class ImpulseEffect : EffectTemplate
     /// into a world-space displacement vector. When the caster-to-target direction is
     /// degenerate, the impulse is returned unchanged in world space.
     /// </summary>
-    internal static Vector3 LocalImpulseToWorldDisplacement(
-        Vector3 localImpulse, Vector3 casterPos, Vector3 targetPos)
+    internal static JVector LocalImpulseToWorldDisplacement(
+        JVector localImpulse, JVector casterPos, JVector targetPos)
     {
-        var displacement = localImpulse / 1000f;
+        var displacement = localImpulse * (1f / 1000f);
 
         var dir = targetPos - casterPos;
         dir.Z = 0;
         if (dir.LengthSquared() <= 0.01f)
             return displacement;
 
-        dir = Vector3.Normalize(dir);
-        var right = new Vector3(-dir.Y, dir.X, 0);
-        return right * displacement.X + dir * displacement.Y + Vector3.UnitZ * displacement.Z;
+        dir = JVector.Normalize(dir);
+        var right = new JVector(-dir.Y, dir.X, 0);
+        return right * displacement.X + dir * displacement.Y + JVector.UnitZ * displacement.Z;
     }
 }

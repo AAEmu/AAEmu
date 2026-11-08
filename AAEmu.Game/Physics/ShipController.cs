@@ -1,6 +1,5 @@
 ﻿#nullable enable
 
-using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
@@ -68,12 +67,6 @@ public class ShipController(World world, ShipModelV1 shipModel)
         public const float TurnSpeedVelocityMulResponse = 5.5f;
         /// <summary>Exponential damping (1/s) for velocity perpendicular to bow in XY on open water — keeps brief sideways drift after hull impulses without a separate lateral state on <see cref="Slave"/>.</summary>
         public const float LateralVelocityDampPerSec = 5f;
-        /// <summary>Minimum hull submergence (m) before upright stabilization starts applying torque.</summary>
-        public const float UprightStabilizeMinSubmergedMeters = 0.04f;
-        /// <summary>Max angular correction speed (rad/s) toward upright per tick (prevents snapping).</summary>
-        public const float UprightStabilizeMaxRadPerSec = 2.25f;
-        /// <summary>Dead-zone angle (rad) under which upright stabilization does nothing.</summary>
-        public const float UprightStabilizeAngleDeadZoneRad = 0.004f;
         /// <summary>Half-angle (deg) of the “with wind / against wind” cone used by the wind speed model.</summary>
         public const float WindConeHalfAngleDeg = 15f;
         /// <summary>Max speed multiplier when moving “with wind” (inside the cone).</summary>
@@ -288,6 +281,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
         Hull.AddShape(shipCenterPoint);
         // Set Mass
         Hull.SetMassInertia(ShipModel.Mass);
+        LockPitchAndRoll(Hull);
         Hull.DeactivationTime = TimeSpan.MaxValue;
         Hull.MotionType = MotionType.Dynamic;
         Hull.SetActivationState(true);
@@ -687,13 +681,6 @@ public class ShipController(World world, ShipModelV1 shipModel)
         var speedToAlongVel = slave.MoveSpeedMul / 4f * MathF.Max(0.001f, slave.TurnSpeedVelocityMul);
         ShipHarpoonTowPhysics.ApplyTerrainHookTow(slave, rigidBody, dtSec, fx, fy, speedToAlongVel, maxForward, maxBackward);
 
-        if (!isGrounded)
-        {
-            var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Z);
-            if (submerged >= ShipMotionDefaults.UprightStabilizeMinSubmergedMeters)
-                ApplyWaterUprightStabilization(rigidBody, dtSec);
-        }
-
         // Yaw only, about world up (+Z). RotSpeed > 0 decreases yaw (turns toward +X).
         rigidBody.AngularVelocity = new JVector(0, 0, slave.RotSpeed * -1f);
 
@@ -720,7 +707,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
                 continue;
 
             var hookWorld = ShipHarpoonRopeController.GetHookWorldPosition(child);
-            var dist = Vector3.Distance(child.Transform.World.Position, hookWorld);
+            var dist = JVectorExtensions.Distance(child.Transform.World.Position, hookWorld);
             var paid = st.RopeLength + ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
             if (paid <= dist + ShipHarpoonTowPhysics.SlackMarginMeters)
                 return true;
@@ -730,52 +717,19 @@ public class ShipController(World world, ShipModelV1 shipModel)
     }
 
     /// <summary>
-    /// Nudges <paramref name="body"/> so local +Z matches world up (shortest path), limited per frame.
-    /// Collision/physics can leave pitch/roll in the quaternion while angular velocity is yaw-only; this corrects that on open water.
+    /// Ships only turn about world up: thrust and steering set a yaw-only angular velocity, buoyancy acts at the
+    /// center of mass, and turn bank / ground pitch are visual only. Zeroing the inverse inertia about the local
+    /// X (beam) and Y (length) axes keeps contacts (terrain, other bodies) from rolling or pitching the hull, while
+    /// yaw keeps the inertia Jitter computed from the hull shape.
     /// </summary>
-    private static void ApplyWaterUprightStabilization(RigidBody body, float dtSec)
+    private static void LockPitchAndRoll(RigidBody body)
     {
-        if (dtSec <= 0f)
-            return;
-
-        var jo = body.Orientation;
-        var q = Quaternion.Normalize(new Quaternion(jo.X, jo.Y, jo.Z, jo.W));
-        var bodyUp = Vector3.Transform(Vector3.UnitZ, q);
-        var worldUp = Vector3.UnitZ;
-
-        var axis = Vector3.Cross(bodyUp, worldUp);
-        var lenSq = axis.LengthSquared();
-        float angle;
-
-        if (lenSq < 1e-14f)
-        {
-            var dotParallel = Vector3.Dot(bodyUp, worldUp);
-            if (dotParallel > 1f - 1e-6f)
-                return;
-            if (dotParallel < -1f + 1e-6f)
-            {
-                axis = Vector3.Normalize(Vector3.Cross(bodyUp, Vector3.UnitX));
-                if (axis.LengthSquared() < 1e-12f)
-                    axis = Vector3.Normalize(Vector3.Cross(bodyUp, Vector3.UnitY));
-                angle = MathF.PI;
-            }
-            else
-                return;
-        }
-        else
-        {
-            axis = Vector3.Normalize(axis);
-            var dot = Math.Clamp(Vector3.Dot(bodyUp, worldUp), -1f, 1f);
-            angle = MathF.Acos(dot);
-        }
-
-        if (angle < ShipMotionDefaults.UprightStabilizeAngleDeadZoneRad)
-            return;
-
-        var maxStep = ShipMotionDefaults.UprightStabilizeMaxRadPerSec * dtSec;
-        var step = MathF.Min(angle, maxStep);
-        var deltaQ = Quaternion.CreateFromAxisAngle(axis, step);
-        var qNew = Quaternion.Normalize(Quaternion.Multiply(deltaQ, q));
-        body.Orientation = new JQuaternion(qNew.X, qNew.Y, qNew.Z, qNew.W);
+        var inverseInertia = body.InverseInertia;
+        var yawOnly = new JMatrix(
+            0f, 0f, 0f,
+            0f, 0f, 0f,
+            0f, 0f, inverseInertia.M33);
+        body.SetMassInertia(yawOnly, 1f / body.Mass, true);
     }
+
 }
