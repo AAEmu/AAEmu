@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Duels;
 using AAEmu.Game.Utils;
+using AAEmu.Game.Models.Game.Skills;
 
 using NLog;
 using AAEmu.Game.Models.Game.World;
@@ -75,7 +76,9 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
                 // spawn flag
                 _combatFlag = new DoodadSpawner
                 {
-                    ParentWorld = challenged.ParentWorld, Id = 0, UnitId = 5014, // Combat Flag Id=5014;
+                    ParentWorld = challenged.ParentWorld,
+                    Id = 0,
+                    UnitId = 5014, // Combat Flag Id=5014;
                     Position = duel.Challenger.Transform.CloneAsSpawnPosition()
                 };
                 _combatFlag.Position.X = duel.Challenger.Transform.World.Position.X - (duel.Challenger.Transform.World.Position.X - duel.Challenged.Transform.World.Position.X) / 2;
@@ -84,12 +87,16 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
 
                 duel.DuelFlag = _combatFlag.Spawn(0); // set CombatFlag
 
-                // change the faction temporarily
-                // TODO: Handle pets/vehicle factions
-                SetFaction(duel.Challenger, FactionsEnum.RedTeam);
-                SetFaction(duel.Challenged, FactionsEnum.BlueTeam);
+                // Start the 3-2-1 UI countdown immediately while players are still friendly
+                duel.SendPacketsBoth(new SCDuelStartedPacket(duel.Challenger.ObjId, duel.Challenged.ObjId));
+                duel.SendPacketsBoth(new SCAreaChatBubblePacket(true, duel.Challenger.ObjId, 543));
+                duel.SendPacketsBoth(new SCDuelStartCountdownPacket());
+                duel.SendPacketsBoth(new SCDuelStatePacket(duel.Challenger.ObjId, duel.DuelFlag.ObjId));
+                duel.SendPacketsBoth(new SCDuelStatePacket(duel.Challenged.ObjId, duel.DuelFlag.ObjId));
+                // make the flag flutter in the wind
+                duel.SendPacketChallenger(new SCDoodadPhaseChangedPacket(_combatFlag.Last));
 
-                //Schedule duel start task.
+                // Schedule duel start task (waits 3 seconds for countdown to reach 0 which the UI countdown end)
                 duel.DuelStartTask = new DuelStartTask(duel.Challenger.Id);
                 TaskManager.Instance.Schedule(duel.DuelStartTask, TimeSpan.FromSeconds(3));
             }
@@ -105,24 +112,54 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
 
     private void SetFaction(Character owner, FactionsEnum factionId)
     {
-        // change the faction temporarily
-        if (SaveFactions.ContainsKey(owner.Id))
+        if (owner == null)
+            return;
+
+        // Only snapshot their pre-duel faction if they aren't already on RedTeam or BlueTeam
+        if (owner.Faction.Id != FactionsEnum.RedTeam && owner.Faction.Id != FactionsEnum.BlueTeam)
         {
             SaveFactions[owner.Id] = owner.Faction.Id;
         }
-        else
+        else if (!SaveFactions.ContainsKey(owner.Id) && owner.OriginFaction != null)
         {
-            SaveFactions.Add(owner.Id, owner.Faction.Id);
+            SaveFactions[owner.Id] = owner.OriginFaction.Id;
         }
 
         owner.SetFaction(factionId);
     }
 
-    private void RestoreFaction(Character owner)
+    //MORE TEST NEEDED to get it perfectly correct and also to get the correct factionEnum and id
+    private void RestoreFaction(Character character)
     {
-        // restore the fraction
-        owner.SetFaction(SaveFactions[owner.Id]);
-        SaveFactions.Remove(owner.Id);
+        if (character == null)
+            return;
+
+        // 1. Pull the exact faction they had right before starting the duel
+        if (!SaveFactions.TryGetValue(character.Id, out var restoreFactionId) ||
+            restoreFactionId == FactionsEnum.RedTeam ||
+            restoreFactionId == FactionsEnum.BlueTeam)
+        {
+            // 2. Fallback to OriginFaction if snapshot was missing or already Red/Blue
+            restoreFactionId = character.OriginFaction.Id;
+        }
+
+        // 3. Last resort: If even OriginFaction was corrupted to Red/Blue in the DB, derive from Race
+        if (restoreFactionId == FactionsEnum.RedTeam ||
+            restoreFactionId == FactionsEnum.BlueTeam)
+        {
+            restoreFactionId = (byte)character.Race switch
+            {
+                1 => (FactionsEnum)101, // Nuian
+                4 => (FactionsEnum)103, // Elf
+                5 => (FactionsEnum)109, // Hariharan
+                6 => (FactionsEnum)108, // Ferre
+                _ => (FactionsEnum)101
+            };
+        }
+
+        SaveFactions.Remove(character.Id);
+        character.SetFaction(restoreFactionId);
+        character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
     }
 
     public void DuelStart(uint id)
@@ -130,14 +167,12 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
         try
         {
             var duel = _duels[id];
-            duel.SendPacketsBoth(new SCDuelStartedPacket(duel.Challenger.ObjId, duel.Challenged.ObjId));
-            duel.SendPacketsBoth(new SCAreaChatBubblePacket(true, duel.Challenger.ObjId, 543));
-            //duel.SendPacketChallenger(new SCAreaChatBubblePacket(true, duel.Challenged.ObjId, 543));
-            duel.SendPacketsBoth(new SCDuelStartCountdownPacket());
-            duel.SendPacketsBoth(new SCDuelStatePacket(duel.Challenger.ObjId, duel.DuelFlag.ObjId));
-            duel.SendPacketsBoth(new SCDuelStatePacket(duel.Challenged.ObjId, duel.DuelFlag.ObjId));
-            // make the flag flutter in the wind
-            duel.SendPacketChallenger(new SCDoodadPhaseChangedPacket(_combatFlag.Last));
+            duel.DuelAllowed = true;
+
+            // Countdown hit 0: switch to Red/Blue teams and unlock combat
+            SetFaction(duel.Challenger, FactionsEnum.RedTeam);
+            SetFaction(duel.Challenged, FactionsEnum.BlueTeam);
+
             // Player can be attacked
             duel.SendPacketsBoth(new SCCombatEngagedPacket(duel.Challenger.ObjId));
             duel.SendPacketsBoth(new SCCombatEngagedPacket(duel.Challenged.ObjId));
@@ -199,6 +234,18 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
                 duel.DuelEndTimerTask = null;
             }
 
+            if (duel.DuelDistanceСheckTask != null)
+            {
+                _ = duel.DuelDistanceСheckTask.Cancel();
+                duel.DuelDistanceСheckTask = null;
+            }
+
+            if (duel.DuelResultСheckTask != null)
+            {
+                _ = duel.DuelResultСheckTask.Cancel();
+                duel.DuelResultСheckTask = null;
+            }
+
             DuelRemove(duel);
         }
         catch (Exception e)
@@ -212,8 +259,10 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
     {
         try
         {
+            if (!_duels.TryGetValue(id, out var duel))
+                return;
+
             Logger.Warn("DuelStop: Duel ended");
-            var duel = _duels[id];
             duel.DuelAllowed = false;
             // Duel is over, det 00=lose, 01=win, 02=surrender (Fled beyond the flag action border), 03=draw
             if (det == DuelDetType.Draw)
@@ -246,6 +295,10 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
                 duel.SendPacketsBoth(new SCDoodadRemovedPacket(duel.DuelFlag.ObjId));
             }
 
+            // Clear all bad active debuffs/DoTs mimics the retail system(burning, bleeding, stuns) so the 1 HP loser doesn't accidentally die sometime after the duel
+            duel.Challenger.Buffs?.RemoveBuffs(BuffKind.Bad, int.MaxValue);
+            duel.Challenged.Buffs?.RemoveBuffs(BuffKind.Bad, int.MaxValue);
+
             // restore the fraction
             RestoreFaction(duel.Challenger);
             RestoreFaction(duel.Challenged);
@@ -267,11 +320,19 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
     {
         try
         {
-            var duel = _duels[id];
+            if (!_duels.TryGetValue(id, out var duel))
+                return false;
+
             if (duel.Challenger.Hp <= 1 || duel.Challenged.Hp <= 1)
             {
-                duel.DuelResultСheckTask.Cancel();
+                _ = duel.DuelResultСheckTask?.Cancel();
                 duel.DuelResultСheckTask = null;
+
+                // Determine who lost (HP <= 1)
+                uint loseId = duel.Challenger.Hp <= 1 ? duel.Challenger.Id : duel.Challenged.Id;
+
+                // End the duel and announce winner!
+                DuelStop(id, DuelDetType.Win, loseId);
                 return true;
             }
 
