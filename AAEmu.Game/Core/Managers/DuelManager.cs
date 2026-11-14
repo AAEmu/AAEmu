@@ -28,7 +28,10 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
 
     // there can be several duels at the same time
     private readonly ConcurrentDictionary<uint, Duel> _duels = new();
-    private readonly ConcurrentDictionary<uint, FactionsEnum> _saveFactions = new();
+    
+    // Satisfies IDuelManager interface untouched
+    public Dictionary<uint, FactionsEnum> SaveFactions { get; set; } = new();
+    private readonly object _factionLock = new(); // Used to make SaveFactions thread-safe
 
     public void Initialize()
     {
@@ -115,14 +118,18 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
         if (owner == null)
             return;
 
-        // Only snapshot their pre-duel faction if they aren't already on RedTeam or BlueTeam
-        if (owner.Faction.Id != FactionsEnum.RedTeam && owner.Faction.Id != FactionsEnum.BlueTeam)
+        // Thread-safe dictionary access
+        lock (_factionLock)
         {
-            _saveFactions[owner.Id] = owner.Faction.Id;
-        }
-        else if (!_saveFactions.ContainsKey(owner.Id) && owner.OriginFaction != null)
-        {
-            _saveFactions[owner.Id] = owner.OriginFaction.Id;
+            // Only snapshot their pre-duel faction if they aren't already on RedTeam or BlueTeam
+            if (owner.Faction.Id != FactionsEnum.RedTeam && owner.Faction.Id != FactionsEnum.BlueTeam)
+            {
+                SaveFactions[owner.Id] = owner.Faction.Id;
+            }
+            else if (!SaveFactions.ContainsKey(owner.Id) && owner.OriginFaction != null)
+            {
+                SaveFactions[owner.Id] = owner.OriginFaction.Id;
+            }
         }
 
         owner.SetFaction(factionId);
@@ -134,15 +141,22 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
         if (character == null)
             return;
 
-        // 1. Pull the exact faction they had right before starting the duel
-        if (!_saveFactions.TryGetValue(character.Id, out var restoreFactionId) ||
-            restoreFactionId == FactionsEnum.RedTeam ||
-            restoreFactionId == FactionsEnum.BlueTeam)
+        FactionsEnum restoreFactionId;
+        
+        // Thread-safe dictionary access
+        lock (_factionLock)
         {
-            // 2. Fallback to OriginFaction if snapshot was missing or already Red/Blue
-            // FIX: Safely handle if OriginFaction is null. 
-            // If null, default to RedTeam so it triggers the race-based fallback below.
-            restoreFactionId = character.OriginFaction?.Id ?? FactionsEnum.RedTeam;
+            // 1. Pull the exact faction they had right before starting the duel
+            if (!SaveFactions.TryGetValue(character.Id, out restoreFactionId) ||
+                restoreFactionId == FactionsEnum.RedTeam ||
+                restoreFactionId == FactionsEnum.BlueTeam)
+            {
+                // 2. Fallback to OriginFaction if snapshot was missing or already Red/Blue
+                // Safely handle if OriginFaction is null. 
+                restoreFactionId = character.OriginFaction?.Id ?? FactionsEnum.RedTeam;
+            }
+
+            SaveFactions.Remove(character.Id);
         }
 
         // 3. Last resort: If even OriginFaction was corrupted (or null), derive from Race
@@ -159,7 +173,6 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             };
         }
 
-        _saveFactions.TryRemove(character.Id, out _);
         character.SetFaction(restoreFactionId);
         character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
     }
