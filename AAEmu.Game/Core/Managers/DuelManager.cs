@@ -301,6 +301,14 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             duel.Challenger.Buffs?.RemoveBuffs(BuffKind.Bad, int.MaxValue);
             duel.Challenged.Buffs?.RemoveBuffs(BuffKind.Bad, int.MaxValue);
 
+            // 0-HP Safety Net: If overkill damage bypassed the 1 HP boundary, 
+            // force the loser back to 1 HP so they don't get locked in a Dead state.
+            if (duel.Challenger.Hp <= 0) 
+                duel.Challenger.Hp = 1;
+            
+            if (duel.Challenged.Hp <= 0) 
+                duel.Challenged.Hp = 1;
+
             // restore the fraction
             RestoreFaction(duel.Challenger);
             RestoreFaction(duel.Challenged);
