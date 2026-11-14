@@ -351,12 +351,24 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
                 _ = duel.DuelResultСheckTask?.Cancel();
                 duel.DuelResultСheckTask = null;
 
-                // Determine who lost (HP <= 1)
-                uint loseId = duel.Challenger.Hp <= 1 ? duel.Challenger.Id : duel.Challenged.Id;
-
-                // End the duel and announce winner!
-                DuelStop(id, DuelDetType.Win, loseId);
-                return true;
+                // FIX: Glitch-proof logic to accurately determine the winner, loser, or a tie
+                if (duel.Challenger.Hp <= 1 && duel.Challenged.Hp <= 1)
+                {
+                    // Both players dropped to 1 HP at the exact same time
+                    DuelStop(id, DuelDetType.Draw);
+                }
+                else if (duel.Challenger.Hp <= 1)
+                {
+                    // Challenger lost cleanly
+                    DuelStop(id, DuelDetType.Win, duel.Challenger.Id);
+                }
+                else
+                {
+                    // Challenged lost cleanly
+                    DuelStop(id, DuelDetType.Win, duel.Challenged.Id);
+                }
+                
+                return true; // <-- Stops the method from scheduling another check!
             }
 
             duel.DuelResultСheckTask = new DuelResultСheckTask(duel);
