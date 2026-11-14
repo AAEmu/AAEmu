@@ -28,7 +28,7 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
 
     // there can be several duels at the same time
     private readonly ConcurrentDictionary<uint, Duel> _duels = new();
-    public Dictionary<uint, FactionsEnum> SaveFactions { get; set; } = [];
+    private readonly ConcurrentDictionary<uint, FactionsEnum> _saveFactions = new();
 
     public void Initialize()
     {
@@ -118,11 +118,11 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
         // Only snapshot their pre-duel faction if they aren't already on RedTeam or BlueTeam
         if (owner.Faction.Id != FactionsEnum.RedTeam && owner.Faction.Id != FactionsEnum.BlueTeam)
         {
-            SaveFactions[owner.Id] = owner.Faction.Id;
+            _saveFactions[owner.Id] = owner.Faction.Id;
         }
-        else if (!SaveFactions.ContainsKey(owner.Id) && owner.OriginFaction != null)
+        else if (!_saveFactions.ContainsKey(owner.Id) && owner.OriginFaction != null)
         {
-            SaveFactions[owner.Id] = owner.OriginFaction.Id;
+            _saveFactions[owner.Id] = owner.OriginFaction.Id;
         }
 
         owner.SetFaction(factionId);
@@ -135,39 +135,17 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             return;
 
         // 1. Pull the exact faction they had right before starting the duel
-        if (!SaveFactions.TryGetValue(character.Id, out var restoreFactionId) ||
+        if (!_saveFactions.TryGetValue(character.Id, out var restoreFactionId) ||
             restoreFactionId == FactionsEnum.RedTeam ||
             restoreFactionId == FactionsEnum.BlueTeam)
         {
             // 2. Fallback to OriginFaction if snapshot was missing or already Red/Blue
-            restoreFactionId = character.OriginFaction.Id;
+            // FIX: Safely handle if OriginFaction is null. 
+            // If null, default to RedTeam so it triggers the race-based fallback below.
+            restoreFactionId = character.OriginFaction?.Id ?? FactionsEnum.RedTeam;
         }
 
-        ////faction enums from FactionsEnum.cs///////
-        /*
-        Invalid = 0,
-        Friendly = 1,
-        Neutral = 2,
-        Hostile = 3,
-
-        Nuian = 101,
-        Elf = 103,
-        Harani = 109,
-        Firran = 113,
-
-        Monstrosity = 115,
-        Animal = 116,
-        NuiaAlliance = 148,
-        HaranyaAlliance = 149,
-
-        RedTeam = 159,
-        BlueTeam = 160,
-
-        Pirate = 161,
-        PcFriendly = 165,
-        Fish = 172,
-        */
-        // 3. Last resort: If even OriginFaction was corrupted to Red/Blue in the DB, derive from Race
+        // 3. Last resort: If even OriginFaction was corrupted (or null), derive from Race
         if (restoreFactionId == FactionsEnum.RedTeam ||
             restoreFactionId == FactionsEnum.BlueTeam)
         {
@@ -176,12 +154,12 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
                 Race.Nuian => FactionsEnum.Nuian,      // 101
                 Race.Elf => FactionsEnum.Elf,          // 103
                 Race.Hariharan => FactionsEnum.Harani, // 109
-                Race.Ferre => FactionsEnum.Firran,     // 113 (Fixed from 108!)
+                Race.Ferre => FactionsEnum.Firran,     // 113
                 _ => FactionsEnum.Nuian
             };
         }
 
-        SaveFactions.Remove(character.Id);
+        _saveFactions.TryRemove(character.Id, out _);
         character.SetFaction(restoreFactionId);
         character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
     }
