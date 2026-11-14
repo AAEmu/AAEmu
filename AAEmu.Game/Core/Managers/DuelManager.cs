@@ -143,17 +143,41 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             restoreFactionId = character.OriginFaction.Id;
         }
 
+        ////faction enums from FactionsEnum.cs///////
+        /*
+        Invalid = 0,
+        Friendly = 1,
+        Neutral = 2,
+        Hostile = 3,
+
+        Nuian = 101,
+        Elf = 103,
+        Harani = 109,
+        Firran = 113,
+
+        Monstrosity = 115,
+        Animal = 116,
+        NuiaAlliance = 148,
+        HaranyaAlliance = 149,
+
+        RedTeam = 159,
+        BlueTeam = 160,
+
+        Pirate = 161,
+        PcFriendly = 165,
+        Fish = 172,
+        */
         // 3. Last resort: If even OriginFaction was corrupted to Red/Blue in the DB, derive from Race
         if (restoreFactionId == FactionsEnum.RedTeam ||
             restoreFactionId == FactionsEnum.BlueTeam)
         {
-            restoreFactionId = (byte)character.Race switch
+            restoreFactionId = character.Race switch
             {
-                1 => (FactionsEnum)101, // Nuian
-                4 => (FactionsEnum)103, // Elf
-                5 => (FactionsEnum)109, // Hariharan
-                6 => (FactionsEnum)108, // Ferre
-                _ => (FactionsEnum)101
+                Race.Nuian => FactionsEnum.Nuian,      // 101
+                Race.Elf => FactionsEnum.Elf,          // 103
+                Race.Hariharan => FactionsEnum.Harani, // 109
+                Race.Ferre => FactionsEnum.Firran,     // 113 (Fixed from 108!)
+                _ => FactionsEnum.Nuian
             };
         }
 
