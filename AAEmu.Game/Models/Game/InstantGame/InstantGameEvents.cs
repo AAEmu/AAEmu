@@ -71,6 +71,9 @@ public partial class InstantGame
                     },
                     _world.Id
                 );
+                // Teleport the corpse to the platform, wipe the killstreak UI, and stand them up
+                victim.SendPacket(new SCTeleportUnitPacket(0, 0, endSpawn.X, endSpawn.Y, endSpawn.Z, endSpawn.RotationZ));
+                victim.SendPacket(new SCInstantGameKillstreakPacket(_zoneInstanceId, 0, 0, false));
                 victim.BroadcastPacket(new SCCharacterResurrectedPacket(victim.ObjId, endSpawn.X, endSpawn.Y, endSpawn.Z, endSpawn.RotationZ), true);
                 victim.Hp = victim.MaxHp;
                 victim.Mp = victim.MaxMp;
@@ -122,6 +125,15 @@ public partial class InstantGame
                 _world.Id
             );
 
+            //By passing 0, 0, false into the SCInstantGameKillstreakPacket,
+            //it forces the client to visually reset and hide the killstreak flame UI when they respawn.
+            //Combined with the SCTeleportUnitPacket, it have perfectly replicated the retail ArcheAge arena respawn flow!
+            //Teleport the corpse / camera to the spawn(Client - side)
+            victim.SendPacket(new SCTeleportUnitPacket(0, 0, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ));
+            //Reset the killstreak UI for the dead player(Client - side)
+            // Sending 0 for the streak, 0 for the skill, and false for enabled clears it from the screen
+            victim.SendPacket(new SCInstantGameKillstreakPacket(_zoneInstanceId, 0, 0, false));
+
             // Reset victim for the next round
             victim.BroadcastPacket(new SCCharacterResurrectedPacket(victim.ObjId, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ), true); // Resurrect
             victim.ResetAllSkillCooldowns(false); // Skill Cooldown Reset
@@ -147,14 +159,15 @@ public partial class InstantGame
                     },
                     _world.Id
                 );
+                // ALWAYS teleport the killer's camera/body to the spawn
+                killer.SendPacket(new SCTeleportUnitPacket(0, 0, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ));
 
                 if (killer.Hp == 0)
                 {
-                    // Killer somehow died
+                    // If the killer died (Double KO), reset their killstreak and stand them up
+                    killer.SendPacket(new SCInstantGameKillstreakPacket(_zoneInstanceId, 0, 0, false));
                     killer.BroadcastPacket(new SCCharacterResurrectedPacket(killer.ObjId, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ), true);
                 }
-                else
-                    killer.SendPacket(new SCTeleportUnitPacket(0, 0, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ));
 
                 killer.Hp = killer.MaxHp;
                 killer.Mp = killer.MaxMp;
