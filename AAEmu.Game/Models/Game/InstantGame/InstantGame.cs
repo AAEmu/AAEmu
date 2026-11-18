@@ -247,13 +247,13 @@ public partial class InstantGame
         if ((uint)restoreFactionId == _battlefield.RuleSet.Corps1FactionId ||
             (uint)restoreFactionId == _battlefield.RuleSet.Corps2FactionId)
         {
-            restoreFactionId = (byte)character.Race switch
+            restoreFactionId = character.Race switch
             {
-                1 => (FactionsEnum)101, // Nuian
-                4 => (FactionsEnum)103, // Elf
-                5 => (FactionsEnum)109, // Hariharan
-                6 => (FactionsEnum)108, // Ferre
-                _ => (FactionsEnum)101
+                Race.Nuian => FactionsEnum.Nuian,
+                Race.Elf => FactionsEnum.Elf,
+                Race.Hariharan => FactionsEnum.Harani,
+                Race.Ferre => FactionsEnum.Firran,
+                _ => FactionsEnum.Nuian
             };
         }
 
@@ -263,13 +263,118 @@ public partial class InstantGame
 
     private void SendResult()
     {
-        BroadcastPacket(new SCInstantGameEndPacket(_zoneInstanceId, BattlefieldEndingReason.AchievementScore,
+        var endingReason = BattlefieldEndingReason.AchievementScore;
+
+        // 1. If neither side reached VictoryScore (match timer expired), determine the winner by score/kills
+        if (_corps1Result.State != VictoryState.Win && _corps2Result.State != VictoryState.Win)
+        {
+            if (_corps1Result.Score > _corps2Result.Score)
+            {
+                _corps1Result.State = VictoryState.Win;
+                _corps2Result.State = VictoryState.Lose;
+                endingReason = BattlefieldEndingReason.TimeoverCompareScore;
+            }
+            else if (_corps2Result.Score > _corps1Result.Score)
+            {
+                _corps2Result.State = VictoryState.Win;
+                _corps1Result.State = VictoryState.Lose;
+                endingReason = BattlefieldEndingReason.TimeoverCompareScore;
+            }
+            else if (_corps1Result.TotalKills > _corps2Result.TotalKills)
+            {
+                _corps1Result.State = VictoryState.Win;
+                _corps2Result.State = VictoryState.Lose;
+                endingReason = BattlefieldEndingReason.TimeoverCompareKillCount;
+            }
+            else if (_corps2Result.TotalKills > _corps1Result.TotalKills)
+            {
+                _corps2Result.State = VictoryState.Win;
+                _corps1Result.State = VictoryState.Lose;
+                endingReason = BattlefieldEndingReason.TimeoverCompareKillCount;
+            }
+            else
+            {
+                _corps1Result.State = VictoryState.Draw;
+                _corps2Result.State = VictoryState.Draw;
+                endingReason = BattlefieldEndingReason.TimeoverDraw;
+            }
+        }
+
+        // 2. Calculate Arena Rating (MMR) and Honor Rewards before sending the scoreboard packet
+        ProcessMatchRewards();
+
+        // 3. Broadcast the final scoreboard packet (includes member.Bonus values set above)
+        BroadcastPacket(new SCInstantGameEndPacket(_zoneInstanceId, endingReason,
             _corps1Result,
             _corps2Result));
 
         foreach (var character in _players.ToList())
         {
             RestoreOriginalFaction(character);
+        }
+    }
+
+    private void ProcessMatchRewards()
+    {
+        // Configure base payouts (can be moved to WorldConfiguration / world.json later)
+        const int gladiatorWinHonor = 20;
+        const int gladiatorLoseHonor = 5;
+        const int gladiatorDrawHonor = 5;
+
+        const int ratingWinGain = 20;
+        const int ratingLosePenalty = 10;
+
+        foreach (var member in _members.Values)
+        {
+            var character = member.Character;
+            if (character == null || member.Corps == null)
+                continue;
+
+            int honorReward = 0;
+            int ratingDelta = 0;
+
+            switch (member.Corps.State)
+            {
+                case VictoryState.Win:
+                    honorReward = gladiatorWinHonor;
+                    ratingDelta = ratingWinGain;
+                    break;
+                case VictoryState.Lose:
+                    honorReward = gladiatorLoseHonor;
+                    ratingDelta = -ratingLosePenalty;
+                    break;
+                case VictoryState.Draw:
+                    honorReward = gladiatorDrawHonor;
+                    ratingDelta = 0;
+                    break;
+            }
+
+            // Apply server PvP Honor Rate multiplier if configured
+            var pvpRate = AppConfiguration.Instance.World.PvpHonorRate;
+            if (pvpRate > 0)
+            {
+                honorReward = (int)Math.Round(honorReward * pvpRate);
+            }
+
+            // Set Bonus on the team member so the Arena Scoreboard UI displays the Honor gained
+            member.Bonus = member.Assists;
+
+            // Grant spendable Honor Points and update lifetime PvP Honor counter
+            if (honorReward > 0)
+            {
+                character.ChangeGamePoints(GamePointKind.Honor, honorReward);
+                character.HonorGainedInCombat += (uint)honorReward;
+                character.BroadcastPacket(new SCUnitPvPPointsChangedPacket(character.ObjId, 0, (int)character.HonorGainedInCombat), true);
+            }
+
+            // Update ArenaRating (clamped at 0 minimum since DB default is 0)
+            var oldRating = character.ArenaRating;
+            character.ArenaRating = Math.Max(0, character.ArenaRating + ratingDelta);
+
+            // Persist updated ArenaRating and Honor to MySQL immediately
+            character.SaveDirectlyToDatabase();
+
+            _log.Info($"[Arena] Match result for {character.Name}: State={member.Corps.State}, Honor=+{honorReward}, Rating={oldRating} -> {character.ArenaRating}");
         }
     }
 
