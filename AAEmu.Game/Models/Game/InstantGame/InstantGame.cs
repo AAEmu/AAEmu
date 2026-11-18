@@ -367,14 +367,17 @@ public partial class InstantGame
                 character.BroadcastPacket(new SCUnitPvPPointsChangedPacket(character.ObjId, 0, (int)character.HonorGainedInCombat), true);
             }
 
+            //comment out arena rating which is a columm added in character db for testing purposes of creating ranking system and panels.
             // Update ArenaRating (clamped at 0 minimum since DB default is 0)
-            var oldRating = character.ArenaRating;
-            character.ArenaRating = Math.Max(0, character.ArenaRating + ratingDelta);
+            //var oldRating = character.ArenaRating;
+            //character.ArenaRating = Math.Max(0, character.ArenaRating + ratingDelta);
 
             // Persist updated ArenaRating and Honor to MySQL immediately
             character.SaveDirectlyToDatabase();
 
-            _log.Info($"[Arena] Match result for {character.Name}: State={member.Corps.State}, Honor=+{honorReward}, Rating={oldRating} -> {character.ArenaRating}");
+            _log.Info($"[Arena] Match result for {character.Name}: State={member.Corps.State}, Honor=+{honorReward}");
+            //comment out arena rating which is a columm added in character db for testing purposes.
+            //_log.Info($"[Arena] Match result for {character.Name}: State={member.Corps.State}, Honor=+{honorReward}, Rating={oldRating} -> {character.ArenaRating}");
         }
     }
 
