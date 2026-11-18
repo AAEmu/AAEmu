@@ -28,7 +28,7 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
 
     // there can be several duels at the same time
     private readonly ConcurrentDictionary<uint, Duel> _duels = new();
-    
+
     // Satisfies IDuelManager interface untouched
     public Dictionary<uint, FactionsEnum> SaveFactions { get; set; } = new();
     private readonly object _factionLock = new(); // Used to make SaveFactions thread-safe
@@ -142,7 +142,7 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             return;
 
         FactionsEnum restoreFactionId;
-        
+
         // Thread-safe dictionary access
         lock (_factionLock)
         {
