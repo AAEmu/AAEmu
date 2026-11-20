@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -30,6 +30,8 @@ public partial class InstantGame
     private readonly ZoneInstanceId _zoneInstanceId;
 
     private readonly CancellationTokenSource _endGameTokenSource;
+
+    private readonly Dictionary<Character, FactionsEnum> _preArenaFactions = new();
 
     public InstantGame(Battlefield battlefield)
     {
@@ -88,6 +90,7 @@ public partial class InstantGame
             charsInCorps2.Remove(character);
 
         _characterCorps.Remove(character);
+        _preArenaFactions.Remove(character);
         character.CurrentInstantGame = null;
         return true;
     }
@@ -133,12 +136,30 @@ public partial class InstantGame
         var corps = _characterCorps[character];
         character.SendPacket(new SCInstantGameJoinedPacket(_zoneInstanceId, corps, _battlefield.RuleSet));
 
+        // Save their exact current faction (supports Pirates, Nations, etc.) before switching to Red/Blue
+        if (!_preArenaFactions.ContainsKey(character))
+        {
+            _preArenaFactions[character] = character.Faction.Id;
+        }
+
         if (corps == InstantCorps.Corps1)
             character.SetFaction((FactionsEnum)_battlefield.RuleSet.Corps1FactionId);
         else
             character.SetFaction((FactionsEnum)_battlefield.RuleSet.Corps2FactionId);
 
         character.Events.OnKill += OnKill;
+
+        // 1. Give Arena Standby Buff (131) as soon as they enter
+        character.Buffs.AddBuff(131, character); // 
+
+        // 2. Heal any initial landing fall damage for Player 1 after 2.5 seconds
+        Task.Run(async () =>
+        {
+            await Task.Delay(2500);
+            character.Hp = character.MaxHp;
+            character.Mp = character.MaxMp;
+            character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+        });
 
         var member = new InstantGameTeamMember { Character = character };
         _members.Add(character, member);
@@ -171,14 +192,27 @@ public partial class InstantGame
                 }
 
                 // Reset HP and MP
-                // Reset HP
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;
                 character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
                 // Reset Buffs
                 character.Buffs.RemoveAllEffects();
+                //Add buff invincible
+                character.Buffs.AddBuff(131, character);
                 // Reset Cooldowns
                 character.ResetAllSkillCooldowns(false);
+            }
+
+            // Wait the remaining 17 seconds (3s + 17s = 20s total countdown) then remove Standby buff
+            await Task.Delay(17000);
+            foreach (var (character, _) in _characterCorps)
+            {
+                if (character == null)
+                {
+                    continue;
+                }
+
+                character.Buffs.RemoveAllEffects();
             }
         });
         Task.Run(async () =>
@@ -195,17 +229,163 @@ public partial class InstantGame
         DestroyInstantGame();
     }
 
+    private void RestoreOriginalFaction(Character character)
+    {
+        if (character == null)
+            return;
+
+        // 1. Pull the exact faction they had right before entering the arena
+        if (!_preArenaFactions.TryGetValue(character, out var restoreFactionId) ||
+            (uint)restoreFactionId == _battlefield.RuleSet.Corps1FactionId ||
+            (uint)restoreFactionId == _battlefield.RuleSet.Corps2FactionId)
+        {
+            // 2. Fallback to OriginFaction if pre-arena snapshot was missing or already Red/Blue
+            restoreFactionId = character.OriginFaction.Id;
+        }
+
+        // 3. Last resort: If even OriginFaction was corrupted to Red/Blue in the DB, derive from Race
+        if ((uint)restoreFactionId == _battlefield.RuleSet.Corps1FactionId ||
+            (uint)restoreFactionId == _battlefield.RuleSet.Corps2FactionId)
+        {
+            restoreFactionId = character.Race switch
+            {
+                Race.Nuian => FactionsEnum.Nuian,
+                Race.Elf => FactionsEnum.Elf,
+                Race.Hariharan => FactionsEnum.Harani,
+                Race.Ferre => FactionsEnum.Firran,
+                _ => FactionsEnum.Nuian
+            };
+        }
+
+        character.SetFaction(restoreFactionId);
+        character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+    }
+
     private void SendResult()
     {
-        BroadcastPacket(new SCInstantGameEndPacket(_zoneInstanceId, BattlefieldEndingReason.AchievementScore,
+        var endingReason = BattlefieldEndingReason.AchievementScore;
+
+        // 1. If neither side reached VictoryScore (match timer expired), determine the winner by score/kills
+        if (_corps1Result.State != VictoryState.Win && _corps2Result.State != VictoryState.Win)
+        {
+            if (_corps1Result.Score > _corps2Result.Score)
+            {
+                _corps1Result.State = VictoryState.Win;
+                _corps2Result.State = VictoryState.Lose;
+                endingReason = BattlefieldEndingReason.TimeoverCompareScore;
+            }
+            else if (_corps2Result.Score > _corps1Result.Score)
+            {
+                _corps2Result.State = VictoryState.Win;
+                _corps1Result.State = VictoryState.Lose;
+                endingReason = BattlefieldEndingReason.TimeoverCompareScore;
+            }
+            else if (_corps1Result.TotalKills > _corps2Result.TotalKills)
+            {
+                _corps1Result.State = VictoryState.Win;
+                _corps2Result.State = VictoryState.Lose;
+                endingReason = BattlefieldEndingReason.TimeoverCompareKillCount;
+            }
+            else if (_corps2Result.TotalKills > _corps1Result.TotalKills)
+            {
+                _corps2Result.State = VictoryState.Win;
+                _corps1Result.State = VictoryState.Lose;
+                endingReason = BattlefieldEndingReason.TimeoverCompareKillCount;
+            }
+            else
+            {
+                _corps1Result.State = VictoryState.Draw;
+                _corps2Result.State = VictoryState.Draw;
+                endingReason = BattlefieldEndingReason.TimeoverDraw;
+            }
+        }
+
+        // 2. Calculate Arena Rating (MMR) and Honor Rewards before sending the scoreboard packet
+        ProcessMatchRewards();
+
+        // 3. Broadcast the final scoreboard packet (includes member.Bonus values set above)
+        BroadcastPacket(new SCInstantGameEndPacket(_zoneInstanceId, endingReason,
             _corps1Result,
             _corps2Result));
+
+        foreach (var character in _players.ToList())
+        {
+            RestoreOriginalFaction(character);
+        }
+    }
+
+    private void ProcessMatchRewards()
+    {
+        // Configure base payouts (can be moved to WorldConfiguration / world.json later)
+        const int gladiatorWinHonor = 20;
+        const int gladiatorLoseHonor = 5;
+        const int gladiatorDrawHonor = 5;
+
+        const int ratingWinGain = 20;
+        const int ratingLosePenalty = 10;
+
+        foreach (var member in _members.Values)
+        {
+            var character = member.Character;
+            if (character == null || member.Corps == null)
+                continue;
+
+            int honorReward = 0;
+            int ratingDelta = 0;
+
+            switch (member.Corps.State)
+            {
+                case VictoryState.Win:
+                    honorReward = gladiatorWinHonor;
+                    ratingDelta = ratingWinGain;
+                    break;
+                case VictoryState.Lose:
+                    honorReward = gladiatorLoseHonor;
+                    ratingDelta = -ratingLosePenalty;
+                    break;
+                case VictoryState.Draw:
+                    honorReward = gladiatorDrawHonor;
+                    ratingDelta = 0;
+                    break;
+            }
+
+            // Apply server PvP Honor Rate multiplier if configured
+            var pvpRate = AppConfiguration.Instance.World.PvpHonorRate;
+            if (pvpRate > 0)
+            {
+                honorReward = (int)Math.Round(honorReward * pvpRate);
+            }
+
+            // Set Bonus on the team member so the Arena Scoreboard UI displays the Honor gained
+            member.Bonus = member.Assists;
+
+            // Grant spendable Honor Points and update lifetime PvP Honor counter
+            if (honorReward > 0)
+            {
+                character.ChangeGamePoints(GamePointKind.Honor, honorReward);
+                character.HonorGainedInCombat += (uint)honorReward;
+                character.BroadcastPacket(new SCUnitPvPPointsChangedPacket(character.ObjId, 0, (int)character.HonorGainedInCombat), true);
+            }
+
+            //comment out arena rating which is a columm added in character db for testing purposes of creating ranking system and panels.
+            // Update ArenaRating (clamped at 0 minimum since DB default is 0)
+            //var oldRating = character.ArenaRating;
+            //character.ArenaRating = Math.Max(0, character.ArenaRating + ratingDelta);
+
+            // Persist updated ArenaRating and Honor to MySQL immediately
+            character.SaveDirectlyToDatabase();
+
+            _log.Info($"[Arena] Match result for {character.Name}: State={member.Corps.State}, Honor=+{honorReward}");
+            //comment out arena rating which is a columm added in character db for testing purposes.
+            //_log.Info($"[Arena] Match result for {character.Name}: State={member.Corps.State}, Honor=+{honorReward}, Rating={oldRating} -> {character.ArenaRating}");
+        }
     }
 
     private void DestroyInstantGame()
     {
         foreach (var character in _players.ToList())
         {
+            RestoreOriginalFaction(character);
             LeaveInstantGame(character);
         }
 
@@ -217,9 +397,13 @@ public partial class InstantGame
     public void LeaveInstantGame(Character character)
     {
         // Warning: Null exception exists if player does not exist in the world when this is ran (Most likely from disconnecting or character select)
-
+        RestoreOriginalFaction(character);
         RemovePlayer(character);
-        character.SetFaction(character.OriginFaction.Id);
+        
+        //character.SetFaction(character.OriginFaction.Id);
+        // --- FIX: Force client nameplate/faction UI refresh ---
+        //character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+        // ----------------------------------------------------
         character.Events.OnKill -= OnKill;
         character.DisabledSetPosition = true;
 
