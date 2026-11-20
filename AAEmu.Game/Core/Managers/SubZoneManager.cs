@@ -293,17 +293,22 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
     public List<uint> GetHousingZoneByPosition(WorldInstance world, float x, float y)
     {
-        var zoneId = worldManager.GetZoneId(world.Template, x, y);
+        var zoneKey = worldManager.GetZoneId(world.Template, x, y);
+        var zone = zoneManager.GetZoneByKey(zoneKey);
+        if (zone == null || !world.Template.HousingZones.TryGetValue(zone.Id, out var housingZones))
+        {
+            return [];
+        }
 
         var foundHousingZones = new List<uint>();
 
         var found = false;
 
-        foreach (var houseZoneTemplate in world.Template.HousingZones[zoneId])
+        foreach (var houseZoneTemplate in housingZones)
         {
             if (Point.IsInside(houseZoneTemplate.Points, houseZoneTemplate.Points.Count, new JVector(x, y, 0)))
             {
-                Logger.Debug($"Is in zone {zoneId} housezone name {houseZoneTemplate.Name} ({houseZoneTemplate.Id})");
+                Logger.Debug($"Is in zone {zone.Id} housezone name {houseZoneTemplate.Name} ({houseZoneTemplate.Id})");
                 found = true;
 
                 foundHousingZones.Add(houseZoneTemplate.Id);
