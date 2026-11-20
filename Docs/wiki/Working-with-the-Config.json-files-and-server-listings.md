@@ -1,4 +1,4 @@
-# Working with Config Files and Server Listings
+﻿# Working with Config Files and Server Listings
 
 - Audience: Contributors, players, and testers
 - Last verified against: `develop` on February 28, 2026
@@ -81,6 +81,45 @@ Older instructions referenced `aaemu_login.game_servers` and SQL inserts.
 That is no longer the source of truth for server listings.
 
 Use login `GameServers` configuration instead.
+
+## Nymph Queen encounter (quest 2008)
+
+The encounter is shared by the challenger and nearby party members present when
+it starts. Those members can accept the quest before Lympheroda retreats; other
+players cannot join or deal damage during that encounter.
+
+Defaults are in `AAEmu.Game/Configurations/QuestEncounters.json`. Override them
+in Game's `Config.Local.json`:
+
+```json
+{
+  "NymphQueenEncounter": {
+    "CombatInactivitySeconds": 60,
+    "DialogueSeconds": 50,
+    "ResetDelaySeconds": 5
+  }
+}
+```
+
+Only participant damage refreshes the combat timer. Retreat at half health
+starts Nepheroda's dialogue window. Leaving combat, owner death,
+or expiry of a timer fails unfinished participants and restores one friendly
+Lympheroda after the reset delay. Abandon the failed quest before accepting it
+again. After a successful conversation, quest credit is retained for the final
+turn-in to Opheila, and the encounter resets for the next challenger.
+
+Each character selection revalidates persisted encounter quests before sending
+them to the client. Unfinished combat/dialogue quests are marked failed, including
+after a disconnect, a missing NPC, or a server restart. Completed conversation
+credit and quests ready for final turn-in are retained. No offline event is needed;
+the encounter timers still recover abandoned NPCs.
+Timer values are seconds and are clamped to a minimum of one second.
+
+Abandoning or removing quest 2008 also resets its active encounter. Wait for the
+five-second reset delay before accepting it again. The GM command `/quest add
+2008` uses the same encounter lifecycle and can recover a missing Lympheroda
+from her existing world spawner; it does not place a new queen at the player's
+position or interrupt another player's active encounter.
 
 ## Related
 

@@ -14,6 +14,9 @@ public class ReturnStateBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
+        if (Ai.Owner.Encounter?.AbandonCombat() == true)
+            return;
+
         // TODO : Autodisable
 
         if (!Ai.Owner.AggroTable.IsEmpty)

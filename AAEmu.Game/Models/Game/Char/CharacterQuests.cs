@@ -68,6 +68,13 @@ public class CharacterQuests(Character owner)
     /// <returns></returns>
     public bool AddQuest(uint questId, bool forcibly = false, QuestAcceptorType questAcceptorType = QuestAcceptorType.Unknown, uint acceptorId = 0)
     {
+        var request = new QuestAcceptance(Owner, questId, forcibly, questAcceptorType, acceptorId);
+        return QuestManager.Instance.TryAcceptQuest(request,
+            accepted => AddQuestCore(accepted.QuestId, accepted.Forcibly, accepted.AcceptorType, accepted.AcceptorId));
+    }
+
+    private bool AddQuestCore(uint questId, bool forcibly, QuestAcceptorType questAcceptorType, uint acceptorId)
+    {
         if (ActiveQuests.ContainsKey(questId))
         {
             if (forcibly)
@@ -168,6 +175,8 @@ public class CharacterQuests(Character owner)
     {
         var npc = Owner.ParentWorld.GetNpc(npcObjId);
         Owner.CurrentTarget = npc;
+        if (npc == null)
+            return false;
         return AddQuest(questId, false, QuestAcceptorType.Npc, npc.TemplateId);
     }
 
@@ -237,6 +246,8 @@ public class CharacterQuests(Character owner)
     {
         if (!ActiveQuests.TryGetValue(questId, out var quest)) { return; }
 
+        quest.NotifyRemoving();
+
         quest.SkipUpdatePackets(); // make sure no further "update packets" are send to the player
         quest.Cleanup();
         quest.Drop(update);
@@ -249,12 +260,24 @@ public class CharacterQuests(Character owner)
             SetCompletedQuestFlag(questId, false);
         }
 
+        QuestManager.Instance.NotifyQuestRemoved(quest, update);
+
         quest.Owner.SendDebugMessage($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
         Logger.Warn($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
 
         QuestManager.Instance.RemoveQuestTimer(Owner.Id, questId);
 
         QuestIdManager.Instance.ReleaseId((uint)quest.Id);
+    }
+
+    public void SendQuestReset(uint questId)
+    {
+        // Preserve every other completion flag in the block sent to the client.
+        var blockId = (ushort)(questId / 64);
+        var body = new byte[8];
+        if (CompletedQuests.TryGetValue(blockId, out var block))
+            block.Body.CopyTo(body, 0);
+        Owner.SendPacket(new SCQuestContextResetPacket(questId, body, blockId));
     }
 
     /// <summary>
@@ -542,6 +565,7 @@ public class CharacterQuests(Character owner)
                     var oldStatus = quest.Status;
                     quest.ReadData((byte[])reader.GetValue("data"));
                     quest.Status = oldStatus;
+                    QuestManager.Instance.NotifyQuestLoaded(quest);
                     ActiveQuests.Add(quest.TemplateId, quest);
                     quest.QuestInitialized();
                     quest.RequestEvaluation();

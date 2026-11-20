@@ -58,7 +58,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
     /// <param name="ownerId"></param>
     /// <returns>List of newly spawned NPCs</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public List<Npc> Spawn(NpcSpawner npcSpawner, uint ownerId = 0)
+    public virtual List<Npc> Spawn(NpcSpawner npcSpawner, uint ownerId = 0)
     {
         switch (MemberType)
         {

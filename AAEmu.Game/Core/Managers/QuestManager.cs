@@ -22,8 +22,28 @@ using QuestNpcAiName = AAEmu.Game.Models.Game.Quests.Static.QuestNpcAiName;
 
 namespace AAEmu.Game.Core.Managers;
 
-public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneManager) : Singleton<QuestManager>, IQuestManager
+public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneManager,
+    IEnumerable<IQuestScript> scripts = null) : Singleton<QuestManager>, IQuestManager
 {
+    private readonly Dictionary<uint, IQuestScript> _scripts = (scripts ?? []).ToDictionary(script => script.QuestId);
+
+    public bool TryAcceptQuest(QuestAcceptance request, Func<QuestAcceptance, bool> accept)
+    {
+        return _scripts.TryGetValue(request.QuestId, out var script) ? script.TryAccept(request, accept) : accept(request);
+    }
+
+    public void NotifyQuestLoaded(Quest quest)
+    {
+        if (_scripts.TryGetValue(quest.TemplateId, out var script))
+            script.OnLoaded(quest);
+    }
+
+    public void NotifyQuestRemoved(Quest quest, bool update)
+    {
+        if (_scripts.TryGetValue(quest.TemplateId, out var script))
+            script.OnRemoved(quest, update);
+    }
+
     private static uint QuestCategoryTutorial => 45;
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;

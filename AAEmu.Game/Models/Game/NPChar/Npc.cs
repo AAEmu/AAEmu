@@ -25,6 +25,21 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public partial class Npc : Unit
 {
+    internal object EncounterSync { get; } = new();
+    internal INpcEncounter Encounter { get; set; }
+
+    public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+    {
+        var encounter = Encounter;
+        if (encounter != null)
+        {
+            if (!encounter.CanDamage(attacker))
+                return;
+            value = encounter.AdjustDamage(attacker, value);
+        }
+        base.ReduceCurrentHp(attacker, value, killReason);
+    }
+
     public override UnitTypeFlag TypeFlag => UnitTypeFlag.Npc;
     public override BaseUnitType BaseUnitType => BaseUnitType.Npc;
     public override ModelPostureType ModelPostureType { get => AnimActionId > 0 ? ModelPostureType.ActorModelState : ModelPostureType.None; }
