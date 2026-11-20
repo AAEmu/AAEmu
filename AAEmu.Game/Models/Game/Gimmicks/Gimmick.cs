@@ -159,6 +159,10 @@ public class Gimmick : Unit
         if (skillId <= 0)
             return;
 
+        var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
+        if (skillTemplate == null)
+            return;
+
         lock (_skillStartedLock)
         {
             if (SkillStarted)
@@ -166,7 +170,6 @@ public class Gimmick : Unit
             SkillStarted = true;
         }
 
-        var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
         var caster = ParentWorld.GetUnit(SpawnerUnitId);
         var skillCaster = new SkillDoodad(ObjId);
         var skillCastTarget = new SkillCastPositionTarget

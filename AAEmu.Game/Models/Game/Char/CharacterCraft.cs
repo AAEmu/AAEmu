@@ -100,6 +100,13 @@ public class CharacterCraft(Character owner)
             return;
         }
 
+        var skillTemplate = SkillManager.Instance.GetSkillTemplate(craft.SkillId);
+        if (skillTemplate == null)
+        {
+            CancelCraft();
+            return;
+        }
+
         IsCrafting = true;
 
         var caster = SkillCaster.GetByType(SkillCasterType.Unit);
@@ -108,7 +115,7 @@ public class CharacterCraft(Character owner)
         var target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
         target.ObjId = doodadId;
 
-        var skill = new Skill(SkillManager.Instance.GetSkillTemplate(craft.SkillId));
+        var skill = new Skill(skillTemplate);
         ConsumeLaborPower = skill.Template.ConsumeLaborPower;
         var speedMultiplier = 1f;
         if (skill.Template.ActabilityGroupId > 0)
@@ -361,6 +368,11 @@ public class CharacterCraft(Character owner)
     {
         var newCraft = new CraftTask(Owner, CurrentCraft.Id, DoodadId, Count);
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(CurrentCraft.SkillId);
+        if (skillTemplate == null)
+        {
+            CancelCraft();
+            return;
+        }
         var timeToGlobalCooldown = Owner.GlobalCooldown - DateTime.UtcNow;
         var nextCraftDelay = timeToGlobalCooldown.TotalMilliseconds > skillTemplate.CooldownTime
             ? timeToGlobalCooldown
